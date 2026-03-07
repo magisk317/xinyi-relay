@@ -56,6 +56,7 @@ room = "2.8.4"
 test-logger = "4.0.0"
 timber = "5.0.1"
 version-catalog-update = "1.1.0"
+libxposed = "55efdf9"
 xposed = "82"
 
 
@@ -131,6 +132,7 @@ retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit
 retrofit-converter-kotlinx-serialization = { module = "com.squareup.retrofit2:converter-kotlinx-serialization", version.ref = "retrofit" }
 retrofit-converter-scalars = { module = "com.squareup.retrofit2:converter-scalars", version.ref = "retrofit" }
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
+libxposed-api = { module = "io.github.libxposed:api", version.ref = "libxposed" }
 xposed-api = { module = "de.robv.android.xposed:api", version.ref = "xposed" }
 
 [plugins]

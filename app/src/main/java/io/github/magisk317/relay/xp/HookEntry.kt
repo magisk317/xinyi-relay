@@ -8,6 +8,8 @@ import io.github.magisk317.relay.xp.hook.code.SmsHandlerHook
 import io.github.magisk317.relay.xp.hook.me.ModuleUtilsHook
 import io.github.magisk317.relay.xp.hook.permission.PermissionGranterHook
 import io.github.magisk317.relay.xp.hook.system.SystemInputInjectorHook
+import io.github.magisk317.relay.xp.runtime.RuntimeBridgeFactory
+import io.github.magisk317.relay.common.utils.PrefsReader
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.IXposedHookZygoteInit
 import de.robv.android.xposed.callbacks.XC_LoadPackage
@@ -27,6 +29,8 @@ class HookEntry :
 
     @Throws(Throwable::class)
     override fun initZygote(startupParam: IXposedHookZygoteInit.StartupParam) {
+        PrefsReader.installRuntimeBridge(RuntimeBridgeFactory.create())
+
         for (hook in mHookList) {
             if (hook.hookInitZygote()) {
                 hook.initZygote(startupParam)

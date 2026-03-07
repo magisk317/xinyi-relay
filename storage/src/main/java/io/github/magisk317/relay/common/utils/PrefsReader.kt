@@ -3,12 +3,67 @@ package io.github.magisk317.relay.common.utils
 import android.content.SharedPreferences
 import android.content.Context
 import io.github.magisk317.relay.common.constant.PrefConst
+import io.github.magisk317.relay.common.xp.NoopXpRuntimeBridge
+import io.github.magisk317.relay.common.xp.XpCapabilities
+import io.github.magisk317.relay.common.xp.PrefReadResult
+import io.github.magisk317.relay.common.xp.PrefsSource
+import io.github.magisk317.relay.common.xp.XpRuntimeBridge
 import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.storage.BuildConfig
+import java.util.concurrent.atomic.AtomicBoolean
 
 object PrefsReader {
     private const val PREFS_NAME = "xposed_prefs"
     private data class BooleanReadTrace(val value: Boolean, val source: String)
     private data class StringReadTrace(val value: String, val source: String)
+    private val providerPrefsSource = ProviderPrefsSource()
+    private val sharedPrefsSource = SharedPrefsSource()
+    private val runtimeBridgeLogOnce = AtomicBoolean(false)
+
+    @Volatile
+    private var runtimeBridge: XpRuntimeBridge = NoopXpRuntimeBridge
+
+    @JvmStatic
+    fun installRuntimeBridge(bridge: XpRuntimeBridge?) {
+        runtimeBridge = bridge ?: NoopXpRuntimeBridge
+        runtimeBridgeLogOnce.set(false)
+        logRuntimeBridgeOnce()
+    }
+
+    private fun logRuntimeBridgeOnce() {
+        if (!BuildConfig.DEBUG || !runtimeBridgeLogOnce.compareAndSet(false, true)) {
+            return
+        }
+        val capabilities = runtimeBridge.capabilities()
+        safeInfo(
+            "PrefsReader runtime bridge: framework=%s version=%s api=%s privilege=%s " +
+                "properties=%s propRemote=%s remotePrefs=%s remoteFile=%s deopt=%s " +
+                "chain=remote->provider->shared->default",
+            capabilities.frameworkName,
+            capabilities.frameworkVersion,
+            capabilities.frameworkApiVersion?.toString() ?: "unknown",
+            capabilities.frameworkPrivilege?.toString() ?: "unknown",
+            capabilities.frameworkProperties?.toString() ?: "unknown",
+            capabilities.hasFrameworkProperty(XpCapabilities.PROP_CAP_REMOTE),
+            capabilities.supportsRemotePrefs,
+            capabilities.supportsRemoteFile,
+            capabilities.supportsDeopt,
+        )
+    }
+
+    private fun resolveSources(): List<PrefsSource> {
+        val remoteSource = runCatching {
+            runtimeBridge.remotePrefsSource(PREFS_NAME)
+        }.getOrElse {
+            safeWarn("PrefsReader: runtime bridge remote source resolve failed", it)
+            null
+        }
+        return buildList {
+            if (remoteSource != null) add(remoteSource)
+            add(providerPrefsSource)
+            add(sharedPrefsSource)
+        }
+    }
 
     private fun getSharedPrefs(context: Context): SharedPreferences? {
         return runCatching {
@@ -22,59 +77,109 @@ object PrefsReader {
         }
     }
 
-    private fun getBooleanViaSharedPrefs(context: Context, key: String, defaultValue: Boolean): Boolean {
-        return try {
-            getSharedPrefs(context)?.getBoolean(key, defaultValue) ?: defaultValue
-        } catch (t: Throwable) {
-            XLog.w("PrefsReader: sharedPrefs boolean '%s' failed, default=%s", key, defaultValue, t)
-            defaultValue
+    private fun resolveBoolean(
+        context: Context,
+        key: String,
+        defaultValue: Boolean,
+        sources: List<PrefsSource> = resolveSources(),
+    ): PrefReadResult<Boolean> {
+        logRuntimeBridgeOnce()
+        for (source in sources) {
+            val result = runCatching { source.readBoolean(context, key, defaultValue) }
+                .onFailure { safeWarn("PrefsReader: source=%s bool key=%s failed", source.sourceName, key, it) }
+                .getOrNull()
+            if (result != null) return result
         }
+        return PrefReadResult(defaultValue, "default")
     }
 
-    private fun getStringViaSharedPrefs(context: Context, key: String, defaultValue: String): String {
-        return try {
-            getSharedPrefs(context)?.getString(key, defaultValue) ?: defaultValue
-        } catch (t: Throwable) {
-            XLog.w("PrefsReader: sharedPrefs string '%s' failed, default=%s", key, defaultValue, t)
-            defaultValue
+    private fun resolveString(
+        context: Context,
+        key: String,
+        defaultValue: String,
+        sources: List<PrefsSource> = resolveSources(),
+    ): PrefReadResult<String> {
+        logRuntimeBridgeOnce()
+        for (source in sources) {
+            val result = runCatching { source.readString(context, key, defaultValue) }
+                .onFailure { safeWarn("PrefsReader: source=%s string key=%s failed", source.sourceName, key, it) }
+                .getOrNull()
+            if (result != null) return result
         }
+        return PrefReadResult(defaultValue, "default")
     }
 
-    private fun getIntViaSharedPrefs(context: Context, key: String, defaultValue: Int): Int {
-        return try {
-            when (val any = getSharedPrefs(context)?.all?.get(key)) {
-                is Int -> any
-                is Long -> any.toInt()
-                is String -> any.toIntOrNull() ?: defaultValue
-                else -> defaultValue
-            }
-        } catch (t: Throwable) {
-            XLog.w("PrefsReader: sharedPrefs int '%s' failed, default=%d", key, defaultValue, t)
-            defaultValue
+    private fun resolveInt(
+        context: Context,
+        key: String,
+        defaultValue: Int,
+        sources: List<PrefsSource> = resolveSources(),
+    ): PrefReadResult<Int> {
+        logRuntimeBridgeOnce()
+        for (source in sources) {
+            val result = runCatching { source.readInt(context, key, defaultValue) }
+                .onFailure { safeWarn("PrefsReader: source=%s int key=%s failed", source.sourceName, key, it) }
+                .getOrNull()
+            if (result != null) return result
         }
+        return PrefReadResult(defaultValue, "default")
+    }
+
+    private fun safeWarn(message: String, vararg args: Any?) {
+        runCatching { XLog.w(message, *args) }
+    }
+
+    private fun safeInfo(message: String, vararg args: Any?) {
+        runCatching { XLog.i(message, *args) }
     }
 
     private fun getBooleanViaProvider(context: Context, key: String, defaultValue: Boolean): Boolean {
-        return try {
-            val uri = io.github.magisk317.relay.data.prefs.PrefsProvider.BOOL_URI.buildUpon()
-                .appendQueryParameter("key", key)
-                .appendQueryParameter("default", defaultValue.toString())
-                .build()
-            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    val value = cursor.getString(0)
-                    return value == "1" || value.equals("true", ignoreCase = true)
-                }
-            }
-            getBooleanViaSharedPrefs(context, key, defaultValue)
-        } catch (t: Throwable) {
-            XLog.w("PrefsReader: read boolean '%s' via provider failed, fallback sharedPrefs", key, t)
-            getBooleanViaSharedPrefs(context, key, defaultValue)
-        }
+        return resolveBoolean(context, key, defaultValue).value
     }
 
     private fun readBooleanWithTrace(context: Context, key: String, defaultValue: Boolean): BooleanReadTrace {
-        try {
+        val result = resolveBoolean(context, key, defaultValue)
+        return BooleanReadTrace(result.value, result.source)
+    }
+
+    private fun getStringViaProvider(context: Context, key: String, defaultValue: String): String {
+        return resolveString(context, key, defaultValue).value
+    }
+
+    private fun readStringWithTrace(context: Context, key: String, defaultValue: String): StringReadTrace {
+        val result = resolveString(context, key, defaultValue)
+        return StringReadTrace(result.value, result.source)
+    }
+
+    private fun getIntViaProvider(context: Context, key: String, defaultValue: Int): Int {
+        return resolveInt(context, key, defaultValue).value
+    }
+
+    internal fun resolveBooleanWithSourcesForTest(
+        context: Context,
+        key: String,
+        defaultValue: Boolean,
+        sources: List<PrefsSource>,
+    ): PrefReadResult<Boolean> = resolveBoolean(context, key, defaultValue, sources)
+
+    internal fun resolveStringWithSourcesForTest(
+        context: Context,
+        key: String,
+        defaultValue: String,
+        sources: List<PrefsSource>,
+    ): PrefReadResult<String> = resolveString(context, key, defaultValue, sources)
+
+    internal fun resolveIntWithSourcesForTest(
+        context: Context,
+        key: String,
+        defaultValue: Int,
+        sources: List<PrefsSource>,
+    ): PrefReadResult<Int> = resolveInt(context, key, defaultValue, sources)
+
+    private class ProviderPrefsSource : PrefsSource {
+        override val sourceName: String = "provider"
+
+        override fun readBoolean(context: Context, key: String, defaultValue: Boolean): PrefReadResult<Boolean>? {
             val uri = io.github.magisk317.relay.data.prefs.PrefsProvider.BOOL_URI.buildUpon()
                 .appendQueryParameter("key", key)
                 .appendQueryParameter("default", defaultValue.toString())
@@ -82,109 +187,87 @@ object PrefsReader {
             context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
                 if (cursor.moveToFirst()) {
                     val value = cursor.getString(0)
-                    return BooleanReadTrace(
+                    return PrefReadResult(
                         value = value == "1" || value.equals("true", ignoreCase = true),
-                        source = "provider",
+                        source = sourceName,
                     )
                 }
             }
-        } catch (t: Throwable) {
-            XLog.w("PrefsReader: read boolean '%s' via provider failed, fallback sharedPrefs", key, t)
+            return null
         }
-        return try {
-            val prefs = getSharedPrefs(context)
-            if (prefs?.contains(key) == true) {
-                BooleanReadTrace(
-                    value = prefs.getBoolean(key, defaultValue),
-                    source = "shared_prefs",
-                )
-            } else {
-                BooleanReadTrace(
-                    value = defaultValue,
-                    source = "default",
-                )
-            }
-        } catch (t: Throwable) {
-            XLog.w("PrefsReader: sharedPrefs boolean '%s' failed, default=%s", key, defaultValue, t)
-            BooleanReadTrace(
-                value = defaultValue,
-                source = "default",
-            )
-        }
-    }
 
-    private fun getStringViaProvider(context: Context, key: String, defaultValue: String): String {
-        return try {
+        override fun readString(context: Context, key: String, defaultValue: String): PrefReadResult<String>? {
             val uri = io.github.magisk317.relay.data.prefs.PrefsProvider.STRING_URI.buildUpon()
                 .appendQueryParameter("key", key)
                 .appendQueryParameter("default", defaultValue)
                 .build()
             context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
                 if (cursor.moveToFirst()) {
-                    return cursor.getString(0) ?: defaultValue
-                }
-            }
-            getStringViaSharedPrefs(context, key, defaultValue)
-        } catch (t: Throwable) {
-            XLog.w("PrefsReader: read string '%s' via provider failed, fallback sharedPrefs", key, t)
-            getStringViaSharedPrefs(context, key, defaultValue)
-        }
-    }
-
-    private fun readStringWithTrace(context: Context, key: String, defaultValue: String): StringReadTrace {
-        try {
-            val uri = io.github.magisk317.relay.data.prefs.PrefsProvider.STRING_URI.buildUpon()
-                .appendQueryParameter("key", key)
-                .appendQueryParameter("default", defaultValue)
-                .build()
-            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    return StringReadTrace(
+                    return PrefReadResult(
                         value = cursor.getString(0) ?: defaultValue,
-                        source = "provider",
+                        source = sourceName,
                     )
                 }
             }
-        } catch (t: Throwable) {
-            XLog.w("PrefsReader: read string '%s' via provider failed, fallback sharedPrefs", key, t)
+            return null
         }
-        return try {
-            val prefs = getSharedPrefs(context)
-            if (prefs?.contains(key) == true) {
-                StringReadTrace(
-                    value = prefs.getString(key, defaultValue) ?: defaultValue,
-                    source = "shared_prefs",
-                )
-            } else {
-                StringReadTrace(
-                    value = defaultValue,
-                    source = "default",
-                )
-            }
-        } catch (t: Throwable) {
-            XLog.w("PrefsReader: sharedPrefs string '%s' failed, default=%s", key, defaultValue, t)
-            StringReadTrace(
-                value = defaultValue,
-                source = "default",
-            )
-        }
-    }
 
-    private fun getIntViaProvider(context: Context, key: String, defaultValue: Int): Int {
-        return try {
+        override fun readInt(context: Context, key: String, defaultValue: Int): PrefReadResult<Int>? {
             val uri = io.github.magisk317.relay.data.prefs.PrefsProvider.INT_URI.buildUpon()
                 .appendQueryParameter("key", key)
                 .appendQueryParameter("default", defaultValue.toString())
                 .build()
             context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
                 if (cursor.moveToFirst()) {
-                    return cursor.getString(0)?.toIntOrNull() ?: defaultValue
+                    return PrefReadResult(
+                        value = cursor.getString(0)?.toIntOrNull() ?: defaultValue,
+                        source = sourceName,
+                    )
                 }
             }
-            getIntViaSharedPrefs(context, key, defaultValue)
-        } catch (t: Throwable) {
-            XLog.w("PrefsReader: read int '%s' via provider failed, fallback sharedPrefs", key, t)
-            getIntViaSharedPrefs(context, key, defaultValue)
+            return null
+        }
+    }
+
+    private class SharedPrefsSource : PrefsSource {
+        override val sourceName: String = "shared_prefs"
+
+        override fun readBoolean(context: Context, key: String, defaultValue: Boolean): PrefReadResult<Boolean>? {
+            val prefs = getSharedPrefs(context) ?: return null
+            if (!prefs.contains(key)) return null
+            val any = prefs.all[key]
+            val value = when (any) {
+                is Boolean -> any
+                is Number -> any.toInt() != 0
+                is String -> any == "1" || any.equals("true", ignoreCase = true)
+                else -> defaultValue
+            }
+            return PrefReadResult(value = value, source = sourceName)
+        }
+
+        override fun readString(context: Context, key: String, defaultValue: String): PrefReadResult<String>? {
+            val prefs = getSharedPrefs(context) ?: return null
+            if (!prefs.contains(key)) return null
+            val any = prefs.all[key]
+            val value = when (any) {
+                is String -> any
+                null -> defaultValue
+                else -> any.toString()
+            }
+            return PrefReadResult(value = value, source = sourceName)
+        }
+
+        override fun readInt(context: Context, key: String, defaultValue: Int): PrefReadResult<Int>? {
+            val prefs = getSharedPrefs(context) ?: return null
+            if (!prefs.contains(key)) return null
+            val any = prefs.all[key]
+            val value = when (any) {
+                is Int -> any
+                is Long -> any.toInt()
+                is String -> any.toIntOrNull() ?: defaultValue
+                else -> defaultValue
+            }
+            return PrefReadResult(value = value, source = sourceName)
         }
     }
 
