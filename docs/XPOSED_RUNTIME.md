@@ -18,3 +18,7 @@
   - `remote_libxposed -> provider -> shared_prefs -> default`
 - `RuntimeBridge` 在 Debug 模式会输出一次能力日志，便于排查运行时能力与回退路径。
 
+## 双包过渡发布
+- `newapi`：主线包，公开发布（Play / GitHub）。
+- `legacy`：过渡包，仅附件/内测用途，不进入公开 Play 轨道。
+- 默认过渡周期：1 个小版本周期；周期结束后移除 legacy 工作流。
