@@ -17,6 +17,20 @@ read_version() {
   printf '%s' "$value"
 }
 
+read_version_fallback() {
+  local key=""
+  local value=""
+  for key in "$@"; do
+    value=$(sed -nE "s/^${key}[[:space:]]*=[[:space:]]*\"([^\"]+)\"/\1/p" "$TOML_FILE" | head -n 1)
+    if [[ -n "$value" ]]; then
+      printf '%s' "$value"
+      return 0
+    fi
+  done
+  echo "Missing version keys: $*" >&2
+  exit 1
+}
+
 badge_escape() {
   local raw="$1"
   raw="${raw//-/--}"
@@ -29,7 +43,7 @@ COMPOSE_BOM_VERSION=$(read_version "compose-bom")
 AGP_VERSION=$(read_version "agp")
 MIN_SDK_VERSION=$(read_version "minSdk")
 TARGET_SDK_VERSION=$(read_version "targetSdk")
-XPOSED_API_VERSION=$(read_version "xposed")
+XPOSED_API_VERSION=$(read_version_fallback "xposed" "libxposed")
 
 KOTLIN_BADGE=$(badge_escape "$KOTLIN_VERSION")
 COMPOSE_BADGE=$(badge_escape "$COMPOSE_BOM_VERSION")

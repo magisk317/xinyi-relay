@@ -43,6 +43,10 @@ jobs:
         with:
           validate-wrappers: false
           allow-snapshot-wrappers: true
+      - name: Publish libxposed artifacts to mavenLocal
+        run: |
+          chmod +x scripts/publish_libxposed_to_maven_local.sh
+          scripts/publish_libxposed_to_maven_local.sh
       - name: Build & Test
         run: ./gradlew --warning-mode all assembleGithubDebug testGithubDebugUnitTest :app:koverVerifyGithubDebug :app:koverHtmlReportGithubDebug -PbuildSplits
       - name: Write build summary

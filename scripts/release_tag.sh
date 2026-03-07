@@ -14,6 +14,40 @@ count_sarif_results() {
   fi
 }
 
+run_webui_checks() {
+  if ! command -v pnpm >/dev/null 2>&1; then
+    echo "ERROR: pnpm is required for WebUI checks but was not found in PATH." >&2
+    exit 1
+  fi
+
+  echo "Running WebUI checks (install/lint/typecheck/build/check-dist)..."
+  (
+    cd "$ROOT_DIR"
+    pnpm -C webui install --frozen-lockfile
+    pnpm -C webui lint
+    pnpm -C webui typecheck
+    pnpm -C webui build
+    pnpm -C webui check-dist
+  )
+
+  echo "WebUI checks passed."
+}
+
+run_sync_readme_badges() {
+  local sync_script="$ROOT_DIR/scripts/sync_readme_badges.sh"
+  if [[ ! -f "$sync_script" ]]; then
+    echo "ERROR: missing script: $sync_script" >&2
+    exit 1
+  fi
+
+  echo "Running README badge sync..."
+  (
+    cd "$ROOT_DIR"
+    bash "$sync_script"
+  )
+  echo "README badge sync completed."
+}
+
 run_pre_push_checks() {
   echo "Running pre-push CI command..."
   (
@@ -86,6 +120,8 @@ if [[ -z "$current_branch" ]]; then
   exit 1
 fi
 
+run_sync_readme_badges
+run_webui_checks
 "$ROOT_DIR/scripts/check_release_guard.sh" "$TAG_NAME"
 run_pre_push_checks
 
@@ -124,7 +160,7 @@ delete_local_tag_if_exists
 delete_remote_tag_if_exists
 
 git -C "$ROOT_DIR" tag -a "$TAG_NAME" -m "$TAG_NAME"
-git -C "$ROOT_DIR" push "$REMOTE_NAME" "$current_branch"
+git -C "$ROOT_DIR" push --force-with-lease "$REMOTE_NAME" "$current_branch"
 git -C "$ROOT_DIR" push "$REMOTE_NAME" "$TAG_NAME"
 
 echo "Created and pushed tag: $TAG_NAME (branch: $current_branch, remote: $REMOTE_NAME)"

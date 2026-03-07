@@ -1,5 +1,11 @@
 # 更新日志
 
+## [v0.0.1-alpha.3]
+
+- 修复模块激活状态判定：优先使用 libxposed service 运行时信号，并保留最近激活回退。
+- 清理旧 `getModuleVersion` / `ModuleUtilsHook` 链路，统一到新 API 判定路径。
+- 截图资源收敛为单图拼接（通用目录），并放宽发布校验的最少截图数量要求。
+
 ## [v0.0.1-alpha.2]
 
 - 切换到 libxposed 新入口模型，并提供兼容 Hook Bridge，降低迁移风险。

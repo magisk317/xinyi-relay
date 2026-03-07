@@ -42,7 +42,8 @@ const targetFiles = collectFiles(targetDir)
 
 const missing = distFiles.filter((f) => !targetFiles.includes(f))
 const extra = targetFiles.filter((f) => !distFiles.includes(f))
-const changed = distFiles.filter((f) => {
+const common = distFiles.filter((f) => targetFiles.includes(f))
+const changed = common.filter((f) => {
   const a = fileHash(path.join(distDir, f))
   const b = fileHash(path.join(targetDir, f))
   return a !== b
@@ -53,6 +54,7 @@ if (missing.length || extra.length || changed.length) {
   if (missing.length) console.error('Missing in assets:', missing)
   if (extra.length) console.error('Extra in assets:', extra)
   if (changed.length) console.error('Changed files:', changed)
+  console.error('Run `pnpm -C webui sync-dist` and commit synced assets.')
   process.exit(1)
 }
 
