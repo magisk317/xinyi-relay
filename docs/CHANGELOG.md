@@ -1,5 +1,11 @@
 # 更新日志
 
+## [v0.0.1-alpha.2]
+
+- 切换到 libxposed 新入口模型，并提供兼容 Hook Bridge，降低迁移风险。
+- 重构偏好读取链路为可插拔 Source Chain，补齐 Runtime 能力探测与回退路径。
+- 发布链路升级为 `newapi` / `legacy` 双工作流，完善发布校验与过渡说明。
+
 ## [v0.0.1-alpha]
 
 - 初始 Alpha 版本发布。
