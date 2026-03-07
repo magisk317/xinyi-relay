@@ -18,14 +18,14 @@ jobs:
       GRADLE_OPTS: -Dorg.gradle.warning.mode=all
     steps:
       - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
       - uses: actions/setup-node@v5
         with:
           node-version: "20"
           cache: "pnpm"
           cache-dependency-path: webui/pnpm-lock.yaml
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.28.0
       - name: WebUI Install
         run: pnpm -C webui install --frozen-lockfile
       - name: WebUI Lint + Typecheck + Build
@@ -38,7 +38,11 @@ jobs:
         with:
           distribution: temurin
           java-version: "25"
-          cache: gradle
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          validate-wrappers: false
+          allow-snapshot-wrappers: true
       - name: Build & Test
         run: ./gradlew --warning-mode all assembleGithubDebug testGithubDebugUnitTest :app:koverVerifyGithubDebug :app:koverHtmlReportGithubDebug -PbuildSplits
       - name: Write build summary

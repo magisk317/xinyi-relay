@@ -80,6 +80,15 @@ fi
 TAG_NAME="v$VERSION_NAME"
 REMOTE_NAME="${RELEASE_REMOTE:-origin}"
 
+current_branch="$(git -C "$ROOT_DIR" branch --show-current)"
+if [[ -z "$current_branch" ]]; then
+  echo "ERROR: detached HEAD is not supported for release_tag.sh" >&2
+  exit 1
+fi
+
+"$ROOT_DIR/scripts/check_release_guard.sh" "$TAG_NAME"
+run_pre_push_checks
+
 if ! git -C "$ROOT_DIR" diff --quiet || ! git -C "$ROOT_DIR" diff --cached --quiet; then
   echo "ERROR: working tree is not clean. Commit/stash changes before tagging." >&2
   exit 1
@@ -113,16 +122,6 @@ delete_remote_tag_if_exists() {
 
 delete_local_tag_if_exists
 delete_remote_tag_if_exists
-
-"$ROOT_DIR/scripts/check_release_guard.sh" "$TAG_NAME"
-
-current_branch="$(git -C "$ROOT_DIR" branch --show-current)"
-if [[ -z "$current_branch" ]]; then
-  echo "ERROR: detached HEAD is not supported for release_tag.sh" >&2
-  exit 1
-fi
-
-run_pre_push_checks
 
 git -C "$ROOT_DIR" tag -a "$TAG_NAME" -m "$TAG_NAME"
 git -C "$ROOT_DIR" push "$REMOTE_NAME" "$current_branch"

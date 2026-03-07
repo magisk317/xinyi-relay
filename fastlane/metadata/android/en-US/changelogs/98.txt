@@ -1,4 +1,0 @@
-- Added full call-notify pipeline: dedicated sender toggle, dedicated record tab (App/WebUI), export and backup compatibility.
-- Added bidirectional app-notify routing: both `app -> sender` and `sender -> app` rules with clearer conflict handling.
-- WebUI security upgrades: HTTPS + credentials + certificate trust helpers (fingerprint, .cer/.p12 export, installer entry).
-- GitHub: https://github.com/magisk317/xinyi-relay/releases

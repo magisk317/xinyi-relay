@@ -27,6 +27,9 @@ data class MsgInfo(
     // They will be re-implemented if necessary when building the full notification engine in SmsCode.
 
     override fun toString(): String {
-        return "MsgInfo(from='$from', content='$content', date=$date, simInfo='$simInfo', uid=$uid, type='$type', packageName='$packageName', notifyChannelId='$notifyChannelId')"
+        return "MsgInfo(" +
+            "from='$from', content='$content', date=$date, simInfo='$simInfo', uid=$uid, " +
+            "type='$type', packageName='$packageName', notifyChannelId='$notifyChannelId'" +
+            ")"
     }
 }

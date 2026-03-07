@@ -92,6 +92,7 @@ class MainActivity : AppCompatActivity() {
         setIntent(intent)
     }
 
+    @Suppress("CyclomaticComplexMethod")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         applyEdgeToEdge(this)

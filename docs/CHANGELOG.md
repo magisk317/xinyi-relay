@@ -1,4 +1,7 @@
-# Changelog
+# 更新日志
 
-历史更新记录请参考原项目：
-- https://github.com/magisk317/XposedSmsCode/blob/dev/docs/CHANGELOG.md
+## [v0.0.1-alpha]
+
+- 初始 Alpha 版本发布。
+- 完成信驿 Relay 独立化（包名与发布链路）。
+- 提供短信/通知转发、记录、WebUI 等核心能力。
