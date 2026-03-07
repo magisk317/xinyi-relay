@@ -48,7 +48,6 @@ import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.common.constant.Const
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.utils.AppPreferencesDataStore
-import io.github.magisk317.relay.common.utils.ModuleActivationStore
 import io.github.magisk317.relay.common.utils.ModuleUtils
 import io.github.magisk317.relay.common.utils.PackageUtils
 import io.github.magisk317.relay.common.utils.RuntimeLogStore
@@ -111,7 +110,7 @@ fun ComposeSettingsScreen(
     var showVerboseLogViewer by remember { mutableStateOf(false) }
     var showKeywordsDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
-    var isActivated by remember { mutableStateOf(ModuleUtils.isModuleEnabled()) }
+    var isActivated by remember { mutableStateOf(ModuleUtils.isModuleActivated(context)) }
     var settingsDataLoaded by remember { mutableStateOf(false) }
     var manualRefreshing by remember { mutableStateOf(false) }
     var expandGeneral by remember { mutableStateOf(false) }
@@ -248,9 +247,9 @@ fun ComposeSettingsScreen(
 
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
-            isActivated = ModuleUtils.isModuleEnabled() || ModuleActivationStore.isActivatedRecently(context)
+            isActivated = ModuleUtils.isModuleActivated(context)
             delay(1000L)
-            isActivated = ModuleUtils.isModuleEnabled() || ModuleActivationStore.isActivatedRecently(context)
+            isActivated = ModuleUtils.isModuleActivated(context)
         }
     }
 

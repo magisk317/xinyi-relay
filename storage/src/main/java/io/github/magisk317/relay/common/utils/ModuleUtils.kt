@@ -1,23 +1,31 @@
 package io.github.magisk317.relay.common.utils
 
+import android.content.Context
+
 /**
  * 当前Xposed模块相关工具类
  */
 object ModuleUtils {
 
-    /**
-     * 返回模块版本 <br/>
-     * 注意：该方法被本模块Hook住，返回的值是 BuildConfig.MODULE_VERSION，如果没被Hook则返回-1
-     */
-    @JvmStatic
-    fun getModuleVersion(): Int {
-        XLog.d("getModuleVersion()")
-        return -1
-    }
+    @Volatile
+    private var runtimeActivated = false
 
     /**
-     * 当前模块是否在XposedInstaller中被启用
+     * 标记当前运行时是否已连接到 Xposed Service。
      */
     @JvmStatic
-    fun isModuleEnabled(): Boolean = getModuleVersion() > 0
+    fun setRuntimeActivated(activated: Boolean) {
+        runtimeActivated = activated
+    }
+
+    @JvmStatic
+    fun isRuntimeActivated(): Boolean = runtimeActivated
+
+    /**
+     * 模块是否已激活（兼容新 API 静态作用域场景）
+     */
+    @JvmStatic
+    fun isModuleActivated(context: Context): Boolean {
+        return runtimeActivated || ModuleActivationStore.isActivatedRecently(context)
+    }
 }

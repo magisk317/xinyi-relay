@@ -11,12 +11,16 @@ import android.os.Bundle
 import android.telephony.TelephonyManager
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.utils.AppPreferencesDataStore
+import io.github.magisk317.relay.common.utils.ModuleUtils
 import io.github.magisk317.relay.common.utils.RuntimeLogStore
+import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.di.appModule
 import io.github.magisk317.relay.forwarder.recovery.RootDbCatchupScheduler
 import io.github.magisk317.relay.web.WebUiRuntimeConfig
 import io.github.magisk317.relay.web.WebUiServer
 import io.github.magisk317.relay.web.WebUiTlsManager
+import io.github.libxposed.service.XposedService
+import io.github.libxposed.service.XposedServiceHelper
 import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
@@ -43,6 +47,7 @@ class SmsCodeApplication : Application() {
         super.onCreate()
         ensureIpcToken()
         RuntimeLogStore.initialize(this, enableDetailedLogs = false)
+        initXposedServiceActivationMonitor()
         if (io.github.magisk317.relay.BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
@@ -60,6 +65,30 @@ class SmsCodeApplication : Application() {
             startWebUiServer()
         }
         RootDbCatchupScheduler.startPeriodic(this, reason = "app_create")
+    }
+
+    private fun initXposedServiceActivationMonitor() {
+        runCatching {
+            XposedServiceHelper.registerListener(
+                object : XposedServiceHelper.OnServiceListener {
+                    override fun onServiceBind(service: XposedService) {
+                        ModuleUtils.setRuntimeActivated(true)
+                        XLog.i(
+                            "Xposed service connected: framework=%s version=%s",
+                            service.frameworkName,
+                            service.frameworkVersion,
+                        )
+                    }
+
+                    override fun onServiceDied(service: XposedService) {
+                        ModuleUtils.setRuntimeActivated(false)
+                        XLog.w("Xposed service disconnected")
+                    }
+                },
+            )
+        }.onFailure {
+            XLog.w("Failed to register Xposed service listener: %s", it.message ?: "unknown")
+        }
     }
 
     override fun onTerminate() {

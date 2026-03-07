@@ -56,7 +56,7 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
     var showAlipayChoiceDialog by remember { mutableStateOf(false) }
     var showQRCodeDialog by remember { mutableStateOf<Pair<Int, String>?>(null) }
 
-    val isEnabled = ModuleUtils.isModuleEnabled()
+    val isEnabled = ModuleUtils.isModuleActivated(context)
 
     val listState = rememberLazyListState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
