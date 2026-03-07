@@ -59,7 +59,7 @@ fun releaseAabName(versionName: String): String {
 }
 
 android {
-    namespace = "io.github.magisk317.xinyi.relay"
+    namespace = "io.github.magisk317.relay"
     compileSdk = compileSdkInt
     compileSdkExtension = sdkExtensionInt
     ndkVersion = ndkVersionStr
@@ -141,6 +141,7 @@ android {
             enableV1Signing = true
             enableV2Signing = true
             enableV3Signing = true
+            enableV4Signing = true
         }
         create("release") {
             storeFile = keyFile
@@ -150,6 +151,7 @@ android {
             enableV1Signing = true
             enableV2Signing = true
             enableV3Signing = true
+            enableV4Signing = true
         }
     }
 

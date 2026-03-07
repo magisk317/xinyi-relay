@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "io.github.magisk317.xinyi.relay.storage"
+    namespace = "io.github.magisk317.relay.storage"
     compileSdk = libs.versions.compileSdk.get().toInt()
     compileSdkExtension = libs.versions.compileSdkExtension.get().toInt()
 

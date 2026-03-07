@@ -30,8 +30,8 @@ You can configure relay targets (Webhook, Telegram, Email, etc.).
 #### 2.3 Cross-App Migration Import
 To support migration, 信驿 Relay may read export data from compatible local source apps via `ContentProvider` (signature-protected).
 - Supported source packages may include:
-  - `com.github.tianma8023.xposed.smscode`
-  - `com.github.magisk317.smscode`
+  - `io.github.magisk317.xinyi.relay`
+  - `io.github.magisk317.relay`
 - Import happens locally on device.
 - Import is only used to migrate your own local settings/rules/records.
 
@@ -87,8 +87,8 @@ If you have questions about this policy, contact:
 #### 2.3 跨应用迁移导入
 为支持迁移，信驿 Relay 可能通过本地 `ContentProvider`（签名权限保护）读取兼容来源应用导出的数据。
 - 可能支持的来源包名包括：
-  - `com.github.tianma8023.xposed.smscode`
-  - `com.github.magisk317.smscode`
+  - `io.github.magisk317.xinyi.relay`
+  - `io.github.magisk317.relay`
 - 导入过程在本地设备内完成；
 - 仅用于迁移你自己的本地配置/规则/记录。
 
