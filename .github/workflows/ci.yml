@@ -23,7 +23,7 @@ jobs:
           version: 10.30.3
       - uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "pnpm"
           cache-dependency-path: webui/pnpm-lock.yaml
       - name: WebUI Install
