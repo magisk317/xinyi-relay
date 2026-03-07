@@ -4,7 +4,7 @@ import io.github.magisk317.relay.common.xp.NoopRemotePrefsSource
 import io.github.magisk317.relay.common.xp.PrefsSource
 import io.github.magisk317.relay.common.xp.XpCapabilities
 import io.github.magisk317.relay.common.xp.XpRuntimeBridge
-import de.robv.android.xposed.XposedBridge
+import io.github.magisk317.relay.xp.compat.XposedBridge
 
 class LegacyXposedRuntimeBridge : XpRuntimeBridge {
     private val snapshot: XpCapabilities by lazy { resolveCapabilities() }
@@ -24,7 +24,7 @@ class LegacyXposedRuntimeBridge : XpRuntimeBridge {
             }.getOrDefault(-1)
         }
         return XpCapabilities(
-            frameworkName = "de.robv.android.xposed",
+            frameworkName = "io.github.magisk317.relay.xp.compat",
             frameworkVersion = if (versionCode > 0) versionCode.toString() else "unknown",
             frameworkApiVersion = null,
             frameworkPrivilege = null,

@@ -6,9 +6,9 @@ import io.github.magisk317.relay.common.constant.PermConst.PACKAGE_PERMISSIONS
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.xp.helper.MethodHookWrapper
 import io.github.magisk317.relay.xp.hook.BaseSubHook
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.XposedBridge
-import de.robv.android.xposed.XposedHelpers
+import io.github.magisk317.relay.xp.compat.XC_MethodHook
+import io.github.magisk317.relay.xp.compat.XposedBridge
+import io.github.magisk317.relay.xp.compat.XposedHelpers
 import java.lang.reflect.Method
 
 /**

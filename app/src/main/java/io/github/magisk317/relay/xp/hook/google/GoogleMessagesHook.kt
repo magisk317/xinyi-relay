@@ -10,8 +10,8 @@ import io.github.magisk317.relay.common.utils.PrefsReader
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.xp.helper.XposedWrapper
 import io.github.magisk317.relay.xp.hook.BaseHook
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.callbacks.XC_LoadPackage
+import io.github.magisk317.relay.xp.compat.XC_MethodHook
+import io.github.magisk317.relay.xp.compat.callbacks.XC_LoadPackage
 import java.util.concurrent.Executors
 import java.util.regex.Pattern
 

@@ -4,9 +4,9 @@ import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.common.utils.ModuleUtils
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.xp.hook.BaseHook
-import de.robv.android.xposed.XC_MethodReplacement
-import de.robv.android.xposed.XposedHelpers
-import de.robv.android.xposed.callbacks.XC_LoadPackage
+import io.github.magisk317.relay.xp.compat.XC_MethodReplacement
+import io.github.magisk317.relay.xp.compat.XposedHelpers
+import io.github.magisk317.relay.xp.compat.callbacks.XC_LoadPackage
 
 /**
  * Hook class ModuleUtils
