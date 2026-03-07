@@ -6,7 +6,7 @@
     public void initZygote(...);
 }
 
--keep class com.github.magisk317.smscode.common.utils.ModuleUtils {
+-keep class io.github.magisk317.relay.common.utils.ModuleUtils {
     int getModuleVersion();
 }
 
@@ -66,7 +66,7 @@
 -keep class * extends androidx.room.RoomDatabase
 -keep @androidx.room.Entity class * { *; }
 -keep @androidx.room.Dao interface * { *; }
--keep class com.github.magisk317.smscode.data.db.AppDatabase_Impl {
+-keep class io.github.magisk317.relay.data.db.AppDatabase_Impl {
     public <init>();
 }
 # Room end
@@ -74,8 +74,8 @@
 
 # ==========================
 # Xposed start
--keep class com.github.magisk317.smscode.xp.HookEntry { *; }
--keep class com.github.magisk317.smscode.xp.hook.** { *; }
+-keep class io.github.magisk317.relay.xp.HookEntry { *; }
+-keep class io.github.magisk317.relay.xp.hook.** { *; }
 # Xposed end
 # ==========================
 

@@ -30,14 +30,14 @@ You can configure relay targets (Webhook, Telegram, Email, etc.).
 #### 2.3 Cross-App Migration Import
 To support migration, 信驿 Relay may read export data from compatible local source apps via `ContentProvider` (signature-protected).
 - Supported source packages may include:
-  - `com.github.tianma8023.xposed.smscode`
-  - `com.github.magisk317.smscode`
+  - `io.github.magisk317.xinyi.relay`
+  - `io.github.magisk317.relay`
 - Import happens locally on device.
 - Import is only used to migrate your own local settings/rules/records.
 
 ### 3. Local Storage and Retention
 - App data is stored locally on your device, e.g.:
-  - `/data/data/io.github.magisk317.xinyi.relay/`
+  - `/data/data/io.github.magisk317.relay/`
 - You can remove data by uninstalling the app or clearing app data in system settings.
 
 ### 4. Data Sharing
@@ -87,14 +87,14 @@ If you have questions about this policy, contact:
 #### 2.3 跨应用迁移导入
 为支持迁移，信驿 Relay 可能通过本地 `ContentProvider`（签名权限保护）读取兼容来源应用导出的数据。
 - 可能支持的来源包名包括：
-  - `com.github.tianma8023.xposed.smscode`
-  - `com.github.magisk317.smscode`
+  - `io.github.magisk317.xinyi.relay`
+  - `io.github.magisk317.relay`
 - 导入过程在本地设备内完成；
 - 仅用于迁移你自己的本地配置/规则/记录。
 
 ### 3. 本地存储与保留
 - 数据默认保存在设备本地，例如：
-  - `/data/data/io.github.magisk317.xinyi.relay/`
+  - `/data/data/io.github.magisk317.relay/`
 - 你可通过卸载应用或系统“清除应用数据”删除数据。
 
 ### 4. 数据共享
