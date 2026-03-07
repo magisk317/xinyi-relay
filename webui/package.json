@@ -19,14 +19,14 @@
     "react-router-dom": "^7.1.1"
   },
   "devDependencies": {
-    "@eslint/js": "^9.17.0",
+    "@eslint/js": "^10.0.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@typescript-eslint/eslint-plugin": "^8.18.2",
     "@typescript-eslint/parser": "^8.18.2",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.20",
-    "eslint": "^9.17.0",
+    "eslint": "^10.0.0",
     "eslint-plugin-react-hooks": "^7.0.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^4.0.0",
