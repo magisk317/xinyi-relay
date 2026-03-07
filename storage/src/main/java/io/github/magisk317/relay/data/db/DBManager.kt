@@ -174,7 +174,7 @@ class DBManager private constructor(context: Context) {
         appList
     }
 
-    // Legacy generic methods for AppBlockViewModel compatibility
+    // Generic compatibility methods for AppBlockViewModel
     fun <T> deleteAll(entityClass: Class<T>) {
         if (entityClass == AppInfo::class.java) {
             mAppInfoDao.clearAll()

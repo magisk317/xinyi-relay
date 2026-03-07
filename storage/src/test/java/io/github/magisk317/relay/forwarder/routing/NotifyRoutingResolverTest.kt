@@ -13,7 +13,7 @@ import java.util.Date
 class NotifyRoutingResolverTest {
 
     @Test
-    fun resolve_noRules_keepsLegacyBehavior() {
+    fun resolve_noRules_keepsPreviousBehavior() {
         val dao = FakeNotifyRouteRuleDao()
         val senders = listOf(sender(1), sender(2), sender(3))
 

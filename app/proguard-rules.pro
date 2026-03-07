@@ -1,8 +1,3 @@
--keep class io.github.magisk317.relay.common.utils.ModuleUtils {
-    int getModuleVersion();
-}
-
-
 # ==========================
 # jsoup proguard start
 -keeppackagenames org.jsoup.nodes

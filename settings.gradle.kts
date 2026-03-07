@@ -6,6 +6,6 @@ pluginManagement {
     }
 }
 
-include(":app", ":storage", ":core", ":xposed-stub")
+include(":app", ":storage", ":core")
 
 rootProject.name = "xinyi-relay"

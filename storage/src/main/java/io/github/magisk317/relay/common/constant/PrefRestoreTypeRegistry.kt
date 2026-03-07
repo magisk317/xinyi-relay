@@ -47,7 +47,7 @@ object PrefRestoreTypeRegistry {
         PrefConst.KEY_WEBUI_LAN_ACCESS,
         PrefConst.KEY_PRIVACY_POLICY_ACCEPTED,
         PrefConst.KEY_BACKUP_COMPAT_TIP_SHOWN,
-        // Legacy compatibility keys from old backups.
+        // Compatibility keys for imports from older backups.
         PrefConst.KEY_ENABLE_SMS_BLOCK,
         PrefConst.KEY_ENABLE_NOTIFICATION_FORWARD,
     )

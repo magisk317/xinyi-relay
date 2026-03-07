@@ -1,4 +1,4 @@
 - Initial alpha release.
-- Published under an independent package/application id (no impact on legacy app update path).
+- Published under an independent package/application id (no impact on previous app update path).
 - Includes core SMS/notification relay, records, and WebUI capabilities for first-round validation.
 - GitHub: https://github.com/magisk317/xinyi-relay/releases

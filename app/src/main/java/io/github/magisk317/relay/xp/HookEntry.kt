@@ -5,7 +5,6 @@ import io.github.magisk317.relay.xp.hook.google.GoogleMessagesHook
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.xp.hook.BaseHook
 import io.github.magisk317.relay.xp.hook.code.SmsHandlerHook
-import io.github.magisk317.relay.xp.hook.me.ModuleUtilsHook
 import io.github.magisk317.relay.xp.hook.permission.PermissionGranterHook
 import io.github.magisk317.relay.xp.hook.system.SystemInputInjectorHook
 import io.github.magisk317.relay.xp.runtime.RuntimeBridgeFactory
@@ -18,7 +17,6 @@ class HookEntry {
     private val mHookList: List<BaseHook> = listOf(
         SmsHandlerHook(), // InBoundsSmsHandler Hook
         GoogleMessagesHook(), // Google Messages read sync hook
-        ModuleUtilsHook(), // ModuleUtils Hook
         PermissionGranterHook(), // PackageManagerService Hook
         SystemInputInjectorHook(), // System Server Input Injection Hook
         io.github.magisk317.relay.xp.hook.notification.NotificationManagerHook(), // Notification Intercept Hook

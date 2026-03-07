@@ -155,7 +155,7 @@ class AppDatabaseMigrationTest {
     }
 
     private fun createVersion1Database() {
-        createLegacyDatabase(
+        createBaseDatabase(
             version = 1,
             createSenderAndRule = false,
             includePackageName = false,
@@ -165,7 +165,7 @@ class AppDatabaseMigrationTest {
     }
 
     private fun createVersion3Database() {
-        createLegacyDatabase(
+        createBaseDatabase(
             version = 3,
             createSenderAndRule = false,
             includePackageName = true,
@@ -175,7 +175,7 @@ class AppDatabaseMigrationTest {
     }
 
     private fun createVersion6Database() {
-        createLegacyDatabase(
+        createBaseDatabase(
             version = 6,
             createSenderAndRule = true,
             includePackageName = true,
@@ -184,7 +184,7 @@ class AppDatabaseMigrationTest {
         )
     }
 
-    private fun createLegacyDatabase(
+    private fun createBaseDatabase(
         version: Int,
         createSenderAndRule: Boolean,
         includePackageName: Boolean,
