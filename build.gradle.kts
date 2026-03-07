@@ -89,6 +89,11 @@ subprojects {
     }
 
     repositories {
+        mavenLocal {
+            content {
+                includeGroup("io.github.libxposed")
+            }
+        }
         google()
         mavenCentral()
         gradlePluginPortal()

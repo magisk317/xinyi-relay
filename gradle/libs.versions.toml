@@ -56,7 +56,8 @@ room = "2.8.4"
 test-logger = "4.0.0"
 timber = "5.0.1"
 version-catalog-update = "1.1.0"
-libxposed = "55efdf9"
+libxposed = "100"
+libxposed-service = "100-1.0.0"
 
 
 [libraries]
@@ -132,6 +133,7 @@ retrofit-converter-kotlinx-serialization = { module = "com.squareup.retrofit2:co
 retrofit-converter-scalars = { module = "com.squareup.retrofit2:converter-scalars", version.ref = "retrofit" }
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 libxposed-api = { module = "io.github.libxposed:api", version.ref = "libxposed" }
+libxposed-service = { module = "io.github.libxposed:service", version.ref = "libxposed-service" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

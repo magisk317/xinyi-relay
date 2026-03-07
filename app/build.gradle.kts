@@ -275,6 +275,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
 
     compileOnly(libs.libxposed.api)
+    implementation(libs.libxposed.service)
 
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging.interceptor)
