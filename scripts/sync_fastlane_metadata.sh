@@ -136,12 +136,12 @@ sync_locale() {
 sync_locale \
   "en-US" \
   "$ROOT_DIR/distribution/whatsnew/whatsnew-en-US" \
-  "$ROOT_DIR/art/en"
+  "$ROOT_DIR/art/common"
 
 sync_locale \
   "zh-CN" \
   "$ROOT_DIR/distribution/whatsnew/whatsnew-zh-CN" \
-  "$ROOT_DIR/art/cn"
+  "$ROOT_DIR/art/common"
 
 if (( STATUS != 0 )); then
   exit 1

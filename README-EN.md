@@ -24,7 +24,7 @@ Xinyi Relay is a relay and verification-code autofill module for Xposed/LSPosed,
 [中文版本](./README.md)
 
 # Screenshots
-<img src="./art/en/01.png" width="180"/><img src="./art/en/02.png" width="180"/><img src="./art/en/03.png" width="180"/><img src="./art/en/04.png" width="180"/>
+<img src="./art/common/01.png" width="720"/>
 
 # Communication & Feedback
 - [Telegram Group](https://t.me/+NR2QaQ4dlEgxYmNl)

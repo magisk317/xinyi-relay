@@ -24,7 +24,7 @@
 [English Version](./README-EN.md)
 
 # 应用截图
-<img src="./art/cn/01.png" width="180"/><img src="./art/cn/02.png" width="180"/><img src="./art/cn/03.png" width="180"/><img src="./art/cn/04.png" width="180"/>
+<img src="./art/common/01.png" width="720"/>
 
 # 交流与反馈
 - [Telegram Group](https://t.me/+NR2QaQ4dlEgxYmNl)
