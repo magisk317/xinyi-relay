@@ -8,7 +8,7 @@ val compileSdkInt = libs.versions.compileSdk.get().toInt()
 val minSdkInt = libs.versions.minSdk.get().toInt()
 
 android {
-    namespace = "io.github.magisk317.xinyi.relay.core"
+    namespace = "io.github.magisk317.relay.core"
     compileSdk = compileSdkInt
 
     flavorDimensions += "distribution"
@@ -79,6 +79,8 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.coil3.core)
+    implementation(libs.coil3.compose)
 
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)

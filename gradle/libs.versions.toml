@@ -25,6 +25,7 @@ androidx-material3 = "1.5.0-alpha15"
 appcompat = "1.7.1"
 commons-lang3 = "3.20.0"
 compose-bom = "2026.02.01"
+coil3 = "3.0.4"
 coroutines = "1.10.2"
 datastore = "1.2.0"
 detekt = "2.0.0-alpha.2"
@@ -54,6 +55,7 @@ retrofit = "3.0.0"
 room = "2.8.4"
 test-logger = "4.0.0"
 timber = "5.0.1"
+version-catalog-update = "1.1.0"
 xposed = "82"
 
 
@@ -67,6 +69,8 @@ androidx-compose-material3-adaptive-layout = { module = "androidx.compose.materi
 androidx-compose-material3-adaptive-navigation = { module = "androidx.compose.material3.adaptive:adaptive-navigation", version.ref = "adaptive" }
 androidx-compose-material3-windowSizeClass = { module = "androidx.compose.material3:material3-window-size-class", version.ref = "androidx-material3" }
 androidx-compose-runtime-livedata = { module = "androidx.compose.runtime:runtime-livedata" }
+coil3-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil3" }
+coil3-core = { module = "io.coil-kt.coil3:coil", version.ref = "coil3" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core-ktx" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 androidx-lifecycle-livedata-ktx = { module = "androidx.lifecycle:lifecycle-livedata-ktx", version.ref = "lifecycle" }
@@ -140,3 +144,4 @@ kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", versi
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 test-logger = { id = "com.adarshr.test-logger", version.ref = "test-logger" }
+version-catalog-update = { id = "nl.littlerobots.version-catalog-update", version.ref = "version-catalog-update" }
