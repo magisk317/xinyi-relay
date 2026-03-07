@@ -1,0 +1,29 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": [
+        "config:recommended"
+    ],
+    "forkProcessing": "enabled",
+    "baseBranchPatterns": [
+        "beta"
+    ],
+    "packageRules": [
+        {
+            "matchUpdateTypes": [
+                "minor",
+                "patch"
+            ],
+            "groupName": "all non-major dependencies",
+            "groupSlug": "all-minor-patch",
+            "matchPackageNames": [
+                "*"
+            ]
+        },
+        {
+            "matchPackageNames": [
+                "int:LOG_LEVEL"
+            ],
+            "enabled": false
+        }
+    ]
+}

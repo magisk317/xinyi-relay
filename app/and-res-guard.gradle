@@ -1,0 +1,44 @@
+apply plugin: 'AndResGuard'
+
+andResGuard {
+    // mappingFile = file("./resource_mapping.txt")
+    mappingFile = null
+    use7zip = true
+    useSign = true
+    // 打开这个开关，会keep住所有资源的原始路径，只混淆资源的名字
+    keepRoot = false
+    whiteList = [
+            // for your icon
+            "R.mipmap.ic_launcher",
+            "R.mipmap.ic_launcher_round",
+            "R.mipmap.ic_launcher_foreground",
+            
+            // Xposed module config
+            "R.array.xposed_scope",
+            "R.string.xposed_description",
+            
+            // App shortcuts
+            "R.xml.shortcuts",
+    ]
+    compressFilePattern = [
+            "*.png",
+            "*.jpg",
+            "*.jpeg",
+            "*.gif",
+    ]
+    sevenzip {
+        artifact = 'com.tencent.mm:SevenZip:1.2.21'
+        //path = "/usr/local/bin/7za"
+    }
+
+    /**
+     * 可选： 如果不设置则会默认覆盖assemble输出的apk
+     **/
+    // finalApkBackupPath = "${project.rootDir}/final.apk"
+
+    /**
+     * 可选: 指定v1签名时生成jar文件的摘要算法
+     * 默认值为“SHA-1”
+     **/
+    // digestalg = "SHA-256"
+}

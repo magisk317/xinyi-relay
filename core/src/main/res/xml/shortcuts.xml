@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_records"
+        android:shortcutId="smscode_records"
+        android:shortcutShortLabel="@string/smscode_records">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="com.github.magisk317.smscode.ui.home.MainActivity"
+            android:targetPackage="io.github.magisk317.xinyi.relay">
+            <extra android:name="extra_action" android:value="smscode_records"/>
+        </intent>
+        <categories
+            android:name="android.shortcut.conversation"/>
+    </shortcut>
+
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_rules"
+        android:shortcutId="smscode_rules"
+        android:shortcutShortLabel="@string/pref_code_rules_title">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="com.github.magisk317.smscode.ui.home.MainActivity"
+            android:targetPackage="io.github.magisk317.xinyi.relay">
+            <extra android:name="extra_action" android:value="smscode_rules"/>
+        </intent>
+        <categories
+            android:name="android.shortcut.conversation"/>
+    </shortcut>
+
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_alipay_red_packet"
+        android:shortcutId="donate_by_alipay"
+        android:shortcutShortLabel="@string/pref_donate_by_alipay_title">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="com.github.magisk317.smscode.ui.home.MainActivity"
+            android:targetPackage="io.github.magisk317.xinyi.relay">
+            <extra android:name="extra_action" android:value="donate_by_alipay"/>
+        </intent>
+        <categories
+            android:name="android.shortcut.conversation"/>
+    </shortcut>
+</shortcuts>

@@ -1,0 +1,96 @@
+name: CI
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches:
+      - beta
+  push:
+    branches:
+      - beta
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: github.actor != 'dependabot[bot]'
+    env:
+      GRADLE_OPTS: -Dorg.gradle.warning.mode=all
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          cache: "pnpm"
+          cache-dependency-path: webui/pnpm-lock.yaml
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+      - name: WebUI Install
+        run: pnpm -C webui install --frozen-lockfile
+      - name: WebUI Lint + Typecheck + Build
+        run: |
+          pnpm -C webui lint
+          pnpm -C webui typecheck
+          pnpm -C webui build
+          pnpm -C webui check-dist
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: gradle
+      - name: Build & Test
+        run: ./gradlew --warning-mode all assembleGithubDebug testGithubDebugUnitTest :app:koverVerifyGithubDebug :app:koverHtmlReportGithubDebug -PbuildSplits
+      - name: Write build summary
+        if: always()
+        run: |
+          {
+            echo "## Debug APK summary"
+            echo ""
+            echo "| File | Size |"
+            echo "| --- | --- |"
+            for apk in app/build/outputs/apk/github/debug/*.apk; do
+              if [ ! -f "$apk" ]; then
+                continue
+              fi
+              size=$(du -h "$apk" | awk '{print $1}')
+              name=$(basename "$apk")
+              echo "| $name | $size |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload Debug APK (arm64-v8a)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: XinyiRelay-debug-arm64-v8a
+          path: app/build/outputs/apk/github/debug/*arm64-v8a*.apk
+      - name: Upload Debug APK (armeabi-v7a)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: XinyiRelay-debug-armeabi-v7a
+          path: app/build/outputs/apk/github/debug/*armeabi-v7a*.apk
+      - name: Upload Debug APK (x86)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: XinyiRelay-debug-x86
+          path: app/build/outputs/apk/github/debug/*_x86.apk
+      - name: Upload Debug APK (x86_64)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: XinyiRelay-debug-x86_64
+          path: app/build/outputs/apk/github/debug/*_x86_64.apk
+      - name: Upload Debug APK (universal)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: XinyiRelay-debug-universal
+          path: app/build/outputs/apk/github/debug/*universal*.apk
+      - name: Upload Kover Report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: kover-report
+          path: app/build/reports/kover/htmlDebug

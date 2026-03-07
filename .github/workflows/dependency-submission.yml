@@ -1,0 +1,28 @@
+name: Dependency Submission
+
+# Replace "Automatic Dependency Submission" to control triggers (e.g. skip Dependabot branches)
+on:
+  push:
+    branches:
+      - beta
+
+jobs:
+  dependency-submission:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    # Skip if dependabot (redundant if restricted to beta branch, but safe)
+    if: github.actor != 'dependabot[bot]'
+
+    steps:
+      - uses: actions/checkout@v6
+      
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+          
+      - name: Submit Dependency Graph
+        uses: gradle/actions/dependency-submission@v5

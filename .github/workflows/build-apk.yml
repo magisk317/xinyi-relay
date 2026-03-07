@@ -1,0 +1,251 @@
+name: Build APK/AAB
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Semantic version tag, e.g. v3.1.4
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-release:
+    name: Validate Release Metadata
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Validate release notes and tag/version consistency
+        run: |
+          chmod +x scripts/check_release_guard.sh
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            scripts/check_release_guard.sh "${GITHUB_REF_NAME}"
+          else
+            scripts/check_release_guard.sh
+          fi
+
+  build-apk:
+    name: Build APKs
+    needs: [validate-release]
+    runs-on: ubuntu-latest
+    env:
+      HAS_RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE != '' }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: set up JDK 25
+        uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Decode Keystore
+        if: env.HAS_RELEASE_KEYSTORE == 'true'
+        run: echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > app/release.jks
+
+      - name: Build APKs with Splits
+        run: ./gradlew assembleGithubRelease -PbuildSplits
+        env:
+          KEYSTORE_FILE: release.jks
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: apks
+          path: app/build/outputs/apk/github/release/*.apk
+
+      - name: Upload Native Symbols Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: native-symbols-github
+          path: app/build/outputs/native-debug-symbols/githubRelease/native-debug-symbols.zip
+          if-no-files-found: warn
+
+  build-aab:
+    name: Build Bundle
+    needs: [validate-release]
+    runs-on: ubuntu-latest
+    env:
+      HAS_RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE != '' }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: set up JDK 25
+        uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Decode Keystore
+        if: env.HAS_RELEASE_KEYSTORE == 'true'
+        run: echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > app/release.jks
+
+      - name: Build App Bundle
+        run: ./gradlew bundlePlayRelease
+        env:
+          KEYSTORE_FILE: release.jks
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Upload AAB Artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: bundle-assets
+          path: |
+            app/build/outputs/bundle/playRelease/*.aab
+            app/build/outputs/mapping/playRelease/mapping.txt
+
+      - name: Upload Play Native Symbols Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: native-symbols-play
+          path: app/build/outputs/native-debug-symbols/playRelease/native-debug-symbols.zip
+          if-no-files-found: warn
+
+  release:
+    name: Create Release
+    needs: [build-apk, build-aab]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      HAS_RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE != '' }}
+      HAS_GOOGLE_PLAY_CREDENTIALS: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS != '' }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: apks
+          path: artifacts/apks
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: bundle-assets
+          path: artifacts/bundle
+
+      - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: native-symbols-play
+          path: artifacts/symbols-play
+
+      - name: Extract Version Name from Tag
+        id: extract_version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG=${GITHUB_REF_NAME}       # e.g. v3.1.4
+          if [[ "$TAG" == v* ]]; then
+            echo "version_name=${TAG}" >> $GITHUB_OUTPUT
+          else
+            echo "version_name=v${TAG}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Draft Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') && env.HAS_RELEASE_KEYSTORE == 'true'
+        with:
+          name: ${{ steps.extract_version.outputs.version_name }}
+          draft: true
+          body: |
+            <div align="center">
+              <a href="https://play.google.com/store/apps/details?id=io.github.magisk317.xinyi.relay">
+                <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="80"/>
+              </a>
+              <a href="https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}">
+                <img src="https://raw.githubusercontent.com/machiav3lli/oandbackupx/master/badge_github.png" alt="Get it on GitHub" height="80"/>
+              </a>
+            </div>
+
+          files: |
+            artifacts/apks/*.apk
+            artifacts/bundle/bundle/playRelease/*.aab
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+
+      - name: Determine Release Track
+        id: determine_track
+        run: |
+          TAG_NAME=${{ github.ref_name }}
+          if [[ "$TAG_NAME" == *"-beta"* ]]; then
+            echo "track=beta" >> $GITHUB_OUTPUT
+          elif [[ "$TAG_NAME" == *"-alpha"* ]]; then
+            echo "track=alpha" >> $GITHUB_OUTPUT
+          elif [[ "$TAG_NAME" == *"-internal"* ]]; then
+            echo "track=internal" >> $GITHUB_OUTPUT
+          else
+            echo "track=production" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish to Google Play
+        uses: r0adkll/upload-google-play@v1
+        if: startsWith(github.ref, 'refs/tags/') && env.HAS_GOOGLE_PLAY_CREDENTIALS == 'true'
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS }}
+          packageName: io.github.magisk317.xinyi.relay
+          releaseFiles: artifacts/bundle/bundle/playRelease/*.aab
+          mappingFile: artifacts/bundle/mapping/playRelease/mapping.txt
+          track: ${{ steps.determine_track.outputs.track }}
+          status: completed
+          whatsNewDirectory: distribution/whatsnew
+
+  publish-to-modules-repo:
+    name: Publish to Xposed-Modules-Repo
+    needs: [release]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    env:
+      HAS_MODULES_REPO_TOKEN: ${{ secrets.XPOSED_MODULES_REPO_TOKEN != '' }}
+      HAS_RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE != '' }}
+      MODULES_REPO: Xposed-Modules-Repo/io.github.magisk317.xinyi.relay
+    steps:
+      - name: Download APK Artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: apks
+          path: artifacts/apks
+
+      - name: Extract Version Name from Tag
+        id: extract_version
+        run: |
+          TAG=${GITHUB_REF_NAME}       # e.g. v3.1.4
+          if [[ "$TAG" == v* ]]; then
+            echo "version_name=${TAG}" >> $GITHUB_OUTPUT
+          else
+            echo "version_name=v${TAG}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Draft Release in Xposed-Modules-Repo
+        if: env.HAS_MODULES_REPO_TOKEN == 'true' && env.HAS_RELEASE_KEYSTORE == 'true'
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            artifacts/apks/*.apk \
+            --repo "${{ env.MODULES_REPO }}" \
+            --title "${{ steps.extract_version.outputs.version_name }}" \
+            --notes "<div align=\"center\">
+            <a href=\"https://play.google.com/store/apps/details?id=io.github.magisk317.xinyi.relay\">
+              <img src=\"https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png\" alt=\"Get it on Google Play\" height=\"80\"/>
+            </a>
+            <a href=\"https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}\">
+              <img src=\"https://raw.githubusercontent.com/machiav3lli/oandbackupx/master/badge_github.png\" alt=\"Get it on GitHub\" height=\"80\"/>
+            </a>
+            </div>
+
+            Source: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}" \
+            --draft
+        env:
+          GH_TOKEN: ${{ secrets.XPOSED_MODULES_REPO_TOKEN }}

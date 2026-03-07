@@ -1,0 +1,119 @@
+package com.github.magisk317.smscode.common.constant
+
+/**
+ * Preference相关的常量
+ */
+object PrefConst {
+
+    // General
+    const val KEY_ENABLE = "pref_enable"
+    const val KEY_HIDE_LAUNCHER_ICON = "pref_hide_launcher_icon"
+    const val KEY_SHOW_LAUNCHER_ICON = "pref_show_launcher_icon"
+    const val KEY_CHOOSE_THEME = "pref_choose_theme"
+    const val KEY_COMPOSE_SETTINGS = "pref_compose_settings"
+    const val KEY_SETTINGS_ACCORDION_MODE = "pref_settings_accordion_mode"
+    const val KEY_HAZE_BLUR_RADIUS = "pref_haze_blur_radius"
+    const val HAZE_BLUR_RADIUS_DEFAULT = 25
+    const val KEY_HAZE_TINT_ALPHA = "pref_haze_tint_alpha"
+    const val HAZE_TINT_ALPHA_DEFAULT = 0.2f
+
+    // SMS Code
+    const val KEY_SHOW_TOAST = "pref_show_toast"
+    const val KEY_COPY_TO_CLIPBOARD = "pref_copy_to_clipboard"
+    const val KEY_ENABLE_AUTO_INPUT_CODE = "pref_enable_auto_input_code"
+    const val KEY_ENABLE_AUTO_ENTER_CODE = "pref_enable_auto_enter_code"
+    const val KEY_AUTO_INPUT_CODE_DELAY = "pref_auto_input_code_delay"
+    const val KEY_AUTO_INPUT_CODE_DELAY_DEFAULT = "0"
+    const val KEY_AUTO_INPUT_CODE_INTERVAL = "pref_auto_input_code_interval"
+    const val KEY_AUTO_INPUT_CODE_INTERVAL_DEFAULT = "0"
+    const val KEY_APP_BLOCK_ENTRY = "pref_app_block_entry"
+    const val KEY_BLOCK_SMS = "pref_block_sms"
+    const val KEY_DEDUPLICATE_SMS = "pref_deduplicate_sms"
+    const val KEY_ENABLE_SMS_BLACKLIST = "pref_enable_sms_blacklist"
+    const val KEY_SMS_BLACKLIST_NUMBERS = "pref_sms_blacklist_numbers"
+    const val KEY_SMS_BLACKLIST_PREFIXES = "pref_sms_blacklist_prefixes"
+    const val KEY_SMS_BLACKLIST_REGEX = "pref_sms_blacklist_regex"
+    const val KEY_SMS_BLACKLIST_CONTENT = "pref_sms_blacklist_content"
+    const val KEY_SMS_BLACKLIST_ACTION_DELETE = "pref_sms_blacklist_action_delete"
+    const val KEY_SMS_BLACKLIST_ACTION_BLOCK = "pref_sms_blacklist_action_block"
+
+    // Code Notification
+    const val KEY_SHOW_CODE_NOTIFICATION = "pref_show_code_notification"
+    const val KEY_AUTO_CANCEL_CODE_NOTIFICATION = "pref_auto_cancel_code_notification"
+    const val KEY_NOTIFICATION_RETENTION_TIME = "pref_notification_retention_time"
+    const val NOTIFICATION_RETENTION_TIME_DEFAULT = "5"
+
+    // Code Record
+    const val KEY_ENABLE_CODE_RECORDS = "pref_enable_code_records"
+    const val MAX_SMS_RECORDS_COUNT_DEFAULT = 20
+    const val KEY_ENTRY_CODE_RECORDS = "pref_entry_code_records"
+    const val KEY_HISTORY_LIMIT = "pref_history_limit"
+    const val KEY_ENABLE_CODE_RECORDS_CODE = "pref_enable_code_records_code"
+    const val KEY_ENABLE_CODE_RECORDS_PLAIN_SMS = "pref_enable_code_records_plain_sms"
+    const val KEY_ENABLE_CODE_RECORDS_APP_NOTIFY = "pref_enable_code_records_app_notify"
+    const val KEY_ENABLE_CODE_RECORDS_CALL_NOTIFY = "pref_enable_code_records_call_notify"
+    const val KEY_HISTORY_LIMIT_CODE = "pref_history_limit_code"
+    const val KEY_HISTORY_LIMIT_PLAIN_SMS = "pref_history_limit_plain_sms"
+    const val KEY_HISTORY_LIMIT_APP_NOTIFY = "pref_history_limit_app_notify"
+    const val KEY_HISTORY_LIMIT_CALL_NOTIFY = "pref_history_limit_call_notify"
+    const val KEY_ROOT_DB_CATCHUP_ENABLE = "pref_root_db_catchup_enable"
+    const val KEY_ROOT_DB_CATCHUP_INTERVAL_MIN = "pref_root_db_catchup_interval_min"
+    const val KEY_ROOT_DB_CATCHUP_WRITEBACK = "pref_root_db_catchup_writeback"
+    const val KEY_INTERNAL_ROOT_DB_LAST_SMS_ID = "internal_root_db_last_sms_id"
+    const val KEY_INTERNAL_ROOT_DB_LAST_CALL_ID = "internal_root_db_last_call_id"
+    const val KEY_INTERNAL_ROOT_DB_BASELINE_INITED = "internal_root_db_baseline_inited"
+
+    // Code Rules
+    const val KEY_SMSCODE_KEYWORDS = "pref_smscode_keywords"
+    val SMSCODE_KEYWORDS_DEFAULT = SmsCodeConst.VERIFICATION_KEYWORDS_REGEX
+    const val KEY_SMSCODE_TEST = "pref_smscode_test"
+    const val KEY_CODE_RULES = "pref_code_rules"
+
+    // Experimental
+    const val KEY_MARK_AS_READ = "pref_mark_as_read"
+    const val KEY_DELETE_SMS = "pref_delete_sms"
+    const val KEY_KILL_ME = "pref_kill_me"
+    const val KEY_FORCE_STOP_RECOVERY = "pref_force_stop_recovery"
+    const val KEY_FORCE_STOP_RECOVERY_RELAUNCH_ONCE = "pref_force_stop_recovery_relaunch_once"
+
+    // Others
+    const val KEY_VERBOSE_LOG_MODE = "pref_verbose_log_mode"
+    const val KEY_AUTO_UPDATE_ON_START = "pref_auto_update_on_start"
+    const val KEY_AUTO_UPDATE_WIFI_ONLY = "pref_auto_update_wifi_only"
+    const val KEY_GITHUB_IGNORED_VERSION = "pref_github_ignored_version"
+
+    // About
+    const val KEY_ABOUT = "pref_about"
+    const val KEY_VERSION = "pref_version"
+    const val KEY_JOIN_QQ_GROUP = "pref_join_qq_group"
+    const val KEY_SOURCE_CODE = "pref_source_code"
+    const val KEY_DONATE_BY_ALIPAY = "pref_donate_by_alipay"
+    const val KEY_PRIVACY_POLICY = "pref_privacy_policy"
+    const val KEY_PRIVACY_POLICY_ACCEPTED = "pref_privacy_policy_accepted"
+    const val KEY_BACKUP_COMPAT_TIP_SHOWN = "pref_backup_compat_tip_shown"
+    const val KEY_ENABLE_SMS_BLOCK = "enable_sms_block"
+    const val KEY_ENABLE_NOTIFICATION_FORWARD = "enable_notification_forward"
+    const val KEY_ABOUT_COMPOSE = "pref_about_compose"
+    const val KEY_IPC_TOKEN = "ipc_token"
+    const val KEY_FORWARD_COMMON_DEVICE_NAME = "pref_forward_common_device_name"
+    const val KEY_FORWARD_COMMON_TEMPLATE = "pref_forward_common_template"
+    const val KEY_FORWARD_APP_NOTIFY_TEMPLATE = "pref_forward_app_notify_template"
+    const val KEY_FORWARD_CALL_NOTIFY_TEMPLATE = "pref_forward_call_notify_template"
+    const val KEY_FORWARD_COMMON_INCLUDE_TIME = "pref_forward_common_include_time"
+    const val KEY_FORWARD_COMMON_INCLUDE_SENDER = "pref_forward_common_include_sender"
+    const val KEY_FORWARD_COMMON_INCLUDE_DEVICE_NAME = "pref_forward_common_include_device_name"
+    const val KEY_SIM_SLOT1_REMARK = "pref_sim_slot1_remark"
+    const val KEY_SIM_SLOT2_REMARK = "pref_sim_slot2_remark"
+    const val KEY_WEBUI_ENABLE = "pref_webui_enable"
+    const val KEY_WEBUI_LAN_ACCESS = "pref_webui_lan_access"
+    const val KEY_WEBUI_PORT = "pref_webui_port"
+    const val KEY_WEBUI_PORT_DEFAULT = "8787"
+    const val KEY_WEBUI_USERNAME = "pref_webui_username"
+    const val KEY_WEBUI_USERNAME_DEFAULT = "relay"
+    const val KEY_WEBUI_PASSWORD = "pref_webui_password"
+    const val KEY_INTERNAL_WEBUI_TLS_KEYSTORE_VERSION = "internal_webui_tls_keystore_version"
+    const val KEY_INTERNAL_WEBUI_TLS_KEYSTORE_VERSION_DEFAULT = "2"
+    const val KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS = "internal_webui_tls_keystore_pass"
+    private const val ACTION_NAMESPACE = "io.github.magisk317.xinyi.relay"
+    const val ACTION_FORWARD_SMS = "$ACTION_NAMESPACE.ACTION_FORWARD_SMS"
+}

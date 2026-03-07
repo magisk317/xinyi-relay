@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="xposed_scope">
+        <item>android</item>
+        <item>com.android.phone</item>
+    </string-array>
+
+    <string-array name="history_limit_entry_list">
+        <item>@string/history_limit_10_entry</item>
+        <item>@string/history_limit_20_entry</item>
+        <item>@string/history_limit_50_entry</item>
+        <item>@string/history_limit_custom_entry</item>
+        <item>@string/history_limit_all_entry</item>
+    </string-array>
+    <string-array name="history_limit_value_list">
+        <item>10</item>
+        <item>20</item>
+        <item>50</item>
+        <item>-1</item>
+        <item>0</item>
+    </string-array>
+</resources>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="AppNoActionBarTheme" parent="@style/Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:textColorPrimary">?android:attr/textColorPrimary</item>
+    </style>
+
+    <style name="AppActionBarTheme" parent="@style/Theme.AppCompat.DayNight">
+        <item name="android:textColorPrimary">?android:attr/textColorPrimary</item>
+    </style>
+
+</resources>
