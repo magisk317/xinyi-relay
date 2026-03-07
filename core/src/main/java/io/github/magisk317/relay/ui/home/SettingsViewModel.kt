@@ -1,4 +1,4 @@
-package com.github.magisk317.smscode.ui.home
+package io.github.magisk317.relay.ui.home
 
 import android.app.Application
 import android.content.ComponentName
@@ -8,23 +8,23 @@ import android.os.Bundle
 import android.text.TextUtils
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.magisk317.xinyi.relay.core.BuildConfig
-import com.github.magisk317.smscode.common.constant.Const
-import com.github.magisk317.smscode.common.constant.PrefConst
-import com.github.magisk317.smscode.common.constant.PrefRestoreTypeRegistry
-import com.github.magisk317.smscode.common.constant.PrefValueType
-import com.github.magisk317.smscode.common.utils.*
+import io.github.magisk317.relay.core.BuildConfig
+import io.github.magisk317.relay.common.constant.Const
+import io.github.magisk317.relay.common.constant.PrefConst
+import io.github.magisk317.relay.common.constant.PrefRestoreTypeRegistry
+import io.github.magisk317.relay.common.constant.PrefValueType
+import io.github.magisk317.relay.common.utils.*
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
 import android.content.Intent
-import io.github.magisk317.xinyi.relay.core.R
-import com.github.magisk317.smscode.data.db.DBManager
-import com.github.magisk317.smscode.feature.backup.BackupImportResult
-import com.github.magisk317.smscode.feature.backup.BackupManager
-import com.github.magisk317.smscode.feature.backup.BackupRule
-import com.github.magisk317.smscode.feature.backup.BackupSmsRecord
-import com.github.magisk317.smscode.feature.backup.ExportResult
+import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.data.db.DBManager
+import io.github.magisk317.relay.feature.backup.BackupImportResult
+import io.github.magisk317.relay.feature.backup.BackupManager
+import io.github.magisk317.relay.feature.backup.BackupRule
+import io.github.magisk317.relay.feature.backup.BackupSmsRecord
+import io.github.magisk317.relay.feature.backup.ExportResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -124,10 +124,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 if (Const.ACTION_DONATE_BY_ALIPAY == extraAction) {
                     args.remove(Const.EXTRA_ACTION)
                     _eventsFlow.tryEmit(SettingsEvent.ShowAlipayPacket)
-                } else if ("smscode_records" == extraAction) {
+                } else if ("relay_records" == extraAction || "smscode_records" == extraAction) {
                     args.remove(Const.EXTRA_ACTION)
                     _eventsFlow.tryEmit(SettingsEvent.NavigateToRecords)
-                } else if ("smscode_rules" == extraAction) {
+                } else if ("relay_rules" == extraAction || "smscode_rules" == extraAction) {
                     args.remove(Const.EXTRA_ACTION)
                     _eventsFlow.tryEmit(SettingsEvent.NavigateToRules)
                 }
@@ -366,7 +366,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                     importResult.warning?.name ?: "none",
                 )
 
-                if (importResult.result == com.github.magisk317.smscode.feature.backup.ImportResult.SUCCESS) {
+                if (importResult.result == io.github.magisk317.relay.feature.backup.ImportResult.SUCCESS) {
                     withContext(Dispatchers.IO) {
                         if (restoreDatabase) {
                             val restored = BackupManager.restoreDatabaseFromBackup(context, uri)
@@ -394,7 +394,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 // Return failed event
                 _eventsFlow.tryEmit(
                     SettingsEvent.RestoreResultEvent(
-                        BackupImportResult(com.github.magisk317.smscode.feature.backup.ImportResult.READ_FAILED),
+                        BackupImportResult(io.github.magisk317.relay.feature.backup.ImportResult.READ_FAILED),
                     ),
                 )
             }
@@ -405,7 +405,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         if (rules.isEmpty()) return
         val dbManager = DBManager.get(context)
         val entities = rules.map {
-            com.github.magisk317.smscode.data.db.entity.SmsCodeRule(it.company, it.codeKeyword, it.codeRegex)
+            io.github.magisk317.relay.data.db.entity.SmsCodeRule(it.company, it.codeKeyword, it.codeRegex)
         }
         dbManager.addSmsCodeRules(entities)
     }
@@ -418,7 +418,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
         val beforeCount = dbManager.queryAllSmsMsg().size
         val entities = records.map {
-            com.github.magisk317.smscode.data.db.entity.SmsMsg(
+            io.github.magisk317.relay.data.db.entity.SmsMsg(
                 sender = it.sender,
                 body = it.body,
                 date = it.date,

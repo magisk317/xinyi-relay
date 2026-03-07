@@ -1,4 +1,4 @@
-package com.github.magisk317.smscode.data.db
+package io.github.magisk317.relay.data.db
 
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
@@ -452,6 +452,6 @@ class AppDatabaseMigrationTest {
     }
 
     companion object {
-        private const val DATABASE_NAME = "xsmscode_room.db"
+        private const val DATABASE_NAME = "relay_room.db"
     }
 }

@@ -93,8 +93,8 @@
     <string name="pref_entry_code_records_title">SMS code records</string>
     <string name="pref_entry_code_records_summary">Total %d records</string>
     <string name="pref_code_records_title">SMS Code Records</string>
-    <string name="smscode_records">Code Records</string>
-    <string name="edit_smscode_records">Edit Code Records</string>
+    <string name="relay_records">Code Records</string>
+    <string name="edit_relay_records">Edit Code Records</string>
     <string name="prompt_sms_code_copied">SMS Code copied: %s</string>
     <string name="action_delete">Delete</string>
     <string name="action_select_all">Select All</string>
@@ -130,7 +130,7 @@
     <string name="forward_validation_webhook_invalid">Webhook URL must start with http:// or https://</string>
     <string name="forward_validation_tg_required">Please enter Telegram bot token and chat ID</string>
     <string name="prompt_field_copied">%1$s copied</string>
-    <string name="copy_smscode">Copy Code</string>
+    <string name="copy_relay_code">Copy Code</string>
     <string name="copy_sms">Copy Message</string>
     <string name="copy_notification">Copy Notification</string>
     <string name="delete_sms_action">Delete SMS</string>
@@ -178,12 +178,12 @@
 
     <!-- preference code rules -->
     <string name="pref_match_rules">Match Rules</string>
-    <string name="pref_smscode_keywords_title">Keywords</string>
-    <string name="pref_smscode_keywords_summary">Keyword regex for SMS code extraction. Supports Chinese and English regex, e.g. (?i)\\b(验证码|otp|verification|verify|pin|passcode|password|code|secure\\s*code)\\b</string>
+    <string name="pref_relay_keywords_title">Keywords</string>
+    <string name="pref_relay_keywords_summary">Keyword regex for SMS code extraction. Supports Chinese and English regex, e.g. (?i)\\b(验证码|otp|verification|verify|pin|passcode|password|code|secure\\s*code)\\b</string>
     <string name="reset">Reset</string>
     <string name="code_keywords_hint">Keywords(Regular Expressions)</string>
-    <string name="pref_smscode_test_title">SMS code test</string>
-    <string name="pref_smscode_test_summary">Test whether SMS code can be recognized or not</string>
+    <string name="pref_relay_test_title">SMS code test</string>
+    <string name="pref_relay_test_summary">Test whether SMS code can be recognized or not</string>
     <string name="pref_sms_blacklist_title">SMS blacklist</string>
     <string name="pref_enable_sms_blacklist_title">Enable SMS blacklist</string>
     <string name="pref_enable_sms_blacklist_summary">Match by number, prefix, regex and content.</string>
@@ -208,7 +208,7 @@
     <string name="sms_content_hint">SMS content</string>
     <string name="test">Test</string>
     <string name="current_sms_code">Current SMS code is %s</string>
-    <string name="cannot_parse_smscode">Cannot parse SMS code.</string>
+    <string name="cannot_parse_relay_code">Cannot parse SMS code.</string>
     <!-- preference code rules end -->
 
     <!-- preference experimental -->
@@ -443,7 +443,7 @@
     <!-- theme color end -->
 
     <!-- code parsing notification -->
-    <string name="channel_name_smscode_notification">SMS code notification</string>
+    <string name="channel_name_relay_notification">SMS code notification</string>
     <string name="code_notification_content">SMS code: %s</string>
     <!-- code parsing notification end -->
 
@@ -524,7 +524,7 @@
     <string name="app_notify_template_placeholder">Enter per-app template...</string>
     <string name="app_config_detail_save_tip">Changes are kept in memory. Return to App Control and tap Done to save.</string>
     <string name="settings_group_general">General</string>
-    <string name="settings_group_smscode">SMS Code</string>
+    <string name="settings_group_relay">SMS Code</string>
     <string name="settings_group_auto_input">Auto Input</string>
     <string name="settings_group_notification">Notification</string>
     <string name="settings_group_background_keepalive">Background Keep-alive</string>

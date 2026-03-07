@@ -1,4 +1,4 @@
-package com.github.magisk317.smscode.data.db
+package io.github.magisk317.relay.data.db
 
 import android.content.Context
 import android.database.sqlite.SQLiteException
@@ -6,23 +6,23 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.github.magisk317.smscode.forwarder.entity.ForwardFilterRule
-import com.github.magisk317.smscode.forwarder.database.dao.RuleDao
-import com.github.magisk317.smscode.forwarder.database.dao.SenderDao
-import com.github.magisk317.smscode.forwarder.database.ext.ConvertersDate
-import com.github.magisk317.smscode.forwarder.database.ext.ConvertersSenderList
-import com.github.magisk317.smscode.forwarder.entity.Rule
-import com.github.magisk317.smscode.forwarder.entity.Sender
-import com.github.magisk317.smscode.data.db.dao.AppInfoDao
-import com.github.magisk317.smscode.data.db.dao.ForwardFilterRuleDao
-import com.github.magisk317.smscode.data.db.dao.NotifyRouteRuleDao
-import com.github.magisk317.smscode.data.db.dao.SmsCodeRuleDao
-import com.github.magisk317.smscode.data.db.dao.SmsMsgDao
-import com.github.magisk317.smscode.data.db.entity.AppInfo
-import com.github.magisk317.smscode.data.db.entity.NotifyRouteRule
-import com.github.magisk317.smscode.data.db.entity.SmsCodeRule
-import com.github.magisk317.smscode.data.db.entity.SmsMsg
-import com.github.magisk317.smscode.common.utils.XLog
+import io.github.magisk317.relay.forwarder.entity.ForwardFilterRule
+import io.github.magisk317.relay.forwarder.database.dao.RuleDao
+import io.github.magisk317.relay.forwarder.database.dao.SenderDao
+import io.github.magisk317.relay.forwarder.database.ext.ConvertersDate
+import io.github.magisk317.relay.forwarder.database.ext.ConvertersSenderList
+import io.github.magisk317.relay.forwarder.entity.Rule
+import io.github.magisk317.relay.forwarder.entity.Sender
+import io.github.magisk317.relay.data.db.dao.AppInfoDao
+import io.github.magisk317.relay.data.db.dao.ForwardFilterRuleDao
+import io.github.magisk317.relay.data.db.dao.NotifyRouteRuleDao
+import io.github.magisk317.relay.data.db.dao.SmsCodeRuleDao
+import io.github.magisk317.relay.data.db.dao.SmsMsgDao
+import io.github.magisk317.relay.data.db.entity.AppInfo
+import io.github.magisk317.relay.data.db.entity.NotifyRouteRule
+import io.github.magisk317.relay.data.db.entity.SmsCodeRule
+import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.common.utils.XLog
 
 @Database(entities = [
     SmsCodeRule::class,
@@ -45,7 +45,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun senderDao(): SenderDao
 
     companion object {
-        private const val DATABASE_NAME = "xsmscode_room.db"
+        internal const val DATABASE_NAME = "relay_room.db"
+        private val LEGACY_DATABASE_NAMES = listOf("xrelay_room.db", "xsmscode_room.db")
 
         @Volatile
         private var instance: AppDatabase? = null
@@ -370,6 +371,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         fun getInstance(context: Context): AppDatabase = instance ?: synchronized(this) {
             val dbContext = context.applicationContext ?: context
+            migrateLegacyDatabaseFiles(dbContext)
             instance ?: Room.databaseBuilder(
                 dbContext,
                 AppDatabase::class.java,
@@ -396,6 +398,45 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                 .enableMultiInstanceInvalidation()
                 .build().also { instance = it }
+        }
+
+        private fun migrateLegacyDatabaseFiles(context: Context) {
+            val targetMainDb = context.getDatabasePath(DATABASE_NAME)
+            if (targetMainDb.exists()) return
+
+            LEGACY_DATABASE_NAMES.forEach { legacyDbName ->
+                listOf("", "-wal", "-shm").forEach { suffix ->
+                    val legacyName = "$legacyDbName$suffix"
+                    val targetName = "$DATABASE_NAME$suffix"
+                    migrateSingleDatabaseFile(context, legacyName, targetName)
+                }
+            }
+        }
+
+        private fun migrateSingleDatabaseFile(context: Context, legacyName: String, targetName: String) {
+            val source = context.getDatabasePath(legacyName)
+            if (!source.exists() || !source.isFile) return
+
+            val target = context.getDatabasePath(targetName)
+            if (target.exists()) return
+            target.parentFile?.mkdirs()
+
+            val moved = runCatching { source.renameTo(target) }.getOrDefault(false)
+            if (!moved) {
+                runCatching {
+                    source.copyTo(target, overwrite = false)
+                    source.delete()
+                }.onFailure {
+                    XLog.w(
+                        "Failed to migrate legacy db file %s -> %s (%s)",
+                        source.absolutePath,
+                        target.absolutePath,
+                        it.message ?: "unknown",
+                    )
+                }
+            } else {
+                XLog.i("Migrated legacy db file: %s -> %s", legacyName, targetName)
+            }
         }
 
         @JvmStatic

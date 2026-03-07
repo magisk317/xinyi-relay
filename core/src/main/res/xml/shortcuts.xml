@@ -3,13 +3,13 @@
     <shortcut
         android:enabled="true"
         android:icon="@drawable/ic_records"
-        android:shortcutId="smscode_records"
-        android:shortcutShortLabel="@string/smscode_records">
+        android:shortcutId="relay_records"
+        android:shortcutShortLabel="@string/relay_records">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetClass="com.github.magisk317.smscode.ui.home.MainActivity"
+            android:targetClass="io.github.magisk317.relay.ui.home.MainActivity"
             android:targetPackage="io.github.magisk317.xinyi.relay">
-            <extra android:name="extra_action" android:value="smscode_records"/>
+            <extra android:name="extra_action" android:value="relay_records"/>
         </intent>
         <categories
             android:name="android.shortcut.conversation"/>
@@ -18,13 +18,13 @@
     <shortcut
         android:enabled="true"
         android:icon="@drawable/ic_rules"
-        android:shortcutId="smscode_rules"
+        android:shortcutId="relay_rules"
         android:shortcutShortLabel="@string/pref_code_rules_title">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetClass="com.github.magisk317.smscode.ui.home.MainActivity"
+            android:targetClass="io.github.magisk317.relay.ui.home.MainActivity"
             android:targetPackage="io.github.magisk317.xinyi.relay">
-            <extra android:name="extra_action" android:value="smscode_rules"/>
+            <extra android:name="extra_action" android:value="relay_rules"/>
         </intent>
         <categories
             android:name="android.shortcut.conversation"/>
@@ -37,7 +37,7 @@
         android:shortcutShortLabel="@string/pref_donate_by_alipay_title">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetClass="com.github.magisk317.smscode.ui.home.MainActivity"
+            android:targetClass="io.github.magisk317.relay.ui.home.MainActivity"
             android:targetPackage="io.github.magisk317.xinyi.relay">
             <extra android:name="extra_action" android:value="donate_by_alipay"/>
         </intent>

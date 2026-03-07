@@ -1,4 +1,4 @@
-package com.github.magisk317.smscode.common.constant
+package io.github.magisk317.relay.common.constant
 
 /**
  * Preference相关的常量
@@ -64,9 +64,9 @@ object PrefConst {
     const val KEY_INTERNAL_ROOT_DB_BASELINE_INITED = "internal_root_db_baseline_inited"
 
     // Code Rules
-    const val KEY_SMSCODE_KEYWORDS = "pref_smscode_keywords"
-    val SMSCODE_KEYWORDS_DEFAULT = SmsCodeConst.VERIFICATION_KEYWORDS_REGEX
-    const val KEY_SMSCODE_TEST = "pref_smscode_test"
+    const val KEY_RELAY_KEYWORDS = "pref_relay_keywords"
+    val RELAY_KEYWORDS_DEFAULT = SmsCodeConst.VERIFICATION_KEYWORDS_REGEX
+    const val KEY_RELAY_TEST = "pref_relay_test"
     const val KEY_CODE_RULES = "pref_code_rules"
 
     // Experimental
@@ -114,6 +114,6 @@ object PrefConst {
     const val KEY_INTERNAL_WEBUI_TLS_KEYSTORE_VERSION = "internal_webui_tls_keystore_version"
     const val KEY_INTERNAL_WEBUI_TLS_KEYSTORE_VERSION_DEFAULT = "2"
     const val KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS = "internal_webui_tls_keystore_pass"
-    private const val ACTION_NAMESPACE = "io.github.magisk317.xinyi.relay"
+    private const val ACTION_NAMESPACE = "io.github.magisk317.relay"
     const val ACTION_FORWARD_SMS = "$ACTION_NAMESPACE.ACTION_FORWARD_SMS"
 }

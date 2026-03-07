@@ -1,4 +1,4 @@
-package com.github.magisk317.smscode.common.utils
+package io.github.magisk317.relay.common.utils
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -10,7 +10,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import com.github.magisk317.smscode.common.constant.PrefConst
+import io.github.magisk317.relay.common.constant.PrefConst
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -20,6 +20,10 @@ object AppPreferencesDataStore {
     private val backupCompatTipShownKey = booleanPreferencesKey(PrefConst.KEY_BACKUP_COMPAT_TIP_SHOWN)
     private const val DATASTORE_FILE_NAME = "app_preferences.preferences_pb"
     private const val SHARED_PREFS_FILE_NAME = "xposed_prefs"
+    private val legacyStringKeyMap = mapOf(
+        "pref_smscode_keywords" to PrefConst.KEY_RELAY_KEYWORDS,
+        "pref_smscode_test" to PrefConst.KEY_RELAY_TEST,
+    )
 
     @Volatile
     private var INSTANCE: DataStore<Preferences>? = null
@@ -210,8 +214,8 @@ object AppPreferencesDataStore {
         )
         editor.putBoolean(PrefConst.KEY_SHOW_TOAST, getBoolean(context, PrefConst.KEY_SHOW_TOAST, true))
         editor.putString(
-            PrefConst.KEY_SMSCODE_KEYWORDS,
-            getString(context, PrefConst.KEY_SMSCODE_KEYWORDS, PrefConst.SMSCODE_KEYWORDS_DEFAULT),
+            PrefConst.KEY_RELAY_KEYWORDS,
+            getString(context, PrefConst.KEY_RELAY_KEYWORDS, PrefConst.RELAY_KEYWORDS_DEFAULT),
         )
         editor.putBoolean(PrefConst.KEY_MARK_AS_READ, getBoolean(context, PrefConst.KEY_MARK_AS_READ, false))
         editor.putBoolean(PrefConst.KEY_DELETE_SMS, getBoolean(context, PrefConst.KEY_DELETE_SMS, false))
@@ -442,6 +446,36 @@ object AppPreferencesDataStore {
         )
         editor.apply()
         ensureSharedPrefsReadable(context)
+    }
+
+    suspend fun migrateLegacyKeys(context: Context) {
+        getInstance(context).edit { prefs ->
+            legacyStringKeyMap.forEach { (legacyKey, newKey) ->
+                val legacyPrefKey = stringPreferencesKey(legacyKey)
+                val newPrefKey = stringPreferencesKey(newKey)
+                val legacyValue = prefs[legacyPrefKey]
+                if (!legacyValue.isNullOrEmpty() && prefs[newPrefKey].isNullOrEmpty()) {
+                    prefs[newPrefKey] = legacyValue
+                }
+            }
+        }
+
+        val sharedPrefs = getSharedPrefs(context)
+        val editor = sharedPrefs.edit()
+        var changed = false
+        legacyStringKeyMap.forEach { (legacyKey, newKey) ->
+            if (!sharedPrefs.contains(newKey) && sharedPrefs.contains(legacyKey)) {
+                val legacyValue = sharedPrefs.getString(legacyKey, null)
+                if (!legacyValue.isNullOrEmpty()) {
+                    editor.putString(newKey, legacyValue)
+                    changed = true
+                }
+            }
+        }
+        if (changed) {
+            editor.apply()
+            ensureSharedPrefsReadable(context)
+        }
     }
 
     fun getBooleanFlow(context: Context, key: String, defaultValue: Boolean): Flow<Boolean> {

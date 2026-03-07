@@ -1,17 +1,17 @@
-package com.github.magisk317.smscode.feature.backup
+package io.github.magisk317.relay.feature.backup
 
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Environment
 import androidx.core.content.FileProvider
-import com.github.magisk317.smscode.common.utils.JsonUtils
-import com.github.magisk317.smscode.common.utils.XLog
-import com.github.magisk317.smscode.data.db.AppDatabase
-import com.github.magisk317.smscode.data.db.DBManager
-import com.github.magisk317.smscode.feature.backup.exception.BackupInvalidException
-import com.github.magisk317.smscode.feature.backup.exception.VersionInvalidException
-import com.github.magisk317.smscode.feature.backup.exception.VersionMissedException
+import io.github.magisk317.relay.common.utils.JsonUtils
+import io.github.magisk317.relay.common.utils.XLog
+import io.github.magisk317.relay.data.db.AppDatabase
+import io.github.magisk317.relay.data.db.DBManager
+import io.github.magisk317.relay.feature.backup.exception.BackupInvalidException
+import io.github.magisk317.relay.feature.backup.exception.VersionInvalidException
+import io.github.magisk317.relay.feature.backup.exception.VersionMissedException
 import java.io.BufferedInputStream
 import java.io.ByteArrayInputStream
 import java.io.File
@@ -27,15 +27,16 @@ import java.util.zip.ZipOutputStream
 
 object BackupManager {
 
-    private const val BACKUP_DIRECTORY = "SmsCode"
+    private const val BACKUP_DIRECTORY = "Relay"
     private const val BACKUP_FILE_EXTENSION = ".scebak"
     private const val BACKUP_ZIP_EXTENSION = ".zip"
-    private const val BACKUP_FILE_NAME_PREFIX = "SmsCode-"
+    private const val BACKUP_FILE_NAME_PREFIX = "Relay-"
 
     private const val BACKUP_MIME_TYPE = "application/json"
     private const val BACKUP_ZIP_MIME_TYPE = "application/zip"
     private const val BACKUP_PAYLOAD_ENTRY = "backup.scebak"
-    private const val DB_FILE_NAME = "xsmscode_room.db"
+    private const val DB_FILE_NAME = "relay_room.db"
+    private val LEGACY_DB_FILE_NAMES = listOf("xrelay_room.db", "xsmscode_room.db")
 
     @JvmStatic
     fun getBackupDir(context: Context): File {
@@ -95,7 +96,7 @@ object BackupManager {
                 return ExportResult.SUCCESS
             }
         } catch (e: IOException) {
-            XLog.e("Export SmsCode rules failed", e)
+            XLog.e("Export Relay rules failed", e)
             return ExportResult.FAILED
         }
     }
@@ -125,10 +126,10 @@ object BackupManager {
                 XLog.i("exportBackup success (zip with database)")
                 return ExportResult.SUCCESS
             } catch (e: IOException) {
-                XLog.e("Export SmsCode backup(zip) failed", e)
+                XLog.e("Export Relay backup(zip) failed", e)
                 return ExportResult.FAILED
             } catch (e: IllegalStateException) {
-                XLog.e("Export SmsCode backup(zip) failed", e)
+                XLog.e("Export Relay backup(zip) failed", e)
                 return ExportResult.FAILED
             }
         }
@@ -139,7 +140,7 @@ object BackupManager {
                 return ExportResult.SUCCESS
             }
         } catch (e: IOException) {
-            XLog.e("Export SmsCode backup failed", e)
+            XLog.e("Export Relay backup failed", e)
             return ExportResult.FAILED
         }
     }
@@ -263,14 +264,11 @@ object BackupManager {
                     while (entry != null) {
                         if (!entry.isDirectory) {
                             val baseName = entry.name.substringAfterLast('/').substringAfterLast('\\')
-                            if (
-                                baseName == DB_FILE_NAME ||
-                                baseName == "$DB_FILE_NAME-wal" ||
-                                baseName == "$DB_FILE_NAME-shm"
-                            ) {
-                                val outFile = File(tmpDir, baseName)
+                            val normalizedName = normalizeBackupDbName(baseName)
+                            if (normalizedName != null) {
+                                val outFile = File(tmpDir, normalizedName)
                                 outFile.outputStream().use { output -> zis.copyTo(output) }
-                                if (baseName == DB_FILE_NAME) {
+                                if (normalizedName == DB_FILE_NAME) {
                                     foundMainDb = true
                                 }
                             }
@@ -287,7 +285,12 @@ object BackupManager {
                 AppDatabase.closeInstance()
                 DBManager.resetInstance()
 
-                listOf(DB_FILE_NAME, "$DB_FILE_NAME-wal", "$DB_FILE_NAME-shm").forEach { name ->
+                listOf(
+                    DB_FILE_NAME,
+                    "$DB_FILE_NAME-wal",
+                    "$DB_FILE_NAME-shm",
+                    *LEGACY_DB_FILE_NAMES.flatMap { listOf(it, "$it-wal", "$it-shm") }.toTypedArray(),
+                ).forEach { name ->
                     runCatching { File(dbDir, name).delete() }
                 }
 
@@ -361,7 +364,7 @@ object BackupManager {
         ).toByteArray(Charsets.UTF_8)
 
         val dbFiles = collectDatabaseFiles(context)
-        if (dbFiles.none { it.second.name == DB_FILE_NAME }) {
+        if (dbFiles.none { it.first == "database/$DB_FILE_NAME" }) {
             throw IllegalStateException("database file missing: $DB_FILE_NAME")
         }
 
@@ -380,12 +383,38 @@ object BackupManager {
         } ?: throw IOException("openOutputStream returned null: $uri")
     }
 
+    private fun normalizeBackupDbName(baseName: String): String? = when {
+        baseName == DB_FILE_NAME -> DB_FILE_NAME
+        baseName == "$DB_FILE_NAME-wal" -> "$DB_FILE_NAME-wal"
+        baseName == "$DB_FILE_NAME-shm" -> "$DB_FILE_NAME-shm"
+        LEGACY_DB_FILE_NAMES.any { it == baseName } -> DB_FILE_NAME
+        LEGACY_DB_FILE_NAMES.any { "$it-wal" == baseName } -> "$DB_FILE_NAME-wal"
+        LEGACY_DB_FILE_NAMES.any { "$it-shm" == baseName } -> "$DB_FILE_NAME-shm"
+        else -> null
+    }
+
     private fun collectDatabaseFiles(context: Context): List<Pair<String, File>> {
-        val names = listOf(DB_FILE_NAME, "$DB_FILE_NAME-wal", "$DB_FILE_NAME-shm")
-        return names.mapNotNull { name ->
-            val file = context.getDatabasePath(name)
-            if (file.exists() && file.isFile && file.canRead()) {
-                "database/$name" to file
+        val normalizedNames = listOf(DB_FILE_NAME, "$DB_FILE_NAME-wal", "$DB_FILE_NAME-shm")
+        return normalizedNames.mapIndexedNotNull { index, normalized ->
+            val primary = context.getDatabasePath(normalized)
+            val candidate = when {
+                primary.exists() && primary.isFile && primary.canRead() -> primary
+                else -> {
+                    LEGACY_DB_FILE_NAMES
+                        .asSequence()
+                        .map { legacyBase ->
+                            when (index) {
+                                0 -> legacyBase
+                                1 -> "$legacyBase-wal"
+                                else -> "$legacyBase-shm"
+                            }
+                        }
+                        .map { context.getDatabasePath(it) }
+                        .firstOrNull { it.exists() && it.isFile && it.canRead() }
+                }
+            }
+            if (candidate != null) {
+                "database/$normalized" to candidate
             } else {
                 null
             }

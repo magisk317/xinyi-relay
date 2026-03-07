@@ -1,4 +1,4 @@
-package com.github.magisk317.smscode.ui.home
+package io.github.magisk317.relay.ui.home
 
 import android.app.Activity
 import android.content.Intent
@@ -43,23 +43,23 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
-import io.github.magisk317.xinyi.relay.core.BuildConfig
-import io.github.magisk317.xinyi.relay.core.R
-import com.github.magisk317.smscode.common.constant.Const
-import com.github.magisk317.smscode.common.constant.PrefConst
-import com.github.magisk317.smscode.common.utils.AppPreferencesDataStore
-import com.github.magisk317.smscode.common.utils.ModuleActivationStore
-import com.github.magisk317.smscode.common.utils.ModuleUtils
-import com.github.magisk317.smscode.common.utils.PackageUtils
-import com.github.magisk317.smscode.common.utils.RuntimeLogStore
-import com.github.magisk317.smscode.common.utils.SPUtils
-import com.github.magisk317.smscode.common.utils.Utils
-import com.github.magisk317.smscode.common.utils.XLog
-import com.github.magisk317.smscode.ui.common.LoadingIndicatorTokens
-import com.github.magisk317.smscode.ui.common.PolygonMorphLoadingIndicator
-import com.github.magisk317.smscode.ui.common.SessionLoadingRegistry
-import com.github.magisk317.smscode.ui.common.rememberMinDurationLoading
-import com.github.magisk317.smscode.ui.privacy.PrivacyPolicyPage
+import io.github.magisk317.relay.core.BuildConfig
+import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.common.constant.Const
+import io.github.magisk317.relay.common.constant.PrefConst
+import io.github.magisk317.relay.common.utils.AppPreferencesDataStore
+import io.github.magisk317.relay.common.utils.ModuleActivationStore
+import io.github.magisk317.relay.common.utils.ModuleUtils
+import io.github.magisk317.relay.common.utils.PackageUtils
+import io.github.magisk317.relay.common.utils.RuntimeLogStore
+import io.github.magisk317.relay.common.utils.SPUtils
+import io.github.magisk317.relay.common.utils.Utils
+import io.github.magisk317.relay.common.utils.XLog
+import io.github.magisk317.relay.ui.common.LoadingIndicatorTokens
+import io.github.magisk317.relay.ui.common.PolygonMorphLoadingIndicator
+import io.github.magisk317.relay.ui.common.SessionLoadingRegistry
+import io.github.magisk317.relay.ui.common.rememberMinDurationLoading
+import io.github.magisk317.relay.ui.privacy.PrivacyPolicyPage
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.hazeEffect
@@ -94,7 +94,7 @@ fun ComposeSettingsScreen(
     var autoInputInterval by remember { mutableStateOf(PrefConst.KEY_AUTO_INPUT_CODE_INTERVAL_DEFAULT) }
     var retentionTime by remember { mutableStateOf(PrefConst.NOTIFICATION_RETENTION_TIME_DEFAULT) }
     val showCodeNotificationEnabled = remember { mutableStateOf(true) }
-    var smsCodeKeywords by remember { mutableStateOf(PrefConst.SMSCODE_KEYWORDS_DEFAULT) }
+    var smsCodeKeywords by remember { mutableStateOf(PrefConst.RELAY_KEYWORDS_DEFAULT) }
     var rootDbCatchupIntervalMin by remember { mutableStateOf("5") }
     var showAutoInputDialog by remember { mutableStateOf(false) }
     var showAutoInputIntervalDialog by remember { mutableStateOf(false) }
@@ -146,8 +146,8 @@ fun ComposeSettingsScreen(
         )
         smsCodeKeywords = AppPreferencesDataStore.getString(
             context,
-            PrefConst.KEY_SMSCODE_KEYWORDS,
-            PrefConst.SMSCODE_KEYWORDS_DEFAULT,
+            PrefConst.KEY_RELAY_KEYWORDS,
+            PrefConst.RELAY_KEYWORDS_DEFAULT,
         )
         rootDbCatchupIntervalMin = AppPreferencesDataStore.getString(
             context,
@@ -428,7 +428,7 @@ fun ComposeSettingsScreen(
                     }
 
                     ExpandableSettingsSection(
-                        title = stringResource(id = R.string.settings_group_smscode),
+                        title = stringResource(id = R.string.settings_group_relay),
                         expanded = expandSmsCode,
                         onExpandedChange = { expandSmsCode = !expandSmsCode },
                         accordionMode = accordionMode.value,
@@ -441,12 +441,12 @@ fun ComposeSettingsScreen(
                             onSaved = markPrefsSaved,
                         )
                         Item(
-                            title = stringResource(id = R.string.pref_smscode_keywords_title),
-                            summary = stringResource(id = R.string.pref_smscode_keywords_summary),
+                            title = stringResource(id = R.string.pref_relay_keywords_title),
+                            summary = stringResource(id = R.string.pref_relay_keywords_summary),
                         ) { showKeywordsDialog = true }
                         Item(
-                            title = stringResource(id = R.string.pref_smscode_test_title),
-                            summary = stringResource(id = R.string.pref_smscode_test_summary),
+                            title = stringResource(id = R.string.pref_relay_test_title),
+                            summary = stringResource(id = R.string.pref_relay_test_summary),
                         ) { showSmsTestDialog = true }
                     }
 
@@ -598,7 +598,7 @@ fun ComposeSettingsScreen(
                             title = stringResource(id = R.string.pref_restore_title),
                             summary = stringResource(id = R.string.pref_restore_summary),
                         ) {
-                            val intent = com.github.magisk317.smscode.feature.backup.BackupManager.getImportRuleListSAFIntent(context)
+                            val intent = io.github.magisk317.relay.feature.backup.BackupManager.getImportRuleListSAFIntent(context)
                             restoreLauncher.launch(intent)
                         }
                         SwitchItem(
@@ -609,7 +609,7 @@ fun ComposeSettingsScreen(
                             onItemClick = { showVerboseLogViewer = true },
                             onToggle = { on ->
                                 RuntimeLogStore.setEnabled(on)
-                                XLog.setLogLevel(if (on) Log.VERBOSE else io.github.magisk317.xinyi.relay.storage.BuildConfig.LOG_LEVEL)
+                                XLog.setLogLevel(if (on) Log.VERBOSE else io.github.magisk317.relay.storage.BuildConfig.LOG_LEVEL)
                             },
                             onSaved = markPrefsSaved,
                         )
@@ -821,7 +821,7 @@ private fun handleSettingsEvent(
     when (event) {
         is SettingsEvent.SmsCodeTestResult -> {
             val text = if (event.code.isBlank()) {
-                context.getString(R.string.cannot_parse_smscode)
+                context.getString(R.string.cannot_parse_relay_code)
             } else {
                 context.getString(R.string.current_sms_code, event.code)
             }
@@ -837,14 +837,14 @@ private fun handleSettingsEvent(
 
         is SettingsEvent.RestoreResultEvent -> {
             val msg = when (event.result.result) {
-                com.github.magisk317.smscode.feature.backup.ImportResult.SUCCESS -> R.string.restore_success
-                com.github.magisk317.smscode.feature.backup.ImportResult.VERSION_TOO_NEW -> R.string.import_failed_version_too_new
-                com.github.magisk317.smscode.feature.backup.ImportResult.VERSION_TOO_OLD -> R.string.import_failed_version_too_old
+                io.github.magisk317.relay.feature.backup.ImportResult.SUCCESS -> R.string.restore_success
+                io.github.magisk317.relay.feature.backup.ImportResult.VERSION_TOO_NEW -> R.string.import_failed_version_too_new
+                io.github.magisk317.relay.feature.backup.ImportResult.VERSION_TOO_OLD -> R.string.import_failed_version_too_old
                 else -> R.string.restore_failed
             }
             android.widget.Toast.makeText(context, context.getString(msg), android.widget.Toast.LENGTH_SHORT).show()
 
-            if (event.result.result == com.github.magisk317.smscode.feature.backup.ImportResult.SUCCESS) {
+            if (event.result.result == io.github.magisk317.relay.feature.backup.ImportResult.SUCCESS) {
                 Toast.makeText(context, context.getString(R.string.restore_success), Toast.LENGTH_SHORT).show()
                 scope.launch {
                     delay(1200L)
@@ -964,7 +964,7 @@ private fun SettingsDialogs(
 
     if (showSmsTestDialog) {
         TextInputDialog(
-            title = stringResource(id = R.string.pref_smscode_test_title),
+            title = stringResource(id = R.string.pref_relay_test_title),
             initialValue = smsTestInput,
             onDismiss = { onShowSmsTestDialogChange(false) },
             singleLine = false,
@@ -978,17 +978,17 @@ private fun SettingsDialogs(
 
     if (showKeywordsDialog) {
         TextInputDialog(
-            title = stringResource(id = R.string.pref_smscode_keywords_title),
+            title = stringResource(id = R.string.pref_relay_keywords_title),
             initialValue = smsCodeKeywords,
             onDismiss = { onShowKeywordsDialogChange(false) },
             singleLine = false,
             maxLines = 10,
-            resetValue = PrefConst.SMSCODE_KEYWORDS_DEFAULT,
+            resetValue = PrefConst.RELAY_KEYWORDS_DEFAULT,
         ) { value ->
-            val updated = if (value.isBlank()) PrefConst.SMSCODE_KEYWORDS_DEFAULT else value
+            val updated = if (value.isBlank()) PrefConst.RELAY_KEYWORDS_DEFAULT else value
             onSmsKeywordsChange(updated)
             scope.launch {
-                AppPreferencesDataStore.setString(context, PrefConst.KEY_SMSCODE_KEYWORDS, updated)
+                AppPreferencesDataStore.setString(context, PrefConst.KEY_RELAY_KEYWORDS, updated)
                 AppPreferencesDataStore.syncToSharedPrefs(context)
                 onPendingSavedToast()
             }
@@ -1074,7 +1074,7 @@ private fun SettingsDialogs(
             onConfirm = { flags ->
                 onBackupFlagsChange(flags)
                 onShowBackupDialogChange(false)
-                val intent = com.github.magisk317.smscode.feature.backup.BackupManager.getExportRuleListSAFIntent(
+                val intent = io.github.magisk317.relay.feature.backup.BackupManager.getExportRuleListSAFIntent(
                     context,
                     includeDatabase = flags.includeDatabase,
                 )
