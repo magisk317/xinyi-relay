@@ -1,4 +1,4 @@
-name: Build APK/AAB (newapi)
+name: Build APK/AAB
 
 on:
   push:
@@ -26,7 +26,7 @@ jobs:
           fi
 
   build-apk:
-    name: Build APKs (newapi)
+    name: Build APKs
     needs: [validate-release]
     runs-on: ubuntu-latest
     env:
@@ -61,21 +61,21 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
-      - name: Upload APK Artifact (newapi)
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v7
         with:
-          name: apks-newapi
+          name: apks
           path: app/build/outputs/apk/github/release/*.apk
 
-      - name: Upload Native Symbols Artifact (newapi)
+      - name: Upload Native Symbols Artifact
         uses: actions/upload-artifact@v7
         with:
-          name: native-symbols-github-newapi
+          name: native-symbols-github
           path: app/build/outputs/native-debug-symbols/githubRelease/native-debug-symbols.zip
           if-no-files-found: warn
 
   build-aab:
-    name: Build Bundle (newapi)
+    name: Build Bundle
     needs: [validate-release]
     runs-on: ubuntu-latest
     env:
@@ -110,23 +110,23 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
-      - name: Upload AAB Artifacts (newapi)
+      - name: Upload AAB Artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: bundle-assets-newapi
+          name: bundle-assets
           path: |
             app/build/outputs/bundle/playRelease/*.aab
             app/build/outputs/mapping/playRelease/mapping.txt
 
-      - name: Upload Play Native Symbols Artifact (newapi)
+      - name: Upload Play Native Symbols Artifact
         uses: actions/upload-artifact@v7
         with:
-          name: native-symbols-play-newapi
+          name: native-symbols-play
           path: app/build/outputs/native-debug-symbols/playRelease/native-debug-symbols.zip
           if-no-files-found: warn
 
   release:
-    name: Create Release (newapi)
+    name: Create Release
     needs: [build-apk, build-aab]
     runs-on: ubuntu-latest
     permissions:
@@ -139,19 +139,19 @@ jobs:
 
       - uses: actions/download-artifact@v8
         with:
-          name: apks-newapi
-          path: artifacts/newapi/apks
+          name: apks
+          path: artifacts/apks
 
       - uses: actions/download-artifact@v8
         with:
-          name: bundle-assets-newapi
-          path: artifacts/newapi/bundle
+          name: bundle-assets
+          path: artifacts/bundle
 
       - uses: actions/download-artifact@v8
         continue-on-error: true
         with:
-          name: native-symbols-play-newapi
-          path: artifacts/newapi/symbols-play
+          name: native-symbols-play
+          path: artifacts/symbols-play
 
       - name: Extract Version Name from Tag
         id: extract_version
@@ -171,8 +171,7 @@ jobs:
           name: ${{ steps.extract_version.outputs.version_name }}
           draft: true
           body: |
-            New API package (`newapi`) release.
-            Legacy transition package is published by `build-apk-legacy.yml` as non-public fallback artifact.
+            Release package.
 
             <div align="center">
               <a href="https://play.google.com/store/apps/details?id=io.github.magisk317.xinyi.relay">
@@ -184,8 +183,8 @@ jobs:
             </div>
 
           files: |
-            artifacts/newapi/apks/*.apk
-            artifacts/newapi/bundle/bundle/playRelease/*.aab
+            artifacts/apks/*.apk
+            artifacts/bundle/bundle/playRelease/*.aab
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
@@ -210,8 +209,8 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS }}
           packageName: io.github.magisk317.xinyi.relay
-          releaseFiles: artifacts/newapi/bundle/bundle/playRelease/*.aab
-          mappingFile: artifacts/newapi/bundle/mapping/playRelease/mapping.txt
+          releaseFiles: artifacts/bundle/bundle/playRelease/*.aab
+          mappingFile: artifacts/bundle/mapping/playRelease/mapping.txt
           track: ${{ steps.determine_track.outputs.track }}
           status: completed
           whatsNewDirectory: distribution/whatsnew
@@ -229,8 +228,8 @@ jobs:
       - name: Download APK Artifacts
         uses: actions/download-artifact@v8
         with:
-          name: apks-newapi
-          path: artifacts/newapi-apks
+          name: apks
+          path: artifacts/apks-modules
 
       - name: Extract Version Name from Tag
         id: extract_version
@@ -246,7 +245,7 @@ jobs:
         if: env.HAS_MODULES_REPO_TOKEN == 'true' && env.HAS_RELEASE_KEYSTORE == 'true'
         run: |
           gh release create "${{ github.ref_name }}" \
-            artifacts/newapi-apks/*.apk \
+            artifacts/apks-modules/*.apk \
             --repo "${{ env.MODULES_REPO }}" \
             --title "${{ steps.extract_version.outputs.version_name }}" \
             --notes "<div align=\"center\">

@@ -1,4 +1,4 @@
 - Switched to the libxposed module entry model with a compatibility bridge for safer migration.
 - Upgraded preference reads to a multi-source fallback chain for better runtime stability.
-- Release pipeline now supports a dual-track transition: `newapi` and `legacy`.
+- Release pipeline is now single-track on the libxposed new API.
 - GitHub: https://github.com/magisk317/xinyi-relay/releases

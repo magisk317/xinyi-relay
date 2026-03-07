@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.xp.runtime
 
+import io.github.magisk317.relay.common.xp.NoopXpRuntimeBridge
 import io.github.magisk317.relay.common.xp.XpRuntimeBridge
 
 object RuntimeBridgeFactory {
@@ -7,6 +8,6 @@ object RuntimeBridgeFactory {
         if (runtimeHandle != null && LibXposedRuntimeBridge.looksLikeLibXposedInterface(runtimeHandle)) {
             return LibXposedRuntimeBridge(runtimeHandle)
         }
-        return LegacyXposedRuntimeBridge()
+        return NoopXpRuntimeBridge
     }
 }

@@ -8,7 +8,7 @@ interface XpRuntimeBridge {
 
 object NoopXpRuntimeBridge : XpRuntimeBridge {
     override fun capabilities(): XpCapabilities = XpCapabilities(
-        frameworkName = "legacy-xposed",
+        frameworkName = "libxposed",
         frameworkVersion = "unknown",
         frameworkApiVersion = null,
         frameworkPrivilege = null,

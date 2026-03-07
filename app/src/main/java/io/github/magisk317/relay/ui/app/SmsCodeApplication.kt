@@ -73,7 +73,7 @@ class SmsCodeApplication : Application() {
 
     private fun syncPreferences() {
         applicationScope.launch {
-            AppPreferencesDataStore.migrateLegacyKeys(this@SmsCodeApplication)
+            AppPreferencesDataStore.migratePreviousKeys(this@SmsCodeApplication)
             AppPreferencesDataStore.syncToSharedPrefs(this@SmsCodeApplication)
             AppPreferencesDataStore.ensureReadable(this@SmsCodeApplication)
             val verboseLog = AppPreferencesDataStore.getBoolean(

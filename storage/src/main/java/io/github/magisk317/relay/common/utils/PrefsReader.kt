@@ -368,26 +368,26 @@ object PrefsReader {
 
     @JvmStatic
     fun recordCodeSmsEnabled(context: Context): Boolean {
-        val legacyDefault = getBooleanViaProvider(context, PrefConst.KEY_ENABLE_CODE_RECORDS, true)
-        return getBooleanViaProvider(context, PrefConst.KEY_ENABLE_CODE_RECORDS_CODE, legacyDefault)
+        val previousDefault = getBooleanViaProvider(context, PrefConst.KEY_ENABLE_CODE_RECORDS, true)
+        return getBooleanViaProvider(context, PrefConst.KEY_ENABLE_CODE_RECORDS_CODE, previousDefault)
     }
 
     @JvmStatic
     fun recordPlainSmsEnabled(context: Context): Boolean {
-        val legacyDefault = getBooleanViaProvider(context, PrefConst.KEY_ENABLE_CODE_RECORDS, true)
-        return getBooleanViaProvider(context, PrefConst.KEY_ENABLE_CODE_RECORDS_PLAIN_SMS, legacyDefault)
+        val previousDefault = getBooleanViaProvider(context, PrefConst.KEY_ENABLE_CODE_RECORDS, true)
+        return getBooleanViaProvider(context, PrefConst.KEY_ENABLE_CODE_RECORDS_PLAIN_SMS, previousDefault)
     }
 
     @JvmStatic
     fun recordAppNotifyEnabled(context: Context): Boolean {
-        val legacyDefault = getBooleanViaProvider(context, PrefConst.KEY_ENABLE_CODE_RECORDS, true)
-        return getBooleanViaProvider(context, PrefConst.KEY_ENABLE_CODE_RECORDS_APP_NOTIFY, legacyDefault)
+        val previousDefault = getBooleanViaProvider(context, PrefConst.KEY_ENABLE_CODE_RECORDS, true)
+        return getBooleanViaProvider(context, PrefConst.KEY_ENABLE_CODE_RECORDS_APP_NOTIFY, previousDefault)
     }
 
     @JvmStatic
     fun recordCallNotifyEnabled(context: Context): Boolean {
-        val legacyDefault = getBooleanViaProvider(context, PrefConst.KEY_ENABLE_CODE_RECORDS, true)
-        return getBooleanViaProvider(context, PrefConst.KEY_ENABLE_CODE_RECORDS_CALL_NOTIFY, legacyDefault)
+        val previousDefault = getBooleanViaProvider(context, PrefConst.KEY_ENABLE_CODE_RECORDS, true)
+        return getBooleanViaProvider(context, PrefConst.KEY_ENABLE_CODE_RECORDS_CALL_NOTIFY, previousDefault)
     }
 
     @JvmStatic
@@ -532,11 +532,11 @@ object PrefsReader {
     }
 
     private fun getHistoryLimitByKey(context: Context, key: String): Int {
-        val legacyValue = getStringViaProvider(context, PrefConst.KEY_HISTORY_LIMIT, "0")
+        val previousValue = getStringViaProvider(context, PrefConst.KEY_HISTORY_LIMIT, "0")
         val value = getStringViaProvider(
             context,
             key,
-            legacyValue,
+            previousValue,
         )
         return try {
             value.toInt()

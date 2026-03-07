@@ -111,12 +111,12 @@ class GithubUpdateCheckerTest {
     }
 
     @Test
-    fun parseUpgradeCheckResult_fallsBackToLegacy() {
+    fun parseUpgradeCheckResult_fallsBackToReleaseLink() {
         val json = """{"tag_name":"v3.1.9","html_url":"https://example.com/release"}"""
         val result = GithubUpdateChecker.parseUpgradeCheckResult(json)
-        val legacy = result as? UpgradeCheckResult.LegacyLink
-        assertNotNull(legacy)
-        assertEquals("3.1.9", legacy?.release?.versionName)
+        val releaseLink = result as? UpgradeCheckResult.ReleaseLink
+        assertNotNull(releaseLink)
+        assertEquals("3.1.9", releaseLink?.release?.versionName)
     }
 
     @Test

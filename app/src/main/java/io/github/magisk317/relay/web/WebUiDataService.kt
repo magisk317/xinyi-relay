@@ -198,7 +198,7 @@ internal class WebUiDataService(context: Context) {
                 checkedAt = checkedAt,
             )
 
-            is UpgradeCheckResult.LegacyLink -> {
+            is UpgradeCheckResult.ReleaseLink -> {
                 val newer = GithubUpdateChecker.isNewer(localVersionName, result.release.versionName)
                 VersionState(
                     localVersionName = localVersionName,

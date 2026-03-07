@@ -100,7 +100,7 @@ class ForwardFilterEngineTest {
     }
 
     @Test
-    fun preRoute_androidChannel_legacyScopeKey_stillWorks() {
+    fun preRoute_androidChannel_previousScopeKey_stillWorks() {
         val msgInfo = appNotify(
             title = "WeChat Pay",
             body = "Transfer from Alice 99.00",

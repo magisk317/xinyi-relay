@@ -133,8 +133,8 @@ object SendUtils {
                             traceId = traceId,
                         )
                     }.onFailure { error ->
-                        XLog.e("Notify routing resolve failed, fallback to legacy sender set", error)
-                        ForwardFlowLog.e(traceId, "Notify routing resolve failed, fallback to legacy sender set", error)
+                        XLog.e("Notify routing resolve failed, fallback to previous sender set", error)
+                        ForwardFlowLog.e(traceId, "Notify routing resolve failed, fallback to previous sender set", error)
                     }.getOrNull()?.also { result ->
                         routingResult = result
                         ForwardFlowLog.i(

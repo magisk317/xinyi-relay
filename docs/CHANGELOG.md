@@ -4,7 +4,7 @@
 
 - 切换到 libxposed 新入口模型，并提供兼容 Hook Bridge，降低迁移风险。
 - 重构偏好读取链路为可插拔 Source Chain，补齐 Runtime 能力探测与回退路径。
-- 发布链路升级为 `newapi` / `legacy` 双工作流，完善发布校验与过渡说明。
+- 发布链路收敛为 libxposed 新 API 单轨工作流，简化发布校验。
 
 ## [v0.0.1-alpha]
 

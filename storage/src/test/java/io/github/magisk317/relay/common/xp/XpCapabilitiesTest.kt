@@ -22,7 +22,7 @@ class XpCapabilitiesTest {
     @Test
     fun hasFrameworkProperty_returnsFalseWhenPropertiesUnknown() {
         val capabilities = XpCapabilities(
-            frameworkName = "legacy-xposed",
+            frameworkName = "libxposed",
             frameworkVersion = "unknown",
             frameworkProperties = null,
         )

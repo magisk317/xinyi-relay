@@ -1,4 +1,4 @@
 - 切换到 libxposed 新入口，并保持兼容迁移路径。
 - 偏好读取链路升级为多源回退，提升不同运行环境稳定性。
-- 发布流程升级为 newapi/legacy 双轨过渡。
+- 发布流程收敛为 libxposed 新 API 单轨。
 - 详情：https://github.com/magisk317/xinyi-relay/releases

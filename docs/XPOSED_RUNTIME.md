@@ -2,7 +2,7 @@
 
 ## 入口模型
 - 主入口：`io.github.magisk317.relay.xp.RelayXposedModule`
-- `xposed_init` 指向主入口，由 libxposed 框架实例化。
+- `META-INF/xposed/java_init.list` 指向主入口，由 libxposed 框架实例化。
 - 业务 hook 调度统一通过 `HookEntry`，不再由 `HookEntry` 直接作为框架入口。
 
 ## Hook 兼容层
@@ -18,7 +18,5 @@
   - `remote_libxposed -> provider -> shared_prefs -> default`
 - `RuntimeBridge` 在 Debug 模式会输出一次能力日志，便于排查运行时能力与回退路径。
 
-## 双包过渡发布
-- `newapi`：主线包，公开发布（Play / GitHub）。
-- `legacy`：过渡包，仅附件/内测用途，不进入公开 Play 轨道。
-- 默认过渡周期：1 个小版本周期；周期结束后移除 legacy 工作流。
+## 发布策略
+- 仅维护 libxposed 新 API 单轨发布（Play / GitHub）。

@@ -30,7 +30,7 @@ data class UpgradeInfo(
 
 sealed class UpgradeCheckResult {
     data class Structured(val info: UpgradeInfo) : UpgradeCheckResult()
-    data class LegacyLink(val release: GithubReleaseInfo) : UpgradeCheckResult()
+    data class ReleaseLink(val release: GithubReleaseInfo) : UpgradeCheckResult()
     data object NoUpdate : UpgradeCheckResult()
     data class CheckFailed(val message: String? = null) : UpgradeCheckResult()
 }

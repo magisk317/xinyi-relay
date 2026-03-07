@@ -84,7 +84,7 @@ object GithubUpdateChecker {
 
     fun parseUpgradeCheckResult(body: String): UpgradeCheckResult {
         parseStructuredUpgradeJson(body)?.let { return UpgradeCheckResult.Structured(it) }
-        parseLatestReleaseJson(body)?.let { return UpgradeCheckResult.LegacyLink(it) }
+        parseLatestReleaseJson(body)?.let { return UpgradeCheckResult.ReleaseLink(it) }
         return UpgradeCheckResult.CheckFailed("invalid_payload")
     }
 

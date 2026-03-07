@@ -217,23 +217,23 @@ fun CodeRecordScreen(
     var historyLimitPlain by remember { mutableStateOf("0") }
     var historyLimitAppNotify by remember { mutableStateOf("0") }
     var historyLimitCallNotify by remember { mutableStateOf("20") }
-    var legacyRecordEnabled by remember { mutableStateOf(true) }
+    var previousRecordEnabled by remember { mutableStateOf(true) }
     var showHistoryLimitDialog by remember { mutableStateOf(false) }
     var showHistoryLimitInput by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        legacyRecordEnabled = AppPreferencesDataStore.getBoolean(context, PrefConst.KEY_ENABLE_CODE_RECORDS, true)
-        val legacyLimit = AppPreferencesDataStore.getString(context, PrefConst.KEY_HISTORY_LIMIT, "0")
-        historyLimitCode = AppPreferencesDataStore.getString(context, PrefConst.KEY_HISTORY_LIMIT_CODE, legacyLimit)
+        previousRecordEnabled = AppPreferencesDataStore.getBoolean(context, PrefConst.KEY_ENABLE_CODE_RECORDS, true)
+        val previousLimit = AppPreferencesDataStore.getString(context, PrefConst.KEY_HISTORY_LIMIT, "0")
+        historyLimitCode = AppPreferencesDataStore.getString(context, PrefConst.KEY_HISTORY_LIMIT_CODE, previousLimit)
         historyLimitPlain = AppPreferencesDataStore.getString(
             context,
             PrefConst.KEY_HISTORY_LIMIT_PLAIN_SMS,
-            legacyLimit,
+            previousLimit,
         )
         historyLimitAppNotify = AppPreferencesDataStore.getString(
             context,
             PrefConst.KEY_HISTORY_LIMIT_APP_NOTIFY,
-            legacyLimit,
+            previousLimit,
         )
         historyLimitCallNotify = AppPreferencesDataStore.getString(
             context,
@@ -341,7 +341,7 @@ fun CodeRecordScreen(
                     title = stringResource(id = recordEnableTitleRes(selectedRecordTab)),
                     summary = "",
                     key = recordEnableKey(selectedRecordTab),
-                    defaultValue = legacyRecordEnabled,
+                    defaultValue = previousRecordEnabled,
                 )
 
                 Item(

@@ -46,7 +46,7 @@ abstract class AppDatabase : RoomDatabase() {
 
     companion object {
         internal const val DATABASE_NAME = "relay_room.db"
-        private val LEGACY_DATABASE_NAMES = listOf("xrelay_room.db", "xsmscode_room.db")
+        private val PREVIOUS_DATABASE_NAMES = listOf("xrelay_room.db", "xsmscode_room.db")
 
         @Volatile
         private var instance: AppDatabase? = null
@@ -171,7 +171,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         private val MIGRATION_6_7 = object : androidx.room.migration.Migration(6, 7) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                // Bridge migration kept as no-op so legacy databases can connect to the 7+ chain.
+                // Bridge migration kept as no-op so previous databases can connect to the 7+ chain.
             }
         }
 
@@ -371,7 +371,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         fun getInstance(context: Context): AppDatabase = instance ?: synchronized(this) {
             val dbContext = context.applicationContext ?: context
-            migrateLegacyDatabaseFiles(dbContext)
+            migratePreviousDatabaseFiles(dbContext)
             instance ?: Room.databaseBuilder(
                 dbContext,
                 AppDatabase::class.java,
@@ -400,21 +400,21 @@ abstract class AppDatabase : RoomDatabase() {
                 .build().also { instance = it }
         }
 
-        private fun migrateLegacyDatabaseFiles(context: Context) {
+        private fun migratePreviousDatabaseFiles(context: Context) {
             val targetMainDb = context.getDatabasePath(DATABASE_NAME)
             if (targetMainDb.exists()) return
 
-            LEGACY_DATABASE_NAMES.forEach { legacyDbName ->
+            PREVIOUS_DATABASE_NAMES.forEach { previousDbName ->
                 listOf("", "-wal", "-shm").forEach { suffix ->
-                    val legacyName = "$legacyDbName$suffix"
+                    val previousName = "$previousDbName$suffix"
                     val targetName = "$DATABASE_NAME$suffix"
-                    migrateSingleDatabaseFile(context, legacyName, targetName)
+                    migrateSingleDatabaseFile(context, previousName, targetName)
                 }
             }
         }
 
-        private fun migrateSingleDatabaseFile(context: Context, legacyName: String, targetName: String) {
-            val source = context.getDatabasePath(legacyName)
+        private fun migrateSingleDatabaseFile(context: Context, previousName: String, targetName: String) {
+            val source = context.getDatabasePath(previousName)
             if (!source.exists() || !source.isFile) return
 
             val target = context.getDatabasePath(targetName)
@@ -428,14 +428,14 @@ abstract class AppDatabase : RoomDatabase() {
                     source.delete()
                 }.onFailure {
                     XLog.w(
-                        "Failed to migrate legacy db file %s -> %s (%s)",
+                        "Failed to migrate previous db file %s -> %s (%s)",
                         source.absolutePath,
                         target.absolutePath,
                         it.message ?: "unknown",
                     )
                 }
             } else {
-                XLog.i("Migrated legacy db file: %s -> %s", legacyName, targetName)
+                XLog.i("Migrated previous db file: %s -> %s", previousName, targetName)
             }
         }
 

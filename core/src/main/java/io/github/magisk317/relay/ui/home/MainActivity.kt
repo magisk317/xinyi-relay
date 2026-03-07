@@ -361,7 +361,7 @@ class MainActivity : AppCompatActivity() {
                                     FilledTonalButton(
                                         onClick = {
                                             when (updateState) {
-                                                is GithubUpdateUiState.Legacy -> {
+                                                is GithubUpdateUiState.ReleaseLink -> {
                                                     Utils.showWebPage(this@MainActivity, updateState.release.htmlUrl)
                                                     githubUpdateUiState = null
                                                 }
@@ -381,7 +381,7 @@ class MainActivity : AppCompatActivity() {
                                         OutlinedButton(
                                             onClick = {
                                                 val versionName = when (updateState) {
-                                                    is GithubUpdateUiState.Legacy -> updateState.release.versionName
+                                                    is GithubUpdateUiState.ReleaseLink -> updateState.release.versionName
                                                     is GithubUpdateUiState.Structured -> updateState.update.info.versionName
                                                 }
                                                 lifecycleScope.launch {
@@ -690,11 +690,11 @@ class MainActivity : AppCompatActivity() {
             }
 
             UpgradeCheckResult.NoUpdate -> return GithubUpdateQueryResult.NoUpdate
-            is UpgradeCheckResult.LegacyLink -> {
+            is UpgradeCheckResult.ReleaseLink -> {
                 if (!GithubUpdateChecker.isNewer(BuildConfig.VERSION_NAME, checkResult.release.versionName)) {
                     return GithubUpdateQueryResult.NoUpdate
                 }
-                GithubUpdateUiState.Legacy(checkResult.release)
+                GithubUpdateUiState.ReleaseLink(checkResult.release)
             }
 
             is UpgradeCheckResult.Structured -> {
@@ -717,7 +717,7 @@ class MainActivity : AppCompatActivity() {
                         ),
                     )
                 } else {
-                    GithubUpdateUiState.Legacy(
+                    GithubUpdateUiState.ReleaseLink(
                         GithubReleaseInfo(
                             versionName = info.versionName,
                             htmlUrl = info.htmlUrl.ifBlank { Const.PROJECT_GITHUB_LATEST_RELEASE_URL },
@@ -734,7 +734,7 @@ class MainActivity : AppCompatActivity() {
                 "",
             )
             val latestVersionName = when (updateState) {
-                is GithubUpdateUiState.Legacy -> updateState.release.versionName
+                is GithubUpdateUiState.ReleaseLink -> updateState.release.versionName
                 is GithubUpdateUiState.Structured -> updateState.update.info.versionName
             }
             if (UpdatePolicy.shouldSkipIgnoredVersion(respectIgnoredVersion, ignoredVersion, latestVersionName)) {
@@ -746,7 +746,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun buildUpdateDialogText(updateState: GithubUpdateUiState): String {
         return when (updateState) {
-            is GithubUpdateUiState.Legacy -> {
+            is GithubUpdateUiState.ReleaseLink -> {
                 getString(R.string.github_update_dialog_message, updateState.release.versionName)
             }
 
@@ -798,7 +798,7 @@ private data class GithubStructuredUpdate(
 )
 
 private sealed class GithubUpdateUiState {
-    data class Legacy(val release: GithubReleaseInfo) : GithubUpdateUiState()
+    data class ReleaseLink(val release: GithubReleaseInfo) : GithubUpdateUiState()
     data class Structured(val update: GithubStructuredUpdate) : GithubUpdateUiState()
 }
 

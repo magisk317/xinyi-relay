@@ -36,7 +36,7 @@ object BackupManager {
     private const val BACKUP_ZIP_MIME_TYPE = "application/zip"
     private const val BACKUP_PAYLOAD_ENTRY = "backup.scebak"
     private const val DB_FILE_NAME = "relay_room.db"
-    private val LEGACY_DB_FILE_NAMES = listOf("xrelay_room.db", "xsmscode_room.db")
+    private val PREVIOUS_DB_FILE_NAMES = listOf("xrelay_room.db", "xsmscode_room.db")
 
     @JvmStatic
     fun getBackupDir(context: Context): File {
@@ -289,7 +289,7 @@ object BackupManager {
                     DB_FILE_NAME,
                     "$DB_FILE_NAME-wal",
                     "$DB_FILE_NAME-shm",
-                    *LEGACY_DB_FILE_NAMES.flatMap { listOf(it, "$it-wal", "$it-shm") }.toTypedArray(),
+                    *PREVIOUS_DB_FILE_NAMES.flatMap { listOf(it, "$it-wal", "$it-shm") }.toTypedArray(),
                 ).forEach { name ->
                     runCatching { File(dbDir, name).delete() }
                 }
@@ -387,9 +387,9 @@ object BackupManager {
         baseName == DB_FILE_NAME -> DB_FILE_NAME
         baseName == "$DB_FILE_NAME-wal" -> "$DB_FILE_NAME-wal"
         baseName == "$DB_FILE_NAME-shm" -> "$DB_FILE_NAME-shm"
-        LEGACY_DB_FILE_NAMES.any { it == baseName } -> DB_FILE_NAME
-        LEGACY_DB_FILE_NAMES.any { "$it-wal" == baseName } -> "$DB_FILE_NAME-wal"
-        LEGACY_DB_FILE_NAMES.any { "$it-shm" == baseName } -> "$DB_FILE_NAME-shm"
+        PREVIOUS_DB_FILE_NAMES.any { it == baseName } -> DB_FILE_NAME
+        PREVIOUS_DB_FILE_NAMES.any { "$it-wal" == baseName } -> "$DB_FILE_NAME-wal"
+        PREVIOUS_DB_FILE_NAMES.any { "$it-shm" == baseName } -> "$DB_FILE_NAME-shm"
         else -> null
     }
 
@@ -400,13 +400,13 @@ object BackupManager {
             val candidate = when {
                 primary.exists() && primary.isFile && primary.canRead() -> primary
                 else -> {
-                    LEGACY_DB_FILE_NAMES
+                    PREVIOUS_DB_FILE_NAMES
                         .asSequence()
-                        .map { legacyBase ->
+                        .map { previousBase ->
                             when (index) {
-                                0 -> legacyBase
-                                1 -> "$legacyBase-wal"
-                                else -> "$legacyBase-shm"
+                                0 -> previousBase
+                                1 -> "$previousBase-wal"
+                                else -> "$previousBase-shm"
                             }
                         }
                         .map { context.getDatabasePath(it) }

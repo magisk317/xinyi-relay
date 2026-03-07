@@ -20,7 +20,7 @@ object AppPreferencesDataStore {
     private val backupCompatTipShownKey = booleanPreferencesKey(PrefConst.KEY_BACKUP_COMPAT_TIP_SHOWN)
     private const val DATASTORE_FILE_NAME = "app_preferences.preferences_pb"
     private const val SHARED_PREFS_FILE_NAME = "xposed_prefs"
-    private val legacyStringKeyMap = mapOf(
+    private val previousStringKeyMap = mapOf(
         "pref_smscode_keywords" to PrefConst.KEY_RELAY_KEYWORDS,
         "pref_smscode_test" to PrefConst.KEY_RELAY_TEST,
     )
@@ -448,14 +448,14 @@ object AppPreferencesDataStore {
         ensureSharedPrefsReadable(context)
     }
 
-    suspend fun migrateLegacyKeys(context: Context) {
+    suspend fun migratePreviousKeys(context: Context) {
         getInstance(context).edit { prefs ->
-            legacyStringKeyMap.forEach { (legacyKey, newKey) ->
-                val legacyPrefKey = stringPreferencesKey(legacyKey)
+            previousStringKeyMap.forEach { (previousKey, newKey) ->
+                val previousPrefKey = stringPreferencesKey(previousKey)
                 val newPrefKey = stringPreferencesKey(newKey)
-                val legacyValue = prefs[legacyPrefKey]
-                if (!legacyValue.isNullOrEmpty() && prefs[newPrefKey].isNullOrEmpty()) {
-                    prefs[newPrefKey] = legacyValue
+                val previousValue = prefs[previousPrefKey]
+                if (!previousValue.isNullOrEmpty() && prefs[newPrefKey].isNullOrEmpty()) {
+                    prefs[newPrefKey] = previousValue
                 }
             }
         }
@@ -463,11 +463,11 @@ object AppPreferencesDataStore {
         val sharedPrefs = getSharedPrefs(context)
         val editor = sharedPrefs.edit()
         var changed = false
-        legacyStringKeyMap.forEach { (legacyKey, newKey) ->
-            if (!sharedPrefs.contains(newKey) && sharedPrefs.contains(legacyKey)) {
-                val legacyValue = sharedPrefs.getString(legacyKey, null)
-                if (!legacyValue.isNullOrEmpty()) {
-                    editor.putString(newKey, legacyValue)
+        previousStringKeyMap.forEach { (previousKey, newKey) ->
+            if (!sharedPrefs.contains(newKey) && sharedPrefs.contains(previousKey)) {
+                val previousValue = sharedPrefs.getString(previousKey, null)
+                if (!previousValue.isNullOrEmpty()) {
+                    editor.putString(newKey, previousValue)
                     changed = true
                 }
             }
