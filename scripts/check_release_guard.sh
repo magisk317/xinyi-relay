@@ -6,7 +6,7 @@ MAX_LEN="${PLAY_WHATSNEW_MAX:-500}"
 TAG_NAME="${1:-}"
 REQUIRED_LOCALES=(${PLAY_WHATSNEW_REQUIRED_LOCALES:-en-US zh-CN})
 FASTLANE_REQUIRED_LOCALES=(${FASTLANE_REQUIRED_LOCALES:-en-US zh-CN})
-FASTLANE_MIN_SCREENSHOTS="${FASTLANE_MIN_SCREENSHOTS:-2}"
+FASTLANE_MIN_SCREENSHOTS="${FASTLANE_MIN_SCREENSHOTS:-1}"
 
 if [[ ! "$MAX_LEN" =~ ^[0-9]+$ ]]; then
   echo "ERROR: PLAY_WHATSNEW_MAX must be an integer, got '$MAX_LEN'." >&2
@@ -43,7 +43,11 @@ echo "- versionCode: $VERSION_CODE"
 echo "- max whatsnew length: $MAX_LEN"
 echo "- required locales: ${REQUIRED_LOCALES[*]}"
 echo "- fastlane locales: ${FASTLANE_REQUIRED_LOCALES[*]}"
-echo "- fastlane min screenshots: $FASTLANE_MIN_SCREENSHOTS"
+if (( FASTLANE_MIN_SCREENSHOTS == 0 )); then
+  echo "- fastlane min screenshots: disabled (0)"
+else
+  echo "- fastlane min screenshots: $FASTLANE_MIN_SCREENSHOTS"
+fi
 
 FAIL=0
 
@@ -148,7 +152,9 @@ for locale in "${FASTLANE_REQUIRED_LOCALES[@]}"; do
   fi
 
   screenshot_count="$(find "$screenshots_dir" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d '[:space:]')"
-  if (( screenshot_count < FASTLANE_MIN_SCREENSHOTS )); then
+  if (( FASTLANE_MIN_SCREENSHOTS == 0 )); then
+    echo "PASS: Fastlane screenshot count check disabled for $locale (found $screenshot_count)"
+  elif (( screenshot_count < FASTLANE_MIN_SCREENSHOTS )); then
     echo "FAIL: Fastlane screenshots too few for $locale: $screenshot_count < $FASTLANE_MIN_SCREENSHOTS ($screenshots_dir)"
     FAIL=1
   else

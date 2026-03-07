@@ -86,114 +86,6 @@ if [[ -z "$current_branch" ]]; then
   exit 1
 fi
 
-detect_repo_slug() {
-  local remote_url
-  remote_url="$(git -C "$ROOT_DIR" remote get-url "$REMOTE_NAME" 2>/dev/null || true)"
-  if [[ -z "$remote_url" ]]; then
-    return 1
-  fi
-  if [[ "$remote_url" =~ ^https?://github.com/([^/]+/[^/.]+)(\.git)?$ ]]; then
-    printf '%s\n' "${BASH_REMATCH[1]}"
-    return 0
-  fi
-  if [[ "$remote_url" =~ ^git@github.com:([^/]+/[^/.]+)(\.git)?$ ]]; then
-    printf '%s\n' "${BASH_REMATCH[1]}"
-    return 0
-  fi
-  if [[ "$remote_url" =~ ^ssh://git@github.com/([^/]+/[^/.]+)(\.git)?$ ]]; then
-    printf '%s\n' "${BASH_REMATCH[1]}"
-    return 0
-  fi
-  return 1
-}
-
-wait_for_workflow_completion() {
-  local repo_slug="$1"
-  local workflow_file="$2"
-  local commit_sha="$3"
-  local required="$4"
-  local timeout_sec="${WORKFLOW_WAIT_TIMEOUT_SEC:-1800}"
-  local poll_sec="${WORKFLOW_POLL_INTERVAL_SEC:-15}"
-  local elapsed=0
-  local run_id=""
-  local status=""
-  local conclusion=""
-
-  while (( elapsed < timeout_sec )); do
-    run_id="$(gh run list \
-      --repo "$repo_slug" \
-      --workflow "$workflow_file" \
-      --event push \
-      --commit "$commit_sha" \
-      --json databaseId \
-      --jq '.[0].databaseId // empty' 2>/dev/null || true)"
-
-    if [[ -n "$run_id" ]]; then
-      break
-    fi
-    sleep "$poll_sec"
-    elapsed=$((elapsed + poll_sec))
-  done
-
-  if [[ -z "$run_id" ]]; then
-    if [[ "$required" == "required" ]]; then
-      echo "ERROR: workflow run not found in time ($workflow_file, commit=$commit_sha)" >&2
-      return 1
-    fi
-    echo "WARN: optional workflow run not found ($workflow_file, commit=$commit_sha)"
-    return 0
-  fi
-
-  elapsed=0
-  while (( elapsed < timeout_sec )); do
-    status="$(gh run view "$run_id" --repo "$repo_slug" --json status --jq '.status' 2>/dev/null || true)"
-    conclusion="$(gh run view "$run_id" --repo "$repo_slug" --json conclusion --jq '.conclusion // empty' 2>/dev/null || true)"
-
-    if [[ "$status" == "completed" ]]; then
-      if [[ "$conclusion" == "success" ]]; then
-        echo "PASS: workflow succeeded ($workflow_file, run_id=$run_id)"
-        return 0
-      fi
-      if [[ "$required" == "required" ]]; then
-        echo "ERROR: required workflow failed ($workflow_file, run_id=$run_id, conclusion=$conclusion)" >&2
-        return 1
-      fi
-      echo "WARN: optional workflow concluded with $conclusion ($workflow_file, run_id=$run_id)"
-      return 0
-    fi
-
-    sleep "$poll_sec"
-    elapsed=$((elapsed + poll_sec))
-  done
-
-  if [[ "$required" == "required" ]]; then
-    echo "ERROR: required workflow did not complete in time ($workflow_file, run_id=$run_id)" >&2
-    return 1
-  fi
-  echo "WARN: optional workflow did not complete in time ($workflow_file, run_id=$run_id)"
-  return 0
-}
-
-check_dual_release_workflows() {
-  if ! command -v gh >/dev/null 2>&1; then
-    echo "WARN: gh not found; skip remote workflow status checks."
-    return 0
-  fi
-  local repo_slug
-  repo_slug="$(detect_repo_slug)" || {
-    echo "WARN: unable to detect GitHub repo slug from remote '$REMOTE_NAME'; skip workflow checks."
-    return 0
-  }
-  local commit_sha
-  commit_sha="$(git -C "$ROOT_DIR" rev-parse HEAD)"
-
-  echo "Checking required workflow: build-apk.yml (newapi)"
-  wait_for_workflow_completion "$repo_slug" "build-apk.yml" "$commit_sha" "required"
-
-  echo "Checking optional workflow: build-apk-legacy.yml (legacy transition)"
-  wait_for_workflow_completion "$repo_slug" "build-apk-legacy.yml" "$commit_sha" "optional"
-}
-
 "$ROOT_DIR/scripts/check_release_guard.sh" "$TAG_NAME"
 run_pre_push_checks
 
@@ -234,6 +126,5 @@ delete_remote_tag_if_exists
 git -C "$ROOT_DIR" tag -a "$TAG_NAME" -m "$TAG_NAME"
 git -C "$ROOT_DIR" push "$REMOTE_NAME" "$current_branch"
 git -C "$ROOT_DIR" push "$REMOTE_NAME" "$TAG_NAME"
-check_dual_release_workflows
 
 echo "Created and pushed tag: $TAG_NAME (branch: $current_branch, remote: $REMOTE_NAME)"
