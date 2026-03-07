@@ -16,7 +16,9 @@ export function OverviewPage() {
   }
 
   useEffect(() => {
-    void load()
+    queueMicrotask(() => {
+      void load()
+    })
   }, [])
 
   return (

@@ -28,7 +28,9 @@ export function SendersPage() {
   }
 
   useEffect(() => {
-    void load()
+    queueMicrotask(() => {
+      void load()
+    })
   }, [])
 
   const create = async () => {

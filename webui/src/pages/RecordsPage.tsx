@@ -16,7 +16,9 @@ export function RecordsPage() {
   }
 
   useEffect(() => {
-    void load()
+    queueMicrotask(() => {
+      void load()
+    })
   }, [])
 
   const deleteRecord = async (recordId: number) => {

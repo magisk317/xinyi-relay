@@ -16,7 +16,9 @@ export function SettingsPage() {
   }
 
   useEffect(() => {
-    void load()
+    queueMicrotask(() => {
+      void load()
+    })
   }, [])
 
   const update = async (patch: Partial<SettingsState>) => {

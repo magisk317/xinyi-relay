@@ -20,7 +20,9 @@ export function AdvancedPage() {
   }
 
   useEffect(() => {
-    void load()
+    queueMicrotask(() => {
+      void load()
+    })
   }, [])
 
   const patchAdvanced = async (patch: Partial<AdvancedState>) => {
