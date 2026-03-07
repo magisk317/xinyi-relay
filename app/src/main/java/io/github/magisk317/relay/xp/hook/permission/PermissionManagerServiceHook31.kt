@@ -81,7 +81,7 @@ class PermissionManagerServiceHook31(classLoader: ClassLoader) : BaseSubHook(cla
                 /* int filterUserId            */
                 Int::class.javaPrimitiveType,
             )
-            if (methods != null && methods.isNotEmpty()) {
+            if (methods.isNotEmpty()) {
                 method = methods[0]
             }
         }

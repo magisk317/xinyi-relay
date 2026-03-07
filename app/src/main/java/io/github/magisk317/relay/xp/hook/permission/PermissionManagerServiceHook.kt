@@ -90,7 +90,7 @@ class PermissionManagerServiceHook(classLoader: ClassLoader) : BaseSubHook(class
                     /* PermissionCallback callback */
                     callbackClass,
                 )
-                if (methods != null && methods.isNotEmpty()) {
+                if (methods.isNotEmpty()) {
                     method = methods[0]
                 }
             }

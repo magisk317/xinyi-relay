@@ -184,14 +184,14 @@ object XposedHelpers {
     private fun wrapPrimitive(clazz: Class<*>): Class<*> {
         if (!clazz.isPrimitive) return clazz
         return when (clazz) {
-            java.lang.Integer.TYPE -> Integer::class.java
-            java.lang.Long.TYPE -> java.lang.Long::class.java
-            java.lang.Boolean.TYPE -> java.lang.Boolean::class.java
-            java.lang.Byte.TYPE -> java.lang.Byte::class.java
-            java.lang.Short.TYPE -> java.lang.Short::class.java
-            java.lang.Float.TYPE -> java.lang.Float::class.java
-            java.lang.Double.TYPE -> java.lang.Double::class.java
-            java.lang.Character.TYPE -> java.lang.Character::class.java
+            Int::class.javaPrimitiveType -> Int::class.javaObjectType
+            Long::class.javaPrimitiveType -> Long::class.javaObjectType
+            Boolean::class.javaPrimitiveType -> Boolean::class.javaObjectType
+            Byte::class.javaPrimitiveType -> Byte::class.javaObjectType
+            Short::class.javaPrimitiveType -> Short::class.javaObjectType
+            Float::class.javaPrimitiveType -> Float::class.javaObjectType
+            Double::class.javaPrimitiveType -> Double::class.javaObjectType
+            Char::class.javaPrimitiveType -> Char::class.javaObjectType
             else -> clazz
         }
     }

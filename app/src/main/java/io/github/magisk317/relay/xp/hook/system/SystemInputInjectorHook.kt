@@ -88,14 +88,12 @@ class SystemInputInjectorHook : BaseHook() {
             // Attempt 1: Check if already ready
             val activityThreadClass = XposedHelpers.findClass("android.app.ActivityThread", lpparam.classLoader)
             val activityThread = XposedHelpers.callStaticMethod(activityThreadClass, "currentActivityThread")
-            if (activityThread != null) {
-                val systemContext = XposedHelpers.callMethod(activityThread, "getSystemContext") as? Context
-                if (systemContext != null) {
-                    XLog.w("XSmsCode: System context available in onLoadPackage, registering receiver")
-                    XposedBridge.log("XSmsCode: System context available in onLoadPackage, registering receiver")
-                    scheduleRegister(systemContext)
-                    if (receiverRegistered) return
-                }
+            val systemContext = XposedHelpers.callMethod(activityThread, "getSystemContext") as? Context
+            if (systemContext != null) {
+                XLog.w("XSmsCode: System context available in onLoadPackage, registering receiver")
+                XposedBridge.log("XSmsCode: System context available in onLoadPackage, registering receiver")
+                scheduleRegister(systemContext)
+                if (receiverRegistered) return
             }
         } catch (t: Throwable) {
             XLog.w("Failed to get system context in onLoadPackage: ${t.message}")

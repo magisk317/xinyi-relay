@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.xp.compat
 
+import android.util.Log
 import io.github.libxposed.api.XposedInterface
 import io.github.magisk317.relay.common.utils.XLog
 import java.lang.reflect.Constructor
@@ -37,13 +38,20 @@ internal object XposedRuntime {
     fun current(): XposedInterface? = base
 
     fun log(text: String) {
-        runCatching { base?.log(text) }
+        runCatching { base?.log(Log.INFO, LOG_TAG, text, null) }
             .onFailure { XLog.w("XposedRuntime log failed: %s", it.message ?: "unknown") }
         XLog.i("%s", text)
     }
 
     fun log(throwable: Throwable) {
-        runCatching { base?.log(throwable.message ?: "", throwable) }
+        runCatching {
+            base?.log(
+                Log.ERROR,
+                LOG_TAG,
+                throwable.message ?: throwable.javaClass.name,
+                throwable,
+            )
+        }
             .onFailure { XLog.w("XposedRuntime throwable log failed: %s", it.message ?: "unknown") }
         XLog.e("XposedRuntime throwable", throwable)
     }
@@ -138,6 +146,8 @@ internal object XposedRuntime {
             callback.setResult(param.getResult())
         }
     }
+
+    private const val LOG_TAG = "xinyi-relay"
 }
 
 @Suppress("unused")
