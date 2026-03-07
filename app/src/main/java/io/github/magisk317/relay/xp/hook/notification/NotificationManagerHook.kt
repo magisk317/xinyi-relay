@@ -16,10 +16,10 @@ import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.service.ForceStopRecoveryService
 import io.github.magisk317.relay.xp.hook.BaseHook
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.XposedBridge
-import de.robv.android.xposed.XposedHelpers
-import de.robv.android.xposed.callbacks.XC_LoadPackage
+import io.github.magisk317.relay.xp.compat.XC_MethodHook
+import io.github.magisk317.relay.xp.compat.XposedBridge
+import io.github.magisk317.relay.xp.compat.XposedHelpers
+import io.github.magisk317.relay.xp.compat.callbacks.XC_LoadPackage
 
 class NotificationManagerHook : BaseHook() {
     private data class ModuleEndpoint(

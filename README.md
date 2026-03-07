@@ -40,7 +40,8 @@
 # 注意
 - **此模块适用于偏原生的系统，其他第三方定制 Rom 可能不适用。**
 - **兼容性：最低 Android 8.0（API 26），目标 Android 16（API 36）。**
-- **支持 LSPosed / Xposed API 82+（具体取决于系统与框架实现）。**
+- **支持 LSPosed / libxposed 运行时（具体取决于系统与框架实现）。**
+- **发布过渡说明：当前提供 `newapi` 与 `legacy` 双包过渡，`legacy` 仅作为临时回退包。**
 - **代码库：100% Kotlin + Jetpack Compose + Room + Coroutines。**
 - **遇到问题请先阅读模块中的“常见问题”。**
 
@@ -60,6 +61,7 @@
 
 # 文档
 - [更新日志 (Changelog)](docs/CHANGELOG.md)
+- [Xposed 运行时接入说明](docs/XPOSED_RUNTIME.md)
 - [隐私政策 (Privacy Policy)](docs/PRIVACY.md)
 - [赞助与捐赠 (Donations)](docs/DONATIONS.md)
 

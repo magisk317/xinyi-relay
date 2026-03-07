@@ -8,13 +8,12 @@ import io.github.magisk317.relay.xp.hook.code.SmsHandlerHook
 import io.github.magisk317.relay.xp.hook.me.ModuleUtilsHook
 import io.github.magisk317.relay.xp.hook.permission.PermissionGranterHook
 import io.github.magisk317.relay.xp.hook.system.SystemInputInjectorHook
-import de.robv.android.xposed.IXposedHookLoadPackage
-import de.robv.android.xposed.IXposedHookZygoteInit
-import de.robv.android.xposed.callbacks.XC_LoadPackage
+import io.github.magisk317.relay.xp.runtime.RuntimeBridgeFactory
+import io.github.magisk317.relay.common.utils.PrefsReader
+import io.github.magisk317.relay.xp.compat.IXposedHookZygoteInit
+import io.github.magisk317.relay.xp.compat.callbacks.XC_LoadPackage
 
-class HookEntry :
-    IXposedHookLoadPackage,
-    IXposedHookZygoteInit {
+class HookEntry {
 
     private val mHookList: List<BaseHook> = listOf(
         SmsHandlerHook(), // InBoundsSmsHandler Hook
@@ -26,7 +25,9 @@ class HookEntry :
     )
 
     @Throws(Throwable::class)
-    override fun initZygote(startupParam: IXposedHookZygoteInit.StartupParam) {
+    fun initZygote(startupParam: IXposedHookZygoteInit.StartupParam, runtimeHandle: Any? = null) {
+        PrefsReader.installRuntimeBridge(RuntimeBridgeFactory.create(runtimeHandle))
+
         for (hook in mHookList) {
             if (hook.hookInitZygote()) {
                 hook.initZygote(startupParam)
@@ -41,7 +42,7 @@ class HookEntry :
     }
 
     @Throws(Throwable::class)
-    override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
+    fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
         XLog.d("HookEntry: Loaded package: ${lpparam.packageName} process: ${lpparam.processName}")
         if ("android" == lpparam.packageName || "system" == lpparam.packageName) {
             XLog.w(

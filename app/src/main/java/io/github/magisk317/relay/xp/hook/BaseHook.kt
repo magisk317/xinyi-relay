@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.xp.hook
 
-import de.robv.android.xposed.IXposedHookZygoteInit
-import de.robv.android.xposed.callbacks.XC_LoadPackage
+import io.github.magisk317.relay.xp.compat.IXposedHookZygoteInit
+import io.github.magisk317.relay.xp.compat.callbacks.XC_LoadPackage
 
 open class BaseHook : IHook {
 

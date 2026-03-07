@@ -274,7 +274,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.livedata.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
 
-    compileOnly(project(":xposed-stub"))
+    compileOnly(libs.libxposed.api)
 
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging.interceptor)

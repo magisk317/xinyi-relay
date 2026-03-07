@@ -12,10 +12,10 @@ import android.os.Process
 import android.view.KeyCharacterMap
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.xp.hook.BaseHook
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.XposedBridge
-import de.robv.android.xposed.XposedHelpers
-import de.robv.android.xposed.callbacks.XC_LoadPackage
+import io.github.magisk317.relay.xp.compat.XC_MethodHook
+import io.github.magisk317.relay.xp.compat.XposedBridge
+import io.github.magisk317.relay.xp.compat.XposedHelpers
+import io.github.magisk317.relay.xp.compat.callbacks.XC_LoadPackage
 import java.lang.reflect.Method
 
 class SystemInputInjectorHook : BaseHook() {
@@ -42,7 +42,7 @@ class SystemInputInjectorHook : BaseHook() {
 
     override fun hookInitZygote(): Boolean = true
 
-    override fun initZygote(startupParam: de.robv.android.xposed.IXposedHookZygoteInit.StartupParam) {
+    override fun initZygote(startupParam: io.github.magisk317.relay.xp.compat.IXposedHookZygoteInit.StartupParam) {
         try {
             // Redmi K60 Ultra (Redmi 23078RKD5C) Android 16 feedback:
             // system_server starts very early, ActivityThread.systemMain might be missed.

@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.xp.helper
 
 import io.github.magisk317.relay.common.utils.XLog
-import de.robv.android.xposed.XC_MethodHook
+import io.github.magisk317.relay.xp.compat.XC_MethodHook
 
 abstract class MethodHookWrapper : XC_MethodHook() {
     @Throws(Throwable::class)

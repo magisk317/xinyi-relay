@@ -1,10 +1,10 @@
 package io.github.magisk317.relay.xp.helper
 
 import io.github.magisk317.relay.common.utils.XLog
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.XC_MethodHook.Unhook
-import de.robv.android.xposed.XposedBridge
-import de.robv.android.xposed.XposedHelpers
+import io.github.magisk317.relay.xp.compat.XC_MethodHook
+import io.github.magisk317.relay.xp.compat.XC_MethodHook.Unhook
+import io.github.magisk317.relay.xp.compat.XposedBridge
+import io.github.magisk317.relay.xp.compat.XposedHelpers
 import java.lang.reflect.Member
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier

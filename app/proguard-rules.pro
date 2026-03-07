@@ -1,11 +1,3 @@
--keepclasseswithmembers class * implements de.robv.android.xposed.IXposedHookLoadPackage {
-    public void handleLoadPackage(...);
-}
-
--keepclasseswithmembers class * implements de.robv.android.xposed.IXposedHookZygoteInit {
-    public void initZygote(...);
-}
-
 -keep class io.github.magisk317.relay.common.utils.ModuleUtils {
     int getModuleVersion();
 }
@@ -74,8 +66,11 @@
 
 # ==========================
 # Xposed start
+-keep class io.github.magisk317.relay.xp.RelayXposedModule { *; }
 -keep class io.github.magisk317.relay.xp.HookEntry { *; }
 -keep class io.github.magisk317.relay.xp.hook.** { *; }
+-keep class io.github.magisk317.relay.xp.compat.** { *; }
+-keep class io.github.magisk317.relay.xp.runtime.** { *; }
 # Xposed end
 # ==========================
 

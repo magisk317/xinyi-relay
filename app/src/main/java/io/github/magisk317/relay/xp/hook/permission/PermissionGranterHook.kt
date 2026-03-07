@@ -2,7 +2,7 @@ package io.github.magisk317.relay.xp.hook.permission
 
 import android.os.Build
 import io.github.magisk317.relay.xp.hook.BaseHook
-import de.robv.android.xposed.callbacks.XC_LoadPackage
+import io.github.magisk317.relay.xp.compat.callbacks.XC_LoadPackage
 
 /**
  * Hook com.android.server.pm.PackageManagerService to grant permissions.

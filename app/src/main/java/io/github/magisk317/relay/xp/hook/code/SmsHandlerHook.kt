@@ -19,10 +19,10 @@ import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.xp.helper.XposedWrapper
 import io.github.magisk317.relay.xp.hook.BaseHook
 import io.github.magisk317.relay.xp.hook.code.action.impl.OperateSmsAction
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.XposedBridge
-import de.robv.android.xposed.XposedHelpers
-import de.robv.android.xposed.callbacks.XC_LoadPackage
+import io.github.magisk317.relay.xp.compat.XC_MethodHook
+import io.github.magisk317.relay.xp.compat.XposedBridge
+import io.github.magisk317.relay.xp.compat.XposedHelpers
+import io.github.magisk317.relay.xp.compat.callbacks.XC_LoadPackage
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
 import java.util.concurrent.Executors
@@ -251,7 +251,7 @@ class SmsHandlerHook : BaseHook() {
                         reason = BLOCK_REASON_BLACKLIST,
                         eventId = eventId,
                     )
-                    param.result = null
+                    param.setResult(null)
                 }
                 return
             }
@@ -273,7 +273,7 @@ class SmsHandlerHook : BaseHook() {
                         reason = BLOCK_REASON_PREF_BLOCK,
                         eventId = eventId,
                     )
-                    param.result = null
+                    param.setResult(null)
                 }
             } else {
                 XLog.w(
