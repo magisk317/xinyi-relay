@@ -23,6 +23,7 @@ class SenderValidatorNullSafetyTest {
             SenderType.SMS to """{"mobiles":null,"simSlot":null}""",
             SenderType.FEISHU to """{"webhook":null}""",
             SenderType.GOTIFY to """{"webServer":null}""",
+            SenderType.NTFY to """{"server":null,"topic":null,"priority":null}""",
             SenderType.DINGTALK_INNER_ROBOT to """{"agentID":null,"appKey":null,"appSecret":null,"userIds":null}""",
             SenderType.FEISHU_APP to """{"appId":null,"appSecret":null,"receiveId":null}""",
             SenderType.URL_SCHEME to """{"urlScheme":null}""",

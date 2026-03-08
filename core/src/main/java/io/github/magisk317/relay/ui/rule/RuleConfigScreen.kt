@@ -230,5 +230,6 @@ private fun getSenderTypeShort(type: Int) = when (type) {
     4 -> "Webhook"
     6 -> "PushPlus"
     12 -> "TG"
+    16 -> "ntfy"
     else -> "??"
 }

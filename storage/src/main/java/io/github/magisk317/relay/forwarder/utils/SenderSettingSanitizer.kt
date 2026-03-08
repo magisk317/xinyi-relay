@@ -8,6 +8,7 @@ import io.github.magisk317.relay.forwarder.entity.setting.EmailSetting
 import io.github.magisk317.relay.forwarder.entity.setting.FeishuAppSetting
 import io.github.magisk317.relay.forwarder.entity.setting.FeishuSetting
 import io.github.magisk317.relay.forwarder.entity.setting.GotifySetting
+import io.github.magisk317.relay.forwarder.entity.setting.NtfySetting
 import io.github.magisk317.relay.forwarder.entity.setting.PushplusSetting
 import io.github.magisk317.relay.forwarder.entity.setting.ServerchanSetting
 import io.github.magisk317.relay.forwarder.entity.setting.SmsSetting
@@ -77,6 +78,9 @@ object SenderSettingSanitizer {
             )
             SenderType.SOCKET -> gson.toJson(
                 sanitizeSocketSetting(parseSetting(json, SocketSetting::class.java)),
+            )
+            SenderType.NTFY -> gson.toJson(
+                sanitizeNtfySetting(parseSetting(json, NtfySetting::class.java)),
             )
             else -> if (json.isBlank()) "" else json
         }
@@ -250,6 +254,18 @@ object SenderSettingSanitizer {
             webServer = safeString(raw?.webServer),
             title = safeString(raw?.title),
             priority = safeString(raw?.priority),
+        )
+    }
+
+    fun sanitizeNtfySetting(raw: NtfySetting?): NtfySetting {
+        val defaults = NtfySetting()
+        return NtfySetting(
+            server = safeString(raw?.server),
+            topic = safeString(raw?.topic),
+            token = safeString(raw?.token),
+            title = safeString(raw?.title),
+            priority = safeString(raw?.priority).ifBlank { defaults.priority },
+            tags = safeString(raw?.tags),
         )
     }
 

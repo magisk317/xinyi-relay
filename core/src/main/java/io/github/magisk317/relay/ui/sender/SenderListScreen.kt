@@ -218,6 +218,7 @@ fun SenderListScreen(
                 SenderType.SERVERCHAN to "Server酱",
                 SenderType.PUSHPLUS to "PushPlus",
                 SenderType.GOTIFY to "Gotify",
+                SenderType.NTFY to "ntfy",
                 SenderType.BARK to "Bark",
             ),
             "其他" to listOf(
@@ -1310,6 +1311,7 @@ fun getSenderTypeName(type: Int): String {
         SenderType.FEISHU -> "飞书机器人"
         SenderType.PUSHPLUS -> "PushPlus"
         SenderType.GOTIFY -> "Gotify"
+        SenderType.NTFY -> "ntfy"
         SenderType.DINGTALK_INNER_ROBOT -> "钉钉内部机器人"
         SenderType.FEISHU_APP -> "飞书应用"
         SenderType.URL_SCHEME -> "Url Scheme"

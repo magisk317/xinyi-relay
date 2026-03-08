@@ -68,6 +68,7 @@ internal fun copySenderContextLog(context: Context, channel: String) {
 private fun channelExtraLogKeywords(channel: String): List<String> {
     return when (channel.trim().uppercase(Locale.ROOT)) {
         "WEBHOOK" -> listOf("WebhookUtils")
+        "NTFY" -> listOf("NtfyUtils")
         else -> emptyList()
     }
 }

@@ -17,4 +17,5 @@ object SenderType {
     const val FEISHU_APP = 13
     const val URL_SCHEME = 14
     const val SOCKET = 15
+    const val NTFY = 16
 }

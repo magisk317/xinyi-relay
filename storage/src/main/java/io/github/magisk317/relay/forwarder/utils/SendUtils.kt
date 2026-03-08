@@ -12,6 +12,7 @@ import io.github.magisk317.relay.forwarder.entity.setting.EmailSetting
 import io.github.magisk317.relay.forwarder.entity.setting.FeishuAppSetting
 import io.github.magisk317.relay.forwarder.entity.setting.FeishuSetting
 import io.github.magisk317.relay.forwarder.entity.setting.GotifySetting
+import io.github.magisk317.relay.forwarder.entity.setting.NtfySetting
 import io.github.magisk317.relay.forwarder.entity.setting.PushplusSetting
 import io.github.magisk317.relay.forwarder.entity.setting.ServerchanSetting
 import io.github.magisk317.relay.forwarder.entity.setting.SmsSetting
@@ -30,6 +31,7 @@ import io.github.magisk317.relay.forwarder.utils.sender.EmailUtils
 import io.github.magisk317.relay.forwarder.utils.sender.FeishuAppUtils
 import io.github.magisk317.relay.forwarder.utils.sender.FeishuUtils
 import io.github.magisk317.relay.forwarder.utils.sender.GotifyUtils
+import io.github.magisk317.relay.forwarder.utils.sender.NtfyUtils
 import io.github.magisk317.relay.forwarder.utils.sender.PushplusUtils
 import io.github.magisk317.relay.forwarder.utils.sender.ServerchanUtils
 import io.github.magisk317.relay.forwarder.utils.sender.SmsUtils
@@ -361,6 +363,10 @@ object SendUtils {
                     val setting = gson.fromJson(sender.jsonSetting, GotifySetting::class.java)
                     GotifyUtils.sendMsg(setting, msgInfo)
                 }
+                SenderType.NTFY -> {
+                    val setting = gson.fromJson(sender.jsonSetting, NtfySetting::class.java)
+                    NtfyUtils.sendMsg(setting, msgInfo)
+                }
                 SenderType.DINGTALK_INNER_ROBOT -> {
                     val setting = gson.fromJson(sender.jsonSetting, DingtalkInnerRobotSetting::class.java)
                     DingtalkInnerRobotUtils.sendMsg(setting, msgInfo)
@@ -466,6 +472,7 @@ object SendUtils {
             SenderType.FEISHU -> "飞书机器人"
             SenderType.PUSHPLUS -> "PushPlus"
             SenderType.GOTIFY -> "Gotify"
+            SenderType.NTFY -> "ntfy"
             SenderType.DINGTALK_INNER_ROBOT -> "钉钉内部机器人"
             SenderType.FEISHU_APP -> "飞书应用"
             SenderType.URL_SCHEME -> "Url Scheme"

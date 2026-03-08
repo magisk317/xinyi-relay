@@ -8,6 +8,7 @@ import io.github.magisk317.relay.forwarder.entity.setting.EmailSetting
 import io.github.magisk317.relay.forwarder.entity.setting.FeishuAppSetting
 import io.github.magisk317.relay.forwarder.entity.setting.FeishuSetting
 import io.github.magisk317.relay.forwarder.entity.setting.GotifySetting
+import io.github.magisk317.relay.forwarder.entity.setting.NtfySetting
 import io.github.magisk317.relay.forwarder.entity.setting.PushplusSetting
 import io.github.magisk317.relay.forwarder.entity.setting.ServerchanSetting
 import io.github.magisk317.relay.forwarder.entity.setting.SmsSetting
@@ -109,6 +110,16 @@ object SenderValidator {
                     if (setting.webServer.isBlank()) invalid("Gotify 地址不能为空") else ok()
                 }
 
+                SenderType.NTFY -> {
+                    val setting = gson.fromJson(safeSender.jsonSetting, NtfySetting::class.java)
+                    when {
+                        setting.server.isBlank() -> invalid("ntfy Server 不能为空")
+                        setting.topic.isBlank() -> invalid("ntfy Topic 不能为空")
+                        !isValidNtfyPriority(setting.priority) -> invalid("ntfy 优先级仅支持 1-5")
+                        else -> ok()
+                    }
+                }
+
                 SenderType.DINGTALK_INNER_ROBOT -> {
                     val setting = gson.fromJson(safeSender.jsonSetting, DingtalkInnerRobotSetting::class.java)
                     if (setting.agentID.isBlank() || setting.appKey.isBlank() || setting.appSecret.isBlank() || setting.userIds.isBlank()) {
@@ -147,5 +158,11 @@ object SenderValidator {
 
     private fun isHttpWebhookUrl(url: String): Boolean {
         return url.trim().startsWith(prefix = "http://", ignoreCase = true)
+    }
+
+    private fun isValidNtfyPriority(priority: String): Boolean {
+        val normalized = priority.trim()
+        if (normalized.isEmpty()) return true
+        return normalized.toIntOrNull() in 1..5
     }
 }

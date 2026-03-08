@@ -376,6 +376,7 @@ internal class WebUiDataService(context: Context) {
         SenderType.FEISHU -> "飞书"
         SenderType.PUSHPLUS -> "PushPlus"
         SenderType.GOTIFY -> "Gotify"
+        SenderType.NTFY -> "ntfy"
         SenderType.DINGTALK_INNER_ROBOT -> "钉钉内部机器人"
         SenderType.FEISHU_APP -> "飞书应用"
         SenderType.URL_SCHEME -> "URL Scheme"

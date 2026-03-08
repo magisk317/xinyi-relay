@@ -126,6 +126,7 @@ fun SenderConfigScreen(
             }
             SenderType.FEISHU -> FeishuConfigForm(senderId, handleBack, viewModel)
             SenderType.GOTIFY -> GotifyConfigForm(senderId, handleBack, viewModel)
+            SenderType.NTFY -> NtfyConfigForm(senderId, handleBack, viewModel)
             SenderType.DINGTALK_INNER_ROBOT -> DingtalkInnerConfigForm(senderId, handleBack, viewModel)
             SenderType.FEISHU_APP -> FeishuAppConfigForm(senderId, handleBack, viewModel)
             SenderType.URL_SCHEME -> UrlSchemeConfigForm(senderId, handleBack, viewModel)

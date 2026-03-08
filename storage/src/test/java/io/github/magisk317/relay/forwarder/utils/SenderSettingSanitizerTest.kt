@@ -8,6 +8,7 @@ import io.github.magisk317.relay.forwarder.entity.setting.EmailSetting
 import io.github.magisk317.relay.forwarder.entity.setting.FeishuAppSetting
 import io.github.magisk317.relay.forwarder.entity.setting.FeishuSetting
 import io.github.magisk317.relay.forwarder.entity.setting.GotifySetting
+import io.github.magisk317.relay.forwarder.entity.setting.NtfySetting
 import io.github.magisk317.relay.forwarder.entity.setting.PushplusSetting
 import io.github.magisk317.relay.forwarder.entity.setting.ServerchanSetting
 import io.github.magisk317.relay.forwarder.entity.setting.SmsSetting
@@ -43,6 +44,7 @@ class SenderSettingSanitizerTest {
             SenderType.SMS to """{"mobiles":null,"simSlot":null}""",
             SenderType.FEISHU to """{"webhook":null,"msgType":null}""",
             SenderType.GOTIFY to """{"webServer":null,"title":null}""",
+            SenderType.NTFY to """{"server":null,"topic":null,"priority":null,"tags":null}""",
             SenderType.DINGTALK_INNER_ROBOT to """{"agentID":null,"appKey":null,"appSecret":null,"proxyType":null}""",
             SenderType.FEISHU_APP to """{"appId":null,"appSecret":null,"receiveId":null,"msgType":null}""",
             SenderType.URL_SCHEME to """{"urlScheme":null}""",
@@ -174,6 +176,13 @@ class SenderSettingSanitizerTest {
                 val setting = gson.fromJson(json, GotifySetting::class.java)
                 setting.webServer.length
                 setting.title.length
+            }
+            SenderType.NTFY -> {
+                val setting = gson.fromJson(json, NtfySetting::class.java)
+                setting.server.length
+                setting.topic.length
+                setting.priority.length
+                setting.tags.length
             }
             SenderType.DINGTALK_INNER_ROBOT -> {
                 val setting = gson.fromJson(json, DingtalkInnerRobotSetting::class.java)
