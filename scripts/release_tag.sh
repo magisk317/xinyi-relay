@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION_FILE="$ROOT_DIR/gradle/libs.versions.toml"
+FASTLANE_META_DIR="$ROOT_DIR/fastlane/metadata/android"
 
 count_sarif_results() {
   local sarif_file="$1"
@@ -46,6 +47,21 @@ run_sync_readme_badges() {
     bash "$sync_script"
   )
   echo "README badge sync completed."
+}
+
+run_sync_fastlane_metadata() {
+  local sync_script="$ROOT_DIR/scripts/sync_fastlane_metadata.sh"
+  if [[ ! -f "$sync_script" ]]; then
+    echo "ERROR: missing script: $sync_script" >&2
+    exit 1
+  fi
+
+  echo "Running fastlane metadata sync..."
+  (
+    cd "$ROOT_DIR"
+    bash "$sync_script"
+  )
+  echo "Fastlane metadata sync completed."
 }
 
 run_pre_push_checks() {
@@ -111,6 +127,12 @@ if [[ -z "$VERSION_NAME" ]]; then
   exit 2
 fi
 
+VERSION_CODE="$(extract_toml_value "versionCode" "$VERSION_FILE")"
+if [[ -z "$VERSION_CODE" ]]; then
+  echo "ERROR: failed to parse versionCode from $VERSION_FILE" >&2
+  exit 2
+fi
+
 TAG_NAME="v$VERSION_NAME"
 REMOTE_NAME="${RELEASE_REMOTE:-origin}"
 
@@ -120,7 +142,29 @@ if [[ -z "$current_branch" ]]; then
   exit 1
 fi
 
+ensure_fastlane_changelogs_ready() {
+  local locales=(en-US zh-CN)
+  local missing_files=()
+  local locale
+  local changelog_file
+  for locale in "${locales[@]}"; do
+    changelog_file="$FASTLANE_META_DIR/$locale/changelogs/$VERSION_CODE.txt"
+    if [[ ! -s "$changelog_file" ]]; then
+      missing_files+=("$changelog_file")
+    fi
+  done
+
+  if [[ "${#missing_files[@]}" -ne 0 ]]; then
+    echo "ERROR: missing or empty Fastlane changelog(s) for versionCode=$VERSION_CODE:" >&2
+    printf ' - %s\n' "${missing_files[@]}" >&2
+    echo "Hint: run scripts/sync_fastlane_metadata.sh and commit generated files." >&2
+    exit 1
+  fi
+}
+
 run_sync_readme_badges
+run_sync_fastlane_metadata
+ensure_fastlane_changelogs_ready
 run_webui_checks
 "$ROOT_DIR/scripts/check_release_guard.sh" "$TAG_NAME"
 run_pre_push_checks
