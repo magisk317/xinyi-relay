@@ -40,13 +40,22 @@ class HookEntry {
     }
 
     @Throws(Throwable::class)
-    fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
-        XLog.d("HookEntry: Loaded package: ${lpparam.packageName} process: ${lpparam.processName}")
+    fun handleLoadPackage(
+        lpparam: XC_LoadPackage.LoadPackageParam,
+        source: String = "unknown",
+    ) {
+        XLog.d(
+            "HookEntry: Loaded package: %s process: %s source=%s",
+            lpparam.packageName,
+            lpparam.processName,
+            source,
+        )
         if ("android" == lpparam.packageName || "system" == lpparam.packageName) {
             XLog.w(
-                "HookEntry: Android/system package loaded: pkg=%s process=%s",
+                "HookEntry: Android/system package loaded: pkg=%s process=%s source=%s",
                 lpparam.packageName,
                 lpparam.processName,
+                source,
             )
         }
         for (hook in mHookList) {

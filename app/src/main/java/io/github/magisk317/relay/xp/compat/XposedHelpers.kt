@@ -112,19 +112,19 @@ object XposedHelpers {
     }
 
     @JvmStatic
-    fun callMethod(obj: Any?, methodName: String, vararg args: Any?): Any {
+    fun callMethod(obj: Any?, methodName: String, vararg args: Any?): Any? {
         requireNotNull(obj) { "obj == null" }
         val method = findMethodBestMatch(obj.javaClass, methodName, *args)
         return runCatching { method.invoke(obj, *args) }
-            .getOrElse { throw RuntimeException(it) } as Any
+            .getOrElse { throw RuntimeException(it) }
     }
 
     @JvmStatic
-    fun callStaticMethod(clazz: Class<*>?, methodName: String, vararg args: Any?): Any {
+    fun callStaticMethod(clazz: Class<*>?, methodName: String, vararg args: Any?): Any? {
         requireNotNull(clazz) { "clazz == null" }
         val method = findMethodBestMatch(clazz, methodName, *args)
         return runCatching { method.invoke(null, *args) }
-            .getOrElse { throw RuntimeException(it) } as Any
+            .getOrElse { throw RuntimeException(it) }
     }
 
     @JvmStatic

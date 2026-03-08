@@ -193,7 +193,6 @@ class SmsHandlerHook : BaseHook() {
                 beforeDispatchIntentHandler(param, mReceiverIndex)
             } catch (e: Throwable) {
                 XLog.e("Error occurred in dispatchIntent() hook, ", e)
-                throw e
             }
         }
     }
@@ -331,7 +330,11 @@ class SmsHandlerHook : BaseHook() {
 
     private fun sendEventBroadcastComplete(inboundSmsHandler: Any, reason: String, eventId: String) {
         XLog.d("Send event(EVENT_BROADCAST_COMPLETE): reason=%s event_id=%s", reason, eventId)
-        XposedHelpers.callMethod(inboundSmsHandler, "sendMessage", EVENT_BROADCAST_COMPLETE)
+        runCatching {
+            XposedHelpers.callMethod(inboundSmsHandler, "sendMessage", EVENT_BROADCAST_COMPLETE)
+        }.onFailure {
+            XLog.e("Send EVENT_BROADCAST_COMPLETE failed: reason=%s event_id=%s", reason, eventId, it)
+        }
     }
 
     @Throws(ReflectiveOperationException::class)

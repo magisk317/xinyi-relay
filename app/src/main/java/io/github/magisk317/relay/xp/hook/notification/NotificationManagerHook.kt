@@ -54,7 +54,11 @@ class NotificationManagerHook : BaseHook() {
     override fun hookOnLoadPackage(): Boolean = true
 
     override fun onLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
-        if (lpparam.packageName != "android") return
+        val isSystemPackage = lpparam.packageName == "android" || lpparam.packageName == "system"
+        val isSystemProcess = lpparam.processName == "system" ||
+            lpparam.processName == "android" ||
+            lpparam.processName == "system_server"
+        if (!isSystemPackage || !isSystemProcess) return
 
         try {
             val nmsClass = XposedHelpers.findClass("com.android.server.notification.NotificationManagerService", lpparam.classLoader)
