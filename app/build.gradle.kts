@@ -109,7 +109,7 @@ android {
         versionCode = versionCodeInt
         versionName = versionNameStr
 
-        buildConfigField("String", "LOG_TAG", "\"XSmsCode\"")
+        buildConfigField("String", "LOG_TAG", "\"x-relay\"")
         buildConfigField("int", "MODULE_VERSION", "$versionCodeInt")
     }
 
