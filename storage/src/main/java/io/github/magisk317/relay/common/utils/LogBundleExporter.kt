@@ -58,10 +58,13 @@ object LogBundleExporter {
             try {
                 val appLogSrc = StorageUtils.getLogDir(context)
                 if (appLogSrc != null && appLogSrc.exists()) {
-                    copyDirectory(appLogSrc, File(stagingDir, "app/log"))
+                    val stagedAppLogDir = File(stagingDir, "app/log")
+                    copyDirectory(appLogSrc, stagedAppLogDir)
                     details += "app log: ${appLogSrc.absolutePath}"
+                    details += summarizeRuntimeLogFiles(stagedAppLogDir)
                 } else {
                     details += "app log missing"
+                    details += "runtime log files: 0"
                 }
 
                 val crashLogSrc = StorageUtils.getCrashLogDir(context)
@@ -228,6 +231,21 @@ object LogBundleExporter {
         }
         details += "lsposed su failed: ${suResult.stderr.ifBlank { suResult.stdout }.ifBlank { "unknown" }}"
         return false
+    }
+
+    private fun summarizeRuntimeLogFiles(stagedAppLogDir: File): String {
+        val runtimeFiles = stagedAppLogDir.listFiles().orEmpty()
+            .filter { file ->
+                file.isFile &&
+                    (
+                        file.name == "runtime.log" ||
+                            file.name.startsWith("runtime.")
+                        )
+            }
+            .sortedBy { it.name }
+        if (runtimeFiles.isEmpty()) return "runtime log files: 0"
+        val names = runtimeFiles.joinToString(", ") { "${it.name}(${it.length()}B)" }
+        return "runtime log files: ${runtimeFiles.size} [$names]"
     }
 
     private data class ShellResult(

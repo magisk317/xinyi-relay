@@ -37,8 +37,25 @@ object XLog {
             Log.println(priority, "LSPosed-Bridge", "$LOG_TAG: $logMessage")
         }
 
-        RuntimeLogStore.append(priority, LOG_TAG, logMessage)
+        val route = RuntimeLogStore.routeFromCallerClassName(resolveCallerClassName())
+        RuntimeLogStore.append(
+            priority = priority,
+            tag = LOG_TAG,
+            message = logMessage,
+            force = true,
+            route = route,
+        )
         Timber.log(priority, message, *args)
+    }
+
+    private fun resolveCallerClassName(): String? {
+        return Throwable().stackTrace
+            .mapNotNull { it.className }
+            .firstOrNull { className ->
+                className != XLog::class.java.name &&
+                    !className.startsWith("${XLog::class.java.name}\$") &&
+                    !className.startsWith("timber.log.")
+            }
     }
 
     @JvmStatic

@@ -28,6 +28,7 @@ class ForceStopRecoveryService : Service() {
             TAG,
             "force-stop recovery wakeup reason=${reason.ifBlank { "<none>" }} event=${eventId.ifBlank { "<none>" }}",
             force = true,
+            route = RuntimeLogStore.ROUTE_ROOT_DB,
         )
         RootDbCatchupScheduler.triggerImmediate(
             context = this,

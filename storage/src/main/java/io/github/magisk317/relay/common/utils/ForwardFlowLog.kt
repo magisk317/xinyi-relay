@@ -37,6 +37,12 @@ object ForwardFlowLog {
             "[trace=$traceId] $message"
         }
         Log.println(priority, TAG, prefixed)
-        RuntimeLogStore.append(priority, TAG, prefixed, force = true)
+        RuntimeLogStore.append(
+            priority = priority,
+            tag = TAG,
+            message = prefixed,
+            force = true,
+            route = RuntimeLogStore.ROUTE_FORWARD,
+        )
     }
 }

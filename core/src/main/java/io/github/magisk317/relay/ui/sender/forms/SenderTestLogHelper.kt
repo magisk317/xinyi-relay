@@ -30,6 +30,7 @@ internal fun logSenderTest(channel: String, message: String, priority: Int = Log
         tag = "SenderTest-$channel",
         message = message,
         force = true,
+        route = RuntimeLogStore.ROUTE_SENDER,
     )
 }
 
