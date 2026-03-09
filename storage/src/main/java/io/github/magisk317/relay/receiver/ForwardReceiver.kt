@@ -156,20 +156,39 @@ class ForwardReceiver : BroadcastReceiver() {
                     markResult(RESULT_REJECT_APP_GATE, "app_gate_drop")
                     return@runCatching
                 }
-                if (msgTypeStr == "app_notify" && shouldDropDuplicateAppNotify(packageName, sender, body)) {
+                if (
+                    (msgTypeStr == "app_notify" || msgTypeStr == "call_notify") &&
+                    shouldDropDuplicateNotify(
+                        msgType = msgTypeStr,
+                        packageName = packageName,
+                        sender = sender,
+                        body = body,
+                        notifyChannelId = notifyChannelId,
+                        callType = callType,
+                    )
+                ) {
                     XLog.i(
-                        "Drop duplicate app_notify: pkg=%s sender=%s source=%s",
+                        "Drop duplicate notify: type=%s pkg=%s sender=%s channel=%s callType=%d source=%s",
+                        msgTypeStr,
                         packageName.orEmpty(),
                         sender.orEmpty(),
+                        notifyChannelId,
+                        callType,
                         forwardSource,
                     )
                     ForwardFlowLog.i(
                         traceId,
                         buildString {
-                            append("Drop duplicate app_notify pkg=")
+                            append("Drop duplicate notify type=")
+                            append(msgTypeStr)
+                            append(" pkg=")
                             append(packageName.orEmpty())
                             append(" sender=")
                             append(sender.orEmpty())
+                            append(" channel=")
+                            append(notifyChannelId)
+                            append(" callType=")
+                            append(callType)
                             append(" source=")
                             append(forwardSource)
                         },
@@ -429,8 +448,8 @@ class ForwardReceiver : BroadcastReceiver() {
 
     companion object {
         private const val TAG = "ForwardReceiver"
-        private const val APP_NOTIFY_DEDUP_WINDOW_MS = 2500L
-        private const val APP_NOTIFY_DEDUP_MAX_ENTRIES = 256
+        private const val NOTIFY_DEDUP_WINDOW_MS = 2500L
+        private const val NOTIFY_DEDUP_MAX_ENTRIES = 256
         private const val API_LEVEL_34 = 34
         private const val RESULT_OK = 0
         private const val RESULT_REJECT_ACTION = -101
@@ -445,7 +464,7 @@ class ForwardReceiver : BroadcastReceiver() {
         private val FORWARD_EXECUTOR: ExecutorService = Executors.newFixedThreadPool(FORWARD_WORKER_COUNT) { runnable ->
             Thread(runnable, "ForwardReceiverWorker-${workerIndex.getAndIncrement()}")
         }
-        private val recentAppNotify = ConcurrentHashMap<String, Long>()
+        private val recentNotify = ConcurrentHashMap<String, Long>()
     }
 
     private fun shouldAllowSystemTokenBypass(
@@ -515,30 +534,54 @@ class ForwardReceiver : BroadcastReceiver() {
         return null
     }
 
-    private fun shouldDropDuplicateAppNotify(
+    private fun shouldDropDuplicateNotify(
+        msgType: String,
         packageName: String?,
         sender: String?,
         body: String?,
+        notifyChannelId: String?,
+        callType: Int,
     ): Boolean {
-        val key = buildString {
-            append(packageName.orEmpty().trim())
-            append('|')
-            append(sender.orEmpty().trim())
-            append('|')
-            append(body.orEmpty().trim())
+        val normalizedType = msgType.trim()
+        val normalizedPackage = packageName.orEmpty().trim()
+        val normalizedSender = sender.orEmpty().trim()
+        val normalizedBody = body.orEmpty().trim()
+        val normalizedChannel = notifyChannelId.orEmpty().trim()
+        if (
+            normalizedType.isEmpty() ||
+            (
+                normalizedPackage.isEmpty() &&
+                    normalizedSender.isEmpty() &&
+                    normalizedBody.isEmpty() &&
+                    normalizedChannel.isEmpty()
+                )
+        ) {
+            return false
         }
-        if (key == "||") return false
+        val key = buildString {
+            append(normalizedType)
+            append('|')
+            append(normalizedPackage)
+            append('|')
+            append(normalizedSender)
+            append('|')
+            append(normalizedBody)
+            append('|')
+            append(normalizedChannel)
+            append('|')
+            append(callType)
+        }
 
         val now = System.currentTimeMillis()
-        val previous = recentAppNotify[key]
-        if (previous != null && now - previous < APP_NOTIFY_DEDUP_WINDOW_MS) {
+        val previous = recentNotify[key]
+        if (previous != null && now - previous < NOTIFY_DEDUP_WINDOW_MS) {
             return true
         }
-        recentAppNotify[key] = now
+        recentNotify[key] = now
 
-        if (recentAppNotify.size > APP_NOTIFY_DEDUP_MAX_ENTRIES) {
-            val cutoff = now - APP_NOTIFY_DEDUP_WINDOW_MS * 2
-            recentAppNotify.entries.removeIf { it.value < cutoff }
+        if (recentNotify.size > NOTIFY_DEDUP_MAX_ENTRIES) {
+            val cutoff = now - NOTIFY_DEDUP_WINDOW_MS * 2
+            recentNotify.entries.removeIf { it.value < cutoff }
         }
         return false
     }
