@@ -7,6 +7,7 @@ TAG_NAME="${1:-}"
 REQUIRED_LOCALES=(${PLAY_WHATSNEW_REQUIRED_LOCALES:-en-US zh-CN})
 FASTLANE_REQUIRED_LOCALES=(${FASTLANE_REQUIRED_LOCALES:-en-US zh-CN})
 FASTLANE_MIN_SCREENSHOTS="${FASTLANE_MIN_SCREENSHOTS:-1}"
+ALLOW_NON_ASCII_COMMIT_SUBJECT="${ALLOW_NON_ASCII_COMMIT_SUBJECT:-false}"
 
 if [[ ! "$MAX_LEN" =~ ^[0-9]+$ ]]; then
   echo "ERROR: PLAY_WHATSNEW_MAX must be an integer, got '$MAX_LEN'." >&2
@@ -48,6 +49,7 @@ if (( FASTLANE_MIN_SCREENSHOTS == 0 )); then
 else
   echo "- fastlane min screenshots: $FASTLANE_MIN_SCREENSHOTS"
 fi
+echo "- commit subject ascii-only: $([[ "$ALLOW_NON_ASCII_COMMIT_SUBJECT" == "true" ]] && echo "disabled" || echo "enabled")"
 
 FAIL=0
 
@@ -76,6 +78,57 @@ for locale in "${REQUIRED_LOCALES[@]}"; do
     echo "PASS: $locale length=$count/$MAX_LEN"
   fi
 done
+
+check_non_ascii_commit_subjects() {
+  local commit_range=""
+  local base_tag=""
+  local checked=0
+  local has_non_ascii=0
+  local row=""
+  local sha=""
+  local subject=""
+  local offenders=()
+
+  base_tag="$(git -C "$ROOT_DIR" describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)"
+  if [[ -n "$base_tag" ]]; then
+    commit_range="$base_tag..HEAD"
+  else
+    commit_range="HEAD"
+  fi
+
+  while IFS=$'\t' read -r sha subject; do
+    [[ -z "$sha" ]] && continue
+    checked=$((checked + 1))
+    if printf '%s' "$subject" | LC_ALL=C grep -q '[^ -~]'; then
+      has_non_ascii=1
+      offenders+=("$sha|$subject")
+    fi
+  done < <(git -C "$ROOT_DIR" log --no-merges --pretty=format:'%h%x09%s' "$commit_range")
+
+  if (( checked == 0 )); then
+    echo "PASS: commit subject check skipped (no commits in range: $commit_range)"
+    return
+  fi
+
+  if (( has_non_ascii == 0 )); then
+    echo "PASS: commit subjects are ASCII-only ($checked commits, range: $commit_range)"
+    return
+  fi
+
+  echo "FAIL: non-ASCII commit subject detected (range: $commit_range)"
+  for row in "${offenders[@]}"; do
+    sha="${row%%|*}"
+    subject="${row#*|}"
+    echo " - $sha $subject"
+  done
+  FAIL=1
+}
+
+if [[ "$ALLOW_NON_ASCII_COMMIT_SUBJECT" == "true" ]]; then
+  echo "PASS: commit subject ASCII guard disabled by ALLOW_NON_ASCII_COMMIT_SUBJECT=true"
+else
+  check_non_ascii_commit_subjects
+fi
 
 CHANGELOG_FILE="$ROOT_DIR/docs/CHANGELOG.md"
 if [[ ! -f "$CHANGELOG_FILE" ]]; then
