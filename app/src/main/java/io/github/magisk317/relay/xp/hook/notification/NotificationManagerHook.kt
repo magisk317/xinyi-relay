@@ -160,7 +160,12 @@ class NotificationManagerHook : BaseHook() {
             XLog.d("NotificationManagerHook: skip blank content. pkg=%s", pkg)
             return
         }
-        val skipReason = getSkipReason(pkg, notification)
+        val notifyRoute = resolveNotifyRoute(pkg, notification, title, body, tickerText)
+        val skipReason = getSkipReason(
+            packageName = pkg,
+            notification = notification,
+            notifyRoute = notifyRoute,
+        )
         if (skipReason != null) {
             XLog.d(
                 "NotificationManagerHook: skip by policy. pkg=%s reason=%s flags=0x%s category=%s",
@@ -171,9 +176,7 @@ class NotificationManagerHook : BaseHook() {
             )
             return
         }
-
         val eventId = buildEventId(pkg)
-        val notifyRoute = resolveNotifyRoute(pkg, notification, title, body, tickerText)
         val forwardIntent = Intent(PrefConst.ACTION_FORWARD_SMS)
         forwardIntent.setClassName(modulePackage, FORWARD_RECEIVER_CLASS_NAME)
         forwardIntent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
@@ -296,12 +299,17 @@ class NotificationManagerHook : BaseHook() {
         }
     }
 
-    private fun getSkipReason(packageName: String, notification: Notification): String? {
+    private fun getSkipReason(
+        packageName: String,
+        notification: Notification,
+        notifyRoute: NotifyRoute,
+    ): String? {
         val flags = notification.flags
-        if ((flags and Notification.FLAG_FOREGROUND_SERVICE) != 0) {
+        val isCallNotify = notifyRoute.msgType == MSG_TYPE_CALL_NOTIFY
+        if ((flags and Notification.FLAG_FOREGROUND_SERVICE) != 0 && !isCallNotify) {
             return "foreground_service"
         }
-        if ((flags and Notification.FLAG_ONGOING_EVENT) != 0) {
+        if ((flags and Notification.FLAG_ONGOING_EVENT) != 0 && !isCallNotify) {
             return "ongoing_event"
         }
         if (notification.category == Notification.CATEGORY_SERVICE) {
