@@ -23,9 +23,9 @@ object TelegramUtils {
 
     suspend fun sendMsg(setting: TelegramSetting, msgInfo: MsgInfo) = withContext(Dispatchers.IO) {
         val content = if (setting.parseMode == "MarkdownV2") {
-            "*SmsCode: ${msgInfo.from.escapeMarkdownV2()}*\n${msgInfo.content.escapeMarkdownV2()}"
+            "*信息驿站: ${msgInfo.from.escapeMarkdownV2()}*\n${msgInfo.content.escapeMarkdownV2()}"
         } else {
-            "<b>SmsCode: ${msgInfo.from}</b>\n${msgInfo.content}"
+            "<b>信息驿站: ${msgInfo.from}</b>\n${msgInfo.content}"
         }
         var requestUrl = "https://api.telegram.org/bot${setting.apiToken}/sendMessage"
 

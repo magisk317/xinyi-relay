@@ -173,7 +173,13 @@ fun DingtalkInnerConfigForm(senderId: Long, onBack: () -> Unit, viewModel: Sende
                 FilterChip(selected = msgKey == "sampleText", onClick = { msgKey = "sampleText" }, label = { Text("Text") })
                 FilterChip(selected = msgKey == "sampleMarkdown", onClick = { msgKey = "sampleMarkdown" }, label = { Text("Markdown") })
             }
-            OutlinedTextField(titleTemplate, { titleTemplate = it }, label = { Text("标题模板") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                titleTemplate,
+                { titleTemplate = it },
+                label = { Text("标题模板") },
+                placeholder = { Text("默认为信息驿站，可自行修改") },
+                modifier = Modifier.fillMaxWidth(),
+            )
             ForwardToggleSection(
                 receiveCode = receiveCode,
                 onReceiveCodeChange = { receiveCode = it },

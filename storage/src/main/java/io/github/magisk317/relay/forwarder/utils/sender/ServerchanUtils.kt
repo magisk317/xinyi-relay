@@ -13,7 +13,7 @@ object ServerchanUtils {
     private val client = OkHttpClient()
 
     suspend fun sendMsg(setting: ServerchanSetting, msgInfo: MsgInfo) {
-        val title = if (setting.titleTemplate.isBlank()) "SmsCode: ${msgInfo.from}" else setting.titleTemplate
+        val title = if (setting.titleTemplate.isBlank()) "信息驿站: ${msgInfo.from}" else setting.titleTemplate
         val content = msgInfo.content
 
         val match = Regex("^sctp(\\d+)t", RegexOption.IGNORE_CASE).find(setting.sendKey)

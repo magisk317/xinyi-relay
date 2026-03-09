@@ -152,7 +152,13 @@ fun BarkConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
         ) {
             OutlinedTextField(name, { name = it }, label = { Text("通道名称") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(server, { server = it }, label = { Text("Bark 地址") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(title, { title = it }, label = { Text("标题模板") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                title,
+                { title = it },
+                label = { Text("标题模板") },
+                placeholder = { Text("默认为信息驿站，可自行修改") },
+                modifier = Modifier.fillMaxWidth(),
+            )
             ForwardToggleSection(
                 receiveCode = receiveCode,
                 onReceiveCodeChange = { receiveCode = it },

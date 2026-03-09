@@ -55,7 +55,7 @@ object EmailUtils {
             val message = MimeMessage(session)
             message.setFrom(InternetAddress(fromEmail, safeSetting.fromEmailAlias.ifBlank { fromEmail }))
             message.setRecipients(Message.RecipientType.TO, recipients.map { InternetAddress(it) }.toTypedArray())
-            message.subject = if (safeSetting.title.isBlank()) "SmsCode: ${msgInfo.from}" else safeSetting.title
+            message.subject = if (safeSetting.title.isBlank()) "信息驿站: ${msgInfo.from}" else safeSetting.title
             message.setText(msgInfo.content)
 
             sendByTransport(session, message, host, portInt, fromEmail, password)

@@ -179,7 +179,13 @@ fun NtfyConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
             )
             OutlinedTextField(topic, { topic = it }, label = { Text("Topic (必填)") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(token, { token = it }, label = { Text("Bearer Token (选填)") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(title, { title = it }, label = { Text("标题 (选填)") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                title,
+                { title = it },
+                label = { Text("标题 (选填)") },
+                placeholder = { Text("默认为信息驿站，可自行修改") },
+                modifier = Modifier.fillMaxWidth(),
+            )
             OutlinedTextField(
                 priority,
                 { priority = it },

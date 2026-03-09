@@ -62,16 +62,17 @@ object FeishuAppUtils {
 
     private fun sendMessage(setting: FeishuAppSetting, token: String, msgInfo: MsgInfo) {
         val content = msgInfo.content
+        val title = setting.titleTemplate.ifBlank { "信息驿站: ${msgInfo.from}" }
         val contentJson = if (setting.msgType == "interactive") {
             if (setting.messageCard.isBlank()) {
                 "{" +
                     "\"elements\":[{" +
-                    "\"tag\":\"markdown\",\"content\":\"**${escapeJson("SmsCode: ${msgInfo.from}")}**\\n${escapeJson(content)}\"" +
+                    "\"tag\":\"markdown\",\"content\":\"**${escapeJson(title)}**\\n${escapeJson(content)}\"" +
                     "}]" +
                     "}"
             } else {
                 setting.messageCard
-                    .replace("{{MSG_TITLE}}", escapeJson("SmsCode: ${msgInfo.from}"))
+                    .replace("{{MSG_TITLE}}", escapeJson(title))
                     .replace("{{MSG_CONTENT}}", escapeJson(content))
             }
         } else {

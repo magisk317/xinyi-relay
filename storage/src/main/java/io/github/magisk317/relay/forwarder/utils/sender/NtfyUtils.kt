@@ -82,7 +82,7 @@ object NtfyUtils {
     }
 
     internal fun buildHeaders(setting: NtfySetting, msgInfo: MsgInfo): Map<String, String> {
-        val title = setting.title.trim().ifBlank { "SmsCode: ${msgInfo.from}" }
+        val title = setting.title.trim().ifBlank { "信息驿站: ${msgInfo.from}" }
         val priority = normalizePriority(setting.priority)
         val tags = normalizeTags(setting.tags)
         val token = setting.token.trim()

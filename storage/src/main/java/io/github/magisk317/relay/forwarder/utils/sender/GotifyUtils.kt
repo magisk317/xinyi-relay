@@ -15,7 +15,7 @@ object GotifyUtils {
     private val client = OkHttpClient()
 
     suspend fun sendMsg(setting: GotifySetting, msgInfo: MsgInfo) {
-        val title = if (setting.title.isBlank()) "SmsCode: ${msgInfo.from}" else setting.title
+        val title = if (setting.title.isBlank()) "信息驿站: ${msgInfo.from}" else setting.title
         val content = msgInfo.content
 
         val parsed = parseBasicAuthUrl(setting.webServer)

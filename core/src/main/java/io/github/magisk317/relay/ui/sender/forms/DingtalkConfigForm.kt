@@ -170,7 +170,13 @@ fun DingtalkConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
                 Checkbox(checked = atAll, onCheckedChange = { atAll = it })
                 Text("是否 @所有人")
             }
-            OutlinedTextField(value = titleTemplate, onValueChange = { titleTemplate = it }, label = { Text("标题模板 (选填)") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                value = titleTemplate,
+                onValueChange = { titleTemplate = it },
+                label = { Text("标题模板 (选填)") },
+                placeholder = { Text("默认为信息驿站，可自行修改") },
+                modifier = Modifier.fillMaxWidth(),
+            )
             Spacer(modifier = Modifier.height(8.dp))
             ForwardToggleSection(
                 receiveCode = receiveCode,

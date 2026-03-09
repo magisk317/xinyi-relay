@@ -168,7 +168,13 @@ fun PushplusConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
             OutlinedTextField(value = template, onValueChange = { template = it }, label = { Text("消息模板 template") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(value = channel, onValueChange = { channel = it }, label = { Text("发送渠道 channel") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(value = website, onValueChange = { website = it }, label = { Text("请求地址 website") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = titleTemplate, onValueChange = { titleTemplate = it }, label = { Text("自定义标题模板") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                value = titleTemplate,
+                onValueChange = { titleTemplate = it },
+                label = { Text("自定义标题模板") },
+                placeholder = { Text("默认为信息驿站，可自行修改") },
+                modifier = Modifier.fillMaxWidth(),
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
             ForwardToggleSection(

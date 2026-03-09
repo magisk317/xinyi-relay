@@ -156,7 +156,13 @@ fun ServerchanConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVi
             OutlinedTextField(sendKey, { sendKey = it }, label = { Text("SendKey") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(channel, { channel = it }, label = { Text("channel") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(openid, { openid = it }, label = { Text("openid") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(titleTemplate, { titleTemplate = it }, label = { Text("标题模板") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                titleTemplate,
+                { titleTemplate = it },
+                label = { Text("标题模板") },
+                placeholder = { Text("默认为信息驿站，可自行修改") },
+                modifier = Modifier.fillMaxWidth(),
+            )
             ForwardToggleSection(
                 receiveCode = receiveCode,
                 onReceiveCodeChange = { receiveCode = it },

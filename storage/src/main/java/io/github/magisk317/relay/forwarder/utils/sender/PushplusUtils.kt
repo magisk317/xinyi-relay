@@ -12,7 +12,7 @@ object PushplusUtils {
     private const val TAG = "PushplusUtils"
 
     suspend fun sendMsg(setting: PushplusSetting, msgInfo: MsgInfo) {
-        val title = "SmsCode: ${msgInfo.from}"
+        val title = setting.titleTemplate.ifBlank { "信息驿站: ${msgInfo.from}" }
         val content = msgInfo.content
 
         // Using standard domain if not otherwise configured

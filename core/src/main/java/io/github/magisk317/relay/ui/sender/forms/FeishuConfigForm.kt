@@ -168,7 +168,13 @@ fun FeishuConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMo
                 FilterChip(selected = msgType == "interactive", onClick = { msgType = "interactive" }, label = { Text("Interactive") })
                 FilterChip(selected = msgType == "text", onClick = { msgType = "text" }, label = { Text("Text") })
             }
-            OutlinedTextField(titleTemplate, { titleTemplate = it }, label = { Text("标题模板") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                titleTemplate,
+                { titleTemplate = it },
+                label = { Text("标题模板") },
+                placeholder = { Text("默认为信息驿站，可自行修改") },
+                modifier = Modifier.fillMaxWidth(),
+            )
             OutlinedTextField(messageCard, { messageCard = it }, label = { Text("消息卡片JSON(可选)") }, modifier = Modifier.fillMaxWidth(), minLines = 4)
             ForwardToggleSection(
                 receiveCode = receiveCode,

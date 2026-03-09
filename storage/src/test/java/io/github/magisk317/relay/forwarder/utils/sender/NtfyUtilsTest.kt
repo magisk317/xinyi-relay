@@ -45,7 +45,7 @@ class NtfyUtilsTest {
             ),
         )
 
-        assertEquals("SmsCode: 10086", headers["Title"])
+        assertEquals("信息驿站: 10086", headers["Title"])
         assertEquals("5", headers["Priority"])
         assertEquals("sms,android,relay", headers["Tags"])
         assertEquals("Bearer abc123", headers["Authorization"])

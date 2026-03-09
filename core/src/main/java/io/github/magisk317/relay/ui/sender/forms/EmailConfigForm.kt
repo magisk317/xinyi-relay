@@ -179,7 +179,13 @@ fun EmailConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMod
             OutlinedTextField(host, { host = it }, label = { Text("SMTP Host") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(port, { port = it }, label = { Text("SMTP Port") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(toEmail, { toEmail = it }, label = { Text("收件人(逗号分隔)") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(title, { title = it }, label = { Text("标题") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                title,
+                { title = it },
+                label = { Text("标题") },
+                placeholder = { Text("默认为信息驿站，可自行修改") },
+                modifier = Modifier.fillMaxWidth(),
+            )
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("SSL")
                 Switch(checked = ssl, onCheckedChange = { ssl = it })

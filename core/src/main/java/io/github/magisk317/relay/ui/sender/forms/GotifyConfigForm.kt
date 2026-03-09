@@ -152,7 +152,13 @@ fun GotifyConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMo
         ) {
             OutlinedTextField(name, { name = it }, label = { Text("通道名称") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(webServer, { webServer = it }, label = { Text("Gotify 地址") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(title, { title = it }, label = { Text("标题") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                title,
+                { title = it },
+                label = { Text("标题") },
+                placeholder = { Text("默认为信息驿站，可自行修改") },
+                modifier = Modifier.fillMaxWidth(),
+            )
             OutlinedTextField(priority, { priority = it }, label = { Text("优先级") }, modifier = Modifier.fillMaxWidth())
             ForwardToggleSection(
                 receiveCode = receiveCode,

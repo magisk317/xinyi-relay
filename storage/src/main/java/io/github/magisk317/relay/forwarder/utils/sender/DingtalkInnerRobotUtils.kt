@@ -69,9 +69,10 @@ object DingtalkInnerRobotUtils {
 
     private fun sendInternal(setting: DingtalkInnerRobotSetting, token: String, msgInfo: MsgInfo) {
         val client = buildClient(setting)
+        val title = setting.titleTemplate.ifBlank { "信息驿站: ${msgInfo.from}" }
         val msgParam = if (setting.msgKey == "sampleMarkdown") {
             mapOf(
-                "title" to "SmsCode: ${msgInfo.from}",
+                "title" to title,
                 "text" to msgInfo.content,
             )
         } else {

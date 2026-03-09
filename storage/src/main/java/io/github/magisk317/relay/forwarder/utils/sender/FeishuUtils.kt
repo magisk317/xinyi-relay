@@ -19,7 +19,7 @@ object FeishuUtils {
     private val client = OkHttpClient()
 
     suspend fun sendMsg(setting: FeishuSetting, msgInfo: MsgInfo) {
-        val title = if (setting.titleTemplate.isBlank()) "SmsCode: ${msgInfo.from}" else setting.titleTemplate
+        val title = if (setting.titleTemplate.isBlank()) "信息驿站: ${msgInfo.from}" else setting.titleTemplate
         val content = msgInfo.content
 
         val bodyMap = mutableMapOf<String, Any>()
