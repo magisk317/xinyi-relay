@@ -107,9 +107,9 @@ class RelayXposedModule(
         Thread(
             {
                 runCatching {
-                    Thread.sleep(12_000L)
+                    Thread.sleep(STARTUP_SELF_CHECK_DELAY_MS)
                     XLog.w(
-                        "Startup self-check: process=%s isSystemServer=false. If no 'RelayXposedModule init ... isSystemServer=true' appears after reboot, android/system scope is not injected and call/notification hooks will be unavailable this boot.",
+                        STARTUP_SELF_CHECK_WARNING,
                         processName,
                     )
                 }.onFailure {
@@ -125,6 +125,14 @@ class RelayXposedModule(
             isDaemon = true
             start()
         }
+    }
+
+    companion object {
+        private const val STARTUP_SELF_CHECK_DELAY_MS = 12_000L
+        private const val STARTUP_SELF_CHECK_WARNING =
+            "Startup self-check: process=%s isSystemServer=false. " +
+                "If no 'RelayXposedModule init ... isSystemServer=true' appears after reboot, " +
+                "android/system scope is not injected and call/notification hooks will be unavailable this boot."
     }
 
     private fun dispatchLoadPackage(source: String, packageName: String, classLoader: ClassLoader?) {

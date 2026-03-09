@@ -68,6 +68,7 @@ import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Suppress("CyclomaticComplexMethod")
 @Composable
 fun ComposeSettingsScreen(
     hazeState: HazeState,

@@ -20,6 +20,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 
 class ForwardReceiver : BroadcastReceiver() {
+    @Suppress("CyclomaticComplexMethod")
     override fun onReceive(context: Context, intent: Intent) {
         val ordered = isOrderedBroadcast
         val pendingResult = goAsync()
