@@ -7,6 +7,7 @@ import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.xp.compat.IXposedHookZygoteInit
 import io.github.magisk317.relay.xp.compat.XposedRuntime
 import io.github.magisk317.relay.xp.compat.callbacks.XC_LoadPackage
+import java.util.concurrent.atomic.AtomicBoolean
 
 class RelayXposedModule(
     base: XposedInterface,
@@ -15,6 +16,7 @@ class RelayXposedModule(
 
     private val hookEntry = HookEntry()
     private val dispatchedLoadKeys = mutableSetOf<String>()
+    private val startupSelfCheckScheduled = AtomicBoolean(false)
 
     init {
         XposedRuntime.install(this)
@@ -25,9 +27,11 @@ class RelayXposedModule(
         hookEntry.initZygote(startupParam, this)
 
         XLog.i(
-            "RelayXposedModule init: process=%s isSystemServer=%s",
+            "RelayXposedModule init: process=%s isSystemServer=%s sourceDir=%s modulePath=%s",
             moduleLoadedParam.processName,
             moduleLoadedParam.isSystemServer,
+            runCatching { applicationInfo.sourceDir }.getOrNull() ?: "unknown",
+            startupParam.modulePath ?: "unknown",
         )
 
         // Fallback for environments where system_server callback might be delayed or missed.
@@ -37,6 +41,12 @@ class RelayXposedModule(
                 packageName = "android",
                 classLoader = this::class.java.classLoader,
             )
+            scheduleDelayedSystemServerDispatches(
+                triggerSource = "init",
+                classLoader = this::class.java.classLoader,
+            )
+        } else {
+            scheduleStartupSelfCheck()
         }
     }
 
@@ -54,6 +64,67 @@ class RelayXposedModule(
             packageName = "android",
             classLoader = param.classLoader,
         )
+        scheduleDelayedSystemServerDispatches(
+            triggerSource = "onSystemServerLoaded",
+            classLoader = param.classLoader,
+        )
+    }
+
+    private fun scheduleDelayedSystemServerDispatches(triggerSource: String, classLoader: ClassLoader?) {
+        if (!moduleLoadedParam.isSystemServer) return
+        val delays = longArrayOf(2_000L, 8_000L)
+        for (delayMs in delays) {
+            Thread(
+                {
+                    runCatching {
+                        Thread.sleep(delayMs)
+                        dispatchLoadPackage(
+                            source = "delayedSystemServerFallback($triggerSource,$delayMs)",
+                            packageName = "android",
+                            classLoader = classLoader,
+                        )
+                    }.onFailure {
+                        XLog.e(
+                            "RelayXposedModule delayed dispatch failed: trigger=%s delayMs=%s err=%s",
+                            triggerSource,
+                            delayMs,
+                            it.message ?: it.javaClass.simpleName,
+                        )
+                        XLog.e("", it)
+                    }
+                },
+                "xrelay-system-fallback-$delayMs",
+            ).apply {
+                isDaemon = true
+                start()
+            }
+        }
+    }
+
+    private fun scheduleStartupSelfCheck() {
+        if (!startupSelfCheckScheduled.compareAndSet(false, true)) return
+        val processName = moduleLoadedParam.processName.ifBlank { "<unknown>" }
+        Thread(
+            {
+                runCatching {
+                    Thread.sleep(12_000L)
+                    XLog.w(
+                        "Startup self-check: process=%s isSystemServer=false. If no 'RelayXposedModule init ... isSystemServer=true' appears after reboot, android/system scope is not injected and call/notification hooks will be unavailable this boot.",
+                        processName,
+                    )
+                }.onFailure {
+                    XLog.e(
+                        "Startup self-check failed: process=%s err=%s",
+                        processName,
+                        it.message ?: it.javaClass.simpleName,
+                    )
+                }
+            },
+            "xrelay-startup-selfcheck",
+        ).apply {
+            isDaemon = true
+            start()
+        }
     }
 
     private fun dispatchLoadPackage(source: String, packageName: String, classLoader: ClassLoader?) {
@@ -89,6 +160,17 @@ class RelayXposedModule(
                 ?: this@RelayXposedModule::class.java.classLoader
                 ?: ClassLoader.getSystemClassLoader()
         }
-        hookEntry.handleLoadPackage(lpparam, source)
+        runCatching {
+            hookEntry.handleLoadPackage(lpparam, source)
+        }.onFailure {
+            XLog.e(
+                "RelayXposedModule handleLoadPackage failed: source=%s pkg=%s process=%s err=%s",
+                source,
+                packageName,
+                processName,
+                it.message ?: it.javaClass.simpleName,
+            )
+            XLog.e("", it)
+        }
     }
 }

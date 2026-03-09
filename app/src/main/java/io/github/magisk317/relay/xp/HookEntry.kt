@@ -44,23 +44,58 @@ class HookEntry {
         lpparam: XC_LoadPackage.LoadPackageParam,
         source: String = "unknown",
     ) {
+        val isSystemScope =
+            lpparam.packageName == "android" ||
+                lpparam.packageName == "system" ||
+                lpparam.processName == "system_server" ||
+                lpparam.processName == "android"
         XLog.d(
             "HookEntry: Loaded package: %s process: %s source=%s",
             lpparam.packageName,
             lpparam.processName,
             source,
         )
-        if ("android" == lpparam.packageName || "system" == lpparam.packageName) {
+        if (isSystemScope) {
             XLog.w(
-                "HookEntry: Android/system package loaded: pkg=%s process=%s source=%s",
+                "HookEntry: System scope package loaded: pkg=%s process=%s source=%s",
                 lpparam.packageName,
                 lpparam.processName,
                 source,
             )
         }
         for (hook in mHookList) {
-            if (hook.hookOnLoadPackage()) {
+            if (!hook.hookOnLoadPackage()) continue
+            val hookName = hook.javaClass.simpleName
+            runCatching {
+                if (isSystemScope) {
+                    XLog.w(
+                        "HookEntry: System scope hook begin: hook=%s pkg=%s process=%s source=%s",
+                        hookName,
+                        lpparam.packageName,
+                        lpparam.processName,
+                        source,
+                    )
+                }
                 hook.onLoadPackage(lpparam)
+                if (isSystemScope) {
+                    XLog.w(
+                        "HookEntry: System scope hook end: hook=%s pkg=%s process=%s source=%s",
+                        hookName,
+                        lpparam.packageName,
+                        lpparam.processName,
+                        source,
+                    )
+                }
+            }.onFailure {
+                XLog.e(
+                    "HookEntry: hook failed: hook=%s pkg=%s process=%s source=%s err=%s",
+                    hookName,
+                    lpparam.packageName,
+                    lpparam.processName,
+                    source,
+                    it.message ?: it.javaClass.simpleName,
+                )
+                XLog.e("", it)
             }
         }
     }

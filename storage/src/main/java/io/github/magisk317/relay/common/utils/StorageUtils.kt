@@ -106,7 +106,8 @@ object StorageUtils {
     }
 
     private fun ensurePrivateSubDir(context: Context, name: String): File? {
-        val dir = File(context.filesDir, name)
+        val baseDir = runCatching { context.filesDir }.getOrNull() ?: return null
+        val dir = File(baseDir, name)
         if (!dir.exists() && !dir.mkdirs()) {
             return null
         }
