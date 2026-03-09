@@ -20,6 +20,7 @@ import io.github.magisk317.relay.xp.compat.XC_MethodHook
 import io.github.magisk317.relay.xp.compat.XposedBridge
 import io.github.magisk317.relay.xp.compat.XposedHelpers
 import io.github.magisk317.relay.xp.compat.callbacks.XC_LoadPackage
+import java.util.Locale
 
 class NotificationManagerHook : BaseHook() {
     private data class ModuleEndpoint(
@@ -50,6 +51,12 @@ class NotificationManagerHook : BaseHook() {
 
     @Volatile
     private var lastForegroundRelaunchAttemptAt: Long = 0L
+
+    private data class NotifyRoute(
+        val msgType: String,
+        val callType: Int = CALL_TYPE_UNKNOWN,
+        val callTypeLabel: String = "",
+    )
 
     override fun hookOnLoadPackage(): Boolean = true
 
@@ -166,6 +173,7 @@ class NotificationManagerHook : BaseHook() {
         }
 
         val eventId = buildEventId(pkg)
+        val notifyRoute = resolveNotifyRoute(pkg, notification, title, body, tickerText)
         val forwardIntent = Intent(PrefConst.ACTION_FORWARD_SMS)
         forwardIntent.setClassName(modulePackage, FORWARD_RECEIVER_CLASS_NAME)
         forwardIntent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
@@ -175,7 +183,10 @@ class NotificationManagerHook : BaseHook() {
         forwardIntent.putExtra("date", System.currentTimeMillis())
         forwardIntent.putExtra("packageName", pkg)
         forwardIntent.putExtra("notify_channel_id", notifyChannelId)
-        forwardIntent.putExtra("msgType", "app_notify")
+        forwardIntent.putExtra("msgType", notifyRoute.msgType)
+        if (notifyRoute.msgType == MSG_TYPE_CALL_NOTIFY) {
+            forwardIntent.putExtra("call_type", notifyRoute.callType)
+        }
         forwardIntent.putExtra("forward_source", "nms_hook")
         forwardIntent.putExtra("event_id", eventId)
 
@@ -186,7 +197,12 @@ class NotificationManagerHook : BaseHook() {
         } catch (_: Exception) {
             pkg
         }
-        forwardIntent.putExtra("company", appName)
+        val companyLabel = if (notifyRoute.msgType == MSG_TYPE_CALL_NOTIFY) {
+            notifyRoute.callTypeLabel.ifBlank { CALL_TYPE_LABEL_DEFAULT }
+        } else {
+            appName
+        }
+        forwardIntent.putExtra("company", companyLabel)
 
         val token = resolveIpcToken(
             systemContext = systemContext,
@@ -202,8 +218,82 @@ class NotificationManagerHook : BaseHook() {
             forwardIntent.putExtra("ipc_token", token)
         }
 
-        XLog.i("NotificationManagerHook intercepted: pkg=%s event=%s title=%s body=%s", pkg, eventId, title, body)
+        XLog.i(
+            "NotificationManagerHook intercepted: pkg=%s event=%s type=%s callType=%d title=%s body=%s",
+            pkg,
+            eventId,
+            notifyRoute.msgType,
+            notifyRoute.callType,
+            title,
+            body,
+        )
         dispatchForwardBroadcast(systemContext, forwardIntent, pkg, eventId, endpoint)
+    }
+
+    private fun resolveNotifyRoute(
+        packageName: String,
+        notification: Notification,
+        title: String,
+        body: String,
+        tickerText: String,
+    ): NotifyRoute {
+        val normalizedText = normalizeCallHintText(title, body, tickerText)
+        val isCallCategory = notification.category == Notification.CATEGORY_CALL
+        val isDialerPackage = isDialerPackage(packageName)
+        val hasCallKeyword = containsAnyKeyword(normalizedText, CALL_NOTIFY_KEYWORDS)
+        val isCallNotify = isCallCategory || (isDialerPackage && hasCallKeyword)
+        if (!isCallNotify) return NotifyRoute(msgType = MSG_TYPE_APP_NOTIFY)
+        val callType = resolveCallType(normalizedText)
+        return NotifyRoute(
+            msgType = MSG_TYPE_CALL_NOTIFY,
+            callType = callType,
+            callTypeLabel = callTypeLabel(callType),
+        )
+    }
+
+    private fun normalizeCallHintText(title: String, body: String, tickerText: String): String {
+        return buildString {
+            append(title)
+            append('\n')
+            append(body)
+            append('\n')
+            append(tickerText)
+        }.lowercase(Locale.ROOT)
+    }
+
+    private fun isDialerPackage(packageName: String): Boolean {
+        val normalized = packageName.lowercase(Locale.ROOT)
+        if (normalized in CALL_NOTIFY_PACKAGE_ALLOWLIST) return true
+        return normalized.contains("dialer") || normalized.contains("incallui")
+    }
+
+    private fun containsAnyKeyword(text: String, keywords: Set<String>): Boolean {
+        if (text.isBlank()) return false
+        return keywords.any { keyword -> text.contains(keyword) }
+    }
+
+    private fun resolveCallType(normalizedText: String): Int {
+        return when {
+            containsAnyKeyword(normalizedText, VOICEMAIL_KEYWORDS) -> CALL_TYPE_VOICEMAIL
+            containsAnyKeyword(normalizedText, MISSED_CALL_KEYWORDS) -> CALL_TYPE_MISSED
+            containsAnyKeyword(normalizedText, REJECTED_CALL_KEYWORDS) -> CALL_TYPE_REJECTED
+            containsAnyKeyword(normalizedText, BLOCKED_CALL_KEYWORDS) -> CALL_TYPE_BLOCKED
+            containsAnyKeyword(normalizedText, OUTGOING_CALL_KEYWORDS) -> CALL_TYPE_OUTGOING
+            containsAnyKeyword(normalizedText, INCOMING_CALL_KEYWORDS) -> CALL_TYPE_INCOMING
+            else -> CALL_TYPE_UNKNOWN
+        }
+    }
+
+    private fun callTypeLabel(callType: Int): String {
+        return when (callType) {
+            CALL_TYPE_INCOMING -> "来电"
+            CALL_TYPE_OUTGOING -> "去电"
+            CALL_TYPE_MISSED -> "未接"
+            CALL_TYPE_VOICEMAIL -> "语音信箱"
+            CALL_TYPE_REJECTED -> "拒接"
+            CALL_TYPE_BLOCKED -> "拦截"
+            else -> CALL_TYPE_LABEL_DEFAULT
+        }
     }
 
     private fun getSkipReason(packageName: String, notification: Notification): String? {
@@ -984,6 +1074,73 @@ class NotificationManagerHook : BaseHook() {
         private const val MAIN_ACTIVITY_CLASS_NAME = "io.github.magisk317.relay.ui.home.MainActivity"
         private const val WECHAT_PACKAGE = "com.tencent.mm"
         private const val ENABLE_WECHAT_GROUP_SUMMARY_BYPASS = true
+        private const val MSG_TYPE_APP_NOTIFY = "app_notify"
+        private const val MSG_TYPE_CALL_NOTIFY = "call_notify"
+        private const val CALL_TYPE_UNKNOWN = 0
+        private const val CALL_TYPE_INCOMING = 1
+        private const val CALL_TYPE_OUTGOING = 2
+        private const val CALL_TYPE_MISSED = 3
+        private const val CALL_TYPE_VOICEMAIL = 4
+        private const val CALL_TYPE_REJECTED = 5
+        private const val CALL_TYPE_BLOCKED = 6
+        private const val CALL_TYPE_LABEL_DEFAULT = "通话通知"
+        private val CALL_NOTIFY_PACKAGE_ALLOWLIST = setOf(
+            "com.android.dialer",
+            "com.google.android.dialer",
+            "com.android.incallui",
+        )
+        private val MISSED_CALL_KEYWORDS = setOf(
+            "未接",
+            "missed call",
+            "missed",
+            "未接来电",
+        )
+        private val VOICEMAIL_KEYWORDS = setOf(
+            "语音信箱",
+            "语音邮箱",
+            "语音邮件",
+            "語音信箱",
+            "語音郵箱",
+            "語音郵件",
+            "voicemail",
+            "voice mail",
+        )
+        private val INCOMING_CALL_KEYWORDS = setOf(
+            "来电",
+            "incoming call",
+            "incoming",
+        )
+        private val OUTGOING_CALL_KEYWORDS = setOf(
+            "去电",
+            "outgoing call",
+            "outgoing",
+            "dialed",
+            "已拨电话",
+        )
+        private val REJECTED_CALL_KEYWORDS = setOf(
+            "拒接",
+            "已拒接",
+            "rejected",
+            "declined",
+        )
+        private val BLOCKED_CALL_KEYWORDS = setOf(
+            "拦截",
+            "已拦截",
+            "blocked call",
+            "spam blocked",
+        )
+        private val CALL_NOTIFY_KEYWORDS = buildSet {
+            addAll(MISSED_CALL_KEYWORDS)
+            addAll(VOICEMAIL_KEYWORDS)
+            addAll(INCOMING_CALL_KEYWORDS)
+            addAll(OUTGOING_CALL_KEYWORDS)
+            addAll(REJECTED_CALL_KEYWORDS)
+            addAll(BLOCKED_CALL_KEYWORDS)
+            add("来电")
+            add("通话")
+            add("电话")
+            add("call")
+        }
         private const val RECOVERY_COOLDOWN_MS = 3000L
         private const val FOREGROUND_RELAUNCH_COOLDOWN_MS = 60_000L
         private const val RECOVERY_PREF_CACHE_MS = 30_000L

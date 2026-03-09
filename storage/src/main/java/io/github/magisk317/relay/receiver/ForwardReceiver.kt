@@ -81,6 +81,7 @@ class ForwardReceiver : BroadcastReceiver() {
                     "simSlot",
                     "android.telephony.extra.SLOT_INDEX",
                 )
+                val callType = readIntExtra(intent, "call_type") ?: 0
 
                 // 2. Verifying IPC Token: prevent third-party apps from spoofing broadcasts.
                 // We retrieve local token from DataStore (which is synced to xposed_prefs).
@@ -229,11 +230,12 @@ class ForwardReceiver : BroadcastReceiver() {
                     },
                 )
 
-                val smsMsgType = if (msgTypeStr == "app_notify") {
-                    SmsMsg.MSG_TYPE_APP_NOTIFY
-                } else {
-                    SmsMsg.MSG_TYPE_SMS
+                val smsMsgType = when (msgTypeStr) {
+                    "app_notify" -> SmsMsg.MSG_TYPE_APP_NOTIFY
+                    "call_notify" -> SmsMsg.MSG_TYPE_CALL_NOTIFY
+                    else -> SmsMsg.MSG_TYPE_SMS
                 }
+                val isCodeSms = msgTypeStr == "sms" && !smsCode.isNullOrBlank()
                 val msgInfo = MsgInfo(
                     type = msgTypeStr,
                     from = sender ?: "",
@@ -242,6 +244,7 @@ class ForwardReceiver : BroadcastReceiver() {
                     simInfo = company ?: "",
                     simSlot = resolvedSimSlot,
                     subId = normalizedSubId,
+                    callType = callType,
                     packageName = packageName ?: "",
                     notifyChannelId = notifyChannelId,
                     appName = if (msgTypeStr == "app_notify") company.orEmpty() else "",
@@ -267,14 +270,36 @@ class ForwardReceiver : BroadcastReceiver() {
                                 notifyChannelId = msgInfo.notifyChannelId,
                                 msgType = smsMsgType,
                                 isCodeSms = false,
+                                callType = 0,
                             )
                         }
                     }.onFailure { error ->
                         XLog.e("Failed to record app notification to DB", error)
                         ForwardFlowLog.e(traceId, "Record app_notify failed", error)
                     }
+                } else if (msgTypeStr == "call_notify") {
+                    val canRecordCallNotify = io.github.magisk317.relay.common.utils.PrefsReader.recordCallNotifyEnabled(context)
+                    runCatching {
+                        if (canRecordCallNotify) {
+                            recordId = insertRecord(
+                                context = context,
+                                sender = msgInfo.from,
+                                body = msgInfo.content,
+                                date = msgInfo.date.time,
+                                company = msgInfo.simInfo,
+                                smsCode = null,
+                                packageName = msgInfo.packageName,
+                                notifyChannelId = msgInfo.notifyChannelId,
+                                msgType = smsMsgType,
+                                isCodeSms = false,
+                                callType = callType,
+                            )
+                        }
+                    }.onFailure { error ->
+                        XLog.e("Failed to record call notification to DB", error)
+                        ForwardFlowLog.e(traceId, "Record call_notify failed", error)
+                    }
                 } else {
-                    val isCodeSms = !smsCode.isNullOrBlank()
                     val canRecordSms = if (isCodeSms) {
                         io.github.magisk317.relay.common.utils.PrefsReader.recordCodeSmsEnabled(context)
                     } else {
@@ -300,6 +325,7 @@ class ForwardReceiver : BroadcastReceiver() {
                                 notifyChannelId = "",
                                 msgType = smsMsgType,
                                 isCodeSms = isCodeSms,
+                                callType = 0,
                             )
                             ForwardFlowLog.i(
                                 traceId,
@@ -328,7 +354,7 @@ class ForwardReceiver : BroadcastReceiver() {
                     append(" recordId=")
                     append(recordId ?: -1)
                     append(" isCodeSms=")
-                    append(!smsCode.isNullOrBlank())
+                    append(isCodeSms)
                     append(" source=")
                     append(forwardSource)
                     append(" final_decision=forward")
@@ -341,7 +367,6 @@ class ForwardReceiver : BroadcastReceiver() {
                 // Dispatch to the multi-channel forwarding engine.
                 // isCodeSms: true = verification code SMS, false = regular SMS.
                 // SendUtils will use this to filter per-sender receiveCode/receiveNonCode setting.
-                val isCodeSms = !smsCode.isNullOrBlank()
                 runCatching {
                     SendUtils.sendMsg(context, msgInfo, isCodeSms, recordId, traceId)
                 }.onSuccess {
@@ -431,7 +456,7 @@ class ForwardReceiver : BroadcastReceiver() {
         // Keep strict token verification by default.
         // Controlled bypass is only for system-origin paths when token lookup is temporarily unavailable.
         return when {
-            msgType == "app_notify" && forwardSource == "nms_hook" -> {
+            (msgType == "app_notify" || msgType == "call_notify") && forwardSource == "nms_hook" -> {
                 if (sentFromUid == SYSTEM_UID) {
                     true
                 } else if (Build.VERSION.SDK_INT < API_LEVEL_34 && sentFromUid == null) {
@@ -608,6 +633,7 @@ class ForwardReceiver : BroadcastReceiver() {
         notifyChannelId: String,
         msgType: Int,
         isCodeSms: Boolean,
+        callType: Int = 0,
     ): Long? {
         val smsMsgUri = io.github.magisk317.relay.data.db.DBProvider.SMS_MSG_CONTENT_URI
         val resolver = context.contentResolver
@@ -621,6 +647,7 @@ class ForwardReceiver : BroadcastReceiver() {
             put("package_name", packageName)
             put("notify_channel_id", notifyChannelId)
             put("msg_type", msgType)
+            put("call_type", callType)
         }
         return resolver.insert(smsMsgUri, values)?.lastPathSegment?.toLongOrNull()
     }

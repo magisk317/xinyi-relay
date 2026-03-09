@@ -131,6 +131,13 @@ private fun recordColumnShortTitleRes(tab: Int): Int = when (tab) {
     else -> R.string.records_column_call_notify_short_title
 }
 
+private fun recordsForTab(records: List<SmsMsg>, tab: Int): List<SmsMsg> = when (tab) {
+    0 -> records.filter { it.msgType == SmsMsg.MSG_TYPE_SMS && !it.smsCode.isNullOrBlank() }
+    1 -> records.filter { it.msgType == SmsMsg.MSG_TYPE_SMS && it.smsCode.isNullOrBlank() }
+    2 -> records.filter { it.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY }
+    else -> records.filter { it.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY }
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Suppress("CyclomaticComplexMethod")
 @Composable
@@ -207,6 +214,7 @@ fun CodeRecordScreen(
     var selectedIds by remember { mutableStateOf(setOf<Long>()) }
     var showSettingsSheet by remember { mutableStateOf(false) }
     var showExportDialog by remember { mutableStateOf(false) }
+    var showClearDialog by remember { mutableStateOf(false) }
     var selectedRecordTab by rememberSaveable { mutableIntStateOf(0) } // 0: code, 1: plain, 2: app_notify, 3: call_notify
     var fixedTopHeightPx by remember { mutableIntStateOf(0) }
     var exportScope by remember { mutableStateOf(RecordExportScope.CURRENT_TAB) }
@@ -507,18 +515,50 @@ fun CodeRecordScreen(
     val plainSmsList = smsList.filter { it.msgType == SmsMsg.MSG_TYPE_SMS && it.smsCode.isNullOrBlank() }
     val appNotifyList = smsList.filter { it.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY }
     val callNotifyList = smsList.filter { it.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY }
-    val activeSmsList = when (selectedRecordTab) {
-        0 -> codeSmsList
-        1 -> plainSmsList
-        2 -> appNotifyList
-        else -> callNotifyList
-    }
+    val activeSmsList = recordsForTab(smsList, selectedRecordTab)
     val activeTitle = context.getString(recordColumnTitleRes(selectedRecordTab))
     val activeEmptyHint = when (selectedRecordTab) {
         0 -> context.getString(R.string.records_column_code_empty)
         1 -> context.getString(R.string.records_column_plain_empty)
         2 -> context.getString(R.string.records_column_app_notify_empty)
         else -> context.getString(R.string.records_column_call_notify_empty)
+    }
+
+    if (showClearDialog) {
+        val currentTabName = stringResource(recordTabNameRes(selectedRecordTab))
+        AlertDialog(
+            onDismissRequest = { showClearDialog = false },
+            title = { Text(stringResource(R.string.record_clear_dialog_title)) },
+            text = { Text(stringResource(R.string.record_clear_dialog_message, currentTabName)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val deleteList = activeSmsList
+                        if (deleteList.isNotEmpty()) {
+                            viewModel.removeSmsMsg(deleteList)
+                            scope.launch {
+                                val result = snackbarHostState.showSnackbar(
+                                    message = context.getString(R.string.some_items_removed, deleteList.size),
+                                    actionLabel = context.getString(R.string.revoke),
+                                    duration = SnackbarDuration.Long,
+                                )
+                                if (result == SnackbarResult.ActionPerformed) {
+                                    viewModel.restoreSmsMsgList(deleteList)
+                                }
+                            }
+                        }
+                        showClearDialog = false
+                    },
+                ) {
+                    Text(stringResource(R.string.action_clear_records))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
     }
 
     Box(
@@ -588,16 +628,7 @@ fun CodeRecordScreen(
                             )
                         }
                     } else {
-                        val codeSmsList = list.filter { it.msgType == SmsMsg.MSG_TYPE_SMS && !it.smsCode.isNullOrBlank() }
-                        val plainSmsList = list.filter { it.msgType == SmsMsg.MSG_TYPE_SMS && it.smsCode.isNullOrBlank() }
-                        val appNotifyList = list.filter { it.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY }
-                        val callNotifyList = list.filter { it.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY }
-                        val activeSmsList = when (selectedRecordTab) {
-                            0 -> codeSmsList
-                            1 -> plainSmsList
-                            2 -> appNotifyList
-                            else -> callNotifyList
-                        }
+                        val activeSmsList = recordsForTab(list, selectedRecordTab)
 
                         RecordSplitColumn(
                             title = activeTitle,
@@ -671,12 +702,7 @@ fun CodeRecordScreen(
                 actions = {
                     if (isSelectionMode) {
                         IconButton(onClick = {
-                            val visibleIds = when (selectedRecordTab) {
-                                0 -> smsList.filter { it.msgType == SmsMsg.MSG_TYPE_SMS && !it.smsCode.isNullOrBlank() }
-                                1 -> smsList.filter { it.msgType == SmsMsg.MSG_TYPE_SMS && it.smsCode.isNullOrBlank() }
-                                2 -> smsList.filter { it.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY }
-                                else -> smsList.filter { it.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY }
-                            }.mapNotNull { it.id }.toSet()
+                            val visibleIds = activeSmsList.mapNotNull { it.id }.toSet()
                             if (visibleIds.isEmpty()) return@IconButton
                             val allVisibleSelected = visibleIds.all { selectedIds.contains(it) }
                             selectedIds = if (allVisibleSelected) {
@@ -691,6 +717,15 @@ fun CodeRecordScreen(
                             Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.action_delete))
                         }
                     } else {
+                        IconButton(
+                            onClick = { showClearDialog = true },
+                            enabled = activeSmsList.isNotEmpty(),
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = stringResource(R.string.action_clear_records_content_description),
+                            )
+                        }
                         IconButton(onClick = { showSettingsSheet = true }) {
                             Icon(
                                 Icons.Default.Tune,
