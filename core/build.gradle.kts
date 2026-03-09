@@ -6,6 +6,10 @@ plugins {
 
 val compileSdkInt = libs.versions.compileSdk.get().toInt()
 val minSdkInt = libs.versions.minSdk.get().toInt()
+val allowConflictBypass = findProperty("allowConflictBypass")
+    ?.toString()
+    ?.toBooleanStrictOrNull()
+    ?: false
 
 android {
     namespace = "io.github.magisk317.relay.core"
@@ -34,6 +38,7 @@ android {
         minSdk = minSdkInt
         buildConfigField("int", "VERSION_CODE", libs.versions.versionCode.get())
         buildConfigField("String", "VERSION_NAME", "\"${libs.versions.versionName.get()}\"")
+        buildConfigField("boolean", "ALLOW_CONFLICT_BYPASS", allowConflictBypass.toString())
     }
 
     buildFeatures {

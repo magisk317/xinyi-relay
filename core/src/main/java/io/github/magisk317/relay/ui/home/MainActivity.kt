@@ -47,6 +47,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
@@ -193,6 +194,12 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             LaunchedEffect(Unit) {
+                if (BuildConfig.ALLOW_CONFLICT_BYPASS) {
+                    XLog.w(
+                        "SmsCode conflict guard bypassed by build flag allowConflictBypass=true",
+                    )
+                    return@LaunchedEffect
+                }
                 if (PackageUtils.isPackageInstalled(context, Const.XPOSED_SMSCODE_PACKAGE_NAME)) {
                     showSmsCodeConflictDialog = true
                 }

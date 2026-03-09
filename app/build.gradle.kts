@@ -45,6 +45,10 @@ val minSdkStr = libs.versions.minSdk.get()
 val targetSdkStr = libs.versions.targetSdk.get()
 val sdkExtensionInt = libs.versions.compileSdkExtension.get().toInt()
 val ndkVersionStr = libs.versions.ndk.get()
+val allowConflictBypass = findProperty("allowConflictBypass")
+    ?.toString()
+    ?.toBooleanStrictOrNull()
+    ?: false
 
 fun releaseBaseName(versionName: String): String {
     return "XinyiRelay_v${versionName.replace("\\s+".toRegex(), "_")}_${releaseTime()}"
@@ -111,6 +115,7 @@ android {
 
         buildConfigField("String", "LOG_TAG", "\"x-relay\"")
         buildConfigField("int", "MODULE_VERSION", "$versionCodeInt")
+        buildConfigField("boolean", "ALLOW_CONFLICT_BYPASS", allowConflictBypass.toString())
     }
 
     splits {
