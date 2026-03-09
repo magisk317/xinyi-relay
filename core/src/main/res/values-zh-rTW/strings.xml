@@ -98,6 +98,8 @@
     <string name="edit_relay_records">編輯驗證碼記錄</string>
     <string name="prompt_sms_code_copied">驗證碼已複製: %s</string>
     <string name="action_delete">刪除</string>
+    <string name="action_clear_records">清空</string>
+    <string name="action_clear_records_content_description">清空目前分頁記錄</string>
     <string name="action_select_all">全選</string>
     <string name="some_items_removed">刪除了 %d 條記錄</string>
     <string name="message_details">簡訊詳情</string>
@@ -141,6 +143,7 @@
     <string name="pref_enable_code_records_title">保留驗證碼記錄</string>
     <string name="pref_enable_plain_sms_records_title">保留普通簡訊記錄</string>
     <string name="pref_enable_app_notify_records_title">保留應用通知記錄</string>
+    <string name="pref_enable_call_notify_records_title">保留通話通知記錄</string>
     <string name="selected_count">已選 %d 項</string>
     <string name="pref_history_limit_title">歷史記錄限制</string>
     <string name="pref_history_limit_title_with_target">歷史記錄限制（%1$s）</string>
@@ -148,6 +151,7 @@
     <string name="record_settings_target_code">驗證碼記錄</string>
     <string name="record_settings_target_plain">普通簡訊記錄</string>
     <string name="record_settings_target_app_notify">應用通知記錄</string>
+    <string name="record_settings_target_call_notify">通話通知記錄</string>
     <string name="pref_history_limit_summary">僅保留最近 %s 條記錄</string>
     <string name="history_limit_10_entry">10 條記錄</string>
     <string name="history_limit_20_entry">20 條記錄</string>
@@ -166,11 +170,15 @@
     <string name="records_column_plain_empty">暫無普通簡訊</string>
     <string name="records_column_app_notify_empty">暫無應用通知紀錄</string>
     <string name="records_column_call_notify_empty">暫無通話通知</string>
+    <string name="record_clear_dialog_title">清空記錄</string>
+    <string name="record_clear_dialog_message">確認要清空%1$s嗎？</string>
     <string name="record_export_dialog_title">導出記錄</string>
     <string name="record_export_current_tab_option">導出當前頁（%1$s）</string>
     <string name="record_export_all_tabs_option">導出所有</string>
     <string name="title_notification_rules">通知轉發</string>
     <string name="subtitle_notification_rules">管理應用程式通知的擷取與轉發規則</string>
+    <string name="action_enable_forwarding">為 %s 啟用轉發</string>
+    <string name="action_disable_forwarding">為 %s 停用轉發</string>
     <!-- preference code records end -->
 
     <!-- preference code rules -->
@@ -218,13 +226,25 @@
     <string name="pref_force_stop_recovery_summary">轉發檢測到應用被強停時，嘗試解除 stopped 並僅喚起必要背景服務（不拉起前台）。</string>
     <string name="pref_force_stop_recovery_relaunch_once_title">恢復失敗時前台拉起一次</string>
     <string name="pref_force_stop_recovery_relaunch_once_summary">當有序廣播回執為空時，嘗試拉起模組前台一次，協助恢復通知轉發鏈路。</string>
+    <string name="pref_root_db_catchup_enable_title">Root 直查庫補償</string>
+    <string name="pref_root_db_catchup_enable_summary">當廣播鏈路缺失 token 時，背景輪詢系統簡訊/通話資料庫進行補償。</string>
+    <string name="pref_root_db_catchup_interval_title">補償間隔</string>
+    <string name="pref_root_db_catchup_interval_summary">背景每 %1$s 分鐘執行一次</string>
+    <string name="pref_root_db_catchup_interval_hint">取值範圍：1-120 分鐘</string>
+    <string name="pref_root_db_catchup_interval_error">請輸入 1 到 120 的整數。</string>
+    <string name="pref_root_db_catchup_writeback_title">補償後寫回系統庫</string>
+    <string name="pref_root_db_catchup_writeback_summary">補償入隊後可將簡訊標記已讀，並清理未接來電 new 標記（僅 type=3）。</string>
     <!-- preference experimental end -->
 
 
     <!-- preference others -->
     <string name="pref_others_title">其他設定</string>
     <string name="pref_verbose_log_mode_title">詳細日誌</string>
-    <string name="pref_verbose_log_mode_summary">列印詳細日誌(僅用於調試)</string>
+    <string name="pref_verbose_log_mode_summary">列印詳細日誌（僅調試）；點擊左側標題可查看日誌詳情</string>
+    <string name="pref_runtime_log_file_size_title">日誌檔案大小</string>
+    <string name="pref_runtime_log_file_size_summary">單個檔案大小上限：%1$dM（超過後循環覆蓋）</string>
+    <string name="pref_runtime_log_file_size_hint">單位 MB，最小值 1。</string>
+    <string name="pref_runtime_log_file_size_error">請輸入大於等於 1 的整數。</string>
     <string name="pref_auto_update_on_start_title">啟動時自動更新</string>
     <string name="pref_auto_update_on_start_summary">應用啟動時執行一次更新策略</string>
     <string name="pref_auto_update_wifi_only_title">僅 Wi-Fi 自動檢查更新</string>
@@ -311,6 +331,7 @@
     <string name="tab_faq">FAQ</string>
     <string name="tab_records">紀錄</string>
     <string name="tab_advanced">進階</string>
+    <string name="tab_forward">轉發</string>
     <string name="tab_senders">轉發配置</string>
     <string name="tab_settings">設定</string>
     <string name="action_sort_title">應用排序</string>
@@ -495,6 +516,7 @@
     <string name="action_block_app">封鎖 %s</string>
     <string name="action_unblock_app">允許 %s</string>
     <string name="action_back">返回</string>
+    <string name="label_operate">操作</string>
     <string name="label_app_info">應用資訊</string>
     <string name="label_blocked">自動輸入攔截</string>
     <string name="label_forwarding">應用通知轉發</string>
@@ -525,6 +547,12 @@
     <string name="app_notify_template_summary">留空代表使用全域轉發模板。</string>
     <string name="app_notify_template_placeholder">請輸入該應用專屬模板...</string>
     <string name="app_config_detail_save_tip">詳情頁修改會先存於記憶體，請返回應用控制頁點擊完成後再儲存。</string>
+    <string name="settings_group_general">通用設定</string>
+    <string name="settings_group_relay">驗證碼設定</string>
+    <string name="settings_group_auto_input">自動輸入</string>
+    <string name="settings_group_notification">通知設定</string>
+    <string name="settings_group_experimental">實驗性功能</string>
+    <string name="settings_group_others">其他</string>
     <string name="settings_group_background_keepalive">背景保活</string>
 
     <!-- backup and restore -->
@@ -544,6 +572,7 @@
     <string name="item_config">設定</string>
     <string name="item_rules">規則</string>
     <string name="item_records">記錄</string>
+    <string name="item_database_with_note">資料庫（較大，包含 db/wal/shm）</string>
     <string name="restore_warning_msg">現有資料將被合併或覆蓋。</string>
     <!-- backup and restore end -->
 

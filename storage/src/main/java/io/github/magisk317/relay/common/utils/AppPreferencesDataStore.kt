@@ -196,6 +196,14 @@ object AppPreferencesDataStore {
             getBoolean(context, PrefConst.KEY_SETTINGS_ACCORDION_MODE, true),
         )
         editor.putBoolean(PrefConst.KEY_VERBOSE_LOG_MODE, getBoolean(context, PrefConst.KEY_VERBOSE_LOG_MODE, false))
+        editor.putInt(
+            PrefConst.KEY_RUNTIME_LOG_FILE_SIZE_MB,
+            getInt(
+                context,
+                PrefConst.KEY_RUNTIME_LOG_FILE_SIZE_MB,
+                PrefConst.RUNTIME_LOG_FILE_SIZE_MB_DEFAULT,
+            ),
+        )
         editor.putBoolean(
             PrefConst.KEY_ENABLE_AUTO_INPUT_CODE,
             getBoolean(context, PrefConst.KEY_ENABLE_AUTO_INPUT_CODE, true),

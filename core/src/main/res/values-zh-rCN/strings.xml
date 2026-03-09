@@ -98,6 +98,8 @@
     <string name="edit_relay_records">编辑验证码记录</string>
     <string name="prompt_sms_code_copied">验证码已复制: %s</string>
     <string name="action_delete">删除</string>
+    <string name="action_clear_records">清空</string>
+    <string name="action_clear_records_content_description">清空当前标签页记录</string>
     <string name="action_select_all">全选</string>
     <string name="some_items_removed">删除了 %d 条记录</string>
     <string name="message_details">短信详情</string>
@@ -168,11 +170,15 @@
     <string name="records_column_plain_empty">暂无普通短信</string>
     <string name="records_column_app_notify_empty">暂无应用通知</string>
     <string name="records_column_call_notify_empty">暂无通话通知</string>
+    <string name="record_clear_dialog_title">清空记录</string>
+    <string name="record_clear_dialog_message">确认要清空%1$s吗？</string>
     <string name="record_export_dialog_title">导出记录</string>
     <string name="record_export_current_tab_option">导出当前页（%1$s）</string>
     <string name="record_export_all_tabs_option">导出所有</string>
     <string name="title_notification_rules">通知转发</string>
     <string name="subtitle_notification_rules">管理应用通知的抓取与转发规则</string>
+    <string name="action_enable_forwarding">为 %s 启用转发</string>
+    <string name="action_disable_forwarding">为 %s 禁用转发</string>
     <!-- preference code records end -->
 
     <!-- preference code rules -->
@@ -235,7 +241,11 @@
     <!-- preference others -->
     <string name="pref_others_title">其他</string>
     <string name="pref_verbose_log_mode_title">详细日志</string>
-    <string name="pref_verbose_log_mode_summary">打印详细日志(仅用于调试)</string>
+    <string name="pref_verbose_log_mode_summary">打印详细日志（仅调试）；点击左侧标题可查看日志详情</string>
+    <string name="pref_runtime_log_file_size_title">日志文件大小</string>
+    <string name="pref_runtime_log_file_size_summary">单个文件大小上限：%1$dM（超过后循环覆盖）</string>
+    <string name="pref_runtime_log_file_size_hint">单位 MB，最小值 1。</string>
+    <string name="pref_runtime_log_file_size_error">请输入大于等于 1 的整数。</string>
     <string name="pref_auto_update_on_start_title">启动时自动更新</string>
     <string name="pref_auto_update_on_start_summary">应用启动时执行一次更新策略</string>
     <string name="pref_auto_update_wifi_only_title">仅 Wi-Fi 自动检查更新</string>
@@ -322,6 +332,7 @@
     <string name="tab_faq">FAQ</string>
     <string name="tab_records">记录</string>
     <string name="tab_advanced">高级</string>
+    <string name="tab_forward">转发</string>
     <string name="tab_senders">转发配置</string>
     <string name="tab_settings">设置</string>
     <string name="action_sort_title">应用排序</string>

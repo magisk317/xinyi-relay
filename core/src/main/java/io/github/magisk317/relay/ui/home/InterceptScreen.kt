@@ -63,8 +63,14 @@ fun InterceptScreen(
     var showSmsBlacklistPrefixesDialog by remember { mutableStateOf(false) }
     var showSmsBlacklistRegexDialog by remember { mutableStateOf(false) }
     var showSmsBlacklistContentDialog by remember { mutableStateOf(false) }
+    val smsBlacklistEnabled = rememberPrefBoolean(PrefConst.KEY_ENABLE_SMS_BLACKLIST, false)
 
     suspend fun reload() {
+        smsBlacklistEnabled.value = AppPreferencesDataStore.getBoolean(
+            context,
+            PrefConst.KEY_ENABLE_SMS_BLACKLIST,
+            false,
+        )
         smsBlacklistNumbers = AppPreferencesDataStore.getString(context, PrefConst.KEY_SMS_BLACKLIST_NUMBERS, "")
         smsBlacklistPrefixes = AppPreferencesDataStore.getString(context, PrefConst.KEY_SMS_BLACKLIST_PREFIXES, "")
         smsBlacklistRegex = AppPreferencesDataStore.getString(context, PrefConst.KEY_SMS_BLACKLIST_REGEX, "")
@@ -78,6 +84,15 @@ fun InterceptScreen(
     LaunchedEffect(refreshTrigger) {
         if (refreshTrigger > 0) {
             reload()
+        }
+    }
+
+    LaunchedEffect(smsBlacklistEnabled.value) {
+        if (!smsBlacklistEnabled.value) {
+            showSmsBlacklistNumbersDialog = false
+            showSmsBlacklistPrefixesDialog = false
+            showSmsBlacklistRegexDialog = false
+            showSmsBlacklistContentDialog = false
         }
     }
 
@@ -139,54 +154,57 @@ fun InterceptScreen(
                     summary = stringResource(R.string.pref_enable_sms_blacklist_summary),
                     key = PrefConst.KEY_ENABLE_SMS_BLACKLIST,
                     defaultValue = false,
+                    stateOverride = smsBlacklistEnabled,
                     onSaved = notifySaved,
                 )
-                SwitchItem(
-                    title = stringResource(R.string.pref_sms_blacklist_action_delete_title),
-                    summary = stringResource(R.string.pref_sms_blacklist_action_delete_summary),
-                    key = PrefConst.KEY_SMS_BLACKLIST_ACTION_DELETE,
-                    defaultValue = true,
-                    onSaved = notifySaved,
-                )
-                SwitchItem(
-                    title = stringResource(R.string.pref_sms_blacklist_action_block_title),
-                    summary = stringResource(R.string.pref_sms_blacklist_action_block_summary),
-                    key = PrefConst.KEY_SMS_BLACKLIST_ACTION_BLOCK,
-                    defaultValue = false,
-                    onSaved = notifySaved,
-                )
-                Item(
-                    title = stringResource(R.string.pref_sms_blacklist_numbers_title),
-                    summary = buildString {
-                        append(formatSummary(smsBlacklistNumbers))
-                        append('\n')
-                        append(stringResource(R.string.pref_sms_blacklist_numbers_summary))
-                    },
-                ) { showSmsBlacklistNumbersDialog = true }
-                Item(
-                    title = stringResource(R.string.pref_sms_blacklist_prefixes_title),
-                    summary = buildString {
-                        append(formatSummary(smsBlacklistPrefixes))
-                        append('\n')
-                        append(stringResource(R.string.pref_sms_blacklist_prefixes_summary))
-                    },
-                ) { showSmsBlacklistPrefixesDialog = true }
-                Item(
-                    title = stringResource(R.string.pref_sms_blacklist_regex_title),
-                    summary = buildString {
-                        append(formatSummary(smsBlacklistRegex))
-                        append('\n')
-                        append(stringResource(R.string.pref_sms_blacklist_regex_hint))
-                    },
-                ) { showSmsBlacklistRegexDialog = true }
-                Item(
-                    title = stringResource(R.string.pref_sms_blacklist_content_title),
-                    summary = buildString {
-                        append(formatSummary(smsBlacklistContent))
-                        append('\n')
-                        append(stringResource(R.string.pref_sms_blacklist_content_summary))
-                    },
-                ) { showSmsBlacklistContentDialog = true }
+                if (smsBlacklistEnabled.value) {
+                    SwitchItem(
+                        title = stringResource(R.string.pref_sms_blacklist_action_delete_title),
+                        summary = stringResource(R.string.pref_sms_blacklist_action_delete_summary),
+                        key = PrefConst.KEY_SMS_BLACKLIST_ACTION_DELETE,
+                        defaultValue = true,
+                        onSaved = notifySaved,
+                    )
+                    SwitchItem(
+                        title = stringResource(R.string.pref_sms_blacklist_action_block_title),
+                        summary = stringResource(R.string.pref_sms_blacklist_action_block_summary),
+                        key = PrefConst.KEY_SMS_BLACKLIST_ACTION_BLOCK,
+                        defaultValue = false,
+                        onSaved = notifySaved,
+                    )
+                    Item(
+                        title = stringResource(R.string.pref_sms_blacklist_numbers_title),
+                        summary = buildString {
+                            append(formatSummary(smsBlacklistNumbers))
+                            append('\n')
+                            append(stringResource(R.string.pref_sms_blacklist_numbers_summary))
+                        },
+                    ) { showSmsBlacklistNumbersDialog = true }
+                    Item(
+                        title = stringResource(R.string.pref_sms_blacklist_prefixes_title),
+                        summary = buildString {
+                            append(formatSummary(smsBlacklistPrefixes))
+                            append('\n')
+                            append(stringResource(R.string.pref_sms_blacklist_prefixes_summary))
+                        },
+                    ) { showSmsBlacklistPrefixesDialog = true }
+                    Item(
+                        title = stringResource(R.string.pref_sms_blacklist_regex_title),
+                        summary = buildString {
+                            append(formatSummary(smsBlacklistRegex))
+                            append('\n')
+                            append(stringResource(R.string.pref_sms_blacklist_regex_hint))
+                        },
+                    ) { showSmsBlacklistRegexDialog = true }
+                    Item(
+                        title = stringResource(R.string.pref_sms_blacklist_content_title),
+                        summary = buildString {
+                            append(formatSummary(smsBlacklistContent))
+                            append('\n')
+                            append(stringResource(R.string.pref_sms_blacklist_content_summary))
+                        },
+                    ) { showSmsBlacklistContentDialog = true }
+                }
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = Const.SPACING_SMALL.dp))
             }
@@ -213,7 +231,7 @@ fun InterceptScreen(
         }
     }
 
-    if (showSmsBlacklistNumbersDialog) {
+    if (smsBlacklistEnabled.value && showSmsBlacklistNumbersDialog) {
         TextInputDialog(
             title = stringResource(id = R.string.pref_sms_blacklist_numbers_title),
             initialValue = smsBlacklistNumbers,
@@ -233,7 +251,7 @@ fun InterceptScreen(
         }
     }
 
-    if (showSmsBlacklistPrefixesDialog) {
+    if (smsBlacklistEnabled.value && showSmsBlacklistPrefixesDialog) {
         TextInputDialog(
             title = stringResource(id = R.string.pref_sms_blacklist_prefixes_title),
             initialValue = smsBlacklistPrefixes,
@@ -253,7 +271,7 @@ fun InterceptScreen(
         }
     }
 
-    if (showSmsBlacklistRegexDialog) {
+    if (smsBlacklistEnabled.value && showSmsBlacklistRegexDialog) {
         TextInputDialog(
             title = stringResource(id = R.string.pref_sms_blacklist_regex_title),
             initialValue = smsBlacklistRegex,
@@ -273,7 +291,7 @@ fun InterceptScreen(
         }
     }
 
-    if (showSmsBlacklistContentDialog) {
+    if (smsBlacklistEnabled.value && showSmsBlacklistContentDialog) {
         TextInputDialog(
             title = stringResource(id = R.string.pref_sms_blacklist_content_title),
             initialValue = smsBlacklistContent,

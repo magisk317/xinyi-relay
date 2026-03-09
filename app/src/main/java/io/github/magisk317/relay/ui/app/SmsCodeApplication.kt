@@ -110,7 +110,13 @@ class SmsCodeApplication : Application() {
                 PrefConst.KEY_VERBOSE_LOG_MODE,
                 false,
             )
+            val logFileSizeMb = AppPreferencesDataStore.getInt(
+                this@SmsCodeApplication,
+                PrefConst.KEY_RUNTIME_LOG_FILE_SIZE_MB,
+                PrefConst.RUNTIME_LOG_FILE_SIZE_MB_DEFAULT,
+            )
             RuntimeLogStore.setEnabled(verboseLog)
+            RuntimeLogStore.setMaxFileSizeMb(logFileSizeMb)
         }
     }
 

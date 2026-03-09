@@ -99,6 +99,7 @@ fun ComposeSettingsScreen(
     var showAutoInputIntervalDialog by remember { mutableStateOf(false) }
     var showRetentionDialog by remember { mutableStateOf(false) }
     var showRootDbCatchupIntervalDialog by remember { mutableStateOf(false) }
+    var showRuntimeLogFileSizeDialog by remember { mutableStateOf(false) }
     var showSmsTestDialog by remember { mutableStateOf(false) }
     var smsTestInput by remember { mutableStateOf("") }
     var showThemeDialog by remember { mutableStateOf(false) }
@@ -290,13 +291,45 @@ fun ComposeSettingsScreen(
     val pullToRefreshState = rememberPullToRefreshState()
     val blurRadius = rememberPrefInt(PrefConst.KEY_HAZE_BLUR_RADIUS, 25)
     val tintAlpha = rememberPrefFloat(PrefConst.KEY_HAZE_TINT_ALPHA, 0.2f)
+    val runtimeLogFileSizeMb = rememberPrefInt(
+        PrefConst.KEY_RUNTIME_LOG_FILE_SIZE_MB,
+        PrefConst.RUNTIME_LOG_FILE_SIZE_MB_DEFAULT,
+    )
     var showBlurRadiusDialog by remember { mutableStateOf(false) }
     var showTintAlphaDialog by remember { mutableStateOf(false) }
     val autoInputEnabled = rememberPrefBoolean(PrefConst.KEY_ENABLE_AUTO_INPUT_CODE, true)
     val autoUpdateEnabled = rememberPrefBoolean(PrefConst.KEY_AUTO_UPDATE_ON_START, true)
+    val autoCancelNotificationEnabled = rememberPrefBoolean(PrefConst.KEY_AUTO_CANCEL_CODE_NOTIFICATION, false)
     val moduleEnabled = rememberPrefBoolean(PrefConst.KEY_ENABLE, true)
     val accordionMode = rememberPrefBoolean(PrefConst.KEY_SETTINGS_ACCORDION_MODE, true)
     val rootDbCatchupEnabled = rememberPrefBoolean(PrefConst.KEY_ROOT_DB_CATCHUP_ENABLE, true)
+    val forceStopRecoveryEnabled = rememberPrefBoolean(PrefConst.KEY_FORCE_STOP_RECOVERY, false)
+    val verboseLogEnabled = rememberPrefBoolean(PrefConst.KEY_VERBOSE_LOG_MODE, false)
+
+    LaunchedEffect(autoInputEnabled.value) {
+        if (!autoInputEnabled.value) {
+            showAutoInputDialog = false
+            showAutoInputIntervalDialog = false
+        }
+    }
+
+    LaunchedEffect(showCodeNotificationEnabled.value, autoCancelNotificationEnabled.value) {
+        if (!showCodeNotificationEnabled.value || !autoCancelNotificationEnabled.value) {
+            showRetentionDialog = false
+        }
+    }
+
+    LaunchedEffect(rootDbCatchupEnabled.value) {
+        if (!rootDbCatchupEnabled.value) {
+            showRootDbCatchupIntervalDialog = false
+        }
+    }
+
+    LaunchedEffect(verboseLogEnabled.value) {
+        if (!verboseLogEnabled.value) {
+            showRuntimeLogFileSizeDialog = false
+        }
+    }
 
     LaunchedEffect(settingsDataLoaded, showLoading, shouldShowInitialLoading) {
         if (shouldShowInitialLoading && settingsDataLoaded && !showLoading) {
@@ -463,24 +496,26 @@ fun ComposeSettingsScreen(
                             stateOverride = autoInputEnabled,
                             onSaved = markPrefsSaved,
                         )
-                        SwitchItem(
-                            title = stringResource(id = R.string.pref_enable_auto_enter_code_title),
-                            summary = stringResource(id = R.string.pref_enable_auto_enter_code_summary),
-                            key = PrefConst.KEY_ENABLE_AUTO_ENTER_CODE,
-                            defaultValue = false,
-                            onSaved = markPrefsSaved,
-                        )
-                        Item(
-                            title = stringResource(id = R.string.pref_auto_input_code_delay_title),
-                            summary = stringResource(id = R.string.pref_auto_input_code_delay_summary, autoInputDelay),
-                        ) { showAutoInputDialog = true }
-                        Item(
-                            title = stringResource(id = R.string.pref_auto_input_code_interval_title),
-                            summary = stringResource(
-                                id = R.string.pref_auto_input_code_interval_summary,
-                                autoInputInterval,
-                            ),
-                        ) { showAutoInputIntervalDialog = true }
+                        if (autoInputEnabled.value) {
+                            SwitchItem(
+                                title = stringResource(id = R.string.pref_enable_auto_enter_code_title),
+                                summary = stringResource(id = R.string.pref_enable_auto_enter_code_summary),
+                                key = PrefConst.KEY_ENABLE_AUTO_ENTER_CODE,
+                                defaultValue = false,
+                                onSaved = markPrefsSaved,
+                            )
+                            Item(
+                                title = stringResource(id = R.string.pref_auto_input_code_delay_title),
+                                summary = stringResource(id = R.string.pref_auto_input_code_delay_summary, autoInputDelay),
+                            ) { showAutoInputDialog = true }
+                            Item(
+                                title = stringResource(id = R.string.pref_auto_input_code_interval_title),
+                                summary = stringResource(
+                                    id = R.string.pref_auto_input_code_interval_summary,
+                                    autoInputInterval,
+                                ),
+                            ) { showAutoInputIntervalDialog = true }
+                        }
                     }
 
                     ExpandableSettingsSection(
@@ -510,17 +545,20 @@ fun ComposeSettingsScreen(
                                 summary = stringResource(id = R.string.pref_auto_cancel_notification_summary),
                                 key = PrefConst.KEY_AUTO_CANCEL_CODE_NOTIFICATION,
                                 defaultValue = false,
+                                stateOverride = autoCancelNotificationEnabled,
                                 onSaved = markPrefsSaved,
                             )
-                            Item(
-                                title = stringResource(id = R.string.pref_notification_retention_time_title),
-                                summary = run {
-                                    val entries = stringArrayResource(id = R.array.notification_retention_time_entry_list)
-                                    val values = stringArrayResource(id = R.array.notification_retention_time_list)
-                                    val index = values.indexOf(retentionTime)
-                                    if (index >= 0) entries[index] else retentionTime
-                                },
-                            ) { showRetentionDialog = true }
+                            if (autoCancelNotificationEnabled.value) {
+                                Item(
+                                    title = stringResource(id = R.string.pref_notification_retention_time_title),
+                                    summary = run {
+                                        val entries = stringArrayResource(id = R.array.notification_retention_time_entry_list)
+                                        val values = stringArrayResource(id = R.array.notification_retention_time_list)
+                                        val index = values.indexOf(retentionTime)
+                                        if (index >= 0) entries[index] else retentionTime
+                                    },
+                                ) { showRetentionDialog = true }
+                            }
                         }
                     }
 
@@ -538,34 +576,39 @@ fun ComposeSettingsScreen(
                             stateOverride = rootDbCatchupEnabled,
                             onSaved = markPrefsSaved,
                         )
-                        Item(
-                            title = stringResource(id = R.string.pref_root_db_catchup_interval_title),
-                            summary = stringResource(
-                                id = R.string.pref_root_db_catchup_interval_summary,
-                                rootDbCatchupIntervalMin,
-                            ),
-                        ) { showRootDbCatchupIntervalDialog = true }
-                        SwitchItem(
-                            title = stringResource(id = R.string.pref_root_db_catchup_writeback_title),
-                            summary = stringResource(id = R.string.pref_root_db_catchup_writeback_summary),
-                            key = PrefConst.KEY_ROOT_DB_CATCHUP_WRITEBACK,
-                            defaultValue = false,
-                            onSaved = markPrefsSaved,
-                        )
+                        if (rootDbCatchupEnabled.value) {
+                            Item(
+                                title = stringResource(id = R.string.pref_root_db_catchup_interval_title),
+                                summary = stringResource(
+                                    id = R.string.pref_root_db_catchup_interval_summary,
+                                    rootDbCatchupIntervalMin,
+                                ),
+                            ) { showRootDbCatchupIntervalDialog = true }
+                            SwitchItem(
+                                title = stringResource(id = R.string.pref_root_db_catchup_writeback_title),
+                                summary = stringResource(id = R.string.pref_root_db_catchup_writeback_summary),
+                                key = PrefConst.KEY_ROOT_DB_CATCHUP_WRITEBACK,
+                                defaultValue = false,
+                                onSaved = markPrefsSaved,
+                            )
+                        }
                         SwitchItem(
                             title = stringResource(id = R.string.pref_force_stop_recovery_title),
                             summary = stringResource(id = R.string.pref_force_stop_recovery_summary),
                             key = PrefConst.KEY_FORCE_STOP_RECOVERY,
                             defaultValue = false,
+                            stateOverride = forceStopRecoveryEnabled,
                             onSaved = markPrefsSaved,
                         )
-                        SwitchItem(
-                            title = stringResource(id = R.string.pref_force_stop_recovery_relaunch_once_title),
-                            summary = stringResource(id = R.string.pref_force_stop_recovery_relaunch_once_summary),
-                            key = PrefConst.KEY_FORCE_STOP_RECOVERY_RELAUNCH_ONCE,
-                            defaultValue = false,
-                            onSaved = markPrefsSaved,
-                        )
+                        if (forceStopRecoveryEnabled.value) {
+                            SwitchItem(
+                                title = stringResource(id = R.string.pref_force_stop_recovery_relaunch_once_title),
+                                summary = stringResource(id = R.string.pref_force_stop_recovery_relaunch_once_summary),
+                                key = PrefConst.KEY_FORCE_STOP_RECOVERY_RELAUNCH_ONCE,
+                                defaultValue = false,
+                                onSaved = markPrefsSaved,
+                            )
+                        }
                     }
 
                     ExpandableSettingsSection(
@@ -605,6 +648,7 @@ fun ComposeSettingsScreen(
                             summary = stringResource(id = R.string.pref_verbose_log_mode_summary),
                             key = PrefConst.KEY_VERBOSE_LOG_MODE,
                             defaultValue = false,
+                            stateOverride = verboseLogEnabled,
                             onItemClick = { showVerboseLogViewer = true },
                             onToggle = { on ->
                                 RuntimeLogStore.setEnabled(on)
@@ -612,6 +656,15 @@ fun ComposeSettingsScreen(
                             },
                             onSaved = markPrefsSaved,
                         )
+                        if (verboseLogEnabled.value) {
+                            Item(
+                                title = stringResource(id = R.string.pref_runtime_log_file_size_title),
+                                summary = stringResource(
+                                    id = R.string.pref_runtime_log_file_size_summary,
+                                    runtimeLogFileSizeMb.intValue,
+                                ),
+                            ) { showRuntimeLogFileSizeDialog = true }
+                        }
                         SwitchItem(
                             title = stringResource(id = R.string.pref_auto_update_on_start_title),
                             summary = stringResource(id = R.string.pref_auto_update_on_start_summary),
@@ -771,6 +824,41 @@ fun ComposeSettingsScreen(
                     markPrefsSaved()
                 }
                 showTintAlphaDialog = false
+            },
+        )
+    }
+
+    if (showRuntimeLogFileSizeDialog) {
+        val runtimeLogFileSizeErrorText = stringResource(id = R.string.pref_runtime_log_file_size_error)
+        TextInputDialog(
+            title = stringResource(id = R.string.pref_runtime_log_file_size_title),
+            initialValue = runtimeLogFileSizeMb.intValue.toString(),
+            supportingText = stringResource(id = R.string.pref_runtime_log_file_size_hint),
+            validator = { input ->
+                val parsed = input.trim().toIntOrNull()
+                if (parsed == null || parsed < PrefConst.RUNTIME_LOG_FILE_SIZE_MB_MIN) {
+                    runtimeLogFileSizeErrorText
+                } else {
+                    null
+                }
+            },
+            onDismiss = { showRuntimeLogFileSizeDialog = false },
+            onConfirm = { value ->
+                val normalized = value.trim().toIntOrNull()
+                    ?.coerceAtLeast(PrefConst.RUNTIME_LOG_FILE_SIZE_MB_MIN)
+                    ?: PrefConst.RUNTIME_LOG_FILE_SIZE_MB_DEFAULT
+                runtimeLogFileSizeMb.intValue = normalized
+                scope.launch {
+                    AppPreferencesDataStore.setInt(
+                        context,
+                        PrefConst.KEY_RUNTIME_LOG_FILE_SIZE_MB,
+                        normalized,
+                    )
+                    AppPreferencesDataStore.syncToSharedPrefs(context)
+                    RuntimeLogStore.setMaxFileSizeMb(normalized)
+                    markPrefsSaved()
+                }
+                showRuntimeLogFileSizeDialog = false
             },
         )
     }

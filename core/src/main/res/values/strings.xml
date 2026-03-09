@@ -97,6 +97,8 @@
     <string name="edit_relay_records">Edit Code Records</string>
     <string name="prompt_sms_code_copied">SMS Code copied: %s</string>
     <string name="action_delete">Delete</string>
+    <string name="action_clear_records">Clear</string>
+    <string name="action_clear_records_content_description">Clear current tab records</string>
     <string name="action_select_all">Select All</string>
     <string name="some_items_removed">Removed %d record(s)</string>
     <string name="message_details">Message Details</string>
@@ -167,6 +169,8 @@
     <string name="records_column_plain_empty">No plain SMS yet</string>
     <string name="records_column_app_notify_empty">No app notifications yet</string>
     <string name="records_column_call_notify_empty">No call notifications yet</string>
+    <string name="record_clear_dialog_title">Clear records</string>
+    <string name="record_clear_dialog_message">Are you sure you want to clear %1$s?</string>
     <string name="record_export_dialog_title">Export records</string>
     <string name="record_export_current_tab_option">Export current tab (%1$s)</string>
     <string name="record_export_all_tabs_option">Export all</string>
@@ -235,7 +239,11 @@
     <!-- preference others -->
     <string name="pref_others_title">Others</string>
     <string name="pref_verbose_log_mode_title">Detailed log</string>
-    <string name="pref_verbose_log_mode_summary">Print detailed log(only for debug)</string>
+    <string name="pref_verbose_log_mode_summary">Print detailed logs (debug only); tap the left title to view log details</string>
+    <string name="pref_runtime_log_file_size_title">Runtime log file size</string>
+    <string name="pref_runtime_log_file_size_summary">Single file size limit: %1$dM (tail overwrite when exceeded)</string>
+    <string name="pref_runtime_log_file_size_hint">Single file size limit in MB, minimum 1.</string>
+    <string name="pref_runtime_log_file_size_error">Please enter an integer greater than or equal to 1.</string>
     <string name="pref_auto_update_on_start_title">Auto update on launch</string>
     <string name="pref_auto_update_on_start_summary">Run update strategy once when app starts</string>
     <string name="pref_auto_update_wifi_only_title">Wi-Fi only for auto update</string>
