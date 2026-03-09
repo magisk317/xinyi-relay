@@ -507,6 +507,14 @@
     <string name="privacy_dialog_confirm">Agree and Continue</string>
     <string name="privacy_policy_button">Privacy Policy</string>
     <!-- privacy policy end -->
+    <!-- smscode conflict dialog start -->
+    <string name="smscode_conflict_dialog_title">Conflicting Module Detected</string>
+    <string name="smscode_conflict_dialog_prefix">Detected installed module: </string>
+    <string name="smscode_conflict_dialog_middle">. Please uninstall this module first, then install and use </string>
+    <string name="smscode_conflict_dialog_suffix">.</string>
+    <string name="smscode_conflict_other_app_name">XposedSmsCode</string>
+    <string name="smscode_conflict_dialog_exit">Exit</string>
+    <!-- smscode conflict dialog end -->
     <string name="rule_list_empty_prompt">No rules yet. Click + to add one.</string>
     <string name="rule_keyword_prefix">Keyword: </string>
     <string name="rule_regex_prefix">Regex: </string>

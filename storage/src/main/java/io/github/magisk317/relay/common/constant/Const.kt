@@ -36,6 +36,7 @@ object Const {
     /* Xposed SmsCode end */
 
     const val LSPOSED_MANAGER_PACKAGE_NAME = "org.lsposed.manager"
+    const val XPOSED_SMSCODE_PACKAGE_NAME = "com.github.tianma8023.xposed.smscode"
 
     /* Rule Edit Types */
     const val EDIT_TYPE_CREATE = 0

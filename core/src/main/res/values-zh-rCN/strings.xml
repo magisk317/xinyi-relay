@@ -491,6 +491,14 @@
     <string name="privacy_dialog_confirm">同意并继续</string>
     <string name="privacy_policy_button">隐私政策</string>
     <!-- privacy policy end -->
+    <!-- smscode conflict dialog start -->
+    <string name="smscode_conflict_dialog_title">检测到冲突模块</string>
+    <string name="smscode_conflict_dialog_prefix">检测到你已安装 </string>
+    <string name="smscode_conflict_dialog_middle">。请先卸载该模块，再安装并使用 </string>
+    <string name="smscode_conflict_dialog_suffix">。</string>
+    <string name="smscode_conflict_other_app_name">XposedSmsCode</string>
+    <string name="smscode_conflict_dialog_exit">退出</string>
+    <!-- smscode conflict dialog end -->
     <string name="rule_list_empty_prompt">暂无规则，点击 + 添加。</string>
     <string name="rule_keyword_prefix">关键字: </string>
     <string name="rule_regex_prefix">正则: </string>

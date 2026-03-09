@@ -44,6 +44,9 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
@@ -109,6 +112,7 @@ class MainActivity : AppCompatActivity() {
             val scope = rememberCoroutineScope()
             var showPrivacyPolicyDialog by remember { mutableStateOf(false) }
             var showPrivacyPolicyPage by remember { mutableStateOf(false) }
+            var showSmsCodeConflictDialog by remember { mutableStateOf(false) }
             var githubUpdateUiState by remember { mutableStateOf<GithubUpdateUiState?>(null) }
             var downloadState by remember { mutableStateOf<UpdateDownloadState>(UpdateDownloadState.Idle) }
             var unknownSourceApk by remember { mutableStateOf<File?>(null) }
@@ -186,6 +190,11 @@ class MainActivity : AppCompatActivity() {
             LaunchedEffect(Unit) {
                 if (!SPUtils.isPrivacyPolicyAccepted(context)) {
                     showPrivacyPolicyDialog = true
+                }
+            }
+            LaunchedEffect(Unit) {
+                if (PackageUtils.isPackageInstalled(context, Const.XPOSED_SMSCODE_PACKAGE_NAME)) {
+                    showSmsCodeConflictDialog = true
                 }
             }
             LaunchedEffect(Unit) {
@@ -339,6 +348,53 @@ class MainActivity : AppCompatActivity() {
                                         if (!SPUtils.isPrivacyPolicyAccepted(context)) {
                                             showPrivacyPolicyDialog = true
                                         }
+                                    }
+                                },
+                            )
+                        }
+
+                        if (showSmsCodeConflictDialog) {
+                            AlertDialog(
+                                onDismissRequest = {},
+                                title = { Text(getString(R.string.smscode_conflict_dialog_title)) },
+                                text = {
+                                    Text(
+                                        buildAnnotatedString {
+                                            append(getString(R.string.smscode_conflict_dialog_prefix))
+                                            withStyle(
+                                                SpanStyle(
+                                                    color = MaterialTheme.colorScheme.error,
+                                                    fontWeight = FontWeight.Bold,
+                                                ),
+                                            ) {
+                                                append(getString(R.string.smscode_conflict_other_app_name))
+                                            }
+                                            append(" (")
+                                            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                                append(Const.XPOSED_SMSCODE_PACKAGE_NAME)
+                                            }
+                                            append(")")
+                                            append(getString(R.string.smscode_conflict_dialog_middle))
+                                            withStyle(
+                                                SpanStyle(
+                                                    color = MaterialTheme.colorScheme.error,
+                                                    fontWeight = FontWeight.Bold,
+                                                ),
+                                            ) {
+                                                append(getString(R.string.app_name))
+                                            }
+                                            append(getString(R.string.smscode_conflict_dialog_suffix))
+                                        },
+                                    )
+                                },
+                                confirmButton = {
+                                    FilledTonalButton(
+                                        onClick = {
+                                            showSmsCodeConflictDialog = false
+                                            finish()
+                                        },
+                                    ) {
+                                        Text(getString(R.string.smscode_conflict_dialog_exit))
                                     }
                                 },
                             )
