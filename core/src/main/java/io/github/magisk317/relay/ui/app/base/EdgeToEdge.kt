@@ -1,8 +1,6 @@
 package io.github.magisk317.relay.ui.app.base
 
 import android.app.Activity
-import android.os.Build
-import android.graphics.Color
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
@@ -21,8 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.activity.ComponentActivity
-import androidx.activity.SystemBarStyle
-import androidx.activity.enableEdgeToEdge
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import dev.chrisbanes.haze.HazeState
@@ -30,25 +26,9 @@ import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 
-private const val LIGHT_NAV_SCRIM = 0xE6FFFFFF.toInt()
-private const val DARK_NAV_SCRIM = 0x801B1B1B.toInt()
-
 fun applyEdgeToEdge(activity: ComponentActivity) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-        // Android 15+: avoid deprecated edge-to-edge setters flagged by Play pre-launch checks.
-        WindowCompat.setDecorFitsSystemWindows(activity.window, false)
-    } else {
-        activity.enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.auto(
-                lightScrim = Color.TRANSPARENT,
-                darkScrim = Color.TRANSPARENT,
-            ),
-            navigationBarStyle = SystemBarStyle.auto(
-                lightScrim = LIGHT_NAV_SCRIM,
-                darkScrim = DARK_NAV_SCRIM,
-            ),
-        )
-    }
+    // Keep a single edge-to-edge path to avoid deprecated cutout-mode APIs in Play scans.
+    WindowCompat.setDecorFitsSystemWindows(activity.window, false)
 }
 
 @Composable
