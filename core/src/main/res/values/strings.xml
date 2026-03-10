@@ -584,6 +584,8 @@
     <string name="status_working">Working normally</string>
     <string name="status_not_active">Inactive</string>
     <string name="status_tip">Please enable in manager and reboot device</string>
+    <string name="framework_incompatibility_title">Framework incompatibility detected</string>
+    <string name="framework_incompatibility_hooker_annotation_message">Current framework is incompatible and hook registration failed. Please download the latest IT build, or scroll to the bottom and join the community to get it.</string>
     <string name="rule_company_placeholder">eg. Verification Code</string>
     <string name="rule_regex_field_prefix">RE: </string>
     <!-- overview end -->

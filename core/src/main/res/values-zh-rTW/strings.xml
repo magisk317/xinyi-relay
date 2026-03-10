@@ -592,6 +592,8 @@
     <string name="status_working">已啟用</string>
     <string name="status_not_active">未啟用</string>
     <string name="status_tip">請在管理器中啟用並重啟設備</string>
+    <string name="framework_incompatibility_title">偵測到框架不相容</string>
+    <string name="framework_incompatibility_hooker_annotation_message">目前框架與模組不相容，Hook 註冊失敗。請下載最新 it 版，或滑到頁面底部加入社群取得。</string>
     <string name="rule_company_placeholder">例如: 驗證碼</string>
     <string name="rule_regex_field_prefix">正規: </string>
     <!-- overview end -->
