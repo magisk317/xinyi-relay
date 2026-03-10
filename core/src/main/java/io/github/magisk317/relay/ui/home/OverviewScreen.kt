@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -29,8 +30,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.common.constant.Const
+import io.github.magisk317.relay.common.utils.FrameworkCompatibilityMonitor
 import io.github.magisk317.relay.common.utils.ModuleUtils
 import io.github.magisk317.relay.common.utils.PackageUtils
 import io.github.magisk317.relay.common.utils.Utils
@@ -39,6 +42,7 @@ import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -57,6 +61,14 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
     var showQRCodeDialog by remember { mutableStateOf<Pair<Int, String>?>(null) }
 
     val isEnabled = ModuleUtils.isModuleActivated(context)
+    val frameworkIssue by FrameworkCompatibilityMonitor.issueState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            FrameworkCompatibilityMonitor.refreshFromRuntimeLogs()
+            delay(1500L)
+        }
+    }
 
     val listState = rememberLazyListState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -113,6 +125,17 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
             ),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            frameworkIssue?.let { issue ->
+                item {
+                    FrameworkIncompatibilityCard(
+                        message = when (issue.issueType) {
+                            FrameworkCompatibilityMonitor.FrameworkIssueType.HOOKER_ANNOTATION_INCOMPATIBLE ->
+                                stringResource(id = R.string.framework_incompatibility_hooker_annotation_message)
+                        },
+                    )
+                }
+            }
+
             item {
                 StatusCard(
                     isEnabled = isEnabled,
@@ -331,6 +354,44 @@ fun StatusCard(isEnabled: Boolean, onClick: (() -> Unit)? = null) {
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun FrameworkIncompatibilityCard(message: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer,
+            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        ),
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(20.dp)
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Error,
+                    contentDescription = null,
+                )
+                Text(
+                    text = stringResource(id = R.string.framework_incompatibility_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+            )
         }
     }
 }
