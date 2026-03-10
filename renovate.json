@@ -24,6 +24,13 @@
                 "int:LOG_LEVEL"
             ],
             "enabled": false
+        },
+        {
+            "matchPackageNames": [
+                "io.github.libxposed:api",
+                "io.github.libxposed:service"
+            ],
+            "enabled": false
         }
     ]
 }
