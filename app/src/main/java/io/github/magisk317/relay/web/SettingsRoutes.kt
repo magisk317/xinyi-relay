@@ -32,15 +32,17 @@ internal fun Route.registerSettingsRoutes(
             return@patch
         }
         if (
-            payload.enable == null &&
+            payload.moduleEnabled == null &&
+            payload.verificationFeaturesEnabled == null &&
+            payload.relayFeaturesEnabled == null &&
             payload.copyToClipboard == null &&
             payload.showToast == null &&
             payload.showCodeNotification == null &&
             payload.enableAutoInputCode == null &&
             payload.enableAutoEnterCode == null &&
             payload.verboseLogMode == null &&
-            payload.blockSms == null &&
-            payload.forceStopRecovery == null
+            payload.smsBlacklistEnabled == null &&
+            payload.forceStopRecoveryEnabled == null
         ) {
             call.respondError(json, HttpStatusCode.BadRequest, "No changes provided")
             return@patch

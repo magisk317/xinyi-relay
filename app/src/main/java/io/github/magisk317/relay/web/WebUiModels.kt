@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.web
 
-import io.github.magisk317.relay.forwarder.utils.SenderType
+import io.github.magisk317.relay.domain.sender.SenderType
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -56,28 +56,32 @@ internal data class AdvancedUpdatePayload(
 
 @Serializable
 internal data class SettingsState(
-    val enable: Boolean,
+    val moduleEnabled: Boolean,
+    val verificationFeaturesEnabled: Boolean,
+    val relayFeaturesEnabled: Boolean,
     val copyToClipboard: Boolean,
     val showToast: Boolean,
     val showCodeNotification: Boolean,
     val enableAutoInputCode: Boolean,
     val enableAutoEnterCode: Boolean,
     val verboseLogMode: Boolean,
-    val blockSms: Boolean,
-    val forceStopRecovery: Boolean,
+    val smsBlacklistEnabled: Boolean,
+    val forceStopRecoveryEnabled: Boolean,
 )
 
 @Serializable
 internal data class SettingsUpdatePayload(
-    val enable: Boolean? = null,
+    val moduleEnabled: Boolean? = null,
+    val verificationFeaturesEnabled: Boolean? = null,
+    val relayFeaturesEnabled: Boolean? = null,
     val copyToClipboard: Boolean? = null,
     val showToast: Boolean? = null,
     val showCodeNotification: Boolean? = null,
     val enableAutoInputCode: Boolean? = null,
     val enableAutoEnterCode: Boolean? = null,
     val verboseLogMode: Boolean? = null,
-    val blockSms: Boolean? = null,
-    val forceStopRecovery: Boolean? = null,
+    val smsBlacklistEnabled: Boolean? = null,
+    val forceStopRecoveryEnabled: Boolean? = null,
 )
 
 @Serializable
@@ -185,4 +189,37 @@ internal data class OverviewState(
     val senderEnabled: Int,
     val senderAppNotifyEnabled: Int,
     val version: VersionState,
+)
+
+@Serializable
+internal data class AnalyticsResponse(
+    val allTime: AnalyticsWindow,
+    val last7d: AnalyticsWindow,
+    val last30d: AnalyticsWindow,
+)
+
+@Serializable
+internal data class AnalyticsWindow(
+    val summary: AnalyticsSummary,
+    val senderStats: List<SenderTypeStat>,
+)
+
+@Serializable
+internal data class AnalyticsSummary(
+    val smsCodeDetected: Long,
+    val autoInputAttempt: Long,
+    val autoInputSuccess: Long,
+    val autoInputFail: Long,
+    val messageTotal: Long,
+)
+
+@Serializable
+internal data class SenderTypeStat(
+    val senderType: Int,
+    val senderTypeLabel: String,
+    val configured: Int,
+    val enabled: Int,
+    val sent: Long,
+    val success: Long,
+    val failed: Long,
 )

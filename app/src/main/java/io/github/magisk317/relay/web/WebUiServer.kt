@@ -35,7 +35,7 @@ internal class WebUiServer(
     }
 
     private val sessionManager = SessionManager()
-    private val csrfVerifier = CsrfVerifier()
+    private val csrfVerifier = CsrfVerifier(runtimeConfig.allowLanAccess)
     private val rateLimiter = AuthRateLimiter()
     private val dataService = WebUiDataService(appContext)
     private val assetHandler = WebUiAssetHandler(appContext)
@@ -94,6 +94,11 @@ internal class WebUiServer(
                     dataService = dataService,
                     sessionManager = sessionManager,
                     csrfVerifier = csrfVerifier,
+                )
+                registerAnalyticsRoutes(
+                    json = json,
+                    dataService = dataService,
+                    sessionManager = sessionManager,
                 )
                 registerAppRoutes(
                     json = json,

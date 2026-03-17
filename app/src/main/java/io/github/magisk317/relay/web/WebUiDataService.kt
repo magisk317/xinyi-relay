@@ -3,26 +3,35 @@ package io.github.magisk317.relay.web
 import android.content.Context
 import android.content.pm.PackageManager
 import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.utils.AppPreferencesDataStore
-import io.github.magisk317.relay.data.db.AppDatabase
 import io.github.magisk317.relay.data.db.entity.AppInfo
 import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.data.repository.AnalyticsRepository
+import io.github.magisk317.relay.data.repository.AdvancedSettingsUpdate
+import io.github.magisk317.relay.data.repository.RelayRecordRepository
+import io.github.magisk317.relay.data.repository.SettingsRepository
+import io.github.magisk317.relay.data.repository.UserSettingsUpdate
 import io.github.magisk317.relay.data.update.GithubUpdateChecker
 import io.github.magisk317.relay.data.update.UpgradeCheckResult
-import io.github.magisk317.relay.forwarder.entity.Sender
-import io.github.magisk317.relay.forwarder.utils.SenderType
+import io.github.magisk317.relay.domain.pipeline.StorageRuntimeGraph
+import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.BuildConfig
+import io.github.magisk317.relay.model.Sender
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 internal class WebUiDataService(context: Context) {
 
     private val appContext = context.applicationContext ?: context
-    private val database by lazy { AppDatabase.getInstance(appContext) }
+    private val runtimeGraph by lazy { StorageRuntimeGraph.from(appContext) }
+    private val analyticsRepository by lazy { runtimeGraph.analyticsRepository }
+    private val configRepository by lazy { runtimeGraph.configRepository }
+    private val settingsRepository by lazy { runtimeGraph.settingsRepository }
+    private val relayRecordRepository by lazy { runtimeGraph.relayRecordRepository }
+    private val preferenceDataSource by lazy { runtimeGraph.preferenceDataSource }
 
     suspend fun getOverview(): OverviewState = withContext(Dispatchers.IO) {
         val apps = loadMergedAppItems()
-        val records = database.smsMsgDao().getAll().take(80)
+        val records = relayRecordRepository.listRecords(80)
         val advanced = getAdvancedState()
         val version = getVersionState()
         OverviewState(
@@ -37,9 +46,51 @@ internal class WebUiDataService(context: Context) {
         )
     }
 
+    suspend fun getAnalytics(): AnalyticsResponse = withContext(Dispatchers.IO) {
+        val now = System.currentTimeMillis()
+        val window7d = now - 7L * 24L * 60L * 60L * 1000L
+        val window30d = now - 30L * 24L * 60L * 60L * 1000L
+
+        val senderConfig = analyticsRepository.senderConfigurationSnapshot()
+        val configuredByType = senderConfig.configuredByType
+        val enabledByType = senderConfig.enabledByType
+
+        suspend fun buildWindow(fromMs: Long): AnalyticsWindow {
+            val snapshot = analyticsRepository.snapshot(fromMs)
+            val senderStatsRows = snapshot.senderStats
+            val senderTypes = (configuredByType.keys + senderStatsRows.map { it.senderType }).distinct()
+            val senderStats = senderTypes.map { type ->
+                val row = senderStatsRows.firstOrNull { it.senderType == type }
+                SenderTypeStat(
+                    senderType = type,
+                    senderTypeLabel = senderTypeLabel(type),
+                    configured = configuredByType[type] ?: 0,
+                    enabled = enabledByType[type] ?: 0,
+                    sent = row?.sent ?: 0L,
+                    success = row?.success ?: 0L,
+                    failed = row?.failed ?: 0L,
+                )
+            }.sortedBy { it.senderType }
+
+            val summary = AnalyticsSummary(
+                smsCodeDetected = snapshot.codeDetected,
+                autoInputAttempt = snapshot.autoInputAttempt,
+                autoInputSuccess = snapshot.autoInputSuccess,
+                autoInputFail = snapshot.autoInputFailed,
+                messageTotal = snapshot.totalMessages,
+            )
+            return AnalyticsWindow(summary = summary, senderStats = senderStats)
+        }
+
+        AnalyticsResponse(
+            allTime = buildWindow(0L),
+            last7d = buildWindow(window7d),
+            last30d = buildWindow(window30d),
+        )
+    }
+
     suspend fun loadMergedAppItems(): List<AppItem> = withContext(Dispatchers.IO) {
-        val dao = database.appInfoDao()
-        val configMap = dao.getAll().associateBy { it.packageName }
+        val configMap = configRepository.getAllAppInfo().associateBy { it.packageName }
         val packageManager = appContext.packageManager
         packageManager.getInstalledApplications(PackageManager.MATCH_ALL)
             .asSequence()
@@ -65,8 +116,7 @@ internal class WebUiDataService(context: Context) {
     }
 
     suspend fun updateApp(packageName: String, payload: AppUpdatePayload): AppItem = withContext(Dispatchers.IO) {
-        val dao = database.appInfoDao()
-        val current = dao.getByPackageName(packageName)
+        val current = configRepository.getAppInfoByPackage(packageName)
         val label = current?.label?.takeIf { it.isNotBlank() }
             ?: resolveInstalledAppLabel(packageName)
             ?: packageName
@@ -76,34 +126,24 @@ internal class WebUiDataService(context: Context) {
             forwarding = payload.forwarding ?: current?.forwarding ?: false,
             notifyTemplate = payload.notifyTemplate ?: current?.notifyTemplate.orEmpty(),
         )
-        dao.insert(next)
+        configRepository.upsertAppInfo(next)
         next.toItem()
     }
 
     suspend fun getRecords(limit: Int): List<RecordItem> = withContext(Dispatchers.IO) {
-        database.smsMsgDao().getAll().take(limit).map { it.toRecordItem() }
+        relayRecordRepository.listRecords(limit).map { it.toRecordItem() }
     }
 
     suspend fun deleteRecord(recordId: Long): Boolean = withContext(Dispatchers.IO) {
-        val dao = database.smsMsgDao()
-        val existing = dao.getById(recordId) ?: return@withContext false
-        dao.delete(existing)
-        true
+        relayRecordRepository.deleteRecord(recordId)
     }
 
     suspend fun getAdvancedState(): AdvancedState = withContext(Dispatchers.IO) {
-        val senders = database.senderDao().getAll()
+        val senders = configRepository.getAllSenders()
+        val advanced = settingsRepository.getAdvancedSnapshot()
         AdvancedState(
-            enableSmsBlacklist = AppPreferencesDataStore.getBoolean(
-                appContext,
-                PrefConst.KEY_ENABLE_SMS_BLACKLIST,
-                false,
-            ),
-            webUiLanAccess = AppPreferencesDataStore.getBoolean(
-                appContext,
-                PrefConst.KEY_WEBUI_LAN_ACCESS,
-                false,
-            ),
+            enableSmsBlacklist = advanced.enableSmsBlacklist,
+            webUiLanAccess = advanced.webUiLanAccess,
             senderTotal = senders.size,
             senderEnabled = senders.count { it.status == 1 },
             senderAppNotifyEnabled = senders.count { it.status == 1 && it.receiveAppNotify == 1 },
@@ -111,69 +151,48 @@ internal class WebUiDataService(context: Context) {
     }
 
     suspend fun updateAdvanced(payload: AdvancedUpdatePayload): AdvancedState = withContext(Dispatchers.IO) {
-        payload.enableSmsBlacklist?.let {
-            AppPreferencesDataStore.setBoolean(appContext, PrefConst.KEY_ENABLE_SMS_BLACKLIST, it)
-        }
-        payload.webUiLanAccess?.let {
-            AppPreferencesDataStore.setBoolean(appContext, PrefConst.KEY_WEBUI_LAN_ACCESS, it)
-        }
+        settingsRepository.updateAdvanced(
+            AdvancedSettingsUpdate(
+                enableSmsBlacklist = payload.enableSmsBlacklist,
+                webUiLanAccess = payload.webUiLanAccess,
+            ),
+        )
         getAdvancedState()
     }
 
     suspend fun getSettingsState(): SettingsState = withContext(Dispatchers.IO) {
+        val snapshot = settingsRepository.getUserSettingsSnapshot()
         SettingsState(
-            enable = AppPreferencesDataStore.getBoolean(appContext, PrefConst.KEY_ENABLE, true),
-            copyToClipboard = AppPreferencesDataStore.getBoolean(appContext, PrefConst.KEY_COPY_TO_CLIPBOARD, false),
-            showToast = AppPreferencesDataStore.getBoolean(appContext, PrefConst.KEY_SHOW_TOAST, true),
-            showCodeNotification = AppPreferencesDataStore.getBoolean(
-                appContext,
-                PrefConst.KEY_SHOW_CODE_NOTIFICATION,
-                true,
-            ),
-            enableAutoInputCode = AppPreferencesDataStore.getBoolean(
-                appContext,
-                PrefConst.KEY_ENABLE_AUTO_INPUT_CODE,
-                true,
-            ),
-            enableAutoEnterCode = AppPreferencesDataStore.getBoolean(
-                appContext,
-                PrefConst.KEY_ENABLE_AUTO_ENTER_CODE,
-                false,
-            ),
-            verboseLogMode = AppPreferencesDataStore.getBoolean(appContext, PrefConst.KEY_VERBOSE_LOG_MODE, false),
-            blockSms = AppPreferencesDataStore.getBoolean(appContext, PrefConst.KEY_BLOCK_SMS, false),
-            forceStopRecovery = AppPreferencesDataStore.getBoolean(
-                appContext,
-                PrefConst.KEY_FORCE_STOP_RECOVERY,
-                false,
-            ),
+            moduleEnabled = snapshot.moduleEnabled,
+            verificationFeaturesEnabled = snapshot.verificationFeaturesEnabled,
+            relayFeaturesEnabled = snapshot.relayFeaturesEnabled,
+            copyToClipboard = snapshot.copyToClipboard,
+            showToast = snapshot.showToast,
+            showCodeNotification = snapshot.showCodeNotification,
+            enableAutoInputCode = snapshot.enableAutoInputCode,
+            enableAutoEnterCode = snapshot.enableAutoEnterCode,
+            verboseLogMode = snapshot.verboseLogMode,
+            smsBlacklistEnabled = snapshot.smsBlacklistEnabled,
+            forceStopRecoveryEnabled = snapshot.forceStopRecoveryEnabled,
         )
     }
 
     suspend fun updateSettings(payload: SettingsUpdatePayload): SettingsState = withContext(Dispatchers.IO) {
-        payload.enable?.let { AppPreferencesDataStore.setBoolean(appContext, PrefConst.KEY_ENABLE, it) }
-        payload.copyToClipboard?.let {
-            AppPreferencesDataStore.setBoolean(appContext, PrefConst.KEY_COPY_TO_CLIPBOARD, it)
-        }
-        payload.showToast?.let { AppPreferencesDataStore.setBoolean(appContext, PrefConst.KEY_SHOW_TOAST, it) }
-        payload.showCodeNotification?.let {
-            AppPreferencesDataStore.setBoolean(appContext, PrefConst.KEY_SHOW_CODE_NOTIFICATION, it)
-        }
-        payload.enableAutoInputCode?.let {
-            AppPreferencesDataStore.setBoolean(appContext, PrefConst.KEY_ENABLE_AUTO_INPUT_CODE, it)
-        }
-        payload.enableAutoEnterCode?.let {
-            AppPreferencesDataStore.setBoolean(appContext, PrefConst.KEY_ENABLE_AUTO_ENTER_CODE, it)
-        }
-        payload.verboseLogMode?.let {
-            AppPreferencesDataStore.setBoolean(appContext, PrefConst.KEY_VERBOSE_LOG_MODE, it)
-        }
-        payload.blockSms?.let {
-            AppPreferencesDataStore.setBoolean(appContext, PrefConst.KEY_BLOCK_SMS, it)
-        }
-        payload.forceStopRecovery?.let {
-            AppPreferencesDataStore.setBoolean(appContext, PrefConst.KEY_FORCE_STOP_RECOVERY, it)
-        }
+        settingsRepository.updateUserSettings(
+            UserSettingsUpdate(
+                moduleEnabled = payload.moduleEnabled,
+                verificationFeaturesEnabled = payload.verificationFeaturesEnabled,
+                relayFeaturesEnabled = payload.relayFeaturesEnabled,
+                copyToClipboard = payload.copyToClipboard,
+                showToast = payload.showToast,
+                showCodeNotification = payload.showCodeNotification,
+                enableAutoInputCode = payload.enableAutoInputCode,
+                enableAutoEnterCode = payload.enableAutoEnterCode,
+                verboseLogMode = payload.verboseLogMode,
+                smsBlacklistEnabled = payload.smsBlacklistEnabled,
+                forceStopRecoveryEnabled = payload.forceStopRecoveryEnabled,
+            ),
+        )
         getSettingsState()
     }
 
@@ -234,21 +253,18 @@ internal class WebUiDataService(context: Context) {
 
     suspend fun getInterceptState(): InterceptState = withContext(Dispatchers.IO) {
         InterceptState(
-            smsBlacklistNumbers = AppPreferencesDataStore.getString(appContext, PrefConst.KEY_SMS_BLACKLIST_NUMBERS, ""),
-            smsBlacklistPrefixes = AppPreferencesDataStore.getString(
-                appContext,
+            smsBlacklistNumbers = preferenceDataSource.getString(PrefConst.KEY_SMS_BLACKLIST_NUMBERS, ""),
+            smsBlacklistPrefixes = preferenceDataSource.getString(
                 PrefConst.KEY_SMS_BLACKLIST_PREFIXES,
                 "",
             ),
-            smsBlacklistRegex = AppPreferencesDataStore.getString(appContext, PrefConst.KEY_SMS_BLACKLIST_REGEX, ""),
-            smsBlacklistContent = AppPreferencesDataStore.getString(appContext, PrefConst.KEY_SMS_BLACKLIST_CONTENT, ""),
-            smsBlacklistActionDelete = AppPreferencesDataStore.getBoolean(
-                appContext,
+            smsBlacklistRegex = preferenceDataSource.getString(PrefConst.KEY_SMS_BLACKLIST_REGEX, ""),
+            smsBlacklistContent = preferenceDataSource.getString(PrefConst.KEY_SMS_BLACKLIST_CONTENT, ""),
+            smsBlacklistActionDelete = preferenceDataSource.getBoolean(
                 PrefConst.KEY_SMS_BLACKLIST_ACTION_DELETE,
                 true,
             ),
-            smsBlacklistActionBlock = AppPreferencesDataStore.getBoolean(
-                appContext,
+            smsBlacklistActionBlock = preferenceDataSource.getBoolean(
                 PrefConst.KEY_SMS_BLACKLIST_ACTION_BLOCK,
                 false,
             ),
@@ -257,32 +273,31 @@ internal class WebUiDataService(context: Context) {
 
     suspend fun updateIntercept(payload: InterceptUpdatePayload): InterceptState = withContext(Dispatchers.IO) {
         payload.smsBlacklistNumbers?.let {
-            AppPreferencesDataStore.setString(appContext, PrefConst.KEY_SMS_BLACKLIST_NUMBERS, it)
+            preferenceDataSource.setString(PrefConst.KEY_SMS_BLACKLIST_NUMBERS, it)
         }
         payload.smsBlacklistPrefixes?.let {
-            AppPreferencesDataStore.setString(appContext, PrefConst.KEY_SMS_BLACKLIST_PREFIXES, it)
+            preferenceDataSource.setString(PrefConst.KEY_SMS_BLACKLIST_PREFIXES, it)
         }
         payload.smsBlacklistRegex?.let {
-            AppPreferencesDataStore.setString(appContext, PrefConst.KEY_SMS_BLACKLIST_REGEX, it)
+            preferenceDataSource.setString(PrefConst.KEY_SMS_BLACKLIST_REGEX, it)
         }
         payload.smsBlacklistContent?.let {
-            AppPreferencesDataStore.setString(appContext, PrefConst.KEY_SMS_BLACKLIST_CONTENT, it)
+            preferenceDataSource.setString(PrefConst.KEY_SMS_BLACKLIST_CONTENT, it)
         }
         payload.smsBlacklistActionDelete?.let {
-            AppPreferencesDataStore.setBoolean(appContext, PrefConst.KEY_SMS_BLACKLIST_ACTION_DELETE, it)
+            preferenceDataSource.setBoolean(PrefConst.KEY_SMS_BLACKLIST_ACTION_DELETE, it)
         }
         payload.smsBlacklistActionBlock?.let {
-            AppPreferencesDataStore.setBoolean(appContext, PrefConst.KEY_SMS_BLACKLIST_ACTION_BLOCK, it)
+            preferenceDataSource.setBoolean(PrefConst.KEY_SMS_BLACKLIST_ACTION_BLOCK, it)
         }
         getInterceptState()
     }
 
     suspend fun getSenders(): List<SenderItem> = withContext(Dispatchers.IO) {
-        database.senderDao().getAll().map { it.toSenderItem() }
+        configRepository.getAllSenders().map { it.toSenderItem() }
     }
 
     suspend fun createSender(payload: SenderCreatePayload): SenderItem? = withContext(Dispatchers.IO) {
-        val dao = database.senderDao()
         val newSender = Sender(
             id = 0L,
             type = payload.type,
@@ -294,29 +309,29 @@ internal class WebUiDataService(context: Context) {
             receiveAppNotify = if (payload.receiveAppNotify) 1 else 0,
             receiveCallNotify = if (payload.receiveCallNotify) 1 else 0,
         )
-        val insertedId = dao.insert(newSender)
-        dao.getOne(insertedId)?.toSenderItem()
+        val insertedId = configRepository.insertSender(newSender)
+        configRepository.getSenderById(insertedId)?.toSenderItem()
     }
 
     suspend fun updateSender(senderId: Long, payload: SenderUpdatePayload): SenderItem? = withContext(Dispatchers.IO) {
-        val dao = database.senderDao()
-        val current = dao.getOne(senderId) ?: return@withContext null
-        payload.name?.trim()?.let { current.name = it }
-        payload.type?.let { current.type = it }
-        payload.jsonSetting?.let { current.jsonSetting = it }
-        current.status = if (payload.status ?: (current.status == 1)) 1 else 0
-        current.receiveCode = if (payload.receiveCode ?: (current.receiveCode == 1)) 1 else 0
-        current.receiveNonCode = if (payload.receiveNonCode ?: (current.receiveNonCode == 1)) 1 else 0
-        current.receiveAppNotify = if (payload.receiveAppNotify ?: (current.receiveAppNotify == 1)) 1 else 0
-        current.receiveCallNotify = if (payload.receiveCallNotify ?: (current.receiveCallNotify == 1)) 1 else 0
-        dao.update(current)
-        current.toSenderItem()
+        val current = configRepository.getSenderById(senderId) ?: return@withContext null
+        val next = current.copy(
+            name = payload.name?.trim() ?: current.name,
+            type = payload.type ?: current.type,
+            jsonSetting = payload.jsonSetting ?: current.jsonSetting,
+            status = if (payload.status ?: (current.status == 1)) 1 else 0,
+            receiveCode = if (payload.receiveCode ?: (current.receiveCode == 1)) 1 else 0,
+            receiveNonCode = if (payload.receiveNonCode ?: (current.receiveNonCode == 1)) 1 else 0,
+            receiveAppNotify = if (payload.receiveAppNotify ?: (current.receiveAppNotify == 1)) 1 else 0,
+            receiveCallNotify = if (payload.receiveCallNotify ?: (current.receiveCallNotify == 1)) 1 else 0,
+        )
+        configRepository.updateSender(next)
+        next.toSenderItem()
     }
 
     suspend fun deleteSender(senderId: Long): Boolean = withContext(Dispatchers.IO) {
-        val dao = database.senderDao()
-        val current = dao.getOne(senderId) ?: return@withContext false
-        dao.delete(current)
+        val current = configRepository.getSenderById(senderId) ?: return@withContext false
+        configRepository.deleteSender(current)
         true
     }
 
@@ -337,7 +352,7 @@ internal class WebUiDataService(context: Context) {
     )
 
     private fun SmsMsg.toRecordItem(): RecordItem = RecordItem(
-        id = id ?: -1,
+        id = id,
         date = date,
         sender = sender.orEmpty(),
         body = body.orEmpty(),

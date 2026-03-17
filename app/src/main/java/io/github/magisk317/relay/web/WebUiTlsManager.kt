@@ -2,7 +2,7 @@ package io.github.magisk317.relay.web
 
 import android.content.Context
 import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.utils.AppPreferencesDataStore
+import io.github.magisk317.relay.domain.pipeline.StorageRuntimeGraph
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -33,20 +33,18 @@ internal object WebUiTlsManager {
     suspend fun loadOrCreate(context: Context): WebUiTlsMaterial {
         val safeContext = context.applicationContext ?: context
         val keyStoreFile = File(safeContext.filesDir, KEYSTORE_FILE_NAME)
-        val keyStoreVersion = AppPreferencesDataStore.getString(
-            safeContext,
+        val preferenceDataSource = StorageRuntimeGraph.from(safeContext).preferenceDataSource
+        val keyStoreVersion = preferenceDataSource.getString(
             PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_VERSION,
             PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_VERSION_DEFAULT,
         )
-        var storePassword = AppPreferencesDataStore.getString(
-            safeContext,
+        var storePassword = preferenceDataSource.getString(
             PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS,
             "",
         )
         if (storePassword.isBlank()) {
             storePassword = generateRandomCredential(PASSWORD_LENGTH)
-            AppPreferencesDataStore.setString(
-                safeContext,
+            preferenceDataSource.setString(
                 PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS,
                 storePassword,
             )
@@ -123,8 +121,8 @@ internal object WebUiTlsManager {
             keyStore.store(out, storePassword.toCharArray())
         }
 
-        AppPreferencesDataStore.setString(
-            context,
+        val preferenceDataSource = StorageRuntimeGraph.from(context).preferenceDataSource
+        preferenceDataSource.setString(
             PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_VERSION,
             PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_VERSION_DEFAULT,
         )
