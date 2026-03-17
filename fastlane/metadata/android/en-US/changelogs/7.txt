@@ -1,0 +1,6 @@
+- Bump to 0.0.1-alpha.6 (7).
+- Settings switches now apply immediately with toast feedback.
+- Configuration save flow refactored to reduce missed or out-of-sync states.
+- Forward filters and record toggles apply immediately to avoid missed changes.
+- Reminder and code record switches now apply immediately.
+- Docs and donations list updated.
