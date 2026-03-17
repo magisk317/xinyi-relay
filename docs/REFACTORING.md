@@ -1,87 +1,232 @@
-# XposedSmsCode 项目重构与优化汇总文档 (REFACTORING.md)
+# Relay 架构重整说明
 
-本文档旨在记录并汇总近期对 `XposedSmsCode` 项目进行的系统性重构与性能优化工作。所有改进均严格遵循 Google 官方的 Jetpack Compose 最佳实践及 Kotlin 编程规范。
+本文档描述当前代码库在“第二阶段架构收口”后的推荐分层，以及后续开发应遵循的落点规则。
 
----
+## 当前分层
 
-## 1. 界面与主题架构 (UI & Theme)
+### `storage`
+- `domain`
+  - 运行时主模型与主管线
+  - 事件类型：`RelayEvent`
+  - 管线组件：`EventGatekeeper`、`SenderSelector`、`RoutingResolver`、`DispatchExecutor`、`DispatchResultWriter`
+  - 原生运行时装配：`StorageRuntimeGraph`
+- `data`
+  - Room / Provider / repository
+  - 代表对象：`RelayRecordRepository`、`SettingsRepository`
+- `platform`
+  - Android IPC / BroadcastReceiver 适配层
+  - 代表对象：`ForwardReceiver`
+- `legacy`
+  - 兼容桥接层
+  - 代表对象：`SendUtils`、`LegacyRelayFacade`
+- `forwarder`
+  - 仅保留 sender adapter（`forwarder/utils/sender/*`）与历史兼容工具
+  - sender 类型/校验/配置处理已迁入 `storage/domain/sender`
+  - sender 相关 DAO/Converter 已归档到 `storage/data/db`
+  - 不再新增主管线编排逻辑
 
-### 1.1 Material 3 Expressive 深度迁移
-- **Material 3 Expressive 深度迁移**：全面升级至 `androidx.compose.material3:material3:1.5.0-alpha12`，引入原生支持的表现力 (Expressive) 组件、形状、动效及现代化的排版系统。
-- **反馈系统重塑**：弃用传统的 `Toast`，在所有主要 Screen (`RuleList`, `RuleEdit`, `Settings`) 中引入 `SnackbarHostState`，实现异步且风格一致的交互反馈。
-- **组件规范化**：重构 `ComposeSettingsScreen.kt` 中的自定义项，全面基于 M3 `ListItem` 标准实现，确保点击波纹、内边距及字体比例完美符合规范。
+### `app`
+- Android 应用壳
+- Xposed hook 与系统事件采集
+- WebUI 路由与服务启动
+- 不直接承载转发主编排
 
-### 1.2 高级交互组件
-- **Swipe-to-Dismiss**：在规则列表 (`RuleListScreen`) 中实现滑动删除，提升管理效率。
-- **Exposed Dropdown Menus**：在规则编辑页 (`RuleEditScreen`) 的快速选择功能中使用官方 `ExposedDropdownMenuBox`，替换非标准的自定义按钮。
+### `core`
+- Compose UI、页面导航、ViewModel、系统能力外观层
+- 设置页优先通过 repository 读写配置
+- `ComposeSettingsScreen` 仅保留为兼容壳；主路径使用新的设置体验页
 
----
+## 运行时主链
 
-## 2. 文本交互与排版优化 (Text & Typography)
+运行时依赖的装配规则：
 
-### 2.1 交互性增强
-- **可选择文本**：在短信记录列表 (`CodeRecordScreen`) 中为短信内容应用 `SelectionContainer`，方便用户快速复制验证码。
-- **长文本排版**：对 FAQ 等长段落应用 `LineBreak.Paragraph` 和渐进式连接符，优化中英文混排的视觉平衡。
+- `storage` 内部通过 `StorageRuntimeGraph` 按需懒加载 `AppDatabase`、repository、pipeline 与 formatter
+- `ForwardReceiver`、`SendUtils` 等运行时入口直接消费 `StorageRuntimeGraph`
+- Koin 只在 `core/app` 层复用这套实例，不再作为 `storage` 运行时的唯一所有者
 
-### 2.2 视觉引导
-- **高亮展示**：使用 `AnnotatedString` 为列表中的正则关键字添加主色高亮，增强界面扫描效率。
-- **输入引导**：在正则输入框中使用 `prefix` 特性（显示 "RE: "），明确输入意图。
-- **自动跑马灯**：为长标题应用 `basicMarquee` 效果，避免文本截断。
+统一处理顺序如下：
 
----
+1. 来源组件采集原始事件
+2. 标准化为 `RelayEvent`
+3. `EventGatekeeper` 做模块总开关、类型级开关、来源级 gate
+4. 记录判定与记录写入
+5. 特殊提醒副作用
+6. sender 选择与路由
+7. `DispatchExecutor` 下发
+8. `DispatchResultWriter` 写回结果与统计
 
-## 3. 图形与无障碍优化 (Graphics & Accessibility)
+约束：
+- 主流程判断只基于 `RelayEvent`
+- `MsgInfo` 仅作为 sender 下发载荷
+- 新系统事件也应优先进入 `RelayEvent -> EventPipeline`
 
-### 3.1 资源管理
-- **异步图标加载**：封装 `AppIconImage` 模块，通过 `LaunchedEffect` 在 IO 线程加载应用图标，并提供占位符与淡入动效，防止 UI 线程阻塞。
-- **规范剪裁**：使用 `Modifier.clip` 统一应用标准的 M3 圆角形状。
+运行时组件落点补充：
+- 过滤与路由：`storage/domain/filter`、`storage/domain/routing`
+- Root DB 补偿：`storage/domain/recovery`
+- 设备名解析：`storage/domain/system/DeviceIdentityUtils`
+- 来源元数据解析：`storage/platform/metadata/SourceMetadataResolver`
 
-### 3.2 无障碍合规
-- **语义增强**：补全所有图标及关键组件的 `contentDescription`，为 `Checkbox` 添加动态状态描述。
-- **对比度优化**：基于 M3 调色板重新校准颜色使用。
+## 配置访问规则
 
----
+### 应用内 UI / WebUI
+- 优先使用 repository
+- 不直接拼 pref key
+- 不直接依赖 Provider URI
 
-## 4. 动画体验优化 (Animation)
+### Xposed / 跨进程运行时
+- 继续使用 `PrefsReader`
+- 读取链路固定为：
+  - `remote_libxposed -> provider -> shared_prefs -> default`
+- `PrefsReader` 负责 source-chain 解析，不扩展为 UI 通用配置 facade
+- 运行时工具箱（如 `SmsBlacklistUtils`）仅限 runtime/Xposed 使用
+- 应用进程内 runtime 热路径优先复用 `RuntimeSettingsCache`，避免分散的 `runBlocking + PreferenceDataSource`
 
-### 4.1 容器与列表动效
-- **平滑状态切换**：使用 `AnimatedContent` 包装 Screen 级状态切换（加载中/空数据/内容区），消除界面跳变。
-- **列表自适应动效**：在 `LazyColumn` 中引入 `Modifier.animateItem()`，使列表项在增删改时具备自然的物理移动感。
+### 兼容期允许保留
+- `AppPreferencesDataStore`
+- `PrefsProvider`
+- `DBProvider`
 
-### 4.2 细节打磨
-- **组件显隐动画**：使用 `AnimatedVisibility` 配合 `expandVertically` 等过渡效果处理校验信息及进度条的显示。
-- **自定义 Reveal 动效**：在切换主题时，利用 `graphicsLayer` 实现基于点击坐标的圆形揭露动效。
+但它们不应再作为新页面或新业务逻辑的首选入口。
 
----
+## 配置访问矩阵
 
-## 5. 性能加固与稳定性 (Performance & Stability)
+本文档中的矩阵用于约束主要配置项的唯一写入口、UI 读取入口与 runtime 读取入口，避免再次出现多套事实来源。
 
-### 5.1 数据模型稳定性
-- **完全不可变性**：将核心实体类 (`SmsMsg`, `SmsCodeRule`, `AppInfo`) 的所有属性从 `var` 改为 `val`。
-- **编译期跳过 (Skipping)**：添加 `@Immutable` 注解，允许 Compose 编译器在重组过程中安全地跳过未变化的数据项，极大降低重组频率。
+### 访问原则
 
-### 5.2 列表性能极致优化
-- **集合稳定性包装**：引入 `ImmutableListWrapper<T>` 自定义包装类，解决标准 `List` 接口在 Compose 编译器中被视为“不稳定”的问题，确保列表滚动时零冗余重组。
+- UI / WebUI 优先走 repository
+- 运行时 / Xposed / 跨进程读取优先走 `PrefsReader`
+- `AppPreferencesDataStore` 仅作为 repository 与应用启动初始化层的底层实现
+- `PrefsProvider` 仅作为跨进程读取桥
 
-### 5.3 渲染阶段延迟 (Phase Deferral)
-- **绘制逻辑下放**：审计复杂自定义动效，确保高频变化的数值读取（如 `revealAnim.value`）仅在绘制阶段（lambda 内部）进行，避开开销巨大的重组阶段。
+### 主要配置域
 
----
+| 配置域 | 唯一写入口 | UI 读取入口 | runtime 读取入口 | Provider fallback |
+| --- | --- | --- | --- | --- |
+| 模块总开关、显示模式 | `SettingsRepository.get/updateGeneralSettings()` | Native 设置页 | `PrefsReader.isEnabled()` | 允许 |
+| 验证码功能 | `SettingsRepository.get/updateVerificationSettings()` | Native / WebUI 设置页 | `PrefsReader.verificationFeaturesEnabled()` 及相关验证码 getter | 允许 |
+| 转发功能 | `SettingsRepository.get/updateRelaySettings()` | Native / WebUI 设置页 | `PrefsReader.relayFeaturesEnabled()`、消息类型 getter | 允许 |
+| 特殊提醒 | `SettingsRepository.get/updateSpecialAlertSettings()` | Native 高级页 | `PrefsReader.lowBatteryReminderEnabled()` 等 | 允许 |
+| 记录设置 | `SettingsRepository.get/updateRecordSettings()` | 记录页设置面板 | `PrefsReader.recordCodeSmsEnabled()` 等 | 允许 |
+| 高级诊断 | `SettingsRepository.get/updateDiagnosticsSettings()` | Native 高级页 | `PrefsReader.analyticsEnabled()` 等 | 允许 |
+| WebUI 高级设置 | `SettingsRepository.get/updateAdvanced()` 与 WebUI settings route | Native / WebUI | `PrefsReader` 非主入口 | 可选 |
+| IPC token | `SecurityInitializer` | 不直接暴露 | `PrefsReader.getIpcToken()` | 必需 |
 
-## 6. Kotlin for Compose 最佳实践 (Kotlin Best Practices)
+### 仍处于兼容期的直接访问
 
-### 6.1 状态声明标准化
-- **属性代理 (Property Delegation)**：全面普及 `by remember { mutableStateOf(...) }` 语法，淘汰繁杂的 `.value` 手写访问，使代码逻辑更简洁。
-- **基本类型优化**：在计数、索引等场景引入 `mutableIntStateOf` 等专用状态函数，避免 JVM 自动装箱带来的额外内存开销。
+以下位置仍可直接访问底层配置，但不应继续扩散：
 
-### 6.2 强规范组件定义
-- **Modifier 链标准**：确保所有内部 Composable 组件遵循 `modifier: Modifier = Modifier` 惯例，并作为首个可选参数，赋予组件高度的外部扩展性。
-- **Trailing Lambdas**：严格遵守 Kotlin lambda 结尾写法，提升 DSL 风格代码的可读性。
+- `SmsCodeApplication`
+  - Koin 启动、initializer 调度、WebUI manager 生命周期
+- `StorageRuntimeGraph`
+  - 应用进程内运行时单例装配中心
+- `PrefsReader`
+  - Xposed/runtime 跨进程读取
+- `RuntimeSettingsCache`
+  - 应用进程 runtime 热路径只读缓存
+  - 仅缓存 `PreferenceDataSource` / `SettingsRepository` 的运行时快照，不提供新的业务语义入口
+- `SmsBlacklistUtils`
+  - runtime-only 工具箱
+  - 仅限 runtime/Xposed 使用，不作为 UI / WebUI / repository API
+- `PrefsSourceChain`
+  - 仅负责运行时 source-chain 解析逻辑
+- `PrefsProvider`
+  - 仅供 `PrefsReader` provider fallback 使用
 
----
+### 运行时主链与配置落点
 
-> [!TIP]
-> **后续开发建议**：
-> 1. 新增数据实体时，请务必保持属性不可变（val）并添加 `@Immutable` 标签。
-> 2. 展示列表数据前，应使用 `ImmutableListWrapper` 进行包装。
-> 3. 避免在 Composable 内部进行复杂的、未记住的逻辑计算。
+- 主管线：`storage/domain/pipeline`（`EventPipeline`）
+- 过滤 / 路由 / 恢复：`storage/domain/filter`、`storage/domain/routing`、`storage/domain/recovery`
+- 设备与环境：`storage/domain/system`、`storage/platform/metadata`
+- sender 领域：`storage/domain/sender`
+- DB DAO / converter：`storage/data/db/dao`、`storage/data/db/ext`
+- `forwarder/*` 仅保留 sender adapter 与 sender utils
+
+### 配置治理后续约束
+
+1. Native 剩余直接依赖 `AppPreferencesDataStore` 的页面继续迁到 repository
+2. WebUI 设置接口统一通过 repository 返回配置快照
+3. 内部 `MessageTypeGateSnapshot` 仅供 runtime / diagnostics 使用，不再作为用户设置模型
+4. 新配置项默认先在本文件登记，再落地实现
+
+## Xposed / Runtime 接入
+
+### 入口模型
+
+- 主入口：`io.github.magisk317.relay.xp.RelayXposedModule`
+- `META-INF/xposed/java_init.list` 指向主入口，由 libxposed 框架实例化
+- 业务 hook 调度统一通过 `HookEntry`
+
+### Hook 兼容层
+
+- 统一兼容层包：`io.github.magisk317.relay.xp.compat`
+- 主要组件：
+  - `XposedBridge`
+  - `XposedHelpers`
+  - `XC_MethodHook` / `XC_MethodReplacement`
+  - `XC_LoadPackage.LoadPackageParam`
+
+### 配置读取链路
+
+`PrefsReader` 是 Xposed/runtime 场景的唯一首选入口，读取优先级固定为：
+
+1. `remote_libxposed`
+2. `PrefsProvider`
+3. `shared_prefs`
+4. `default`
+
+说明：
+- UI 不应依赖这条链路作为主配置 API
+- 应用内设置页与 WebUI 优先走 repository
+- `PrefsProvider` 仅作为跨进程 fallback，不承载业务语义
+- `PrefsReader` 的职责是 runtime source-chain resolver，不是全项目通用配置 API
+
+### 运行时事件入口
+
+- 短信、应用通知、来电最终都应收敛为 `RelayEvent`
+- 跨进程转发入口：`io.github.magisk317.relay.platform.ipc.ForwardReceiver`
+- 主管线：`EventPipeline`
+- 运行时依赖来源：`StorageRuntimeGraph`
+- 过滤 / 路由 / 恢复：`storage/domain/filter`、`storage/domain/routing`、`storage/domain/recovery`
+- 设备与环境：`storage/domain/system`、`storage/platform/metadata`
+- sender 领域：`storage/domain/sender`
+- DB DAO / converter：`storage/data/db/dao`、`storage/data/db/ext`
+
+约束：
+- Xposed/runtime 负责采集与标准化
+- 不在 hook 层直接实现 sender 选择、路由、结果落库
+- 不在 `storage` 的运行时入口直接依赖 Koin API
+- `forwarder/*` 仅保留 sender adapter 与 sender utils
+- 应用进程内 runtime 热路径可通过 `RuntimeSettingsCache` 做短 TTL 只读缓存，但底层事实来源仍是 `PreferenceDataSource` / repository
+
+### 发布策略
+
+- 仅维护 libxposed 新 API 单轨发布（Play / GitHub）
+
+## 设置结构
+
+### 设置
+- 通用
+- 验证码功能
+- 转发功能入口
+
+### 高级
+- 转发配置
+- 特殊提醒
+- 拦截与过滤
+- WebUI
+- 实验性与诊断
+
+说明：
+- “消息类型进入主处理管线”只保留为内部运行时概念
+- 不再作为面向用户的设置术语
+- WebUI 设置页也只暴露用户能力开关，不直接暴露内部 message-type gate
+
+## 后续开发约束
+
+1. 新运行时规则优先落在 `storage/domain`
+2. 新跨进程入口优先落在 `storage/platform`
+3. 新设置页优先走 `SettingsRepository`
+4. 不再向 `legacy/SendUtils` 增加编排逻辑
+5. 非 sender adapter 逻辑不再新增到 `forwarder/*`
+6. `storage` 不直接依赖 Koin；若 UI 需要 DI，优先复用 `StorageRuntimeGraph` 已构造的实例

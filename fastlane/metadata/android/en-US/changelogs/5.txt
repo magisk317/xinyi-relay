@@ -1,5 +1,5 @@
 - Fixed system_server dispatch and auto-input chain for more reliable OTP autofill.
 - Relaxed system hook matching to handle `android/system` package and `system` process variants.
 - Added ntfy sender channel (config UI, sending, validation, and tests).
-- Unified runtime log tag to `x-relay` for easier diagnostics.
+- Unified runtime log tag to `relay` for easier diagnostics.
 - GitHub: https://github.com/magisk317/xinyi-relay/releases

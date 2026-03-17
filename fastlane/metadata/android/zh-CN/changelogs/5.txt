@@ -1,5 +1,5 @@
 - 修复 system_server 分发与自动输入链路，验证码自动输入更稳定。
 - 放宽系统 Hook 匹配条件，兼容 `android/system` 包名与 `system` 进程差异。
 - 新增 ntfy 转发通道（支持配置、发送、校验与测试）。
-- 日志标签统一为 `x-relay`，便于问题排查。
+- 日志标签统一为 `relay`，便于问题排查。
 - 详情：https://github.com/magisk317/xinyi-relay/releases
