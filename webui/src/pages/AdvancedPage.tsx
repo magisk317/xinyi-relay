@@ -1,7 +1,9 @@
-import * as Tabs from '@radix-ui/react-tabs'
 import { useEffect, useState } from 'react'
+import { Button, TabItem, Tabs, Textarea, ToggleSwitch } from 'flowbite-react'
 import { apiClient } from '../api/client'
 import type { AdvancedState, InterceptState } from '../types'
+import { trackEvent } from '../analytics'
+import { ErrorBanner, LoadingCard, PageShell, SurfaceCard } from '../template'
 
 export function AdvancedPage() {
   const [advanced, setAdvanced] = useState<AdvancedState | null>(null)
@@ -43,94 +45,112 @@ export function AdvancedPage() {
     }
   }
 
+  const actions = (
+    <Button
+      color="alternative"
+      size="sm"
+      onClick={() => {
+        trackEvent('refresh', { page: 'advanced' })
+        void load()
+      }}
+    >
+      刷新高级配置
+    </Button>
+  )
+
   if (!advanced || !intercept) {
-    return <p className="text-sm text-slate-500">加载中...</p>
+    return (
+      <PageShell
+        title="高级"
+        description="集中查看短信黑名单、WebUI 局域网访问和拦截规则等高级能力。"
+        badge="Advanced"
+        actions={actions}
+      >
+        <LoadingCard title="正在加载高级配置" message="正在同步高级和拦截规则配置。" />
+      </PageShell>
+    )
   }
 
   return (
-    <div>
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-lg font-semibold">高级</h2>
-        <button className="rounded border px-3 py-1.5 text-sm" onClick={() => void load()}>
-          刷新
-        </button>
-      </div>
-      {error && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+    <PageShell
+      title="高级"
+      description="适合集中处理局域网访问、短信黑名单和高级拦截规则。"
+      badge="Advanced"
+      actions={actions}
+    >
+      <ErrorBanner message={error} />
 
-      <Tabs.Root defaultValue="advanced">
-        <Tabs.List className="mb-3 flex gap-2">
-          <Tabs.Trigger
-            className="rounded border px-3 py-1.5 text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white"
-            value="advanced"
-          >
-            高级配置
-          </Tabs.Trigger>
-          <Tabs.Trigger
-            className="rounded border px-3 py-1.5 text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white"
-            value="intercept"
-          >
-            拦截规则
-          </Tabs.Trigger>
-        </Tabs.List>
+      <SurfaceCard title="配置分组" subtitle="在高级设置和拦截规则之间切换。">
+        <Tabs variant="underline">
+          <TabItem title="高级配置">
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Toggle
+                label="启用短信黑名单"
+                checked={advanced.enableSmsBlacklist}
+                onChange={(value) => void patchAdvanced({ enableSmsBlacklist: value })}
+              />
+              <Toggle
+                label="允许 WebUI 局域网访问"
+                checked={advanced.webUiLanAccess}
+                onChange={(value) => void patchAdvanced({ webUiLanAccess: value })}
+              />
+              <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
+                通道总数：{advanced.senderTotal}
+              </div>
+              <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
+                启用通道：{advanced.senderEnabled}
+              </div>
+            </div>
+          </TabItem>
 
-        <Tabs.Content value="advanced" className="space-y-2">
-          <Toggle
-            label="启用短信黑名单"
-            checked={advanced.enableSmsBlacklist}
-            onChange={(value) => void patchAdvanced({ enableSmsBlacklist: value })}
-          />
-          <Toggle
-            label="允许 WebUI 局域网访问"
-            checked={advanced.webUiLanAccess}
-            onChange={(value) => void patchAdvanced({ webUiLanAccess: value })}
-          />
-          <p className="text-sm text-slate-500">通道总数：{advanced.senderTotal}</p>
-          <p className="text-sm text-slate-500">启用通道：{advanced.senderEnabled}</p>
-        </Tabs.Content>
-
-        <Tabs.Content value="intercept" className="space-y-2">
-          <TextAreaField
-            label="黑名单号码"
-            value={intercept.smsBlacklistNumbers}
-            onBlur={(value) => void patchIntercept({ smsBlacklistNumbers: value })}
-          />
-          <TextAreaField
-            label="黑名单前缀"
-            value={intercept.smsBlacklistPrefixes}
-            onBlur={(value) => void patchIntercept({ smsBlacklistPrefixes: value })}
-          />
-          <TextAreaField
-            label="黑名单正则"
-            value={intercept.smsBlacklistRegex}
-            onBlur={(value) => void patchIntercept({ smsBlacklistRegex: value })}
-          />
-          <TextAreaField
-            label="黑名单内容"
-            value={intercept.smsBlacklistContent}
-            onBlur={(value) => void patchIntercept({ smsBlacklistContent: value })}
-          />
-          <Toggle
-            label="匹配后删除短信"
-            checked={intercept.smsBlacklistActionDelete}
-            onChange={(value) => void patchIntercept({ smsBlacklistActionDelete: value })}
-          />
-          <Toggle
-            label="匹配后阻断处理"
-            checked={intercept.smsBlacklistActionBlock}
-            onChange={(value) => void patchIntercept({ smsBlacklistActionBlock: value })}
-          />
-        </Tabs.Content>
-      </Tabs.Root>
-    </div>
+          <TabItem title="拦截规则">
+            <div className="space-y-4">
+              <TextAreaField
+                label="黑名单号码"
+                value={intercept.smsBlacklistNumbers}
+                onBlur={(value) => void patchIntercept({ smsBlacklistNumbers: value })}
+              />
+              <TextAreaField
+                label="黑名单前缀"
+                value={intercept.smsBlacklistPrefixes}
+                onBlur={(value) => void patchIntercept({ smsBlacklistPrefixes: value })}
+              />
+              <TextAreaField
+                label="黑名单正则"
+                value={intercept.smsBlacklistRegex}
+                onBlur={(value) => void patchIntercept({ smsBlacklistRegex: value })}
+              />
+              <TextAreaField
+                label="黑名单内容"
+                value={intercept.smsBlacklistContent}
+                onBlur={(value) => void patchIntercept({ smsBlacklistContent: value })}
+              />
+              <div className="grid gap-4 lg:grid-cols-2">
+                <Toggle
+                  label="匹配后删除短信"
+                  checked={intercept.smsBlacklistActionDelete}
+                  onChange={(value) => void patchIntercept({ smsBlacklistActionDelete: value })}
+                />
+                <Toggle
+                  label="匹配后阻断处理"
+                  checked={intercept.smsBlacklistActionBlock}
+                  onChange={(value) => void patchIntercept({ smsBlacklistActionBlock: value })}
+                />
+              </div>
+            </div>
+          </TabItem>
+        </Tabs>
+      </SurfaceCard>
+    </PageShell>
   )
 }
 
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
   return (
-    <label className="flex items-center justify-between rounded border px-3 py-2 text-sm">
-      {label}
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-    </label>
+    <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3">
+      <div className="text-sm font-medium text-slate-900">{label}</div>
+      <ToggleSwitch checked={checked} onChange={onChange} />
+    </div>
   )
 }
 
@@ -141,10 +161,9 @@ function TextAreaField({ label, value, onBlur }: { label: string; value: string;
   }, [value])
 
   return (
-    <div>
-      <p className="mb-1 text-sm font-medium">{label}</p>
-      <textarea
-        className="w-full rounded border px-2 py-1"
+    <div className="space-y-2">
+      <p className="text-sm font-medium text-slate-900">{label}</p>
+      <Textarea
         rows={2}
         value={text}
         onChange={(e) => setText(e.target.value)}

@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Button, Checkbox, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TextInput } from 'flowbite-react'
 import { apiClient } from '../api/client'
 import type { AppItem } from '../types'
+import { trackEvent } from '../analytics'
+import { ErrorBanner, LoadingCard, PageShell, SurfaceCard } from '../template'
 
 export function AppsPage() {
   const [apps, setApps] = useState<AppItem[]>([])
@@ -41,60 +44,86 @@ export function AppsPage() {
     }
   }
 
+  const actions = (
+    <div className="flex flex-wrap items-center gap-3">
+      <TextInput
+        sizing="sm"
+        placeholder="搜索包名或应用名"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
+      <Button
+        color="alternative"
+        size="sm"
+        onClick={() => {
+          trackEvent('refresh', { page: 'apps' })
+          void load()
+        }}
+      >
+        刷新应用
+      </Button>
+    </div>
+  )
+
+  if (!apps.length && !error) {
+    return (
+      <PageShell
+        title="应用控制"
+        description="在这里统一管理自动输入拦截、通知转发和应用级模板。"
+        badge="Applications"
+        actions={actions}
+      >
+        <LoadingCard title="正在加载应用列表" message="正在合并已安装应用与现有配置。" />
+      </PageShell>
+    )
+  }
+
   return (
-    <div>
-      <div className="mb-3 flex items-center justify-between gap-2 max-md:flex-col max-md:items-stretch">
-        <h2 className="text-lg font-semibold">应用控制</h2>
-        <div className="flex gap-2">
-          <input
-            className="rounded border px-3 py-1.5 text-sm"
-            placeholder="搜索包名或应用名"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <button className="rounded border px-3 py-1.5 text-sm" onClick={() => void load()}>
-            刷新
-          </button>
-        </div>
-      </div>
-
-      {error && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="border-b text-left text-slate-500">
-              <th className="py-2 pr-3">应用</th>
-              <th className="py-2 pr-3">包名</th>
-              <th className="py-2 pr-3">自动输入拦截</th>
-              <th className="py-2 pr-3">通知转发</th>
-              <th className="py-2 pr-3">模板</th>
-            </tr>
-          </thead>
-          <tbody>
+    <PageShell
+      title="应用控制"
+      description="管理应用级拦截和通知转发策略，模板会在失焦后自动保存。"
+      badge="Applications"
+      actions={actions}
+    >
+      <ErrorBanner message={error} />
+      <SurfaceCard
+        title="应用列表"
+        subtitle={`当前显示 ${filtered.length} / ${apps.length} 个应用，模板字段失焦后自动提交。`}
+      >
+        <div className="overflow-x-auto">
+          <Table hoverable>
+            <TableHead>
+              <TableRow>
+                <TableHeadCell>应用</TableHeadCell>
+                <TableHeadCell>包名</TableHeadCell>
+                <TableHeadCell>自动输入拦截</TableHeadCell>
+                <TableHeadCell>通知转发</TableHeadCell>
+                <TableHeadCell>模板</TableHeadCell>
+              </TableRow>
+            </TableHead>
+            <TableBody className="divide-y">
             {filtered.map((item) => (
-              <tr key={item.packageName} className="border-b align-top">
-                <td className="py-2 pr-3 font-medium">{item.label}</td>
-                <td className="py-2 pr-3 text-slate-500">{item.packageName}</td>
-                <td className="py-2 pr-3">
-                  <input
-                    type="checkbox"
+              <TableRow key={item.packageName} className="bg-white align-top">
+                <TableCell className="font-medium text-slate-900">{item.label}</TableCell>
+                <TableCell className="text-slate-500">{item.packageName}</TableCell>
+                <TableCell>
+                  <Checkbox
                     checked={item.blocked}
                     disabled={saving === item.packageName}
                     onChange={(e) => void updateItem(item, { blocked: e.target.checked })}
                   />
-                </td>
-                <td className="py-2 pr-3">
-                  <input
-                    type="checkbox"
+                </TableCell>
+                <TableCell>
+                  <Checkbox
                     checked={item.forwarding}
                     disabled={saving === item.packageName}
                     onChange={(e) => void updateItem(item, { forwarding: e.target.checked })}
                   />
-                </td>
-                <td className="py-2 pr-3">
-                  <input
-                    className="w-80 rounded border px-2 py-1"
+                </TableCell>
+                <TableCell>
+                  <TextInput
+                    sizing="sm"
+                    className="min-w-72"
                     value={item.notifyTemplate}
                     disabled={saving === item.packageName}
                     onChange={(e) => {
@@ -107,12 +136,13 @@ export function AppsPage() {
                     }}
                     onBlur={() => void updateItem(item, { notifyTemplate: item.notifyTemplate })}
                   />
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+            </TableBody>
+          </Table>
+        </div>
+      </SurfaceCard>
+    </PageShell>
   )
 }

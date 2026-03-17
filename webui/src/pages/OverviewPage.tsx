@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
+import { Button } from 'flowbite-react'
 import { apiClient } from '../api/client'
 import type { OverviewState } from '../types'
+import { trackEvent } from '../analytics'
+import { ErrorBanner, LoadingCard, MetricCard, PageShell } from '../template'
 
 export function OverviewPage() {
   const [data, setData] = useState<OverviewState | null>(null)
@@ -21,36 +24,52 @@ export function OverviewPage() {
     })
   }, [])
 
+  const actions = (
+    <Button
+      color="alternative"
+      size="sm"
+      onClick={() => {
+        trackEvent('refresh', { page: 'overview' })
+        void load()
+      }}
+    >
+      刷新概览
+    </Button>
+  )
+
+  if (!data && !error) {
+    return (
+      <PageShell
+        title="概览"
+        description="统一查看当前应用数量、通道启用状态和近期记录规模。"
+        badge="Dashboard"
+        actions={actions}
+      >
+        <LoadingCard title="正在加载概览" message="正在汇总应用、记录和通道状态。" />
+      </PageShell>
+    )
+  }
+
   return (
-    <div>
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold">概览</h2>
-        <button className="rounded border px-3 py-1.5 text-sm" onClick={() => void load()}>
-          刷新
-        </button>
-      </div>
-      {error && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+    <PageShell
+      title="概览"
+      description="这是 WebUI 的总览页，适合快速确认当前规模、版本和通道覆盖面。"
+      badge="Dashboard"
+      actions={actions}
+    >
+      <ErrorBanner message={error} />
       {data && (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard title="应用数" value={data.appCount} />
-          <StatCard title="自动输入拦截" value={data.blockedCount} />
-          <StatCard title="通知转发应用" value={data.forwardingCount} />
-          <StatCard title="近期记录" value={data.recordCount} />
-          <StatCard title="通道总数" value={data.senderTotal} />
-          <StatCard title="启用通道" value={data.senderEnabled} />
-          <StatCard title="应用通知通道" value={data.senderAppNotifyEnabled} />
-          <StatCard title="当前版本" value={data.version.localVersionName} />
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <MetricCard title="应用数" value={data.appCount} helper="已纳入控制台的应用总数" />
+          <MetricCard title="自动输入拦截" value={data.blockedCount} tone="warning" helper="已开启验证码拦截的应用" />
+          <MetricCard title="通知转发应用" value={data.forwardingCount} tone="info" helper="已配置通知转发的应用" />
+          <MetricCard title="近期记录" value={data.recordCount} helper="最近一次汇总看到的记录条数" />
+          <MetricCard title="通道总数" value={data.senderTotal} tone="info" helper="当前配置中的全部发送通道" />
+          <MetricCard title="启用通道" value={data.senderEnabled} tone="success" helper="已处于启用状态的发送通道" />
+          <MetricCard title="应用通知通道" value={data.senderAppNotifyEnabled} helper="可接收应用通知的通道" />
+          <MetricCard title="当前版本" value={data.version.localVersionName} tone="success" helper={`版本号 ${data.version.localVersionCode}`} />
         </div>
       )}
-    </div>
-  )
-}
-
-function StatCard({ title, value }: { title: string; value: string | number }) {
-  return (
-    <div className="rounded-lg border bg-slate-50 p-3">
-      <p className="text-xs text-slate-500">{title}</p>
-      <p className="mt-1 text-xl font-semibold">{value}</p>
-    </div>
+    </PageShell>
   )
 }

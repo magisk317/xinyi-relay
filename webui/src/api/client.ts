@@ -1,5 +1,6 @@
 import type {
   AdvancedState,
+  AnalyticsResponse,
   AppItem,
   InterceptState,
   LoginResponse,
@@ -12,16 +13,51 @@ import type {
 } from '../types'
 
 let csrfToken = ''
+const DEFAULT_TIMEOUT_MS = 8_000
+
+type RequestOptions = {
+  requiresCsrf?: boolean
+  timeoutMs?: number
+}
 
 export function setCsrfToken(nextToken: string): void {
   csrfToken = nextToken
 }
 
+function extractErrorMessage(text: string, status: number): string {
+  const trimmed = text.trim()
+  if (!trimmed) {
+    return `请求失败 (${status})`
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as { error?: string }
+    if (parsed.error?.trim()) {
+      return parsed.error.trim()
+    }
+  } catch {
+    // Fall back to raw text below when the payload is not JSON.
+  }
+
+  return trimmed
+}
+
+function normalizeRequestError(error: unknown): Error {
+  if (error instanceof DOMException && error.name === 'AbortError') {
+    return new Error('连接超时，请确认 WebUI 所在应用仍保持前台后再试')
+  }
+  if (error instanceof TypeError) {
+    return new Error('无法连接到 WebUI，请确认主应用或 WebUI 服务仍在运行后再重试')
+  }
+  return error instanceof Error ? error : new Error('请求失败')
+}
+
 async function request<T>(
   path: string,
   init: RequestInit = {},
-  requiresCsrf = false
+  options: RequestOptions = {}
 ): Promise<T> {
+  const { requiresCsrf = false, timeoutMs = DEFAULT_TIMEOUT_MS } = options
   const headers = new Headers(init.headers ?? {})
   const method = (init.method ?? 'GET').toUpperCase()
   if (init.body && !headers.has('Content-Type')) {
@@ -31,17 +67,28 @@ async function request<T>(
     headers.set('X-CSRF-Token', csrfToken)
   }
 
-  const resp = await fetch(path, {
-    ...init,
-    headers,
-    credentials: 'include'
-  })
+  const controller = new AbortController()
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs)
 
-  if (!resp.ok) {
-    const text = await resp.text()
-    throw new Error(text || `HTTP ${resp.status}`)
+  try {
+    const resp = await fetch(path, {
+      ...init,
+      headers,
+      credentials: 'include',
+      signal: controller.signal
+    })
+
+    if (!resp.ok) {
+      const text = await resp.text()
+      throw new Error(extractErrorMessage(text, resp.status))
+    }
+
+    return (await resp.json()) as T
+  } catch (error) {
+    throw normalizeRequestError(error)
+  } finally {
+    window.clearTimeout(timeoutId)
   }
-  return (await resp.json()) as T
 }
 
 export const apiClient = {
@@ -49,14 +96,14 @@ export const apiClient = {
     request<LoginResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ username, password })
-    }),
+    }, { timeoutMs: 6_000 }),
 
-  me: () => request<MeResponse>('/auth/me'),
+  me: () => request<MeResponse>('/auth/me', {}, { timeoutMs: 2_500 }),
 
   logout: () =>
     request('/auth/logout', {
       method: 'POST'
-    }, true),
+    }, { requiresCsrf: true }),
 
   getOverview: () => request<OverviewState>('/api/v1/overview'),
   getApps: () => request<AppItem[]>('/api/v1/apps'),
@@ -64,46 +111,48 @@ export const apiClient = {
     request<AppItem>(`/api/v1/apps/${encodeURIComponent(packageName)}`, {
       method: 'PATCH',
       body: JSON.stringify(payload)
-    }, true),
+    }, { requiresCsrf: true }),
 
   getRecords: (limit = 80) => request<RecordItem[]>(`/api/v1/records?limit=${limit}`),
   deleteRecord: (recordId: number) =>
-    request(`/api/v1/records/${recordId}`, { method: 'DELETE' }, true),
+    request(`/api/v1/records/${recordId}`, { method: 'DELETE' }, { requiresCsrf: true }),
 
   getSenders: () => request<SenderItem[]>('/api/v1/senders'),
   createSender: (payload: Partial<SenderItem>) =>
     request<SenderItem>('/api/v1/senders', {
       method: 'POST',
       body: JSON.stringify(payload)
-    }, true),
+    }, { requiresCsrf: true }),
   patchSender: (senderId: number, payload: Partial<SenderItem>) =>
     request<SenderItem>(`/api/v1/senders/${senderId}`, {
       method: 'PATCH',
       body: JSON.stringify(payload)
-    }, true),
+    }, { requiresCsrf: true }),
   deleteSender: (senderId: number) =>
-    request(`/api/v1/senders/${senderId}`, { method: 'DELETE' }, true),
+    request(`/api/v1/senders/${senderId}`, { method: 'DELETE' }, { requiresCsrf: true }),
 
   getSettings: () => request<SettingsState>('/api/v1/settings'),
   patchSettings: (payload: Partial<SettingsState>) =>
     request<SettingsState>('/api/v1/settings', {
       method: 'PATCH',
       body: JSON.stringify(payload)
-    }, true),
+    }, { requiresCsrf: true }),
 
   getAdvanced: () => request<AdvancedState>('/api/v1/advanced'),
   patchAdvanced: (payload: Partial<AdvancedState>) =>
     request<AdvancedState>('/api/v1/advanced', {
       method: 'PATCH',
       body: JSON.stringify(payload)
-    }, true),
+    }, { requiresCsrf: true }),
+
+  getAnalytics: () => request<AnalyticsResponse>('/api/v1/analytics'),
 
   getIntercept: () => request<InterceptState>('/api/v1/intercept'),
   patchIntercept: (payload: Partial<InterceptState>) =>
     request<InterceptState>('/api/v1/intercept', {
       method: 'PATCH',
       body: JSON.stringify(payload)
-    }, true),
+    }, { requiresCsrf: true }),
 
   getVersion: () => request<VersionState>('/api/v1/version')
 }

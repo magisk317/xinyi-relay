@@ -73,15 +73,17 @@ export interface SenderItem {
 }
 
 export interface SettingsState {
-  enable: boolean
+  moduleEnabled: boolean
+  verificationFeaturesEnabled: boolean
+  relayFeaturesEnabled: boolean
   copyToClipboard: boolean
   showToast: boolean
   showCodeNotification: boolean
   enableAutoInputCode: boolean
   enableAutoEnterCode: boolean
   verboseLogMode: boolean
-  blockSms: boolean
-  forceStopRecovery: boolean
+  smsBlacklistEnabled: boolean
+  forceStopRecoveryEnabled: boolean
 }
 
 export interface AdvancedState {
@@ -99,4 +101,33 @@ export interface InterceptState {
   smsBlacklistContent: string
   smsBlacklistActionDelete: boolean
   smsBlacklistActionBlock: boolean
+}
+
+export interface AnalyticsSummary {
+  smsCodeDetected: number
+  autoInputAttempt: number
+  autoInputSuccess: number
+  autoInputFail: number
+  messageTotal: number
+}
+
+export interface SenderTypeStat {
+  senderType: number
+  senderTypeLabel: string
+  configured: number
+  enabled: number
+  sent: number
+  success: number
+  failed: number
+}
+
+export interface AnalyticsWindow {
+  summary: AnalyticsSummary
+  senderStats: SenderTypeStat[]
+}
+
+export interface AnalyticsResponse {
+  allTime: AnalyticsWindow
+  last7d: AnalyticsWindow
+  last30d: AnalyticsWindow
 }

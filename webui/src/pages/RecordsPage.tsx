@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
+import { Badge, Button } from 'flowbite-react'
 import { apiClient } from '../api/client'
 import type { RecordItem } from '../types'
+import { trackEvent } from '../analytics'
+import { EmptyCard, ErrorBanner, LoadingCard, PageShell, SurfaceCard } from '../template'
 
 export function RecordsPage() {
   const [records, setRecords] = useState<RecordItem[]>([])
@@ -31,37 +34,65 @@ export function RecordsPage() {
     }
   }
 
-  return (
-    <div>
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-lg font-semibold">记录</h2>
-        <button className="rounded border px-3 py-1.5 text-sm" onClick={() => void load()}>
-          刷新
-        </button>
-      </div>
-      {error && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+  const actions = (
+    <Button
+      color="alternative"
+      size="sm"
+      onClick={() => {
+        trackEvent('refresh', { page: 'records' })
+        void load()
+      }}
+    >
+      刷新记录
+    </Button>
+  )
 
-      <div className="space-y-3">
+  if (!records.length && !error) {
+    return (
+      <PageShell
+        title="记录"
+        description="查看最近转发和识别记录，支持直接删除历史项。"
+        badge="Records"
+        actions={actions}
+      >
+        <LoadingCard title="正在加载记录" message="正在读取最近 80 条记录。" />
+      </PageShell>
+    )
+  }
+
+  return (
+    <PageShell
+      title="记录"
+      description="查看最近转发、验证码提取与来源信息，适合排查运行状态。"
+      badge="Records"
+      actions={actions}
+    >
+      <ErrorBanner message={error} />
+      {!records.length ? (
+        <EmptyCard title="暂无记录" message="当前还没有可展示的转发或识别记录。" />
+      ) : (
+        <div className="space-y-4">
         {records.map((item) => (
-          <div key={item.id} className="rounded border bg-slate-50 p-3">
+          <SurfaceCard key={item.id} className="bg-white/96">
             <div className="flex items-center justify-between gap-2 max-md:flex-col max-md:items-start">
               <div>
-                <div className="font-medium">{item.sender || item.packageName || '未知来源'}</div>
+                <div className="font-medium text-slate-900">{item.sender || item.packageName || '未知来源'}</div>
                 <div className="text-xs text-slate-500">{new Date(item.date).toLocaleString()}</div>
               </div>
-              <button className="rounded border border-red-200 px-2 py-1 text-xs text-red-600" onClick={() => void deleteRecord(item.id)}>
+              <Button color="failure" outline size="xs" onClick={() => void deleteRecord(item.id)}>
                 删除
-              </button>
+              </Button>
             </div>
-            <p className="mt-2 whitespace-pre-wrap text-sm">{item.body}</p>
-            <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
-              <span className="rounded bg-white px-2 py-1">验证码: {item.smsCode || '-'}</span>
-              <span className="rounded bg-white px-2 py-1">包名: {item.packageName || '-'}</span>
-              <span className="rounded bg-white px-2 py-1">状态: {item.forwardStatus}</span>
+            <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">{item.body}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Badge color="info">验证码: {item.smsCode || '-'}</Badge>
+              <Badge color="gray">包名: {item.packageName || '-'}</Badge>
+              <Badge color="success">状态: {item.forwardStatus}</Badge>
             </div>
-          </div>
+          </SurfaceCard>
         ))}
-      </div>
-    </div>
+        </div>
+      )}
+    </PageShell>
   )
 }

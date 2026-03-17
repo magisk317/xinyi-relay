@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
+import { Badge, Button, TextInput, Textarea, ToggleSwitch } from 'flowbite-react'
 import { apiClient } from '../api/client'
 import type { SenderItem } from '../types'
+import { trackEvent } from '../analytics'
+import { EmptyCard, ErrorBanner, LoadingCard, PageShell, SurfaceCard } from '../template'
 
 const emptySender: Partial<SenderItem> = {
   name: '',
@@ -66,76 +69,95 @@ export function SendersPage() {
     }
   }
 
-  return (
-    <div>
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-lg font-semibold">通道管理</h2>
-        <button className="rounded border px-3 py-1.5 text-sm" onClick={() => void load()}>
-          刷新
-        </button>
-      </div>
-      {error && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+  const actions = (
+    <Button
+      color="alternative"
+      size="sm"
+      onClick={() => {
+        trackEvent('refresh', { page: 'senders' })
+        void load()
+      }}
+    >
+      刷新通道
+    </Button>
+  )
 
-      <div className="mb-4 rounded border bg-slate-50 p-3">
-        <h3 className="mb-2 text-sm font-semibold">新建通道</h3>
-        <div className="grid gap-2 md:grid-cols-2">
-          <input
-            className="rounded border px-2 py-1"
+  if (!items.length && !error) {
+    return (
+      <PageShell
+        title="通道管理"
+        description="维护 Webhook 与其他发送通道的配置，并控制它们接收的消息类型。"
+        badge="Senders"
+        actions={actions}
+      >
+        <LoadingCard title="正在加载通道" message="正在读取当前已配置的发送通道。" />
+      </PageShell>
+    )
+  }
+
+  return (
+    <PageShell
+      title="通道管理"
+      description="统一管理发送通道的名称、启用状态和接收范围，JSON 配置在失焦后自动保存。"
+      badge="Senders"
+      actions={actions}
+    >
+      <ErrorBanner message={error} />
+
+      <SurfaceCard title="新建通道" subtitle="先填基础名称和类型，再补充 JSON 设置。">
+        <div className="grid gap-3 md:grid-cols-2">
+          <TextInput
             placeholder="名称"
             value={draft.name ?? ''}
             onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))}
           />
-          <input
-            className="rounded border px-2 py-1"
-            placeholder="类型数字（默认 4=Webhook）"
-            value={draft.type ?? 4}
+          <TextInput
+            placeholder="类型数字（默认 4 = Webhook）"
+            value={String(draft.type ?? 4)}
             onChange={(e) => setDraft((prev) => ({ ...prev, type: Number(e.target.value) || 4 }))}
           />
-          <textarea
-            className="rounded border px-2 py-1 md:col-span-2"
-            placeholder="jsonSetting"
-            rows={3}
-            value={draft.jsonSetting ?? ''}
-            onChange={(e) => setDraft((prev) => ({ ...prev, jsonSetting: e.target.value }))}
-          />
+          <div className="md:col-span-2">
+            <Textarea
+              placeholder="jsonSetting"
+              rows={4}
+              value={draft.jsonSetting ?? ''}
+              onChange={(e) => setDraft((prev) => ({ ...prev, jsonSetting: e.target.value }))}
+            />
+          </div>
         </div>
-        <button className="mt-2 rounded bg-slate-900 px-3 py-1.5 text-sm text-white" onClick={() => void create()}>
-          创建
-        </button>
-      </div>
+        <div className="mt-4">
+          <Button color="info" onClick={() => void create()}>
+            创建通道
+          </Button>
+        </div>
+      </SurfaceCard>
 
-      <div className="space-y-3">
+      {!items.length ? (
+        <EmptyCard title="暂无通道" message="创建第一个通道后，这里会展示它的接收范围和配置。" />
+      ) : (
+        <div className="space-y-4">
         {items.map((item) => (
-          <div key={item.id} className="rounded border p-3">
-            <div className="mb-2 flex items-center justify-between">
+          <SurfaceCard key={item.id} className="bg-white/96">
+            <div className="mb-4 flex items-center justify-between gap-3">
               <div>
-                <div className="font-medium">{item.name}</div>
-                <div className="text-xs text-slate-500">{item.typeLabel} (#{item.type})</div>
+                <div className="font-medium text-slate-950">{item.name}</div>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  <Badge color="info">{item.typeLabel}</Badge>
+                  <Badge color="gray">#{item.type}</Badge>
+                </div>
               </div>
-              <button className="rounded border border-red-200 px-2 py-1 text-xs text-red-600" onClick={() => void remove(item.id)}>
+              <Button color="failure" outline size="xs" onClick={() => void remove(item.id)}>
                 删除
-              </button>
+              </Button>
             </div>
-            <div className="grid gap-2 md:grid-cols-2">
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={item.status} onChange={(e) => void patch(item, { status: e.target.checked })} />
-                启用
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={item.receiveCode} onChange={(e) => void patch(item, { receiveCode: e.target.checked })} />
-                接收验证码
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={item.receiveNonCode} onChange={(e) => void patch(item, { receiveNonCode: e.target.checked })} />
-                接收非验证码
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={item.receiveAppNotify} onChange={(e) => void patch(item, { receiveAppNotify: e.target.checked })} />
-                接收应用通知
-              </label>
+            <div className="grid gap-3 md:grid-cols-2">
+              <Toggle label="启用" checked={item.status} onChange={(value) => void patch(item, { status: value })} />
+              <Toggle label="接收验证码" checked={item.receiveCode} onChange={(value) => void patch(item, { receiveCode: value })} />
+              <Toggle label="接收非验证码" checked={item.receiveNonCode} onChange={(value) => void patch(item, { receiveNonCode: value })} />
+              <Toggle label="接收应用通知" checked={item.receiveAppNotify} onChange={(value) => void patch(item, { receiveAppNotify: value })} />
             </div>
-            <textarea
-              className="mt-2 w-full rounded border px-2 py-1"
+            <Textarea
+              className="mt-4"
               rows={3}
               value={item.jsonSetting}
               onChange={(e) => {
@@ -144,9 +166,19 @@ export function SendersPage() {
               }}
               onBlur={() => void patch(item, { jsonSetting: item.jsonSetting })}
             />
-          </div>
+          </SurfaceCard>
         ))}
-      </div>
+        </div>
+      )}
+    </PageShell>
+  )
+}
+
+function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
+  return (
+    <div className="flex items-center justify-between rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3">
+      <div className="text-sm font-medium text-slate-900">{label}</div>
+      <ToggleSwitch checked={checked} onChange={onChange} />
     </div>
   )
 }
