@@ -37,8 +37,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.magisk317.relay.forwarder.entity.Sender
-import io.github.magisk317.relay.ui.sender.getSenderTypeName
+import io.github.magisk317.relay.model.Sender
+import io.github.magisk317.relay.ui.sender.displayName
 import io.github.magisk317.relay.core.R
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -243,5 +243,5 @@ private fun RowEnd(
 }
 
 private fun senderDisplayName(sender: Sender): String {
-    return sender.name.ifBlank { getSenderTypeName(sender.type) }
+    return sender.displayName()
 }

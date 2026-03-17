@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -23,6 +24,7 @@ fun AppIconImage(
     modifier: Modifier = Modifier,
     size: Dp = 40.dp,
     contentDescription: String? = null,
+    fallbackIcon: ImageVector = Icons.Default.Android,
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
@@ -42,7 +44,7 @@ fun AppIconImage(
     Box(modifier = modifier.size(size)) {
         if (showFallback) {
             Icon(
-                imageVector = Icons.Default.Android,
+                imageVector = fallbackIcon,
                 contentDescription = contentDescription,
                 modifier = Modifier.size(size),
                 tint = MaterialTheme.colorScheme.outline,
@@ -57,7 +59,7 @@ fun AppIconImage(
                     .clip(MaterialTheme.shapes.small),
                 loading = {
                     Icon(
-                        imageVector = Icons.Default.Android,
+                        imageVector = fallbackIcon,
                         contentDescription = contentDescription,
                         modifier = Modifier.size(size),
                         tint = MaterialTheme.colorScheme.outline,
@@ -65,7 +67,7 @@ fun AppIconImage(
                 },
                 error = {
                     Icon(
-                        imageVector = Icons.Default.Android,
+                        imageVector = fallbackIcon,
                         contentDescription = contentDescription,
                         modifier = Modifier.size(size),
                         tint = MaterialTheme.colorScheme.outline,

@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.ui.home
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -26,11 +27,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.magisk317.relay.forwarder.entity.ForwardFilterRule
-import io.github.magisk317.relay.forwarder.filter.ForwardFilterConst
+import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.model.ForwardFilterRule
+import io.github.magisk317.relay.domain.filter.ForwardFilterConst
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterMsgTypeTabs
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterRuleEditorDialog
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterRuleList
@@ -51,6 +55,8 @@ fun GlobalForwardFilterScreen(
     onBack: () -> Unit,
     viewModel: AppConfigViewModel = koinViewModel(),
 ) {
+    val context = LocalContext.current
+    val savedToastText = context.getString(R.string.pref_sync_toast)
     var msgType by remember { mutableStateOf(ForwardFilterConst.MSG_TYPE_SMS) }
     val rulesFlow = remember(msgType) { viewModel.globalForwardRulesFlow(msgType) }
     val rules by rulesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -60,12 +66,12 @@ fun GlobalForwardFilterScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("关键词过滤（全局）") },
+                title = { Text(stringResource(id = R.string.forward_filter_global_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回",
+                            contentDescription = stringResource(id = R.string.action_back),
                         )
                     }
                 },
@@ -74,7 +80,7 @@ fun GlobalForwardFilterScreen(
                         editing = null
                         showEditor = true
                     }) {
-                        Text("新增")
+                        Text(stringResource(id = R.string.forward_filter_action_add))
                     }
                 },
             )
@@ -91,8 +97,11 @@ fun GlobalForwardFilterScreen(
             )
             ForwardFilterRuleList(
                 rules = rules,
-                emptyText = "暂无规则",
-                onToggleEnabled = { id, enabled -> viewModel.setForwardFilterRuleEnabled(id, enabled) },
+                emptyText = stringResource(id = R.string.forward_filter_empty),
+                onToggleEnabled = { id, enabled ->
+                    viewModel.setForwardFilterRuleEnabled(id, enabled)
+                    Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                },
                 onEdit = { rule ->
                     editing = rule.toEditingRule()
                     showEditor = true
@@ -104,7 +113,11 @@ fun GlobalForwardFilterScreen(
 
     if (showEditor) {
         ForwardFilterRuleEditorDialog(
-            title = if (editing == null) "新增规则" else "编辑规则",
+            title = if (editing == null) {
+                stringResource(id = R.string.forward_filter_add_rule)
+            } else {
+                stringResource(id = R.string.forward_filter_edit_rule)
+            },
             initialPolicy = editing?.policy ?: ForwardFilterConst.POLICY_ALLOW,
             initialMatchMode = editing?.matchMode ?: ForwardFilterConst.MATCH_CONTAINS,
             initialPattern = editing?.pattern.orEmpty(),
@@ -140,6 +153,8 @@ fun AppForwardFilterScreen(
     onBack: () -> Unit,
     viewModel: AppConfigViewModel = koinViewModel(),
 ) {
+    val context = LocalContext.current
+    val savedToastText = context.getString(R.string.pref_sync_toast)
     val apps by viewModel.appsFlow.collectAsStateWithLifecycle()
     val app = apps.firstOrNull { it.packageName == packageName } ?: viewModel.getAppByPackageName(packageName)
 
@@ -175,7 +190,7 @@ fun AppForwardFilterScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回",
+                            contentDescription = stringResource(id = R.string.action_back),
                         )
                     }
                 },
@@ -196,7 +211,7 @@ fun AppForwardFilterScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         SectionHeaderRow(
-                            title = "应用关键词规则",
+                            title = stringResource(id = R.string.forward_filter_app_rules_title),
                             onAddClick = {
                                 editingPackageRule = null
                                 showPackageEditor = true
@@ -205,8 +220,11 @@ fun AppForwardFilterScreen(
                         HorizontalDivider()
                         ForwardFilterRuleList(
                             rules = packageRules,
-                            emptyText = "暂无规则",
-                            onToggleEnabled = { id, enabled -> viewModel.setForwardFilterRuleEnabled(id, enabled) },
+                            emptyText = stringResource(id = R.string.forward_filter_empty),
+                            onToggleEnabled = { id, enabled ->
+                                viewModel.setForwardFilterRuleEnabled(id, enabled)
+                                Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                            },
                             onEdit = { rule ->
                                 editingPackageRule = rule.toEditingRule()
                                 showPackageEditor = true
@@ -224,7 +242,7 @@ fun AppForwardFilterScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         SectionHeaderRow(
-                            title = "通知渠道ID规则",
+                            title = stringResource(id = R.string.forward_filter_channel_rules_title),
                             onAddClick = {
                                 editingChannelRule = null
                                 showChannelEditor = true
@@ -233,11 +251,14 @@ fun AppForwardFilterScreen(
                         HorizontalDivider()
                         ForwardFilterRuleList(
                             rules = channelRules,
-                            emptyText = "暂无规则",
+                            emptyText = stringResource(id = R.string.forward_filter_empty),
                             channelIdLabelProvider = { rule ->
                                 ForwardFilterConst.extractNotifyChannelId(rule.scopeKey, packageName)
                             },
-                            onToggleEnabled = { id, enabled -> viewModel.setForwardFilterRuleEnabled(id, enabled) },
+                            onToggleEnabled = { id, enabled ->
+                                viewModel.setForwardFilterRuleEnabled(id, enabled)
+                                Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                            },
                             onEdit = { rule ->
                                 editingChannelRule = rule.toEditingRule(
                                     channelId = ForwardFilterConst.extractNotifyChannelId(rule.scopeKey, packageName),
@@ -253,7 +274,7 @@ fun AppForwardFilterScreen(
             if (channelCandidates.isNotEmpty()) {
                 item(key = "channel_hint") {
                     Text(
-                        text = "历史候选来自近期应用通知日志，可直接点选填入渠道ID。",
+                        text = stringResource(id = R.string.forward_filter_channel_history_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -264,7 +285,11 @@ fun AppForwardFilterScreen(
 
     if (showPackageEditor) {
         ForwardFilterRuleEditorDialog(
-            title = if (editingPackageRule == null) "新增应用规则" else "编辑应用规则",
+            title = if (editingPackageRule == null) {
+                stringResource(id = R.string.forward_filter_add_app_rule)
+            } else {
+                stringResource(id = R.string.forward_filter_edit_app_rule)
+            },
             initialPolicy = editingPackageRule?.policy ?: ForwardFilterConst.POLICY_ALLOW,
             initialMatchMode = editingPackageRule?.matchMode ?: ForwardFilterConst.MATCH_CONTAINS,
             initialPattern = editingPackageRule?.pattern.orEmpty(),
@@ -294,7 +319,11 @@ fun AppForwardFilterScreen(
 
     if (showChannelEditor) {
         ForwardFilterRuleEditorDialog(
-            title = if (editingChannelRule == null) "新增渠道规则" else "编辑渠道规则",
+            title = if (editingChannelRule == null) {
+                stringResource(id = R.string.forward_filter_add_channel_rule)
+            } else {
+                stringResource(id = R.string.forward_filter_edit_channel_rule)
+            },
             initialPolicy = editingChannelRule?.policy ?: ForwardFilterConst.POLICY_ALLOW,
             initialMatchMode = editingChannelRule?.matchMode ?: ForwardFilterConst.MATCH_CONTAINS,
             initialPattern = editingChannelRule?.pattern.orEmpty(),
@@ -340,7 +369,7 @@ private fun SectionHeaderRow(
     ) {
         Text(text = title, style = MaterialTheme.typography.titleSmall)
         TextButton(onClick = onAddClick) {
-            Text("新增")
+            Text(stringResource(id = R.string.forward_filter_action_add))
         }
     }
 }

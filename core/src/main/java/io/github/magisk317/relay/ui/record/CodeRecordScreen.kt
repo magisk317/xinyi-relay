@@ -24,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Sms
@@ -57,17 +58,19 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.utils.AppPreferencesDataStore
+import io.github.magisk317.relay.data.repository.RecordSettingsUpdate
+import io.github.magisk317.relay.data.repository.SettingsRepository
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.ui.common.AppIconImage
 import io.github.magisk317.relay.ui.common.LoadingIndicatorTokens
 import io.github.magisk317.relay.ui.common.PolygonMorphLoadingIndicator
 import io.github.magisk317.relay.ui.common.SessionLoadingRegistry
+import io.github.magisk317.relay.ui.common.SingleChoiceOptionDialog
 import io.github.magisk317.relay.ui.common.rememberMinDurationLoading
 import io.github.magisk317.relay.ui.home.Item
 import io.github.magisk317.relay.ui.home.RetentionDialog
 import io.github.magisk317.relay.ui.home.SectionHeader
-import io.github.magisk317.relay.ui.home.SwitchItem
+import io.github.magisk317.relay.ui.home.StateSwitchItem
 import io.github.magisk317.relay.ui.home.TextInputDialog
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
@@ -75,6 +78,7 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -88,13 +92,7 @@ private val FORWARD_SUCCESS_COLOR = Color(AndroidColor.parseColor("#2E7D32"))
 private val FORWARD_FAILED_COLOR = Color(AndroidColor.parseColor("#C62828"))
 private val FORWARD_WARNING_COLOR = Color(AndroidColor.parseColor("#B26A00"))
 private val RECORD_TAB_ITEM_HEIGHT = 60.dp
-
-private fun recordEnableKey(tab: Int): String = when (tab) {
-    0 -> PrefConst.KEY_ENABLE_CODE_RECORDS_CODE
-    1 -> PrefConst.KEY_ENABLE_CODE_RECORDS_PLAIN_SMS
-    2 -> PrefConst.KEY_ENABLE_CODE_RECORDS_APP_NOTIFY
-    else -> PrefConst.KEY_ENABLE_CODE_RECORDS_CALL_NOTIFY
-}
+private val CALL_NUMBER_VIEWPORT_WIDTH = 84.dp
 
 private fun recordEnableTitleRes(tab: Int): Int = when (tab) {
     0 -> R.string.pref_enable_code_records_title
@@ -162,6 +160,8 @@ fun CodeRecordScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val settingsRepository: SettingsRepository = koinInject()
+    val savedToastText = stringResource(id = R.string.pref_sync_toast)
 
     LaunchedEffect(isLoading, shouldShowInitialLoading, initialLoadingStarted) {
         if (!shouldShowInitialLoading) return@LaunchedEffect
@@ -225,29 +225,23 @@ fun CodeRecordScreen(
     var historyLimitPlain by remember { mutableStateOf("0") }
     var historyLimitAppNotify by remember { mutableStateOf("0") }
     var historyLimitCallNotify by remember { mutableStateOf("20") }
-    var previousRecordEnabled by remember { mutableStateOf(true) }
+    var codeRecordEnabled by remember { mutableStateOf(true) }
+    var plainRecordEnabled by remember { mutableStateOf(true) }
+    var appNotifyRecordEnabled by remember { mutableStateOf(true) }
+    var callNotifyRecordEnabled by remember { mutableStateOf(true) }
     var showHistoryLimitDialog by remember { mutableStateOf(false) }
     var showHistoryLimitInput by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        previousRecordEnabled = AppPreferencesDataStore.getBoolean(context, PrefConst.KEY_ENABLE_CODE_RECORDS, true)
-        val previousLimit = AppPreferencesDataStore.getString(context, PrefConst.KEY_HISTORY_LIMIT, "0")
-        historyLimitCode = AppPreferencesDataStore.getString(context, PrefConst.KEY_HISTORY_LIMIT_CODE, previousLimit)
-        historyLimitPlain = AppPreferencesDataStore.getString(
-            context,
-            PrefConst.KEY_HISTORY_LIMIT_PLAIN_SMS,
-            previousLimit,
-        )
-        historyLimitAppNotify = AppPreferencesDataStore.getString(
-            context,
-            PrefConst.KEY_HISTORY_LIMIT_APP_NOTIFY,
-            previousLimit,
-        )
-        historyLimitCallNotify = AppPreferencesDataStore.getString(
-            context,
-            PrefConst.KEY_HISTORY_LIMIT_CALL_NOTIFY,
-            "20",
-        )
+        val settings = settingsRepository.getRecordSettings()
+        codeRecordEnabled = settings.codeRecordEnabled
+        plainRecordEnabled = settings.plainSmsRecordEnabled
+        appNotifyRecordEnabled = settings.appNotifyRecordEnabled
+        callNotifyRecordEnabled = settings.callNotifyRecordEnabled
+        historyLimitCode = settings.codeHistoryLimit
+        historyLimitPlain = settings.plainSmsHistoryLimit
+        historyLimitAppNotify = settings.appNotifyHistoryLimit
+        historyLimitCallNotify = settings.callNotifyHistoryLimit
     }
 
     // Detail Dialog State
@@ -291,7 +285,7 @@ fun CodeRecordScreen(
     }
 
     fun deleteSelected() {
-        val deleteList = smsList.filter { sms -> sms.id != null && selectedIds.contains(sms.id) }
+        val deleteList = smsList.filter { sms -> selectedIds.contains(sms.id) }
         if (deleteList.isEmpty()) return
 
         viewModel.removeSmsMsg(deleteList)
@@ -324,6 +318,12 @@ fun CodeRecordScreen(
 
     if (showSettingsSheet) {
         val currentTabName = stringResource(recordTabNameRes(selectedRecordTab))
+        val currentRecordEnabled = when (selectedRecordTab) {
+            0 -> codeRecordEnabled
+            1 -> plainRecordEnabled
+            2 -> appNotifyRecordEnabled
+            else -> callNotifyRecordEnabled
+        }
         val currentHistoryLimit = when (selectedRecordTab) {
             0 -> historyLimitCode
             1 -> historyLimitPlain
@@ -345,12 +345,29 @@ fun CodeRecordScreen(
                         currentTabName,
                     ),
                 )
-                SwitchItem(
+                StateSwitchItem(
                     title = stringResource(id = recordEnableTitleRes(selectedRecordTab)),
                     summary = "",
-                    key = recordEnableKey(selectedRecordTab),
-                    defaultValue = previousRecordEnabled,
-                )
+                    checked = currentRecordEnabled,
+                ) { enabled ->
+                    when (selectedRecordTab) {
+                        0 -> codeRecordEnabled = enabled
+                        1 -> plainRecordEnabled = enabled
+                        2 -> appNotifyRecordEnabled = enabled
+                        else -> callNotifyRecordEnabled = enabled
+                    }
+                    scope.launch {
+                        settingsRepository.updateRecordSettings(
+                            when (selectedRecordTab) {
+                                0 -> RecordSettingsUpdate(codeRecordEnabled = enabled)
+                                1 -> RecordSettingsUpdate(plainSmsRecordEnabled = enabled)
+                                2 -> RecordSettingsUpdate(appNotifyRecordEnabled = enabled)
+                                else -> RecordSettingsUpdate(callNotifyRecordEnabled = enabled)
+                            },
+                        )
+                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                    }
+                }
 
                 Item(
                     title = stringResource(
@@ -398,8 +415,14 @@ fun CodeRecordScreen(
                     else -> historyLimitCallNotify = value
                 }
                 scope.launch {
-                    AppPreferencesDataStore.setString(context, recordHistoryLimitKey(selectedRecordTab), value)
-                    AppPreferencesDataStore.syncToSharedPrefs(context)
+                    settingsRepository.updateRecordSettings(
+                        when (selectedRecordTab) {
+                            0 -> RecordSettingsUpdate(codeHistoryLimit = value)
+                            1 -> RecordSettingsUpdate(plainSmsHistoryLimit = value)
+                            2 -> RecordSettingsUpdate(appNotifyHistoryLimit = value)
+                            else -> RecordSettingsUpdate(callNotifyHistoryLimit = value)
+                        },
+                    )
                 }
             }
             showHistoryLimitDialog = false
@@ -430,8 +453,14 @@ fun CodeRecordScreen(
                     else -> historyLimitCallNotify = value
                 }
                 scope.launch {
-                    AppPreferencesDataStore.setString(context, recordHistoryLimitKey(selectedRecordTab), value)
-                    AppPreferencesDataStore.syncToSharedPrefs(context)
+                    settingsRepository.updateRecordSettings(
+                        when (selectedRecordTab) {
+                            0 -> RecordSettingsUpdate(codeHistoryLimit = value)
+                            1 -> RecordSettingsUpdate(plainSmsHistoryLimit = value)
+                            2 -> RecordSettingsUpdate(appNotifyHistoryLimit = value)
+                            else -> RecordSettingsUpdate(callNotifyHistoryLimit = value)
+                        },
+                    )
                 }
             }
             showHistoryLimitInput = false
@@ -440,71 +469,35 @@ fun CodeRecordScreen(
 
     if (showExportDialog) {
         val currentTabName = stringResource(recordTabNameRes(selectedRecordTab))
-        AlertDialog(
-            onDismissRequest = { showExportDialog = false },
-            title = { Text(stringResource(R.string.record_export_dialog_title)) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { exportScope = RecordExportScope.CURRENT_TAB },
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(
-                            selected = exportScope == RecordExportScope.CURRENT_TAB,
-                            onClick = { exportScope = RecordExportScope.CURRENT_TAB },
-                        )
-                        Text(
-                            text = stringResource(R.string.record_export_current_tab_option, currentTabName),
-                        )
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { exportScope = RecordExportScope.ALL_TABS },
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(
-                            selected = exportScope == RecordExportScope.ALL_TABS,
-                            onClick = { exportScope = RecordExportScope.ALL_TABS },
-                        )
-                        Text(text = stringResource(R.string.record_export_all_tabs_option))
-                    }
+        SingleChoiceOptionDialog(
+            title = stringResource(R.string.record_export_dialog_title),
+            options = listOf(
+                stringResource(R.string.record_export_current_tab_option, currentTabName),
+                stringResource(R.string.record_export_all_tabs_option),
+            ),
+            selectedIndex = if (exportScope == RecordExportScope.CURRENT_TAB) 0 else 1,
+            onDismiss = { showExportDialog = false },
+        ) { index ->
+            exportScope = if (index == 0) RecordExportScope.CURRENT_TAB else RecordExportScope.ALL_TABS
+            pendingExportScope = exportScope
+            pendingExportTab = selectedRecordTab
+            val suffix = if (exportScope == RecordExportScope.ALL_TABS) {
+                "all"
+            } else {
+                when (selectedRecordTab) {
+                    0 -> "code"
+                    1 -> "plain"
+                    2 -> "app_notify"
+                    else -> "call_notify"
                 }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        pendingExportScope = exportScope
-                        pendingExportTab = selectedRecordTab
-                        val suffix = if (exportScope == RecordExportScope.ALL_TABS) {
-                            "all"
-                        } else {
-                            when (selectedRecordTab) {
-                                0 -> "code"
-                                1 -> "plain"
-                                2 -> "app_notify"
-                                else -> "call_notify"
-                            }
-                        }
-                        val filename = "Records_${suffix}_${SimpleDateFormat(
-                            "yyyyMMdd_HHmm",
-                            Locale.getDefault(),
-                        ).format(Date())}.json"
-                        showExportDialog = false
-                        exportLauncher.launch(filename)
-                    },
-                ) {
-                    Text(stringResource(R.string.confirm))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showExportDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
-        )
+            }
+            val filename = "Records_${suffix}_${SimpleDateFormat(
+                "yyyyMMdd_HHmm",
+                Locale.getDefault(),
+            ).format(Date())}.json"
+            showExportDialog = false
+            exportLauncher.launch(filename)
+        }
     }
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -1382,7 +1375,7 @@ private fun RecordSplitColumn(
                     state = listState,
                     contentPadding = listContentPadding,
                 ) {
-                    items(list, key = { it.id ?: 0 }) { smsMsg ->
+                    items(list, key = { it.id }) { smsMsg ->
                         val isSelected = selectedIds.contains(smsMsg.id)
                         if (isSelectionMode) {
                             if (smsMsg.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY) {
@@ -1390,7 +1383,7 @@ private fun RecordSplitColumn(
                                     smsMsg = smsMsg,
                                     isSelectionMode = true,
                                     isSelected = isSelected,
-                                    onClick = { onToggleSelection(smsMsg.id ?: 0) },
+                                    onClick = { onToggleSelection(smsMsg.id) },
                                     onLongClick = {},
                                     onDetailClick = { onShowDetail(smsMsg) },
                                     modifier = Modifier.animateItem(),
@@ -1400,7 +1393,7 @@ private fun RecordSplitColumn(
                                     smsMsg = smsMsg,
                                     isSelectionMode = true,
                                     isSelected = isSelected,
-                                    onClick = { onToggleSelection(smsMsg.id ?: 0) },
+                                    onClick = { onToggleSelection(smsMsg.id) },
                                     onLongClick = {},
                                     onDetailClick = { onShowDetail(smsMsg) },
                                     modifier = Modifier.animateItem(),
@@ -1445,7 +1438,7 @@ private fun RecordSplitColumn(
                                             isSelectionMode = false,
                                             isSelected = false,
                                             onClick = { onCopyCode(smsMsg) },
-                                            onLongClick = { onActivateSelection(smsMsg.id ?: 0) },
+                                            onLongClick = { onActivateSelection(smsMsg.id) },
                                             onDetailClick = { onShowDetail(smsMsg) },
                                             modifier = Modifier.animateItem(),
                                         )
@@ -1455,7 +1448,7 @@ private fun RecordSplitColumn(
                                             isSelectionMode = false,
                                             isSelected = false,
                                             onClick = { onCopyCode(smsMsg) },
-                                            onLongClick = { onActivateSelection(smsMsg.id ?: 0) },
+                                            onLongClick = { onActivateSelection(smsMsg.id) },
                                             onDetailClick = { onShowDetail(smsMsg) },
                                             modifier = Modifier.animateItem(),
                                         )
@@ -1539,6 +1532,11 @@ fun CodeRecordItem(
                 packageName = smsMsg.packageName,
                 label = iconLabel,
                 contentDescription = stringResource(R.string.sms_icon_description),
+                fallbackIcon = if (smsMsg.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY) {
+                    Icons.Default.Call
+                } else {
+                    Icons.Default.Android
+                },
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
@@ -1576,9 +1574,15 @@ fun CodeRecordItem(
                             .weight(1f)
                             .padding(end = 8.dp)
                     } else {
-                        // Keep a fixed 10-char-like viewport for phone number marquee.
+                        // Keep a fixed 7-char-like viewport so the trailing timestamp stays on one line.
                         Modifier
-                            .width(120.dp)
+                            .width(
+                                if (smsMsg.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY) {
+                                    CALL_NUMBER_VIEWPORT_WIDTH
+                                } else {
+                                    120.dp
+                                },
+                            )
                             .basicMarquee()
                     },
                 )

@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -49,17 +50,17 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import io.github.magisk317.relay.core.BuildConfig
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.common.constant.Const
 import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.utils.AppPreferencesDataStore
 import io.github.magisk317.relay.common.utils.XLog
-import io.github.magisk317.relay.common.utils.SPUtils
 import io.github.magisk317.relay.common.utils.PackageUtils
 import io.github.magisk317.relay.common.utils.Utils
+import io.github.magisk317.relay.data.repository.SettingsRepository
 import io.github.magisk317.relay.data.update.ApkSecurityVerifier
 import io.github.magisk317.relay.data.update.GithubReleaseInfo
 import io.github.magisk317.relay.data.update.GithubUpdateChecker
@@ -81,7 +82,9 @@ import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import androidx.lifecycle.lifecycleScope
+import io.github.magisk317.relay.domain.pipeline.StorageRuntimeGraph
 import org.koin.androidx.compose.koinViewModel
 import java.io.File
 import kotlin.math.hypot
@@ -90,6 +93,9 @@ class MainActivity : AppCompatActivity() {
 
     private val playUpdateDelegate: PlayUpdateDelegate = FlavorPlayUpdateDelegate()
     private var autoUpdateChecked = false
+    private val settingsRepository: SettingsRepository by lazy {
+        StorageRuntimeGraph.from(applicationContext).settingsRepository
+    }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -98,6 +104,7 @@ class MainActivity : AppCompatActivity() {
 
     @Suppress("CyclomaticComplexMethod")
     override fun onCreate(savedInstanceState: Bundle?) {
+        applyStoredLanguage()
         super.onCreate(savedInstanceState)
         applyEdgeToEdge(this)
         playUpdateDelegate.onCreate(this) {
@@ -189,7 +196,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             LaunchedEffect(Unit) {
-                if (!SPUtils.isPrivacyPolicyAccepted(context)) {
+                if (!settingsRepository.isPrivacyPolicyAccepted()) {
                     showPrivacyPolicyDialog = true
                 }
             }
@@ -302,17 +309,11 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     Box(modifier = Modifier.fillMaxSize()) {
-                        val hazeBlurRadius by AppPreferencesDataStore.getIntFlow(
-                            context,
-                            PrefConst.KEY_HAZE_BLUR_RADIUS,
-                            PrefConst.HAZE_BLUR_RADIUS_DEFAULT,
-                        ).collectAsStateWithLifecycle(initialValue = PrefConst.HAZE_BLUR_RADIUS_DEFAULT)
+                        val hazeBlurRadius by settingsRepository.getHazeBlurRadiusFlow()
+                            .collectAsStateWithLifecycle(initialValue = PrefConst.HAZE_BLUR_RADIUS_DEFAULT)
 
-                        val hazeTintAlpha by AppPreferencesDataStore.getFloatFlow(
-                            context,
-                            PrefConst.KEY_HAZE_TINT_ALPHA,
-                            PrefConst.HAZE_TINT_ALPHA_DEFAULT,
-                        ).collectAsStateWithLifecycle(initialValue = PrefConst.HAZE_TINT_ALPHA_DEFAULT)
+                        val hazeTintAlpha by settingsRepository.getHazeTintAlphaFlow()
+                            .collectAsStateWithLifecycle(initialValue = PrefConst.HAZE_TINT_ALPHA_DEFAULT)
 
                         val hazeState = remember { HazeState() }
                         val hazeStyle = rememberHazeStyle(blurRadius = hazeBlurRadius.dp, tintAlpha = hazeTintAlpha)
@@ -330,11 +331,11 @@ class MainActivity : AppCompatActivity() {
                             PrivacyPolicyDialog(
                                 onDismiss = {},
                                 onConfirm = {
-                                    scope.launch { SPUtils.setPrivacyPolicyAccepted(context, true) }
+                                    scope.launch { settingsRepository.setPrivacyPolicyAccepted(true) }
                                     showPrivacyPolicyDialog = false
                                 },
                                 onCancel = {
-                                    scope.launch { SPUtils.setPrivacyPolicyAccepted(context, false) }
+                                    scope.launch { settingsRepository.setPrivacyPolicyAccepted(false) }
                                     showPrivacyPolicyDialog = false
                                     finish()
                                 },
@@ -352,7 +353,7 @@ class MainActivity : AppCompatActivity() {
                                 onDismiss = {
                                     showPrivacyPolicyPage = false
                                     scope.launch {
-                                        if (!SPUtils.isPrivacyPolicyAccepted(context)) {
+                                        if (!settingsRepository.isPrivacyPolicyAccepted()) {
                                             showPrivacyPolicyDialog = true
                                         }
                                     }
@@ -448,12 +449,7 @@ class MainActivity : AppCompatActivity() {
                                                     is GithubUpdateUiState.Structured -> updateState.update.info.versionName
                                                 }
                                                 lifecycleScope.launch {
-                                                    AppPreferencesDataStore.setString(
-                                                        this@MainActivity,
-                                                        PrefConst.KEY_GITHUB_IGNORED_VERSION,
-                                                        versionName,
-                                                    )
-                                                    AppPreferencesDataStore.syncToSharedPrefs(this@MainActivity)
+                                                    settingsRepository.setIgnoredGithubVersion(versionName)
                                                 }
                                                 githubUpdateUiState = null
                                             },
@@ -611,6 +607,17 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun applyStoredLanguage() {
+        val languageTag = runBlocking { settingsRepository.getLanguageTag() }
+        AppCompatDelegate.setApplicationLocales(
+            if (languageTag.isBlank()) {
+                LocaleListCompat.getEmptyLocaleList()
+            } else {
+                LocaleListCompat.forLanguageTags(languageTag)
+            },
+        )
+    }
+
     override fun onResume() {
         super.onResume()
         playUpdateDelegate.onResume(this) {
@@ -642,18 +649,10 @@ class MainActivity : AppCompatActivity() {
         autoUpdateChecked = true
 
         lifecycleScope.launch {
-            val enabled = AppPreferencesDataStore.getBoolean(
-                this@MainActivity,
-                PrefConst.KEY_AUTO_UPDATE_ON_START,
-                true,
-            )
+            val updateSettings = settingsRepository.getAutoUpdateSettings()
+            val enabled = updateSettings.enabled
             if (!enabled) return@launch
-
-            val wifiOnly = AppPreferencesDataStore.getBoolean(
-                this@MainActivity,
-                PrefConst.KEY_AUTO_UPDATE_WIFI_ONLY,
-                false,
-            )
+            val wifiOnly = updateSettings.wifiOnly
             val onWifi = PackageUtils.isOnWifi(this@MainActivity)
             if (!UpdatePolicy.shouldRunAutoCheck(enabled, wifiOnly, onWifi)) return@launch
 
@@ -721,19 +720,12 @@ class MainActivity : AppCompatActivity() {
         respectIgnoredVersion: Boolean,
     ): GithubUpdateQueryResult {
         val installedFromPlay = PackageUtils.isInstalledFromPlay(this)
+        val updateSettings = settingsRepository.getAutoUpdateSettings()
         if (isAutoCheck) {
-            val enabled = AppPreferencesDataStore.getBoolean(
-                this,
-                PrefConst.KEY_AUTO_UPDATE_ON_START,
-                true,
-            )
+            val enabled = updateSettings.enabled
             if (!enabled) return GithubUpdateQueryResult.NoUpdate
 
-            val wifiOnly = AppPreferencesDataStore.getBoolean(
-                this,
-                PrefConst.KEY_AUTO_UPDATE_WIFI_ONLY,
-                false,
-            )
+            val wifiOnly = updateSettings.wifiOnly
             val onWifi = PackageUtils.isOnWifi(this)
             if (UpdatePolicy.shouldSkipGithubCheckOnStartup(installedFromPlay, enabled, wifiOnly, onWifi)) {
                 return GithubUpdateQueryResult.NoUpdate
@@ -791,11 +783,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (respectIgnoredVersion) {
-            val ignoredVersion = AppPreferencesDataStore.getString(
-                this,
-                PrefConst.KEY_GITHUB_IGNORED_VERSION,
-                "",
-            )
+            val ignoredVersion = updateSettings.ignoredGithubVersion
             val latestVersionName = when (updateState) {
                 is GithubUpdateUiState.ReleaseLink -> updateState.release.versionName
                 is GithubUpdateUiState.Structured -> updateState.update.info.versionName

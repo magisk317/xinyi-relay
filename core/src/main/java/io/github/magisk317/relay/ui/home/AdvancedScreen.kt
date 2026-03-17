@@ -10,8 +10,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.DeveloperMode
 import androidx.compose.material.icons.filled.FilterAlt
-import androidx.compose.material.icons.filled.GppGood
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -32,9 +33,10 @@ import io.github.magisk317.relay.core.R
 @Composable
 fun AdvancedScreen(
     onInterceptClick: () -> Unit,
-    onForwardClick: () -> Unit,
-    onGlobalForwardFilterClick: () -> Unit,
+    onRelayConfigClick: () -> Unit,
     onWebUiConfigClick: () -> Unit,
+    onScheduledReminderClick: () -> Unit,
+    onDiagnosticsClick: () -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -51,28 +53,34 @@ fun AdvancedScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             AdvancedEntryCard(
-                title = stringResource(id = R.string.tab_intercept),
-                subtitle = stringResource(id = R.string.pref_enable_sms_blacklist_summary),
-                icon = { Icon(Icons.Default.GppGood, contentDescription = null) },
-                onClick = onInterceptClick,
-            )
-            AdvancedEntryCard(
-                title = stringResource(id = R.string.tab_senders),
-                subtitle = stringResource(id = R.string.pref_enable_forward_summary),
+                title = stringResource(id = R.string.pref_relay_config_title),
+                subtitle = stringResource(id = R.string.pref_relay_config_summary),
                 icon = { Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null) },
-                onClick = onForwardClick,
+                onClick = onRelayConfigClick,
             )
             AdvancedEntryCard(
-                title = "关键词过滤（全局）",
-                subtitle = "配置短信/应用通知的全局黑白名单规则",
+                title = stringResource(id = R.string.scheduled_reminder_entry_title),
+                subtitle = stringResource(id = R.string.scheduled_reminder_entry_summary),
+                icon = { Icon(Icons.Default.Timer, contentDescription = null) },
+                onClick = onScheduledReminderClick,
+            )
+            AdvancedEntryCard(
+                title = stringResource(id = R.string.advanced_filter_title),
+                subtitle = stringResource(id = R.string.advanced_filter_summary),
                 icon = { Icon(Icons.Default.FilterAlt, contentDescription = null) },
-                onClick = onGlobalForwardFilterClick,
+                onClick = onInterceptClick,
             )
             AdvancedEntryCard(
                 title = stringResource(id = R.string.pref_webui_config_title),
                 subtitle = stringResource(id = R.string.pref_webui_config_summary_short),
                 icon = { Icon(Icons.Default.Wifi, contentDescription = null) },
                 onClick = onWebUiConfigClick,
+            )
+            AdvancedEntryCard(
+                title = stringResource(id = R.string.advanced_diagnostics_title),
+                subtitle = stringResource(id = R.string.advanced_diagnostics_summary),
+                icon = { Icon(Icons.Default.DeveloperMode, contentDescription = null) },
+                onClick = onDiagnosticsClick,
             )
         }
     }

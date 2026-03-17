@@ -6,17 +6,17 @@ import android.content.pm.PackageManager
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.magisk317.relay.forwarder.entity.ForwardFilterRule
-import io.github.magisk317.relay.forwarder.entity.Sender
-import io.github.magisk317.relay.forwarder.filter.ForwardFilterConst
-import io.github.magisk317.relay.forwarder.utils.SenderSettingSanitizer
-import io.github.magisk317.relay.data.db.AppDatabase
+import io.github.magisk317.relay.model.ForwardFilterRule
+import io.github.magisk317.relay.model.Sender
+import io.github.magisk317.relay.domain.filter.ForwardFilterConst
+import io.github.magisk317.relay.domain.sender.SenderSettingSanitizer
 import io.github.magisk317.relay.common.utils.XLog
-import io.github.magisk317.relay.data.db.DBManager
 import io.github.magisk317.relay.data.db.entity.NotifyRouteRule
 import io.github.magisk317.relay.data.db.entity.AppInfo
 import io.github.magisk317.relay.data.db.entity.SmsMsg
-import io.github.magisk317.relay.forwarder.routing.NotifyRouteScope
+import io.github.magisk317.relay.data.repository.ConfigRepository
+import io.github.magisk317.relay.data.repository.RelayRecordRepository
+import io.github.magisk317.relay.domain.routing.NotifyRouteScope
 import io.github.magisk317.relay.feature.store.EntityStoreManager
 import io.github.magisk317.relay.feature.store.EntityType
 import io.github.magisk317.relay.ui.block.AppInfoHelper
@@ -43,11 +43,11 @@ import java.util.Comparator
 private const val APP_NOTIFY_LOG_LIMIT = 20
 private const val APP_LIST_PAGE_SIZE = 80
 
-class AppConfigViewModel(application: Application) : AndroidViewModel(application) {
-    private val appDb = AppDatabase.getInstance(application)
-    private val notifyRouteDao = appDb.notifyRouteRuleDao()
-    private val forwardFilterDao = appDb.forwardFilterRuleDao()
-    private val smsMsgDao = appDb.smsMsgDao()
+class AppConfigViewModel(
+    application: Application,
+    private val configRepository: ConfigRepository,
+    private val recordRepository: RelayRecordRepository,
+) : AndroidViewModel(application) {
 
     private val _appsFlow = MutableStateFlow<ImmutableList<AppInfo>>(persistentListOf())
     val appsFlow: StateFlow<ImmutableList<AppInfo>> = _appsFlow.asStateFlow()
@@ -70,14 +70,14 @@ class AppConfigViewModel(application: Application) : AndroidViewModel(applicatio
     val events: SharedFlow<AppConfigEvent> = _events.asSharedFlow()
     private val _filterFlow = MutableStateFlow("")
     val filterFlow: StateFlow<String> = _filterFlow.asStateFlow()
-    val notifySenderListFlow: StateFlow<List<Sender>> = appDb.senderDao().getAllFlow()
+    val notifySenderListFlow: StateFlow<List<Sender>> = configRepository.getAllSendersFlow()
         .map { list -> list.map(SenderSettingSanitizer::sanitizeSenderLenient) }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList(),
         )
-    val appNotifyBindingCountFlow: StateFlow<Map<String, Int>> = notifyRouteDao.getAllFlow()
+    val appNotifyBindingCountFlow: StateFlow<Map<String, Int>> = configRepository.getAllNotifyRouteRulesFlow()
         .map { rules ->
             rules.asSequence()
                 .filter { it.scope == NotifyRouteScope.APP_ALLOW_SENDER }
@@ -131,7 +131,7 @@ class AppConfigViewModel(application: Application) : AndroidViewModel(applicatio
                     val context = getApplication<Application>()
                     val pm = getApplication<Application>().packageManager
                     // Load all app infos from DB (both blocked and forwarding)
-                    var configs = DBManager.get(getApplication()).queryAllAppInfosSuspend()
+                    var configs = configRepository.getAllAppInfo()
                     EntityStoreManager.storeEntitiesToFile(
                         context,
                         EntityType.APP_CONFIG,
@@ -309,29 +309,21 @@ class AppConfigViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun appNotifyLogsFlow(packageName: String): kotlinx.coroutines.flow.Flow<List<SmsMsg>> {
-        return appDb.smsMsgDao().getAllFlow().map { list ->
-            list.asSequence()
-                .filter {
-                    it.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY &&
-                        it.packageName == packageName
-                }
-                .take(APP_NOTIFY_LOG_LIMIT)
-                .toList()
-        }
+        return recordRepository.observeLogsForPackage(packageName, APP_NOTIFY_LOG_LIMIT)
     }
 
     fun appNotifyBoundSenderIdsFlow(packageName: String): kotlinx.coroutines.flow.Flow<Set<Long>> {
-        return notifyRouteDao.observeSenderIdsByScopeAndPackage(
+        return configRepository.observeNotifySenderIds(
             scope = NotifyRouteScope.APP_ALLOW_SENDER,
             packageName = packageName,
-        ).map { it.toSet() }
+        )
     }
 
     fun senderDenyingPackageIdsFlow(packageName: String): kotlinx.coroutines.flow.Flow<Set<Long>> {
-        return notifyRouteDao.observeSenderIdsByScopeAndPackage(
+        return configRepository.observeNotifySenderIds(
             scope = NotifyRouteScope.SENDER_DENY_APP,
             packageName = packageName,
-        ).map { it.toSet() }
+        )
     }
 
     fun saveAppNotifySenderBindings(packageName: String, senderIds: Set<Long>) {
@@ -341,13 +333,13 @@ class AppConfigViewModel(application: Application) : AndroidViewModel(applicatio
         }
         viewModelScope.launch(Dispatchers.IO) {
             persistMutex.withLock {
-                notifyRouteDao.deleteByScopeAndPackage(
+                configRepository.deleteNotifyRouteByScopeAndPackage(
                     scope = NotifyRouteScope.APP_ALLOW_SENDER,
                     packageName = normalizedPackageName,
                 )
                 if (senderIds.isNotEmpty()) {
                     val updateTime = System.currentTimeMillis()
-                    notifyRouteDao.insertAll(
+                    configRepository.insertNotifyRouteRules(
                         senderIds.map { senderId ->
                             NotifyRouteRule(
                                 scope = NotifyRouteScope.APP_ALLOW_SENDER,
@@ -367,14 +359,14 @@ class AppConfigViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun globalForwardRulesFlow(msgType: String): Flow<List<ForwardFilterRule>> {
-        return forwardFilterDao.observeByScope(
+        return configRepository.observeForwardFiltersByScope(
             msgType = msgType,
             scopeType = ForwardFilterConst.SCOPE_GLOBAL,
         )
     }
 
     fun appPackageForwardRulesFlow(packageName: String): Flow<List<ForwardFilterRule>> {
-        return forwardFilterDao.observeByScope(
+        return configRepository.observeForwardFiltersByScope(
             msgType = ForwardFilterConst.MSG_TYPE_APP_NOTIFY,
             scopeType = ForwardFilterConst.SCOPE_PACKAGE,
             scopeKey = packageName.trim(),
@@ -383,7 +375,7 @@ class AppConfigViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun appChannelForwardRulesFlow(packageName: String): Flow<List<ForwardFilterRule>> {
         val prefix = "${packageName.trim()}::%"
-        return forwardFilterDao.observeByScopePrefix(
+        return configRepository.observeForwardFiltersByScopePrefix(
             msgType = ForwardFilterConst.MSG_TYPE_APP_NOTIFY,
             scopeType = ForwardFilterConst.SCOPE_ANDROID_CHANNEL,
             scopeKeyPrefix = prefix,
@@ -391,9 +383,8 @@ class AppConfigViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun appNotifyChannelHistoryFlow(packageName: String, limit: Int = 20): Flow<List<String>> {
-        return smsMsgDao.observeRecentNotifyChannelIds(
+        return recordRepository.observeRecentNotifyChannelIds(
             packageName = packageName.trim(),
-            msgType = SmsMsg.MSG_TYPE_APP_NOTIFY,
             limit = limit,
         )
     }
@@ -407,9 +398,9 @@ class AppConfigViewModel(application: Application) : AndroidViewModel(applicatio
                 pattern = rule.pattern.trim(),
             )
             if (normalized.id <= 0L) {
-                forwardFilterDao.insert(normalized.copy(id = 0L))
+                configRepository.insertForwardFilterRule(normalized.copy(id = 0L))
             } else {
-                forwardFilterDao.update(normalized)
+                configRepository.updateForwardFilterRule(normalized)
             }
         }
     }
@@ -417,14 +408,14 @@ class AppConfigViewModel(application: Application) : AndroidViewModel(applicatio
     fun deleteForwardFilterRule(id: Long) {
         if (id <= 0L) return
         viewModelScope.launch(Dispatchers.IO) {
-            forwardFilterDao.deleteById(id)
+            configRepository.deleteForwardFilterRuleById(id)
         }
     }
 
     fun setForwardFilterRuleEnabled(id: Long, enabled: Boolean) {
         if (id <= 0L) return
         viewModelScope.launch(Dispatchers.IO) {
-            forwardFilterDao.updateEnabledById(
+            configRepository.updateForwardFilterEnabled(
                 id = id,
                 enabled = if (enabled) 1 else 0,
                 updateTime = System.currentTimeMillis(),
@@ -448,12 +439,11 @@ class AppConfigViewModel(application: Application) : AndroidViewModel(applicatio
             try {
                 withContext(Dispatchers.IO) {
                     persistMutex.withLock {
-                        val dbManager = DBManager.get(getApplication())
                         if (target != null) {
                             if (hasEffectiveConfig(target)) {
-                                dbManager.upsertAppInfo(target)
+                                configRepository.upsertAppInfo(target)
                             } else {
-                                dbManager.removeAppInfosByPackage(listOf(target.packageName))
+                                configRepository.removeAppInfosByPackage(listOf(target.packageName))
                             }
                         }
                         EntityStoreManager.storeEntitiesToFile(

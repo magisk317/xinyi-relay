@@ -113,7 +113,7 @@ fun AppConfigDetailScreen(
                     )
                     HorizontalDivider()
                     ConfigToggleRow(
-                        title = stringResource(R.string.label_forwarding),
+                        title = stringResource(R.string.label_app_notify_source_enabled),
                         checked = app.forwarding,
                         onCheckedChange = {
                             viewModel.setForwarding(app.packageName, it)

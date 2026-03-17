@@ -13,13 +13,22 @@ import io.github.magisk317.relay.common.constant.Const
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.constant.PrefRestoreTypeRegistry
 import io.github.magisk317.relay.common.constant.PrefValueType
-import io.github.magisk317.relay.common.utils.*
+import io.github.magisk317.relay.common.utils.PackageUtils
+import io.github.magisk317.relay.common.utils.SmsCodeUtils
+import io.github.magisk317.relay.common.utils.StorageUtils
+import io.github.magisk317.relay.common.utils.Utils
+import io.github.magisk317.relay.common.utils.XLog
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
 import android.content.Intent
+import androidx.appcompat.app.AppCompatDelegate
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.data.db.DBManager
+import androidx.core.os.LocaleListCompat
+import io.github.magisk317.relay.data.datasource.PreferenceDataSource
+import io.github.magisk317.relay.data.repository.ConfigRepository
+import io.github.magisk317.relay.data.repository.RelayRecordRepository
+import io.github.magisk317.relay.data.repository.SettingsRepository
 import io.github.magisk317.relay.feature.backup.BackupImportResult
 import io.github.magisk317.relay.feature.backup.BackupManager
 import io.github.magisk317.relay.feature.backup.BackupRule
@@ -56,7 +65,13 @@ sealed class SettingsEvent {
 fun resolvePreferredUpdateEvent(installedFromPlay: Boolean): SettingsEvent =
     if (installedFromPlay) SettingsEvent.StartPlayUpdate else SettingsEvent.StartGithubUpdateCheck
 
-class SettingsViewModel(application: Application) : AndroidViewModel(application) {
+class SettingsViewModel(
+    application: Application,
+    private val configRepository: ConfigRepository,
+    private val recordRepository: RelayRecordRepository,
+    private val settingsRepository: SettingsRepository,
+    private val preferenceDataSource: PreferenceDataSource,
+) : AndroidViewModel(application) {
     data class CoercedRestoreValue(
         val type: PrefValueType,
         val booleanValue: Boolean? = null,
@@ -80,12 +95,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val eventsFlow = _eventsFlow.asSharedFlow()
 
     data class ThemeState(val mode: Int, val centerX: Float = -1f, val centerY: Float = -1f)
+    data class LanguageState(val languageTag: String = "")
 
-    private val _themeState = MutableStateFlow(ThemeState(0))
-    val themeState: StateFlow<ThemeState> = _themeState.asStateFlow()
+    val themeState: StateFlow<ThemeState> = sharedThemeState.asStateFlow()
+    val languageState: StateFlow<LanguageState> = sharedLanguageState.asStateFlow()
 
-    val smsRecordCount: StateFlow<Long> = DBManager.get(application)
-        .queryAllSmsMsgCountFlow()
+    val smsRecordCount: StateFlow<Long> = recordRepository.countFlow()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(Const.FLOW_STOP_TIMEOUT_MS),
@@ -94,18 +109,51 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     init {
         viewModelScope.launch {
-            val mode = SPUtils.getThemeMode(getApplication())
-            _themeState.value = ThemeState(mode)
+            val mode = settingsRepository.getThemeMode()
+            sharedThemeState.value = ThemeState(mode)
         }
         viewModelScope.launch {
-            AppPreferencesDataStore.syncToSharedPrefs(getApplication())
+            sharedLanguageState.value = LanguageState(settingsRepository.getLanguageTag())
+        }
+        viewModelScope.launch {
+            preferenceDataSource.syncToSharedPrefs()
         }
     }
 
     fun setThemeMode(mode: Int, x: Float = -1f, y: Float = -1f) {
+        persistThemeMode(mode, x, y)
+    }
+
+    fun previewThemeMode(mode: Int, x: Float = -1f, y: Float = -1f) {
+        sharedThemeState.value = ThemeState(mode, x, y)
+    }
+
+    fun persistThemeMode(mode: Int, x: Float = -1f, y: Float = -1f) {
         viewModelScope.launch {
-            SPUtils.setThemeMode(getApplication(), mode)
-            _themeState.value = ThemeState(mode, x, y)
+            settingsRepository.setThemeMode(mode)
+            sharedThemeState.value = ThemeState(mode, x, y)
+        }
+    }
+
+    fun setLanguageTag(languageTag: String) {
+        persistLanguageTag(languageTag)
+    }
+
+    fun previewLanguageTag(languageTag: String) {
+        AppCompatDelegate.setApplicationLocales(
+            if (languageTag.isBlank()) {
+                LocaleListCompat.getEmptyLocaleList()
+            } else {
+                LocaleListCompat.forLanguageTags(languageTag)
+            },
+        )
+        sharedLanguageState.value = LanguageState(languageTag)
+    }
+
+    fun persistLanguageTag(languageTag: String) {
+        viewModelScope.launch {
+            settingsRepository.setLanguageTag(languageTag)
+            previewLanguageTag(languageTag)
         }
     }
 
@@ -117,7 +165,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         if (args == null) return
 
         viewModelScope.launch {
-            if (!SPUtils.isPrivacyPolicyAccepted(getApplication())) {
+            if (!settingsRepository.isPrivacyPolicyAccepted()) {
                 _eventsFlow.tryEmit(SettingsEvent.ShowPrivacyPolicy)
             } else {
                 val extraAction = args.getString(Const.EXTRA_ACTION)
@@ -202,7 +250,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                     if (TextUtils.isEmpty(msgBody)) {
                         ""
                     } else {
-                        SmsCodeUtils.parseSmsCodeIfExists(getApplication(), msgBody)
+                        val keywords = settingsRepository.getVerificationSettings().relayKeywords
+                        SmsCodeUtils.parseSmsCodeIfExists(getApplication(), msgBody, keywords)
                     }
                 }
             } catch (e: Exception) {
@@ -223,7 +272,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun setInternalFilesWritable() {
         StorageUtils.setFileWorldWritable(StorageUtils.getFilesDir(getApplication()), 1)
-        AppPreferencesDataStore.ensureReadable(getApplication())
+        viewModelScope.launch {
+            preferenceDataSource.ensureReadable()
+        }
     }
 
     fun requestPreferredUpdate() {
@@ -260,7 +311,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 )
                 val rules = if (includeRules) {
                     withContext(Dispatchers.IO) {
-                        DBManager.get(context).queryAllSmsCodeRules()
+                        configRepository.getAllSmsCodeRules()
                             .map { BackupRule(it.company, it.codeKeyword, it.codeRegex) }
                     }
                 } else {
@@ -269,7 +320,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
                 val records = if (includeRecords) {
                     withContext(Dispatchers.IO) {
-                        DBManager.get(context).queryAllSmsMsg()
+                        recordRepository.queryAll()
                             .map {
                                 BackupSmsRecord(
                                     sender = it.sender,
@@ -403,20 +454,18 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     private suspend fun restoreRules(context: Context, rules: List<BackupRule>) {
         if (rules.isEmpty()) return
-        val dbManager = DBManager.get(context)
         val entities = rules.map {
             io.github.magisk317.relay.data.db.entity.SmsCodeRule(it.company, it.codeKeyword, it.codeRegex)
         }
-        dbManager.addSmsCodeRules(entities)
+        configRepository.insertSmsCodeRules(entities)
     }
 
     private suspend fun restoreRecords(context: Context, records: List<BackupSmsRecord>) {
-        val dbManager = DBManager.get(context)
         if (records.isEmpty()) {
             XLog.w("Restore records skipped: empty list")
             return
         }
-        val beforeCount = dbManager.queryAllSmsMsg().size
+        val beforeCount = recordRepository.queryAll().size
         val entities = records.map {
             io.github.magisk317.relay.data.db.entity.SmsMsg(
                 sender = it.sender,
@@ -433,8 +482,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 forwardTime = it.forwardTime,
             )
         }
-        dbManager.addSmsMsgList(entities)
-        val afterCount = dbManager.queryAllSmsMsg().size
+        recordRepository.insertList(entities)
+        val afterCount = recordRepository.queryAll().size
         XLog.i(
             "Restore records finished: requested=%d before=%d after=%d delta=%d",
             records.size,
@@ -462,7 +511,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             when (coerced.type) {
                 PrefValueType.BOOLEAN -> {
                     val boolValue = coerced.booleanValue ?: continue
-                    AppPreferencesDataStore.setBoolean(context, k, boolValue)
+                    preferenceDataSource.setBoolean(k, boolValue)
                     if (k == PrefConst.KEY_SHOW_LAUNCHER_ICON) {
                         setLauncherIconVisible(boolValue)
                     }
@@ -470,19 +519,20 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
                 PrefValueType.INT -> {
                     val intValue = coerced.intValue ?: continue
-                    AppPreferencesDataStore.setInt(context, k, intValue)
+                    preferenceDataSource.setInt(k, intValue)
                 }
 
                 PrefValueType.FLOAT -> {
                     val floatValue = coerced.floatValue ?: continue
-                    AppPreferencesDataStore.setFloat(context, k, floatValue)
+                    preferenceDataSource.setFloat(k, floatValue)
                 }
 
                 PrefValueType.STRING -> {
-                    AppPreferencesDataStore.setString(context, k, coerced.stringValue ?: strV)
+                    preferenceDataSource.setString(k, coerced.stringValue ?: strV)
                 }
             }
         }
+        preferenceDataSource.syncToSharedPrefs()
     }
 
     private suspend fun ensureDataStoreLoaded(_context: android.content.Context) {
@@ -490,6 +540,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     companion object {
+        private val sharedThemeState = MutableStateFlow(ThemeState(0))
+        private val sharedLanguageState = MutableStateFlow(LanguageState())
+
         @JvmStatic
         fun coerceRestoreValue(key: String, rawValue: String): CoercedRestoreValue {
             return when (PrefRestoreTypeRegistry.typeOf(key)) {

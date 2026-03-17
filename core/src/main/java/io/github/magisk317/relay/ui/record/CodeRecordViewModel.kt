@@ -9,8 +9,8 @@ import androidx.lifecycle.viewModelScope
 import io.github.magisk317.relay.common.constant.Const
 import io.github.magisk317.relay.common.utils.JsonUtils
 import io.github.magisk317.relay.common.utils.XLog
-import io.github.magisk317.relay.data.db.DBManager
 import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.data.repository.RelayRecordRepository
 import kotlinx.serialization.Serializable
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
@@ -33,12 +33,14 @@ private data class RecordExportPayload(
     val callNotifyRecords: List<SmsMsg>,
 )
 
-class CodeRecordViewModel(application: Application) : AndroidViewModel(application) {
+class CodeRecordViewModel(
+    application: Application,
+    private val repository: RelayRecordRepository,
+) : AndroidViewModel(application) {
 
     private val _loading = MutableStateFlow(false)
 
-    val uiState: StateFlow<CodeRecordUiState> = DBManager.get(application)
-        .queryAllSmsMsgFlow()
+    val uiState: StateFlow<CodeRecordUiState> = repository.queryAllFlow()
         .combine(_loading) { smsList, loading ->
             CodeRecordUiState(smsList.toImmutableList(), loading)
         }
@@ -49,7 +51,7 @@ class CodeRecordViewModel(application: Application) : AndroidViewModel(applicati
         )
 
     fun loadData() {
-        // Data is automatically loaded via queryAllSmsMsgFlow() in uiState
+        // Data is automatically loaded via queryAllFlow() in uiState
     }
 
     fun refreshData() {
@@ -57,7 +59,7 @@ class CodeRecordViewModel(application: Application) : AndroidViewModel(applicati
             _loading.value = true
             try {
                 withContext(Dispatchers.IO) {
-                    DBManager.get(getApplication()).queryAllSmsMsg()
+                    repository.queryAll()
                 }
             } finally {
                 _loading.value = false
@@ -68,8 +70,7 @@ class CodeRecordViewModel(application: Application) : AndroidViewModel(applicati
     fun removeSmsMsg(smsMsgList: List<SmsMsg>) {
         viewModelScope.launch {
             try {
-                DBManager.get(getApplication())
-                    .removeSmsMsgListSuspend(smsMsgList)
+                repository.removeList(smsMsgList)
             } catch (ignored: Throwable) {
                 XLog.e("Error occurs when remove SMS records", ignored)
             }
@@ -79,8 +80,7 @@ class CodeRecordViewModel(application: Application) : AndroidViewModel(applicati
     fun restoreSmsMsgList(smsMsgList: List<SmsMsg>) {
         viewModelScope.launch {
             try {
-                DBManager.get(getApplication())
-                    .insertSmsMsgListSuspend(smsMsgList)
+                repository.insertList(smsMsgList)
             } catch (ignored: Throwable) {
                 XLog.e("Error occurs when restore SMS records", ignored)
             }
@@ -130,7 +130,6 @@ class CodeRecordViewModel(application: Application) : AndroidViewModel(applicati
                         }
                     }
                 }
-                // We might want an event for success/failure
             } catch (ignored: Throwable) {
                 XLog.e("Export records failed", ignored)
             } finally {

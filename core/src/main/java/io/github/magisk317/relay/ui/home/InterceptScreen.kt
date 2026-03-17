@@ -37,13 +37,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.common.constant.Const
-import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.utils.AppPreferencesDataStore
+import io.github.magisk317.relay.data.repository.SettingsRepository
+import io.github.magisk317.relay.data.repository.SmsBlacklistSettingsUpdate
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,7 +55,11 @@ fun InterceptScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val repository: SettingsRepository = koinInject()
     val snackbarHostState = remember { SnackbarHostState() }
+    var smsBlacklistEnabled by remember { mutableStateOf(false) }
+    var deleteBlockedSms by remember { mutableStateOf(true) }
+    var blockIncomingSms by remember { mutableStateOf(false) }
     var smsBlacklistNumbers by remember { mutableStateOf("") }
     var smsBlacklistPrefixes by remember { mutableStateOf("") }
     var smsBlacklistRegex by remember { mutableStateOf("") }
@@ -63,18 +68,16 @@ fun InterceptScreen(
     var showSmsBlacklistPrefixesDialog by remember { mutableStateOf(false) }
     var showSmsBlacklistRegexDialog by remember { mutableStateOf(false) }
     var showSmsBlacklistContentDialog by remember { mutableStateOf(false) }
-    val smsBlacklistEnabled = rememberPrefBoolean(PrefConst.KEY_ENABLE_SMS_BLACKLIST, false)
 
     suspend fun reload() {
-        smsBlacklistEnabled.value = AppPreferencesDataStore.getBoolean(
-            context,
-            PrefConst.KEY_ENABLE_SMS_BLACKLIST,
-            false,
-        )
-        smsBlacklistNumbers = AppPreferencesDataStore.getString(context, PrefConst.KEY_SMS_BLACKLIST_NUMBERS, "")
-        smsBlacklistPrefixes = AppPreferencesDataStore.getString(context, PrefConst.KEY_SMS_BLACKLIST_PREFIXES, "")
-        smsBlacklistRegex = AppPreferencesDataStore.getString(context, PrefConst.KEY_SMS_BLACKLIST_REGEX, "")
-        smsBlacklistContent = AppPreferencesDataStore.getString(context, PrefConst.KEY_SMS_BLACKLIST_CONTENT, "")
+        val snapshot = repository.getSmsBlacklistSettings()
+        smsBlacklistEnabled = snapshot.enabled
+        deleteBlockedSms = snapshot.deleteBlockedSms
+        blockIncomingSms = snapshot.blockIncomingSms
+        smsBlacklistNumbers = snapshot.numbers
+        smsBlacklistPrefixes = snapshot.prefixes
+        smsBlacklistRegex = snapshot.regexRules
+        smsBlacklistContent = snapshot.contentRules
     }
 
     LaunchedEffect(Unit) {
@@ -87,8 +90,8 @@ fun InterceptScreen(
         }
     }
 
-    LaunchedEffect(smsBlacklistEnabled.value) {
-        if (!smsBlacklistEnabled.value) {
+    LaunchedEffect(smsBlacklistEnabled) {
+        if (!smsBlacklistEnabled) {
             showSmsBlacklistNumbersDialog = false
             showSmsBlacklistPrefixesDialog = false
             showSmsBlacklistRegexDialog = false
@@ -101,14 +104,19 @@ fun InterceptScreen(
     val notifySaved = {
         Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
     }
-    fun saveStringIfChanged(oldValue: String, key: String, newValue: String, updateState: (String) -> Unit) {
-        if (newValue == oldValue) return
-        updateState(newValue)
+    fun saveSettingsIfChanged(
+        update: SmsBlacklistSettingsUpdate,
+        applyState: () -> Unit = {},
+    ) {
         scope.launch {
-            AppPreferencesDataStore.setString(context, key, newValue)
-            AppPreferencesDataStore.syncToSharedPrefs(context)
+            repository.updateSmsBlacklistSettings(update)
+            applyState()
             notifySaved()
         }
+    }
+    fun saveStringIfChanged(oldValue: String, newValue: String, updateState: (String) -> Unit, buildUpdate: (String) -> SmsBlacklistSettingsUpdate) {
+        if (newValue == oldValue) return
+        saveSettingsIfChanged(buildUpdate(newValue)) { updateState(newValue) }
     }
     val formatSummary: (String) -> String = { raw ->
         val count = raw.split('\n', ',', ';').map { it.trim() }.count { it.isNotEmpty() }
@@ -149,29 +157,31 @@ fun InterceptScreen(
                     text = stringResource(R.string.pref_sms_blacklist_title),
                     modifier = Modifier.padding(top = Const.SPACING_SMALL.dp),
                 )
-                SwitchItem(
+                StateSwitchItem(
                     title = stringResource(R.string.pref_enable_sms_blacklist_title),
                     summary = stringResource(R.string.pref_enable_sms_blacklist_summary),
-                    key = PrefConst.KEY_ENABLE_SMS_BLACKLIST,
-                    defaultValue = false,
-                    stateOverride = smsBlacklistEnabled,
-                    onSaved = notifySaved,
-                )
-                if (smsBlacklistEnabled.value) {
-                    SwitchItem(
+                    checked = smsBlacklistEnabled,
+                ) { enabled ->
+                    smsBlacklistEnabled = enabled
+                    saveSettingsIfChanged(SmsBlacklistSettingsUpdate(enabled = enabled))
+                }
+                if (smsBlacklistEnabled) {
+                    StateSwitchItem(
                         title = stringResource(R.string.pref_sms_blacklist_action_delete_title),
                         summary = stringResource(R.string.pref_sms_blacklist_action_delete_summary),
-                        key = PrefConst.KEY_SMS_BLACKLIST_ACTION_DELETE,
-                        defaultValue = true,
-                        onSaved = notifySaved,
-                    )
-                    SwitchItem(
+                        checked = deleteBlockedSms,
+                    ) { enabled ->
+                        deleteBlockedSms = enabled
+                        saveSettingsIfChanged(SmsBlacklistSettingsUpdate(deleteBlockedSms = enabled))
+                    }
+                    StateSwitchItem(
                         title = stringResource(R.string.pref_sms_blacklist_action_block_title),
                         summary = stringResource(R.string.pref_sms_blacklist_action_block_summary),
-                        key = PrefConst.KEY_SMS_BLACKLIST_ACTION_BLOCK,
-                        defaultValue = false,
-                        onSaved = notifySaved,
-                    )
+                        checked = blockIncomingSms,
+                    ) { enabled ->
+                        blockIncomingSms = enabled
+                        saveSettingsIfChanged(SmsBlacklistSettingsUpdate(blockIncomingSms = enabled))
+                    }
                     Item(
                         title = stringResource(R.string.pref_sms_blacklist_numbers_title),
                         summary = buildString {
@@ -231,7 +241,7 @@ fun InterceptScreen(
         }
     }
 
-    if (smsBlacklistEnabled.value && showSmsBlacklistNumbersDialog) {
+    if (smsBlacklistEnabled && showSmsBlacklistNumbersDialog) {
         TextInputDialog(
             title = stringResource(id = R.string.pref_sms_blacklist_numbers_title),
             initialValue = smsBlacklistNumbers,
@@ -240,18 +250,22 @@ fun InterceptScreen(
             validator = separatorValidator,
             onFocusLost = { value ->
                 if (separatorValidator(value) == null) {
-                    saveStringIfChanged(smsBlacklistNumbers, PrefConst.KEY_SMS_BLACKLIST_NUMBERS, value) { smsBlacklistNumbers = it }
+                    saveStringIfChanged(smsBlacklistNumbers, value, { smsBlacklistNumbers = it }) {
+                        SmsBlacklistSettingsUpdate(numbers = it)
+                    }
                 }
             },
             singleLine = false,
             maxLines = 10,
         ) { value ->
-            saveStringIfChanged(smsBlacklistNumbers, PrefConst.KEY_SMS_BLACKLIST_NUMBERS, value) { smsBlacklistNumbers = it }
+            saveStringIfChanged(smsBlacklistNumbers, value, { smsBlacklistNumbers = it }) {
+                SmsBlacklistSettingsUpdate(numbers = it)
+            }
             showSmsBlacklistNumbersDialog = false
         }
     }
 
-    if (smsBlacklistEnabled.value && showSmsBlacklistPrefixesDialog) {
+    if (smsBlacklistEnabled && showSmsBlacklistPrefixesDialog) {
         TextInputDialog(
             title = stringResource(id = R.string.pref_sms_blacklist_prefixes_title),
             initialValue = smsBlacklistPrefixes,
@@ -260,18 +274,22 @@ fun InterceptScreen(
             validator = separatorValidator,
             onFocusLost = { value ->
                 if (separatorValidator(value) == null) {
-                    saveStringIfChanged(smsBlacklistPrefixes, PrefConst.KEY_SMS_BLACKLIST_PREFIXES, value) { smsBlacklistPrefixes = it }
+                    saveStringIfChanged(smsBlacklistPrefixes, value, { smsBlacklistPrefixes = it }) {
+                        SmsBlacklistSettingsUpdate(prefixes = it)
+                    }
                 }
             },
             singleLine = false,
             maxLines = 10,
         ) { value ->
-            saveStringIfChanged(smsBlacklistPrefixes, PrefConst.KEY_SMS_BLACKLIST_PREFIXES, value) { smsBlacklistPrefixes = it }
+            saveStringIfChanged(smsBlacklistPrefixes, value, { smsBlacklistPrefixes = it }) {
+                SmsBlacklistSettingsUpdate(prefixes = it)
+            }
             showSmsBlacklistPrefixesDialog = false
         }
     }
 
-    if (smsBlacklistEnabled.value && showSmsBlacklistRegexDialog) {
+    if (smsBlacklistEnabled && showSmsBlacklistRegexDialog) {
         TextInputDialog(
             title = stringResource(id = R.string.pref_sms_blacklist_regex_title),
             initialValue = smsBlacklistRegex,
@@ -280,18 +298,22 @@ fun InterceptScreen(
             validator = regexSeparatorValidator,
             onFocusLost = { value ->
                 if (regexSeparatorValidator(value) == null) {
-                    saveStringIfChanged(smsBlacklistRegex, PrefConst.KEY_SMS_BLACKLIST_REGEX, value) { smsBlacklistRegex = it }
+                    saveStringIfChanged(smsBlacklistRegex, value, { smsBlacklistRegex = it }) {
+                        SmsBlacklistSettingsUpdate(regexRules = it)
+                    }
                 }
             },
             singleLine = false,
             maxLines = 10,
         ) { value ->
-            saveStringIfChanged(smsBlacklistRegex, PrefConst.KEY_SMS_BLACKLIST_REGEX, value) { smsBlacklistRegex = it }
+            saveStringIfChanged(smsBlacklistRegex, value, { smsBlacklistRegex = it }) {
+                SmsBlacklistSettingsUpdate(regexRules = it)
+            }
             showSmsBlacklistRegexDialog = false
         }
     }
 
-    if (smsBlacklistEnabled.value && showSmsBlacklistContentDialog) {
+    if (smsBlacklistEnabled && showSmsBlacklistContentDialog) {
         TextInputDialog(
             title = stringResource(id = R.string.pref_sms_blacklist_content_title),
             initialValue = smsBlacklistContent,
@@ -300,13 +322,17 @@ fun InterceptScreen(
             validator = separatorValidator,
             onFocusLost = { value ->
                 if (separatorValidator(value) == null) {
-                    saveStringIfChanged(smsBlacklistContent, PrefConst.KEY_SMS_BLACKLIST_CONTENT, value) { smsBlacklistContent = it }
+                    saveStringIfChanged(smsBlacklistContent, value, { smsBlacklistContent = it }) {
+                        SmsBlacklistSettingsUpdate(contentRules = it)
+                    }
                 }
             },
             singleLine = false,
             maxLines = 10,
         ) { value ->
-            saveStringIfChanged(smsBlacklistContent, PrefConst.KEY_SMS_BLACKLIST_CONTENT, value) { smsBlacklistContent = it }
+            saveStringIfChanged(smsBlacklistContent, value, { smsBlacklistContent = it }) {
+                SmsBlacklistSettingsUpdate(contentRules = it)
+            }
             showSmsBlacklistContentDialog = false
         }
     }

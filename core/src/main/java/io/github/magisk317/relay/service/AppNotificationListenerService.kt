@@ -7,10 +7,14 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
+import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.utils.AppPreferencesDataStore
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.core.BuildConfig
+import io.github.magisk317.relay.feature.reminder.SpecialAlertCoordinator
+import io.github.magisk317.relay.domain.event.RelayEvent
+import io.github.magisk317.relay.domain.pipeline.StorageRuntimeGraph
+import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import kotlinx.coroutines.runBlocking
 
 class AppNotificationListenerService : NotificationListenerService() {
@@ -81,8 +85,34 @@ class AppNotificationListenerService : NotificationListenerService() {
         }
         forwardIntent.putExtra("company", appName)
 
+        SpecialAlertCoordinator.notifyForEvent(
+            context = applicationContext,
+            event = RelayEvent(
+                messageType = MessageType.APP_NOTIFY,
+                sourceType = "nls",
+                sender = title,
+                body = body,
+                timestamp = sbn.postTime,
+                packageName = packageName,
+                notifyChannelId = notifyChannelId,
+                companyOrAppName = appName,
+                smsCode = null,
+                callType = 0,
+                callStage = "",
+                simSlot = -1,
+                subId = 0,
+            ),
+            traceId = eventId,
+        )
+
         val token = runBlocking {
-            AppPreferencesDataStore.getString(applicationContext, PrefConst.KEY_IPC_TOKEN, "")
+            val runtimeGraph = StorageRuntimeGraph.from(applicationContext)
+            RuntimeSettingsCache.getString(
+                key = PrefConst.KEY_IPC_TOKEN,
+                defaultValue = "",
+            ) { key, defaultValue ->
+                runtimeGraph.preferenceDataSource.getString(key, defaultValue)
+            }
         }
         forwardIntent.putExtra("ipc_token", token)
 
@@ -139,6 +169,6 @@ class AppNotificationListenerService : NotificationListenerService() {
     }
 
     companion object {
-        private const val FORWARD_RECEIVER_CLASS_NAME = "io.github.magisk317.relay.receiver.ForwardReceiver"
+        private const val FORWARD_RECEIVER_CLASS_NAME = "io.github.magisk317.relay.platform.ipc.ForwardReceiver"
     }
 }

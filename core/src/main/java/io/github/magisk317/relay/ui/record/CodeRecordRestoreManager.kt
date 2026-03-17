@@ -6,8 +6,9 @@ import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.utils.JsonUtils
 import io.github.magisk317.relay.common.utils.StorageUtils
 import io.github.magisk317.relay.common.utils.XLog
-import io.github.magisk317.relay.data.db.DBManager
 import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.domain.pipeline.StorageRuntimeGraph
+import kotlinx.coroutines.runBlocking
 import java.io.*
 import java.nio.charset.StandardCharsets
 
@@ -50,16 +51,13 @@ object CodeRecordRestoreManager {
         }
 
         if (smsMsgList.isNotEmpty()) {
-            val dbManager = DBManager.get(context)
-            dbManager.addSmsMsgList(smsMsgList)
-            XLog.d("Import code records to database succeed")
-
-            val allMsgList = dbManager.queryAllSmsMsg()
-            if (allMsgList.size > PrefConst.MAX_SMS_RECORDS_COUNT_DEFAULT) {
-                val outdatedMsgList = allMsgList.subList(PrefConst.MAX_SMS_RECORDS_COUNT_DEFAULT, allMsgList.size)
-                dbManager.removeSmsMsgList(outdatedMsgList)
-                XLog.d("Remove outdated code records succeed")
+            runBlocking {
+                StorageRuntimeGraph.from(context).relayRecordRepository.insertListAndTrim(
+                    smsMsgList,
+                    PrefConst.MAX_SMS_RECORDS_COUNT_DEFAULT,
+                )
             }
+            XLog.d("Import code records to database succeed")
         }
         true
     } catch (t: Throwable) {

@@ -12,6 +12,7 @@ import coil3.fetch.Fetcher
 import coil3.fetch.ImageFetchResult
 import coil3.key.Keyer
 import coil3.request.Options
+import io.github.magisk317.relay.common.utils.RomDialerPackageResolver
 import java.util.concurrent.ConcurrentHashMap
 
 data class AppIconRequest(
@@ -51,6 +52,11 @@ object AppIconLoader {
         if (label.isNullOrBlank()) return null
 
         labelToPackageCache[label]?.let { return it }
+
+        RomDialerPackageResolver.resolvePackageName(pm, label)?.let {
+            labelToPackageCache[label] = it
+            return it
+        }
 
         val installedApps = pm.getInstalledApplications(PackageManager.MATCH_ALL)
         var matchedPackage: String? = null

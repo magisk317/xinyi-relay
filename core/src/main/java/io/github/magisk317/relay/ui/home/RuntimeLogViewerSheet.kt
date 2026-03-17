@@ -18,7 +18,6 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -43,6 +42,8 @@ import io.github.magisk317.relay.common.utils.ClipboardUtils
 import io.github.magisk317.relay.common.utils.LogBundleExporter
 import io.github.magisk317.relay.common.utils.RuntimeLogEntry
 import io.github.magisk317.relay.common.utils.RuntimeLogStore
+import io.github.magisk317.relay.ui.common.SegmentedOption
+import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -169,15 +170,16 @@ fun RuntimeLogViewerSheet(onDismiss: () -> Unit) {
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                TimeFilterChip(label = "近1分钟", selected = selectedMinutes == 1) { selectedMinutes = 1 }
-                TimeFilterChip(label = "近5分钟", selected = selectedMinutes == 5) { selectedMinutes = 5 }
-                TimeFilterChip(label = "近10分钟", selected = selectedMinutes == 10) { selectedMinutes = 10 }
-                TimeFilterChip(label = "全部", selected = selectedMinutes == 0) { selectedMinutes = 0 }
-            }
+            SingleChoiceSegmentedSelector(
+                options = listOf(
+                    SegmentedOption(1, "近1分钟"),
+                    SegmentedOption(5, "近5分钟"),
+                    SegmentedOption(10, "近10分钟"),
+                    SegmentedOption(0, "全部"),
+                ),
+                selected = selectedMinutes,
+                onSelect = { selectedMinutes = it },
+            )
 
             if (entries.isEmpty()) {
                 Card(
@@ -239,19 +241,6 @@ private fun RuntimeLogCard(entry: RuntimeLogEntry) {
             )
         }
     }
-}
-
-@Composable
-private fun TimeFilterChip(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = { Text(label) },
-    )
 }
 
 private fun priorityName(priority: Int): String {

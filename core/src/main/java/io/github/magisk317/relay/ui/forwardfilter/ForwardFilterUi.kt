@@ -29,15 +29,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.github.magisk317.relay.forwarder.entity.ForwardFilterRule
-import io.github.magisk317.relay.forwarder.filter.ForwardFilterConst
-
-private val msgTypeTabs = listOf(
-    ForwardFilterConst.MSG_TYPE_SMS to "短信",
-    ForwardFilterConst.MSG_TYPE_APP_NOTIFY to "应用通知",
-)
+import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.model.ForwardFilterRule
+import io.github.magisk317.relay.domain.filter.ForwardFilterConst
+import io.github.magisk317.relay.ui.common.CenteredChipText
+import io.github.magisk317.relay.ui.common.SegmentedOption
+import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 
 @Composable
 fun ForwardFilterMsgTypeTabs(
@@ -45,6 +45,10 @@ fun ForwardFilterMsgTypeTabs(
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val msgTypeTabs = listOf(
+        ForwardFilterConst.MSG_TYPE_SMS to stringResource(id = R.string.forward_filter_msg_type_sms),
+        ForwardFilterConst.MSG_TYPE_APP_NOTIFY to stringResource(id = R.string.forward_filter_msg_type_app_notify),
+    )
     PrimaryTabRow(selectedTabIndex = msgTypeTabs.indexOfFirst { it.first == selectedMsgType }.coerceAtLeast(0), modifier = modifier) {
         msgTypeTabs.forEach { (value, label) ->
             Tab(
@@ -115,10 +119,16 @@ fun ForwardFilterRuleList(
                     }
                     Row {
                         IconButton(onClick = { onEdit(rule) }) {
-                            Icon(imageVector = Icons.Outlined.Edit, contentDescription = "编辑")
+                            Icon(
+                                imageVector = Icons.Outlined.Edit,
+                                contentDescription = stringResource(id = R.string.forward_filter_action_edit),
+                            )
                         }
                         IconButton(onClick = { onDelete(rule.id) }) {
-                            Icon(imageVector = Icons.Outlined.Delete, contentDescription = "删除")
+                            Icon(
+                                imageVector = Icons.Outlined.Delete,
+                                contentDescription = stringResource(id = R.string.action_delete),
+                            )
                         }
                     }
                 }
@@ -165,41 +175,51 @@ fun ForwardFilterRuleEditorDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text("策略", style = MaterialTheme.typography.labelMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AssistChip(
-                        onClick = { policy = ForwardFilterConst.POLICY_ALLOW },
-                        label = { Text("白名单") },
-                        enabled = policy != ForwardFilterConst.POLICY_ALLOW,
-                    )
-                    AssistChip(
-                        onClick = { policy = ForwardFilterConst.POLICY_DENY },
-                        label = { Text("黑名单") },
-                        enabled = policy != ForwardFilterConst.POLICY_DENY,
-                    )
-                }
+                Text(stringResource(id = R.string.forward_filter_strategy), style = MaterialTheme.typography.labelMedium)
+                SingleChoiceSegmentedSelector(
+                    options = listOf(
+                        SegmentedOption(
+                            ForwardFilterConst.POLICY_ALLOW,
+                            stringResource(id = R.string.forward_filter_policy_allow),
+                        ),
+                        SegmentedOption(
+                            ForwardFilterConst.POLICY_DENY,
+                            stringResource(id = R.string.forward_filter_policy_deny),
+                        ),
+                    ),
+                    selected = policy,
+                    onSelect = { policy = it },
+                )
 
-                Text("匹配方式", style = MaterialTheme.typography.labelMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AssistChip(
-                        onClick = { matchMode = ForwardFilterConst.MATCH_CONTAINS },
-                        label = { Text("包含") },
-                        enabled = matchMode != ForwardFilterConst.MATCH_CONTAINS,
-                    )
-                    AssistChip(
-                        onClick = { matchMode = ForwardFilterConst.MATCH_REGEX },
-                        label = { Text("正则") },
-                        enabled = matchMode != ForwardFilterConst.MATCH_REGEX,
-                    )
-                }
+                Text(stringResource(id = R.string.forward_filter_match_mode), style = MaterialTheme.typography.labelMedium)
+                SingleChoiceSegmentedSelector(
+                    options = listOf(
+                        SegmentedOption(
+                            ForwardFilterConst.MATCH_CONTAINS,
+                            stringResource(id = R.string.forward_filter_match_contains),
+                        ),
+                        SegmentedOption(
+                            ForwardFilterConst.MATCH_REGEX,
+                            stringResource(id = R.string.forward_filter_match_regex),
+                        ),
+                    ),
+                    selected = matchMode,
+                    onSelect = { matchMode = it },
+                )
 
                 OutlinedTextField(
                     value = pattern,
                     onValueChange = { pattern = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("关键词/表达式") },
+                    label = { Text(stringResource(id = R.string.forward_filter_pattern_label)) },
                     supportingText = {
-                        Text(if (matchMode == ForwardFilterConst.MATCH_REGEX) "使用 Kotlin Regex，忽略大小写" else "不区分大小写")
+                        Text(
+                            if (matchMode == ForwardFilterConst.MATCH_REGEX) {
+                                stringResource(id = R.string.forward_filter_pattern_regex_hint)
+                            } else {
+                                stringResource(id = R.string.forward_filter_pattern_contains_hint)
+                            },
+                        )
                     },
                     singleLine = false,
                     minLines = 2,
@@ -210,16 +230,16 @@ fun ForwardFilterRuleEditorDialog(
                         value = channelId,
                         onValueChange = { channelId = it },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("通知渠道ID") },
+                        label = { Text(stringResource(id = R.string.forward_filter_channel_id_label)) },
                         singleLine = true,
                     )
                     if (channelCandidates.isNotEmpty()) {
-                        Text("历史候选", style = MaterialTheme.typography.labelMedium)
+                        Text(stringResource(id = R.string.forward_filter_channel_history), style = MaterialTheme.typography.labelMedium)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             channelCandidates.take(6).forEach { candidate ->
                                 AssistChip(
                                     onClick = { channelId = candidate },
-                                    label = { Text(candidate, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                    label = { CenteredChipText(candidate) },
                                 )
                             }
                         }
@@ -231,7 +251,7 @@ fun ForwardFilterRuleEditorDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text("启用规则")
+                    Text(stringResource(id = R.string.forward_filter_enabled))
                     Switch(checked = enabled, onCheckedChange = { enabled = it })
                 }
             }
@@ -249,12 +269,12 @@ fun ForwardFilterRuleEditorDialog(
                     )
                 },
             ) {
-                Text("保存")
+                Text(stringResource(id = R.string.save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(stringResource(id = R.string.cancel))
             }
         },
     )

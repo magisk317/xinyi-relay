@@ -46,11 +46,16 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.utils.AppPreferencesDataStore
 import io.github.magisk317.relay.common.utils.ClipboardUtils
 import io.github.magisk317.relay.common.utils.WebUiCertificateHelper
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.data.datasource.PreferenceDataSource
+import io.github.magisk317.relay.data.repository.SettingsRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.koin.compose.koinInject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -60,6 +65,8 @@ import java.util.Locale
 fun WebUiConfigScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val repository: SettingsRepository = koinInject()
+    val preferenceDataSource: PreferenceDataSource = koinInject()
 
     var webUiEnabled by remember { mutableStateOf(true) }
     var lanAccess by remember { mutableStateOf(false) }
@@ -74,6 +81,9 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
     var certPeriodSummary by remember { mutableStateOf("") }
     var certStatusSummary by remember { mutableStateOf("") }
     var exportedP12Password by remember { mutableStateOf("") }
+    var initialLoading by remember { mutableStateOf(true) }
+    var certLoading by remember { mutableStateOf(false) }
+    var saveInProgress by remember { mutableStateOf(false) }
 
     val savedToastText = stringResource(id = R.string.pref_sync_toast)
     val portInvalidText = stringResource(id = R.string.pref_webui_port_invalid)
@@ -86,13 +96,18 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
     val certExportP12FailedText = stringResource(id = R.string.pref_webui_cert_export_p12_failed)
     val certOpenInstallerFailedText = stringResource(id = R.string.pref_webui_cert_open_installer_failed)
     val certTimeLabelText = stringResource(id = R.string.pref_webui_cert_validity_label)
+    val notifySaved = {
+        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+    }
 
     val exportCertLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/x-x509-ca-cert"),
     ) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         scope.launch {
-            WebUiCertificateHelper.exportCertificateDerToUri(context, uri)
+            withContext(Dispatchers.IO) {
+                WebUiCertificateHelper.exportCertificateDerToUri(context, preferenceDataSource, uri)
+            }
                 .onSuccess {
                     Toast.makeText(context, certExportSuccessText, Toast.LENGTH_SHORT).show()
                 }
@@ -110,7 +125,9 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
     ) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         scope.launch {
-            WebUiCertificateHelper.exportKeystoreP12ToUri(context, uri)
+            withContext(Dispatchers.IO) {
+                WebUiCertificateHelper.exportKeystoreP12ToUri(context, preferenceDataSource, uri)
+            }
                 .onSuccess { password ->
                     exportedP12Password = password
                     Toast.makeText(context, certExportP12SuccessText, Toast.LENGTH_SHORT).show()
@@ -155,7 +172,10 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
     }
 
     suspend fun refreshCertificateInfo() {
-        WebUiCertificateHelper.loadCertificateInfo(context)
+        certLoading = true
+        withContext(Dispatchers.IO) {
+            WebUiCertificateHelper.loadCertificateInfo(context, preferenceDataSource)
+        }
             .onSuccess { info ->
                 certFingerprint = info.sha256Fingerprint
                 val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
@@ -170,35 +190,41 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
                 exportedP12Password = ""
                 certStatusSummary = "$certLoadFailedText: ${err.message ?: "unknown"}"
             }
+        certLoading = false
     }
 
     LaunchedEffect(Unit) {
-        webUiEnabled = AppPreferencesDataStore.getBoolean(
-            context,
-            PrefConst.KEY_WEBUI_ENABLE,
-            true,
-        )
-        lanAccess = AppPreferencesDataStore.getBoolean(
-            context,
-            PrefConst.KEY_WEBUI_LAN_ACCESS,
-            false,
-        )
-        port = AppPreferencesDataStore.getString(
-            context,
-            PrefConst.KEY_WEBUI_PORT,
-            PrefConst.KEY_WEBUI_PORT_DEFAULT,
-        )
-        username = AppPreferencesDataStore.getString(
-            context,
-            PrefConst.KEY_WEBUI_USERNAME,
-            PrefConst.KEY_WEBUI_USERNAME_DEFAULT,
-        )
-        password = AppPreferencesDataStore.getString(
-            context,
-            PrefConst.KEY_WEBUI_PASSWORD,
-            "",
-        )
-        refreshCertificateInfo()
+        initialLoading = true
+        val snapshotDeferred = async(Dispatchers.IO) { repository.getWebUiConfig() }
+        val certDeferred = async(Dispatchers.IO) {
+            WebUiCertificateHelper.loadCertificateInfo(context, preferenceDataSource)
+        }
+
+        val snapshot = snapshotDeferred.await()
+        webUiEnabled = snapshot.enabled
+        lanAccess = snapshot.lanAccess
+        port = snapshot.port
+        username = snapshot.username
+        password = snapshot.password
+
+        certLoading = true
+        certDeferred.await()
+            .onSuccess { info ->
+                certFingerprint = info.sha256Fingerprint
+                val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+                val start = formatter.format(Date(info.notBeforeTimeMillis))
+                val end = formatter.format(Date(info.notAfterTimeMillis))
+                certPeriodSummary = "$certTimeLabelText: $start ~ $end"
+                certStatusSummary = ""
+            }
+            .onFailure { err ->
+                certFingerprint = ""
+                certPeriodSummary = ""
+                exportedP12Password = ""
+                certStatusSummary = "$certLoadFailedText: ${err.message ?: "unknown"}"
+            }
+        certLoading = false
+        initialLoading = false
     }
 
     Scaffold(
@@ -241,6 +267,13 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    if (initialLoading) {
+                        Text(
+                            text = stringResource(id = R.string.pref_webui_loading),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
 
                     androidx.compose.material3.ListItem(
                         headlineContent = { Text(text = stringResource(id = R.string.pref_webui_enable_title)) },
@@ -253,7 +286,19 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
                         trailingContent = {
                             Switch(
                                 checked = webUiEnabled,
-                                onCheckedChange = { webUiEnabled = it },
+                                onCheckedChange = { enabled ->
+                                    webUiEnabled = enabled
+                                    scope.launch {
+                                        withContext(Dispatchers.IO) {
+                                            repository.updateWebUiConfig(
+                                                io.github.magisk317.relay.data.repository.WebUiConfigUpdate(
+                                                    enabled = enabled,
+                                                ),
+                                            )
+                                        }
+                                        notifySaved()
+                                    }
+                                },
                             )
                         },
                     )
@@ -270,7 +315,19 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
                             trailingContent = {
                                 Switch(
                                     checked = lanAccess,
-                                    onCheckedChange = { lanAccess = it },
+                                    onCheckedChange = { enabled ->
+                                        lanAccess = enabled
+                                        scope.launch {
+                                            withContext(Dispatchers.IO) {
+                                                repository.updateWebUiConfig(
+                                                    io.github.magisk317.relay.data.repository.WebUiConfigUpdate(
+                                                        lanAccess = enabled,
+                                                    ),
+                                                )
+                                            }
+                                            notifySaved()
+                                        }
+                                    },
                                 )
                             },
                         )
@@ -418,6 +475,13 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
                                 color = MaterialTheme.colorScheme.error,
                             )
                         }
+                        if (certLoading) {
+                            Text(
+                                text = stringResource(id = R.string.pref_webui_loading),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -508,37 +572,25 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
                 onClick = {
                     if (!validateInput()) return@Button
                     scope.launch {
-                        AppPreferencesDataStore.setBoolean(
-                            context,
-                            PrefConst.KEY_WEBUI_ENABLE,
-                            webUiEnabled,
-                        )
-                        AppPreferencesDataStore.setBoolean(
-                            context,
-                            PrefConst.KEY_WEBUI_LAN_ACCESS,
-                            lanAccess,
-                        )
-                        AppPreferencesDataStore.setString(
-                            context,
-                            PrefConst.KEY_WEBUI_PORT,
-                            port.trim(),
-                        )
-                        AppPreferencesDataStore.setString(
-                            context,
-                            PrefConst.KEY_WEBUI_USERNAME,
-                            username.trim(),
-                        )
-                        AppPreferencesDataStore.setString(
-                            context,
-                            PrefConst.KEY_WEBUI_PASSWORD,
-                            password.trim(),
-                        )
-                        AppPreferencesDataStore.syncToSharedPrefs(context)
+                        saveInProgress = true
+                        withContext(Dispatchers.IO) {
+                            repository.updateWebUiConfig(
+                                io.github.magisk317.relay.data.repository.WebUiConfigUpdate(
+                                    enabled = webUiEnabled,
+                                    lanAccess = lanAccess,
+                                    port = port.trim(),
+                                    username = username.trim(),
+                                    password = password.trim(),
+                                ),
+                            )
+                        }
+                        saveInProgress = false
                         Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(vertical = 14.dp),
+                enabled = !saveInProgress,
             ) {
                 Text(text = stringResource(id = R.string.confirm))
             }

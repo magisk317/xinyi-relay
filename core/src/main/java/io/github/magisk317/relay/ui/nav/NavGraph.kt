@@ -10,11 +10,18 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import kotlinx.serialization.Serializable
 
+const val ROUTE_ORIGIN_ADVANCED = "advanced"
+const val ROUTE_ORIGIN_SETTINGS = "settings"
+const val ROUTE_ORIGIN_APPS = "apps"
+
 @Serializable
 object MainRoute
 
 @Serializable
 object OverviewRoute
+
+@Serializable
+object SettingsGraphRoute
 
 @Serializable
 object SettingsRoute
@@ -26,13 +33,25 @@ object FaqRoute
 object InterceptRoute
 
 @Serializable
+object RecordsGraphRoute
+
+@Serializable
 object RecordsRoute
 
 @Serializable
-object AppBlockRoute
+data class ScopedRecordsRoute(val origin: String = ROUTE_ORIGIN_ADVANCED)
 
 @Serializable
-object SendersRoute
+object AppsRoute
+
+@Serializable
+object AppGraphRoute
+
+@Serializable
+data class SendersRoute(val origin: String = ROUTE_ORIGIN_ADVANCED)
+
+@Serializable
+object AdvancedGraphRoute
 
 @Serializable
 object AdvancedRoute
@@ -41,37 +60,74 @@ object AdvancedRoute
 object WebUiConfigRoute
 
 @Serializable
-object GlobalForwardFilterRoute
+object ScheduledReminderRoute
 
 @Serializable
-data class SenderConfigRoute(val id: Long, val type: Int)
+object VerificationSettingsRoute
 
 @Serializable
-data class RulesRoute(val senderId: Long = 0)
+data class RelayConfigRoute(val origin: String = ROUTE_ORIGIN_ADVANCED)
 
 @Serializable
-data class RuleConfigRoute(val id: Long = 0)
+object DiagnosticsSettingsRoute
 
 @Serializable
-object NotificationRulesRoute
+data class GlobalForwardFilterRoute(val origin: String = ROUTE_ORIGIN_ADVANCED)
 
 @Serializable
-object AppConfigRoute
+data class SenderConfigRoute(
+    val id: Long,
+    val type: Int,
+    val origin: String = ROUTE_ORIGIN_ADVANCED,
+)
 
 @Serializable
-data class AppConfigDetailRoute(val packageName: String)
+data class RulesRoute(
+    val senderId: Long = 0,
+    val origin: String = ROUTE_ORIGIN_SETTINGS,
+)
 
 @Serializable
-data class AppNotifySenderBindingRoute(val packageName: String)
+data class RuleConfigRoute(
+    val id: Long = 0,
+    val origin: String = ROUTE_ORIGIN_SETTINGS,
+)
 
 @Serializable
-data class SenderNotifyScopeRoute(val senderId: Long)
+data class AppRoutingRoute(val origin: String = ROUTE_ORIGIN_ADVANCED)
 
 @Serializable
-data class AppForwardFilterRoute(val packageName: String)
+object AppsManageRoute
 
 @Serializable
-data class SenderForwardFilterRoute(val senderId: Long)
+data class AppConfigDetailRoute(
+    val packageName: String,
+    val origin: String = ROUTE_ORIGIN_APPS,
+)
+
+@Serializable
+data class AppNotifySenderBindingRoute(
+    val packageName: String,
+    val origin: String = ROUTE_ORIGIN_APPS,
+)
+
+@Serializable
+data class SenderNotifyScopeRoute(
+    val senderId: Long,
+    val origin: String = ROUTE_ORIGIN_ADVANCED,
+)
+
+@Serializable
+data class AppForwardFilterRoute(
+    val packageName: String,
+    val origin: String = ROUTE_ORIGIN_APPS,
+)
+
+@Serializable
+data class SenderForwardFilterRoute(
+    val senderId: Long,
+    val origin: String = ROUTE_ORIGIN_ADVANCED,
+)
 
 @Composable
 fun SmsCodeNavHost(
