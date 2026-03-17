@@ -262,7 +262,7 @@ jobs:
           PY
 
       - name: Create PR with dependency force updates
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           base: beta
           branch: chore/dependency-force-update
