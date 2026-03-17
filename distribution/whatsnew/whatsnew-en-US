@@ -1,6 +1,6 @@
-- Bumped to 0.0.1-alpha.5 (6).
-- Fixed post-reboot system_server injection failures for a more stable call-notify flow.
-- Unified notification dedup by message type to reduce duplicate records.
-- Upgraded verbose logs to dual-write (main + per-route files) with file-list summary in exports.
-- Refined parent-child setting visibility and added per-file runtime log size.
-- GitHub: https://github.com/magisk317/xinyi-relay/releases
+- Bump to 0.0.1-alpha.6 (7).
+- Settings switches now apply immediately with toast feedback.
+- Configuration save flow refactored to reduce missed or out-of-sync states.
+- Forward filters and record toggles apply immediately to avoid missed changes.
+- Reminder and code record switches now apply immediately.
+- Docs and donations list updated.
