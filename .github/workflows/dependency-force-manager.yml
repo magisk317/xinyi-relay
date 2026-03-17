@@ -46,8 +46,8 @@ jobs:
           from pathlib import Path
           import tomllib
 
-          build_path = Path("play/xinyi-relay/build.gradle.kts")
-          toml_path = Path("play/xinyi-relay/gradle/libs.versions.toml")
+          build_path = Path("build.gradle.kts")
+          toml_path = Path("gradle/libs.versions.toml")
           libs = tomllib.loads(toml_path.read_text())
           versions = libs.get("versions", {})
           libraries = libs.get("libraries", {})
@@ -92,7 +92,7 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          path = Path("play/xinyi-relay/build.gradle.kts")
+          path = Path("build.gradle.kts")
           original = path.read_text()
           lines = original.splitlines()
           new_lines = [line for line in lines if "force(" not in line]
@@ -122,8 +122,7 @@ jobs:
             for config in configs:
               print(f"Resolving {dep} in {config}...")
               cmd = [
-                "./play/xinyi-relay/gradlew",
-                "-p", "play/xinyi-relay",
+                "./gradlew",
                 ":app:dependencyInsight",
                 "--dependency", dep,
                 "--configuration", config,
@@ -140,7 +139,7 @@ jobs:
           PY
 
       - name: Restore original build file
-        run: git checkout -- play/xinyi-relay/build.gradle.kts
+        run: git checkout -- build.gradle.kts
 
       - name: Determine removable forces
         id: removable
@@ -190,12 +189,12 @@ jobs:
           from pathlib import Path
           import tomllib
 
-          build_path = Path("play/xinyi-relay/build.gradle.kts")
+          build_path = Path("build.gradle.kts")
           text = build_path.read_text().splitlines()
 
           removable = set(json.loads(Path("/tmp/removable.json").read_text()))
 
-          libs = tomllib.loads(Path("play/xinyi-relay/gradle/libs.versions.toml").read_text())
+          libs = tomllib.loads(Path("gradle/libs.versions.toml").read_text())
           versions = libs.get("versions", {})
           libraries = libs.get("libraries", {})
 
