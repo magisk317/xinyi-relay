@@ -17,7 +17,7 @@ buildscript {
 }
 
 plugins {
-    alias(libs.plugins.version.catalog.update)
+    id("nl.littlerobots.version-catalog-update") version "1.1.0"
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.kotlin.android) apply false
@@ -115,6 +115,8 @@ subprojects {
             force(catalog.netty.resolver)
             force(catalog.netty.transport)
             force(catalog.netty.buffer)
+            // BEGIN AUTO FORCED DEPENDENCIES (managed by workflow)
+            // END AUTO FORCED DEPENDENCIES (managed by workflow)
         }
     }
 }

@@ -12,7 +12,9 @@ permissions:
 jobs:
   auto-merge:
     runs-on: ubuntu-latest
-    if: ((github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'app/dependabot' || github.event.pull_request.user.login == 'renovate[bot]' || github.event.pull_request.user.login == 'app/renovate') || startsWith(github.head_ref, 'janitor/')) && github.event.pull_request.base.ref == 'beta'
+    if: |
+      github.event.pull_request.base.ref == 'beta' &&
+      contains(fromJson('["dependabot[bot]","app/dependabot","renovate[bot]","app/renovate","github-actions[bot]","magisk317"]'), github.event.pull_request.user.login)
     steps:
       - name: Dependabot metadata
         id: metadata
@@ -36,8 +38,8 @@ jobs:
           PR_URL: ${{github.event.pull_request.html_url}}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Enable auto-merge for Janitor PRs
-        if: startsWith(github.head_ref, 'janitor/')
+      - name: Enable auto-merge for GitHub Actions or magisk317 PRs
+        if: github.event.pull_request.user.login == 'github-actions[bot]' || github.event.pull_request.user.login == 'magisk317'
         run: gh pr merge --merge --delete-branch "$PR_URL"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}

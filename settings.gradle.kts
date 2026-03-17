@@ -7,5 +7,3 @@ pluginManagement {
 }
 
 include(":app", ":storage", ":core")
-
-rootProject.name = "xinyi-relay"

@@ -3,6 +3,7 @@ import java.util.Properties
 import java.util.TimeZone
 import java.util.Date
 import java.text.SimpleDateFormat
+import org.gradle.api.tasks.Exec
 
 plugins {
     alias(libs.plugins.android.application)
@@ -10,6 +11,7 @@ plugins {
     alias(libs.plugins.ksp)
     id(libs.plugins.kotlin.compose.get().pluginId)
     id(libs.plugins.kotlin.serialization.get().pluginId)
+    alias(libs.plugins.google.services)
 }
 
 val keystoreFilePath = System.getenv("KEYSTORE_FILE") ?: findProperty("tianma.keystore.path")?.toString() ?: "release.jks"
@@ -33,7 +35,7 @@ fun buildTimestamp(): String {
     if (override.isNotEmpty()) {
         return override
     }
-    return SimpleDateFormat("yyyyMMddHHmmss").apply { timeZone = TimeZone.getDefault() }.format(Date())
+    return SimpleDateFormat("yyyyMMdd_HHmmss").apply { timeZone = TimeZone.getDefault() }.format(Date())
 }
 
 val versionNameStr = libs.versions.versionName.get()
@@ -51,7 +53,13 @@ val allowConflictBypass = findProperty("allowConflictBypass")
     ?: false
 
 fun releaseBaseName(versionName: String): String {
-    return "XinyiRelay_v${versionName.replace("\\s+".toRegex(), "_")}_${releaseTime()}"
+    val normalizedVersionName = versionName.replace("\\s+".toRegex(), "_")
+    val alreadyHasBuildTimestamp = Regex(""".*-\d{8}(?:_\d{6}|\d{6})$""").matches(versionName)
+    return if (alreadyHasBuildTimestamp) {
+        "XinyiRelay_v$normalizedVersionName"
+    } else {
+        "XinyiRelay_v${normalizedVersionName}_${releaseTime()}"
+    }
 }
 
 fun releaseApkName(versionName: String, buildType: String, abiSuffix: String): String {
@@ -113,7 +121,7 @@ android {
         versionCode = versionCodeInt
         versionName = versionNameStr
 
-        buildConfigField("String", "LOG_TAG", "\"x-relay\"")
+        buildConfigField("String", "LOG_TAG", "\"relay\"")
         buildConfigField("int", "MODULE_VERSION", "$versionCodeInt")
         buildConfigField("boolean", "ALLOW_CONFLICT_BYPASS", allowConflictBypass.toString())
     }
@@ -222,6 +230,25 @@ android {
     }
 }
 
+val webuiDir = file("${rootProject.projectDir}/webui")
+
+val webuiBuild by tasks.registering(Exec::class) {
+    workingDir = webuiDir
+    commandLine("pnpm", "build")
+}
+
+val webuiSync by tasks.registering(Exec::class) {
+    workingDir = webuiDir
+    commandLine("pnpm", "sync-dist")
+    dependsOn(webuiBuild)
+}
+
+tasks.matching {
+    it.name.startsWith("assemble") && it.name.endsWith("Debug")
+}.configureEach {
+    dependsOn(webuiSync)
+}
+
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
 }
@@ -267,6 +294,13 @@ tasks.matching { it.name == "bundlePlayRelease" }.configureEach {
     finalizedBy("renamePlayReleaseAab")
 }
 
+// Google Services is only required for play/github flavors. Disable its tasks for fdroid to avoid requiring json.
+tasks.matching {
+    it.name.startsWith("processFdroid") && it.name.endsWith("GoogleServices")
+}.configureEach {
+    enabled = false
+}
+
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(project(":core"))
@@ -297,6 +331,11 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.okhttp.tls)
+
+    add("playImplementation", platform(libs.firebase.bom))
+    add("playImplementation", libs.firebase.analytics)
+    add("githubImplementation", platform(libs.firebase.bom))
+    add("githubImplementation", libs.firebase.analytics)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)

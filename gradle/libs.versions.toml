@@ -1,10 +1,10 @@
 [versions]
 # Build SDK versions
 compileSdk = "36"
-compileSdkExtension = "1"
+compileSdkExtension = "19"
 minSdk = "26"
 targetSdk = "36"
-ndk = "28.2.13676358"
+ndk = "29.0.14206865"
 
 # JVM versions
 javaBytecode = "25"
@@ -38,7 +38,7 @@ jose4j = "0.9.6"
 junit-platform = "6.0.3"
 junit5 = "6.0.3"
 koin = "4.1.1"
-kotlin = "2.3.20"
+kotlin = "2.3.20-RC3"
 kotlinx-collections-immutable = "0.4.0"
 kotlinx-serialization = "1.10.0"
 kotlin-ktor = "3.4.1"
@@ -58,6 +58,8 @@ timber = "5.0.1"
 version-catalog-update = "1.1.0"
 libxposed = "100"
 libxposed-service = "100-1.0.0"
+firebase-bom = "33.5.1"
+google-services = "4.4.2"
 
 
 [libraries]
@@ -134,6 +136,8 @@ retrofit-converter-scalars = { module = "com.squareup.retrofit2:converter-scalar
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 libxposed-api = { module = "io.github.libxposed:api", version.ref = "libxposed" }
 libxposed-service = { module = "io.github.libxposed:service", version.ref = "libxposed-service" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
+firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -147,3 +151,4 @@ kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 test-logger = { id = "com.adarshr.test-logger", version.ref = "test-logger" }
 version-catalog-update = { id = "nl.littlerobots.version-catalog-update", version.ref = "version-catalog-update" }
+google-services = { id = "com.google.gms.google-services", version.ref = "google-services" }

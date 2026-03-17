@@ -5,6 +5,7 @@ plugins {
 }
 
 val compileSdkInt = libs.versions.compileSdk.get().toInt()
+val compileSdkExtensionInt = libs.versions.compileSdkExtension.get().toInt()
 val minSdkInt = libs.versions.minSdk.get().toInt()
 val allowConflictBypass = findProperty("allowConflictBypass")
     ?.toString()
@@ -14,6 +15,7 @@ val allowConflictBypass = findProperty("allowConflictBypass")
 android {
     namespace = "io.github.magisk317.relay.core"
     compileSdk = compileSdkInt
+    compileSdkExtension = compileSdkExtensionInt
 
     flavorDimensions += "distribution"
     productFlavors {

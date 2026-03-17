@@ -42,7 +42,7 @@ android {
 
     defaultConfig {
         minSdk = libs.versions.minSdk.get().toInt()
-        buildConfigField("String", "LOG_TAG", "\"x-relay\"")
+        buildConfigField("String", "LOG_TAG", "\"relay\"")
         buildConfigField("String", "APPLICATION_ID", "\"io.github.magisk317.xinyi.relay\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
