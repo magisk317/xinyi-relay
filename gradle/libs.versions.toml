@@ -58,7 +58,7 @@ timber = "5.0.1"
 version-catalog-update = "1.1.0"
 libxposed = "100"
 libxposed-service = "100-1.0.0"
-firebase-bom = "33.16.0"
+firebase-bom = "34.10.0"
 google-services = "4.4.4"
 
 
