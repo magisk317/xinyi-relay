@@ -34,6 +34,13 @@ class HookEntry {
 
         try {
             XLog.setLogLevel(BuildConfig.LOG_LEVEL)
+            XLog.w(
+                "Diag build config: logTag=%s logLevel=%d logToXposed=%s moduleVersion=%d",
+                BuildConfig.LOG_TAG,
+                BuildConfig.LOG_LEVEL,
+                BuildConfig.LOG_TO_XPOSED,
+                BuildConfig.MODULE_VERSION,
+            )
         } catch (t: Throwable) {
             XLog.e("", t)
         }

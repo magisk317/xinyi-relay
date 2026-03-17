@@ -19,7 +19,9 @@ class NotificationManagerHookPolicyTest {
             notification = notification,
             title = "未接电话",
             body = "10086",
-            ticker = "",
+            tickerText = "",
+            expandedText = "",
+            notifyChannelId = "",
         )
 
         val skipReason = getSkipReason(
@@ -42,7 +44,9 @@ class NotificationManagerHookPolicyTest {
             notification = notification,
             title = "running",
             body = "vpn service",
-            ticker = "",
+            tickerText = "",
+            expandedText = "",
+            notifyChannelId = "",
         )
 
         val skipReason = getSkipReason(
@@ -59,7 +63,9 @@ class NotificationManagerHookPolicyTest {
         notification: Notification,
         title: String,
         body: String,
-        ticker: String,
+        tickerText: String,
+        expandedText: String,
+        notifyChannelId: String,
     ): Any {
         val method = hook.javaClass.getDeclaredMethod(
             "resolveNotifyRoute",
@@ -68,9 +74,13 @@ class NotificationManagerHookPolicyTest {
             String::class.java,
             String::class.java,
             String::class.java,
+            String::class.java,
+            String::class.java,
         )
         method.isAccessible = true
-        return requireNotNull(method.invoke(hook, packageName, notification, title, body, ticker))
+        return requireNotNull(
+            method.invoke(hook, packageName, notification, title, body, tickerText, expandedText, notifyChannelId),
+        )
     }
 
     private fun getSkipReason(

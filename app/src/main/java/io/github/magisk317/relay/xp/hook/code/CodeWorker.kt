@@ -10,7 +10,10 @@ import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.common.utils.PrefsReader
 import io.github.magisk317.relay.common.utils.SmsCodeUtils
 import io.github.magisk317.relay.common.utils.XLog
+import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.feature.reminder.SpecialAlertCoordinator
+import io.github.magisk317.relay.domain.event.RelayEvent
 import io.github.magisk317.relay.xp.hook.code.action.impl.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -85,6 +88,10 @@ class CodeWorker(
         try {
             val parseBundle = smsParseFuture.get()
             if (parseBundle == null) {
+                XLog.w(
+                    "Diag parse bundle is null: event_id=%s schedulePlainSmsForwardIfNeeded",
+                    eventId.ifBlank { "<none>" },
+                )
                 schedulePlainSmsForwardIfNeeded()
                 mScheduledExecutor.shutdown()
                 return null
@@ -92,15 +99,47 @@ class CodeWorker(
 
             val duplicated = parseBundle.getBoolean(SmsParseAction.SMS_DUPLICATED, false)
             if (duplicated) {
+                XLog.w("Diag duplicated sms skipped: event_id=%s", eventId.ifBlank { "<none>" })
                 mScheduledExecutor.shutdown()
                 return buildParseResult(blockSms)
             }
 
-            smsMsg = BundleCompat.getParcelable(parseBundle, SmsParseAction.SMS_MSG, SmsMsg::class.java) ?: return null
+            smsMsg = BundleCompat.getParcelable(parseBundle, SmsParseAction.SMS_MSG, SmsMsg::class.java) ?: run {
+                XLog.w("Diag parse bundle missing SmsMsg: event_id=%s", eventId.ifBlank { "<none>" })
+                return null
+            }
         } catch (e: Exception) {
             XLog.e("Error occurs when get SmsParseAction call value", e)
             return null
         }
+        XLog.w(
+            "Diag parse sms success: event_id=%s sender_hash=%s code_len=%d body_len=%d pkg=%s",
+            eventId.ifBlank { "<none>" },
+            senderHash(smsMsg.sender),
+            smsMsg.smsCode?.length ?: 0,
+            smsMsg.body?.length ?: 0,
+            smsMsg.packageName ?: "",
+        )
+
+        SpecialAlertCoordinator.notifyForEvent(
+            context = mPluginContext,
+            event = RelayEvent(
+                messageType = MessageType.SMS_CODE,
+                sourceType = "sms_hook",
+                sender = smsMsg.sender.orEmpty(),
+                body = smsMsg.body.orEmpty(),
+                timestamp = smsMsg.date,
+                packageName = smsMsg.packageName.orEmpty(),
+                notifyChannelId = "",
+                companyOrAppName = smsMsg.company.orEmpty(),
+                smsCode = smsMsg.smsCode,
+                callType = 0,
+                callStage = "",
+                simSlot = -1,
+                subId = 0,
+            ),
+            traceId = eventId,
+        )
 
         // 复制到剪切板 Action
         mUIHandler.post(CopyToClipboardAction(mPluginContext, mPhoneContext, smsMsg))
@@ -111,8 +150,17 @@ class CodeWorker(
         val autoInputDelayMs = PrefsReader.getAutoInputCodeDelay(mPluginContext) * 1000L
         // 自动输入 Action
         if (autoInput) {
+            XLog.w(
+                "Diag auto input scheduled: event_id=%s delayMs=%d code_len=%d pkg=%s",
+                eventId.ifBlank { "<none>" },
+                autoInputDelayMs,
+                smsMsg.smsCode?.length ?: 0,
+                smsMsg.packageName ?: "",
+            )
             val autoInputAction = AutoInputAction(mPluginContext, mPhoneContext, smsMsg)
             mScheduledExecutor.schedule(autoInputAction, autoInputDelayMs, TimeUnit.MILLISECONDS)
+        } else {
+            XLog.w("Diag auto input disabled by pref: event_id=%s", eventId.ifBlank { "<none>" })
         }
 
         // 显示通知 Action
@@ -169,6 +217,25 @@ class CodeWorker(
             "Diag non-code SMS forwarding triggered: bodyLength=%d",
             plainBody.length,
         )
+        SpecialAlertCoordinator.notifyForEvent(
+            context = mPluginContext,
+            event = RelayEvent(
+                messageType = MessageType.SMS_PLAIN,
+                sourceType = "sms_hook",
+                sender = plainSms.sender.orEmpty(),
+                body = plainBody,
+                timestamp = plainSms.date,
+                packageName = packageName.orEmpty(),
+                notifyChannelId = "",
+                companyOrAppName = company.orEmpty(),
+                smsCode = null,
+                callType = 0,
+                callStage = "",
+                simSlot = -1,
+                subId = 0,
+            ),
+            traceId = eventId,
+        )
         val forwardAction = ForwardAction(
             mPluginContext,
             mPhoneContext,
@@ -181,6 +248,11 @@ class CodeWorker(
             eventId,
         )
         mScheduledExecutor.schedule(forwardAction, 100, TimeUnit.MILLISECONDS)
+    }
+
+    private fun senderHash(sender: String?): String {
+        if (sender.isNullOrBlank()) return "<empty>"
+        return sender.takeLast(4).padStart(sender.length.coerceAtMost(4), '*')
     }
 
     private fun buildParseResult(blockSms: Boolean): ParseResult {

@@ -5,11 +5,13 @@ import android.content.Intent
 import android.os.Bundle
 import android.text.TextUtils
 import io.github.magisk317.relay.BuildConfig
+import io.github.magisk317.relay.analytics.AnalyticsTracker
+import io.github.magisk317.relay.common.utils.PrefsReader
 import io.github.magisk317.relay.common.utils.SmsCodeUtils
 import io.github.magisk317.relay.common.utils.StringUtils
 import io.github.magisk317.relay.common.utils.XLog
-import io.github.magisk317.relay.data.db.DBManager
 import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.domain.pipeline.StorageRuntimeGraph
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 
 /**
@@ -67,7 +69,10 @@ class SmsParseAction(pluginContext: Context, phoneContext: Context, smsMsg: SmsM
         XLog.w("Diag SMS body: %s", StringUtils.escape(msgBodyNotNull))
         if (mDeduplicateEnabled) {
             val duplicated = runCatching {
-                DBManager.get(mPluginContext).querySmsMsgByFingerprint(sender, msgBodyNotNull, timestamp) != null
+                kotlinx.coroutines.runBlocking {
+                    StorageRuntimeGraph.from(mPluginContext).runtimeRecordFacade
+                        .isDuplicateSms(sender, msgBodyNotNull, timestamp, SmsMsg.MSG_TYPE_SMS)
+                }
             }.getOrDefault(false)
             if (duplicated) {
                 XLog.i("Duplicate SMS detected by fingerprint, skip parsing.")
@@ -112,6 +117,16 @@ class SmsParseAction(pluginContext: Context, phoneContext: Context, smsMsg: SmsM
             date = timestamp,
             packageName = resolvedPackageName,
         )
+        if (PrefsReader.analyticsEnabled(mPluginContext)) {
+            AnalyticsTracker.logEvent(
+                "code_detected",
+                mapOf(
+                    "code_length" to smsCode.length,
+                    "package_name" to (resolvedPackageName ?: ""),
+                    "source" to "sms",
+                ),
+            )
+        }
         XLog.w(
             "Diag SMS code matched: companyPresent=%s, codeLength=%d, code=%s, body=%s",
             !company.isNullOrBlank(),

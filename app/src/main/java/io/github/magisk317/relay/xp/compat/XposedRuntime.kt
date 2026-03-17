@@ -2,6 +2,7 @@ package io.github.magisk317.relay.xp.compat
 
 import android.util.Log
 import io.github.libxposed.api.XposedInterface
+import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.common.utils.XLog
 import java.lang.reflect.Constructor
 import java.lang.reflect.Member
@@ -147,7 +148,7 @@ internal object XposedRuntime {
         }
     }
 
-    private const val LOG_TAG = "xinyi-relay"
+    private val LOG_TAG = BuildConfig.LOG_TAG
 }
 
 @Suppress("unused")

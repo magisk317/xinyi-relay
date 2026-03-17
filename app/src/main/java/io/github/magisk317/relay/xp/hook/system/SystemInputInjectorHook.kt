@@ -11,6 +11,7 @@ import android.os.Looper
 import android.os.Process
 import android.view.InputEvent
 import android.view.KeyCharacterMap
+import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.xp.hook.BaseHook
 import io.github.magisk317.relay.xp.compat.XC_MethodHook
@@ -56,7 +57,7 @@ class SystemInputInjectorHook : BaseHook() {
                 "systemMain",
                 object : XC_MethodHook() {
                     override fun afterHookedMethod(param: MethodHookParam) {
-                        XLog.i("XSmsCode: ActivityThread.systemMain hook triggered")
+                        XLog.i("relay: ActivityThread.systemMain hook triggered")
                         val activityThreadClass = XposedHelpers.findClass("android.app.ActivityThread", null)
                         val activityThread = XposedHelpers.callStaticMethod(
                             activityThreadClass,
@@ -66,16 +67,16 @@ class SystemInputInjectorHook : BaseHook() {
                         if (systemContext != null) {
                             scheduleRegister(systemContext, "zygote.systemMain")
                         } else {
-                            XposedBridge.log("XSmsCode: systemContext is null in ActivityThread.systemMain hook")
+                            XposedBridge.log("relay: systemContext is null in ActivityThread.systemMain hook")
                         }
                     }
                 },
             )
             XLog.w("SystemInputInjectorHook: hooked ActivityThread.systemMain in zygote")
-            XposedBridge.log("XSmsCode: hooked ActivityThread.systemMain in zygote")
+            XposedBridge.log("relay: hooked ActivityThread.systemMain in zygote")
         } catch (t: Throwable) {
             XLog.e("SystemInputInjectorHook: failed to hook ActivityThread.systemMain in zygote", t)
-            XposedBridge.log("XSmsCode: failed to hook ActivityThread.systemMain in zygote: ${t.message}")
+            XposedBridge.log("relay: failed to hook ActivityThread.systemMain in zygote: ${t.message}")
         }
     }
 
@@ -101,8 +102,8 @@ class SystemInputInjectorHook : BaseHook() {
             if (activityThread != null) {
                 val systemContext = XposedHelpers.callMethod(activityThread, "getSystemContext") as? Context
                 if (systemContext != null) {
-                    XLog.w("XSmsCode: System context available in onLoadPackage, registering receiver")
-                    XposedBridge.log("XSmsCode: System context available in onLoadPackage, registering receiver")
+                    XLog.w("relay: System context available in onLoadPackage, registering receiver")
+                    XposedBridge.log("relay: System context available in onLoadPackage, registering receiver")
                     scheduleRegister(systemContext, "onLoadPackage")
                     if (receiverRegistered) return
                 }
@@ -129,7 +130,7 @@ class SystemInputInjectorHook : BaseHook() {
                     object : XC_MethodHook() {
                         override fun afterHookedMethod(param: MethodHookParam) {
                             if (receiverRegistered) return
-                            XLog.i("XSmsCode: ActivityManagerService.systemReady hook triggered")
+                            XLog.i("relay: ActivityManagerService.systemReady hook triggered")
                             val context = resolveSystemContext(param.thisObject)
                             if (context != null) {
                                 scheduleRegister(context, "systemReady")
@@ -208,6 +209,15 @@ class SystemInputInjectorHook : BaseHook() {
                     val code = intent.getStringExtra("code")
                     val autoEnter = intent.getBooleanExtra("autoEnter", false)
                     val inputIntervalMs = intent.getLongExtra("inputIntervalMs", 0L).coerceAtLeast(0L)
+                    val attemptId = intent.getLongExtra("attemptId", -1L).takeIf { it > 0L }
+                    XLog.w(
+                        "Diag system receiver onReceive: uid=%d code_len=%d autoEnter=%s inputIntervalMs=%d attemptId=%s",
+                        sendingUid,
+                        code?.length ?: 0,
+                        autoEnter,
+                        inputIntervalMs,
+                        attemptId?.toString() ?: "<none>",
+                    )
                     if (!code.isNullOrEmpty()) {
                         XLog.i(
                             "SystemServer received input request: %s, autoEnter: %s, inputIntervalMs: %d",
@@ -215,7 +225,7 @@ class SystemInputInjectorHook : BaseHook() {
                             autoEnter,
                             inputIntervalMs,
                         )
-                        injectText(code, autoEnter, inputIntervalMs)
+                        injectText(context, code, autoEnter, inputIntervalMs, attemptId)
                     } else {
                         XLog.w("SystemServer received input request with empty code")
                     }
@@ -234,15 +244,15 @@ class SystemInputInjectorHook : BaseHook() {
                 context.packageName,
                 context.applicationInfo?.uid ?: -1,
             )
-            XposedBridge.log("XSmsCode: SystemInputInjectorReceiver registered source=$source pkg=${context.packageName}")
+            XposedBridge.log("relay: SystemInputInjectorReceiver registered source=$source pkg=${context.packageName}")
         } catch (t: Throwable) {
             registerAttempts += 1
             XLog.e("Failed to register receiver", t)
-            XposedBridge.log("XSmsCode: Failed to register receiver: ${t.message}")
+            XposedBridge.log("relay: Failed to register receiver: ${t.message}")
             if (registerAttempts < MAX_REGISTER_ATTEMPTS) {
                 scheduleRegister(context, "$source#retry")
             } else {
-                XposedBridge.log("XSmsCode: registerReceiver give up after $registerAttempts attempts")
+                XposedBridge.log("relay: registerReceiver give up after $registerAttempts attempts")
             }
         }
     }
@@ -390,23 +400,37 @@ class SystemInputInjectorHook : BaseHook() {
         }
     }
 
-    private fun injectText(text: String, autoEnter: Boolean = false, inputIntervalMs: Long = 0L) {
+    private fun injectText(
+        context: Context,
+        text: String,
+        autoEnter: Boolean = false,
+        inputIntervalMs: Long = 0L,
+        attemptId: Long? = null,
+    ) {
         getInputHandler().post {
+            var success = false
+            var failReason: String? = null
             try {
                 val managerPair = getInputManagerGlobal() ?: return@post
                 val (manager, method) = managerPair
                 val mode = 0 // InputManager.INJECT_INPUT_EVENT_MODE_ASYNC
                 var injectedCount = 0
+                var failedCount = 0
                 val keyCharacterMap = KeyCharacterMap.load(KeyCharacterMap.VIRTUAL_KEYBOARD)
                 text.forEachIndexed { index, char ->
                     val events = keyCharacterMap.getEvents(charArrayOf(char))
                     if (events == null) {
                         XLog.w("Failed to create key events for char: %s", char.toString())
+                        failedCount += 1
                         return@forEachIndexed
                     }
                     for (event in events) {
                         val result = invokeInject(manager, method, event, mode)
-                        if (result) injectedCount += 1
+                        if (result) {
+                            injectedCount += 1
+                        } else {
+                            failedCount += 1
+                        }
                     }
                     if (inputIntervalMs > 0L && index < text.lastIndex) {
                         Thread.sleep(inputIntervalMs)
@@ -426,18 +450,74 @@ class SystemInputInjectorHook : BaseHook() {
                         XLog.w("Injected KEYCODE_ENTER from System Server")
                     } else {
                         XLog.e("Failed to inject KEYCODE_ENTER: down=$downResult, up=$upResult")
+                        failedCount += 1
                     }
                 }
+                success = injectedCount > 0 && failedCount == 0
+                if (!success) {
+                    failReason = if (failedCount > 0) "inject_failed" else "no_event"
+                }
+                XLog.w(
+                    "Diag system inject finished: success=%s injectedCount=%d failedCount=%d autoEnter=%s attemptId=%s reason=%s",
+                    success,
+                    injectedCount,
+                    failedCount,
+                    autoEnter,
+                    attemptId?.toString() ?: "<none>",
+                    failReason ?: "<none>",
+                )
             } catch (t: Throwable) {
                 if (isInjectPermissionDenied(t)) {
                     XLog.e(
                         "InputManager inject rejected by permission. Check LSPosed scope and confirm module loads in android/system_server.",
                         t,
                     )
+                    success = false
+                    failReason = "permission_denied"
                 } else {
                     XLog.e("Failed to inject text/enter from System Server", t)
+                    success = false
+                    failReason = t.javaClass.simpleName
                 }
+                XLog.w(
+                    "Diag system inject exception: success=%s attemptId=%s reason=%s",
+                    success,
+                    attemptId?.toString() ?: "<none>",
+                    failReason ?: "<none>",
+                )
+            } finally {
+                sendAutoInputResult(context, attemptId, success, failReason)
             }
+        }
+    }
+
+    private fun sendAutoInputResult(
+        context: Context,
+        attemptId: Long?,
+        success: Boolean,
+        reason: String?,
+    ) {
+        if (attemptId == null) return
+        runCatching {
+            val intent = Intent(ACTION_AUTO_INPUT_RESULT)
+            intent.setPackage(BuildConfig.APPLICATION_ID)
+            intent.putExtra("attemptId", attemptId)
+            intent.putExtra("success", success)
+            if (!success && !reason.isNullOrBlank()) {
+                intent.putExtra("reason", reason)
+            }
+            context.sendBroadcast(intent)
+            XLog.w(
+                "Diag auto input result broadcast: attemptId=%d success=%s reason=%s",
+                attemptId,
+                success,
+                reason ?: "<none>",
+            )
+        }.onFailure { error ->
+            XLog.w(
+                "Send auto input result failed: %s",
+                error.message ?: error.javaClass.simpleName,
+            )
         }
     }
 
@@ -462,5 +542,6 @@ class SystemInputInjectorHook : BaseHook() {
         private const val ACTION_NAMESPACE = "io.github.magisk317.relay"
         @Suppress("unused")
         const val ACTION_AUTO_INPUT = "$ACTION_NAMESPACE.ACTION_AUTO_INPUT"
+        const val ACTION_AUTO_INPUT_RESULT = "$ACTION_NAMESPACE.ACTION_AUTO_INPUT_RESULT"
     }
 }

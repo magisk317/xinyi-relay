@@ -56,6 +56,7 @@ class NotificationManagerHook : BaseHook() {
         val msgType: String,
         val callType: Int = CALL_TYPE_UNKNOWN,
         val callTypeLabel: String = "",
+        val callStage: String = "",
     )
 
     override fun hookOnLoadPackage(): Boolean = true
@@ -142,13 +143,18 @@ class NotificationManagerHook : BaseHook() {
         val title = notification.extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
         val text = notification.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
         val tickerText = notification.tickerText?.toString() ?: ""
+        val expandedText = resolveExpandedText(notification)
         val notifyChannelId = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             notification.channelId.orEmpty()
         } else {
             ""
         }
 
-        val body = if (text.isNotEmpty()) text else tickerText
+        val body = when {
+            text.isNotEmpty() -> text
+            expandedText.isNotEmpty() -> expandedText
+            else -> tickerText
+        }
         if (title.isBlank() && body.isBlank()) {
             if (isWechatPackage(pkg)) {
                 XLog.w(
@@ -160,7 +166,15 @@ class NotificationManagerHook : BaseHook() {
             XLog.d("NotificationManagerHook: skip blank content. pkg=%s", pkg)
             return
         }
-        val notifyRoute = resolveNotifyRoute(pkg, notification, title, body, tickerText)
+        val notifyRoute = resolveNotifyRoute(
+            packageName = pkg,
+            notification = notification,
+            title = title,
+            body = body,
+            tickerText = tickerText,
+            expandedText = expandedText,
+            notifyChannelId = notifyChannelId,
+        )
         val skipReason = getSkipReason(
             packageName = pkg,
             notification = notification,
@@ -181,7 +195,8 @@ class NotificationManagerHook : BaseHook() {
         forwardIntent.setClassName(modulePackage, FORWARD_RECEIVER_CLASS_NAME)
         forwardIntent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
         forwardIntent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
-        forwardIntent.putExtra("sender", title)
+        val displaySender = resolveCallSender(title, body, expandedText, tickerText, notifyRoute.msgType)
+        forwardIntent.putExtra("sender", displaySender)
         forwardIntent.putExtra("body", body)
         forwardIntent.putExtra("date", System.currentTimeMillis())
         forwardIntent.putExtra("packageName", pkg)
@@ -189,6 +204,9 @@ class NotificationManagerHook : BaseHook() {
         forwardIntent.putExtra("msgType", notifyRoute.msgType)
         if (notifyRoute.msgType == MSG_TYPE_CALL_NOTIFY) {
             forwardIntent.putExtra("call_type", notifyRoute.callType)
+            if (notifyRoute.callStage.isNotBlank()) {
+                forwardIntent.putExtra("call_stage", notifyRoute.callStage)
+            }
         }
         forwardIntent.putExtra("forward_source", "nms_hook")
         forwardIntent.putExtra("event_id", eventId)
@@ -239,29 +257,155 @@ class NotificationManagerHook : BaseHook() {
         title: String,
         body: String,
         tickerText: String,
+        expandedText: String,
+        notifyChannelId: String,
     ): NotifyRoute {
-        val normalizedText = normalizeCallHintText(title, body, tickerText)
+        val normalizedText = normalizeCallHintText(title, body, tickerText, expandedText)
         val isCallCategory = notification.category == Notification.CATEGORY_CALL
         val isDialerPackage = isDialerPackage(packageName)
         val hasCallKeyword = containsAnyKeyword(normalizedText, CALL_NOTIFY_KEYWORDS)
-        val isCallNotify = isCallCategory || (isDialerPackage && hasCallKeyword)
+        val isCallNotify = (isDialerPackage && isCallCategory) || (isDialerPackage && hasCallKeyword)
         if (!isCallNotify) return NotifyRoute(msgType = MSG_TYPE_APP_NOTIFY)
-        val callType = resolveCallType(normalizedText)
+        var callType = resolveCallType(normalizedText)
+        if (callType == CALL_TYPE_UNKNOWN && isDialerPackage && isCallCategory) {
+            callType = CALL_TYPE_INCOMING
+        }
+        val callStage = resolveCallStage(
+            callType = callType,
+            isCallCategory = isCallCategory || hasCallKeyword,
+            normalizedText = normalizedText,
+            notifyChannelId = notifyChannelId,
+        )
         return NotifyRoute(
             msgType = MSG_TYPE_CALL_NOTIFY,
             callType = callType,
             callTypeLabel = callTypeLabel(callType),
+            callStage = callStage,
         )
     }
 
-    private fun normalizeCallHintText(title: String, body: String, tickerText: String): String {
+    private fun normalizeCallHintText(
+        title: String,
+        body: String,
+        tickerText: String,
+        expandedText: String,
+    ): String {
         return buildString {
             append(title)
             append('\n')
             append(body)
             append('\n')
             append(tickerText)
+            if (expandedText.isNotBlank()) {
+                append('\n')
+                append(expandedText)
+            }
         }.lowercase(Locale.ROOT)
+    }
+
+    private fun resolveExpandedText(notification: Notification): String {
+        val extras = notification.extras
+        val bigText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString().orEmpty()
+        val subText = extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString().orEmpty()
+        val lines = extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
+            ?.mapNotNull { it?.toString() }
+            ?.joinToString("\n")
+            .orEmpty()
+        return listOf(bigText, lines, subText).firstOrNull { it.isNotBlank() }.orEmpty()
+    }
+
+    private fun resolveCallStage(
+        callType: Int,
+        isCallCategory: Boolean,
+        normalizedText: String,
+        notifyChannelId: String,
+    ): String {
+        return when (callType) {
+            CALL_TYPE_MISSED,
+            CALL_TYPE_REJECTED,
+            CALL_TYPE_BLOCKED,
+            CALL_TYPE_VOICEMAIL,
+            -> "ended"
+            CALL_TYPE_OUTGOING -> "dialing"
+            CALL_TYPE_INCOMING -> "ringing"
+            else -> {
+                if (isOngoingCallChannel(notifyChannelId) || containsAnyKeyword(normalizedText, ONGOING_CALL_KEYWORDS)) {
+                    "ongoing"
+                } else if (isCallCategory) {
+                    "ongoing"
+                } else {
+                    ""
+                }
+            }
+        }
+    }
+
+    private fun resolveCallSender(
+        title: String,
+        body: String,
+        expandedText: String,
+        tickerText: String,
+        msgType: String,
+    ): String {
+        if (msgType != MSG_TYPE_CALL_NOTIFY) return title
+        val normalizedTitle = title.trim()
+        val number = extractPhoneNumber(title, body, expandedText, tickerText)
+        if (number.isBlank()) return title
+        if (normalizedTitle.isBlank() || isGenericCallTitle(normalizedTitle) || normalizedTitle.none { it.isDigit() }) {
+            return number
+        }
+        return title
+    }
+
+    private fun extractPhoneNumber(
+        title: String,
+        body: String,
+        expandedText: String,
+        tickerText: String,
+    ): String {
+        val combined = buildString {
+            append(title)
+            append('\n')
+            append(body)
+            append('\n')
+            append(expandedText)
+            append('\n')
+            append(tickerText)
+        }
+        val matcher = PHONE_CANDIDATE_REGEX.findAll(combined)
+        var best = ""
+        for (match in matcher) {
+            val normalized = normalizeDigits(match.value)
+            if (normalized.length < 6) continue
+            if (normalized.length > best.length) {
+                best = normalized
+            }
+        }
+        return best
+    }
+
+    private fun normalizeDigits(raw: String): String {
+        val digits = raw.filter { it.isDigit() }
+        if (digits.isBlank()) return ""
+        return if (
+            digits.startsWith(MAINLAND_CHINA_COUNTRY_CODE) &&
+            digits.length > MAINLAND_CHINA_MOBILE_LENGTH
+        ) {
+            digits.removePrefix(MAINLAND_CHINA_COUNTRY_CODE)
+        } else {
+            digits
+        }
+    }
+
+    private fun isGenericCallTitle(rawTitle: String): Boolean {
+        val normalized = rawTitle.lowercase(Locale.ROOT).replace("\\s+".toRegex(), " ").trim()
+        if (normalized.isBlank()) return true
+        return GENERIC_CALL_TITLES.any { normalized.contains(it) }
+    }
+
+    private fun isOngoingCallChannel(notifyChannelId: String): Boolean {
+        val normalized = notifyChannelId.lowercase(Locale.ROOT)
+        return normalized.contains("ongoing") || normalized.contains("incall") || normalized.contains("in_call")
     }
 
     private fun isDialerPackage(packageName: String): Boolean {
@@ -1076,7 +1220,9 @@ class NotificationManagerHook : BaseHook() {
     }
 
     companion object {
-        private const val FORWARD_RECEIVER_CLASS_NAME = "io.github.magisk317.relay.receiver.ForwardReceiver"
+        private const val MAINLAND_CHINA_COUNTRY_CODE = "86"
+        private const val MAINLAND_CHINA_MOBILE_LENGTH = 11
+        private const val FORWARD_RECEIVER_CLASS_NAME = "io.github.magisk317.relay.platform.ipc.ForwardReceiver"
         private const val FORCE_STOP_RECOVERY_SERVICE_CLASS_NAME =
             "io.github.magisk317.relay.service.ForceStopRecoveryService"
         private const val MAIN_ACTIVITY_CLASS_NAME = "io.github.magisk317.relay.ui.home.MainActivity"
@@ -1125,6 +1271,12 @@ class NotificationManagerHook : BaseHook() {
             "dialed",
             "已拨电话",
         )
+        private val ONGOING_CALL_KEYWORDS = setOf(
+            "通话中",
+            "正在通话",
+            "ongoing call",
+            "in call",
+        )
         private val REJECTED_CALL_KEYWORDS = setOf(
             "拒接",
             "已拒接",
@@ -1149,6 +1301,25 @@ class NotificationManagerHook : BaseHook() {
             add("电话")
             add("call")
         }
+        private val GENERIC_CALL_TITLES = setOf(
+            "未接电话",
+            "未接来电",
+            "未接",
+            "missed call",
+            "missed",
+            "来电提醒",
+            "来电",
+            "incoming call",
+            "incoming",
+            "通话",
+            "电话",
+            "去电",
+            "outgoing call",
+            "outgoing",
+            "通话中",
+            "ongoing call",
+        )
+        private val PHONE_CANDIDATE_REGEX = Regex("(\\+?\\d[\\d\\s\\-]{4,}\\d)")
         private const val RECOVERY_COOLDOWN_MS = 3000L
         private const val FOREGROUND_RELAUNCH_COOLDOWN_MS = 60_000L
         private const val RECOVERY_PREF_CACHE_MS = 30_000L

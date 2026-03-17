@@ -227,6 +227,13 @@ class SmsHandlerHook : BaseHook() {
             XLog.e("Context is null, skip parsing. pluginContext: %s, phoneContext: %s", pluginContext, phoneContext)
             return
         }
+        XLog.w(
+            "Diag worker start: event_id=%s pluginPkg=%s phonePkg=%s receiverIndex=%d",
+            eventId,
+            pluginContext.packageName,
+            phoneContext.packageName,
+            receiverIndex,
+        )
         val smsMsg = runCatching { SmsMsg.fromIntent(intent) }.getOrNull()
         val blacklistResult = SmsBlacklistUtils.match(pluginContext, smsMsg?.sender, smsMsg?.body)
         if (blacklistResult.matched) {
