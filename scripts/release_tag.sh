@@ -64,6 +64,30 @@ run_sync_fastlane_metadata() {
   echo "Fastlane metadata sync completed."
 }
 
+auto_commit_fastlane_metadata() {
+  local fastlane_status
+
+  if ! git -C "$ROOT_DIR" diff --cached --quiet; then
+    echo "ERROR: staged changes detected; refusing to auto-commit fastlane metadata." >&2
+    echo "Hint: commit or unstage existing changes before running release_tag.sh." >&2
+    exit 1
+  fi
+
+  fastlane_status="$(git -C "$ROOT_DIR" status --porcelain -- "$FASTLANE_META_DIR")"
+  if [[ -z "$fastlane_status" ]]; then
+    echo "Fastlane metadata is already clean; no auto-commit needed."
+    return
+  fi
+
+  echo "Fastlane metadata updated; committing changes..."
+  git -C "$ROOT_DIR" add "$FASTLANE_META_DIR"
+  if git -C "$ROOT_DIR" diff --cached --quiet; then
+    echo "WARN: no staged fastlane metadata changes after add." >&2
+    return
+  fi
+  git -C "$ROOT_DIR" commit -m "chore(release): sync fastlane metadata"
+}
+
 run_pre_push_checks() {
   echo "Running pre-push CI command..."
   (
@@ -164,6 +188,7 @@ ensure_fastlane_changelogs_ready() {
 
 run_sync_readme_badges
 run_sync_fastlane_metadata
+auto_commit_fastlane_metadata
 ensure_fastlane_changelogs_ready
 run_webui_checks
 "$ROOT_DIR/scripts/check_release_guard.sh" "$TAG_NAME"
