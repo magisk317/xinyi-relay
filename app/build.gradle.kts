@@ -126,9 +126,14 @@ android {
         buildConfigField("boolean", "ALLOW_CONFLICT_BYPASS", allowConflictBypass.toString())
     }
 
+    val isBundleTask = gradle.startParameter.taskNames.any { name ->
+        val lowered = name.lowercase()
+        lowered.contains("bundle")
+    }
     splits {
         abi {
-            isEnable = hasProperty("buildSplits")
+            // Disable ABI splits when building App Bundle, even if -PbuildSplits is passed.
+            isEnable = hasProperty("buildSplits") && !isBundleTask
             reset()
             include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
             isUniversalApk = true
