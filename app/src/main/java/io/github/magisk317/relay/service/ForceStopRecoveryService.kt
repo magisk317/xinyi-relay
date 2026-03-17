@@ -5,7 +5,7 @@ import android.content.Intent
 import android.os.IBinder
 import io.github.magisk317.relay.common.utils.RuntimeLogStore
 import io.github.magisk317.relay.common.utils.XLog
-import io.github.magisk317.relay.forwarder.recovery.RootDbCatchupScheduler
+import io.github.magisk317.relay.domain.recovery.RootDbCatchupScheduler
 
 /**
  * Lightweight wake-up service used by system-side Xposed hook to revive app process
