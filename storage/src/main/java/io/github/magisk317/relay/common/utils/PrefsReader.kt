@@ -2,6 +2,7 @@ package io.github.magisk317.relay.common.utils
 
 import android.content.SharedPreferences
 import android.content.Context
+import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.xp.NoopXpRuntimeBridge
 import io.github.magisk317.relay.common.xp.XpCapabilities
@@ -12,8 +13,10 @@ import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.storage.BuildConfig
 import java.util.concurrent.atomic.AtomicBoolean
 
+// Phase3 complete: PrefsReader is runtime/Xposed/跨进程只读 only.
+// Source-chain resolution lives in PrefsSourceChain; do not add more business getters here.
 object PrefsReader {
-    private const val PREFS_NAME = "xposed_prefs"
+    internal const val PREFS_NAME = "xposed_prefs"
     private data class BooleanReadTrace(val value: Boolean, val source: String)
     private data class StringReadTrace(val value: String, val source: String)
     private val providerPrefsSource = ProviderPrefsSource()
@@ -25,6 +28,7 @@ object PrefsReader {
 
     @JvmStatic
     fun installRuntimeBridge(bridge: XpRuntimeBridge?) {
+        // Runtime bridge installation stays here to keep hook-side initialization centralized.
         runtimeBridge = bridge ?: NoopXpRuntimeBridge
         runtimeBridgeLogOnce.set(false)
         logRuntimeBridgeOnce()
@@ -52,17 +56,12 @@ object PrefsReader {
     }
 
     private fun resolveSources(): List<PrefsSource> {
-        val remoteSource = runCatching {
-            runtimeBridge.remotePrefsSource(PREFS_NAME)
-        }.getOrElse {
-            safeWarn("PrefsReader: runtime bridge remote source resolve failed", it)
-            null
-        }
-        return buildList {
-            if (remoteSource != null) add(remoteSource)
-            add(providerPrefsSource)
-            add(sharedPrefsSource)
-        }
+        return PrefsSourceChain.resolveSources(
+            runtimeBridge = runtimeBridge,
+            providerSource = providerPrefsSource,
+            sharedPrefsSource = sharedPrefsSource,
+            warn = ::safeWarn,
+        )
     }
 
     private fun getSharedPrefs(context: Context): SharedPreferences? {
@@ -82,51 +81,49 @@ object PrefsReader {
         key: String,
         defaultValue: Boolean,
         sources: List<PrefsSource> = resolveSources(),
-    ): PrefReadResult<Boolean> {
-        logRuntimeBridgeOnce()
-        for (source in sources) {
-            val result = runCatching { source.readBoolean(context, key, defaultValue) }
-                .onFailure { safeWarn("PrefsReader: source=%s bool key=%s failed", source.sourceName, key, it) }
-                .getOrNull()
-            if (result != null) return result
-        }
-        return PrefReadResult(defaultValue, "default")
-    }
+    ): PrefReadResult<Boolean> = PrefsSourceChain.resolveBoolean(
+        context = context,
+        key = key,
+        defaultValue = defaultValue,
+        sources = sources,
+        logRuntimeBridgeOnce = ::logRuntimeBridgeOnce,
+        warn = ::safeWarn,
+    )
 
     private fun resolveString(
         context: Context,
         key: String,
         defaultValue: String,
         sources: List<PrefsSource> = resolveSources(),
-    ): PrefReadResult<String> {
-        logRuntimeBridgeOnce()
-        for (source in sources) {
-            val result = runCatching { source.readString(context, key, defaultValue) }
-                .onFailure { safeWarn("PrefsReader: source=%s string key=%s failed", source.sourceName, key, it) }
-                .getOrNull()
-            if (result != null) return result
-        }
-        return PrefReadResult(defaultValue, "default")
-    }
+    ): PrefReadResult<String> = PrefsSourceChain.resolveString(
+        context = context,
+        key = key,
+        defaultValue = defaultValue,
+        sources = sources,
+        logRuntimeBridgeOnce = ::logRuntimeBridgeOnce,
+        warn = ::safeWarn,
+    )
 
     private fun resolveInt(
         context: Context,
         key: String,
         defaultValue: Int,
         sources: List<PrefsSource> = resolveSources(),
-    ): PrefReadResult<Int> {
-        logRuntimeBridgeOnce()
-        for (source in sources) {
-            val result = runCatching { source.readInt(context, key, defaultValue) }
-                .onFailure { safeWarn("PrefsReader: source=%s int key=%s failed", source.sourceName, key, it) }
-                .getOrNull()
-            if (result != null) return result
-        }
-        return PrefReadResult(defaultValue, "default")
-    }
+    ): PrefReadResult<Int> = PrefsSourceChain.resolveInt(
+        context = context,
+        key = key,
+        defaultValue = defaultValue,
+        sources = sources,
+        logRuntimeBridgeOnce = ::logRuntimeBridgeOnce,
+        warn = ::safeWarn,
+    )
 
     private fun safeWarn(message: String, vararg args: Any?) {
         runCatching { XLog.w(message, *args) }
+    }
+
+    private fun safeWarn(message: String, error: Throwable?) {
+        runCatching { XLog.w(message, error) }
     }
 
     private fun safeInfo(message: String, vararg args: Any?) {
@@ -284,13 +281,25 @@ object PrefsReader {
     }
 
     @JvmStatic
+    fun verificationFeaturesEnabled(context: Context): Boolean {
+        return getBooleanViaProvider(context, PrefConst.KEY_VERIFICATION_FEATURES_ENABLED, true)
+    }
+
+    @JvmStatic
+    fun relayFeaturesEnabled(context: Context): Boolean {
+        return getBooleanViaProvider(context, PrefConst.KEY_RELAY_FEATURES_ENABLED, true)
+    }
+
+    @JvmStatic
     fun autoInputCodeEnabled(context: Context): Boolean {
+        if (!verificationFeaturesEnabled(context)) return false
         val defaultValue = true
         return getBooleanViaProvider(context, PrefConst.KEY_ENABLE_AUTO_INPUT_CODE, defaultValue)
     }
 
     @JvmStatic
     fun autoEnterCodeEnabled(context: Context): Boolean {
+        if (!verificationFeaturesEnabled(context)) return false
         val defaultValue = false
         return getBooleanViaProvider(context, PrefConst.KEY_ENABLE_AUTO_ENTER_CODE, defaultValue)
     }
@@ -325,6 +334,7 @@ object PrefsReader {
 
     @JvmStatic
     fun shouldShowToast(context: Context): Boolean {
+        if (!verificationFeaturesEnabled(context)) return false
         val defaultValue = true
         return getBooleanViaProvider(context, PrefConst.KEY_SHOW_TOAST, defaultValue)
     }
@@ -350,6 +360,7 @@ object PrefsReader {
 
     @JvmStatic
     fun copyToClipboardEnabled(context: Context): Boolean {
+        if (!verificationFeaturesEnabled(context)) return false
         val defaultValue = false
         val trace = readBooleanWithTrace(context, PrefConst.KEY_COPY_TO_CLIPBOARD, defaultValue)
         XLog.w(
@@ -359,6 +370,157 @@ object PrefsReader {
             defaultValue,
         )
         return trace.value
+    }
+
+    @JvmStatic
+    fun analyticsEnabled(context: Context): Boolean {
+        val defaultValue = true
+        return getBooleanViaProvider(context, PrefConst.KEY_ENABLE_ANALYTICS, defaultValue)
+    }
+
+    @JvmStatic
+    fun lowBatteryReminderEnabled(context: Context): Boolean {
+        return getBooleanViaProvider(context, PrefConst.KEY_LOW_BATTERY_REMINDER_ENABLE, false)
+    }
+
+    @JvmStatic
+    fun lowBatteryThreshold(context: Context): Int {
+        return getIntViaProvider(context, PrefConst.KEY_LOW_BATTERY_THRESHOLD, PrefConst.LOW_BATTERY_THRESHOLD_DEFAULT)
+            .coerceIn(1, 100)
+    }
+
+    @JvmStatic
+    fun lowBatteryChannelId(context: Context): String {
+        return getStringViaProvider(
+            context,
+            PrefConst.KEY_LOW_BATTERY_CHANNEL_ID,
+            "",
+        )
+    }
+
+    @JvmStatic
+    fun fullBatteryReminderEnabled(context: Context): Boolean {
+        return getBooleanViaProvider(context, PrefConst.KEY_FULL_BATTERY_REMINDER_ENABLE, false)
+    }
+
+    @JvmStatic
+    fun fullBatteryChannelId(context: Context): String {
+        return getStringViaProvider(
+            context,
+            PrefConst.KEY_FULL_BATTERY_CHANNEL_ID,
+            "",
+        )
+    }
+
+    @JvmStatic
+    fun callAlertLocalEnabled(context: Context): Boolean {
+        return getBooleanViaProvider(context, PrefConst.KEY_CALL_ALERT_LOCAL_ENABLED, false)
+    }
+
+    @JvmStatic
+    fun callAlertForwardEnabled(context: Context): Boolean {
+        return getBooleanViaProvider(context, PrefConst.KEY_CALL_ALERT_FORWARD_ENABLED, false)
+    }
+
+    @JvmStatic
+    fun callAlertChannelId(context: Context): String {
+        return getStringViaProvider(
+            context,
+            PrefConst.KEY_CALL_ALERT_CHANNEL_ID,
+            "",
+        )
+    }
+
+    @JvmStatic
+    fun smsKeywordAlertEnabled(context: Context): Boolean {
+        return getBooleanViaProvider(context, PrefConst.KEY_SMS_KEYWORD_ALERT_ENABLED, false)
+    }
+
+    @JvmStatic
+    fun smsKeywordAlertKeywords(context: Context): String {
+        return getStringViaProvider(context, PrefConst.KEY_SMS_KEYWORD_ALERT_KEYWORDS, "")
+    }
+
+    @JvmStatic
+    fun smsKeywordAlertNotificationEnabled(context: Context): Boolean {
+        return getBooleanViaProvider(context, PrefConst.KEY_SMS_KEYWORD_ALERT_NOTIFICATION, true)
+    }
+
+    @JvmStatic
+    fun smsKeywordAlertSoundEnabled(context: Context): Boolean {
+        return getBooleanViaProvider(context, PrefConst.KEY_SMS_KEYWORD_ALERT_SOUND, true)
+    }
+
+    @JvmStatic
+    fun smsKeywordAlertVibrateEnabled(context: Context): Boolean {
+        return getBooleanViaProvider(context, PrefConst.KEY_SMS_KEYWORD_ALERT_VIBRATE, true)
+    }
+
+    @JvmStatic
+    fun appKeywordAlertEnabled(context: Context): Boolean {
+        return getBooleanViaProvider(context, PrefConst.KEY_APP_KEYWORD_ALERT_ENABLED, false)
+    }
+
+    @JvmStatic
+    fun appKeywordAlertKeywords(context: Context): String {
+        return getStringViaProvider(context, PrefConst.KEY_APP_KEYWORD_ALERT_KEYWORDS, "")
+    }
+
+    @JvmStatic
+    fun appKeywordAlertNotificationEnabled(context: Context): Boolean {
+        return getBooleanViaProvider(context, PrefConst.KEY_APP_KEYWORD_ALERT_NOTIFICATION, true)
+    }
+
+    @JvmStatic
+    fun appKeywordAlertSoundEnabled(context: Context): Boolean {
+        return getBooleanViaProvider(context, PrefConst.KEY_APP_KEYWORD_ALERT_SOUND, true)
+    }
+
+    @JvmStatic
+    fun appKeywordAlertVibrateEnabled(context: Context): Boolean {
+        return getBooleanViaProvider(context, PrefConst.KEY_APP_KEYWORD_ALERT_VIBRATE, true)
+    }
+
+    @JvmStatic
+    fun isMessageTypeEnabled(context: Context, messageType: MessageType): Boolean {
+        val defaultValue = defaultMessageTypeEnabled(messageType)
+        val result = resolveBoolean(context, messageType.prefKey, defaultValue)
+        if (messageType == MessageType.CALL_NOTIFY && result.source == "default") {
+            return callAlertForwardEnabled(context)
+        }
+        return result.value
+    }
+
+    @JvmStatic
+    fun defaultMessageTypeEnabled(messageType: MessageType): Boolean {
+        return when (messageType) {
+            MessageType.SMS_CODE -> true
+            MessageType.SMS_PLAIN -> true
+            MessageType.APP_NOTIFY -> true
+            MessageType.CALL_NOTIFY -> false
+        }
+    }
+
+    @JvmStatic
+    fun isMessageTypeRecordEnabled(context: Context, messageType: MessageType): Boolean {
+        return when (messageType) {
+            MessageType.SMS_CODE -> recordCodeSmsEnabled(context)
+            MessageType.SMS_PLAIN -> recordPlainSmsEnabled(context)
+            MessageType.APP_NOTIFY -> recordAppNotifyEnabled(context)
+            MessageType.CALL_NOTIFY -> recordCallNotifyEnabled(context)
+        }
+    }
+
+    @JvmStatic
+    fun isMessageTypeSpecialAlertEnabled(context: Context, messageType: MessageType): Boolean {
+        return when (messageType) {
+            MessageType.SMS_CODE,
+            MessageType.SMS_PLAIN,
+            -> smsKeywordAlertEnabled(context)
+
+            MessageType.APP_NOTIFY -> appKeywordAlertEnabled(context)
+            MessageType.CALL_NOTIFY -> callAlertLocalEnabled(context)
+        }
     }
 
     @JvmStatic
@@ -420,12 +582,14 @@ object PrefsReader {
 
     @JvmStatic
     fun showCodeNotification(context: Context): Boolean {
+        if (!verificationFeaturesEnabled(context)) return false
         val defaultValue = true
         return getBooleanViaProvider(context, PrefConst.KEY_SHOW_CODE_NOTIFICATION, defaultValue)
     }
 
     @JvmStatic
     fun autoCancelCodeNotification(context: Context): Boolean {
+        if (!verificationFeaturesEnabled(context)) return false
         val defaultValue = false
         return getBooleanViaProvider(context, PrefConst.KEY_AUTO_CANCEL_CODE_NOTIFICATION, defaultValue)
     }

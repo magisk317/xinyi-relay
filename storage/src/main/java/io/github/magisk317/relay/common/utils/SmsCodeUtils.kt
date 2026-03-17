@@ -54,18 +54,26 @@ object SmsCodeUtils {
     /**
      * 解析文本中的验证码并返回，如果不存在返回空字符
      */
-    suspend fun parseSmsCodeIfExists(context: Context, content: String): String {
+    suspend fun parseSmsCodeIfExists(
+        context: Context,
+        content: String,
+        keywordsRegexOverride: String? = null,
+    ): String {
         val customResult = parseByCustomRules(context, content)
-        val defaultResult = parseByDefaultRule(context, content)
+        val defaultResult = parseByDefaultRule(context, content, keywordsRegexOverride)
         return pickBetterCode(customResult, defaultResult)
     }
 
     /**
      * Parse SMS code by default rule
      */
-    private suspend fun parseByDefaultRule(context: Context, content: String): String {
+    private suspend fun parseByDefaultRule(
+        context: Context,
+        content: String,
+        keywordsRegexOverride: String?,
+    ): String {
         var result = ""
-        val keywordsRegex = loadCodeKeywordsBySP(context) ?: ""
+        val keywordsRegex = keywordsRegexOverride ?: loadCodeKeywordsBySP(context).orEmpty()
         val keyword = parseKeyword(keywordsRegex, content)
         if (!TextUtils.isEmpty(keyword)) {
             val cnCode = if (containsChinese(content)) getSmsCodeCN(keyword, content) else ""

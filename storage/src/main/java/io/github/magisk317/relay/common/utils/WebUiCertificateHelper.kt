@@ -3,6 +3,7 @@ package io.github.magisk317.relay.common.utils
 import android.content.Context
 import android.net.Uri
 import io.github.magisk317.relay.common.constant.PrefConst
+import io.github.magisk317.relay.data.datasource.PreferenceDataSource
 import java.io.File
 import java.io.FileInputStream
 import java.security.KeyStore
@@ -25,10 +26,12 @@ object WebUiCertificateHelper {
     private const val LEGACY_KEY_ALIAS = "xsmscode-webui"
     private const val LEGACY_KEY_CA_ALIAS = "xsmscode-webui-ca"
 
-    suspend fun loadCertificateInfo(context: Context): Result<CertificateInfo> = runCatching {
+    suspend fun loadCertificateInfo(
+        context: Context,
+        preferenceDataSource: PreferenceDataSource,
+    ): Result<CertificateInfo> = runCatching {
         val appContext = context.applicationContext ?: context
-        val keyStorePassword = AppPreferencesDataStore.getString(
-            appContext,
+        val keyStorePassword = preferenceDataSource.getString(
             PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS,
             "",
         )
@@ -69,8 +72,12 @@ object WebUiCertificateHelper {
         )
     }
 
-    suspend fun exportCertificateDerToUri(context: Context, targetUri: Uri): Result<Unit> = runCatching {
-        val info = loadCertificateInfo(context).getOrThrow()
+    suspend fun exportCertificateDerToUri(
+        context: Context,
+        preferenceDataSource: PreferenceDataSource,
+        targetUri: Uri,
+    ): Result<Unit> = runCatching {
+        val info = loadCertificateInfo(context, preferenceDataSource).getOrThrow()
         val resolver = context.contentResolver
         resolver.openOutputStream(targetUri)?.use { output ->
             output.write(info.derBytes)
@@ -78,10 +85,13 @@ object WebUiCertificateHelper {
         } ?: error("openOutputStream returned null")
     }
 
-    suspend fun exportKeystoreP12ToUri(context: Context, targetUri: Uri): Result<String> = runCatching {
+    suspend fun exportKeystoreP12ToUri(
+        context: Context,
+        preferenceDataSource: PreferenceDataSource,
+        targetUri: Uri,
+    ): Result<String> = runCatching {
         val appContext = context.applicationContext ?: context
-        val keyStorePassword = AppPreferencesDataStore.getString(
-            appContext,
+        val keyStorePassword = preferenceDataSource.getString(
             PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS,
             "",
         )

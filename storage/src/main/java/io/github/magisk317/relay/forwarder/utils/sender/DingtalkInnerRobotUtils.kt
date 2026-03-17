@@ -1,9 +1,9 @@
 package io.github.magisk317.relay.forwarder.utils.sender
 
 import android.text.TextUtils
-import io.github.magisk317.relay.forwarder.entity.MsgInfo
-import io.github.magisk317.relay.forwarder.entity.result.DingtalkInnerRobotResult
-import io.github.magisk317.relay.forwarder.entity.setting.DingtalkInnerRobotSetting
+import io.github.magisk317.relay.model.MsgInfo
+import io.github.magisk317.relay.model.result.DingtalkInnerRobotResult
+import io.github.magisk317.relay.model.setting.DingtalkInnerRobotSetting
 import com.google.gson.Gson
 import okhttp3.Authenticator
 import okhttp3.Credentials

@@ -6,39 +6,47 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import io.github.magisk317.relay.forwarder.entity.ForwardFilterRule
-import io.github.magisk317.relay.forwarder.database.dao.RuleDao
-import io.github.magisk317.relay.forwarder.database.dao.SenderDao
-import io.github.magisk317.relay.forwarder.database.ext.ConvertersDate
-import io.github.magisk317.relay.forwarder.database.ext.ConvertersSenderList
-import io.github.magisk317.relay.forwarder.entity.Rule
-import io.github.magisk317.relay.forwarder.entity.Sender
+import io.github.magisk317.relay.data.db.entity.ForwardFilterRuleEntity
+import io.github.magisk317.relay.data.db.dao.RuleDao
+import io.github.magisk317.relay.data.db.dao.SenderDao
+import io.github.magisk317.relay.data.db.ext.ConvertersDate
+import io.github.magisk317.relay.data.db.ext.ConvertersSenderList
+import io.github.magisk317.relay.data.db.entity.RuleEntity
+import io.github.magisk317.relay.data.db.entity.SenderEntity
 import io.github.magisk317.relay.data.db.dao.AppInfoDao
+import io.github.magisk317.relay.data.db.dao.AutoInputEventDao
 import io.github.magisk317.relay.data.db.dao.ForwardFilterRuleDao
 import io.github.magisk317.relay.data.db.dao.NotifyRouteRuleDao
+import io.github.magisk317.relay.data.db.dao.SenderDispatchLogDao
 import io.github.magisk317.relay.data.db.dao.SmsCodeRuleDao
 import io.github.magisk317.relay.data.db.dao.SmsMsgDao
 import io.github.magisk317.relay.data.db.entity.AppInfo
+import io.github.magisk317.relay.data.db.entity.AutoInputEvent
 import io.github.magisk317.relay.data.db.entity.NotifyRouteRule
 import io.github.magisk317.relay.data.db.entity.SmsCodeRule
 import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.data.db.entity.SenderDispatchLog
 import io.github.magisk317.relay.common.utils.XLog
 
 @Database(entities = [
     SmsCodeRule::class,
     SmsMsg::class,
     AppInfo::class,
+    AutoInputEvent::class,
+    SenderDispatchLog::class,
     NotifyRouteRule::class,
-    ForwardFilterRule::class,
-    Sender::class,
-    Rule::class
-], version = 18, exportSchema = false)
+    ForwardFilterRuleEntity::class,
+    SenderEntity::class,
+    RuleEntity::class
+], version = 22, exportSchema = false)
 @TypeConverters(ConvertersDate::class, ConvertersSenderList::class)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun smsCodeRuleDao(): SmsCodeRuleDao
     abstract fun smsMsgDao(): SmsMsgDao
     abstract fun appInfoDao(): AppInfoDao
+    abstract fun autoInputEventDao(): AutoInputEventDao
+    abstract fun senderDispatchLogDao(): SenderDispatchLogDao
     abstract fun notifyRouteRuleDao(): NotifyRouteRuleDao
     abstract fun forwardFilterRuleDao(): ForwardFilterRuleDao
     abstract fun ruleDao(): RuleDao
@@ -357,6 +365,384 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_18_19 = object : androidx.room.migration.Migration(18, 19) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE TABLE IF NOT EXISTS sender_dispatch_log (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "record_id INTEGER, " +
+                        "sender_id INTEGER NOT NULL, " +
+                        "sender_type INTEGER NOT NULL, " +
+                        "msg_type INTEGER NOT NULL, " +
+                        "success INTEGER NOT NULL, " +
+                        "created_at INTEGER NOT NULL" +
+                        ")",
+                    migration = "18_19",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE INDEX IF NOT EXISTS index_sender_dispatch_type_time " +
+                        "ON sender_dispatch_log(sender_type, created_at)",
+                    migration = "18_19",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE INDEX IF NOT EXISTS index_sender_dispatch_sender_time " +
+                        "ON sender_dispatch_log(sender_id, created_at)",
+                    migration = "18_19",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE INDEX IF NOT EXISTS index_sender_dispatch_record " +
+                        "ON sender_dispatch_log(record_id)",
+                    migration = "18_19",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE TABLE IF NOT EXISTS auto_input_event (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "record_id INTEGER, " +
+                        "package_name TEXT, " +
+                        "code_length INTEGER NOT NULL, " +
+                        "attempt_at INTEGER NOT NULL, " +
+                        "success INTEGER, " +
+                        "fail_reason TEXT" +
+                        ")",
+                    migration = "18_19",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE INDEX IF NOT EXISTS index_auto_input_attempt_at " +
+                        "ON auto_input_event(attempt_at)",
+                    migration = "18_19",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE INDEX IF NOT EXISTS index_auto_input_record " +
+                        "ON auto_input_event(record_id)",
+                    migration = "18_19",
+                )
+            }
+        }
+
+        private val MIGRATION_19_20 = object : androidx.room.migration.Migration(19, 20) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE TABLE IF NOT EXISTS auto_input_event_new (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "record_id INTEGER, " +
+                        "package_name TEXT, " +
+                        "code_length INTEGER NOT NULL, " +
+                        "attempt_at INTEGER NOT NULL, " +
+                        "success INTEGER, " +
+                        "fail_reason TEXT" +
+                        ")",
+                    migration = "19_20",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "INSERT INTO auto_input_event_new " +
+                        "(id, record_id, package_name, code_length, attempt_at, success, fail_reason) " +
+                        "SELECT " +
+                        "CASE WHEN id IS NULL THEN NULL ELSE id END, " +
+                        "record_id, package_name, code_length, attempt_at, success, fail_reason " +
+                        "FROM auto_input_event",
+                    migration = "19_20",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "DROP TABLE IF EXISTS auto_input_event",
+                    migration = "19_20",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "ALTER TABLE auto_input_event_new RENAME TO auto_input_event",
+                    migration = "19_20",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE INDEX IF NOT EXISTS index_auto_input_attempt_at " +
+                        "ON auto_input_event(attempt_at)",
+                    migration = "19_20",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE INDEX IF NOT EXISTS index_auto_input_record " +
+                        "ON auto_input_event(record_id)",
+                    migration = "19_20",
+                )
+            }
+        }
+
+        private val MIGRATION_20_21 = object : androidx.room.migration.Migration(20, 21) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE TABLE IF NOT EXISTS sender_dispatch_log_new (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "record_id INTEGER, " +
+                        "sender_id INTEGER NOT NULL, " +
+                        "sender_type INTEGER NOT NULL, " +
+                        "msg_type INTEGER NOT NULL, " +
+                        "success INTEGER NOT NULL, " +
+                        "created_at INTEGER NOT NULL" +
+                        ")",
+                    migration = "20_21",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "INSERT INTO sender_dispatch_log_new " +
+                        "(id, record_id, sender_id, sender_type, msg_type, success, created_at) " +
+                        "SELECT " +
+                        "CASE WHEN id IS NULL THEN NULL ELSE id END, " +
+                        "record_id, sender_id, sender_type, msg_type, success, created_at " +
+                        "FROM sender_dispatch_log",
+                    migration = "20_21",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "DROP TABLE IF EXISTS sender_dispatch_log",
+                    migration = "20_21",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "ALTER TABLE sender_dispatch_log_new RENAME TO sender_dispatch_log",
+                    migration = "20_21",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE INDEX IF NOT EXISTS index_sender_dispatch_type_time " +
+                        "ON sender_dispatch_log(sender_type, created_at)",
+                    migration = "20_21",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE INDEX IF NOT EXISTS index_sender_dispatch_sender_time " +
+                        "ON sender_dispatch_log(sender_id, created_at)",
+                    migration = "20_21",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE INDEX IF NOT EXISTS index_sender_dispatch_record " +
+                        "ON sender_dispatch_log(record_id)",
+                    migration = "20_21",
+                )
+
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE TABLE IF NOT EXISTS sms_msg_new (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "sender TEXT, " +
+                        "body TEXT, " +
+                        "date INTEGER NOT NULL, " +
+                        "company TEXT, " +
+                        "sms_code TEXT, " +
+                        "package_name TEXT, " +
+                        "notify_channel_id TEXT NOT NULL DEFAULT '', " +
+                        "forward_status INTEGER NOT NULL DEFAULT 0, " +
+                        "forward_target TEXT, " +
+                        "forward_message TEXT, " +
+                        "forward_time INTEGER NOT NULL DEFAULT 0, " +
+                        "msg_type INTEGER NOT NULL DEFAULT 0, " +
+                        "call_type INTEGER NOT NULL DEFAULT 0" +
+                        ")",
+                    migration = "20_21",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "INSERT INTO sms_msg_new " +
+                        "(id, sender, body, date, company, sms_code, package_name, notify_channel_id, " +
+                        "forward_status, forward_target, forward_message, forward_time, msg_type, call_type) " +
+                        "SELECT " +
+                        "CASE WHEN id IS NULL THEN NULL ELSE id END, " +
+                        "sender, body, " +
+                        "COALESCE(date, 0), " +
+                        "company, sms_code, package_name, " +
+                        "COALESCE(notify_channel_id, ''), " +
+                        "COALESCE(forward_status, 0), " +
+                        "forward_target, forward_message, " +
+                        "COALESCE(forward_time, 0), " +
+                        "COALESCE(msg_type, 0), " +
+                        "COALESCE(call_type, 0) " +
+                        "FROM sms_msg",
+                    migration = "20_21",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "DROP TABLE IF EXISTS sms_msg",
+                    migration = "20_21",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "ALTER TABLE sms_msg_new RENAME TO sms_msg",
+                    migration = "20_21",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE UNIQUE INDEX IF NOT EXISTS index_sms_msg_sender_body_date_msg_type " +
+                        "ON sms_msg(sender, body, date, msg_type)",
+                    migration = "20_21",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE INDEX IF NOT EXISTS index_sms_msg_pkg_type_channel_date " +
+                        "ON sms_msg(package_name, msg_type, notify_channel_id, date)",
+                    migration = "20_21",
+                )
+
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE TABLE IF NOT EXISTS sms_code_rule_new (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "company TEXT, " +
+                        "code_keyword TEXT NOT NULL, " +
+                        "code_regex TEXT NOT NULL" +
+                        ")",
+                    migration = "20_21",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "INSERT INTO sms_code_rule_new " +
+                        "(id, company, code_keyword, code_regex) " +
+                        "SELECT " +
+                        "CASE WHEN id IS NULL THEN NULL ELSE id END, " +
+                        "company, " +
+                        "COALESCE(code_keyword, ''), " +
+                        "COALESCE(code_regex, '') " +
+                        "FROM sms_code_rule",
+                    migration = "20_21",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "DROP TABLE IF EXISTS sms_code_rule",
+                    migration = "20_21",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "ALTER TABLE sms_code_rule_new RENAME TO sms_code_rule",
+                    migration = "20_21",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE UNIQUE INDEX IF NOT EXISTS index_sms_code_rule_company_code_keyword_code_regex " +
+                        "ON sms_code_rule(company, code_keyword, code_regex)",
+                    migration = "20_21",
+                )
+            }
+        }
+
+        private val MIGRATION_21_22 = object : androidx.room.migration.Migration(21, 22) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE TABLE IF NOT EXISTS auto_input_event_new (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "record_id INTEGER, " +
+                        "package_name TEXT, " +
+                        "code_length INTEGER NOT NULL DEFAULT 0, " +
+                        "attempt_at INTEGER NOT NULL DEFAULT 0, " +
+                        "success INTEGER, " +
+                        "fail_reason TEXT" +
+                        ")",
+                    migration = "21_22",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "INSERT INTO auto_input_event_new " +
+                        "(id, record_id, package_name, code_length, attempt_at, success, fail_reason) " +
+                        "SELECT " +
+                        "CASE WHEN id IS NULL THEN NULL ELSE id END, " +
+                        "record_id, package_name, " +
+                        "COALESCE(code_length, 0), " +
+                        "COALESCE(attempt_at, 0), " +
+                        "success, fail_reason " +
+                        "FROM auto_input_event",
+                    migration = "21_22",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "DROP TABLE IF EXISTS auto_input_event",
+                    migration = "21_22",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "ALTER TABLE auto_input_event_new RENAME TO auto_input_event",
+                    migration = "21_22",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE INDEX IF NOT EXISTS index_auto_input_attempt_at " +
+                        "ON auto_input_event(attempt_at)",
+                    migration = "21_22",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE INDEX IF NOT EXISTS index_auto_input_record " +
+                        "ON auto_input_event(record_id)",
+                    migration = "21_22",
+                )
+
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE TABLE IF NOT EXISTS sender_dispatch_log_new (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "record_id INTEGER, " +
+                        "sender_id INTEGER NOT NULL DEFAULT 0, " +
+                        "sender_type INTEGER NOT NULL DEFAULT 0, " +
+                        "msg_type INTEGER NOT NULL DEFAULT 0, " +
+                        "success INTEGER NOT NULL DEFAULT 0, " +
+                        "created_at INTEGER NOT NULL DEFAULT 0" +
+                        ")",
+                    migration = "21_22",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "INSERT INTO sender_dispatch_log_new " +
+                        "(id, record_id, sender_id, sender_type, msg_type, success, created_at) " +
+                        "SELECT " +
+                        "CASE WHEN id IS NULL THEN NULL ELSE id END, " +
+                        "record_id, " +
+                        "COALESCE(sender_id, 0), " +
+                        "COALESCE(sender_type, 0), " +
+                        "COALESCE(msg_type, 0), " +
+                        "COALESCE(success, 0), " +
+                        "COALESCE(created_at, 0) " +
+                        "FROM sender_dispatch_log",
+                    migration = "21_22",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "DROP TABLE IF EXISTS sender_dispatch_log",
+                    migration = "21_22",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "ALTER TABLE sender_dispatch_log_new RENAME TO sender_dispatch_log",
+                    migration = "21_22",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE INDEX IF NOT EXISTS index_sender_dispatch_type_time " +
+                        "ON sender_dispatch_log(sender_type, created_at)",
+                    migration = "21_22",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE INDEX IF NOT EXISTS index_sender_dispatch_sender_time " +
+                        "ON sender_dispatch_log(sender_id, created_at)",
+                    migration = "21_22",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE INDEX IF NOT EXISTS index_sender_dispatch_record " +
+                        "ON sender_dispatch_log(record_id)",
+                    migration = "21_22",
+                )
+            }
+        }
+
         private fun execSqlSafely(
             db: androidx.sqlite.db.SupportSQLiteDatabase,
             sql: String,
@@ -395,6 +781,10 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_15_16,
                     MIGRATION_16_17,
                     MIGRATION_17_18,
+                    MIGRATION_18_19,
+                    MIGRATION_19_20,
+                    MIGRATION_20_21,
+                    MIGRATION_21_22,
                 )
                 .enableMultiInstanceInvalidation()
                 .build().also { instance = it }

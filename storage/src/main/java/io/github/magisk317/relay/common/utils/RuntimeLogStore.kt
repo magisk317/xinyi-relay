@@ -441,7 +441,7 @@ object RuntimeLogStore {
             value.contains(".xp.hook.system.") -> ROUTE_SYSTEM_INPUT
             value.contains(".xp.hook.permission.") -> ROUTE_PERMISSION_HOOK
             value.contains(".xp.hook.google.") -> ROUTE_GOOGLE_MESSAGES
-            value.contains(".forwarder.recovery.") -> ROUTE_ROOT_DB
+            value.contains(".domain.recovery.") || value.contains(".forwarder.recovery.") -> ROUTE_ROOT_DB
             else -> ROUTE_APP
         }
     }

@@ -3,8 +3,8 @@ package io.github.magisk317.relay.forwarder.utils.sender
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import io.github.magisk317.relay.forwarder.entity.MsgInfo
-import io.github.magisk317.relay.forwarder.entity.setting.UrlSchemeSetting
+import io.github.magisk317.relay.model.MsgInfo
+import io.github.magisk317.relay.model.setting.UrlSchemeSetting
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.URLEncoder

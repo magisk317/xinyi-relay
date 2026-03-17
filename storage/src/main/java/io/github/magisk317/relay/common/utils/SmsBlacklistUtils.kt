@@ -2,6 +2,7 @@ package io.github.magisk317.relay.common.utils
 
 import android.content.Context
 
+// Runtime/Xposed only. Do not use from UI/app-side business logic.
 object SmsBlacklistUtils {
 
     data class MatchResult(
@@ -74,4 +75,3 @@ object SmsBlacklistUtils {
 
     private fun normalizeDigits(input: String): String = input.filter { it.isDigit() }
 }
-

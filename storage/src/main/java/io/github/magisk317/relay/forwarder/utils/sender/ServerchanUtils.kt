@@ -1,8 +1,8 @@
 package io.github.magisk317.relay.forwarder.utils.sender
 
-import io.github.magisk317.relay.forwarder.entity.MsgInfo
-import io.github.magisk317.relay.forwarder.entity.result.ServerchanResult
-import io.github.magisk317.relay.forwarder.entity.setting.ServerchanSetting
+import io.github.magisk317.relay.model.MsgInfo
+import io.github.magisk317.relay.model.result.ServerchanResult
+import io.github.magisk317.relay.model.setting.ServerchanSetting
 import com.google.gson.Gson
 import okhttp3.FormBody
 import okhttp3.OkHttpClient

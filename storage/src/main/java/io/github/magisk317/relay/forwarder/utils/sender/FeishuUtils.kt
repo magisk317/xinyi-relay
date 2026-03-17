@@ -1,9 +1,9 @@
 package io.github.magisk317.relay.forwarder.utils.sender
 
 import android.util.Base64
-import io.github.magisk317.relay.forwarder.entity.MsgInfo
-import io.github.magisk317.relay.forwarder.entity.result.FeishuResult
-import io.github.magisk317.relay.forwarder.entity.setting.FeishuSetting
+import io.github.magisk317.relay.model.MsgInfo
+import io.github.magisk317.relay.model.result.FeishuResult
+import io.github.magisk317.relay.model.setting.FeishuSetting
 import com.google.gson.Gson
 import com.google.gson.JsonParser
 import okhttp3.MediaType.Companion.toMediaType

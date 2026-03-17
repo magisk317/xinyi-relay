@@ -33,7 +33,7 @@ class RuntimeLogStoreRouteTest {
     fun routeFromCallerClassName_mapsRootRecoveryAndFallback() {
         assertEquals(
             RuntimeLogStore.ROUTE_ROOT_DB,
-            RuntimeLogStore.routeFromCallerClassName("io.github.magisk317.relay.forwarder.recovery.RootDbCatchupEngine"),
+            RuntimeLogStore.routeFromCallerClassName("io.github.magisk317.relay.domain.recovery.RootDbCatchupEngine"),
         )
         assertEquals(
             RuntimeLogStore.ROUTE_APP,

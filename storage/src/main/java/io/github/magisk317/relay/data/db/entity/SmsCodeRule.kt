@@ -31,5 +31,5 @@ data class SmsCodeRule @JvmOverloads constructor(
     val codeRegex: String = "",
 
     @PrimaryKey(autoGenerate = true)
-    val id: Long? = null,
+    val id: Long = 0,
 ) : Parcelable

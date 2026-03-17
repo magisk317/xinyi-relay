@@ -12,11 +12,11 @@ import io.github.magisk317.relay.data.db.entity.SmsCodeRule
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 
 class DBProvider : ContentProvider() {
-    private var mDbManager: DBManager? = null
+    private var mDatabase: AppDatabase? = null
 
     override fun onCreate(): Boolean {
         context?.let {
-            mDbManager = DBManager.get(it)
+            mDatabase = AppDatabase.getInstance(it)
         }
         return true
     }
@@ -44,7 +44,7 @@ class DBProvider : ContentProvider() {
                     forwardMessage = values?.getAsString("forward_message"),
                     forwardTime = values?.getAsLong("forward_time") ?: 0L,
                 )
-                id = mDbManager!!.addSmsMsg(msg)
+                id = mDatabase!!.smsMsgDao().insert(msg)
                 path = "$PATH_SMS_MSG/$id"
             }
 
@@ -77,7 +77,7 @@ class DBProvider : ContentProvider() {
         val uriType = sUriMatcher.match(uri)
         val rowsDeleted: Int = when (uriType) {
             SMS_MSG_DIR -> deleteSmsMsg(selection, selectionArgs)
-            SMS_MSG_ID -> uri.lastPathSegment?.toLongOrNull()?.let { mDbManager!!.removeSmsMsgById(it) } ?: 0
+            SMS_MSG_ID -> uri.lastPathSegment?.toLongOrNull()?.let { deleteSmsMsgById(it) } ?: 0
             APP_INFO_ITEM -> deleteAppInfoByPackageName(uri)
             else -> throw IllegalArgumentException("Unsupported URI: $uri")
         }
@@ -94,13 +94,20 @@ class DBProvider : ContentProvider() {
         val normalized = selection.replace("`", "").trim().lowercase()
         if (normalized == "_id = ?" || normalized == "id = ?") {
             val id = selectionArgs.firstOrNull()?.toLongOrNull() ?: return 0
-            return mDbManager!!.removeSmsMsgById(id)
+            return deleteSmsMsgById(id)
         }
         throw IllegalArgumentException("Unsupported delete selection: $selection")
     }
 
+    private fun deleteSmsMsgById(id: Long): Int {
+        val dao = mDatabase!!.smsMsgDao()
+        val msg = dao.getById(id) ?: return 0
+        dao.delete(msg)
+        return 1
+    }
+
     private fun querySmsCodeRules(projection: Array<String>?): Cursor {
-        val rules = mDbManager!!.queryAllSmsCodeRules()
+        val rules = mDatabase!!.smsCodeRuleDao().getAll()
         val columns = projection ?: arrayOf("company", "code_keyword", "code_regex", "_id")
         val cursor = MatrixCursor(columns)
         rules.forEach { rule ->
@@ -110,7 +117,7 @@ class DBProvider : ContentProvider() {
     }
 
     private fun querySmsMsgs(projection: Array<String>?, sortOrder: String?): Cursor {
-        val rows = mDbManager!!.queryAllSmsMsg().let { list ->
+        val rows = mDatabase!!.smsMsgDao().getAll().let { list ->
             when (sortOrder?.trim()?.lowercase()) {
                 "date asc" -> list.sortedBy { it.date }
                 "date desc", null, "" -> list.sortedByDescending { it.date }
@@ -159,7 +166,7 @@ class DBProvider : ContentProvider() {
             "forward_time",
         )
         val cursor = MatrixCursor(columns)
-        val msg = mDbManager!!.querySmsMsgById(id)
+        val msg = mDatabase!!.smsMsgDao().getById(id)
         if (msg != null) {
             cursor.addRow(buildRow(columns) { column -> valueFromSmsMsg(msg, column) })
         }
@@ -170,7 +177,7 @@ class DBProvider : ContentProvider() {
         val id = uri.lastPathSegment?.toLongOrNull() ?: throw IllegalArgumentException("Invalid URI: $uri")
         val columns = projection ?: arrayOf("company", "code_keyword", "code_regex", "_id")
         val cursor = MatrixCursor(columns)
-        val rule = mDbManager!!.querySmsCodeRuleById(id)
+        val rule = mDatabase!!.smsCodeRuleDao().getById(id)
         if (rule != null) {
             cursor.addRow(buildRow(columns) { column -> valueFromSmsCodeRule(rule, column) })
         }
@@ -182,7 +189,7 @@ class DBProvider : ContentProvider() {
         selection: String?,
         selectionArgs: Array<String>?,
     ): Cursor {
-        var rows = mDbManager!!.queryAllAppInfos()
+        var rows = mDatabase!!.appInfoDao().getAll()
         if (!selection.isNullOrBlank()) {
             val normalized = selection.replace("`", "").trim().lowercase()
             if (normalized == "blocked = ?" && !selectionArgs.isNullOrEmpty()) {
@@ -208,7 +215,7 @@ class DBProvider : ContentProvider() {
         if (packageName.isBlank()) {
             return cursor
         }
-        val app = mDbManager!!.queryAppInfoByPackageName(packageName)
+        val app = mDatabase!!.appInfoDao().getByPackageName(packageName)
         if (app != null) {
             cursor.addRow(buildRow(columns) { column -> valueFromAppInfo(app, column) })
         }
@@ -289,7 +296,8 @@ class DBProvider : ContentProvider() {
     }
 
     private fun updateSmsMsgById(id: Long, values: ContentValues?): Int {
-        val existing = mDbManager!!.querySmsMsgById(id) ?: return 0
+        val dao = mDatabase!!.smsMsgDao()
+        val existing = dao.getById(id) ?: return 0
         val updated = existing.copy(
             sender = values?.getAsString("sender") ?: existing.sender,
             body = values?.getAsString("body") ?: existing.body,
@@ -305,7 +313,8 @@ class DBProvider : ContentProvider() {
             forwardMessage = values?.getAsString("forward_message") ?: existing.forwardMessage,
             forwardTime = values?.getAsLong("forward_time") ?: existing.forwardTime,
         )
-        return mDbManager!!.updateSmsMsg(updated)
+        dao.update(updated)
+        return 1
     }
 
     private fun updateAppInfo(values: ContentValues?, selection: String?, selectionArgs: Array<String>?): Int {
@@ -332,7 +341,8 @@ class DBProvider : ContentProvider() {
     }
 
     private fun updateAppInfoByPackageName(packageName: String, values: ContentValues?): Int {
-        val existing = mDbManager!!.queryAppInfoByPackageName(packageName) ?: AppInfo(packageName = packageName)
+        val dao = mDatabase!!.appInfoDao()
+        val existing = dao.getByPackageName(packageName) ?: AppInfo(packageName = packageName)
         val blocked = parseBooleanValue(values, "blocked", existing.blocked)
         val forwarding = parseBooleanValue(values, "forwarding", existing.forwarding)
         val label = when {
@@ -343,7 +353,7 @@ class DBProvider : ContentProvider() {
             values?.containsKey("notify_template") == true -> values.getAsString("notify_template").orEmpty()
             else -> existing.notifyTemplate
         }
-        return mDbManager!!.upsertAppInfo(
+        dao.insert(
             existing.copy(
                 label = label,
                 blocked = blocked,
@@ -351,6 +361,7 @@ class DBProvider : ContentProvider() {
                 notifyTemplate = notifyTemplate,
             ),
         )
+        return 1
     }
 
     private fun parseBooleanValue(values: ContentValues?, key: String, defaultValue: Boolean): Boolean {
@@ -369,8 +380,10 @@ class DBProvider : ContentProvider() {
         if (packageName.isBlank()) {
             return 0
         }
-        val app = mDbManager!!.queryAppInfoByPackageName(packageName) ?: return 0
-        return mDbManager!!.removeAppInfosByPackage(listOf(app.packageName))
+        val dao = mDatabase!!.appInfoDao()
+        val app = dao.getByPackageName(packageName) ?: return 0
+        dao.delete(app)
+        return 1
     }
 
     companion object {

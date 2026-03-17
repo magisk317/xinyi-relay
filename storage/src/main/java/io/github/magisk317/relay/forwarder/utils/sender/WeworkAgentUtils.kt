@@ -1,9 +1,9 @@
 package io.github.magisk317.relay.forwarder.utils.sender
 
 import android.text.TextUtils
-import io.github.magisk317.relay.forwarder.entity.MsgInfo
-import io.github.magisk317.relay.forwarder.entity.result.WeworkAgentResult
-import io.github.magisk317.relay.forwarder.entity.setting.WeworkAgentSetting
+import io.github.magisk317.relay.model.MsgInfo
+import io.github.magisk317.relay.model.result.WeworkAgentResult
+import io.github.magisk317.relay.model.setting.WeworkAgentSetting
 import com.google.gson.Gson
 import okhttp3.Authenticator
 import okhttp3.Credentials

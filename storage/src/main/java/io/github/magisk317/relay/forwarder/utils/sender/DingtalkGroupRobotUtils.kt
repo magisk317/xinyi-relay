@@ -2,10 +2,10 @@ package io.github.magisk317.relay.forwarder.utils.sender
 
 import android.text.TextUtils
 import android.util.Base64
-import io.github.magisk317.relay.forwarder.entity.MsgInfo
-import io.github.magisk317.relay.forwarder.entity.result.DingtalkResult
-import io.github.magisk317.relay.forwarder.entity.setting.DingtalkGroupRobotSetting
-import io.github.magisk317.relay.forwarder.utils.HttpUtils
+import io.github.magisk317.relay.model.MsgInfo
+import io.github.magisk317.relay.model.result.DingtalkResult
+import io.github.magisk317.relay.model.setting.DingtalkGroupRobotSetting
+import io.github.magisk317.relay.domain.sender.utils.HttpUtils
 import com.google.gson.Gson
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets

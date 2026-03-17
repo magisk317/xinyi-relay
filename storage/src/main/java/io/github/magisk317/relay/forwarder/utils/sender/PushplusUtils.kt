@@ -1,10 +1,10 @@
 package io.github.magisk317.relay.forwarder.utils.sender
 
 import android.text.TextUtils
-import io.github.magisk317.relay.forwarder.entity.MsgInfo
-import io.github.magisk317.relay.forwarder.entity.result.PushplusResult
-import io.github.magisk317.relay.forwarder.entity.setting.PushplusSetting
-import io.github.magisk317.relay.forwarder.utils.HttpUtils
+import io.github.magisk317.relay.model.MsgInfo
+import io.github.magisk317.relay.model.result.PushplusResult
+import io.github.magisk317.relay.model.setting.PushplusSetting
+import io.github.magisk317.relay.domain.sender.utils.HttpUtils
 import com.google.gson.Gson
 
 object PushplusUtils {

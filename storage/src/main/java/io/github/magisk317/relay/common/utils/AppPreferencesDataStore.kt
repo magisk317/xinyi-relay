@@ -361,6 +361,102 @@ object AppPreferencesDataStore {
             getBoolean(context, PrefConst.KEY_AUTO_UPDATE_WIFI_ONLY, false),
         )
         editor.putBoolean(
+            PrefConst.KEY_LOW_BATTERY_REMINDER_ENABLE,
+            getBoolean(context, PrefConst.KEY_LOW_BATTERY_REMINDER_ENABLE, false),
+        )
+        editor.putInt(
+            PrefConst.KEY_LOW_BATTERY_THRESHOLD,
+            getInt(context, PrefConst.KEY_LOW_BATTERY_THRESHOLD, PrefConst.LOW_BATTERY_THRESHOLD_DEFAULT),
+        )
+        editor.putString(
+            PrefConst.KEY_LOW_BATTERY_CHANNEL_ID,
+            getString(context, PrefConst.KEY_LOW_BATTERY_CHANNEL_ID, ""),
+        )
+        editor.putBoolean(
+            PrefConst.KEY_FULL_BATTERY_REMINDER_ENABLE,
+            getBoolean(context, PrefConst.KEY_FULL_BATTERY_REMINDER_ENABLE, false),
+        )
+        editor.putString(
+            PrefConst.KEY_FULL_BATTERY_CHANNEL_ID,
+            getString(context, PrefConst.KEY_FULL_BATTERY_CHANNEL_ID, ""),
+        )
+        editor.putBoolean(
+            PrefConst.KEY_CALL_ALERT_LOCAL_ENABLED,
+            getBoolean(context, PrefConst.KEY_CALL_ALERT_LOCAL_ENABLED, false),
+        )
+        editor.putBoolean(
+            PrefConst.KEY_CALL_ALERT_FORWARD_ENABLED,
+            getBoolean(context, PrefConst.KEY_CALL_ALERT_FORWARD_ENABLED, false),
+        )
+        editor.putString(
+            PrefConst.KEY_CALL_ALERT_CHANNEL_ID,
+            getString(context, PrefConst.KEY_CALL_ALERT_CHANNEL_ID, ""),
+        )
+        editor.putBoolean(
+            PrefConst.KEY_VERIFICATION_FEATURES_ENABLED,
+            getBoolean(context, PrefConst.KEY_VERIFICATION_FEATURES_ENABLED, true),
+        )
+        editor.putBoolean(
+            PrefConst.KEY_RELAY_FEATURES_ENABLED,
+            getBoolean(context, PrefConst.KEY_RELAY_FEATURES_ENABLED, true),
+        )
+        editor.putBoolean(
+            PrefConst.KEY_MSG_TYPE_SMS_CODE_ENABLED,
+            getBoolean(context, PrefConst.KEY_MSG_TYPE_SMS_CODE_ENABLED, true),
+        )
+        editor.putBoolean(
+            PrefConst.KEY_MSG_TYPE_SMS_PLAIN_ENABLED,
+            getBoolean(context, PrefConst.KEY_MSG_TYPE_SMS_PLAIN_ENABLED, true),
+        )
+        editor.putBoolean(
+            PrefConst.KEY_MSG_TYPE_APP_NOTIFY_ENABLED,
+            getBoolean(context, PrefConst.KEY_MSG_TYPE_APP_NOTIFY_ENABLED, true),
+        )
+        editor.putBoolean(
+            PrefConst.KEY_MSG_TYPE_CALL_NOTIFY_ENABLED,
+            getBoolean(context, PrefConst.KEY_MSG_TYPE_CALL_NOTIFY_ENABLED, false),
+        )
+        editor.putBoolean(
+            PrefConst.KEY_SMS_KEYWORD_ALERT_ENABLED,
+            getBoolean(context, PrefConst.KEY_SMS_KEYWORD_ALERT_ENABLED, false),
+        )
+        editor.putString(
+            PrefConst.KEY_SMS_KEYWORD_ALERT_KEYWORDS,
+            getString(context, PrefConst.KEY_SMS_KEYWORD_ALERT_KEYWORDS, ""),
+        )
+        editor.putBoolean(
+            PrefConst.KEY_SMS_KEYWORD_ALERT_NOTIFICATION,
+            getBoolean(context, PrefConst.KEY_SMS_KEYWORD_ALERT_NOTIFICATION, true),
+        )
+        editor.putBoolean(
+            PrefConst.KEY_SMS_KEYWORD_ALERT_SOUND,
+            getBoolean(context, PrefConst.KEY_SMS_KEYWORD_ALERT_SOUND, true),
+        )
+        editor.putBoolean(
+            PrefConst.KEY_SMS_KEYWORD_ALERT_VIBRATE,
+            getBoolean(context, PrefConst.KEY_SMS_KEYWORD_ALERT_VIBRATE, true),
+        )
+        editor.putBoolean(
+            PrefConst.KEY_APP_KEYWORD_ALERT_ENABLED,
+            getBoolean(context, PrefConst.KEY_APP_KEYWORD_ALERT_ENABLED, false),
+        )
+        editor.putString(
+            PrefConst.KEY_APP_KEYWORD_ALERT_KEYWORDS,
+            getString(context, PrefConst.KEY_APP_KEYWORD_ALERT_KEYWORDS, ""),
+        )
+        editor.putBoolean(
+            PrefConst.KEY_APP_KEYWORD_ALERT_NOTIFICATION,
+            getBoolean(context, PrefConst.KEY_APP_KEYWORD_ALERT_NOTIFICATION, true),
+        )
+        editor.putBoolean(
+            PrefConst.KEY_APP_KEYWORD_ALERT_SOUND,
+            getBoolean(context, PrefConst.KEY_APP_KEYWORD_ALERT_SOUND, true),
+        )
+        editor.putBoolean(
+            PrefConst.KEY_APP_KEYWORD_ALERT_VIBRATE,
+            getBoolean(context, PrefConst.KEY_APP_KEYWORD_ALERT_VIBRATE, true),
+        )
+        editor.putBoolean(
             PrefConst.KEY_ENABLE_AUTO_ENTER_CODE,
             getBoolean(context, PrefConst.KEY_ENABLE_AUTO_ENTER_CODE, false),
         )

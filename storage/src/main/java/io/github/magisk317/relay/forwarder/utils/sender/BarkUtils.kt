@@ -2,9 +2,9 @@ package io.github.magisk317.relay.forwarder.utils.sender
 
 import android.text.TextUtils
 import android.util.Base64
-import io.github.magisk317.relay.forwarder.entity.MsgInfo
-import io.github.magisk317.relay.forwarder.entity.result.BarkResult
-import io.github.magisk317.relay.forwarder.entity.setting.BarkSetting
+import io.github.magisk317.relay.model.MsgInfo
+import io.github.magisk317.relay.model.result.BarkResult
+import io.github.magisk317.relay.model.setting.BarkSetting
 import com.google.gson.Gson
 import okhttp3.Credentials
 import okhttp3.MediaType.Companion.toMediaType

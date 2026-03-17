@@ -1,11 +1,13 @@
 package io.github.magisk317.relay.data.db.dao
 
 import androidx.room.*
-import io.github.magisk317.relay.forwarder.entity.ForwardFilterRule
+import io.github.magisk317.relay.data.db.entity.ForwardFilterRuleEntity
 import io.github.magisk317.relay.data.db.entity.AppInfo
+import io.github.magisk317.relay.data.db.entity.AutoInputEvent
 import io.github.magisk317.relay.data.db.entity.NotifyRouteRule
 import io.github.magisk317.relay.data.db.entity.SmsCodeRule
 import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.data.db.entity.SenderDispatchLog
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -108,11 +110,73 @@ interface SmsMsgDao {
     @Query("SELECT count(*) FROM sms_msg")
     fun countFlow(): Flow<Long>
 
+    @Query("SELECT count(*) FROM sms_msg WHERE date >= :fromMs")
+    fun countFrom(fromMs: Long): Long
+
+    @Query(
+        "SELECT count(*) FROM sms_msg " +
+            "WHERE msg_type = :msgType " +
+            "AND sms_code IS NOT NULL AND sms_code != '' " +
+            "AND date >= :fromMs",
+    )
+    fun countCodeSmsFrom(fromMs: Long, msgType: Int = SmsMsg.MSG_TYPE_SMS): Long
+
     @Delete
     fun delete(msg: SmsMsg)
 
     @Delete
     fun deleteInTx(msgs: List<SmsMsg>)
+}
+
+data class SenderDispatchStatRow(
+    val senderType: Int,
+    val sent: Long,
+    val success: Long,
+    val failed: Long,
+)
+
+@Dao
+interface SenderDispatchLogDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insert(log: SenderDispatchLog): Long
+
+    @Query("SELECT COUNT(*) FROM sender_dispatch_log WHERE created_at >= :fromMs")
+    fun countTotalFrom(fromMs: Long): Long
+
+    @Query("SELECT COUNT(*) FROM sender_dispatch_log WHERE created_at >= :fromMs AND success = 1")
+    fun countSuccessFrom(fromMs: Long): Long
+
+    @Query("SELECT COUNT(*) FROM sender_dispatch_log WHERE created_at >= :fromMs AND success = 0")
+    fun countFailedFrom(fromMs: Long): Long
+
+    @Query(
+        "SELECT sender_type AS senderType, " +
+            "COUNT(*) AS sent, " +
+            "SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) AS success, " +
+            "SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) AS failed " +
+            "FROM sender_dispatch_log " +
+            "WHERE created_at >= :fromMs " +
+            "GROUP BY sender_type",
+    )
+    fun aggregateBySenderType(fromMs: Long): List<SenderDispatchStatRow>
+}
+
+@Dao
+interface AutoInputEventDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insert(event: AutoInputEvent): Long
+
+    @Query("UPDATE auto_input_event SET success = :success, fail_reason = :reason WHERE id = :id")
+    fun updateResult(id: Long, success: Boolean, reason: String?)
+
+    @Query("SELECT COUNT(*) FROM auto_input_event WHERE attempt_at >= :fromMs")
+    fun countAttempts(fromMs: Long): Long
+
+    @Query("SELECT COUNT(*) FROM auto_input_event WHERE attempt_at >= :fromMs AND success = 1")
+    fun countSuccess(fromMs: Long): Long
+
+    @Query("SELECT COUNT(*) FROM auto_input_event WHERE attempt_at >= :fromMs AND success = 0")
+    fun countFailed(fromMs: Long): Long
 }
 
 @Dao
@@ -199,13 +263,13 @@ interface NotifyRouteRuleDao {
 @Dao
 interface ForwardFilterRuleDao {
     @Query("SELECT * FROM forward_filter_rule ORDER BY id DESC")
-    fun getAll(): List<ForwardFilterRule>
+    fun getAll(): List<ForwardFilterRuleEntity>
 
     @Query("SELECT * FROM forward_filter_rule ORDER BY id DESC")
-    fun getAllFlow(): Flow<List<ForwardFilterRule>>
+    fun getAllFlow(): Flow<List<ForwardFilterRuleEntity>>
 
     @Query("SELECT * FROM forward_filter_rule WHERE msg_type = :msgType AND enabled = 1 ORDER BY id DESC")
-    fun getEnabledByMsgType(msgType: String): List<ForwardFilterRule>
+    fun getEnabledByMsgType(msgType: String): List<ForwardFilterRuleEntity>
 
     @Query(
         "SELECT * FROM forward_filter_rule " +
@@ -220,7 +284,7 @@ interface ForwardFilterRuleDao {
         scopeType: String,
         scopeKey: String? = null,
         senderId: Long? = null,
-    ): Flow<List<ForwardFilterRule>>
+    ): Flow<List<ForwardFilterRuleEntity>>
 
     @Query(
         "SELECT * FROM forward_filter_rule " +
@@ -233,19 +297,19 @@ interface ForwardFilterRuleDao {
         msgType: String,
         scopeType: String,
         scopeKeyPrefix: String,
-    ): Flow<List<ForwardFilterRule>>
+    ): Flow<List<ForwardFilterRuleEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(rule: ForwardFilterRule): Long
+    fun insert(rule: ForwardFilterRuleEntity): Long
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertAll(rules: List<ForwardFilterRule>)
+    fun insertAll(rules: List<ForwardFilterRuleEntity>)
 
     @Update
-    fun update(rule: ForwardFilterRule)
+    fun update(rule: ForwardFilterRuleEntity)
 
     @Delete
-    fun delete(rule: ForwardFilterRule)
+    fun delete(rule: ForwardFilterRuleEntity)
 
     @Query("DELETE FROM forward_filter_rule WHERE id = :id")
     fun deleteById(id: Long): Int

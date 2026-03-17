@@ -28,7 +28,7 @@ import java.text.Normalizer
 data class SmsMsg(
     @PrimaryKey(autoGenerate = true)
     @SerialName("id")
-    val id: Long? = null,
+    val id: Long = 0,
 
     @ColumnInfo(name = "sender")
     @SerialName("sender")

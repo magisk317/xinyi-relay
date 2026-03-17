@@ -2,9 +2,9 @@ package io.github.magisk317.relay.forwarder.utils.sender
 
 import android.text.TextUtils
 import android.util.Base64
-import io.github.magisk317.relay.forwarder.entity.MsgInfo
-import io.github.magisk317.relay.forwarder.entity.setting.WebhookSetting
-import io.github.magisk317.relay.forwarder.utils.SenderSettingSanitizer
+import io.github.magisk317.relay.model.MsgInfo
+import io.github.magisk317.relay.model.setting.WebhookSetting
+import io.github.magisk317.relay.domain.sender.SenderSettingSanitizer
 import io.github.magisk317.relay.storage.BuildConfig
 import okhttp3.Credentials
 import okhttp3.FormBody

@@ -8,7 +8,6 @@ import androidx.core.content.FileProvider
 import io.github.magisk317.relay.common.utils.JsonUtils
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.data.db.AppDatabase
-import io.github.magisk317.relay.data.db.DBManager
 import io.github.magisk317.relay.feature.backup.exception.BackupInvalidException
 import io.github.magisk317.relay.feature.backup.exception.VersionInvalidException
 import io.github.magisk317.relay.feature.backup.exception.VersionMissedException
@@ -283,7 +282,6 @@ object BackupManager {
                 }
 
                 AppDatabase.closeInstance()
-                DBManager.resetInstance()
 
                 listOf(
                     DB_FILE_NAME,
