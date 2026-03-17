@@ -16,6 +16,7 @@ jobs:
     if: github.actor != 'dependabot[bot]'
     env:
       GRADLE_OPTS: -Dorg.gradle.warning.mode=all
+      HAS_GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
@@ -47,6 +48,12 @@ jobs:
         run: |
           chmod +x scripts/publish_libxposed_to_maven_local.sh
           scripts/publish_libxposed_to_maven_local.sh
+      - name: Decode Google Services
+        if: env.HAS_GOOGLE_SERVICES_JSON == 'true'
+        run: |
+          mkdir -p app/src/github/debug app/src/github/release
+          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/github/debug/google-services.json
+          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/github/release/google-services.json
       - name: Build & Test
         run: ./gradlew --warning-mode all assembleGithubDebug testGithubDebugUnitTest :app:koverVerifyGithubDebug :app:koverHtmlReportGithubDebug -PbuildSplits
       - name: Write build summary
