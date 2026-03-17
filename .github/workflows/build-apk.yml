@@ -31,6 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HAS_RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE != '' }}
+      HAS_GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
     steps:
       - uses: actions/checkout@v6
 
@@ -57,6 +58,13 @@ jobs:
       - name: Decode Keystore
         if: env.HAS_RELEASE_KEYSTORE == 'true'
         run: echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > app/release.jks
+
+      - name: Decode Google Services
+        if: env.HAS_GOOGLE_SERVICES_JSON == 'true'
+        run: |
+          mkdir -p app/src/github/release app/src/play/release
+          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/github/release/google-services.json
+          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/play/release/google-services.json
 
       - name: Build APKs with Splits
         run: ./gradlew assembleGithubRelease -PbuildSplits
@@ -85,6 +93,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HAS_RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE != '' }}
+      HAS_GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
     steps:
       - uses: actions/checkout@v6
 
@@ -111,6 +120,13 @@ jobs:
       - name: Decode Keystore
         if: env.HAS_RELEASE_KEYSTORE == 'true'
         run: echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > app/release.jks
+
+      - name: Decode Google Services
+        if: env.HAS_GOOGLE_SERVICES_JSON == 'true'
+        run: |
+          mkdir -p app/src/github/release app/src/play/release
+          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/github/release/google-services.json
+          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/play/release/google-services.json
 
       - name: Build App Bundle
         run: ./gradlew bundlePlayRelease
