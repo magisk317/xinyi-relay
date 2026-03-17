@@ -3,12 +3,12 @@ package io.github.magisk317.relay.ui.rule
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.magisk317.relay.forwarder.entity.Rule
-import io.github.magisk317.relay.forwarder.entity.Sender
-import io.github.magisk317.relay.forwarder.utils.SenderType
+import io.github.magisk317.relay.model.Rule
+import io.github.magisk317.relay.model.Sender
+import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.common.constant.Const
 import io.github.magisk317.relay.core.BuildConfig
-import io.github.magisk317.relay.data.db.AppDatabase
+import io.github.magisk317.relay.data.repository.ConfigRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
@@ -21,16 +21,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class RuleViewModel(application: Application) : AndroidViewModel(application) {
-    private val db = AppDatabase.getInstance(application)
-    private val ruleDao = db.ruleDao()
-    private val senderDao = db.senderDao()
+class RuleViewModel(
+    application: Application,
+    private val configRepository: ConfigRepository,
+) : AndroidViewModel(application) {
 
     private val currentSenderId = MutableStateFlow(0L)
 
     val ruleList: StateFlow<List<Rule>> = currentSenderId
         .flatMapLatest { senderId ->
-            if (senderId == 0L) ruleDao.observeAll() else ruleDao.observeBySender(senderId)
+            if (senderId == 0L) configRepository.getAllRulesFlow() else configRepository.observeRulesBySender(senderId)
         }
         .stateIn(
             scope = viewModelScope,
@@ -38,7 +38,7 @@ class RuleViewModel(application: Application) : AndroidViewModel(application) {
             initialValue = emptyList(),
         )
 
-    val senderList: StateFlow<List<Sender>> = senderDao.getAllFlow()
+    val senderList: StateFlow<List<Sender>> = configRepository.getAllSendersFlow()
         .map { list ->
             if (BuildConfig.ENABLE_SMS_CHANNEL) {
                 list
@@ -58,27 +58,27 @@ class RuleViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteRule(rule: Rule) {
         viewModelScope.launch(Dispatchers.IO) {
-            ruleDao.delete(rule)
+            configRepository.deleteRule(rule)
         }
     }
 
     fun toggleRuleStatus(rule: Rule, enabled: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             rule.status = if (enabled) 1 else 0
-            ruleDao.update(rule)
+            configRepository.updateRule(rule)
         }
     }
 
     suspend fun getRule(id: Long): Rule? = withContext(Dispatchers.IO) {
-        runCatching { ruleDao.getOne(id) }.getOrNull()
+        runCatching { configRepository.getRuleById(id) }.getOrNull()
     }
 
     suspend fun saveRuleSync(rule: Rule) {
         withContext(Dispatchers.IO) {
             if (rule.id == 0L) {
-                ruleDao.insert(rule)
+                configRepository.insertRule(rule)
             } else {
-                ruleDao.update(rule)
+                configRepository.updateRule(rule)
             }
         }
     }

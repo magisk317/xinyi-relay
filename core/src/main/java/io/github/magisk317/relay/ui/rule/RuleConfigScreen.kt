@@ -10,10 +10,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import io.github.magisk317.relay.forwarder.entity.Rule
-import io.github.magisk317.relay.forwarder.entity.Sender
+import io.github.magisk317.relay.model.Rule
+import io.github.magisk317.relay.model.Sender
+import io.github.magisk317.relay.ui.common.SegmentedOption
+import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
+import io.github.magisk317.relay.ui.sender.displayName
 import kotlinx.coroutines.launch
+import org.koin.compose.viewmodel.koinViewModel
 import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -21,7 +24,7 @@ import java.util.Date
 fun RuleConfigScreen(
     ruleId: Long,
     onBack: () -> Unit,
-    viewModel: RuleViewModel = viewModel()
+    viewModel: RuleViewModel = koinViewModel()
 ) {
     val coroutineScope = rememberCoroutineScope()
     var isLoaded by remember { mutableStateOf(false) }
@@ -177,7 +180,7 @@ fun SenderDropdown(
     onSelect: (Long) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val selectedName = senders.find { it.id == selectedId }?.name ?: "请选择通道"
+    val selectedName = senders.find { it.id == selectedId }?.displayName() ?: "请选择通道"
 
     ExposedDropdownMenuBox(
         expanded = expanded,
@@ -195,7 +198,7 @@ fun SenderDropdown(
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             senders.forEach { sender ->
                 DropdownMenuItem(
-                    text = { Text("${sender.name} (${getSenderTypeShort(sender.type)})") },
+                    text = { Text(sender.displayName()) },
                     onClick = {
                         onSelect(sender.id)
                         expanded = false
@@ -212,24 +215,9 @@ fun SegmentedPicker(
     selected: String,
     onSelect: (String) -> Unit
 ) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        options.forEach { (key, label) ->
-            FilterChip(
-                selected = selected == key,
-                onClick = { onSelect(key) },
-                label = { Text(label) },
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
-@Suppress("MagicNumber")
-private fun getSenderTypeShort(type: Int) = when (type) {
-    1 -> "钉钉"
-    4 -> "Webhook"
-    6 -> "PushPlus"
-    12 -> "TG"
-    16 -> "ntfy"
-    else -> "??"
+    SingleChoiceSegmentedSelector(
+        options = options.map { (key, label) -> SegmentedOption(key, label) },
+        selected = selected,
+        onSelect = onSelect,
+    )
 }

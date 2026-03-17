@@ -41,12 +41,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.ui.common.AppIconImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.compose.viewmodel.koinViewModel
 import java.text.Collator
 import java.util.Locale
 
@@ -60,7 +60,7 @@ private data class InstalledAppOption(
 fun SenderNotifyScopeScreen(
     senderId: Long,
     onBack: () -> Unit,
-    viewModel: SenderViewModel = viewModel(),
+    viewModel: SenderViewModel = koinViewModel(),
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()

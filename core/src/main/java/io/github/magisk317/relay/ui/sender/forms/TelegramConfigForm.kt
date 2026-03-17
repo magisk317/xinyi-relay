@@ -12,11 +12,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import io.github.magisk317.relay.forwarder.entity.MsgInfo
-import io.github.magisk317.relay.forwarder.entity.Sender
-import io.github.magisk317.relay.forwarder.entity.setting.TelegramSetting
-import io.github.magisk317.relay.forwarder.utils.SenderType
+import io.github.magisk317.relay.model.MsgInfo
+import io.github.magisk317.relay.model.Sender
+import io.github.magisk317.relay.model.setting.TelegramSetting
+import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.forwarder.utils.sender.TelegramUtils
+import io.github.magisk317.relay.ui.common.SegmentedOption
+import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
@@ -177,14 +179,22 @@ fun TelegramConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
                 supportingText = { Text("群组话题 Thread ID") },
                 modifier = Modifier.fillMaxWidth(),
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = method == "GET", onClick = { method = "GET" }, label = { Text("GET") })
-                FilterChip(selected = method == "POST", onClick = { method = "POST" }, label = { Text("POST") })
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = parseMode == "HTML", onClick = { parseMode = "HTML" }, label = { Text("HTML") })
-                FilterChip(selected = parseMode == "MarkdownV2", onClick = { parseMode = "MarkdownV2" }, label = { Text("MarkdownV2") })
-            }
+            SingleChoiceSegmentedSelector(
+                options = listOf(
+                    SegmentedOption("GET", "GET"),
+                    SegmentedOption("POST", "POST"),
+                ),
+                selected = method,
+                onSelect = { method = it },
+            )
+            SingleChoiceSegmentedSelector(
+                options = listOf(
+                    SegmentedOption("HTML", "HTML"),
+                    SegmentedOption("MarkdownV2", "MarkdownV2"),
+                ),
+                selected = parseMode,
+                onSelect = { parseMode = it },
+            )
             OutlinedTextField(
                 value = proxyHost,
                 onValueChange = { proxyHost = it },

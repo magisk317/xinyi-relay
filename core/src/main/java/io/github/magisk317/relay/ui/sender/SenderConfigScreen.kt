@@ -18,11 +18,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.magisk317.relay.forwarder.utils.SenderType
-import androidx.lifecycle.viewmodel.compose.viewModel
-import io.github.magisk317.relay.ui.sender.forms.*
 import io.github.magisk317.relay.core.BuildConfig
+import io.github.magisk317.relay.domain.sender.SenderType
+import io.github.magisk317.relay.ui.sender.forms.*
 import kotlinx.coroutines.flow.flowOf
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun SenderConfigScreen(
@@ -31,7 +31,7 @@ fun SenderConfigScreen(
     onBack: (Boolean) -> Unit,
     onOpenSenderNotifyScope: (Long) -> Unit = {},
     onOpenSenderForwardFilter: (Long) -> Unit = {},
-    viewModel: SenderViewModel = viewModel()
+    viewModel: SenderViewModel = koinViewModel()
 ) {
     var type by remember { mutableStateOf(senderTypeArg) }
     var isLoaded by remember { mutableStateOf(false) }

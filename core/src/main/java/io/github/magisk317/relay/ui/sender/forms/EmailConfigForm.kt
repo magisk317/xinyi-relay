@@ -33,10 +33,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import io.github.magisk317.relay.forwarder.entity.MsgInfo
-import io.github.magisk317.relay.forwarder.entity.Sender
-import io.github.magisk317.relay.forwarder.entity.setting.EmailSetting
-import io.github.magisk317.relay.forwarder.utils.SenderType
+import io.github.magisk317.relay.model.MsgInfo
+import io.github.magisk317.relay.model.Sender
+import io.github.magisk317.relay.model.setting.EmailSetting
+import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.forwarder.utils.sender.EmailUtils
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import com.google.gson.Gson

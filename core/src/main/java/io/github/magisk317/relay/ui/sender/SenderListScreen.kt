@@ -27,15 +27,14 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import io.github.magisk317.relay.forwarder.entity.ForwardCommonConfig
-import io.github.magisk317.relay.forwarder.entity.Sender
-import io.github.magisk317.relay.forwarder.utils.ForwardCommonConfigStore
-import io.github.magisk317.relay.forwarder.utils.SenderType
-import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.utils.AppPreferencesDataStore
+import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.core.BuildConfig
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.data.repository.SimRemarkSettingsSnapshot
+import io.github.magisk317.relay.domain.pipeline.ForwardCommonConfigStore
+import io.github.magisk317.relay.domain.sender.SenderType
+import io.github.magisk317.relay.model.ForwardCommonConfig
+import io.github.magisk317.relay.model.Sender
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -44,6 +43,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.math.ceil
+import org.koin.compose.viewmodel.koinViewModel
 
 private data class TemplateVariable(
     val label: String,
@@ -116,8 +116,8 @@ private const val DIALOG_WIDTH_FRACTION = 0.92f
 private const val UNDO_SNACKBAR_DURATION_MS = 5_000L
 private const val UNDO_COUNTDOWN_TICK_MS = 50L
 
-private fun buildSmsPreviewMessage(): io.github.magisk317.relay.forwarder.entity.MsgInfo {
-    return io.github.magisk317.relay.forwarder.entity.MsgInfo(
+private fun buildSmsPreviewMessage(): io.github.magisk317.relay.model.MsgInfo {
+    return io.github.magisk317.relay.model.MsgInfo(
         type = "sms",
         from = "10690001234",
         content = "【测试银行】您的验证码为 123456，请勿泄露。",
@@ -130,8 +130,8 @@ private fun buildSmsPreviewMessage(): io.github.magisk317.relay.forwarder.entity
     )
 }
 
-private fun buildAppNotifyPreviewMessage(): io.github.magisk317.relay.forwarder.entity.MsgInfo {
-    return io.github.magisk317.relay.forwarder.entity.MsgInfo(
+private fun buildAppNotifyPreviewMessage(): io.github.magisk317.relay.model.MsgInfo {
+    return io.github.magisk317.relay.model.MsgInfo(
         type = "app_notify",
         from = "微信支付",
         content = "收款到账 52.00 元",
@@ -145,8 +145,8 @@ private fun buildAppNotifyPreviewMessage(): io.github.magisk317.relay.forwarder.
     )
 }
 
-private fun buildCallNotifyPreviewMessage(): io.github.magisk317.relay.forwarder.entity.MsgInfo {
-    return io.github.magisk317.relay.forwarder.entity.MsgInfo(
+private fun buildCallNotifyPreviewMessage(): io.github.magisk317.relay.model.MsgInfo {
+    return io.github.magisk317.relay.model.MsgInfo(
         type = "call_notify",
         from = "10086",
         content = "时长 00:32",
@@ -163,7 +163,7 @@ private fun buildCallNotifyPreviewMessage(): io.github.magisk317.relay.forwarder
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SenderListScreen(
-    viewModel: SenderViewModel = viewModel(),
+    viewModel: SenderViewModel = koinViewModel(),
     onAddClick: (Int) -> Unit,
     onEditClick: (Long) -> Unit,
     forceShowTypeDialog: Boolean = false,
@@ -176,6 +176,7 @@ fun SenderListScreen(
     val commonConfig by viewModel.forwardCommonConfig.collectAsStateWithLifecycle()
     val appNotifyTemplate by viewModel.appNotifyTemplate.collectAsStateWithLifecycle()
     val callNotifyTemplate by viewModel.callNotifyTemplate.collectAsStateWithLifecycle()
+    val simRemarkSettings by viewModel.simRemarkSettings.collectAsStateWithLifecycle()
     var showTypeDialog by remember { mutableStateOf(false) }
     var showGeneralConfigDialog by remember { mutableStateOf(false) }
     var showCommonConfigDialog by remember { mutableStateOf(false) }
@@ -183,9 +184,9 @@ fun SenderListScreen(
     var showCallNotifyConfigDialog by remember { mutableStateOf(false) }
     var simSlot1Remark by remember { mutableStateOf("") }
     var simSlot2Remark by remember { mutableStateOf("") }
-    LaunchedEffect(Unit) {
-        simSlot1Remark = AppPreferencesDataStore.getString(context, PrefConst.KEY_SIM_SLOT1_REMARK, "")
-        simSlot2Remark = AppPreferencesDataStore.getString(context, PrefConst.KEY_SIM_SLOT2_REMARK, "")
+    LaunchedEffect(simRemarkSettings) {
+        simSlot1Remark = simRemarkSettings.simSlot1Remark
+        simSlot2Remark = simRemarkSettings.simSlot2Remark
     }
     LaunchedEffect(forceShowTypeDialog) {
         if (forceShowTypeDialog) {
@@ -277,6 +278,7 @@ fun SenderListScreen(
     if (showCommonConfigDialog) {
         ForwardCommonConfigDialog(
             currentConfig = commonConfig,
+            simRemarkSettings = simRemarkSettings,
             onDismiss = { showCommonConfigDialog = false },
             onSave = {
                 viewModel.saveForwardCommonConfig(it)
@@ -292,13 +294,7 @@ fun SenderListScreen(
             onDismiss = { showGeneralConfigDialog = false },
             onSave = { deviceName, sim1Remark, sim2Remark ->
                 viewModel.saveForwardCommonConfig(commonConfig.copy(deviceName = deviceName))
-                scope.launch {
-                    AppPreferencesDataStore.setString(context, PrefConst.KEY_SIM_SLOT1_REMARK, sim1Remark)
-                    AppPreferencesDataStore.setString(context, PrefConst.KEY_SIM_SLOT2_REMARK, sim2Remark)
-                    AppPreferencesDataStore.syncToSharedPrefs(context)
-                    simSlot1Remark = sim1Remark
-                    simSlot2Remark = sim2Remark
-                }
+                viewModel.saveSimRemarkSettings(sim1Remark, sim2Remark)
                 showGeneralConfigDialog = false
             },
         )
@@ -307,6 +303,7 @@ fun SenderListScreen(
         AppNotifyTemplateDialog(
             currentTemplate = appNotifyTemplate,
             currentCommonConfig = commonConfig,
+            simRemarkSettings = simRemarkSettings,
             onDismiss = { showAppNotifyConfigDialog = false },
             onSave = {
                 viewModel.saveAppNotifyTemplate(it)
@@ -318,6 +315,7 @@ fun SenderListScreen(
         CallNotifyTemplateDialog(
             currentTemplate = callNotifyTemplate,
             currentCommonConfig = commonConfig,
+            simRemarkSettings = simRemarkSettings,
             onDismiss = { showCallNotifyConfigDialog = false },
             onSave = {
                 viewModel.saveCallNotifyTemplate(it)
@@ -718,6 +716,7 @@ private fun GeneralConfigDialog(
 @Composable
 private fun ForwardCommonConfigDialog(
     currentConfig: ForwardCommonConfig,
+    simRemarkSettings: SimRemarkSettingsSnapshot,
     onDismiss: () -> Unit,
     onSave: (ForwardCommonConfig) -> Unit,
 ) {
@@ -734,8 +733,10 @@ private fun ForwardCommonConfigDialog(
         val previewConfig = currentConfig.copy(messageTemplate = templateText)
         return ForwardCommonConfigStore.applyToMessage(
             context = context,
+            messageType = MessageType.SMS_PLAIN,
             msgInfo = buildSmsPreviewMessage(),
             config = previewConfig,
+            simRemarkSnapshot = simRemarkSettings,
         ).content
     }
     var previewText by remember(currentConfig.deviceName, currentConfig.messageTemplate) {
@@ -902,6 +903,7 @@ private fun ForwardCommonConfigDialog(
 private fun AppNotifyTemplateDialog(
     currentTemplate: String,
     currentCommonConfig: ForwardCommonConfig,
+    simRemarkSettings: SimRemarkSettingsSnapshot,
     onDismiss: () -> Unit,
     onSave: (String) -> Unit,
 ) {
@@ -916,8 +918,10 @@ private fun AppNotifyTemplateDialog(
         val previewConfig = currentCommonConfig.copy(messageTemplate = templateText)
         return ForwardCommonConfigStore.applyToMessage(
             context = context,
+            messageType = MessageType.APP_NOTIFY,
             msgInfo = buildAppNotifyPreviewMessage(),
             config = previewConfig,
+            simRemarkSnapshot = simRemarkSettings,
         ).content
     }
     var previewText by remember(currentTemplate, currentCommonConfig.deviceName) {
@@ -1077,6 +1081,7 @@ private fun AppNotifyTemplateDialog(
 private fun CallNotifyTemplateDialog(
     currentTemplate: String,
     currentCommonConfig: ForwardCommonConfig,
+    simRemarkSettings: SimRemarkSettingsSnapshot,
     onDismiss: () -> Unit,
     onSave: (String) -> Unit,
 ) {
@@ -1091,8 +1096,10 @@ private fun CallNotifyTemplateDialog(
         val previewConfig = currentCommonConfig.copy(messageTemplate = templateText)
         return ForwardCommonConfigStore.applyToMessage(
             context = context,
+            messageType = MessageType.CALL_NOTIFY,
             msgInfo = buildCallNotifyPreviewMessage(),
             config = previewConfig,
+            simRemarkSnapshot = simRemarkSettings,
         ).content
     }
     var previewText by remember(currentTemplate, currentCommonConfig.deviceName) {
@@ -1316,6 +1323,6 @@ fun getSenderTypeName(type: Int): String {
         SenderType.FEISHU_APP -> "飞书应用"
         SenderType.URL_SCHEME -> "Url Scheme"
         SenderType.SOCKET -> "Socket"
-        else -> "未知通道 ($type)"
+        else -> "未知通道"
     }
 }

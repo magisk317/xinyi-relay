@@ -12,11 +12,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import io.github.magisk317.relay.forwarder.entity.MsgInfo
-import io.github.magisk317.relay.forwarder.entity.Sender
-import io.github.magisk317.relay.forwarder.entity.setting.DingtalkGroupRobotSetting
-import io.github.magisk317.relay.forwarder.utils.SenderType
+import io.github.magisk317.relay.model.MsgInfo
+import io.github.magisk317.relay.model.Sender
+import io.github.magisk317.relay.model.setting.DingtalkGroupRobotSetting
+import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.forwarder.utils.sender.DingtalkGroupRobotUtils
+import io.github.magisk317.relay.ui.common.SegmentedOption
+import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
@@ -162,10 +164,14 @@ fun DingtalkConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
             OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("通道名称") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(value = token, onValueChange = { token = it }, label = { Text("Token (必填)") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(value = secret, onValueChange = { secret = it }, label = { Text("Secret 加签密钥 (选填)") }, modifier = Modifier.fillMaxWidth())
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = msgtype == "text", onClick = { msgtype = "text" }, label = { Text("Text") })
-                FilterChip(selected = msgtype == "markdown", onClick = { msgtype = "markdown" }, label = { Text("Markdown") })
-            }
+            SingleChoiceSegmentedSelector(
+                options = listOf(
+                    SegmentedOption("text", "Text"),
+                    SegmentedOption("markdown", "Markdown"),
+                ),
+                selected = msgtype,
+                onSelect = { msgtype = it },
+            )
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 Checkbox(checked = atAll, onCheckedChange = { atAll = it })
                 Text("是否 @所有人")

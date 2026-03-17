@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.ui.sender
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -18,14 +19,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import io.github.magisk317.relay.forwarder.entity.ForwardFilterRule
-import io.github.magisk317.relay.forwarder.filter.ForwardFilterConst
+import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.domain.filter.ForwardFilterConst
+import io.github.magisk317.relay.model.ForwardFilterRule
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterMsgTypeTabs
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterRuleEditorDialog
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterRuleList
+import org.koin.compose.viewmodel.koinViewModel
 
 private data class SenderEditingRule(
     val id: Long,
@@ -40,8 +44,10 @@ private data class SenderEditingRule(
 fun SenderForwardFilterScreen(
     senderId: Long,
     onBack: () -> Unit,
-    viewModel: SenderViewModel = viewModel(),
+    viewModel: SenderViewModel = koinViewModel(),
 ) {
+    val context = LocalContext.current
+    val savedToastText = context.getString(R.string.pref_sync_toast)
     var msgType by remember { mutableStateOf(ForwardFilterConst.MSG_TYPE_SMS) }
     val rulesFlow = remember(senderId, msgType) { viewModel.senderForwardRulesFlow(senderId, msgType) }
     val rules by rulesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -56,7 +62,11 @@ fun SenderForwardFilterScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = if (senderName.isNotBlank()) "通道关键词过滤 · $senderName" else "通道关键词过滤",
+                        text = if (senderName.isNotBlank()) {
+                            stringResource(id = R.string.forward_filter_sender_title_with_name, senderName)
+                        } else {
+                            stringResource(id = R.string.forward_filter_sender_title)
+                        },
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -65,7 +75,7 @@ fun SenderForwardFilterScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回",
+                            contentDescription = stringResource(id = R.string.action_back),
                         )
                     }
                 },
@@ -74,7 +84,7 @@ fun SenderForwardFilterScreen(
                         editing = null
                         showEditor = true
                     }) {
-                        Text("新增")
+                        Text(stringResource(id = R.string.forward_filter_action_add))
                     }
                 },
             )
@@ -91,8 +101,11 @@ fun SenderForwardFilterScreen(
             )
             ForwardFilterRuleList(
                 rules = rules,
-                emptyText = "暂无规则",
-                onToggleEnabled = { id, enabled -> viewModel.setForwardFilterRuleEnabled(id, enabled) },
+                emptyText = stringResource(id = R.string.forward_filter_empty),
+                onToggleEnabled = { id, enabled ->
+                    viewModel.setForwardFilterRuleEnabled(id, enabled)
+                    Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                },
                 onEdit = { rule ->
                     editing = rule.toEditingRule()
                     showEditor = true
@@ -104,7 +117,11 @@ fun SenderForwardFilterScreen(
 
     if (showEditor) {
         ForwardFilterRuleEditorDialog(
-            title = if (editing == null) "新增规则" else "编辑规则",
+            title = if (editing == null) {
+                stringResource(id = R.string.forward_filter_add_rule)
+            } else {
+                stringResource(id = R.string.forward_filter_edit_rule)
+            },
             initialPolicy = editing?.policy ?: ForwardFilterConst.POLICY_ALLOW,
             initialMatchMode = editing?.matchMode ?: ForwardFilterConst.MATCH_CONTAINS,
             initialPattern = editing?.pattern.orEmpty(),

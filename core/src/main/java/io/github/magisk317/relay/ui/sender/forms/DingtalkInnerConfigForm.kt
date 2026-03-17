@@ -34,11 +34,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import io.github.magisk317.relay.forwarder.entity.MsgInfo
-import io.github.magisk317.relay.forwarder.entity.Sender
-import io.github.magisk317.relay.forwarder.entity.setting.DingtalkInnerRobotSetting
-import io.github.magisk317.relay.forwarder.utils.SenderType
+import io.github.magisk317.relay.model.MsgInfo
+import io.github.magisk317.relay.model.Sender
+import io.github.magisk317.relay.model.setting.DingtalkInnerRobotSetting
+import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.forwarder.utils.sender.DingtalkInnerRobotUtils
+import io.github.magisk317.relay.ui.common.SegmentedOption
+import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
@@ -169,10 +171,14 @@ fun DingtalkInnerConfigForm(senderId: Long, onBack: () -> Unit, viewModel: Sende
             OutlinedTextField(appKey, { appKey = it }, label = { Text("AppKey") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(appSecret, { appSecret = it }, label = { Text("AppSecret") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(userIds, { userIds = it }, label = { Text("用户ID(逗号分隔)") }, modifier = Modifier.fillMaxWidth())
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = msgKey == "sampleText", onClick = { msgKey = "sampleText" }, label = { Text("Text") })
-                FilterChip(selected = msgKey == "sampleMarkdown", onClick = { msgKey = "sampleMarkdown" }, label = { Text("Markdown") })
-            }
+            SingleChoiceSegmentedSelector(
+                options = listOf(
+                    SegmentedOption("sampleText", "Text"),
+                    SegmentedOption("sampleMarkdown", "Markdown"),
+                ),
+                selected = msgKey,
+                onSelect = { msgKey = it },
+            )
             OutlinedTextField(
                 titleTemplate,
                 { titleTemplate = it },

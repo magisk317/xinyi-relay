@@ -14,10 +14,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import io.github.magisk317.relay.forwarder.entity.Rule
-import io.github.magisk317.relay.ui.sender.getSenderTypeName
+import io.github.magisk317.relay.model.Rule
+import io.github.magisk317.relay.ui.sender.displayName
 import io.github.magisk317.relay.core.R
+import org.koin.compose.viewmodel.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -25,14 +25,14 @@ import java.util.Locale
 @Composable
 fun RuleListScreen(
     senderId: Long = 0L,
-    viewModel: RuleViewModel = viewModel(),
+    viewModel: RuleViewModel = koinViewModel(),
     onAddClick: () -> Unit,
     onEditClick: (Long) -> Unit
 ) {
     val context = LocalContext.current
     val rules by viewModel.ruleList.collectAsStateWithLifecycle()
     val senders by viewModel.senderList.collectAsStateWithLifecycle()
-    val senderName = if (senderId != 0L) senders.find { it.id == senderId }?.name else null
+    val senderName = if (senderId != 0L) senders.find { it.id == senderId }?.displayName() else null
 
     LaunchedEffect(senderId) {
         viewModel.loadRules(senderId)
@@ -75,7 +75,7 @@ fun RuleListScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(rules, key = { it.id }) { rule ->
-                    val senderName = senders.find { it.id == rule.senderId }?.name ?: "未知通道"
+                    val senderName = senders.find { it.id == rule.senderId }?.displayName() ?: "未知通道"
                     RuleCard(
                         rule = rule,
                         senderName = senderName,

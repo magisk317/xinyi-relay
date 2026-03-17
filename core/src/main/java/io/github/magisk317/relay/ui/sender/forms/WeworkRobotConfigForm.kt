@@ -34,11 +34,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import io.github.magisk317.relay.forwarder.entity.MsgInfo
-import io.github.magisk317.relay.forwarder.entity.Sender
-import io.github.magisk317.relay.forwarder.entity.setting.WeworkRobotSetting
-import io.github.magisk317.relay.forwarder.utils.SenderType
+import io.github.magisk317.relay.model.MsgInfo
+import io.github.magisk317.relay.model.Sender
+import io.github.magisk317.relay.model.setting.WeworkRobotSetting
+import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.forwarder.utils.sender.WeworkRobotUtils
+import io.github.magisk317.relay.ui.common.SegmentedOption
+import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
@@ -163,10 +165,14 @@ fun WeworkRobotConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderV
         ) {
             OutlinedTextField(name, { name = it }, label = { Text("通道名称") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(webHook, { webHook = it }, label = { Text("Webhook 地址") }, modifier = Modifier.fillMaxWidth())
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = msgType == "text", onClick = { msgType = "text" }, label = { Text("Text") })
-                FilterChip(selected = msgType == "markdown", onClick = { msgType = "markdown" }, label = { Text("Markdown") })
-            }
+            SingleChoiceSegmentedSelector(
+                options = listOf(
+                    SegmentedOption("text", "Text"),
+                    SegmentedOption("markdown", "Markdown"),
+                ),
+                selected = msgType,
+                onSelect = { msgType = it },
+            )
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("@所有人")
                 Switch(checked = atAll, onCheckedChange = { atAll = it })

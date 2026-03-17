@@ -34,11 +34,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import io.github.magisk317.relay.forwarder.entity.MsgInfo
-import io.github.magisk317.relay.forwarder.entity.Sender
-import io.github.magisk317.relay.forwarder.entity.setting.FeishuSetting
-import io.github.magisk317.relay.forwarder.utils.SenderType
+import io.github.magisk317.relay.model.MsgInfo
+import io.github.magisk317.relay.model.Sender
+import io.github.magisk317.relay.model.setting.FeishuSetting
+import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.forwarder.utils.sender.FeishuUtils
+import io.github.magisk317.relay.ui.common.SegmentedOption
+import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
@@ -164,10 +166,14 @@ fun FeishuConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMo
             OutlinedTextField(name, { name = it }, label = { Text("通道名称") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(webhook, { webhook = it }, label = { Text("Webhook") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(secret, { secret = it }, label = { Text("Secret(可选)") }, modifier = Modifier.fillMaxWidth())
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = msgType == "interactive", onClick = { msgType = "interactive" }, label = { Text("Interactive") })
-                FilterChip(selected = msgType == "text", onClick = { msgType = "text" }, label = { Text("Text") })
-            }
+            SingleChoiceSegmentedSelector(
+                options = listOf(
+                    SegmentedOption("interactive", "Interactive"),
+                    SegmentedOption("text", "Text"),
+                ),
+                selected = msgType,
+                onSelect = { msgType = it },
+            )
             OutlinedTextField(
                 titleTemplate,
                 { titleTemplate = it },

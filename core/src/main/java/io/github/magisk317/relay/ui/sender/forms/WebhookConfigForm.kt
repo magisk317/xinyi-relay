@@ -13,11 +13,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.BuildConfig
-import io.github.magisk317.relay.forwarder.entity.MsgInfo
-import io.github.magisk317.relay.forwarder.entity.Sender
-import io.github.magisk317.relay.forwarder.entity.setting.WebhookSetting
-import io.github.magisk317.relay.forwarder.utils.SenderType
+import io.github.magisk317.relay.model.MsgInfo
+import io.github.magisk317.relay.model.Sender
+import io.github.magisk317.relay.model.setting.WebhookSetting
+import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.forwarder.utils.sender.WebhookUtils
+import io.github.magisk317.relay.ui.common.SegmentedOption
+import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -215,10 +217,14 @@ fun WebhookConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewM
                 label = { Text("加签密钥 (选填)") },
                 modifier = Modifier.fillMaxWidth()
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = method == "GET", onClick = { method = "GET" }, label = { Text("GET") })
-                FilterChip(selected = method == "POST", onClick = { method = "POST" }, label = { Text("POST") })
-            }
+            SingleChoiceSegmentedSelector(
+                options = listOf(
+                    SegmentedOption("GET", "GET"),
+                    SegmentedOption("POST", "POST"),
+                ),
+                selected = method,
+                onSelect = { method = it },
+            )
             OutlinedTextField(
                 value = webParams,
                 onValueChange = { webParams = it },
