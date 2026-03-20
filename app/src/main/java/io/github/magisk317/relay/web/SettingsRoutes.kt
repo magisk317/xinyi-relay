@@ -38,6 +38,7 @@ internal fun Route.registerSettingsRoutes(
             payload.copyToClipboard == null &&
             payload.showToast == null &&
             payload.showCodeNotification == null &&
+            payload.blockSmsEnabled == null &&
             payload.enableAutoInputCode == null &&
             payload.enableAutoEnterCode == null &&
             payload.verboseLogMode == null &&

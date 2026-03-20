@@ -30,6 +30,7 @@ data class VerificationSettingsSnapshot(
     val autoInputDelay: String,
     val autoInputInterval: String,
     val relayKeywords: String,
+    val blockSmsEnabled: Boolean,
 )
 
 data class VerificationSettingsUpdate(
@@ -44,6 +45,7 @@ data class VerificationSettingsUpdate(
     val autoInputDelay: String? = null,
     val autoInputInterval: String? = null,
     val relayKeywords: String? = null,
+    val blockSmsEnabled: Boolean? = null,
 )
 
 data class RelaySettingsSnapshot(
@@ -215,6 +217,20 @@ data class MessageTypeGateUpdate(
     val callNotifyEnabled: Boolean? = null,
 )
 
+data class ForwardTypeGateSnapshot(
+    val smsCodeEnabled: Boolean,
+    val smsPlainEnabled: Boolean,
+    val appNotifyEnabled: Boolean,
+    val callNotifyEnabled: Boolean,
+)
+
+data class ForwardTypeGateUpdate(
+    val smsCodeEnabled: Boolean? = null,
+    val smsPlainEnabled: Boolean? = null,
+    val appNotifyEnabled: Boolean? = null,
+    val callNotifyEnabled: Boolean? = null,
+)
+
 
 data class UserSettingsSnapshot(
     val moduleEnabled: Boolean,
@@ -223,6 +239,7 @@ data class UserSettingsSnapshot(
     val copyToClipboard: Boolean,
     val showToast: Boolean,
     val showCodeNotification: Boolean,
+    val blockSmsEnabled: Boolean,
     val enableAutoInputCode: Boolean,
     val enableAutoEnterCode: Boolean,
     val verboseLogMode: Boolean,
@@ -237,6 +254,7 @@ data class UserSettingsUpdate(
     val copyToClipboard: Boolean? = null,
     val showToast: Boolean? = null,
     val showCodeNotification: Boolean? = null,
+    val blockSmsEnabled: Boolean? = null,
     val enableAutoInputCode: Boolean? = null,
     val enableAutoEnterCode: Boolean? = null,
     val verboseLogMode: Boolean? = null,
@@ -306,9 +324,10 @@ class SettingsRepository(
                 PrefConst.KEY_AUTO_INPUT_CODE_INTERVAL_DEFAULT,
             ),
             relayKeywords = preferenceDataSource.getString(
-                PrefConst.KEY_RELAY_KEYWORDS,
-                PrefConst.RELAY_KEYWORDS_DEFAULT,
+                PrefConst.KEY_SMSCODE_KEYWORDS,
+                PrefConst.SMSCODE_KEYWORDS_DEFAULT,
             ),
+            blockSmsEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_BLOCK_SMS, false),
         )
     }
 
@@ -325,7 +344,8 @@ class SettingsRepository(
         update.autoEnterEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE_AUTO_ENTER_CODE, it) }
         update.autoInputDelay?.let { preferenceDataSource.setString(PrefConst.KEY_AUTO_INPUT_CODE_DELAY, it) }
         update.autoInputInterval?.let { preferenceDataSource.setString(PrefConst.KEY_AUTO_INPUT_CODE_INTERVAL, it) }
-        update.relayKeywords?.let { preferenceDataSource.setString(PrefConst.KEY_RELAY_KEYWORDS, it) }
+        update.relayKeywords?.let { preferenceDataSource.setString(PrefConst.KEY_SMSCODE_KEYWORDS, it) }
+        update.blockSmsEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_BLOCK_SMS, it) }
         preferenceDataSource.syncToSharedPrefs()
         return getVerificationSettings()
     }
@@ -479,6 +499,44 @@ class SettingsRepository(
         }
         preferenceDataSource.syncToSharedPrefs()
         return getMessageTypeGates()
+    }
+
+    suspend fun getForwardTypeGates(): ForwardTypeGateSnapshot {
+        return ForwardTypeGateSnapshot(
+            smsCodeEnabled = preferenceDataSource.getBoolean(
+                PrefConst.KEY_FORWARD_SMS_CODE_ENABLED,
+                defaultMessageTypeEnabled(MessageType.SMS_CODE),
+            ),
+            smsPlainEnabled = preferenceDataSource.getBoolean(
+                PrefConst.KEY_FORWARD_SMS_PLAIN_ENABLED,
+                defaultMessageTypeEnabled(MessageType.SMS_PLAIN),
+            ),
+            appNotifyEnabled = preferenceDataSource.getBoolean(
+                PrefConst.KEY_FORWARD_APP_NOTIFY_ENABLED,
+                defaultMessageTypeEnabled(MessageType.APP_NOTIFY),
+            ),
+            callNotifyEnabled = preferenceDataSource.getBoolean(
+                PrefConst.KEY_FORWARD_CALL_NOTIFY_ENABLED,
+                defaultMessageTypeEnabled(MessageType.CALL_NOTIFY),
+            ),
+        )
+    }
+
+    suspend fun updateForwardTypeGates(update: ForwardTypeGateUpdate): ForwardTypeGateSnapshot {
+        update.smsCodeEnabled?.let {
+            preferenceDataSource.setBoolean(PrefConst.KEY_FORWARD_SMS_CODE_ENABLED, it)
+        }
+        update.smsPlainEnabled?.let {
+            preferenceDataSource.setBoolean(PrefConst.KEY_FORWARD_SMS_PLAIN_ENABLED, it)
+        }
+        update.appNotifyEnabled?.let {
+            preferenceDataSource.setBoolean(PrefConst.KEY_FORWARD_APP_NOTIFY_ENABLED, it)
+        }
+        update.callNotifyEnabled?.let {
+            preferenceDataSource.setBoolean(PrefConst.KEY_FORWARD_CALL_NOTIFY_ENABLED, it)
+        }
+        preferenceDataSource.syncToSharedPrefs()
+        return getForwardTypeGates()
     }
 
     private fun defaultMessageTypeEnabled(messageType: MessageType): Boolean {
@@ -676,6 +734,7 @@ class SettingsRepository(
             copyToClipboard = verification.copyToClipboard,
             showToast = verification.showToast,
             showCodeNotification = verification.showCodeNotification,
+            blockSmsEnabled = verification.blockSmsEnabled,
             enableAutoInputCode = verification.autoInputEnabled,
             enableAutoEnterCode = verification.autoEnterEnabled,
             verboseLogMode = diagnostics.verboseLogMode,
@@ -693,6 +752,7 @@ class SettingsRepository(
         update.copyToClipboard?.let { preferenceDataSource.setBoolean(PrefConst.KEY_COPY_TO_CLIPBOARD, it) }
         update.showToast?.let { preferenceDataSource.setBoolean(PrefConst.KEY_SHOW_TOAST, it) }
         update.showCodeNotification?.let { preferenceDataSource.setBoolean(PrefConst.KEY_SHOW_CODE_NOTIFICATION, it) }
+        update.blockSmsEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_BLOCK_SMS, it) }
         update.enableAutoInputCode?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE_AUTO_INPUT_CODE, it) }
         update.enableAutoEnterCode?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE_AUTO_ENTER_CODE, it) }
         update.verboseLogMode?.let { preferenceDataSource.setBoolean(PrefConst.KEY_VERBOSE_LOG_MODE, it) }

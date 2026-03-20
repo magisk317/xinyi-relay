@@ -106,9 +106,10 @@ export function SettingsPage() {
               onChange={(value) => void update({ copyToClipboard: value })}
             />
             <Toggle
-              label="验证码通知"
-              checked={data.showCodeNotification}
-              onChange={(value) => void update({ showCodeNotification: value })}
+              label="拦截验证码短信"
+              hint="警告！提取成功后短信应用将无法收到"
+              checked={data.blockSmsEnabled}
+              onChange={(value) => void update({ blockSmsEnabled: value })}
             />
             <Toggle
               label="自动输入"

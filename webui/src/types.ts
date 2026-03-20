@@ -79,6 +79,7 @@ export interface SettingsState {
   copyToClipboard: boolean
   showToast: boolean
   showCodeNotification: boolean
+  blockSmsEnabled: boolean
   enableAutoInputCode: boolean
   enableAutoEnterCode: boolean
   verboseLogMode: boolean
