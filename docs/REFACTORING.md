@@ -153,9 +153,9 @@
 
 ### 入口模型
 
-- 主入口：`io.github.magisk317.relay.xp.RelayXposedModule`
+- 主入口：`io.github.magisk317.relay.xp.LibXposedEntry`
 - `META-INF/xposed/java_init.list` 指向主入口，由 libxposed 框架实例化
-- 业务 hook 调度统一通过 `HookEntry`
+- 业务 hook 调度统一通过 `LibXposedEntry`
 
 ### Hook 兼容层
 

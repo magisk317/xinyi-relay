@@ -27,8 +27,8 @@ read_version_fallback() {
       return 0
     fi
   done
-  echo "Missing version keys: $*" >&2
-  exit 1
+  printf ''
+  return 0
 }
 
 badge_escape() {
@@ -44,6 +44,10 @@ AGP_VERSION=$(read_version "agp")
 MIN_SDK_VERSION=$(read_version "minSdk")
 TARGET_SDK_VERSION=$(read_version "targetSdk")
 XPOSED_API_VERSION=$(read_version_fallback "xposed" "libxposed")
+if [[ -z "$XPOSED_API_VERSION" ]]; then
+  XPOSED_API_VERSION="101"
+  echo "WARN: missing xposed/libxposed version in $TOML_FILE; defaulting to $XPOSED_API_VERSION" >&2
+fi
 
 KOTLIN_BADGE=$(badge_escape "$KOTLIN_VERSION")
 COMPOSE_BADGE=$(badge_escape "$COMPOSE_BOM_VERSION")
