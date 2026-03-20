@@ -16,7 +16,6 @@ class DataStoreSyncInitializer : AppInitializer {
     override fun init(application: Application) {
         scope.launch {
             val preferenceDataSource = StorageRuntimeGraph.from(application).preferenceDataSource
-            preferenceDataSource.migratePreviousKeys()
             preferenceDataSource.syncToSharedPrefs()
             preferenceDataSource.ensureReadable()
             

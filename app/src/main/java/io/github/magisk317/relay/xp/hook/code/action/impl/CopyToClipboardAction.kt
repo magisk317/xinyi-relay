@@ -4,7 +4,7 @@ import android.content.Context
 import android.os.Bundle
 import io.github.magisk317.relay.common.utils.ClipboardUtils
 import io.github.magisk317.relay.common.utils.PrefsReader
-import io.github.magisk317.relay.common.utils.XLog
+import io.github.magisk317.smscode.core.utils.XLog
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.xp.hook.code.action.RunnableAction
 

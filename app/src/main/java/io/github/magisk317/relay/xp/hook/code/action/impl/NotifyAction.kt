@@ -14,7 +14,7 @@ import androidx.core.content.ContextCompat
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.common.constant.NotificationConst
 import io.github.magisk317.relay.common.utils.PrefsReader
-import io.github.magisk317.relay.common.utils.XLog
+import io.github.magisk317.smscode.core.utils.XLog
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.xp.hook.code.AutoCancelReceiver
 import io.github.magisk317.relay.xp.hook.code.CopyCodeReceiver

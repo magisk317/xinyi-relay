@@ -25,5 +25,4 @@ interface PreferenceDataSource {
 
     suspend fun ensureReadable()
     suspend fun syncToSharedPrefs()
-    suspend fun migratePreviousKeys()
 }

@@ -566,12 +566,17 @@ class ForwardReceiver : BroadcastReceiver() {
             return false
         }
         val enabled = appInfo?.forwarding == true
+        val allowWhenMissing = appInfo == null
         val state = when {
             appInfo == null -> "missing"
             enabled -> "enabled"
             else -> "disabled"
         }
-        val finalDecision = if (enabled) "forward" else "drop"
+        val finalDecision = when {
+            enabled -> "forward"
+            allowWhenMissing -> "allow"
+            else -> "drop"
+        }
         ForwardFlowLog.i(
             traceId,
             "App notify gate pkg=$pkg source=$forwardSource state=$state final_decision=$finalDecision",
@@ -583,7 +588,7 @@ class ForwardReceiver : BroadcastReceiver() {
             state,
             finalDecision,
         )
-        return enabled
+        return enabled || allowWhenMissing
     }
 
     private fun setOrderedResult(

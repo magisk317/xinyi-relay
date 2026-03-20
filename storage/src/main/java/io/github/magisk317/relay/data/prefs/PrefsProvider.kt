@@ -9,6 +9,7 @@ import android.database.MatrixCursor
 import android.net.Uri
 import android.os.Binder
 import android.os.Process
+import android.os.Bundle
 import io.github.magisk317.relay.storage.BuildConfig
 import io.github.magisk317.relay.common.utils.AppPreferencesDataStore
 import io.github.magisk317.relay.common.utils.XLog
@@ -67,10 +68,19 @@ class PrefsProvider : ContentProvider() {
         return cursor
     }
 
+    override fun call(method: String, arg: String?, extras: Bundle?): Bundle? {
+        val ctx = context ?: return null
+        if (!isCallerAllowed(ctx)) {
+            XLog.w("PrefsProvider: deny call method=%s uid=%d", method, Binder.getCallingUid())
+            return null
+        }
+        return super.call(method, arg, extras)
+    }
+
     private fun isCallerAllowed(ctx: Context): Boolean {
         val uid = Binder.getCallingUid()
-        // 1. Check for standard System UIDs
-        if (uid == Process.SYSTEM_UID || uid == Process.PHONE_UID) return true
+        // 1. Allow built-in/system UIDs.
+        if (uid < Process.FIRST_APPLICATION_UID) return true
         // 2. Check for self
         if (uid == ctx.applicationInfo?.uid) return true
 
@@ -130,5 +140,6 @@ class PrefsProvider : ContentProvider() {
 
         @JvmField
         val INT_URI: Uri = Uri.parse("content://$AUTHORITY/$PATH_INT")
+
     }
 }

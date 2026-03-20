@@ -10,6 +10,7 @@ import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
@@ -79,6 +80,8 @@ object LogBundleExporter {
                 if (!lsposedCopied) {
                     details += "lsposed log missing or unreadable"
                 }
+
+                captureLogcat(stagingDir, details)
 
                 File(stagingDir, "summary.txt").writeText(
                     buildString {
@@ -231,6 +234,38 @@ object LogBundleExporter {
         }
         details += "lsposed su failed: ${suResult.stderr.ifBlank { suResult.stdout }.ifBlank { "unknown" }}"
         return false
+    }
+
+    private fun captureLogcat(stagingDir: File, details: MutableList<String>) {
+        val logcatDir = File(stagingDir, "logcat")
+        if (!ensureDirectory(logcatDir, recreateWhenFile = true)) return
+        val output = File(logcatDir, "logcat_all.txt")
+        val command = listOf("logcat", "-d", "-v", "threadtime", "-b", "all")
+        val ok = dumpCommandOutput(command, output)
+        if (ok) {
+            details += "logcat: direct"
+            return
+        }
+        val okSu = dumpCommandOutput(listOf("su", "-c", "logcat -d -v threadtime -b all"), output)
+        if (okSu) {
+            details += "logcat: su"
+        }
+    }
+
+    private fun dumpCommandOutput(command: List<String>, output: File): Boolean {
+        return runCatching {
+            val process = ProcessBuilder(command)
+                .redirectErrorStream(true)
+                .start()
+            output.outputStream().use { out ->
+                process.inputStream.copyTo(out)
+            }
+            process.waitFor(6, TimeUnit.SECONDS)
+            if (process.isAlive) {
+                process.destroy()
+            }
+            output.exists() && output.length() > 0
+        }.getOrDefault(false)
     }
 
     private fun summarizeRuntimeLogFiles(stagedAppLogDir: File): String {

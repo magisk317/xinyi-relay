@@ -437,9 +437,9 @@ object RuntimeLogStore {
         val value = className.orEmpty()
         return when {
             value.contains(".xp.hook.code.") -> ROUTE_SMS_HOOK
-            value.contains(".xp.hook.notification.") -> ROUTE_NMS_HOOK
-            value.contains(".xp.hook.system.") -> ROUTE_SYSTEM_INPUT
-            value.contains(".xp.hook.permission.") -> ROUTE_PERMISSION_HOOK
+            value.contains(".xp.hook.notification.") || value.contains(".core.hook.notification.") -> ROUTE_NMS_HOOK
+            value.contains(".xp.hook.system.") || value.contains(".core.hook.system.") -> ROUTE_SYSTEM_INPUT
+            value.contains(".xp.hook.permission.") || value.contains(".core.hook.permission.") -> ROUTE_PERMISSION_HOOK
             value.contains(".xp.hook.google.") -> ROUTE_GOOGLE_MESSAGES
             value.contains(".domain.recovery.") || value.contains(".forwarder.recovery.") -> ROUTE_ROOT_DB
             else -> ROUTE_APP

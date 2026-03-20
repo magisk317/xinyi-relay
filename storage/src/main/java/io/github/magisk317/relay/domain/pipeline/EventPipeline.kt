@@ -83,6 +83,18 @@ class EventPipeline(
             return EventPipelineResult(dispatched = false, blockedReason = reason)
         }
 
+        if (!isForwardTypeEnabled(event.messageType)) {
+            val reason = "转发开关已关闭"
+            dispatchResultWriter.persistForwardResult(
+                recordId = recordContext.recordId,
+                results = emptyList(),
+                defaultMessage = reason,
+                msgTypeForAnalytics = recordContext.smsMsgType,
+            )
+            ForwardFlowLog.i(traceId, "Forward type gate blocked sender dispatch type=${event.messageType}")
+            return EventPipelineResult(dispatched = false, blockedReason = reason)
+        }
+
         return runCatching {
             val senderResolution = resolveSenders(event, traceId)
             if (senderResolution.selectedSenders.isEmpty()) {
@@ -228,6 +240,36 @@ class EventPipeline(
             }
 
             else -> commonConfig
+        }
+    }
+
+    private suspend fun isForwardTypeEnabled(messageType: MessageType): Boolean {
+        return when (messageType) {
+            MessageType.SMS_CODE -> preferenceDataSource.getBoolean(
+                PrefConst.KEY_FORWARD_SMS_CODE_ENABLED,
+                defaultForwardEnabled(MessageType.SMS_CODE),
+            )
+            MessageType.SMS_PLAIN -> preferenceDataSource.getBoolean(
+                PrefConst.KEY_FORWARD_SMS_PLAIN_ENABLED,
+                defaultForwardEnabled(MessageType.SMS_PLAIN),
+            )
+            MessageType.APP_NOTIFY -> preferenceDataSource.getBoolean(
+                PrefConst.KEY_FORWARD_APP_NOTIFY_ENABLED,
+                defaultForwardEnabled(MessageType.APP_NOTIFY),
+            )
+            MessageType.CALL_NOTIFY -> preferenceDataSource.getBoolean(
+                PrefConst.KEY_FORWARD_CALL_NOTIFY_ENABLED,
+                defaultForwardEnabled(MessageType.CALL_NOTIFY),
+            )
+        }
+    }
+
+    private fun defaultForwardEnabled(messageType: MessageType): Boolean {
+        return when (messageType) {
+            MessageType.SMS_CODE -> true
+            MessageType.SMS_PLAIN -> true
+            MessageType.APP_NOTIFY -> true
+            MessageType.CALL_NOTIFY -> false
         }
     }
 

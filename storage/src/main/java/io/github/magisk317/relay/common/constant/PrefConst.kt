@@ -26,7 +26,7 @@ object PrefConst {
     const val KEY_AUTO_INPUT_CODE_DELAY = "pref_auto_input_code_delay"
     const val KEY_AUTO_INPUT_CODE_DELAY_DEFAULT = "0"
     const val KEY_AUTO_INPUT_CODE_INTERVAL = "pref_auto_input_code_interval"
-    const val KEY_AUTO_INPUT_CODE_INTERVAL_DEFAULT = "0"
+    const val KEY_AUTO_INPUT_CODE_INTERVAL_DEFAULT = "100"
     const val KEY_APP_BLOCK_ENTRY = "pref_app_block_entry"
     const val KEY_BLOCK_SMS = "pref_block_sms"
     const val KEY_DEDUPLICATE_SMS = "pref_deduplicate_sms"
@@ -43,6 +43,12 @@ object PrefConst {
     const val KEY_AUTO_CANCEL_CODE_NOTIFICATION = "pref_auto_cancel_code_notification"
     const val KEY_NOTIFICATION_RETENTION_TIME = "pref_notification_retention_time"
     const val NOTIFICATION_RETENTION_TIME_DEFAULT = "5"
+    const val KEY_CODE_NOTIFICATION_RETENTION_TIME = "pref_code_notification_retention_time"
+    const val KEY_CODE_NOTIFICATION_RETENTION_TIME_DEFAULT = NOTIFICATION_RETENTION_TIME_DEFAULT
+    const val KEY_APP_NOTIFY_CODE_RETENTION_TIME = "pref_app_notify_code_retention_time"
+    const val KEY_APP_NOTIFY_CODE_RETENTION_TIME_DEFAULT = NOTIFICATION_RETENTION_TIME_DEFAULT
+    const val KEY_CALL_NOTIFY_CODE_RETENTION_TIME = "pref_call_notify_code_retention_time"
+    const val KEY_CALL_NOTIFY_CODE_RETENTION_TIME_DEFAULT = NOTIFICATION_RETENTION_TIME_DEFAULT
 
     // Code Record
     const val KEY_ENABLE_CODE_RECORDS = "pref_enable_code_records"
@@ -65,15 +71,24 @@ object PrefConst {
     const val KEY_INTERNAL_ROOT_DB_BASELINE_INITED = "internal_root_db_baseline_inited"
 
     // Code Rules
+    const val KEY_SMSCODE_KEYWORDS = "pref_smscode_keywords"
+    val SMSCODE_KEYWORDS_DEFAULT = SmsCodeConst.VERIFICATION_KEYWORDS_REGEX
+    const val KEY_SMSCODE_KEYWORDS_EXCLUDE = "pref_smscode_keywords_exclude"
+    const val KEY_SMSCODE_KEYWORDS_BLACKLIST = "pref_smscode_keywords_blacklist"
+    const val KEY_SMSCODE_KEYWORDS_WHITELIST = "pref_smscode_keywords_whitelist"
+    const val KEY_SMSCODE_REGEX = "pref_smscode_regex"
+    val SMSCODE_REGEX_DEFAULT = SmsCodeConst.VERIFICATION_KEYWORDS_REGEX
+    const val KEY_SMSCODE_REGEX_EXCLUDE = "pref_smscode_regex_exclude"
     const val KEY_RELAY_KEYWORDS = "pref_relay_keywords"
-    val RELAY_KEYWORDS_DEFAULT = SmsCodeConst.VERIFICATION_KEYWORDS_REGEX
+    val RELAY_KEYWORDS_DEFAULT = SMSCODE_KEYWORDS_DEFAULT
+    const val KEY_RELAY_KEYWORDS_CASE_INSENSITIVE = "pref_relay_keywords_case_insensitive"
+    const val KEY_RELAY_KEYWORDS_REGEX = "pref_relay_keywords_regex"
     const val KEY_RELAY_TEST = "pref_relay_test"
     const val KEY_CODE_RULES = "pref_code_rules"
 
     // Experimental
     const val KEY_MARK_AS_READ = "pref_mark_as_read"
     const val KEY_DELETE_SMS = "pref_delete_sms"
-    const val KEY_KILL_ME = "pref_kill_me"
     const val KEY_FORCE_STOP_RECOVERY = "pref_force_stop_recovery"
     const val KEY_FORCE_STOP_RECOVERY_RELAUNCH_ONCE = "pref_force_stop_recovery_relaunch_once"
 
@@ -103,10 +118,19 @@ object PrefConst {
     const val KEY_CALL_ALERT_CHANNEL_ID = "pref_call_alert_channel_id"
     const val KEY_VERIFICATION_FEATURES_ENABLED = "pref_verification_features_enabled"
     const val KEY_RELAY_FEATURES_ENABLED = "pref_relay_features_enabled"
+    const val KEY_ENABLE_CALL_RELAY = "pref_enable_call_relay"
+    const val KEY_ENABLE_SMS_RELAY = "pref_enable_sms_relay"
+    const val KEY_ENABLE_APP_RELAY = "pref_enable_app_relay"
+    const val KEY_RELAY_BY_WIFI = "pref_relay_by_wifi"
+    const val KEY_RELAY_BY_DATA = "pref_relay_by_data"
     const val KEY_MSG_TYPE_SMS_CODE_ENABLED = "pref_msg_type_sms_code_enabled"
     const val KEY_MSG_TYPE_SMS_PLAIN_ENABLED = "pref_msg_type_sms_plain_enabled"
     const val KEY_MSG_TYPE_APP_NOTIFY_ENABLED = "pref_msg_type_app_notify_enabled"
     const val KEY_MSG_TYPE_CALL_NOTIFY_ENABLED = "pref_msg_type_call_notify_enabled"
+    const val KEY_FORWARD_SMS_CODE_ENABLED = "pref_forward_sms_code_enabled"
+    const val KEY_FORWARD_SMS_PLAIN_ENABLED = "pref_forward_sms_plain_enabled"
+    const val KEY_FORWARD_APP_NOTIFY_ENABLED = "pref_forward_app_notify_enabled"
+    const val KEY_FORWARD_CALL_NOTIFY_ENABLED = "pref_forward_call_notify_enabled"
     const val KEY_SMS_KEYWORD_ALERT_ENABLED = "pref_sms_keyword_alert_enabled"
     const val KEY_SMS_KEYWORD_ALERT_KEYWORDS = "pref_sms_keyword_alert_keywords"
     const val KEY_SMS_KEYWORD_ALERT_NOTIFICATION = "pref_sms_keyword_alert_notification"

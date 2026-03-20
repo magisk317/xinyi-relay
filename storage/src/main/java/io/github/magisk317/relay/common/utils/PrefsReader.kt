@@ -340,11 +340,21 @@ object PrefsReader {
     }
 
     @JvmStatic
-    fun getSMSCodeKeywords(context: Context): String? = getStringViaProvider(
-        context,
-        PrefConst.KEY_RELAY_KEYWORDS,
-        PrefConst.RELAY_KEYWORDS_DEFAULT,
-    )
+    fun getSMSCodeKeywords(context: Context): String? {
+        val primary = readStringWithTrace(
+            context,
+            PrefConst.KEY_SMSCODE_KEYWORDS,
+            PrefConst.SMSCODE_KEYWORDS_DEFAULT,
+        )
+        if (primary.source != "default") {
+            return primary.value
+        }
+        return getStringViaProvider(
+            context,
+            PrefConst.KEY_RELAY_KEYWORDS,
+            PrefConst.RELAY_KEYWORDS_DEFAULT,
+        )
+    }
 
     @JvmStatic
     fun markAsReadEnabled(context: Context): Boolean {
@@ -555,7 +565,7 @@ object PrefsReader {
     @JvmStatic
     fun blockSmsEnabled(context: Context): Boolean {
         val defaultValue = false
-        return getBooleanViaProvider(context, PrefConst.KEY_BLOCK_SMS, defaultValue)
+        return resolveBoolean(context, PrefConst.KEY_BLOCK_SMS, defaultValue).value
     }
 
     @JvmStatic
@@ -582,9 +592,8 @@ object PrefsReader {
 
     @JvmStatic
     fun showCodeNotification(context: Context): Boolean {
-        if (!verificationFeaturesEnabled(context)) return false
-        val defaultValue = true
-        return getBooleanViaProvider(context, PrefConst.KEY_SHOW_CODE_NOTIFICATION, defaultValue)
+        // Status bar code notifications are phased out; keep toast-only UX.
+        return false
     }
 
     @JvmStatic

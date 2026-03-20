@@ -116,8 +116,8 @@ internal object RootDbCatchupEngine {
         val db = runtimeGraph.database
         val dao = db.smsMsgDao()
         val relayKeywords = runtimeGraph.preferenceDataSource.getString(
-            PrefConst.KEY_RELAY_KEYWORDS,
-            PrefConst.RELAY_KEYWORDS_DEFAULT,
+            PrefConst.KEY_SMSCODE_KEYWORDS,
+            PrefConst.SMSCODE_KEYWORDS_DEFAULT,
         )
 
         var lastSmsId = stateStore.readWatermark(PrefConst.KEY_INTERNAL_ROOT_DB_LAST_SMS_ID)

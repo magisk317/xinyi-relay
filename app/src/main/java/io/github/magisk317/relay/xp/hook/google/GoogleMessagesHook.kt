@@ -7,16 +7,17 @@ import android.net.Uri
 import android.provider.Telephony
 import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.common.utils.PrefsReader
-import io.github.magisk317.relay.common.utils.XLog
-import io.github.magisk317.relay.xp.helper.XposedWrapper
-import io.github.magisk317.relay.xp.hook.BaseHook
-import io.github.magisk317.relay.xp.compat.XC_MethodHook
-import io.github.magisk317.relay.xp.compat.callbacks.XC_LoadPackage
+import io.github.magisk317.smscode.core.utils.XLog
+import io.github.magisk317.smscode.core.helper.XposedWrapper
+import io.github.magisk317.smscode.core.hook.BaseHook
+import io.github.magisk317.smscode.core.hookapi.LoadParam
+import io.github.magisk317.smscode.core.hookapi.MethodHook
+import io.github.magisk317.smscode.core.hookapi.MethodHookParam
 import java.util.concurrent.Executors
 import java.util.regex.Pattern
 
 class GoogleMessagesHook : BaseHook() {
-    override fun onLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
+    override fun onLoadPackage(lpparam: LoadParam) {
         if (lpparam.packageName != GOOGLE_MESSAGES_PACKAGE_NAME) return
         bugleClassLoader = lpparam.classLoader
         XLog.i("GoogleMessagesHook initializing")
@@ -27,7 +28,7 @@ class GoogleMessagesHook : BaseHook() {
     private fun hookReceiver(classLoader: ClassLoader, receiverClassName: String) {
         val receiverClass = XposedWrapper.findClass(receiverClassName, classLoader) ?: return
         var hookedCount = 0
-        val callback = object : XC_MethodHook() {
+        val callback = object : MethodHook() {
             override fun afterHookedMethod(param: MethodHookParam) {
                 val context = param.args.getOrNull(0) as? Context ?: return
                 val intent = param.args.getOrNull(1) as? Intent ?: return

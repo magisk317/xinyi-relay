@@ -8,13 +8,12 @@ import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.domain.pipeline.StorageRuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
-import io.github.magisk317.relay.xp.hook.system.SystemInputInjectorHook
 import kotlinx.coroutines.runBlocking
 import kotlin.concurrent.thread
 
 class AutoInputResultReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != SystemInputInjectorHook.ACTION_AUTO_INPUT_RESULT) return
+        if (intent.action != io.github.magisk317.smscode.core.hook.system.SystemInputInjectorHook.resolveActionAutoInputResult()) return
         val attemptId = intent.getLongExtra("attemptId", -1L)
         if (attemptId <= 0L) return
         val success = intent.getBooleanExtra("success", false)

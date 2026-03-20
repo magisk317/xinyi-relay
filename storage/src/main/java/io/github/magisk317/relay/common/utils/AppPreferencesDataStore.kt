@@ -20,10 +20,6 @@ object AppPreferencesDataStore {
     private val backupCompatTipShownKey = booleanPreferencesKey(PrefConst.KEY_BACKUP_COMPAT_TIP_SHOWN)
     private const val DATASTORE_FILE_NAME = "app_preferences.preferences_pb"
     private const val SHARED_PREFS_FILE_NAME = "xposed_prefs"
-    private val previousStringKeyMap = mapOf(
-        "pref_smscode_keywords" to PrefConst.KEY_RELAY_KEYWORDS,
-        "pref_smscode_test" to PrefConst.KEY_RELAY_TEST,
-    )
 
     @Volatile
     private var INSTANCE: DataStore<Preferences>? = null
@@ -60,6 +56,37 @@ object AppPreferencesDataStore {
     fun ensureReadable(context: Context) {
         ensureDataStoreReadable(context)
         ensureSharedPrefsReadable(context)
+    }
+
+    @Volatile
+    private var remotePrefsProvider: (() -> SharedPreferences?)? = null
+    @Volatile
+    private var remoteProviderLogged = false
+    @Volatile
+    private var remoteSyncPending = false
+    @Volatile
+    private var remoteSyncPendingLogged = false
+
+    fun setRemotePrefsProvider(provider: (() -> SharedPreferences?)?) {
+        remotePrefsProvider = provider
+        remoteProviderLogged = false
+        if (provider == null) {
+            // Keep pending flag for next service bind.
+            remoteSyncPendingLogged = false
+        }
+    }
+
+    fun hasPendingRemoteSync(): Boolean = remoteSyncPending
+
+    private fun getRemotePrefs(): SharedPreferences? {
+        val provider = remotePrefsProvider ?: return null
+        return runCatching { provider.invoke() }.getOrElse { t ->
+            if (!remoteProviderLogged) {
+                remoteProviderLogged = true
+                XLog.w("RemotePrefs provider failed: %s", t.message ?: t.javaClass.simpleName)
+            }
+            null
+        }
     }
 
     suspend fun isBackupCompatTipShown(context: Context): Boolean = getInstance(context).data
@@ -222,8 +249,8 @@ object AppPreferencesDataStore {
         )
         editor.putBoolean(PrefConst.KEY_SHOW_TOAST, getBoolean(context, PrefConst.KEY_SHOW_TOAST, true))
         editor.putString(
-            PrefConst.KEY_RELAY_KEYWORDS,
-            getString(context, PrefConst.KEY_RELAY_KEYWORDS, PrefConst.RELAY_KEYWORDS_DEFAULT),
+            PrefConst.KEY_SMSCODE_KEYWORDS,
+            getString(context, PrefConst.KEY_SMSCODE_KEYWORDS, PrefConst.SMSCODE_KEYWORDS_DEFAULT),
         )
         editor.putBoolean(PrefConst.KEY_MARK_AS_READ, getBoolean(context, PrefConst.KEY_MARK_AS_READ, false))
         editor.putBoolean(PrefConst.KEY_DELETE_SMS, getBoolean(context, PrefConst.KEY_DELETE_SMS, false))
@@ -265,7 +292,6 @@ object AppPreferencesDataStore {
             ),
         )
         editor.putBoolean(PrefConst.KEY_BLOCK_SMS, getBoolean(context, PrefConst.KEY_BLOCK_SMS, false))
-        editor.putBoolean(PrefConst.KEY_KILL_ME, getBoolean(context, PrefConst.KEY_KILL_ME, false))
         editor.putBoolean(
             PrefConst.KEY_FORCE_STOP_RECOVERY,
             getBoolean(context, PrefConst.KEY_FORCE_STOP_RECOVERY, false),
@@ -417,6 +443,22 @@ object AppPreferencesDataStore {
             getBoolean(context, PrefConst.KEY_MSG_TYPE_CALL_NOTIFY_ENABLED, false),
         )
         editor.putBoolean(
+            PrefConst.KEY_FORWARD_SMS_CODE_ENABLED,
+            getBoolean(context, PrefConst.KEY_FORWARD_SMS_CODE_ENABLED, true),
+        )
+        editor.putBoolean(
+            PrefConst.KEY_FORWARD_SMS_PLAIN_ENABLED,
+            getBoolean(context, PrefConst.KEY_FORWARD_SMS_PLAIN_ENABLED, true),
+        )
+        editor.putBoolean(
+            PrefConst.KEY_FORWARD_APP_NOTIFY_ENABLED,
+            getBoolean(context, PrefConst.KEY_FORWARD_APP_NOTIFY_ENABLED, true),
+        )
+        editor.putBoolean(
+            PrefConst.KEY_FORWARD_CALL_NOTIFY_ENABLED,
+            getBoolean(context, PrefConst.KEY_FORWARD_CALL_NOTIFY_ENABLED, false),
+        )
+        editor.putBoolean(
             PrefConst.KEY_SMS_KEYWORD_ALERT_ENABLED,
             getBoolean(context, PrefConst.KEY_SMS_KEYWORD_ALERT_ENABLED, false),
         )
@@ -550,35 +592,258 @@ object AppPreferencesDataStore {
         )
         editor.apply()
         ensureSharedPrefsReadable(context)
+        syncToRemotePrefs(context)
     }
 
-    suspend fun migratePreviousKeys(context: Context) {
-        getInstance(context).edit { prefs ->
-            previousStringKeyMap.forEach { (previousKey, newKey) ->
-                val previousPrefKey = stringPreferencesKey(previousKey)
-                val newPrefKey = stringPreferencesKey(newKey)
-                val previousValue = prefs[previousPrefKey]
-                if (!previousValue.isNullOrEmpty() && prefs[newPrefKey].isNullOrEmpty()) {
-                    prefs[newPrefKey] = previousValue
-                }
+    @Suppress("TooGenericExceptionCaught")
+    suspend fun syncToRemotePrefs(context: Context) {
+        val prefs = getRemotePrefs() ?: run {
+            remoteSyncPending = true
+            if (!remoteSyncPendingLogged) {
+                remoteSyncPendingLogged = true
+                XLog.w("RemotePrefs sync pending: provider not available")
             }
+            return
         }
-
-        val sharedPrefs = getSharedPrefs(context)
-        val editor = sharedPrefs.edit()
-        var changed = false
-        previousStringKeyMap.forEach { (previousKey, newKey) ->
-            if (!sharedPrefs.contains(newKey) && sharedPrefs.contains(previousKey)) {
-                val previousValue = sharedPrefs.getString(previousKey, null)
-                if (!previousValue.isNullOrEmpty()) {
-                    editor.putString(newKey, previousValue)
-                    changed = true
-                }
+        try {
+            val editor = prefs.edit()
+            editor.putBoolean(PrefConst.KEY_ENABLE, getBoolean(context, PrefConst.KEY_ENABLE, true))
+            editor.putBoolean(
+                PrefConst.KEY_SETTINGS_ACCORDION_MODE,
+                getBoolean(context, PrefConst.KEY_SETTINGS_ACCORDION_MODE, true),
+            )
+            editor.putBoolean(PrefConst.KEY_VERBOSE_LOG_MODE, getBoolean(context, PrefConst.KEY_VERBOSE_LOG_MODE, false))
+            editor.putInt(
+                PrefConst.KEY_RUNTIME_LOG_FILE_SIZE_MB,
+                getInt(
+                    context,
+                    PrefConst.KEY_RUNTIME_LOG_FILE_SIZE_MB,
+                    PrefConst.RUNTIME_LOG_FILE_SIZE_MB_DEFAULT,
+                ),
+            )
+            editor.putBoolean(
+                PrefConst.KEY_ENABLE_AUTO_INPUT_CODE,
+                getBoolean(context, PrefConst.KEY_ENABLE_AUTO_INPUT_CODE, true),
+            )
+            editor.putString(
+                PrefConst.KEY_AUTO_INPUT_CODE_DELAY,
+                getString(context, PrefConst.KEY_AUTO_INPUT_CODE_DELAY, PrefConst.KEY_AUTO_INPUT_CODE_DELAY_DEFAULT),
+            )
+            editor.putString(
+                PrefConst.KEY_AUTO_INPUT_CODE_INTERVAL,
+                getString(
+                    context,
+                    PrefConst.KEY_AUTO_INPUT_CODE_INTERVAL,
+                    PrefConst.KEY_AUTO_INPUT_CODE_INTERVAL_DEFAULT,
+                ),
+            )
+            editor.putBoolean(PrefConst.KEY_SHOW_TOAST, getBoolean(context, PrefConst.KEY_SHOW_TOAST, true))
+            editor.putString(
+                PrefConst.KEY_SMSCODE_KEYWORDS,
+                getString(context, PrefConst.KEY_SMSCODE_KEYWORDS, PrefConst.SMSCODE_KEYWORDS_DEFAULT),
+            )
+            editor.putBoolean(PrefConst.KEY_MARK_AS_READ, getBoolean(context, PrefConst.KEY_MARK_AS_READ, false))
+            editor.putBoolean(PrefConst.KEY_DELETE_SMS, getBoolean(context, PrefConst.KEY_DELETE_SMS, false))
+            editor.putBoolean(
+                PrefConst.KEY_COPY_TO_CLIPBOARD,
+                getBoolean(context, PrefConst.KEY_COPY_TO_CLIPBOARD, false),
+            )
+            editor.putBoolean(
+                PrefConst.KEY_ENABLE_CODE_RECORDS_CODE,
+                getBoolean(context, PrefConst.KEY_ENABLE_CODE_RECORDS_CODE, true),
+            )
+            editor.putBoolean(
+                PrefConst.KEY_ENABLE_CODE_RECORDS_PLAIN_SMS,
+                getBoolean(context, PrefConst.KEY_ENABLE_CODE_RECORDS_PLAIN_SMS, true),
+            )
+            editor.putBoolean(
+                PrefConst.KEY_ENABLE_CODE_RECORDS_APP_NOTIFY,
+                getBoolean(context, PrefConst.KEY_ENABLE_CODE_RECORDS_APP_NOTIFY, true),
+            )
+            editor.putBoolean(
+                PrefConst.KEY_ENABLE_CODE_RECORDS_CALL_NOTIFY,
+                getBoolean(context, PrefConst.KEY_ENABLE_CODE_RECORDS_CALL_NOTIFY, true),
+            )
+            editor.putBoolean(PrefConst.KEY_BLOCK_SMS, getBoolean(context, PrefConst.KEY_BLOCK_SMS, false))
+            editor.putBoolean(
+                PrefConst.KEY_AUTO_CANCEL_CODE_NOTIFICATION,
+                getBoolean(context, PrefConst.KEY_AUTO_CANCEL_CODE_NOTIFICATION, true),
+            )
+            editor.putString(
+                PrefConst.KEY_CODE_NOTIFICATION_RETENTION_TIME,
+                getString(
+                    context,
+                    PrefConst.KEY_CODE_NOTIFICATION_RETENTION_TIME,
+                    PrefConst.KEY_CODE_NOTIFICATION_RETENTION_TIME_DEFAULT,
+                ),
+            )
+            editor.putString(
+                PrefConst.KEY_APP_NOTIFY_CODE_RETENTION_TIME,
+                getString(
+                    context,
+                    PrefConst.KEY_APP_NOTIFY_CODE_RETENTION_TIME,
+                    PrefConst.KEY_APP_NOTIFY_CODE_RETENTION_TIME_DEFAULT,
+                ),
+            )
+            editor.putString(
+                PrefConst.KEY_CALL_NOTIFY_CODE_RETENTION_TIME,
+                getString(
+                    context,
+                    PrefConst.KEY_CALL_NOTIFY_CODE_RETENTION_TIME,
+                    PrefConst.KEY_CALL_NOTIFY_CODE_RETENTION_TIME_DEFAULT,
+                ),
+            )
+            editor.putBoolean(
+                PrefConst.KEY_DEDUPLICATE_SMS,
+                getBoolean(context, PrefConst.KEY_DEDUPLICATE_SMS, true),
+            )
+            editor.putBoolean(
+                PrefConst.KEY_ENABLE_SMS_BLACKLIST,
+                getBoolean(context, PrefConst.KEY_ENABLE_SMS_BLACKLIST, false),
+            )
+            editor.putString(
+                PrefConst.KEY_SMS_BLACKLIST_NUMBERS,
+                getString(context, PrefConst.KEY_SMS_BLACKLIST_NUMBERS, ""),
+            )
+            editor.putString(
+                PrefConst.KEY_SMS_BLACKLIST_PREFIXES,
+                getString(context, PrefConst.KEY_SMS_BLACKLIST_PREFIXES, ""),
+            )
+            editor.putString(
+                PrefConst.KEY_SMS_BLACKLIST_REGEX,
+                getString(context, PrefConst.KEY_SMS_BLACKLIST_REGEX, ""),
+            )
+            editor.putString(
+                PrefConst.KEY_SMS_BLACKLIST_CONTENT,
+                getString(context, PrefConst.KEY_SMS_BLACKLIST_CONTENT, ""),
+            )
+            editor.putBoolean(
+                PrefConst.KEY_SMS_BLACKLIST_ACTION_DELETE,
+                getBoolean(context, PrefConst.KEY_SMS_BLACKLIST_ACTION_DELETE, false),
+            )
+            editor.putBoolean(
+                PrefConst.KEY_SMS_BLACKLIST_ACTION_BLOCK,
+                getBoolean(context, PrefConst.KEY_SMS_BLACKLIST_ACTION_BLOCK, false),
+            )
+            editor.putBoolean(
+                PrefConst.KEY_ENABLE_CALL_RELAY,
+                getBoolean(context, PrefConst.KEY_ENABLE_CALL_RELAY, true),
+            )
+            editor.putBoolean(
+                PrefConst.KEY_ENABLE_SMS_RELAY,
+                getBoolean(context, PrefConst.KEY_ENABLE_SMS_RELAY, true),
+            )
+            editor.putBoolean(
+                PrefConst.KEY_ENABLE_APP_RELAY,
+                getBoolean(context, PrefConst.KEY_ENABLE_APP_RELAY, true),
+            )
+            editor.putBoolean(
+                PrefConst.KEY_ENABLE_AUTO_ENTER_CODE,
+                getBoolean(context, PrefConst.KEY_ENABLE_AUTO_ENTER_CODE, false),
+            )
+            editor.putString(
+                PrefConst.KEY_SMSCODE_KEYWORDS_EXCLUDE,
+                getString(context, PrefConst.KEY_SMSCODE_KEYWORDS_EXCLUDE, ""),
+            )
+            editor.putString(
+                PrefConst.KEY_SMSCODE_REGEX,
+                getString(context, PrefConst.KEY_SMSCODE_REGEX, PrefConst.SMSCODE_REGEX_DEFAULT),
+            )
+            editor.putString(
+                PrefConst.KEY_SMSCODE_REGEX_EXCLUDE,
+                getString(context, PrefConst.KEY_SMSCODE_REGEX_EXCLUDE, ""),
+            )
+            editor.putBoolean(
+                PrefConst.KEY_RELAY_BY_WIFI,
+                getBoolean(context, PrefConst.KEY_RELAY_BY_WIFI, false),
+            )
+            editor.putBoolean(
+                PrefConst.KEY_RELAY_BY_DATA,
+                getBoolean(context, PrefConst.KEY_RELAY_BY_DATA, false),
+            )
+            editor.putString(
+                PrefConst.KEY_RELAY_TEST,
+                getString(context, PrefConst.KEY_RELAY_TEST, ""),
+            )
+            editor.putString(
+                PrefConst.KEY_RELAY_KEYWORDS,
+                getString(context, PrefConst.KEY_RELAY_KEYWORDS, ""),
+            )
+            editor.putBoolean(
+                PrefConst.KEY_RELAY_KEYWORDS_CASE_INSENSITIVE,
+                getBoolean(context, PrefConst.KEY_RELAY_KEYWORDS_CASE_INSENSITIVE, true),
+            )
+            editor.putString(
+                PrefConst.KEY_RELAY_KEYWORDS_REGEX,
+                getString(context, PrefConst.KEY_RELAY_KEYWORDS_REGEX, ""),
+            )
+            editor.putString(
+                PrefConst.KEY_SMSCODE_KEYWORDS_BLACKLIST,
+                getString(context, PrefConst.KEY_SMSCODE_KEYWORDS_BLACKLIST, ""),
+            )
+            editor.putString(
+                PrefConst.KEY_SMSCODE_KEYWORDS_WHITELIST,
+                getString(context, PrefConst.KEY_SMSCODE_KEYWORDS_WHITELIST, ""),
+            )
+            editor.putString(
+                PrefConst.KEY_WEBUI_PORT,
+                getString(context, PrefConst.KEY_WEBUI_PORT, PrefConst.KEY_WEBUI_PORT_DEFAULT),
+            )
+            editor.putString(
+                PrefConst.KEY_WEBUI_USERNAME,
+                getString(context, PrefConst.KEY_WEBUI_USERNAME, PrefConst.KEY_WEBUI_USERNAME_DEFAULT),
+            )
+            editor.putString(
+                PrefConst.KEY_WEBUI_PASSWORD,
+                getString(context, PrefConst.KEY_WEBUI_PASSWORD, ""),
+            )
+            editor.putString(
+                PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_VERSION,
+                getString(
+                    context,
+                    PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_VERSION,
+                    PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_VERSION_DEFAULT,
+                ),
+            )
+            editor.putString(
+                PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS,
+                getString(context, PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS, ""),
+            )
+            editor.putBoolean(
+                PrefConst.KEY_ROOT_DB_CATCHUP_ENABLE,
+                getBoolean(context, PrefConst.KEY_ROOT_DB_CATCHUP_ENABLE, true),
+            )
+            editor.putString(
+                PrefConst.KEY_ROOT_DB_CATCHUP_INTERVAL_MIN,
+                getString(context, PrefConst.KEY_ROOT_DB_CATCHUP_INTERVAL_MIN, "5"),
+            )
+            editor.putBoolean(
+                PrefConst.KEY_ROOT_DB_CATCHUP_WRITEBACK,
+                getBoolean(context, PrefConst.KEY_ROOT_DB_CATCHUP_WRITEBACK, false),
+            )
+            editor.putBoolean(
+                PrefConst.KEY_INTERNAL_ROOT_DB_BASELINE_INITED,
+                getBoolean(context, PrefConst.KEY_INTERNAL_ROOT_DB_BASELINE_INITED, false),
+            )
+            editor.putString(
+                PrefConst.KEY_INTERNAL_ROOT_DB_LAST_SMS_ID,
+                getString(context, PrefConst.KEY_INTERNAL_ROOT_DB_LAST_SMS_ID, "0"),
+            )
+            editor.putString(
+                PrefConst.KEY_INTERNAL_ROOT_DB_LAST_CALL_ID,
+                getString(context, PrefConst.KEY_INTERNAL_ROOT_DB_LAST_CALL_ID, "0"),
+            )
+            val committed = editor.commit()
+            if (!committed) {
+                remoteSyncPending = true
+                XLog.w("RemotePrefs sync failed: commit returned false")
+            } else {
+                remoteSyncPending = false
+                remoteSyncPendingLogged = false
             }
-        }
-        if (changed) {
-            editor.apply()
-            ensureSharedPrefsReadable(context)
+        } catch (e: Exception) {
+            remoteSyncPending = true
+            XLog.w("RemotePrefs sync failed: %s", e.message ?: e.javaClass.simpleName)
         }
     }
 

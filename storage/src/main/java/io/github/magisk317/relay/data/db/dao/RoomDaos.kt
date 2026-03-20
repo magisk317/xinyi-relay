@@ -59,6 +59,45 @@ interface SmsMsgDao {
     @Query("SELECT * FROM sms_msg WHERE sender IS :sender AND body IS :body AND date = :date AND msg_type = :msgType LIMIT 1")
     fun getByFingerprint(sender: String?, body: String?, date: Long, msgType: Int): SmsMsg?
 
+    @Query(
+        "SELECT * FROM sms_msg " +
+            "WHERE sender IS :sender AND body IS :body " +
+            "AND msg_type = :msgType AND date BETWEEN :dateFrom AND :dateTo LIMIT 1",
+    )
+    fun getByFingerprintInRange(
+        sender: String?,
+        body: String?,
+        msgType: Int,
+        dateFrom: Long,
+        dateTo: Long,
+    ): SmsMsg?
+
+    @Query(
+        "SELECT * FROM sms_msg " +
+            "WHERE sms_code IS :smsCode AND company IS :company " +
+            "AND msg_type = :msgType AND date BETWEEN :dateFrom AND :dateTo LIMIT 1",
+    )
+    fun getByCodeAndCompanyInRange(
+        smsCode: String?,
+        company: String?,
+        msgType: Int,
+        dateFrom: Long,
+        dateTo: Long,
+    ): SmsMsg?
+
+    @Query(
+        "SELECT * FROM sms_msg " +
+            "WHERE sms_code IS :smsCode AND package_name IS :packageName " +
+            "AND msg_type = :msgType AND date BETWEEN :dateFrom AND :dateTo LIMIT 1",
+    )
+    fun getByCodeAndPackageInRange(
+        smsCode: String?,
+        packageName: String?,
+        msgType: Int,
+        dateFrom: Long,
+        dateTo: Long,
+    ): SmsMsg?
+
     @Query("SELECT * FROM sms_msg ORDER BY date DESC")
     fun getAllFlow(): Flow<List<SmsMsg>>
 

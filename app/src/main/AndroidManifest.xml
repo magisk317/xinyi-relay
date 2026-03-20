@@ -120,7 +120,8 @@
         <provider
             android:name="io.github.magisk317.relay.data.prefs.PrefsProvider"
             android:authorities="${applicationId}.pref.provider"
-            android:exported="true" />
+            android:exported="true"
+            android:directBootAware="true" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

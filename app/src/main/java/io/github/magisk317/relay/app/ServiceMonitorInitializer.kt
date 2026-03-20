@@ -1,28 +1,47 @@
 package io.github.magisk317.relay.app
 
 import android.app.Application
-import io.github.magisk317.relay.common.utils.ModuleUtils
-import io.github.magisk317.relay.common.utils.XLog
+import io.github.magisk317.relay.common.utils.AppPreferencesDataStore
+import io.github.magisk317.smscode.core.utils.ModuleActivationStore
+import io.github.magisk317.smscode.core.utils.ModuleUtils
+import io.github.magisk317.smscode.core.utils.XLog
 import io.github.magisk317.relay.feature.call.CallStateMonitor
 import io.github.magisk317.relay.feature.reminder.LowBatteryReminderScheduler
 import io.github.magisk317.relay.domain.recovery.RootDbCatchupScheduler
 import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class ServiceMonitorInitializer : AppInitializer {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     override fun init(application: Application) {
-        initXposedServiceActivationMonitor()
+        initXposedServiceActivationMonitor(application)
         RootDbCatchupScheduler.startPeriodic(application, reason = "app_create")
         LowBatteryReminderScheduler.syncFromPrefs(application, reason = "app_create")
         CallStateMonitor.init(application)
     }
 
-    private fun initXposedServiceActivationMonitor() {
+    private fun initXposedServiceActivationMonitor(application: Application) {
         runCatching<Unit> {
             XposedServiceHelper.registerListener(
                 object : XposedServiceHelper.OnServiceListener {
                     override fun onServiceBind(service: XposedService) {
+                        AppPreferencesDataStore.setRemotePrefsProvider {
+                            service.getRemotePreferences("xposed_prefs")
+                        }
+                        val pending = AppPreferencesDataStore.hasPendingRemoteSync()
+                        scope.launch {
+                            if (pending) {
+                                XLog.w("RemotePrefs sync pending detected; attempting sync on service bind")
+                            }
+                            AppPreferencesDataStore.syncToRemotePrefs(application)
+                        }
                         ModuleUtils.setRuntimeActivated(true)
+                        ModuleActivationStore.markActivated(application)
                         XLog.i(
                             "Xposed service connected: framework=%s version=%s",
                             service.frameworkName,
@@ -31,6 +50,7 @@ class ServiceMonitorInitializer : AppInitializer {
                     }
 
                     override fun onServiceDied(service: XposedService) {
+                        AppPreferencesDataStore.setRemotePrefsProvider(null)
                         ModuleUtils.setRuntimeActivated(false)
                         XLog.w("Xposed service disconnected")
                     }

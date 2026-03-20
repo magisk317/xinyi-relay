@@ -35,10 +35,15 @@ class EventGatekeeper(
                 XLog.e("App notify gate query failed for pkg=$pkg", error)
                 return GateDecision(false, "app_gate_query_failed")
             }
-            if (appInfo?.forwarding != true) {
+            if (appInfo == null) {
                 ForwardFlowLog.i(
                     traceId,
-                    "App notify gate pkg=$pkg state=${if (appInfo == null) "missing" else "disabled"} final_decision=drop",
+                    "App notify gate pkg=$pkg state=missing final_decision=allow",
+                )
+            } else if (appInfo.forwarding != true) {
+                ForwardFlowLog.i(
+                    traceId,
+                    "App notify gate pkg=$pkg state=disabled final_decision=drop",
                 )
                 return GateDecision(false, "app_source_disabled")
             }

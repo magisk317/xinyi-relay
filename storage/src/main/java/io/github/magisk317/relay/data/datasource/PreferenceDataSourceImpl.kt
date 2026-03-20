@@ -73,8 +73,4 @@ class PreferenceDataSourceImpl(private val context: Context) : PreferenceDataSou
     override suspend fun syncToSharedPrefs() {
         AppPreferencesDataStore.syncToSharedPrefs(context)
     }
-
-    override suspend fun migratePreviousKeys() {
-        AppPreferencesDataStore.migratePreviousKeys(context)
-    }
 }

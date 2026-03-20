@@ -15,7 +15,7 @@ import android.provider.Telephony
 import androidx.annotation.IntDef
 import androidx.core.content.ContextCompat
 import io.github.magisk317.relay.common.utils.PrefsReader
-import io.github.magisk317.relay.common.utils.XLog
+import io.github.magisk317.smscode.core.utils.XLog
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 import java.util.concurrent.CountDownLatch

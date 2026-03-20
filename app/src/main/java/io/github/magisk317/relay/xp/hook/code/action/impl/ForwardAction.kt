@@ -9,7 +9,7 @@ import android.os.Bundle
 import android.os.Process
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.utils.PrefsReader
-import io.github.magisk317.relay.common.utils.XLog
+import io.github.magisk317.smscode.core.utils.XLog
 import io.github.magisk317.relay.data.db.DBProvider
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction

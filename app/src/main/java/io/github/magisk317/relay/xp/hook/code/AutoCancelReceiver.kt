@@ -4,7 +4,7 @@ import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import io.github.magisk317.relay.common.utils.XLog
+import io.github.magisk317.smscode.core.utils.XLog
 
 /**
  * Fallback auto-cancel when the module process is not alive.

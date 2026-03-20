@@ -13,15 +13,15 @@ class RuntimeLogStoreRouteTest {
         )
         assertEquals(
             RuntimeLogStore.ROUTE_NMS_HOOK,
-            RuntimeLogStore.routeFromCallerClassName("io.github.magisk317.relay.xp.hook.notification.NotificationManagerHook"),
+            RuntimeLogStore.routeFromCallerClassName("io.github.magisk317.smscode.core.hook.notification.NotificationManagerHook"),
         )
         assertEquals(
             RuntimeLogStore.ROUTE_SYSTEM_INPUT,
-            RuntimeLogStore.routeFromCallerClassName("io.github.magisk317.relay.xp.hook.system.SystemInputInjectorHook"),
+            RuntimeLogStore.routeFromCallerClassName("io.github.magisk317.smscode.core.hook.system.SystemInputInjectorHook"),
         )
         assertEquals(
             RuntimeLogStore.ROUTE_PERMISSION_HOOK,
-            RuntimeLogStore.routeFromCallerClassName("io.github.magisk317.relay.xp.hook.permission.PermissionGranterHook"),
+            RuntimeLogStore.routeFromCallerClassName("io.github.magisk317.smscode.core.hook.permission.PermissionGranterHook"),
         )
         assertEquals(
             RuntimeLogStore.ROUTE_GOOGLE_MESSAGES,
