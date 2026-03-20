@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-        submodules: recursive
+          submodules: recursive
           fetch-depth: 0
 
       - name: Send Notification
