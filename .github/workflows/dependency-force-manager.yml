@@ -32,11 +32,6 @@ jobs:
           validate-wrappers: false
           allow-snapshot-wrappers: true
 
-      - name: Publish libxposed artifacts to mavenLocal
-        run: |
-          chmod +x scripts/publish_libxposed_to_maven_local.sh
-          scripts/publish_libxposed_to_maven_local.sh
-
       - name: Read current forced dependencies
         id: forced
         run: |

@@ -30,12 +30,14 @@ fun releaseTime(): String {
     return SimpleDateFormat("yyMMdd").apply { timeZone = TimeZone.getDefault() }.format(Date())
 }
 
-fun buildTimestamp(): String {
+fun buildTimestampOverride(): String? {
     val override = findProperty("buildTs")?.toString()?.trim().orEmpty()
-    if (override.isNotEmpty()) {
-        return override
-    }
-    return SimpleDateFormat("yyyyMMdd_HHmmss").apply { timeZone = TimeZone.getDefault() }.format(Date())
+    return override.ifBlank { null }
+}
+
+fun buildTimestamp(): String {
+    return buildTimestampOverride()
+        ?: SimpleDateFormat("yyyyMMdd_HHmmss").apply { timeZone = TimeZone.getDefault() }.format(Date())
 }
 
 val versionNameStr = libs.versions.versionName.get()
@@ -58,7 +60,8 @@ fun releaseBaseName(versionName: String): String {
     return if (alreadyHasBuildTimestamp) {
         "XinyiRelay_v$normalizedVersionName"
     } else {
-        "XinyiRelay_v${normalizedVersionName}_${releaseTime()}"
+        val suffix = buildTimestampOverride() ?: releaseTime()
+        "XinyiRelay_v${normalizedVersionName}_$suffix"
     }
 }
 
@@ -68,6 +71,12 @@ fun releaseApkName(versionName: String, buildType: String, abiSuffix: String): S
 
 fun releaseAabName(versionName: String): String {
     return "${releaseBaseName(versionName)}_release.aab"
+}
+
+val debugBuildTimestamp = buildTimestamp()
+val isBundleTask = gradle.startParameter.taskNames.any { name ->
+    val lowered = name.lowercase()
+    lowered.contains("bundle")
 }
 
 android {
@@ -126,10 +135,6 @@ android {
         buildConfigField("boolean", "ALLOW_CONFLICT_BYPASS", allowConflictBypass.toString())
     }
 
-    val isBundleTask = gradle.startParameter.taskNames.any { name ->
-        val lowered = name.lowercase()
-        lowered.contains("bundle")
-    }
     splits {
         abi {
             // Disable ABI splits when building App Bundle, even if -PbuildSplits is passed.
@@ -254,14 +259,38 @@ tasks.matching {
     dependsOn(webuiSync)
 }
 
+// Disable assemble tasks for Play variants.
+tasks.matching {
+    it.name.startsWith("assemble") && it.name.contains("Play")
+}.configureEach {
+    enabled = false
+}
+
+// Only keep Play bundle tasks; disable bundle tasks for other flavors.
+tasks.matching {
+    it.name.startsWith("bundle")
+}.configureEach {
+    if (!name.contains("Play")) {
+        enabled = false
+    }
+}
+
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
 }
 
 androidComponents {
+    beforeVariants(selector().all()) { variantBuilder ->
+        if (isBundleTask) {
+            val isPlayVariant = variantBuilder.productFlavors.any { it.second == "play" }
+            if (!isPlayVariant) {
+                variantBuilder.enable = false
+            }
+        }
+    }
     onVariants(selector().all()) { variant ->
         val isDebug = variant.buildType == "debug"
-        val suffix = if (isDebug) buildTimestamp() else ""
+        val suffix = if (isDebug) debugBuildTimestamp else ""
         val vName = if (isDebug) "$versionNameStr-$suffix" else versionNameStr
         
         variant.outputs.forEach { output ->
@@ -279,6 +308,7 @@ androidComponents {
                 // Ignore for now, build will fail if this is wrong
             }
         }
+
     }
 }
 
@@ -309,6 +339,7 @@ tasks.matching {
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(project(":core"))
+    implementation(project(":smscode-core:core"))
     implementation(project(":storage"))
 
     implementation(libs.androidx.core.ktx)
@@ -346,7 +377,6 @@ dependencies {
     implementation(libs.androidx.ui)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.core)
-    implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.ui.tooling.preview)
     debugImplementation(libs.androidx.ui.tooling)
 

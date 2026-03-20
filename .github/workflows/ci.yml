@@ -19,6 +19,9 @@ jobs:
       HAS_GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
       - uses: pnpm/action-setup@v5
         with:
           version: 10.32.1
@@ -44,10 +47,6 @@ jobs:
         with:
           validate-wrappers: false
           allow-snapshot-wrappers: true
-      - name: Publish libxposed artifacts to mavenLocal
-        run: |
-          chmod +x scripts/publish_libxposed_to_maven_local.sh
-          scripts/publish_libxposed_to_maven_local.sh
       - name: Decode Google Services
         if: env.HAS_GOOGLE_SERVICES_JSON == 'true'
         run: |

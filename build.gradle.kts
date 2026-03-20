@@ -17,7 +17,7 @@ buildscript {
 }
 
 plugins {
-    id("nl.littlerobots.version-catalog-update") version "1.1.0"
+    alias(libs.plugins.version.catalog.update)
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.kotlin.android) apply false
@@ -89,11 +89,6 @@ subprojects {
     }
 
     repositories {
-        mavenLocal {
-            content {
-                includeGroup("io.github.libxposed")
-            }
-        }
         google()
         mavenCentral()
         gradlePluginPortal()

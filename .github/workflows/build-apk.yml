@@ -15,6 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
 
       - name: Validate release notes and tag/version consistency
         run: |
@@ -34,6 +37,9 @@ jobs:
       HAS_GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
 
       - name: set up JDK 25
         uses: actions/setup-java@v5
@@ -46,11 +52,6 @@ jobs:
         with:
           validate-wrappers: false
           allow-snapshot-wrappers: true
-
-      - name: Publish libxposed artifacts to mavenLocal
-        run: |
-          chmod +x scripts/publish_libxposed_to_maven_local.sh
-          scripts/publish_libxposed_to_maven_local.sh
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
@@ -96,6 +97,9 @@ jobs:
       HAS_GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
 
       - name: set up JDK 25
         uses: actions/setup-java@v5
@@ -108,11 +112,6 @@ jobs:
         with:
           validate-wrappers: false
           allow-snapshot-wrappers: true
-
-      - name: Publish libxposed artifacts to mavenLocal
-        run: |
-          chmod +x scripts/publish_libxposed_to_maven_local.sh
-          scripts/publish_libxposed_to_maven_local.sh
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
@@ -162,6 +161,9 @@ jobs:
       HAS_GOOGLE_PLAY_CREDENTIALS: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS != '' }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
 
       - uses: actions/download-artifact@v8
         with:

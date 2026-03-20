@@ -6,4 +6,4 @@ pluginManagement {
     }
 }
 
-include(":app", ":storage", ":core")
+include(":app", ":storage", ":core", ":smscode-core:core")
