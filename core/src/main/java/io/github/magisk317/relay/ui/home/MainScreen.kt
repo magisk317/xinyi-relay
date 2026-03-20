@@ -8,7 +8,12 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -68,9 +73,9 @@ fun MainScreen(
 
     val tabs = listOf(
         TabItem(stringResource(R.string.tab_overview), Icons.Default.Home, OverviewRoute),
-        TabItem(stringResource(R.string.tab_blacklist), Icons.Default.Widgets, AppsRoute),
-        TabItem(stringResource(R.string.tab_records), Icons.Default.History, RecordsRoute),
-        TabItem(stringResource(R.string.tab_advanced), Icons.Default.Tune, AdvancedRoute),
+        TabItem(stringResource(R.string.tab_blacklist), Icons.AutoMirrored.Filled.List, AppsRoute),
+        TabItem(stringResource(R.string.tab_records), Icons.Default.DateRange, RecordsRoute),
+        TabItem(stringResource(R.string.tab_advanced), Icons.Default.Build, AdvancedRoute),
         TabItem(stringResource(R.string.tab_settings), Icons.Default.Settings, SettingsRoute),
     )
 
@@ -95,7 +100,6 @@ fun MainScreen(
             destination.hasRoute(InterceptRoute::class) -> NavigationSection.ADVANCED
             destination.hasRoute(WebUiConfigRoute::class) -> NavigationSection.ADVANCED
             destination.hasRoute(ScheduledReminderRoute::class) -> NavigationSection.ADVANCED
-            destination.hasRoute(DiagnosticsSettingsRoute::class) -> NavigationSection.ADVANCED
             destination.hasRoute(RelayConfigRoute::class) ->
                 sectionFromOrigin(entry.toRoute<RelayConfigRoute>().origin)
             destination.hasRoute(SendersRoute::class) ->
@@ -239,7 +243,7 @@ fun MainScreen(
                 NavigationRail(
                     header = {
                         Icon(
-                            imageVector = Icons.Default.Sms,
+                            imageVector = Icons.Default.Email,
                             contentDescription = null,
                             modifier = Modifier.padding(vertical = 12.dp),
                         )
@@ -454,7 +458,6 @@ fun MainScreen(
                                 },
                                 onWebUiConfigClick = { navController.navigate(WebUiConfigRoute) },
                                 onScheduledReminderClick = { navController.navigate(ScheduledReminderRoute) },
-                                onDiagnosticsClick = { navController.navigate(DiagnosticsSettingsRoute) },
                             )
                         }
                         composable<RelayConfigRoute> { backStackEntry ->
@@ -477,9 +480,6 @@ fun MainScreen(
                         }
                         composable<ScheduledReminderRoute> {
                             ScheduledReminderScreen(onBack = { navController.popBackStack() })
-                        }
-                        composable<DiagnosticsSettingsRoute> {
-                            DiagnosticsSettingsScreen(onBack = { navController.popBackStack() })
                         }
                         composable<GlobalForwardFilterRoute> {
                             GlobalForwardFilterScreen(onBack = { navController.popBackStack() })

@@ -21,15 +21,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Sms
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material.icons.filled.VpnKey
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -721,7 +720,7 @@ fun CodeRecordScreen(
                         }
                         IconButton(onClick = { showSettingsSheet = true }) {
                             Icon(
-                                Icons.Default.Tune,
+                                Icons.Default.Settings,
                                 contentDescription = stringResource(R.string.pref_code_records_title),
                             )
                         }
@@ -764,8 +763,8 @@ fun CodeRecordScreen(
                             shortTitle
                         }
                         val icon = when (tabIndex) {
-                            0 -> Icons.Default.VpnKey
-                            1 -> Icons.Default.Sms
+                            0 -> Icons.Default.Lock
+                            1 -> Icons.Default.Email
                             2 -> Icons.Default.Notifications
                             else -> Icons.Default.Call
                         }
@@ -1535,7 +1534,7 @@ fun CodeRecordItem(
                 fallbackIcon = if (smsMsg.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY) {
                     Icons.Default.Call
                 } else {
-                    Icons.Default.Android
+                    Icons.Default.Build
                 },
             )
             Spacer(modifier = Modifier.height(4.dp))

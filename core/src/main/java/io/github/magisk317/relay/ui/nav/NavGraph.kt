@@ -69,9 +69,6 @@ object VerificationSettingsRoute
 data class RelayConfigRoute(val origin: String = ROUTE_ORIGIN_ADVANCED)
 
 @Serializable
-object DiagnosticsSettingsRoute
-
-@Serializable
 data class GlobalForwardFilterRoute(val origin: String = ROUTE_ORIGIN_ADVANCED)
 
 @Serializable

@@ -246,7 +246,7 @@
     <!-- preference others -->
     <string name="pref_others_title">其他</string>
     <string name="pref_verbose_log_mode_title">详细日志</string>
-    <string name="pref_verbose_log_mode_summary">打印详细日志（仅调试）；点击左侧标题可查看日志详情</string>
+    <string name="pref_verbose_log_mode_summary">点击后分享日志</string>
     <string name="pref_runtime_log_file_size_title">日志文件大小</string>
     <string name="pref_runtime_log_file_size_summary">单个文件大小上限：%1$dM（超过后循环覆盖）</string>
     <string name="pref_runtime_log_file_size_hint">单位 MB，最小值 1。</string>
@@ -267,6 +267,7 @@
     <string name="scheduled_reminder_entry_title">特殊提醒</string>
     <string name="scheduled_reminder_entry_summary">电量、来电与关键字提醒</string>
     <string name="settings_group_verification_features">验证码功能</string>
+    <string name="settings_group_features">功能设置</string>
     <string name="pref_verification_features_title">验证码功能</string>
     <string name="pref_verification_features_summary">统一控制验证码识别、通知、复制与自动输入能力</string>
     <string name="pref_verification_settings_title">验证码功能设置</string>
@@ -652,6 +653,14 @@
     <string name="pref_msg_type_app_notify_summary">控制应用通知是否进入主处理管线</string>
     <string name="pref_msg_type_call_notify_title">通话通知</string>
     <string name="pref_msg_type_call_notify_summary">控制来电/去电/未接等通话通知是否进入主处理管线</string>
+    <string name="pref_forward_sms_code_title">转发验证码短信</string>
+    <string name="pref_forward_sms_code_summary">仅控制转发，不影响识别/记录</string>
+    <string name="pref_forward_sms_plain_title">转发普通短信</string>
+    <string name="pref_forward_sms_plain_summary">仅控制转发，不影响记录</string>
+    <string name="pref_forward_app_notify_title">转发应用通知</string>
+    <string name="pref_forward_app_notify_summary">仅控制转发，不影响记录</string>
+    <string name="pref_forward_call_notify_title">转发通话通知</string>
+    <string name="pref_forward_call_notify_summary">仅控制转发，不影响记录</string>
     <string name="forward_filter_msg_type_sms">短信</string>
     <string name="forward_filter_msg_type_app_notify">应用通知</string>
     <string name="forward_filter_action_add">新增</string>

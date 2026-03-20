@@ -9,8 +9,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
@@ -120,13 +120,13 @@ fun ForwardFilterRuleList(
                     Row {
                         IconButton(onClick = { onEdit(rule) }) {
                             Icon(
-                                imageVector = Icons.Outlined.Edit,
+                                imageVector = Icons.Filled.Edit,
                                 contentDescription = stringResource(id = R.string.forward_filter_action_edit),
                             )
                         }
                         IconButton(onClick = { onDelete(rule.id) }) {
                             Icon(
-                                imageVector = Icons.Outlined.Delete,
+                                imageVector = Icons.Filled.Delete,
                                 contentDescription = stringResource(id = R.string.action_delete),
                             )
                         }

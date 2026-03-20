@@ -245,7 +245,7 @@
     <!-- preference others -->
     <string name="pref_others_title">其他設定</string>
     <string name="pref_verbose_log_mode_title">詳細日誌</string>
-    <string name="pref_verbose_log_mode_summary">列印詳細日誌（僅調試）；點擊左側標題可查看日誌詳情</string>
+    <string name="pref_verbose_log_mode_summary">點擊後分享日誌</string>
     <string name="pref_runtime_log_file_size_title">日誌檔案大小</string>
     <string name="pref_runtime_log_file_size_summary">單個檔案大小上限：%1$dM（超過後循環覆蓋）</string>
     <string name="pref_runtime_log_file_size_hint">單位 MB，最小值 1。</string>
@@ -266,6 +266,7 @@
     <string name="scheduled_reminder_entry_title">特殊提醒</string>
     <string name="scheduled_reminder_entry_summary">電量、來電與關鍵字提醒</string>
     <string name="settings_group_verification_features">驗證碼功能</string>
+    <string name="settings_group_features">功能設定</string>
     <string name="pref_verification_features_title">驗證碼功能</string>
     <string name="pref_verification_features_summary">統一控制驗證碼識別、通知、複製與自動輸入能力</string>
     <string name="pref_verification_settings_title">驗證碼功能設定</string>
@@ -649,6 +650,14 @@
     <string name="pref_msg_type_app_notify_summary">控制應用通知是否進入主處理流程</string>
     <string name="pref_msg_type_call_notify_title">通話通知</string>
     <string name="pref_msg_type_call_notify_summary">控制來電/去電/未接等通話通知是否進入主處理流程</string>
+    <string name="pref_forward_sms_code_title">轉發驗證碼簡訊</string>
+    <string name="pref_forward_sms_code_summary">僅控制轉發，不影響識別/記錄</string>
+    <string name="pref_forward_sms_plain_title">轉發普通簡訊</string>
+    <string name="pref_forward_sms_plain_summary">僅控制轉發，不影響記錄</string>
+    <string name="pref_forward_app_notify_title">轉發應用通知</string>
+    <string name="pref_forward_app_notify_summary">僅控制轉發，不影響記錄</string>
+    <string name="pref_forward_call_notify_title">轉發通話通知</string>
+    <string name="pref_forward_call_notify_summary">僅控制轉發，不影響記錄</string>
     <string name="forward_filter_msg_type_sms">簡訊</string>
     <string name="forward_filter_msg_type_app_notify">應用通知</string>
     <string name="forward_filter_action_add">新增</string>

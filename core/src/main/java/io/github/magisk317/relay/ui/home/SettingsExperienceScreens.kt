@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.ui.home
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,8 +19,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -40,6 +39,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.common.constant.Const
 import io.github.magisk317.relay.common.constant.PrefConst
+import io.github.magisk317.relay.common.utils.LogBundleExporter
+import io.github.magisk317.relay.common.utils.RuntimeLogStore
+import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.data.repository.DiagnosticsSettingsSnapshot
 import io.github.magisk317.relay.data.repository.DiagnosticsSettingsUpdate
@@ -52,7 +54,9 @@ import io.github.magisk317.relay.data.repository.SettingsRepository
 import io.github.magisk317.relay.data.repository.VerificationSettingsSnapshot
 import io.github.magisk317.relay.data.repository.VerificationSettingsUpdate
 import io.github.magisk317.relay.ui.common.SingleChoiceOptionDialog
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -73,8 +77,11 @@ fun SettingsHomeScreen(
     var general by remember { mutableStateOf<GeneralSettingsSnapshot?>(null) }
     var verification by remember { mutableStateOf<VerificationSettingsSnapshot?>(null) }
     var relay by remember { mutableStateOf<RelaySettingsSnapshot?>(null) }
+    var diagnostics by remember { mutableStateOf<DiagnosticsSettingsSnapshot?>(null) }
     var showThemeDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
+    var showRootDbIntervalDialog by remember { mutableStateOf(false) }
+    var showRuntimeLogDialog by remember { mutableStateOf(false) }
     var themeDialogInitialMode by remember { mutableStateOf(0) }
     var themeDialogSelectedMode by remember { mutableStateOf(0) }
     var languageDialogInitialTag by remember { mutableStateOf("") }
@@ -84,6 +91,7 @@ fun SettingsHomeScreen(
         general = repository.getGeneralSettings()
         verification = repository.getVerificationSettings()
         relay = repository.getRelaySettings()
+        diagnostics = repository.getDiagnosticsSettings()
     }
 
     Scaffold(
@@ -105,6 +113,7 @@ fun SettingsHomeScreen(
         val generalSnapshot = general ?: return@Scaffold
         val verificationSnapshot = verification ?: return@Scaffold
         val relaySnapshot = relay ?: return@Scaffold
+        val diagnosticsSnapshot = diagnostics ?: return@Scaffold
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -147,7 +156,7 @@ fun SettingsHomeScreen(
                 }
             }
             SectionCard(
-                title = stringResource(id = R.string.settings_group_verification_features),
+                title = stringResource(id = R.string.settings_group_features),
                 sectionExpanded = true,
                 onExpandedChange = {},
                 accordionMode = false,
@@ -157,11 +166,22 @@ fun SettingsHomeScreen(
                     summary = stringResource(id = R.string.pref_verification_settings_summary),
                     checked = verificationSnapshot.verificationFeaturesEnabled,
                     onClick = onOpenVerification,
-                    ) { enabled ->
+                ) { enabled ->
                     scope.launch {
                         verification = repository.updateVerificationSettings(
                             VerificationSettingsUpdate(verificationFeaturesEnabled = enabled),
                         )
+                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                    }
+                }
+                ActionSwitchItem(
+                    title = stringResource(id = R.string.pref_relay_features_title),
+                    summary = stringResource(id = R.string.pref_relay_features_summary),
+                    checked = relaySnapshot.relayFeaturesEnabled,
+                    onClick = onOpenAdvancedRelay,
+                ) { enabled ->
+                    scope.launch {
+                        relay = repository.updateRelaySettings(RelaySettingsUpdate(relayFeaturesEnabled = enabled))
                         Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
                     }
                 }
@@ -172,14 +192,122 @@ fun SettingsHomeScreen(
                 onExpandedChange = {},
                 accordionMode = false,
             ) {
-                ActionSwitchItem(
-                    title = stringResource(id = R.string.pref_relay_features_title),
-                    summary = stringResource(id = R.string.pref_relay_config_summary),
-                    checked = relaySnapshot.relayFeaturesEnabled,
-                    onClick = onOpenAdvancedRelay,
+                StateSwitchItem(
+                    title = stringResource(id = R.string.pref_root_db_catchup_enable_title),
+                    summary = stringResource(id = R.string.pref_root_db_catchup_enable_summary),
+                    checked = diagnosticsSnapshot.rootDbCatchupEnabled,
                 ) { enabled ->
                     scope.launch {
-                        relay = repository.updateRelaySettings(RelaySettingsUpdate(relayFeaturesEnabled = enabled))
+                        diagnostics = repository.updateDiagnosticsSettings(
+                            DiagnosticsSettingsUpdate(rootDbCatchupEnabled = enabled),
+                        )
+                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                    }
+                }
+                Item(
+                    title = stringResource(id = R.string.pref_root_db_catchup_interval_title),
+                    summary = stringResource(
+                        id = R.string.pref_root_db_catchup_interval_summary,
+                        diagnosticsSnapshot.rootDbCatchupIntervalMin,
+                    ),
+                ) { showRootDbIntervalDialog = true }
+                StateSwitchItem(
+                    title = stringResource(id = R.string.pref_force_stop_recovery_title),
+                    summary = stringResource(id = R.string.pref_force_stop_recovery_summary),
+                    checked = diagnosticsSnapshot.forceStopRecoveryEnabled,
+                ) { enabled ->
+                    scope.launch {
+                        diagnostics = repository.updateDiagnosticsSettings(
+                            DiagnosticsSettingsUpdate(forceStopRecoveryEnabled = enabled),
+                        )
+                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                    }
+                }
+                StateSwitchItem(
+                    title = stringResource(id = R.string.pref_force_stop_recovery_relaunch_once_title),
+                    summary = stringResource(id = R.string.pref_force_stop_recovery_relaunch_once_summary),
+                    checked = diagnosticsSnapshot.forceStopRecoveryRelaunchOnceEnabled,
+                ) { enabled ->
+                    scope.launch {
+                        diagnostics = repository.updateDiagnosticsSettings(
+                            DiagnosticsSettingsUpdate(forceStopRecoveryRelaunchOnceEnabled = enabled),
+                        )
+                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                    }
+                }
+                StateSwitchItem(
+                    title = stringResource(id = R.string.pref_verbose_log_mode_title),
+                    summary = stringResource(id = R.string.pref_verbose_log_mode_summary),
+                    checked = diagnosticsSnapshot.verboseLogMode,
+                    onTitleClick = {
+                        scope.launch {
+                            val result = withContext(Dispatchers.IO) {
+                                LogBundleExporter.buildLogBundle(context)
+                            }
+                            val file = result.file
+                            if (file == null) {
+                                Toast.makeText(context, "导出失败: ${result.details}", Toast.LENGTH_LONG).show()
+                                return@launch
+                            }
+                            runCatching {
+                                LogBundleExporter.shareLogBundle(context, file)
+                            }.onFailure {
+                                Toast.makeText(context, "分享失败: ${it.message}", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    },
+                ) { enabled ->
+                    scope.launch {
+                        diagnostics = repository.updateDiagnosticsSettings(
+                            DiagnosticsSettingsUpdate(verboseLogMode = enabled),
+                        )
+                        RuntimeLogStore.setEnabled(enabled)
+                        XLog.setLogLevel(if (enabled) Log.VERBOSE else io.github.magisk317.relay.storage.BuildConfig.LOG_LEVEL)
+                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                    }
+                }
+                Item(
+                    title = stringResource(id = R.string.pref_runtime_log_file_size_title),
+                    summary = stringResource(
+                        id = R.string.pref_runtime_log_file_size_summary,
+                        diagnosticsSnapshot.runtimeLogFileSizeMb,
+                    ),
+                ) { showRuntimeLogDialog = true }
+                StateSwitchItem(
+                    title = stringResource(id = R.string.pref_auto_update_on_start_title),
+                    summary = stringResource(id = R.string.pref_auto_update_on_start_summary),
+                    checked = diagnosticsSnapshot.autoUpdateOnStart,
+                ) { enabled ->
+                    scope.launch {
+                        diagnostics = repository.updateDiagnosticsSettings(
+                            DiagnosticsSettingsUpdate(autoUpdateOnStart = enabled),
+                        )
+                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                    }
+                }
+                if (diagnosticsSnapshot.autoUpdateOnStart) {
+                    StateSwitchItem(
+                        title = stringResource(id = R.string.pref_auto_update_wifi_only_title),
+                        summary = stringResource(id = R.string.pref_auto_update_wifi_only_summary),
+                        checked = diagnosticsSnapshot.autoUpdateWifiOnly,
+                    ) { enabled ->
+                        scope.launch {
+                            diagnostics = repository.updateDiagnosticsSettings(
+                                DiagnosticsSettingsUpdate(autoUpdateWifiOnly = enabled),
+                            )
+                            Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+                StateSwitchItem(
+                    title = stringResource(id = R.string.pref_enable_analytics_title),
+                    summary = stringResource(id = R.string.pref_enable_analytics_summary),
+                    checked = diagnosticsSnapshot.analyticsEnabled,
+                ) { enabled ->
+                    scope.launch {
+                        diagnostics = repository.updateDiagnosticsSettings(
+                            DiagnosticsSettingsUpdate(analyticsEnabled = enabled),
+                        )
                         Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
                     }
                 }
@@ -241,6 +369,49 @@ fun SettingsHomeScreen(
             Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
         }
     }
+    val currentDiagnostics = diagnostics
+    if (showRootDbIntervalDialog && currentDiagnostics != null) {
+        val rootDbIntervalError = stringResource(id = R.string.pref_root_db_catchup_interval_error)
+        TextInputDialog(
+            title = stringResource(id = R.string.pref_root_db_catchup_interval_title),
+            initialValue = currentDiagnostics.rootDbCatchupIntervalMin,
+            onDismiss = { showRootDbIntervalDialog = false },
+            supportingText = stringResource(id = R.string.pref_root_db_catchup_interval_hint),
+            validator = {
+                it.toIntOrNull()?.takeIf { value -> value in 1..120 }?.let { null }
+                    ?: rootDbIntervalError
+            },
+        ) { updated ->
+            showRootDbIntervalDialog = false
+            scope.launch {
+                diagnostics = repository.updateDiagnosticsSettings(
+                    DiagnosticsSettingsUpdate(rootDbCatchupIntervalMin = updated),
+                )
+                Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    if (showRuntimeLogDialog && currentDiagnostics != null) {
+        val runtimeLogFileSizeError = stringResource(id = R.string.pref_runtime_log_file_size_error)
+        TextInputDialog(
+            title = stringResource(id = R.string.pref_runtime_log_file_size_title),
+            initialValue = currentDiagnostics.runtimeLogFileSizeMb.toString(),
+            onDismiss = { showRuntimeLogDialog = false },
+            supportingText = stringResource(id = R.string.pref_runtime_log_file_size_hint),
+            validator = {
+                it.toIntOrNull()?.takeIf { value -> value >= PrefConst.RUNTIME_LOG_FILE_SIZE_MB_MIN }?.let { null }
+                    ?: runtimeLogFileSizeError
+            },
+        ) { updated ->
+            showRuntimeLogDialog = false
+            scope.launch {
+                diagnostics = repository.updateDiagnosticsSettings(
+                    DiagnosticsSettingsUpdate(runtimeLogFileSizeMb = updated.toInt()),
+                )
+                Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -259,7 +430,6 @@ fun VerificationSettingsScreen(
     var recordSettings by remember { mutableStateOf<RecordSettingsSnapshot?>(null) }
     var showDelayDialog by remember { mutableStateOf(false) }
     var showIntervalDialog by remember { mutableStateOf(false) }
-    var showRetentionDialog by remember { mutableStateOf(false) }
     var showKeywordsDialog by remember { mutableStateOf(false) }
     var showSmsTestDialog by remember { mutableStateOf(false) }
     var smsTestInput by remember { mutableStateOf("") }
@@ -404,36 +574,24 @@ fun VerificationSettingsScreen(
                         Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
                     }
                 }
+            }
+            SectionCard(
+                title = stringResource(id = R.string.settings_group_experimental),
+                accordionMode = false,
+                sectionExpanded = true,
+                onExpandedChange = {},
+            ) {
                 StateSwitchItem(
-                    title = stringResource(id = R.string.pref_show_code_notification_title),
-                    summary = stringResource(id = R.string.pref_show_code_notification_summary),
-                    checked = current.showCodeNotification,
+                    title = stringResource(id = R.string.pref_block_sms_title),
+                    summary = stringResource(id = R.string.pref_block_sms_summary),
+                    checked = current.blockSmsEnabled,
                     enabled = current.verificationFeaturesEnabled,
                 ) { enabled ->
                     scope.launch {
-                        settings = repository.updateVerificationSettings(
-                            VerificationSettingsUpdate(showCodeNotification = enabled),
-                        )
+                        settings = repository.updateVerificationSettings(VerificationSettingsUpdate(blockSmsEnabled = enabled))
                         Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
                     }
                 }
-                StateSwitchItem(
-                    title = stringResource(id = R.string.pref_auto_cancel_notification_title),
-                    summary = stringResource(id = R.string.pref_auto_cancel_notification_summary),
-                    checked = current.autoCancelNotification,
-                    enabled = current.verificationFeaturesEnabled && current.showCodeNotification,
-                ) { enabled ->
-                    scope.launch {
-                        settings = repository.updateVerificationSettings(
-                            VerificationSettingsUpdate(autoCancelNotification = enabled),
-                        )
-                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
-                    }
-                }
-                Item(
-                    title = stringResource(id = R.string.pref_notification_retention_time_title),
-                    summary = current.notificationRetentionTime,
-                ) { showRetentionDialog = true }
             }
             Spacer(modifier = Modifier.height(Const.PADDING_SMALL.dp))
         }
@@ -472,24 +630,6 @@ fun VerificationSettingsScreen(
             showIntervalDialog = false
             scope.launch {
                 settings = repository.updateVerificationSettings(VerificationSettingsUpdate(autoInputInterval = updated))
-                Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-    if (showRetentionDialog && current != null) {
-        val entries = stringArrayResource(id = R.array.notification_retention_time_entry_list)
-        val values = stringArrayResource(id = R.array.notification_retention_time_list)
-        SingleChoiceDialog(
-            title = stringResource(id = R.string.pref_notification_retention_time_title),
-            options = entries.toList(),
-            selectedIndex = values.indexOf(current.notificationRetentionTime).coerceAtLeast(0),
-            onDismiss = { showRetentionDialog = false },
-        ) { index ->
-            showRetentionDialog = false
-            scope.launch {
-                settings = repository.updateVerificationSettings(
-                    VerificationSettingsUpdate(notificationRetentionTime = values[index]),
-                )
                 Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
             }
         }
@@ -606,28 +746,30 @@ fun RelayConfigScreen(
                     relay = repository.updateRelaySettings(RelaySettingsUpdate(relayFeaturesEnabled = enabled))
                 }
             }
-            SectionCard(
-                title = stringResource(id = R.string.pref_relay_config_title),
-                accordionMode = false,
-                sectionExpanded = true,
-                onExpandedChange = {},
-            ) {
-                Item(
-                    title = stringResource(id = R.string.tab_senders),
-                    summary = stringResource(id = R.string.pref_enable_forward_summary),
-                ) { onOpenSenders() }
-                Item(
-                    title = stringResource(id = R.string.title_notification_rules),
-                    summary = stringResource(id = R.string.subtitle_notification_rules),
-                ) { onOpenAppRouting() }
-                Item(
-                    title = stringResource(id = R.string.advanced_filter_title),
-                    summary = stringResource(id = R.string.advanced_filter_summary),
-                ) { onOpenFilters() }
-                Item(
-                    title = stringResource(id = R.string.pref_relay_records_title),
-                    summary = stringResource(id = R.string.pref_relay_records_summary),
-                ) { onOpenRecords() }
+            if (current.relayFeaturesEnabled) {
+                SectionCard(
+                    title = stringResource(id = R.string.pref_relay_config_title),
+                    accordionMode = false,
+                    sectionExpanded = true,
+                    onExpandedChange = {},
+                ) {
+                    Item(
+                        title = stringResource(id = R.string.tab_senders),
+                        summary = stringResource(id = R.string.pref_enable_forward_summary),
+                    ) { onOpenSenders() }
+                    Item(
+                        title = stringResource(id = R.string.title_notification_rules),
+                        summary = stringResource(id = R.string.subtitle_notification_rules),
+                    ) { onOpenAppRouting() }
+                    Item(
+                        title = stringResource(id = R.string.advanced_filter_title),
+                        summary = stringResource(id = R.string.advanced_filter_summary),
+                    ) { onOpenFilters() }
+                    Item(
+                        title = stringResource(id = R.string.pref_relay_records_title),
+                        summary = stringResource(id = R.string.pref_relay_records_summary),
+                    ) { onOpenRecords() }
+                }
             }
         }
     }

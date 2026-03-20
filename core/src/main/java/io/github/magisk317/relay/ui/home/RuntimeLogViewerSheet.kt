@@ -11,7 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AssistChip
@@ -139,7 +139,7 @@ fun RuntimeLogViewerSheet(onDismiss: () -> Unit) {
                             Toast.makeText(context, toastText, Toast.LENGTH_LONG).show()
                         }
                     }) {
-                        Icon(Icons.Default.DeleteSweep, contentDescription = "Clear")
+                        Icon(Icons.Default.Delete, contentDescription = "Clear")
                     }
                 }
             }

@@ -410,7 +410,7 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
                                         )
                                     }
                                     IconButton(onClick = {
-                                        copyValue(R.string.pref_webui_password_title, password.trim())
+                                    copyValue(R.string.pref_webui_password_title, password.trim())
                                     }) {
                                         Icon(
                                             imageVector = Icons.Default.ContentCopy,

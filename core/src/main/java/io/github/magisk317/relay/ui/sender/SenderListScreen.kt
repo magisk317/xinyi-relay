@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
@@ -30,6 +31,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.core.BuildConfig
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.data.repository.ForwardTypeGateSnapshot
+import io.github.magisk317.relay.data.repository.ForwardTypeGateUpdate
+import io.github.magisk317.relay.data.repository.MessageTypeGateSnapshot
+import io.github.magisk317.relay.data.repository.MessageTypeGateUpdate
+import io.github.magisk317.relay.data.repository.SettingsRepository
 import io.github.magisk317.relay.data.repository.SimRemarkSettingsSnapshot
 import io.github.magisk317.relay.domain.pipeline.ForwardCommonConfigStore
 import io.github.magisk317.relay.domain.sender.SenderType
@@ -44,6 +50,7 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.ceil
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.compose.koinInject
 
 private data class TemplateVariable(
     val label: String,
@@ -171,12 +178,15 @@ fun SenderListScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val settingsRepository: SettingsRepository = koinInject()
     val snackbarHostState = remember { SnackbarHostState() }
     val senders by viewModel.senderList.collectAsStateWithLifecycle()
     val commonConfig by viewModel.forwardCommonConfig.collectAsStateWithLifecycle()
     val appNotifyTemplate by viewModel.appNotifyTemplate.collectAsStateWithLifecycle()
     val callNotifyTemplate by viewModel.callNotifyTemplate.collectAsStateWithLifecycle()
     val simRemarkSettings by viewModel.simRemarkSettings.collectAsStateWithLifecycle()
+    var messageTypeGates by remember { mutableStateOf<MessageTypeGateSnapshot?>(null) }
+    var forwardTypeGates by remember { mutableStateOf<ForwardTypeGateSnapshot?>(null) }
     var showTypeDialog by remember { mutableStateOf(false) }
     var showGeneralConfigDialog by remember { mutableStateOf(false) }
     var showCommonConfigDialog by remember { mutableStateOf(false) }
@@ -184,9 +194,35 @@ fun SenderListScreen(
     var showCallNotifyConfigDialog by remember { mutableStateOf(false) }
     var simSlot1Remark by remember { mutableStateOf("") }
     var simSlot2Remark by remember { mutableStateOf("") }
+    val messageGateSnapshot = messageTypeGates ?: MessageTypeGateSnapshot(
+        smsCodeEnabled = true,
+        smsPlainEnabled = true,
+        appNotifyEnabled = true,
+        callNotifyEnabled = false,
+    )
+    val forwardGateSnapshot = forwardTypeGates ?: ForwardTypeGateSnapshot(
+        smsCodeEnabled = true,
+        smsPlainEnabled = true,
+        appNotifyEnabled = true,
+        callNotifyEnabled = false,
+    )
+    val updateMessageGate: (MessageTypeGateUpdate) -> Unit = { update ->
+        scope.launch {
+            messageTypeGates = settingsRepository.updateMessageTypeGates(update)
+        }
+    }
+    val updateForwardGate: (ForwardTypeGateUpdate) -> Unit = { update ->
+        scope.launch {
+            forwardTypeGates = settingsRepository.updateForwardTypeGates(update)
+        }
+    }
     LaunchedEffect(simRemarkSettings) {
         simSlot1Remark = simRemarkSettings.simSlot1Remark
         simSlot2Remark = simRemarkSettings.simSlot2Remark
+    }
+    LaunchedEffect(Unit) {
+        messageTypeGates = settingsRepository.getMessageTypeGates()
+        forwardTypeGates = settingsRepository.getForwardTypeGates()
     }
     LaunchedEffect(forceShowTypeDialog) {
         if (forceShowTypeDialog) {
@@ -279,6 +315,22 @@ fun SenderListScreen(
         ForwardCommonConfigDialog(
             currentConfig = commonConfig,
             simRemarkSettings = simRemarkSettings,
+            smsCodeEnabled = messageGateSnapshot.smsCodeEnabled,
+            smsPlainEnabled = messageGateSnapshot.smsPlainEnabled,
+            onSmsCodeToggle = { enabled ->
+                updateMessageGate(MessageTypeGateUpdate(smsCodeEnabled = enabled))
+            },
+            onSmsPlainToggle = { enabled ->
+                updateMessageGate(MessageTypeGateUpdate(smsPlainEnabled = enabled))
+            },
+            forwardSmsCodeEnabled = forwardGateSnapshot.smsCodeEnabled,
+            forwardSmsPlainEnabled = forwardGateSnapshot.smsPlainEnabled,
+            onForwardSmsCodeToggle = { enabled ->
+                updateForwardGate(ForwardTypeGateUpdate(smsCodeEnabled = enabled))
+            },
+            onForwardSmsPlainToggle = { enabled ->
+                updateForwardGate(ForwardTypeGateUpdate(smsPlainEnabled = enabled))
+            },
             onDismiss = { showCommonConfigDialog = false },
             onSave = {
                 viewModel.saveForwardCommonConfig(it)
@@ -304,6 +356,14 @@ fun SenderListScreen(
             currentTemplate = appNotifyTemplate,
             currentCommonConfig = commonConfig,
             simRemarkSettings = simRemarkSettings,
+            appNotifyEnabled = messageGateSnapshot.appNotifyEnabled,
+            onAppNotifyToggle = { enabled ->
+                updateMessageGate(MessageTypeGateUpdate(appNotifyEnabled = enabled))
+            },
+            forwardAppNotifyEnabled = forwardGateSnapshot.appNotifyEnabled,
+            onForwardAppNotifyToggle = { enabled ->
+                updateForwardGate(ForwardTypeGateUpdate(appNotifyEnabled = enabled))
+            },
             onDismiss = { showAppNotifyConfigDialog = false },
             onSave = {
                 viewModel.saveAppNotifyTemplate(it)
@@ -316,6 +376,14 @@ fun SenderListScreen(
             currentTemplate = callNotifyTemplate,
             currentCommonConfig = commonConfig,
             simRemarkSettings = simRemarkSettings,
+            callNotifyEnabled = messageGateSnapshot.callNotifyEnabled,
+            onCallNotifyToggle = { enabled ->
+                updateMessageGate(MessageTypeGateUpdate(callNotifyEnabled = enabled))
+            },
+            forwardCallNotifyEnabled = forwardGateSnapshot.callNotifyEnabled,
+            onForwardCallNotifyToggle = { enabled ->
+                updateForwardGate(ForwardTypeGateUpdate(callNotifyEnabled = enabled))
+            },
             onDismiss = { showCallNotifyConfigDialog = false },
             onSave = {
                 viewModel.saveCallNotifyTemplate(it)
@@ -651,6 +719,30 @@ private fun CallNotifyConfigCard(
 }
 
 @Composable
+private fun ConfigGateToggle(
+    title: String,
+    summary: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text = summary,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+@Composable
 private fun GeneralConfigDialog(
     currentDeviceName: String,
     currentSimSlot1Remark: String,
@@ -717,6 +809,14 @@ private fun GeneralConfigDialog(
 private fun ForwardCommonConfigDialog(
     currentConfig: ForwardCommonConfig,
     simRemarkSettings: SimRemarkSettingsSnapshot,
+    smsCodeEnabled: Boolean,
+    smsPlainEnabled: Boolean,
+    onSmsCodeToggle: (Boolean) -> Unit,
+    onSmsPlainToggle: (Boolean) -> Unit,
+    forwardSmsCodeEnabled: Boolean,
+    forwardSmsPlainEnabled: Boolean,
+    onForwardSmsCodeToggle: (Boolean) -> Unit,
+    onForwardSmsPlainToggle: (Boolean) -> Unit,
     onDismiss: () -> Unit,
     onSave: (ForwardCommonConfig) -> Unit,
 ) {
@@ -811,6 +911,45 @@ private fun ForwardCommonConfigDialog(
                     .verticalScroll(scrollState),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                Text(
+                    text = "进入处理管线",
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Text(
+                    text = "关闭后将不进入处理流程（不识别/不记录/不转发）。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                ConfigGateToggle(
+                    title = stringResource(id = R.string.pref_msg_type_sms_code_title),
+                    summary = stringResource(id = R.string.pref_msg_type_sms_code_summary),
+                    checked = smsCodeEnabled,
+                    onCheckedChange = onSmsCodeToggle,
+                )
+                ConfigGateToggle(
+                    title = stringResource(id = R.string.pref_msg_type_sms_plain_title),
+                    summary = stringResource(id = R.string.pref_msg_type_sms_plain_summary),
+                    checked = smsPlainEnabled,
+                    onCheckedChange = onSmsPlainToggle,
+                )
+                HorizontalDivider()
+                Text(
+                    text = "转发开关（仅影响转发）",
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                ConfigGateToggle(
+                    title = stringResource(id = R.string.pref_forward_sms_code_title),
+                    summary = stringResource(id = R.string.pref_forward_sms_code_summary),
+                    checked = forwardSmsCodeEnabled,
+                    onCheckedChange = onForwardSmsCodeToggle,
+                )
+                ConfigGateToggle(
+                    title = stringResource(id = R.string.pref_forward_sms_plain_title),
+                    summary = stringResource(id = R.string.pref_forward_sms_plain_summary),
+                    checked = forwardSmsPlainEnabled,
+                    onCheckedChange = onForwardSmsPlainToggle,
+                )
+                HorizontalDivider()
                 OutlinedTextField(
                     value = templateValue,
                     onValueChange = { newValue ->
@@ -904,6 +1043,10 @@ private fun AppNotifyTemplateDialog(
     currentTemplate: String,
     currentCommonConfig: ForwardCommonConfig,
     simRemarkSettings: SimRemarkSettingsSnapshot,
+    appNotifyEnabled: Boolean,
+    onAppNotifyToggle: (Boolean) -> Unit,
+    forwardAppNotifyEnabled: Boolean,
+    onForwardAppNotifyToggle: (Boolean) -> Unit,
     onDismiss: () -> Unit,
     onSave: (String) -> Unit,
 ) {
@@ -997,6 +1140,33 @@ private fun AppNotifyTemplateDialog(
                     .verticalScroll(scrollState),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                Text(
+                    text = "进入处理管线",
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Text(
+                    text = "关闭后将不进入处理流程（不记录/不转发）。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                ConfigGateToggle(
+                    title = stringResource(id = R.string.pref_msg_type_app_notify_title),
+                    summary = stringResource(id = R.string.pref_msg_type_app_notify_summary),
+                    checked = appNotifyEnabled,
+                    onCheckedChange = onAppNotifyToggle,
+                )
+                HorizontalDivider()
+                Text(
+                    text = "转发开关（仅影响转发）",
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                ConfigGateToggle(
+                    title = stringResource(id = R.string.pref_forward_app_notify_title),
+                    summary = stringResource(id = R.string.pref_forward_app_notify_summary),
+                    checked = forwardAppNotifyEnabled,
+                    onCheckedChange = onForwardAppNotifyToggle,
+                )
+                HorizontalDivider()
                 OutlinedTextField(
                     value = templateValue,
                     onValueChange = { newValue ->
@@ -1082,6 +1252,10 @@ private fun CallNotifyTemplateDialog(
     currentTemplate: String,
     currentCommonConfig: ForwardCommonConfig,
     simRemarkSettings: SimRemarkSettingsSnapshot,
+    callNotifyEnabled: Boolean,
+    onCallNotifyToggle: (Boolean) -> Unit,
+    forwardCallNotifyEnabled: Boolean,
+    onForwardCallNotifyToggle: (Boolean) -> Unit,
     onDismiss: () -> Unit,
     onSave: (String) -> Unit,
 ) {
@@ -1175,6 +1349,33 @@ private fun CallNotifyTemplateDialog(
                     .verticalScroll(scrollState),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                Text(
+                    text = "进入处理管线",
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Text(
+                    text = "关闭后将不进入处理流程（不记录/不转发）。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                ConfigGateToggle(
+                    title = stringResource(id = R.string.pref_msg_type_call_notify_title),
+                    summary = stringResource(id = R.string.pref_msg_type_call_notify_summary),
+                    checked = callNotifyEnabled,
+                    onCheckedChange = onCallNotifyToggle,
+                )
+                HorizontalDivider()
+                Text(
+                    text = "转发开关（仅影响转发）",
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                ConfigGateToggle(
+                    title = stringResource(id = R.string.pref_forward_call_notify_title),
+                    summary = stringResource(id = R.string.pref_forward_call_notify_summary),
+                    checked = forwardCallNotifyEnabled,
+                    onCheckedChange = onForwardCallNotifyToggle,
+                )
+                HorizontalDivider()
                 OutlinedTextField(
                     value = templateValue,
                     onValueChange = { newValue ->

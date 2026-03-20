@@ -8,12 +8,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.DeveloperMode
-import androidx.compose.material.icons.filled.FilterAlt
-import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -36,7 +35,6 @@ fun AdvancedScreen(
     onRelayConfigClick: () -> Unit,
     onWebUiConfigClick: () -> Unit,
     onScheduledReminderClick: () -> Unit,
-    onDiagnosticsClick: () -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -61,26 +59,20 @@ fun AdvancedScreen(
             AdvancedEntryCard(
                 title = stringResource(id = R.string.scheduled_reminder_entry_title),
                 subtitle = stringResource(id = R.string.scheduled_reminder_entry_summary),
-                icon = { Icon(Icons.Default.Timer, contentDescription = null) },
+                icon = { Icon(Icons.Default.DateRange, contentDescription = null) },
                 onClick = onScheduledReminderClick,
             )
             AdvancedEntryCard(
                 title = stringResource(id = R.string.advanced_filter_title),
                 subtitle = stringResource(id = R.string.advanced_filter_summary),
-                icon = { Icon(Icons.Default.FilterAlt, contentDescription = null) },
+                icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = null) },
                 onClick = onInterceptClick,
             )
             AdvancedEntryCard(
                 title = stringResource(id = R.string.pref_webui_config_title),
                 subtitle = stringResource(id = R.string.pref_webui_config_summary_short),
-                icon = { Icon(Icons.Default.Wifi, contentDescription = null) },
+                icon = { Icon(Icons.Default.Settings, contentDescription = null) },
                 onClick = onWebUiConfigClick,
-            )
-            AdvancedEntryCard(
-                title = stringResource(id = R.string.advanced_diagnostics_title),
-                subtitle = stringResource(id = R.string.advanced_diagnostics_summary),
-                icon = { Icon(Icons.Default.DeveloperMode, contentDescription = null) },
-                onClick = onDiagnosticsClick,
             )
         }
     }
@@ -127,7 +119,7 @@ private fun AdvancedEntryCard(
                 Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (showChevron) {
-                Icon(Icons.Default.ChevronRight, contentDescription = null)
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
             }
         }
     }

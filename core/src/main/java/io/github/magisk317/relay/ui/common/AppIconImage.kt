@@ -3,7 +3,7 @@ package io.github.magisk317.relay.ui.common
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Android
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -24,7 +24,7 @@ fun AppIconImage(
     modifier: Modifier = Modifier,
     size: Dp = 40.dp,
     contentDescription: String? = null,
-    fallbackIcon: ImageVector = Icons.Default.Android,
+    fallbackIcon: ImageVector = Icons.Default.Build,
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current

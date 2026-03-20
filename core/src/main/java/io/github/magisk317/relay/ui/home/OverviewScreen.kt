@@ -10,7 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -30,27 +31,32 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.StartOffset
+import androidx.compose.animation.core.StartOffsetType
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.automirrored.filled.Label
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Android
-import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Extension
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Numbers
-import androidx.compose.material.icons.filled.Smartphone
-import androidx.compose.material.icons.filled.Terminal
-import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -74,12 +80,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerInputChange
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.graphicsLayer
@@ -100,6 +111,7 @@ import io.github.magisk317.relay.common.utils.FrameworkCompatibilityMonitor
 import io.github.magisk317.relay.common.utils.ModuleUtils
 import io.github.magisk317.relay.common.utils.PackageUtils
 import io.github.magisk317.relay.common.utils.Utils
+import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.data.db.dao.SenderDispatchStatRow
 import io.github.magisk317.relay.data.repository.AnalyticsRepository
@@ -112,6 +124,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.PI
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -218,7 +231,7 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
     val listState = rememberLazyListState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val density = LocalDensity.current
-    val dragThresholdPx = remember(density) { with(density) { 36.dp.toPx() } }
+    val dragThresholdPx = remember(density) { with(density) { 72.dp.toPx() } }
     val frameworkInfoState by produceState<Pair<String, String>?>(
         initialValue = null,
     ) {
@@ -265,12 +278,12 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
         HomeCardSpec(
             id = CARD_APP_INFO,
             titleRes = R.string.home_card_appinfo_title,
-            icon = Icons.Default.Extension,
+            icon = Icons.Default.Build,
         ),
         HomeCardSpec(
             id = CARD_DEVICE_INFO,
             titleRes = R.string.home_card_deviceinfo_title,
-            icon = Icons.Default.Smartphone,
+            icon = Icons.Default.Phone,
         ),
         HomeCardSpec(
             id = CARD_LINKS,
@@ -280,7 +293,7 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
         HomeCardSpec(
             id = CARD_CHART,
             titleRes = R.string.home_card_chart_title,
-            icon = Icons.Default.Numbers,
+            icon = Icons.AutoMirrored.Filled.List,
             available = analyticsEnabled.value,
         ),
     )
@@ -450,7 +463,7 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
             }
         },
         onShowAddSheet = { showAddCardSheet = true },
-        onRequestEnableEditMode = { editMode = true },
+        onRequestEnableEditMode = {},
         onCardOrderChange = { newOrder -> cardOrder = newOrder },
         onPersistCardOrder = ::persistCardOrder,
         onEnabledCardIdsChange = { newEnabled -> enabledCardIds = newEnabled },
@@ -551,6 +564,7 @@ private fun OverviewContent(
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .padding(horizontal = 16.dp),
             state = listState,
+            userScrollEnabled = draggingCardId == null,
             contentPadding = PaddingValues(
                 top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 64.dp + 8.dp,
                 bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 80.dp,
@@ -670,36 +684,44 @@ private fun OverviewCardItem(
     onCheckUpdate: () -> Unit,
     onShowDonate: () -> Unit,
 ) {
+    val dragEnabled = editMode
     HomeCardContainer(
         editMode = editMode,
-        onLongPress = onRequestEnableEditMode,
+        wiggleKey = spec.id,
+        isDragging = draggingCardId == spec.id,
+        dragOffsetY = if (draggingCardId == spec.id) dragOffsetY else 0f,
+        onLongPress = {},
         onRemove = {
             val newEnabled = enabledCardIds - spec.id
             onEnabledCardIdsChange(newEnabled)
             onPersistEnabledCardIds(newEnabled)
         },
-        onDragStart = { onDragStateChange(spec.id, 0f) },
-        onDragEnd = { onDragStateChange(null, 0f) },
-        onDrag = { deltaY ->
-            if (draggingCardId != spec.id) return@HomeCardContainer
-            val nextOffset = dragOffsetY + deltaY
-            val canMoveUp = visibleCardIds.indexOf(spec.id) > 0
-            val canMoveDown = visibleCardIds.indexOf(spec.id) < visibleCardIds.lastIndex
-            when {
-                nextOffset <= -dragThresholdPx && canMoveUp -> {
-                    val newOrder = moveCardByVisible(cardOrder, visibleCardIds, spec.id, -1)
-                    onCardOrderChange(newOrder)
-                    onPersistCardOrder(newOrder)
-                    onDragStateChange(spec.id, 0f)
+        onDragStart = if (dragEnabled) { { onDragStateChange(spec.id, 0f) } } else null,
+        onDragEnd = if (dragEnabled) { { onDragStateChange(null, 0f) } } else null,
+        onDrag = if (dragEnabled) {
+            { deltaY: Float ->
+                if (draggingCardId != spec.id) return@HomeCardContainer
+                val nextOffset = dragOffsetY + deltaY
+                val canMoveUp = visibleCardIds.indexOf(spec.id) > 0
+                val canMoveDown = visibleCardIds.indexOf(spec.id) < visibleCardIds.lastIndex
+                when {
+                    nextOffset <= -dragThresholdPx && canMoveUp -> {
+                        val newOrder = moveCardByVisible(cardOrder, visibleCardIds, spec.id, -1)
+                        onCardOrderChange(newOrder)
+                        onPersistCardOrder(newOrder)
+                        onDragStateChange(spec.id, nextOffset + dragThresholdPx)
+                    }
+                    nextOffset >= dragThresholdPx && canMoveDown -> {
+                        val newOrder = moveCardByVisible(cardOrder, visibleCardIds, spec.id, 1)
+                        onCardOrderChange(newOrder)
+                        onPersistCardOrder(newOrder)
+                        onDragStateChange(spec.id, nextOffset - dragThresholdPx)
+                    }
+                    else -> onDragStateChange(spec.id, nextOffset)
                 }
-                nextOffset >= dragThresholdPx && canMoveDown -> {
-                    val newOrder = moveCardByVisible(cardOrder, visibleCardIds, spec.id, 1)
-                    onCardOrderChange(newOrder)
-                    onPersistCardOrder(newOrder)
-                    onDragStateChange(spec.id, 0f)
-                }
-                else -> onDragStateChange(spec.id, nextOffset)
             }
+        } else {
+            null
         },
     ) {
         when (spec.id) {
@@ -839,6 +861,9 @@ private fun openLsposedManager(context: android.content.Context) {
 @Composable
 private fun HomeCardContainer(
     editMode: Boolean,
+    wiggleKey: String,
+    isDragging: Boolean,
+    dragOffsetY: Float,
     onLongPress: () -> Unit,
     onRemove: (() -> Unit)?,
     onDragStart: (() -> Unit)?,
@@ -846,19 +871,88 @@ private fun HomeCardContainer(
     onDrag: ((Float) -> Unit)?,
     content: @Composable () -> Unit,
 ) {
+    val wiggleParams = remember(wiggleKey) {
+        val random = kotlin.random.Random(wiggleKey.hashCode())
+        val amplitudeFactor = 0.7f + random.nextFloat() * 0.3f
+        val startOffsetMs = random.nextInt(120)
+        WiggleParams(
+            amplitudeFactor = amplitudeFactor,
+            startOffsetMs = startOffsetMs,
+        )
+    }
+    val wiggleTransition = rememberInfiniteTransition(label = "overviewWiggle")
+    val wiggleValue by wiggleTransition.animateFloat(
+        initialValue = -1f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = 120,
+                easing = FastOutSlowInEasing,
+            ),
+            repeatMode = RepeatMode.Reverse,
+            initialStartOffset = StartOffset(
+                wiggleParams.startOffsetMs,
+                StartOffsetType.FastForward,
+            ),
+        ),
+        label = "wigglePhase",
+    )
+    val removeScale = remember { Animatable(1f) }
+    val removeAlpha = remember { Animatable(1f) }
+    var removing by remember { mutableStateOf(false) }
+    val wiggleEnabled = editMode && !isDragging && !removing
+    val rotation = if (wiggleEnabled) {
+        val degreesPerRad = (180f / PI.toFloat())
+        wiggleValue * 0.012f * wiggleParams.amplitudeFactor * degreesPerRad
+    } else {
+        0f
+    }
+    val translationY = if (isDragging) dragOffsetY else 0f
+    val dragScale = if (isDragging) 1.04f else 1f
+    val scale = dragScale * removeScale.value
+    val alpha = if (isDragging) 0.85f else removeAlpha.value
+    val scope = rememberCoroutineScope()
+    val editModeState by rememberUpdatedState(editMode)
+    val onLongPressState by rememberUpdatedState(onLongPress)
+    val onDragStartState by rememberUpdatedState(onDragStart)
+    val onDragEndState by rememberUpdatedState(onDragEnd)
+    val onDragState by rememberUpdatedState(onDrag)
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .pointerInput(editMode, onDrag) {
-                if (editMode && onDrag != null) {
-                    detectDragGesturesAfterLongPress(
-                        onDragStart = { onDragStart?.invoke() },
-                        onDragEnd = { onDragEnd?.invoke() },
-                        onDragCancel = { onDragEnd?.invoke() },
-                        onDrag = { _: PointerInputChange, dragAmount ->
-                            onDrag(dragAmount.y)
-                        },
-                    )
+            .pointerInput(editMode) {
+                if (onDragState != null) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(
+                            requireUnconsumed = false,
+                            pass = PointerEventPass.Initial,
+                        )
+                        val longPress = awaitLongPressOrCancellation(down.id)
+                        if (longPress != null) {
+                            if (!editModeState) {
+                                onLongPressState()
+                            }
+                            XLog.i("Overview drag longPress key=%s editMode=%s", wiggleKey, editModeState)
+                            onDragStartState?.invoke()
+                            var loggedMove = false
+                            try {
+                                drag(longPress.id) { change ->
+                                    val delta = change.positionChange()
+                                    if (delta.y != 0f) {
+                                        if (!loggedMove) {
+                                            loggedMove = true
+                                            XLog.i("Overview drag move key=%s dy=%.2f", wiggleKey, delta.y)
+                                        }
+                                        onDragState?.invoke(delta.y)
+                                        change.consume()
+                                    }
+                                }
+                            } finally {
+                                XLog.i("Overview drag end key=%s moved=%s", wiggleKey, loggedMove)
+                                onDragEndState?.invoke()
+                            }
+                        }
+                    }
                 } else {
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
@@ -870,47 +964,59 @@ private fun HomeCardContainer(
                 }
             }
             .graphicsLayer {
-                val scale = if (editMode) 0.985f else 1f
                 scaleX = scale
                 scaleY = scale
+                this.alpha = alpha
+                rotationZ = rotation
+                this.translationY = translationY
+                shadowElevation = if (isDragging) 10f else 0f
             },
     ) {
         content()
-        if (editMode) {
-            Surface(
+        if (editMode && !removing) {
+            Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(10.dp),
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                tonalElevation = 3.dp,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
-                    modifier = Modifier.padding(start = 8.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DragHandle,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    FilledTonalIconButton(
-                        onClick = { onRemove?.invoke() },
-                        enabled = onRemove != null,
-                        modifier = Modifier.size(32.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = stringResource(id = R.string.remove),
-                        )
+                    .offset(x = 8.dp, y = (-8).dp)
+                    .shadow(3.dp, CircleShape, clip = false)
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .clickable(enabled = onRemove != null) {
+                        if (removing || onRemove == null) return@clickable
+                        removing = true
+                        scope.launch {
+                            removeScale.snapTo(1f)
+                            removeAlpha.snapTo(1f)
+                            val spec = tween<Float>(
+                                durationMillis = 300,
+                                easing = FastOutLinearInEasing,
+                            )
+                            val scaleJob = launch { removeScale.animateTo(0.4f, spec) }
+                            val alphaJob = launch { removeAlpha.animateTo(0f, spec) }
+                            scaleJob.join()
+                            alphaJob.join()
+                            onRemove.invoke()
+                        }
                     }
-                }
+                    .padding(2.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = stringResource(id = R.string.remove),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(20.dp),
+                )
             }
         }
     }
 }
+
+private data class WiggleParams(
+    val amplitudeFactor: Float,
+    val startOffsetMs: Int,
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1258,10 +1364,10 @@ private fun AppInfoCard(
         ),
     ) {
         Column(modifier = Modifier.padding(vertical = 12.dp)) {
-            InfoItem(Icons.AutoMirrored.Filled.Label, stringResource(id = R.string.version_name), appVersionName)
-            InfoItem(Icons.Default.Numbers, stringResource(id = R.string.version_code), appVersionCode)
+            InfoItem(Icons.Default.Star, stringResource(id = R.string.version_name), appVersionName)
+            InfoItem(Icons.AutoMirrored.Filled.List, stringResource(id = R.string.version_code), appVersionCode)
             InfoItem(
-                Icons.Default.Extension,
+                Icons.Default.Build,
                 stringResource(id = R.string.framework_type),
                 frameworkType,
                 onClick = if (!interactive || hasRootAccess) {
@@ -1271,7 +1377,7 @@ private fun AppInfoCard(
                 },
             )
             InfoItem(
-                Icons.Default.Verified,
+                Icons.Default.CheckCircle,
                 stringResource(id = R.string.framework_version),
                 frameworkVersion,
                 onClick = if (!interactive || hasRootAccess) {
@@ -1294,11 +1400,11 @@ private fun DeviceInfoCard() {
         ),
     ) {
         Column(modifier = Modifier.padding(vertical = 12.dp)) {
-            InfoItem(Icons.Default.Android, stringResource(id = R.string.android_version), Build.VERSION.RELEASE)
-            InfoItem(Icons.Default.Terminal, stringResource(id = R.string.android_codename), Build.VERSION.CODENAME)
-            InfoItem(Icons.Default.Code, stringResource(id = R.string.api_level), Build.VERSION.SDK_INT.toString())
-            InfoItem(Icons.Default.Business, stringResource(id = R.string.manufacturer), Build.MANUFACTURER)
-            InfoItem(Icons.Default.Smartphone, stringResource(id = R.string.model), Build.MODEL)
+            InfoItem(Icons.Default.Build, stringResource(id = R.string.android_version), Build.VERSION.RELEASE)
+            InfoItem(Icons.Default.Info, stringResource(id = R.string.android_codename), Build.VERSION.CODENAME)
+            InfoItem(Icons.Default.Info, stringResource(id = R.string.api_level), Build.VERSION.SDK_INT.toString())
+            InfoItem(Icons.Default.AccountBox, stringResource(id = R.string.manufacturer), Build.MANUFACTURER)
+            InfoItem(Icons.Default.Phone, stringResource(id = R.string.model), Build.MODEL)
         }
     }
 }
@@ -1325,7 +1431,7 @@ private fun LinksCard(
                 onClick = if (interactive) onCheckUpdate else null,
             )
             InfoItem(
-                icon = Icons.AutoMirrored.Filled.Chat,
+                icon = Icons.Default.Email,
                 label = stringResource(id = R.string.pref_join_qq_group_title),
                 value = stringResource(id = R.string.pref_join_qq_group_summary),
                 onClick = if (interactive) {
@@ -1345,7 +1451,7 @@ private fun LinksCard(
                 },
             )
             InfoItem(
-                icon = Icons.Default.Code,
+                icon = Icons.Default.Info,
                 label = stringResource(id = R.string.pref_source_code_title),
                 value = stringResource(id = R.string.pref_source_code_summary),
                 onClick = if (interactive) {
@@ -1385,7 +1491,7 @@ fun StatusCard(isEnabled: Boolean, onClick: (() -> Unit)? = null) {
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Icon(
-                    imageVector = if (isEnabled) Icons.Default.CheckCircle else Icons.Default.Error,
+                    imageVector = if (isEnabled) Icons.Default.CheckCircle else Icons.Default.Warning,
                     contentDescription = null,
                     modifier = Modifier.size(48.dp),
                 )
@@ -1428,7 +1534,7 @@ private fun FrameworkIncompatibilityCard(message: String) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
-                    imageVector = Icons.Default.Error,
+                    imageVector = Icons.Default.Warning,
                     contentDescription = null,
                 )
                 Text(
