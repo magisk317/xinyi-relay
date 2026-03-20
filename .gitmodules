@@ -1,0 +1,3 @@
+[submodule "smscode-core"]
+	path = smscode-core
+	url = https://github.com/magisk317/smscode-core
