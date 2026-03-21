@@ -70,7 +70,9 @@ class CodeRecordViewModel(
     fun removeSmsMsg(smsMsgList: List<SmsMsg>) {
         viewModelScope.launch {
             try {
-                repository.removeList(smsMsgList)
+                withContext(Dispatchers.IO) {
+                    repository.removeList(smsMsgList)
+                }
             } catch (ignored: Throwable) {
                 XLog.e("Error occurs when remove SMS records", ignored)
             }
@@ -80,7 +82,9 @@ class CodeRecordViewModel(
     fun restoreSmsMsgList(smsMsgList: List<SmsMsg>) {
         viewModelScope.launch {
             try {
-                repository.insertList(smsMsgList)
+                withContext(Dispatchers.IO) {
+                    repository.insertList(smsMsgList)
+                }
             } catch (ignored: Throwable) {
                 XLog.e("Error occurs when restore SMS records", ignored)
             }
