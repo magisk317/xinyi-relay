@@ -9,7 +9,6 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
-import android.widget.Toast
 import androidx.annotation.IntDef
 import androidx.core.content.pm.PackageInfoCompat
 import io.github.magisk317.relay.common.constant.Const
@@ -182,22 +181,13 @@ object PackageUtils {
         null
     }
 
-    private fun checkAlipayExists(context: Context): Boolean {
+    private fun checkAlipayStateMessage(context: Context): String? {
         val packageState = checkPackageState(context, Const.ALIPAY_PACKAGE_NAME)
         return when (packageState) {
-            PACKAGE_ENABLED -> true
-
-            PACKAGE_DISABLED -> {
-                Toast.makeText(context, R.string.alipay_enable_prompt, Toast.LENGTH_SHORT).show()
-                false
-            }
-
-            PACKAGE_NOT_INSTALLED -> {
-                Toast.makeText(context, R.string.alipay_install_prompt, Toast.LENGTH_SHORT).show()
-                false
-            }
-
-            else -> false
+            PACKAGE_ENABLED -> null
+            PACKAGE_DISABLED -> context.getString(R.string.alipay_enable_prompt)
+            PACKAGE_NOT_INSTALLED -> context.getString(R.string.alipay_install_prompt)
+            else -> context.getString(R.string.alipay_install_prompt)
         }
     }
 
@@ -205,37 +195,40 @@ object PackageUtils {
      * 打开支付宝
      */
     @JvmStatic
-    fun startAlipayActivity(context: Context) {
-        if (checkAlipayExists(context)) {
-            val pm = context.packageManager
-            val intent = pm.getLaunchIntentForPackage(Const.ALIPAY_PACKAGE_NAME)
-            context.startActivity(intent)
-        }
+    fun startAlipayActivity(context: Context): String? {
+        val message = checkAlipayStateMessage(context)
+        if (message != null) return message
+        val pm = context.packageManager
+        val intent = pm.getLaunchIntentForPackage(Const.ALIPAY_PACKAGE_NAME)
+        context.startActivity(intent)
+        return null
     }
 
     /**
      * 打开支付宝捐赠页
      */
     @JvmStatic
-    fun startAlipayDonatePage(context: Context) {
-        if (checkAlipayExists(context)) {
-            val intent = Intent(Intent.ACTION_VIEW)
-            intent.data = Uri.parse(Const.ALIPAY_QRCODE_URI_PREFIX + Const.ALIPAY_QRCODE_URL)
-            context.startActivity(intent)
-        }
+    fun startAlipayDonatePage(context: Context): String? {
+        val message = checkAlipayStateMessage(context)
+        if (message != null) return message
+        val intent = Intent(Intent.ACTION_VIEW)
+        intent.data = Uri.parse(Const.ALIPAY_QRCODE_URI_PREFIX + Const.ALIPAY_QRCODE_URL)
+        context.startActivity(intent)
+        return null
     }
 
     /**
      * Join QQ group
      */
     @JvmStatic
-    fun joinQQGroup(context: Context) {
+    fun joinQQGroup(context: Context): String? {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(Const.QQ_GROUP_URL))
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         try {
             context.startActivity(intent)
+            return null
         } catch (ignored: Exception) {
-            Toast.makeText(context, R.string.prompt_join_qq_group_failed, Toast.LENGTH_SHORT).show()
+            return context.getString(R.string.prompt_join_qq_group_failed)
         }
     }
 
@@ -276,9 +269,12 @@ object PackageUtils {
         isPackageEnabled(context, PLAY_STORE_PACKAGE_NAME)
 
     @JvmStatic
-    fun openPlayStoreOrGithub(context: Context) {
-        when (resolveUpdateDestination(isPlayStoreAvailable(context))) {
-            UpdateDestination.PLAY -> showAppDetailsInPlayStore(context)
+    fun openPlayStoreOrGithub(context: Context): String? {
+        return when (resolveUpdateDestination(isPlayStoreAvailable(context))) {
+            UpdateDestination.PLAY -> {
+                showAppDetailsInPlayStore(context)
+                null
+            }
             UpdateDestination.GITHUB -> Utils.showWebPage(context, Const.PROJECT_GITHUB_LATEST_RELEASE_URL)
         }
     }
@@ -303,22 +299,13 @@ object PackageUtils {
         }
     }
 
-    private fun checkWechatExists(context: Context): Boolean {
+    private fun checkWechatStateMessage(context: Context): String? {
         val packageState = checkPackageState(context, Const.WECHAT_PACKAGE_NAME)
         return when (packageState) {
-            PACKAGE_ENABLED -> true
-
-            PACKAGE_DISABLED -> {
-                Toast.makeText(context, R.string.wechat_enable_prompt, Toast.LENGTH_SHORT).show()
-                false
-            }
-
-            PACKAGE_NOT_INSTALLED -> {
-                Toast.makeText(context, R.string.wechat_install_prompt, Toast.LENGTH_SHORT).show()
-                false
-            }
-
-            else -> false
+            PACKAGE_ENABLED -> null
+            PACKAGE_DISABLED -> context.getString(R.string.wechat_enable_prompt)
+            PACKAGE_NOT_INSTALLED -> context.getString(R.string.wechat_install_prompt)
+            else -> context.getString(R.string.wechat_install_prompt)
         }
     }
 
@@ -326,18 +313,19 @@ object PackageUtils {
      * 打开微信
      */
     @JvmStatic
-    fun startWechatActivity(context: Context) {
-        if (checkWechatExists(context)) {
-            val pm = context.packageManager
-            val intent = pm.getLaunchIntentForPackage(Const.WECHAT_PACKAGE_NAME)
-            context.startActivity(intent)
-        }
+    fun startWechatActivity(context: Context): String? {
+        val message = checkWechatStateMessage(context)
+        if (message != null) return message
+        val pm = context.packageManager
+        val intent = pm.getLaunchIntentForPackage(Const.WECHAT_PACKAGE_NAME)
+        context.startActivity(intent)
+        return null
     }
 
     @JvmStatic
-    fun copyAlipayPocketToken(context: Context) {
+    fun copyAlipayPocketToken(context: Context): String {
         Utils.copyToClipboard(context, Const.ALIPAY_POCKET_TOKEN)
         val text = context.getString(R.string.alipay_red_packet_code_copied, Const.ALIPAY_POCKET_TOKEN)
-        Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
+        return text
     }
 }

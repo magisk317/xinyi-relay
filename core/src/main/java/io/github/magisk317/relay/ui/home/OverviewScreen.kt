@@ -2,7 +2,7 @@ package io.github.magisk317.relay.ui.home
 
 import android.content.Intent
 import android.os.Build
-import android.widget.Toast
+import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -213,6 +213,10 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
         koinViewModel()
     }
     val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = LocalSnackbarHostState.current
+    fun showMessage(message: String) {
+        coroutineScope.launch { snackbarHostState.showSnackbar(message) }
+    }
     var showDonateDialog by remember { mutableStateOf(false) }
     var showAlipayChoiceDialog by remember { mutableStateOf(false) }
     var showQRCodeDialog by remember { mutableStateOf<Pair<Int, String>?>(null) }
@@ -504,6 +508,7 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
         onToggleDonateDialog = { showDonateDialog = it },
         onToggleAlipayChoiceDialog = { showAlipayChoiceDialog = it },
         onShowQrCodeDialog = { showQRCodeDialog = it },
+        onShowMessage = ::showMessage,
     )
 }
 
@@ -556,6 +561,11 @@ private fun OverviewContent(
     onShowDonate: () -> Unit,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = LocalSnackbarHostState.current
+    val showMessage: (String) -> Unit = { message ->
+        scope.launch { snackbarHostState.showSnackbar(message) }
+    }
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier
@@ -795,6 +805,7 @@ private fun OverviewDialogs(
     onToggleDonateDialog: (Boolean) -> Unit,
     onToggleAlipayChoiceDialog: (Boolean) -> Unit,
     onShowQrCodeDialog: (Pair<Int, String>?) -> Unit,
+    onShowMessage: (String) -> Unit,
 ) {
     if (showAddCardSheet) {
         AddOverviewCardSheet(
@@ -827,8 +838,8 @@ private fun OverviewDialogs(
             },
             onToken = {
                 onToggleAlipayChoiceDialog(false)
-                PackageUtils.copyAlipayPocketToken(context)
-                PackageUtils.startAlipayActivity(context)
+                PackageUtils.copyAlipayPocketToken(context).let(onShowMessage)
+                PackageUtils.startAlipayActivity(context)?.let(onShowMessage)
             },
         )
     }
@@ -838,7 +849,10 @@ private fun OverviewDialogs(
             resId = pair.first,
             type = pair.second,
             onDismiss = { onShowQrCodeDialog(null) },
-            onSave = { Utils.saveImageToGallery(context, pair.first, "${pair.second}_qrcode") },
+            onSave = {
+                Utils.saveImageToGallery(context, pair.first, "${pair.second}_qrcode")
+                    .forEach(onShowMessage)
+            },
         )
     }
 }
@@ -1354,7 +1368,13 @@ private fun AppInfoCard(
     interactive: Boolean = true,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = LocalSnackbarHostState.current
     val rootHint = stringResource(id = R.string.root_permission_hint)
+    val showRootHint: () -> Unit = {
+        scope.launch { snackbarHostState.showSnackbar(rootHint) }
+        Unit
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -1373,7 +1393,7 @@ private fun AppInfoCard(
                 onClick = if (!interactive || hasRootAccess) {
                     null
                 } else {
-                    { Toast.makeText(context, rootHint, Toast.LENGTH_SHORT).show() }
+                    showRootHint
                 },
             )
             InfoItem(
@@ -1383,7 +1403,7 @@ private fun AppInfoCard(
                 onClick = if (!interactive || hasRootAccess) {
                     null
                 } else {
-                    { Toast.makeText(context, rootHint, Toast.LENGTH_SHORT).show() }
+                    showRootHint
                 },
             )
         }
@@ -1416,6 +1436,11 @@ private fun LinksCard(
     interactive: Boolean = true,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = LocalSnackbarHostState.current
+    fun showMessage(message: String) {
+        scope.launch { snackbarHostState.showSnackbar(message) }
+    }
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
@@ -1435,7 +1460,7 @@ private fun LinksCard(
                 label = stringResource(id = R.string.pref_join_qq_group_title),
                 value = stringResource(id = R.string.pref_join_qq_group_summary),
                 onClick = if (interactive) {
-                    { PackageUtils.joinQQGroup(context) }
+                    { PackageUtils.joinQQGroup(context)?.let { message -> showMessage(message) } }
                 } else {
                     null
                 },
@@ -1445,7 +1470,7 @@ private fun LinksCard(
                 label = stringResource(id = R.string.pref_join_telegram_group_title),
                 value = stringResource(id = R.string.pref_join_telegram_group_summary),
                 onClick = if (interactive) {
-                    { Utils.showWebPage(context, Const.TELEGRAM_GROUP_URL) }
+                    { Utils.showWebPage(context, Const.TELEGRAM_GROUP_URL)?.let { message -> showMessage(message) } }
                 } else {
                     null
                 },
@@ -1455,7 +1480,7 @@ private fun LinksCard(
                 label = stringResource(id = R.string.pref_source_code_title),
                 value = stringResource(id = R.string.pref_source_code_summary),
                 onClick = if (interactive) {
-                    { Utils.showWebPage(context, Const.PROJECT_SOURCE_CODE_URL) }
+                    { Utils.showWebPage(context, Const.PROJECT_SOURCE_CODE_URL)?.let { message -> showMessage(message) } }
                 } else {
                     null
                 },

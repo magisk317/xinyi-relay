@@ -4,11 +4,11 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.widget.Toast
 import androidx.core.content.ContextCompat
 import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.common.utils.ClipboardUtils
+import io.github.magisk317.smscode.core.utils.XLog
 
 /**
  * Receiver for copy code when notification clicked
@@ -33,9 +33,9 @@ class CopyCodeReceiver private constructor() : BroadcastReceiver() {
             // copy to clipboard
             smsCode?.let {
                 ClipboardUtils.copyToClipboard(phoneContext, it)
-                // show toast
+                // show feedback via log (no in-app snackbar in xposed runtime)
                 val pluginContext = createSmsCodeAppContext(phoneContext)
-                showToast(pluginContext, phoneContext, it)
+                logCopy(pluginContext, it)
             }
         }
     }
@@ -54,13 +54,10 @@ class CopyCodeReceiver private constructor() : BroadcastReceiver() {
         return mPluginContext
     }
 
-    private fun showToast(pluginContext: Context?, phoneContext: Context?, smsCode: String) {
-        pluginContext?.let {
-            val text = it.getString(R.string.prompt_sms_code_copied, smsCode)
-            phoneContext?.let { pc ->
-                Toast.makeText(pc, text, Toast.LENGTH_LONG).show()
-            }
-        }
+    private fun logCopy(pluginContext: Context?, smsCode: String) {
+        val message = pluginContext?.getString(R.string.prompt_sms_code_copied, smsCode)
+            ?: "SMS code copied: $smsCode"
+        XLog.i(message)
     }
 
     companion object {

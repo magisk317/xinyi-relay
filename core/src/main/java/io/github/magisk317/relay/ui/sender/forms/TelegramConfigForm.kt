@@ -1,6 +1,5 @@
 package io.github.magisk317.relay.ui.sender.forms
 
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -24,12 +23,17 @@ import com.google.gson.Gson
 import kotlinx.coroutines.launch
 import java.net.Proxy
 import java.util.Date
+import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelegramConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewModel) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = LocalSnackbarHostState.current
+    val showMessage: (String) -> Unit = { message ->
+        coroutineScope.launch { snackbarHostState.showSnackbar(message) }
+    }
 
     var name by remember { mutableStateOf("") }
     var apiToken by remember { mutableStateOf("") }
@@ -122,12 +126,12 @@ fun TelegramConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
                 coroutineScope.launch {
                     runCatching { viewModel.saveSenderSync(buildSender(status = 0)) }
                         .onSuccess {
-                            Toast.makeText(context, "信息已保存", Toast.LENGTH_SHORT).show()
+                            showMessage("信息已保存")
                             showExitDialog = false
                             onBack()
                         }
                         .onFailure { e ->
-                            Toast.makeText(context, "保存草稿失败: ${e.message}", Toast.LENGTH_LONG).show()
+                            showMessage("保存草稿失败: ${e.message}")
                         }
                 }
             },
@@ -151,11 +155,11 @@ fun TelegramConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
                         coroutineScope.launch {
                             runCatching { viewModel.saveSenderSync(buildSender(status = 1)) }
                                 .onSuccess {
-                                    Toast.makeText(context, "保存成功", Toast.LENGTH_SHORT).show()
+                                    showMessage("保存成功")
                                     onBack()
                                 }
                                 .onFailure { e ->
-                                    Toast.makeText(context, "保存失败: ${e.message}", Toast.LENGTH_LONG).show()
+                                    showMessage("保存失败: ${e.message}")
                                 }
                         }
                     }) { Text("保存") }

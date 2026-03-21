@@ -1,6 +1,5 @@
 package io.github.magisk317.relay.ui.home
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -14,6 +13,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -21,6 +22,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -33,6 +35,7 @@ import io.github.magisk317.relay.data.db.entity.SmsMsg
 import org.koin.compose.viewmodel.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +51,8 @@ fun AppConfigDetailScreen(
     val appLogs by remember(packageName) { viewModel.appNotifyLogsFlow(packageName) }
         .collectAsStateWithLifecycle(initialValue = emptyList())
     val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     Scaffold(
         topBar = {
@@ -70,6 +75,7 @@ fun AppConfigDetailScreen(
                 windowInsets = WindowInsets.statusBars,
             )
         },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState, modifier = Modifier.navigationBarsPadding()) },
     ) { innerPadding ->
         if (app == null) {
             Column(
@@ -104,11 +110,9 @@ fun AppConfigDetailScreen(
                         checked = app.blocked,
                         onCheckedChange = {
                             viewModel.setBlocked(app.packageName, it)
-                            Toast.makeText(
-                                context,
-                                context.getString(R.string.pref_sync_toast),
-                                Toast.LENGTH_SHORT,
-                            ).show()
+                            scope.launch {
+                                snackbarHostState.showSnackbar(context.getString(R.string.pref_sync_snackbar))
+                            }
                         },
                     )
                     HorizontalDivider()
@@ -117,11 +121,9 @@ fun AppConfigDetailScreen(
                         checked = app.forwarding,
                         onCheckedChange = {
                             viewModel.setForwarding(app.packageName, it)
-                            Toast.makeText(
-                                context,
-                                context.getString(R.string.pref_sync_toast),
-                                Toast.LENGTH_SHORT,
-                            ).show()
+                            scope.launch {
+                                snackbarHostState.showSnackbar(context.getString(R.string.pref_sync_snackbar))
+                            }
                         },
                     )
                     HorizontalDivider()

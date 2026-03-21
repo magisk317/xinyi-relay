@@ -1,6 +1,5 @@
 package io.github.magisk317.relay.ui.home
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -44,6 +43,7 @@ import io.github.magisk317.relay.common.utils.RuntimeLogEntry
 import io.github.magisk317.relay.common.utils.RuntimeLogStore
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
+import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -57,6 +57,10 @@ import kotlinx.coroutines.withContext
 fun RuntimeLogViewerSheet(onDismiss: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val snackbarHostState = LocalSnackbarHostState.current
+    fun showMessage(message: String) {
+        scope.launch { snackbarHostState.showSnackbar(message) }
+    }
     var keyword by remember { mutableStateOf("") }
     var selectedMinutes by remember { mutableIntStateOf(5) }
     var refreshTick by remember { mutableIntStateOf(0) }
@@ -102,13 +106,13 @@ fun RuntimeLogViewerSheet(onDismiss: () -> Unit) {
                             }
                             val file = result.file
                             if (file == null) {
-                                Toast.makeText(context, "导出失败: ${result.details}", Toast.LENGTH_LONG).show()
+                                showMessage("导出失败: ${result.details}")
                                 return@launch
                             }
                             runCatching {
                                 LogBundleExporter.shareLogBundle(context, file)
                             }.onFailure {
-                                Toast.makeText(context, "分享失败: ${it.message}", Toast.LENGTH_LONG).show()
+                                showMessage("分享失败: ${it.message}")
                             }
                         }
                     }) {
@@ -121,7 +125,7 @@ fun RuntimeLogViewerSheet(onDismiss: () -> Unit) {
                             limit = 800,
                         )
                         ClipboardUtils.copyToClipboard(context, text)
-                        Toast.makeText(context, "日志已复制", Toast.LENGTH_SHORT).show()
+                        showMessage("日志已复制")
                     }) {
                         Icon(Icons.Default.ContentCopy, contentDescription = "Copy")
                     }
@@ -131,12 +135,12 @@ fun RuntimeLogViewerSheet(onDismiss: () -> Unit) {
                                 LogBundleExporter.clearLogFolders(context)
                             }
                             refreshTick += 1
-                            val toastText = if (result.success) {
+                            val messageText = if (result.success) {
                                 "日志与崩溃文件已清空"
                             } else {
                                 "部分清空失败: ${result.details}"
                             }
-                            Toast.makeText(context, toastText, Toast.LENGTH_LONG).show()
+                            showMessage(messageText)
                         }
                     }) {
                         Icon(Icons.Default.Delete, contentDescription = "Clear")

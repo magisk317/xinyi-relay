@@ -2,7 +2,6 @@ package io.github.magisk317.relay.ui.home
 
 import android.content.Intent
 import android.provider.Settings
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +28,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -45,6 +46,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.navigationBarsPadding
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.utils.ClipboardUtils
 import io.github.magisk317.relay.common.utils.WebUiCertificateHelper
@@ -67,6 +69,7 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
     val repository: SettingsRepository = koinInject()
     val preferenceDataSource: PreferenceDataSource = koinInject()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var webUiEnabled by remember { mutableStateOf(true) }
     var lanAccess by remember { mutableStateOf(false) }
@@ -85,7 +88,7 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
     var certLoading by remember { mutableStateOf(false) }
     var saveInProgress by remember { mutableStateOf(false) }
 
-    val savedToastText = stringResource(id = R.string.pref_sync_toast)
+    val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
     val portInvalidText = stringResource(id = R.string.pref_webui_port_invalid)
     val usernameInvalidText = stringResource(id = R.string.pref_webui_username_invalid)
     val passwordInvalidText = stringResource(id = R.string.pref_webui_password_invalid)
@@ -96,9 +99,12 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
     val certExportP12FailedText = stringResource(id = R.string.pref_webui_cert_export_p12_failed)
     val certOpenInstallerFailedText = stringResource(id = R.string.pref_webui_cert_open_installer_failed)
     val certTimeLabelText = stringResource(id = R.string.pref_webui_cert_validity_label)
-    val notifySaved = {
-        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+    fun showMessage(message: String) {
+        scope.launch {
+            snackbarHostState.showSnackbar(message)
+        }
     }
+    val notifySaved = { showMessage(savedSnackbarText) }
 
     val exportCertLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/x-x509-ca-cert"),
@@ -109,14 +115,10 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
                 WebUiCertificateHelper.exportCertificateDerToUri(context, preferenceDataSource, uri)
             }
                 .onSuccess {
-                    Toast.makeText(context, certExportSuccessText, Toast.LENGTH_SHORT).show()
+                    showMessage(certExportSuccessText)
                 }
                 .onFailure {
-                    Toast.makeText(
-                        context,
-                        "$certExportFailedText: ${it.message ?: "unknown"}",
-                        Toast.LENGTH_SHORT,
-                    ).show()
+                    showMessage("$certExportFailedText: ${it.message ?: "unknown"}")
                 }
         }
     }
@@ -130,14 +132,10 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
             }
                 .onSuccess { password ->
                     exportedP12Password = password
-                    Toast.makeText(context, certExportP12SuccessText, Toast.LENGTH_SHORT).show()
+                    showMessage(certExportP12SuccessText)
                 }
                 .onFailure {
-                    Toast.makeText(
-                        context,
-                        "$certExportP12FailedText: ${it.message ?: "unknown"}",
-                        Toast.LENGTH_SHORT,
-                    ).show()
+                    showMessage("$certExportP12FailedText: ${it.message ?: "unknown"}")
                 }
         }
     }
@@ -145,11 +143,7 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
     fun copyValue(labelRes: Int, value: String) {
         if (value.isBlank()) return
         ClipboardUtils.copyToClipboard(context, value)
-        Toast.makeText(
-            context,
-            context.getString(R.string.prompt_field_copied, context.getString(labelRes)),
-            Toast.LENGTH_SHORT,
-        ).show()
+        showMessage(context.getString(R.string.prompt_field_copied, context.getString(labelRes)))
     }
 
     fun validateInput(): Boolean {
@@ -241,6 +235,7 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
                 },
             )
         },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState, modifier = Modifier.navigationBarsPadding()) },
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -518,11 +513,7 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
                                     if (intent.resolveActivity(context.packageManager) != null) {
                                         context.startActivity(intent)
                                     } else {
-                                        Toast.makeText(
-                                            context,
-                                            certOpenInstallerFailedText,
-                                            Toast.LENGTH_SHORT,
-                                        ).show()
+                                        showMessage(certOpenInstallerFailedText)
                                     }
                                 },
                                 modifier = Modifier.weight(1f),
@@ -585,7 +576,7 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
                             )
                         }
                         saveInProgress = false
-                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                        showMessage(savedSnackbarText)
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),

@@ -70,14 +70,14 @@ class UpdateCoordinatorTest {
             UpdateCoordinator.decideGithubManualAction(
                 latest = null,
                 currentVersion = "3.1.1",
-                showNoUpdateToast = true,
+                showNoUpdateMessage = true,
             ),
         )
 
         val action = UpdateCoordinator.decideGithubManualAction(
             latest = latest,
             currentVersion = "3.1.1",
-            showNoUpdateToast = true,
+            showNoUpdateMessage = true,
         )
         assertEquals(UpdateCoordinator.GithubManualAction.SHOW_UPDATE_DIALOG(latest), action)
 
@@ -86,7 +86,7 @@ class UpdateCoordinatorTest {
             UpdateCoordinator.decideGithubManualAction(
                 latest = GithubReleaseInfo("3.1.1", latest.htmlUrl),
                 currentVersion = "3.1.1",
-                showNoUpdateToast = true,
+                showNoUpdateMessage = true,
             ),
         )
 
@@ -94,7 +94,7 @@ class UpdateCoordinatorTest {
             UpdateCoordinator.decideGithubManualAction(
                 latest = GithubReleaseInfo("3.1.1", latest.htmlUrl),
                 currentVersion = "3.1.1",
-                showNoUpdateToast = false,
+                showNoUpdateMessage = false,
             ),
         )
     }

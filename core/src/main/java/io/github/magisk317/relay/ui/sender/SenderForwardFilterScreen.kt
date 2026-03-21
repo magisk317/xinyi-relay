@@ -1,8 +1,8 @@
 package io.github.magisk317.relay.ui.sender
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -10,6 +10,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -17,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -29,6 +32,7 @@ import io.github.magisk317.relay.model.ForwardFilterRule
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterMsgTypeTabs
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterRuleEditorDialog
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterRuleList
+import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
 private data class SenderEditingRule(
@@ -47,7 +51,9 @@ fun SenderForwardFilterScreen(
     viewModel: SenderViewModel = koinViewModel(),
 ) {
     val context = LocalContext.current
-    val savedToastText = context.getString(R.string.pref_sync_toast)
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val savedSnackbarText = context.getString(R.string.pref_sync_snackbar)
     var msgType by remember { mutableStateOf(ForwardFilterConst.MSG_TYPE_SMS) }
     val rulesFlow = remember(senderId, msgType) { viewModel.senderForwardRulesFlow(senderId, msgType) }
     val rules by rulesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -89,6 +95,7 @@ fun SenderForwardFilterScreen(
                 },
             )
         },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState, modifier = Modifier.navigationBarsPadding()) },
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -104,7 +111,9 @@ fun SenderForwardFilterScreen(
                 emptyText = stringResource(id = R.string.forward_filter_empty),
                 onToggleEnabled = { id, enabled ->
                     viewModel.setForwardFilterRuleEnabled(id, enabled)
-                    Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                    scope.launch {
+                        snackbarHostState.showSnackbar(savedSnackbarText)
+                    }
                 },
                 onEdit = { rule ->
                     editing = rule.toEditingRule()

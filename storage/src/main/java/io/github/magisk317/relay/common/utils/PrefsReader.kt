@@ -592,8 +592,9 @@ object PrefsReader {
 
     @JvmStatic
     fun showCodeNotification(context: Context): Boolean {
-        // Status bar code notifications are phased out; keep toast-only UX.
-        return false
+        if (!verificationFeaturesEnabled(context)) return false
+        val defaultValue = true
+        return getBooleanViaProvider(context, PrefConst.KEY_SHOW_CODE_NOTIFICATION, defaultValue)
     }
 
     @JvmStatic

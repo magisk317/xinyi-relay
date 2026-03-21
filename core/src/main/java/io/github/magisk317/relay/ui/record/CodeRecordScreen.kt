@@ -3,7 +3,6 @@ package io.github.magisk317.relay.ui.record
 import android.graphics.Color as AndroidColor
 import android.content.ClipData
 import android.os.SystemClock
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -160,7 +159,7 @@ fun CodeRecordScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val settingsRepository: SettingsRepository = koinInject()
-    val savedToastText = stringResource(id = R.string.pref_sync_toast)
+    val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
 
     LaunchedEffect(isLoading, shouldShowInitialLoading, initialLoadingStarted) {
         if (!shouldShowInitialLoading) return@LaunchedEffect
@@ -195,10 +194,9 @@ fun CodeRecordScreen(
 
     val clipboard = LocalClipboard.current
 
-    fun copyWithFeedback(label: String, text: String, toastText: String, snackbarText: String) {
+    fun copyWithFeedback(label: String, text: String, snackbarText: String) {
         scope.launch {
             clipboard.setClipEntry(ClipData.newPlainText(label, text).toClipEntry())
-            Toast.makeText(context, toastText, Toast.LENGTH_SHORT).show()
             snackbarHostState.showSnackbar(snackbarText)
         }
     }
@@ -364,7 +362,7 @@ fun CodeRecordScreen(
                                 else -> RecordSettingsUpdate(callNotifyRecordEnabled = enabled)
                             },
                         )
-                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                        snackbarHostState.showSnackbar(savedSnackbarText)
                     }
                 }
 
@@ -637,7 +635,7 @@ fun CodeRecordScreen(
                                 val code = smsMsg.smsCode
                                 if (!code.isNullOrEmpty()) {
                                     val message = context.getString(R.string.prompt_sms_code_copied, code)
-                                    copyWithFeedback("sms_code", code, message, message)
+                                    copyWithFeedback("sms_code", code, message)
                                 }
                             },
                             onShowDetail = { detailSmsMsg = it },
@@ -819,15 +817,10 @@ fun CodeRecordScreen(
                 hazeStyle = hazeStyle,
                 sms = sms,
                 onDismiss = { detailSmsMsg = null },
-                onCopy = { label, value, toast ->
-                    copyWithFeedback(label, value, toast, toast)
+                onCopy = { label, value, message ->
+                    copyWithFeedback(label, value, message)
                 },
                 onDelete = {
-                    Toast.makeText(
-                        context,
-                        context.getString(R.string.some_items_removed, 1),
-                        Toast.LENGTH_SHORT,
-                    ).show()
                     deleteAndUndo(sms)
                 },
             )
@@ -842,7 +835,7 @@ private fun RecordDetailOverlay(
     hazeStyle: HazeStyle,
     sms: SmsMsg,
     onDismiss: () -> Unit,
-    onCopy: (label: String, value: String, toast: String) -> Unit,
+    onCopy: (label: String, value: String, message: String) -> Unit,
     onDelete: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -858,7 +851,7 @@ private fun RecordDetailOverlay(
     val dismissInteraction = remember { MutableInteractionSource() }
     val detailTitleRes = if (isAppNotification) R.string.message_details_notification else R.string.message_details
     val copyTextRes = if (isAppNotification) R.string.copy_notification else R.string.copy_sms
-    val copyToastRes = if (isAppNotification) R.string.prompt_notification_copied else R.string.prompt_sms_copied
+    val copyMessageRes = if (isAppNotification) R.string.prompt_notification_copied else R.string.prompt_sms_copied
     val deleteTextRes =
         if (isAppNotification) R.string.delete_notification_action else R.string.delete_sms_action
     val copyLabel = if (isAppNotification) "app_notification_body" else "sms_body"
@@ -1073,7 +1066,7 @@ private fun RecordDetailOverlay(
                                 modifier = Modifier.weight(1f),
                                 onClick = {
                                     if (content.isNotEmpty()) {
-                                        val message = context.getString(copyToastRes)
+                                        val message = context.getString(copyMessageRes)
                                         onCopy(copyLabel, content, message)
                                     }
                                     onDismiss()
@@ -1087,7 +1080,7 @@ private fun RecordDetailOverlay(
                                 text = { Text(stringResource(copyTextRes)) },
                                 onClick = {
                                     if (content.isNotEmpty()) {
-                                        val message = context.getString(copyToastRes)
+                                        val message = context.getString(copyMessageRes)
                                         onCopy(copyLabel, content, message)
                                     }
                                     menuState.dismiss()

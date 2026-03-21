@@ -1,7 +1,6 @@
 package io.github.magisk317.relay.ui.home
 
 import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -21,6 +21,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -70,7 +72,13 @@ fun SettingsHomeScreen(
     val repository: SettingsRepository = koinInject()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val savedToastText = stringResource(id = R.string.pref_sync_toast)
+    val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
+    val snackbarHostState = remember { SnackbarHostState() }
+    val notifySaved = {
+        scope.launch {
+            snackbarHostState.showSnackbar(savedSnackbarText)
+        }
+    }
     val settingsViewModel: SettingsViewModel = koinViewModel()
     val themeState by settingsViewModel.themeState.collectAsStateWithLifecycle()
     val languageState by settingsViewModel.languageState.collectAsStateWithLifecycle()
@@ -109,6 +117,7 @@ fun SettingsHomeScreen(
                 },
             )
         },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState, modifier = Modifier.navigationBarsPadding()) },
     ) { padding ->
         val generalSnapshot = general ?: return@Scaffold
         val verificationSnapshot = verification ?: return@Scaffold
@@ -135,7 +144,7 @@ fun SettingsHomeScreen(
                 ) { enabled ->
                     scope.launch {
                         general = repository.updateGeneralSettings(GeneralSettingsUpdate(moduleEnabled = enabled))
-                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                        notifySaved()
                     }
                 }
                 Item(
@@ -171,7 +180,7 @@ fun SettingsHomeScreen(
                         verification = repository.updateVerificationSettings(
                             VerificationSettingsUpdate(verificationFeaturesEnabled = enabled),
                         )
-                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                        notifySaved()
                     }
                 }
                 ActionSwitchItem(
@@ -182,7 +191,7 @@ fun SettingsHomeScreen(
                 ) { enabled ->
                     scope.launch {
                         relay = repository.updateRelaySettings(RelaySettingsUpdate(relayFeaturesEnabled = enabled))
-                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                        notifySaved()
                     }
                 }
             }
@@ -201,7 +210,7 @@ fun SettingsHomeScreen(
                         diagnostics = repository.updateDiagnosticsSettings(
                             DiagnosticsSettingsUpdate(rootDbCatchupEnabled = enabled),
                         )
-                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                        notifySaved()
                     }
                 }
                 Item(
@@ -220,7 +229,7 @@ fun SettingsHomeScreen(
                         diagnostics = repository.updateDiagnosticsSettings(
                             DiagnosticsSettingsUpdate(forceStopRecoveryEnabled = enabled),
                         )
-                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                        notifySaved()
                     }
                 }
                 StateSwitchItem(
@@ -232,7 +241,7 @@ fun SettingsHomeScreen(
                         diagnostics = repository.updateDiagnosticsSettings(
                             DiagnosticsSettingsUpdate(forceStopRecoveryRelaunchOnceEnabled = enabled),
                         )
-                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                        notifySaved()
                     }
                 }
                 StateSwitchItem(
@@ -246,13 +255,13 @@ fun SettingsHomeScreen(
                             }
                             val file = result.file
                             if (file == null) {
-                                Toast.makeText(context, "导出失败: ${result.details}", Toast.LENGTH_LONG).show()
+                                snackbarHostState.showSnackbar("导出失败: ${result.details}")
                                 return@launch
                             }
                             runCatching {
                                 LogBundleExporter.shareLogBundle(context, file)
                             }.onFailure {
-                                Toast.makeText(context, "分享失败: ${it.message}", Toast.LENGTH_LONG).show()
+                                snackbarHostState.showSnackbar("分享失败: ${it.message}")
                             }
                         }
                     },
@@ -263,7 +272,7 @@ fun SettingsHomeScreen(
                         )
                         RuntimeLogStore.setEnabled(enabled)
                         XLog.setLogLevel(if (enabled) Log.VERBOSE else io.github.magisk317.relay.storage.BuildConfig.LOG_LEVEL)
-                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                        notifySaved()
                     }
                 }
                 Item(
@@ -282,7 +291,7 @@ fun SettingsHomeScreen(
                         diagnostics = repository.updateDiagnosticsSettings(
                             DiagnosticsSettingsUpdate(autoUpdateOnStart = enabled),
                         )
-                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                        notifySaved()
                     }
                 }
                 if (diagnosticsSnapshot.autoUpdateOnStart) {
@@ -295,7 +304,7 @@ fun SettingsHomeScreen(
                             diagnostics = repository.updateDiagnosticsSettings(
                                 DiagnosticsSettingsUpdate(autoUpdateWifiOnly = enabled),
                             )
-                            Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                            notifySaved()
                         }
                     }
                 }
@@ -308,7 +317,7 @@ fun SettingsHomeScreen(
                         diagnostics = repository.updateDiagnosticsSettings(
                             DiagnosticsSettingsUpdate(analyticsEnabled = enabled),
                         )
-                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                        notifySaved()
                     }
                 }
             }
@@ -339,7 +348,7 @@ fun SettingsHomeScreen(
             showThemeDialog = false
             themeDialogSelectedMode = index
             settingsViewModel.persistThemeMode(index)
-            Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+            notifySaved()
         }
     }
     if (showLanguageDialog) {
@@ -366,7 +375,7 @@ fun SettingsHomeScreen(
             showLanguageDialog = false
             languageDialogSelectedTag = languageTags[index]
             settingsViewModel.persistLanguageTag(languageTags[index])
-            Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+            notifySaved()
         }
     }
     val currentDiagnostics = diagnostics
@@ -387,7 +396,7 @@ fun SettingsHomeScreen(
                 diagnostics = repository.updateDiagnosticsSettings(
                     DiagnosticsSettingsUpdate(rootDbCatchupIntervalMin = updated),
                 )
-                Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                notifySaved()
             }
         }
     }
@@ -408,7 +417,7 @@ fun SettingsHomeScreen(
                 diagnostics = repository.updateDiagnosticsSettings(
                     DiagnosticsSettingsUpdate(runtimeLogFileSizeMb = updated.toInt()),
                 )
-                Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                notifySaved()
             }
         }
     }
@@ -424,7 +433,13 @@ fun VerificationSettingsScreen(
     val repository: SettingsRepository = koinInject()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val savedToastText = stringResource(id = R.string.pref_sync_toast)
+    val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
+    val snackbarHostState = remember { SnackbarHostState() }
+    val notifySaved = {
+        scope.launch {
+            snackbarHostState.showSnackbar(savedSnackbarText)
+        }
+    }
     val settingsViewModel: SettingsViewModel = koinViewModel()
     var settings by remember { mutableStateOf<VerificationSettingsSnapshot?>(null) }
     var recordSettings by remember { mutableStateOf<RecordSettingsSnapshot?>(null) }
@@ -450,6 +465,7 @@ fun VerificationSettingsScreen(
                 },
             )
         },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState, modifier = Modifier.navigationBarsPadding()) },
     ) { padding ->
         val current = settings ?: return@Scaffold
         val currentRecordSettings = recordSettings ?: return@Scaffold
@@ -473,7 +489,7 @@ fun VerificationSettingsScreen(
                     settings = repository.updateVerificationSettings(
                         VerificationSettingsUpdate(verificationFeaturesEnabled = enabled),
                     )
-                    Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                    notifySaved()
                 }
             }
             SectionCard(
@@ -490,7 +506,7 @@ fun VerificationSettingsScreen(
                 ) { enabled ->
                     scope.launch {
                         settings = repository.updateVerificationSettings(VerificationSettingsUpdate(copyToClipboard = enabled))
-                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                        notifySaved()
                     }
                 }
                 Item(
@@ -534,7 +550,7 @@ fun VerificationSettingsScreen(
                 ) { enabled ->
                     scope.launch {
                         settings = repository.updateVerificationSettings(VerificationSettingsUpdate(autoInputEnabled = enabled))
-                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                        notifySaved()
                     }
                 }
                 StateSwitchItem(
@@ -545,7 +561,7 @@ fun VerificationSettingsScreen(
                 ) { enabled ->
                     scope.launch {
                         settings = repository.updateVerificationSettings(VerificationSettingsUpdate(autoEnterEnabled = enabled))
-                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                        notifySaved()
                     }
                 }
                 Item(
@@ -571,7 +587,7 @@ fun VerificationSettingsScreen(
                 ) { enabled ->
                     scope.launch {
                         settings = repository.updateVerificationSettings(VerificationSettingsUpdate(showToast = enabled))
-                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                        notifySaved()
                     }
                 }
             }
@@ -589,7 +605,7 @@ fun VerificationSettingsScreen(
                 ) { enabled ->
                     scope.launch {
                         settings = repository.updateVerificationSettings(VerificationSettingsUpdate(blockSmsEnabled = enabled))
-                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                        notifySaved()
                     }
                 }
             }
@@ -612,7 +628,7 @@ fun VerificationSettingsScreen(
             showDelayDialog = false
             scope.launch {
                 settings = repository.updateVerificationSettings(VerificationSettingsUpdate(autoInputDelay = updated))
-                Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                notifySaved()
             }
         }
     }
@@ -630,7 +646,7 @@ fun VerificationSettingsScreen(
             showIntervalDialog = false
             scope.launch {
                 settings = repository.updateVerificationSettings(VerificationSettingsUpdate(autoInputInterval = updated))
-                Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                notifySaved()
             }
         }
     }
@@ -647,7 +663,7 @@ fun VerificationSettingsScreen(
             showKeywordsDialog = false
             scope.launch {
                 settings = repository.updateVerificationSettings(VerificationSettingsUpdate(relayKeywords = updated))
-                Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                notifySaved()
             }
         }
     }
@@ -781,7 +797,13 @@ fun DiagnosticsSettingsScreen(onBack: () -> Unit) {
     val repository: SettingsRepository = koinInject()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val savedToastText = stringResource(id = R.string.pref_sync_toast)
+    val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
+    val snackbarHostState = remember { SnackbarHostState() }
+    val notifySaved = {
+        scope.launch {
+            snackbarHostState.showSnackbar(savedSnackbarText)
+        }
+    }
     var settings by remember { mutableStateOf<DiagnosticsSettingsSnapshot?>(null) }
     var showRootDbIntervalDialog by remember { mutableStateOf(false) }
     var showRuntimeLogDialog by remember { mutableStateOf(false) }
@@ -802,6 +824,7 @@ fun DiagnosticsSettingsScreen(onBack: () -> Unit) {
                 },
             )
         },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState, modifier = Modifier.navigationBarsPadding()) },
     ) { padding ->
         val current = settings ?: return@Scaffold
         Column(
@@ -827,7 +850,7 @@ fun DiagnosticsSettingsScreen(onBack: () -> Unit) {
                         settings = repository.updateDiagnosticsSettings(
                             DiagnosticsSettingsUpdate(rootDbCatchupEnabled = enabled),
                         )
-                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                        notifySaved()
                     }
                 }
                 Item(
@@ -846,7 +869,7 @@ fun DiagnosticsSettingsScreen(onBack: () -> Unit) {
                         settings = repository.updateDiagnosticsSettings(
                             DiagnosticsSettingsUpdate(forceStopRecoveryEnabled = enabled),
                         )
-                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                        notifySaved()
                     }
                 }
                 StateSwitchItem(
@@ -858,7 +881,7 @@ fun DiagnosticsSettingsScreen(onBack: () -> Unit) {
                         settings = repository.updateDiagnosticsSettings(
                             DiagnosticsSettingsUpdate(forceStopRecoveryRelaunchOnceEnabled = enabled),
                         )
-                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                        notifySaved()
                     }
                 }
             }
@@ -876,7 +899,7 @@ fun DiagnosticsSettingsScreen(onBack: () -> Unit) {
                 ) { enabled ->
                     scope.launch {
                         settings = repository.updateDiagnosticsSettings(DiagnosticsSettingsUpdate(verboseLogMode = enabled))
-                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                        notifySaved()
                     }
                 }
                 Item(
@@ -893,7 +916,7 @@ fun DiagnosticsSettingsScreen(onBack: () -> Unit) {
                 ) { enabled ->
                     scope.launch {
                         settings = repository.updateDiagnosticsSettings(DiagnosticsSettingsUpdate(autoUpdateOnStart = enabled))
-                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                        notifySaved()
                     }
                 }
                 StateSwitchItem(
@@ -905,7 +928,7 @@ fun DiagnosticsSettingsScreen(onBack: () -> Unit) {
                         settings = repository.updateDiagnosticsSettings(
                             DiagnosticsSettingsUpdate(autoUpdateWifiOnly = enabled),
                         )
-                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                        notifySaved()
                     }
                 }
                 StateSwitchItem(
@@ -915,7 +938,7 @@ fun DiagnosticsSettingsScreen(onBack: () -> Unit) {
                 ) { enabled ->
                     scope.launch {
                         settings = repository.updateDiagnosticsSettings(DiagnosticsSettingsUpdate(analyticsEnabled = enabled))
-                        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                        notifySaved()
                     }
                 }
             }
@@ -940,7 +963,7 @@ fun DiagnosticsSettingsScreen(onBack: () -> Unit) {
                 settings = repository.updateDiagnosticsSettings(
                     DiagnosticsSettingsUpdate(rootDbCatchupIntervalMin = updated),
                 )
-                Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                notifySaved()
             }
         }
     }
@@ -961,7 +984,7 @@ fun DiagnosticsSettingsScreen(onBack: () -> Unit) {
                 settings = repository.updateDiagnosticsSettings(
                     DiagnosticsSettingsUpdate(runtimeLogFileSizeMb = updated.toInt()),
                 )
-                Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                notifySaved()
             }
         }
     }

@@ -57,6 +57,7 @@ sealed class SettingsEvent {
     data object NavigateToRecords : SettingsEvent()
     data object StartPlayUpdate : SettingsEvent()
     data object StartGithubUpdateCheck : SettingsEvent()
+    data class ShowSnackbar(val message: String) : SettingsEvent()
     data class BackupResultEvent(val success: Boolean) : SettingsEvent()
     data class RestoreResultEvent(val result: BackupImportResult) : SettingsEvent()
     data class ImportDialogConfirm(val uri: android.net.Uri) : SettingsEvent()
@@ -199,7 +200,7 @@ class SettingsViewModel(
                 .build()
             ShortcutManagerCompat.requestPinShortcut(context, shortcut, null)
         } else {
-            android.widget.Toast.makeText(context, "当前系统不支持创建快捷方式", android.widget.Toast.LENGTH_SHORT).show()
+            _eventsFlow.tryEmit(SettingsEvent.ShowSnackbar("当前系统不支持创建快捷方式"))
         }
     }
 
@@ -263,11 +264,15 @@ class SettingsViewModel(
     }
 
     fun joinQQGroup() {
-        PackageUtils.joinQQGroup(getApplication())
+        PackageUtils.joinQQGroup(getApplication())?.let {
+            _eventsFlow.tryEmit(SettingsEvent.ShowSnackbar(it))
+        }
     }
 
     fun showSourceProject() {
-        Utils.showWebPage(getApplication(), Const.PROJECT_SOURCE_CODE_URL)
+        Utils.showWebPage(getApplication(), Const.PROJECT_SOURCE_CODE_URL)?.let {
+            _eventsFlow.tryEmit(SettingsEvent.ShowSnackbar(it))
+        }
     }
 
     fun setInternalFilesWritable() {

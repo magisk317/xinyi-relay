@@ -2,7 +2,6 @@ package io.github.magisk317.relay.ui.sender.forms
 
 import android.content.Context
 import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,6 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.common.utils.ClipboardUtils
 import io.github.magisk317.relay.common.utils.RuntimeLogStore
+import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -86,6 +86,11 @@ internal fun SenderTestActionRow(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val snackbarHostState = LocalSnackbarHostState.current
+
+    fun showMessage(message: String) {
+        scope.launch { snackbarHostState.showSnackbar(message) }
+    }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -101,7 +106,9 @@ internal fun SenderTestActionRow(
                     }
                         .onSuccess {
                             logSenderTest(channel, "发送测试成功")
-                            Toast.makeText(context, "发送成功", Toast.LENGTH_SHORT).show()
+                            scope.launch {
+                                showMessage("发送成功")
+                            }
                         }
                         .onFailure { error ->
                             val readable = error.toReadableError()
@@ -110,7 +117,9 @@ internal fun SenderTestActionRow(
                                 message = "发送测试失败: $readable\n${Log.getStackTraceString(error)}",
                                 priority = Log.ERROR,
                             )
-                            Toast.makeText(context, "异常: $readable", Toast.LENGTH_LONG).show()
+                            scope.launch {
+                                showMessage("异常: $readable")
+                            }
                         }
                 }
             },
@@ -122,7 +131,9 @@ internal fun SenderTestActionRow(
         OutlinedButton(
             onClick = {
                 copySenderContextLog(context, channel)
-                Toast.makeText(context, "上下文日志已复制", Toast.LENGTH_SHORT).show()
+                scope.launch {
+                    showMessage("上下文日志已复制")
+                }
             },
             modifier = Modifier
                 .weight(1f)

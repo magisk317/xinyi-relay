@@ -1,7 +1,6 @@
 package io.github.magisk317.relay.ui.sender
 
 import android.os.SystemClock
-import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -473,22 +472,20 @@ fun SenderListScreen(
                                 if (enabled) {
                                     val result = viewModel.validateSenderForEnable(sender)
                                     if (!result.valid) {
-                                        Toast.makeText(context, "无法开启：${result.message}", Toast.LENGTH_LONG).show()
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("无法开启：${result.message}")
+                                        }
                                     } else {
                                         viewModel.toggleSenderStatus(sender, enabled)
-                                        Toast.makeText(
-                                            context,
-                                            context.getString(R.string.pref_sync_toast),
-                                            Toast.LENGTH_SHORT,
-                                        ).show()
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar(context.getString(R.string.pref_sync_snackbar))
+                                        }
                                     }
                                 } else {
                                     viewModel.toggleSenderStatus(sender, enabled)
-                                    Toast.makeText(
-                                        context,
-                                        context.getString(R.string.pref_sync_toast),
-                                        Toast.LENGTH_SHORT,
-                                    ).show()
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(context.getString(R.string.pref_sync_snackbar))
+                                    }
                                 }
                             },
                             onDelete = {
@@ -557,6 +554,7 @@ private fun UndoCountdownSnackbar(
     }
     val remainingSeconds = ceil(remainingMs / 1000f).toInt().coerceAtLeast(0)
 
+    val hasAction = data.visuals.actionLabel != null
     Snackbar(
         action = {
             data.visuals.actionLabel?.let { label ->
@@ -565,11 +563,15 @@ private fun UndoCountdownSnackbar(
                 }
             }
         },
-        dismissAction = {
-            CountdownCircle(
-                progress = progress,
-                seconds = remainingSeconds,
-            )
+        dismissAction = if (hasAction) {
+            {
+                CountdownCircle(
+                    progress = progress,
+                    seconds = remainingSeconds,
+                )
+            }
+        } else {
+            null
         },
     ) {
         Text(data.visuals.message)

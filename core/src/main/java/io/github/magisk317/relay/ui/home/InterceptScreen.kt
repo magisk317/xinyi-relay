@@ -1,6 +1,5 @@
 package io.github.magisk317.relay.ui.home
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -100,9 +99,11 @@ fun InterceptScreen(
     }
 
     val notSetText = context.getString(R.string.blacklist_not_set)
-    val savedToastText = context.getString(R.string.pref_sync_toast)
+    val savedSnackbarText = context.getString(R.string.pref_sync_snackbar)
     val notifySaved = {
-        Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+        scope.launch {
+            snackbarHostState.showSnackbar(savedSnackbarText)
+        }
     }
     fun saveSettingsIfChanged(
         update: SmsBlacklistSettingsUpdate,

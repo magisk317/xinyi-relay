@@ -3,13 +3,13 @@ package io.github.magisk317.relay.xp.hook.code.action.impl
 import android.content.Context
 import android.os.Bundle
 import android.widget.Toast
-import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.common.utils.PrefsReader
+import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.xp.hook.code.action.RunnableAction
 
 /**
- * 显示验证码Toast
+ * 显示验证码 Toast（唯一保留的 Toast 入口）
  */
 class ToastAction(pluginContext: Context, phoneContext: Context, smsMsg: SmsMsg) :
     RunnableAction(pluginContext, phoneContext, smsMsg) {

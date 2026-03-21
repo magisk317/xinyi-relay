@@ -4,7 +4,7 @@ Core capabilities:
 - Extract verification codes from incoming SMS.
 - Copy detected codes to clipboard.
 - Auto-fill codes in supported apps.
-- Show notifications and optional Toast prompts for extracted codes.
+- Show notifications for extracted codes.
 - Keep verification records with type-based retention and export options.
 
 Forwarding and automation:

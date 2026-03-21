@@ -28,6 +28,8 @@ import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
@@ -36,6 +38,7 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
@@ -53,6 +56,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.runtime.CompositionLocalProvider
 import io.github.magisk317.relay.core.BuildConfig
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.common.constant.Const
@@ -73,6 +78,7 @@ import io.github.magisk317.relay.data.update.UpdatePolicy
 import io.github.magisk317.relay.ui.app.base.UpdateSystemBars
 import io.github.magisk317.relay.ui.app.base.applyEdgeToEdge
 import io.github.magisk317.relay.ui.app.base.rememberHazeStyle
+import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
 import io.github.magisk317.relay.ui.home.update.FlavorPlayUpdateDelegate
 import io.github.magisk317.relay.ui.home.update.PlayUpdateDelegate
 import io.github.magisk317.relay.ui.nav.SmsCodeNavHost
@@ -85,6 +91,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import androidx.lifecycle.lifecycleScope
 import io.github.magisk317.relay.domain.pipeline.StorageRuntimeGraph
+import kotlinx.coroutines.flow.MutableSharedFlow
 import org.koin.androidx.compose.koinViewModel
 import java.io.File
 import kotlin.math.hypot
@@ -93,8 +100,13 @@ class MainActivity : AppCompatActivity() {
 
     private val playUpdateDelegate: PlayUpdateDelegate = FlavorPlayUpdateDelegate()
     private var autoUpdateChecked = false
+    private val snackbarMessages = MutableSharedFlow<String>(extraBufferCapacity = 8)
     private val settingsRepository: SettingsRepository by lazy {
         StorageRuntimeGraph.from(applicationContext).settingsRepository
+    }
+
+    private fun enqueueSnackbar(message: String) {
+        snackbarMessages.tryEmit(message)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -108,7 +120,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         applyEdgeToEdge(this)
         playUpdateDelegate.onCreate(this) {
-            PackageUtils.openPlayStoreOrGithub(this)
+            PackageUtils.openPlayStoreOrGithub(this)?.let(::enqueueSnackbar)
         }
         triggerAutoUpdateIfEnabled()
 
@@ -118,6 +130,7 @@ class MainActivity : AppCompatActivity() {
             val navController = rememberNavController()
             val context = LocalContext.current
             val scope = rememberCoroutineScope()
+            val appSnackbarHostState = remember { SnackbarHostState() }
             var showPrivacyPolicyDialog by remember { mutableStateOf(false) }
             var showPrivacyPolicyPage by remember { mutableStateOf(false) }
             var showSmsCodeConflictDialog by remember { mutableStateOf(false) }
@@ -214,6 +227,11 @@ class MainActivity : AppCompatActivity() {
             LaunchedEffect(Unit) {
                 githubUpdateUiState = checkStartupGithubUpdateIfNeeded()
             }
+            LaunchedEffect(Unit) {
+                snackbarMessages.collect { message ->
+                    appSnackbarHostState.showSnackbar(message)
+                }
+            }
 
             // Effect to trigger logic when ThemeState changes
             LaunchedEffect(themeState) {
@@ -290,42 +308,46 @@ class MainActivity : AppCompatActivity() {
                         is SettingsEvent.NavigateToRecords -> requestedTab = io.github.magisk317.relay.ui.nav.RecordsRoute
                         is SettingsEvent.StartPlayUpdate -> requestPlayUpdate()
                         is SettingsEvent.StartGithubUpdateCheck -> {
-                            requestGithubUpdateCheck(showNoUpdateToast = true) { update ->
+                            requestGithubUpdateCheck(showNoUpdateMessage = true) { update ->
                                 githubUpdateUiState = update
                             }
+                        }
+                        is SettingsEvent.ShowSnackbar -> {
+                            scope.launch { appSnackbarHostState.showSnackbar(event.message) }
                         }
                         else -> {}
                     }
                 }
             }
 
-            AppTheme(themeMode = currentThemeMode) {
-                Surface(color = MaterialTheme.colorScheme.background) {
-                    LaunchedEffect(Unit) {
-                        viewModel.setInternalFilesWritable()
-                    }
-                    LaunchedEffect(intent) {
-                        viewModel.handleArguments(intent.extras)
-                    }
+            CompositionLocalProvider(LocalSnackbarHostState provides appSnackbarHostState) {
+                AppTheme(themeMode = currentThemeMode) {
+                    Surface(color = MaterialTheme.colorScheme.background) {
+                        LaunchedEffect(Unit) {
+                            viewModel.setInternalFilesWritable()
+                        }
+                        LaunchedEffect(intent) {
+                            viewModel.handleArguments(intent.extras)
+                        }
 
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        val hazeBlurRadius by settingsRepository.getHazeBlurRadiusFlow()
-                            .collectAsStateWithLifecycle(initialValue = PrefConst.HAZE_BLUR_RADIUS_DEFAULT)
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            val hazeBlurRadius by settingsRepository.getHazeBlurRadiusFlow()
+                                .collectAsStateWithLifecycle(initialValue = PrefConst.HAZE_BLUR_RADIUS_DEFAULT)
 
-                        val hazeTintAlpha by settingsRepository.getHazeTintAlphaFlow()
-                            .collectAsStateWithLifecycle(initialValue = PrefConst.HAZE_TINT_ALPHA_DEFAULT)
+                            val hazeTintAlpha by settingsRepository.getHazeTintAlphaFlow()
+                                .collectAsStateWithLifecycle(initialValue = PrefConst.HAZE_TINT_ALPHA_DEFAULT)
 
-                        val hazeState = remember { HazeState() }
-                        val hazeStyle = rememberHazeStyle(blurRadius = hazeBlurRadius.dp, tintAlpha = hazeTintAlpha)
-                        SmsCodeNavHost(
-                            navController = navController,
-                            onBack = { finish() },
-                            initialTab = requestedTab,
-                            onInitialTabConsumed = { requestedTab = null },
-                            modifier = Modifier,
-                            hazeState = hazeState,
-                            hazeStyle = hazeStyle,
-                        )
+                            val hazeState = remember { HazeState() }
+                            val hazeStyle = rememberHazeStyle(blurRadius = hazeBlurRadius.dp, tintAlpha = hazeTintAlpha)
+                            SmsCodeNavHost(
+                                navController = navController,
+                                onBack = { finish() },
+                                initialTab = requestedTab,
+                                onInitialTabConsumed = { requestedTab = null },
+                                modifier = Modifier,
+                                hazeState = hazeState,
+                                hazeStyle = hazeStyle,
+                            )
 
                         if (showPrivacyPolicyDialog) {
                             PrivacyPolicyDialog(
@@ -427,6 +449,7 @@ class MainActivity : AppCompatActivity() {
                                             when (updateState) {
                                                 is GithubUpdateUiState.ReleaseLink -> {
                                                     Utils.showWebPage(this@MainActivity, updateState.release.htmlUrl)
+                                                        ?.let(::enqueueSnackbar)
                                                     githubUpdateUiState = null
                                                 }
 
@@ -601,6 +624,13 @@ class MainActivity : AppCompatActivity() {
                                     },
                             )
                         }
+                            SnackbarHost(
+                                hostState = appSnackbarHostState,
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .navigationBarsPadding(),
+                            )
+                        }
                     }
                 }
             }
@@ -621,7 +651,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         playUpdateDelegate.onResume(this) {
-            PackageUtils.openPlayStoreOrGithub(this)
+            PackageUtils.openPlayStoreOrGithub(this)?.let(::enqueueSnackbar)
         }
     }
 
@@ -640,7 +670,7 @@ class MainActivity : AppCompatActivity() {
             silentIfNoUpdate = silentIfNoUpdate,
             fallbackOnQueryFailure = fallbackOnQueryFailure,
         ) {
-            PackageUtils.openPlayStoreOrGithub(this)
+            PackageUtils.openPlayStoreOrGithub(this)?.let(::enqueueSnackbar)
         }
     }
 
@@ -680,7 +710,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun requestGithubUpdateCheck(
-        showNoUpdateToast: Boolean,
+        showNoUpdateMessage: Boolean,
         onUpdateFound: (GithubUpdateUiState) -> Unit,
     ) {
         lifecycleScope.launch {
@@ -691,20 +721,12 @@ class MainActivity : AppCompatActivity() {
                 )
             ) {
                 is GithubUpdateQueryResult.Failed -> {
-                    android.widget.Toast.makeText(
-                        this@MainActivity,
-                        getString(R.string.check_update_failed),
-                        android.widget.Toast.LENGTH_SHORT,
-                    ).show()
+                    enqueueSnackbar(getString(R.string.check_update_failed))
                 }
 
                 GithubUpdateQueryResult.NoUpdate -> {
-                    if (showNoUpdateToast) {
-                        android.widget.Toast.makeText(
-                            this@MainActivity,
-                            getString(R.string.app_already_newest),
-                            android.widget.Toast.LENGTH_SHORT,
-                        ).show()
+                    if (showNoUpdateMessage) {
+                        enqueueSnackbar(getString(R.string.app_already_newest))
                     }
                 }
 

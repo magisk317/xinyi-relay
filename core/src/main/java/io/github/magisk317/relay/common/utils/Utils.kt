@@ -7,7 +7,6 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
-import android.widget.Toast
 import androidx.browser.customtabs.CustomTabsIntent
 import io.github.magisk317.relay.core.R
 import java.util.*
@@ -18,13 +17,14 @@ import java.util.*
 object Utils {
 
     @JvmStatic
-    fun showWebPage(context: Context, url: String) {
+    fun showWebPage(context: Context, url: String): String? {
         try {
             val cti = CustomTabsIntent.Builder().build()
             cti.intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
             cti.launchUrl(context, Uri.parse(url))
+            return null
         } catch (ignored: Exception) {
-            Toast.makeText(context, R.string.browser_install_or_enable_prompt, Toast.LENGTH_SHORT).show()
+            return context.getString(R.string.browser_install_or_enable_prompt)
         }
     }
 
@@ -74,9 +74,10 @@ object Utils {
     }
 
     @JvmStatic
-    fun saveImageToGallery(context: Context, resId: Int, fileName: String) {
+    fun saveImageToGallery(context: Context, resId: Int, fileName: String): List<String> {
         val bitmap = BitmapFactory.decodeResource(context.resources, resId)
         val resolver = context.contentResolver
+        val messages = mutableListOf<String>()
         val contentValues = android.content.ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, "$fileName.png")
             put(MediaStore.MediaColumns.MIME_TYPE, "image/png")
@@ -106,22 +107,19 @@ object Utils {
                     R.string.dialog_donate_wechat
                 }
                 val appName = context.getString(appNameResId).replace(Regex("\\(.*?\\)"), "").trim()
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.save_to_gallery_success, appName),
-                    Toast.LENGTH_SHORT,
-                ).show()
+                messages += context.getString(R.string.save_to_gallery_success, appName)
                 if (fileName.contains("alipay")) {
-                    PackageUtils.startAlipayActivity(context)
+                    PackageUtils.startAlipayActivity(context)?.let { messages += it }
                 } else if (fileName.contains("wechat")) {
-                    PackageUtils.startWechatActivity(context)
+                    PackageUtils.startWechatActivity(context)?.let { messages += it }
                 }
             } catch (ignored: Exception) {
-                Toast.makeText(context, R.string.save_to_gallery_failed, Toast.LENGTH_SHORT).show()
+                messages += context.getString(R.string.save_to_gallery_failed)
             }
         } else {
-            Toast.makeText(context, R.string.save_to_gallery_failed, Toast.LENGTH_SHORT).show()
+            messages += context.getString(R.string.save_to_gallery_failed)
         }
+        return messages
     }
 
     private const val CONTROL_CHAR_LIMIT = 0x1f

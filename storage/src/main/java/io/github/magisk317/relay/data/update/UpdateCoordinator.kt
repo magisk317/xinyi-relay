@@ -33,12 +33,12 @@ object UpdateCoordinator {
     fun decideGithubManualAction(
         latest: GithubReleaseInfo?,
         currentVersion: String,
-        showNoUpdateToast: Boolean,
+        showNoUpdateMessage: Boolean,
     ): GithubManualAction? {
         if (latest == null) return GithubManualAction.SHOW_CHECK_FAILED
         if (GithubUpdateChecker.isNewer(currentVersion, latest.versionName)) {
             return GithubManualAction.SHOW_UPDATE_DIALOG(latest)
         }
-        return if (showNoUpdateToast) GithubManualAction.SHOW_ALREADY_NEWEST else null
+        return if (showNoUpdateMessage) GithubManualAction.SHOW_ALREADY_NEWEST else null
     }
 }

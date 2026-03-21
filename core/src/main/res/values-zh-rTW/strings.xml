@@ -91,7 +91,7 @@
     <string name="notification_retention_time_30_secs_entry">30 秒</string>
     <string name="notification_retention_time_1_min_entry">1 分鐘</string>
     <string name="notification_retention_time_5_mins_entry">5 分鐘</string>
-    <string name="pref_sync_toast">設定已儲存</string>
+    <string name="pref_sync_snackbar">設定已儲存</string>
     <!-- notification retention time end -->
     <!-- preference code notification -->
 

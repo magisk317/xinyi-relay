@@ -3,7 +3,6 @@ package io.github.magisk317.relay.ui.home
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -15,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -34,6 +34,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
@@ -185,8 +187,13 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val repository: SettingsRepository = koinInject()
     val scope = rememberCoroutineScope()
-    val savedToastText = stringResource(id = R.string.pref_sync_toast)
-    val notifySaved = { Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show() }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
+    val notifySaved = {
+        scope.launch {
+            snackbarHostState.showSnackbar(savedSnackbarText)
+        }
+    }
     var settings by remember { mutableStateOf<SpecialAlertSettingsSnapshot?>(null) }
     var showThresholdDialog by remember { mutableStateOf(false) }
     var showSmsKeywordDialog by remember { mutableStateOf(false) }
@@ -272,6 +279,7 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                 },
             )
         },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState, modifier = Modifier.navigationBarsPadding()) },
     ) { padding ->
         val current = settings ?: return@Scaffold
         val lowChannelLabel = channelOptions.firstOrNull { it.id == current.lowBatteryChannelId }?.label

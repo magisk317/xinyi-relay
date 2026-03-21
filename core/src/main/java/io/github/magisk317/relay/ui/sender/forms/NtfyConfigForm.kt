@@ -1,6 +1,5 @@
 package io.github.magisk317.relay.ui.sender.forms
 
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -40,13 +39,19 @@ import io.github.magisk317.relay.forwarder.utils.sender.NtfyUtils
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import java.util.Date
 import kotlinx.coroutines.launch
+import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NtfyConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewModel) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val snackbarHostState = LocalSnackbarHostState.current
 
+
+    fun showMessage(message: String) {
+        scope.launch { snackbarHostState.showSnackbar(message) }
+    }
     var name by remember { mutableStateOf("") }
     var server by remember { mutableStateOf("") }
     var topic by remember { mutableStateOf("") }
@@ -122,11 +127,11 @@ fun NtfyConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
                 scope.launch {
                     runCatching { viewModel.saveSenderSync(buildSender(status = 0)) }
                         .onSuccess {
-                            Toast.makeText(context, "信息已保存", Toast.LENGTH_SHORT).show()
+                            showMessage("信息已保存")
                             showExitDialog = false
                             onBack()
                         }
-                        .onFailure { Toast.makeText(context, "保存草稿失败: ${it.message}", Toast.LENGTH_LONG).show() }
+                        .onFailure { showMessage("保存草稿失败: ${it.message}") }
                 }
             },
             onDiscard = {
@@ -151,10 +156,10 @@ fun NtfyConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
                         scope.launch {
                             runCatching { viewModel.saveSenderSync(buildSender(status = 1)) }
                                 .onSuccess {
-                                    Toast.makeText(context, "保存成功", Toast.LENGTH_SHORT).show()
+                                    showMessage("保存成功")
                                     onBack()
                                 }
-                                .onFailure { Toast.makeText(context, "保存失败: ${it.message}", Toast.LENGTH_LONG).show() }
+                                .onFailure { showMessage("保存失败: ${it.message}") }
                         }
                     }) { Text("保存") }
                 },

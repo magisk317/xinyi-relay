@@ -567,7 +567,7 @@
     <string name="dialog_donate_cancel">Next Time</string>
     <string name="long_press_save_hint">Long press image to save to gallery</string>
     <string name="save_to_gallery_success">Image saved to gallery, opening %s...</string>
-    <string name="pref_sync_toast">Settings saved</string>
+    <string name="pref_sync_snackbar">Settings saved</string>
     <string name="save_to_gallery_failed">Save failed, please check file permissions</string>
     <string name="save_to_gallery">Save to Gallery</string>
     <!-- alipay packet end -->

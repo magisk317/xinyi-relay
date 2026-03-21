@@ -39,8 +39,8 @@ class CodeWorker(
         val deduplicateSms = PrefsReader.deduplicateSms(mPluginContext)
         XLog.w(
             "Diag settings: event_id=%s enabled=%s, verbose=%s, showNotif=%s, autoCancel=%s, " +
-                "retentionSec=%d, autoInput=%s, copy=%s, toast=%s, record=%s, " +
-                "block=%s, markRead=%s, delete=%s, dedup=%s",
+            "retentionSec=%d, autoInput=%s, copy=%s, toast=%s, record=%s, " +
+            "block=%s, markRead=%s, delete=%s, dedup=%s",
             eventId.ifBlank { "<none>" },
             moduleEnabled,
             verboseLog,

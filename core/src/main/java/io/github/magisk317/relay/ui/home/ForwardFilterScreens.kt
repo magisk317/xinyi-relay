@@ -1,11 +1,11 @@
 package io.github.magisk317.relay.ui.home
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -17,6 +17,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -25,6 +27,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -38,6 +41,7 @@ import io.github.magisk317.relay.domain.filter.ForwardFilterConst
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterMsgTypeTabs
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterRuleEditorDialog
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterRuleList
+import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
 private data class EditingRule(
@@ -56,7 +60,9 @@ fun GlobalForwardFilterScreen(
     viewModel: AppConfigViewModel = koinViewModel(),
 ) {
     val context = LocalContext.current
-    val savedToastText = context.getString(R.string.pref_sync_toast)
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val savedSnackbarText = context.getString(R.string.pref_sync_snackbar)
     var msgType by remember { mutableStateOf(ForwardFilterConst.MSG_TYPE_SMS) }
     val rulesFlow = remember(msgType) { viewModel.globalForwardRulesFlow(msgType) }
     val rules by rulesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -85,6 +91,7 @@ fun GlobalForwardFilterScreen(
                 },
             )
         },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState, modifier = Modifier.navigationBarsPadding()) },
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -100,7 +107,9 @@ fun GlobalForwardFilterScreen(
                 emptyText = stringResource(id = R.string.forward_filter_empty),
                 onToggleEnabled = { id, enabled ->
                     viewModel.setForwardFilterRuleEnabled(id, enabled)
-                    Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                    scope.launch {
+                        snackbarHostState.showSnackbar(savedSnackbarText)
+                    }
                 },
                 onEdit = { rule ->
                     editing = rule.toEditingRule()
@@ -154,7 +163,9 @@ fun AppForwardFilterScreen(
     viewModel: AppConfigViewModel = koinViewModel(),
 ) {
     val context = LocalContext.current
-    val savedToastText = context.getString(R.string.pref_sync_toast)
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val savedSnackbarText = context.getString(R.string.pref_sync_snackbar)
     val apps by viewModel.appsFlow.collectAsStateWithLifecycle()
     val app = apps.firstOrNull { it.packageName == packageName } ?: viewModel.getAppByPackageName(packageName)
 
@@ -196,6 +207,7 @@ fun AppForwardFilterScreen(
                 },
             )
         },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState, modifier = Modifier.navigationBarsPadding()) },
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
@@ -223,7 +235,9 @@ fun AppForwardFilterScreen(
                             emptyText = stringResource(id = R.string.forward_filter_empty),
                             onToggleEnabled = { id, enabled ->
                                 viewModel.setForwardFilterRuleEnabled(id, enabled)
-                                Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(savedSnackbarText)
+                                }
                             },
                             onEdit = { rule ->
                                 editingPackageRule = rule.toEditingRule()
@@ -257,7 +271,9 @@ fun AppForwardFilterScreen(
                             },
                             onToggleEnabled = { id, enabled ->
                                 viewModel.setForwardFilterRuleEnabled(id, enabled)
-                                Toast.makeText(context, savedToastText, Toast.LENGTH_SHORT).show()
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(savedSnackbarText)
+                                }
                             },
                             onEdit = { rule ->
                                 editingChannelRule = rule.toEditingRule(

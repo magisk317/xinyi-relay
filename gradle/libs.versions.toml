@@ -2,7 +2,7 @@
 # Build SDK versions
 compileSdk = "36"
 compileSdkExtension = "19"
-minSdk = "32"
+minSdk = "26"
 targetSdk = "36"
 ndk = "29.0.14206865"
 
@@ -10,7 +10,7 @@ ndk = "29.0.14206865"
 javaBytecode = "25"
 
 # App version
-versionCode = "11"
+versionCode = "12"
 versionName = "0.0.1-alpha.7"
 
 activity-compose = "1.13.0"
