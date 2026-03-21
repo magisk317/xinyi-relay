@@ -210,7 +210,7 @@ object SmsCodeUtils {
     private fun queryAllSmsCodeRules(context: Context): List<SmsCodeRule> {
         var rules: List<SmsCodeRule>
         try {
-            val smsCodeRuleUri = DBProvider.SMS_CODE_RULE_URI
+            val smsCodeRuleUri = DBProvider.smsCodeRuleContentUri(context)
             val resolver = context.contentResolver
 
             val companyColumn = COLUMN_COMPANY

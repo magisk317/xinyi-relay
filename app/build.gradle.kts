@@ -270,7 +270,8 @@ tasks.matching {
 tasks.matching {
     it.name.startsWith("bundle")
 }.configureEach {
-    if (!name.contains("Play")) {
+    // Keep classpath jar tasks enabled; KSP depends on them.
+    if (!name.contains("Play") && !name.contains("ClassesTo")) {
         enabled = false
     }
 }

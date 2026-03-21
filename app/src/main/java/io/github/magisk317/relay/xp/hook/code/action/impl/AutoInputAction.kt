@@ -153,7 +153,7 @@ class AutoInputAction(pluginContext: Context, phoneContext: Context, smsMsg: Sms
 
     private fun queryBlockedStateByProvider(packageName: String): Boolean? {
         return try {
-            val uri: Uri = Uri.withAppendedPath(DBProvider.APP_INFO_URI, packageName)
+            val uri: Uri = Uri.withAppendedPath(DBProvider.appInfoContentUri(mPluginContext), packageName)
             mPluginContext.contentResolver.query(uri, arrayOf("blocked"), null, null, null)?.use { cursor ->
                 if (!cursor.moveToFirst()) {
                     return false

@@ -142,7 +142,7 @@ class ForwardAction(
 
     private fun persistForwardResult(success: Boolean, target: String?, message: String) {
         val resolver = mPluginContext.contentResolver
-        val smsMsgUri = DBProvider.SMS_MSG_CONTENT_URI
+        val smsMsgUri = DBProvider.smsMsgContentUri(mPluginContext)
         val now = System.currentTimeMillis()
         val status = if (success) SmsMsg.FORWARD_STATUS_SUCCESS else SmsMsg.FORWARD_STATUS_FAILED
         val trimmedMessage = message.take(MAX_MESSAGE_LEN)

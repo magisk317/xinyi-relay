@@ -46,7 +46,7 @@ class RecordSmsAction(
             }
         }
         try {
-            val smsMsgUri = DBProvider.SMS_MSG_CONTENT_URI
+            val smsMsgUri = DBProvider.smsMsgContentUri(mPluginContext)
             val resolver = mPluginContext.contentResolver
 
             val values = ContentValues().apply {
@@ -96,7 +96,7 @@ class RecordSmsAction(
                     }
                 }
 
-                resolver.applyBatch(DBProvider.AUTHORITY, operations)
+                resolver.applyBatch(DBProvider.authority(mPluginContext), operations)
                 XLog.w(
                     "Diag record retention cleanup success: event_id=%s removed=%d limit=%d",
                     eventLabel,

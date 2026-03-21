@@ -2,21 +2,32 @@ package io.github.magisk317.relay.data.db
 
 import android.content.ContentProvider
 import android.content.ContentValues
+import android.content.Context
 import android.content.UriMatcher
 import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
-import io.github.magisk317.relay.storage.BuildConfig
 import io.github.magisk317.relay.data.db.entity.AppInfo
 import io.github.magisk317.relay.data.db.entity.SmsCodeRule
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 
 class DBProvider : ContentProvider() {
     private var mDatabase: AppDatabase? = null
+    private lateinit var uriMatcher: UriMatcher
+    private lateinit var authority: String
 
     override fun onCreate(): Boolean {
         context?.let {
             mDatabase = AppDatabase.getInstance(it)
+            authority = "${it.packageName}.db.provider"
+            uriMatcher = UriMatcher(UriMatcher.NO_MATCH).apply {
+                addURI(authority, PATH_SMS_MSG, SMS_MSG_DIR)
+                addURI(authority, "$PATH_SMS_MSG/#", SMS_MSG_ID)
+                addURI(authority, PATH_SMS_CODE_RULE, SMS_CODE_RULE_DIR)
+                addURI(authority, "$PATH_SMS_CODE_RULE/#", SMS_CODE_RULE_ID)
+                addURI(authority, PATH_APP_INFO, APP_INFO_DIR)
+                addURI(authority, "$PATH_APP_INFO/*", APP_INFO_ITEM)
+            }
         }
         return true
     }
@@ -24,7 +35,7 @@ class DBProvider : ContentProvider() {
     override fun getType(uri: Uri): String? = null
 
     override fun insert(uri: Uri, values: ContentValues?): Uri? {
-        val uriType = sUriMatcher.match(uri)
+        val uriType = uriMatcher.match(uri)
         val id: Long
         val path: String
         when (uriType) {
@@ -61,7 +72,7 @@ class DBProvider : ContentProvider() {
         selectionArgs: Array<String>?,
         sortOrder: String?,
     ): Cursor? {
-        val uriType = sUriMatcher.match(uri)
+        val uriType = uriMatcher.match(uri)
         return when (uriType) {
             SMS_CODE_RULE_DIR -> querySmsCodeRules(projection)
             SMS_CODE_RULE_ID -> querySmsCodeRuleById(projection, uri)
@@ -74,7 +85,7 @@ class DBProvider : ContentProvider() {
     }
 
     override fun delete(uri: Uri, selection: String?, selectionArgs: Array<String>?): Int {
-        val uriType = sUriMatcher.match(uri)
+        val uriType = uriMatcher.match(uri)
         val rowsDeleted: Int = when (uriType) {
             SMS_MSG_DIR -> deleteSmsMsg(selection, selectionArgs)
             SMS_MSG_ID -> uri.lastPathSegment?.toLongOrNull()?.let { deleteSmsMsgById(it) } ?: 0
@@ -264,7 +275,7 @@ class DBProvider : ContentProvider() {
         }
 
     override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<String>?): Int {
-        val uriType = sUriMatcher.match(uri)
+        val uriType = uriMatcher.match(uri)
         val rowsUpdated = when (uriType) {
             SMS_MSG_DIR -> updateSmsMsg(values, selection, selectionArgs)
             SMS_MSG_ID -> updateSmsMsgByUriId(uri, values)
@@ -387,19 +398,9 @@ class DBProvider : ContentProvider() {
     }
 
     companion object {
-        const val AUTHORITY = BuildConfig.APPLICATION_ID + ".db.provider"
         private const val PATH_SMS_MSG = "sms_msg"
         private const val PATH_SMS_CODE_RULE = "sms_code_rule"
         private const val PATH_APP_INFO = "app_info"
-
-        @JvmField
-        val SMS_MSG_CONTENT_URI: Uri = Uri.parse("content://$AUTHORITY/$PATH_SMS_MSG")
-
-        @JvmField
-        val SMS_CODE_RULE_URI: Uri = Uri.parse("content://$AUTHORITY/$PATH_SMS_CODE_RULE")
-
-        @JvmField
-        val APP_INFO_URI: Uri = Uri.parse("content://$AUTHORITY/$PATH_APP_INFO")
 
         private const val SMS_MSG_DIR = 0
         private const val SMS_MSG_ID = 1
@@ -407,15 +408,16 @@ class DBProvider : ContentProvider() {
         private const val SMS_CODE_RULE_ID = 3
         private const val APP_INFO_DIR = 4
         private const val APP_INFO_ITEM = 5
-        private val sUriMatcher: UriMatcher = UriMatcher(UriMatcher.NO_MATCH)
 
-        init {
-            sUriMatcher.addURI(AUTHORITY, PATH_SMS_MSG, SMS_MSG_DIR)
-            sUriMatcher.addURI(AUTHORITY, "$PATH_SMS_MSG/#", SMS_MSG_ID)
-            sUriMatcher.addURI(AUTHORITY, PATH_SMS_CODE_RULE, SMS_CODE_RULE_DIR)
-            sUriMatcher.addURI(AUTHORITY, "$PATH_SMS_CODE_RULE/#", SMS_CODE_RULE_ID)
-            sUriMatcher.addURI(AUTHORITY, PATH_APP_INFO, APP_INFO_DIR)
-            sUriMatcher.addURI(AUTHORITY, "$PATH_APP_INFO/*", APP_INFO_ITEM)
-        }
+        fun authority(context: Context): String = "${context.packageName}.db.provider"
+
+        fun smsMsgContentUri(context: Context): Uri =
+            Uri.parse("content://${context.packageName}.db.provider/$PATH_SMS_MSG")
+
+        fun smsCodeRuleContentUri(context: Context): Uri =
+            Uri.parse("content://${context.packageName}.db.provider/$PATH_SMS_CODE_RULE")
+
+        fun appInfoContentUri(context: Context): Uri =
+            Uri.parse("content://${context.packageName}.db.provider/$PATH_APP_INFO")
     }
 }

@@ -10,14 +10,25 @@ import android.net.Uri
 import android.os.Binder
 import android.os.Process
 import android.os.Bundle
-import io.github.magisk317.relay.storage.BuildConfig
 import io.github.magisk317.relay.common.utils.AppPreferencesDataStore
 import io.github.magisk317.relay.common.utils.XLog
 import kotlinx.coroutines.runBlocking
 
 class PrefsProvider : ContentProvider() {
+    private lateinit var authority: String
+    private lateinit var uriMatcher: UriMatcher
 
-    override fun onCreate(): Boolean = true
+    override fun onCreate(): Boolean {
+        context?.let {
+            authority = "${it.packageName}.pref.provider"
+            uriMatcher = UriMatcher(UriMatcher.NO_MATCH).apply {
+                addURI(authority, PATH_BOOL, TYPE_BOOL)
+                addURI(authority, PATH_STRING, TYPE_STRING)
+                addURI(authority, PATH_INT, TYPE_INT)
+            }
+        }
+        return true
+    }
 
     override fun getType(uri: Uri): String? = null
 
@@ -39,7 +50,7 @@ class PrefsProvider : ContentProvider() {
             XLog.w("PrefsProvider: deny caller uid=%d", Binder.getCallingUid())
             return null
         }
-        val type = sUriMatcher.match(uri)
+        val type = uriMatcher.match(uri)
         val key = uri.getQueryParameter("key") ?: return null
         val defaultValue = uri.getQueryParameter("default")
         val cursor = MatrixCursor(arrayOf(COLUMN_VALUE))
@@ -117,7 +128,6 @@ class PrefsProvider : ContentProvider() {
     }
 
     companion object {
-        const val AUTHORITY = BuildConfig.APPLICATION_ID + ".pref.provider"
         private const val PATH_BOOL = "bool"
         private const val PATH_STRING = "string"
         private const val PATH_INT = "int"
@@ -125,21 +135,15 @@ class PrefsProvider : ContentProvider() {
         private const val TYPE_STRING = 2
         private const val TYPE_INT = 3
         private const val COLUMN_VALUE = "value"
+        fun authority(context: Context): String = "${context.packageName}.pref.provider"
 
-        private val sUriMatcher: UriMatcher = UriMatcher(UriMatcher.NO_MATCH).apply {
-            addURI(AUTHORITY, PATH_BOOL, TYPE_BOOL)
-            addURI(AUTHORITY, PATH_STRING, TYPE_STRING)
-            addURI(AUTHORITY, PATH_INT, TYPE_INT)
-        }
+        fun buildBoolUri(context: Context): Uri =
+            Uri.parse("content://${context.packageName}.pref.provider/$PATH_BOOL")
 
-        @JvmField
-        val BOOL_URI: Uri = Uri.parse("content://$AUTHORITY/$PATH_BOOL")
+        fun buildStringUri(context: Context): Uri =
+            Uri.parse("content://${context.packageName}.pref.provider/$PATH_STRING")
 
-        @JvmField
-        val STRING_URI: Uri = Uri.parse("content://$AUTHORITY/$PATH_STRING")
-
-        @JvmField
-        val INT_URI: Uri = Uri.parse("content://$AUTHORITY/$PATH_INT")
-
+        fun buildIntUri(context: Context): Uri =
+            Uri.parse("content://${context.packageName}.pref.provider/$PATH_INT")
     }
 }

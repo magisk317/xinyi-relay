@@ -84,7 +84,7 @@ class RelayRecordRepository(
         msgType: Int,
     ): Long? {
         val resolver = appContext.contentResolver
-        val smsMsgUri = DBProvider.SMS_MSG_CONTENT_URI
+        val smsMsgUri = DBProvider.smsMsgContentUri(appContext)
         val projection = arrayOf("_id", "sender", "body", "date", "msg_type")
         return runCatching {
             resolver.query(smsMsgUri, projection, null, null, "date DESC")?.use { cursor ->
@@ -120,7 +120,7 @@ class RelayRecordRepository(
         callType: Int = 0,
     ): Long? {
         val resolver = appContext.contentResolver
-        val smsMsgUri = DBProvider.SMS_MSG_CONTENT_URI
+        val smsMsgUri = DBProvider.smsMsgContentUri(appContext)
         trimOldRecordsIfNeeded(resolver, msgType, isCodeSms)
         val values = ContentValues().apply {
             put("body", body)
@@ -177,7 +177,7 @@ class RelayRecordRepository(
         msgType: Int,
         isCodeSms: Boolean,
     ) {
-        val smsMsgUri = DBProvider.SMS_MSG_CONTENT_URI
+        val smsMsgUri = DBProvider.smsMsgContentUri(appContext)
         val (selection, selectionArgs) = recordSelectionForType(msgType, isCodeSms)
         val cursor = resolver.query(smsMsgUri, arrayOf("_id"), selection, selectionArgs, "date ASC") ?: return
         cursor.use {
@@ -193,7 +193,7 @@ class RelayRecordRepository(
                     .build()
             }
             if (operations.isNotEmpty()) {
-                resolver.applyBatch(DBProvider.AUTHORITY, operations)
+                resolver.applyBatch(DBProvider.authority(appContext), operations)
             }
         }
     }

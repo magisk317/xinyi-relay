@@ -177,7 +177,7 @@ object PrefsReader {
         override val sourceName: String = "provider"
 
         override fun readBoolean(context: Context, key: String, defaultValue: Boolean): PrefReadResult<Boolean>? {
-            val uri = io.github.magisk317.relay.data.prefs.PrefsProvider.BOOL_URI.buildUpon()
+            val uri = io.github.magisk317.relay.data.prefs.PrefsProvider.buildBoolUri(context).buildUpon()
                 .appendQueryParameter("key", key)
                 .appendQueryParameter("default", defaultValue.toString())
                 .build()
@@ -194,7 +194,7 @@ object PrefsReader {
         }
 
         override fun readString(context: Context, key: String, defaultValue: String): PrefReadResult<String>? {
-            val uri = io.github.magisk317.relay.data.prefs.PrefsProvider.STRING_URI.buildUpon()
+            val uri = io.github.magisk317.relay.data.prefs.PrefsProvider.buildStringUri(context).buildUpon()
                 .appendQueryParameter("key", key)
                 .appendQueryParameter("default", defaultValue)
                 .build()
@@ -210,7 +210,7 @@ object PrefsReader {
         }
 
         override fun readInt(context: Context, key: String, defaultValue: Int): PrefReadResult<Int>? {
-            val uri = io.github.magisk317.relay.data.prefs.PrefsProvider.INT_URI.buildUpon()
+            val uri = io.github.magisk317.relay.data.prefs.PrefsProvider.buildIntUri(context).buildUpon()
                 .appendQueryParameter("key", key)
                 .appendQueryParameter("default", defaultValue.toString())
                 .build()
