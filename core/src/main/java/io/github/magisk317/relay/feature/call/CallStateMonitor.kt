@@ -14,8 +14,8 @@ import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.feature.reminder.SpecialAlertCoordinator
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
+import io.github.magisk317.relay.platform.ipc.CallIngressAdapter
 import io.github.magisk317.relay.platform.ipc.ForwardBroadcastDispatcher
-import io.github.magisk317.relay.platform.ipc.ForwardPayloadFactory
 import kotlinx.coroutines.runBlocking
 
 object CallStateMonitor {
@@ -107,18 +107,22 @@ object CallStateMonitor {
                 lastRingingAt = now
                 lastNumber = phoneNumber?.ifBlank { null }
                 lastDirection = CALL_TYPE_INCOMING
-                val display = lastNumber ?: context.getString(R.string.call_alert_notification_title)
-                val payload = ForwardPayloadFactory.callPayload(
+                val title = context.getString(R.string.call_alert_notification_title)
+                val display = CallIngressAdapter.displayName(
+                    phoneNumber = lastNumber,
+                    fallbackTitle = title,
+                )
+                val payload = CallIngressAdapter.ringingPayload(
                     packageName = context.packageName,
-                    sender = display,
-                    body = context.getString(
+                    fallbackTitle = title,
+                    phoneNumber = lastNumber,
+                    incomingBody = context.getString(
                         R.string.call_alert_notification_content,
                         display,
                     ),
-                    company = context.getString(R.string.call_alert_notification_title),
+                    company = title,
                     timestamp = now,
                     callType = CALL_TYPE_INCOMING,
-                    callStage = "ringing",
                 )
                 SpecialAlertCoordinator.notifyForEvent(
                     context = context,
@@ -169,20 +173,25 @@ object CallStateMonitor {
         callType: Int,
         number: String?,
     ) {
-        val display = number?.ifBlank { null } ?: context.getString(R.string.call_alert_notification_title)
+        val title = context.getString(R.string.call_alert_notification_title)
+        val display = CallIngressAdapter.displayName(
+            phoneNumber = number,
+            fallbackTitle = title,
+        )
         val body = if (stage == "ended") {
             context.getString(R.string.call_alert_notification_end_content, display)
         } else {
             context.getString(R.string.call_alert_notification_content, display)
         }
-        val payload = ForwardPayloadFactory.callPayload(
+        val payload = CallIngressAdapter.stagePayload(
             packageName = context.packageName,
-            sender = display,
+            fallbackTitle = title,
+            phoneNumber = number,
             body = body,
-            company = context.getString(R.string.call_alert_notification_title),
+            company = title,
             timestamp = System.currentTimeMillis(),
             callType = callType,
-            callStage = stage,
+            stage = stage,
         )
         runCatching {
             ForwardBroadcastDispatcher.dispatchFromHost(
