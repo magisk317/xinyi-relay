@@ -342,23 +342,6 @@ class SmsHandlerHook : BaseHook() {
                 blacklistResult.actionDelete,
                 blacklistResult.actionBlock,
             )
-            if (blacklistResult.actionDelete && !blacklistResult.actionBlock && smsMsg != null) {
-                scheduleBlacklistDelete(pluginContext, phoneContext, smsMsg)
-            }
-            if (blacklistResult.actionBlock) {
-                XLog.w("Diag sms block reason=%s event_id=%s", BLOCK_REASON_BLACKLIST, eventId)
-                param.args.getOrNull(receiverIndex)?.let { receiver ->
-                    val inbound = param.thisObject ?: return
-                    deleteRawTableAndSendMessage(
-                        inboundSmsHandler = inbound,
-                        smsReceiver = receiver,
-                        reason = BLOCK_REASON_BLACKLIST,
-                        eventId = eventId,
-                    )
-                    param.result = null
-                }
-                return
-            }
         }
 
         val parseResult = CodeWorker(pluginContext, phoneContext, intent, eventId).parse()
@@ -367,27 +350,35 @@ class SmsHandlerHook : BaseHook() {
         } else {
             XLog.w("Diag parse result: event_id=%s blockSms=%s", eventId, parseResult.isBlockSms)
         }
-        if (parseResult != null) {
-            if (parseResult.isBlockSms) {
-                XLog.w("Diag sms block reason=%s event_id=%s", BLOCK_REASON_PREF_BLOCK, eventId)
-                param.args.getOrNull(receiverIndex)?.let { receiver ->
-                    val inbound = param.thisObject ?: return
-                    deleteRawTableAndSendMessage(
-                        inboundSmsHandler = inbound,
-                        smsReceiver = receiver,
-                        reason = BLOCK_REASON_PREF_BLOCK,
-                        eventId = eventId,
-                    )
-                    param.result = null
-                }
-            } else {
-                XLog.w(
-                    "Diag allow system inbox persist: event_id=%s sender_hash=%s body_len=%d",
-                    eventId,
-                    senderHash(smsMsg?.sender),
-                    smsMsg?.body?.length ?: 0,
+        val decision = SmsHandlerDispatchDecision.evaluate(
+            blacklistResult = blacklistResult,
+            smsMsgAvailable = smsMsg != null,
+            parseResult = parseResult,
+        )
+        if (decision.shouldDeleteByBlacklist && smsMsg != null) {
+            scheduleBlacklistDelete(pluginContext, phoneContext, smsMsg)
+        }
+        decision.blockReason?.let { blockReason ->
+            XLog.w("Diag sms block reason=%s event_id=%s", blockReason.wireValue, eventId)
+            param.args.getOrNull(receiverIndex)?.let { receiver ->
+                val inbound = param.thisObject ?: return
+                deleteRawTableAndSendMessage(
+                    inboundSmsHandler = inbound,
+                    smsReceiver = receiver,
+                    reason = blockReason.wireValue,
+                    eventId = eventId,
                 )
+                param.result = null
             }
+            return
+        }
+        if (decision.shouldAllowSystemPersist) {
+            XLog.w(
+                "Diag allow system inbox persist: event_id=%s sender_hash=%s body_len=%d",
+                eventId,
+                senderHash(smsMsg?.sender),
+                smsMsg?.body?.length ?: 0,
+            )
         }
     }
 
@@ -653,8 +644,6 @@ class SmsHandlerHook : BaseHook() {
         private const val SMS_HANDLER_CLASS = "$TELEPHONY_PACKAGE.InboundSmsHandler"
         private val SMSCODE_PACKAGE = BuildConfig.APPLICATION_ID
         private const val EVENT_BROADCAST_COMPLETE = 3
-        private const val BLOCK_REASON_BLACKLIST = "blacklist_block"
-        private const val BLOCK_REASON_PREF_BLOCK = "pref_block_sms"
         private const val PERSISTENT_DEVICE_ID_DEFAULT = "default:0"
         private val SMS_OPERATION_EXECUTOR = Executors.newSingleThreadExecutor()
         @Volatile
