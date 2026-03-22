@@ -35,6 +35,14 @@ import java.util.concurrent.Executors
 class SmsHandlerHook : BaseHook() {
     private val runtimeSession = SmsHookRuntimeSession(SMSCODE_PACKAGE, ANDROID_PHONE_PACKAGE)
     private val inboundSmsBlocker = InboundSmsBlocker(SMS_HANDLER_CLASS)
+    private val constructorInitializer = SmsHookConstructorInitializer(
+        runtimeInitializer = runtimeSession::initialize,
+        notificationChannelInitializer = ::initNotificationChannel,
+        copyCodeRegistrar = ::registerCopyCodeReceiver,
+        heartbeatRecorder = { source -> runtimeSession.recordHeartbeat(source) },
+        suppressionLogger = ::logSuppressedOnce,
+        inboxObserverRegistrar = ::registerSmsInboxObserver,
+    )
     private val dispatchIntentHandler = SmsDispatchIntentHandler(
         runtimeResolver = runtimeSession::recordHeartbeat,
         suppressionLogger = ::logSuppressedOnce,
@@ -215,32 +223,7 @@ class SmsHandlerHook : BaseHook() {
 
     private fun afterConstructorHandler(param: MethodHookParam) {
         val context = param.args.getOrNull(1) as? Context ?: return
-        val runtime = runCatching { runtimeSession.initialize(context) }
-            .onFailure { XLog.e("Create plugin context failed: %s", it) }
-            .getOrNull()
-        if (runtime == null) {
-            XLog.e("Plugin context is null after creation attempt")
-            return
-        }
-
-        SmsCodeConflictNoticeHelper.initNotificationChannel(runtime.pluginContext, runtime.phoneContext)
-        val suppressByRelay = ModuleConflictArbiter.shouldSuppressByRelay(
-            runtime.phoneContext,
-            "SmsHandlerHook#constructor",
-        )
-        if (PrefsReader.showCodeNotification(runtime.pluginContext)) {
-            initNotificationChannel(runtime)
-            if (!suppressByRelay) {
-                registerCopyCodeReceiver(runtime)
-            }
-        }
-        ModuleActivationStore.markActivated(runtime.pluginContext)
-        runtimeSession.recordHeartbeat("sms_handler_constructor")
-        if (suppressByRelay) {
-            logSuppressedOnce("constructor")
-        } else {
-            registerSmsInboxObserver(runtime)
-        }
+        constructorInitializer.handle(context)
     }
 
     private fun initNotificationChannel(runtime: SmsHookRuntimeContext) {
