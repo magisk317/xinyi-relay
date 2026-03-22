@@ -10,6 +10,7 @@ import io.github.magisk317.relay.domain.event.RelayEvent
 import io.github.magisk317.relay.domain.pipeline.EventPipeline
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
+import io.github.magisk317.relay.platform.reminder.LowBatteryReminderScheduler
 import kotlinx.coroutines.runBlocking
 
 /**

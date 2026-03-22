@@ -55,6 +55,11 @@ Feedback and suggestions are welcome.
 - Validate release metadata and tag consistency: `scripts/check_release_guard.sh`
 - Fastlane changelog files `changelogs/{versionCode}.txt` are synchronized from `distribution/whatsnew`.
 
+# Repository Notes
+- The repository root is the primary build entry for day-to-day development.
+- `smscode-core` is treated as an embedded shared-library submodule, not a parallel primary root project.
+- Runtime layering and module-boundary guidance lives in [docs/REFACTORING.md](docs/REFACTORING.md).
+
 # Documentation
 - [Release Logs](docs/CHANGELOG.md)
 - [Privacy Policy](docs/PRIVACY.md)

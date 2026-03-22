@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.feature.reminder
+package io.github.magisk317.relay.platform.reminder
 
 import android.app.AlarmManager
 import android.app.PendingIntent

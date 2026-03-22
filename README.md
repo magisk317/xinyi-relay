@@ -57,6 +57,11 @@
 - 发版前校验版本与发布元数据：`scripts/check_release_guard.sh`
 - Fastlane 的 `changelogs/{versionCode}.txt` 由 `distribution/whatsnew` 自动同步生成。
 
+# 代码库说明
+- 主工程入口始终以仓库根目录为准。
+- `smscode-core` 作为内嵌共享库子模块参与构建，不作为日常开发的主构建根工程。
+- 运行时分层与模块边界说明见 [架构与运行时重构说明](docs/REFACTORING.md)。
+
 # 文档
 - [更新日志 (Changelog)](docs/CHANGELOG.md)
 - [架构与运行时重构说明](docs/REFACTORING.md)

@@ -6,7 +6,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.feature.reminder.BatteryReminderHandler
-import io.github.magisk317.relay.feature.reminder.LowBatteryReminderScheduler
+import io.github.magisk317.relay.platform.reminder.LowBatteryReminderScheduler
 
 class LowBatteryReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {

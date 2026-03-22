@@ -14,18 +14,20 @@
   - 管线组件：`EventGatekeeper`、`SenderSelector`、`RoutingResolver`、`DispatchExecutor`、`DispatchResultWriter`
 - `data`
   - Room / Provider / repository
+  - 文件存储与备份导入导出
   - 代表对象：`RelayRecordRepository`、`SettingsRepository`
 - `platform`
   - Android IPC / BroadcastReceiver 适配层
+  - sender adapter 与系统交互适配
+  - 定时提醒调度入口
   - 代表对象：`ForwardReceiver`
 - `legacy`
   - 兼容桥接层
   - 代表对象：`SendUtils`、`LegacyRelayFacade`
 - `forwarder`
-  - 仅保留 sender adapter（`forwarder/utils/sender/*`）与历史兼容工具
-  - sender 类型/校验/配置处理已迁入 `runtime/domain/sender`
-  - sender 相关 DAO/Converter 已归档到 `runtime/data/db`
-  - 不再新增主管线编排逻辑
+  - 不再承载新的运行时代码
+  - 历史 sender adapter 已迁到 `runtime/platform/sender`
+  - 若后续仍需保留兼容桥，仅允许放 legacy 过渡代码
 
 ### `app`
 - Android 应用壳
@@ -71,6 +73,7 @@
 - Root DB 补偿：`runtime/domain/recovery`
 - 设备名解析：`runtime/domain/system/DeviceIdentityUtils`
 - 来源元数据解析：`runtime/platform/metadata/SourceMetadataResolver`
+- 定时提醒调度：`runtime/platform/reminder/LowBatteryReminderScheduler`
 
 ## 配置访问规则
 
@@ -146,7 +149,10 @@
 - 设备与环境：`runtime/domain/system`、`runtime/platform/metadata`
 - sender 领域：`runtime/domain/sender`
 - DB DAO / converter：`runtime/data/db/dao`、`runtime/data/db/ext`
-- `forwarder/*` 仅保留 sender adapter 与 sender utils
+- 备份与导入导出：`runtime/data/backup`
+- 文件存储：`runtime/data/store`
+- sender adapter：`runtime/platform/sender`
+- 定时提醒调度：`runtime/platform/reminder`
 
 ### 配置治理后续约束
 
@@ -197,12 +203,16 @@
 - 设备与环境：`runtime/domain/system`、`runtime/platform/metadata`
 - sender 领域：`runtime/domain/sender`
 - DB DAO / converter：`runtime/data/db/dao`、`runtime/data/db/ext`
+- 备份与导入导出：`runtime/data/backup`
+- 文件存储：`runtime/data/store`
+- sender adapter：`runtime/platform/sender`
+- 定时提醒调度：`runtime/platform/reminder`
 
 约束：
 - Xposed/runtime 负责采集与标准化
 - 不在 hook 层直接实现 sender 选择、路由、结果落库
 - 不在 `runtime` 的运行时入口直接依赖 Koin API
-- `forwarder/*` 仅保留 sender adapter 与 sender utils
+- sender adapter 不再回填到 `forwarder/*`
 - 应用进程内 runtime 热路径可通过 `RuntimeSettingsCache` 做短 TTL 只读缓存，但底层事实来源仍是 `PreferenceDataSource` / repository
 
 ### 发布策略
@@ -234,5 +244,5 @@
 2. 新跨进程入口优先落在 `runtime/platform`
 3. 新设置页优先走 `SettingsRepository`
 4. 不再向 `legacy/SendUtils` 增加编排逻辑
-5. 非 sender adapter 逻辑不再新增到 `forwarder/*`
+5. sender adapter 与系统发送适配统一落到 `runtime/platform/sender`
 6. `runtime` 不直接依赖 Koin；若 UI 需要 DI，优先复用 `RuntimeGraph` 已构造的实例

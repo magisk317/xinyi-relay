@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_SRC="$ROOT_DIR/app/src/main/java/io/github/magisk317/relay"
+RUNTIME_SRC="$ROOT_DIR/runtime/src/main/java/io/github/magisk317/relay"
 
 violations=()
 
@@ -42,6 +43,8 @@ expect_only_files \
   "WebUiTlsManager.kt"
 
 expect_no_kotlin_files "$APP_SRC/feature"
+expect_no_kotlin_files "$RUNTIME_SRC/feature"
+expect_no_kotlin_files "$RUNTIME_SRC/forwarder"
 
 if [[ "${#violations[@]}" -ne 0 ]]; then
   printf 'Structure boundary verification failed:\n' >&2

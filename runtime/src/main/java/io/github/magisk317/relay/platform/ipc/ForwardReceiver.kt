@@ -3,9 +3,7 @@ package io.github.magisk317.relay.platform.ipc
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.telephony.SubscriptionManager
 import android.os.Build
-import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.utils.CallSessionTracker
 import io.github.magisk317.relay.common.utils.ForwardFlowLog
@@ -99,7 +97,7 @@ class ForwardReceiver : BroadcastReceiver() {
                     }
                 }
                 val tokenMatched = expectedToken.isNotEmpty() && receivedToken == expectedToken
-                val allowSystemBypass = shouldAllowSystemTokenBypass(
+                val allowSystemBypass = ForwardReceiverPolicy.shouldAllowSystemTokenBypass(
                     msgType = msgTypeStr,
                     forwardSource = forwardSource,
                     sentFromUid = sentFromUid,
@@ -162,7 +160,10 @@ class ForwardReceiver : BroadcastReceiver() {
                     markResult(RESULT_REJECT_APP_GATE, "app_gate_drop")
                     return@runCatching
                 }
-                if (msgTypeStr == "call_notify" && shouldDropOngoingCallNotify(callStage, notifyChannelId, body)) {
+                if (
+                    msgTypeStr == "call_notify" &&
+                    ForwardReceiverPolicy.shouldDropOngoingCallNotify(callStage, notifyChannelId, body)
+                ) {
                     ForwardFlowLog.i(
                         traceId,
                         buildString {
@@ -185,8 +186,11 @@ class ForwardReceiver : BroadcastReceiver() {
                         packageName = packageName,
                     )
                     if (forwardSource == ROUTE_NMS_HOOK) {
-                        markNmsHookSeen(sourceKey)
-                    } else if (forwardSource == ROUTE_TELEPHONY_STATE && shouldDropTelephonyState(sourceKey)) {
+                        ForwardReceiverPolicy.markNmsHookSeen(sourceKey, nmsHookSeen)
+                    } else if (
+                        forwardSource == ROUTE_TELEPHONY_STATE &&
+                        ForwardReceiverPolicy.shouldDropTelephonyState(sourceKey, nmsHookSeen)
+                    ) {
                         ForwardFlowLog.i(
                             traceId,
                             buildString {
@@ -200,12 +204,13 @@ class ForwardReceiver : BroadcastReceiver() {
                 }
                 if (
                     (msgTypeStr == "app_notify" || msgTypeStr == "call_notify") &&
-                    shouldDropDuplicateNotify(
+                    ForwardReceiverPolicy.shouldDropDuplicateNotify(
                         msgType = msgTypeStr,
                         packageName = packageName,
                         sender = sender,
                         body = body,
                         notifyChannelId = notifyChannelId,
+                        recentNotify = recentNotify,
                     )
                 ) {
                     XLog.i(
@@ -267,7 +272,9 @@ class ForwardReceiver : BroadcastReceiver() {
 
                 XLog.i("IPC verified and received message from: %s", sender ?: "")
                 val normalizedSubId = subId ?: 0
-                val resolvedSimSlot = resolveSimSlot(rawSlot, normalizedSubId)
+                val resolvedSimSlot = ForwardReceiverPolicy.resolveSimSlot(rawSlot, normalizedSubId) { id ->
+                    runCatching { android.telephony.SubscriptionManager.getSlotIndex(id) }.getOrDefault(-1)
+                }
                 val contactName = SourceMetadataResolver.resolveContactName(context, sender ?: "")
                 val phoneArea = SourceMetadataResolver.resolvePhoneArea(sender ?: "")
                 XLog.i(
@@ -291,12 +298,7 @@ class ForwardReceiver : BroadcastReceiver() {
                     },
                 )
 
-                val relayMessageType = when {
-                    msgTypeStr == "app_notify" -> MessageType.APP_NOTIFY
-                    msgTypeStr == "call_notify" -> MessageType.CALL_NOTIFY
-                    !smsCode.isNullOrBlank() -> MessageType.SMS_CODE
-                    else -> MessageType.SMS_PLAIN
-                }
+                val relayMessageType = ForwardReceiverPolicy.resolveRelayMessageType(msgTypeStr, smsCode)
                 val relayEvent = RelayEvent(
                     messageType = relayMessageType,
                     sourceType = forwardSource,
@@ -375,10 +377,6 @@ class ForwardReceiver : BroadcastReceiver() {
 
     companion object {
         private const val TAG = "ForwardReceiver"
-        private const val NOTIFY_DEDUP_WINDOW_MS = 10_000L
-        private const val NMS_HOOK_SUPPRESS_TTL_MS = 30_000L
-        private const val NOTIFY_DEDUP_MAX_ENTRIES = 256
-        private const val API_LEVEL_34 = 34
         private const val RESULT_OK = 0
         private const val RESULT_REJECT_ACTION = -101
         private const val RESULT_REJECT_TOKEN = -102
@@ -386,8 +384,6 @@ class ForwardReceiver : BroadcastReceiver() {
         private const val RESULT_DROP_DUPLICATE = -104
         private const val RESULT_DISPATCH_FAILED = -105
         private const val FORWARD_WORKER_COUNT = 2
-        private const val SYSTEM_UID = 1000
-        private const val PHONE_UID = 1001
         private val workerIndex = AtomicInteger(1)
         private val FORWARD_EXECUTOR: ExecutorService = Executors.newFixedThreadPool(FORWARD_WORKER_COUNT) { runnable ->
             Thread(runnable, "ForwardReceiverWorker-${workerIndex.getAndIncrement()}")
@@ -398,59 +394,14 @@ class ForwardReceiver : BroadcastReceiver() {
         private const val ROUTE_TELEPHONY_STATE = "telephony_state"
     }
 
-    private fun shouldAllowSystemTokenBypass(
-        msgType: String,
-        forwardSource: String,
-        sentFromUid: Int?,
-    ): Boolean {
-        // Keep strict token verification by default.
-        // Controlled bypass is only for system-origin paths when token lookup is temporarily unavailable.
-        return when {
-            (msgType == "app_notify" || msgType == "call_notify") && forwardSource == "nms_hook" -> {
-                if (sentFromUid == SYSTEM_UID) {
-                    true
-                } else if (Build.VERSION.SDK_INT < API_LEVEL_34 && sentFromUid == null) {
-                    XLog.w("IPC token bypass accepted for nms_hook without sender uid (API<34)")
-                    true
-                } else {
-                    false
-                }
-            }
-            msgType == "sms" && forwardSource == "sms_hook" -> {
-                if (sentFromUid == SYSTEM_UID || sentFromUid == PHONE_UID) {
-                    true
-                } else if (Build.VERSION.SDK_INT < API_LEVEL_34 && sentFromUid == null) {
-                    XLog.w("IPC token bypass accepted for sms_hook without sender uid (API<34)")
-                    true
-                } else {
-                    false
-                }
-            }
-            else -> false
-        }
-    }
-
     private fun resolveSentFromUidCompat(): Int? {
-        if (Build.VERSION.SDK_INT < API_LEVEL_34) return null
+        if (Build.VERSION.SDK_INT < ForwardReceiverPolicy.API_LEVEL_34) return null
         return runCatching { getSentFromUid() }.getOrNull()
     }
 
     private fun resolveSentFromPackageCompat(): String? {
-        if (Build.VERSION.SDK_INT < API_LEVEL_34) return null
+        if (Build.VERSION.SDK_INT < ForwardReceiverPolicy.API_LEVEL_34) return null
         return runCatching { getSentFromPackage() }.getOrNull()
-    }
-
-    private fun resolveSimSlot(rawSlot: Int?, subId: Int): Int {
-        if (subId > 0) {
-            val slotFromSubId = runCatching { SubscriptionManager.getSlotIndex(subId) }.getOrDefault(-1)
-            if (slotFromSubId >= 0) return slotFromSubId
-        }
-        val slot = rawSlot ?: return -1
-        return when {
-            slot in 0..1 -> slot
-            slot == 2 -> 1
-            else -> -1
-        }
     }
 
     private fun readIntExtra(intent: Intent, vararg keys: String): Int? {
@@ -463,82 +414,6 @@ class ForwardReceiver : BroadcastReceiver() {
             intent.getStringExtra(key)?.toIntOrNull()?.let { return it }
         }
         return null
-    }
-
-    private fun shouldDropDuplicateNotify(
-        msgType: String,
-        packageName: String?,
-        sender: String?,
-        body: String?,
-        notifyChannelId: String?,
-    ): Boolean {
-        val normalizedType = msgType.trim()
-        val normalizedPackage = packageName.orEmpty().trim()
-        val normalizedSender = sender.orEmpty().trim()
-        val normalizedBody = body.orEmpty().trim()
-        val normalizedChannel = notifyChannelId.orEmpty().trim()
-        if (
-            normalizedType.isEmpty() ||
-            (
-                normalizedPackage.isEmpty() &&
-                    normalizedSender.isEmpty() &&
-                    normalizedBody.isEmpty() &&
-                    normalizedChannel.isEmpty()
-                )
-        ) {
-            return false
-        }
-        val key = buildString {
-            append(normalizedType)
-            append('|')
-            append(normalizedPackage)
-            append('|')
-            append(normalizedSender)
-            append('|')
-            append(normalizedBody)
-            append('|')
-            append(normalizedChannel)
-        }
-
-        val now = System.currentTimeMillis()
-        val previous = recentNotify[key]
-        if (previous != null && now - previous < NOTIFY_DEDUP_WINDOW_MS) {
-            return true
-        }
-        recentNotify[key] = now
-
-        if (recentNotify.size > NOTIFY_DEDUP_MAX_ENTRIES) {
-            val cutoff = now - NOTIFY_DEDUP_WINDOW_MS * 2
-            recentNotify.entries.removeIf { it.value < cutoff }
-        }
-        return false
-    }
-
-    private fun shouldDropOngoingCallNotify(
-        callStage: String?,
-        notifyChannelId: String?,
-        body: String?,
-    ): Boolean {
-        if (notifyChannelId?.trim() == "phone_ongoing_call") return true
-        val normalizedStage = callStage?.trim().orEmpty()
-        if (normalizedStage == "ongoing") return true
-        val normalizedBody = body?.trim().orEmpty()
-        return normalizedBody.contains("当前通话")
-    }
-
-    private fun markNmsHookSeen(key: String) {
-        val now = System.currentTimeMillis()
-        nmsHookSeen[key] = now
-        if (nmsHookSeen.size > NOTIFY_DEDUP_MAX_ENTRIES) {
-            val cutoff = now - NMS_HOOK_SUPPRESS_TTL_MS * 2
-            nmsHookSeen.entries.removeIf { it.value < cutoff }
-        }
-    }
-
-    private fun shouldDropTelephonyState(key: String): Boolean {
-        val now = System.currentTimeMillis()
-        val seenAt = nmsHookSeen[key] ?: return false
-        return now - seenAt < NMS_HOOK_SUPPRESS_TTL_MS
     }
 
     private fun shouldForwardAppNotify(
