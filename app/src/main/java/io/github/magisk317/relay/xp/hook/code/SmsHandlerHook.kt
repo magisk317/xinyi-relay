@@ -329,30 +329,12 @@ class SmsHandlerHook : BaseHook() {
 
             else -> Unit
         }
-        val smsMsg = SmsHookDispatchCoordinator.parseIncomingSms(intent)
-        val blacklistResult = SmsBlacklistUtils.match(pluginContext, smsMsg?.sender, smsMsg?.body)
-        if (blacklistResult.matched) {
-            XLog.w(
-                "Diag sms blacklist matched: event_id=%s type=%s, pattern=%s, delete=%s, block=%s",
-                eventId,
-                blacklistResult.matchType,
-                blacklistResult.pattern,
-                blacklistResult.actionDelete,
-                blacklistResult.actionBlock,
-            )
-        }
-
-        val parseResult = CodeWorker(pluginContext, phoneContext, intent, eventId).parse()
-        if (parseResult == null) {
-            XLog.w("Diag parse result is null: event_id=%s no code matched or parse failed", eventId)
-        } else {
-            XLog.w("Diag parse result: event_id=%s blockSms=%s", eventId, parseResult.isBlockSms)
-        }
-        val decision = SmsHandlerDispatchDecision.evaluate(
-            blacklistResult = blacklistResult,
-            smsMsgAvailable = smsMsg != null,
-            parseResult = parseResult,
-        )
+        val dispatchOutcome = SmsDispatchIntentProcessor(
+            pluginContext = pluginContext,
+            phoneContext = phoneContext,
+        ).handle(intent, eventId)
+        val smsMsg = dispatchOutcome.smsMsg
+        val decision = dispatchOutcome.decision
         if (decision.shouldDeleteByBlacklist && smsMsg != null) {
             scheduleBlacklistDelete(pluginContext, phoneContext, smsMsg)
         }
