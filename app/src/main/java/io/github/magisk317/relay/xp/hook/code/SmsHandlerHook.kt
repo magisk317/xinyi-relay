@@ -19,7 +19,7 @@ import io.github.magisk317.relay.common.utils.RuntimeLogStore
 import io.github.magisk317.relay.common.utils.SmsBlacklistUtils
 import io.github.magisk317.smscode.core.utils.XLog
 import io.github.magisk317.relay.data.db.entity.SmsMsg
-import io.github.magisk317.relay.platform.ipc.ForwardBroadcastContract
+import io.github.magisk317.relay.platform.ipc.ForwardPayloadFactory
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
 import io.github.magisk317.smscode.core.helper.XposedWrapper
@@ -33,8 +33,6 @@ import io.github.magisk317.smscode.core.hookapi.LoadParam
 import io.github.magisk317.smscode.core.hookapi.MethodHookParam
 import java.lang.reflect.Method
 import java.util.concurrent.Executors
-import kotlin.math.abs
-
 /**
  * Hook class com.android.internal.telephony.InboundSmsHandler
  */
@@ -636,13 +634,7 @@ class SmsHandlerHook : BaseHook() {
     }
 
     private fun ensureEventId(intent: Intent): String {
-        val existing = intent.getStringExtra(ForwardBroadcastContract.EXTRA_EVENT_ID).orEmpty().trim()
-        if (existing.isNotEmpty()) {
-            return existing
-        }
-        val generated = ForwardBroadcastContract.buildEventId("sms", abs(intent.hashCode()).toString(36))
-        intent.putExtra(ForwardBroadcastContract.EXTRA_EVENT_ID, generated)
-        return generated
+        return ForwardPayloadFactory.ensureSmsEventId(intent)
     }
 
     private fun senderHash(sender: String?): String {

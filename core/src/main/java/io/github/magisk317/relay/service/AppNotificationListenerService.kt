@@ -9,9 +9,8 @@ import android.service.notification.StatusBarNotification
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.core.BuildConfig
 import io.github.magisk317.relay.feature.reminder.SpecialAlertCoordinator
-import io.github.magisk317.relay.platform.ipc.ForwardBroadcastContract
 import io.github.magisk317.relay.platform.ipc.ForwardBroadcastDispatcher
-import io.github.magisk317.relay.platform.ipc.ForwardBroadcastPayload
+import io.github.magisk317.relay.platform.ipc.ForwardPayloadFactory
 
 class AppNotificationListenerService : NotificationListenerService() {
 
@@ -65,17 +64,13 @@ class AppNotificationListenerService : NotificationListenerService() {
             packageName
         }
 
-        val payload = ForwardBroadcastPayload(
-            sender = title,
-            body = body,
-            date = sbn.postTime,
-            company = appName,
-            smsCode = null,
+        val payload = ForwardPayloadFactory.appNotificationPayload(
             packageName = packageName,
+            title = title,
+            body = body,
+            timestamp = sbn.postTime,
+            appName = appName,
             notifyChannelId = notifyChannelId,
-            msgType = ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY,
-            forwardSource = ForwardBroadcastContract.SOURCE_NOTIFICATION_LISTENER,
-            eventId = ForwardBroadcastContract.buildEventId("nls", packageName),
         )
 
         SpecialAlertCoordinator.notifyForEvent(

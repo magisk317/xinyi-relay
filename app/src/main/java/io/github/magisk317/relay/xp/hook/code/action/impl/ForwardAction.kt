@@ -11,9 +11,9 @@ import io.github.magisk317.relay.common.utils.PrefsReader
 import io.github.magisk317.smscode.core.utils.XLog
 import io.github.magisk317.relay.data.db.DBProvider
 import io.github.magisk317.relay.data.db.entity.SmsMsg
-import io.github.magisk317.relay.platform.ipc.ForwardBroadcastContract
 import io.github.magisk317.relay.platform.ipc.ForwardBroadcastDispatcher
 import io.github.magisk317.relay.platform.ipc.ForwardBroadcastPayload
+import io.github.magisk317.relay.platform.ipc.ForwardPayloadFactory
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 
 /**
@@ -37,24 +37,11 @@ class ForwardAction(
                 isCodeSms,
             )
             // Send IPC Broadcast to the integrated SmsCode App Module
-            val payload = ForwardBroadcastPayload(
-                sender = mSmsMsg.sender,
-                body = mSmsMsg.body,
-                date = mSmsMsg.date,
-                company = mSmsMsg.company,
-                smsCode = mSmsMsg.smsCode,
-                packageName = mSmsMsg.packageName,
-                notifyChannelId = "",
-                msgType = ForwardBroadcastContract.MSG_TYPE_SMS,
-                forwardSource = ForwardBroadcastContract.SOURCE_SMS_HOOK,
-                eventId = eventId.ifBlank {
-                    ForwardBroadcastContract.buildEventId(
-                        prefix = "sms",
-                        seed = (mSmsMsg.sender ?: "") + (mSmsMsg.body ?: ""),
-                    )
-                },
+            val payload = ForwardPayloadFactory.smsPayload(
+                smsMsg = mSmsMsg,
+                eventId = eventId.ifBlank { null },
+                sourceIntent = mSmsIntent,
             )
-                .withSimRoutingFrom(mSmsIntent)
             logSimExtras(payload)
 
             // Securing IPC with Token: Only the receiver matching our token can process this msg.

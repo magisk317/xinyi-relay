@@ -14,10 +14,8 @@ import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.feature.reminder.SpecialAlertCoordinator
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
-import io.github.magisk317.relay.platform.ipc.ForwardBroadcastContract
 import io.github.magisk317.relay.platform.ipc.ForwardBroadcastDispatcher
-import io.github.magisk317.relay.platform.ipc.ForwardBroadcastPayload
-import java.util.UUID
+import io.github.magisk317.relay.platform.ipc.ForwardPayloadFactory
 import kotlinx.coroutines.runBlocking
 
 object CallStateMonitor {
@@ -109,20 +107,16 @@ object CallStateMonitor {
                 lastRingingAt = now
                 lastNumber = phoneNumber?.ifBlank { null }
                 lastDirection = CALL_TYPE_INCOMING
-                val payload = ForwardBroadcastPayload(
-                    sender = lastNumber ?: context.getString(R.string.call_alert_notification_title),
+                val display = lastNumber ?: context.getString(R.string.call_alert_notification_title)
+                val payload = ForwardPayloadFactory.callPayload(
+                    packageName = context.packageName,
+                    sender = display,
                     body = context.getString(
                         R.string.call_alert_notification_content,
-                        lastNumber ?: context.getString(R.string.call_alert_notification_title),
+                        display,
                     ),
-                    date = now,
                     company = context.getString(R.string.call_alert_notification_title),
-                    smsCode = null,
-                    packageName = context.packageName,
-                    notifyChannelId = "",
-                    msgType = ForwardBroadcastContract.MSG_TYPE_CALL_NOTIFY,
-                    forwardSource = ForwardBroadcastContract.SOURCE_TELEPHONY_STATE,
-                    eventId = "tel_${UUID.randomUUID().toString().take(8)}",
+                    timestamp = now,
                     callType = CALL_TYPE_INCOMING,
                     callStage = "ringing",
                 )
@@ -181,17 +175,12 @@ object CallStateMonitor {
         } else {
             context.getString(R.string.call_alert_notification_content, display)
         }
-        val payload = ForwardBroadcastPayload(
+        val payload = ForwardPayloadFactory.callPayload(
+            packageName = context.packageName,
             sender = display,
             body = body,
-            date = System.currentTimeMillis(),
             company = context.getString(R.string.call_alert_notification_title),
-            smsCode = null,
-            packageName = context.packageName,
-            notifyChannelId = "",
-            msgType = ForwardBroadcastContract.MSG_TYPE_CALL_NOTIFY,
-            forwardSource = ForwardBroadcastContract.SOURCE_TELEPHONY_STATE,
-            eventId = "tel_${UUID.randomUUID().toString().take(8)}",
+            timestamp = System.currentTimeMillis(),
             callType = callType,
             callStage = stage,
         )

@@ -12,9 +12,8 @@ import io.github.magisk317.relay.common.utils.PrefsReader
 import io.github.magisk317.relay.common.utils.RuntimeLogStore
 import io.github.magisk317.relay.common.utils.SmsCodeUtils
 import io.github.magisk317.relay.data.db.entity.SmsMsg
-import io.github.magisk317.relay.platform.ipc.ForwardBroadcastContract
 import io.github.magisk317.relay.platform.ipc.ForwardBroadcastDispatcher
-import io.github.magisk317.relay.platform.ipc.ForwardBroadcastPayload
+import io.github.magisk317.relay.platform.ipc.ForwardPayloadFactory
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
 import io.github.magisk317.smscode.core.helper.XposedWrapper
@@ -24,7 +23,6 @@ import io.github.magisk317.smscode.core.hookapi.MethodHook
 import io.github.magisk317.smscode.core.hookapi.MethodHookParam
 import io.github.magisk317.smscode.core.utils.XLog
 import kotlinx.coroutines.runBlocking
-import kotlin.math.abs
 
 /**
  * Dedicated SMS forward hook (decoupled from SMS code pipeline).
@@ -117,7 +115,7 @@ class SmsForwardHook : BaseHook() {
         ) {
             return
         }
-        val eventId = ensureEventId(intent)
+        val eventId = ForwardPayloadFactory.ensureSmsEventId(intent)
         val pluginContext = getPluginContext()
         val phoneContext = mPhoneContext
         if (pluginContext == null || phoneContext == null) {
@@ -180,18 +178,16 @@ class SmsForwardHook : BaseHook() {
 
         val (company, packageName) = resolveCompanyAndPackage(phoneContext, body, smsCode)
         val resolvedDate = if (smsMsg.date > 0L) smsMsg.date else System.currentTimeMillis()
-        val payload = ForwardBroadcastPayload(
-            sender = sender,
-            body = body,
-            date = resolvedDate,
-            company = company,
-            smsCode = smsCode,
-            packageName = packageName,
-            notifyChannelId = "",
-            msgType = ForwardBroadcastContract.MSG_TYPE_SMS,
-            forwardSource = ForwardBroadcastContract.SOURCE_SMS_HOOK,
+        val payload = ForwardPayloadFactory.smsPayload(
+            smsMsg = smsMsg.copy(
+                date = resolvedDate,
+                company = company,
+                smsCode = smsCode,
+                packageName = packageName,
+            ),
             eventId = eventId,
-        ).withSimRoutingFrom(intent)
+            sourceIntent = intent,
+        )
 
         val token = PrefsReader.getIpcToken(pluginContext)
         if (token.isBlank()) {
@@ -251,16 +247,6 @@ class SmsForwardHook : BaseHook() {
     private fun shouldAllowSmsTokenBypass(): Boolean {
         val uid = Process.myUid()
         return uid == Process.SYSTEM_UID || uid == Process.PHONE_UID
-    }
-
-    private fun ensureEventId(intent: Intent): String {
-        val existing = intent.getStringExtra(ForwardBroadcastContract.EXTRA_EVENT_ID).orEmpty().trim()
-        if (existing.isNotEmpty()) {
-            return existing
-        }
-        val generated = ForwardBroadcastContract.buildEventId("sms", abs(intent.hashCode()).toString(36))
-        intent.putExtra(ForwardBroadcastContract.EXTRA_EVENT_ID, generated)
-        return generated
     }
 
     private fun logSuppressedOnce(stage: String) {
