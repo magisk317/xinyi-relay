@@ -9,9 +9,8 @@ import io.github.magisk317.relay.common.utils.ActivationDiagnosticsStore
 import io.github.magisk317.relay.common.utils.PrefsReader
 import io.github.magisk317.relay.common.utils.RuntimeLogStore
 import io.github.magisk317.relay.data.db.entity.SmsMsg
-import io.github.magisk317.relay.platform.ipc.ForwardBroadcastDispatcher
 import io.github.magisk317.relay.platform.ipc.ForwardPayloadFactory
-import io.github.magisk317.relay.platform.ipc.SmsIngressAdapter
+import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
 import io.github.magisk317.smscode.core.helper.XposedWrapper
@@ -163,8 +162,8 @@ class SmsForwardHook : BaseHook() {
             return
         }
 
-        val ingressResult = runBlocking {
-            SmsIngressAdapter.toPayload(
+        val prepared = runBlocking {
+            SmsHookDispatchCoordinator.prepareIngressSms(
                 pluginContext = pluginContext,
                 phoneContext = phoneContext,
                 smsMsg = smsMsg,
@@ -175,20 +174,23 @@ class SmsForwardHook : BaseHook() {
             XLog.w("SmsForwardHook: empty sender/body after ingress adapter, skip. event_id=%s", eventId)
             return
         }
-        if (!PrefsReader.isMessageTypeEnabled(pluginContext, ingressResult.messageType)) {
+        val messageType = prepared.messageType ?: run {
+            XLog.w("SmsForwardHook: ingress message type missing, skip. event_id=%s", eventId)
+            return
+        }
+        if (!PrefsReader.isMessageTypeEnabled(pluginContext, messageType)) {
             XLog.w(
                 "SmsForwardHook: message type disabled, skip. event_id=%s type=%s",
                 eventId,
-                ingressResult.messageType.name.lowercase(),
+                messageType.name.lowercase(),
             )
             return
         }
-        val resolvedSmsMsg = ingressResult.smsMsg
-        val payload = ingressResult.payload
+        val resolvedSmsMsg = prepared.smsMsg
 
-        val dispatchResult = ForwardBroadcastDispatcher.dispatchFromSmsHook(
+        val dispatchResult = SmsHookDispatchCoordinator.dispatchPreparedSms(
             context = pluginContext,
-            payload = payload,
+            prepared = prepared,
             sentFromUid = Process.myUid(),
         )
         if (!dispatchResult.dispatched) {

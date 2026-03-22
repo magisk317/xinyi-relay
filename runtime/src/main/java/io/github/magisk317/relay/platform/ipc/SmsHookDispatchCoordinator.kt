@@ -1,0 +1,66 @@
+package io.github.magisk317.relay.platform.ipc
+
+import android.content.Context
+import android.content.Intent
+import io.github.magisk317.relay.common.constant.MessageType
+import io.github.magisk317.relay.data.db.entity.SmsMsg
+
+data class PreparedSmsHookDispatch(
+    val smsMsg: SmsMsg,
+    val payload: ForwardBroadcastPayload,
+    val messageType: MessageType? = null,
+)
+
+object SmsHookDispatchCoordinator {
+    fun prepareParsedSms(
+        smsMsg: SmsMsg,
+        sourceIntent: Intent? = null,
+        eventId: String? = null,
+        payloadFactory: (SmsMsg, String?, Intent?) -> ForwardBroadcastPayload = ForwardPayloadFactory::smsPayload,
+    ): PreparedSmsHookDispatch {
+        return PreparedSmsHookDispatch(
+            smsMsg = smsMsg,
+            payload = payloadFactory(smsMsg, eventId, sourceIntent),
+        )
+    }
+
+    suspend fun prepareIngressSms(
+        pluginContext: Context,
+        phoneContext: Context,
+        smsMsg: SmsMsg,
+        sourceIntent: Intent? = null,
+        eventId: String? = null,
+        ingressAdapter: suspend (Context, Context, SmsMsg, Intent?, String?) -> SmsIngressAdapter.Result? = SmsIngressAdapter::toPayload,
+    ): PreparedSmsHookDispatch? {
+        val result = ingressAdapter(pluginContext, phoneContext, smsMsg, sourceIntent, eventId) ?: return null
+        return PreparedSmsHookDispatch(
+            smsMsg = result.smsMsg,
+            payload = result.payload,
+            messageType = result.messageType,
+        )
+    }
+
+    fun dispatchPreparedSms(
+        context: Context,
+        prepared: PreparedSmsHookDispatch,
+        sentFromUid: Int?,
+        sdkInt: Int = android.os.Build.VERSION.SDK_INT,
+        tokenResolver: (Context) -> String = io.github.magisk317.relay.common.utils.PrefsReader::getIpcToken,
+        dispatchBlock: (String?) -> Unit = { resolvedToken ->
+            ForwardBroadcastDispatcher.dispatch(
+                context = context,
+                payload = prepared.payload,
+                token = resolvedToken,
+            )
+        },
+    ): SmsHookDispatchResult {
+        return ForwardBroadcastDispatcher.dispatchFromSmsHook(
+            context = context,
+            payload = prepared.payload,
+            sentFromUid = sentFromUid,
+            sdkInt = sdkInt,
+            tokenResolver = tokenResolver,
+            dispatchBlock = dispatchBlock,
+        )
+    }
+}

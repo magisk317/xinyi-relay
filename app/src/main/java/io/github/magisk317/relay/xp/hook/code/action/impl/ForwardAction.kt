@@ -6,10 +6,9 @@ import android.os.Bundle
 import android.os.Process
 import io.github.magisk317.smscode.core.utils.XLog
 import io.github.magisk317.relay.data.db.entity.SmsMsg
-import io.github.magisk317.relay.platform.ipc.ForwardBroadcastDispatcher
-import io.github.magisk317.relay.platform.ipc.ForwardBroadcastPayload
-import io.github.magisk317.relay.platform.ipc.ForwardPayloadFactory
 import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
+import io.github.magisk317.relay.platform.ipc.PreparedSmsHookDispatch
+import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 import kotlinx.coroutines.runBlocking
 
@@ -34,17 +33,16 @@ class ForwardAction(
                 eventId.ifBlank { "<none>" },
                 isCodeSms,
             )
-            // Send IPC Broadcast to the integrated SmsCode App Module
-            val payload = ForwardPayloadFactory.smsPayload(
+            val prepared = SmsHookDispatchCoordinator.prepareParsedSms(
                 smsMsg = mSmsMsg,
                 eventId = eventId.ifBlank { null },
                 sourceIntent = mSmsIntent,
             )
-            logSimExtras(payload)
+            logSimExtras(prepared)
 
-            val dispatchResult = ForwardBroadcastDispatcher.dispatchFromSmsHook(
+            val dispatchResult = SmsHookDispatchCoordinator.dispatchPreparedSms(
                 context = mPluginContext,
-                payload = payload,
+                prepared = prepared,
                 sentFromUid = Process.myUid(),
             )
             if (!dispatchResult.dispatched) {
@@ -82,11 +80,11 @@ class ForwardAction(
         return null
     }
 
-    private fun logSimExtras(payload: ForwardBroadcastPayload) {
+    private fun logSimExtras(prepared: PreparedSmsHookDispatch) {
         XLog.d(
             "ForwardAction SIM extras copied: sim_slot=%s sub_id=%s",
-            payload.simSlot?.toString() ?: "N/A",
-            payload.subId?.toString() ?: "N/A",
+            prepared.payload.simSlot?.toString() ?: "N/A",
+            prepared.payload.subId?.toString() ?: "N/A",
         )
     }
 
