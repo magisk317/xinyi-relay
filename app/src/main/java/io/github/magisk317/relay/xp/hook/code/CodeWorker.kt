@@ -122,6 +122,16 @@ class CodeWorker(
         val recordSmsAction = RecordSmsAction(mPluginContext, mPhoneContext, smsMsg, eventId)
         mScheduledExecutor.schedule(recordSmsAction, 0, TimeUnit.MILLISECONDS)
 
+        // 转发 Action
+        val forwardAction = ForwardAction(
+            mPluginContext,
+            mPhoneContext,
+            smsMsg,
+            mSmsIntent,
+            eventId,
+        )
+        mScheduledExecutor.schedule(forwardAction, FORWARD_ACTION_DELAY_MS, TimeUnit.MILLISECONDS)
+
         // 操作验证码短信（标记为已读 或者 删除） Action
         scheduleOperateSmsActions(smsMsg)
 
@@ -163,6 +173,7 @@ class CodeWorker(
     }
 
     companion object {
+        private const val FORWARD_ACTION_DELAY_MS = 100L
         private val MARK_AS_READ_RETRY_DELAYS_MS = listOf(300L, 1000L, 2000L)
         private val DELETE_SMS_DELAYS_MS = listOf(300L)
     }
