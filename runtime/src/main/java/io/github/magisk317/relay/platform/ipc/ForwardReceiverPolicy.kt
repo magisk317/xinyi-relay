@@ -3,7 +3,7 @@ package io.github.magisk317.relay.platform.ipc
 import android.os.Build
 import io.github.magisk317.relay.common.constant.MessageType
 
-internal object ForwardReceiverPolicy {
+object ForwardReceiverPolicy {
     const val API_LEVEL_34 = 34
     const val SYSTEM_UID = 1000
     const val PHONE_UID = 1001
@@ -30,6 +30,15 @@ internal object ForwardReceiverPolicy {
                 (sdkInt < API_LEVEL_34 && sentFromUid == null)
         }
         else -> false
+    }
+
+    fun shouldAllowSmsHookTokenBypass(
+        sentFromUid: Int?,
+        sdkInt: Int = Build.VERSION.SDK_INT,
+    ): Boolean {
+        return sentFromUid == SYSTEM_UID ||
+            sentFromUid == PHONE_UID ||
+            (sdkInt < API_LEVEL_34 && sentFromUid == null)
     }
 
     fun resolveSimSlot(

@@ -10,12 +10,13 @@ import android.os.Build
 import io.github.magisk317.relay.common.utils.PrefsReader
 import io.github.magisk317.relay.common.utils.SmsCodeUtils
 import io.github.magisk317.relay.common.utils.StringUtils
-import io.github.magisk317.smscode.core.utils.XLog
-import io.github.magisk317.relay.data.db.DBManager
 import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
+import io.github.magisk317.relay.platform.ipc.SmsIngressAdapter
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.hook.code.action.impl.AutoInputAction
 import io.github.magisk317.relay.xp.hook.code.action.impl.RecordSmsAction
+import io.github.magisk317.smscode.core.utils.XLog
 import java.util.Collections
 import java.util.LinkedHashSet
 import java.util.concurrent.Executors
@@ -25,6 +26,7 @@ internal class SmsInboxObserver(
     private val pluginContext: Context,
     private val phoneContext: Context,
 ) {
+    private val runtimeRecordFacade = RuntimeRecordFacade(pluginContext)
     private val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
         override fun onChange(selfChange: Boolean) {
             onChange(selfChange, null)
@@ -122,25 +124,31 @@ internal class SmsInboxObserver(
         logSmsRoleState(eventId)
         if (PrefsReader.deduplicateSms(pluginContext)) {
             val timestamp = if (date > 0) date else System.currentTimeMillis()
-            val duplicated = runCatching {
-                DBManager.get(pluginContext).querySmsMsgByFingerprint(sender, body, timestamp) != null
-            }.getOrDefault(false)
+            val duplicated = runBlocking {
+                runCatching {
+                    runtimeRecordFacade.isDuplicateSms(
+                        sender = sender,
+                        body = body,
+                        date = timestamp,
+                        msgType = SmsMsg.MSG_TYPE_SMS,
+                    )
+                }.getOrDefault(false)
+            }
             if (duplicated) {
                 XLog.w("Diag observer duplicate skip: event_id=%s", eventId)
                 return
             }
         }
 
-        val (company, resolvedPackage) = resolveCompanyAndPackage(body)
-        val normalizedDate = if (date > 0) date else System.currentTimeMillis()
-        val smsMsg = SmsMsg(
-            sender = sender,
-            body = body,
-            date = normalizedDate,
-            company = company,
+        val smsMsg = SmsIngressAdapter.enrichSmsMsg(
+            phoneContext = phoneContext,
+            smsMsg = SmsMsg(
+                sender = sender,
+                body = body,
+                date = date,
+                msgType = SmsMsg.MSG_TYPE_SMS,
+            ),
             smsCode = code,
-            packageName = resolvedPackage,
-            msgType = SmsMsg.MSG_TYPE_SMS,
         )
 
         if (PrefsReader.autoInputCodeEnabled(pluginContext)) {
@@ -203,28 +211,6 @@ internal class SmsInboxObserver(
             emptyList()
         }
         return defaultSms to roleHolders
-    }
-
-    private fun resolveCompanyAndPackage(body: String): Pair<String, String?> {
-        val companyCandidates = SmsCodeUtils.parseCompanyCandidates(body)
-            .map { it.trim().trim('【', '】', '[', ']') }
-            .filter { it.isNotBlank() }
-        var company = SmsCodeUtils.parseCompany(body)
-            .trim()
-            .trim('【', '】', '[', ']')
-        var resolvedPackage: String? = null
-        for (candidate in companyCandidates) {
-            val pkg = SmsCodeUtils.findPackageNameByLabel(phoneContext, candidate)
-            if (!pkg.isNullOrBlank()) {
-                company = candidate
-                resolvedPackage = pkg
-                break
-            }
-        }
-        if (resolvedPackage.isNullOrBlank()) {
-            resolvedPackage = SmsCodeUtils.findPackageNameByLabel(phoneContext, company)
-        }
-        return company to resolvedPackage
     }
 
     private fun buildObservedEventId(smsId: Long, date: Long): String {

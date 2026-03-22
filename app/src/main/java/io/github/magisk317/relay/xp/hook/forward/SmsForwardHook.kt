@@ -2,18 +2,16 @@ package io.github.magisk317.relay.xp.hook.forward
 
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.Process
 import android.provider.Telephony
 import io.github.magisk317.relay.BuildConfig
-import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.common.utils.ActivationDiagnosticsStore
 import io.github.magisk317.relay.common.utils.PrefsReader
 import io.github.magisk317.relay.common.utils.RuntimeLogStore
-import io.github.magisk317.relay.common.utils.SmsCodeUtils
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.platform.ipc.ForwardBroadcastDispatcher
 import io.github.magisk317.relay.platform.ipc.ForwardPayloadFactory
+import io.github.magisk317.relay.platform.ipc.SmsIngressAdapter
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
 import io.github.magisk317.smscode.core.helper.XposedWrapper
@@ -165,88 +163,54 @@ class SmsForwardHook : BaseHook() {
             return
         }
 
-        val smsCode = runBlocking { SmsCodeUtils.parseSmsCodeIfExists(pluginContext, body) }
-        val messageType = if (smsCode.isNullOrBlank()) MessageType.SMS_PLAIN else MessageType.SMS_CODE
-        if (!PrefsReader.isMessageTypeEnabled(pluginContext, messageType)) {
+        val ingressResult = runBlocking {
+            SmsIngressAdapter.toPayload(
+                pluginContext = pluginContext,
+                phoneContext = phoneContext,
+                smsMsg = smsMsg,
+                sourceIntent = intent,
+                eventId = eventId,
+            )
+        } ?: run {
+            XLog.w("SmsForwardHook: empty sender/body after ingress adapter, skip. event_id=%s", eventId)
+            return
+        }
+        if (!PrefsReader.isMessageTypeEnabled(pluginContext, ingressResult.messageType)) {
             XLog.w(
                 "SmsForwardHook: message type disabled, skip. event_id=%s type=%s",
                 eventId,
-                messageType.name.lowercase(),
+                ingressResult.messageType.name.lowercase(),
             )
             return
         }
+        val resolvedSmsMsg = ingressResult.smsMsg
+        val payload = ingressResult.payload
 
-        val (company, packageName) = resolveCompanyAndPackage(phoneContext, body, smsCode)
-        val resolvedDate = if (smsMsg.date > 0L) smsMsg.date else System.currentTimeMillis()
-        val payload = ForwardPayloadFactory.smsPayload(
-            smsMsg = smsMsg.copy(
-                date = resolvedDate,
-                company = company,
-                smsCode = smsCode,
-                packageName = packageName,
-            ),
-            eventId = eventId,
-            sourceIntent = intent,
-        )
-
-        val token = PrefsReader.getIpcToken(pluginContext)
-        if (token.isBlank()) {
-            if (!shouldAllowSmsTokenBypass()) {
-                XLog.e(
-                    "SmsForwardHook: IPC token empty, skip forward. event_id=%s",
-                    eventId,
-                )
-                return
-            }
-            XLog.w(
-                "SmsForwardHook: IPC token empty, continue with receiver-side bypass. event_id=%s uid=%d sdk=%d",
-                eventId,
-                Process.myUid(),
-                Build.VERSION.SDK_INT,
-            )
-        }
-
-        ForwardBroadcastDispatcher.dispatch(
+        val dispatchResult = ForwardBroadcastDispatcher.dispatchFromSmsHook(
             context = pluginContext,
             payload = payload,
-            token = token.takeIf { it.isNotBlank() },
+            sentFromUid = Process.myUid(),
         )
+        if (!dispatchResult.dispatched) {
+            XLog.e(
+                "SmsForwardHook: IPC token empty, skip forward. event_id=%s",
+                eventId,
+            )
+            return
+        }
+        if (dispatchResult.bypassUsed) {
+            XLog.w(
+                "SmsForwardHook: IPC token empty, continue with receiver-side bypass. event_id=%s uid=%d",
+                eventId,
+                Process.myUid(),
+            )
+        }
         XLog.i(
             "SmsForwardHook forwarded: event_id=%s code_present=%s tokenPresent=%s",
             eventId,
-            smsCode.isNotBlank(),
-            token.isNotBlank(),
+            resolvedSmsMsg.smsCode?.isNotBlank() == true,
+            dispatchResult.tokenPresent,
         )
-    }
-
-    private fun resolveCompanyAndPackage(
-        context: Context,
-        body: String,
-        smsCode: String?,
-    ): Pair<String?, String?> {
-        if (smsCode.isNullOrBlank()) return "" to null
-        val candidates = SmsCodeUtils.parseCompanyCandidates(body)
-            .map { it.trim().trim('【', '】', '[', ']') }
-            .filter { it.isNotBlank() }
-        var company = SmsCodeUtils.parseCompany(body).trim().trim('【', '】', '[', ']')
-        var resolvedPackage: String? = null
-        for (candidate in candidates) {
-            val pkg = SmsCodeUtils.findPackageNameByLabel(context, candidate)
-            if (!pkg.isNullOrBlank()) {
-                company = candidate
-                resolvedPackage = pkg
-                break
-            }
-        }
-        if (resolvedPackage.isNullOrBlank()) {
-            resolvedPackage = SmsCodeUtils.findPackageNameByLabel(context, company)
-        }
-        return company to resolvedPackage
-    }
-
-    private fun shouldAllowSmsTokenBypass(): Boolean {
-        val uid = Process.myUid()
-        return uid == Process.SYSTEM_UID || uid == Process.PHONE_UID
     }
 
     private fun logSuppressedOnce(stage: String) {

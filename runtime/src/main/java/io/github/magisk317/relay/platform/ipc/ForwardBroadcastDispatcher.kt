@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Bundle
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.common.constant.PrefConst
+import io.github.magisk317.relay.common.utils.PrefsReader
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import kotlinx.coroutines.runBlocking
 
@@ -13,6 +14,12 @@ data class ForwardBroadcastAck(
     val resultCode: Int,
     val resultData: String?,
     val resultExtras: Bundle?,
+)
+
+data class SmsHookDispatchResult(
+    val dispatched: Boolean,
+    val tokenPresent: Boolean,
+    val bypassUsed: Boolean,
 )
 
 object ForwardBroadcastDispatcher {
@@ -48,6 +55,42 @@ object ForwardBroadcastDispatcher {
             payload = payload,
             token = token,
             orderedAck = orderedAck,
+        )
+    }
+
+    fun dispatchFromSmsHook(
+        context: Context,
+        payload: ForwardBroadcastPayload,
+        sentFromUid: Int?,
+        sdkInt: Int = android.os.Build.VERSION.SDK_INT,
+        tokenResolver: (Context) -> String = PrefsReader::getIpcToken,
+        dispatchBlock: (String?) -> Unit = { resolvedToken ->
+            dispatch(
+                context = context,
+                payload = payload,
+                token = resolvedToken,
+            )
+        },
+    ): SmsHookDispatchResult {
+        val token = tokenResolver(context)
+        val tokenPresent = token.isNotBlank()
+        val bypassUsed = !tokenPresent &&
+            ForwardReceiverPolicy.shouldAllowSmsHookTokenBypass(
+                sentFromUid = sentFromUid,
+                sdkInt = sdkInt,
+            )
+        if (!tokenPresent && !bypassUsed) {
+            return SmsHookDispatchResult(
+                dispatched = false,
+                tokenPresent = false,
+                bypassUsed = false,
+            )
+        }
+        dispatchBlock(token.takeIf { tokenPresent })
+        return SmsHookDispatchResult(
+            dispatched = true,
+            tokenPresent = tokenPresent,
+            bypassUsed = bypassUsed,
         )
     }
 
