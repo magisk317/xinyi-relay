@@ -15,6 +15,30 @@ import org.junit.jupiter.api.Test
 class SmsHookDispatchCoordinatorTest {
 
     @Test
+    fun ensureIncomingEventId_delegatesToResolver() {
+        val intent = Intent("test")
+
+        val eventId = SmsHookDispatchCoordinator.ensureIncomingEventId(
+            intent = intent,
+            eventIdResolver = { "sms_evt" },
+        )
+
+        assertEquals("sms_evt", eventId)
+    }
+
+    @Test
+    fun parseIncomingSms_returnsNullWhenParserFails() {
+        val intent = Intent("test")
+
+        val parsed = SmsHookDispatchCoordinator.parseIncomingSms(
+            intent = intent,
+            smsParser = { throw IllegalStateException("bad pdu") },
+        )
+
+        assertEquals(null, parsed)
+    }
+
+    @Test
     fun prepareParsedSms_usesPayloadFactoryResult() {
         val smsMsg = SmsMsg(sender = "1068", body = "code 123456", smsCode = "123456")
         val sourceIntent = Intent("test")

@@ -8,8 +8,6 @@ import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.common.utils.ActivationDiagnosticsStore
 import io.github.magisk317.relay.common.utils.PrefsReader
 import io.github.magisk317.relay.common.utils.RuntimeLogStore
-import io.github.magisk317.relay.data.db.entity.SmsMsg
-import io.github.magisk317.relay.platform.ipc.ForwardPayloadFactory
 import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
@@ -112,7 +110,7 @@ class SmsForwardHook : BaseHook() {
         ) {
             return
         }
-        val eventId = ForwardPayloadFactory.ensureSmsEventId(intent)
+        val eventId = SmsHookDispatchCoordinator.ensureIncomingEventId(intent)
         val pluginContext = getPluginContext()
         val phoneContext = mPhoneContext
         if (pluginContext == null || phoneContext == null) {
@@ -150,7 +148,7 @@ class SmsForwardHook : BaseHook() {
             return
         }
 
-        val smsMsg = runCatching { SmsMsg.fromIntent(intent) }.getOrNull()
+        val smsMsg = SmsHookDispatchCoordinator.parseIncomingSms(intent)
         if (smsMsg == null) {
             XLog.w("SmsForwardHook: parse sms failed, skip. event_id=%s", eventId)
             return

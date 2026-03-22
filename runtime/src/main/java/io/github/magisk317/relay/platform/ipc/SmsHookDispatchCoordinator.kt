@@ -12,6 +12,20 @@ data class PreparedSmsHookDispatch(
 )
 
 object SmsHookDispatchCoordinator {
+    fun ensureIncomingEventId(
+        intent: Intent,
+        eventIdResolver: (Intent) -> String = ForwardPayloadFactory::ensureSmsEventId,
+    ): String {
+        return eventIdResolver(intent)
+    }
+
+    fun parseIncomingSms(
+        intent: Intent,
+        smsParser: (Intent) -> SmsMsg = SmsMsg::fromIntent,
+    ): SmsMsg? {
+        return runCatching { smsParser(intent) }.getOrNull()
+    }
+
     fun prepareParsedSms(
         smsMsg: SmsMsg,
         sourceIntent: Intent? = null,

@@ -17,9 +17,9 @@ import io.github.magisk317.relay.common.utils.NotificationUtils
 import io.github.magisk317.relay.common.utils.PrefsReader
 import io.github.magisk317.relay.common.utils.RuntimeLogStore
 import io.github.magisk317.relay.common.utils.SmsBlacklistUtils
-import io.github.magisk317.smscode.core.utils.XLog
 import io.github.magisk317.relay.data.db.entity.SmsMsg
-import io.github.magisk317.relay.platform.ipc.ForwardPayloadFactory
+import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
+import io.github.magisk317.smscode.core.utils.XLog
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
 import io.github.magisk317.smscode.core.helper.XposedWrapper
@@ -341,7 +341,7 @@ class SmsHandlerHook : BaseHook() {
             )
             return
         }
-        val smsMsg = runCatching { SmsMsg.fromIntent(intent) }.getOrNull()
+        val smsMsg = SmsHookDispatchCoordinator.parseIncomingSms(intent)
         val blacklistResult = SmsBlacklistUtils.match(pluginContext, smsMsg?.sender, smsMsg?.body)
         if (blacklistResult.matched) {
             XLog.w(
@@ -634,7 +634,7 @@ class SmsHandlerHook : BaseHook() {
     }
 
     private fun ensureEventId(intent: Intent): String {
-        return ForwardPayloadFactory.ensureSmsEventId(intent)
+        return SmsHookDispatchCoordinator.ensureIncomingEventId(intent)
     }
 
     private fun senderHash(sender: String?): String {
