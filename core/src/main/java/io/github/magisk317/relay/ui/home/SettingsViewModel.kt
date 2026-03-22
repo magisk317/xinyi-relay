@@ -29,11 +29,11 @@ import io.github.magisk317.relay.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.data.repository.ConfigRepository
 import io.github.magisk317.relay.data.repository.RelayRecordRepository
 import io.github.magisk317.relay.data.repository.SettingsRepository
-import io.github.magisk317.relay.feature.backup.BackupImportResult
-import io.github.magisk317.relay.feature.backup.BackupManager
-import io.github.magisk317.relay.feature.backup.BackupRule
-import io.github.magisk317.relay.feature.backup.BackupSmsRecord
-import io.github.magisk317.relay.feature.backup.ExportResult
+import io.github.magisk317.relay.data.backup.BackupImportResult
+import io.github.magisk317.relay.data.backup.BackupManager
+import io.github.magisk317.relay.data.backup.BackupRule
+import io.github.magisk317.relay.data.backup.BackupSmsRecord
+import io.github.magisk317.relay.data.backup.ExportResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -422,7 +422,7 @@ class SettingsViewModel(
                     importResult.warning?.name ?: "none",
                 )
 
-                if (importResult.result == io.github.magisk317.relay.feature.backup.ImportResult.SUCCESS) {
+                if (importResult.result == io.github.magisk317.relay.data.backup.ImportResult.SUCCESS) {
                     withContext(Dispatchers.IO) {
                         if (restoreDatabase) {
                             val restored = BackupManager.restoreDatabaseFromBackup(context, uri)
@@ -450,7 +450,7 @@ class SettingsViewModel(
                 // Return failed event
                 _eventsFlow.tryEmit(
                     SettingsEvent.RestoreResultEvent(
-                        BackupImportResult(io.github.magisk317.relay.feature.backup.ImportResult.READ_FAILED),
+                        BackupImportResult(io.github.magisk317.relay.data.backup.ImportResult.READ_FAILED),
                     ),
                 )
             }

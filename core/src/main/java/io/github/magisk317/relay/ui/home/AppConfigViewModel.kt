@@ -17,8 +17,8 @@ import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.data.repository.ConfigRepository
 import io.github.magisk317.relay.data.repository.RelayRecordRepository
 import io.github.magisk317.relay.domain.routing.NotifyRouteScope
-import io.github.magisk317.relay.feature.store.EntityStoreManager
-import io.github.magisk317.relay.feature.store.EntityType
+import io.github.magisk317.relay.data.store.EntityStoreManager
+import io.github.magisk317.relay.data.store.EntityType
 import io.github.magisk317.relay.ui.block.AppInfoHelper
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf

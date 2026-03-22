@@ -3,7 +3,7 @@ package io.github.magisk317.relay.data.db.entity
 import android.os.Parcelable
 import androidx.compose.runtime.Immutable
 import androidx.room.*
-import io.github.magisk317.relay.feature.backup.BackupConst
+import io.github.magisk317.relay.data.backup.BackupConst
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

@@ -9,8 +9,8 @@ import io.github.magisk317.smscode.core.utils.XLog
 import io.github.magisk317.relay.data.db.DBProvider
 import io.github.magisk317.relay.data.db.entity.AppInfo
 import io.github.magisk317.relay.data.db.entity.SmsMsg
-import io.github.magisk317.relay.feature.store.EntityStoreManager
-import io.github.magisk317.relay.feature.store.EntityType
+import io.github.magisk317.relay.data.store.EntityStoreManager
+import io.github.magisk317.relay.data.store.EntityType
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 import io.github.magisk317.relay.xp.hook.code.helper.InputHelper
 import java.util.*

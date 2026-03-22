@@ -37,7 +37,7 @@ import io.github.magisk317.relay.model.MsgInfo
 import io.github.magisk317.relay.model.Sender
 import io.github.magisk317.relay.model.setting.WeworkRobotSetting
 import io.github.magisk317.relay.domain.sender.SenderType
-import io.github.magisk317.relay.forwarder.utils.sender.WeworkRobotUtils
+import io.github.magisk317.relay.platform.sender.WeworkRobotUtils
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.SenderViewModel

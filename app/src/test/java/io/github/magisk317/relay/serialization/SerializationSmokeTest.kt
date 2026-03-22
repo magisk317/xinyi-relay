@@ -1,11 +1,11 @@
 package io.github.magisk317.relay.serialization
 
 import io.github.magisk317.relay.common.utils.JsonUtils
-import io.github.magisk317.relay.feature.backup.BackupConst
-import io.github.magisk317.relay.feature.backup.BackupPayload
-import io.github.magisk317.relay.feature.backup.BackupRule
-import io.github.magisk317.relay.feature.backup.RuleExporter
-import io.github.magisk317.relay.feature.backup.RuleImporter
+import io.github.magisk317.relay.data.backup.BackupConst
+import io.github.magisk317.relay.data.backup.BackupPayload
+import io.github.magisk317.relay.data.backup.BackupRule
+import io.github.magisk317.relay.data.backup.RuleExporter
+import io.github.magisk317.relay.data.backup.RuleImporter
 import kotlinx.serialization.encodeToString
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

@@ -4,8 +4,8 @@ import android.content.Context
 import android.text.TextUtils
 import io.github.magisk317.relay.data.db.DBProvider
 import io.github.magisk317.relay.data.db.entity.SmsCodeRule
-import io.github.magisk317.relay.feature.store.EntityStoreManager
-import io.github.magisk317.relay.feature.store.EntityType
+import io.github.magisk317.relay.data.store.EntityStoreManager
+import io.github.magisk317.relay.data.store.EntityType
 import java.util.Locale
 import java.util.regex.Pattern
 
