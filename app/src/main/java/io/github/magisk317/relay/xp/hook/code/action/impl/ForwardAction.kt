@@ -91,13 +91,22 @@ class ForwardAction(
     private fun persistForwardResult(success: Boolean, target: String?, message: String) {
         try {
             runBlocking {
-                runtimeRecordFacade.persistSmsForwardResult(
-                    smsMsg = mSmsMsg,
-                    success = success,
-                    target = target,
-                    message = message,
-                    maxMessageLength = MAX_MESSAGE_LEN,
-                )
+                if (success) {
+                    runtimeRecordFacade.persistSmsForwardResult(
+                        smsMsg = mSmsMsg,
+                        success = true,
+                        target = target,
+                        message = message,
+                        maxMessageLength = MAX_MESSAGE_LEN,
+                    )
+                } else {
+                    runtimeRecordFacade.persistSmsHookDispatchFailure(
+                        smsMsg = mSmsMsg,
+                        message = message,
+                        target = target ?: DEFAULT_FORWARD_TARGET,
+                        maxMessageLength = MAX_MESSAGE_LEN,
+                    )
+                }
             }
         } catch (t: Throwable) {
             XLog.w("Persist forward result failed: %s", t.message ?: "unknown")
@@ -106,5 +115,6 @@ class ForwardAction(
 
     companion object {
         private const val MAX_MESSAGE_LEN = 300
+        private const val DEFAULT_FORWARD_TARGET = "SmsCode Engine"
     }
 }
