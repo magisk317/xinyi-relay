@@ -96,6 +96,7 @@ run_pre_push_checks() {
     ./gradlew --warning-mode all \
       verifyModuleBoundaries \
       verifyStructureBoundaries \
+      verifyEmbeddedSubmodules \
       assembleGithubDebug \
       testGithubDebugUnitTest \
       :runtime:verifyNoComposeUiLeak \

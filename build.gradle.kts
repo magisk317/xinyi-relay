@@ -141,3 +141,10 @@ tasks.register<Exec>("verifyStructureBoundaries") {
     workingDir = rootProject.projectDir
     commandLine("bash", "${rootProject.projectDir}/scripts/verify_structure_boundaries.sh")
 }
+
+tasks.register<Exec>("verifyEmbeddedSubmodules") {
+    group = "verification"
+    description = "Ensure embedded submodules stay minimal and do not regrow into parallel root builds."
+    workingDir = rootProject.projectDir
+    commandLine("bash", "${rootProject.projectDir}/scripts/verify_embedded_submodules.sh")
+}
