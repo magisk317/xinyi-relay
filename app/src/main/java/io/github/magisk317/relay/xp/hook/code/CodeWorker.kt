@@ -24,19 +24,9 @@ class CodeWorker(
     private val mScheduledExecutor = Executors.newSingleThreadScheduledExecutor()
 
     fun parse(): ParseResult? {
+        val settings = SmsCodePostParseCoordinator.loadSettings(mPluginContext)
         val moduleEnabled = PrefsReader.isEnabled(mPluginContext)
         val verboseLog = PrefsReader.isVerboseLogMode(mPluginContext)
-        val showNotification = PrefsReader.showCodeNotification(mPluginContext)
-        val autoCancelNotification = PrefsReader.autoCancelCodeNotification(mPluginContext)
-        val retentionSec = PrefsReader.getNotificationRetentionTime(mPluginContext)
-        val autoInput = PrefsReader.autoInputCodeEnabled(mPluginContext)
-        val copyToClipboard = PrefsReader.copyToClipboardEnabled(mPluginContext)
-        val showToast = PrefsReader.shouldShowToast(mPluginContext)
-        val recordSms = PrefsReader.recordSmsCodeEnabled(mPluginContext)
-        val blockSms = PrefsReader.blockSmsEnabled(mPluginContext)
-        val markAsRead = PrefsReader.markAsReadEnabled(mPluginContext)
-        val deleteSms = PrefsReader.deleteSmsEnabled(mPluginContext)
-        val deduplicateSms = PrefsReader.deduplicateSms(mPluginContext)
         XLog.w(
             "Diag settings: event_id=%s enabled=%s, verbose=%s, showNotif=%s, autoCancel=%s, " +
             "retentionSec=%d, autoInput=%s, copy=%s, toast=%s, record=%s, " +
@@ -44,17 +34,17 @@ class CodeWorker(
             eventId.ifBlank { "<none>" },
             moduleEnabled,
             verboseLog,
-            showNotification,
-            autoCancelNotification,
-            retentionSec,
-            autoInput,
-            copyToClipboard,
-            showToast,
-            recordSms,
-            blockSms,
-            markAsRead,
-            deleteSms,
-            deduplicateSms,
+            settings.showNotification,
+            settings.autoCancelNotification,
+            settings.notificationRetentionMs / 1000L,
+            settings.autoInputEnabled,
+            settings.copyToClipboardEnabled,
+            settings.showToast,
+            settings.recordSmsEnabled,
+            settings.blockSmsEnabled,
+            settings.markAsReadEnabled,
+            settings.deleteSmsEnabled,
+            settings.deduplicateSmsEnabled,
         )
 
         if (!moduleEnabled) {
@@ -76,7 +66,7 @@ class CodeWorker(
 
         val smsParseAction = SmsParseAction(mPluginContext, mPhoneContext, null)
         smsParseAction.setSmsIntent(mSmsIntent)
-        smsParseAction.setDeduplicateEnabled(deduplicateSms)
+        smsParseAction.setDeduplicateEnabled(settings.deduplicateSmsEnabled)
         val smsParseFuture = mScheduledExecutor.schedule(smsParseAction, 0, TimeUnit.MILLISECONDS)
 
         val smsMsg: SmsMsg
@@ -90,7 +80,7 @@ class CodeWorker(
             val duplicated = parseBundle.getBoolean(SmsParseAction.SMS_DUPLICATED, false)
             if (duplicated) {
                 mScheduledExecutor.shutdown()
-                return buildParseResult(blockSms)
+                return buildParseResult(settings.blockSmsEnabled)
             }
 
             smsMsg = BundleCompat.getParcelable(parseBundle, SmsParseAction.SMS_MSG, SmsMsg::class.java) ?: return null
@@ -105,19 +95,18 @@ class CodeWorker(
         // 显示Toast Action
         mUIHandler.post(ToastAction(mPluginContext, mPhoneContext, smsMsg))
 
-        val autoInputDelayMs = PrefsReader.getAutoInputCodeDelay(mPluginContext) * 1000L
         // 自动输入 Action
-        if (autoInput) {
+        if (settings.autoInputEnabled) {
             SmsCodePostParseCoordinator.scheduleAutoInput(
                 executor = mScheduledExecutor,
                 pluginContext = mPluginContext,
                 phoneContext = mPhoneContext,
                 smsMsg = smsMsg,
-                delayMs = autoInputDelayMs,
+                delayMs = settings.autoInputDelayMs,
             )
         }
 
-        if (showNotification) {
+        if (settings.showNotification) {
             // 显示通知 Action
             val notifyAction = NotifyAction(mPluginContext, mPhoneContext, smsMsg)
             mScheduledExecutor.schedule(notifyAction, 0, TimeUnit.MILLISECONDS)
@@ -144,11 +133,11 @@ class CodeWorker(
         )
 
         // 操作验证码短信（标记为已读 或者 删除） Action
-        scheduleOperateSmsActions(smsMsg)
+        scheduleOperateSmsActions(smsMsg, settings)
 
         var autoCancelRetentionMs = 0L
-        if (showNotification && autoCancelNotification) {
-            autoCancelRetentionMs = PrefsReader.getNotificationRetentionTime(mPluginContext) * 1000L
+        if (settings.showNotification && settings.autoCancelNotification) {
+            autoCancelRetentionMs = settings.notificationRetentionMs
             val notificationId = smsMsg.hashCode()
 
             val cancelNotifyAction = CancelNotifyAction(mPluginContext, mPhoneContext, smsMsg)
@@ -159,7 +148,7 @@ class CodeWorker(
         }
 
         mScheduledExecutor.shutdown()
-        return buildParseResult(blockSms)
+        return buildParseResult(settings.blockSmsEnabled)
     }
 
     private fun buildParseResult(blockSms: Boolean): ParseResult {
@@ -168,12 +157,11 @@ class CodeWorker(
         return parseResult
     }
 
-    private fun scheduleOperateSmsActions(smsMsg: SmsMsg) {
-        val delays = when {
-            PrefsReader.deleteSmsEnabled(mPluginContext) -> DELETE_SMS_DELAYS_MS
-            PrefsReader.markAsReadEnabled(mPluginContext) -> MARK_AS_READ_RETRY_DELAYS_MS
-            else -> emptyList()
-        }
+    private fun scheduleOperateSmsActions(
+        smsMsg: SmsMsg,
+        settings: SmsCodePostParseCoordinator.Settings,
+    ) {
+        val delays = SmsCodePostParseCoordinator.resolveOperateSmsDelays(settings)
         delays.forEach { delayMs ->
             mScheduledExecutor.schedule(
                 OperateSmsAction(mPluginContext, mPhoneContext, smsMsg),
@@ -185,7 +173,5 @@ class CodeWorker(
 
     companion object {
         private const val FORWARD_ACTION_DELAY_MS = 100L
-        private val MARK_AS_READ_RETRY_DELAYS_MS = listOf(300L, 1000L, 2000L)
-        private val DELETE_SMS_DELAYS_MS = listOf(300L)
     }
 }
