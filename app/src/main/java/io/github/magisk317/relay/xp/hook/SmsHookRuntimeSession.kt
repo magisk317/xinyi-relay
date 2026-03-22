@@ -1,0 +1,62 @@
+package io.github.magisk317.relay.xp.hook
+
+import android.content.Context
+
+internal data class SmsHookRuntimeContext(
+    val phoneContext: Context,
+    val pluginContext: Context,
+)
+
+internal class SmsHookRuntimeSession(
+    private val applicationId: String,
+    private val packageName: String,
+    private val pluginContextResolver: (Context, String) -> Context? = { phoneContext, applicationId ->
+        SmsHookBridgeHelper.resolvePluginContext(
+            phoneContext = phoneContext,
+            currentPluginContext = null,
+            applicationId = applicationId,
+        )
+    },
+    private val heartbeatRecorder: (Context, Context, String, String) -> Unit = { pluginContext, phoneContext, packageName, source ->
+        SmsHookBridgeHelper.recordSmsHookHeartbeat(
+            pluginContext = pluginContext,
+            phoneContext = phoneContext,
+            packageName = packageName,
+            source = source,
+        )
+    },
+) {
+    @Volatile
+    private var phoneContext: Context? = null
+
+    @Volatile
+    private var pluginContext: Context? = null
+
+    fun initialize(context: Context): SmsHookRuntimeContext? = synchronized(this) {
+        if (phoneContext == null) {
+            phoneContext = context
+        }
+        currentOrResolveLocked()
+    }
+
+    fun currentOrResolve(): SmsHookRuntimeContext? = synchronized(this) {
+        currentOrResolveLocked()
+    }
+
+    fun recordHeartbeat(source: String): SmsHookRuntimeContext? {
+        val runtime = currentOrResolve() ?: return null
+        heartbeatRecorder(runtime.pluginContext, runtime.phoneContext, packageName, source)
+        return runtime
+    }
+
+    private fun currentOrResolveLocked(): SmsHookRuntimeContext? {
+        val resolvedPhoneContext = phoneContext ?: return null
+        val resolvedPluginContext = pluginContext
+            ?: pluginContextResolver(resolvedPhoneContext, applicationId)?.also { pluginContext = it }
+            ?: return null
+        return SmsHookRuntimeContext(
+            phoneContext = resolvedPhoneContext,
+            pluginContext = resolvedPluginContext,
+        )
+    }
+}
