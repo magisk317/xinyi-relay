@@ -14,8 +14,6 @@ import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
 import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
-import io.github.magisk317.relay.xp.hook.code.action.impl.AutoInputAction
-import io.github.magisk317.relay.xp.hook.code.action.impl.RecordSmsAction
 import io.github.magisk317.smscode.core.utils.XLog
 import java.util.Collections
 import java.util.LinkedHashSet
@@ -156,7 +154,11 @@ internal class SmsInboxObserver(
                 read,
                 triggerUri,
             )
-            AutoInputAction(pluginContext, phoneContext, smsMsg).call()
+            SmsCodePostParseCoordinator.runAutoInputNow(
+                pluginContext = pluginContext,
+                phoneContext = phoneContext,
+                smsMsg = smsMsg,
+            )
         } else {
             XLog.w("Diag observer auto-input disabled: event_id=%s", eventId)
         }
@@ -166,7 +168,12 @@ internal class SmsInboxObserver(
             return
         }
         // Keep record behavior consistent with regular flow when enabled.
-        RecordSmsAction(pluginContext, phoneContext, smsMsg, eventId).call()
+        SmsCodePostParseCoordinator.runRecordNow(
+            pluginContext = pluginContext,
+            phoneContext = phoneContext,
+            smsMsg = smsMsg,
+            eventId = eventId,
+        )
     }
 
     private fun logSmsRoleState(eventId: String) {

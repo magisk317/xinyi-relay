@@ -8,9 +8,9 @@ import android.util.Log
 import androidx.core.os.BundleCompat
 import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.common.utils.PrefsReader
-import io.github.magisk317.smscode.core.utils.XLog
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.xp.hook.code.action.impl.*
+import io.github.magisk317.smscode.core.utils.XLog
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
@@ -108,8 +108,13 @@ class CodeWorker(
         val autoInputDelayMs = PrefsReader.getAutoInputCodeDelay(mPluginContext) * 1000L
         // 自动输入 Action
         if (autoInput) {
-            val autoInputAction = AutoInputAction(mPluginContext, mPhoneContext, smsMsg)
-            mScheduledExecutor.schedule(autoInputAction, autoInputDelayMs, TimeUnit.MILLISECONDS)
+            SmsCodePostParseCoordinator.scheduleAutoInput(
+                executor = mScheduledExecutor,
+                pluginContext = mPluginContext,
+                phoneContext = mPhoneContext,
+                smsMsg = smsMsg,
+                delayMs = autoInputDelayMs,
+            )
         }
 
         if (showNotification) {
@@ -119,18 +124,24 @@ class CodeWorker(
         }
 
         // 记录验证码短信 Action（转发状态与拦截配置解耦）
-        val recordSmsAction = RecordSmsAction(mPluginContext, mPhoneContext, smsMsg, eventId)
-        mScheduledExecutor.schedule(recordSmsAction, 0, TimeUnit.MILLISECONDS)
+        SmsCodePostParseCoordinator.scheduleRecord(
+            executor = mScheduledExecutor,
+            pluginContext = mPluginContext,
+            phoneContext = mPhoneContext,
+            smsMsg = smsMsg,
+            eventId = eventId,
+        )
 
         // 转发 Action
-        val forwardAction = ForwardAction(
-            mPluginContext,
-            mPhoneContext,
-            smsMsg,
-            mSmsIntent,
-            eventId,
+        SmsCodePostParseCoordinator.scheduleForward(
+            executor = mScheduledExecutor,
+            pluginContext = mPluginContext,
+            phoneContext = mPhoneContext,
+            smsMsg = smsMsg,
+            smsIntent = mSmsIntent,
+            eventId = eventId,
+            delayMs = FORWARD_ACTION_DELAY_MS,
         )
-        mScheduledExecutor.schedule(forwardAction, FORWARD_ACTION_DELAY_MS, TimeUnit.MILLISECONDS)
 
         // 操作验证码短信（标记为已读 或者 删除） Action
         scheduleOperateSmsActions(smsMsg)
