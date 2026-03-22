@@ -5,10 +5,9 @@ import android.content.Intent
 import android.os.Process
 import android.provider.Telephony
 import io.github.magisk317.relay.BuildConfig
-import io.github.magisk317.relay.common.utils.ActivationDiagnosticsStore
 import io.github.magisk317.relay.common.utils.PrefsReader
-import io.github.magisk317.relay.common.utils.RuntimeLogStore
 import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
+import io.github.magisk317.relay.xp.hook.SmsHookDispatchGate
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
@@ -107,23 +106,39 @@ class SmsForwardHook : BaseHook() {
         }
         val pluginContext = runtime.pluginContext
         val phoneContext = runtime.phoneContext
-        if (!PrefsReader.isEnabled(pluginContext)) {
-            XLog.w("SmsForwardHook: module disabled, skip forward. event_id=%s", eventId)
-            return
-        }
-        if (!PrefsReader.relayFeaturesEnabled(pluginContext)) {
-            XLog.w("SmsForwardHook: relay disabled, skip forward. event_id=%s", eventId)
-            return
-        }
-        if (ModuleConflictArbiter.shouldSuppressByRelay(phoneContext, "SmsForwardHook#dispatchIntent")) {
-            logSuppressedOnce("dispatchIntent")
-            SmsCodeConflictNoticeHelper.notifyConflictOnSms(
-                pluginContext,
-                phoneContext,
-                eventId,
-                "SmsForwardHook#dispatchIntent",
-            )
-            return
+        when (
+            SmsHookDispatchGate.evaluate(
+                moduleEnabled = PrefsReader.isEnabled(pluginContext),
+                relayFeatureRequired = true,
+                relayFeaturesEnabled = PrefsReader.relayFeaturesEnabled(pluginContext),
+                suppressedByRelay = ModuleConflictArbiter.shouldSuppressByRelay(
+                    phoneContext,
+                    "SmsForwardHook#dispatchIntent",
+                ),
+            ).reason
+        ) {
+            SmsHookDispatchGate.BlockReason.MODULE_DISABLED -> {
+                XLog.w("SmsForwardHook: module disabled, skip forward. event_id=%s", eventId)
+                return
+            }
+
+            SmsHookDispatchGate.BlockReason.RELAY_DISABLED -> {
+                XLog.w("SmsForwardHook: relay disabled, skip forward. event_id=%s", eventId)
+                return
+            }
+
+            SmsHookDispatchGate.BlockReason.CONFLICT_SUPPRESSED -> {
+                logSuppressedOnce("dispatchIntent")
+                SmsCodeConflictNoticeHelper.notifyConflictOnSms(
+                    pluginContext,
+                    phoneContext,
+                    eventId,
+                    "SmsForwardHook#dispatchIntent",
+                )
+                return
+            }
+
+            else -> Unit
         }
 
         val smsMsg = SmsHookDispatchCoordinator.parseIncomingSms(intent)

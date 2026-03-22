@@ -10,16 +10,14 @@ import android.os.Message
 import android.provider.Telephony
 import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.common.utils.ActivationDiagnosticsStore
 import io.github.magisk317.relay.common.constant.NotificationConst
 import io.github.magisk317.smscode.core.utils.ModuleActivationStore
 import io.github.magisk317.relay.common.utils.NotificationUtils
 import io.github.magisk317.relay.common.utils.PrefsReader
-import io.github.magisk317.relay.common.utils.RuntimeLogStore
 import io.github.magisk317.relay.common.utils.SmsBlacklistUtils
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
-import io.github.magisk317.relay.xp.hook.SmsHookBridgeHelper
+import io.github.magisk317.relay.xp.hook.SmsHookDispatchGate
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
 import io.github.magisk317.smscode.core.utils.XLog
@@ -303,15 +301,35 @@ class SmsHandlerHook : BaseHook() {
         }
         val pluginContext = runtime.pluginContext
         val phoneContext = runtime.phoneContext
-        if (ModuleConflictArbiter.shouldSuppressByRelay(phoneContext, "SmsHandlerHook#dispatchIntent")) {
-            logSuppressedOnce("dispatchIntent")
-            SmsCodeConflictNoticeHelper.notifyConflictOnSms(
-                pluginContext,
-                phoneContext,
-                eventId,
-                "SmsHandlerHook#dispatchIntent",
-            )
-            return
+        when (
+            SmsHookDispatchGate.evaluate(
+                moduleEnabled = PrefsReader.isEnabled(pluginContext),
+                relayFeatureRequired = false,
+                relayFeaturesEnabled = true,
+                suppressedByRelay = ModuleConflictArbiter.shouldSuppressByRelay(
+                    phoneContext,
+                    "SmsHandlerHook#dispatchIntent",
+                ),
+            ).reason
+        ) {
+            SmsHookDispatchGate.BlockReason.MODULE_DISABLED -> {
+                XLog.w("Diag: module disabled in settings")
+                XLog.i("XposedSmsCode disabled, exiting")
+                return
+            }
+
+            SmsHookDispatchGate.BlockReason.CONFLICT_SUPPRESSED -> {
+                logSuppressedOnce("dispatchIntent")
+                SmsCodeConflictNoticeHelper.notifyConflictOnSms(
+                    pluginContext,
+                    phoneContext,
+                    eventId,
+                    "SmsHandlerHook#dispatchIntent",
+                )
+                return
+            }
+
+            else -> Unit
         }
         val smsMsg = SmsHookDispatchCoordinator.parseIncomingSms(intent)
         val blacklistResult = SmsBlacklistUtils.match(pluginContext, smsMsg?.sender, smsMsg?.body)
