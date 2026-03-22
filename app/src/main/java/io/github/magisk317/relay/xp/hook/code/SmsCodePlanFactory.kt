@@ -1,23 +1,23 @@
 package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
-import io.github.magisk317.relay.common.utils.PrefsReader
+import io.github.magisk317.relay.xp.XpPrefs
 
 internal object SmsCodePlanFactory {
     fun loadSettings(pluginContext: Context): SmsCodePostParseCoordinator.Settings {
         return SmsCodePostParseCoordinator.Settings(
-            showNotification = PrefsReader.showCodeNotification(pluginContext),
-            autoCancelNotification = PrefsReader.autoCancelCodeNotification(pluginContext),
-            notificationRetentionMs = PrefsReader.getNotificationRetentionTime(pluginContext) * 1000L,
-            autoInputEnabled = PrefsReader.autoInputCodeEnabled(pluginContext),
-            autoInputDelayMs = PrefsReader.getAutoInputCodeDelay(pluginContext) * 1000L,
-            copyToClipboardEnabled = PrefsReader.copyToClipboardEnabled(pluginContext),
-            showToast = PrefsReader.shouldShowToast(pluginContext),
-            recordSmsEnabled = PrefsReader.recordSmsCodeEnabled(pluginContext),
-            blockSmsEnabled = PrefsReader.blockSmsEnabled(pluginContext),
-            markAsReadEnabled = PrefsReader.markAsReadEnabled(pluginContext),
-            deleteSmsEnabled = PrefsReader.deleteSmsEnabled(pluginContext),
-            deduplicateSmsEnabled = PrefsReader.deduplicateSms(pluginContext),
+            showNotification = XpPrefs.showCodeNotification(pluginContext),
+            autoCancelNotification = XpPrefs.autoCancelCodeNotification(pluginContext),
+            notificationRetentionMs = XpPrefs.getNotificationRetentionTime(pluginContext) * 1000L,
+            autoInputEnabled = XpPrefs.autoInputCodeEnabled(pluginContext),
+            autoInputDelayMs = XpPrefs.getAutoInputCodeDelay(pluginContext) * 1000L,
+            copyToClipboardEnabled = XpPrefs.copyToClipboardEnabled(pluginContext),
+            showToast = XpPrefs.shouldShowToast(pluginContext),
+            recordSmsEnabled = XpPrefs.recordSmsCodeEnabled(pluginContext),
+            blockSmsEnabled = XpPrefs.blockSmsEnabled(pluginContext),
+            markAsReadEnabled = XpPrefs.markAsReadEnabled(pluginContext),
+            deleteSmsEnabled = XpPrefs.deleteSmsEnabled(pluginContext),
+            deduplicateSmsEnabled = XpPrefs.deduplicateSms(pluginContext),
         )
     }
 

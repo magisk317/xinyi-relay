@@ -2,8 +2,8 @@ package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
 import android.content.Intent
-import io.github.magisk317.relay.common.utils.PrefsReader
 import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.xp.XpPrefs
 import io.github.magisk317.relay.xp.hook.SmsHookDispatchGate
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
@@ -12,7 +12,7 @@ import io.github.magisk317.smscode.core.utils.XLog
 
 internal class SmsDispatchIntentHandler(
     private val runtimeResolver: (String) -> SmsHookRuntimeContext?,
-    private val moduleEnabledReader: (Context) -> Boolean = PrefsReader::isEnabled,
+    private val moduleEnabledReader: (Context) -> Boolean = XpPrefs::isEnabled,
     private val conflictSuppressor: (Context, String) -> Boolean = { context, source ->
         ModuleConflictArbiter.shouldSuppressByRelay(context, source)
     },

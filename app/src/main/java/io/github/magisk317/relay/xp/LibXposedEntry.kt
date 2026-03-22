@@ -2,7 +2,6 @@ package io.github.magisk317.relay.xp
 
 import android.util.Log
 import io.github.magisk317.relay.BuildConfig
-import io.github.magisk317.relay.common.utils.PrefsReader
 import io.github.magisk317.relay.xp.hook.code.SmsHandlerHook
 import io.github.magisk317.relay.xp.hook.forward.SmsForwardHook
 import io.github.magisk317.relay.xp.hook.me.ModuleUtilsHook
@@ -56,7 +55,7 @@ class LibXposedEntry : XposedModule {
         }
         installCoreRuntime()
         HookEnv.init(LibXposedHookApi(this))
-        PrefsReader.installRuntimeBridge(RuntimeBridgeFactory.create(this))
+        XpPrefs.installRuntimeBridge(RuntimeBridgeFactory.create(this))
         processName = if (param.isSystemServer) "android" else param.processName
 
         for (hook in hookList) {

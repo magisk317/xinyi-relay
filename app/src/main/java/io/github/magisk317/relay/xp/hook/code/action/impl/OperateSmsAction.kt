@@ -14,10 +14,10 @@ import android.os.SystemClock
 import android.provider.Telephony
 import androidx.annotation.IntDef
 import androidx.core.content.ContextCompat
-import io.github.magisk317.relay.common.utils.PrefsReader
-import io.github.magisk317.smscode.core.utils.XLog
 import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.xp.XpPrefs
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
+import io.github.magisk317.smscode.core.utils.XLog
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
@@ -53,9 +53,9 @@ class OperateSmsAction(pluginContext: Context, phoneContext: Context, smsMsg: Sm
             OP_DELETE -> deleteSms(sender, body)
             OP_MARK_AS_READ -> markSmsAsRead(sender, body)
             else -> {
-                if (PrefsReader.deleteSmsEnabled(mPluginContext)) {
+                if (XpPrefs.deleteSmsEnabled(mPluginContext)) {
                     deleteSms(sender, body)
-                } else if (PrefsReader.markAsReadEnabled(mPluginContext)) {
+                } else if (XpPrefs.markAsReadEnabled(mPluginContext)) {
                     markSmsAsRead(sender, body)
                 }
             }

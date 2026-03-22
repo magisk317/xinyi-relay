@@ -1,10 +1,10 @@
 package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
-import io.github.magisk317.relay.common.utils.PrefsReader
 import io.github.magisk317.relay.data.db.entity.SmsMsg
-import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
-import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
+import io.github.magisk317.relay.xp.XpDispatchCoordinator
+import io.github.magisk317.relay.xp.XpPrefs
+import io.github.magisk317.relay.xp.XpRecordFacade
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.smscode.core.utils.XLog
 import kotlinx.coroutines.runBlocking
@@ -12,18 +12,18 @@ import kotlinx.coroutines.runBlocking
 internal class ObservedSmsHandler(
     private val pluginContext: Context,
     private val phoneContext: Context,
-    private val runtimeRecordFacadeProvider: (() -> RuntimeRecordFacade)? = null,
+    private val runtimeRecordFacadeProvider: (() -> XpRecordFacade)? = null,
     private val settingsLoader: (Context) -> SmsCodePostParseCoordinator.Settings = SmsCodePostParseCoordinator::loadSettings,
     private val planFactory: (SmsCodePostParseCoordinator.Settings) -> SmsCodePostParseCoordinator.ObservedSmsPlan =
         SmsCodePostParseCoordinator::createObservedSmsPlan,
-    private val moduleEnabledReader: (Context) -> Boolean = PrefsReader::isEnabled,
+    private val moduleEnabledReader: (Context) -> Boolean = XpPrefs::isEnabled,
     private val conflictSuppressor: (Context, String) -> Boolean = { context, source ->
         ModuleConflictArbiter.shouldSuppressByRelay(context, source)
     },
     private val roleStateLogger: (String) -> Unit = {},
     private val duplicateChecker: ((SmsCodePostParseCoordinator.Settings, String, String, Long) -> Boolean)? = null,
     private val smsEnricher: (Context, String, String, Long, String) -> SmsMsg = { context, sender, body, date, code ->
-        SmsHookDispatchCoordinator.enrichObservedSms(
+        XpDispatchCoordinator.enrichObservedSms(
             phoneContext = context,
             sender = sender,
             body = body,
@@ -129,7 +129,7 @@ internal class ObservedSmsHandler(
         if (!settings.deduplicateSmsEnabled) {
             return false
         }
-        val runtimeRecordFacade = runtimeRecordFacadeProvider?.invoke() ?: RuntimeRecordFacade(pluginContext)
+        val runtimeRecordFacade = runtimeRecordFacadeProvider?.invoke() ?: XpRecordFacade(pluginContext)
         val timestamp = if (date > 0) date else currentTimeMillis()
         return runBlocking {
             runCatching {

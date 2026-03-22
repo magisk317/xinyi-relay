@@ -3,9 +3,9 @@ package io.github.magisk317.relay.xp.hook.code.action.impl
 import android.app.ActivityManager
 import android.content.Context
 import android.os.Bundle
-import io.github.magisk317.relay.common.utils.PrefsReader
 import io.github.magisk317.relay.data.db.entity.SmsMsg
-import io.github.magisk317.relay.domain.system.RuntimeAppConfigFacade
+import io.github.magisk317.relay.xp.XpAppConfigFacade
+import io.github.magisk317.relay.xp.XpPrefs
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 import io.github.magisk317.relay.xp.hook.code.helper.InputHelper
 import io.github.magisk317.smscode.core.utils.XLog
@@ -22,10 +22,10 @@ class AutoInputAction(
     private val deduplicateEnabled: Boolean? = null,
 ) :
     CallableAction(pluginContext, phoneContext, smsMsg) {
-    private val runtimeAppConfigFacade = RuntimeAppConfigFacade(pluginContext)
+    private val runtimeAppConfigFacade = XpAppConfigFacade(pluginContext)
 
     override fun action(): Bundle? {
-        if (deduplicateEnabled ?: PrefsReader.deduplicateSms(mPluginContext)) {
+        if (deduplicateEnabled ?: XpPrefs.deduplicateSms(mPluginContext)) {
             if (shouldSkipByRecentAutoInput(mSmsMsg)) {
                 return null
             }
@@ -44,8 +44,8 @@ class AutoInputAction(
     @Suppress("TooGenericExceptionCaught")
     private fun autoInputCode(code: String?) {
         try {
-            val autoEnter = PrefsReader.autoEnterCodeEnabled(mPluginContext)
-            val inputIntervalMs = PrefsReader.getAutoInputCodeIntervalMs(mPluginContext)
+            val autoEnter = XpPrefs.autoEnterCodeEnabled(mPluginContext)
+            val inputIntervalMs = XpPrefs.getAutoInputCodeIntervalMs(mPluginContext)
             InputHelper.sendText(mPhoneContext, code, autoEnter, inputIntervalMs)
             XLog.d("Auto input code succeed, autoEnter: $autoEnter")
         } catch (throwable: Throwable) {

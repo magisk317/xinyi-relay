@@ -1,9 +1,8 @@
 package io.github.magisk317.relay.xp.hook
 
 import android.content.Context
-import io.github.magisk317.relay.common.utils.ActivationDiagnosticsStore
-import io.github.magisk317.relay.common.utils.PrefsReader
-import io.github.magisk317.relay.common.utils.RuntimeLogStore
+import io.github.magisk317.relay.xp.XpHookDiagnostics
+import io.github.magisk317.relay.xp.XpPrefs
 
 internal object SmsHookBridgeHelper {
     fun resolvePluginContext(
@@ -26,13 +25,12 @@ internal object SmsHookBridgeHelper {
         packageName: String,
         source: String,
     ) {
-        ActivationDiagnosticsStore.recordHookHeartbeat(
+        XpHookDiagnostics.recordSmsHookHeartbeat(
             context = pluginContext,
             packageName = packageName,
             processName = phoneContext.applicationInfo?.processName ?: packageName,
             source = source,
-            verboseLogging = PrefsReader.isVerboseLogMode(pluginContext),
-            route = RuntimeLogStore.ROUTE_SMS_HOOK,
+            verboseLogging = XpPrefs.isVerboseLogMode(pluginContext),
         )
     }
 }

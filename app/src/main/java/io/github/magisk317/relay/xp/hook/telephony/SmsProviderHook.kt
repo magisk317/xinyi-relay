@@ -5,9 +5,8 @@ import android.content.ContentValues
 import android.net.Uri
 import android.os.Binder
 import io.github.magisk317.relay.BuildConfig
-import io.github.magisk317.relay.common.utils.ActivationDiagnosticsStore
-import io.github.magisk317.relay.common.utils.PrefsReader
-import io.github.magisk317.relay.common.utils.RuntimeLogStore
+import io.github.magisk317.relay.xp.XpHookDiagnostics
+import io.github.magisk317.relay.xp.XpPrefs
 import io.github.magisk317.smscode.core.utils.XLog
 import io.github.magisk317.smscode.core.hook.BaseHook
 import io.github.magisk317.smscode.core.helper.XposedWrapper
@@ -57,13 +56,12 @@ class SmsProviderHook : BaseHook() {
                             )
                         }.getOrNull()
                         if (pluginContext != null && context != null) {
-                            ActivationDiagnosticsStore.recordHookHeartbeat(
+                            XpHookDiagnostics.recordSmsHookHeartbeat(
                                 context = pluginContext,
                                 packageName = TELEPHONY_PROVIDER_PACKAGE,
                                 processName = context.applicationInfo?.processName ?: TELEPHONY_PROVIDER_PACKAGE,
                                 source = "sms_provider_$methodName",
-                                verboseLogging = PrefsReader.isVerboseLogMode(pluginContext),
-                                route = RuntimeLogStore.ROUTE_SMS_HOOK,
+                                verboseLogging = XpPrefs.isVerboseLogMode(pluginContext),
                             )
                         }
                         val callingUid = Binder.getCallingUid()

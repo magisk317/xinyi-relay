@@ -5,8 +5,8 @@ import android.content.Intent
 import android.os.Process
 import android.provider.Telephony
 import io.github.magisk317.relay.BuildConfig
-import io.github.magisk317.relay.common.utils.PrefsReader
-import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
+import io.github.magisk317.relay.xp.XpDispatchCoordinator
+import io.github.magisk317.relay.xp.XpPrefs
 import io.github.magisk317.relay.xp.hook.SmsHookDispatchGate
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
@@ -94,7 +94,7 @@ class SmsForwardHook : BaseHook() {
         ) {
             return
         }
-        val eventId = SmsHookDispatchCoordinator.ensureIncomingEventId(intent)
+        val eventId = XpDispatchCoordinator.ensureIncomingEventId(intent)
         val runtime = runtimeSession.recordHeartbeat("sms_forward_dispatch")
         if (runtime == null) {
             XLog.e(
@@ -108,9 +108,9 @@ class SmsForwardHook : BaseHook() {
         val phoneContext = runtime.phoneContext
         when (
             SmsHookDispatchGate.evaluate(
-                moduleEnabled = PrefsReader.isEnabled(pluginContext),
+                moduleEnabled = XpPrefs.isEnabled(pluginContext),
                 relayFeatureRequired = true,
-                relayFeaturesEnabled = PrefsReader.relayFeaturesEnabled(pluginContext),
+                relayFeaturesEnabled = XpPrefs.relayFeaturesEnabled(pluginContext),
                 suppressedByRelay = ModuleConflictArbiter.shouldSuppressByRelay(
                     phoneContext,
                     "SmsForwardHook#dispatchIntent",
@@ -141,7 +141,7 @@ class SmsForwardHook : BaseHook() {
             else -> Unit
         }
 
-        val smsMsg = SmsHookDispatchCoordinator.parseIncomingSms(intent)
+        val smsMsg = XpDispatchCoordinator.parseIncomingSms(intent)
         if (smsMsg == null) {
             XLog.w("SmsForwardHook: parse sms failed, skip. event_id=%s", eventId)
             return
@@ -154,7 +154,7 @@ class SmsForwardHook : BaseHook() {
         }
 
         val prepared = runBlocking {
-            SmsHookDispatchCoordinator.prepareIngressSms(
+            XpDispatchCoordinator.prepareIngressSms(
                 pluginContext = pluginContext,
                 phoneContext = phoneContext,
                 smsMsg = smsMsg,
@@ -169,7 +169,7 @@ class SmsForwardHook : BaseHook() {
             XLog.w("SmsForwardHook: ingress message type missing, skip. event_id=%s", eventId)
             return
         }
-        if (!PrefsReader.isMessageTypeEnabled(pluginContext, messageType)) {
+        if (!XpPrefs.isMessageTypeEnabled(pluginContext, messageType)) {
             XLog.w(
                 "SmsForwardHook: message type disabled, skip. event_id=%s type=%s",
                 eventId,
@@ -179,7 +179,7 @@ class SmsForwardHook : BaseHook() {
         }
         val resolvedSmsMsg = prepared.smsMsg
 
-        val dispatchResult = SmsHookDispatchCoordinator.dispatchPreparedSms(
+        val dispatchResult = XpDispatchCoordinator.dispatchPreparedSms(
             context = pluginContext,
             prepared = prepared,
             sentFromUid = Process.myUid(),

@@ -4,12 +4,12 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Process
-import io.github.magisk317.smscode.core.utils.XLog
 import io.github.magisk317.relay.data.db.entity.SmsMsg
-import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
 import io.github.magisk317.relay.platform.ipc.PreparedSmsHookDispatch
-import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
+import io.github.magisk317.relay.xp.XpDispatchCoordinator
+import io.github.magisk317.relay.xp.XpRecordFacade
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
+import io.github.magisk317.smscode.core.utils.XLog
 import kotlinx.coroutines.runBlocking
 
 /**
@@ -23,7 +23,7 @@ class ForwardAction(
     private val eventId: String = "",
 ) :
     CallableAction(pluginContext, phoneContext, smsMsg) {
-    private val runtimeRecordFacade = RuntimeRecordFacade(pluginContext)
+    private val runtimeRecordFacade = XpRecordFacade(pluginContext)
 
     override fun action(): Bundle? {
         try {
@@ -33,14 +33,14 @@ class ForwardAction(
                 eventId.ifBlank { "<none>" },
                 isCodeSms,
             )
-            val prepared = SmsHookDispatchCoordinator.prepareParsedSms(
+            val prepared = XpDispatchCoordinator.prepareParsedSms(
                 smsMsg = mSmsMsg,
                 eventId = eventId.ifBlank { null },
                 sourceIntent = mSmsIntent,
             )
             logSimExtras(prepared)
 
-            val dispatchResult = SmsHookDispatchCoordinator.dispatchPreparedSms(
+            val dispatchResult = XpDispatchCoordinator.dispatchPreparedSms(
                 context = mPluginContext,
                 prepared = prepared,
                 sentFromUid = Process.myUid(),

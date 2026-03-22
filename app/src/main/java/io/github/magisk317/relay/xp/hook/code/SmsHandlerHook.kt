@@ -10,10 +10,10 @@ import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.common.constant.NotificationConst
 import io.github.magisk317.relay.common.utils.NotificationUtils
-import io.github.magisk317.relay.common.utils.PrefsReader
 import io.github.magisk317.smscode.core.utils.ModuleActivationStore
 import io.github.magisk317.relay.data.db.entity.SmsMsg
-import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
+import io.github.magisk317.relay.xp.XpDispatchCoordinator
+import io.github.magisk317.relay.xp.XpPrefs
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
 import io.github.magisk317.smscode.core.utils.XLog
@@ -239,7 +239,7 @@ class SmsHandlerHook : BaseHook() {
     }
 
     private fun registerCopyCodeReceiver(runtime: SmsHookRuntimeContext) {
-        if (!PrefsReader.showCodeNotification(runtime.pluginContext)) return
+        if (!XpPrefs.showCodeNotification(runtime.pluginContext)) return
         CopyCodeReceiver.registerMe(runtime.phoneContext)
         XLog.d("Register copy code receiver")
     }
@@ -324,7 +324,7 @@ class SmsHandlerHook : BaseHook() {
     }
 
     private fun ensureEventId(intent: Intent): String {
-        return SmsHookDispatchCoordinator.ensureIncomingEventId(intent)
+        return XpDispatchCoordinator.ensureIncomingEventId(intent)
     }
 
     private fun logSuppressedOnce(stage: String) {

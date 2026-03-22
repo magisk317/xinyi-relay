@@ -7,8 +7,8 @@ import android.os.Looper
 import android.util.Log
 import androidx.core.os.BundleCompat
 import io.github.magisk317.relay.BuildConfig
-import io.github.magisk317.relay.common.utils.PrefsReader
 import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.xp.XpPrefs
 import io.github.magisk317.relay.xp.hook.code.action.impl.SmsParseAction
 import io.github.magisk317.smscode.core.utils.XLog
 import java.util.concurrent.Executors
@@ -26,8 +26,8 @@ class CodeWorker(
     fun parse(): ParseResult? {
         val settings = SmsCodePostParseCoordinator.loadSettings(mPluginContext)
         val plan = SmsCodePostParseCoordinator.createParsedSmsPlan(settings, FORWARD_ACTION_DELAY_MS)
-        val moduleEnabled = PrefsReader.isEnabled(mPluginContext)
-        val verboseLog = PrefsReader.isVerboseLogMode(mPluginContext)
+        val moduleEnabled = XpPrefs.isEnabled(mPluginContext)
+        val verboseLog = XpPrefs.isVerboseLogMode(mPluginContext)
         XLog.w(
             "Diag settings: event_id=%s enabled=%s, verbose=%s, showNotif=%s, autoCancel=%s, " +
             "retentionSec=%d, autoInput=%s, copy=%s, toast=%s, record=%s, " +

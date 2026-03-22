@@ -4,13 +4,13 @@ import android.content.Context
 import android.content.Intent
 import io.github.magisk317.relay.common.utils.SmsBlacklistUtils
 import io.github.magisk317.relay.data.db.entity.SmsMsg
-import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
+import io.github.magisk317.relay.xp.XpDispatchCoordinator
 import io.github.magisk317.smscode.core.utils.XLog
 
 internal class SmsDispatchIntentProcessor(
     private val pluginContext: Context,
     private val phoneContext: Context,
-    private val incomingSmsParser: (Intent) -> SmsMsg? = SmsHookDispatchCoordinator::parseIncomingSms,
+    private val incomingSmsParser: (Intent) -> SmsMsg? = XpDispatchCoordinator::parseIncomingSms,
     private val blacklistMatcher: (Context, String?, String?) -> SmsBlacklistUtils.MatchResult = SmsBlacklistUtils::match,
     private val codeParser: (Context, Context, Intent, String) -> ParseResult? = { pluginContext, phoneContext, intent, eventId ->
         CodeWorker(pluginContext, phoneContext, intent, eventId).parse()

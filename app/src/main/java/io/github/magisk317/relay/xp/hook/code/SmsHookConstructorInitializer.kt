@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
-import io.github.magisk317.relay.common.utils.PrefsReader
+import io.github.magisk317.relay.xp.XpPrefs
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
@@ -15,7 +15,7 @@ internal class SmsHookConstructorInitializer(
     private val conflictSuppressor: (Context, String) -> Boolean = { context, source ->
         ModuleConflictArbiter.shouldSuppressByRelay(context, source)
     },
-    private val showNotificationReader: (Context) -> Boolean = PrefsReader::showCodeNotification,
+    private val showNotificationReader: (Context) -> Boolean = XpPrefs::showCodeNotification,
     private val notificationChannelInitializer: (SmsHookRuntimeContext) -> Unit = {},
     private val copyCodeRegistrar: (SmsHookRuntimeContext) -> Unit = {},
     private val activationMarker: (Context) -> Unit = ModuleActivationStore::markActivated,

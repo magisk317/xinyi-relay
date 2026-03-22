@@ -8,8 +8,8 @@ import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.common.utils.StringUtils
 import io.github.magisk317.relay.data.db.entity.SmsMsg
-import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
-import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
+import io.github.magisk317.relay.xp.XpDispatchCoordinator
+import io.github.magisk317.relay.xp.XpRecordFacade
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 import io.github.magisk317.smscode.core.utils.XLog
 
@@ -21,7 +21,7 @@ class SmsParseAction(pluginContext: Context, phoneContext: Context, smsMsg: SmsM
 
     private var mSmsIntent: Intent? = null
     private var mDeduplicateEnabled: Boolean = false
-    private val runtimeRecordFacade = RuntimeRecordFacade(pluginContext)
+    private val runtimeRecordFacade = XpRecordFacade(pluginContext)
 
     fun setSmsIntent(smsIntent: Intent?) {
         mSmsIntent = smsIntent
@@ -85,7 +85,7 @@ class SmsParseAction(pluginContext: Context, phoneContext: Context, smsMsg: SmsM
         }
 
         val prepared = kotlinx.coroutines.runBlocking {
-            SmsHookDispatchCoordinator.prepareIngressSms(
+            XpDispatchCoordinator.prepareIngressSms(
                 pluginContext = mPluginContext,
                 phoneContext = mPhoneContext,
                 smsMsg = smsMsg,
