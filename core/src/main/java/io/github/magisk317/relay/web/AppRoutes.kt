@@ -7,7 +7,7 @@ import io.ktor.server.routing.patch
 
 import kotlinx.serialization.json.Json
 
-internal fun Route.registerAppRoutes(
+fun Route.registerAppRoutes(
     json: Json,
     dataService: WebUiDataService,
     sessionManager: SessionManager,

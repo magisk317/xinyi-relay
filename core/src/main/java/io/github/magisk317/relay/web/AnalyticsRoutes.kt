@@ -4,7 +4,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import kotlinx.serialization.json.Json
 
-internal fun Route.registerAnalyticsRoutes(
+fun Route.registerAnalyticsRoutes(
     json: Json,
     dataService: WebUiDataService,
     sessionManager: SessionManager,

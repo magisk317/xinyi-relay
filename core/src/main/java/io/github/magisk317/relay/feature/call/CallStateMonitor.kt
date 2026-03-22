@@ -8,14 +8,14 @@ import android.os.Build
 import android.telephony.TelephonyCallback
 import android.telephony.TelephonyManager
 import androidx.core.content.ContextCompat
-import io.github.magisk317.relay.BuildConfig
+import io.github.magisk317.relay.core.BuildConfig
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.feature.reminder.SpecialAlertCoordinator
 import io.github.magisk317.relay.domain.event.RelayEvent
-import io.github.magisk317.relay.domain.pipeline.StorageRuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.relay.platform.ipc.ForwardReceiver
 import java.util.UUID
@@ -183,7 +183,7 @@ object CallStateMonitor {
             context.getString(R.string.call_alert_notification_content, display)
         }
         val token = runBlocking {
-            val runtimeGraph = StorageRuntimeGraph.from(context)
+            val runtimeGraph = RuntimeGraph.from(context)
             RuntimeSettingsCache.getString(
                 key = PrefConst.KEY_IPC_TOKEN,
                 defaultValue = "",
@@ -213,7 +213,7 @@ object CallStateMonitor {
     }
 
     private fun loadCallAlertFlags(context: Context): Pair<Boolean, Boolean> = runBlocking {
-        val runtimeGraph = StorageRuntimeGraph.from(context)
+        val runtimeGraph = RuntimeGraph.from(context)
         val messageTypeEnabled = RuntimeSettingsCache.getBoolean(
             key = PrefConst.KEY_MSG_TYPE_CALL_NOTIFY_ENABLED,
             defaultValue = false,

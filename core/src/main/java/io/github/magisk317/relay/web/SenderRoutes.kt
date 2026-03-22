@@ -8,7 +8,7 @@ import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
 import kotlinx.serialization.json.Json
 
-internal fun Route.registerSenderRoutes(
+fun Route.registerSenderRoutes(
     json: Json,
     dataService: WebUiDataService,
     sessionManager: SessionManager,

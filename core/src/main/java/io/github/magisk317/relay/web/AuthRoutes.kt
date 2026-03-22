@@ -9,9 +9,10 @@ import io.ktor.server.routing.route
 import io.ktor.util.date.GMTDate
 import kotlinx.serialization.json.Json
 
-internal fun Route.registerAuthRoutes(
+fun Route.registerAuthRoutes(
     json: Json,
-    runtimeConfig: WebUiRuntimeConfig,
+    expectedUsername: String,
+    expectedPassword: String,
     sessionManager: SessionManager,
     csrfVerifier: CsrfVerifier,
     rateLimiter: AuthRateLimiter,
@@ -33,10 +34,9 @@ internal fun Route.registerAuthRoutes(
                 return@post
             }
 
-            val expectedUsername = runtimeConfig.username.trim()
-            val expectedPassword = runtimeConfig.password
-            val valid = expectedUsername.isNotBlank() && expectedPassword.isNotBlank() &&
-                payload.username.trim() == expectedUsername && payload.password == expectedPassword
+            val trimmedUsername = expectedUsername.trim()
+            val valid = trimmedUsername.isNotBlank() && expectedPassword.isNotBlank() &&
+                payload.username.trim() == trimmedUsername && payload.password == expectedPassword
             if (!valid) {
                 rateLimiter.recordFailure(remoteHost)
                 call.respondError(json, HttpStatusCode.Unauthorized, "Invalid credentials")
@@ -44,7 +44,7 @@ internal fun Route.registerAuthRoutes(
             }
             rateLimiter.recordSuccess(remoteHost)
 
-            val session = sessionManager.create(expectedUsername)
+            val session = sessionManager.create(trimmedUsername)
             call.response.cookies.append(
                 Cookie(
                     name = SessionManager.COOKIE_NAME,

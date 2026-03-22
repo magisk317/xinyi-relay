@@ -94,8 +94,11 @@ run_pre_push_checks() {
     cd "$ROOT_DIR"
     chmod +x gradlew
     ./gradlew --warning-mode all \
+      verifyModuleBoundaries \
+      verifyStructureBoundaries \
       assembleGithubDebug \
       testGithubDebugUnitTest \
+      :runtime:verifyNoComposeUiLeak \
       :app:koverVerifyGithubDebug \
       :app:koverHtmlReportGithubDebug \
       -PbuildSplits
@@ -110,7 +113,7 @@ run_pre_push_checks() {
   local sarif_files=(
     "$ROOT_DIR/app/build/reports/detekt/detekt.sarif"
     "$ROOT_DIR/core/build/reports/detekt/detekt.sarif"
-    "$ROOT_DIR/storage/build/reports/detekt/detekt.sarif"
+    "$ROOT_DIR/runtime/build/reports/detekt/detekt.sarif"
   )
   local found_report=0
   local total_findings=0

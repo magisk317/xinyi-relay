@@ -9,7 +9,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-internal suspend inline fun <reified T> ApplicationCall.respondJson(
+suspend inline fun <reified T> ApplicationCall.respondJson(
     json: Json,
     payload: T,
     status: HttpStatusCode = HttpStatusCode.OK,
@@ -21,7 +21,7 @@ internal suspend inline fun <reified T> ApplicationCall.respondJson(
     )
 }
 
-internal suspend fun ApplicationCall.respondError(
+suspend fun ApplicationCall.respondError(
     json: Json,
     status: HttpStatusCode,
     message: String,
@@ -33,11 +33,11 @@ internal suspend fun ApplicationCall.respondError(
     )
 }
 
-internal suspend inline fun <reified T> ApplicationCall.receivePayload(json: Json): T {
+suspend inline fun <reified T> ApplicationCall.receivePayload(json: Json): T {
     return json.decodeFromString(receiveText())
 }
 
-internal suspend fun ApplicationCall.requireSession(
+suspend fun ApplicationCall.requireSession(
     json: Json,
     sessionManager: SessionManager,
 ): WebUiSession? {
@@ -49,7 +49,7 @@ internal suspend fun ApplicationCall.requireSession(
     return session
 }
 
-internal suspend fun ApplicationCall.requireWriteGuard(
+suspend fun ApplicationCall.requireWriteGuard(
     json: Json,
     session: WebUiSession,
     csrfVerifier: CsrfVerifier,

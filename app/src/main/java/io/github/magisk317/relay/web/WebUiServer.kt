@@ -82,7 +82,8 @@ internal class WebUiServer(
 
             registerAuthRoutes(
                 json = json,
-                runtimeConfig = runtimeConfig,
+                expectedUsername = runtimeConfig.username,
+                expectedPassword = runtimeConfig.password,
                 sessionManager = sessionManager,
                 csrfVerifier = csrfVerifier,
                 rateLimiter = rateLimiter,

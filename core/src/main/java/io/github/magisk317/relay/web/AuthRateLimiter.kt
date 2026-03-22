@@ -4,7 +4,7 @@ import java.util.ArrayDeque
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
-internal class AuthRateLimiter(
+class AuthRateLimiter(
     private val failureWindowMillis: Long = TimeUnit.MINUTES.toMillis(5),
     private val blockDurationMillis: Long = TimeUnit.MINUTES.toMillis(10),
     private val maxFailures: Int = 8,

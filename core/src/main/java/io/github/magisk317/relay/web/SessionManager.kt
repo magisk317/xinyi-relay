@@ -4,7 +4,7 @@ import java.security.SecureRandom
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
-internal data class WebUiSession(
+data class WebUiSession(
     val id: String,
     val username: String,
     val csrfToken: String,
@@ -12,7 +12,7 @@ internal data class WebUiSession(
     var lastAccessAt: Long,
 )
 
-internal class SessionManager(
+class SessionManager(
     private val sessionTtlMillis: Long = TimeUnit.HOURS.toMillis(24),
 ) {
 

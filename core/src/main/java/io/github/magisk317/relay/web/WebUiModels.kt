@@ -4,43 +4,43 @@ import io.github.magisk317.relay.domain.sender.SenderType
 import kotlinx.serialization.Serializable
 
 @Serializable
-internal data class HealthResponse(val status: String)
+data class HealthResponse(val status: String)
 
 @Serializable
-internal data class ErrorResponse(val error: String)
+data class ErrorResponse(val error: String)
 
 @Serializable
-internal data class SimpleOkResponse(val ok: Boolean)
+data class SimpleOkResponse(val ok: Boolean)
 
 @Serializable
-internal data class LoginPayload(
+data class LoginPayload(
     val username: String = "",
     val password: String = "",
 )
 
 @Serializable
-internal data class LoginResponse(
+data class LoginResponse(
     val authenticated: Boolean,
     val username: String,
     val csrfToken: String,
 )
 
 @Serializable
-internal data class MeResponse(
+data class MeResponse(
     val authenticated: Boolean,
     val username: String? = null,
     val csrfToken: String? = null,
 )
 
 @Serializable
-internal data class AppUpdatePayload(
+data class AppUpdatePayload(
     val blocked: Boolean? = null,
     val forwarding: Boolean? = null,
     val notifyTemplate: String? = null,
 )
 
 @Serializable
-internal data class AdvancedState(
+data class AdvancedState(
     val enableSmsBlacklist: Boolean,
     val webUiLanAccess: Boolean,
     val senderTotal: Int,
@@ -49,13 +49,13 @@ internal data class AdvancedState(
 )
 
 @Serializable
-internal data class AdvancedUpdatePayload(
+data class AdvancedUpdatePayload(
     val enableSmsBlacklist: Boolean? = null,
     val webUiLanAccess: Boolean? = null,
 )
 
 @Serializable
-internal data class SettingsState(
+data class SettingsState(
     val moduleEnabled: Boolean,
     val verificationFeaturesEnabled: Boolean,
     val relayFeaturesEnabled: Boolean,
@@ -71,7 +71,7 @@ internal data class SettingsState(
 )
 
 @Serializable
-internal data class SettingsUpdatePayload(
+data class SettingsUpdatePayload(
     val moduleEnabled: Boolean? = null,
     val verificationFeaturesEnabled: Boolean? = null,
     val relayFeaturesEnabled: Boolean? = null,
@@ -87,7 +87,7 @@ internal data class SettingsUpdatePayload(
 )
 
 @Serializable
-internal data class VersionState(
+data class VersionState(
     val localVersionName: String,
     val localVersionCode: Int,
     val latestVersionName: String? = null,
@@ -100,7 +100,7 @@ internal data class VersionState(
 )
 
 @Serializable
-internal data class InterceptState(
+data class InterceptState(
     val smsBlacklistNumbers: String,
     val smsBlacklistPrefixes: String,
     val smsBlacklistRegex: String,
@@ -110,7 +110,7 @@ internal data class InterceptState(
 )
 
 @Serializable
-internal data class InterceptUpdatePayload(
+data class InterceptUpdatePayload(
     val smsBlacklistNumbers: String? = null,
     val smsBlacklistPrefixes: String? = null,
     val smsBlacklistRegex: String? = null,
@@ -120,7 +120,7 @@ internal data class InterceptUpdatePayload(
 )
 
 @Serializable
-internal data class SenderItem(
+data class SenderItem(
     val id: Long,
     val name: String,
     val type: Int,
@@ -134,7 +134,7 @@ internal data class SenderItem(
 )
 
 @Serializable
-internal data class SenderCreatePayload(
+data class SenderCreatePayload(
     val name: String = "",
     val type: Int = SenderType.WEBHOOK,
     val jsonSetting: String = "",
@@ -146,7 +146,7 @@ internal data class SenderCreatePayload(
 )
 
 @Serializable
-internal data class SenderUpdatePayload(
+data class SenderUpdatePayload(
     val name: String? = null,
     val type: Int? = null,
     val jsonSetting: String? = null,
@@ -158,7 +158,7 @@ internal data class SenderUpdatePayload(
 )
 
 @Serializable
-internal data class AppItem(
+data class AppItem(
     val packageName: String,
     val label: String,
     val blocked: Boolean,
@@ -167,7 +167,7 @@ internal data class AppItem(
 )
 
 @Serializable
-internal data class RecordItem(
+data class RecordItem(
     val id: Long,
     val date: Long,
     val sender: String,
@@ -182,7 +182,7 @@ internal data class RecordItem(
 )
 
 @Serializable
-internal data class OverviewState(
+data class OverviewState(
     val appCount: Int,
     val blockedCount: Int,
     val forwardingCount: Int,
@@ -194,20 +194,20 @@ internal data class OverviewState(
 )
 
 @Serializable
-internal data class AnalyticsResponse(
+data class AnalyticsResponse(
     val allTime: AnalyticsWindow,
     val last7d: AnalyticsWindow,
     val last30d: AnalyticsWindow,
 )
 
 @Serializable
-internal data class AnalyticsWindow(
+data class AnalyticsWindow(
     val summary: AnalyticsSummary,
     val senderStats: List<SenderTypeStat>,
 )
 
 @Serializable
-internal data class AnalyticsSummary(
+data class AnalyticsSummary(
     val smsCodeDetected: Long,
     val autoInputAttempt: Long,
     val autoInputSuccess: Long,
@@ -216,7 +216,7 @@ internal data class AnalyticsSummary(
 )
 
 @Serializable
-internal data class SenderTypeStat(
+data class SenderTypeStat(
     val senderType: Int,
     val senderTypeLabel: String,
     val configured: Int,

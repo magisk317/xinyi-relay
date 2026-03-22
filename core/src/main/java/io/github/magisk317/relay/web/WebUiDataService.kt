@@ -12,17 +12,17 @@ import io.github.magisk317.relay.data.repository.SettingsRepository
 import io.github.magisk317.relay.data.repository.UserSettingsUpdate
 import io.github.magisk317.relay.data.update.GithubUpdateChecker
 import io.github.magisk317.relay.data.update.UpgradeCheckResult
-import io.github.magisk317.relay.domain.pipeline.StorageRuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.sender.SenderType
-import io.github.magisk317.relay.BuildConfig
+import io.github.magisk317.relay.core.BuildConfig
 import io.github.magisk317.relay.model.Sender
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-internal class WebUiDataService(context: Context) {
+class WebUiDataService(context: Context) {
 
     private val appContext = context.applicationContext ?: context
-    private val runtimeGraph by lazy { StorageRuntimeGraph.from(appContext) }
+    private val runtimeGraph by lazy { RuntimeGraph.from(appContext) }
     private val analyticsRepository by lazy { runtimeGraph.analyticsRepository }
     private val configRepository by lazy { runtimeGraph.configRepository }
     private val settingsRepository by lazy { runtimeGraph.settingsRepository }

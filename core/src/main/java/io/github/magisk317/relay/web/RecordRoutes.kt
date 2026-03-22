@@ -6,7 +6,7 @@ import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import kotlinx.serialization.json.Json
 
-internal fun Route.registerRecordRoutes(
+fun Route.registerRecordRoutes(
     json: Json,
     dataService: WebUiDataService,
     sessionManager: SessionManager,

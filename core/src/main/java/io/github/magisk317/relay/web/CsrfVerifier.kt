@@ -4,7 +4,7 @@ import io.ktor.http.Url
 import io.ktor.server.application.ApplicationCall
 import java.net.InetAddress
 
-internal class CsrfVerifier(
+class CsrfVerifier(
     private val allowLanAccess: Boolean,
 ) {
 

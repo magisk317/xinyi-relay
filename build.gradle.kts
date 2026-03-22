@@ -1,5 +1,6 @@
 import dev.detekt.gradle.extensions.DetektExtension
 import com.adarshr.gradle.testlogger.theme.ThemeType
+import org.gradle.api.tasks.Exec
 
 buildscript {
     repositories {
@@ -120,51 +121,23 @@ tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
 
-tasks.named<Wrapper>("wrapper") {
-    val gradlewFile = layout.projectDirectory.file("gradlew")
-    doLast {
-        val file = gradlewFile.asFile
-        if (file.exists()) {
-            val content = file.readText()
-            val cleanupScript = """
-# Cleanup old Gradle caches
-if [ -d "${"$"}APP_HOME/.gradle" ]; then
-    (
-        cd "${"$"}APP_HOME/.gradle" || exit
-        # Find all version-like directories starting with a digit
-        versions=$(ls -d [0-9]* 2>/dev/null)
-        if [ -n "${"$"}versions" ]; then
-            # Sort versions and keep the last one (latest)
-            # Standard sort works fine for timestamped versions
-            latest=$(echo "${"$"}versions" | sort | tail -n 1)
+tasks.register<Exec>("cleanupGradleCaches") {
+    group = "maintenance"
+    description = "Remove stale Gradle version caches under the project-local .gradle directory."
+    workingDir = rootProject.projectDir
+    commandLine("bash", "${rootProject.projectDir}/scripts/cleanup_gradle_caches.sh")
+}
 
-            # Iterate and remove non-latest versions
-            for d in ${"$"}versions; do
-                if [ "${"$"}d" != "${"$"}latest" ]; then
-                    echo "Cleaning up old Gradle cache: ${"$"}d"
-                    rm -rf "${"$"}d"
-                fi
-            done
-        fi
-    )
-fi
+tasks.register<Exec>("verifyModuleBoundaries") {
+    group = "verification"
+    description = "Ensure app/core/runtime follow the intended direct project dependency graph."
+    workingDir = rootProject.projectDir
+    commandLine("bash", "${rootProject.projectDir}/scripts/verify_module_boundaries.sh")
+}
 
-"""
-            if (!content.contains("Cleaning up old Gradle cache")) {
-                val execCommand = "exec \"\$JAVACMD\" \"\$@\""
-                if (content.contains(execCommand)) {
-                    val replacement = """
-"${"$"}JAVACMD" "${"$"}@"
-EXIT_CODE=${"$"}?
-
-$cleanupScript
-exit ${"$"}EXIT_CODE
-"""
-                    val finalContent = content.replace(execCommand, replacement.trim())
-                    file.writeText(finalContent)
-                    println("Injected cleanup script into gradlew")
-                }
-            }
-        }
-    }
+tasks.register<Exec>("verifyStructureBoundaries") {
+    group = "verification"
+    description = "Ensure app keeps only entry-layer sources and moved logic stays out."
+    workingDir = rootProject.projectDir
+    commandLine("bash", "${rootProject.projectDir}/scripts/verify_structure_boundaries.sh")
 }

@@ -4,12 +4,14 @@
 
 ## 当前分层
 
-### `storage`
+### `runtime`
+- `bootstrap`
+  - 运行时装配入口
+  - 代表对象：`RuntimeGraph`
 - `domain`
   - 运行时主模型与主管线
   - 事件类型：`RelayEvent`
   - 管线组件：`EventGatekeeper`、`SenderSelector`、`RoutingResolver`、`DispatchExecutor`、`DispatchResultWriter`
-  - 原生运行时装配：`StorageRuntimeGraph`
 - `data`
   - Room / Provider / repository
   - 代表对象：`RelayRecordRepository`、`SettingsRepository`
@@ -21,18 +23,22 @@
   - 代表对象：`SendUtils`、`LegacyRelayFacade`
 - `forwarder`
   - 仅保留 sender adapter（`forwarder/utils/sender/*`）与历史兼容工具
-  - sender 类型/校验/配置处理已迁入 `storage/domain/sender`
-  - sender 相关 DAO/Converter 已归档到 `storage/data/db`
+  - sender 类型/校验/配置处理已迁入 `runtime/domain/sender`
+  - sender 相关 DAO/Converter 已归档到 `runtime/data/db`
   - 不再新增主管线编排逻辑
 
 ### `app`
 - Android 应用壳
 - Xposed hook 与系统事件采集
-- WebUI 路由与服务启动
+- WebUI 服务启动、TLS 与静态资源入口
+- 尽量只保留入口、生命周期与装配代码
 - 不直接承载转发主编排
+- `app/web` 仅保留 `WebUiServer`、`WebUiManager`、`WebUiTlsManager`、`WebUiAssetHandler`
 
 ### `core`
 - Compose UI、页面导航、ViewModel、系统能力外观层
+- WebUI 数据编排、状态模型、会话/鉴权/路由协议层
+- 通话监听与电量提醒等应用内协调逻辑
 - 设置页优先通过 repository 读写配置
 - `ComposeSettingsScreen` 仅保留为兼容壳；主路径使用新的设置体验页
 
@@ -40,9 +46,9 @@
 
 运行时依赖的装配规则：
 
-- `storage` 内部通过 `StorageRuntimeGraph` 按需懒加载 `AppDatabase`、repository、pipeline 与 formatter
-- `ForwardReceiver`、`SendUtils` 等运行时入口直接消费 `StorageRuntimeGraph`
-- Koin 只在 `core/app` 层复用这套实例，不再作为 `storage` 运行时的唯一所有者
+- `runtime` 内部通过 `RuntimeGraph` 按需懒加载 `AppDatabase`、repository、pipeline 与 formatter
+- `ForwardReceiver`、`SendUtils` 等运行时入口直接消费 `RuntimeGraph`
+- Koin 只在 `core/app` 层复用这套实例，不再作为 `runtime` 运行时的唯一所有者
 
 统一处理顺序如下：
 
@@ -61,10 +67,10 @@
 - 新系统事件也应优先进入 `RelayEvent -> EventPipeline`
 
 运行时组件落点补充：
-- 过滤与路由：`storage/domain/filter`、`storage/domain/routing`
-- Root DB 补偿：`storage/domain/recovery`
-- 设备名解析：`storage/domain/system/DeviceIdentityUtils`
-- 来源元数据解析：`storage/platform/metadata/SourceMetadataResolver`
+- 过滤与路由：`runtime/domain/filter`、`runtime/domain/routing`
+- Root DB 补偿：`runtime/domain/recovery`
+- 设备名解析：`runtime/domain/system/DeviceIdentityUtils`
+- 来源元数据解析：`runtime/platform/metadata/SourceMetadataResolver`
 
 ## 配置访问规则
 
@@ -118,7 +124,7 @@
 
 - `SmsCodeApplication`
   - Koin 启动、initializer 调度、WebUI manager 生命周期
-- `StorageRuntimeGraph`
+- `RuntimeGraph`
   - 应用进程内运行时单例装配中心
 - `PrefsReader`
   - Xposed/runtime 跨进程读取
@@ -135,11 +141,11 @@
 
 ### 运行时主链与配置落点
 
-- 主管线：`storage/domain/pipeline`（`EventPipeline`）
-- 过滤 / 路由 / 恢复：`storage/domain/filter`、`storage/domain/routing`、`storage/domain/recovery`
-- 设备与环境：`storage/domain/system`、`storage/platform/metadata`
-- sender 领域：`storage/domain/sender`
-- DB DAO / converter：`storage/data/db/dao`、`storage/data/db/ext`
+- 主管线：`runtime/domain/pipeline`（`EventPipeline`）
+- 过滤 / 路由 / 恢复：`runtime/domain/filter`、`runtime/domain/routing`、`runtime/domain/recovery`
+- 设备与环境：`runtime/domain/system`、`runtime/platform/metadata`
+- sender 领域：`runtime/domain/sender`
+- DB DAO / converter：`runtime/data/db/dao`、`runtime/data/db/ext`
 - `forwarder/*` 仅保留 sender adapter 与 sender utils
 
 ### 配置治理后续约束
@@ -186,16 +192,16 @@
 - 短信、应用通知、来电最终都应收敛为 `RelayEvent`
 - 跨进程转发入口：`io.github.magisk317.relay.platform.ipc.ForwardReceiver`
 - 主管线：`EventPipeline`
-- 运行时依赖来源：`StorageRuntimeGraph`
-- 过滤 / 路由 / 恢复：`storage/domain/filter`、`storage/domain/routing`、`storage/domain/recovery`
-- 设备与环境：`storage/domain/system`、`storage/platform/metadata`
-- sender 领域：`storage/domain/sender`
-- DB DAO / converter：`storage/data/db/dao`、`storage/data/db/ext`
+- 运行时依赖来源：`RuntimeGraph`
+- 过滤 / 路由 / 恢复：`runtime/domain/filter`、`runtime/domain/routing`、`runtime/domain/recovery`
+- 设备与环境：`runtime/domain/system`、`runtime/platform/metadata`
+- sender 领域：`runtime/domain/sender`
+- DB DAO / converter：`runtime/data/db/dao`、`runtime/data/db/ext`
 
 约束：
 - Xposed/runtime 负责采集与标准化
 - 不在 hook 层直接实现 sender 选择、路由、结果落库
-- 不在 `storage` 的运行时入口直接依赖 Koin API
+- 不在 `runtime` 的运行时入口直接依赖 Koin API
 - `forwarder/*` 仅保留 sender adapter 与 sender utils
 - 应用进程内 runtime 热路径可通过 `RuntimeSettingsCache` 做短 TTL 只读缓存，但底层事实来源仍是 `PreferenceDataSource` / repository
 
@@ -224,9 +230,9 @@
 
 ## 后续开发约束
 
-1. 新运行时规则优先落在 `storage/domain`
-2. 新跨进程入口优先落在 `storage/platform`
+1. 新运行时规则优先落在 `runtime/domain`
+2. 新跨进程入口优先落在 `runtime/platform`
 3. 新设置页优先走 `SettingsRepository`
 4. 不再向 `legacy/SendUtils` 增加编排逻辑
 5. 非 sender adapter 逻辑不再新增到 `forwarder/*`
-6. `storage` 不直接依赖 Koin；若 UI 需要 DI，优先复用 `StorageRuntimeGraph` 已构造的实例
+6. `runtime` 不直接依赖 Koin；若 UI 需要 DI，优先复用 `RuntimeGraph` 已构造的实例

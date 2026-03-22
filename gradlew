@@ -245,31 +245,4 @@ eval "set -- $(
         tr '\n' ' '
     )" '"$@"'
 
-"$JAVACMD" "$@"
-EXIT_CODE=$?
-
-
-# Cleanup old Gradle caches
-if [ -d "$APP_HOME/.gradle" ]; then
-    (
-        cd "$APP_HOME/.gradle" || exit
-        # Find all version-like directories starting with a digit
-        versions=$(ls -d [0-9]* 2>/dev/null)
-        if [ -n "$versions" ]; then
-            # Sort versions and keep the last one (latest)
-            # Standard sort works fine for timestamped versions
-            latest=$(echo "$versions" | sort | tail -n 1)
-
-            # Iterate and remove non-latest versions
-            for d in $versions; do
-                if [ "$d" != "$latest" ]; then
-                    echo "Cleaning up old Gradle cache: $d"
-                    rm -rf "$d"
-                fi
-            done
-        fi
-    )
-fi
-
-
-exit $EXIT_CODE
+exec "$JAVACMD" "$@"

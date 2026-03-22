@@ -8,7 +8,7 @@ import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.domain.event.RelayEvent
 import io.github.magisk317.relay.domain.pipeline.EventPipeline
-import io.github.magisk317.relay.domain.pipeline.StorageRuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import kotlinx.coroutines.runBlocking
 
@@ -29,7 +29,7 @@ class BatteryReminderHandler(
     ) {
         val settings = runBlocking {
             RuntimeSettingsCache.getSpecialAlertSettings(
-                StorageRuntimeGraph.from(context).settingsRepository,
+                RuntimeGraph.from(context).settingsRepository,
             )
         }
         val lowEnabled = settings.lowBatteryReminderEnabled
@@ -93,7 +93,7 @@ class BatteryReminderHandler(
     private fun sendLowReminder(percent: Int, threshold: Int) {
         val senderId = runBlocking {
             RuntimeSettingsCache.getSpecialAlertSettings(
-                StorageRuntimeGraph.from(context).settingsRepository,
+                RuntimeGraph.from(context).settingsRepository,
             ).lowBatteryChannelId.trim().toLongOrNull()
         }
         if (senderId == null) {
@@ -121,7 +121,7 @@ class BatteryReminderHandler(
     private fun sendFullReminder(percent: Int) {
         val senderId = runBlocking {
             RuntimeSettingsCache.getSpecialAlertSettings(
-                StorageRuntimeGraph.from(context).settingsRepository,
+                RuntimeGraph.from(context).settingsRepository,
             ).fullBatteryChannelId.trim().toLongOrNull()
         }
         if (senderId == null) {
@@ -155,7 +155,7 @@ class BatteryReminderHandler(
         ) {
             BatteryReminderHandler(
                 context = context,
-                eventPipeline = StorageRuntimeGraph.from(context).eventPipeline,
+                eventPipeline = RuntimeGraph.from(context).eventPipeline,
             ).handle(
                 batteryIntent = batteryIntent,
                 scheduleNext = scheduleNext,
