@@ -1,13 +1,13 @@
 package io.github.magisk317.relay.xp.hook.me
 
 import io.github.magisk317.relay.BuildConfig
-import io.github.magisk317.smscode.core.utils.ModuleUtils
-import io.github.magisk317.smscode.core.utils.XLog
-import io.github.magisk317.smscode.core.helper.XposedWrapper
-import io.github.magisk317.smscode.core.hook.BaseHook
-import io.github.magisk317.smscode.core.hookapi.LoadParam
-import io.github.magisk317.smscode.core.hookapi.MethodHook
-import io.github.magisk317.smscode.core.hookapi.MethodHookParam
+import io.github.magisk317.smscode.xposed.utils.ModuleUtils
+import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.smscode.xposed.helper.XposedWrapper
+import io.github.magisk317.smscode.xposed.hook.BaseHook
+import io.github.magisk317.smscode.xposed.hookapi.LoadParam
+import io.github.magisk317.smscode.xposed.hookapi.MethodHook
+import io.github.magisk317.smscode.xposed.hookapi.MethodHookParam
 
 /**
  * Hook class ModuleUtils

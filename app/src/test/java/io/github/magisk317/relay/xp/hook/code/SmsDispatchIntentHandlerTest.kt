@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.Intent
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
-import io.github.magisk317.smscode.core.utils.XLog
+import io.github.magisk317.smscode.xposed.utils.XLog
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject

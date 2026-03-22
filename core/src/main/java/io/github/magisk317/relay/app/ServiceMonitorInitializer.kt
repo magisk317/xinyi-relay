@@ -6,12 +6,11 @@ import io.github.libxposed.service.XposedServiceHelper
 import io.github.magisk317.relay.common.utils.ActivationDiagnosticsStore
 import io.github.magisk317.relay.common.utils.AppPreferencesDataStore
 import io.github.magisk317.relay.common.utils.PrefsReader as RelayPrefsReader
+import io.github.magisk317.relay.common.utils.RuntimeActivationState
+import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.domain.recovery.RootDbCatchupScheduler
 import io.github.magisk317.relay.feature.call.CallStateMonitor
 import io.github.magisk317.relay.platform.reminder.LowBatteryReminderScheduler
-import io.github.magisk317.smscode.core.utils.ModuleActivationStore
-import io.github.magisk317.smscode.core.utils.ModuleUtils
-import io.github.magisk317.smscode.core.utils.XLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -43,8 +42,7 @@ class ServiceMonitorInitializer : AppInitializer {
                             AppPreferencesDataStore.syncToRemotePrefs(application)
                         }
                         val verboseLogEnabled = RelayPrefsReader.isVerboseLogMode(application)
-                        ModuleUtils.setRuntimeActivated(true)
-                        ModuleActivationStore.markActivated(application)
+                        RuntimeActivationState.setRuntimeActivated(true)
                         ActivationDiagnosticsStore.recordServiceBind(
                             context = application,
                             frameworkName = service.frameworkName,
@@ -60,7 +58,7 @@ class ServiceMonitorInitializer : AppInitializer {
 
                     override fun onServiceDied(service: XposedService) {
                         AppPreferencesDataStore.setRemotePrefsProvider(null)
-                        ModuleUtils.setRuntimeActivated(false)
+                        RuntimeActivationState.setRuntimeActivated(false)
                         ActivationDiagnosticsStore.recordServiceDied(
                             context = application,
                             verboseLogging = RelayPrefsReader.isVerboseLogMode(application),

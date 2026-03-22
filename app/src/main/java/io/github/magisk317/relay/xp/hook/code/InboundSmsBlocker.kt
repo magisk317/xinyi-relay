@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.xp.hook.code
 
 import android.os.Binder
-import io.github.magisk317.smscode.core.utils.XLog
+import io.github.magisk317.smscode.xposed.utils.XLog
 
 internal class InboundSmsBlocker(
     private val smsHandlerClassName: String,

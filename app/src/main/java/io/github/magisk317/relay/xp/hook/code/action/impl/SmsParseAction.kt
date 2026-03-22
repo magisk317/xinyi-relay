@@ -11,7 +11,7 @@ import io.github.magisk317.relay.xp.XpMessageTypes
 import io.github.magisk317.relay.xp.XpRecordFacade
 import io.github.magisk317.relay.xp.XpStringEscaper
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
-import io.github.magisk317.smscode.core.utils.XLog
+import io.github.magisk317.smscode.xposed.utils.XLog
 
 /**
  * 解析短信中的验证码

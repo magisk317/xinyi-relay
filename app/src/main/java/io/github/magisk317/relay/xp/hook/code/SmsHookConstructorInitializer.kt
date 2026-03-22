@@ -5,8 +5,8 @@ import io.github.magisk317.relay.xp.XpPrefs
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
-import io.github.magisk317.smscode.core.utils.ModuleActivationStore
-import io.github.magisk317.smscode.core.utils.XLog
+import io.github.magisk317.smscode.xposed.utils.ModuleActivationStore
+import io.github.magisk317.smscode.xposed.utils.XLog
 
 internal class SmsHookConstructorInitializer(
     private val runtimeInitializer: (Context) -> SmsHookRuntimeContext?,

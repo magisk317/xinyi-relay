@@ -10,7 +10,7 @@ import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.xp.SmsMsg
 import io.github.magisk317.relay.xp.XpPrefs
 import io.github.magisk317.relay.xp.hook.code.action.impl.SmsParseAction
-import io.github.magisk317.smscode.core.utils.XLog
+import io.github.magisk317.smscode.xposed.utils.XLog
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 

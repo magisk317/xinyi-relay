@@ -5,7 +5,7 @@ import android.os.Bundle
 import io.github.magisk317.relay.xp.SmsMsg
 import io.github.magisk317.relay.xp.XpClipboard
 import io.github.magisk317.relay.xp.hook.code.action.RunnableAction
-import io.github.magisk317.smscode.core.utils.XLog
+import io.github.magisk317.smscode.xposed.utils.XLog
 
 /**
  * 将验证码复制到剪切板

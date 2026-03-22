@@ -3,7 +3,7 @@ package io.github.magisk317.relay.xp.hook.code
 import android.content.Context
 import android.provider.Telephony
 import io.github.magisk317.relay.xp.XpSmsCodeParser
-import io.github.magisk317.smscode.core.utils.XLog
+import io.github.magisk317.smscode.xposed.utils.XLog
 import kotlinx.coroutines.runBlocking
 
 internal class ObservedInboxScanner(

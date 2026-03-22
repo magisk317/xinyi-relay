@@ -4,12 +4,12 @@ import android.app.Application
 import android.content.Context
 import io.github.magisk317.relay.analytics.AnalyticsTracker
 import io.github.magisk317.relay.common.utils.RuntimeLogStore
-import io.github.magisk317.smscode.core.runtime.CoreHookPolicy
-import io.github.magisk317.smscode.core.runtime.CoreHookPolicyHolder
-import io.github.magisk317.smscode.core.runtime.CoreLogSink
-import io.github.magisk317.smscode.core.runtime.CoreLogSinkHolder
-import io.github.magisk317.smscode.core.runtime.CoreRuntime
-import io.github.magisk317.smscode.core.runtime.CoreRuntimeAccess
+import io.github.magisk317.smscode.xposed.runtime.CoreHookPolicy
+import io.github.magisk317.smscode.xposed.runtime.CoreHookPolicyHolder
+import io.github.magisk317.smscode.xposed.runtime.CoreLogSink
+import io.github.magisk317.smscode.xposed.runtime.CoreLogSinkHolder
+import io.github.magisk317.smscode.xposed.runtime.CoreRuntime
+import io.github.magisk317.smscode.xposed.runtime.CoreRuntimeAccess
 import timber.log.Timber
 
 object AppInfrastructureCoordinator {

@@ -36,16 +36,20 @@ forbid_pattern "$APP_BUILD" 'implementation\(project\(":smscode-core:core"\)\)' 
   "app must not runtime-package :smscode-core:core directly"
 forbid_pattern "$APP_BUILD" 'api\(project\(":smscode-core:core"\)\)' \
   "app must not expose :smscode-core:core directly"
+require_pattern "$APP_BUILD" 'compileOnly\(project\(":smscode-core:smscode-xposed-core"\)\)' \
+  "app xp entrypoints must compile against :smscode-core:smscode-xposed-core"
 
 require_pattern "$CORE_BUILD" 'implementation\(project\(":runtime"\)\)' \
   "core must depend on :runtime as implementation"
 forbid_pattern "$CORE_BUILD" 'api\(project\(":runtime"\)\)' \
   "core must not expose :runtime transitively"
-forbid_pattern "$CORE_BUILD" 'project\(":smscode-core:core"\)' \
-  "core must not depend directly on :smscode-core:core"
+require_pattern "$CORE_BUILD" 'implementation\(project\(":smscode-core:smscode-xposed-core"\)\)' \
+  "core runtime bridge may depend directly on :smscode-core:smscode-xposed-core during the split"
 
-require_pattern "$RUNTIME_BUILD" 'api\(project\(":smscode-core:core"\)\)' \
-  "runtime must expose :smscode-core:core transitively"
+require_pattern "$RUNTIME_BUILD" 'implementation\(project\(":smscode-core:smscode-domain"\)\)' \
+  "runtime must depend on :smscode-core:smscode-domain"
+forbid_pattern "$RUNTIME_BUILD" 'project\(":smscode-core:core"\)' \
+  "runtime must stop depending on :smscode-core:core"
 
 if [[ "${#violations[@]}" -ne 0 ]]; then
   printf 'Module boundary verification failed:\n' >&2

@@ -6,7 +6,7 @@ import io.github.magisk317.relay.ui.record.CodeRecordRestoreManager
 import io.github.magisk317.relay.xp.XpRecordFacade
 import io.github.magisk317.relay.xp.SmsMsg
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
-import io.github.magisk317.smscode.core.utils.XLog
+import io.github.magisk317.smscode.xposed.utils.XLog
 import kotlinx.coroutines.runBlocking
 
 /**

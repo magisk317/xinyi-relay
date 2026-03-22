@@ -3,7 +3,7 @@ package io.github.magisk317.relay.xp.hook.code.helper
 import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
-import io.github.magisk317.smscode.core.utils.XLog
+import io.github.magisk317.smscode.xposed.utils.XLog
 
 object InputHelper {
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -17,7 +17,7 @@ object InputHelper {
     ) {
         if (text == null) return
         val intent = android.content.Intent(
-            io.github.magisk317.smscode.core.hook.system.SystemInputInjectorHook.resolveActionAutoInput(),
+            io.github.magisk317.smscode.xposed.hook.system.SystemInputInjectorHook.resolveActionAutoInput(),
         )
         intent.putExtra("code", text)
         intent.putExtra("autoEnter", autoEnter)

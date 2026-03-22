@@ -53,7 +53,7 @@ android {
 }
 
 dependencies {
-    api(project(":smscode-core:core"))
+    implementation(project(":smscode-core:smscode-domain"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)

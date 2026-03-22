@@ -5,7 +5,7 @@ import android.content.Intent
 import io.github.magisk317.relay.xp.SmsMsg
 import io.github.magisk317.relay.xp.XpDispatchCoordinator
 import io.github.magisk317.relay.xp.XpSmsBlacklist
-import io.github.magisk317.smscode.core.utils.XLog
+import io.github.magisk317.smscode.xposed.utils.XLog
 
 internal class SmsDispatchIntentProcessor(
     private val pluginContext: Context,

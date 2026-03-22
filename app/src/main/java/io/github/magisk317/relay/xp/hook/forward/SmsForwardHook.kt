@@ -11,12 +11,12 @@ import io.github.magisk317.relay.xp.hook.SmsHookDispatchGate
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
-import io.github.magisk317.smscode.core.helper.XposedWrapper
-import io.github.magisk317.smscode.core.hook.BaseHook
-import io.github.magisk317.smscode.core.hookapi.LoadParam
-import io.github.magisk317.smscode.core.hookapi.MethodHook
-import io.github.magisk317.smscode.core.hookapi.MethodHookParam
-import io.github.magisk317.smscode.core.utils.XLog
+import io.github.magisk317.smscode.xposed.helper.XposedWrapper
+import io.github.magisk317.smscode.xposed.hook.BaseHook
+import io.github.magisk317.smscode.xposed.hookapi.LoadParam
+import io.github.magisk317.smscode.xposed.hookapi.MethodHook
+import io.github.magisk317.smscode.xposed.hookapi.MethodHookParam
+import io.github.magisk317.smscode.xposed.utils.XLog
 import kotlinx.coroutines.runBlocking
 
 /**

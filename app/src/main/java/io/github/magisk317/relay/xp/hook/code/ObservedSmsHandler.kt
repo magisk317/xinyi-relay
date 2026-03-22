@@ -6,7 +6,7 @@ import io.github.magisk317.relay.xp.XpDispatchCoordinator
 import io.github.magisk317.relay.xp.XpPrefs
 import io.github.magisk317.relay.xp.XpRecordFacade
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
-import io.github.magisk317.smscode.core.utils.XLog
+import io.github.magisk317.smscode.xposed.utils.XLog
 import kotlinx.coroutines.runBlocking
 
 internal class ObservedSmsHandler(

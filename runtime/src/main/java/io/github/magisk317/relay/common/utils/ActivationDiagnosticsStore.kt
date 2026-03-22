@@ -3,7 +3,6 @@ package io.github.magisk317.relay.common.utils
 import android.content.Context
 import android.os.SystemClock
 import android.util.Log
-import io.github.magisk317.smscode.core.utils.ModuleUtils
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -42,7 +41,7 @@ object ActivationDiagnosticsStore {
         return snapshot.lastHookAtMs >= currentBootStartAtMs()
     }
 
-    fun isRuntimeConnected(): Boolean = ModuleUtils.isRuntimeActivated()
+    fun isRuntimeConnected(): Boolean = RuntimeActivationState.isRuntimeActivated()
 
     fun isModuleActivated(context: Context): Boolean {
         return isRuntimeConnected() || hasHookHeartbeatThisBoot(context)

@@ -14,7 +14,7 @@ import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.xp.XpNotificationBridge
 import io.github.magisk317.relay.xp.hook.code.helper.InputHelper
-import io.github.magisk317.smscode.core.utils.XLog
+import io.github.magisk317.smscode.xposed.utils.XLog
 import java.util.LinkedHashSet
 
 object SmsCodeConflictNoticeHelper {

@@ -12,7 +12,7 @@ import kotlin.concurrent.thread
 
 object AutoInputResultHandler {
     val action: String
-        get() = io.github.magisk317.smscode.core.hook.system.SystemInputInjectorHook.resolveActionAutoInputResult()
+        get() = io.github.magisk317.smscode.xposed.hook.system.SystemInputInjectorHook.resolveActionAutoInputResult()
 
     fun handle(context: Context, intent: Intent) {
         val attemptId = intent.getLongExtra("attemptId", -1L)

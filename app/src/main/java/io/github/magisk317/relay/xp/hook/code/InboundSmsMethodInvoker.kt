@@ -1,8 +1,8 @@
 package io.github.magisk317.relay.xp.hook.code
 
 import android.os.Message
-import io.github.magisk317.smscode.core.hookapi.HookHelpers
-import io.github.magisk317.smscode.core.utils.XLog
+import io.github.magisk317.smscode.xposed.hookapi.HookHelpers
+import io.github.magisk317.smscode.xposed.utils.XLog
 import java.lang.reflect.Method
 import java.util.ArrayDeque
 

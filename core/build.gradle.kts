@@ -51,6 +51,7 @@ androidComponents {
 
 dependencies {
     implementation(project(":runtime"))
+    implementation(project(":smscode-core:smscode-xposed-core"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
