@@ -327,7 +327,6 @@ tasks.matching {
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(project(":core"))
-    compileOnly(project(":runtime"))
     compileOnly(project(":smscode-core:core"))
 
     implementation(libs.androidx.core.ktx)

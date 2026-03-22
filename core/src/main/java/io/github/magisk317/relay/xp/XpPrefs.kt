@@ -40,8 +40,8 @@ object XpPrefs {
 
     fun copyToClipboardEnabled(context: Context): Boolean = PrefsReader.copyToClipboardEnabled(context)
 
-    fun isMessageTypeEnabled(context: Context, messageType: MessageType): Boolean {
-        return PrefsReader.isMessageTypeEnabled(context, messageType)
+    fun isMessageTypeEnabled(context: Context, messageType: XpMessageType): Boolean {
+        return PrefsReader.isMessageTypeEnabled(context, messageType.toRuntimeMessageType())
     }
 
     fun recordSmsCodeEnabled(context: Context): Boolean = PrefsReader.recordSmsCodeEnabled(context)
@@ -120,5 +120,14 @@ object XpPrefs {
             value = value,
             source = source,
         )
+    }
+
+    private fun XpMessageType.toRuntimeMessageType(): MessageType {
+        return when (this) {
+            XpMessageType.SMS_CODE -> MessageType.SMS_CODE
+            XpMessageType.SMS_PLAIN -> MessageType.SMS_PLAIN
+            XpMessageType.APP_NOTIFY -> MessageType.APP_NOTIFY
+            XpMessageType.CALL_NOTIFY -> MessageType.CALL_NOTIFY
+        }
     }
 }
