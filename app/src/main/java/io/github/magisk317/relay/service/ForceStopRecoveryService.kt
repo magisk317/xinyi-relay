@@ -3,9 +3,6 @@ package io.github.magisk317.relay.service
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
-import io.github.magisk317.relay.common.utils.RuntimeLogStore
-import io.github.magisk317.relay.common.utils.XLog
-import io.github.magisk317.relay.domain.recovery.RootDbCatchupScheduler
 
 /**
  * Lightweight wake-up service used by system-side Xposed hook to revive app process
@@ -18,21 +15,11 @@ class ForceStopRecoveryService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val reason = intent?.getStringExtra(EXTRA_REASON).orEmpty()
         val eventId = intent?.getStringExtra(EXTRA_EVENT_ID).orEmpty()
-        XLog.w(
-            "ForceStopRecoveryService started. reason=%s event=%s",
-            reason.ifBlank { "<none>" },
-            eventId.ifBlank { "<none>" },
-        )
-        RuntimeLogStore.append(
-            android.util.Log.WARN,
-            TAG,
-            "force-stop recovery wakeup reason=${reason.ifBlank { "<none>" }} event=${eventId.ifBlank { "<none>" }}",
-            force = true,
-            route = RuntimeLogStore.ROUTE_ROOT_DB,
-        )
-        RootDbCatchupScheduler.triggerImmediate(
+        ForceStopRecoveryHandler.handle(
             context = this,
-            reason = "force_stop_recovery",
+            reason = reason,
+            eventId = eventId,
+            tag = TAG,
         )
         stopSelfResult(startId)
         return START_NOT_STICKY

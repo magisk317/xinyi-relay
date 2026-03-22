@@ -1,8 +1,10 @@
 package io.github.magisk317.relay.web
 
 import android.content.Context
-import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
+import io.github.magisk317.relay.common.constant.PrefConst
+import okhttp3.tls.HeldCertificate
+import timber.log.Timber
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -12,8 +14,6 @@ import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import java.util.Collections
 import java.util.concurrent.TimeUnit
-import okhttp3.tls.HeldCertificate
-import timber.log.Timber
 
 internal data class WebUiTlsMaterial(
     val keyStore: KeyStore,

@@ -1,10 +1,10 @@
 package io.github.magisk317.relay.app
 
 import android.app.Application
+import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.utils.RuntimeLogStore
 import io.github.magisk317.relay.common.utils.XLog
-import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -18,7 +18,7 @@ class DataStoreSyncInitializer : AppInitializer {
             val preferenceDataSource = RuntimeGraph.from(application).preferenceDataSource
             preferenceDataSource.syncToSharedPrefs()
             preferenceDataSource.ensureReadable()
-            
+
             val verboseLog = preferenceDataSource.getBoolean(PrefConst.KEY_VERBOSE_LOG_MODE, false)
             val logFileSizeMb = preferenceDataSource.getInt(
                 PrefConst.KEY_RUNTIME_LOG_FILE_SIZE_MB,

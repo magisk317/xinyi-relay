@@ -1,17 +1,17 @@
 package io.github.magisk317.relay.app
 
 import android.app.Application
+import io.github.libxposed.service.XposedService
+import io.github.libxposed.service.XposedServiceHelper
 import io.github.magisk317.relay.common.utils.ActivationDiagnosticsStore
 import io.github.magisk317.relay.common.utils.AppPreferencesDataStore
 import io.github.magisk317.relay.common.utils.PrefsReader as RelayPrefsReader
+import io.github.magisk317.relay.domain.recovery.RootDbCatchupScheduler
+import io.github.magisk317.relay.feature.call.CallStateMonitor
+import io.github.magisk317.relay.platform.reminder.LowBatteryReminderScheduler
 import io.github.magisk317.smscode.core.utils.ModuleActivationStore
 import io.github.magisk317.smscode.core.utils.ModuleUtils
 import io.github.magisk317.smscode.core.utils.XLog
-import io.github.magisk317.relay.feature.call.CallStateMonitor
-import io.github.magisk317.relay.domain.recovery.RootDbCatchupScheduler
-import io.github.magisk317.relay.platform.reminder.LowBatteryReminderScheduler
-import io.github.libxposed.service.XposedService
-import io.github.libxposed.service.XposedServiceHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
