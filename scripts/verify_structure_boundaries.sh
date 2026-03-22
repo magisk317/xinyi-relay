@@ -35,16 +35,68 @@ expect_no_kotlin_files() {
   fi
 }
 
-expect_only_files \
-  "$APP_SRC/web" \
-  "WebUiAssetHandler.kt" \
-  "WebUiManager.kt" \
-  "WebUiServer.kt" \
-  "WebUiTlsManager.kt"
+expect_only_files "$APP_SRC/web" "WebUiManager.kt"
 
 expect_no_kotlin_files "$APP_SRC/feature"
 expect_no_kotlin_files "$RUNTIME_SRC/feature"
 expect_no_kotlin_files "$RUNTIME_SRC/forwarder"
+
+forbid_imports_in_dir() {
+  local dir="$1"
+  shift
+  local -a patterns=("$@")
+  [[ -d "$dir" ]] || return 0
+  local file
+  while IFS= read -r file; do
+    local pattern
+    for pattern in "${patterns[@]}"; do
+      if rg -n "$pattern" "$file" >/dev/null; then
+        violations+=("$(realpath --relative-to="$ROOT_DIR" "$file") imports forbidden lower-layer symbols")
+        break
+      fi
+    done
+  done < <(find "$dir" -type f -name '*.kt' | sort)
+}
+
+forbid_imports_in_dir "$APP_SRC/app" \
+  '^import io\.github\.magisk317\.relay\.bootstrap\.' \
+  '^import io\.github\.magisk317\.relay\.data\.' \
+  '^import io\.github\.magisk317\.relay\.domain\.' \
+  '^import io\.github\.magisk317\.relay\.platform\.' \
+  '^import io\.github\.magisk317\.relay\.legacy\.' \
+  '^import io\.github\.magisk317\.relay\.model\.' \
+  '^import io\.github\.magisk317\.relay\.common\.(constant|utils)\.' \
+  '^import io\.github\.magisk317\.smscode\.core\.'
+
+forbid_imports_in_dir "$APP_SRC/receiver" \
+  '^import io\.github\.magisk317\.relay\.bootstrap\.' \
+  '^import io\.github\.magisk317\.relay\.data\.' \
+  '^import io\.github\.magisk317\.relay\.domain\.' \
+  '^import io\.github\.magisk317\.relay\.platform\.' \
+  '^import io\.github\.magisk317\.relay\.legacy\.' \
+  '^import io\.github\.magisk317\.relay\.model\.' \
+  '^import io\.github\.magisk317\.relay\.common\.(constant|utils)\.' \
+  '^import io\.github\.magisk317\.smscode\.core\.'
+
+forbid_imports_in_dir "$APP_SRC/service" \
+  '^import io\.github\.magisk317\.relay\.bootstrap\.' \
+  '^import io\.github\.magisk317\.relay\.data\.' \
+  '^import io\.github\.magisk317\.relay\.domain\.' \
+  '^import io\.github\.magisk317\.relay\.platform\.' \
+  '^import io\.github\.magisk317\.relay\.legacy\.' \
+  '^import io\.github\.magisk317\.relay\.model\.' \
+  '^import io\.github\.magisk317\.relay\.common\.(constant|utils)\.' \
+  '^import io\.github\.magisk317\.smscode\.core\.'
+
+forbid_imports_in_dir "$APP_SRC/web" \
+  '^import io\.github\.magisk317\.relay\.bootstrap\.' \
+  '^import io\.github\.magisk317\.relay\.data\.' \
+  '^import io\.github\.magisk317\.relay\.domain\.' \
+  '^import io\.github\.magisk317\.relay\.platform\.' \
+  '^import io\.github\.magisk317\.relay\.legacy\.' \
+  '^import io\.github\.magisk317\.relay\.model\.' \
+  '^import io\.github\.magisk317\.relay\.common\.(constant|utils)\.' \
+  '^import io\.github\.magisk317\.smscode\.core\.'
 
 if [[ "${#violations[@]}" -ne 0 ]]; then
   printf 'Structure boundary verification failed:\n' >&2

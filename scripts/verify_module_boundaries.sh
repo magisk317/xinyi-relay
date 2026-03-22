@@ -28,13 +28,19 @@ forbid_pattern() {
 
 require_pattern "$APP_BUILD" 'implementation\(project\(":core"\)\)' \
   "app must depend directly on :core"
-forbid_pattern "$APP_BUILD" 'project\(":runtime"\)' \
-  "app must not depend directly on :runtime"
-forbid_pattern "$APP_BUILD" 'project\(":smscode-core:core"\)' \
-  "app must not depend directly on :smscode-core:core"
+forbid_pattern "$APP_BUILD" 'implementation\(project\(":runtime"\)\)' \
+  "app must not runtime-package :runtime directly"
+forbid_pattern "$APP_BUILD" 'api\(project\(":runtime"\)\)' \
+  "app must not expose :runtime directly"
+forbid_pattern "$APP_BUILD" 'implementation\(project\(":smscode-core:core"\)\)' \
+  "app must not runtime-package :smscode-core:core directly"
+forbid_pattern "$APP_BUILD" 'api\(project\(":smscode-core:core"\)\)' \
+  "app must not expose :smscode-core:core directly"
 
-require_pattern "$CORE_BUILD" 'api\(project\(":runtime"\)\)' \
-  "core must expose :runtime transitively"
+require_pattern "$CORE_BUILD" 'implementation\(project\(":runtime"\)\)' \
+  "core must depend on :runtime as implementation"
+forbid_pattern "$CORE_BUILD" 'api\(project\(":runtime"\)\)' \
+  "core must not expose :runtime transitively"
 forbid_pattern "$CORE_BUILD" 'project\(":smscode-core:core"\)' \
   "core must not depend directly on :smscode-core:core"
 

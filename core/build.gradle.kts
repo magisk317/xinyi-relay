@@ -35,8 +35,21 @@ android {
     }
 }
 
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        val capitalizedVariant = variant.name.replaceFirstChar { it.uppercaseChar() }
+        tasks.matching { it.name == "bundleLibCompileToJar$capitalizedVariant" }.configureEach {
+            val builtInKotlinClasses =
+                layout.buildDirectory.dir("intermediates/built_in_kotlinc/${variant.name}/compile${capitalizedVariant}Kotlin/classes")
+            if (this is org.gradle.api.tasks.bundling.Zip) {
+                from(builtInKotlinClasses)
+            }
+        }
+    }
+}
+
 dependencies {
-    api(project(":runtime"))
+    implementation(project(":runtime"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
@@ -46,11 +59,16 @@ dependencies {
     
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.ktor.server.core)
+    implementation(libs.ktor.server.auth)
+    implementation(libs.ktor.server.netty)
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.kotlinx.serialization)
     implementation(libs.retrofit.converter.scalars)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging.interceptor)
+    implementation(libs.okhttp.tls)
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
@@ -71,6 +89,7 @@ dependencies {
     implementation(libs.haze.android)
     implementation(libs.timber)
     implementation(libs.kotlinx.collections.immutable)
+    implementation(libs.libxposed.service)
     add("playImplementation", libs.play.app.update)
 
     testImplementation(libs.junit.jupiter)
