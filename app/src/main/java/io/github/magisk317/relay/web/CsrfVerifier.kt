@@ -24,7 +24,7 @@ internal class CsrfVerifier(
 
         if (!allowLanAccess) {
             if (originHost == null && refererHost == null) {
-                return false
+                return requestHost == "127.0.0.1" || requestHost == "localhost"
             }
             if (originHost != null && !isHostAllowed(originHost, requestHost, allowLanAccess = false)) {
                 return false

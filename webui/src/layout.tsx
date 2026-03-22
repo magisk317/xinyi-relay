@@ -1,18 +1,4 @@
-import {
-  Badge,
-  Button,
-  Footer,
-  Navbar,
-  NavbarBrand,
-  NavbarCollapse,
-  NavbarLink,
-  NavbarToggle,
-  Sidebar,
-  SidebarCTA,
-  SidebarItem,
-  SidebarItemGroup,
-  SidebarItems
-} from 'flowbite-react'
+import { useEffect, useRef, useState } from 'react'
 import { ClipboardListIcon, HomeIcon, StarIcon } from 'flowbite-react/icons'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from './auth'
@@ -33,109 +19,178 @@ export function AppLayout() {
   const location = useLocation()
   const navigate = useNavigate()
 
-  return (
-    <div className="min-h-screen bg-gray-50 text-slate-900">
-      <Navbar fluid className="fixed left-0 right-0 top-0 z-30 border-b border-slate-200/80 bg-white/90 px-4 py-3 shadow-sm backdrop-blur lg:px-6">
-        <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between">
-          <NavbarBrand href="/overview">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0f172a,#0ea5e9)] text-base font-semibold text-white">
-                R
-              </div>
-              <div>
-                <div className="text-base font-semibold text-slate-950">信驿 Relay WebUI</div>
-                <div className="text-xs text-slate-500">嵌入式控制台</div>
-              </div>
-            </div>
-          </NavbarBrand>
-          <div className="flex items-center gap-2">
-            <Badge color="info" className="hidden sm:flex">
-              已登录：{username}
-            </Badge>
-            <Button color="alternative" size="sm" onClick={() => void logout()}>
-              退出登录
-            </Button>
-            <NavbarToggle />
-          </div>
-          <NavbarCollapse>
-            {navItems.map((item) => (
-              <NavbarLink
-                key={item.to}
-                href={item.to}
-                active={location.pathname === item.to}
-                onClick={(event) => {
-                  event.preventDefault()
-                  navigate(item.to)
-                }}
-              >
-                {item.label}
-              </NavbarLink>
-            ))}
-          </NavbarCollapse>
-        </div>
-      </Navbar>
-
-      <div className="flex items-start pt-16">
-        <aside className="fixed left-0 top-16 hidden h-[calc(100vh-4rem)] w-72 px-4 py-6 lg:block">
-          <Sidebar
-            aria-label="Relay WebUI Navigation"
-            className="h-full [&_div]:h-full [&_div]:rounded-3xl [&_div]:border [&_div]:border-slate-200/80 [&_div]:bg-white [&_div]:shadow-sm"
+  const renderNavTabs = (mobile = false) => (
+    <>
+      {navItems.map((item) => {
+        const active = location.pathname === item.to
+        return (
+          <button
+            key={item.to}
+            type="button"
+            onClick={() => navigate(item.to)}
+            className={cx(
+              mobile
+                ? 'shrink-0 rounded-full px-4 py-2.5 text-sm font-medium transition duration-200'
+                : 'flex w-full items-center gap-3 rounded-[22px] px-4 py-3 text-left text-sm transition duration-200',
+              active
+                ? 'bg-[linear-gradient(135deg,#87ad1e,#6f8e18)] text-[#1f2a10] shadow-[0_22px_40px_-28px_rgba(111,142,24,0.54)]'
+                : mobile
+                  ? 'bg-white/84 text-[#596743] ring-1 ring-[#d4e3a1]'
+                  : 'text-[#42512a] hover:bg-white/80'
+            )}
           >
-            <SidebarItems>
-              <SidebarItemGroup>
-                {navItems.map((item) => (
-                  <SidebarItem
-                    key={item.to}
-                    active={location.pathname === item.to}
-                    icon={item.icon}
-                    as="button"
-                    className={cx(
-                      'w-full rounded-2xl text-left transition',
-                      location.pathname === item.to && 'bg-cyan-50'
-                    )}
-                    onClick={() => navigate(item.to)}
-                  >
-                    {item.label}
-                  </SidebarItem>
-                ))}
-              </SidebarItemGroup>
-              <SidebarCTA color="blue">
-                <p className="mb-2 text-sm font-semibold">WebUI 运行状态</p>
-                <p className="text-sm leading-6 text-slate-600">请确认状态栏中的 WebUI 前台服务仍在运行。</p>
-              </SidebarCTA>
-            </SidebarItems>
-          </Sidebar>
-        </aside>
-
-        <main className="relative min-h-[calc(100vh-4rem)] w-full overflow-y-auto px-4 py-6 lg:ml-72 lg:px-6">
-          <div className="mx-auto w-full max-w-[1280px]">
-            <div className="mb-4 flex gap-2 overflow-x-auto lg:hidden">
-              {navItems.map((item) => (
-                <Button
-                  key={item.to}
-                  color={location.pathname === item.to ? 'info' : 'alternative'}
-                  pill
-                  size="sm"
-                  onClick={() => navigate(item.to)}
+            {!mobile && (() => {
+              const Icon = item.icon
+              return (
+                <span
+                  className={cx(
+                    'flex h-9 w-9 items-center justify-center rounded-full',
+                    active ? 'bg-white/30 text-[#2c3818]' : 'bg-[#eff8cf] text-[#708b23]'
+                  )}
                 >
-                  {item.label}
-                </Button>
-              ))}
+                  <Icon className="h-4 w-4" />
+                </span>
+              )
+            })()}
+            <span className="font-medium">{item.label}</span>
+          </button>
+        )
+      })}
+    </>
+  )
+
+  return (
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#fbfef2_0%,#f0f8d9_50%,#e7f1cb_100%)] text-[#243115]">
+      <header className="fixed inset-x-0 top-0 z-40 hidden border-b border-[#89a240]/18 bg-[linear-gradient(135deg,rgba(135,173,30,0.96),rgba(111,142,24,0.94))] backdrop-blur-xl lg:block">
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-4 py-4 lg:px-8">
+          <button
+            type="button"
+            className="flex items-center gap-3 text-left"
+            onClick={() => navigate('/overview')}
+          >
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[18px] bg-white/14 ring-1 ring-white/18">
+              <img src="/app-logo.png" alt="信驿 Relay" className="h-full w-full object-contain p-1.5" />
             </div>
-            <Outlet />
-            <div className="mt-6">
-              <Footer container className="rounded-3xl border border-slate-200/80 bg-white shadow-sm">
-                <div className="w-full text-sm text-slate-500 sm:flex sm:items-center sm:justify-between">
-                  <span>Relay WebUI</span>
-                  <span className="mt-2 block sm:mt-0">
-                    如果页面长期无响应，请回到主应用前台或检查 WebUI 前台服务通知。
-                  </span>
-                </div>
-              </Footer>
+            <div>
+              <div className="text-lg font-semibold tracking-[-0.03em] text-[#f8ffe6]">信驿 Relay</div>
+              <div className="text-xs uppercase tracking-[0.24em] text-[#eef8cf]">WebUI</div>
             </div>
+          </button>
+
+          <AccountMenu username={username} onLogout={() => void logout()} />
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-[1600px] px-4 pb-8 pt-4 lg:px-8 lg:pt-28">
+        <section className="overflow-hidden rounded-[30px] border border-[#89a240]/18 bg-[linear-gradient(135deg,rgba(135,173,30,0.96),rgba(111,142,24,0.94))] shadow-[0_24px_70px_-40px_rgba(67,86,20,0.34)] lg:hidden">
+          <div className="flex items-center justify-between gap-4 px-5 py-5">
+            <button
+              type="button"
+              className="flex min-w-0 items-center gap-3 text-left"
+              onClick={() => navigate('/overview')}
+            >
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-[18px] bg-white/14 ring-1 ring-white/18">
+                <img src="/app-logo.png" alt="信驿 Relay" className="h-full w-full object-contain p-1.5" />
+              </div>
+              <div className="min-w-0">
+                <div className="truncate text-[1.55rem] font-semibold tracking-[-0.05em] text-[#f8ffe6]">信驿</div>
+              </div>
+            </button>
+
+            <AccountMenu username={username} onLogout={() => void logout()} compact />
           </div>
-        </main>
+        </section>
+
+        <div className="mt-4 flex gap-8">
+          <aside className="hidden w-[260px] shrink-0 lg:block">
+            <div className="sticky top-28 overflow-hidden rounded-[34px] border border-[#d5e79b]/50 bg-[linear-gradient(180deg,rgba(255,255,255,0.74),rgba(244,251,223,0.94))] p-4 shadow-[0_24px_70px_-40px_rgba(98,122,28,0.2)] backdrop-blur-xl">
+              <div className="mb-4 px-2 pt-2">
+                <div className="text-xs font-semibold uppercase tracking-[0.28em] text-[#708b23]">Workspace</div>
+                <div className="mt-2 text-sm leading-6 text-[#6c785d]">切换页面后，当前内容区会保持同一视觉层级和工作节奏。</div>
+              </div>
+
+              <nav className="space-y-1.5">
+                {renderNavTabs()}
+              </nav>
+
+              <div className="mt-5 rounded-[26px] bg-[#eff8cf] px-4 py-4">
+                <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[#708b23]">保活提示</div>
+                <p className="mt-2 text-sm leading-6 text-[#637152]">如果页面长时间无响应，先确认状态栏里的 WebUI 前台服务通知还在。</p>
+              </div>
+            </div>
+          </aside>
+
+          <main className="min-w-0 flex-1">
+            <div className="sticky top-0 z-30 -mx-4 mb-4 border-b border-[#d8e6ae]/70 bg-[linear-gradient(180deg,rgba(251,255,244,0.88),rgba(243,249,220,0.96))] px-4 pb-3 pt-4 shadow-[0_18px_42px_-34px_rgba(98,122,28,0.18)] backdrop-blur-xl lg:hidden">
+              <div className="flex gap-2 overflow-x-auto py-1">{renderNavTabs(true)}</div>
+            </div>
+
+            <Outlet />
+
+            <footer className="mt-8 rounded-[28px] border border-[#d5e79b]/42 bg-white/72 px-5 py-4 text-sm leading-6 text-[#6c785d] shadow-[0_18px_50px_-38px_rgba(98,122,28,0.18)]">
+              <span className="font-medium text-[#34461b]">Relay WebUI</span>
+              <span className="mx-2 text-[#b3c37d]">/</span>
+              如果页面长时间无响应，请先回到主应用前台，或检查 WebUI 前台服务通知。
+            </footer>
+          </main>
+        </div>
       </div>
+    </div>
+  )
+}
+
+function AccountMenu({
+  username,
+  onLogout,
+  compact = false
+}: {
+  username: string
+  onLogout: () => void
+  compact?: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+    window.addEventListener('pointerdown', handlePointerDown)
+    return () => window.removeEventListener('pointerdown', handlePointerDown)
+  }, [open])
+
+  return (
+    <div ref={rootRef} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className={cx(
+          'inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/12 text-[#f6ffe0] shadow-[0_14px_28px_-24px_rgba(52,70,27,0.42)] transition hover:bg-white/18',
+          compact ? 'px-3.5 py-2 text-sm' : 'px-4 py-2.5 text-sm'
+        )}
+      >
+        <span className="max-w-[5.5rem] truncate">{username}</span>
+        <span className={cx('text-[10px] transition', open && 'rotate-180')}>▼</span>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-[calc(100%+10px)] min-w-[9rem] rounded-[22px] border border-[#d8e6ae] bg-[rgba(255,255,248,0.98)] p-2 shadow-[0_28px_80px_-42px_rgba(67,86,20,0.34)] backdrop-blur-xl">
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false)
+              onLogout()
+            }}
+            className="flex w-full items-center justify-between rounded-[16px] px-4 py-3 text-left text-sm font-medium text-[#415117] transition hover:bg-[#f4fbe0]"
+          >
+            <span>退出登录</span>
+            <span className="text-xs text-[#7b8f4a]">→</span>
+          </button>
+        </div>
+      )}
     </div>
   )
 }

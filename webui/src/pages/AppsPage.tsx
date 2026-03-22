@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Button, Checkbox, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TextInput } from 'flowbite-react'
 import { apiClient } from '../api/client'
 import type { AppItem } from '../types'
 import { trackEvent } from '../analytics'
-import { ErrorBanner, LoadingCard, PageShell, SurfaceCard } from '../template'
+import { ActionButton, ErrorBanner, LoadingCard, PageShell, RelaySwitch, SurfaceCard } from '../template'
 
 export function AppsPage() {
   const [apps, setApps] = useState<AppItem[]>([])
@@ -46,22 +45,20 @@ export function AppsPage() {
 
   const actions = (
     <div className="flex flex-wrap items-center gap-3">
-      <TextInput
-        sizing="sm"
+      <input
+        className="relay-input min-w-[16rem] text-sm"
         placeholder="搜索包名或应用名"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
-      <Button
-        color="alternative"
-        size="sm"
+      <ActionButton
         onClick={() => {
           trackEvent('refresh', { page: 'apps' })
           void load()
         }}
       >
         刷新应用
-      </Button>
+      </ActionButton>
     </div>
   )
 
@@ -90,57 +87,56 @@ export function AppsPage() {
         title="应用列表"
         subtitle={`当前显示 ${filtered.length} / ${apps.length} 个应用，模板字段失焦后自动提交。`}
       >
-        <div className="overflow-x-auto">
-          <Table hoverable>
-            <TableHead>
-              <TableRow>
-                <TableHeadCell>应用</TableHeadCell>
-                <TableHeadCell>包名</TableHeadCell>
-                <TableHeadCell>自动输入拦截</TableHeadCell>
-                <TableHeadCell>通知转发</TableHeadCell>
-                <TableHeadCell>模板</TableHeadCell>
-              </TableRow>
-            </TableHead>
-            <TableBody className="divide-y">
-            {filtered.map((item) => (
-              <TableRow key={item.packageName} className="bg-white align-top">
-                <TableCell className="font-medium text-slate-900">{item.label}</TableCell>
-                <TableCell className="text-slate-500">{item.packageName}</TableCell>
-                <TableCell>
-                  <Checkbox
-                    checked={item.blocked}
-                    disabled={saving === item.packageName}
-                    onChange={(e) => void updateItem(item, { blocked: e.target.checked })}
-                  />
-                </TableCell>
-                <TableCell>
-                  <Checkbox
-                    checked={item.forwarding}
-                    disabled={saving === item.packageName}
-                    onChange={(e) => void updateItem(item, { forwarding: e.target.checked })}
-                  />
-                </TableCell>
-                <TableCell>
-                  <TextInput
-                    sizing="sm"
-                    className="min-w-72"
-                    value={item.notifyTemplate}
-                    disabled={saving === item.packageName}
-                    onChange={(e) => {
-                      const value = e.target.value
-                      setApps((prev) =>
-                        prev.map((x) =>
-                          x.packageName === item.packageName ? { ...x, notifyTemplate: value } : x
+        <div className="relay-table-shell">
+          <table className="relay-table">
+            <thead>
+              <tr>
+                <th>应用</th>
+                <th>包名</th>
+                <th>自动输入拦截</th>
+                <th>通知转发</th>
+                <th>模板</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((item) => (
+                <tr key={item.packageName}>
+                  <td data-strong="true">{item.label}</td>
+                  <td>{item.packageName}</td>
+                  <td>
+                    <RelaySwitch
+                      checked={item.blocked}
+                      disabled={saving === item.packageName}
+                      onChange={(value) => void updateItem(item, { blocked: value })}
+                    />
+                  </td>
+                  <td>
+                    <RelaySwitch
+                      checked={item.forwarding}
+                      disabled={saving === item.packageName}
+                      onChange={(value) => void updateItem(item, { forwarding: value })}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="relay-input min-w-72 text-sm"
+                      value={item.notifyTemplate}
+                      disabled={saving === item.packageName}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setApps((prev) =>
+                          prev.map((x) =>
+                            x.packageName === item.packageName ? { ...x, notifyTemplate: value } : x
+                          )
                         )
-                      )
-                    }}
-                    onBlur={() => void updateItem(item, { notifyTemplate: item.notifyTemplate })}
-                  />
-                </TableCell>
-              </TableRow>
-            ))}
-            </TableBody>
-          </Table>
+                      }}
+                      onBlur={() => void updateItem(item, { notifyTemplate: item.notifyTemplate })}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </SurfaceCard>
     </PageShell>

@@ -9,6 +9,7 @@ import java.io.FileOutputStream
 import java.net.NetworkInterface
 import java.security.KeyStore
 import java.security.SecureRandom
+import java.security.cert.X509Certificate
 import java.util.Collections
 import java.util.concurrent.TimeUnit
 import okhttp3.tls.HeldCertificate
@@ -29,8 +30,9 @@ internal object WebUiTlsManager {
     private const val KEY_CA_ALIAS = "xinyi-relay-webui-ca"
     private const val LEGACY_KEY_ALIAS = "xsmscode-webui"
     private const val PASSWORD_LENGTH = 16
+    private val REQUIRED_LOOPBACK_HOSTS = setOf("localhost", "127.0.0.1")
 
-    suspend fun loadOrCreate(context: Context): WebUiTlsMaterial {
+    suspend fun loadOrCreate(context: Context, includeLocalNetworkHosts: Boolean = false): WebUiTlsMaterial {
         val safeContext = context.applicationContext ?: context
         val keyStoreFile = File(safeContext.filesDir, KEYSTORE_FILE_NAME)
         val preferenceDataSource = StorageRuntimeGraph.from(safeContext).preferenceDataSource
@@ -61,12 +63,22 @@ internal object WebUiTlsManager {
                 }
                 val resolvedAlias = resolveServerAlias(keyStore)
                 if (resolvedAlias != null) {
-                    return WebUiTlsMaterial(
-                        keyStore = keyStore,
-                        keyAlias = resolvedAlias,
-                        storePassword = storePassword,
-                        keyPassword = storePassword,
-                    )
+                    val serverCertificate = resolveServerCertificate(keyStore, resolvedAlias)
+                    if (
+                        serverCertificate != null &&
+                        isCertificateCoveringHosts(
+                            certificate = serverCertificate,
+                            requiredHosts = requiredCertificateHosts(includeLocalNetworkHosts),
+                        )
+                    ) {
+                        return WebUiTlsMaterial(
+                            keyStore = keyStore,
+                            keyAlias = resolvedAlias,
+                            storePassword = storePassword,
+                            keyPassword = storePassword,
+                        )
+                    }
+                    throw IllegalStateException("TLS keystore host coverage outdated")
                 }
                 throw IllegalStateException("TLS keystore missing alias")
             }.onFailure {
@@ -153,6 +165,36 @@ internal object WebUiTlsManager {
             keyStore.containsAlias(LEGACY_KEY_ALIAS) -> LEGACY_KEY_ALIAS
             else -> null
         }
+    }
+
+    private fun requiredCertificateHosts(includeLocalNetworkHosts: Boolean): Set<String> {
+        return buildSet {
+            addAll(REQUIRED_LOOPBACK_HOSTS)
+            if (includeLocalNetworkHosts) {
+                addAll(collectLocalIpCandidates())
+            }
+        }
+    }
+
+    private fun resolveServerCertificate(keyStore: KeyStore, alias: String): X509Certificate? {
+        return keyStore.getCertificateChain(alias)
+            ?.firstOrNull()
+            ?.let { it as? X509Certificate }
+            ?: (keyStore.getCertificate(alias) as? X509Certificate)
+    }
+
+    private fun isCertificateCoveringHosts(
+        certificate: X509Certificate,
+        requiredHosts: Set<String>,
+    ): Boolean {
+        val coveredHosts = runCatching {
+            certificate.subjectAlternativeNames
+                ?.mapNotNull { entry -> entry.getOrNull(1)?.toString()?.lowercase() }
+                ?.toSet()
+                .orEmpty()
+        }.getOrDefault(emptySet())
+        if (coveredHosts.isEmpty()) return false
+        return requiredHosts.all { it.lowercase() in coveredHosts }
     }
 
     internal fun generateRandomCredential(length: Int = 8): String {

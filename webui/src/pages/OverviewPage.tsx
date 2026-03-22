@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Button } from 'flowbite-react'
 import { apiClient } from '../api/client'
 import type { OverviewState } from '../types'
 import { trackEvent } from '../analytics'
-import { ErrorBanner, LoadingCard, MetricCard, PageShell } from '../template'
+import { ActionButton, ErrorBanner, LoadingCard, MetricCard, PageShell } from '../template'
 
 export function OverviewPage() {
   const [data, setData] = useState<OverviewState | null>(null)
@@ -25,16 +24,14 @@ export function OverviewPage() {
   }, [])
 
   const actions = (
-    <Button
-      color="alternative"
-      size="sm"
+    <ActionButton
       onClick={() => {
         trackEvent('refresh', { page: 'overview' })
         void load()
       }}
     >
       刷新概览
-    </Button>
+    </ActionButton>
   )
 
   if (!data && !error) {

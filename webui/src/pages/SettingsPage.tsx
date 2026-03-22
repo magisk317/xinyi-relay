@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Badge, Button } from 'flowbite-react'
 import { apiClient } from '../api/client'
 import type { SettingsState } from '../types'
 import { trackEvent } from '../analytics'
-import { ErrorBanner, LoadingCard, PageShell, SurfaceCard } from '../template'
+import { ActionButton, ErrorBanner, LoadingCard, PageShell, RelayBadge, SurfaceCard, ToggleRow } from '../template'
 
 export function SettingsPage() {
   const [data, setData] = useState<SettingsState | null>(null)
@@ -35,16 +34,14 @@ export function SettingsPage() {
   }
 
   const actions = (
-    <Button
-      color="alternative"
-      size="sm"
+    <ActionButton
       onClick={() => {
         trackEvent('refresh', { page: 'settings' })
         void load()
       }}
     >
       刷新设置
-    </Button>
+    </ActionButton>
   )
 
   if (!data) {
@@ -72,19 +69,19 @@ export function SettingsPage() {
       <div className="grid gap-4 xl:grid-cols-2">
         <SurfaceCard title="模块级开关" subtitle="决定整个 Relay 运行时是否继续处理事件。">
           <div className="space-y-3">
-            <Toggle
+            <ToggleRow
               label="模块总开关"
               hint="关闭后将停止验证码处理和转发链路。"
               checked={data.moduleEnabled}
               onChange={(value) => void update({ moduleEnabled: value })}
             />
-            <Toggle
+            <ToggleRow
               label="详细日志"
               hint="开启后会记录更多运行时细节，适合排障。"
               checked={data.verboseLogMode}
               onChange={(value) => void update({ verboseLogMode: value })}
             />
-            <Toggle
+            <ToggleRow
               label="保活恢复"
               hint="用于应用被系统终止后的恢复流程。"
               checked={data.forceStopRecoveryEnabled}
@@ -95,28 +92,28 @@ export function SettingsPage() {
 
         <SurfaceCard title="验证码能力" subtitle="控制验证码通知、复制和自动输入行为。">
           <div className="space-y-3">
-            <Toggle
+            <ToggleRow
               label="验证码功能"
               checked={data.verificationFeaturesEnabled}
               onChange={(value) => void update({ verificationFeaturesEnabled: value })}
             />
-            <Toggle
+            <ToggleRow
               label="复制验证码"
               checked={data.copyToClipboard}
               onChange={(value) => void update({ copyToClipboard: value })}
             />
-            <Toggle
+            <ToggleRow
               label="拦截验证码短信"
               hint="警告！提取成功后短信应用将无法收到"
               checked={data.blockSmsEnabled}
               onChange={(value) => void update({ blockSmsEnabled: value })}
             />
-            <Toggle
+            <ToggleRow
               label="自动输入"
               checked={data.enableAutoInputCode}
               onChange={(value) => void update({ enableAutoInputCode: value })}
             />
-            <Toggle
+            <ToggleRow
               label="自动回车"
               checked={data.enableAutoEnterCode}
               onChange={(value) => void update({ enableAutoEnterCode: value })}
@@ -126,17 +123,17 @@ export function SettingsPage() {
 
         <SurfaceCard title="转发与提醒" subtitle="影响转发链和提示方式。">
           <div className="space-y-3">
-            <Toggle
+            <ToggleRow
               label="转发功能"
               checked={data.relayFeaturesEnabled}
               onChange={(value) => void update({ relayFeaturesEnabled: value })}
             />
-            <Toggle
+            <ToggleRow
               label="Toast 提示"
               checked={data.showToast}
               onChange={(value) => void update({ showToast: value })}
             />
-            <Toggle
+            <ToggleRow
               label="短信黑名单"
               checked={data.smsBlacklistEnabled}
               onChange={(value) => void update({ smsBlacklistEnabled: value })}
@@ -146,38 +143,12 @@ export function SettingsPage() {
 
         <SurfaceCard title="当前状态" subtitle="用于快速确认几个关键能力是否已经开启。">
           <div className="flex flex-wrap gap-2">
-            <Badge color={data.moduleEnabled ? 'success' : 'failure'}>模块 {data.moduleEnabled ? '已开启' : '已关闭'}</Badge>
-            <Badge color={data.verificationFeaturesEnabled ? 'info' : 'failure'}>验证码 {data.verificationFeaturesEnabled ? '已开启' : '已关闭'}</Badge>
-            <Badge color={data.relayFeaturesEnabled ? 'success' : 'failure'}>转发 {data.relayFeaturesEnabled ? '已开启' : '已关闭'}</Badge>
+            <RelayBadge tone={data.moduleEnabled ? 'success' : 'danger'}>模块 {data.moduleEnabled ? '已开启' : '已关闭'}</RelayBadge>
+            <RelayBadge tone={data.verificationFeaturesEnabled ? 'accent' : 'danger'}>验证码 {data.verificationFeaturesEnabled ? '已开启' : '已关闭'}</RelayBadge>
+            <RelayBadge tone={data.relayFeaturesEnabled ? 'success' : 'danger'}>转发 {data.relayFeaturesEnabled ? '已开启' : '已关闭'}</RelayBadge>
           </div>
         </SurfaceCard>
       </div>
     </PageShell>
-  )
-}
-
-function Toggle({
-  label,
-  hint,
-  checked,
-  onChange
-}: {
-  label: string
-  hint?: string
-  checked: boolean
-  onChange: (value: boolean) => void
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3">
-      <div>
-        <div className="text-sm font-medium text-slate-900">{label}</div>
-        {hint && <div className="mt-1 text-xs leading-5 text-slate-500">{hint}</div>}
-      </div>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-    </div>
   )
 }

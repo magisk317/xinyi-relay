@@ -1,9 +1,28 @@
 import { useEffect, useState } from 'react'
-import { Badge, Button, TextInput, Textarea, ToggleSwitch } from 'flowbite-react'
 import { apiClient } from '../api/client'
 import type { SenderItem } from '../types'
 import { trackEvent } from '../analytics'
-import { EmptyCard, ErrorBanner, LoadingCard, PageShell, SurfaceCard } from '../template'
+import { ActionButton, EmptyCard, ErrorBanner, LoadingCard, PageShell, RelayBadge, SurfaceCard, ToggleRow } from '../template'
+
+const senderTypeOptions = [
+  { value: 3, label: 'Webhook' },
+  { value: 4, label: '企业微信机器人' },
+  { value: 5, label: '企业微信应用' },
+  { value: 9, label: '飞书' },
+  { value: 13, label: '飞书应用' },
+  { value: 7, label: 'Telegram' },
+  { value: 16, label: 'ntfy' },
+  { value: 11, label: 'Gotify' },
+  { value: 10, label: 'PushPlus' },
+  { value: 0, label: '钉钉群机器人' },
+  { value: 12, label: '钉钉内部机器人' },
+  { value: 1, label: '邮件' },
+  { value: 2, label: 'Bark' },
+  { value: 6, label: 'Server酱' },
+  { value: 8, label: '短信' },
+  { value: 14, label: 'URL Scheme' },
+  { value: 15, label: 'Socket' }
+]
 
 const emptySender: Partial<SenderItem> = {
   name: '',
@@ -70,16 +89,14 @@ export function SendersPage() {
   }
 
   const actions = (
-    <Button
-      color="alternative"
-      size="sm"
+    <ActionButton
       onClick={() => {
         trackEvent('refresh', { page: 'senders' })
         void load()
       }}
     >
       刷新通道
-    </Button>
+    </ActionButton>
   )
 
   if (!items.length && !error) {
@@ -106,18 +123,26 @@ export function SendersPage() {
 
       <SurfaceCard title="新建通道" subtitle="先填基础名称和类型，再补充 JSON 设置。">
         <div className="grid gap-3 md:grid-cols-2">
-          <TextInput
+          <input
+            className="relay-input"
             placeholder="名称"
             value={draft.name ?? ''}
             onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))}
           />
-          <TextInput
-            placeholder="类型数字（默认 4 = Webhook）"
+          <select
+            className="relay-input"
             value={String(draft.type ?? 4)}
             onChange={(e) => setDraft((prev) => ({ ...prev, type: Number(e.target.value) || 4 }))}
-          />
+          >
+            {senderTypeOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
           <div className="md:col-span-2">
-            <Textarea
+            <textarea
+              className="relay-input"
               placeholder="jsonSetting"
               rows={4}
               value={draft.jsonSetting ?? ''}
@@ -126,9 +151,9 @@ export function SendersPage() {
           </div>
         </div>
         <div className="mt-4">
-          <Button color="info" onClick={() => void create()}>
+          <ActionButton tone="primary" onClick={() => void create()}>
             创建通道
-          </Button>
+          </ActionButton>
         </div>
       </SurfaceCard>
 
@@ -140,24 +165,23 @@ export function SendersPage() {
           <SurfaceCard key={item.id} className="bg-white/96">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
-                <div className="font-medium text-slate-950">{item.name}</div>
+                <div className="font-medium text-[#243115]">{item.name}</div>
                 <div className="mt-1 flex flex-wrap gap-2">
-                  <Badge color="info">{item.typeLabel}</Badge>
-                  <Badge color="gray">#{item.type}</Badge>
+                  <RelayBadge tone="accent">{item.typeLabel}</RelayBadge>
                 </div>
               </div>
-              <Button color="failure" outline size="xs" onClick={() => void remove(item.id)}>
+              <ActionButton tone="danger" className="px-3 py-2 text-xs" onClick={() => void remove(item.id)}>
                 删除
-              </Button>
+              </ActionButton>
             </div>
             <div className="grid gap-3 md:grid-cols-2">
-              <Toggle label="启用" checked={item.status} onChange={(value) => void patch(item, { status: value })} />
-              <Toggle label="接收验证码" checked={item.receiveCode} onChange={(value) => void patch(item, { receiveCode: value })} />
-              <Toggle label="接收非验证码" checked={item.receiveNonCode} onChange={(value) => void patch(item, { receiveNonCode: value })} />
-              <Toggle label="接收应用通知" checked={item.receiveAppNotify} onChange={(value) => void patch(item, { receiveAppNotify: value })} />
+              <ToggleRow label="启用" checked={item.status} onChange={(value) => void patch(item, { status: value })} />
+              <ToggleRow label="接收验证码" checked={item.receiveCode} onChange={(value) => void patch(item, { receiveCode: value })} />
+              <ToggleRow label="接收非验证码" checked={item.receiveNonCode} onChange={(value) => void patch(item, { receiveNonCode: value })} />
+              <ToggleRow label="接收应用通知" checked={item.receiveAppNotify} onChange={(value) => void patch(item, { receiveAppNotify: value })} />
             </div>
-            <Textarea
-              className="mt-4"
+            <textarea
+              className="relay-input mt-4"
               rows={3}
               value={item.jsonSetting}
               onChange={(e) => {
@@ -171,14 +195,5 @@ export function SendersPage() {
         </div>
       )}
     </PageShell>
-  )
-}
-
-function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
-  return (
-    <div className="flex items-center justify-between rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3">
-      <div className="text-sm font-medium text-slate-900">{label}</div>
-      <ToggleSwitch checked={checked} onChange={onChange} />
-    </div>
   )
 }

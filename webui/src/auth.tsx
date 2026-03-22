@@ -11,6 +11,7 @@ import { apiClient, setCsrfToken } from './api/client'
 
 type AuthState = {
   loading: boolean
+  connected: boolean
   authenticated: boolean
   username: string
   login: (username: string, password: string) => Promise<void>
@@ -21,6 +22,7 @@ const AuthContext = createContext<AuthState | null>(null)
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [loading, setLoading] = useState(true)
+  const [connected, setConnected] = useState(false)
   const [authenticated, setAuthenticated] = useState(false)
   const [username, setUsername] = useState('')
 
@@ -30,6 +32,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       try {
         const me = await apiClient.me()
         if (cancelled) return
+        setConnected(true)
         if (me.authenticated && me.username && me.csrfToken) {
           setAuthenticated(true)
           setUsername(me.username)
@@ -41,6 +44,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         }
       } catch {
         if (!cancelled) {
+          setConnected(false)
           setAuthenticated(false)
           setUsername('')
           setCsrfToken('')
@@ -58,14 +62,28 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [])
 
   const login = useCallback(async (inputUsername: string, password: string) => {
-    const resp = await apiClient.login(inputUsername, password)
-    setAuthenticated(resp.authenticated)
-    setUsername(resp.username)
-    setCsrfToken(resp.csrfToken)
+    try {
+      const resp = await apiClient.login(inputUsername, password)
+      setConnected(true)
+      setAuthenticated(resp.authenticated)
+      setUsername(resp.username)
+      setCsrfToken(resp.csrfToken)
+    } catch (error) {
+      if (error instanceof Error) {
+        const message = error.message
+        if (message.includes('无法连接到 WebUI') || message.includes('连接超时')) {
+          setConnected(false)
+        } else {
+          setConnected(true)
+        }
+      }
+      throw error
+    }
   }, [])
 
   const logout = useCallback(async () => {
     await apiClient.logout()
+    setConnected(true)
     setAuthenticated(false)
     setUsername('')
     setCsrfToken('')
@@ -74,12 +92,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const value = useMemo(
     () => ({
       loading,
+      connected,
       authenticated,
       username,
       login,
       logout
     }),
-    [authenticated, loading, login, logout, username]
+    [authenticated, connected, loading, login, logout, username]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

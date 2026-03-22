@@ -1,5 +1,4 @@
 import { useEffect } from 'react'
-import { Spinner } from 'flowbite-react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth'
 import { AppLayout } from './layout'
@@ -12,14 +11,15 @@ import { RecordsPage } from './pages/RecordsPage'
 import { SendersPage } from './pages/SendersPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { trackPageView } from './analytics'
+import { RelaySpinner } from './template'
 
 function ProtectedLayout() {
   const { loading, authenticated } = useAuth()
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)]">
-        <div className="flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-white px-5 py-4 text-sm text-slate-600 shadow-sm">
-          <Spinner color="info" />
+      <div className="flex min-h-screen items-center justify-center bg-[linear-gradient(180deg,#fbfef2_0%,#eef7d7_100%)]">
+        <div className="flex items-center gap-3 rounded-[24px] border border-[#d6e7a2] bg-white/90 px-5 py-4 text-sm text-[#5f6d45] shadow-[0_20px_50px_-36px_rgba(98,122,28,0.24)]">
+          <RelaySpinner />
           正在连接内嵌 WebUI...
         </div>
       </div>

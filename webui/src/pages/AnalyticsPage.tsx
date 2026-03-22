@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Button, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TabItem, Tabs } from 'flowbite-react'
 import { apiClient } from '../api/client'
 import type { AnalyticsResponse, AnalyticsWindow } from '../types'
 import { trackEvent } from '../analytics'
-import { ErrorBanner, LoadingCard, MetricCard, PageShell, SurfaceCard } from '../template'
+import { ActionButton, ErrorBanner, LoadingCard, MetricCard, PageShell, SurfaceCard, cx } from '../template'
 
 const ranges = [
   { key: 'allTime', label: '全量' },
@@ -39,16 +38,14 @@ export function AnalyticsPage() {
   }, [data, range])
 
   const actions = (
-    <Button
-      color="alternative"
-      size="sm"
+    <ActionButton
       onClick={() => {
         trackEvent('refresh', { page: 'analytics' })
         void load()
       }}
     >
       刷新统计
-    </Button>
+    </ActionButton>
   )
 
   if (!data && !error) {
@@ -73,16 +70,24 @@ export function AnalyticsPage() {
     >
       <ErrorBanner message={error} />
       <SurfaceCard title="时间窗口" subtitle="切换不同统计范围，卡片和通道表会同步更新。">
-        <Tabs
-          variant="underline"
-          onActiveTabChange={(index) => setRange(ranges[index]?.key ?? 'allTime')}
-        >
+        <div className="flex flex-wrap gap-2">
           {ranges.map((item) => (
-            <TabItem key={item.key} active={range === item.key} title={item.label}>
-              <div className="text-sm text-slate-500">已切换到 {item.label} 统计窗口。</div>
-            </TabItem>
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => setRange(item.key)}
+              className={cx(
+                'rounded-full px-4 py-2.5 text-sm font-medium transition',
+                range === item.key
+                  ? 'bg-[linear-gradient(135deg,#87ad1e,#6f8e18)] text-[#243115] shadow-[0_20px_36px_-24px_rgba(111,142,24,0.44)]'
+                  : 'bg-[#f7fbe8] text-[#5d6c40] ring-1 ring-[#d4e3a1] hover:bg-white'
+              )}
+            >
+              {item.label}
+            </button>
           ))}
-        </Tabs>
+        </div>
+        <div className="mt-4 text-sm text-[#6c785d]">已切换到 {ranges.find((item) => item.key === range)?.label ?? '全量'} 统计窗口。</div>
       </SurfaceCard>
       {window && (
         <>
@@ -95,31 +100,31 @@ export function AnalyticsPage() {
           </div>
 
           <SurfaceCard title="通道表现" subtitle="按通道类型查看配置、启用和发送结果。">
-            <div className="overflow-x-auto">
-              <Table hoverable>
-                <TableHead>
-                  <TableRow>
-                    <TableHeadCell>通道类型</TableHeadCell>
-                    <TableHeadCell>配置数</TableHeadCell>
-                    <TableHeadCell>启用数</TableHeadCell>
-                    <TableHeadCell>发送数</TableHeadCell>
-                    <TableHeadCell>成功</TableHeadCell>
-                    <TableHeadCell>失败</TableHeadCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody className="divide-y">
-                {window.senderStats.map((stat) => (
-                  <TableRow key={stat.senderType} className="bg-white">
-                    <TableCell className="font-medium text-slate-900">{stat.senderTypeLabel}</TableCell>
-                    <TableCell>{stat.configured}</TableCell>
-                    <TableCell>{stat.enabled}</TableCell>
-                    <TableCell>{stat.sent}</TableCell>
-                    <TableCell>{stat.success}</TableCell>
-                    <TableCell>{stat.failed}</TableCell>
-                  </TableRow>
-                ))}
-                </TableBody>
-              </Table>
+            <div className="relay-table-shell">
+              <table className="relay-table">
+                <thead>
+                  <tr>
+                    <th>通道类型</th>
+                    <th>配置数</th>
+                    <th>启用数</th>
+                    <th>发送数</th>
+                    <th>成功</th>
+                    <th>失败</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {window.senderStats.map((stat) => (
+                    <tr key={stat.senderType}>
+                      <td data-strong="true">{stat.senderTypeLabel}</td>
+                      <td>{stat.configured}</td>
+                      <td>{stat.enabled}</td>
+                      <td>{stat.sent}</td>
+                      <td>{stat.success}</td>
+                      <td>{stat.failed}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </SurfaceCard>
         </>

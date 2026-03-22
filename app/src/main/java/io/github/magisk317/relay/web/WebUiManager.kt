@@ -7,11 +7,9 @@ import io.github.magisk317.relay.service.WebUiForegroundService
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import timber.log.Timber
 
 class WebUiManager(private val context: Context) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private var webUiServer: WebUiServer? = null
     private var configJob: Job? = null
     private val preferenceDataSource by lazy { StorageRuntimeGraph.from(context).preferenceDataSource }
 
@@ -39,47 +37,22 @@ class WebUiManager(private val context: Context) {
                 )
             }.distinctUntilChanged().collect { snapshot ->
                 if (!snapshot.enabled) {
-                    stopServer()
+                    WebUiForegroundService.stop(context)
                     return@collect
                 }
-                startServer(snapshot)
+                WebUiForegroundService.start(
+                    context = context,
+                    port = snapshot.port,
+                    allowLanAccess = snapshot.allowLanAccess,
+                )
             }
         }
-    }
-
-    private suspend fun startServer(snapshot: WebUiConfigSnapshot) {
-        runCatching {
-            val tlsMaterial = WebUiTlsManager.loadOrCreate(context)
-            val runtimeConfig = WebUiRuntimeConfig(
-                host = snapshot.host,
-                port = snapshot.port,
-                username = snapshot.username,
-                password = snapshot.password,
-                allowLanAccess = snapshot.allowLanAccess,
-                tlsMaterial = tlsMaterial,
-            )
-            stopServer()
-            WebUiServer(context, runtimeConfig).also {
-                it.start()
-                webUiServer = it
-            }
-            WebUiForegroundService.start(context, snapshot.port, snapshot.allowLanAccess)
-        }.onFailure {
-            WebUiForegroundService.stop(context)
-            Timber.e(it, "Failed to start WebUI server (host=%s port=%s lan=%s)", snapshot.host, snapshot.port, snapshot.allowLanAccess)
-        }
-    }
-
-    private fun stopServer() {
-        webUiServer?.stop()
-        webUiServer = null
-        WebUiForegroundService.stop(context)
     }
 
     fun stop() {
         configJob?.cancel()
         configJob = null
-        stopServer()
+        WebUiForegroundService.stop(context)
     }
 
     private suspend fun ensureWebUiConfigInitialized() {

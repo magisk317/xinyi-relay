@@ -1,12 +1,12 @@
-import { type FormEvent, useState } from 'react'
-import { Alert, Badge, Button, Card, Label, Spinner, TextInput } from 'flowbite-react'
+import { type FormEvent, type ReactNode, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth'
 import { trackEvent } from '../analytics'
+import { ActionButton, cx } from '../template'
 
 export function LoginPage() {
   const navigate = useNavigate()
-  const { authenticated, loading, login } = useAuth()
+  const { authenticated, loading, connected, login } = useAuth()
   const [username, setUsername] = useState('relay')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -32,105 +32,83 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#eef6ff_0%,#f8fafc_100%)] px-6 py-10">
-      <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl flex-col justify-center">
-        <div className="mb-8 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0f172a,#0ea5e9)] text-lg font-semibold text-white">
-            R
-          </div>
-          <div>
-            <div className="text-2xl font-semibold text-slate-950">信驿 Relay WebUI</div>
-            <div className="text-sm text-slate-500">嵌入式控制台</div>
-          </div>
-        </div>
+    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,#fbfef3_0%,#f0f8db_42%,#e6f0ca_100%)] px-5 py-6 sm:px-6 sm:py-8">
+      <div className="absolute inset-x-0 top-0 h-[320px] bg-[radial-gradient(circle_at_top,rgba(188,230,32,0.26),transparent_46%)]" />
+      <div className="absolute right-[-80px] top-[18%] h-[240px] w-[240px] rounded-full bg-[rgba(206,241,85,0.26)] blur-3xl" />
+      <div className="absolute left-[-100px] bottom-[12%] h-[260px] w-[260px] rounded-full bg-[rgba(151,191,29,0.16)] blur-3xl" />
 
-        <Card className="w-full border border-slate-200/80 shadow-xl shadow-slate-200/60 md:[&>*]:p-0">
-          <div className="grid md:grid-cols-[1.05fr_0.95fr]">
-            <div className="border-b border-slate-200/80 bg-[linear-gradient(135deg,#082f49,#0f172a)] p-8 text-white md:border-b-0 md:border-r">
-              <Badge color="info" className="w-fit">
-                Embedded Runtime Console
-              </Badge>
-              <h1 className="mt-6 text-4xl font-semibold tracking-tight">更轻的入口，更直接地管理 Relay</h1>
-              <p className="mt-4 text-sm leading-7 text-slate-200">登录后可以查看概览、记录、通道与高级设置。</p>
-              <div className="mt-8 grid gap-4 sm:grid-cols-3">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-sm text-slate-300">默认用户名</p>
-                  <p className="mt-2 text-lg font-semibold">relay</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-sm text-slate-300">推荐模式</p>
-                  <p className="mt-2 text-lg font-semibold">HTTPS 本机访问</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-sm text-slate-300">后台保活</p>
-                  <p className="mt-2 text-lg font-semibold">查看状态栏服务</p>
-                </div>
-              </div>
+      <div className="relative mx-auto flex min-h-[calc(100vh-3rem)] max-w-xl items-center justify-center">
+        <section className="w-full rounded-[36px] border border-[#d8e9a6]/72 bg-[rgba(252,255,245,0.86)] px-6 py-8 shadow-[0_30px_80px_-44px_rgba(98,122,28,0.22)] backdrop-blur-xl sm:px-8 sm:py-10">
+          <div className="flex flex-col items-center text-center">
+            <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-[28px] bg-white ring-1 ring-[#dbe9a9] shadow-[0_18px_50px_-26px_rgba(98,122,28,0.36)]">
+              <img src="/app-logo.png" alt="信驿 Relay" className="h-full w-full object-cover" />
             </div>
+            <div className="mt-5 text-[11px] font-semibold uppercase tracking-[0.32em] text-[#708b23]">Relay</div>
+            <h1 className="mt-3 text-4xl font-semibold tracking-[-0.06em] text-[#243115]">信驿 Relay WebUI</h1>
+            <div
+              className={cx(
+                'mt-5 rounded-full px-3 py-2 text-sm font-medium',
+                loading
+                  ? 'bg-[#fff7de] text-[#9a6412]'
+                  : connected
+                    ? 'bg-[#ecf8cb] text-[#58711e]'
+                    : 'bg-[#fff4ef] text-[#b24a24]'
+              )}
+            >
+              {loading ? '正在连接' : connected ? '连接就绪' : '连接失败'}
+            </div>
+          </div>
 
-            <form className="p-8" onSubmit={onSubmit}>
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm uppercase tracking-[0.24em] text-cyan-700">Relay</p>
-                  <h2 className="mt-2 text-3xl font-semibold text-slate-950">登录 WebUI</h2>
-                </div>
-                <Badge color={loading ? 'warning' : 'success'}>
-                  {loading ? '正在连接' : '连接就绪'}
-                </Badge>
-              </div>
-
-              <p className="mt-3 text-sm leading-6 text-slate-500">
-                如果看到连接超时或 <code className="rounded bg-slate-100 px-1.5 py-0.5">failed to fetch</code>，
-                请先把主应用切回前台，或确认状态栏中的 WebUI 服务通知仍在。
-              </p>
-
-              <div className="mt-6 flex flex-col gap-y-3">
-                <Label htmlFor="webui-username">用户名</Label>
-                <TextInput
+          <form className="mt-8 space-y-5" onSubmit={onSubmit}>
+              <Field label="用户名">
+                <input
                   id="webui-username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   autoComplete="username"
                   placeholder="relay"
+                  className="relay-input"
                 />
-              </div>
+              </Field>
 
-              <div className="mt-5 flex flex-col gap-y-3">
-                <Label htmlFor="webui-password">密码</Label>
-                <TextInput
+              <Field label="密码">
+                <input
                   id="webui-password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
                   placeholder="输入 WebUI 密码"
+                  className="relay-input"
                 />
-              </div>
+              </Field>
 
               {error && (
-                <Alert color="failure" className="mt-5">
+                <div className="rounded-[22px] border border-[#f7c9bf] bg-[#fff8f3] px-4 py-3 text-sm leading-6 text-[#b24a24]">
                   {error}
-                </Alert>
+                </div>
               )}
 
-              <Button className="mt-6 w-full" type="submit" color="info" disabled={submitting}>
-                {submitting ? (
-                  <div className="flex items-center gap-2">
-                    <Spinner size="sm" />
-                    正在验证连接...
-                  </div>
-                ) : (
-                  '进入 WebUI'
-                )}
-              </Button>
-
-              <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
-                如果登录特别慢，通常不是账号错误，而是系统已把主应用后台冻结。
-              </div>
-            </form>
-          </div>
-        </Card>
+              <ActionButton
+                type="submit"
+                tone="primary"
+                disabled={submitting}
+                className="w-full rounded-[22px] py-3 text-base font-semibold"
+              >
+                {submitting ? '正在验证连接...' : '进入 WebUI'}
+              </ActionButton>
+          </form>
+        </section>
       </div>
     </div>
+  )
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="block">
+      <div className="mb-2 text-sm font-medium text-[#243115]">{label}</div>
+      {children}
+    </label>
   )
 }
