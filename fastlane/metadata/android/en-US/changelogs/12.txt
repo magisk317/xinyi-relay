@@ -1,0 +1,5 @@
+- Bump to 0.0.1-alpha.7 (11).
+- Overview edit mode refined: smoother wiggle/drag/delete.
+- Compatible with libxposed API 101 only; legacy frameworks (API <= 100) are no longer supported.
+- Code settings updated: move block SMS to experimental.
+- Remote prefs sync reliability improved.
