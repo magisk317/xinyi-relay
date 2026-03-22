@@ -99,6 +99,7 @@ forbid_imports_in_dir "$APP_SRC/web" \
   '^import io\.github\.magisk317\.smscode\.core\.'
 
 forbid_imports_in_dir "$APP_SRC/xp" \
+  '^import io\.github\.magisk317\.relay\.common\.xp\.' \
   '^import io\.github\.magisk317\.relay\.common\.utils\.(PrefsReader|ActivationDiagnosticsStore|RuntimeLogStore)$' \
   '^import io\.github\.magisk317\.relay\.domain\.system\.(RuntimeRecordFacade|RuntimeAppConfigFacade)$' \
   '^import io\.github\.magisk317\.relay\.platform\.ipc\.SmsHookDispatchCoordinator$'

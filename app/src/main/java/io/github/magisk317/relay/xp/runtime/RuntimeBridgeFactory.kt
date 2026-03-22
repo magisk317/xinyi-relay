@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.xp.runtime
 
-import io.github.magisk317.relay.common.xp.NoopXpRuntimeBridge
-import io.github.magisk317.relay.common.xp.XpRuntimeBridge
+import io.github.magisk317.relay.xp.bridge.NoopXpRuntimeBridge
+import io.github.magisk317.relay.xp.bridge.XpRuntimeBridge
 
 object RuntimeBridgeFactory {
     fun create(runtimeHandle: Any? = null): XpRuntimeBridge {

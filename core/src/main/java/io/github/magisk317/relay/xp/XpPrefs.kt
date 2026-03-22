@@ -3,11 +3,19 @@ package io.github.magisk317.relay.xp
 import android.content.Context
 import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.common.utils.PrefsReader
-import io.github.magisk317.relay.common.xp.XpRuntimeBridge
+import io.github.magisk317.relay.xp.bridge.NoopXpRuntimeBridge
+import io.github.magisk317.relay.xp.bridge.PrefReadResult as CorePrefReadResult
+import io.github.magisk317.relay.xp.bridge.PrefsSource as CorePrefsSource
+import io.github.magisk317.relay.xp.bridge.XpCapabilities as CoreXpCapabilities
+import io.github.magisk317.relay.xp.bridge.XpRuntimeBridge as CoreXpRuntimeBridge
+import io.github.magisk317.relay.common.xp.PrefReadResult as RuntimePrefReadResult
+import io.github.magisk317.relay.common.xp.PrefsSource as RuntimePrefsSource
+import io.github.magisk317.relay.common.xp.XpCapabilities as RuntimeXpCapabilities
+import io.github.magisk317.relay.common.xp.XpRuntimeBridge as RuntimeXpRuntimeBridge
 
 object XpPrefs {
-    fun installRuntimeBridge(bridge: XpRuntimeBridge?) {
-        PrefsReader.installRuntimeBridge(bridge)
+    fun installRuntimeBridge(bridge: CoreXpRuntimeBridge?) {
+        PrefsReader.installRuntimeBridge((bridge ?: NoopXpRuntimeBridge).toRuntimeBridge())
     }
 
     fun isEnabled(context: Context): Boolean = PrefsReader.isEnabled(context)
@@ -49,4 +57,68 @@ object XpPrefs {
     fun deduplicateSms(context: Context): Boolean = PrefsReader.deduplicateSms(context)
 
     fun getIpcToken(context: Context): String = PrefsReader.getIpcToken(context)
+
+    private fun CoreXpRuntimeBridge.toRuntimeBridge(): RuntimeXpRuntimeBridge {
+        val bridge = this
+        return object : RuntimeXpRuntimeBridge {
+            override fun capabilities(): RuntimeXpCapabilities {
+                return bridge.capabilities().toRuntimeCapabilities()
+            }
+
+            override fun remotePrefsSource(group: String): RuntimePrefsSource {
+                return bridge.remotePrefsSource(group).toRuntimePrefsSource()
+            }
+        }
+    }
+
+    private fun CoreXpCapabilities.toRuntimeCapabilities(): RuntimeXpCapabilities {
+        return RuntimeXpCapabilities(
+            frameworkName = frameworkName,
+            frameworkVersion = frameworkVersion,
+            frameworkApiVersion = frameworkApiVersion,
+            frameworkPrivilege = frameworkPrivilege,
+            frameworkProperties = frameworkProperties,
+            supportsRemotePrefs = supportsRemotePrefs,
+            supportsRemoteFile = supportsRemoteFile,
+            supportsDeopt = supportsDeopt,
+        )
+    }
+
+    private fun CorePrefsSource.toRuntimePrefsSource(): RuntimePrefsSource {
+        val source = this
+        return object : RuntimePrefsSource {
+            override val sourceName: String = source.sourceName
+
+            override fun readBoolean(
+                context: Context,
+                key: String,
+                defaultValue: Boolean,
+            ): RuntimePrefReadResult<Boolean>? {
+                return source.readBoolean(context, key, defaultValue)?.toRuntimeResult()
+            }
+
+            override fun readString(
+                context: Context,
+                key: String,
+                defaultValue: String,
+            ): RuntimePrefReadResult<String>? {
+                return source.readString(context, key, defaultValue)?.toRuntimeResult()
+            }
+
+            override fun readInt(
+                context: Context,
+                key: String,
+                defaultValue: Int,
+            ): RuntimePrefReadResult<Int>? {
+                return source.readInt(context, key, defaultValue)?.toRuntimeResult()
+            }
+        }
+    }
+
+    private fun <T> CorePrefReadResult<T>.toRuntimeResult(): RuntimePrefReadResult<T> {
+        return RuntimePrefReadResult(
+            value = value,
+            source = source,
+        )
+    }
 }
