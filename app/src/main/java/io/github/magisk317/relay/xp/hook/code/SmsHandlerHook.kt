@@ -9,13 +9,11 @@ import android.provider.Telephony
 import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.common.constant.NotificationConst
-import io.github.magisk317.smscode.core.utils.ModuleActivationStore
 import io.github.magisk317.relay.common.utils.NotificationUtils
 import io.github.magisk317.relay.common.utils.PrefsReader
-import io.github.magisk317.relay.common.utils.SmsBlacklistUtils
+import io.github.magisk317.smscode.core.utils.ModuleActivationStore
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
-import io.github.magisk317.relay.xp.hook.SmsHookDispatchGate
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
 import io.github.magisk317.smscode.core.utils.XLog
@@ -37,6 +35,19 @@ import java.util.concurrent.Executors
 class SmsHandlerHook : BaseHook() {
     private val runtimeSession = SmsHookRuntimeSession(SMSCODE_PACKAGE, ANDROID_PHONE_PACKAGE)
     private val inboundSmsBlocker = InboundSmsBlocker(SMS_HANDLER_CLASS)
+    private val dispatchIntentHandler = SmsDispatchIntentHandler(
+        runtimeResolver = runtimeSession::recordHeartbeat,
+        suppressionLogger = ::logSuppressedOnce,
+        blacklistDeleteScheduler = ::scheduleBlacklistDelete,
+        inboundBlocker = { inboundSmsHandler, receiver, reason, eventId ->
+            inboundSmsBlocker.blockInboundSms(
+                inboundSmsHandler = inboundSmsHandler,
+                smsReceiver = receiver,
+                reason = reason,
+                eventId = eventId,
+            )
+        },
+    )
     private var smsInboxObserver: SmsInboxObserver? = null
     @Volatile
     private var suppressionLogged = false
@@ -291,74 +302,17 @@ class SmsHandlerHook : BaseHook() {
             pduCount,
             intent.extras != null,
         )
-
-        val runtime = runtimeSession.recordHeartbeat("sms_handler_dispatch")
-        if (runtime == null) {
-            XLog.e("Context is null, skip parsing. pluginContext: %s, phoneContext: %s", null, null)
+        val outcome = dispatchIntentHandler.handle(
+            intent = intent,
+            eventId = eventId,
+            inboundSmsHandler = param.thisObject,
+            receiver = param.args.getOrNull(receiverIndex),
+        )
+        if (outcome.inboundBlocked) {
+            param.result = null
+        }
+        if (outcome.shouldStopDispatch) {
             return
-        }
-        val pluginContext = runtime.pluginContext
-        val phoneContext = runtime.phoneContext
-        when (
-            SmsHookDispatchGate.evaluate(
-                moduleEnabled = PrefsReader.isEnabled(pluginContext),
-                relayFeatureRequired = false,
-                relayFeaturesEnabled = true,
-                suppressedByRelay = ModuleConflictArbiter.shouldSuppressByRelay(
-                    phoneContext,
-                    "SmsHandlerHook#dispatchIntent",
-                ),
-            ).reason
-        ) {
-            SmsHookDispatchGate.BlockReason.MODULE_DISABLED -> {
-                XLog.w("Diag: module disabled in settings")
-                XLog.i("XposedSmsCode disabled, exiting")
-                return
-            }
-
-            SmsHookDispatchGate.BlockReason.CONFLICT_SUPPRESSED -> {
-                logSuppressedOnce("dispatchIntent")
-                SmsCodeConflictNoticeHelper.notifyConflictOnSms(
-                    pluginContext,
-                    phoneContext,
-                    eventId,
-                    "SmsHandlerHook#dispatchIntent",
-                )
-                return
-            }
-
-            else -> Unit
-        }
-        val dispatchOutcome = SmsDispatchIntentProcessor(
-            pluginContext = pluginContext,
-            phoneContext = phoneContext,
-        ).handle(intent, eventId)
-        val smsMsg = dispatchOutcome.smsMsg
-        val decision = dispatchOutcome.decision
-        if (decision.shouldDeleteByBlacklist && smsMsg != null) {
-            scheduleBlacklistDelete(pluginContext, phoneContext, smsMsg)
-        }
-        decision.blockReason?.let { blockReason ->
-            XLog.w("Diag sms block reason=%s event_id=%s", blockReason.wireValue, eventId)
-            param.args.getOrNull(receiverIndex)?.let { receiver ->
-                val inbound = param.thisObject ?: return
-                inboundSmsBlocker.blockInboundSms(
-                    inboundSmsHandler = inbound,
-                    smsReceiver = receiver,
-                    reason = blockReason.wireValue,
-                    eventId = eventId,
-                )
-                param.result = null
-            }
-            return
-        }
-        if (decision.shouldAllowSystemPersist) {
-            XLog.w(
-                "Diag allow system inbox persist: event_id=%s sender_hash=%s body_len=%d",
-                eventId,
-                senderHash(smsMsg?.sender),
-                smsMsg?.body?.length ?: 0,
-            )
         }
     }
 
@@ -388,12 +342,6 @@ class SmsHandlerHook : BaseHook() {
 
     private fun ensureEventId(intent: Intent): String {
         return SmsHookDispatchCoordinator.ensureIncomingEventId(intent)
-    }
-
-    private fun senderHash(sender: String?): String {
-        val value = sender.orEmpty()
-        if (value.isBlank()) return "none"
-        return Integer.toHexString(value.hashCode())
     }
 
     private fun logSuppressedOnce(stage: String) {
