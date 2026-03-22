@@ -121,6 +121,21 @@ class RuntimeRecordFacade(
         }
     }
 
+    suspend fun persistSmsHookDispatchFailure(
+        smsMsg: SmsMsg,
+        message: String,
+        target: String = SMS_HOOK_TARGET,
+        maxMessageLength: Int = SMS_HOOK_MAX_MESSAGE_LENGTH,
+    ) {
+        persistSmsForwardResult(
+            smsMsg = smsMsg,
+            success = false,
+            target = target,
+            message = message,
+            maxMessageLength = maxMessageLength,
+        )
+    }
+
     suspend fun insertSmsRecord(
         smsMsg: SmsMsg,
         isCodeSms: Boolean,
@@ -129,5 +144,10 @@ class RuntimeRecordFacade(
             smsMsg = smsMsg,
             isCodeSms = isCodeSms,
         )
+    }
+
+    private companion object {
+        private const val SMS_HOOK_TARGET = "SmsCode Engine"
+        private const val SMS_HOOK_MAX_MESSAGE_LENGTH = 300
     }
 }

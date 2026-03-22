@@ -5,10 +5,11 @@ import android.content.Intent
 import android.os.Bundle
 import android.text.TextUtils
 import io.github.magisk317.relay.BuildConfig
+import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.common.utils.StringUtils
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
-import io.github.magisk317.relay.platform.ipc.SmsIngressAdapter
+import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 import io.github.magisk317.smscode.core.utils.XLog
 
@@ -83,20 +84,20 @@ class SmsParseAction(pluginContext: Context, phoneContext: Context, smsMsg: SmsM
             }
         }
 
-        val ingressResult = kotlinx.coroutines.runBlocking {
-            SmsIngressAdapter.toPayload(
+        val prepared = kotlinx.coroutines.runBlocking {
+            SmsHookDispatchCoordinator.prepareIngressSms(
                 pluginContext = mPluginContext,
                 phoneContext = mPhoneContext,
                 smsMsg = smsMsg,
                 sourceIntent = intent,
             )
         } ?: return null
-        val resolvedSmsMsg = ingressResult.smsMsg
-        val smsCode = resolvedSmsMsg.smsCode.orEmpty()
-        if (TextUtils.isEmpty(smsCode)) { // isn't code message
+        if (prepared.messageType != MessageType.SMS_CODE) {
             XLog.w("Diag SMS parsed but no code matched, body=%s", StringUtils.escape(msgBodyNotNull))
             return null
         }
+        val resolvedSmsMsg = prepared.smsMsg
+        val smsCode = resolvedSmsMsg.smsCode.orEmpty()
 
         val company = resolvedSmsMsg.company.orEmpty()
         mSmsMsg = resolvedSmsMsg.copy(date = timestamp)

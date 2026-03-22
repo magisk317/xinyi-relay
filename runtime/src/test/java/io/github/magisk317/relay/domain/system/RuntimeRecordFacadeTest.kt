@@ -80,6 +80,40 @@ class RuntimeRecordFacadeTest {
     }
 
     @Test
+    fun persistSmsHookDispatchFailure_usesDefaultTargetAndFailedStatus() = runBlocking {
+        val context = mockk<Context>(relaxed = true)
+        val database = mockk<AppDatabase>()
+        val smsMsgDao = mockk<SmsMsgDao>(relaxed = true)
+        val relayRecordRepository = mockk<RelayRecordRepository>(relaxed = true)
+        val existing = SmsMsg(
+            id = 9L,
+            sender = "1068",
+            body = "code 123456",
+            date = 100L,
+            msgType = SmsMsg.MSG_TYPE_SMS,
+        )
+        every { database.smsMsgDao() } returns smsMsgDao
+        every { smsMsgDao.getByFingerprint("1068", "code 123456", 100L, SmsMsg.MSG_TYPE_SMS) } returns existing
+        var updatedArg: SmsMsg? = null
+        every { smsMsgDao.update(any()) } answers {
+            updatedArg = firstArg()
+            Unit
+        }
+
+        val facade = RuntimeRecordFacade(context, database, relayRecordRepository)
+        facade.persistSmsHookDispatchFailure(
+            smsMsg = existing,
+            message = "IPC token missing",
+        )
+
+        verify(exactly = 1) { smsMsgDao.update(any()) }
+        requireNotNull(updatedArg)
+        assertEquals(SmsMsg.FORWARD_STATUS_FAILED, updatedArg!!.forwardStatus)
+        assertEquals("SmsCode Engine", updatedArg!!.forwardTarget)
+        assertEquals("IPC token missing", updatedArg!!.forwardMessage)
+    }
+
+    @Test
     fun persistSmsForwardResult_insertsWhenRecordMissing() = runBlocking {
         val context = mockk<Context>(relaxed = true)
         val database = mockk<AppDatabase>()

@@ -6,10 +6,9 @@ import android.os.Bundle
 import android.os.Process
 import io.github.magisk317.smscode.core.utils.XLog
 import io.github.magisk317.relay.data.db.entity.SmsMsg
-import io.github.magisk317.relay.platform.ipc.ForwardBroadcastDispatcher
-import io.github.magisk317.relay.platform.ipc.ForwardBroadcastPayload
-import io.github.magisk317.relay.platform.ipc.ForwardPayloadFactory
 import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
+import io.github.magisk317.relay.platform.ipc.PreparedSmsHookDispatch
+import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 import kotlinx.coroutines.runBlocking
 
@@ -34,17 +33,16 @@ class ForwardAction(
                 eventId.ifBlank { "<none>" },
                 isCodeSms,
             )
-            // Send IPC Broadcast to the integrated SmsCode App Module
-            val payload = ForwardPayloadFactory.smsPayload(
+            val prepared = SmsHookDispatchCoordinator.prepareParsedSms(
                 smsMsg = mSmsMsg,
                 eventId = eventId.ifBlank { null },
                 sourceIntent = mSmsIntent,
             )
-            logSimExtras(payload)
+            logSimExtras(prepared)
 
-            val dispatchResult = ForwardBroadcastDispatcher.dispatchFromSmsHook(
+            val dispatchResult = SmsHookDispatchCoordinator.dispatchPreparedSms(
                 context = mPluginContext,
-                payload = payload,
+                prepared = prepared,
                 sentFromUid = Process.myUid(),
             )
             if (!dispatchResult.dispatched) {
@@ -82,24 +80,33 @@ class ForwardAction(
         return null
     }
 
-    private fun logSimExtras(payload: ForwardBroadcastPayload) {
+    private fun logSimExtras(prepared: PreparedSmsHookDispatch) {
         XLog.d(
             "ForwardAction SIM extras copied: sim_slot=%s sub_id=%s",
-            payload.simSlot?.toString() ?: "N/A",
-            payload.subId?.toString() ?: "N/A",
+            prepared.payload.simSlot?.toString() ?: "N/A",
+            prepared.payload.subId?.toString() ?: "N/A",
         )
     }
 
     private fun persistForwardResult(success: Boolean, target: String?, message: String) {
         try {
             runBlocking {
-                runtimeRecordFacade.persistSmsForwardResult(
-                    smsMsg = mSmsMsg,
-                    success = success,
-                    target = target,
-                    message = message,
-                    maxMessageLength = MAX_MESSAGE_LEN,
-                )
+                if (success) {
+                    runtimeRecordFacade.persistSmsForwardResult(
+                        smsMsg = mSmsMsg,
+                        success = true,
+                        target = target,
+                        message = message,
+                        maxMessageLength = MAX_MESSAGE_LEN,
+                    )
+                } else {
+                    runtimeRecordFacade.persistSmsHookDispatchFailure(
+                        smsMsg = mSmsMsg,
+                        message = message,
+                        target = target ?: DEFAULT_FORWARD_TARGET,
+                        maxMessageLength = MAX_MESSAGE_LEN,
+                    )
+                }
             }
         } catch (t: Throwable) {
             XLog.w("Persist forward result failed: %s", t.message ?: "unknown")
@@ -108,5 +115,6 @@ class ForwardAction(
 
     companion object {
         private const val MAX_MESSAGE_LEN = 300
+        private const val DEFAULT_FORWARD_TARGET = "SmsCode Engine"
     }
 }
