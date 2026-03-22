@@ -28,12 +28,10 @@ object SmsIngressAdapter {
 
         val smsCode = SmsCodeUtils.parseSmsCodeIfExists(pluginContext, body, null)
         val messageType = if (smsCode.isBlank()) MessageType.SMS_PLAIN else MessageType.SMS_CODE
-        val (company, packageName) = resolveCompanyAndPackage(phoneContext, body, smsCode)
-        val resolvedSmsMsg = smsMsg.copy(
-            date = smsMsg.date.takeIf { it > 0L } ?: System.currentTimeMillis(),
-            company = company,
+        val resolvedSmsMsg = enrichSmsMsg(
+            phoneContext = phoneContext,
+            smsMsg = smsMsg,
             smsCode = smsCode,
-            packageName = packageName,
         )
 
         return Result(
@@ -44,6 +42,21 @@ object SmsIngressAdapter {
                 sourceIntent = sourceIntent,
             ),
             messageType = messageType,
+        )
+    }
+
+    fun enrichSmsMsg(
+        phoneContext: Context,
+        smsMsg: SmsMsg,
+        smsCode: String?,
+    ): SmsMsg {
+        val body = smsMsg.body.orEmpty()
+        val (company, packageName) = resolveCompanyAndPackage(phoneContext, body, smsCode)
+        return smsMsg.copy(
+            date = smsMsg.date.takeIf { it > 0L } ?: System.currentTimeMillis(),
+            company = company,
+            smsCode = smsCode,
+            packageName = packageName,
         )
     }
 

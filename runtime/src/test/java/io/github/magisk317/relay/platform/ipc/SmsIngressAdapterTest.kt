@@ -16,6 +16,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class SmsIngressAdapterTest {
@@ -92,5 +93,33 @@ class SmsIngressAdapterTest {
         assertNull(result.smsMsg.packageName)
         assertEquals("", result.smsMsg.smsCode)
         assertEquals("sms_plain", result.payload.eventId)
+    }
+
+    @Test
+    fun enrichSmsMsg_usesProvidedCodeAndNormalizesDate() {
+        val phoneContext = mockk<Context>(relaxed = true)
+        val packageManager = mockk<PackageManager>()
+        val appInfo = ApplicationInfo().apply {
+            packageName = "com.bank.app"
+        }
+
+        every { phoneContext.packageManager } returns packageManager
+        every { packageManager.getInstalledApplications(PackageManager.MATCH_ALL) } returns listOf(appInfo)
+        every { packageManager.getApplicationLabel(appInfo) } returns "Bank"
+
+        val result = SmsIngressAdapter.enrichSmsMsg(
+            phoneContext = phoneContext,
+            smsMsg = SmsMsg(
+                sender = "1068",
+                body = "【Bank】code 123456",
+                date = 0L,
+            ),
+            smsCode = "123456",
+        )
+
+        assertEquals("123456", result.smsCode)
+        assertEquals("Bank", result.company)
+        assertEquals("com.bank.app", result.packageName)
+        assertTrue(result.date > 0L)
     }
 }
