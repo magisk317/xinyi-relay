@@ -4,17 +4,14 @@ import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.os.Process
-import io.github.magisk317.relay.common.utils.PrefsReader
 import io.github.magisk317.smscode.core.utils.XLog
 import io.github.magisk317.relay.data.db.DBProvider
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.platform.ipc.ForwardBroadcastDispatcher
 import io.github.magisk317.relay.platform.ipc.ForwardBroadcastPayload
 import io.github.magisk317.relay.platform.ipc.ForwardPayloadFactory
-import io.github.magisk317.relay.platform.ipc.ForwardReceiverPolicy
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 
 /**
@@ -45,38 +42,32 @@ class ForwardAction(
             )
             logSimExtras(payload)
 
-            // Securing IPC with Token: Only the receiver matching our token can process this msg.
-            // We use PrefsReader to retrieve token via cross-process Provider.
-            val token = PrefsReader.getIpcToken(mPluginContext)
-            if (token.isBlank()) {
-                if (!ForwardReceiverPolicy.shouldAllowSmsHookTokenBypass(Process.myUid(), Build.VERSION.SDK_INT)) {
-                    XLog.e("IPC token is empty, skip forwarding broadcast for security. event_id=%s", eventId.ifBlank { "<none>" })
-                    persistForwardResult(
-                        success = false,
-                        target = "SmsCode Engine",
-                        message = "IPC token missing",
-                    )
-                    return null
-                }
+            val dispatchResult = ForwardBroadcastDispatcher.dispatchFromSmsHook(
+                context = mPluginContext,
+                payload = payload,
+                sentFromUid = Process.myUid(),
+            )
+            if (!dispatchResult.dispatched) {
+                XLog.e("IPC token is empty, skip forwarding broadcast for security. event_id=%s", eventId.ifBlank { "<none>" })
+                persistForwardResult(
+                    success = false,
+                    target = "SmsCode Engine",
+                    message = "IPC token missing",
+                )
+                return null
+            }
+            if (dispatchResult.bypassUsed) {
                 XLog.w(
-                    "IPC token empty, continue forwarding with receiver-side bypass. event_id=%s source=sms_hook uid=%d sdk=%d",
+                    "IPC token empty, continue forwarding with receiver-side bypass. event_id=%s source=sms_hook uid=%d",
                     eventId.ifBlank { "<none>" },
                     Process.myUid(),
-                    Build.VERSION.SDK_INT,
                 )
             }
 
-            ForwardBroadcastDispatcher.dispatch(
-                context = mPluginContext,
-                payload = payload,
-                token = token.takeIf { it.isNotBlank() },
-            )
-            
             XLog.i(
-                "Successfully broadcasted SMS info to SmsCode Engine (event_id=%s tokenPresent=%s length=%d): %s",
+                "Successfully broadcasted SMS info to SmsCode Engine (event_id=%s tokenPresent=%s): %s",
                 eventId.ifBlank { "<none>" },
-                token.isNotBlank(),
-                token.length,
+                dispatchResult.tokenPresent,
                 mSmsMsg.smsCode,
             )
         } catch (t: Throwable) {

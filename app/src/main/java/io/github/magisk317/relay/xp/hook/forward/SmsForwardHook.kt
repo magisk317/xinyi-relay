@@ -2,7 +2,6 @@ package io.github.magisk317.relay.xp.hook.forward
 
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.Process
 import android.provider.Telephony
 import io.github.magisk317.relay.BuildConfig
@@ -12,7 +11,6 @@ import io.github.magisk317.relay.common.utils.RuntimeLogStore
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.platform.ipc.ForwardBroadcastDispatcher
 import io.github.magisk317.relay.platform.ipc.ForwardPayloadFactory
-import io.github.magisk317.relay.platform.ipc.ForwardReceiverPolicy
 import io.github.magisk317.relay.platform.ipc.SmsIngressAdapter
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
@@ -188,33 +186,30 @@ class SmsForwardHook : BaseHook() {
         val resolvedSmsMsg = ingressResult.smsMsg
         val payload = ingressResult.payload
 
-        val token = PrefsReader.getIpcToken(pluginContext)
-        if (token.isBlank()) {
-            if (!ForwardReceiverPolicy.shouldAllowSmsHookTokenBypass(Process.myUid(), Build.VERSION.SDK_INT)) {
-                XLog.e(
-                    "SmsForwardHook: IPC token empty, skip forward. event_id=%s",
-                    eventId,
-                )
-                return
-            }
-            XLog.w(
-                "SmsForwardHook: IPC token empty, continue with receiver-side bypass. event_id=%s uid=%d sdk=%d",
-                eventId,
-                Process.myUid(),
-                Build.VERSION.SDK_INT,
-            )
-        }
-
-        ForwardBroadcastDispatcher.dispatch(
+        val dispatchResult = ForwardBroadcastDispatcher.dispatchFromSmsHook(
             context = pluginContext,
             payload = payload,
-            token = token.takeIf { it.isNotBlank() },
+            sentFromUid = Process.myUid(),
         )
+        if (!dispatchResult.dispatched) {
+            XLog.e(
+                "SmsForwardHook: IPC token empty, skip forward. event_id=%s",
+                eventId,
+            )
+            return
+        }
+        if (dispatchResult.bypassUsed) {
+            XLog.w(
+                "SmsForwardHook: IPC token empty, continue with receiver-side bypass. event_id=%s uid=%d",
+                eventId,
+                Process.myUid(),
+            )
+        }
         XLog.i(
             "SmsForwardHook forwarded: event_id=%s code_present=%s tokenPresent=%s",
             eventId,
             resolvedSmsMsg.smsCode?.isNotBlank() == true,
-            token.isNotBlank(),
+            dispatchResult.tokenPresent,
         )
     }
 
