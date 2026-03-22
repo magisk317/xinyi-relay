@@ -1,7 +1,9 @@
 package io.github.magisk317.relay.app
 
 import android.app.Application
+import io.github.magisk317.relay.common.utils.ActivationDiagnosticsStore
 import io.github.magisk317.relay.common.utils.AppPreferencesDataStore
+import io.github.magisk317.relay.common.utils.PrefsReader as RelayPrefsReader
 import io.github.magisk317.smscode.core.utils.ModuleActivationStore
 import io.github.magisk317.smscode.core.utils.ModuleUtils
 import io.github.magisk317.smscode.core.utils.XLog
@@ -40,8 +42,15 @@ class ServiceMonitorInitializer : AppInitializer {
                             }
                             AppPreferencesDataStore.syncToRemotePrefs(application)
                         }
+                        val verboseLogEnabled = RelayPrefsReader.isVerboseLogMode(application)
                         ModuleUtils.setRuntimeActivated(true)
                         ModuleActivationStore.markActivated(application)
+                        ActivationDiagnosticsStore.recordServiceBind(
+                            context = application,
+                            frameworkName = service.frameworkName,
+                            frameworkVersion = service.frameworkVersion,
+                            verboseLogging = verboseLogEnabled,
+                        )
                         XLog.i(
                             "Xposed service connected: framework=%s version=%s",
                             service.frameworkName,
@@ -52,6 +61,10 @@ class ServiceMonitorInitializer : AppInitializer {
                     override fun onServiceDied(service: XposedService) {
                         AppPreferencesDataStore.setRemotePrefsProvider(null)
                         ModuleUtils.setRuntimeActivated(false)
+                        ActivationDiagnosticsStore.recordServiceDied(
+                            context = application,
+                            verboseLogging = RelayPrefsReader.isVerboseLogMode(application),
+                        )
                         XLog.w("Xposed service disconnected")
                     }
                 },

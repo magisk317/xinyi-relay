@@ -23,10 +23,6 @@ class RuntimeLogStoreRouteTest {
             RuntimeLogStore.ROUTE_PERMISSION_HOOK,
             RuntimeLogStore.routeFromCallerClassName("io.github.magisk317.smscode.core.hook.permission.PermissionGranterHook"),
         )
-        assertEquals(
-            RuntimeLogStore.ROUTE_GOOGLE_MESSAGES,
-            RuntimeLogStore.routeFromCallerClassName("io.github.magisk317.relay.xp.hook.google.GoogleMessagesHook"),
-        )
     }
 
     @Test

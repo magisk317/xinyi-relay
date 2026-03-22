@@ -609,6 +609,9 @@
     <string name="smscode_conflict_dialog_suffix">.</string>
     <string name="smscode_conflict_other_app_name">XposedSmsCode</string>
     <string name="smscode_conflict_dialog_exit">Exit</string>
+    <string name="channel_name_smscode_conflict_notification">Conflict alert</string>
+    <string name="smscode_conflict_notification_content">Detected installed module %1$s (%2$s). Please uninstall it first, then install and use %3$s.</string>
+    <string name="smscode_conflict_sms_toast">Feature conflict. Check the notification.</string>
     <!-- smscode conflict dialog end -->
     <string name="rule_list_empty_prompt">No rules yet. Click + to add one.</string>
     <string name="rule_keyword_prefix">Keyword: </string>

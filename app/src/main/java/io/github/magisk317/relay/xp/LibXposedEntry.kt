@@ -3,7 +3,6 @@ package io.github.magisk317.relay.xp
 import android.util.Log
 import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.common.utils.PrefsReader
-import io.github.magisk317.relay.xp.hook.google.GoogleMessagesHook
 import io.github.magisk317.relay.xp.hook.code.SmsHandlerHook
 import io.github.magisk317.relay.xp.hook.forward.SmsForwardHook
 import io.github.magisk317.relay.xp.hook.me.ModuleUtilsHook
@@ -40,7 +39,6 @@ class LibXposedEntry : XposedModule {
     private val hookList: List<BaseHook> = listOf(
         SmsHandlerHook(),
         SmsForwardHook(),
-        GoogleMessagesHook(),
         ModuleUtilsHook(),
         PermissionGranterHook(),
         SystemInputInjectorHook(),

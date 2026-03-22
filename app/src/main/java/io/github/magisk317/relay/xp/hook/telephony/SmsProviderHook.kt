@@ -4,6 +4,10 @@ import android.content.ContentProvider
 import android.content.ContentValues
 import android.net.Uri
 import android.os.Binder
+import io.github.magisk317.relay.BuildConfig
+import io.github.magisk317.relay.common.utils.ActivationDiagnosticsStore
+import io.github.magisk317.relay.common.utils.PrefsReader
+import io.github.magisk317.relay.common.utils.RuntimeLogStore
 import io.github.magisk317.smscode.core.utils.XLog
 import io.github.magisk317.smscode.core.hook.BaseHook
 import io.github.magisk317.smscode.core.helper.XposedWrapper
@@ -46,6 +50,22 @@ class SmsProviderHook : BaseHook() {
                         if (!isSmsUri(uri)) return
                         val provider = param.thisObject as? ContentProvider
                         val context = provider?.context
+                        val pluginContext = runCatching {
+                            context?.createPackageContext(
+                                BuildConfig.APPLICATION_ID,
+                                android.content.Context.CONTEXT_IGNORE_SECURITY,
+                            )
+                        }.getOrNull()
+                        if (pluginContext != null && context != null) {
+                            ActivationDiagnosticsStore.recordHookHeartbeat(
+                                context = pluginContext,
+                                packageName = TELEPHONY_PROVIDER_PACKAGE,
+                                processName = context.applicationInfo?.processName ?: TELEPHONY_PROVIDER_PACKAGE,
+                                source = "sms_provider_$methodName",
+                                verboseLogging = PrefsReader.isVerboseLogMode(pluginContext),
+                                route = RuntimeLogStore.ROUTE_SMS_HOOK,
+                            )
+                        }
                         val callingUid = Binder.getCallingUid()
                         val callingPid = Binder.getCallingPid()
                         val packages = runCatching {

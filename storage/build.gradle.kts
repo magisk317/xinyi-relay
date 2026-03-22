@@ -84,6 +84,8 @@ tasks.withType<Test>().configureEach {
 }
 
 dependencies {
+    implementation(project(":smscode-core:core"))
+
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.serialization.json)

@@ -2,6 +2,7 @@ package io.github.magisk317.relay.ui.home
 
 import android.content.Intent
 import android.os.Build
+import android.os.SystemClock
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Canvas
@@ -107,8 +108,9 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import io.github.magisk317.relay.common.constant.Const
 import io.github.magisk317.relay.common.constant.PrefConst
+import io.github.magisk317.relay.common.utils.ActivationDiagnosticsSnapshot
+import io.github.magisk317.relay.common.utils.ActivationDiagnosticsStore
 import io.github.magisk317.relay.common.utils.FrameworkCompatibilityMonitor
-import io.github.magisk317.relay.common.utils.ModuleUtils
 import io.github.magisk317.relay.common.utils.PackageUtils
 import io.github.magisk317.relay.common.utils.Utils
 import io.github.magisk317.relay.common.utils.XLog
@@ -120,6 +122,9 @@ import io.github.magisk317.relay.data.repository.SettingsRepository
 import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -227,8 +232,12 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
 
     val analyticsEnabled = rememberPrefBoolean(PrefConst.KEY_ENABLE_ANALYTICS, true)
 
-    val isEnabled = ModuleUtils.isModuleActivated(context)
+    val isEnabled = ActivationDiagnosticsStore.isModuleActivated(context)
+    val runtimeConnected = ActivationDiagnosticsStore.isRuntimeConnected()
     val frameworkIssue by FrameworkCompatibilityMonitor.issueState.collectAsStateWithLifecycle()
+    var statusTapCount by remember { mutableStateOf(0) }
+    var statusTapStartedAtMs by remember { mutableStateOf(0L) }
+    var showStatusDiagnostics by remember { mutableStateOf(false) }
 
     FrameworkMonitorEffect()
 
@@ -254,6 +263,15 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
                 stringResource(id = R.string.unknown)
 
             else -> stringResource(id = R.string.not_installed)
+        }
+    }
+    val activationDiagnostics by produceState(
+        initialValue = ActivationDiagnosticsStore.snapshot(context),
+        context,
+    ) {
+        while (true) {
+            value = ActivationDiagnosticsStore.snapshot(context)
+            delay(1500L)
         }
     }
     val hasRootAccessState by produceState(
@@ -455,6 +473,9 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
         frameworkType = frameworkType,
         frameworkVersion = frameworkVersion,
         hasRootAccess = hasRootAccessState,
+        runtimeConnected = runtimeConnected,
+        activationDiagnostics = activationDiagnostics,
+        showStatusDiagnostics = showStatusDiagnostics,
         draggingCardId = draggingCardId,
         dragOffsetY = dragOffsetY,
         dragThresholdPx = dragThresholdPx,
@@ -494,6 +515,24 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
         },
         onCheckUpdate = { settingsViewModel.requestPreferredUpdate() },
         onShowDonate = { showDonateDialog = true },
+        onStatusCardTap = {
+            val now = SystemClock.uptimeMillis()
+            val withinWindow = now - statusTapStartedAtMs <= 1800L
+            statusTapCount = if (withinWindow) statusTapCount + 1 else 1
+            statusTapStartedAtMs = now
+            if (statusTapCount >= 5) {
+                showStatusDiagnostics = !showStatusDiagnostics
+                statusTapCount = 0
+                statusTapStartedAtMs = 0L
+                showMessage(
+                    if (showStatusDiagnostics) {
+                        "已显示运行时诊断"
+                    } else {
+                        "已隐藏运行时诊断"
+                    },
+                )
+            }
+        },
     )
 
     OverviewDialogs(
@@ -543,6 +582,9 @@ private fun OverviewContent(
     frameworkType: String,
     frameworkVersion: String,
     hasRootAccess: Boolean,
+    runtimeConnected: Boolean,
+    activationDiagnostics: ActivationDiagnosticsSnapshot,
+    showStatusDiagnostics: Boolean,
     draggingCardId: String?,
     dragOffsetY: Float,
     dragThresholdPx: Float,
@@ -559,6 +601,7 @@ private fun OverviewContent(
     onChartWindowChange: (HomeChartWindow) -> Unit,
     onCheckUpdate: () -> Unit,
     onShowDonate: () -> Unit,
+    onStatusCardTap: () -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -609,6 +652,9 @@ private fun OverviewContent(
                     frameworkType = frameworkType,
                     frameworkVersion = frameworkVersion,
                     hasRootAccess = hasRootAccess,
+                    runtimeConnected = runtimeConnected,
+                    activationDiagnostics = activationDiagnostics,
+                    showStatusDiagnostics = showStatusDiagnostics,
                     draggingCardId = draggingCardId,
                     dragOffsetY = dragOffsetY,
                     dragThresholdPx = dragThresholdPx,
@@ -622,6 +668,7 @@ private fun OverviewContent(
                     onChartWindowChange = onChartWindowChange,
                     onCheckUpdate = onCheckUpdate,
                     onShowDonate = onShowDonate,
+                    onStatusCardTap = onStatusCardTap,
                 )
             }
         }
@@ -680,6 +727,9 @@ private fun OverviewCardItem(
     frameworkType: String,
     frameworkVersion: String,
     hasRootAccess: Boolean,
+    runtimeConnected: Boolean,
+    activationDiagnostics: ActivationDiagnosticsSnapshot,
+    showStatusDiagnostics: Boolean,
     draggingCardId: String?,
     dragOffsetY: Float,
     dragThresholdPx: Float,
@@ -693,6 +743,7 @@ private fun OverviewCardItem(
     onChartWindowChange: (HomeChartWindow) -> Unit,
     onCheckUpdate: () -> Unit,
     onShowDonate: () -> Unit,
+    onStatusCardTap: () -> Unit,
 ) {
     val dragEnabled = editMode
     HomeCardContainer(
@@ -738,10 +789,15 @@ private fun OverviewCardItem(
             CARD_STATUS -> {
                 StatusCard(
                     isEnabled = isEnabled,
-                    onClick = if (isEnabled || editMode) {
+                    showDiagnostics = showStatusDiagnostics,
+                    diagnostics = buildStatusDiagnostics(
+                        snapshot = activationDiagnostics,
+                        runtimeConnected = runtimeConnected,
+                    ),
+                    onClick = if (editMode) {
                         null
                     } else {
-                        { openLsposedManager(context) }
+                        onStatusCardTap
                     },
                 )
             }
@@ -1496,7 +1552,12 @@ private fun LinksCard(
 }
 
 @Composable
-fun StatusCard(isEnabled: Boolean, onClick: (() -> Unit)? = null) {
+fun StatusCard(
+    isEnabled: Boolean,
+    showDiagnostics: Boolean,
+    diagnostics: List<Pair<String, String>>,
+    onClick: (() -> Unit)? = null,
+) {
     val containerColor = if (isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.errorContainer
     val contentColor = if (isEnabled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onErrorContainer
 
@@ -1534,8 +1595,80 @@ fun StatusCard(isEnabled: Boolean, onClick: (() -> Unit)? = null) {
                     }
                 }
             }
+            if (showDiagnostics && diagnostics.isNotEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .padding(top = 18.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(contentColor.copy(alpha = 0.12f))
+                        .padding(16.dp)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    diagnostics.forEach { (label, value) ->
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = contentColor.copy(alpha = 0.8f),
+                            )
+                            Text(
+                                text = value,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
+}
+
+private fun buildStatusDiagnostics(
+    snapshot: ActivationDiagnosticsSnapshot,
+    runtimeConnected: Boolean,
+): List<Pair<String, String>> {
+    val serviceValue = buildString {
+        append(if (runtimeConnected) "已连接" else "未连接")
+        if (snapshot.lastServiceBindAtMs > 0L) {
+            append(" · 最近连接 ")
+            append(formatStatusDiagnosticTime(snapshot.lastServiceBindAtMs))
+        }
+        if (snapshot.lastServiceFrameworkName.isNotBlank() || snapshot.lastServiceFrameworkVersion.isNotBlank()) {
+            append(" · ")
+            append(snapshot.lastServiceFrameworkName.ifBlank { "unknown" })
+            append(" ")
+            append(snapshot.lastServiceFrameworkVersion.ifBlank { "unknown" })
+        }
+    }
+    val hookProcess = listOf(
+        snapshot.lastHookPackage.ifBlank { "<none>" },
+        snapshot.lastHookProcess.ifBlank { "<none>" },
+    ).joinToString(" / ")
+    val hookTime = buildString {
+        append(
+            if (snapshot.lastHookAtMs > 0L) {
+                formatStatusDiagnosticTime(snapshot.lastHookAtMs)
+            } else {
+                "暂无"
+            },
+        )
+        if (snapshot.lastHookSource.isNotBlank()) {
+            append(" · ")
+            append(snapshot.lastHookSource)
+        }
+    }
+    return listOf(
+        "Xposed Service" to serviceValue,
+        "最近 Hook 进程" to hookProcess,
+        "最近 Hook 时间" to hookTime,
+    )
+}
+
+private fun formatStatusDiagnosticTime(timestampMs: Long): String {
+    if (timestampMs <= 0L) return "暂无"
+    return SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(timestampMs))
 }
 
 @Composable

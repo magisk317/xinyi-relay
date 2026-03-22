@@ -8,10 +8,13 @@ import android.provider.Telephony
 import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.common.constant.PrefConst
+import io.github.magisk317.relay.common.utils.ActivationDiagnosticsStore
 import io.github.magisk317.relay.common.utils.PrefsReader
+import io.github.magisk317.relay.common.utils.RuntimeLogStore
 import io.github.magisk317.relay.common.utils.SmsCodeUtils
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
+import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
 import io.github.magisk317.smscode.core.helper.XposedWrapper
 import io.github.magisk317.smscode.core.hook.BaseHook
 import io.github.magisk317.smscode.core.hookapi.LoadParam
@@ -80,8 +83,20 @@ class SmsForwardHook : BaseHook() {
         }.getOrNull()
         if (mPluginContext == null) {
             XLog.e("SmsForwardHook: plugin context is null after creation attempt")
-        } else if (ModuleConflictArbiter.shouldSuppressByRelay(mPhoneContext, "SmsForwardHook#constructor")) {
-            logSuppressedOnce("constructor")
+        } else {
+            val pluginContext = mPluginContext ?: return
+            SmsCodeConflictNoticeHelper.initNotificationChannel(pluginContext, context)
+            ActivationDiagnosticsStore.recordHookHeartbeat(
+                context = pluginContext,
+                packageName = ANDROID_PHONE_PACKAGE,
+                processName = context.applicationInfo?.processName ?: ANDROID_PHONE_PACKAGE,
+                source = "sms_forward_constructor",
+                verboseLogging = PrefsReader.isVerboseLogMode(pluginContext),
+                route = RuntimeLogStore.ROUTE_SMS_HOOK,
+            )
+            if (ModuleConflictArbiter.shouldSuppressByRelay(mPhoneContext, "SmsForwardHook#constructor")) {
+                logSuppressedOnce("constructor")
+            }
         }
     }
 
@@ -111,6 +126,14 @@ class SmsForwardHook : BaseHook() {
             )
             return
         }
+        ActivationDiagnosticsStore.recordHookHeartbeat(
+            context = pluginContext,
+            packageName = ANDROID_PHONE_PACKAGE,
+            processName = phoneContext.applicationInfo?.processName ?: ANDROID_PHONE_PACKAGE,
+            source = "sms_forward_dispatch",
+            verboseLogging = PrefsReader.isVerboseLogMode(pluginContext),
+            route = RuntimeLogStore.ROUTE_SMS_HOOK,
+        )
         if (!PrefsReader.isEnabled(pluginContext)) {
             XLog.w("SmsForwardHook: module disabled, skip forward. event_id=%s", eventId)
             return
@@ -121,6 +144,12 @@ class SmsForwardHook : BaseHook() {
         }
         if (ModuleConflictArbiter.shouldSuppressByRelay(phoneContext, "SmsForwardHook#dispatchIntent")) {
             logSuppressedOnce("dispatchIntent")
+            SmsCodeConflictNoticeHelper.notifyConflictOnSms(
+                pluginContext,
+                phoneContext,
+                eventId,
+                "SmsForwardHook#dispatchIntent",
+            )
             return
         }
 

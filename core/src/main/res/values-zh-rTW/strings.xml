@@ -592,6 +592,9 @@
     <string name="smscode_conflict_dialog_suffix">。</string>
     <string name="smscode_conflict_other_app_name">XposedSmsCode</string>
     <string name="smscode_conflict_dialog_exit">退出</string>
+    <string name="channel_name_smscode_conflict_notification">衝突提醒</string>
+    <string name="smscode_conflict_notification_content">檢測到你已安裝 %1$s (%2$s)。請先解除安裝該模組，再安裝並使用 %3$s。</string>
+    <string name="smscode_conflict_sms_toast">功能衝突，檢查狀態列通知</string>
     <!-- smscode conflict dialog end -->
     <string name="rule_list_empty_prompt">暫無規則，點擊 + 添加。</string>
     <string name="rule_keyword_prefix">關鍵字: </string>

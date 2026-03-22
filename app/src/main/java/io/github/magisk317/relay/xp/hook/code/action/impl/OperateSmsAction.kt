@@ -462,7 +462,6 @@ class OperateSmsAction(pluginContext: Context, phoneContext: Context, smsMsg: Sm
             if (!defaultSmsPackage.isNullOrBlank()) {
                 packages.add(defaultSmsPackage)
             }
-            packages.add(GOOGLE_MESSAGES_PACKAGE_NAME)
 
             sendExternalProviderChange(packages)
             Handler(Looper.getMainLooper()).postDelayed(
@@ -546,7 +545,6 @@ class OperateSmsAction(pluginContext: Context, phoneContext: Context, smsMsg: Sm
         const val FORCE_DELETE = 0
         private const val OP_DELETE = FORCE_DELETE
         private const val OP_MARK_AS_READ = 1
-        private const val GOOGLE_MESSAGES_PACKAGE_NAME = "com.google.android.apps.messaging"
         private const val EXTERNAL_PROVIDER_CHANGE_DELAY_MS = 500L
         private const val SMS_DELETE_OBSERVER_TIMEOUT_MS = 45000L
         private const val SMS_MATCH_WINDOW_MS = 5 * 60 * 1000L

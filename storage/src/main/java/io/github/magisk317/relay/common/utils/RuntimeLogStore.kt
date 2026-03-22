@@ -32,7 +32,6 @@ object RuntimeLogStore {
     const val ROUTE_NMS_HOOK = "nms_hook"
     const val ROUTE_SYSTEM_INPUT = "system_input"
     const val ROUTE_PERMISSION_HOOK = "permission_hook"
-    const val ROUTE_GOOGLE_MESSAGES = "google_messages"
     const val ROUTE_FORWARD = "forward"
     const val ROUTE_SENDER = "sender"
     const val ROUTE_ROOT_DB = "root_db"
@@ -408,7 +407,6 @@ object RuntimeLogStore {
             ROUTE_NMS_HOOK,
             ROUTE_SYSTEM_INPUT,
             ROUTE_PERMISSION_HOOK,
-            ROUTE_GOOGLE_MESSAGES,
             ROUTE_FORWARD,
             ROUTE_SENDER,
             ROUTE_ROOT_DB,
@@ -425,7 +423,6 @@ object RuntimeLogStore {
             ROUTE_NMS_HOOK -> "runtime.nms_hook.log"
             ROUTE_SYSTEM_INPUT -> "runtime.system_input.log"
             ROUTE_PERMISSION_HOOK -> "runtime.permission_hook.log"
-            ROUTE_GOOGLE_MESSAGES -> "runtime.google_messages.log"
             ROUTE_FORWARD -> "runtime.forward.log"
             ROUTE_SENDER -> "runtime.sender.log"
             ROUTE_ROOT_DB -> "runtime.root_db.log"
@@ -440,7 +437,6 @@ object RuntimeLogStore {
             value.contains(".xp.hook.notification.") || value.contains(".core.hook.notification.") -> ROUTE_NMS_HOOK
             value.contains(".xp.hook.system.") || value.contains(".core.hook.system.") -> ROUTE_SYSTEM_INPUT
             value.contains(".xp.hook.permission.") || value.contains(".core.hook.permission.") -> ROUTE_PERMISSION_HOOK
-            value.contains(".xp.hook.google.") -> ROUTE_GOOGLE_MESSAGES
             value.contains(".domain.recovery.") || value.contains(".forwarder.recovery.") -> ROUTE_ROOT_DB
             else -> ROUTE_APP
         }

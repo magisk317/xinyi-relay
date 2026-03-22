@@ -3,11 +3,13 @@ package io.github.magisk317.relay.xp.helper
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.common.constant.TransitionConst
 import io.github.magisk317.smscode.core.utils.XLog
 
 object ModuleConflictArbiter {
     const val SUPPRESSION_REASON = "suppressed_by_relay_package"
+    const val BYPASS_REASON_BUILD_FLAG = "allow_conflict_bypass"
     const val TARGET_RELAY_PACKAGE = TransitionConst.TARGET_RELAY_PACKAGE
 
     @Volatile
@@ -21,6 +23,10 @@ object ModuleConflictArbiter {
 
     fun shouldSuppressByRelay(context: Context?, source: String): Boolean {
         if (context == null) return false
+        if (BuildConfig.ALLOW_CONFLICT_BYPASS) {
+            logBypassFlagOnce(source)
+            return false
+        }
         if (!checked) {
             synchronized(this) {
                 if (!checked) {
@@ -31,6 +37,20 @@ object ModuleConflictArbiter {
         }
         logDecisionOnce(source)
         return suppressedByRelay
+    }
+
+    private fun logBypassFlagOnce(source: String) {
+        if (decisionLogged) return
+        synchronized(this) {
+            if (decisionLogged) return
+            XLog.w(
+                "Conflict arbiter bypassed: reason=%s source=%s package=%s",
+                BYPASS_REASON_BUILD_FLAG,
+                source,
+                TARGET_RELAY_PACKAGE,
+            )
+            decisionLogged = true
+        }
     }
 
     private fun logDecisionOnce(source: String) {
