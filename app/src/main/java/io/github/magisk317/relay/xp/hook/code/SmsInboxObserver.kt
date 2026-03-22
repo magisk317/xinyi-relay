@@ -12,7 +12,7 @@ import io.github.magisk317.relay.common.utils.SmsCodeUtils
 import io.github.magisk317.relay.common.utils.StringUtils
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
-import io.github.magisk317.relay.platform.ipc.SmsIngressAdapter
+import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.hook.code.action.impl.AutoInputAction
 import io.github.magisk317.relay.xp.hook.code.action.impl.RecordSmsAction
@@ -140,14 +140,11 @@ internal class SmsInboxObserver(
             }
         }
 
-        val smsMsg = SmsIngressAdapter.enrichSmsMsg(
+        val smsMsg = SmsHookDispatchCoordinator.enrichObservedSms(
             phoneContext = phoneContext,
-            smsMsg = SmsMsg(
-                sender = sender,
-                body = body,
-                date = date,
-                msgType = SmsMsg.MSG_TYPE_SMS,
-            ),
+            sender = sender,
+            body = body,
+            date = date,
             smsCode = code,
         )
 
