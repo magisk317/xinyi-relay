@@ -45,7 +45,7 @@ class RuntimeGraph private constructor(
     }
 
     val runtimeRecordFacade: RuntimeRecordFacade by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
-        RuntimeRecordFacade(appContext, database)
+        RuntimeRecordFacade(appContext, database, relayRecordRepository)
     }
 
     val configRepository: ConfigRepository by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {

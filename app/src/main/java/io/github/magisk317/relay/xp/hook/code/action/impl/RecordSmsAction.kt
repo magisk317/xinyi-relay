@@ -1,17 +1,13 @@
 package io.github.magisk317.relay.xp.hook.code.action.impl
 
-import android.content.ContentProviderOperation
-import android.content.ContentValues
 import android.content.Context
-import android.database.Cursor
 import android.os.Bundle
 import io.github.magisk317.relay.common.utils.PrefsReader
-import io.github.magisk317.smscode.core.utils.XLog
-import io.github.magisk317.relay.data.db.DBProvider
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
 import io.github.magisk317.relay.ui.record.CodeRecordRestoreManager
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
+import io.github.magisk317.smscode.core.utils.XLog
 import kotlinx.coroutines.runBlocking
 
 /**
@@ -48,76 +44,28 @@ class RecordSmsAction(
             }
         }
         try {
-            val smsMsgUri = DBProvider.smsMsgContentUri(mPluginContext)
-            val resolver = mPluginContext.contentResolver
-
-            val values = ContentValues().apply {
-                put("body", smsMsg.body)
-                put("company", smsMsg.company)
-                put("date", smsMsg.date)
-                put("sender", smsMsg.sender)
-                put("sms_code", smsMsg.smsCode)
-                put("package_name", smsMsg.packageName)
-                put("msg_type", smsMsg.msgType)
-                put("forward_status", smsMsg.forwardStatus)
-                put("forward_target", smsMsg.forwardTarget)
-                put("forward_message", smsMsg.forwardMessage)
-                put("forward_time", smsMsg.forwardTime)
-            }
-
-            resolver.insert(smsMsgUri, values)
-            XLog.w("Diag record provider insert success: event_id=%s", eventLabel)
-
-            val projections = arrayOf("_id")
-            val order = "date ASC"
-            val selection = "msg_type = ? AND sms_code IS NOT NULL AND sms_code != ''"
-            val selectionArgs = arrayOf(SmsMsg.MSG_TYPE_SMS.toString())
-            val cursor: Cursor? = resolver.query(smsMsgUri, projections, selection, selectionArgs, order)
-            if (cursor == null) {
-                XLog.w("Diag record retention query returned null: event_id=%s", eventLabel)
-                return
-            }
-
-            val count = cursor.count
-            val limit = PrefsReader.getHistoryLimit(
-                context = mPluginContext,
-                msgType = SmsMsg.MSG_TYPE_SMS,
-                isCodeSms = true,
-            )
-            if (limit > 0 && count > limit) {
-                // 删除最早的记录，直至剩余数目为 limit
-                val operations = ArrayList<ContentProviderOperation>()
-                val deleteSelection = "_id = ?"
-                for (i in 0 until count - limit) {
-                    if (cursor.moveToNext()) {
-                        val id = cursor.getLong(cursor.getColumnIndexOrThrow("_id"))
-                        val operation = ContentProviderOperation.newDelete(smsMsgUri)
-                            .withSelection(deleteSelection, arrayOf(id.toString()))
-                            .build()
-                        operations.add(operation)
-                    }
-                }
-
-                resolver.applyBatch(DBProvider.authority(mPluginContext), operations)
-                XLog.w(
-                    "Diag record retention cleanup success: event_id=%s removed=%d limit=%d",
-                    eventLabel,
-                    count - limit,
-                    limit,
+            val recordId = runBlocking {
+                runtimeRecordFacade.insertSmsRecord(
+                    smsMsg = smsMsg,
+                    isCodeSms = true,
                 )
             }
-            cursor.close()
+            if (recordId != null) {
+                XLog.w("Diag record provider insert success: event_id=%s record_id=%d", eventLabel, recordId)
+                return
+            }
+            XLog.w("Diag record provider insert failed: event_id=%s err=insert_returned_null", eventLabel)
         } catch (t: Throwable) {
             XLog.w(
                 "Diag record provider insert failed: event_id=%s err=%s",
                 eventLabel,
                 t.message ?: t.javaClass.simpleName,
             )
-            if (CodeRecordRestoreManager.exportToFile(mPluginContext, smsMsg)) {
-                XLog.w("Diag record file fallback success: event_id=%s", eventLabel)
-            } else {
-                XLog.w("Diag record file fallback failed: event_id=%s", eventLabel)
-            }
+        }
+        if (CodeRecordRestoreManager.exportToFile(mPluginContext, smsMsg)) {
+            XLog.w("Diag record file fallback success: event_id=%s", eventLabel)
+        } else {
+            XLog.w("Diag record file fallback failed: event_id=%s", eventLabel)
         }
     }
 

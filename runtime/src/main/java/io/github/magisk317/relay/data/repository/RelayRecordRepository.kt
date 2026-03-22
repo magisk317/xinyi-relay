@@ -119,19 +119,43 @@ class RelayRecordRepository(
         isCodeSms: Boolean,
         callType: Int = 0,
     ): Long? {
+        return insertRecord(
+            smsMsg = SmsMsg(
+                sender = sender,
+                body = body,
+                date = date,
+                company = company,
+                smsCode = smsCode,
+                packageName = packageName,
+                notifyChannelId = notifyChannelId,
+                msgType = msgType,
+                callType = callType,
+            ),
+            isCodeSms = isCodeSms,
+        )
+    }
+
+    suspend fun insertRecord(
+        smsMsg: SmsMsg,
+        isCodeSms: Boolean,
+    ): Long? {
         val resolver = appContext.contentResolver
         val smsMsgUri = DBProvider.smsMsgContentUri(appContext)
-        trimOldRecordsIfNeeded(resolver, msgType, isCodeSms)
+        trimOldRecordsIfNeeded(resolver, smsMsg.msgType, isCodeSms)
         val values = ContentValues().apply {
-            put("body", body)
-            put("company", company)
-            put("date", date)
-            put("sender", sender)
-            put("sms_code", smsCode)
-            put("package_name", packageName)
-            put("notify_channel_id", notifyChannelId)
-            put("msg_type", msgType)
-            put("call_type", callType)
+            put("body", smsMsg.body)
+            put("company", smsMsg.company)
+            put("date", smsMsg.date)
+            put("sender", smsMsg.sender)
+            put("sms_code", smsMsg.smsCode)
+            put("package_name", smsMsg.packageName)
+            put("notify_channel_id", smsMsg.notifyChannelId)
+            put("forward_status", smsMsg.forwardStatus)
+            put("forward_target", smsMsg.forwardTarget)
+            put("forward_message", smsMsg.forwardMessage)
+            put("forward_time", smsMsg.forwardTime)
+            put("msg_type", smsMsg.msgType)
+            put("call_type", smsMsg.callType)
         }
         return resolver.insert(smsMsgUri, values)?.lastPathSegment?.toLongOrNull()
     }

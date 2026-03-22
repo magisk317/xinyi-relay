@@ -1,9 +1,11 @@
 package io.github.magisk317.relay.domain.system
 
 import android.content.Context
+import io.github.magisk317.relay.data.datasource.PreferenceDataSourceImpl
 import io.github.magisk317.relay.data.db.AppDatabase
 import io.github.magisk317.relay.data.db.entity.AutoInputEvent
 import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.data.repository.RelayRecordRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -13,6 +15,11 @@ import kotlinx.coroutines.withContext
 class RuntimeRecordFacade(
     context: Context,
     private val db: AppDatabase = AppDatabase.getInstance(context),
+    private val relayRecordRepository: RelayRecordRepository = RelayRecordRepository(
+        context = context,
+        db = db,
+        preferenceDataSource = PreferenceDataSourceImpl(context.applicationContext ?: context),
+    ),
 ) {
     suspend fun isDuplicateSms(
         sender: String?,
@@ -112,5 +119,15 @@ class RuntimeRecordFacade(
         } else {
             dao.insert(updated)
         }
+    }
+
+    suspend fun insertSmsRecord(
+        smsMsg: SmsMsg,
+        isCodeSms: Boolean,
+    ): Long? = withContext(Dispatchers.IO) {
+        relayRecordRepository.insertRecord(
+            smsMsg = smsMsg,
+            isCodeSms = isCodeSms,
+        )
     }
 }
