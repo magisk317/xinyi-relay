@@ -14,6 +14,7 @@ import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.platform.ipc.ForwardBroadcastDispatcher
 import io.github.magisk317.relay.platform.ipc.ForwardBroadcastPayload
 import io.github.magisk317.relay.platform.ipc.ForwardPayloadFactory
+import io.github.magisk317.relay.platform.ipc.ForwardReceiverPolicy
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 
 /**
@@ -48,7 +49,7 @@ class ForwardAction(
             // We use PrefsReader to retrieve token via cross-process Provider.
             val token = PrefsReader.getIpcToken(mPluginContext)
             if (token.isBlank()) {
-                if (!shouldAllowSmsTokenBypass()) {
+                if (!ForwardReceiverPolicy.shouldAllowSmsHookTokenBypass(Process.myUid(), Build.VERSION.SDK_INT)) {
                     XLog.e("IPC token is empty, skip forwarding broadcast for security. event_id=%s", eventId.ifBlank { "<none>" })
                     persistForwardResult(
                         success = false,
@@ -96,11 +97,6 @@ class ForwardAction(
             payload.simSlot?.toString() ?: "N/A",
             payload.subId?.toString() ?: "N/A",
         )
-    }
-
-    private fun shouldAllowSmsTokenBypass(): Boolean {
-        val uid = Process.myUid()
-        return uid == Process.SYSTEM_UID || uid == Process.PHONE_UID
     }
 
     private fun persistForwardResult(success: Boolean, target: String?, message: String) {

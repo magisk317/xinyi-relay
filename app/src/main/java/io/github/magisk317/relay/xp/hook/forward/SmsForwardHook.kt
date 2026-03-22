@@ -12,6 +12,7 @@ import io.github.magisk317.relay.common.utils.RuntimeLogStore
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.platform.ipc.ForwardBroadcastDispatcher
 import io.github.magisk317.relay.platform.ipc.ForwardPayloadFactory
+import io.github.magisk317.relay.platform.ipc.ForwardReceiverPolicy
 import io.github.magisk317.relay.platform.ipc.SmsIngressAdapter
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
@@ -189,7 +190,7 @@ class SmsForwardHook : BaseHook() {
 
         val token = PrefsReader.getIpcToken(pluginContext)
         if (token.isBlank()) {
-            if (!shouldAllowSmsTokenBypass()) {
+            if (!ForwardReceiverPolicy.shouldAllowSmsHookTokenBypass(Process.myUid(), Build.VERSION.SDK_INT)) {
                 XLog.e(
                     "SmsForwardHook: IPC token empty, skip forward. event_id=%s",
                     eventId,
@@ -215,11 +216,6 @@ class SmsForwardHook : BaseHook() {
             resolvedSmsMsg.smsCode?.isNotBlank() == true,
             token.isNotBlank(),
         )
-    }
-
-    private fun shouldAllowSmsTokenBypass(): Boolean {
-        val uid = Process.myUid()
-        return uid == Process.SYSTEM_UID || uid == Process.PHONE_UID
     }
 
     private fun logSuppressedOnce(stage: String) {

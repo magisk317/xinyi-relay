@@ -37,6 +37,34 @@ class ForwardReceiverPolicyTest {
     }
 
     @Test
+    fun shouldAllowSmsHookTokenBypass_matchesSmsHookRules() {
+        assertTrue(
+            ForwardReceiverPolicy.shouldAllowSmsHookTokenBypass(
+                sentFromUid = ForwardReceiverPolicy.SYSTEM_UID,
+                sdkInt = 34,
+            ),
+        )
+        assertTrue(
+            ForwardReceiverPolicy.shouldAllowSmsHookTokenBypass(
+                sentFromUid = ForwardReceiverPolicy.PHONE_UID,
+                sdkInt = 34,
+            ),
+        )
+        assertTrue(
+            ForwardReceiverPolicy.shouldAllowSmsHookTokenBypass(
+                sentFromUid = null,
+                sdkInt = 33,
+            ),
+        )
+        assertFalse(
+            ForwardReceiverPolicy.shouldAllowSmsHookTokenBypass(
+                sentFromUid = 20000,
+                sdkInt = 34,
+            ),
+        )
+    }
+
+    @Test
     fun resolveSimSlot_prefersSubIdResolverThenNormalizesLegacySlotValues() {
         assertEquals(
             0,
