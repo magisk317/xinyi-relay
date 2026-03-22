@@ -5,11 +5,10 @@ import android.content.Intent
 import android.os.Process
 import android.provider.Telephony
 import io.github.magisk317.relay.BuildConfig
-import io.github.magisk317.relay.common.utils.ActivationDiagnosticsStore
 import io.github.magisk317.relay.common.utils.PrefsReader
-import io.github.magisk317.relay.common.utils.RuntimeLogStore
 import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
-import io.github.magisk317.relay.xp.hook.SmsHookBridgeHelper
+import io.github.magisk317.relay.xp.hook.SmsHookDispatchGate
+import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
 import io.github.magisk317.smscode.core.helper.XposedWrapper
@@ -24,8 +23,7 @@ import kotlinx.coroutines.runBlocking
  * Dedicated SMS forward hook (decoupled from SMS code pipeline).
  */
 class SmsForwardHook : BaseHook() {
-    private var mPhoneContext: Context? = null
-    private var mPluginContext: Context? = null
+    private val runtimeSession = SmsHookRuntimeSession(SMSCODE_PACKAGE, ANDROID_PHONE_PACKAGE)
     @Volatile
     private var suppressionLogged = false
 
@@ -69,28 +67,15 @@ class SmsForwardHook : BaseHook() {
 
     private fun afterConstructorHandler(param: MethodHookParam) {
         val context = param.args.getOrNull(1) as? Context ?: return
-        if (mPhoneContext != null) return
-        mPhoneContext = context
-        mPluginContext = runCatching {
-            context.createPackageContext(
-                SMSCODE_PACKAGE,
-                Context.CONTEXT_IGNORE_SECURITY,
-            )
-        }.getOrNull()
-        if (mPluginContext == null) {
+        val runtime = runtimeSession.initialize(context)
+        if (runtime == null) {
             XLog.e("SmsForwardHook: plugin context is null after creation attempt")
-        } else {
-            val pluginContext = mPluginContext ?: return
-            SmsCodeConflictNoticeHelper.initNotificationChannel(pluginContext, context)
-            SmsHookBridgeHelper.recordSmsHookHeartbeat(
-                pluginContext = pluginContext,
-                phoneContext = context,
-                packageName = ANDROID_PHONE_PACKAGE,
-                source = "sms_forward_constructor",
-            )
-            if (ModuleConflictArbiter.shouldSuppressByRelay(mPhoneContext, "SmsForwardHook#constructor")) {
-                logSuppressedOnce("constructor")
-            }
+            return
+        }
+        SmsCodeConflictNoticeHelper.initNotificationChannel(runtime.pluginContext, runtime.phoneContext)
+        runtimeSession.recordHeartbeat("sms_forward_constructor")
+        if (ModuleConflictArbiter.shouldSuppressByRelay(runtime.phoneContext, "SmsForwardHook#constructor")) {
+            logSuppressedOnce("constructor")
         }
     }
 
@@ -110,39 +95,50 @@ class SmsForwardHook : BaseHook() {
             return
         }
         val eventId = SmsHookDispatchCoordinator.ensureIncomingEventId(intent)
-        val pluginContext = getPluginContext()
-        val phoneContext = mPhoneContext
-        if (pluginContext == null || phoneContext == null) {
+        val runtime = runtimeSession.recordHeartbeat("sms_forward_dispatch")
+        if (runtime == null) {
             XLog.e(
                 "SmsForwardHook: Context is null, skip. pluginContext=%s phoneContext=%s",
-                pluginContext,
-                phoneContext,
+                null,
+                null,
             )
             return
         }
-        SmsHookBridgeHelper.recordSmsHookHeartbeat(
-            pluginContext = pluginContext,
-            phoneContext = phoneContext,
-            packageName = ANDROID_PHONE_PACKAGE,
-            source = "sms_forward_dispatch",
-        )
-        if (!PrefsReader.isEnabled(pluginContext)) {
-            XLog.w("SmsForwardHook: module disabled, skip forward. event_id=%s", eventId)
-            return
-        }
-        if (!PrefsReader.relayFeaturesEnabled(pluginContext)) {
-            XLog.w("SmsForwardHook: relay disabled, skip forward. event_id=%s", eventId)
-            return
-        }
-        if (ModuleConflictArbiter.shouldSuppressByRelay(phoneContext, "SmsForwardHook#dispatchIntent")) {
-            logSuppressedOnce("dispatchIntent")
-            SmsCodeConflictNoticeHelper.notifyConflictOnSms(
-                pluginContext,
-                phoneContext,
-                eventId,
-                "SmsForwardHook#dispatchIntent",
-            )
-            return
+        val pluginContext = runtime.pluginContext
+        val phoneContext = runtime.phoneContext
+        when (
+            SmsHookDispatchGate.evaluate(
+                moduleEnabled = PrefsReader.isEnabled(pluginContext),
+                relayFeatureRequired = true,
+                relayFeaturesEnabled = PrefsReader.relayFeaturesEnabled(pluginContext),
+                suppressedByRelay = ModuleConflictArbiter.shouldSuppressByRelay(
+                    phoneContext,
+                    "SmsForwardHook#dispatchIntent",
+                ),
+            ).reason
+        ) {
+            SmsHookDispatchGate.BlockReason.MODULE_DISABLED -> {
+                XLog.w("SmsForwardHook: module disabled, skip forward. event_id=%s", eventId)
+                return
+            }
+
+            SmsHookDispatchGate.BlockReason.RELAY_DISABLED -> {
+                XLog.w("SmsForwardHook: relay disabled, skip forward. event_id=%s", eventId)
+                return
+            }
+
+            SmsHookDispatchGate.BlockReason.CONFLICT_SUPPRESSED -> {
+                logSuppressedOnce("dispatchIntent")
+                SmsCodeConflictNoticeHelper.notifyConflictOnSms(
+                    pluginContext,
+                    phoneContext,
+                    eventId,
+                    "SmsForwardHook#dispatchIntent",
+                )
+                return
+            }
+
+            else -> Unit
         }
 
         val smsMsg = SmsHookDispatchCoordinator.parseIncomingSms(intent)
@@ -222,15 +218,6 @@ class SmsForwardHook : BaseHook() {
             )
             suppressionLogged = true
         }
-    }
-
-    private fun getPluginContext(): Context? {
-        mPluginContext = SmsHookBridgeHelper.resolvePluginContext(
-            phoneContext = mPhoneContext,
-            currentPluginContext = mPluginContext,
-            applicationId = SMSCODE_PACKAGE,
-        )
-        return mPluginContext
     }
 
     companion object {

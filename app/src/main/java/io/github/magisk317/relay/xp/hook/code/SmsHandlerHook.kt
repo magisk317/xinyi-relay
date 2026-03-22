@@ -4,22 +4,20 @@ import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Binder
 import android.os.Build
-import android.os.Message
 import android.provider.Telephony
 import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.common.utils.ActivationDiagnosticsStore
 import io.github.magisk317.relay.common.constant.NotificationConst
 import io.github.magisk317.smscode.core.utils.ModuleActivationStore
 import io.github.magisk317.relay.common.utils.NotificationUtils
 import io.github.magisk317.relay.common.utils.PrefsReader
-import io.github.magisk317.relay.common.utils.RuntimeLogStore
 import io.github.magisk317.relay.common.utils.SmsBlacklistUtils
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
-import io.github.magisk317.relay.xp.hook.SmsHookBridgeHelper
+import io.github.magisk317.relay.xp.hook.SmsHookDispatchGate
+import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
+import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
 import io.github.magisk317.smscode.core.utils.XLog
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
@@ -29,7 +27,6 @@ import io.github.magisk317.relay.xp.hook.code.action.impl.OperateSmsAction
 import io.github.magisk317.smscode.core.hookapi.HookEnv
 import io.github.magisk317.smscode.core.hookapi.MethodHook
 import io.github.magisk317.smscode.core.hookapi.HookBridge
-import io.github.magisk317.smscode.core.hookapi.HookHelpers
 import io.github.magisk317.smscode.core.hookapi.LoadParam
 import io.github.magisk317.smscode.core.hookapi.MethodHookParam
 import java.lang.reflect.Method
@@ -38,9 +35,8 @@ import java.util.concurrent.Executors
  * Hook class com.android.internal.telephony.InboundSmsHandler
  */
 class SmsHandlerHook : BaseHook() {
-
-    private var mPhoneContext: Context? = null
-    private var mPluginContext: Context? = null
+    private val runtimeSession = SmsHookRuntimeSession(SMSCODE_PACKAGE, ANDROID_PHONE_PACKAGE)
+    private val inboundSmsBlocker = InboundSmsBlocker(SMS_HANDLER_CLASS)
     private var smsInboxObserver: SmsInboxObserver? = null
     @Volatile
     private var suppressionLogged = false
@@ -208,75 +204,55 @@ class SmsHandlerHook : BaseHook() {
 
     private fun afterConstructorHandler(param: MethodHookParam) {
         val context = param.args.getOrNull(1) as? Context ?: return
-        if (mPhoneContext == null) {
-            mPhoneContext = context
-            try {
-                mPluginContext = mPhoneContext?.createPackageContext(
-                    SMSCODE_PACKAGE,
-                    Context.CONTEXT_IGNORE_SECURITY,
-                )
-                if (mPluginContext != null) {
-                    val pluginContext = mPluginContext ?: return
-                    SmsCodeConflictNoticeHelper.initNotificationChannel(pluginContext, context)
-                    val suppressByRelay = ModuleConflictArbiter.shouldSuppressByRelay(
-                        mPhoneContext,
-                        "SmsHandlerHook#constructor",
-                    )
-                    if (PrefsReader.showCodeNotification(pluginContext)) {
-                        initNotificationChannel()
-                        if (!suppressByRelay) {
-                            registerCopyCodeReceiver()
-                        }
-                    }
-                    ModuleActivationStore.markActivated(pluginContext)
-                    SmsHookBridgeHelper.recordSmsHookHeartbeat(
-                        pluginContext = pluginContext,
-                        phoneContext = context,
-                        packageName = ANDROID_PHONE_PACKAGE,
-                        source = "sms_handler_constructor",
-                    )
-                    if (suppressByRelay) {
-                        logSuppressedOnce("constructor")
-                    } else {
-                        registerSmsInboxObserver()
-                    }
-                } else {
-                    XLog.e("Plugin context is null after creation attempt")
-                }
-            } catch (e: Exception) {
-                XLog.e("Create plugin context failed: %s", e)
+        val runtime = runCatching { runtimeSession.initialize(context) }
+            .onFailure { XLog.e("Create plugin context failed: %s", it) }
+            .getOrNull()
+        if (runtime == null) {
+            XLog.e("Plugin context is null after creation attempt")
+            return
+        }
+
+        SmsCodeConflictNoticeHelper.initNotificationChannel(runtime.pluginContext, runtime.phoneContext)
+        val suppressByRelay = ModuleConflictArbiter.shouldSuppressByRelay(
+            runtime.phoneContext,
+            "SmsHandlerHook#constructor",
+        )
+        if (PrefsReader.showCodeNotification(runtime.pluginContext)) {
+            initNotificationChannel(runtime)
+            if (!suppressByRelay) {
+                registerCopyCodeReceiver(runtime)
             }
         }
+        ModuleActivationStore.markActivated(runtime.pluginContext)
+        runtimeSession.recordHeartbeat("sms_handler_constructor")
+        if (suppressByRelay) {
+            logSuppressedOnce("constructor")
+        } else {
+            registerSmsInboxObserver(runtime)
+        }
     }
 
-    private fun initNotificationChannel() {
+    private fun initNotificationChannel(runtime: SmsHookRuntimeContext) {
         val channelId = NotificationConst.CHANNEL_ID_RELAY_NOTIFICATION
-        val channelName = getPluginContext()?.getString(R.string.channel_name_relay_notification) ?: ""
-        mPhoneContext?.let {
-            NotificationUtils.createNotificationChannel(
-                it,
-                channelId,
-                channelName,
-                NotificationManager.IMPORTANCE_HIGH,
-            )
-            XLog.d("Init notification channel succeed")
-        }
+        val channelName = runtime.pluginContext.getString(R.string.channel_name_relay_notification)
+        NotificationUtils.createNotificationChannel(
+            runtime.phoneContext,
+            channelId,
+            channelName,
+            NotificationManager.IMPORTANCE_HIGH,
+        )
+        XLog.d("Init notification channel succeed")
     }
 
-    private fun registerCopyCodeReceiver() {
-        val pluginContext = mPluginContext ?: return
-        if (!PrefsReader.showCodeNotification(pluginContext)) return
-        mPhoneContext?.let {
-            CopyCodeReceiver.registerMe(it)
-            XLog.d("Register copy code receiver")
-        }
+    private fun registerCopyCodeReceiver(runtime: SmsHookRuntimeContext) {
+        if (!PrefsReader.showCodeNotification(runtime.pluginContext)) return
+        CopyCodeReceiver.registerMe(runtime.phoneContext)
+        XLog.d("Register copy code receiver")
     }
 
-    private fun registerSmsInboxObserver() {
-        val pluginContext = mPluginContext ?: return
-        val phoneContext = mPhoneContext ?: return
+    private fun registerSmsInboxObserver(runtime: SmsHookRuntimeContext) {
         if (smsInboxObserver != null) return
-        smsInboxObserver = SmsInboxObserver(pluginContext, phoneContext).also { it.register() }
+        smsInboxObserver = SmsInboxObserver(runtime.pluginContext, runtime.phoneContext).also { it.register() }
     }
 
     private inner class DispatchIntentHook(private val mReceiverIndex: Int) : MethodHook() {
@@ -316,27 +292,42 @@ class SmsHandlerHook : BaseHook() {
             intent.extras != null,
         )
 
-        val pluginContext = getPluginContext()
-        val phoneContext = mPhoneContext
-        if (pluginContext == null || phoneContext == null) {
-            XLog.e("Context is null, skip parsing. pluginContext: %s, phoneContext: %s", pluginContext, phoneContext)
+        val runtime = runtimeSession.recordHeartbeat("sms_handler_dispatch")
+        if (runtime == null) {
+            XLog.e("Context is null, skip parsing. pluginContext: %s, phoneContext: %s", null, null)
             return
         }
-        SmsHookBridgeHelper.recordSmsHookHeartbeat(
-            pluginContext = pluginContext,
-            phoneContext = phoneContext,
-            packageName = ANDROID_PHONE_PACKAGE,
-            source = "sms_handler_dispatch",
-        )
-        if (ModuleConflictArbiter.shouldSuppressByRelay(phoneContext, "SmsHandlerHook#dispatchIntent")) {
-            logSuppressedOnce("dispatchIntent")
-            SmsCodeConflictNoticeHelper.notifyConflictOnSms(
-                pluginContext,
-                phoneContext,
-                eventId,
-                "SmsHandlerHook#dispatchIntent",
-            )
-            return
+        val pluginContext = runtime.pluginContext
+        val phoneContext = runtime.phoneContext
+        when (
+            SmsHookDispatchGate.evaluate(
+                moduleEnabled = PrefsReader.isEnabled(pluginContext),
+                relayFeatureRequired = false,
+                relayFeaturesEnabled = true,
+                suppressedByRelay = ModuleConflictArbiter.shouldSuppressByRelay(
+                    phoneContext,
+                    "SmsHandlerHook#dispatchIntent",
+                ),
+            ).reason
+        ) {
+            SmsHookDispatchGate.BlockReason.MODULE_DISABLED -> {
+                XLog.w("Diag: module disabled in settings")
+                XLog.i("XposedSmsCode disabled, exiting")
+                return
+            }
+
+            SmsHookDispatchGate.BlockReason.CONFLICT_SUPPRESSED -> {
+                logSuppressedOnce("dispatchIntent")
+                SmsCodeConflictNoticeHelper.notifyConflictOnSms(
+                    pluginContext,
+                    phoneContext,
+                    eventId,
+                    "SmsHandlerHook#dispatchIntent",
+                )
+                return
+            }
+
+            else -> Unit
         }
         val smsMsg = SmsHookDispatchCoordinator.parseIncomingSms(intent)
         val blacklistResult = SmsBlacklistUtils.match(pluginContext, smsMsg?.sender, smsMsg?.body)
@@ -349,23 +340,6 @@ class SmsHandlerHook : BaseHook() {
                 blacklistResult.actionDelete,
                 blacklistResult.actionBlock,
             )
-            if (blacklistResult.actionDelete && !blacklistResult.actionBlock && smsMsg != null) {
-                scheduleBlacklistDelete(pluginContext, phoneContext, smsMsg)
-            }
-            if (blacklistResult.actionBlock) {
-                XLog.w("Diag sms block reason=%s event_id=%s", BLOCK_REASON_BLACKLIST, eventId)
-                param.args.getOrNull(receiverIndex)?.let { receiver ->
-                    val inbound = param.thisObject ?: return
-                    deleteRawTableAndSendMessage(
-                        inboundSmsHandler = inbound,
-                        smsReceiver = receiver,
-                        reason = BLOCK_REASON_BLACKLIST,
-                        eventId = eventId,
-                    )
-                    param.result = null
-                }
-                return
-            }
         }
 
         val parseResult = CodeWorker(pluginContext, phoneContext, intent, eventId).parse()
@@ -374,27 +348,35 @@ class SmsHandlerHook : BaseHook() {
         } else {
             XLog.w("Diag parse result: event_id=%s blockSms=%s", eventId, parseResult.isBlockSms)
         }
-        if (parseResult != null) {
-            if (parseResult.isBlockSms) {
-                XLog.w("Diag sms block reason=%s event_id=%s", BLOCK_REASON_PREF_BLOCK, eventId)
-                param.args.getOrNull(receiverIndex)?.let { receiver ->
-                    val inbound = param.thisObject ?: return
-                    deleteRawTableAndSendMessage(
-                        inboundSmsHandler = inbound,
-                        smsReceiver = receiver,
-                        reason = BLOCK_REASON_PREF_BLOCK,
-                        eventId = eventId,
-                    )
-                    param.result = null
-                }
-            } else {
-                XLog.w(
-                    "Diag allow system inbox persist: event_id=%s sender_hash=%s body_len=%d",
-                    eventId,
-                    senderHash(smsMsg?.sender),
-                    smsMsg?.body?.length ?: 0,
+        val decision = SmsHandlerDispatchDecision.evaluate(
+            blacklistResult = blacklistResult,
+            smsMsgAvailable = smsMsg != null,
+            parseResult = parseResult,
+        )
+        if (decision.shouldDeleteByBlacklist && smsMsg != null) {
+            scheduleBlacklistDelete(pluginContext, phoneContext, smsMsg)
+        }
+        decision.blockReason?.let { blockReason ->
+            XLog.w("Diag sms block reason=%s event_id=%s", blockReason.wireValue, eventId)
+            param.args.getOrNull(receiverIndex)?.let { receiver ->
+                val inbound = param.thisObject ?: return
+                inboundSmsBlocker.blockInboundSms(
+                    inboundSmsHandler = inbound,
+                    smsReceiver = receiver,
+                    reason = blockReason.wireValue,
+                    eventId = eventId,
                 )
+                param.result = null
             }
+            return
+        }
+        if (decision.shouldAllowSystemPersist) {
+            XLog.w(
+                "Diag allow system inbox persist: event_id=%s sender_hash=%s body_len=%d",
+                eventId,
+                senderHash(smsMsg?.sender),
+                smsMsg?.body?.length ?: 0,
+            )
         }
     }
 
@@ -422,214 +404,6 @@ class SmsHandlerHook : BaseHook() {
         }
     }
 
-    private fun deleteRawTableAndSendMessage(
-        inboundSmsHandler: Any,
-        smsReceiver: Any,
-        reason: String,
-        eventId: String,
-    ) {
-        XLog.w("Diag raw-table delete start: reason=%s event_id=%s", reason, eventId)
-        val token = Binder.clearCallingIdentity()
-        try {
-            deleteFromRawTable(inboundSmsHandler, smsReceiver, reason, eventId)
-        } catch (e: Throwable) {
-            XLog.e("Error occurs when delete SMS data from raw table", e)
-        } finally {
-            Binder.restoreCallingIdentity(token)
-        }
-
-        try {
-            sendEventBroadcastComplete(inboundSmsHandler, reason, eventId)
-        } catch (e: Throwable) {
-            XLog.e("Error occurs when sending broadcast complete", e)
-        }
-    }
-
-    private fun sendEventBroadcastComplete(inboundSmsHandler: Any, reason: String, eventId: String) {
-        XLog.d("Send event(EVENT_BROADCAST_COMPLETE): reason=%s event_id=%s", reason, eventId)
-        if (trySendMessage(inboundSmsHandler, EVENT_BROADCAST_COMPLETE)) {
-            return
-        }
-        if (!loggedSendMessageSignatures) {
-            loggedSendMessageSignatures = true
-            logMethodSignatures(
-                "Diag sendMessage signatures",
-                inboundSmsHandler.javaClass,
-                "sendMessage",
-            )
-        }
-    }
-
-    @Throws(ReflectiveOperationException::class)
-    private fun deleteFromRawTable(inboundSmsHandler: Any, smsReceiver: Any, reason: String, eventId: String) {
-        // minSdkVersion 35: Always use Android 24+ method
-        deleteFromRawTable24(inboundSmsHandler, smsReceiver, reason, eventId)
-    }
-
-    @Throws(ReflectiveOperationException::class)
-    private fun deleteFromRawTable24(inboundSmsHandler: Any, smsReceiver: Any, reason: String, eventId: String) {
-        XLog.d("Delete raw SMS data from database on Android 24+: reason=%s event_id=%s", reason, eventId)
-        val deleteWhere = HookHelpers.getObjectField(smsReceiver, "mDeleteWhere")
-        val deleteWhereArgs = HookHelpers.getObjectField(smsReceiver, "mDeleteWhereArgs")
-        val markDeleted = 2
-        val handlerClass = HookHelpers.findClass(SMS_HANDLER_CLASS, inboundSmsHandler.javaClass.classLoader)
-        val cached = cachedDeleteRawMethod
-        if (cached != null) {
-            val args = buildDeleteRawArgs(cached.parameterTypes, deleteWhere, deleteWhereArgs, markDeleted)
-            if (args != null) {
-                cached.invoke(inboundSmsHandler, *args)
-                return
-            } else {
-                cachedDeleteRawMethod = null
-            }
-        }
-
-        val methods = collectMethods(handlerClass, "deleteFromRawTable")
-        var lastError: Throwable? = null
-        for (method in methods) {
-            val args = buildDeleteRawArgs(method.parameterTypes, deleteWhere, deleteWhereArgs, markDeleted) ?: continue
-            try {
-                method.invoke(inboundSmsHandler, *args)
-                cachedDeleteRawMethod = method
-                return
-            } catch (e: Throwable) {
-                lastError = e
-            }
-        }
-        if (!loggedDeleteRawSignatures) {
-            loggedDeleteRawSignatures = true
-            logMethodSignatures(
-                "Diag deleteFromRawTable signatures",
-                handlerClass,
-                "deleteFromRawTable",
-            )
-        }
-        if (lastError != null) {
-            throw lastError
-        } else {
-            throw NoSuchMethodException("No suitable method for ${handlerClass.name}#deleteFromRawTable")
-        }
-    }
-
-    private fun trySendMessage(inboundSmsHandler: Any, what: Int): Boolean {
-        val cached = cachedSendMessageMethod
-        if (cached != null) {
-            val args = buildSendMessageArgs(cached.parameterTypes, inboundSmsHandler, what)
-            if (args != null) {
-                return runCatching {
-                    cached.invoke(inboundSmsHandler, *args)
-                    true
-                }.getOrElse {
-                    cachedSendMessageMethod = null
-                    false
-                }
-            } else {
-                cachedSendMessageMethod = null
-            }
-        }
-
-        val methods = collectMethods(inboundSmsHandler.javaClass, "sendMessage")
-        for (method in methods) {
-            val args = buildSendMessageArgs(method.parameterTypes, inboundSmsHandler, what) ?: continue
-            val ok = runCatching {
-                method.invoke(inboundSmsHandler, *args)
-                cachedSendMessageMethod = method
-                true
-            }.getOrElse { false }
-            if (ok) return true
-        }
-        return false
-    }
-
-    private fun buildSendMessageArgs(
-        parameterTypes: Array<Class<*>>,
-        inboundSmsHandler: Any,
-        what: Int,
-    ): Array<Any?>? {
-        val message = obtainMessage(inboundSmsHandler, what)
-        val intValues = ArrayDeque<Any?>(listOf(what, 0))
-        val longValues = ArrayDeque<Any?>(listOf(0L))
-        val boolValues = ArrayDeque<Any?>(listOf(false))
-        val args = arrayOfNulls<Any?>(parameterTypes.size)
-        for (i in parameterTypes.indices) {
-            val type = parameterTypes[i]
-            when {
-                type == Int::class.javaPrimitiveType || type == Int::class.javaObjectType ->
-                    args[i] = if (intValues.isNotEmpty()) intValues.removeFirst() else 0
-                type == Long::class.javaPrimitiveType || type == Long::class.javaObjectType ->
-                    args[i] = if (longValues.isNotEmpty()) longValues.removeFirst() else 0L
-                type == Boolean::class.javaPrimitiveType || type == Boolean::class.javaObjectType ->
-                    args[i] = if (boolValues.isNotEmpty()) boolValues.removeFirst() else false
-                type == Message::class.java -> args[i] = message
-                else -> args[i] = null
-            }
-        }
-        return args
-    }
-
-    private fun obtainMessage(inboundSmsHandler: Any, what: Int): Message {
-        return runCatching {
-            HookHelpers.callMethod(inboundSmsHandler, "obtainMessage", what) as? Message
-        }.getOrNull() ?: Message.obtain().apply { this.what = what }
-    }
-
-    private fun buildDeleteRawArgs(
-        parameterTypes: Array<Class<*>>,
-        deleteWhere: Any?,
-        deleteWhereArgs: Any?,
-        markDeleted: Int,
-    ): Array<Any?>? {
-        val stringValues = ArrayDeque<Any?>(listOf(deleteWhere, PERSISTENT_DEVICE_ID_DEFAULT, null))
-        val intValues = ArrayDeque<Any?>(listOf(markDeleted, 0))
-        val longValues = ArrayDeque<Any?>(listOf(0L))
-        val boolValues = ArrayDeque<Any?>(listOf(false))
-        val args = arrayOfNulls<Any?>(parameterTypes.size)
-        for (i in parameterTypes.indices) {
-            val type = parameterTypes[i]
-            when {
-                type == String::class.java -> args[i] = if (stringValues.isNotEmpty()) stringValues.removeFirst() else null
-                type.isArray && type.componentType == String::class.java ->
-                    args[i] = deleteWhereArgs
-                type == Int::class.javaPrimitiveType || type == Int::class.javaObjectType ->
-                    args[i] = if (intValues.isNotEmpty()) intValues.removeFirst() else 0
-                type == Long::class.javaPrimitiveType || type == Long::class.javaObjectType ->
-                    args[i] = if (longValues.isNotEmpty()) longValues.removeFirst() else 0L
-                type == Boolean::class.javaPrimitiveType || type == Boolean::class.javaObjectType ->
-                    args[i] = if (boolValues.isNotEmpty()) boolValues.removeFirst() else false
-                else -> args[i] = null
-            }
-        }
-        return args
-    }
-
-    private fun collectMethods(clazz: Class<*>, methodName: String): List<Method> {
-        val methods = mutableListOf<Method>()
-        var current: Class<*>? = clazz
-        while (current != null) {
-            current.declaredMethods
-                .filter { it.name == methodName }
-                .forEach { method ->
-                    method.isAccessible = true
-                    methods += method
-                }
-            current = current.superclass
-        }
-        return methods
-    }
-
-    private fun logMethodSignatures(tag: String, clazz: Class<*>, methodName: String) {
-        val methods = collectMethods(clazz, methodName)
-        if (methods.isEmpty()) {
-            XLog.w("%s: no method %s in %s", tag, methodName, clazz.name)
-            return
-        }
-        val signatures = methods.joinToString(limit = 80, truncated = "...") { method ->
-            val params = method.parameterTypes.joinToString(",") { it.name }
-            "${method.name}($params):${method.returnType.name}"
-        }
-        XLog.w("%s: %s methods=[%s]", tag, clazz.name, signatures)
-    }
-
     private fun ensureEventId(intent: Intent): String {
         return SmsHookDispatchCoordinator.ensureIncomingEventId(intent)
     }
@@ -654,33 +428,11 @@ class SmsHandlerHook : BaseHook() {
         }
     }
 
-    private fun getPluginContext(): Context? {
-        mPluginContext = SmsHookBridgeHelper.resolvePluginContext(
-            phoneContext = mPhoneContext,
-            currentPluginContext = mPluginContext,
-            applicationId = SMSCODE_PACKAGE,
-        )
-        return mPluginContext
-    }
-
     companion object {
         const val ANDROID_PHONE_PACKAGE = "com.android.phone"
         private const val TELEPHONY_PACKAGE = "com.android.internal.telephony"
         private const val SMS_HANDLER_CLASS = "$TELEPHONY_PACKAGE.InboundSmsHandler"
         private val SMSCODE_PACKAGE = BuildConfig.APPLICATION_ID
-        private const val EVENT_BROADCAST_COMPLETE = 3
-        private const val BLOCK_REASON_BLACKLIST = "blacklist_block"
-        private const val BLOCK_REASON_PREF_BLOCK = "pref_block_sms"
-        private const val PERSISTENT_DEVICE_ID_DEFAULT = "default:0"
         private val SMS_OPERATION_EXECUTOR = Executors.newSingleThreadExecutor()
-        @Volatile
-        private var cachedDeleteRawMethod: Method? = null
-        @Volatile
-        private var cachedSendMessageMethod: Method? = null
-        @Volatile
-        private var loggedDeleteRawSignatures = false
-        @Volatile
-        private var loggedSendMessageSignatures = false
-
     }
 }
