@@ -56,6 +56,36 @@ class RuntimeRecordFacade(
         db.autoInputEventDao().updateResult(attemptId, success, reason)
     }
 
+    suspend fun hasSmsDuplicateInRange(
+        sender: String?,
+        body: String?,
+        dateFrom: Long,
+        dateTo: Long,
+        msgType: Int = SmsMsg.MSG_TYPE_SMS,
+    ): Boolean = withContext(Dispatchers.IO) {
+        db.smsMsgDao().getByFingerprintInRange(sender, body, msgType, dateFrom, dateTo) != null
+    }
+
+    suspend fun hasSmsCodeDuplicateByPackageInRange(
+        smsCode: String?,
+        packageName: String?,
+        dateFrom: Long,
+        dateTo: Long,
+        msgType: Int = SmsMsg.MSG_TYPE_SMS,
+    ): Boolean = withContext(Dispatchers.IO) {
+        db.smsMsgDao().getByCodeAndPackageInRange(smsCode, packageName, msgType, dateFrom, dateTo) != null
+    }
+
+    suspend fun hasSmsCodeDuplicateByCompanyInRange(
+        smsCode: String?,
+        company: String?,
+        dateFrom: Long,
+        dateTo: Long,
+        msgType: Int = SmsMsg.MSG_TYPE_SMS,
+    ): Boolean = withContext(Dispatchers.IO) {
+        db.smsMsgDao().getByCodeAndCompanyInRange(smsCode, company, msgType, dateFrom, dateTo) != null
+    }
+
     suspend fun persistSmsForwardResult(
         smsMsg: SmsMsg,
         success: Boolean,

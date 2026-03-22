@@ -90,4 +90,22 @@ class RuntimeRecordFacadeTest {
         assertEquals("123456", insertedArg!!.smsCode)
         verify(exactly = 0) { smsMsgDao.update(any()) }
     }
+
+    @Test
+    fun duplicateQueries_delegateToSmsMsgDao() = runBlocking {
+        val context = mockk<Context>(relaxed = true)
+        val database = mockk<AppDatabase>()
+        val smsMsgDao = mockk<SmsMsgDao>(relaxed = true)
+        val hit = SmsMsg(id = 1L, sender = "1068", body = "code 123456", date = 100L)
+        every { database.smsMsgDao() } returns smsMsgDao
+        every { smsMsgDao.getByFingerprintInRange("1068", "code 123456", SmsMsg.MSG_TYPE_SMS, 90L, 110L) } returns hit
+        every { smsMsgDao.getByCodeAndPackageInRange("123456", "com.bank.app", SmsMsg.MSG_TYPE_SMS, 90L, 110L) } returns hit
+        every { smsMsgDao.getByCodeAndCompanyInRange("123456", "Bank", SmsMsg.MSG_TYPE_SMS, 90L, 110L) } returns hit
+
+        val facade = RuntimeRecordFacade(context, database)
+
+        assertTrue(facade.hasSmsDuplicateInRange("1068", "code 123456", 90L, 110L))
+        assertTrue(facade.hasSmsCodeDuplicateByPackageInRange("123456", "com.bank.app", 90L, 110L))
+        assertTrue(facade.hasSmsCodeDuplicateByCompanyInRange("123456", "Bank", 90L, 110L))
+    }
 }

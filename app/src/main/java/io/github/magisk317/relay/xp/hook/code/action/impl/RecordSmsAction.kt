@@ -7,11 +7,12 @@ import android.database.Cursor
 import android.os.Bundle
 import io.github.magisk317.relay.common.utils.PrefsReader
 import io.github.magisk317.smscode.core.utils.XLog
-import io.github.magisk317.relay.data.db.DBManager
 import io.github.magisk317.relay.data.db.DBProvider
 import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
 import io.github.magisk317.relay.ui.record.CodeRecordRestoreManager
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
+import kotlinx.coroutines.runBlocking
 
 /**
  * 记录验证码短信
@@ -23,6 +24,7 @@ class RecordSmsAction(
     private val eventId: String = "",
 ) :
     CallableAction(pluginContext, phoneContext, smsMsg) {
+    private val runtimeRecordFacade = RuntimeRecordFacade(pluginContext)
 
     override fun action(): Bundle? {
         if (PrefsReader.recordCodeSmsEnabled(mPluginContext)) {
@@ -128,10 +130,17 @@ class RecordSmsAction(
         val timestamp = if (smsMsg.date > 0) smsMsg.date else System.currentTimeMillis()
         val from = (timestamp - DEDUP_WINDOW_MS).coerceAtLeast(0L)
         val to = timestamp + DEDUP_WINDOW_MS
-        val db = DBManager.get(mPluginContext)
-        val fingerprintDup = runCatching {
-            db.querySmsMsgByFingerprintInRange(sender, body, from, to) != null
-        }.getOrDefault(false)
+        val fingerprintDup = runBlocking {
+            runCatching {
+                runtimeRecordFacade.hasSmsDuplicateInRange(
+                    sender = sender,
+                    body = body,
+                    dateFrom = from,
+                    dateTo = to,
+                    msgType = SmsMsg.MSG_TYPE_SMS,
+                )
+            }.getOrDefault(false)
+        }
         if (fingerprintDup) {
             XLog.w("Diag record dedup skip: reason=fingerprint_window event_id=%s", eventLabel)
             return true
@@ -142,10 +151,12 @@ class RecordSmsAction(
 
         val pkg = smsMsg.packageName
         val company = smsMsg.company
-        val channelDup = runCatching {
-            (pkg?.isNotBlank() == true && db.querySmsMsgByCodeAndPackageInRange(code, pkg, from, to) != null) ||
-                (company?.isNotBlank() == true && db.querySmsMsgByCodeAndCompanyInRange(code, company, from, to) != null)
-        }.getOrDefault(false)
+        val channelDup = runBlocking {
+            runCatching {
+                (pkg?.isNotBlank() == true && runtimeRecordFacade.hasSmsCodeDuplicateByPackageInRange(code, pkg, from, to)) ||
+                    (company?.isNotBlank() == true && runtimeRecordFacade.hasSmsCodeDuplicateByCompanyInRange(code, company, from, to))
+            }.getOrDefault(false)
+        }
         if (channelDup) {
             XLog.w("Diag record dedup skip: reason=code_channel event_id=%s", eventLabel)
             return true
