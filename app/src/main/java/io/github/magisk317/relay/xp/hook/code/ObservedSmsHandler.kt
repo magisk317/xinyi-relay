@@ -1,0 +1,160 @@
+package io.github.magisk317.relay.xp.hook.code
+
+import android.content.Context
+import io.github.magisk317.relay.common.utils.PrefsReader
+import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
+import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
+import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
+import io.github.magisk317.smscode.core.utils.XLog
+import kotlinx.coroutines.runBlocking
+
+internal class ObservedSmsHandler(
+    private val pluginContext: Context,
+    private val phoneContext: Context,
+    private val runtimeRecordFacadeProvider: (() -> RuntimeRecordFacade)? = null,
+    private val settingsLoader: (Context) -> SmsCodePostParseCoordinator.Settings = SmsCodePostParseCoordinator::loadSettings,
+    private val planFactory: (SmsCodePostParseCoordinator.Settings) -> SmsCodePostParseCoordinator.ObservedSmsPlan =
+        SmsCodePostParseCoordinator::createObservedSmsPlan,
+    private val moduleEnabledReader: (Context) -> Boolean = PrefsReader::isEnabled,
+    private val conflictSuppressor: (Context, String) -> Boolean = { context, source ->
+        ModuleConflictArbiter.shouldSuppressByRelay(context, source)
+    },
+    private val roleStateLogger: (String) -> Unit = {},
+    private val duplicateChecker: ((SmsCodePostParseCoordinator.Settings, String, String, Long) -> Boolean)? = null,
+    private val smsEnricher: (Context, String, String, Long, String) -> SmsMsg = { context, sender, body, date, code ->
+        SmsHookDispatchCoordinator.enrichObservedSms(
+            phoneContext = context,
+            sender = sender,
+            body = body,
+            date = date,
+            smsCode = code,
+        )
+    },
+    private val dispatcher: (
+        Context,
+        Context,
+        SmsMsg,
+        String,
+        SmsCodePostParseCoordinator.ObservedSmsPlan,
+    ) -> Unit = { pluginContext, phoneContext, smsMsg, eventId, plan ->
+        SmsCodePostParseCoordinator.dispatchObservedSmsActions(
+            pluginContext = pluginContext,
+            phoneContext = phoneContext,
+            smsMsg = smsMsg,
+            eventId = eventId,
+            plan = plan,
+        )
+    },
+    private val currentTimeMillis: () -> Long = System::currentTimeMillis,
+) {
+    data class Outcome(
+        val eventId: String,
+        val decision: SmsInboxObserverDecision.Decision,
+        val dispatched: Boolean,
+    )
+
+    fun handle(record: ObservedInboxScanRecord): Outcome {
+        val settings = settingsLoader(pluginContext)
+        val plan = planFactory(settings)
+        val eventId = buildObservedEventId(record.smsId, record.date)
+        val decision = SmsInboxObserverDecision.evaluate(
+            moduleEnabled = moduleEnabledReader(pluginContext),
+            suppressedByRelay = conflictSuppressor(phoneContext, OBSERVER_CONFLICT_SOURCE),
+            duplicated = (duplicateChecker ?: ::defaultDuplicateCheck)(
+                settings,
+                record.sender,
+                record.body,
+                record.date,
+            ),
+            plan = plan,
+        )
+
+        when (decision.skipReason) {
+            SmsInboxObserverDecision.SkipReason.CONFLICT_SUPPRESSED -> {
+                XLog.w("Diag observer conflict skip: event_id=%s sms_id=%d", eventId, record.smsId)
+                return Outcome(eventId = eventId, decision = decision, dispatched = false)
+            }
+
+            SmsInboxObserverDecision.SkipReason.MODULE_DISABLED -> {
+                XLog.w("Diag observer skip: module disabled event_id=%s", eventId)
+                return Outcome(eventId = eventId, decision = decision, dispatched = false)
+            }
+
+            SmsInboxObserverDecision.SkipReason.DUPLICATED -> {
+                XLog.w("Diag observer duplicate skip: event_id=%s", eventId)
+                return Outcome(eventId = eventId, decision = decision, dispatched = false)
+            }
+
+            null -> Unit
+        }
+
+        roleStateLogger(eventId)
+
+        val smsMsg = smsEnricher(
+            phoneContext,
+            record.sender,
+            record.body,
+            record.date,
+            record.code,
+        )
+
+        if (decision.autoInputEnabled) {
+            XLog.w(
+                "Diag observer auto-input: event_id=%s sender_hash=%s read=%s uri=%s",
+                eventId,
+                senderHash(record.sender),
+                record.read,
+                record.triggerUri,
+            )
+        } else {
+            XLog.w("Diag observer auto-input disabled: event_id=%s", eventId)
+        }
+
+        decision.recordSkipReason?.let { reason ->
+            XLog.w("Diag observer record skipped: reason=%s event_id=%s", reason.wireValue, eventId)
+        }
+
+        dispatcher(pluginContext, phoneContext, smsMsg, eventId, plan)
+
+        return Outcome(eventId = eventId, decision = decision, dispatched = true)
+    }
+
+    private fun defaultDuplicateCheck(
+        settings: SmsCodePostParseCoordinator.Settings,
+        sender: String,
+        body: String,
+        date: Long,
+    ): Boolean {
+        if (!settings.deduplicateSmsEnabled) {
+            return false
+        }
+        val runtimeRecordFacade = runtimeRecordFacadeProvider?.invoke() ?: RuntimeRecordFacade(pluginContext)
+        val timestamp = if (date > 0) date else currentTimeMillis()
+        return runBlocking {
+            runCatching {
+                runtimeRecordFacade.isDuplicateSms(
+                    sender = sender,
+                    body = body,
+                    date = timestamp,
+                    msgType = SmsMsg.MSG_TYPE_SMS,
+                )
+            }.getOrDefault(false)
+        }
+    }
+
+    private fun buildObservedEventId(smsId: Long, date: Long): String {
+        val ts = if (date > 0) date else currentTimeMillis()
+        return "sms_observed_${ts.toString(EVENT_ID_RADIX)}_${smsId.toString(EVENT_ID_RADIX)}"
+    }
+
+    private fun senderHash(sender: String): String {
+        if (sender.isBlank()) return "none"
+        return Integer.toHexString(sender.hashCode())
+    }
+
+    private companion object {
+        private const val EVENT_ID_RADIX = 36
+        private const val OBSERVER_CONFLICT_SOURCE = "SmsInboxObserver#handleObservedCode"
+    }
+}
