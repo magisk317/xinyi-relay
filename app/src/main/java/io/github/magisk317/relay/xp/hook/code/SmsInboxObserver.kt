@@ -1,12 +1,10 @@
 package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
-import android.app.role.RoleManager
 import android.database.ContentObserver
 import android.os.Handler
 import android.os.Looper
 import android.provider.Telephony
-import android.os.Build
 import io.github.magisk317.relay.common.utils.PrefsReader
 import io.github.magisk317.relay.common.utils.SmsCodeUtils
 import io.github.magisk317.relay.common.utils.StringUtils
@@ -25,6 +23,7 @@ internal class SmsInboxObserver(
     private val phoneContext: Context,
 ) {
     private val runtimeRecordFacade = RuntimeRecordFacade(pluginContext)
+    private val smsRoleStateResolver = SmsRoleStateResolver()
     private val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
         override fun onChange(selfChange: Boolean) {
             onChange(selfChange, null)
@@ -204,44 +203,24 @@ internal class SmsInboxObserver(
     }
 
     private fun logSmsRoleState(eventId: String) {
-        val (defaultSms, roleHolders) = resolveSmsRoleState()
+        val roleState = smsRoleStateResolver.resolve(phoneContext)
         XLog.w(
             "Diag observer sms role: event_id=%s defaultSms=%s roleHolders=%s",
             eventId,
-            defaultSms ?: "<none>",
-            if (roleHolders.isEmpty()) "<none>" else roleHolders.joinToString(","),
+            roleState.defaultSms ?: "<none>",
+            if (roleState.roleHolders.isEmpty()) "<none>" else roleState.roleHolders.joinToString(","),
         )
     }
 
     private fun logSmsRoleStateForSms(smsId: Long, triggerUri: String) {
-        val (defaultSms, roleHolders) = resolveSmsRoleState()
+        val roleState = smsRoleStateResolver.resolve(phoneContext)
         XLog.w(
             "Diag observer sms role: sms_id=%d trigger_uri=%s defaultSms=%s roleHolders=%s",
             smsId,
             triggerUri.ifBlank { Telephony.Sms.CONTENT_URI.toString() },
-            defaultSms ?: "<none>",
-            if (roleHolders.isEmpty()) "<none>" else roleHolders.joinToString(","),
+            roleState.defaultSms ?: "<none>",
+            if (roleState.roleHolders.isEmpty()) "<none>" else roleState.roleHolders.joinToString(","),
         )
-    }
-
-    private fun resolveSmsRoleState(): Pair<String?, List<String>> {
-        val defaultSms = runCatching { Telephony.Sms.getDefaultSmsPackage(phoneContext) }.getOrNull()
-        val roleHolders: List<String> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            runCatching {
-                val roleManager = phoneContext.getSystemService(RoleManager::class.java)
-                if (roleManager == null) {
-                    emptyList()
-                } else {
-                    val method = roleManager.javaClass.getMethod("getRoleHolders", String::class.java)
-                    @Suppress("UNCHECKED_CAST")
-                    (method.invoke(roleManager, RoleManager.ROLE_SMS) as? List<*>)?.filterIsInstance<String>()
-                        .orEmpty()
-                }
-            }.getOrDefault(emptyList())
-        } else {
-            emptyList()
-        }
-        return defaultSms to roleHolders
     }
 
     private fun buildObservedEventId(smsId: Long, date: Long): String {
