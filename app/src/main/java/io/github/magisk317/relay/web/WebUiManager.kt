@@ -2,7 +2,7 @@ package io.github.magisk317.relay.web
 
 import android.content.Context
 import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.domain.pipeline.StorageRuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.service.WebUiForegroundService
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.combine
@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 class WebUiManager(private val context: Context) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var configJob: Job? = null
-    private val preferenceDataSource by lazy { StorageRuntimeGraph.from(context).preferenceDataSource }
+    private val preferenceDataSource by lazy { RuntimeGraph.from(context).preferenceDataSource }
 
     fun start() {
         if (configJob != null) return

@@ -13,7 +13,7 @@ import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.core.BuildConfig
 import io.github.magisk317.relay.feature.reminder.SpecialAlertCoordinator
 import io.github.magisk317.relay.domain.event.RelayEvent
-import io.github.magisk317.relay.domain.pipeline.StorageRuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import kotlinx.coroutines.runBlocking
 
@@ -106,7 +106,7 @@ class AppNotificationListenerService : NotificationListenerService() {
         )
 
         val token = runBlocking {
-            val runtimeGraph = StorageRuntimeGraph.from(applicationContext)
+            val runtimeGraph = RuntimeGraph.from(applicationContext)
             RuntimeSettingsCache.getString(
                 key = PrefConst.KEY_IPC_TOKEN,
                 defaultValue = "",

@@ -13,7 +13,7 @@ import io.github.magisk317.relay.data.repository.AnalyticsRepository
 import io.github.magisk317.relay.data.repository.SettingsRepository
 import io.github.magisk317.relay.data.repository.RelayRecordRepository
 import io.github.magisk317.relay.data.repository.ConfigRepository
-import io.github.magisk317.relay.domain.pipeline.StorageRuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.pipeline.DispatchResultWriter
 import io.github.magisk317.relay.domain.service.*
 import org.koin.core.module.dsl.viewModelOf
@@ -21,24 +21,24 @@ import org.koin.dsl.bind
 import org.koin.dsl.module
 
 val appModule = module {
-    single { StorageRuntimeGraph.from(get()) }
+    single { RuntimeGraph.from(get()) }
 
-    single { get<StorageRuntimeGraph>().database }
-    single<PreferenceDataSource> { get<StorageRuntimeGraph>().preferenceDataSource }
+    single { get<RuntimeGraph>().database }
+    single<PreferenceDataSource> { get<RuntimeGraph>().preferenceDataSource }
 
-    single<SettingsRepository> { get<StorageRuntimeGraph>().settingsRepository }
-    single<RelayRecordRepository> { get<StorageRuntimeGraph>().relayRecordRepository }
-    single<AnalyticsRepository> { get<StorageRuntimeGraph>().analyticsRepository }
-    single<ConfigRepository> { get<StorageRuntimeGraph>().configRepository }
+    single<SettingsRepository> { get<RuntimeGraph>().settingsRepository }
+    single<RelayRecordRepository> { get<RuntimeGraph>().relayRecordRepository }
+    single<AnalyticsRepository> { get<RuntimeGraph>().analyticsRepository }
+    single<ConfigRepository> { get<RuntimeGraph>().configRepository }
 
-    single<SystemInfoProvider> { get<StorageRuntimeGraph>().systemInfoProvider }
-    single<MessageFormatter> { get<StorageRuntimeGraph>().messageFormatter }
-    single<DispatchResultWriter> { get<StorageRuntimeGraph>().dispatchResultWriter }
-    single { get<StorageRuntimeGraph>().eventGatekeeper }
-    single { get<StorageRuntimeGraph>().routingResolver }
-    single { get<StorageRuntimeGraph>().senderSelector }
-    single { get<StorageRuntimeGraph>().dispatchExecutor }
-    single { get<StorageRuntimeGraph>().eventPipeline }
+    single<SystemInfoProvider> { get<RuntimeGraph>().systemInfoProvider }
+    single<MessageFormatter> { get<RuntimeGraph>().messageFormatter }
+    single<DispatchResultWriter> { get<RuntimeGraph>().dispatchResultWriter }
+    single { get<RuntimeGraph>().eventGatekeeper }
+    single { get<RuntimeGraph>().routingResolver }
+    single { get<RuntimeGraph>().senderSelector }
+    single { get<RuntimeGraph>().dispatchExecutor }
+    single { get<RuntimeGraph>().eventPipeline }
     // ViewModels
     viewModelOf(::AppConfigViewModel)
     viewModelOf(::SettingsViewModel)

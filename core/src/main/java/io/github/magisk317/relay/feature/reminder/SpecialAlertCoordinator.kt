@@ -4,7 +4,7 @@ import android.content.Context
 import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.common.utils.ForwardFlowLog
 import io.github.magisk317.relay.domain.event.RelayEvent
-import io.github.magisk317.relay.domain.pipeline.StorageRuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import kotlinx.coroutines.runBlocking
 
@@ -20,7 +20,7 @@ object SpecialAlertCoordinator {
             MessageType.APP_NOTIFY,
             -> {
                 val decision = runBlocking {
-                    StorageRuntimeGraph.from(context).eventGatekeeper.check(event, traceId.orEmpty())
+                    RuntimeGraph.from(context).eventGatekeeper.check(event, traceId.orEmpty())
                 }
                 if (!decision.allowed) {
                     ForwardFlowLog.i(
@@ -53,7 +53,7 @@ object SpecialAlertCoordinator {
             MessageType.CALL_NOTIFY -> {
                 val enabled = runBlocking {
                     RuntimeSettingsCache.getSpecialAlertSettings(
-                        StorageRuntimeGraph.from(context).settingsRepository,
+                        RuntimeGraph.from(context).settingsRepository,
                     ).callAlertLocalEnabled
                 }
                 if (!enabled) return

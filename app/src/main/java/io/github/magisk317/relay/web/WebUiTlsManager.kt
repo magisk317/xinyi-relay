@@ -2,7 +2,7 @@ package io.github.magisk317.relay.web
 
 import android.content.Context
 import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.domain.pipeline.StorageRuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -35,7 +35,7 @@ internal object WebUiTlsManager {
     suspend fun loadOrCreate(context: Context, includeLocalNetworkHosts: Boolean = false): WebUiTlsMaterial {
         val safeContext = context.applicationContext ?: context
         val keyStoreFile = File(safeContext.filesDir, KEYSTORE_FILE_NAME)
-        val preferenceDataSource = StorageRuntimeGraph.from(safeContext).preferenceDataSource
+        val preferenceDataSource = RuntimeGraph.from(safeContext).preferenceDataSource
         val keyStoreVersion = preferenceDataSource.getString(
             PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_VERSION,
             PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_VERSION_DEFAULT,
@@ -133,7 +133,7 @@ internal object WebUiTlsManager {
             keyStore.store(out, storePassword.toCharArray())
         }
 
-        val preferenceDataSource = StorageRuntimeGraph.from(context).preferenceDataSource
+        val preferenceDataSource = RuntimeGraph.from(context).preferenceDataSource
         preferenceDataSource.setString(
             PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_VERSION,
             PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_VERSION_DEFAULT,

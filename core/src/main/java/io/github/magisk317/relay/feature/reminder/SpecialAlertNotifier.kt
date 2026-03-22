@@ -12,7 +12,7 @@ import androidx.core.content.ContextCompat
 import io.github.magisk317.relay.common.constant.NotificationConst
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.domain.pipeline.StorageRuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.runBlocking
@@ -112,7 +112,7 @@ object SpecialAlertNotifier {
 
     private fun loadSettings(context: Context) = runBlocking {
         RuntimeSettingsCache.getSpecialAlertSettings(
-            StorageRuntimeGraph.from(context).settingsRepository,
+            RuntimeGraph.from(context).settingsRepository,
         )
     }
 

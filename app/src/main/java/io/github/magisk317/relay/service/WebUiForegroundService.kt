@@ -14,7 +14,7 @@ import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.constant.NotificationConst
 import io.github.magisk317.relay.common.utils.NotificationUtils
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.domain.pipeline.StorageRuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.ui.home.MainActivity
 import io.github.magisk317.relay.web.WebUiRuntimeConfig
 import io.github.magisk317.relay.web.WebUiServer
@@ -29,7 +29,7 @@ import timber.log.Timber
 
 class WebUiForegroundService : Service() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val preferenceDataSource by lazy { StorageRuntimeGraph.from(this).preferenceDataSource }
+    private val preferenceDataSource by lazy { RuntimeGraph.from(this).preferenceDataSource }
     private var applyJob: Job? = null
     private var webUiServer: WebUiServer? = null
     private var runningConfig: RunningConfig? = null

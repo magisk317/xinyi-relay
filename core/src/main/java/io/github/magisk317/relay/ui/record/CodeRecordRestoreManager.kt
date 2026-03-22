@@ -7,7 +7,7 @@ import io.github.magisk317.relay.common.utils.JsonUtils
 import io.github.magisk317.relay.common.utils.StorageUtils
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.data.db.entity.SmsMsg
-import io.github.magisk317.relay.domain.pipeline.StorageRuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import kotlinx.coroutines.runBlocking
 import java.io.*
 import java.nio.charset.StandardCharsets
@@ -52,7 +52,7 @@ object CodeRecordRestoreManager {
 
         if (smsMsgList.isNotEmpty()) {
             runBlocking {
-                StorageRuntimeGraph.from(context).relayRecordRepository.insertListAndTrim(
+                RuntimeGraph.from(context).relayRecordRepository.insertListAndTrim(
                     smsMsgList,
                     PrefConst.MAX_SMS_RECORDS_COUNT_DEFAULT,
                 )

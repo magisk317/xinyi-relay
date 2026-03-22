@@ -271,7 +271,7 @@ fun SettingsHomeScreen(
                             DiagnosticsSettingsUpdate(verboseLogMode = enabled),
                         )
                         RuntimeLogStore.setEnabled(enabled)
-                        XLog.setLogLevel(if (enabled) Log.VERBOSE else io.github.magisk317.relay.storage.BuildConfig.LOG_LEVEL)
+                        XLog.setLogLevel(if (enabled) Log.VERBOSE else io.github.magisk317.relay.runtime.BuildConfig.LOG_LEVEL)
                         notifySaved()
                     }
                 }

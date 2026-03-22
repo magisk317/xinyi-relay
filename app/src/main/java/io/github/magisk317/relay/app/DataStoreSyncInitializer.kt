@@ -4,7 +4,7 @@ import android.app.Application
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.utils.RuntimeLogStore
 import io.github.magisk317.relay.common.utils.XLog
-import io.github.magisk317.relay.domain.pipeline.StorageRuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -15,7 +15,7 @@ class DataStoreSyncInitializer : AppInitializer {
 
     override fun init(application: Application) {
         scope.launch {
-            val preferenceDataSource = StorageRuntimeGraph.from(application).preferenceDataSource
+            val preferenceDataSource = RuntimeGraph.from(application).preferenceDataSource
             preferenceDataSource.syncToSharedPrefs()
             preferenceDataSource.ensureReadable()
             

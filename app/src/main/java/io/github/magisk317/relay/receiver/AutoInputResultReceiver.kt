@@ -6,7 +6,7 @@ import android.content.Intent
 import io.github.magisk317.relay.analytics.AnalyticsTracker
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.utils.XLog
-import io.github.magisk317.relay.domain.pipeline.StorageRuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import kotlinx.coroutines.runBlocking
 import kotlin.concurrent.thread
@@ -25,7 +25,7 @@ class AutoInputResultReceiver : BroadcastReceiver() {
             reason ?: "<none>",
         )
         val analyticsEnabled = runBlocking {
-            val runtimeGraph = StorageRuntimeGraph.from(context)
+            val runtimeGraph = RuntimeGraph.from(context)
             RuntimeSettingsCache.getBoolean(
                 key = PrefConst.KEY_ENABLE_ANALYTICS,
                 defaultValue = true,
@@ -41,7 +41,7 @@ class AutoInputResultReceiver : BroadcastReceiver() {
         thread(name = "auto-input-result") {
             runCatching {
                 runBlocking {
-                    StorageRuntimeGraph.from(context).runtimeRecordFacade
+                    RuntimeGraph.from(context).runtimeRecordFacade
                         .updateAutoInputResult(attemptId, success, reason)
                 }
             }.onFailure { error ->

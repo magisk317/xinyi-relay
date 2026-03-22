@@ -14,6 +14,8 @@ plugins {
     alias(libs.plugins.google.services)
 }
 
+apply(from = rootProject.file("gradle/relay-android-common.gradle"))
+
 val keystoreFilePath = System.getenv("KEYSTORE_FILE") ?: findProperty("tianma.keystore.path")?.toString() ?: "release.jks"
 val keyFile = file(keystoreFilePath)
 val propertyFile = file(findProperty("tianma.signature.path") ?: "signature.properties")
@@ -42,12 +44,8 @@ fun buildTimestamp(): String {
 
 val versionNameStr = libs.versions.versionName.get()
 val versionCodeInt = libs.versions.versionCode.get().toInt()
-val compileSdkInt = libs.versions.compileSdk.get().toInt()
-val minSdkInt = libs.versions.minSdk.get().toInt()
-val targetSdkInt = libs.versions.targetSdk.get().toInt()
 val minSdkStr = libs.versions.minSdk.get()
 val targetSdkStr = libs.versions.targetSdk.get()
-val sdkExtensionInt = libs.versions.compileSdkExtension.get().toInt()
 val ndkVersionStr = libs.versions.ndk.get()
 val allowConflictBypass = findProperty("allowConflictBypass")
     ?.toString()
@@ -81,28 +79,7 @@ val isBundleTask = gradle.startParameter.taskNames.any { name ->
 
 android {
     namespace = "io.github.magisk317.relay"
-    compileSdk = compileSdkInt
-    compileSdkExtension = sdkExtensionInt
     ndkVersion = ndkVersionStr
-
-    flavorDimensions += "distribution"
-    productFlavors {
-        create("play") {
-            dimension = "distribution"
-            buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "false")
-            buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
-        }
-        create("github") {
-            dimension = "distribution"
-            buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
-            buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
-        }
-        create("fdroid") {
-            dimension = "distribution"
-            buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
-            buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "false")
-        }
-    }
 
     androidResources {
         localeFilters.addAll(listOf("en", "zh-rCN", "zh-rTW"))
@@ -225,38 +202,52 @@ android {
     }
 
     val javaVersion = JavaVersion.toVersion(libs.versions.javaBytecode.get())
-    compileOptions {
-        sourceCompatibility = javaVersion
-        targetCompatibility = javaVersion
-    }
-
     kotlin {
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.fromTarget(javaVersion.toString()))
         }
     }
-
-    testOptions {
-    }
 }
 
 val webuiDir = file("${rootProject.projectDir}/webui")
 
-val webuiBuild by tasks.registering(Exec::class) {
+val buildWebUi by tasks.registering(Exec::class) {
+    group = "webui"
+    description = "Build the WebUI from webui/ into webui/dist."
     workingDir = webuiDir
     commandLine("pnpm", "build")
 }
 
-val webuiSync by tasks.registering(Exec::class) {
+val syncWebUiAssets by tasks.registering(Exec::class) {
+    group = "webui"
+    description = "Sync webui/dist into app/src/main/assets/webui."
     workingDir = webuiDir
     commandLine("pnpm", "sync-dist")
-    dependsOn(webuiBuild)
+    dependsOn(buildWebUi)
 }
 
-tasks.matching {
-    it.name.startsWith("assemble") && it.name.endsWith("Debug")
-}.configureEach {
-    dependsOn(webuiSync)
+val checkWebUiAssets by tasks.registering(Exec::class) {
+    group = "verification"
+    description = "Verify embedded WebUI assets match the latest dist output."
+    workingDir = webuiDir
+    commandLine("pnpm", "check-dist")
+    dependsOn(buildWebUi)
+}
+
+tasks.register("webuiBuild") {
+    group = "webui"
+    description = "Compatibility alias for buildWebUi."
+    dependsOn(buildWebUi)
+}
+
+tasks.register("webuiSync") {
+    group = "webui"
+    description = "Compatibility alias for syncWebUiAssets."
+    dependsOn(syncWebUiAssets)
+}
+
+tasks.named("preBuild").configure {
+    dependsOn(checkWebUiAssets)
 }
 
 // Disable assemble tasks for Play variants.
@@ -274,10 +265,6 @@ tasks.matching {
     if (!name.contains("Play") && !name.contains("ClassesTo")) {
         enabled = false
     }
-}
-
-tasks.withType<Test>().configureEach {
-    useJUnitPlatform()
 }
 
 androidComponents {
@@ -340,8 +327,6 @@ tasks.matching {
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(project(":core"))
-    implementation(project(":smscode-core:core"))
-    implementation(project(":storage"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

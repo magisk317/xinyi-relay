@@ -4,37 +4,16 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-val compileSdkInt = libs.versions.compileSdk.get().toInt()
-val compileSdkExtensionInt = libs.versions.compileSdkExtension.get().toInt()
 val minSdkInt = libs.versions.minSdk.get().toInt()
 val allowConflictBypass = findProperty("allowConflictBypass")
     ?.toString()
     ?.toBooleanStrictOrNull()
     ?: false
 
+apply(from = rootProject.file("gradle/relay-android-common.gradle"))
+
 android {
     namespace = "io.github.magisk317.relay.core"
-    compileSdk = compileSdkInt
-    compileSdkExtension = compileSdkExtensionInt
-
-    flavorDimensions += "distribution"
-    productFlavors {
-        create("play") {
-            dimension = "distribution"
-            buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "false")
-            buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
-        }
-        create("github") {
-            dimension = "distribution"
-            buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
-            buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
-        }
-        create("fdroid") {
-            dimension = "distribution"
-            buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
-            buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "false")
-        }
-    }
 
     defaultConfig {
         minSdk = minSdkInt
@@ -49,11 +28,6 @@ android {
     }
 
     val javaVersion = JavaVersion.toVersion(libs.versions.javaBytecode.get())
-    compileOptions {
-        sourceCompatibility = javaVersion
-        targetCompatibility = javaVersion
-    }
-
     kotlin {
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.fromTarget(javaVersion.toString()))
@@ -62,7 +36,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":storage"))
+    api(project(":runtime"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
@@ -71,6 +45,7 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.ktor.server.core)
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.kotlinx.serialization)
     implementation(libs.retrofit.converter.scalars)
@@ -101,8 +76,4 @@ dependencies {
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.mockk)
-}
-
-tasks.withType<Test>().configureEach {
-    useJUnitPlatform()
 }

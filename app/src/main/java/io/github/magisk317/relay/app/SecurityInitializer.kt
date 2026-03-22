@@ -2,7 +2,7 @@ package io.github.magisk317.relay.app
 
 import android.app.Application
 import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.domain.pipeline.StorageRuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -15,7 +15,7 @@ class SecurityInitializer : AppInitializer {
 
     override fun init(application: Application) {
         scope.launch {
-            val preferenceDataSource = StorageRuntimeGraph.from(application).preferenceDataSource
+            val preferenceDataSource = RuntimeGraph.from(application).preferenceDataSource
             val token = preferenceDataSource.getString(PrefConst.KEY_IPC_TOKEN, "")
             if (token.isEmpty()) {
                 val newToken = UUID.randomUUID().toString()

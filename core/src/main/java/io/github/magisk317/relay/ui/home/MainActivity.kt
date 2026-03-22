@@ -90,7 +90,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import androidx.lifecycle.lifecycleScope
-import io.github.magisk317.relay.domain.pipeline.StorageRuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import kotlinx.coroutines.flow.MutableSharedFlow
 import org.koin.androidx.compose.koinViewModel
 import java.io.File
@@ -102,7 +102,7 @@ class MainActivity : AppCompatActivity() {
     private var autoUpdateChecked = false
     private val snackbarMessages = MutableSharedFlow<String>(extraBufferCapacity = 8)
     private val settingsRepository: SettingsRepository by lazy {
-        StorageRuntimeGraph.from(applicationContext).settingsRepository
+        RuntimeGraph.from(applicationContext).settingsRepository
     }
 
     private fun enqueueSnackbar(message: String) {
