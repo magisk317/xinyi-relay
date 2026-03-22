@@ -4,8 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Process
-import io.github.magisk317.relay.data.db.entity.SmsMsg
-import io.github.magisk317.relay.platform.ipc.PreparedSmsHookDispatch
+import io.github.magisk317.relay.xp.PreparedSmsHookDispatch
+import io.github.magisk317.relay.xp.SmsMsg
 import io.github.magisk317.relay.xp.XpDispatchCoordinator
 import io.github.magisk317.relay.xp.XpRecordFacade
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
@@ -83,8 +83,8 @@ class ForwardAction(
     private fun logSimExtras(prepared: PreparedSmsHookDispatch) {
         XLog.d(
             "ForwardAction SIM extras copied: sim_slot=%s sub_id=%s",
-            prepared.payload.simSlot?.toString() ?: "N/A",
-            prepared.payload.subId?.toString() ?: "N/A",
+            prepared.simSlot?.toString() ?: "N/A",
+            prepared.subId?.toString() ?: "N/A",
         )
     }
 

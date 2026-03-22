@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    id(libs.plugins.kotlin.parcelize.get().pluginId)
 }
 
 val minSdkInt = libs.versions.minSdk.get().toInt()

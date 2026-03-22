@@ -3,9 +3,9 @@ package io.github.magisk317.relay.xp.hook.code.action.impl
 import android.app.ActivityManager
 import android.content.Context
 import android.os.Bundle
-import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.xp.XpAppConfigFacade
 import io.github.magisk317.relay.xp.XpPrefs
+import io.github.magisk317.relay.xp.SmsMsg
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 import io.github.magisk317.relay.xp.hook.code.helper.InputHelper
 import io.github.magisk317.smscode.core.utils.XLog

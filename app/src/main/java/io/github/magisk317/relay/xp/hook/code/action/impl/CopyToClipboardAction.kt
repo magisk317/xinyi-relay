@@ -3,9 +3,9 @@ package io.github.magisk317.relay.xp.hook.code.action.impl
 import android.content.Context
 import android.os.Bundle
 import io.github.magisk317.relay.common.utils.ClipboardUtils
-import io.github.magisk317.relay.data.db.entity.SmsMsg
-import io.github.magisk317.smscode.core.utils.XLog
+import io.github.magisk317.relay.xp.SmsMsg
 import io.github.magisk317.relay.xp.hook.code.action.RunnableAction
+import io.github.magisk317.smscode.core.utils.XLog
 
 /**
  * 将验证码复制到剪切板

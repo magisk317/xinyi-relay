@@ -4,7 +4,7 @@ import android.content.Context
 import android.os.Bundle
 import android.widget.Toast
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.xp.SmsMsg
 import io.github.magisk317.relay.xp.hook.code.action.RunnableAction
 
 /**

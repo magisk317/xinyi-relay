@@ -2,8 +2,8 @@ package io.github.magisk317.relay.xp.hook.code.action
 
 import android.content.Context
 import android.os.Bundle
+import io.github.magisk317.relay.xp.SmsMsg
 import io.github.magisk317.smscode.core.utils.XLog
-import io.github.magisk317.relay.data.db.entity.SmsMsg
 import java.util.concurrent.Callable
 
 /**

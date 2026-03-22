@@ -1,7 +1,6 @@
 package io.github.magisk317.relay.xp
 
 import android.content.Context
-import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
 
 class XpRecordFacade(
@@ -89,7 +88,7 @@ class XpRecordFacade(
         message: String,
         maxMessageLength: Int = 300,
     ) = delegate.persistSmsForwardResult(
-        smsMsg = smsMsg,
+        smsMsg = smsMsg.toRuntime(),
         success = success,
         target = target,
         message = message,
@@ -102,7 +101,7 @@ class XpRecordFacade(
         target: String = "SmsCode Engine",
         maxMessageLength: Int = 300,
     ) = delegate.persistSmsHookDispatchFailure(
-        smsMsg = smsMsg,
+        smsMsg = smsMsg.toRuntime(),
         message = message,
         target = target,
         maxMessageLength = maxMessageLength,
@@ -111,5 +110,5 @@ class XpRecordFacade(
     suspend fun insertSmsRecord(
         smsMsg: SmsMsg,
         isCodeSms: Boolean,
-    ): Long? = delegate.insertSmsRecord(smsMsg = smsMsg, isCodeSms = isCodeSms)
+    ): Long? = delegate.insertSmsRecord(smsMsg = smsMsg.toRuntime(), isCodeSms = isCodeSms)
 }

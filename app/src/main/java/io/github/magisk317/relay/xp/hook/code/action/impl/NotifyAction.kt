@@ -13,11 +13,11 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import io.github.magisk317.relay.common.constant.NotificationConst
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.data.db.entity.SmsMsg
-import io.github.magisk317.smscode.core.utils.XLog
+import io.github.magisk317.relay.xp.SmsMsg
 import io.github.magisk317.relay.xp.hook.code.AutoCancelReceiver
 import io.github.magisk317.relay.xp.hook.code.CopyCodeReceiver
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
+import io.github.magisk317.smscode.core.utils.XLog
 
 /**
  * 显示验证码通知

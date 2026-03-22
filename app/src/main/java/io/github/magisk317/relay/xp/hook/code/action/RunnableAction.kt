@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.xp.hook.code.action
 
 import android.content.Context
-import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.xp.SmsMsg
 
 /**
  * Runnable + Action + Callable

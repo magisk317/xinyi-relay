@@ -3,9 +3,9 @@ package io.github.magisk317.relay.xp.hook.code.action.impl
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Bundle
-import io.github.magisk317.smscode.core.utils.XLog
-import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.xp.SmsMsg
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
+import io.github.magisk317.smscode.core.utils.XLog
 
 class CancelNotifyAction(pluginContext: Context, phoneContext: Context, smsMsg: SmsMsg) :
     CallableAction(pluginContext, phoneContext, smsMsg) {

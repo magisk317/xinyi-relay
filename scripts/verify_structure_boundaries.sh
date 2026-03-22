@@ -101,8 +101,9 @@ forbid_imports_in_dir "$APP_SRC/web" \
 forbid_imports_in_dir "$APP_SRC/xp" \
   '^import io\.github\.magisk317\.relay\.common\.xp\.' \
   '^import io\.github\.magisk317\.relay\.common\.utils\.(PrefsReader|ActivationDiagnosticsStore|RuntimeLogStore)$' \
+  '^import io\.github\.magisk317\.relay\.data\.db\.entity\.SmsMsg$' \
   '^import io\.github\.magisk317\.relay\.domain\.system\.(RuntimeRecordFacade|RuntimeAppConfigFacade)$' \
-  '^import io\.github\.magisk317\.relay\.platform\.ipc\.SmsHookDispatchCoordinator$'
+  '^import io\.github\.magisk317\.relay\.platform\.ipc\.(SmsHookDispatchCoordinator|PreparedSmsHookDispatch)$'
 
 if [[ "${#violations[@]}" -ne 0 ]]; then
   printf 'Structure boundary verification failed:\n' >&2

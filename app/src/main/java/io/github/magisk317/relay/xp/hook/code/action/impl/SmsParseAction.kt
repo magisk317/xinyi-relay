@@ -7,7 +7,7 @@ import android.text.TextUtils
 import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.common.utils.StringUtils
-import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.xp.SmsMsg
 import io.github.magisk317.relay.xp.XpDispatchCoordinator
 import io.github.magisk317.relay.xp.XpRecordFacade
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction

@@ -3,7 +3,7 @@ package io.github.magisk317.relay.xp.hook.code
 import android.content.Context
 import android.content.Intent
 import io.github.magisk317.relay.common.utils.SmsBlacklistUtils
-import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.xp.SmsMsg
 import io.github.magisk317.relay.xp.XpDispatchCoordinator
 import io.github.magisk317.smscode.core.utils.XLog
 
