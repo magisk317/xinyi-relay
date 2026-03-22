@@ -6,8 +6,8 @@ import android.os.Bundle
 import android.text.TextUtils
 import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.common.utils.StringUtils
-import io.github.magisk317.relay.data.db.DBManager
 import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
 import io.github.magisk317.relay.platform.ipc.SmsIngressAdapter
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 import io.github.magisk317.smscode.core.utils.XLog
@@ -20,6 +20,7 @@ class SmsParseAction(pluginContext: Context, phoneContext: Context, smsMsg: SmsM
 
     private var mSmsIntent: Intent? = null
     private var mDeduplicateEnabled: Boolean = false
+    private val runtimeRecordFacade = RuntimeRecordFacade(pluginContext)
 
     fun setSmsIntent(smsIntent: Intent?) {
         mSmsIntent = smsIntent
@@ -66,9 +67,16 @@ class SmsParseAction(pluginContext: Context, phoneContext: Context, smsMsg: SmsM
         val timestamp = if (smsMsg.date > 0) smsMsg.date else System.currentTimeMillis()
         XLog.w("Diag SMS body: %s", StringUtils.escape(msgBodyNotNull))
         if (mDeduplicateEnabled) {
-            val duplicated = runCatching {
-                DBManager.get(mPluginContext).querySmsMsgByFingerprint(sender, msgBodyNotNull, timestamp) != null
-            }.getOrDefault(false)
+            val duplicated = kotlinx.coroutines.runBlocking {
+                runCatching {
+                    runtimeRecordFacade.isDuplicateSms(
+                        sender = sender,
+                        body = msgBodyNotNull,
+                        date = timestamp,
+                        msgType = SmsMsg.MSG_TYPE_SMS,
+                    )
+                }.getOrDefault(false)
+            }
             if (duplicated) {
                 XLog.i("Duplicate SMS detected by fingerprint, skip parsing.")
                 return Bundle().apply { putBoolean(SMS_DUPLICATED, true) }
