@@ -1,0 +1,121 @@
+package io.github.magisk317.relay.xp.hook.code
+
+import android.content.Context
+import android.content.Intent
+import android.os.Handler
+import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.mockk.mockk
+import java.util.concurrent.ScheduledExecutorService
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
+
+class SmsCodeActionDispatcherTest {
+
+    @Test
+    fun dispatchParsedSmsActions_routesEachEnabledActionToScheduler() {
+        val uiHandler = mockk<Handler>(relaxed = true)
+        val executor = mockk<ScheduledExecutorService>(relaxed = true)
+        val pluginContext = mockk<Context>(relaxed = true)
+        val phoneContext = mockk<Context>(relaxed = true)
+        val smsMsg = smsMsg()
+        val smsIntent = mockk<Intent>(relaxed = true)
+        val plan = SmsCodePostParseCoordinator.ParsedSmsPlan(
+            blockSms = true,
+            deduplicateSmsEnabled = true,
+            uiPlan = SmsCodePostParseCoordinator.UiPlan(
+                copyToClipboardEnabled = true,
+                showToast = true,
+            ),
+            autoInputDelayMs = 1_500L,
+            notificationPlan = SmsCodePostParseCoordinator.NotificationPlan(autoCancelDelayMs = 5_000L),
+            shouldRecord = true,
+            forwardDelayMs = 100L,
+            operateSmsDelays = listOf(300L, 1000L),
+        )
+        var uiDispatched = false
+        var autoInputDelay: Long? = null
+        var notificationDelay: Long? = null
+        var recordEventId: String? = null
+        var forwardDelay: Long? = null
+        var operateSmsDelays: List<Long>? = null
+
+        SmsCodeActionDispatcher.dispatchParsedSmsActions(
+            uiHandler = uiHandler,
+            executor = executor,
+            pluginContext = pluginContext,
+            phoneContext = phoneContext,
+            smsMsg = smsMsg,
+            smsIntent = smsIntent,
+            eventId = "evt-1",
+            plan = plan,
+            uiDispatcher = { _, _, _, _, uiPlan ->
+                uiDispatched = uiPlan.copyToClipboardEnabled && uiPlan.showToast
+            },
+            autoInputScheduler = { _, _, _, _, delayMs, _ ->
+                autoInputDelay = delayMs
+            },
+            notificationScheduler = { _, _, _, _, notificationPlan ->
+                notificationDelay = notificationPlan.autoCancelDelayMs
+            },
+            recordScheduler = { _, _, _, _, eventId, _ ->
+                recordEventId = eventId
+            },
+            forwardScheduler = { _, _, _, _, intent, eventId, delayMs ->
+                assertEquals(smsIntent, intent)
+                assertEquals("evt-1", eventId)
+                forwardDelay = delayMs
+            },
+            operateSmsScheduler = { _, _, _, _, delays ->
+                operateSmsDelays = delays
+            },
+        )
+
+        assertTrue(uiDispatched)
+        assertEquals(1_500L, autoInputDelay)
+        assertEquals(5_000L, notificationDelay)
+        assertEquals("evt-1", recordEventId)
+        assertEquals(100L, forwardDelay)
+        assertEquals(listOf(300L, 1000L), operateSmsDelays)
+    }
+
+    @Test
+    fun dispatchObservedSmsActions_runsOnlyEnabledImmediateActions() {
+        val pluginContext = mockk<Context>(relaxed = true)
+        val phoneContext = mockk<Context>(relaxed = true)
+        val smsMsg = smsMsg()
+        val plan = SmsCodePostParseCoordinator.ObservedSmsPlan(
+            deduplicateSmsEnabled = true,
+            autoInputEnabled = true,
+            shouldRecord = false,
+        )
+        var autoInputDedup: Boolean? = null
+        var recordCalled = false
+
+        SmsCodeActionDispatcher.dispatchObservedSmsActions(
+            pluginContext = pluginContext,
+            phoneContext = phoneContext,
+            smsMsg = smsMsg,
+            eventId = "evt-2",
+            plan = plan,
+            autoInputRunner = { _, _, _, deduplicateEnabled ->
+                autoInputDedup = deduplicateEnabled
+            },
+            recordRunner = { _, _, _, _, _ ->
+                recordCalled = true
+            },
+        )
+
+        assertEquals(true, autoInputDedup)
+        assertEquals(false, recordCalled)
+    }
+
+    private fun smsMsg(): SmsMsg {
+        return SmsMsg(
+            sender = "1068",
+            body = "otp 123456",
+            date = 100L,
+            msgType = SmsMsg.MSG_TYPE_SMS,
+        )
+    }
+}
