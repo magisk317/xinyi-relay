@@ -4,13 +4,13 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import io.github.magisk317.relay.BuildConfig
-import io.github.magisk317.relay.common.constant.TransitionConst
+import io.github.magisk317.relay.xp.XpRelayTarget
 import io.github.magisk317.smscode.core.utils.XLog
 
 object ModuleConflictArbiter {
     const val SUPPRESSION_REASON = "suppressed_by_relay_package"
     const val BYPASS_REASON_BUILD_FLAG = "allow_conflict_bypass"
-    const val TARGET_RELAY_PACKAGE = TransitionConst.TARGET_RELAY_PACKAGE
+    const val TARGET_RELAY_PACKAGE = XpRelayTarget.TARGET_RELAY_PACKAGE
 
     @Volatile
     private var checked = false

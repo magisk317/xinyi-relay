@@ -2,7 +2,7 @@ package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
 import android.provider.Telephony
-import io.github.magisk317.relay.common.utils.SmsCodeUtils
+import io.github.magisk317.relay.xp.XpSmsCodeParser
 import io.github.magisk317.smscode.core.utils.XLog
 import kotlinx.coroutines.runBlocking
 
@@ -11,7 +11,7 @@ internal class ObservedInboxScanner(
     private val phoneContext: Context,
     private val smsIdTracker: SmsInboxSeenTracker,
     private val smsCodeParser: suspend (Context, String) -> String = { context, body ->
-        SmsCodeUtils.parseSmsCodeIfExists(context, body)
+        XpSmsCodeParser.parseSmsCodeIfExists(context, body)
     },
     private val inboxRowLoader: (Long) -> List<InboxRow> = { cutoff ->
         loadRecentInboxRows(phoneContext, cutoff)

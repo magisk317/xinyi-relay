@@ -2,8 +2,8 @@ package io.github.magisk317.relay.xp.hook.code.action.impl
 
 import android.content.Context
 import android.os.Bundle
-import io.github.magisk317.relay.common.utils.ClipboardUtils
 import io.github.magisk317.relay.xp.SmsMsg
+import io.github.magisk317.relay.xp.XpClipboard
 import io.github.magisk317.relay.xp.hook.code.action.RunnableAction
 import io.github.magisk317.smscode.core.utils.XLog
 
@@ -28,7 +28,7 @@ class CopyToClipboardAction(
     private fun copyToClipboard() {
         try {
             XLog.d("Attempting to copy code to clipboard with context: $mPhoneContext")
-            ClipboardUtils.copyToClipboard(mPhoneContext, mSmsMsg.smsCode)
+            XpClipboard.copyToClipboard(mPhoneContext, mSmsMsg.smsCode)
         } catch (e: Exception) {
             XLog.e("Failed to copy to clipboard", e)
         }

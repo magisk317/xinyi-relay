@@ -2,25 +2,25 @@ package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
 import android.content.Intent
-import io.github.magisk317.relay.common.utils.SmsBlacklistUtils
 import io.github.magisk317.relay.xp.SmsMsg
 import io.github.magisk317.relay.xp.XpDispatchCoordinator
+import io.github.magisk317.relay.xp.XpSmsBlacklist
 import io.github.magisk317.smscode.core.utils.XLog
 
 internal class SmsDispatchIntentProcessor(
     private val pluginContext: Context,
     private val phoneContext: Context,
     private val incomingSmsParser: (Intent) -> SmsMsg? = XpDispatchCoordinator::parseIncomingSms,
-    private val blacklistMatcher: (Context, String?, String?) -> SmsBlacklistUtils.MatchResult = SmsBlacklistUtils::match,
+    private val blacklistMatcher: (Context, String?, String?) -> XpSmsBlacklist.MatchResult = XpSmsBlacklist::match,
     private val codeParser: (Context, Context, Intent, String) -> ParseResult? = { pluginContext, phoneContext, intent, eventId ->
         CodeWorker(pluginContext, phoneContext, intent, eventId).parse()
     },
-    private val decisionEvaluator: (SmsBlacklistUtils.MatchResult, Boolean, ParseResult?) -> SmsHandlerDispatchDecision.Decision =
+    private val decisionEvaluator: (XpSmsBlacklist.MatchResult, Boolean, ParseResult?) -> SmsHandlerDispatchDecision.Decision =
         SmsHandlerDispatchDecision::evaluate,
 ) {
     data class Outcome(
         val smsMsg: SmsMsg?,
-        val blacklistResult: SmsBlacklistUtils.MatchResult,
+        val blacklistResult: XpSmsBlacklist.MatchResult,
         val parseResult: ParseResult?,
         val decision: SmsHandlerDispatchDecision.Decision,
     )

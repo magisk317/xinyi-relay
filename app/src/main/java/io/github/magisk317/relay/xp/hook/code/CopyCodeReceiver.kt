@@ -7,7 +7,7 @@ import android.content.IntentFilter
 import androidx.core.content.ContextCompat
 import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.common.utils.ClipboardUtils
+import io.github.magisk317.relay.xp.XpClipboard
 import io.github.magisk317.smscode.core.utils.XLog
 
 /**
@@ -32,7 +32,7 @@ class CopyCodeReceiver private constructor() : BroadcastReceiver() {
             }
             // copy to clipboard
             smsCode?.let {
-                ClipboardUtils.copyToClipboard(phoneContext, it)
+                XpClipboard.copyToClipboard(phoneContext, it)
                 // show feedback via log (no in-app snackbar in xposed runtime)
                 val pluginContext = createSmsCodeAppContext(phoneContext)
                 logCopy(pluginContext, it)

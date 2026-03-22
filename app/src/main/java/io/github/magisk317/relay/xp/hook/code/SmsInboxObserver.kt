@@ -5,7 +5,7 @@ import android.database.ContentObserver
 import android.os.Handler
 import android.os.Looper
 import android.provider.Telephony
-import io.github.magisk317.relay.common.utils.StringUtils
+import io.github.magisk317.relay.xp.XpStringEscaper
 import io.github.magisk317.smscode.core.utils.XLog
 import java.util.concurrent.Executors
 
@@ -55,8 +55,8 @@ internal class SmsInboxObserver(
                 senderHash(record.sender),
                 record.date,
                 record.read,
-                StringUtils.escape(record.code),
-                StringUtils.escape(record.body),
+                XpStringEscaper.escape(record.code),
+                XpStringEscaper.escape(record.body),
             )
             logSmsRoleStateForSms(record.smsId, record.triggerUri)
             observedSmsHandler.handle(record)

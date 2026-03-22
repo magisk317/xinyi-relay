@@ -11,9 +11,8 @@ import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import io.github.magisk317.relay.BuildConfig
-import io.github.magisk317.relay.common.constant.NotificationConst
-import io.github.magisk317.relay.common.utils.NotificationUtils
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.xp.XpNotificationBridge
 import io.github.magisk317.relay.xp.hook.code.helper.InputHelper
 import io.github.magisk317.smscode.core.utils.XLog
 import java.util.LinkedHashSet
@@ -23,9 +22,9 @@ object SmsCodeConflictNoticeHelper {
     private val notifiedEventIds = LinkedHashSet<String>()
 
     fun initNotificationChannel(pluginContext: Context, phoneContext: Context) {
-        NotificationUtils.createNotificationChannel(
+        XpNotificationBridge.createNotificationChannel(
             phoneContext,
-            NotificationConst.CHANNEL_ID_SMSCODE_CONFLICT,
+            XpNotificationBridge.CHANNEL_ID_SMSCODE_CONFLICT,
             pluginContext.getString(R.string.channel_name_smscode_conflict_notification),
             NotificationManager.IMPORTANCE_HIGH,
         )
@@ -78,7 +77,7 @@ object SmsCodeConflictNoticeHelper {
             ModuleConflictArbiter.TARGET_RELAY_PACKAGE,
             pluginContext.getString(R.string.app_name),
         )
-        val builder = NotificationCompat.Builder(pluginContext, NotificationConst.CHANNEL_ID_SMSCODE_CONFLICT)
+        val builder = NotificationCompat.Builder(pluginContext, XpNotificationBridge.CHANNEL_ID_SMSCODE_CONFLICT)
             .setSmallIcon(R.drawable.ic_app_icon)
             .setLargeIcon(BitmapFactory.decodeResource(pluginContext.resources, R.drawable.ic_app_icon))
             .setWhen(System.currentTimeMillis())
@@ -92,7 +91,7 @@ object SmsCodeConflictNoticeHelper {
         if (contentIntent != null) {
             builder.setContentIntent(contentIntent)
         }
-        manager.notify(NotificationConst.NOTIFICATION_ID_SMSCODE_CONFLICT, builder.build())
+        manager.notify(XpNotificationBridge.NOTIFICATION_ID_SMSCODE_CONFLICT, builder.build())
     }
 
     private fun showConflictToast(pluginContext: Context, phoneContext: Context) {

@@ -11,9 +11,9 @@ import android.os.Bundle
 import android.text.TextUtils
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import io.github.magisk317.relay.common.constant.NotificationConst
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.xp.SmsMsg
+import io.github.magisk317.relay.xp.XpNotificationBridge
 import io.github.magisk317.relay.xp.hook.code.AutoCancelReceiver
 import io.github.magisk317.relay.xp.hook.code.CopyCodeReceiver
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
@@ -60,7 +60,7 @@ class NotifyAction(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE or 0x01000000, // PendingIntent.FLAG_ALLOW_UNSAFE_IMPLICIT_INTENT
         )
 
-        val builder = NotificationCompat.Builder(mPluginContext, NotificationConst.CHANNEL_ID_RELAY_NOTIFICATION)
+        val builder = NotificationCompat.Builder(mPluginContext, XpNotificationBridge.CHANNEL_ID_RELAY_NOTIFICATION)
             .setSmallIcon(R.drawable.ic_app_icon)
             .setLargeIcon(BitmapFactory.decodeResource(mPluginContext.resources, R.drawable.ic_app_icon))
             .setWhen(System.currentTimeMillis())
@@ -69,7 +69,7 @@ class NotifyAction(
             .setContentIntent(contentIntent)
             .setAutoCancel(true)
             .setColor(ContextCompat.getColor(mPluginContext, R.color.ic_launcher_background))
-            .setGroup(NotificationConst.GROUP_KEY_RELAY_NOTIFICATION)
+            .setGroup(XpNotificationBridge.GROUP_KEY_RELAY_NOTIFICATION)
 
         if (autoCancelEnabled) {
             if (retentionTimeMs > 0L) {

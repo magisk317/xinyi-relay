@@ -8,11 +8,10 @@ import android.os.Build
 import android.provider.Telephony
 import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.common.constant.NotificationConst
-import io.github.magisk317.relay.common.utils.NotificationUtils
 import io.github.magisk317.smscode.core.utils.ModuleActivationStore
 import io.github.magisk317.relay.xp.SmsMsg
 import io.github.magisk317.relay.xp.XpDispatchCoordinator
+import io.github.magisk317.relay.xp.XpNotificationBridge
 import io.github.magisk317.relay.xp.XpPrefs
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
@@ -227,9 +226,9 @@ class SmsHandlerHook : BaseHook() {
     }
 
     private fun initNotificationChannel(runtime: SmsHookRuntimeContext) {
-        val channelId = NotificationConst.CHANNEL_ID_RELAY_NOTIFICATION
+        val channelId = XpNotificationBridge.CHANNEL_ID_RELAY_NOTIFICATION
         val channelName = runtime.pluginContext.getString(R.string.channel_name_relay_notification)
-        NotificationUtils.createNotificationChannel(
+        XpNotificationBridge.createNotificationChannel(
             runtime.phoneContext,
             channelId,
             channelName,
