@@ -99,6 +99,31 @@ class SmsHookDispatchCoordinatorTest {
     }
 
     @Test
+    fun enrichObservedSms_buildsSmsMsgBeforeDelegatingToEnricher() {
+        val phoneContext = mockk<Context>(relaxed = true)
+
+        val enriched = SmsHookDispatchCoordinator.enrichObservedSms(
+            phoneContext = phoneContext,
+            sender = "1068",
+            body = "code 123456",
+            date = 100L,
+            smsCode = "123456",
+        ) { context, smsMsg, smsCode ->
+            assertEquals(phoneContext, context)
+            assertEquals("1068", smsMsg.sender)
+            assertEquals("code 123456", smsMsg.body)
+            assertEquals(100L, smsMsg.date)
+            assertEquals(SmsMsg.MSG_TYPE_SMS, smsMsg.msgType)
+            assertEquals("123456", smsCode)
+            smsMsg.copy(company = "Bank", packageName = "com.bank.app", smsCode = smsCode)
+        }
+
+        assertEquals("Bank", enriched.company)
+        assertEquals("com.bank.app", enriched.packageName)
+        assertEquals("123456", enriched.smsCode)
+    }
+
+    @Test
     fun dispatchPreparedSms_delegatesToSmsHookDispatcher() {
         val context = mockk<Context>(relaxed = true)
         val prepared = PreparedSmsHookDispatch(

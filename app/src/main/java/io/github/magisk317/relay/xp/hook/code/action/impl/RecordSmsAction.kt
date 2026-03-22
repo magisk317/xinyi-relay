@@ -2,7 +2,6 @@ package io.github.magisk317.relay.xp.hook.code.action.impl
 
 import android.content.Context
 import android.os.Bundle
-import io.github.magisk317.relay.common.utils.PrefsReader
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
 import io.github.magisk317.relay.ui.record.CodeRecordRestoreManager
@@ -18,12 +17,14 @@ class RecordSmsAction(
     phoneContext: Context,
     smsMsg: SmsMsg,
     private val eventId: String = "",
+    private val enabled: Boolean,
+    private val deduplicateEnabled: Boolean,
 ) :
     CallableAction(pluginContext, phoneContext, smsMsg) {
     private val runtimeRecordFacade = RuntimeRecordFacade(pluginContext)
 
     override fun action(): Bundle? {
-        if (PrefsReader.recordCodeSmsEnabled(mPluginContext)) {
+        if (enabled) {
             recordSmsMsg(mSmsMsg)
         }
         return null
@@ -38,7 +39,7 @@ class RecordSmsAction(
             smsMsg.body?.length ?: 0,
             !smsMsg.smsCode.isNullOrBlank(),
         )
-        if (PrefsReader.deduplicateSms(mPluginContext)) {
+        if (deduplicateEnabled) {
             if (shouldSkipByDedup(smsMsg, eventLabel)) {
                 return
             }

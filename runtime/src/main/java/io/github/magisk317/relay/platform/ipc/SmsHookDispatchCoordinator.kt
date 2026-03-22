@@ -54,6 +54,26 @@ object SmsHookDispatchCoordinator {
         )
     }
 
+    fun enrichObservedSms(
+        phoneContext: Context,
+        sender: String,
+        body: String,
+        date: Long,
+        smsCode: String,
+        enricher: (Context, SmsMsg, String?) -> SmsMsg = SmsIngressAdapter::enrichSmsMsg,
+    ): SmsMsg {
+        return enricher(
+            phoneContext,
+            SmsMsg(
+                sender = sender,
+                body = body,
+                date = date,
+                msgType = SmsMsg.MSG_TYPE_SMS,
+            ),
+            smsCode,
+        )
+    }
+
     fun dispatchPreparedSms(
         context: Context,
         prepared: PreparedSmsHookDispatch,

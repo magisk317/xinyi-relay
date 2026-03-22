@@ -19,6 +19,7 @@ import io.github.magisk317.relay.common.utils.RuntimeLogStore
 import io.github.magisk317.relay.common.utils.SmsBlacklistUtils
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
+import io.github.magisk317.relay.xp.hook.SmsHookBridgeHelper
 import io.github.magisk317.smscode.core.utils.XLog
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
@@ -228,13 +229,11 @@ class SmsHandlerHook : BaseHook() {
                         }
                     }
                     ModuleActivationStore.markActivated(pluginContext)
-                    ActivationDiagnosticsStore.recordHookHeartbeat(
-                        context = pluginContext,
+                    SmsHookBridgeHelper.recordSmsHookHeartbeat(
+                        pluginContext = pluginContext,
+                        phoneContext = context,
                         packageName = ANDROID_PHONE_PACKAGE,
-                        processName = context.applicationInfo?.processName ?: ANDROID_PHONE_PACKAGE,
                         source = "sms_handler_constructor",
-                        verboseLogging = PrefsReader.isVerboseLogMode(pluginContext),
-                        route = RuntimeLogStore.ROUTE_SMS_HOOK,
                     )
                     if (suppressByRelay) {
                         logSuppressedOnce("constructor")
@@ -323,13 +322,11 @@ class SmsHandlerHook : BaseHook() {
             XLog.e("Context is null, skip parsing. pluginContext: %s, phoneContext: %s", pluginContext, phoneContext)
             return
         }
-        ActivationDiagnosticsStore.recordHookHeartbeat(
-            context = pluginContext,
+        SmsHookBridgeHelper.recordSmsHookHeartbeat(
+            pluginContext = pluginContext,
+            phoneContext = phoneContext,
             packageName = ANDROID_PHONE_PACKAGE,
-            processName = phoneContext.applicationInfo?.processName ?: ANDROID_PHONE_PACKAGE,
             source = "sms_handler_dispatch",
-            verboseLogging = PrefsReader.isVerboseLogMode(pluginContext),
-            route = RuntimeLogStore.ROUTE_SMS_HOOK,
         )
         if (ModuleConflictArbiter.shouldSuppressByRelay(phoneContext, "SmsHandlerHook#dispatchIntent")) {
             logSuppressedOnce("dispatchIntent")
@@ -658,16 +655,11 @@ class SmsHandlerHook : BaseHook() {
     }
 
     private fun getPluginContext(): Context? {
-        if (mPluginContext == null) {
-            try {
-                mPluginContext = mPhoneContext?.createPackageContext(
-                    SMSCODE_PACKAGE,
-                    Context.CONTEXT_IGNORE_SECURITY,
-                )
-            } catch (e: Exception) {
-                XLog.e("Create plugin context failed: %s", e)
-            }
-        }
+        mPluginContext = SmsHookBridgeHelper.resolvePluginContext(
+            phoneContext = mPhoneContext,
+            currentPluginContext = mPluginContext,
+            applicationId = SMSCODE_PACKAGE,
+        )
         return mPluginContext
     }
 

@@ -12,10 +12,8 @@ import io.github.magisk317.relay.common.utils.SmsCodeUtils
 import io.github.magisk317.relay.common.utils.StringUtils
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
-import io.github.magisk317.relay.platform.ipc.SmsIngressAdapter
+import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
-import io.github.magisk317.relay.xp.hook.code.action.impl.AutoInputAction
-import io.github.magisk317.relay.xp.hook.code.action.impl.RecordSmsAction
 import io.github.magisk317.smscode.core.utils.XLog
 import java.util.Collections
 import java.util.LinkedHashSet
@@ -112,6 +110,8 @@ internal class SmsInboxObserver(
         read: Boolean,
         code: String,
     ) {
+        val settings = SmsCodePostParseCoordinator.loadSettings(pluginContext)
+        val plan = SmsCodePostParseCoordinator.createObservedSmsPlan(settings)
         val eventId = buildObservedEventId(smsId, date)
         if (ModuleConflictArbiter.shouldSuppressByRelay(phoneContext, "SmsInboxObserver#handleObservedCode")) {
             XLog.w("Diag observer conflict skip: event_id=%s sms_id=%d", eventId, smsId)
@@ -122,7 +122,7 @@ internal class SmsInboxObserver(
             return
         }
         logSmsRoleState(eventId)
-        if (PrefsReader.deduplicateSms(pluginContext)) {
+        if (settings.deduplicateSmsEnabled) {
             val timestamp = if (date > 0) date else System.currentTimeMillis()
             val duplicated = runBlocking {
                 runCatching {
@@ -140,18 +140,15 @@ internal class SmsInboxObserver(
             }
         }
 
-        val smsMsg = SmsIngressAdapter.enrichSmsMsg(
+        val smsMsg = SmsHookDispatchCoordinator.enrichObservedSms(
             phoneContext = phoneContext,
-            smsMsg = SmsMsg(
-                sender = sender,
-                body = body,
-                date = date,
-                msgType = SmsMsg.MSG_TYPE_SMS,
-            ),
+            sender = sender,
+            body = body,
+            date = date,
             smsCode = code,
         )
 
-        if (PrefsReader.autoInputCodeEnabled(pluginContext)) {
+        if (plan.autoInputEnabled) {
             XLog.w(
                 "Diag observer auto-input: event_id=%s sender_hash=%s read=%s uri=%s",
                 eventId,
@@ -159,17 +156,22 @@ internal class SmsInboxObserver(
                 read,
                 triggerUri,
             )
-            AutoInputAction(pluginContext, phoneContext, smsMsg).call()
         } else {
             XLog.w("Diag observer auto-input disabled: event_id=%s", eventId)
         }
 
-        if (PrefsReader.deduplicateSms(pluginContext)) {
-            XLog.w("Diag observer record skipped: dedup enabled event_id=%s", eventId)
-            return
+        if (!plan.shouldRecord) {
+            val reason = if (plan.deduplicateSmsEnabled) "dedup_enabled" else "record_disabled"
+            XLog.w("Diag observer record skipped: reason=%s event_id=%s", reason, eventId)
         }
-        // Keep record behavior consistent with regular flow when enabled.
-        RecordSmsAction(pluginContext, phoneContext, smsMsg, eventId).call()
+
+        SmsCodePostParseCoordinator.dispatchObservedSmsActions(
+            pluginContext = pluginContext,
+            phoneContext = phoneContext,
+            smsMsg = smsMsg,
+            eventId = eventId,
+            plan = plan,
+        )
     }
 
     private fun logSmsRoleState(eventId: String) {

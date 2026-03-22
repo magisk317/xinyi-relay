@@ -11,11 +11,10 @@ import android.os.Bundle
 import android.text.TextUtils
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.common.constant.NotificationConst
-import io.github.magisk317.relay.common.utils.PrefsReader
-import io.github.magisk317.smscode.core.utils.XLog
+import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.smscode.core.utils.XLog
 import io.github.magisk317.relay.xp.hook.code.AutoCancelReceiver
 import io.github.magisk317.relay.xp.hook.code.CopyCodeReceiver
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
@@ -23,11 +22,18 @@ import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 /**
  * 显示验证码通知
  */
-class NotifyAction(pluginContext: Context, phoneContext: Context, smsMsg: SmsMsg) :
+class NotifyAction(
+    pluginContext: Context,
+    phoneContext: Context,
+    smsMsg: SmsMsg,
+    private val enabled: Boolean,
+    private val autoCancelEnabled: Boolean,
+    private val retentionTimeMs: Long,
+) :
     CallableAction(pluginContext, phoneContext, smsMsg) {
 
     override fun action(): Bundle? {
-        if (PrefsReader.showCodeNotification(mPluginContext)) {
+        if (enabled) {
             return showCodeNotification(mSmsMsg)
         }
         return null
@@ -65,14 +71,12 @@ class NotifyAction(pluginContext: Context, phoneContext: Context, smsMsg: SmsMsg
             .setColor(ContextCompat.getColor(mPluginContext, R.color.ic_launcher_background))
             .setGroup(NotificationConst.GROUP_KEY_RELAY_NOTIFICATION)
 
-        val autoCancelEnabled = PrefsReader.autoCancelCodeNotification(mPluginContext)
         if (autoCancelEnabled) {
-            val retentionTime = PrefsReader.getNotificationRetentionTime(mPluginContext) * 1000L
-            if (retentionTime > 0L) {
-                builder.setTimeoutAfter(retentionTime)
-                scheduleAutoCancel(notificationId, retentionTime)
+            if (retentionTimeMs > 0L) {
+                builder.setTimeoutAfter(retentionTimeMs)
+                scheduleAutoCancel(notificationId, retentionTimeMs)
             } else {
-                XLog.i("Auto cancel skipped: retentionTimeMs=%d", retentionTime)
+                XLog.i("Auto cancel skipped: retentionTimeMs=%d", retentionTimeMs)
             }
         } else {
             XLog.i("Auto cancel disabled")
@@ -84,9 +88,8 @@ class NotifyAction(pluginContext: Context, phoneContext: Context, smsMsg: SmsMsg
         XLog.d("Show notification succeed")
 
         if (autoCancelEnabled) {
-            val retentionTime = PrefsReader.getNotificationRetentionTime(mPluginContext) * 1000L
             val bundle = Bundle()
-            bundle.putLong(NOTIFY_RETENTION_TIME, retentionTime)
+            bundle.putLong(NOTIFY_RETENTION_TIME, retentionTimeMs)
             bundle.putInt(NOTIFY_ID, notificationId)
             return bundle
         }
