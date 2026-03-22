@@ -6,15 +6,12 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Telephony
 import io.github.magisk317.relay.common.utils.PrefsReader
-import io.github.magisk317.relay.common.utils.SmsCodeUtils
 import io.github.magisk317.relay.common.utils.StringUtils
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
 import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.smscode.core.utils.XLog
-import java.util.Collections
-import java.util.LinkedHashSet
 import java.util.concurrent.Executors
 import kotlinx.coroutines.runBlocking
 
@@ -24,6 +21,11 @@ internal class SmsInboxObserver(
 ) {
     private val runtimeRecordFacade = RuntimeRecordFacade(pluginContext)
     private val smsRoleStateResolver = SmsRoleStateResolver()
+    private val smsInboxScanner = ObservedInboxScanner(
+        pluginContext = pluginContext,
+        phoneContext = phoneContext,
+        smsIdTracker = SmsInboxSeenTracker(MAX_TRACKED_SMS_IDS),
+    )
     private val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
         override fun onChange(selfChange: Boolean) {
             onChange(selfChange, null)
@@ -44,59 +46,30 @@ internal class SmsInboxObserver(
     }
 
     private fun scanRecentInbox(triggerUri: String) {
-        val cutoff = System.currentTimeMillis() - RECENT_SMS_WINDOW_MS
-        val projection = arrayOf(
-            Telephony.Sms._ID,
-            Telephony.Sms.ADDRESS,
-            Telephony.Sms.BODY,
-            Telephony.Sms.DATE,
-            Telephony.Sms.TYPE,
-            Telephony.Sms.READ,
-        )
-        val selection = "${Telephony.Sms.TYPE}=? AND ${Telephony.Sms.DATE}>?"
-        val selectionArgs = arrayOf(Telephony.Sms.MESSAGE_TYPE_INBOX.toString(), cutoff.toString())
-        val sortOrder = "${Telephony.Sms.DATE} DESC limit $MAX_RECENT_SMS_COUNT"
-        runCatching {
-            phoneContext.contentResolver.query(
-                Telephony.Sms.CONTENT_URI,
-                projection,
-                selection,
-                selectionArgs,
-                sortOrder,
-            )?.use { cursor ->
-                while (cursor.moveToNext()) {
-                    val smsId = cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms._ID))
-                    if (!markSeen(smsId)) continue
-                    val body = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.BODY)).orEmpty()
-                    val code = runBlocking { SmsCodeUtils.parseSmsCodeIfExists(pluginContext, body) }.orEmpty()
-                    if (code.isBlank()) continue
-                    val sender = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.ADDRESS)).orEmpty()
-                    val date = cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms.DATE))
-                    val read = cursor.getInt(cursor.getColumnIndexOrThrow(Telephony.Sms.READ)) != 0
-                    XLog.w(
-                        "Diag SMS provider observed: sms_id=%d trigger_uri=%s sender_hash=%s date=%d read=%s code=%s body=%s",
-                        smsId,
-                        triggerUri.ifBlank { Telephony.Sms.CONTENT_URI.toString() },
-                        senderHash(sender),
-                        date,
-                        read,
-                        StringUtils.escape(code),
-                        StringUtils.escape(body),
-                    )
-                    logSmsRoleStateForSms(smsId, triggerUri)
-                    handleObservedCode(
-                        smsId = smsId,
-                        triggerUri = triggerUri.ifBlank { Telephony.Sms.CONTENT_URI.toString() },
-                        sender = sender,
-                        body = body,
-                        date = date,
-                        read = read,
-                        code = code,
-                    )
-                }
-            }
-        }.onFailure {
-            XLog.w("SmsInboxObserver scan failed: %s", it.message ?: it.javaClass.simpleName)
+        smsInboxScanner.scan(
+            triggerUri = triggerUri,
+            recentSmsWindowMs = RECENT_SMS_WINDOW_MS,
+        ).forEach { record ->
+            XLog.w(
+                "Diag SMS provider observed: sms_id=%d trigger_uri=%s sender_hash=%s date=%d read=%s code=%s body=%s",
+                record.smsId,
+                record.triggerUri,
+                senderHash(record.sender),
+                record.date,
+                record.read,
+                StringUtils.escape(record.code),
+                StringUtils.escape(record.body),
+            )
+            logSmsRoleStateForSms(record.smsId, record.triggerUri)
+            handleObservedCode(
+                smsId = record.smsId,
+                triggerUri = record.triggerUri,
+                sender = record.sender,
+                body = record.body,
+                date = record.date,
+                read = record.read,
+                code = record.code,
+            )
         }
     }
 
@@ -228,17 +201,6 @@ internal class SmsInboxObserver(
         return "sms_observed_${ts.toString(EVENT_ID_RADIX)}_${smsId.toString(EVENT_ID_RADIX)}"
     }
 
-    private fun markSeen(smsId: Long): Boolean = synchronized(recentSmsIds) {
-        if (!recentSmsIds.add(smsId)) {
-            return false
-        }
-        while (recentSmsIds.size > MAX_TRACKED_SMS_IDS) {
-            val first = recentSmsIds.firstOrNull() ?: break
-            recentSmsIds.remove(first)
-        }
-        true
-    }
-
     private fun senderHash(sender: String): String {
         if (sender.isBlank()) return "none"
         return Integer.toHexString(sender.hashCode())
@@ -246,10 +208,8 @@ internal class SmsInboxObserver(
 
     companion object {
         private const val RECENT_SMS_WINDOW_MS = 10 * 60 * 1000L
-        private const val MAX_RECENT_SMS_COUNT = 32
         private const val MAX_TRACKED_SMS_IDS = 128
         private const val EVENT_ID_RADIX = 36
         private val queryExecutor = Executors.newSingleThreadExecutor()
-        private val recentSmsIds = Collections.synchronizedSet(LinkedHashSet<Long>())
     }
 }
