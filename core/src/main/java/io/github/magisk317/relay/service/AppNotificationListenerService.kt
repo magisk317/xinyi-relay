@@ -1,23 +1,17 @@
 package io.github.magisk317.relay.service
 
 import android.app.Notification
-import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
-import io.github.magisk317.relay.common.constant.MessageType
-import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.core.BuildConfig
 import io.github.magisk317.relay.feature.reminder.SpecialAlertCoordinator
-import io.github.magisk317.relay.domain.event.RelayEvent
-import io.github.magisk317.relay.bootstrap.RuntimeGraph
-import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.relay.platform.ipc.ForwardBroadcastContract
-import io.github.magisk317.relay.platform.ipc.ForwardReceiverIntentFactory
-import kotlinx.coroutines.runBlocking
+import io.github.magisk317.relay.platform.ipc.ForwardBroadcastDispatcher
+import io.github.magisk317.relay.platform.ipc.ForwardBroadcastPayload
 
 class AppNotificationListenerService : NotificationListenerService() {
 
@@ -61,10 +55,6 @@ class AppNotificationListenerService : NotificationListenerService() {
         if (title.isBlank() && body.isBlank()) return
         if (shouldSkipNotification(notification)) return
 
-        // TODO: check configuration rules (blacklist/whitelist) for notifications.
-        val eventId = ForwardBroadcastContract.buildEventId("nls", packageName)
-        val forwardIntent = ForwardReceiverIntentFactory.newHostIntent(applicationContext)
-        
         // Resolve App Name
         val pm = applicationContext.packageManager
         val appName = try {
@@ -74,8 +64,8 @@ class AppNotificationListenerService : NotificationListenerService() {
             XLog.w("Notification app label not found for pkg=%s err=%s", packageName, e.message ?: "unknown")
             packageName
         }
-        ForwardBroadcastContract.populatePayload(
-            intent = forwardIntent,
+
+        val payload = ForwardBroadcastPayload(
             sender = title,
             body = body,
             date = sbn.postTime,
@@ -85,64 +75,41 @@ class AppNotificationListenerService : NotificationListenerService() {
             notifyChannelId = notifyChannelId,
             msgType = ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY,
             forwardSource = ForwardBroadcastContract.SOURCE_NOTIFICATION_LISTENER,
-            eventId = eventId,
+            eventId = ForwardBroadcastContract.buildEventId("nls", packageName),
         )
 
         SpecialAlertCoordinator.notifyForEvent(
             context = applicationContext,
-            event = RelayEvent(
-                messageType = MessageType.APP_NOTIFY,
-                sourceType = "nls",
-                sender = title,
-                body = body,
-                timestamp = sbn.postTime,
-                packageName = packageName,
-                notifyChannelId = notifyChannelId,
-                companyOrAppName = appName,
-                smsCode = null,
-                callType = 0,
-                callStage = "",
-                simSlot = -1,
-                subId = 0,
-            ),
-            traceId = eventId,
+            event = payload.toRelayEvent(),
+            traceId = payload.eventId,
         )
 
-        val token = runBlocking {
-            val runtimeGraph = RuntimeGraph.from(applicationContext)
-            RuntimeSettingsCache.getString(
-                key = PrefConst.KEY_IPC_TOKEN,
-                defaultValue = "",
-            ) { key, defaultValue ->
-                runtimeGraph.preferenceDataSource.getString(key, defaultValue)
-            }
-        }
-        ForwardBroadcastContract.putIpcToken(forwardIntent, token)
-
-        XLog.i("Notification intercepted: pkg=%s event=%s title=%s body=%s", packageName, eventId, title, body)
+        XLog.i(
+            "Notification intercepted: pkg=%s event=%s title=%s body=%s",
+            packageName,
+            payload.eventId,
+            title,
+            body,
+        )
         if (BuildConfig.DEBUG) {
-            sendOrderedBroadcast(
-                forwardIntent,
-                null,
-                object : BroadcastReceiver() {
-                    override fun onReceive(context: android.content.Context?, intent: Intent?) {
-                        XLog.i(
-                            "NLS ordered ack pkg=%s event=%s resultCode=%d resultData=%s extras=%s",
-                            packageName,
-                            eventId,
-                            resultCode,
-                            resultData ?: "<null>",
-                            getResultExtras(true)?.toString() ?: "<null>",
-                        )
-                    }
-                },
-                null,
-                0,
-                null,
-                null,
-            )
+            ForwardBroadcastDispatcher.dispatchFromHost(
+                context = applicationContext,
+                payload = payload,
+            ) { ack ->
+                XLog.i(
+                    "NLS ordered ack pkg=%s event=%s resultCode=%d resultData=%s extras=%s",
+                    packageName,
+                    payload.eventId,
+                    ack.resultCode,
+                    ack.resultData ?: "<null>",
+                    ack.resultExtras?.toString() ?: "<null>",
+                )
+            }
         } else {
-            sendBroadcast(forwardIntent)
+            ForwardBroadcastDispatcher.dispatchFromHost(
+                context = applicationContext,
+                payload = payload,
+            )
         }
     }
 

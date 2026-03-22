@@ -9,15 +9,14 @@ import android.telephony.TelephonyManager
 import androidx.core.content.ContextCompat
 import io.github.magisk317.relay.core.BuildConfig
 import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.feature.reminder.SpecialAlertCoordinator
-import io.github.magisk317.relay.domain.event.RelayEvent
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.relay.platform.ipc.ForwardBroadcastContract
-import io.github.magisk317.relay.platform.ipc.ForwardReceiverIntentFactory
+import io.github.magisk317.relay.platform.ipc.ForwardBroadcastDispatcher
+import io.github.magisk317.relay.platform.ipc.ForwardBroadcastPayload
 import java.util.UUID
 import kotlinx.coroutines.runBlocking
 
@@ -110,26 +109,26 @@ object CallStateMonitor {
                 lastRingingAt = now
                 lastNumber = phoneNumber?.ifBlank { null }
                 lastDirection = CALL_TYPE_INCOMING
+                val payload = ForwardBroadcastPayload(
+                    sender = lastNumber ?: context.getString(R.string.call_alert_notification_title),
+                    body = context.getString(
+                        R.string.call_alert_notification_content,
+                        lastNumber ?: context.getString(R.string.call_alert_notification_title),
+                    ),
+                    date = now,
+                    company = context.getString(R.string.call_alert_notification_title),
+                    smsCode = null,
+                    packageName = context.packageName,
+                    notifyChannelId = "",
+                    msgType = ForwardBroadcastContract.MSG_TYPE_CALL_NOTIFY,
+                    forwardSource = ForwardBroadcastContract.SOURCE_TELEPHONY_STATE,
+                    eventId = "tel_${UUID.randomUUID().toString().take(8)}",
+                    callType = CALL_TYPE_INCOMING,
+                    callStage = "ringing",
+                )
                 SpecialAlertCoordinator.notifyForEvent(
                     context = context,
-                    event = RelayEvent(
-                        messageType = MessageType.CALL_NOTIFY,
-                        sourceType = "telephony_state",
-                        sender = lastNumber ?: context.getString(R.string.call_alert_notification_title),
-                        body = context.getString(
-                            R.string.call_alert_notification_content,
-                            lastNumber ?: context.getString(R.string.call_alert_notification_title),
-                        ),
-                        timestamp = now,
-                        packageName = context.packageName,
-                        notifyChannelId = "",
-                        companyOrAppName = context.getString(R.string.call_alert_notification_title),
-                        smsCode = null,
-                        callType = CALL_TYPE_INCOMING,
-                        callStage = "ringing",
-                        simSlot = -1,
-                        subId = 0,
-                    ),
+                    event = payload.toRelayEvent(),
                 )
                 val (forwardEnabled, _) = loadCallAlertFlags(context)
                 if (!forwardEnabled) {
@@ -182,34 +181,26 @@ object CallStateMonitor {
         } else {
             context.getString(R.string.call_alert_notification_content, display)
         }
-        val token = runBlocking {
-            val runtimeGraph = RuntimeGraph.from(context)
-            RuntimeSettingsCache.getString(
-                key = PrefConst.KEY_IPC_TOKEN,
-                defaultValue = "",
-            ) { key, defaultValue ->
-                runtimeGraph.preferenceDataSource.getString(key, defaultValue)
-            }
-        }
-        val intent = ForwardReceiverIntentFactory.newHostIntent(context).apply {
-            ForwardBroadcastContract.populatePayload(
-                intent = this,
-                sender = display,
-                body = body,
-                date = System.currentTimeMillis(),
-                company = context.getString(R.string.call_alert_notification_title),
-                smsCode = null,
-                packageName = context.packageName,
-                notifyChannelId = "",
-                msgType = ForwardBroadcastContract.MSG_TYPE_CALL_NOTIFY,
-                forwardSource = ForwardBroadcastContract.SOURCE_TELEPHONY_STATE,
-                eventId = "tel_${UUID.randomUUID().toString().take(8)}",
-                callType = callType,
-                callStage = stage,
+        val payload = ForwardBroadcastPayload(
+            sender = display,
+            body = body,
+            date = System.currentTimeMillis(),
+            company = context.getString(R.string.call_alert_notification_title),
+            smsCode = null,
+            packageName = context.packageName,
+            notifyChannelId = "",
+            msgType = ForwardBroadcastContract.MSG_TYPE_CALL_NOTIFY,
+            forwardSource = ForwardBroadcastContract.SOURCE_TELEPHONY_STATE,
+            eventId = "tel_${UUID.randomUUID().toString().take(8)}",
+            callType = callType,
+            callStage = stage,
+        )
+        runCatching {
+            ForwardBroadcastDispatcher.dispatchFromHost(
+                context = context,
+                payload = payload,
             )
-            ForwardBroadcastContract.putIpcToken(this, token)
         }
-        runCatching { context.sendBroadcast(intent) }
     }
 
     private fun loadCallAlertFlags(context: Context): Pair<Boolean, Boolean> = runBlocking {

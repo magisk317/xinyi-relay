@@ -8,7 +8,6 @@ import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.utils.CallSessionTracker
 import io.github.magisk317.relay.common.utils.ForwardFlowLog
 import io.github.magisk317.relay.common.utils.XLog
-import io.github.magisk317.relay.domain.event.RelayEvent
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.relay.platform.metadata.SourceMetadataResolver
@@ -25,7 +24,8 @@ class ForwardReceiver : BroadcastReceiver() {
         val eventPipeline = runtimeGraph.eventPipeline
         val ordered = isOrderedBroadcast
         val pendingResult = goAsync()
-        val eventId = intent.getStringExtra(ForwardBroadcastContract.EXTRA_EVENT_ID).orEmpty()
+        val initialPayload = ForwardBroadcastPayload.fromIntent(intent)
+        val eventId = initialPayload.eventId
         val traceId = buildTraceId(intent, eventId)
         val task = Runnable {
             var resultMarked = false
@@ -54,38 +54,23 @@ class ForwardReceiver : BroadcastReceiver() {
                     return@runCatching
                 }
 
-                val sender = intent.getStringExtra(ForwardBroadcastContract.EXTRA_SENDER)
-                val body = intent.getStringExtra(ForwardBroadcastContract.EXTRA_BODY)
-                val date = intent.getLongExtra(ForwardBroadcastContract.EXTRA_DATE, 0L)
-                val company = intent.getStringExtra(ForwardBroadcastContract.EXTRA_COMPANY)
-                val smsCode = intent.getStringExtra(ForwardBroadcastContract.EXTRA_SMS_CODE)
-                val packageName = intent.getStringExtra(ForwardBroadcastContract.EXTRA_PACKAGE_NAME)
-                val notifyChannelId = intent.getStringExtra(ForwardBroadcastContract.EXTRA_NOTIFY_CHANNEL_ID).orEmpty()
+                val payload = ForwardBroadcastPayload.fromIntent(intent)
+                val sender = payload.sender
+                val body = payload.body
+                val date = payload.date
+                val company = payload.company
+                val smsCode = payload.smsCode
+                val packageName = payload.packageName
+                val notifyChannelId = payload.notifyChannelId
                 val receivedToken = intent.getStringExtra(ForwardBroadcastContract.EXTRA_IPC_TOKEN)
-                val msgTypeStr = intent.getStringExtra(ForwardBroadcastContract.EXTRA_MSG_TYPE)
-                    ?: ForwardBroadcastContract.MSG_TYPE_SMS
-                val forwardSource = intent.getStringExtra(ForwardBroadcastContract.EXTRA_FORWARD_SOURCE) ?: "unknown"
-                val callStage = intent.getStringExtra(ForwardBroadcastContract.EXTRA_CALL_STAGE).orEmpty()
+                val msgTypeStr = payload.msgType
+                val forwardSource = payload.forwardSource
+                val callStage = payload.callStage
                 val sentFromUid = resolveSentFromUidCompat()
                 val sentFromPkg = resolveSentFromPackageCompat()
-                val subId = readIntExtra(
-                    intent,
-                    ForwardBroadcastContract.EXTRA_SUB_ID,
-                    "subscription",
-                    "subscription_id",
-                    "android.telephony.extra.SUBSCRIPTION_INDEX",
-                    "android.telephony.extra.SUBSCRIPTION_ID",
-                )
-                val rawSlot = readIntExtra(
-                    intent,
-                    ForwardBroadcastContract.EXTRA_SIM_SLOT,
-                    "slot",
-                    "simId",
-                    "sim_id",
-                    "simSlot",
-                    "android.telephony.extra.SLOT_INDEX",
-                )
-                val callType = readIntExtra(intent, ForwardBroadcastContract.EXTRA_CALL_TYPE) ?: 0
+                val subId = payload.subId
+                val rawSlot = payload.simSlot
+                val callType = payload.callType
 
                 // 2. Verifying IPC Token: prevent third-party apps from spoofing broadcasts.
                 // We retrieve local token from DataStore (which is synced to xposed_prefs).
@@ -306,21 +291,11 @@ class ForwardReceiver : BroadcastReceiver() {
                     },
                 )
 
-                val relayMessageType = ForwardReceiverPolicy.resolveRelayMessageType(msgTypeStr, smsCode)
-                val relayEvent = RelayEvent(
-                    messageType = relayMessageType,
-                    sourceType = forwardSource,
-                    sender = sender.orEmpty(),
-                    body = body.orEmpty(),
-                    timestamp = date,
-                    packageName = packageName.orEmpty(),
-                    notifyChannelId = notifyChannelId,
-                    companyOrAppName = company.orEmpty(),
-                    smsCode = smsCode,
-                    callType = callType,
+                val relayEvent = payload.copy(
                     callStage = resolvedCallStage,
                     simSlot = resolvedSimSlot,
                     subId = normalizedSubId,
+                ).toRelayEvent(
                     contactName = contactName,
                     phoneArea = phoneArea,
                 )
@@ -410,18 +385,6 @@ class ForwardReceiver : BroadcastReceiver() {
     private fun resolveSentFromPackageCompat(): String? {
         if (Build.VERSION.SDK_INT < ForwardReceiverPolicy.API_LEVEL_34) return null
         return runCatching { getSentFromPackage() }.getOrNull()
-    }
-
-    private fun readIntExtra(intent: Intent, vararg keys: String): Int? {
-        for (key in keys) {
-            if (!intent.hasExtra(key)) continue
-            val intValue = intent.getIntExtra(key, Int.MIN_VALUE)
-            if (intValue != Int.MIN_VALUE) return intValue
-            val longValue = intent.getLongExtra(key, Long.MIN_VALUE)
-            if (longValue != Long.MIN_VALUE) return longValue.toInt()
-            intent.getStringExtra(key)?.toIntOrNull()?.let { return it }
-        }
-        return null
     }
 
     private fun shouldForwardAppNotify(

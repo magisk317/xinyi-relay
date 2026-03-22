@@ -12,7 +12,8 @@ import io.github.magisk317.smscode.core.utils.XLog
 import io.github.magisk317.relay.data.db.DBProvider
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.platform.ipc.ForwardBroadcastContract
-import io.github.magisk317.relay.platform.ipc.ForwardReceiverIntentFactory
+import io.github.magisk317.relay.platform.ipc.ForwardBroadcastDispatcher
+import io.github.magisk317.relay.platform.ipc.ForwardBroadcastPayload
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 
 /**
@@ -36,9 +37,7 @@ class ForwardAction(
                 isCodeSms,
             )
             // Send IPC Broadcast to the integrated SmsCode App Module
-            val intent = ForwardReceiverIntentFactory.newHostIntent(mPluginContext)
-            ForwardBroadcastContract.populatePayload(
-                intent = intent,
+            val payload = ForwardBroadcastPayload(
                 sender = mSmsMsg.sender,
                 body = mSmsMsg.body,
                 date = mSmsMsg.date,
@@ -55,7 +54,8 @@ class ForwardAction(
                     )
                 },
             )
-            copySimExtras(intent)
+                .withSimRoutingFrom(mSmsIntent)
+            logSimExtras(payload)
 
             // Securing IPC with Token: Only the receiver matching our token can process this msg.
             // We use PrefsReader to retrieve token via cross-process Provider.
@@ -76,11 +76,13 @@ class ForwardAction(
                     Process.myUid(),
                     Build.VERSION.SDK_INT,
                 )
-            } else {
-                ForwardBroadcastContract.putIpcToken(intent, token)
             }
 
-            mPluginContext.sendBroadcast(intent)
+            ForwardBroadcastDispatcher.dispatch(
+                context = mPluginContext,
+                payload = payload,
+                token = token.takeIf { it.isNotBlank() },
+            )
             
             XLog.i(
                 "Successfully broadcasted SMS info to SmsCode Engine (event_id=%s tokenPresent=%s length=%d): %s",
@@ -101,30 +103,11 @@ class ForwardAction(
         return null
     }
 
-    private fun copySimExtras(target: Intent) {
-        val sourceIntent = mSmsIntent ?: return
-        ForwardBroadcastContract.copySimRoutingExtras(sourceIntent, target)
-        val simSlot = ForwardBroadcastContract.readIntExtra(
-            sourceIntent,
-            "slot",
-            "simId",
-            "sim_id",
-            "simSlot",
-            ForwardBroadcastContract.EXTRA_SIM_SLOT,
-            "android.telephony.extra.SLOT_INDEX",
-        )
-        val subId = ForwardBroadcastContract.readIntExtra(
-            sourceIntent,
-            "subscription",
-            "subscription_id",
-            ForwardBroadcastContract.EXTRA_SUB_ID,
-            "android.telephony.extra.SUBSCRIPTION_INDEX",
-            "android.telephony.extra.SUBSCRIPTION_ID",
-        )
+    private fun logSimExtras(payload: ForwardBroadcastPayload) {
         XLog.d(
             "ForwardAction SIM extras copied: sim_slot=%s sub_id=%s",
-            simSlot?.toString() ?: "N/A",
-            subId?.toString() ?: "N/A",
+            payload.simSlot?.toString() ?: "N/A",
+            payload.subId?.toString() ?: "N/A",
         )
     }
 
