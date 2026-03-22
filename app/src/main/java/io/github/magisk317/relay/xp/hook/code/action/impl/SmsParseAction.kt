@@ -5,12 +5,12 @@ import android.content.Intent
 import android.os.Bundle
 import android.text.TextUtils
 import io.github.magisk317.relay.BuildConfig
-import io.github.magisk317.relay.common.utils.SmsCodeUtils
 import io.github.magisk317.relay.common.utils.StringUtils
-import io.github.magisk317.smscode.core.utils.XLog
 import io.github.magisk317.relay.data.db.DBManager
 import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.platform.ipc.SmsIngressAdapter
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
+import io.github.magisk317.smscode.core.utils.XLog
 
 /**
  * 解析短信中的验证码
@@ -75,43 +75,23 @@ class SmsParseAction(pluginContext: Context, phoneContext: Context, smsMsg: SmsM
             }
         }
 
-        val smsCode = kotlinx.coroutines.runBlocking {
-            SmsCodeUtils.parseSmsCodeIfExists(
-                mPluginContext,
-                msgBodyNotNull,
+        val ingressResult = kotlinx.coroutines.runBlocking {
+            SmsIngressAdapter.toPayload(
+                pluginContext = mPluginContext,
+                phoneContext = mPhoneContext,
+                smsMsg = smsMsg,
+                sourceIntent = intent,
             )
-        }
+        } ?: return null
+        val resolvedSmsMsg = ingressResult.smsMsg
+        val smsCode = resolvedSmsMsg.smsCode.orEmpty()
         if (TextUtils.isEmpty(smsCode)) { // isn't code message
             XLog.w("Diag SMS parsed but no code matched, body=%s", StringUtils.escape(msgBodyNotNull))
             return null
         }
 
-        // Prefer the first bracket label that can be mapped to an installed package.
-        // Once package is resolved, keep that label only and do not append other tokens.
-        val companyCandidates = SmsCodeUtils.parseCompanyCandidates(msgBodyNotNull)
-            .map { it.trim().trim('【', '】', '[', ']') }
-            .filter { it.isNotBlank() }
-        var company = SmsCodeUtils.parseCompany(msgBodyNotNull)
-            .trim()
-            .trim('【', '】', '[', ']')
-        var resolvedPackageName: String? = null
-        for (candidate in companyCandidates) {
-            val pkg = SmsCodeUtils.findPackageNameByLabel(mPhoneContext, candidate)
-            if (!pkg.isNullOrBlank()) {
-                company = candidate
-                resolvedPackageName = pkg
-                break
-            }
-        }
-        if (resolvedPackageName.isNullOrBlank()) {
-            resolvedPackageName = SmsCodeUtils.findPackageNameByLabel(mPhoneContext, company)
-        }
-        mSmsMsg = smsMsg.copy(
-            smsCode = smsCode,
-            company = company,
-            date = timestamp,
-            packageName = resolvedPackageName,
-        )
+        val company = resolvedSmsMsg.company.orEmpty()
+        mSmsMsg = resolvedSmsMsg.copy(date = timestamp)
         XLog.w(
             "Diag SMS code matched: companyPresent=%s, codeLength=%d, code=%s, body=%s",
             !company.isNullOrBlank(),
