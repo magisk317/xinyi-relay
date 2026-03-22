@@ -2,17 +2,14 @@ package io.github.magisk317.relay.xp.hook.code.action.impl
 
 import android.app.ActivityManager
 import android.content.Context
-import android.net.Uri
 import android.os.Bundle
 import io.github.magisk317.relay.common.utils.PrefsReader
-import io.github.magisk317.smscode.core.utils.XLog
-import io.github.magisk317.relay.data.db.DBProvider
-import io.github.magisk317.relay.data.db.entity.AppInfo
 import io.github.magisk317.relay.data.db.entity.SmsMsg
-import io.github.magisk317.relay.data.store.EntityStoreManager
-import io.github.magisk317.relay.data.store.EntityType
+import io.github.magisk317.relay.domain.system.RuntimeAppConfigFacade
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 import io.github.magisk317.relay.xp.hook.code.helper.InputHelper
+import io.github.magisk317.smscode.core.utils.XLog
+import kotlinx.coroutines.runBlocking
 import java.util.*
 
 /**
@@ -20,6 +17,7 @@ import java.util.*
  */
 class AutoInputAction(pluginContext: Context, phoneContext: Context, smsMsg: SmsMsg) :
     CallableAction(pluginContext, phoneContext, smsMsg) {
+    private val runtimeAppConfigFacade = RuntimeAppConfigFacade(pluginContext)
 
     override fun action(): Bundle? {
         if (PrefsReader.deduplicateSms(mPluginContext)) {
@@ -140,40 +138,8 @@ class AutoInputAction(pluginContext: Context, phoneContext: Context, smsMsg: Sms
     private fun hash(value: String): String = Integer.toHexString(value.hashCode())
 
     private fun isPackageBlocked(packageName: String): Boolean {
-        queryBlockedStateByProvider(packageName)?.let { return it }
-        val appInfoList = EntityStoreManager.loadEntitiesFromFile(
-            mPluginContext,
-            EntityType.APP_CONFIG,
-            AppInfo::class.java,
-        )
-        val blocked = appInfoList.any { it.packageName == packageName && it.blocked }
-        XLog.d("AutoInput fallback file check: pkg=%s blocked=%s", packageName, blocked)
-        return blocked
-    }
-
-    private fun queryBlockedStateByProvider(packageName: String): Boolean? {
-        return try {
-            val uri: Uri = Uri.withAppendedPath(DBProvider.appInfoContentUri(mPluginContext), packageName)
-            mPluginContext.contentResolver.query(uri, arrayOf("blocked"), null, null, null)?.use { cursor ->
-                if (!cursor.moveToFirst()) {
-                    return false
-                }
-                val index = cursor.getColumnIndex("blocked")
-                if (index < 0) return false
-                val blocked = when (cursor.getType(index)) {
-                    android.database.Cursor.FIELD_TYPE_INTEGER -> cursor.getInt(index) != 0
-                    android.database.Cursor.FIELD_TYPE_STRING -> {
-                        val raw = cursor.getString(index).orEmpty()
-                        raw == "1" || raw.equals("true", ignoreCase = true)
-                    }
-                    else -> false
-                }
-                XLog.d("AutoInput provider check: pkg=%s blocked=%s", packageName, blocked)
-                blocked
-            } ?: false
-        } catch (e: Exception) {
-            XLog.w("AutoInput provider check failed: pkg=%s err=%s", packageName, e.message ?: e.javaClass.simpleName)
-            null
+        return runBlocking {
+            runtimeAppConfigFacade.isPackageBlocked(packageName)
         }
     }
 
