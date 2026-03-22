@@ -113,32 +113,40 @@ internal class SmsInboxObserver(
         val settings = SmsCodePostParseCoordinator.loadSettings(pluginContext)
         val plan = SmsCodePostParseCoordinator.createObservedSmsPlan(settings)
         val eventId = buildObservedEventId(smsId, date)
-        if (ModuleConflictArbiter.shouldSuppressByRelay(phoneContext, "SmsInboxObserver#handleObservedCode")) {
-            XLog.w("Diag observer conflict skip: event_id=%s sms_id=%d", eventId, smsId)
-            return
-        }
-        if (!PrefsReader.isEnabled(pluginContext)) {
-            XLog.w("Diag observer skip: module disabled event_id=%s", eventId)
-            return
-        }
-        logSmsRoleState(eventId)
-        if (settings.deduplicateSmsEnabled) {
-            val timestamp = if (date > 0) date else System.currentTimeMillis()
-            val duplicated = runBlocking {
-                runCatching {
-                    runtimeRecordFacade.isDuplicateSms(
-                        sender = sender,
-                        body = body,
-                        date = timestamp,
-                        msgType = SmsMsg.MSG_TYPE_SMS,
-                    )
-                }.getOrDefault(false)
+        val decision = SmsInboxObserverDecision.evaluate(
+            moduleEnabled = PrefsReader.isEnabled(pluginContext),
+            suppressedByRelay = ModuleConflictArbiter.shouldSuppressByRelay(
+                phoneContext,
+                "SmsInboxObserver#handleObservedCode",
+            ),
+            duplicated = isObservedSmsDuplicated(
+                settings = settings,
+                sender = sender,
+                body = body,
+                date = date,
+            ),
+            plan = plan,
+        )
+        when (decision.skipReason) {
+            SmsInboxObserverDecision.SkipReason.CONFLICT_SUPPRESSED -> {
+                XLog.w("Diag observer conflict skip: event_id=%s sms_id=%d", eventId, smsId)
+                return
             }
-            if (duplicated) {
+
+            SmsInboxObserverDecision.SkipReason.MODULE_DISABLED -> {
+                XLog.w("Diag observer skip: module disabled event_id=%s", eventId)
+                return
+            }
+
+            SmsInboxObserverDecision.SkipReason.DUPLICATED -> {
                 XLog.w("Diag observer duplicate skip: event_id=%s", eventId)
                 return
             }
+
+            null -> Unit
         }
+
+        logSmsRoleState(eventId)
 
         val smsMsg = SmsHookDispatchCoordinator.enrichObservedSms(
             phoneContext = phoneContext,
@@ -148,7 +156,7 @@ internal class SmsInboxObserver(
             smsCode = code,
         )
 
-        if (plan.autoInputEnabled) {
+        if (decision.autoInputEnabled) {
             XLog.w(
                 "Diag observer auto-input: event_id=%s sender_hash=%s read=%s uri=%s",
                 eventId,
@@ -160,9 +168,8 @@ internal class SmsInboxObserver(
             XLog.w("Diag observer auto-input disabled: event_id=%s", eventId)
         }
 
-        if (!plan.shouldRecord) {
-            val reason = if (plan.deduplicateSmsEnabled) "dedup_enabled" else "record_disabled"
-            XLog.w("Diag observer record skipped: reason=%s event_id=%s", reason, eventId)
+        decision.recordSkipReason?.let { reason ->
+            XLog.w("Diag observer record skipped: reason=%s event_id=%s", reason.wireValue, eventId)
         }
 
         SmsCodePostParseCoordinator.dispatchObservedSmsActions(
@@ -172,6 +179,28 @@ internal class SmsInboxObserver(
             eventId = eventId,
             plan = plan,
         )
+    }
+
+    private fun isObservedSmsDuplicated(
+        settings: SmsCodePostParseCoordinator.Settings,
+        sender: String,
+        body: String,
+        date: Long,
+    ): Boolean {
+        if (!settings.deduplicateSmsEnabled) {
+            return false
+        }
+        val timestamp = if (date > 0) date else System.currentTimeMillis()
+        return runBlocking {
+            runCatching {
+                runtimeRecordFacade.isDuplicateSms(
+                    sender = sender,
+                    body = body,
+                    date = timestamp,
+                    msgType = SmsMsg.MSG_TYPE_SMS,
+                )
+            }.getOrDefault(false)
+        }
     }
 
     private fun logSmsRoleState(eventId: String) {
