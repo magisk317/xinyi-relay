@@ -7,11 +7,12 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.os.Process
-import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.utils.PrefsReader
 import io.github.magisk317.smscode.core.utils.XLog
 import io.github.magisk317.relay.data.db.DBProvider
 import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.platform.ipc.ForwardBroadcastContract
+import io.github.magisk317.relay.platform.ipc.ForwardReceiverIntentFactory
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 
 /**
@@ -35,22 +36,25 @@ class ForwardAction(
                 isCodeSms,
             )
             // Send IPC Broadcast to the integrated SmsCode App Module
-            val intent = Intent(ACTION_FORWARD_SMS)
-            // ForwardReceiver is now merged into the same APK; target the host app package.
-            intent.setPackage(mPluginContext.packageName)
-            if (eventId.isNotBlank()) {
-                intent.putExtra(EVENT_ID_EXTRA, eventId)
-            }
-            
-            intent.putExtra("sender", mSmsMsg.sender)
-            intent.putExtra("body", mSmsMsg.body)
-            intent.putExtra("date", mSmsMsg.date)
-            intent.putExtra("company", mSmsMsg.company)
-            intent.putExtra("smsCode", mSmsMsg.smsCode)
-            intent.putExtra("packageName", mSmsMsg.packageName)
-            intent.putExtra("notify_channel_id", "")
-            intent.putExtra("msgType", "sms")
-            intent.putExtra("forward_source", "sms_hook")
+            val intent = ForwardReceiverIntentFactory.newHostIntent(mPluginContext)
+            ForwardBroadcastContract.populatePayload(
+                intent = intent,
+                sender = mSmsMsg.sender,
+                body = mSmsMsg.body,
+                date = mSmsMsg.date,
+                company = mSmsMsg.company,
+                smsCode = mSmsMsg.smsCode,
+                packageName = mSmsMsg.packageName,
+                notifyChannelId = "",
+                msgType = ForwardBroadcastContract.MSG_TYPE_SMS,
+                forwardSource = ForwardBroadcastContract.SOURCE_SMS_HOOK,
+                eventId = eventId.ifBlank {
+                    ForwardBroadcastContract.buildEventId(
+                        prefix = "sms",
+                        seed = (mSmsMsg.sender ?: "") + (mSmsMsg.body ?: ""),
+                    )
+                },
+            )
             copySimExtras(intent)
 
             // Securing IPC with Token: Only the receiver matching our token can process this msg.
@@ -73,7 +77,7 @@ class ForwardAction(
                     Build.VERSION.SDK_INT,
                 )
             } else {
-                intent.putExtra("ipc_token", token)
+                ForwardBroadcastContract.putIpcToken(intent, token)
             }
 
             mPluginContext.sendBroadcast(intent)
@@ -98,41 +102,30 @@ class ForwardAction(
     }
 
     private fun copySimExtras(target: Intent) {
-        val simSlot = readIntExtra(
+        val sourceIntent = mSmsIntent ?: return
+        ForwardBroadcastContract.copySimRoutingExtras(sourceIntent, target)
+        val simSlot = ForwardBroadcastContract.readIntExtra(
+            sourceIntent,
             "slot",
             "simId",
             "sim_id",
             "simSlot",
-            "sim_slot",
+            ForwardBroadcastContract.EXTRA_SIM_SLOT,
             "android.telephony.extra.SLOT_INDEX",
         )
-        val subId = readIntExtra(
+        val subId = ForwardBroadcastContract.readIntExtra(
+            sourceIntent,
             "subscription",
             "subscription_id",
-            "sub_id",
+            ForwardBroadcastContract.EXTRA_SUB_ID,
             "android.telephony.extra.SUBSCRIPTION_INDEX",
             "android.telephony.extra.SUBSCRIPTION_ID",
         )
-        if (simSlot != null) target.putExtra("sim_slot", simSlot)
-        if (subId != null) target.putExtra("sub_id", subId)
         XLog.d(
             "ForwardAction SIM extras copied: sim_slot=%s sub_id=%s",
             simSlot?.toString() ?: "N/A",
             subId?.toString() ?: "N/A",
         )
-    }
-
-    private fun readIntExtra(vararg keys: String): Int? {
-        val sourceIntent = mSmsIntent ?: return null
-        for (key in keys) {
-            if (!sourceIntent.hasExtra(key)) continue
-            val intValue = sourceIntent.getIntExtra(key, Int.MIN_VALUE)
-            if (intValue != Int.MIN_VALUE) return intValue
-            val longValue = sourceIntent.getLongExtra(key, Long.MIN_VALUE)
-            if (longValue != Long.MIN_VALUE) return longValue.toInt()
-            sourceIntent.getStringExtra(key)?.toIntOrNull()?.let { return it }
-        }
-        return null
     }
 
     private fun shouldAllowSmsTokenBypass(): Boolean {
@@ -190,8 +183,6 @@ class ForwardAction(
     }
 
     companion object {
-        const val ACTION_FORWARD_SMS = PrefConst.ACTION_FORWARD_SMS
-        private const val EVENT_ID_EXTRA = "event_id"
         private const val MAX_MESSAGE_LEN = 300
     }
 }

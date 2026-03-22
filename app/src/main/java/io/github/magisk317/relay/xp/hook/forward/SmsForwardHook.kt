@@ -7,12 +7,13 @@ import android.os.Process
 import android.provider.Telephony
 import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.common.constant.MessageType
-import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.utils.ActivationDiagnosticsStore
 import io.github.magisk317.relay.common.utils.PrefsReader
 import io.github.magisk317.relay.common.utils.RuntimeLogStore
 import io.github.magisk317.relay.common.utils.SmsCodeUtils
 import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.platform.ipc.ForwardBroadcastContract
+import io.github.magisk317.relay.platform.ipc.ForwardReceiverIntentFactory
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
 import io.github.magisk317.smscode.core.helper.XposedWrapper
@@ -178,20 +179,22 @@ class SmsForwardHook : BaseHook() {
 
         val (company, packageName) = resolveCompanyAndPackage(phoneContext, body, smsCode)
         val resolvedDate = if (smsMsg.date > 0L) smsMsg.date else System.currentTimeMillis()
-        val forwardIntent = Intent(PrefConst.ACTION_FORWARD_SMS).apply {
-            setPackage(pluginContext.packageName)
-            putExtra(EVENT_ID_EXTRA, eventId)
-            putExtra("sender", sender)
-            putExtra("body", body)
-            putExtra("date", resolvedDate)
-            putExtra("company", company)
-            putExtra("smsCode", smsCode)
-            putExtra("packageName", packageName)
-            putExtra("notify_channel_id", "")
-            putExtra("msgType", "sms")
-            putExtra("forward_source", "sms_hook")
+        val forwardIntent = ForwardReceiverIntentFactory.newHostIntent(pluginContext).apply {
+            ForwardBroadcastContract.populatePayload(
+                intent = this,
+                sender = sender,
+                body = body,
+                date = resolvedDate,
+                company = company,
+                smsCode = smsCode,
+                packageName = packageName,
+                notifyChannelId = "",
+                msgType = ForwardBroadcastContract.MSG_TYPE_SMS,
+                forwardSource = ForwardBroadcastContract.SOURCE_SMS_HOOK,
+                eventId = eventId,
+            )
         }
-        copySimExtras(intent, forwardIntent)
+        ForwardBroadcastContract.copySimRoutingExtras(intent, forwardIntent)
 
         val token = PrefsReader.getIpcToken(pluginContext)
         if (token.isBlank()) {
@@ -209,7 +212,7 @@ class SmsForwardHook : BaseHook() {
                 Build.VERSION.SDK_INT,
             )
         } else {
-            forwardIntent.putExtra("ipc_token", token)
+            ForwardBroadcastContract.putIpcToken(forwardIntent, token)
         }
 
         pluginContext.sendBroadcast(forwardIntent)
@@ -246,52 +249,18 @@ class SmsForwardHook : BaseHook() {
         return company to resolvedPackage
     }
 
-    private fun copySimExtras(source: Intent, target: Intent) {
-        val simSlot = readIntExtra(
-            source,
-            "slot",
-            "simId",
-            "sim_id",
-            "simSlot",
-            "sim_slot",
-            "android.telephony.extra.SLOT_INDEX",
-        )
-        val subId = readIntExtra(
-            source,
-            "subscription",
-            "subscription_id",
-            "sub_id",
-            "android.telephony.extra.SUBSCRIPTION_INDEX",
-            "android.telephony.extra.SUBSCRIPTION_ID",
-        )
-        if (simSlot != null) target.putExtra("sim_slot", simSlot)
-        if (subId != null) target.putExtra("sub_id", subId)
-    }
-
-    private fun readIntExtra(intent: Intent, vararg keys: String): Int? {
-        for (key in keys) {
-            if (!intent.hasExtra(key)) continue
-            val intValue = intent.getIntExtra(key, Int.MIN_VALUE)
-            if (intValue != Int.MIN_VALUE) return intValue
-            val longValue = intent.getLongExtra(key, Long.MIN_VALUE)
-            if (longValue != Long.MIN_VALUE) return longValue.toInt()
-            intent.getStringExtra(key)?.toIntOrNull()?.let { return it }
-        }
-        return null
-    }
-
     private fun shouldAllowSmsTokenBypass(): Boolean {
         val uid = Process.myUid()
         return uid == Process.SYSTEM_UID || uid == Process.PHONE_UID
     }
 
     private fun ensureEventId(intent: Intent): String {
-        val existing = intent.getStringExtra(EVENT_ID_EXTRA).orEmpty().trim()
+        val existing = intent.getStringExtra(ForwardBroadcastContract.EXTRA_EVENT_ID).orEmpty().trim()
         if (existing.isNotEmpty()) {
             return existing
         }
-        val generated = "sms_${System.currentTimeMillis().toString(36)}_${abs(intent.hashCode()).toString(36)}"
-        intent.putExtra(EVENT_ID_EXTRA, generated)
+        val generated = ForwardBroadcastContract.buildEventId("sms", abs(intent.hashCode()).toString(36))
+        intent.putExtra(ForwardBroadcastContract.EXTRA_EVENT_ID, generated)
         return generated
     }
 
@@ -327,6 +296,5 @@ class SmsForwardHook : BaseHook() {
         private const val SMS_HANDLER_CLASS = "$TELEPHONY_PACKAGE.InboundSmsHandler"
         private val SMSCODE_PACKAGE = BuildConfig.APPLICATION_ID
         private const val DISPATCH_INTENT_METHOD = "dispatchIntent"
-        private const val EVENT_ID_EXTRA = "event_id"
     }
 }

@@ -17,10 +17,14 @@ internal object ForwardReceiverPolicy {
         sentFromUid: Int?,
         sdkInt: Int = Build.VERSION.SDK_INT,
     ): Boolean = when {
-        (msgType == "app_notify" || msgType == "call_notify") && forwardSource == "nms_hook" -> {
+        (
+            msgType == ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY ||
+                msgType == ForwardBroadcastContract.MSG_TYPE_CALL_NOTIFY
+            ) && forwardSource == ForwardBroadcastContract.SOURCE_NMS_HOOK -> {
             sentFromUid == SYSTEM_UID || (sdkInt < API_LEVEL_34 && sentFromUid == null)
         }
-        msgType == "sms" && forwardSource == "sms_hook" -> {
+        msgType == ForwardBroadcastContract.MSG_TYPE_SMS &&
+            forwardSource == ForwardBroadcastContract.SOURCE_SMS_HOOK -> {
             sentFromUid == SYSTEM_UID ||
                 sentFromUid == PHONE_UID ||
                 (sdkInt < API_LEVEL_34 && sentFromUid == null)
@@ -49,8 +53,8 @@ internal object ForwardReceiverPolicy {
         msgType: String,
         smsCode: String?,
     ): MessageType = when {
-        msgType == "app_notify" -> MessageType.APP_NOTIFY
-        msgType == "call_notify" -> MessageType.CALL_NOTIFY
+        msgType == ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY -> MessageType.APP_NOTIFY
+        msgType == ForwardBroadcastContract.MSG_TYPE_CALL_NOTIFY -> MessageType.CALL_NOTIFY
         !smsCode.isNullOrBlank() -> MessageType.SMS_CODE
         else -> MessageType.SMS_PLAIN
     }

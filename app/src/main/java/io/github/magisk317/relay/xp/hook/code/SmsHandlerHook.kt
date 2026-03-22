@@ -19,6 +19,7 @@ import io.github.magisk317.relay.common.utils.RuntimeLogStore
 import io.github.magisk317.relay.common.utils.SmsBlacklistUtils
 import io.github.magisk317.smscode.core.utils.XLog
 import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.platform.ipc.ForwardBroadcastContract
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
 import io.github.magisk317.smscode.core.helper.XposedWrapper
@@ -635,12 +636,12 @@ class SmsHandlerHook : BaseHook() {
     }
 
     private fun ensureEventId(intent: Intent): String {
-        val existing = intent.getStringExtra(EVENT_ID_EXTRA).orEmpty().trim()
+        val existing = intent.getStringExtra(ForwardBroadcastContract.EXTRA_EVENT_ID).orEmpty().trim()
         if (existing.isNotEmpty()) {
             return existing
         }
-        val generated = "sms_${System.currentTimeMillis().toString(36)}_${abs(intent.hashCode()).toString(36)}"
-        intent.putExtra(EVENT_ID_EXTRA, generated)
+        val generated = ForwardBroadcastContract.buildEventId("sms", abs(intent.hashCode()).toString(36))
+        intent.putExtra(ForwardBroadcastContract.EXTRA_EVENT_ID, generated)
         return generated
     }
 
@@ -684,7 +685,6 @@ class SmsHandlerHook : BaseHook() {
         private const val SMS_HANDLER_CLASS = "$TELEPHONY_PACKAGE.InboundSmsHandler"
         private val SMSCODE_PACKAGE = BuildConfig.APPLICATION_ID
         private const val EVENT_BROADCAST_COMPLETE = 3
-        private const val EVENT_ID_EXTRA = "event_id"
         private const val BLOCK_REASON_BLACKLIST = "blacklist_block"
         private const val BLOCK_REASON_PREF_BLOCK = "pref_block_sms"
         private const val PERSISTENT_DEVICE_ID_DEFAULT = "default:0"

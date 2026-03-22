@@ -2,7 +2,6 @@ package io.github.magisk317.relay.feature.call
 
 import android.Manifest
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.telephony.TelephonyCallback
@@ -17,7 +16,8 @@ import io.github.magisk317.relay.feature.reminder.SpecialAlertCoordinator
 import io.github.magisk317.relay.domain.event.RelayEvent
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
-import io.github.magisk317.relay.platform.ipc.ForwardReceiver
+import io.github.magisk317.relay.platform.ipc.ForwardBroadcastContract
+import io.github.magisk317.relay.platform.ipc.ForwardReceiverIntentFactory
 import java.util.UUID
 import kotlinx.coroutines.runBlocking
 
@@ -191,23 +191,23 @@ object CallStateMonitor {
                 runtimeGraph.preferenceDataSource.getString(key, defaultValue)
             }
         }
-        val intent = Intent(PrefConst.ACTION_FORWARD_SMS).apply {
-            setClassName(context, ForwardReceiver::class.java.name)
-            addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
-            addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
-            putExtra("sender", display)
-            putExtra("body", body)
-            putExtra("date", System.currentTimeMillis())
-            putExtra("packageName", context.packageName)
-            putExtra("msgType", "call_notify")
-            putExtra("call_type", callType)
-            putExtra("company", context.getString(R.string.call_alert_notification_title))
-            putExtra("call_stage", stage)
-            putExtra("forward_source", "telephony_state")
-            putExtra("event_id", "tel_${UUID.randomUUID().toString().take(8)}")
-            if (token.isNotBlank()) {
-                putExtra("ipc_token", token)
-            }
+        val intent = ForwardReceiverIntentFactory.newHostIntent(context).apply {
+            ForwardBroadcastContract.populatePayload(
+                intent = this,
+                sender = display,
+                body = body,
+                date = System.currentTimeMillis(),
+                company = context.getString(R.string.call_alert_notification_title),
+                smsCode = null,
+                packageName = context.packageName,
+                notifyChannelId = "",
+                msgType = ForwardBroadcastContract.MSG_TYPE_CALL_NOTIFY,
+                forwardSource = ForwardBroadcastContract.SOURCE_TELEPHONY_STATE,
+                eventId = "tel_${UUID.randomUUID().toString().take(8)}",
+                callType = callType,
+                callStage = stage,
+            )
+            ForwardBroadcastContract.putIpcToken(this, token)
         }
         runCatching { context.sendBroadcast(intent) }
     }

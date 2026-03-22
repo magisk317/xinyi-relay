@@ -12,24 +12,24 @@ class ForwardReceiverPolicyTest {
     fun shouldAllowSystemTokenBypass_allowsSystemNmsAndLegacyNullUid() {
         assertTrue(
             ForwardReceiverPolicy.shouldAllowSystemTokenBypass(
-                msgType = "app_notify",
-                forwardSource = "nms_hook",
+                msgType = ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY,
+                forwardSource = ForwardBroadcastContract.SOURCE_NMS_HOOK,
                 sentFromUid = ForwardReceiverPolicy.SYSTEM_UID,
                 sdkInt = 34,
             ),
         )
         assertTrue(
             ForwardReceiverPolicy.shouldAllowSystemTokenBypass(
-                msgType = "call_notify",
-                forwardSource = "nms_hook",
+                msgType = ForwardBroadcastContract.MSG_TYPE_CALL_NOTIFY,
+                forwardSource = ForwardBroadcastContract.SOURCE_NMS_HOOK,
                 sentFromUid = null,
                 sdkInt = 33,
             ),
         )
         assertFalse(
             ForwardReceiverPolicy.shouldAllowSystemTokenBypass(
-                msgType = "call_notify",
-                forwardSource = "nms_hook",
+                msgType = ForwardBroadcastContract.MSG_TYPE_CALL_NOTIFY,
+                forwardSource = ForwardBroadcastContract.SOURCE_NMS_HOOK,
                 sentFromUid = 20000,
                 sdkInt = 34,
             ),
@@ -58,19 +58,19 @@ class ForwardReceiverPolicyTest {
     fun resolveRelayMessageType_mapsNotifyAndSmsVariants() {
         assertEquals(
             MessageType.APP_NOTIFY,
-            ForwardReceiverPolicy.resolveRelayMessageType("app_notify", null),
+            ForwardReceiverPolicy.resolveRelayMessageType(ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY, null),
         )
         assertEquals(
             MessageType.CALL_NOTIFY,
-            ForwardReceiverPolicy.resolveRelayMessageType("call_notify", null),
+            ForwardReceiverPolicy.resolveRelayMessageType(ForwardBroadcastContract.MSG_TYPE_CALL_NOTIFY, null),
         )
         assertEquals(
             MessageType.SMS_CODE,
-            ForwardReceiverPolicy.resolveRelayMessageType("sms", "123456"),
+            ForwardReceiverPolicy.resolveRelayMessageType(ForwardBroadcastContract.MSG_TYPE_SMS, "123456"),
         )
         assertEquals(
             MessageType.SMS_PLAIN,
-            ForwardReceiverPolicy.resolveRelayMessageType("sms", ""),
+            ForwardReceiverPolicy.resolveRelayMessageType(ForwardBroadcastContract.MSG_TYPE_SMS, ""),
         )
     }
 
@@ -80,7 +80,7 @@ class ForwardReceiverPolicyTest {
 
         assertFalse(
             ForwardReceiverPolicy.shouldDropDuplicateNotify(
-                msgType = "app_notify",
+                msgType = ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY,
                 packageName = "com.example",
                 sender = "Alice",
                 body = "Ping",
@@ -91,7 +91,7 @@ class ForwardReceiverPolicyTest {
         )
         assertTrue(
             ForwardReceiverPolicy.shouldDropDuplicateNotify(
-                msgType = "app_notify",
+                msgType = ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY,
                 packageName = "com.example",
                 sender = "Alice",
                 body = "Ping",
@@ -102,7 +102,7 @@ class ForwardReceiverPolicyTest {
         )
         assertFalse(
             ForwardReceiverPolicy.shouldDropDuplicateNotify(
-                msgType = "app_notify",
+                msgType = ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY,
                 packageName = "com.example",
                 sender = "Alice",
                 body = "Ping",

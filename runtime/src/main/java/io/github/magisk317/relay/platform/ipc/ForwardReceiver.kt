@@ -25,7 +25,7 @@ class ForwardReceiver : BroadcastReceiver() {
         val eventPipeline = runtimeGraph.eventPipeline
         val ordered = isOrderedBroadcast
         val pendingResult = goAsync()
-        val eventId = intent.getStringExtra("event_id").orEmpty()
+        val eventId = intent.getStringExtra(ForwardBroadcastContract.EXTRA_EVENT_ID).orEmpty()
         val traceId = buildTraceId(intent, eventId)
         val task = Runnable {
             var resultMarked = false
@@ -54,22 +54,23 @@ class ForwardReceiver : BroadcastReceiver() {
                     return@runCatching
                 }
 
-                val sender = intent.getStringExtra("sender")
-                val body = intent.getStringExtra("body")
-                val date = intent.getLongExtra("date", 0L)
-                val company = intent.getStringExtra("company")
-                val smsCode = intent.getStringExtra("smsCode")
-                val packageName = intent.getStringExtra("packageName")
-                val notifyChannelId = intent.getStringExtra("notify_channel_id").orEmpty()
-                val receivedToken = intent.getStringExtra("ipc_token")
-                val msgTypeStr = intent.getStringExtra("msgType") ?: "sms"
-                val forwardSource = intent.getStringExtra("forward_source") ?: "unknown"
-                val callStage = intent.getStringExtra("call_stage").orEmpty()
+                val sender = intent.getStringExtra(ForwardBroadcastContract.EXTRA_SENDER)
+                val body = intent.getStringExtra(ForwardBroadcastContract.EXTRA_BODY)
+                val date = intent.getLongExtra(ForwardBroadcastContract.EXTRA_DATE, 0L)
+                val company = intent.getStringExtra(ForwardBroadcastContract.EXTRA_COMPANY)
+                val smsCode = intent.getStringExtra(ForwardBroadcastContract.EXTRA_SMS_CODE)
+                val packageName = intent.getStringExtra(ForwardBroadcastContract.EXTRA_PACKAGE_NAME)
+                val notifyChannelId = intent.getStringExtra(ForwardBroadcastContract.EXTRA_NOTIFY_CHANNEL_ID).orEmpty()
+                val receivedToken = intent.getStringExtra(ForwardBroadcastContract.EXTRA_IPC_TOKEN)
+                val msgTypeStr = intent.getStringExtra(ForwardBroadcastContract.EXTRA_MSG_TYPE)
+                    ?: ForwardBroadcastContract.MSG_TYPE_SMS
+                val forwardSource = intent.getStringExtra(ForwardBroadcastContract.EXTRA_FORWARD_SOURCE) ?: "unknown"
+                val callStage = intent.getStringExtra(ForwardBroadcastContract.EXTRA_CALL_STAGE).orEmpty()
                 val sentFromUid = resolveSentFromUidCompat()
                 val sentFromPkg = resolveSentFromPackageCompat()
                 val subId = readIntExtra(
                     intent,
-                    "sub_id",
+                    ForwardBroadcastContract.EXTRA_SUB_ID,
                     "subscription",
                     "subscription_id",
                     "android.telephony.extra.SUBSCRIPTION_INDEX",
@@ -77,14 +78,14 @@ class ForwardReceiver : BroadcastReceiver() {
                 )
                 val rawSlot = readIntExtra(
                     intent,
-                    "sim_slot",
+                    ForwardBroadcastContract.EXTRA_SIM_SLOT,
                     "slot",
                     "simId",
                     "sim_id",
                     "simSlot",
                     "android.telephony.extra.SLOT_INDEX",
                 )
-                val callType = readIntExtra(intent, "call_type") ?: 0
+                val callType = readIntExtra(intent, ForwardBroadcastContract.EXTRA_CALL_TYPE) ?: 0
 
                 // 2. Verifying IPC Token: prevent third-party apps from spoofing broadcasts.
                 // We retrieve local token from DataStore (which is synced to xposed_prefs).
@@ -154,14 +155,14 @@ class ForwardReceiver : BroadcastReceiver() {
                     }
                 }
                 if (
-                    msgTypeStr == "app_notify" &&
+                    msgTypeStr == ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY &&
                     !shouldForwardAppNotify(runtimeGraph, packageName, traceId, forwardSource)
                 ) {
                     markResult(RESULT_REJECT_APP_GATE, "app_gate_drop")
                     return@runCatching
                 }
                 if (
-                    msgTypeStr == "call_notify" &&
+                    msgTypeStr == ForwardBroadcastContract.MSG_TYPE_CALL_NOTIFY &&
                     ForwardReceiverPolicy.shouldDropOngoingCallNotify(callStage, notifyChannelId, body)
                 ) {
                     ForwardFlowLog.i(
@@ -178,7 +179,7 @@ class ForwardReceiver : BroadcastReceiver() {
                     markResult(RESULT_DROP_DUPLICATE, "ongoing_drop")
                     return@runCatching
                 }
-                if (msgTypeStr == "call_notify") {
+                if (msgTypeStr == ForwardBroadcastContract.MSG_TYPE_CALL_NOTIFY) {
                     val sourceKey = CallSessionTracker.buildSourceKey(
                         sender = sender,
                         body = body,
@@ -203,7 +204,10 @@ class ForwardReceiver : BroadcastReceiver() {
                     }
                 }
                 if (
-                    (msgTypeStr == "app_notify" || msgTypeStr == "call_notify") &&
+                    (
+                        msgTypeStr == ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY ||
+                            msgTypeStr == ForwardBroadcastContract.MSG_TYPE_CALL_NOTIFY
+                        ) &&
                     ForwardReceiverPolicy.shouldDropDuplicateNotify(
                         msgType = msgTypeStr,
                         packageName = packageName,
@@ -242,7 +246,7 @@ class ForwardReceiver : BroadcastReceiver() {
                     markResult(RESULT_DROP_DUPLICATE, "duplicate_drop")
                     return@runCatching
                 }
-                val callSessionDecision = if (msgTypeStr == "call_notify") {
+                val callSessionDecision = if (msgTypeStr == ForwardBroadcastContract.MSG_TYPE_CALL_NOTIFY) {
                     CallSessionTracker.evaluate(
                         stageRaw = callStage,
                         sender = sender,
@@ -254,7 +258,11 @@ class ForwardReceiver : BroadcastReceiver() {
                     null
                 }
                 val resolvedCallStage = callSessionDecision?.stage.orEmpty()
-                if (msgTypeStr == "call_notify" && callSessionDecision != null && !callSessionDecision.allow) {
+                if (
+                    msgTypeStr == ForwardBroadcastContract.MSG_TYPE_CALL_NOTIFY &&
+                    callSessionDecision != null &&
+                    !callSessionDecision.allow
+                ) {
                     ForwardFlowLog.i(
                         traceId,
                         buildString {
@@ -390,8 +398,8 @@ class ForwardReceiver : BroadcastReceiver() {
         }
         private val recentNotify = ConcurrentHashMap<String, Long>()
         private val nmsHookSeen = ConcurrentHashMap<String, Long>()
-        private const val ROUTE_NMS_HOOK = "nms_hook"
-        private const val ROUTE_TELEPHONY_STATE = "telephony_state"
+        private const val ROUTE_NMS_HOOK = ForwardBroadcastContract.SOURCE_NMS_HOOK
+        private const val ROUTE_TELEPHONY_STATE = ForwardBroadcastContract.SOURCE_TELEPHONY_STATE
     }
 
     private fun resolveSentFromUidCompat(): Int? {
@@ -476,13 +484,15 @@ class ForwardReceiver : BroadcastReceiver() {
         if (!ordered) return
         runCatching {
             pendingResult.setResultCode(code)
-            pendingResult.setResultData("reason=$reason;event_id=${eventId.ifBlank { "<none>" }}")
+            pendingResult.setResultData(
+                "reason=$reason;${ForwardBroadcastContract.EXTRA_EVENT_ID}=${eventId.ifBlank { "<none>" }}",
+            )
         }
     }
 
     private fun buildTraceId(intent: Intent, eventId: String): String {
         if (eventId.isNotBlank()) return eventId
-        val pkg = intent.getStringExtra("packageName") ?: "unknown"
+        val pkg = intent.getStringExtra(ForwardBroadcastContract.EXTRA_PACKAGE_NAME) ?: "unknown"
         val now = System.currentTimeMillis().toString(36)
         val suffix = kotlin.math.abs((pkg + now).hashCode()).toString(36)
         return "${now}_$suffix"

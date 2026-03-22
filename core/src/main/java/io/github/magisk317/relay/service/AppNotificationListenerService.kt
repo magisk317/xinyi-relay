@@ -15,6 +15,8 @@ import io.github.magisk317.relay.feature.reminder.SpecialAlertCoordinator
 import io.github.magisk317.relay.domain.event.RelayEvent
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
+import io.github.magisk317.relay.platform.ipc.ForwardBroadcastContract
+import io.github.magisk317.relay.platform.ipc.ForwardReceiverIntentFactory
 import kotlinx.coroutines.runBlocking
 
 class AppNotificationListenerService : NotificationListenerService() {
@@ -60,19 +62,8 @@ class AppNotificationListenerService : NotificationListenerService() {
         if (shouldSkipNotification(notification)) return
 
         // TODO: check configuration rules (blacklist/whitelist) for notifications.
-        val eventId = buildEventId(packageName)
-        val forwardIntent = Intent(PrefConst.ACTION_FORWARD_SMS)
-        forwardIntent.setClassName(applicationContext.packageName, FORWARD_RECEIVER_CLASS_NAME)
-        forwardIntent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
-        forwardIntent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
-        forwardIntent.putExtra("sender", title)
-        forwardIntent.putExtra("body", body)
-        forwardIntent.putExtra("date", sbn.postTime)
-        forwardIntent.putExtra("packageName", packageName)
-        forwardIntent.putExtra("notify_channel_id", notifyChannelId)
-        forwardIntent.putExtra("msgType", "app_notify")
-        forwardIntent.putExtra("forward_source", "nls")
-        forwardIntent.putExtra("event_id", eventId)
+        val eventId = ForwardBroadcastContract.buildEventId("nls", packageName)
+        val forwardIntent = ForwardReceiverIntentFactory.newHostIntent(applicationContext)
         
         // Resolve App Name
         val pm = applicationContext.packageManager
@@ -83,7 +74,19 @@ class AppNotificationListenerService : NotificationListenerService() {
             XLog.w("Notification app label not found for pkg=%s err=%s", packageName, e.message ?: "unknown")
             packageName
         }
-        forwardIntent.putExtra("company", appName)
+        ForwardBroadcastContract.populatePayload(
+            intent = forwardIntent,
+            sender = title,
+            body = body,
+            date = sbn.postTime,
+            company = appName,
+            smsCode = null,
+            packageName = packageName,
+            notifyChannelId = notifyChannelId,
+            msgType = ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY,
+            forwardSource = ForwardBroadcastContract.SOURCE_NOTIFICATION_LISTENER,
+            eventId = eventId,
+        )
 
         SpecialAlertCoordinator.notifyForEvent(
             context = applicationContext,
@@ -114,7 +117,7 @@ class AppNotificationListenerService : NotificationListenerService() {
                 runtimeGraph.preferenceDataSource.getString(key, defaultValue)
             }
         }
-        forwardIntent.putExtra("ipc_token", token)
+        ForwardBroadcastContract.putIpcToken(forwardIntent, token)
 
         XLog.i("Notification intercepted: pkg=%s event=%s title=%s body=%s", packageName, eventId, title, body)
         if (BuildConfig.DEBUG) {
@@ -162,13 +165,4 @@ class AppNotificationListenerService : NotificationListenerService() {
         return isGroupSummary
     }
 
-    private fun buildEventId(packageName: String): String {
-        val now = System.currentTimeMillis().toString(36)
-        val suffix = kotlin.math.abs((packageName + now).hashCode()).toString(36)
-        return "nls_${now}_$suffix"
-    }
-
-    companion object {
-        private const val FORWARD_RECEIVER_CLASS_NAME = "io.github.magisk317.relay.platform.ipc.ForwardReceiver"
-    }
 }
