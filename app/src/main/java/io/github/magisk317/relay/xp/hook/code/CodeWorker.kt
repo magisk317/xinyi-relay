@@ -9,7 +9,7 @@ import androidx.core.os.BundleCompat
 import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.common.utils.PrefsReader
 import io.github.magisk317.relay.data.db.entity.SmsMsg
-import io.github.magisk317.relay.xp.hook.code.action.impl.*
+import io.github.magisk317.relay.xp.hook.code.action.impl.SmsParseAction
 import io.github.magisk317.smscode.core.utils.XLog
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -25,6 +25,7 @@ class CodeWorker(
 
     fun parse(): ParseResult? {
         val settings = SmsCodePostParseCoordinator.loadSettings(mPluginContext)
+        val plan = SmsCodePostParseCoordinator.createParsedSmsPlan(settings, FORWARD_ACTION_DELAY_MS)
         val moduleEnabled = PrefsReader.isEnabled(mPluginContext)
         val verboseLog = PrefsReader.isVerboseLogMode(mPluginContext)
         XLog.w(
@@ -80,7 +81,7 @@ class CodeWorker(
             val duplicated = parseBundle.getBoolean(SmsParseAction.SMS_DUPLICATED, false)
             if (duplicated) {
                 mScheduledExecutor.shutdown()
-                return buildParseResult(settings.blockSmsEnabled)
+                return buildParseResult(plan.blockSms)
             }
 
             smsMsg = BundleCompat.getParcelable(parseBundle, SmsParseAction.SMS_MSG, SmsMsg::class.java) ?: return null
@@ -89,86 +90,25 @@ class CodeWorker(
             return null
         }
 
-        // 复制到剪切板 Action
-        mUIHandler.post(CopyToClipboardAction(mPluginContext, mPhoneContext, smsMsg))
-
-        // 显示Toast Action
-        mUIHandler.post(ToastAction(mPluginContext, mPhoneContext, smsMsg))
-
-        // 自动输入 Action
-        if (settings.autoInputEnabled) {
-            SmsCodePostParseCoordinator.scheduleAutoInput(
-                executor = mScheduledExecutor,
-                pluginContext = mPluginContext,
-                phoneContext = mPhoneContext,
-                smsMsg = smsMsg,
-                delayMs = settings.autoInputDelayMs,
-            )
-        }
-
-        if (settings.showNotification) {
-            // 显示通知 Action
-            val notifyAction = NotifyAction(mPluginContext, mPhoneContext, smsMsg)
-            mScheduledExecutor.schedule(notifyAction, 0, TimeUnit.MILLISECONDS)
-        }
-
-        // 记录验证码短信 Action（转发状态与拦截配置解耦）
-        SmsCodePostParseCoordinator.scheduleRecord(
-            executor = mScheduledExecutor,
-            pluginContext = mPluginContext,
-            phoneContext = mPhoneContext,
-            smsMsg = smsMsg,
-            eventId = eventId,
-        )
-
-        // 转发 Action
-        SmsCodePostParseCoordinator.scheduleForward(
+        SmsCodePostParseCoordinator.dispatchParsedSmsActions(
+            uiHandler = mUIHandler,
             executor = mScheduledExecutor,
             pluginContext = mPluginContext,
             phoneContext = mPhoneContext,
             smsMsg = smsMsg,
             smsIntent = mSmsIntent,
             eventId = eventId,
-            delayMs = FORWARD_ACTION_DELAY_MS,
+            plan = plan,
         )
 
-        // 操作验证码短信（标记为已读 或者 删除） Action
-        scheduleOperateSmsActions(smsMsg, settings)
-
-        var autoCancelRetentionMs = 0L
-        if (settings.showNotification && settings.autoCancelNotification) {
-            autoCancelRetentionMs = settings.notificationRetentionMs
-            val notificationId = smsMsg.hashCode()
-
-            val cancelNotifyAction = CancelNotifyAction(mPluginContext, mPhoneContext, smsMsg)
-            cancelNotifyAction.setNotificationId(notificationId)
-
-            mScheduledExecutor.schedule(cancelNotifyAction, autoCancelRetentionMs, TimeUnit.MILLISECONDS)
-            XLog.d("Scheduled CancelNotifyAction with delay: ${autoCancelRetentionMs}ms for ID: $notificationId")
-        }
-
         mScheduledExecutor.shutdown()
-        return buildParseResult(settings.blockSmsEnabled)
+        return buildParseResult(plan.blockSms)
     }
 
     private fun buildParseResult(blockSms: Boolean): ParseResult {
         val parseResult = ParseResult()
         parseResult.isBlockSms = blockSms
         return parseResult
-    }
-
-    private fun scheduleOperateSmsActions(
-        smsMsg: SmsMsg,
-        settings: SmsCodePostParseCoordinator.Settings,
-    ) {
-        val delays = SmsCodePostParseCoordinator.resolveOperateSmsDelays(settings)
-        delays.forEach { delayMs ->
-            mScheduledExecutor.schedule(
-                OperateSmsAction(mPluginContext, mPhoneContext, smsMsg),
-                delayMs,
-                TimeUnit.MILLISECONDS,
-            )
-        }
     }
 
     companion object {

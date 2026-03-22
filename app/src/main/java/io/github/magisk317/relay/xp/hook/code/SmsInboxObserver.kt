@@ -111,6 +111,7 @@ internal class SmsInboxObserver(
         code: String,
     ) {
         val settings = SmsCodePostParseCoordinator.loadSettings(pluginContext)
+        val plan = SmsCodePostParseCoordinator.createObservedSmsPlan(settings)
         val eventId = buildObservedEventId(smsId, date)
         if (ModuleConflictArbiter.shouldSuppressByRelay(phoneContext, "SmsInboxObserver#handleObservedCode")) {
             XLog.w("Diag observer conflict skip: event_id=%s sms_id=%d", eventId, smsId)
@@ -147,7 +148,7 @@ internal class SmsInboxObserver(
             smsCode = code,
         )
 
-        if (settings.autoInputEnabled) {
+        if (plan.autoInputEnabled) {
             XLog.w(
                 "Diag observer auto-input: event_id=%s sender_hash=%s read=%s uri=%s",
                 eventId,
@@ -155,25 +156,21 @@ internal class SmsInboxObserver(
                 read,
                 triggerUri,
             )
-            SmsCodePostParseCoordinator.runAutoInputNow(
-                pluginContext = pluginContext,
-                phoneContext = phoneContext,
-                smsMsg = smsMsg,
-            )
         } else {
             XLog.w("Diag observer auto-input disabled: event_id=%s", eventId)
         }
 
-        if (settings.deduplicateSmsEnabled) {
-            XLog.w("Diag observer record skipped: dedup enabled event_id=%s", eventId)
-            return
+        if (!plan.shouldRecord) {
+            val reason = if (plan.deduplicateSmsEnabled) "dedup_enabled" else "record_disabled"
+            XLog.w("Diag observer record skipped: reason=%s event_id=%s", reason, eventId)
         }
-        // Keep record behavior consistent with regular flow when enabled.
-        SmsCodePostParseCoordinator.runRecordNow(
+
+        SmsCodePostParseCoordinator.dispatchObservedSmsActions(
             pluginContext = pluginContext,
             phoneContext = phoneContext,
             smsMsg = smsMsg,
             eventId = eventId,
+            plan = plan,
         )
     }
 

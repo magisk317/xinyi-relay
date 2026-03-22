@@ -15,12 +15,17 @@ import java.util.*
 /**
  * 自动输入验证码
  */
-class AutoInputAction(pluginContext: Context, phoneContext: Context, smsMsg: SmsMsg) :
+class AutoInputAction(
+    pluginContext: Context,
+    phoneContext: Context,
+    smsMsg: SmsMsg,
+    private val deduplicateEnabled: Boolean? = null,
+) :
     CallableAction(pluginContext, phoneContext, smsMsg) {
     private val runtimeAppConfigFacade = RuntimeAppConfigFacade(pluginContext)
 
     override fun action(): Bundle? {
-        if (PrefsReader.deduplicateSms(mPluginContext)) {
+        if (deduplicateEnabled ?: PrefsReader.deduplicateSms(mPluginContext)) {
             if (shouldSkipByRecentAutoInput(mSmsMsg)) {
                 return null
             }
