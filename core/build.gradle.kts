@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     id(libs.plugins.kotlin.parcelize.get().pluginId)
+    id("relay.android.common")
 }
 
 val minSdkInt = libs.versions.minSdk.get().toInt()
@@ -10,8 +11,6 @@ val allowConflictBypass = findProperty("allowConflictBypass")
     ?.toString()
     ?.toBooleanStrictOrNull()
     ?: false
-
-apply(from = rootProject.file("gradle/relay-android-common.gradle"))
 
 android {
     namespace = "io.github.magisk317.relay.core"
