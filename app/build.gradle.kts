@@ -387,6 +387,7 @@ dependencies {
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.mockk)
+    testImplementation(project(":smscode-core:smscode-xposed-core"))
 
     implementation(libs.timber)
     implementation(libs.koin.android)

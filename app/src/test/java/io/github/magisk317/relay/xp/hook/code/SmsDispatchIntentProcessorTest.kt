@@ -2,8 +2,8 @@ package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
 import android.content.Intent
-import io.github.magisk317.relay.common.utils.SmsBlacklistUtils
-import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.xp.SmsMsg
+import io.github.magisk317.relay.xp.XpSmsBlacklist
 import io.github.magisk317.smscode.xposed.utils.XLog
 import io.mockk.every
 import io.mockk.mockk
@@ -46,7 +46,7 @@ class SmsDispatchIntentProcessorTest {
             blacklistMatcher = { _, sender, body ->
                 matchedSender = sender
                 matchedBody = body
-                SmsBlacklistUtils.MatchResult(
+                XpSmsBlacklist.MatchResult(
                     matched = true,
                     matchType = "number",
                     pattern = "1068",
@@ -78,7 +78,7 @@ class SmsDispatchIntentProcessorTest {
             pluginContext = pluginContext,
             phoneContext = phoneContext,
             incomingSmsParser = { null },
-            blacklistMatcher = { _, _, _ -> SmsBlacklistUtils.MatchResult(matched = false) },
+            blacklistMatcher = { _, _, _ -> XpSmsBlacklist.MatchResult(matched = false) },
             codeParser = { _, _, _, _ -> null },
         )
 
