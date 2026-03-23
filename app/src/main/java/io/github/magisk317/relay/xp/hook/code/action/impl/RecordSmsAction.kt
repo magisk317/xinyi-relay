@@ -2,8 +2,8 @@ package io.github.magisk317.relay.xp.hook.code.action.impl
 
 import android.content.Context
 import android.os.Bundle
-import io.github.magisk317.relay.ui.record.CodeRecordRestoreManager
 import io.github.magisk317.relay.xp.XpRecordFacade
+import io.github.magisk317.relay.xp.XpCodeRecordExporter
 import io.github.magisk317.relay.xp.SmsMsg
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 import io.github.magisk317.smscode.xposed.utils.XLog
@@ -63,7 +63,7 @@ class RecordSmsAction(
                 t.message ?: t.javaClass.simpleName,
             )
         }
-        if (CodeRecordRestoreManager.exportToFile(mPluginContext, smsMsg)) {
+        if (XpCodeRecordExporter.exportToFile(mPluginContext, smsMsg)) {
             XLog.w("Diag record file fallback success: event_id=%s", eventLabel)
         } else {
             XLog.w("Diag record file fallback failed: event_id=%s", eventLabel)
