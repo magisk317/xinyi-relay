@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.os.Build
 import android.telephony.TelephonyManager
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -28,22 +29,27 @@ class InstallMonitorInitializer : AppInitializer {
         val prefs = context.getSharedPreferences(INSTALL_GUARD_PREFS, Context.MODE_PRIVATE)
         val lastHandledToken = prefs.getString(KEY_LAST_HANDLED_INSTALL_TOKEN, null)
         if (lastHandledToken == installToken) {
+            logInfo("Install monitor skip: install token unchanged")
             return
         }
 
         val now = System.currentTimeMillis()
         val lastAttemptAt = prefs.getLong(KEY_LAST_RESTART_ATTEMPT_AT, 0L)
         if (now - lastAttemptAt < RESTART_ATTEMPT_COOLDOWN_MS) {
+            logInfo("Install monitor skip: restart cooldown active")
             return
         }
         prefs.edit().putLong(KEY_LAST_RESTART_ATTEMPT_AT, now).apply()
 
         if (isPhoneCallActive(context)) {
+            logInfo("Install monitor skip: phone call active")
             return
         }
 
         if (canUseRoot()) {
             restartPhoneProcessViaRoot()
+        } else {
+            logWarn("Install monitor skip: root unavailable, phone process not restarted")
         }
 
         prefs.edit().putString(KEY_LAST_HANDLED_INSTALL_TOKEN, installToken).apply()
@@ -102,7 +108,10 @@ class InstallMonitorInitializer : AppInitializer {
                 "exit 1"
         val result = runSuCommand(command)
         if (result.exitCode == 0) {
+            logInfo("Install monitor: phone process restart requested after install/update change")
             Timber.i("Phone process restart requested after install/update change.")
+        } else {
+            logWarn("Install monitor: phone process restart failed exit=${result.exitCode}")
         }
     }
 
@@ -121,7 +130,16 @@ class InstallMonitorInitializer : AppInitializer {
 
     private data class SuCommandResult(val exitCode: Int, val output: String)
 
+    private fun logInfo(message: String) {
+        Log.i(LOG_TAG, message)
+    }
+
+    private fun logWarn(message: String) {
+        Log.w(LOG_TAG, message)
+    }
+
     companion object {
+        private const val LOG_TAG = "relay"
         private const val INSTALL_GUARD_PREFS = "install_guard_prefs"
         private const val KEY_LAST_HANDLED_INSTALL_TOKEN = "last_handled_install_token"
         private const val KEY_LAST_RESTART_ATTEMPT_AT = "last_restart_attempt_at"

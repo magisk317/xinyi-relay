@@ -25,12 +25,17 @@ internal object SmsHookBridgeHelper {
         packageName: String,
         source: String,
     ) {
+        val verboseLogging = XpPrefs.isVerboseLogMode(pluginContext)
+        XpHookDiagnostics.bindRuntimeLogContext(
+            context = pluginContext,
+            verboseLogging = verboseLogging,
+        )
         XpHookDiagnostics.recordSmsHookHeartbeat(
             context = pluginContext,
             packageName = packageName,
             processName = phoneContext.applicationInfo?.processName ?: packageName,
             source = source,
-            verboseLogging = XpPrefs.isVerboseLogMode(pluginContext),
+            verboseLogging = verboseLogging,
         )
     }
 }

@@ -6,6 +6,7 @@ import io.github.magisk317.relay.xp.hook.code.SmsHandlerHook
 import io.github.magisk317.relay.xp.hook.forward.SmsForwardHook
 import io.github.magisk317.relay.xp.hook.me.ModuleUtilsHook
 import io.github.magisk317.relay.xp.hook.telephony.SmsProviderHook
+import io.github.magisk317.relay.xpbridge.XpHookDiagnostics
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xp.runtime.RuntimeBridgeFactory
 import io.github.magisk317.smscode.xposed.hook.BaseHook
@@ -55,6 +56,7 @@ class LibXposedEntry : XposedModule {
             return
         }
         installCoreRuntime()
+        XpHookDiagnostics.installXposedRuntimeLogSink()
         HookEnv.init(LibXposedHookApi(this))
         XpPrefs.installRuntimeBridge(RuntimeBridgeFactory.create(this))
         processName = if (param.isSystemServer) "android" else param.processName
@@ -85,6 +87,11 @@ class LibXposedEntry : XposedModule {
     private fun dispatchLoad(loadParam: LoadParam) {
         installCoreRuntime()
         XLog.d("LibXposedEntry: Loaded package: ${loadParam.packageName} process: ${loadParam.processName}")
+        if (isCriticalHookTarget(loadParam.packageName)) {
+            val message = "LibXposedEntry package ready: pkg=${loadParam.packageName} process=${loadParam.processName}"
+            Log.w(BuildConfig.LOG_TAG, message)
+            Log.w("LSPosed-Bridge", "${BuildConfig.LOG_TAG}: $message")
+        }
         if ("android" == loadParam.packageName || "system" == loadParam.packageName) {
             XLog.w(
                 "LibXposedEntry: Android/system package loaded: pkg=%s process=%s",
@@ -97,6 +104,13 @@ class LibXposedEntry : XposedModule {
                 hook.onLoadPackage(loadParam)
             }
         }
+    }
+
+    private fun isCriticalHookTarget(packageName: String): Boolean {
+        return packageName == "android" ||
+            packageName == "system" ||
+            packageName == "com.android.phone" ||
+            packageName == "com.android.providers.telephony"
     }
 
     private fun installCoreRuntime() {

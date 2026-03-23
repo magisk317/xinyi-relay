@@ -12,6 +12,18 @@ class RuntimeLogStoreRouteTest {
             RuntimeLogStore.routeFromCallerClassName("io.github.magisk317.relay.xp.hook.code.SmsHandlerHook"),
         )
         assertEquals(
+            RuntimeLogStore.ROUTE_FORWARD,
+            RuntimeLogStore.routeFromCallerClassName("io.github.magisk317.relay.xp.hook.forward.SmsForwardHook"),
+        )
+        assertEquals(
+            RuntimeLogStore.ROUTE_SMS_HOOK,
+            RuntimeLogStore.routeFromCallerClassName("io.github.magisk317.relay.xp.hook.telephony.SmsProviderHook"),
+        )
+        assertEquals(
+            RuntimeLogStore.ROUTE_SMS_HOOK,
+            RuntimeLogStore.routeFromCallerClassName("io.github.magisk317.relay.xp.LibXposedEntry"),
+        )
+        assertEquals(
             RuntimeLogStore.ROUTE_NMS_HOOK,
             RuntimeLogStore.routeFromCallerClassName("io.github.magisk317.smscode.xposed.hook.notification.NotificationManagerHook"),
         )

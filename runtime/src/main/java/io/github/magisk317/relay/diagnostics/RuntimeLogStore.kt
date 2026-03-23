@@ -37,9 +37,13 @@ object RuntimeLogStore {
     const val ROUTE_SENDER = "sender"
     const val ROUTE_ROOT_DB = "root_db"
     const val ROUTE_APP = "app"
+    private const val FILE_TIMESTAMP_PATTERN = "yyyy-MM-dd HH:mm:ss.SSS"
     private val lock = Any()
     private val buffer = ArrayDeque<RuntimeLogEntry>(MAX_BUFFER_SIZE)
     private val pendingFileEntries = ArrayDeque<RuntimeLogEntry>(MAX_BUFFER_SIZE)
+    private val fileTimestampFormatter = object : ThreadLocal<SimpleDateFormat>() {
+        override fun initialValue(): SimpleDateFormat = SimpleDateFormat(FILE_TIMESTAMP_PATTERN, Locale.getDefault())
+    }
 
     @Volatile
     private var appContext: Context? = null
@@ -355,6 +359,8 @@ object RuntimeLogStore {
 
     private fun encode(entry: RuntimeLogEntry): String {
         return buildString {
+            append(formatFileTimestamp(entry.timestamp))
+            append('\t')
             append(entry.timestamp)
             append('\t')
             append(entry.priority)
@@ -368,11 +374,24 @@ object RuntimeLogStore {
     private fun decode(line: String): RuntimeLogEntry? {
         val parts = line.split('\t')
         if (parts.size < 4) return null
-        val ts = parts[0].toLongOrNull() ?: return null
-        val priority = parts[1].toIntOrNull() ?: Log.INFO
-        val tag = unescape(parts[2])
-        val message = unescape(parts.subList(3, parts.size).joinToString("\t"))
+
+        val hasFormattedTimestamp = parts.size >= 5 && parts[1].toLongOrNull() != null
+        val tsIndex = if (hasFormattedTimestamp) 1 else 0
+        val priorityIndex = tsIndex + 1
+        val tagIndex = tsIndex + 2
+        val messageIndex = tsIndex + 3
+
+        if (parts.size <= messageIndex) return null
+
+        val ts = parts[tsIndex].toLongOrNull() ?: return null
+        val priority = parts[priorityIndex].toIntOrNull() ?: Log.INFO
+        val tag = unescape(parts[tagIndex])
+        val message = unescape(parts.subList(messageIndex, parts.size).joinToString("\t"))
         return RuntimeLogEntry(ts, priority, tag, message, ROUTE_APP)
+    }
+
+    private fun formatFileTimestamp(timestamp: Long): String {
+        return fileTimestampFormatter.get()?.format(Date(timestamp)) ?: timestamp.toString()
     }
 
     private fun escape(value: String): String {
@@ -431,10 +450,13 @@ object RuntimeLogStore {
         }
     }
 
-    internal fun routeFromCallerClassName(className: String?): String {
+    fun routeFromCallerClassName(className: String?): String {
         val value = className.orEmpty()
         return when {
+            value.contains(".xp.hook.forward.") -> ROUTE_FORWARD
             value.contains(".xp.hook.code.") -> ROUTE_SMS_HOOK
+            value.contains(".xp.hook.telephony.") -> ROUTE_SMS_HOOK
+            value.contains(".xp.LibXposedEntry") -> ROUTE_SMS_HOOK
             value.contains(".xp.hook.notification.") ||
                 value.contains(".core.hook.notification.") ||
                 value.contains(".xposed.hook.notification.") -> ROUTE_NMS_HOOK
