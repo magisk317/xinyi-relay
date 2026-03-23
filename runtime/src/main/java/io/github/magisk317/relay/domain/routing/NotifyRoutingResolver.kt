@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.domain.routing
 
-import io.github.magisk317.relay.model.Sender
+import io.github.magisk317.relay.domain.model.Sender
 import io.github.magisk317.relay.diagnostics.ForwardFlowLog
 import io.github.magisk317.relay.data.db.dao.NotifyRouteRuleDao
 

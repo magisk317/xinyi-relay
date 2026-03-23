@@ -2,7 +2,7 @@ package io.github.magisk317.relay.platform.sender
 
 import android.text.TextUtils
 import android.util.Base64
-import io.github.magisk317.relay.model.MsgInfo
+import io.github.magisk317.relay.domain.model.MsgInfo
 import io.github.magisk317.relay.platform.sender.result.BarkResult
 import io.github.magisk317.relay.platform.sender.config.BarkSetting
 import com.google.gson.Gson

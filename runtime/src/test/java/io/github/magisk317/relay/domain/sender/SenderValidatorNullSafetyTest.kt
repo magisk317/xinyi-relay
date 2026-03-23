@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.domain.sender
 
-import io.github.magisk317.relay.model.Sender
+import io.github.magisk317.relay.domain.model.Sender
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test

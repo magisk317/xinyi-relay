@@ -5,7 +5,7 @@ import io.github.magisk317.relay.domain.event.RelayEvent
 import io.github.magisk317.relay.domain.model.BatterySnapshot
 import io.github.magisk317.relay.domain.model.NetworkSnapshot
 import io.github.magisk317.relay.domain.model.SystemEnvironment
-import io.github.magisk317.relay.model.ForwardCommonConfig
+import io.github.magisk317.relay.domain.model.ForwardCommonConfig
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test

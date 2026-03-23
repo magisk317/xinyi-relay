@@ -2,7 +2,7 @@ package io.github.magisk317.relay.domain.pipeline
 
 import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.domain.event.RelayEvent
-import io.github.magisk317.relay.model.Sender
+import io.github.magisk317.relay.domain.model.Sender
 class SenderSelector {
     fun selectBaseSenders(
         enabledSenders: List<Sender>,

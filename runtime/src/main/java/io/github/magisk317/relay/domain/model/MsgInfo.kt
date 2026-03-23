@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.model
+package io.github.magisk317.relay.domain.model
 
 import java.io.Serializable
 import java.util.Date

@@ -2,7 +2,6 @@ package io.github.magisk317.relay.data.db.entity
 
 import android.content.Intent
 import android.os.Parcelable
-import androidx.compose.runtime.Immutable
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -12,7 +11,6 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.text.Normalizer
 
-@Immutable
 @Entity(
     tableName = "sms_msg",
     indices = [

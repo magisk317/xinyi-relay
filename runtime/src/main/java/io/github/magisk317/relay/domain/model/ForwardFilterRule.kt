@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.model
+package io.github.magisk317.relay.domain.model
 
 data class ForwardFilterRule(
     val id: Long = 0L,

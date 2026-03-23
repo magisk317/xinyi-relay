@@ -3,9 +3,9 @@ package io.github.magisk317.relay.data.mapper
 import io.github.magisk317.relay.data.db.entity.ForwardFilterRuleEntity
 import io.github.magisk317.relay.data.db.entity.RuleEntity
 import io.github.magisk317.relay.data.db.entity.SenderEntity
-import io.github.magisk317.relay.model.ForwardFilterRule
-import io.github.magisk317.relay.model.Rule
-import io.github.magisk317.relay.model.Sender
+import io.github.magisk317.relay.domain.model.ForwardFilterRule
+import io.github.magisk317.relay.domain.model.Rule
+import io.github.magisk317.relay.domain.model.Sender
 
 object ConfigMapper {
     fun RuleEntity.toDomain(): Rule = Rule(

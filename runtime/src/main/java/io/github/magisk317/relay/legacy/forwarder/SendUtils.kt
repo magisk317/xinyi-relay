@@ -6,7 +6,7 @@ import io.github.magisk317.relay.diagnostics.ForwardFlowLog
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.domain.event.RelayEvent
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
-import io.github.magisk317.relay.model.MsgInfo
+import io.github.magisk317.relay.domain.model.MsgInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.platform.sender
 
-import io.github.magisk317.relay.model.MsgInfo
+import io.github.magisk317.relay.domain.model.MsgInfo
 import io.github.magisk317.relay.platform.sender.config.NtfySetting
 import java.util.Date
 import org.junit.jupiter.api.Assertions.assertEquals

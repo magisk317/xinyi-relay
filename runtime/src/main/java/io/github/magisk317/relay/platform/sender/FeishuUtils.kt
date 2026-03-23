@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.platform.sender
 
 import android.util.Base64
-import io.github.magisk317.relay.model.MsgInfo
+import io.github.magisk317.relay.domain.model.MsgInfo
 import io.github.magisk317.relay.platform.sender.result.FeishuResult
 import io.github.magisk317.relay.platform.sender.config.FeishuSetting
 import com.google.gson.Gson

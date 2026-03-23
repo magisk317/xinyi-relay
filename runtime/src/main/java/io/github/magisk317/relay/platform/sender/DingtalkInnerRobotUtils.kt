@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.platform.sender
 
 import android.text.TextUtils
-import io.github.magisk317.relay.model.MsgInfo
+import io.github.magisk317.relay.domain.model.MsgInfo
 import io.github.magisk317.relay.platform.sender.result.DingtalkInnerRobotResult
 import io.github.magisk317.relay.platform.sender.config.DingtalkInnerRobotSetting
 import com.google.gson.Gson

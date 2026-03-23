@@ -3,7 +3,7 @@ package io.github.magisk317.relay.platform.sender
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import io.github.magisk317.relay.model.MsgInfo
+import io.github.magisk317.relay.domain.model.MsgInfo
 import io.github.magisk317.relay.platform.sender.config.UrlSchemeSetting
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

@@ -4,7 +4,7 @@ import android.content.Context
 import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.data.datasource.PreferenceDataSource
-import io.github.magisk317.relay.model.ForwardCommonConfig
+import io.github.magisk317.relay.domain.model.ForwardCommonConfig
 import io.github.magisk317.relay.domain.system.DeviceIdentityUtils
 import kotlinx.coroutines.flow.Flow
 

@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.common.utils
+package io.github.magisk317.relay.platform.web
 
 import android.content.Context
 import android.net.Uri

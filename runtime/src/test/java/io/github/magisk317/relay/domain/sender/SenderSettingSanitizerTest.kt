@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.domain.sender
 
-import io.github.magisk317.relay.model.Sender
+import io.github.magisk317.relay.domain.model.Sender
 import io.github.magisk317.relay.platform.sender.config.BarkSetting
 import io.github.magisk317.relay.platform.sender.config.DingtalkGroupRobotSetting
 import io.github.magisk317.relay.platform.sender.config.DingtalkInnerRobotSetting

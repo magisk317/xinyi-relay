@@ -1,7 +1,6 @@
 package io.github.magisk317.relay.data.db.entity
 
 import android.os.Parcelable
-import androidx.compose.runtime.Immutable
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -9,7 +8,6 @@ import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-@Immutable
 @Entity(tableName = "app_info")
 @Parcelize
 @Serializable

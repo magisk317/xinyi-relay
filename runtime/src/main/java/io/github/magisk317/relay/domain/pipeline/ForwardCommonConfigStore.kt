@@ -8,8 +8,8 @@ import android.net.NetworkCapabilities
 import android.os.BatteryManager
 import android.os.Build
 import io.github.magisk317.relay.common.constant.MessageType
-import io.github.magisk317.relay.model.ForwardCommonConfig
-import io.github.magisk317.relay.model.MsgInfo
+import io.github.magisk317.relay.domain.model.ForwardCommonConfig
+import io.github.magisk317.relay.domain.model.MsgInfo
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.data.repository.SettingsRepository
 import io.github.magisk317.relay.data.repository.SimRemarkSettingsSnapshot

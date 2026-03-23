@@ -2,7 +2,7 @@ package io.github.magisk317.relay.domain.filter
 
 import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.domain.event.RelayEvent
-import io.github.magisk317.relay.model.ForwardFilterRule
+import io.github.magisk317.relay.domain.model.ForwardFilterRule
 import java.util.concurrent.ConcurrentHashMap
 
 data class ForwardFilterDecision(

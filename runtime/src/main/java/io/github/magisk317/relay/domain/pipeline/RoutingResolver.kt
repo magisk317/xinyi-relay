@@ -3,7 +3,7 @@ package io.github.magisk317.relay.domain.pipeline
 import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.data.db.AppDatabase
 import io.github.magisk317.relay.domain.event.RelayEvent
-import io.github.magisk317.relay.model.Sender
+import io.github.magisk317.relay.domain.model.Sender
 import io.github.magisk317.relay.domain.filter.ForwardFilterDecision
 import io.github.magisk317.relay.domain.filter.ForwardFilterEngine
 import io.github.magisk317.relay.domain.routing.NotifyRoutingResolver

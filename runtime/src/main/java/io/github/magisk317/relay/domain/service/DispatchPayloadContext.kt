@@ -2,7 +2,7 @@ package io.github.magisk317.relay.domain.service
 
 import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.domain.event.RelayEvent
-import io.github.magisk317.relay.model.MsgInfo
+import io.github.magisk317.relay.domain.model.MsgInfo
 import java.util.Date
 
 data class DispatchPayloadContext(

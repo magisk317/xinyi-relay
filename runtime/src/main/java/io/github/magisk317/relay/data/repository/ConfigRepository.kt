@@ -12,9 +12,9 @@ import io.github.magisk317.relay.data.mapper.ConfigMapper.toDomain
 import io.github.magisk317.relay.data.mapper.ConfigMapper.toEntity
 import io.github.magisk317.relay.data.db.dao.RuleDao
 import io.github.magisk317.relay.data.db.dao.SenderDao
-import io.github.magisk317.relay.model.ForwardFilterRule
-import io.github.magisk317.relay.model.Rule
-import io.github.magisk317.relay.model.Sender
+import io.github.magisk317.relay.domain.model.ForwardFilterRule
+import io.github.magisk317.relay.domain.model.Rule
+import io.github.magisk317.relay.domain.model.Sender
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 

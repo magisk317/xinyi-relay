@@ -3,9 +3,8 @@ plugins {
     id(libs.plugins.kotlin.serialization.get().pluginId)
     id(libs.plugins.kotlin.parcelize.get().pluginId)
     alias(libs.plugins.ksp)
+    id("relay.android.common")
 }
-
-apply(from = rootProject.file("gradle/relay-android-common.gradle"))
 
 android {
     namespace = "io.github.magisk317.relay.runtime"
@@ -55,9 +54,7 @@ android {
 dependencies {
     implementation(project(":smscode-core:smscode-domain"))
 
-    implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.compose.runtime)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.gson)
@@ -90,7 +87,7 @@ val verifyNoComposeUiLeak by tasks.registering {
     val sourceRoot = layout.projectDirectory.dir("src/main/java")
     val projectRoot = layout.projectDirectory.asFile
     val bannedRegexes = listOf(
-        Regex("""^\s*import\s+androidx\.compose\.(?!runtime\.Immutable)"""),
+        Regex("""^\s*import\s+androidx\.compose\."""),
         Regex("""@\s*Composable\b"""),
         Regex("""\bMaterialTheme\b"""),
         Regex("""\bModifier\b"""),

@@ -4,8 +4,8 @@ import android.content.Context
 import com.google.gson.Gson
 import io.github.magisk317.relay.diagnostics.ForwardFlowLog
 import io.github.magisk317.relay.common.utils.XLog
-import io.github.magisk317.relay.model.MsgInfo
-import io.github.magisk317.relay.model.Sender
+import io.github.magisk317.relay.domain.model.MsgInfo
+import io.github.magisk317.relay.domain.model.Sender
 import io.github.magisk317.relay.platform.sender.config.BarkSetting
 import io.github.magisk317.relay.platform.sender.config.DingtalkGroupRobotSetting
 import io.github.magisk317.relay.platform.sender.config.DingtalkInnerRobotSetting
