@@ -11,6 +11,9 @@ import io.github.magisk317.relay.xp.hook.SmsHookDispatchGate
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
+import io.github.magisk317.smscode.domain.utils.RecentEventDeduplicator
+import io.github.magisk317.smscode.domain.utils.SmsForwardDedupKeyFactory
+import io.github.magisk317.smscode.domain.utils.SmsForwardDedupSpec
 import io.github.magisk317.smscode.xposed.helper.XposedWrapper
 import io.github.magisk317.smscode.xposed.hook.BaseHook
 import io.github.magisk317.smscode.xposed.hookapi.LoadParam
@@ -178,6 +181,27 @@ class SmsForwardHook : BaseHook() {
             return
         }
         val resolvedSmsMsg = prepared.smsMsg
+        val dedupKey = SmsForwardDedupKeyFactory.build(
+            SmsForwardDedupSpec(
+                eventId = eventId,
+                sender = resolvedSmsMsg.sender,
+                body = resolvedSmsMsg.body,
+                timestamp = resolvedSmsMsg.date,
+                msgType = SMS_MSG_TYPE,
+                source = SMS_HOOK_SOURCE,
+                simSlot = prepared.simSlot,
+                subId = prepared.subId,
+            ),
+        )
+        if (recentSmsForward.shouldDrop(dedupKey)) {
+            XLog.w(
+                "SmsForwardHook duplicate sms suppressed: event_id=%s action=%s key=%s",
+                eventId,
+                action,
+                dedupKey,
+            )
+            return
+        }
 
         val dispatchResult = XpDispatchCoordinator.dispatchPreparedSms(
             context = pluginContext,
@@ -226,5 +250,9 @@ class SmsForwardHook : BaseHook() {
         private const val SMS_HANDLER_CLASS = "$TELEPHONY_PACKAGE.InboundSmsHandler"
         private val SMSCODE_PACKAGE = BuildConfig.APPLICATION_ID
         private const val DISPATCH_INTENT_METHOD = "dispatchIntent"
+        private const val SMS_MSG_TYPE = "sms"
+        private const val SMS_HOOK_SOURCE = "sms_hook"
+        private const val SMS_FORWARD_DEDUP_WINDOW_MS = 10_000L
+        private val recentSmsForward = RecentEventDeduplicator(windowMs = SMS_FORWARD_DEDUP_WINDOW_MS)
     }
 }

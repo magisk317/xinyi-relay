@@ -11,6 +11,9 @@ import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.relay.platform.metadata.SourceMetadataResolver
+import io.github.magisk317.smscode.domain.utils.RecentEventDeduplicator
+import io.github.magisk317.smscode.domain.utils.SmsForwardDedupKeyFactory
+import io.github.magisk317.smscode.domain.utils.SmsForwardDedupSpec
 import kotlinx.coroutines.runBlocking
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutorService
@@ -71,6 +74,38 @@ class ForwardReceiver : BroadcastReceiver() {
                 val subId = payload.subId
                 val rawSlot = payload.simSlot
                 val callType = payload.callType
+                if (
+                    msgTypeStr == ForwardBroadcastContract.MSG_TYPE_SMS &&
+                    forwardSource == ForwardBroadcastContract.SOURCE_SMS_HOOK
+                ) {
+                    val dedupKey = SmsForwardDedupKeyFactory.build(
+                        SmsForwardDedupSpec(
+                            eventId = eventId,
+                            sender = sender,
+                            body = body,
+                            timestamp = date,
+                            msgType = msgTypeStr,
+                            source = forwardSource,
+                            simSlot = rawSlot,
+                            subId = subId,
+                        ),
+                    )
+                    if (recentSmsForward.shouldDrop(dedupKey)) {
+                        ForwardFlowLog.i(
+                            traceId,
+                            buildString {
+                                append("Drop duplicate sms forward event=")
+                                append(eventId.ifBlank { "<none>" })
+                                append(" key=")
+                                append(dedupKey)
+                                append(" source=")
+                                append(forwardSource)
+                            },
+                        )
+                        markResult(RESULT_DROP_DUPLICATE, "duplicate_sms_drop")
+                        return@runCatching
+                    }
+                }
 
                 // 2. Verifying IPC Token: prevent third-party apps from spoofing broadcasts.
                 // We retrieve local token from DataStore (which is synced to xposed_prefs).
@@ -372,9 +407,11 @@ class ForwardReceiver : BroadcastReceiver() {
             Thread(runnable, "ForwardReceiverWorker-${workerIndex.getAndIncrement()}")
         }
         private val recentNotify = ConcurrentHashMap<String, Long>()
+        private val recentSmsForward = RecentEventDeduplicator(windowMs = SMS_FORWARD_DEDUP_WINDOW_MS)
         private val nmsHookSeen = ConcurrentHashMap<String, Long>()
         private const val ROUTE_NMS_HOOK = ForwardBroadcastContract.SOURCE_NMS_HOOK
         private const val ROUTE_TELEPHONY_STATE = ForwardBroadcastContract.SOURCE_TELEPHONY_STATE
+        private const val SMS_FORWARD_DEDUP_WINDOW_MS = 10_000L
     }
 
     private fun resolveSentFromUidCompat(): Int? {
