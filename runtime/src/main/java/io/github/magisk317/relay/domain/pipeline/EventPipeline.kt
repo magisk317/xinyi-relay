@@ -245,19 +245,19 @@ class EventPipeline(
 
     private suspend fun isForwardTypeEnabled(messageType: MessageType): Boolean {
         return when (messageType) {
-            MessageType.SMS_CODE -> preferenceDataSource.getBoolean(
+            MessageType.SMS_CODE -> preferenceDataSource.getBooleanCompat(
                 PrefConst.KEY_FORWARD_SMS_CODE_ENABLED,
                 defaultForwardEnabled(MessageType.SMS_CODE),
             )
-            MessageType.SMS_PLAIN -> preferenceDataSource.getBoolean(
+            MessageType.SMS_PLAIN -> preferenceDataSource.getBooleanCompat(
                 PrefConst.KEY_FORWARD_SMS_PLAIN_ENABLED,
                 defaultForwardEnabled(MessageType.SMS_PLAIN),
             )
-            MessageType.APP_NOTIFY -> preferenceDataSource.getBoolean(
+            MessageType.APP_NOTIFY -> preferenceDataSource.getBooleanCompat(
                 PrefConst.KEY_FORWARD_APP_NOTIFY_ENABLED,
                 defaultForwardEnabled(MessageType.APP_NOTIFY),
             )
-            MessageType.CALL_NOTIFY -> preferenceDataSource.getBoolean(
+            MessageType.CALL_NOTIFY -> preferenceDataSource.getBooleanCompat(
                 PrefConst.KEY_FORWARD_CALL_NOTIFY_ENABLED,
                 defaultForwardEnabled(MessageType.CALL_NOTIFY),
             )

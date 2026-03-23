@@ -430,19 +430,36 @@ class ForwardReceiver : BroadcastReceiver() {
         traceId: String,
         forwardSource: String,
     ): Boolean {
+        val messageTypeEnabled = runBlocking {
+            runtimeGraph.preferenceDataSource.getBooleanCompat(
+                PrefConst.KEY_MSG_TYPE_APP_NOTIFY_ENABLED,
+                true,
+            )
+        }
+        val forwardTypeEnabled = runBlocking {
+            runtimeGraph.preferenceDataSource.getBooleanCompat(
+                PrefConst.KEY_FORWARD_APP_NOTIFY_ENABLED,
+                true,
+            )
+        }
         val pkg = packageName.orEmpty().trim()
         if (pkg.isEmpty()) {
             ForwardFlowLog.w(
                 traceId,
-                "App notify gate pkg=<empty> source=$forwardSource final_decision=drop reason=empty_package",
+                "App notify gate pkg=<empty> source=$forwardSource messageTypeEnabled=$messageTypeEnabled forwardTypeEnabled=$forwardTypeEnabled final_decision=drop reason=empty_package",
             )
-            XLog.w("App notify gate: empty package source=%s final_decision=drop", forwardSource)
+            XLog.w(
+                "App notify gate: empty package source=%s messageTypeEnabled=%s forwardTypeEnabled=%s final_decision=drop",
+                forwardSource,
+                messageTypeEnabled,
+                forwardTypeEnabled,
+            )
             return false
         }
         val appInfo = runCatching { runtimeGraph.database.appInfoDao().getByPackageName(pkg) }.getOrElse { error ->
             ForwardFlowLog.e(
                 traceId,
-                "App notify gate query failed pkg=$pkg source=$forwardSource final_decision=drop",
+                "App notify gate query failed pkg=$pkg source=$forwardSource messageTypeEnabled=$messageTypeEnabled forwardTypeEnabled=$forwardTypeEnabled final_decision=drop",
                 error,
             )
             XLog.e("App notify gate query failed: pkg=$pkg source=$forwardSource", error)
@@ -456,21 +473,25 @@ class ForwardReceiver : BroadcastReceiver() {
             else -> "disabled"
         }
         val finalDecision = when {
+            !messageTypeEnabled -> "drop_message_type_disabled"
             enabled -> "forward"
             allowWhenMissing -> "allow"
             else -> "drop"
         }
         ForwardFlowLog.i(
             traceId,
-            "App notify gate pkg=$pkg source=$forwardSource state=$state final_decision=$finalDecision",
+            "App notify gate pkg=$pkg source=$forwardSource state=$state messageTypeEnabled=$messageTypeEnabled forwardTypeEnabled=$forwardTypeEnabled final_decision=$finalDecision",
         )
         XLog.d(
-            "App notify gate: pkg=%s source=%s state=%s final_decision=%s",
+            "App notify gate: pkg=%s source=%s state=%s messageTypeEnabled=%s forwardTypeEnabled=%s final_decision=%s",
             pkg,
             forwardSource,
             state,
+            messageTypeEnabled,
+            forwardTypeEnabled,
             finalDecision,
         )
+        if (!messageTypeEnabled) return false
         return enabled || allowWhenMissing
     }
 
