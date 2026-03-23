@@ -1,13 +1,13 @@
-package io.github.magisk317.relay.xp
+package io.github.magisk317.relay.xpbridge
 
 import android.content.Context
 import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.prefs.PrefsReader
-import io.github.magisk317.relay.xp.bridge.NoopXpRuntimeBridge
-import io.github.magisk317.relay.xp.bridge.PrefReadResult as CorePrefReadResult
-import io.github.magisk317.relay.xp.bridge.PrefsSource as CorePrefsSource
-import io.github.magisk317.relay.xp.bridge.XpCapabilities as CoreXpCapabilities
-import io.github.magisk317.relay.xp.bridge.XpRuntimeBridge as CoreXpRuntimeBridge
+import io.github.magisk317.relay.xpbridge.bridge.NoopXpRuntimeBridge
+import io.github.magisk317.relay.xpbridge.bridge.PrefReadResult as CorePrefReadResult
+import io.github.magisk317.relay.xpbridge.bridge.PrefsSource as CorePrefsSource
+import io.github.magisk317.relay.xpbridge.bridge.XpCapabilities as CoreXpCapabilities
+import io.github.magisk317.relay.xpbridge.bridge.XpRuntimeBridge as CoreXpRuntimeBridge
 import io.github.magisk317.relay.prefs.bridge.PrefReadResult as RuntimePrefReadResult
 import io.github.magisk317.relay.prefs.bridge.PrefsSource as RuntimePrefsSource
 import io.github.magisk317.relay.prefs.bridge.XpCapabilities as RuntimeXpCapabilities

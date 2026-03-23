@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.web
+package io.github.magisk317.relay.webui
 
 import java.security.SecureRandom
 import java.util.concurrent.ConcurrentHashMap

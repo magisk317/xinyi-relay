@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import io.github.magisk317.relay.BuildConfig
-import io.github.magisk317.relay.xp.XpRelayTarget
+import io.github.magisk317.relay.xpbridge.XpRelayTarget
 import io.github.magisk317.smscode.xposed.utils.XLog
 
 object ModuleConflictArbiter {

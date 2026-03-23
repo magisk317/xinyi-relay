@@ -25,7 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.magisk317.relay.model.Rule
+import io.github.magisk317.relay.domain.model.Rule
 import io.github.magisk317.relay.ui.sender.displayName
 import io.github.magisk317.relay.core.R
 import org.koin.compose.viewmodel.koinViewModel

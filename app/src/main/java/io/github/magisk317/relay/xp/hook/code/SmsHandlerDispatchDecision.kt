@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.xp.hook.code
 
-import io.github.magisk317.relay.xp.XpSmsBlacklist
+import io.github.magisk317.relay.xpbridge.XpSmsBlacklist
 
 internal object SmsHandlerDispatchDecision {
     enum class BlockReason(val wireValue: String) {

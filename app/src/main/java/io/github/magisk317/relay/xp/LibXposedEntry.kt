@@ -6,6 +6,7 @@ import io.github.magisk317.relay.xp.hook.code.SmsHandlerHook
 import io.github.magisk317.relay.xp.hook.forward.SmsForwardHook
 import io.github.magisk317.relay.xp.hook.me.ModuleUtilsHook
 import io.github.magisk317.relay.xp.hook.telephony.SmsProviderHook
+import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xp.runtime.RuntimeBridgeFactory
 import io.github.magisk317.smscode.xposed.hook.BaseHook
 import io.github.magisk317.smscode.xposed.hook.notification.NotificationManagerHook

@@ -14,8 +14,8 @@ import android.os.SystemClock
 import android.provider.Telephony
 import androidx.annotation.IntDef
 import androidx.core.content.ContextCompat
-import io.github.magisk317.relay.xp.XpPrefs
-import io.github.magisk317.relay.xp.SmsMsg
+import io.github.magisk317.relay.xpbridge.XpPrefs
+import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 import io.github.magisk317.smscode.xposed.utils.XLog
 import java.util.concurrent.CountDownLatch

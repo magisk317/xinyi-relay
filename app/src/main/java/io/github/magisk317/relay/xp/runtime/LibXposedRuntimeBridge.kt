@@ -1,11 +1,11 @@
 package io.github.magisk317.relay.xp.runtime
 
 import android.content.Context
-import io.github.magisk317.relay.xp.bridge.NoopRemotePrefsSource
-import io.github.magisk317.relay.xp.bridge.PrefReadResult
-import io.github.magisk317.relay.xp.bridge.PrefsSource
-import io.github.magisk317.relay.xp.bridge.XpCapabilities
-import io.github.magisk317.relay.xp.bridge.XpRuntimeBridge
+import io.github.magisk317.relay.xpbridge.bridge.NoopRemotePrefsSource
+import io.github.magisk317.relay.xpbridge.bridge.PrefReadResult
+import io.github.magisk317.relay.xpbridge.bridge.PrefsSource
+import io.github.magisk317.relay.xpbridge.bridge.XpCapabilities
+import io.github.magisk317.relay.xpbridge.bridge.XpRuntimeBridge
 
 class LibXposedRuntimeBridge(
     private val runtimeHandle: Any?,

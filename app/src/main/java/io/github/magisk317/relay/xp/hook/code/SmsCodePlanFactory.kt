@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
-import io.github.magisk317.relay.xp.XpPrefs
+import io.github.magisk317.relay.xpbridge.XpPrefs
 
 internal object SmsCodePlanFactory {
     fun loadSettings(pluginContext: Context): SmsCodePostParseCoordinator.Settings {

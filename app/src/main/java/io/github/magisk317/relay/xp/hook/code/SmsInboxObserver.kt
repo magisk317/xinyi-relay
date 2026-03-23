@@ -5,7 +5,7 @@ import android.database.ContentObserver
 import android.os.Handler
 import android.os.Looper
 import android.provider.Telephony
-import io.github.magisk317.relay.xp.XpStringEscaper
+import io.github.magisk317.relay.xpbridge.XpStringEscaper
 import io.github.magisk317.smscode.xposed.utils.XLog
 import java.util.concurrent.Executors
 

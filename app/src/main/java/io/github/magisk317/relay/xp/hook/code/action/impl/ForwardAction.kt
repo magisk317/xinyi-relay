@@ -4,10 +4,10 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Process
-import io.github.magisk317.relay.xp.PreparedSmsHookDispatch
-import io.github.magisk317.relay.xp.SmsMsg
-import io.github.magisk317.relay.xp.XpDispatchCoordinator
-import io.github.magisk317.relay.xp.XpRecordFacade
+import io.github.magisk317.relay.xpbridge.PreparedSmsHookDispatch
+import io.github.magisk317.relay.xpbridge.SmsMsg
+import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
+import io.github.magisk317.relay.xpbridge.XpRecordFacade
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 import io.github.magisk317.smscode.xposed.utils.XLog
 import kotlinx.coroutines.runBlocking

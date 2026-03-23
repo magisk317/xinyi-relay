@@ -32,8 +32,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import io.github.magisk317.relay.model.MsgInfo
-import io.github.magisk317.relay.model.Sender
+import io.github.magisk317.relay.domain.model.MsgInfo
+import io.github.magisk317.relay.domain.model.Sender
 import io.github.magisk317.relay.platform.sender.config.ServerchanSetting
 import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.platform.sender.ServerchanUtils

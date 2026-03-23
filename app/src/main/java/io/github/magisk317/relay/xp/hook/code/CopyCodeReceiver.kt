@@ -7,7 +7,7 @@ import android.content.IntentFilter
 import androidx.core.content.ContextCompat
 import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.xp.XpClipboard
+import io.github.magisk317.relay.xpbridge.XpClipboard
 import io.github.magisk317.smscode.xposed.utils.XLog
 
 /**

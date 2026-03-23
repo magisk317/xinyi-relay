@@ -1,3 +1,3 @@
-package io.github.magisk317.relay.xp
+package io.github.magisk317.relay.xpbridge
 
 typealias SmsMsg = XpSmsMessage

@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.xp
+package io.github.magisk317.relay.xpbridge
 
 import android.content.Context
 import io.github.magisk317.relay.diagnostics.ActivationDiagnosticsStore

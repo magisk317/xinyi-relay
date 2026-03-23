@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.web
+package io.github.magisk317.relay.webui
 
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get

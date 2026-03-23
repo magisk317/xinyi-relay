@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
-import io.github.magisk317.relay.xp.SmsMsg
+import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.smscode.xposed.utils.XLog
 import io.mockk.every
 import io.mockk.mockk

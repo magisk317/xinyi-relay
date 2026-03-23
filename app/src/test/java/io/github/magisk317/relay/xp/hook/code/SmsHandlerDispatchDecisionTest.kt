@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.xp.hook.code
 
-import io.github.magisk317.relay.xp.XpSmsBlacklist
+import io.github.magisk317.relay.xpbridge.XpSmsBlacklist
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull

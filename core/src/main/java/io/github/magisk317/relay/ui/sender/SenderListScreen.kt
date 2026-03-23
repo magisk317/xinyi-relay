@@ -38,8 +38,8 @@ import io.github.magisk317.relay.data.repository.SettingsRepository
 import io.github.magisk317.relay.data.repository.SimRemarkSettingsSnapshot
 import io.github.magisk317.relay.domain.pipeline.ForwardCommonConfigStore
 import io.github.magisk317.relay.domain.sender.SenderType
-import io.github.magisk317.relay.model.ForwardCommonConfig
-import io.github.magisk317.relay.model.Sender
+import io.github.magisk317.relay.domain.model.ForwardCommonConfig
+import io.github.magisk317.relay.domain.model.Sender
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -122,8 +122,8 @@ private const val DIALOG_WIDTH_FRACTION = 0.92f
 private const val UNDO_SNACKBAR_DURATION_MS = 5_000L
 private const val UNDO_COUNTDOWN_TICK_MS = 50L
 
-private fun buildSmsPreviewMessage(): io.github.magisk317.relay.model.MsgInfo {
-    return io.github.magisk317.relay.model.MsgInfo(
+private fun buildSmsPreviewMessage(): io.github.magisk317.relay.domain.model.MsgInfo {
+    return io.github.magisk317.relay.domain.model.MsgInfo(
         type = "sms",
         from = "10690001234",
         content = "【测试银行】您的验证码为 123456，请勿泄露。",
@@ -136,8 +136,8 @@ private fun buildSmsPreviewMessage(): io.github.magisk317.relay.model.MsgInfo {
     )
 }
 
-private fun buildAppNotifyPreviewMessage(): io.github.magisk317.relay.model.MsgInfo {
-    return io.github.magisk317.relay.model.MsgInfo(
+private fun buildAppNotifyPreviewMessage(): io.github.magisk317.relay.domain.model.MsgInfo {
+    return io.github.magisk317.relay.domain.model.MsgInfo(
         type = "app_notify",
         from = "微信支付",
         content = "收款到账 52.00 元",
@@ -151,8 +151,8 @@ private fun buildAppNotifyPreviewMessage(): io.github.magisk317.relay.model.MsgI
     )
 }
 
-private fun buildCallNotifyPreviewMessage(): io.github.magisk317.relay.model.MsgInfo {
-    return io.github.magisk317.relay.model.MsgInfo(
+private fun buildCallNotifyPreviewMessage(): io.github.magisk317.relay.domain.model.MsgInfo {
+    return io.github.magisk317.relay.domain.model.MsgInfo(
         type = "call_notify",
         from = "10086",
         content = "时长 00:32",

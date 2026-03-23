@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.xp
+package io.github.magisk317.relay.xpbridge
 
 import io.github.magisk317.relay.common.constant.TransitionConst
 

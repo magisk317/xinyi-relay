@@ -49,7 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.navigationBarsPadding
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.utils.ClipboardUtils
-import io.github.magisk317.relay.common.utils.WebUiCertificateHelper
+import io.github.magisk317.relay.platform.web.WebUiCertificateHelper
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.data.repository.SettingsRepository

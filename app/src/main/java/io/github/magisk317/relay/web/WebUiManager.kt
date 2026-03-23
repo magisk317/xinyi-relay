@@ -2,6 +2,7 @@ package io.github.magisk317.relay.web
 
 import android.content.Context
 import io.github.magisk317.relay.service.WebUiForegroundService
+import io.github.magisk317.relay.webui.WebUiConfigStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

@@ -5,8 +5,8 @@ import android.content.Intent
 import android.os.Process
 import android.provider.Telephony
 import io.github.magisk317.relay.BuildConfig
-import io.github.magisk317.relay.xp.XpDispatchCoordinator
-import io.github.magisk317.relay.xp.XpPrefs
+import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
+import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xp.hook.SmsHookDispatchGate
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter

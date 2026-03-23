@@ -5,8 +5,8 @@ import android.content.ContentValues
 import android.net.Uri
 import android.os.Binder
 import io.github.magisk317.relay.BuildConfig
-import io.github.magisk317.relay.xp.XpHookDiagnostics
-import io.github.magisk317.relay.xp.XpPrefs
+import io.github.magisk317.relay.xpbridge.XpHookDiagnostics
+import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.smscode.xposed.utils.XLog
 import io.github.magisk317.smscode.xposed.hook.BaseHook
 import io.github.magisk317.smscode.xposed.helper.XposedWrapper

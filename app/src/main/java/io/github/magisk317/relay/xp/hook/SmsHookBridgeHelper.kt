@@ -1,8 +1,8 @@
 package io.github.magisk317.relay.xp.hook
 
 import android.content.Context
-import io.github.magisk317.relay.xp.XpHookDiagnostics
-import io.github.magisk317.relay.xp.XpPrefs
+import io.github.magisk317.relay.xpbridge.XpHookDiagnostics
+import io.github.magisk317.relay.xpbridge.XpPrefs
 
 internal object SmsHookBridgeHelper {
     fun resolvePluginContext(

@@ -9,10 +9,10 @@ import android.provider.Telephony
 import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.smscode.xposed.utils.ModuleActivationStore
-import io.github.magisk317.relay.xp.SmsMsg
-import io.github.magisk317.relay.xp.XpDispatchCoordinator
-import io.github.magisk317.relay.xp.XpNotificationBridge
-import io.github.magisk317.relay.xp.XpPrefs
+import io.github.magisk317.relay.xpbridge.SmsMsg
+import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
+import io.github.magisk317.relay.xpbridge.XpNotificationBridge
+import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
 import io.github.magisk317.smscode.xposed.utils.XLog

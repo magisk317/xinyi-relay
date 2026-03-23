@@ -6,8 +6,8 @@ import android.content.pm.PackageManager
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.magisk317.relay.model.ForwardFilterRule
-import io.github.magisk317.relay.model.Sender
+import io.github.magisk317.relay.domain.model.ForwardFilterRule
+import io.github.magisk317.relay.domain.model.Sender
 import io.github.magisk317.relay.domain.filter.ForwardFilterConst
 import io.github.magisk317.relay.domain.sender.SenderSettingSanitizer
 import io.github.magisk317.relay.common.utils.XLog

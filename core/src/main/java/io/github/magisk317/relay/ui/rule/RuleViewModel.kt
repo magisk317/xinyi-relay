@@ -3,8 +3,8 @@ package io.github.magisk317.relay.ui.rule
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.magisk317.relay.model.Rule
-import io.github.magisk317.relay.model.Sender
+import io.github.magisk317.relay.domain.model.Rule
+import io.github.magisk317.relay.domain.model.Sender
 import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.common.constant.Const
 import io.github.magisk317.relay.core.BuildConfig

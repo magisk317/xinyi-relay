@@ -33,7 +33,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.model.ForwardFilterRule
+import io.github.magisk317.relay.domain.model.ForwardFilterRule
 import io.github.magisk317.relay.domain.filter.ForwardFilterConst
 import io.github.magisk317.relay.ui.common.CenteredChipText
 import io.github.magisk317.relay.ui.common.SegmentedOption

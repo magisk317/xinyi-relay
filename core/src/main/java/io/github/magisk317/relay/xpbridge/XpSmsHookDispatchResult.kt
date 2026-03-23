@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.xp
+package io.github.magisk317.relay.xpbridge
 
 data class XpSmsHookDispatchResult(
     val dispatched: Boolean,

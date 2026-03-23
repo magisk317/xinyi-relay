@@ -11,11 +11,11 @@ import io.github.magisk317.relay.common.constant.NotificationConst
 import io.github.magisk317.relay.common.utils.NotificationUtils
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.ui.home.MainActivity
-import io.github.magisk317.relay.web.WebUiConfigSnapshot
-import io.github.magisk317.relay.web.WebUiConfigStore
-import io.github.magisk317.relay.web.WebUiRuntimeConfig
-import io.github.magisk317.relay.web.WebUiServer
-import io.github.magisk317.relay.web.WebUiTlsManager
+import io.github.magisk317.relay.webui.WebUiConfigSnapshot
+import io.github.magisk317.relay.webui.WebUiConfigStore
+import io.github.magisk317.relay.webui.WebUiRuntimeConfig
+import io.github.magisk317.relay.webui.WebUiServer
+import io.github.magisk317.relay.webui.WebUiTlsManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

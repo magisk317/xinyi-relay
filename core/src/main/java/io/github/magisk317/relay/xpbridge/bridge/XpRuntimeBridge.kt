@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.xp.bridge
+package io.github.magisk317.relay.xpbridge.bridge
 
 interface XpRuntimeBridge {
     fun capabilities(): XpCapabilities

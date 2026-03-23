@@ -5,11 +5,11 @@ import android.content.Intent
 import android.os.Bundle
 import android.text.TextUtils
 import io.github.magisk317.relay.BuildConfig
-import io.github.magisk317.relay.xp.SmsMsg
-import io.github.magisk317.relay.xp.XpDispatchCoordinator
-import io.github.magisk317.relay.xp.XpMessageTypes
-import io.github.magisk317.relay.xp.XpRecordFacade
-import io.github.magisk317.relay.xp.XpStringEscaper
+import io.github.magisk317.relay.xpbridge.SmsMsg
+import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
+import io.github.magisk317.relay.xpbridge.XpMessageTypes
+import io.github.magisk317.relay.xpbridge.XpRecordFacade
+import io.github.magisk317.relay.xpbridge.XpStringEscaper
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 import io.github.magisk317.smscode.xposed.utils.XLog
 

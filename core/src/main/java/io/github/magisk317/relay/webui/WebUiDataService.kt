@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.web
+package io.github.magisk317.relay.webui
 
 import android.content.Context
 import android.content.pm.PackageManager
@@ -15,7 +15,7 @@ import io.github.magisk317.relay.data.update.UpgradeCheckResult
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.core.BuildConfig
-import io.github.magisk317.relay.model.Sender
+import io.github.magisk317.relay.domain.model.Sender
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

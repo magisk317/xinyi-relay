@@ -31,8 +31,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.google.gson.Gson
-import io.github.magisk317.relay.model.MsgInfo
-import io.github.magisk317.relay.model.Sender
+import io.github.magisk317.relay.domain.model.MsgInfo
+import io.github.magisk317.relay.domain.model.Sender
 import io.github.magisk317.relay.platform.sender.config.NtfySetting
 import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.platform.sender.NtfyUtils

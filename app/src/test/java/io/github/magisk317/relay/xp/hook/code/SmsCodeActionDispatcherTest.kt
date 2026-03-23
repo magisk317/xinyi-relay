@@ -3,7 +3,7 @@ package io.github.magisk317.relay.xp.hook.code
 import android.content.Context
 import android.content.Intent
 import android.os.Handler
-import io.github.magisk317.relay.xp.SmsMsg
+import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.mockk.mockk
 import java.util.concurrent.ScheduledExecutorService
 import org.junit.jupiter.api.Assertions.assertEquals

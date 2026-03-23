@@ -2,9 +2,9 @@ package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
 import android.content.Intent
-import io.github.magisk317.relay.xp.SmsMsg
-import io.github.magisk317.relay.xp.XpDispatchCoordinator
-import io.github.magisk317.relay.xp.XpSmsBlacklist
+import io.github.magisk317.relay.xpbridge.SmsMsg
+import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
+import io.github.magisk317.relay.xpbridge.XpSmsBlacklist
 import io.github.magisk317.smscode.xposed.utils.XLog
 
 internal class SmsDispatchIntentProcessor(

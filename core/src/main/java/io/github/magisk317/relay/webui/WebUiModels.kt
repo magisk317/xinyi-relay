@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.web
+package io.github.magisk317.relay.webui
 
 import io.github.magisk317.relay.domain.sender.SenderType
 import kotlinx.serialization.Serializable

@@ -2,8 +2,8 @@ package io.github.magisk317.relay.xp.hook.code.action.impl
 
 import android.content.Context
 import android.os.Bundle
-import io.github.magisk317.relay.xp.SmsMsg
-import io.github.magisk317.relay.xp.XpClipboard
+import io.github.magisk317.relay.xpbridge.SmsMsg
+import io.github.magisk317.relay.xpbridge.XpClipboard
 import io.github.magisk317.relay.xp.hook.code.action.RunnableAction
 import io.github.magisk317.smscode.xposed.utils.XLog
 

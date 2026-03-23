@@ -1,10 +1,10 @@
-package io.github.magisk317.relay.xp
+package io.github.magisk317.relay.xpbridge
 
 import android.content.Context
 import android.content.Intent
 import io.github.magisk317.relay.common.constant.MessageType
-import io.github.magisk317.relay.platform.ipc.PreparedSmsHookDispatch
 import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
+import io.github.magisk317.relay.platform.ipc.PreparedSmsHookDispatch as RuntimePreparedSmsHookDispatch
 
 object XpDispatchCoordinator {
     fun ensureIncomingEventId(intent: Intent): String = SmsHookDispatchCoordinator.ensureIncomingEventId(intent)
@@ -17,7 +17,7 @@ object XpDispatchCoordinator {
         smsMsg: SmsMsg,
         sourceIntent: Intent? = null,
         eventId: String? = null,
-    ): io.github.magisk317.relay.xp.PreparedSmsHookDispatch {
+    ): PreparedSmsHookDispatch {
         val prepared = SmsHookDispatchCoordinator.prepareParsedSms(
             smsMsg = smsMsg.toRuntime(),
             sourceIntent = sourceIntent,
@@ -32,7 +32,7 @@ object XpDispatchCoordinator {
         smsMsg: SmsMsg,
         sourceIntent: Intent? = null,
         eventId: String? = null,
-    ): io.github.magisk317.relay.xp.PreparedSmsHookDispatch? {
+    ): PreparedSmsHookDispatch? {
         return SmsHookDispatchCoordinator.prepareIngressSms(
             pluginContext = pluginContext,
             phoneContext = phoneContext,
@@ -60,7 +60,7 @@ object XpDispatchCoordinator {
 
     fun dispatchPreparedSms(
         context: Context,
-        prepared: io.github.magisk317.relay.xp.PreparedSmsHookDispatch,
+        prepared: PreparedSmsHookDispatch,
         sentFromUid: Int?,
     ): XpSmsHookDispatchResult {
         val result = SmsHookDispatchCoordinator.dispatchPreparedSms(
@@ -75,8 +75,8 @@ object XpDispatchCoordinator {
         )
     }
 
-    private fun PreparedSmsHookDispatch.toXpPreparedDispatch(): io.github.magisk317.relay.xp.PreparedSmsHookDispatch {
-        return io.github.magisk317.relay.xp.PreparedSmsHookDispatch(
+    private fun RuntimePreparedSmsHookDispatch.toXpPreparedDispatch(): PreparedSmsHookDispatch {
+        return PreparedSmsHookDispatch(
             runtimePrepared = this,
             smsMsg = SmsMsg.fromRuntime(smsMsg),
             messageType = messageType?.toXpMessageType(),

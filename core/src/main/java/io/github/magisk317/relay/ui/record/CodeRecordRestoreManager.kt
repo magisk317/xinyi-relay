@@ -8,7 +8,7 @@ import io.github.magisk317.relay.common.utils.StorageUtils
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
-import io.github.magisk317.relay.xp.XpSmsMessage
+import io.github.magisk317.relay.xpbridge.XpSmsMessage
 import kotlinx.coroutines.runBlocking
 import java.io.*
 import java.nio.charset.StandardCharsets
