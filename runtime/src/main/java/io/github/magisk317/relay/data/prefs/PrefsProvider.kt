@@ -10,7 +10,7 @@ import android.net.Uri
 import android.os.Binder
 import android.os.Process
 import android.os.Bundle
-import io.github.magisk317.relay.common.utils.AppPreferencesDataStore
+import io.github.magisk317.relay.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.common.utils.XLog
 import kotlinx.coroutines.runBlocking
 

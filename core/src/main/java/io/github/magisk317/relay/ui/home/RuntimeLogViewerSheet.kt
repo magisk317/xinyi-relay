@@ -38,9 +38,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.common.utils.ClipboardUtils
-import io.github.magisk317.relay.common.utils.LogBundleExporter
-import io.github.magisk317.relay.common.utils.RuntimeLogEntry
-import io.github.magisk317.relay.common.utils.RuntimeLogStore
+import io.github.magisk317.relay.diagnostics.LogBundleExporter
+import io.github.magisk317.relay.diagnostics.RuntimeLogEntry
+import io.github.magisk317.relay.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState

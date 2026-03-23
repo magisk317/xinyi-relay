@@ -1,8 +1,8 @@
 package io.github.magisk317.relay.xp
 
 import android.content.Context
-import io.github.magisk317.relay.common.utils.ActivationDiagnosticsStore
-import io.github.magisk317.relay.common.utils.RuntimeLogStore
+import io.github.magisk317.relay.diagnostics.ActivationDiagnosticsStore
+import io.github.magisk317.relay.diagnostics.RuntimeLogStore
 
 object XpHookDiagnostics {
     fun recordSmsHookHeartbeat(

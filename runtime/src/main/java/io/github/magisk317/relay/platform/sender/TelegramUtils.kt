@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.platform.sender
 
 import io.github.magisk317.relay.model.MsgInfo
-import io.github.magisk317.relay.model.setting.TelegramSetting
+import io.github.magisk317.relay.platform.sender.config.TelegramSetting
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

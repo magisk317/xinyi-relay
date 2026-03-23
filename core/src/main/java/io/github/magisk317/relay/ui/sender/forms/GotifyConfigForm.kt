@@ -34,7 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.model.MsgInfo
 import io.github.magisk317.relay.model.Sender
-import io.github.magisk317.relay.model.setting.GotifySetting
+import io.github.magisk317.relay.platform.sender.config.GotifySetting
 import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.platform.sender.GotifyUtils
 import io.github.magisk317.relay.ui.sender.SenderViewModel

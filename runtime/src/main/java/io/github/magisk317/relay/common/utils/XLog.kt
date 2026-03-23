@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.common.utils
 
 import android.util.Log
+import io.github.magisk317.relay.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.runtime.BuildConfig
 import timber.log.Timber
 

@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.common.utils
 
 import android.os.SystemClock
+import io.github.magisk317.relay.diagnostics.RuntimeLogStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

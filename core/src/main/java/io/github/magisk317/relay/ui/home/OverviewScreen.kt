@@ -108,8 +108,8 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import io.github.magisk317.relay.common.constant.Const
 import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.utils.ActivationDiagnosticsSnapshot
-import io.github.magisk317.relay.common.utils.ActivationDiagnosticsStore
+import io.github.magisk317.relay.diagnostics.ActivationDiagnosticsSnapshot
+import io.github.magisk317.relay.diagnostics.ActivationDiagnosticsStore
 import io.github.magisk317.relay.common.utils.FrameworkCompatibilityMonitor
 import io.github.magisk317.relay.common.utils.PackageUtils
 import io.github.magisk317.relay.common.utils.Utils

@@ -1,0 +1,16 @@
+package io.github.magisk317.relay.platform.sender.result
+
+import androidx.annotation.Keep
+
+@Keep
+data class DingtalkInnerRobotResult(
+    //获取access_token返回
+    var accessToken: String?,
+    var expireIn: Long?,
+    //消息id
+    var processQueryKey: String?,
+    //无效的用户userid列表
+    //var invalidStaffIdList: String[],
+    //被限流的userid列表
+    //var flowControlledStaffIdList: String[],
+)

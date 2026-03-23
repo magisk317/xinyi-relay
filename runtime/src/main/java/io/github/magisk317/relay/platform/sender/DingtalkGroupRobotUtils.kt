@@ -3,8 +3,8 @@ package io.github.magisk317.relay.platform.sender
 import android.text.TextUtils
 import android.util.Base64
 import io.github.magisk317.relay.model.MsgInfo
-import io.github.magisk317.relay.model.result.DingtalkResult
-import io.github.magisk317.relay.model.setting.DingtalkGroupRobotSetting
+import io.github.magisk317.relay.platform.sender.result.DingtalkResult
+import io.github.magisk317.relay.platform.sender.config.DingtalkGroupRobotSetting
 import io.github.magisk317.relay.domain.sender.utils.HttpUtils
 import com.google.gson.Gson
 import java.net.URLEncoder

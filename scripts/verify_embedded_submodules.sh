@@ -27,9 +27,13 @@ forbid_pattern() {
 }
 
 require_pattern "$SUBMODULE_SETTINGS" 'include\(":core"\)' \
-  "smscode-core/settings.gradle.kts must keep only the embedded :core include"
-forbid_pattern "$SUBMODULE_SETTINGS" 'include\(":app"\)|include\(":runtime"\)|include\(":core",' \
-  "smscode-core/settings.gradle.kts must not grow standalone app/runtime includes"
+  "smscode-core/settings.gradle.kts must keep the legacy :core module during migration"
+require_pattern "$SUBMODULE_SETTINGS" 'include\(":smscode-xposed-core"\)' \
+  "smscode-core/settings.gradle.kts must include :smscode-xposed-core"
+require_pattern "$SUBMODULE_SETTINGS" 'include\(":smscode-domain"\)' \
+  "smscode-core/settings.gradle.kts must include :smscode-domain"
+forbid_pattern "$SUBMODULE_SETTINGS" 'include\(":app"\)|include\(":runtime"\)' \
+  "smscode-core/settings.gradle.kts must stay a shared-library workspace without standalone app/runtime modules"
 
 forbid_pattern "$SUBMODULE_BUILD" 'dependencies\s*\{' \
   "smscode-core/build.gradle.kts must stay a minimal embedded-root stub without root dependencies"

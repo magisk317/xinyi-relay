@@ -34,7 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.model.MsgInfo
 import io.github.magisk317.relay.model.Sender
-import io.github.magisk317.relay.model.setting.BarkSetting
+import io.github.magisk317.relay.platform.sender.config.BarkSetting
 import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.platform.sender.BarkUtils
 import io.github.magisk317.relay.ui.sender.SenderViewModel

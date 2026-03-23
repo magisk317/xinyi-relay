@@ -3,7 +3,7 @@ package io.github.magisk317.relay.domain.recovery
 import android.content.Context
 import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.utils.SmsCodeUtils
+import io.github.magisk317.relay.sms.SmsCodeUtils
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.data.db.dao.SmsMsgDao

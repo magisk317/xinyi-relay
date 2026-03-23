@@ -3,10 +3,10 @@ package io.github.magisk317.relay.app
 import android.app.Application
 import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
-import io.github.magisk317.relay.common.utils.ActivationDiagnosticsStore
-import io.github.magisk317.relay.common.utils.AppPreferencesDataStore
-import io.github.magisk317.relay.common.utils.PrefsReader as RelayPrefsReader
-import io.github.magisk317.relay.common.utils.RuntimeActivationState
+import io.github.magisk317.relay.diagnostics.ActivationDiagnosticsStore
+import io.github.magisk317.relay.prefs.AppPreferencesDataStore
+import io.github.magisk317.relay.prefs.PrefsReader as RelayPrefsReader
+import io.github.magisk317.relay.diagnostics.RuntimeActivationState
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.domain.recovery.RootDbCatchupScheduler
 import io.github.magisk317.relay.feature.call.CallStateMonitor

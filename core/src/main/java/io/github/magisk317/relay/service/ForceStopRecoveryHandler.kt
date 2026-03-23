@@ -2,7 +2,7 @@ package io.github.magisk317.relay.service
 
 import android.content.Context
 import android.util.Log
-import io.github.magisk317.relay.common.utils.RuntimeLogStore
+import io.github.magisk317.relay.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.domain.recovery.RootDbCatchupScheduler
 

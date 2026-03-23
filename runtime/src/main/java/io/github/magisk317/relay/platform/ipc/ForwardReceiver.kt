@@ -6,7 +6,7 @@ import android.content.Intent
 import android.os.Build
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.utils.CallSessionTracker
-import io.github.magisk317.relay.common.utils.ForwardFlowLog
+import io.github.magisk317.relay.diagnostics.ForwardFlowLog
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache

@@ -6,7 +6,7 @@ import androidx.compose.runtime.Immutable
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import io.github.magisk317.relay.common.utils.SmsMessageUtils
+import io.github.magisk317.relay.sms.SmsMessageUtils
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

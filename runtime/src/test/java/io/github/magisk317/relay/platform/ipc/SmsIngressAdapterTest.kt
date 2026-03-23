@@ -5,7 +5,7 @@ import android.content.pm.PackageManager
 import android.content.Context
 import android.content.Intent
 import io.github.magisk317.relay.common.constant.MessageType
-import io.github.magisk317.relay.common.utils.SmsCodeUtils
+import io.github.magisk317.relay.sms.SmsCodeUtils
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.mockk.coEvery
 import io.mockk.every

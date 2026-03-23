@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.platform.sender
 
 import android.util.Log
-import io.github.magisk317.relay.common.utils.RuntimeLogStore
+import io.github.magisk317.relay.diagnostics.RuntimeLogStore
 
 internal object SLog {
     fun d(tag: String, message: String) {

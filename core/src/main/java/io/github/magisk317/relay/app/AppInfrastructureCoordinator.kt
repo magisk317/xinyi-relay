@@ -3,7 +3,7 @@ package io.github.magisk317.relay.app
 import android.app.Application
 import android.content.Context
 import io.github.magisk317.relay.analytics.AnalyticsTracker
-import io.github.magisk317.relay.common.utils.RuntimeLogStore
+import io.github.magisk317.relay.diagnostics.RuntimeLogStore
 import io.github.magisk317.smscode.xposed.runtime.CoreHookPolicy
 import io.github.magisk317.smscode.xposed.runtime.CoreHookPolicyHolder
 import io.github.magisk317.smscode.xposed.runtime.CoreLogSink

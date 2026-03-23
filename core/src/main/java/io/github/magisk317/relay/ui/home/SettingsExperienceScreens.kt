@@ -41,8 +41,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.common.constant.Const
 import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.utils.LogBundleExporter
-import io.github.magisk317.relay.common.utils.RuntimeLogStore
+import io.github.magisk317.relay.diagnostics.LogBundleExporter
+import io.github.magisk317.relay.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.data.repository.DiagnosticsSettingsSnapshot

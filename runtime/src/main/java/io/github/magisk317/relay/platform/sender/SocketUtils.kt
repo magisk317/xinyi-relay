@@ -2,7 +2,7 @@ package io.github.magisk317.relay.platform.sender
 
 import android.text.TextUtils
 import io.github.magisk317.relay.model.MsgInfo
-import io.github.magisk317.relay.model.setting.SocketSetting
+import io.github.magisk317.relay.platform.sender.config.SocketSetting
 import io.github.magisk317.relay.domain.sender.SenderSettingSanitizer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

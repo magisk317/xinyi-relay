@@ -1,8 +1,8 @@
 package io.github.magisk317.relay.platform.sender
 
 import io.github.magisk317.relay.model.MsgInfo
-import io.github.magisk317.relay.model.result.FeishuAppResult
-import io.github.magisk317.relay.model.setting.FeishuAppSetting
+import io.github.magisk317.relay.platform.sender.result.FeishuAppResult
+import io.github.magisk317.relay.platform.sender.config.FeishuAppSetting
 import com.google.gson.Gson
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient

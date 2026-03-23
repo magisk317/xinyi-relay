@@ -2,7 +2,7 @@ package io.github.magisk317.relay.legacy.forwarder
 
 import android.content.Context
 import io.github.magisk317.relay.common.constant.MessageType
-import io.github.magisk317.relay.common.utils.ForwardFlowLog
+import io.github.magisk317.relay.diagnostics.ForwardFlowLog
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.domain.event.RelayEvent
 import io.github.magisk317.relay.bootstrap.RuntimeGraph

@@ -60,51 +60,62 @@ forbid_imports_in_dir() {
 
 forbid_imports_in_dir "$APP_SRC/app" \
   '^import io\.github\.magisk317\.relay\.bootstrap\.' \
+  '^import io\.github\.magisk317\.relay\.diagnostics\.' \
   '^import io\.github\.magisk317\.relay\.data\.' \
   '^import io\.github\.magisk317\.relay\.domain\.' \
   '^import io\.github\.magisk317\.relay\.platform\.' \
   '^import io\.github\.magisk317\.relay\.legacy\.' \
   '^import io\.github\.magisk317\.relay\.model\.' \
+  '^import io\.github\.magisk317\.relay\.prefs\.' \
+  '^import io\.github\.magisk317\.relay\.sms\.' \
   '^import io\.github\.magisk317\.relay\.common\.(constant|utils)\.' \
-  '^import io\.github\.magisk317\.smscode\.core\.'
+  '^import io\.github\.magisk317\.smscode\.(core|xposed|domain)\.'
 
 forbid_imports_in_dir "$APP_SRC/receiver" \
   '^import io\.github\.magisk317\.relay\.bootstrap\.' \
+  '^import io\.github\.magisk317\.relay\.diagnostics\.' \
   '^import io\.github\.magisk317\.relay\.data\.' \
   '^import io\.github\.magisk317\.relay\.domain\.' \
   '^import io\.github\.magisk317\.relay\.platform\.' \
   '^import io\.github\.magisk317\.relay\.legacy\.' \
   '^import io\.github\.magisk317\.relay\.model\.' \
+  '^import io\.github\.magisk317\.relay\.prefs\.' \
+  '^import io\.github\.magisk317\.relay\.sms\.' \
   '^import io\.github\.magisk317\.relay\.common\.(constant|utils)\.' \
-  '^import io\.github\.magisk317\.smscode\.core\.'
+  '^import io\.github\.magisk317\.smscode\.(core|xposed|domain)\.'
 
 forbid_imports_in_dir "$APP_SRC/service" \
   '^import io\.github\.magisk317\.relay\.bootstrap\.' \
+  '^import io\.github\.magisk317\.relay\.diagnostics\.' \
   '^import io\.github\.magisk317\.relay\.data\.' \
   '^import io\.github\.magisk317\.relay\.domain\.' \
   '^import io\.github\.magisk317\.relay\.platform\.' \
   '^import io\.github\.magisk317\.relay\.legacy\.' \
   '^import io\.github\.magisk317\.relay\.model\.' \
+  '^import io\.github\.magisk317\.relay\.prefs\.' \
+  '^import io\.github\.magisk317\.relay\.sms\.' \
   '^import io\.github\.magisk317\.relay\.common\.(constant|utils)\.' \
-  '^import io\.github\.magisk317\.smscode\.core\.'
+  '^import io\.github\.magisk317\.smscode\.(core|xposed|domain)\.'
 
 forbid_imports_in_dir "$APP_SRC/web" \
   '^import io\.github\.magisk317\.relay\.bootstrap\.' \
+  '^import io\.github\.magisk317\.relay\.diagnostics\.' \
   '^import io\.github\.magisk317\.relay\.data\.' \
   '^import io\.github\.magisk317\.relay\.domain\.' \
   '^import io\.github\.magisk317\.relay\.platform\.' \
   '^import io\.github\.magisk317\.relay\.legacy\.' \
   '^import io\.github\.magisk317\.relay\.model\.' \
+  '^import io\.github\.magisk317\.relay\.prefs\.' \
+  '^import io\.github\.magisk317\.relay\.sms\.' \
   '^import io\.github\.magisk317\.relay\.common\.(constant|utils)\.' \
-  '^import io\.github\.magisk317\.smscode\.core\.'
+  '^import io\.github\.magisk317\.smscode\.(core|xposed|domain)\.'
 
 forbid_imports_in_dir "$APP_SRC/xp" \
-  '^import io\.github\.magisk317\.relay\.common\.xp\.' \
-  '^import io\.github\.magisk317\.relay\.common\.constant\.(NotificationConst|TransitionConst|MessageType)$' \
-  '^import io\.github\.magisk317\.relay\.common\.utils\.(PrefsReader|ActivationDiagnosticsStore|RuntimeLogStore|ClipboardUtils|SmsBlacklistUtils|StringUtils|SmsCodeUtils|NotificationUtils)$' \
-  '^import io\.github\.magisk317\.relay\.data\.db\.entity\.SmsMsg$' \
-  '^import io\.github\.magisk317\.relay\.domain\.system\.(RuntimeRecordFacade|RuntimeAppConfigFacade)$' \
-  '^import io\.github\.magisk317\.relay\.platform\.ipc\.(SmsHookDispatchCoordinator|PreparedSmsHookDispatch)$'
+  '^import io\.github\.magisk317\.relay\.(bootstrap|data|domain|legacy|model|platform)\.' \
+  '^import io\.github\.magisk317\.relay\.(diagnostics|prefs|sms)\.' \
+  '^import io\.github\.magisk317\.relay\.common\.' \
+  '^import io\.github\.magisk317\.relay\.ui\.' \
+  '^import io\.github\.magisk317\.smscode\.(core|domain)\.'
 
 if [[ "${#violations[@]}" -ne 0 ]]; then
   printf 'Structure boundary verification failed:\n' >&2

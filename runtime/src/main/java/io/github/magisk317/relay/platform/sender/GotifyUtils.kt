@@ -1,8 +1,8 @@
 package io.github.magisk317.relay.platform.sender
 
 import io.github.magisk317.relay.model.MsgInfo
-import io.github.magisk317.relay.model.result.GotifyResult
-import io.github.magisk317.relay.model.setting.GotifySetting
+import io.github.magisk317.relay.platform.sender.result.GotifyResult
+import io.github.magisk317.relay.platform.sender.config.GotifySetting
 import com.google.gson.Gson
 import okhttp3.Credentials
 import okhttp3.FormBody

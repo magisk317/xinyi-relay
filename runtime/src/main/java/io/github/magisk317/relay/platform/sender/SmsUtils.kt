@@ -7,7 +7,7 @@ import android.os.Build
 import android.telephony.SmsManager
 import androidx.core.content.ContextCompat
 import io.github.magisk317.relay.model.MsgInfo
-import io.github.magisk317.relay.model.setting.SmsSetting
+import io.github.magisk317.relay.platform.sender.config.SmsSetting
 
 object SmsUtils {
     private const val TAG = "SmsUtils"

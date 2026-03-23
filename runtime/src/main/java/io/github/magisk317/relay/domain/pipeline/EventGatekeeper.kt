@@ -2,7 +2,7 @@ package io.github.magisk317.relay.domain.pipeline
 
 import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.utils.ForwardFlowLog
+import io.github.magisk317.relay.diagnostics.ForwardFlowLog
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.data.db.AppDatabase

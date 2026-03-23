@@ -1,8 +1,8 @@
 package io.github.magisk317.relay.platform.sender
 
 import io.github.magisk317.relay.model.MsgInfo
-import io.github.magisk317.relay.model.result.WeworkRobotResult
-import io.github.magisk317.relay.model.setting.WeworkRobotSetting
+import io.github.magisk317.relay.platform.sender.result.WeworkRobotResult
+import io.github.magisk317.relay.platform.sender.config.WeworkRobotSetting
 import com.google.gson.Gson
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
