@@ -91,7 +91,12 @@ fun GlobalForwardFilterScreen(
                 },
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState, modifier = Modifier.navigationBarsPadding()) },
+        snackbarHost = {
+            io.github.magisk317.relay.ui.common.DismissibleSnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.navigationBarsPadding(),
+            )
+        },
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -207,7 +212,12 @@ fun AppForwardFilterScreen(
                 },
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState, modifier = Modifier.navigationBarsPadding()) },
+        snackbarHost = {
+            io.github.magisk317.relay.ui.common.DismissibleSnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.navigationBarsPadding(),
+            )
+        },
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier

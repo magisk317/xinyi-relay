@@ -279,7 +279,12 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                 },
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState, modifier = Modifier.navigationBarsPadding()) },
+        snackbarHost = {
+            io.github.magisk317.relay.ui.common.DismissibleSnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.navigationBarsPadding(),
+            )
+        },
     ) { padding ->
         val current = settings ?: return@Scaffold
         val lowChannelLabel = channelOptions.firstOrNull { it.id == current.lowBatteryChannelId }?.label

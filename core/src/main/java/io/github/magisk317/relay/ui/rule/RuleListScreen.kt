@@ -58,7 +58,12 @@ fun RuleListScreen(
                 Text(if (senderName != null) "$senderName 的规则" else "转发规则")
             })
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState, modifier = Modifier.navigationBarsPadding()) },
+        snackbarHost = {
+            io.github.magisk317.relay.ui.common.DismissibleSnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.navigationBarsPadding(),
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(
                 modifier = Modifier

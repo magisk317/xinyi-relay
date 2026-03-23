@@ -95,7 +95,12 @@ fun SenderForwardFilterScreen(
                 },
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState, modifier = Modifier.navigationBarsPadding()) },
+        snackbarHost = {
+            io.github.magisk317.relay.ui.common.DismissibleSnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.navigationBarsPadding(),
+            )
+        },
     ) { innerPadding ->
         Column(
             modifier = Modifier

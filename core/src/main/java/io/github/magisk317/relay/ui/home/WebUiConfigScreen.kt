@@ -235,7 +235,12 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
                 },
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState, modifier = Modifier.navigationBarsPadding()) },
+        snackbarHost = {
+            io.github.magisk317.relay.ui.common.DismissibleSnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.navigationBarsPadding(),
+            )
+        },
     ) { paddingValues ->
         Column(
             modifier = Modifier

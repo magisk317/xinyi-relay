@@ -624,7 +624,7 @@ class MainActivity : AppCompatActivity() {
                                     },
                             )
                         }
-                            SnackbarHost(
+                            io.github.magisk317.relay.ui.common.DismissibleSnackbarHost(
                                 hostState = appSnackbarHostState,
                                 modifier = Modifier
                                     .align(Alignment.BottomCenter)

@@ -514,18 +514,19 @@ fun SenderListScreen(
                     }
                 }
             }
-            SnackbarHost(
+            io.github.magisk317.relay.ui.common.DismissibleSnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
                     .padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
-            ) { data ->
-                UndoCountdownSnackbar(
-                    data = data,
-                    totalDurationMs = UNDO_SNACKBAR_DURATION_MS,
-                )
-            }
+                snackbar = { data ->
+                    UndoCountdownSnackbar(
+                        data = data,
+                        totalDurationMs = UNDO_SNACKBAR_DURATION_MS,
+                    )
+                },
+            )
         }
     }
 }

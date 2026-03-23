@@ -353,7 +353,7 @@ fun AppConfigScreen(
             }
         }
 
-        SnackbarHost(
+        io.github.magisk317.relay.ui.common.DismissibleSnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
                 .align(Alignment.BottomCenter)

@@ -168,7 +168,11 @@ fun SenderNotifyScopeScreen(
                 },
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            io.github.magisk317.relay.ui.common.DismissibleSnackbarHost(
+                hostState = snackbarHostState,
+            )
+        },
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier

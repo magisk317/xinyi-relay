@@ -75,7 +75,12 @@ fun AppConfigDetailScreen(
                 windowInsets = WindowInsets.statusBars,
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState, modifier = Modifier.navigationBarsPadding()) },
+        snackbarHost = {
+            io.github.magisk317.relay.ui.common.DismissibleSnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.navigationBarsPadding(),
+            )
+        },
     ) { innerPadding ->
         if (app == null) {
             Column(

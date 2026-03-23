@@ -139,7 +139,12 @@ fun InterceptScreen(
                 modifier = Modifier.hazeEffect(hazeState, hazeStyle) { forceInvalidateOnPreDraw = true },
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState, modifier = Modifier.navigationBarsPadding()) },
+        snackbarHost = {
+            io.github.magisk317.relay.ui.common.DismissibleSnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.navigationBarsPadding(),
+            )
+        },
     ) { padding ->
         Box(
             modifier = Modifier

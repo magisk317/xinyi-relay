@@ -117,7 +117,12 @@ fun SettingsHomeScreen(
                 },
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState, modifier = Modifier.navigationBarsPadding()) },
+        snackbarHost = {
+            io.github.magisk317.relay.ui.common.DismissibleSnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.navigationBarsPadding(),
+            )
+        },
     ) { padding ->
         val generalSnapshot = general ?: return@Scaffold
         val verificationSnapshot = verification ?: return@Scaffold
@@ -465,7 +470,12 @@ fun VerificationSettingsScreen(
                 },
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState, modifier = Modifier.navigationBarsPadding()) },
+        snackbarHost = {
+            io.github.magisk317.relay.ui.common.DismissibleSnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.navigationBarsPadding(),
+            )
+        },
     ) { padding ->
         val current = settings ?: return@Scaffold
         val currentRecordSettings = recordSettings ?: return@Scaffold
@@ -824,7 +834,12 @@ fun DiagnosticsSettingsScreen(onBack: () -> Unit) {
                 },
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState, modifier = Modifier.navigationBarsPadding()) },
+        snackbarHost = {
+            io.github.magisk317.relay.ui.common.DismissibleSnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.navigationBarsPadding(),
+            )
+        },
     ) { padding ->
         val current = settings ?: return@Scaffold
         Column(
