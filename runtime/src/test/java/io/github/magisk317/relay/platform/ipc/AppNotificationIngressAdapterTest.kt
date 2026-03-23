@@ -5,6 +5,7 @@ import android.content.Context
 import android.service.notification.StatusBarNotification
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import io.mockk.every
 import io.mockk.mockk
@@ -32,5 +33,45 @@ class AppNotificationIngressAdapterTest {
             flags = Notification.FLAG_GROUP_SUMMARY
         }
         assertTrue(AppNotificationIngressAdapter.shouldSkipNotification(summary))
+    }
+
+    @Test
+    fun resolveSkipReason_skipsFixedNotificationChannelsAndContent() {
+        assertEquals(
+            "channel_foreground_service",
+            AppNotificationIngressAdapter.resolveSkipReason(
+                notification = Notification(),
+                title = "“短信”正在运行",
+                body = "",
+                notifyChannelId = "Channel_Foreground_Service",
+            ),
+        )
+        assertEquals(
+            "channel_fgs",
+            AppNotificationIngressAdapter.resolveSkipReason(
+                notification = Notification(),
+                title = "查找",
+                body = "",
+                notifyChannelId = "FGS_HIDE",
+            ),
+        )
+        assertEquals(
+            "channel_voicemail",
+            AppNotificationIngressAdapter.resolveSkipReason(
+                notification = Notification(),
+                title = "新语音信息",
+                body = "",
+                notifyChannelId = "voiceMail",
+            ),
+        )
+        assertEquals(
+            "content_checking_updates",
+            AppNotificationIngressAdapter.resolveSkipReason(
+                notification = Notification(),
+                title = "应用商店正在检查应用更新",
+                body = "",
+                notifyChannelId = "",
+            ),
+        )
     }
 }
