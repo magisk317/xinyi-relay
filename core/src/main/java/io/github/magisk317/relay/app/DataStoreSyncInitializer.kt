@@ -8,13 +8,12 @@ import io.github.magisk317.relay.common.utils.XLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 
 class DataStoreSyncInitializer : AppInitializer {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun init(application: Application) {
-        scope.launch {
+        AppInitExecution.runWhenUserUnlocked(application, scope, "DataStoreSyncInitializer") {
             val preferenceDataSource = RuntimeGraph.from(application).preferenceDataSource
             preferenceDataSource.syncToSharedPrefs()
             preferenceDataSource.ensureReadable()
