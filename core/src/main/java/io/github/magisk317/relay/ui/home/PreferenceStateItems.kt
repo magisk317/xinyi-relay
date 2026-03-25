@@ -7,10 +7,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -24,12 +22,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.data.datasource.PreferenceDataSource
+import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
 import io.github.magisk317.relay.ui.common.SingleChoiceOptionDialog
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -58,46 +58,14 @@ fun StateSwitchItem(
     onTitleClick: (() -> Unit)? = null,
     onCheckedChange: (Boolean) -> Unit,
 ) {
-    ListItem(
-        headlineContent = {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = if (onTitleClick != null) {
-                    Modifier.clickable(enabled = enabled, onClick = onTitleClick)
-                } else {
-                    Modifier
-                },
-            )
-        },
-        supportingContent = if (summary.isNotEmpty()) {
-            {
-                Text(
-                    text = summary,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = if (onTitleClick != null) {
-                        Modifier.clickable(enabled = enabled, onClick = onTitleClick)
-                    } else {
-                        Modifier
-                    },
-                )
-            }
-        } else {
-            null
-        },
-        trailingContent = {
-            Switch(
-                checked = checked,
-                onCheckedChange = onCheckedChange,
-                enabled = enabled,
-            )
-        },
-        modifier = if (onTitleClick == null) {
-            modifier.clickable(enabled = enabled) { onCheckedChange(!checked) }
-        } else {
-            modifier
-        },
+    io.github.magisk317.uikit.preference.StateSwitchItem(
+        title = title,
+        summary = summary,
+        checked = checked,
+        enabled = enabled,
+        modifier = modifier,
+        onTitleClick = onTitleClick,
+        onCheckedChange = onCheckedChange,
     )
 }
 
@@ -111,27 +79,14 @@ fun ActionSwitchItem(
     onClick: () -> Unit,
     onCheckedChange: (Boolean) -> Unit,
 ) {
-    ListItem(
-        headlineContent = { Text(text = title, style = MaterialTheme.typography.bodyLarge) },
-        supportingContent = if (summary.isNotEmpty()) {
-            {
-                Text(
-                    text = summary,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        } else {
-            null
-        },
-        trailingContent = {
-            Switch(
-                checked = checked,
-                onCheckedChange = onCheckedChange,
-                enabled = enabled,
-            )
-        },
-        modifier = modifier.clickable(enabled = enabled, onClick = onClick),
+    io.github.magisk317.uikit.preference.ActionSwitchItem(
+        title = title,
+        summary = summary,
+        checked = checked,
+        enabled = enabled,
+        modifier = modifier,
+        onClick = onClick,
+        onCheckedChange = onCheckedChange,
     )
 }
 
@@ -143,14 +98,12 @@ fun Item(
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
-    ListItem(
-        headlineContent = { Text(text = title, style = MaterialTheme.typography.bodyLarge) },
-        supportingContent = if (summary.isNotEmpty()) {
-            { Text(text = summary, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-        } else {
-            null
-        },
-        modifier = modifier.clickable(enabled = enabled, onClick = onClick),
+    io.github.magisk317.uikit.preference.Item(
+        title = title,
+        summary = summary,
+        modifier = modifier,
+        enabled = enabled,
+        onClick = onClick,
     )
 }
 
@@ -163,9 +116,12 @@ fun SwitchItem(
     stateOverride: MutableState<Boolean>? = null,
     onSaved: (() -> Unit)? = null,
 ) {
+    val context = LocalContext.current
     val preferenceDataSource: PreferenceDataSource = koinInject()
+    val snackbarHostState = LocalSnackbarHostState.current
     val scope = rememberCoroutineScope()
     val state = stateOverride ?: rememberPrefBoolean(key, defaultValue)
+    val defaultSavedSnackbar = context.getString(R.string.pref_sync_snackbar)
     StateSwitchItem(
         title = title,
         summary = summary,
@@ -175,7 +131,11 @@ fun SwitchItem(
         scope.launch {
             preferenceDataSource.setBoolean(key, enabled)
             preferenceDataSource.syncToSharedPrefs()
-            onSaved?.invoke()
+            if (onSaved != null) {
+                onSaved()
+            } else {
+                snackbarHostState.showSnackbar(defaultSavedSnackbar)
+            }
         }
     }
 }

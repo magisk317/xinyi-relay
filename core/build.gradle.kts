@@ -50,6 +50,8 @@ androidComponents {
 
 dependencies {
     implementation(project(":runtime"))
+    implementation(project(":magisk-ui-kit"))
+    implementation(project(":smscode-core:smscode-domain"))
     implementation(project(":smscode-core:smscode-xposed-core"))
 
     implementation(libs.androidx.core.ktx)

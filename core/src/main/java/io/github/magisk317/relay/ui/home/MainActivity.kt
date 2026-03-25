@@ -304,7 +304,25 @@ class MainActivity : AppCompatActivity() {
                 viewModel.eventsFlow.collect { event ->
                     when (event) {
                         is SettingsEvent.ShowPrivacyPolicy -> showPrivacyPolicyDialog = true
-                        is SettingsEvent.NavigateToRules -> requestedTab = io.github.magisk317.relay.ui.nav.InterceptRoute
+                        is SettingsEvent.SmsCodeTestResult -> {
+                            val message = if (event.code.isBlank()) {
+                                context.getString(R.string.cannot_parse_relay_code)
+                            } else {
+                                val base = context.getString(R.string.current_sms_code, event.code)
+                                val hitRule = event.matchedRuleLabel?.takeIf { it.isNotBlank() }?.let {
+                                    context.getString(R.string.hit_rule_label, it)
+                                }
+                                if (hitRule == null) {
+                                    base
+                                } else {
+                                    context.getString(R.string.sms_code_test_result_with_rule, base, hitRule)
+                                }
+                            }
+                            scope.launch { appSnackbarHostState.showSnackbar(message) }
+                        }
+                        is SettingsEvent.NavigateToRules -> {
+                            requestedTab = io.github.magisk317.relay.ui.nav.SmsCodeRulesRoute()
+                        }
                         is SettingsEvent.NavigateToRecords -> requestedTab = io.github.magisk317.relay.ui.nav.RecordsRoute
                         is SettingsEvent.StartPlayUpdate -> requestPlayUpdate()
                         is SettingsEvent.StartGithubUpdateCheck -> {

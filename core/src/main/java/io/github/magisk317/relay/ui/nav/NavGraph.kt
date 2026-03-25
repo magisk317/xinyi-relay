@@ -91,6 +91,17 @@ data class RuleConfigRoute(
 )
 
 @Serializable
+data class SmsCodeRulesRoute(
+    val origin: String = ROUTE_ORIGIN_SETTINGS,
+)
+
+@Serializable
+data class SmsCodeRuleEditorRoute(
+    val id: Long = 0,
+    val origin: String = ROUTE_ORIGIN_SETTINGS,
+)
+
+@Serializable
 data class AppRoutingRoute(val origin: String = ROUTE_ORIGIN_ADVANCED)
 
 @Serializable

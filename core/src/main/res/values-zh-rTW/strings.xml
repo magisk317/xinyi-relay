@@ -82,6 +82,15 @@
     <string name="pref_notification_title">通知</string>
     <string name="pref_show_code_notification_title">顯示狀態列通知</string>
     <string name="pref_show_code_notification_summary">擷取到驗證碼時顯示狀態列通知（部分系統顯示為電話服務）</string>
+    <string name="pref_code_notification_owner_title">通知歸屬</string>
+    <string name="pref_code_notification_owner_summary">目前：%1$s。模組自身會顯示為本應用；電話服務在部分場景更穩，但會顯示為電話服務。</string>
+    <string name="pref_code_notification_owner_app">模組自身</string>
+    <string name="pref_code_notification_owner_phone">電話服務</string>
+    <string name="pref_code_notification_owner_unselected">未選擇</string>
+    <string name="pref_code_notification_owner_permission_denied">通知權限仍未授予，未套用「模組自身」選擇。</string>
+    <string name="pref_code_notification_owner_permission_settings_hint">模組自身通知需要通知權限，請在系統通知設定中開啟。</string>
+    <string name="pref_code_notification_owner_app_option">模組自身：顯示為本應用，但應用被強停後後續行為可能受影響</string>
+    <string name="pref_code_notification_owner_phone_option">電話服務：部分場景更穩，但會顯示為電話服務</string>
     <string name="pref_auto_cancel_notification_title">自動取消通知</string>
     <string name="pref_auto_cancel_notification_summary">自動取消驗證碼通知</string>
     <!-- notification retention time -->
@@ -597,6 +606,19 @@
     <string name="smscode_conflict_sms_toast">功能衝突，檢查狀態列通知</string>
     <!-- smscode conflict dialog end -->
     <string name="rule_list_empty_prompt">暫無規則，點擊 + 添加。</string>
+    <string name="builtin_code_rules_title">內建規則（唯讀）</string>
+    <string name="builtin_code_rules_summary">預設解析規則會展示在這裡供參考。它們會使用「關鍵字」設定作為錨點，並繼續套用近關鍵字優先、去空白重試與日期時間排除。</string>
+    <string name="builtin_rule_badge">內建</string>
+    <string name="builtin_rule_badge_format">內建規則%1$d</string>
+    <string name="user_rule_badge_format">使用者規則%1$d</string>
+    <string name="builtin_rule_keyword_setting">內建規則預設使用全域關鍵字</string>
+    <string name="builtin_rule_alphanumeric_title">預設字母數字驗證碼規則</string>
+    <string name="builtin_rule_digits_title">預設純數字驗證碼規則</string>
+    <string name="user_code_rules_title">使用者規則</string>
+    <string name="user_code_rules_summary">你儲存的自訂規則會展示在這裡，可繼續編輯或刪除。</string>
+    <string name="rule_test_guidance">儲存此規則後，請到「%1$s」測試效果。</string>
+    <string name="hit_rule_label">命中規則：%1$s</string>
+    <string name="sms_code_test_result_with_rule">%1$s，%2$s</string>
     <string name="rule_keyword_prefix">關鍵字: </string>
     <string name="rule_regex_prefix">正規表達式: </string>
     <string name="save">保存</string>

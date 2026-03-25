@@ -34,6 +34,8 @@ import io.github.magisk317.relay.data.backup.BackupManager
 import io.github.magisk317.relay.data.backup.BackupRule
 import io.github.magisk317.relay.data.backup.BackupSmsRecord
 import io.github.magisk317.relay.data.backup.ExportResult
+import io.github.magisk317.smscode.domain.model.SmsCodeMatchedRule
+import io.github.magisk317.smscode.domain.model.SmsCodeMatchedRuleSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -52,7 +54,10 @@ import java.util.Locale
 sealed class SettingsEvent {
     data object ShowPrivacyPolicy : SettingsEvent()
     data object ShowAlipayPacket : SettingsEvent()
-    data class SmsCodeTestResult(val code: String) : SettingsEvent()
+    data class SmsCodeTestResult(
+        val code: String,
+        val matchedRuleLabel: String? = null,
+    ) : SettingsEvent()
     data object NavigateToRules : SettingsEvent()
     data object NavigateToRecords : SettingsEvent()
     data object StartPlayUpdate : SettingsEvent()
@@ -246,20 +251,33 @@ class SettingsViewModel(
 
     fun performSmsCodeTest(msgBody: String) {
         viewModelScope.launch {
-            val code = try {
+            val result = try {
                 withContext(Dispatchers.IO) {
                     if (TextUtils.isEmpty(msgBody)) {
-                        ""
+                        null
                     } else {
                         val keywords = settingsRepository.getVerificationSettings().relayKeywords
-                        SmsCodeUtils.parseSmsCodeIfExists(getApplication(), msgBody, keywords)
+                        SmsCodeUtils.parseSmsCodeResultIfExists(getApplication(), msgBody, keywords)
                     }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                ""
+                null
             }
-            _eventsFlow.tryEmit(SettingsEvent.SmsCodeTestResult(code))
+            val code = result?.code.orEmpty()
+            val matchedRuleLabel = result?.matchedRule?.let(::formatMatchedRuleLabel)
+            _eventsFlow.tryEmit(SettingsEvent.SmsCodeTestResult(code, matchedRuleLabel))
+        }
+    }
+
+    private fun formatMatchedRuleLabel(matchedRule: SmsCodeMatchedRule): String {
+        val app = getApplication<Application>()
+        return when (matchedRule.source) {
+            SmsCodeMatchedRuleSource.BUILTIN ->
+                app.getString(R.string.builtin_rule_badge_format, matchedRule.ordinal)
+
+            SmsCodeMatchedRuleSource.CUSTOM ->
+                app.getString(R.string.user_rule_badge_format, matchedRule.ordinal)
         }
     }
 

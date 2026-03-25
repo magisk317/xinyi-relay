@@ -5,7 +5,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -20,10 +19,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -88,43 +83,18 @@ fun SectionCard(
     onExpandedChange: () -> Unit,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Card(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Const.PADDING_SMALL.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        ),
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            ListItem(
-                headlineContent = {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                },
-                trailingContent = {
-                    if (accordionMode) {
-                        Icon(
-                            imageVector = if (sectionExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(enabled = accordionMode, onClick = onExpandedChange),
-            )
-
-            AnimatedVisibility(visible = if (accordionMode) sectionExpanded else true) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    content()
-                }
-            }
-        }
+        io.github.magisk317.uikit.preference.SectionCard(
+            title = title,
+            accordionMode = accordionMode,
+            sectionExpanded = sectionExpanded,
+            onExpandedChange = onExpandedChange,
+            content = content,
+        )
     }
 }
 

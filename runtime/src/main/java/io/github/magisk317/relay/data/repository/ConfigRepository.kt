@@ -28,7 +28,11 @@ class ConfigRepository(
     private val senderDao: SenderDao,
 ) {
     // Legacy SmsCodeRule
+    fun observeSmsCodeRulesFlow(): Flow<List<SmsCodeRule>> = smsCodeRuleDao.getAllFlow()
     suspend fun getAllSmsCodeRules(): List<SmsCodeRule> = smsCodeRuleDao.getAll()
+    suspend fun getSmsCodeRuleById(id: Long): SmsCodeRule? = smsCodeRuleDao.getById(id)
+    suspend fun upsertSmsCodeRule(rule: SmsCodeRule): Long = smsCodeRuleDao.insert(rule)
+    suspend fun deleteSmsCodeRule(rule: SmsCodeRule) = smsCodeRuleDao.delete(rule)
     suspend fun insertSmsCodeRules(rules: List<SmsCodeRule>) = smsCodeRuleDao.insertAll(rules)
     suspend fun clearAllSmsCodeRules() = smsCodeRuleDao.clearAll()
 

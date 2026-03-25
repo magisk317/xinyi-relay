@@ -82,6 +82,15 @@
     <string name="pref_notification_title">Notification</string>
     <string name="pref_show_code_notification_title">Show status bar notification</string>
     <string name="pref_show_code_notification_summary">Show a status bar notification when an SMS code is extracted (some systems may label it as Phone Services)</string>
+    <string name="pref_code_notification_owner_title">Notification owner</string>
+    <string name="pref_code_notification_owner_summary">Current: %1$s. App owner shows your module name; Phone Services may be steadier in some scenarios, but it will be shown as Phone Services.</string>
+    <string name="pref_code_notification_owner_app">App</string>
+    <string name="pref_code_notification_owner_phone">Phone Services</string>
+    <string name="pref_code_notification_owner_unselected">Not selected</string>
+    <string name="pref_code_notification_owner_permission_denied">Notification permission is still not granted. The App owner selection was not applied.</string>
+    <string name="pref_code_notification_owner_permission_settings_hint">App-owned notifications require notification permission. Please enable it in the system notification settings.</string>
+    <string name="pref_code_notification_owner_app_option">App: displayed as this app, but app force-stop may affect follow-up behavior</string>
+    <string name="pref_code_notification_owner_phone_option">Phone Services: steadier in some scenarios, but displayed as Phone Services</string>
     <string name="pref_auto_cancel_notification_title">Auto cancel notification</string>
     <string name="pref_auto_cancel_notification_summary">Auto cancel SMS code notification</string>
     <!-- notification retention time -->
@@ -483,6 +492,7 @@
     <string name="edit">Edit</string>
     <string name="actions">Actions</string>
     <string name="list_empty_prompt">No items yet!</string>
+    <string name="record_empty_summary">Wait for a new relay record to arrive, or trigger one of the linked capture paths.</string>
     <string name="rule_list_empty_snack_prompt">Rule list is empty, no need to export.</string>
     <string name="code_length_empty_prompt">Please enter the code length</string>
     <string name="rule_company_empty_hint">Please enter institution or company</string>
@@ -614,6 +624,19 @@
     <string name="smscode_conflict_sms_toast">Feature conflict. Check the notification.</string>
     <!-- smscode conflict dialog end -->
     <string name="rule_list_empty_prompt">No rules yet. Click + to add one.</string>
+    <string name="builtin_code_rules_title">Built-in rules (read only)</string>
+    <string name="builtin_code_rules_summary">Default parsing rules are shown here for reference. They use the keyword setting as the anchor and still apply keyword-distance priority, whitespace retry, and date-time filtering.</string>
+    <string name="builtin_rule_badge">Built-in</string>
+    <string name="builtin_rule_badge_format">Built-in rule %1$d</string>
+    <string name="user_rule_badge_format">User rule %1$d</string>
+    <string name="builtin_rule_keyword_setting">Built-in rules use global keywords by default</string>
+    <string name="builtin_rule_alphanumeric_title">Default alphanumeric code rule</string>
+    <string name="builtin_rule_digits_title">Default numeric code rule</string>
+    <string name="user_code_rules_title">User rules</string>
+    <string name="user_code_rules_summary">Your saved custom rules are shown here and can be edited or removed.</string>
+    <string name="rule_test_guidance">After saving this rule, go to %1$s to test the effect.</string>
+    <string name="hit_rule_label">Hit rule: %1$s</string>
+    <string name="sms_code_test_result_with_rule">%1$s, %2$s</string>
     <string name="rule_keyword_prefix">Keyword: </string>
     <string name="rule_regex_prefix">Regex: </string>
     <string name="save">Save</string>

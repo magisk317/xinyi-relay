@@ -126,6 +126,10 @@ fun MainScreen(
                 sectionFromOrigin(entry.toRoute<RulesRoute>().origin)
             destination.hasRoute(RuleConfigRoute::class) ->
                 sectionFromOrigin(entry.toRoute<RuleConfigRoute>().origin)
+            destination.hasRoute(SmsCodeRulesRoute::class) ->
+                sectionFromOrigin(entry.toRoute<SmsCodeRulesRoute>().origin)
+            destination.hasRoute(SmsCodeRuleEditorRoute::class) ->
+                sectionFromOrigin(entry.toRoute<SmsCodeRuleEditorRoute>().origin)
             else -> NavigationSection.OVERVIEW
         }
     }
@@ -224,6 +228,8 @@ fun MainScreen(
             is InterceptRoute -> navController.navigate(InterceptRoute)
             is RecordsRoute -> navController.navigate(RecordsRoute)
             is SettingsRoute -> navController.navigate(SettingsRoute)
+            is SmsCodeRulesRoute -> navController.navigate(initialTab)
+            is SmsCodeRuleEditorRoute -> navController.navigate(initialTab)
             else -> Unit
         }
         if (initialTab != null) {
@@ -597,11 +603,34 @@ fun MainScreen(
                             },
                         )
                     }
-                    composable<RuleConfigRoute> { backStackEntry ->
-                        val route = backStackEntry.toRoute<RuleConfigRoute>()
-                        io.github.magisk317.relay.ui.rule.RuleConfigScreen(
+                        composable<RuleConfigRoute> { backStackEntry ->
+                            val route = backStackEntry.toRoute<RuleConfigRoute>()
+                            io.github.magisk317.relay.ui.rule.RuleConfigScreen(
+                                ruleId = route.id,
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+                    composable<SmsCodeRulesRoute> { backStackEntry ->
+                        val route = backStackEntry.toRoute<SmsCodeRulesRoute>()
+                        io.github.magisk317.relay.ui.smscoderule.SmsCodeRuleListScreen(
+                            onBack = { navController.popBackStack() },
+                            onAddClick = {
+                                navController.navigate(
+                                    SmsCodeRuleEditorRoute(origin = route.origin),
+                                )
+                            },
+                            onEditClick = { id ->
+                                navController.navigate(
+                                    SmsCodeRuleEditorRoute(id = id, origin = route.origin),
+                                )
+                            },
+                        )
+                    }
+                    composable<SmsCodeRuleEditorRoute> { backStackEntry ->
+                        val route = backStackEntry.toRoute<SmsCodeRuleEditorRoute>()
+                        io.github.magisk317.relay.ui.smscoderule.SmsCodeRuleEditorScreen(
                             ruleId = route.id,
-                            onBack = { navController.popBackStack() }
+                            onBack = { navController.popBackStack() },
                         )
                     }
                     navigation<SettingsGraphRoute>(startDestination = SettingsRoute) {
@@ -617,7 +646,7 @@ fun MainScreen(
                             VerificationSettingsScreen(
                                 onBack = { navController.popBackStack() },
                                 onOpenRules = {
-                                    navController.navigate(RulesRoute(origin = ROUTE_ORIGIN_SETTINGS))
+                                    navController.navigate(SmsCodeRulesRoute(origin = ROUTE_ORIGIN_SETTINGS))
                                 },
                                 onOpenRecords = {
                                     navController.navigate(ScopedRecordsRoute(origin = ROUTE_ORIGIN_SETTINGS))

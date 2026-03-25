@@ -1,6 +1,15 @@
 package io.github.magisk317.relay.ui.home
 
+import android.Manifest
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import android.util.Log
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -39,8 +48,12 @@ import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import io.github.magisk317.relay.common.constant.Const
+import io.github.magisk317.relay.common.constant.CodeNotificationOwner
 import io.github.magisk317.relay.common.constant.PrefConst
+import io.github.magisk317.relay.common.utils.NotificationUtils
 import io.github.magisk317.relay.diagnostics.LogBundleExporter
 import io.github.magisk317.relay.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.common.utils.XLog
@@ -438,6 +451,8 @@ fun VerificationSettingsScreen(
     val repository: SettingsRepository = koinInject()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val activityOwner = context as? ComponentActivity
+    val lifecycleOwner = LocalLifecycleOwner.current
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
     val snackbarHostState = remember { SnackbarHostState() }
     val notifySaved = {
@@ -450,13 +465,144 @@ fun VerificationSettingsScreen(
     var recordSettings by remember { mutableStateOf<RecordSettingsSnapshot?>(null) }
     var showDelayDialog by remember { mutableStateOf(false) }
     var showIntervalDialog by remember { mutableStateOf(false) }
+    var showRetentionDialog by remember { mutableStateOf(false) }
     var showKeywordsDialog by remember { mutableStateOf(false) }
+    var showNotificationOwnerDialog by remember { mutableStateOf(false) }
+    var pendingEnableNotification by remember { mutableStateOf(false) }
+    var pendingNotificationOwnerPermissionSelection by remember { mutableStateOf<String?>(null) }
+    var pendingNotificationPermissionEnable by remember { mutableStateOf(false) }
     var showSmsTestDialog by remember { mutableStateOf(false) }
     var smsTestInput by remember { mutableStateOf("") }
+
+    suspend fun persistNotificationOwnerSelection(owner: String, enableNotification: Boolean) {
+        settings = repository.updateVerificationSettings(
+            VerificationSettingsUpdate(
+                notificationOwner = owner,
+                showCodeNotification = if (enableNotification) true else null,
+            ),
+        )
+        notifySaved()
+    }
+
+    val notificationSettingsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) {
+        scope.launch {
+            if (
+                pendingNotificationOwnerPermissionSelection == CodeNotificationOwner.APP &&
+                NotificationUtils.hasPostNotificationsPermission(context)
+            ) {
+                val enableNotification = pendingNotificationPermissionEnable
+                pendingNotificationOwnerPermissionSelection = null
+                pendingNotificationPermissionEnable = false
+                persistNotificationOwnerSelection(
+                    owner = CodeNotificationOwner.APP,
+                    enableNotification = enableNotification,
+                )
+            } else if (pendingNotificationOwnerPermissionSelection == CodeNotificationOwner.APP) {
+                pendingNotificationOwnerPermissionSelection = null
+                pendingNotificationPermissionEnable = false
+                snackbarHostState.showSnackbar(
+                    context.getString(R.string.pref_code_notification_owner_permission_denied),
+                )
+            }
+        }
+    }
+
+    fun openNotificationSettings() {
+        val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+            putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+        }
+        val fallbackIntent = Intent(
+            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            Uri.fromParts("package", context.packageName, null),
+        )
+        if (activityOwner != null) {
+            runCatching {
+                notificationSettingsLauncher.launch(intent)
+            }.recoverCatching {
+                notificationSettingsLauncher.launch(fallbackIntent)
+            }.onFailure {
+                pendingNotificationOwnerPermissionSelection = null
+                pendingNotificationPermissionEnable = false
+                scope.launch {
+                    snackbarHostState.showSnackbar(
+                        context.getString(R.string.pref_code_notification_owner_permission_denied),
+                    )
+                }
+            }
+            return
+        }
+        runCatching {
+            context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }.recoverCatching {
+            context.startActivity(fallbackIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }.onFailure {
+            pendingNotificationOwnerPermissionSelection = null
+            pendingNotificationPermissionEnable = false
+            scope.launch {
+                snackbarHostState.showSnackbar(
+                    context.getString(R.string.pref_code_notification_owner_permission_denied),
+                )
+            }
+        }
+    }
+
+    val requestNotificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted && pendingNotificationOwnerPermissionSelection == CodeNotificationOwner.APP) {
+            scope.launch {
+                val enableNotification = pendingNotificationPermissionEnable
+                pendingNotificationOwnerPermissionSelection = null
+                pendingNotificationPermissionEnable = false
+                persistNotificationOwnerSelection(
+                    owner = CodeNotificationOwner.APP,
+                    enableNotification = enableNotification,
+                )
+            }
+        } else {
+            scope.launch {
+                snackbarHostState.showSnackbar(
+                    context.getString(R.string.pref_code_notification_owner_permission_settings_hint),
+                )
+            }
+            openNotificationSettings()
+        }
+    }
+
+    fun requestNotificationPermissionIfNeeded(enableNotification: Boolean): Boolean {
+        val permissionRequired = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            !NotificationUtils.hasPostNotificationsPermission(context)
+        if (!permissionRequired) {
+            return false
+        }
+        pendingNotificationOwnerPermissionSelection = CodeNotificationOwner.APP
+        pendingNotificationPermissionEnable = enableNotification
+        requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        return true
+    }
 
     LaunchedEffect(Unit) {
         settings = repository.getVerificationSettings()
         recordSettings = repository.getRecordSettings()
+    }
+
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
+            if (
+                pendingNotificationOwnerPermissionSelection == CodeNotificationOwner.APP &&
+                NotificationUtils.hasPostNotificationsPermission(context)
+            ) {
+                val enableNotification = pendingNotificationPermissionEnable
+                pendingNotificationOwnerPermissionSelection = null
+                pendingNotificationPermissionEnable = false
+                persistNotificationOwnerSelection(
+                    owner = CodeNotificationOwner.APP,
+                    enableNotification = enableNotification,
+                )
+            }
+        }
     }
 
     Scaffold(
@@ -481,6 +627,8 @@ fun VerificationSettingsScreen(
         val currentRecordSettings = recordSettings ?: return@Scaffold
         val historyEntries = stringArrayResource(id = R.array.history_limit_entry_list)
         val historyValues = stringArrayResource(id = R.array.history_limit_value_list)
+        val retentionEntries = stringArrayResource(id = R.array.notification_retention_time_entry_list)
+        val retentionValues = stringArrayResource(id = R.array.notification_retention_time_list)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -600,6 +748,54 @@ fun VerificationSettingsScreen(
                         notifySaved()
                     }
                 }
+                StateSwitchItem(
+                    title = stringResource(id = R.string.pref_show_code_notification_title),
+                    summary = stringResource(id = R.string.pref_show_code_notification_summary),
+                    checked = current.showCodeNotification,
+                    enabled = current.verificationFeaturesEnabled,
+                ) { enabled ->
+                    if (!enabled) {
+                        scope.launch {
+                            settings = repository.updateVerificationSettings(
+                                VerificationSettingsUpdate(showCodeNotification = false),
+                            )
+                            notifySaved()
+                        }
+                        return@StateSwitchItem
+                    }
+                    pendingEnableNotification = true
+                    showNotificationOwnerDialog = true
+                }
+                Item(
+                    title = stringResource(id = R.string.pref_code_notification_owner_title),
+                    summary = codeNotificationOwnerItemSummary(current.notificationOwner),
+                    enabled = current.verificationFeaturesEnabled,
+                ) {
+                    pendingEnableNotification = false
+                    showNotificationOwnerDialog = true
+                }
+                StateSwitchItem(
+                    title = stringResource(id = R.string.pref_auto_cancel_notification_title),
+                    summary = stringResource(id = R.string.pref_auto_cancel_notification_summary),
+                    checked = current.autoCancelNotification,
+                    enabled = current.verificationFeaturesEnabled && current.showCodeNotification,
+                ) { enabled ->
+                    scope.launch {
+                        settings = repository.updateVerificationSettings(
+                            VerificationSettingsUpdate(autoCancelNotification = enabled),
+                        )
+                        notifySaved()
+                    }
+                }
+                Item(
+                    title = stringResource(id = R.string.pref_notification_retention_time_title),
+                    summary = notificationRetentionEntryLabel(
+                        current.notificationRetentionTime,
+                        retentionValues,
+                        retentionEntries,
+                    ),
+                    enabled = current.verificationFeaturesEnabled && current.showCodeNotification,
+                ) { showRetentionDialog = true }
             }
             SectionCard(
                 title = stringResource(id = R.string.settings_group_experimental),
@@ -660,6 +856,24 @@ fun VerificationSettingsScreen(
             }
         }
     }
+    if (showRetentionDialog && current != null) {
+        val entries = stringArrayResource(id = R.array.notification_retention_time_entry_list)
+        val values = stringArrayResource(id = R.array.notification_retention_time_list)
+        SingleChoiceDialog(
+            title = stringResource(id = R.string.pref_notification_retention_time_title),
+            options = entries.toList(),
+            selectedIndex = values.indexOf(current.notificationRetentionTime).coerceAtLeast(0),
+            onDismiss = { showRetentionDialog = false },
+        ) { index ->
+            showRetentionDialog = false
+            scope.launch {
+                settings = repository.updateVerificationSettings(
+                    VerificationSettingsUpdate(notificationRetentionTime = values[index]),
+                )
+                notifySaved()
+            }
+        }
+    }
     if (showKeywordsDialog && current != null) {
         TextInputDialog(
             title = stringResource(id = R.string.pref_relay_keywords_title),
@@ -690,6 +904,43 @@ fun VerificationSettingsScreen(
             showSmsTestDialog = false
         }
     }
+    if (showNotificationOwnerDialog && current != null) {
+        val options = listOf(
+            stringResource(id = R.string.pref_code_notification_owner_app_option),
+            stringResource(id = R.string.pref_code_notification_owner_phone_option),
+        )
+        val selectedIndex = when (current.notificationOwner) {
+            CodeNotificationOwner.PHONE -> 1
+            CodeNotificationOwner.APP -> 0
+            else -> 0
+        }
+        SingleChoiceDialog(
+            title = stringResource(id = R.string.pref_code_notification_owner_title),
+            options = options,
+            selectedIndex = selectedIndex,
+            onDismiss = {
+                showNotificationOwnerDialog = false
+                pendingEnableNotification = false
+            },
+        ) { index ->
+            val owner = if (index == 1) {
+                CodeNotificationOwner.PHONE
+            } else {
+                CodeNotificationOwner.APP
+            }
+            val enableNotification = pendingEnableNotification
+            showNotificationOwnerDialog = false
+            pendingEnableNotification = false
+            if (owner == CodeNotificationOwner.APP &&
+                requestNotificationPermissionIfNeeded(enableNotification)
+            ) {
+                return@SingleChoiceDialog
+            }
+            scope.launch {
+                persistNotificationOwnerSelection(owner, enableNotification)
+            }
+        }
+    }
 }
 
 @Composable
@@ -713,6 +964,28 @@ private fun languageSummary(languageTag: String): String {
 }
 
 private fun historyLimitEntryLabel(
+    value: String,
+    values: Array<String>,
+    entries: Array<String>,
+): String {
+    val index = values.indexOf(value)
+    if (index >= 0) {
+        return entries[index]
+    }
+    return value.takeIf { it.isNotBlank() } ?: "0"
+}
+
+@Composable
+private fun codeNotificationOwnerItemSummary(owner: String): String {
+    val ownerLabel = when (owner) {
+        CodeNotificationOwner.PHONE -> stringResource(id = R.string.pref_code_notification_owner_phone)
+        CodeNotificationOwner.APP -> stringResource(id = R.string.pref_code_notification_owner_app)
+        else -> stringResource(id = R.string.pref_code_notification_owner_unselected)
+    }
+    return stringResource(id = R.string.pref_code_notification_owner_summary, ownerLabel)
+}
+
+private fun notificationRetentionEntryLabel(
     value: String,
     values: Array<String>,
     entries: Array<String>,

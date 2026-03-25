@@ -70,6 +70,7 @@ import io.github.magisk317.relay.ui.home.RetentionDialog
 import io.github.magisk317.relay.ui.home.SectionHeader
 import io.github.magisk317.relay.ui.home.StateSwitchItem
 import io.github.magisk317.relay.ui.home.TextInputDialog
+import io.github.magisk317.uikit.surface.WorkspaceEmptyState
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.hazeEffect
@@ -599,24 +600,19 @@ fun CodeRecordScreen(
                             )
                         }
                     } else if (list.isEmpty() && !loading) {
-                        // Empty View
-                        Column(
+                        WorkspaceEmptyState(
+                            title = stringResource(R.string.list_empty_prompt),
+                            summary = stringResource(R.string.record_empty_summary),
                             modifier = Modifier.fillMaxSize(),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Email,
-                                contentDescription = null,
-                                modifier = Modifier.size(64.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                text = stringResource(R.string.list_empty_prompt),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Default.Email,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(64.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            },
+                        )
                     } else {
                         val activeSmsList = recordsForTab(list, selectedRecordTab)
 
