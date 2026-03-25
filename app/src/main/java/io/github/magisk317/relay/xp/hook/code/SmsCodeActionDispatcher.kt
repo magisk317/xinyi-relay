@@ -1,13 +1,10 @@
 package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
-import android.content.Intent
 import android.os.Handler
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xp.hook.code.action.impl.AutoInputAction
-import io.github.magisk317.relay.xp.hook.code.action.impl.CancelNotifyAction
 import io.github.magisk317.relay.xp.hook.code.action.impl.CopyToClipboardAction
-import io.github.magisk317.relay.xp.hook.code.action.impl.ForwardAction
 import io.github.magisk317.relay.xp.hook.code.action.impl.NotifyAction
 import io.github.magisk317.relay.xp.hook.code.action.impl.OperateSmsAction
 import io.github.magisk317.relay.xp.hook.code.action.impl.RecordSmsAction
@@ -22,7 +19,6 @@ internal object SmsCodeActionDispatcher {
         pluginContext: Context,
         phoneContext: Context,
         smsMsg: SmsMsg,
-        smsIntent: Intent?,
         eventId: String,
         plan: SmsCodePostParseCoordinator.ParsedSmsPlan,
         uiDispatcher: (
@@ -55,15 +51,6 @@ internal object SmsCodeActionDispatcher {
             String,
             Boolean,
         ) -> Unit = ::scheduleRecord,
-        forwardScheduler: (
-            ScheduledExecutorService,
-            Context,
-            Context,
-            SmsMsg,
-            Intent?,
-            String,
-            Long,
-        ) -> Unit = ::scheduleForward,
         operateSmsScheduler: (
             ScheduledExecutorService,
             Context,
@@ -111,16 +98,6 @@ internal object SmsCodeActionDispatcher {
                 plan.deduplicateSmsEnabled,
             )
         }
-
-        forwardScheduler(
-            executor,
-            pluginContext,
-            phoneContext,
-            smsMsg,
-            smsIntent,
-            eventId,
-            plan.forwardDelayMs,
-        )
 
         operateSmsScheduler(
             executor,
@@ -257,28 +234,6 @@ internal object SmsCodeActionDispatcher {
         )
     }
 
-    fun scheduleForward(
-        executor: ScheduledExecutorService,
-        pluginContext: Context,
-        phoneContext: Context,
-        smsMsg: SmsMsg,
-        smsIntent: Intent?,
-        eventId: String,
-        delayMs: Long,
-    ) {
-        executor.schedule(
-            ForwardAction(
-                pluginContext,
-                phoneContext,
-                smsMsg,
-                smsIntent,
-                eventId,
-            ),
-            delayMs,
-            TimeUnit.MILLISECONDS,
-        )
-    }
-
     private fun scheduleNotification(
         executor: ScheduledExecutorService,
         pluginContext: Context,
@@ -298,12 +253,6 @@ internal object SmsCodeActionDispatcher {
             0,
             TimeUnit.MILLISECONDS,
         )
-
-        val autoCancelDelayMs = plan.autoCancelDelayMs ?: return
-        val cancelNotifyAction = CancelNotifyAction(pluginContext, phoneContext, smsMsg).apply {
-            setNotificationId(smsMsg.hashCode())
-        }
-        executor.schedule(cancelNotifyAction, autoCancelDelayMs, TimeUnit.MILLISECONDS)
     }
 
     private fun scheduleOperateSmsActions(

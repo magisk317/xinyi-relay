@@ -599,6 +599,12 @@ object PrefsReader {
     }
 
     @JvmStatic
+    fun getCodeNotificationOwner(context: Context): String {
+        val value = getStringViaProvider(context, PrefConst.KEY_CODE_NOTIFICATION_OWNER, "")
+        return io.github.magisk317.relay.common.constant.CodeNotificationOwner.normalize(value)
+    }
+
+    @JvmStatic
     fun autoCancelCodeNotification(context: Context): Boolean {
         if (!verificationFeaturesEnabled(context)) return false
         val defaultValue = false

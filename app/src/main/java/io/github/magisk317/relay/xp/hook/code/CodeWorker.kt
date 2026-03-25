@@ -25,7 +25,7 @@ class CodeWorker(
 
     fun parse(): ParseResult? {
         val settings = SmsCodePostParseCoordinator.loadSettings(mPluginContext)
-        val plan = SmsCodePostParseCoordinator.createParsedSmsPlan(settings, FORWARD_ACTION_DELAY_MS)
+        val plan = SmsCodePostParseCoordinator.createParsedSmsPlan(settings)
         val moduleEnabled = XpPrefs.isEnabled(mPluginContext)
         val verboseLog = XpPrefs.isVerboseLogMode(mPluginContext)
         XLog.w(
@@ -96,7 +96,6 @@ class CodeWorker(
             pluginContext = mPluginContext,
             phoneContext = mPhoneContext,
             smsMsg = smsMsg,
-            smsIntent = mSmsIntent,
             eventId = eventId,
             plan = plan,
         )
@@ -109,9 +108,5 @@ class CodeWorker(
         val parseResult = ParseResult()
         parseResult.isBlockSms = blockSms
         return parseResult
-    }
-
-    companion object {
-        private const val FORWARD_ACTION_DELAY_MS = 100L
     }
 }

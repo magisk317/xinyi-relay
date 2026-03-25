@@ -84,6 +84,7 @@ tasks.matching {
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(project(":core"))
+    implementation(project(":runtime"))
     implementation(project(":smscode-core:smscode-domain"))
     compileOnly(project(":smscode-core:smscode-xposed-core"))
 

@@ -1,22 +1,19 @@
 package io.github.magisk317.relay.xp.hook.code.action.impl
 
-import android.annotation.SuppressLint
-import android.app.AlarmManager
-import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.Context
 import android.graphics.BitmapFactory
-import android.os.Build
 import android.os.Bundle
-import android.text.TextUtils
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import io.github.magisk317.relay.common.constant.CodeNotificationOwner
+import io.github.magisk317.relay.common.utils.NotificationUtils
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.xpbridge.SmsMsg
-import io.github.magisk317.relay.xpbridge.XpNotificationBridge
-import io.github.magisk317.relay.xp.hook.code.AutoCancelReceiver
+import io.github.magisk317.relay.xp.hook.code.CodeNotificationBroadcastContract
 import io.github.magisk317.relay.xp.hook.code.CopyCodeReceiver
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
+import io.github.magisk317.relay.xpbridge.SmsMsg
+import io.github.magisk317.relay.xpbridge.XpNotificationBridge
+import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.smscode.xposed.utils.XLog
 
 /**
@@ -39,90 +36,105 @@ class NotifyAction(
         return null
     }
 
-    @SuppressLint("UnspecifiedImmutableFlag", "NotificationPermission")
     private fun showCodeNotification(smsMsg: SmsMsg): Bundle? {
-        val manager = mPhoneContext.getSystemService(
-            Context.NOTIFICATION_SERVICE,
-        ) as NotificationManager? ?: return null
+        return when (XpPrefs.getCodeNotificationOwner(mPluginContext)) {
+            CodeNotificationOwner.PHONE -> showPhoneOwnedNotification(smsMsg)
+            CodeNotificationOwner.APP -> showAppOwnedNotification(smsMsg)
+            else -> {
+                XLog.w("Skip code notification: owner not selected")
+                null
+            }
+        }
+    }
 
-        val company = smsMsg.company
-        val smsCode = smsMsg.smsCode
-        val title = if (TextUtils.isEmpty(company)) smsMsg.sender else company
-        val content = mPluginContext.getString(R.string.code_notification_content, smsCode)
-
-        val notificationId = smsMsg.hashCode()
-
-        val copyCodeIntent = CopyCodeReceiver.createIntent(smsCode, notificationId)
-        val contentIntent = PendingIntent.getBroadcast(
-            mPhoneContext,
-            0,
-            copyCodeIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE or 0x01000000, // PendingIntent.FLAG_ALLOW_UNSAFE_IMPLICIT_INTENT
+    private fun showAppOwnedNotification(smsMsg: SmsMsg): Bundle? {
+        NotificationUtils.createNotificationChannel(
+            mPluginContext,
+            XpNotificationBridge.CHANNEL_ID_RELAY_NOTIFICATION,
+            mPluginContext.getString(R.string.channel_name_relay_notification),
+            android.app.NotificationManager.IMPORTANCE_HIGH,
         )
+        val diagnostics = NotificationUtils.inspectDelivery(
+            mPluginContext,
+            XpNotificationBridge.CHANNEL_ID_RELAY_NOTIFICATION,
+        )
+        if (!diagnostics.canPost) {
+            XLog.w(
+                "App-owned code notification unavailable, fallback to phone-owned: %s",
+                diagnostics.summary(),
+            )
+            return showPhoneOwnedNotification(smsMsg)
+        }
+        val notificationId = smsMsg.hashCode()
+        val token = XpPrefs.getIpcToken(mPluginContext).takeIf { it.isNotBlank() }
+        val intent = CodeNotificationBroadcastContract.createIntent(
+            sender = smsMsg.sender,
+            company = smsMsg.company,
+            smsCode = smsMsg.smsCode,
+            notificationId = notificationId,
+            autoCancelEnabled = autoCancelEnabled,
+            retentionTimeMs = retentionTimeMs,
+            token = token,
+        )
+        mPhoneContext.sendBroadcast(intent)
+        XLog.i(
+            "Requested app-owned code notification id=%d autoCancel=%s retentionMs=%d tokenPresent=%s",
+            notificationId,
+            autoCancelEnabled,
+            retentionTimeMs,
+            token != null,
+        )
+        return null
+    }
 
+    private fun showPhoneOwnedNotification(smsMsg: SmsMsg): Bundle? {
+        val manager = mPhoneContext.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager?
+            ?: return null
+        XpNotificationBridge.createNotificationChannel(
+            mPhoneContext,
+            XpNotificationBridge.CHANNEL_ID_RELAY_NOTIFICATION,
+            mPluginContext.getString(R.string.channel_name_relay_notification),
+            android.app.NotificationManager.IMPORTANCE_HIGH,
+        )
+        val notificationId = smsMsg.hashCode()
+        val copyIntent = CopyCodeReceiver.createIntent(mPluginContext, smsMsg.smsCode, notificationId)
+        val contentIntent = android.app.PendingIntent.getBroadcast(
+            mPhoneContext,
+            notificationId,
+            copyIntent,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or pendingIntentFlag(),
+        )
+        val title = smsMsg.company?.takeIf { it.isNotBlank() }
+            ?: smsMsg.sender?.takeIf { it.isNotBlank() }
+            ?: mPluginContext.getString(R.string.app_name)
         val builder = NotificationCompat.Builder(mPluginContext, XpNotificationBridge.CHANNEL_ID_RELAY_NOTIFICATION)
             .setSmallIcon(R.drawable.ic_app_icon)
             .setLargeIcon(BitmapFactory.decodeResource(mPluginContext.resources, R.drawable.ic_app_icon))
             .setWhen(System.currentTimeMillis())
             .setContentTitle(title)
-            .setContentText(content)
+            .setContentText(mPluginContext.getString(R.string.code_notification_content, smsMsg.smsCode))
             .setContentIntent(contentIntent)
             .setAutoCancel(true)
             .setColor(ContextCompat.getColor(mPluginContext, R.color.ic_launcher_background))
             .setGroup(XpNotificationBridge.GROUP_KEY_RELAY_NOTIFICATION)
-
-        if (autoCancelEnabled) {
-            if (retentionTimeMs > 0L) {
-                builder.setTimeoutAfter(retentionTimeMs)
-                scheduleAutoCancel(notificationId, retentionTimeMs)
-            } else {
-                XLog.i("Auto cancel skipped: retentionTimeMs=%d", retentionTimeMs)
-            }
-        } else {
-            XLog.i("Auto cancel disabled")
+        if (autoCancelEnabled && retentionTimeMs > 0L) {
+            builder.setTimeoutAfter(retentionTimeMs)
         }
-
-        val notification = builder.build()
-
-        manager.notify(notificationId, notification)
-        XLog.d("Show notification succeed")
-
-        if (autoCancelEnabled) {
-            val bundle = Bundle()
-            bundle.putLong(NOTIFY_RETENTION_TIME, retentionTimeMs)
-            bundle.putInt(NOTIFY_ID, notificationId)
-            return bundle
-        }
+        manager.notify(notificationId, builder.build())
+        XLog.i(
+            "Posted phone-owned code notification id=%d autoCancel=%s retentionMs=%d",
+            notificationId,
+            autoCancelEnabled,
+            retentionTimeMs,
+        )
         return null
     }
 
-    private fun scheduleAutoCancel(notificationId: Int, retentionTimeMs: Long) {
-        val alarmManager = mPluginContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager? ?: return
-        val appUid = mPluginContext.applicationInfo?.uid ?: -1
-        if (android.os.Process.myUid() != appUid) {
-            XLog.i("Skip alarm auto cancel: uid=%d, appUid=%d", android.os.Process.myUid(), appUid)
-            return
-        }
-        val intent = AutoCancelReceiver.createIntent(mPluginContext, notificationId)
-        val pendingIntent = PendingIntent.getBroadcast(
-            mPluginContext,
-            notificationId,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-        val triggerAt = System.currentTimeMillis() + retentionTimeMs
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
+    private fun pendingIntentFlag(): Int {
+        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            android.app.PendingIntent.FLAG_IMMUTABLE
         } else {
-            alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
+            0
         }
-        XLog.i("Schedule auto cancel alarm, id=%d, delayMs=%d", notificationId, retentionTimeMs)
-    }
-
-    companion object {
-        const val NOTIFY_RETENTION_TIME = "notify_retention_time"
-        const val NOTIFY_ID = "notify_id"
     }
 }

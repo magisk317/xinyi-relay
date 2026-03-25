@@ -33,7 +33,6 @@ internal object SmsCodePlanFactory {
 
     fun createParsedSmsPlan(
         settings: SmsCodePostParseCoordinator.Settings,
-        forwardDelayMs: Long,
     ): SmsCodePostParseCoordinator.ParsedSmsPlan {
         return SmsCodePostParseCoordinator.ParsedSmsPlan(
             blockSms = settings.blockSmsEnabled,
@@ -51,7 +50,6 @@ internal object SmsCodePlanFactory {
                 null
             },
             shouldRecord = settings.recordSmsEnabled,
-            forwardDelayMs = forwardDelayMs,
             operateSmsDelays = resolveOperateSmsDelays(settings),
         )
     }

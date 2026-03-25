@@ -138,6 +138,18 @@
             android:exported="false" />
 
         <receiver
+            android:name="io.github.magisk317.relay.xp.hook.code.CopyCodeReceiver"
+            android:exported="false" />
+
+        <!-- IPC: receives code-notification requests from the SMS hook process and posts the
+             actual status-bar notification from the module app process, so the notification is
+             owned by this app instead of com.android.phone. Token verification happens in the
+             receiver to prevent spoofed external broadcasts. -->
+        <receiver
+            android:name="io.github.magisk317.relay.receiver.CodeNotificationReceiver"
+            android:exported="true" />
+
+        <receiver
             android:name="io.github.magisk317.relay.receiver.AutoInputResultReceiver"
             android:exported="true">
             <intent-filter>

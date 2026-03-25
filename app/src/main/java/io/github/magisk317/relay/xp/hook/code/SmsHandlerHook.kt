@@ -1,18 +1,14 @@
 package io.github.magisk317.relay.xp.hook.code
 
-import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.provider.Telephony
 import io.github.magisk317.relay.BuildConfig
-import io.github.magisk317.relay.core.R
 import io.github.magisk317.smscode.xposed.utils.ModuleActivationStore
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
-import io.github.magisk317.relay.xpbridge.XpNotificationBridge
-import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
 import io.github.magisk317.smscode.xposed.utils.XLog
@@ -36,8 +32,6 @@ class SmsHandlerHook : BaseHook() {
     private val inboundSmsBlocker = InboundSmsBlocker(SMS_HANDLER_CLASS)
     private val constructorInitializer = SmsHookConstructorInitializer(
         runtimeInitializer = runtimeSession::initialize,
-        notificationChannelInitializer = ::initNotificationChannel,
-        copyCodeRegistrar = ::registerCopyCodeReceiver,
         heartbeatRecorder = { source -> runtimeSession.recordHeartbeat(source) },
         suppressionLogger = ::logSuppressedOnce,
         inboxObserverRegistrar = ::registerSmsInboxObserver,
@@ -223,24 +217,6 @@ class SmsHandlerHook : BaseHook() {
     private fun afterConstructorHandler(param: MethodHookParam) {
         val context = param.args.getOrNull(1) as? Context ?: return
         constructorInitializer.handle(context)
-    }
-
-    private fun initNotificationChannel(runtime: SmsHookRuntimeContext) {
-        val channelId = XpNotificationBridge.CHANNEL_ID_RELAY_NOTIFICATION
-        val channelName = runtime.pluginContext.getString(R.string.channel_name_relay_notification)
-        XpNotificationBridge.createNotificationChannel(
-            runtime.phoneContext,
-            channelId,
-            channelName,
-            NotificationManager.IMPORTANCE_HIGH,
-        )
-        XLog.d("Init notification channel succeed")
-    }
-
-    private fun registerCopyCodeReceiver(runtime: SmsHookRuntimeContext) {
-        if (!XpPrefs.showCodeNotification(runtime.pluginContext)) return
-        CopyCodeReceiver.registerMe(runtime.phoneContext)
-        XLog.d("Register copy code receiver")
     }
 
     private fun registerSmsInboxObserver(runtime: SmsHookRuntimeContext) {

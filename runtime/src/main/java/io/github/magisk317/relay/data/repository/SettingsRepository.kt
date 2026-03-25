@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.data.repository
 
 import android.content.Context
+import io.github.magisk317.relay.common.constant.CodeNotificationOwner
 import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.data.datasource.PreferenceDataSource
@@ -23,6 +24,7 @@ data class VerificationSettingsSnapshot(
     val copyToClipboard: Boolean,
     val showToast: Boolean,
     val showCodeNotification: Boolean,
+    val notificationOwner: String,
     val autoCancelNotification: Boolean,
     val notificationRetentionTime: String,
     val autoInputEnabled: Boolean,
@@ -38,6 +40,7 @@ data class VerificationSettingsUpdate(
     val copyToClipboard: Boolean? = null,
     val showToast: Boolean? = null,
     val showCodeNotification: Boolean? = null,
+    val notificationOwner: String? = null,
     val autoCancelNotification: Boolean? = null,
     val notificationRetentionTime: String? = null,
     val autoInputEnabled: Boolean? = null,
@@ -308,6 +311,7 @@ class SettingsRepository(
             copyToClipboard = preferenceDataSource.getBoolean(PrefConst.KEY_COPY_TO_CLIPBOARD, false),
             showToast = preferenceDataSource.getBoolean(PrefConst.KEY_SHOW_TOAST, true),
             showCodeNotification = preferenceDataSource.getBoolean(PrefConst.KEY_SHOW_CODE_NOTIFICATION, true),
+            notificationOwner = preferenceDataSource.getString(PrefConst.KEY_CODE_NOTIFICATION_OWNER, ""),
             autoCancelNotification = preferenceDataSource.getBoolean(PrefConst.KEY_AUTO_CANCEL_CODE_NOTIFICATION, false),
             notificationRetentionTime = preferenceDataSource.getString(
                 PrefConst.KEY_NOTIFICATION_RETENTION_TIME,
@@ -338,6 +342,12 @@ class SettingsRepository(
         update.copyToClipboard?.let { preferenceDataSource.setBoolean(PrefConst.KEY_COPY_TO_CLIPBOARD, it) }
         update.showToast?.let { preferenceDataSource.setBoolean(PrefConst.KEY_SHOW_TOAST, it) }
         update.showCodeNotification?.let { preferenceDataSource.setBoolean(PrefConst.KEY_SHOW_CODE_NOTIFICATION, it) }
+        update.notificationOwner?.let {
+            preferenceDataSource.setString(
+                PrefConst.KEY_CODE_NOTIFICATION_OWNER,
+                CodeNotificationOwner.normalize(it),
+            )
+        }
         update.autoCancelNotification?.let { preferenceDataSource.setBoolean(PrefConst.KEY_AUTO_CANCEL_CODE_NOTIFICATION, it) }
         update.notificationRetentionTime?.let { preferenceDataSource.setString(PrefConst.KEY_NOTIFICATION_RETENTION_TIME, it) }
         update.autoInputEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE_AUTO_INPUT_CODE, it) }

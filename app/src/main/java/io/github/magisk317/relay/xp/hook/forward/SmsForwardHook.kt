@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Process
 import android.provider.Telephony
 import io.github.magisk317.relay.BuildConfig
+import io.github.magisk317.relay.common.utils.SharedRuntimeGate
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xp.hook.SmsHookDispatchGate
@@ -109,6 +110,14 @@ class SmsForwardHook : BaseHook() {
         }
         val pluginContext = runtime.pluginContext
         val phoneContext = runtime.phoneContext
+        if (markDispatchHandled(intent, action)) {
+            XLog.w(
+                "SmsForwardHook duplicate sms suppressed: event_id=%s action=%s source=intent_extra",
+                eventId,
+                action,
+            )
+            return
+        }
         when (
             SmsHookDispatchGate.evaluate(
                 moduleEnabled = XpPrefs.isEnabled(pluginContext),
@@ -181,21 +190,31 @@ class SmsForwardHook : BaseHook() {
             return
         }
         val resolvedSmsMsg = prepared.smsMsg
-        val dedupKey = SmsForwardDedupKeyFactory.build(
-            SmsForwardDedupSpec(
-                eventId = eventId,
-                sender = resolvedSmsMsg.sender,
-                body = resolvedSmsMsg.body,
-                timestamp = resolvedSmsMsg.date,
-                msgType = SMS_MSG_TYPE,
-                source = SMS_HOOK_SOURCE,
-                simSlot = prepared.simSlot,
-                subId = prepared.subId,
-            ),
+        val dedupKey = buildSmsDispatchDedupKey(
+            sender = resolvedSmsMsg.sender,
+            body = resolvedSmsMsg.body,
+            timestamp = resolvedSmsMsg.date,
         )
+        val sharedDedupClaim = SharedRuntimeGate.claimWithinWindow(
+            context = pluginContext,
+            fileName = DISPATCH_DEDUP_FILE_NAME,
+            key = dedupKey,
+            windowMs = SMS_FORWARD_DEDUP_WINDOW_MS,
+            maxEntries = MAX_DISPATCH_DEDUP_ENTRIES,
+        )
+        if (!sharedDedupClaim.claimed) {
+            XLog.w(
+                "SmsForwardHook duplicate sms suppressed: event_id=%s action=%s key=%s source=shared_store ageMs=%d",
+                eventId,
+                action,
+                dedupKey,
+                sharedDedupClaim.ageMs ?: -1L,
+            )
+            return
+        }
         if (recentSmsForward.shouldDrop(dedupKey)) {
             XLog.w(
-                "SmsForwardHook duplicate sms suppressed: event_id=%s action=%s key=%s",
+                "SmsForwardHook duplicate sms suppressed: event_id=%s action=%s key=%s source=memory",
                 eventId,
                 action,
                 dedupKey,
@@ -230,6 +249,33 @@ class SmsForwardHook : BaseHook() {
         )
     }
 
+    private fun buildSmsDispatchDedupKey(
+        sender: String?,
+        body: String?,
+        timestamp: Long,
+    ): String {
+        return SmsForwardDedupKeyFactory.build(
+            SmsForwardDedupSpec(
+                eventId = "",
+                sender = sender,
+                body = body,
+                timestamp = timestamp,
+                msgType = SMS_MSG_TYPE,
+                source = SMS_HOOK_SOURCE,
+            ),
+        )
+    }
+
+    private fun markDispatchHandled(intent: Intent, action: String?): Boolean {
+        if (action.isNullOrBlank()) return false
+        val key = "$DISPATCH_HANDLED_EXTRA_PREFIX$action"
+        if (intent.getBooleanExtra(key, false)) {
+            return true
+        }
+        intent.putExtra(key, true)
+        return false
+    }
+
     private fun logSuppressedOnce(stage: String) {
         if (suppressionLogged) return
         synchronized(this) {
@@ -253,6 +299,9 @@ class SmsForwardHook : BaseHook() {
         private const val SMS_MSG_TYPE = "sms"
         private const val SMS_HOOK_SOURCE = "sms_hook"
         private const val SMS_FORWARD_DEDUP_WINDOW_MS = 10_000L
+        private const val DISPATCH_HANDLED_EXTRA_PREFIX = "relay_sms_forward_handled:"
+        private const val DISPATCH_DEDUP_FILE_NAME = "sms_forward_dispatch_dedup"
+        private const val MAX_DISPATCH_DEDUP_ENTRIES = 256
         private val recentSmsForward = RecentEventDeduplicator(windowMs = SMS_FORWARD_DEDUP_WINDOW_MS)
     }
 }

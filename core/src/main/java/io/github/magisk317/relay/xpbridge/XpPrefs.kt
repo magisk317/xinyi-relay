@@ -50,6 +50,8 @@ object XpPrefs {
 
     fun showCodeNotification(context: Context): Boolean = PrefsReader.showCodeNotification(context)
 
+    fun getCodeNotificationOwner(context: Context): String = PrefsReader.getCodeNotificationOwner(context)
+
     fun autoCancelCodeNotification(context: Context): Boolean = PrefsReader.autoCancelCodeNotification(context)
 
     fun getNotificationRetentionTime(context: Context): Int = PrefsReader.getNotificationRetentionTime(context)

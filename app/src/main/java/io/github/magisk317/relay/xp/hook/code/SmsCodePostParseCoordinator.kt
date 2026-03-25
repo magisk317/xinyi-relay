@@ -1,7 +1,6 @@
 package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
-import android.content.Intent
 import android.os.Handler
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import java.util.concurrent.ScheduledExecutorService
@@ -38,7 +37,6 @@ internal object SmsCodePostParseCoordinator {
         val autoInputDelayMs: Long?,
         val notificationPlan: NotificationPlan?,
         val shouldRecord: Boolean,
-        val forwardDelayMs: Long,
         val operateSmsDelays: List<Long>,
     )
 
@@ -58,9 +56,8 @@ internal object SmsCodePostParseCoordinator {
 
     fun createParsedSmsPlan(
         settings: Settings,
-        forwardDelayMs: Long,
     ): ParsedSmsPlan {
-        return SmsCodePlanFactory.createParsedSmsPlan(settings, forwardDelayMs)
+        return SmsCodePlanFactory.createParsedSmsPlan(settings)
     }
 
     fun createObservedSmsPlan(settings: Settings): ObservedSmsPlan {
@@ -73,7 +70,6 @@ internal object SmsCodePostParseCoordinator {
         pluginContext: Context,
         phoneContext: Context,
         smsMsg: SmsMsg,
-        smsIntent: Intent?,
         eventId: String,
         plan: ParsedSmsPlan,
     ) {
@@ -83,7 +79,6 @@ internal object SmsCodePostParseCoordinator {
             pluginContext = pluginContext,
             phoneContext = phoneContext,
             smsMsg = smsMsg,
-            smsIntent = smsIntent,
             eventId = eventId,
             plan = plan,
         )
@@ -160,23 +155,4 @@ internal object SmsCodePostParseCoordinator {
         )
     }
 
-    fun scheduleForward(
-        executor: ScheduledExecutorService,
-        pluginContext: Context,
-        phoneContext: Context,
-        smsMsg: SmsMsg,
-        smsIntent: Intent?,
-        eventId: String,
-        delayMs: Long,
-    ) {
-        SmsCodeActionDispatcher.scheduleForward(
-            executor,
-            pluginContext,
-            phoneContext,
-            smsMsg,
-            smsIntent,
-            eventId,
-            delayMs,
-        )
-    }
 }
