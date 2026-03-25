@@ -4,10 +4,10 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.text.TextUtils
-import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
 import io.github.magisk317.relay.xpbridge.XpMessageTypes
+import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.XpRecordFacade
 import io.github.magisk317.relay.xpbridge.XpStringEscaper
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
@@ -50,14 +50,16 @@ class SmsParseAction(pluginContext: Context, phoneContext: Context, smsMsg: SmsM
 
         val sender = smsMsg.sender
         val msgBody = smsMsg.body
+        val sensitiveDebugLog = XpPrefs.isSensitiveDebugLogMode(mPluginContext)
 
-        if (BuildConfig.DEBUG) {
-            XLog.d("Sender: %s", sender)
-            XLog.d("Body: %s", msgBody)
-        } else {
-            XLog.d("Sender: %s", XpStringEscaper.escape(sender))
-            XLog.d("Body length: %d", msgBody?.length ?: 0)
-        }
+        XLog.d(
+            "Sender: %s",
+            if (sensitiveDebugLog) XpStringEscaper.escape(sender) else XpStringEscaper.summarizeSender(sender),
+        )
+        XLog.d(
+            "Body: %s",
+            if (sensitiveDebugLog) XpStringEscaper.escape(msgBody) else XpStringEscaper.summarizeBody(msgBody),
+        )
 
         if (TextUtils.isEmpty(sender) || TextUtils.isEmpty(msgBody)) {
             XLog.w("Diag SMS parse aborted: sender/body is empty")
@@ -66,7 +68,10 @@ class SmsParseAction(pluginContext: Context, phoneContext: Context, smsMsg: SmsM
 
         val msgBodyNotNull = msgBody ?: ""
         val timestamp = if (smsMsg.date > 0) smsMsg.date else System.currentTimeMillis()
-        XLog.w("Diag SMS body: %s", XpStringEscaper.escape(msgBodyNotNull))
+        XLog.w(
+            "Diag SMS body: %s",
+            if (sensitiveDebugLog) XpStringEscaper.escape(msgBodyNotNull) else XpStringEscaper.summarizeBody(msgBodyNotNull),
+        )
         if (mDeduplicateEnabled) {
             val duplicated = kotlinx.coroutines.runBlocking {
                 runCatching {
@@ -93,7 +98,10 @@ class SmsParseAction(pluginContext: Context, phoneContext: Context, smsMsg: SmsM
             )
         } ?: return null
         if (!XpMessageTypes.isSmsCode(prepared.messageType)) {
-            XLog.w("Diag SMS parsed but no code matched, body=%s", XpStringEscaper.escape(msgBodyNotNull))
+            XLog.w(
+                "Diag SMS parsed but no code matched, body=%s",
+                if (sensitiveDebugLog) XpStringEscaper.escape(msgBodyNotNull) else XpStringEscaper.summarizeBody(msgBodyNotNull),
+            )
             return null
         }
         val resolvedSmsMsg = prepared.smsMsg
@@ -105,8 +113,8 @@ class SmsParseAction(pluginContext: Context, phoneContext: Context, smsMsg: SmsM
             "Diag SMS code matched: companyPresent=%s, codeLength=%d, code=%s, body=%s",
             !company.isNullOrBlank(),
             smsCode.length,
-            XpStringEscaper.escape(smsCode),
-            XpStringEscaper.escape(msgBodyNotNull),
+            if (sensitiveDebugLog) XpStringEscaper.escape(smsCode) else XpStringEscaper.summarizeCode(smsCode),
+            if (sensitiveDebugLog) XpStringEscaper.escape(msgBodyNotNull) else XpStringEscaper.summarizeBody(msgBodyNotNull),
         )
 
         val bundle = Bundle()

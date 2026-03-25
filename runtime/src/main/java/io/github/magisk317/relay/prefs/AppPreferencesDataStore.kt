@@ -45,6 +45,13 @@ object AppPreferencesDataStore {
     private fun getSharedPrefs(context: Context): SharedPreferences =
         context.getSharedPreferences(SHARED_PREFS_FILE_NAME, Context.MODE_PRIVATE)
 
+    private fun coerceBooleanValue(key: String, value: Boolean): Boolean {
+        if (key == PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE && !PrefsReader.isSensitiveDebugLogSupported()) {
+            return false
+        }
+        return value
+    }
+
     private fun ensureDataStoreReadable(context: Context) {
         val file = getDataStoreFile(context)
         StorageUtils.setFileWorldReadable(file, 3)
@@ -105,18 +112,22 @@ object AppPreferencesDataStore {
     }
 
     suspend fun getBoolean(context: Context, key: String, defaultValue: Boolean): Boolean {
+        if (key == PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE && !PrefsReader.isSensitiveDebugLogSupported()) {
+            return false
+        }
         val prefKey = booleanPreferencesKey(key)
         return getInstance(context).data
-            .map { prefs: Preferences -> safeRead(prefs, prefKey, defaultValue) }
+            .map { prefs: Preferences -> coerceBooleanValue(key, safeRead(prefs, prefKey, defaultValue)) }
             .first()
     }
 
     suspend fun setBoolean(context: Context, key: String, value: Boolean) {
+        val safeValue = coerceBooleanValue(key, value)
         val prefKey = booleanPreferencesKey(key)
         getInstance(context).edit { prefs ->
-            prefs[prefKey] = value
+            prefs[prefKey] = safeValue
         }
-        getSharedPrefs(context).edit().putBoolean(key, value).apply()
+        getSharedPrefs(context).edit().putBoolean(key, safeValue).apply()
         ensureDataStoreReadable(context)
         ensureSharedPrefsReadable(context)
     }
@@ -173,10 +184,13 @@ object AppPreferencesDataStore {
     }
 
     suspend fun getBooleanCompat(context: Context, key: String, defaultValue: Boolean): Boolean {
+        if (key == PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE && !PrefsReader.isSensitiveDebugLogSupported()) {
+            return false
+        }
         val sharedPrefs = getSharedPrefs(context)
         return if (sharedPrefs.contains(key)) {
             runCatching {
-                sharedPrefs.getBoolean(key, defaultValue)
+                coerceBooleanValue(key, sharedPrefs.getBoolean(key, defaultValue))
             }.getOrElse {
                 XLog.w(
                     "SharedPreferences boolean type mismatch key=%s err=%s",
@@ -225,6 +239,10 @@ object AppPreferencesDataStore {
             getBoolean(context, PrefConst.KEY_SETTINGS_ACCORDION_MODE, true),
         )
         editor.putBoolean(PrefConst.KEY_VERBOSE_LOG_MODE, getBoolean(context, PrefConst.KEY_VERBOSE_LOG_MODE, false))
+        editor.putBoolean(
+            PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE,
+            getBoolean(context, PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE, false),
+        )
         editor.putInt(
             PrefConst.KEY_RUNTIME_LOG_FILE_SIZE_MB,
             getInt(
@@ -615,6 +633,10 @@ object AppPreferencesDataStore {
                 getBoolean(context, PrefConst.KEY_SETTINGS_ACCORDION_MODE, true),
             )
             editor.putBoolean(PrefConst.KEY_VERBOSE_LOG_MODE, getBoolean(context, PrefConst.KEY_VERBOSE_LOG_MODE, false))
+            editor.putBoolean(
+                PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE,
+                getBoolean(context, PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE, false),
+            )
             editor.putInt(
                 PrefConst.KEY_RUNTIME_LOG_FILE_SIZE_MB,
                 getInt(
@@ -850,9 +872,12 @@ object AppPreferencesDataStore {
     }
 
     fun getBooleanFlow(context: Context, key: String, defaultValue: Boolean): Flow<Boolean> {
+        if (key == PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE && !PrefsReader.isSensitiveDebugLogSupported()) {
+            return kotlinx.coroutines.flow.flowOf(false)
+        }
         val prefKey = booleanPreferencesKey(key)
         return getInstance(context).data
-            .map { prefs: Preferences -> safeRead(prefs, prefKey, defaultValue) }
+            .map { prefs: Preferences -> coerceBooleanValue(key, safeRead(prefs, prefKey, defaultValue)) }
     }
 
     fun getStringFlow(context: Context, key: String, defaultValue: String): Flow<String> {

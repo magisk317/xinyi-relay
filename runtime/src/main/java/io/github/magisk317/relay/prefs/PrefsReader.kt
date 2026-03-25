@@ -282,6 +282,15 @@ object PrefsReader {
     }
 
     @JvmStatic
+    fun isSensitiveDebugLogSupported(): Boolean = BuildConfig.DEBUG
+
+    @JvmStatic
+    fun isSensitiveDebugLogMode(context: Context): Boolean {
+        if (!isSensitiveDebugLogSupported()) return false
+        return getBooleanViaProvider(context, PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE, false)
+    }
+
+    @JvmStatic
     fun verificationFeaturesEnabled(context: Context): Boolean {
         return getBooleanViaProvider(context, PrefConst.KEY_VERIFICATION_FEATURES_ENABLED, true)
     }

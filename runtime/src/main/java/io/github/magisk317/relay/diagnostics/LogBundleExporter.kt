@@ -20,7 +20,6 @@ object LogBundleExporter {
     private const val ZIP_MIME_TYPE = "application/zip"
     private val LSPOSED_LOG_DIRS = listOf(
         "/data/adb/lspd/log",
-        "/data/adb/lspd/log.old",
     )
     private val opLock = Any()
 

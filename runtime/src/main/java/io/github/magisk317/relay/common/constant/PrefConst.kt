@@ -97,6 +97,7 @@ object PrefConst {
 
     // Others
     const val KEY_VERBOSE_LOG_MODE = "pref_verbose_log_mode"
+    const val KEY_SENSITIVE_DEBUG_LOG_MODE = "pref_sensitive_debug_log_mode"
     const val KEY_RUNTIME_LOG_FILE_SIZE_MB = "pref_runtime_log_file_size_mb"
     const val RUNTIME_LOG_FILE_SIZE_MB_DEFAULT = 1
     const val RUNTIME_LOG_FILE_SIZE_MB_MIN = 1

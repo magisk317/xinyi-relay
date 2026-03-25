@@ -256,6 +256,8 @@
     <string name="pref_others_title">其他</string>
     <string name="pref_verbose_log_mode_title">详细日志</string>
     <string name="pref_verbose_log_mode_summary">点击后分享日志</string>
+    <string name="pref_sensitive_debug_log_mode_title">敏感调试日志</string>
+    <string name="pref_sensitive_debug_log_mode_summary">仅 Debug 版本提供。开启后日志可输出手机号、短信正文和验证码明文。</string>
     <string name="pref_runtime_log_file_size_title">日志文件大小</string>
     <string name="pref_runtime_log_file_size_summary">单个文件大小上限：%1$dM（超过后循环覆盖）</string>
     <string name="pref_runtime_log_file_size_hint">单位 MB，最小值 1。</string>

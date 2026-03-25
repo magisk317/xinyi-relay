@@ -2,69 +2,76 @@ package io.github.magisk317.relay.platform.sender
 
 import android.util.Log
 import io.github.magisk317.relay.diagnostics.RuntimeLogStore
+import io.github.magisk317.relay.common.utils.SensitiveLogPolicy
 
 internal object SLog {
     fun d(tag: String, message: String) {
-        Log.d(tag, message)
+        val safeMessage = SensitiveLogPolicy.sanitizeSenderLogMessage(message)
+        Log.d(tag, safeMessage)
         RuntimeLogStore.append(
             priority = Log.DEBUG,
             tag = tag,
-            message = message,
+            message = safeMessage,
             force = true,
             route = RuntimeLogStore.ROUTE_SENDER,
         )
     }
 
     fun i(tag: String, message: String) {
-        Log.i(tag, message)
+        val safeMessage = SensitiveLogPolicy.sanitizeSenderLogMessage(message)
+        Log.i(tag, safeMessage)
         RuntimeLogStore.append(
             priority = Log.INFO,
             tag = tag,
-            message = message,
+            message = safeMessage,
             force = true,
             route = RuntimeLogStore.ROUTE_SENDER,
         )
     }
 
     fun w(tag: String, message: String) {
-        Log.w(tag, message)
+        val safeMessage = SensitiveLogPolicy.sanitizeSenderLogMessage(message)
+        Log.w(tag, safeMessage)
         RuntimeLogStore.append(
             priority = Log.WARN,
             tag = tag,
-            message = message,
+            message = safeMessage,
             force = true,
             route = RuntimeLogStore.ROUTE_SENDER,
         )
     }
 
     fun w(tag: String, message: String, throwable: Throwable) {
-        Log.w(tag, message, throwable)
+        val safeMessage = SensitiveLogPolicy.sanitizeSenderLogMessage(message)
+        Log.w(tag, safeMessage, throwable)
         RuntimeLogStore.append(
             Log.WARN,
             tag,
-            "$message\n${Log.getStackTraceString(throwable)}",
+            "$safeMessage\n${Log.getStackTraceString(throwable)}",
             force = true,
             route = RuntimeLogStore.ROUTE_SENDER,
         )
     }
 
     fun e(tag: String, message: String) {
-        Log.e(tag, message)
+        val safeMessage = SensitiveLogPolicy.sanitizeSenderLogMessage(message)
+        Log.e(tag, safeMessage)
         RuntimeLogStore.append(
             priority = Log.ERROR,
             tag = tag,
-            message = message,
+            message = safeMessage,
             force = true,
             route = RuntimeLogStore.ROUTE_SENDER,
         )
     }
 
     fun e(tag: String, message: String, throwable: Throwable) {
-        Log.e(tag, message, throwable)
+        val safeMessage = SensitiveLogPolicy.sanitizeSenderLogMessage(message)
+        Log.e(tag, safeMessage, throwable)
         RuntimeLogStore.append(
             Log.ERROR,
             tag,
-            "$message\n${Log.getStackTraceString(throwable)}",
+            "$safeMessage\n${Log.getStackTraceString(throwable)}",
             force = true,
             route = RuntimeLogStore.ROUTE_SENDER,
         )

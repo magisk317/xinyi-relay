@@ -255,6 +255,8 @@
     <string name="pref_others_title">其他設定</string>
     <string name="pref_verbose_log_mode_title">詳細日誌</string>
     <string name="pref_verbose_log_mode_summary">點擊後分享日誌</string>
+    <string name="pref_sensitive_debug_log_mode_title">敏感除錯日誌</string>
+    <string name="pref_sensitive_debug_log_mode_summary">僅 Debug 版本提供。開啟後日誌可輸出手機號、簡訊正文與驗證碼明文。</string>
     <string name="pref_runtime_log_file_size_title">日誌檔案大小</string>
     <string name="pref_runtime_log_file_size_summary">單個檔案大小上限：%1$dM（超過後循環覆蓋）</string>
     <string name="pref_runtime_log_file_size_hint">單位 MB，最小值 1。</string>

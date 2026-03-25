@@ -5,6 +5,7 @@ import android.database.ContentObserver
 import android.os.Handler
 import android.os.Looper
 import android.provider.Telephony
+import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.XpStringEscaper
 import io.github.magisk317.smscode.xposed.utils.XLog
 import java.util.concurrent.Executors
@@ -48,6 +49,7 @@ internal class SmsInboxObserver(
             triggerUri = triggerUri,
             recentSmsWindowMs = RECENT_SMS_WINDOW_MS,
         ).forEach { record ->
+            val sensitiveDebugLog = XpPrefs.isSensitiveDebugLogMode(pluginContext)
             XLog.w(
                 "Diag SMS provider observed: sms_id=%d trigger_uri=%s sender_hash=%s date=%d read=%s code=%s body=%s",
                 record.smsId,
@@ -55,8 +57,8 @@ internal class SmsInboxObserver(
                 senderHash(record.sender),
                 record.date,
                 record.read,
-                XpStringEscaper.escape(record.code),
-                XpStringEscaper.escape(record.body),
+                if (sensitiveDebugLog) XpStringEscaper.escape(record.code) else XpStringEscaper.summarizeCode(record.code),
+                if (sensitiveDebugLog) XpStringEscaper.escape(record.body) else XpStringEscaper.summarizeBody(record.body),
             )
             logSmsRoleStateForSms(record.smsId, record.triggerUri)
             observedSmsHandler.handle(record)

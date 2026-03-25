@@ -50,9 +50,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
+import io.github.magisk317.relay.core.BuildConfig
 import io.github.magisk317.relay.common.constant.Const
 import io.github.magisk317.relay.common.constant.CodeNotificationOwner
 import io.github.magisk317.relay.common.constant.PrefConst
+import io.github.magisk317.relay.common.utils.SensitiveLogPolicy
 import io.github.magisk317.relay.common.utils.NotificationUtils
 import io.github.magisk317.relay.diagnostics.LogBundleExporter
 import io.github.magisk317.relay.diagnostics.RuntimeLogStore
@@ -291,6 +293,21 @@ fun SettingsHomeScreen(
                         RuntimeLogStore.setEnabled(enabled)
                         XLog.setLogLevel(if (enabled) Log.VERBOSE else io.github.magisk317.relay.runtime.BuildConfig.LOG_LEVEL)
                         notifySaved()
+                    }
+                }
+                if (BuildConfig.DEBUG) {
+                    StateSwitchItem(
+                        title = stringResource(id = R.string.pref_sensitive_debug_log_mode_title),
+                        summary = stringResource(id = R.string.pref_sensitive_debug_log_mode_summary),
+                        checked = diagnosticsSnapshot.sensitiveDebugLogMode,
+                    ) { enabled ->
+                        scope.launch {
+                            diagnostics = repository.updateDiagnosticsSettings(
+                                DiagnosticsSettingsUpdate(sensitiveDebugLogMode = enabled),
+                            )
+                            SensitiveLogPolicy.setEnabled(enabled)
+                            notifySaved()
+                        }
                     }
                 }
                 Item(
@@ -1188,6 +1205,21 @@ fun DiagnosticsSettingsScreen(onBack: () -> Unit) {
                     scope.launch {
                         settings = repository.updateDiagnosticsSettings(DiagnosticsSettingsUpdate(verboseLogMode = enabled))
                         notifySaved()
+                    }
+                }
+                if (BuildConfig.DEBUG) {
+                    StateSwitchItem(
+                        title = stringResource(id = R.string.pref_sensitive_debug_log_mode_title),
+                        summary = stringResource(id = R.string.pref_sensitive_debug_log_mode_summary),
+                        checked = current.sensitiveDebugLogMode,
+                    ) { enabled ->
+                        scope.launch {
+                            settings = repository.updateDiagnosticsSettings(
+                                DiagnosticsSettingsUpdate(sensitiveDebugLogMode = enabled),
+                            )
+                            SensitiveLogPolicy.setEnabled(enabled)
+                            notifySaved()
+                        }
                     }
                 }
                 Item(

@@ -37,6 +37,7 @@ object PrefRestoreTypeRegistry {
         PrefConst.KEY_FORCE_STOP_RECOVERY,
         PrefConst.KEY_FORCE_STOP_RECOVERY_RELAUNCH_ONCE,
         PrefConst.KEY_VERBOSE_LOG_MODE,
+        PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE,
         PrefConst.KEY_AUTO_UPDATE_ON_START,
         PrefConst.KEY_AUTO_UPDATE_WIFI_ONLY,
         PrefConst.KEY_LOW_BATTERY_REMINDER_ENABLE,

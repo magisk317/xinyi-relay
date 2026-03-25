@@ -4,6 +4,7 @@ import android.content.Context
 import io.github.magisk317.relay.common.constant.CodeNotificationOwner
 import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.common.constant.PrefConst
+import io.github.magisk317.relay.common.utils.SensitiveLogPolicy
 import io.github.magisk317.relay.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.domain.model.ForwardCommonConfig
 import io.github.magisk317.relay.domain.system.DeviceIdentityUtils
@@ -65,6 +66,7 @@ data class DiagnosticsSettingsSnapshot(
     val forceStopRecoveryEnabled: Boolean,
     val forceStopRecoveryRelaunchOnceEnabled: Boolean,
     val verboseLogMode: Boolean,
+    val sensitiveDebugLogMode: Boolean,
     val runtimeLogFileSizeMb: Int,
     val autoUpdateOnStart: Boolean,
     val autoUpdateWifiOnly: Boolean,
@@ -77,6 +79,7 @@ data class DiagnosticsSettingsUpdate(
     val forceStopRecoveryEnabled: Boolean? = null,
     val forceStopRecoveryRelaunchOnceEnabled: Boolean? = null,
     val verboseLogMode: Boolean? = null,
+    val sensitiveDebugLogMode: Boolean? = null,
     val runtimeLogFileSizeMb: Int? = null,
     val autoUpdateOnStart: Boolean? = null,
     val autoUpdateWifiOnly: Boolean? = null,
@@ -384,6 +387,7 @@ class SettingsRepository(
                 false,
             ),
             verboseLogMode = preferenceDataSource.getBoolean(PrefConst.KEY_VERBOSE_LOG_MODE, false),
+            sensitiveDebugLogMode = preferenceDataSource.getBoolean(PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE, false),
             runtimeLogFileSizeMb = preferenceDataSource.getInt(
                 PrefConst.KEY_RUNTIME_LOG_FILE_SIZE_MB,
                 PrefConst.RUNTIME_LOG_FILE_SIZE_MB_DEFAULT,
@@ -402,6 +406,10 @@ class SettingsRepository(
             preferenceDataSource.setBoolean(PrefConst.KEY_FORCE_STOP_RECOVERY_RELAUNCH_ONCE, it)
         }
         update.verboseLogMode?.let { preferenceDataSource.setBoolean(PrefConst.KEY_VERBOSE_LOG_MODE, it) }
+        update.sensitiveDebugLogMode?.let {
+            preferenceDataSource.setBoolean(PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE, it)
+            SensitiveLogPolicy.setEnabled(it)
+        }
         update.runtimeLogFileSizeMb?.let {
             preferenceDataSource.setInt(
                 PrefConst.KEY_RUNTIME_LOG_FILE_SIZE_MB,

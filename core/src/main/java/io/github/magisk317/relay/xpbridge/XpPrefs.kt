@@ -22,6 +22,8 @@ object XpPrefs {
 
     fun isVerboseLogMode(context: Context): Boolean = PrefsReader.isVerboseLogMode(context)
 
+    fun isSensitiveDebugLogMode(context: Context): Boolean = PrefsReader.isSensitiveDebugLogMode(context)
+
     fun relayFeaturesEnabled(context: Context): Boolean = PrefsReader.relayFeaturesEnabled(context)
 
     fun autoInputCodeEnabled(context: Context): Boolean = PrefsReader.autoInputCodeEnabled(context)

@@ -254,6 +254,8 @@
     <string name="pref_others_title">Others</string>
     <string name="pref_verbose_log_mode_title">Detailed log</string>
     <string name="pref_verbose_log_mode_summary">Tap to share logs</string>
+    <string name="pref_sensitive_debug_log_mode_title">Sensitive debug log</string>
+    <string name="pref_sensitive_debug_log_mode_summary">Debug builds only. Allows plaintext sender, body, and code in logs.</string>
     <string name="pref_runtime_log_file_size_title">Runtime log file size</string>
     <string name="pref_runtime_log_file_size_summary">Single file size limit: %1$dM (tail overwrite when exceeded)</string>
     <string name="pref_runtime_log_file_size_hint">Single file size limit in MB, minimum 1.</string>
