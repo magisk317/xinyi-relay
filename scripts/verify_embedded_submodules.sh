@@ -26,12 +26,12 @@ forbid_pattern() {
   fi
 }
 
-require_pattern "$SUBMODULE_SETTINGS" 'include\(":core"\)' \
-  "smscode-core/settings.gradle.kts must keep the legacy :core module during migration"
 require_pattern "$SUBMODULE_SETTINGS" 'include\(":smscode-xposed-core"\)' \
   "smscode-core/settings.gradle.kts must include :smscode-xposed-core"
 require_pattern "$SUBMODULE_SETTINGS" 'include\(":smscode-domain"\)' \
   "smscode-core/settings.gradle.kts must include :smscode-domain"
+forbid_pattern "$SUBMODULE_SETTINGS" 'include\(":core"\)' \
+  "smscode-core/settings.gradle.kts must not include the removed legacy :core module"
 forbid_pattern "$SUBMODULE_SETTINGS" 'include\(":app"\)|include\(":runtime"\)' \
   "smscode-core/settings.gradle.kts must stay a shared-library workspace without standalone app/runtime modules"
 
@@ -39,6 +39,10 @@ forbid_pattern "$SUBMODULE_BUILD" 'dependencies\s*\{' \
   "smscode-core/build.gradle.kts must stay a minimal embedded-root stub without root dependencies"
 forbid_pattern "$SUBMODULE_BUILD" 'subprojects\s*\{|allprojects\s*\{' \
   "smscode-core/build.gradle.kts must not carry standalone root project orchestration"
+
+if [[ -d "$SUBMODULE_DIR/core" ]]; then
+  violations+=("smscode-core/core must be removed after the xposed-core split")
+fi
 
 if [[ "${#violations[@]}" -ne 0 ]]; then
   printf 'Embedded submodule verification failed:\n' >&2
