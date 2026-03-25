@@ -466,16 +466,18 @@ class ForwardReceiver : BroadcastReceiver() {
             return false
         }
         val enabled = appInfo?.forwarding == true
-        val allowWhenMissing = appInfo == null
+        val configured = appInfo?.forwardingConfigured == true || enabled
+        val allowWhenMissing = !configured
         val state = when {
-            appInfo == null -> "missing"
+            !configured -> "missing"
             enabled -> "enabled"
             else -> "disabled"
         }
         val finalDecision = when {
             !messageTypeEnabled -> "drop_message_type_disabled"
+            !forwardTypeEnabled -> "drop_forward_type_disabled"
             enabled -> "forward"
-            allowWhenMissing -> "allow"
+            allowWhenMissing -> "drop_missing"
             else -> "drop"
         }
         ForwardFlowLog.i(
@@ -491,8 +493,8 @@ class ForwardReceiver : BroadcastReceiver() {
             forwardTypeEnabled,
             finalDecision,
         )
-        if (!messageTypeEnabled) return false
-        return enabled || allowWhenMissing
+        if (!messageTypeEnabled || !forwardTypeEnabled) return false
+        return enabled
     }
 
     private fun setOrderedResult(

@@ -270,6 +270,7 @@ class DBProvider : ContentProvider() {
             "label" -> app.label
             "blocked" -> if (app.blocked) 1 else 0
             "forwarding" -> if (app.forwarding) 1 else 0
+            "forwarding_configured" -> if (app.forwardingConfigured) 1 else 0
             "notify_template" -> app.notifyTemplate
             else -> null
         }
@@ -356,6 +357,15 @@ class DBProvider : ContentProvider() {
         val existing = dao.getByPackageName(packageName) ?: AppInfo(packageName = packageName)
         val blocked = parseBooleanValue(values, "blocked", existing.blocked)
         val forwarding = parseBooleanValue(values, "forwarding", existing.forwarding)
+        val forwardingConfigured = when {
+            values?.containsKey("forwarding_configured") == true -> parseBooleanValue(
+                values,
+                "forwarding_configured",
+                existing.forwardingConfigured,
+            )
+            values?.containsKey("forwarding") == true -> true
+            else -> existing.forwardingConfigured
+        }
         val label = when {
             values?.containsKey("label") == true -> values.getAsString("label")
             else -> existing.label
@@ -369,6 +379,7 @@ class DBProvider : ContentProvider() {
                 label = label,
                 blocked = blocked,
                 forwarding = forwarding,
+                forwardingConfigured = forwardingConfigured,
                 notifyTemplate = notifyTemplate,
             ),
         )

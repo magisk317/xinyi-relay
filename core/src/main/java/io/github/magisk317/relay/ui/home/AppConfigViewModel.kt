@@ -157,6 +157,7 @@ class AppConfigViewModel(
                                 appInfoBase.copy(
                                     blocked = config.blocked,
                                     forwarding = config.forwarding,
+                                    forwardingConfigured = config.forwardingConfigured,
                                     notifyTemplate = config.notifyTemplate,
                                 )
                             } else {
@@ -297,7 +298,7 @@ class AppConfigViewModel(
     }
 
     fun setForwarding(packageName: String, forwarding: Boolean) {
-        updateApp(packageName) { it.copy(forwarding = forwarding) }
+        updateApp(packageName) { it.copy(forwarding = forwarding, forwardingConfigured = true) }
     }
 
     fun setNotifyTemplate(packageName: String, notifyTemplate: String) {
@@ -462,7 +463,7 @@ class AppConfigViewModel(
     }
 
     private fun hasEffectiveConfig(appInfo: AppInfo): Boolean {
-        return appInfo.blocked || appInfo.forwarding || appInfo.notifyTemplate.isNotBlank()
+        return appInfo.blocked || appInfo.forwardingConfigured || appInfo.notifyTemplate.isNotBlank()
     }
 
     private val mComparator = Comparator<AppInfo> { o1, o2 ->

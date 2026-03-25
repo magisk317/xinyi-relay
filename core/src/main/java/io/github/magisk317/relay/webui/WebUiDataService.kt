@@ -100,18 +100,20 @@ class WebUiDataService(context: Context) {
                     packageManager.getApplicationLabel(appInfo).toString()
                 }.getOrDefault(packageName).ifBlank { packageName }
                 val config = configMap[packageName]
-                AppItem(
+                val item = AppItem(
                     packageName = packageName,
                     label = label,
                     blocked = config?.blocked ?: false,
                     forwarding = config?.forwarding ?: false,
                     notifyTemplate = config?.notifyTemplate.orEmpty(),
                 )
+                item to (config?.let(::hasPersistedAppConfig) == true)
             }
             .sortedWith(
-                compareByDescending<AppItem> { it.blocked || it.forwarding || it.notifyTemplate.isNotBlank() }
-                    .thenBy { it.label.lowercase() },
+                compareByDescending<Pair<AppItem, Boolean>> { it.second }
+                    .thenBy { it.first.label.lowercase() },
             )
+            .map { it.first }
             .toList()
     }
 
@@ -124,9 +126,18 @@ class WebUiDataService(context: Context) {
             label = label,
             blocked = payload.blocked ?: current?.blocked ?: false,
             forwarding = payload.forwarding ?: current?.forwarding ?: false,
+            forwardingConfigured = if (payload.forwarding != null) {
+                true
+            } else {
+                current?.forwardingConfigured ?: false
+            },
             notifyTemplate = payload.notifyTemplate ?: current?.notifyTemplate.orEmpty(),
         )
-        configRepository.upsertAppInfo(next)
+        if (hasPersistedAppConfig(next)) {
+            configRepository.upsertAppInfo(next)
+        } else {
+            configRepository.removeAppInfosByPackage(listOf(packageName))
+        }
         next.toItem()
     }
 
@@ -352,6 +363,10 @@ class WebUiDataService(context: Context) {
         forwarding = forwarding,
         notifyTemplate = notifyTemplate,
     )
+
+    private fun hasPersistedAppConfig(appInfo: AppInfo): Boolean {
+        return appInfo.blocked || appInfo.forwardingConfigured || appInfo.notifyTemplate.isNotBlank()
+    }
 
     private fun SmsMsg.toRecordItem(): RecordItem = RecordItem(
         id = id,

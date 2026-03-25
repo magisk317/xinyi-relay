@@ -31,6 +31,10 @@ data class AppInfo @JvmOverloads constructor(
     @get:JvmName("isForwarding")
     val forwarding: Boolean = false,
 
+    @ColumnInfo(name = "forwarding_configured", defaultValue = "0")
+    @SerialName("forwardingConfigured")
+    val forwardingConfigured: Boolean = false,
+
     @ColumnInfo(name = "notify_template", defaultValue = "")
     @SerialName("notifyTemplate")
     val notifyTemplate: String = "",
