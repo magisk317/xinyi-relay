@@ -12,7 +12,6 @@ import android.os.Build
 import android.text.TextUtils
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import io.github.magisk317.relay.common.utils.NotificationUtils
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.xp.hook.code.AutoCancelReceiver
 import io.github.magisk317.relay.xp.hook.code.CodeNotificationBroadcastContract
@@ -110,7 +109,7 @@ class CodeNotificationReceiver : BroadcastReceiver() {
             return
         }
 
-        val diagnostics = NotificationUtils.inspectDelivery(
+        val diagnostics = XpNotificationBridge.inspectDelivery(
             appContext,
             XpNotificationBridge.CHANNEL_ID_RELAY_NOTIFICATION,
         )

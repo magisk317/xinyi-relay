@@ -5,12 +5,11 @@ import android.graphics.BitmapFactory
 import android.os.Bundle
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import io.github.magisk317.relay.common.constant.CodeNotificationOwner
-import io.github.magisk317.relay.common.utils.NotificationUtils
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.xp.hook.code.CodeNotificationBroadcastContract
 import io.github.magisk317.relay.xp.hook.code.CopyCodeReceiver
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
+import io.github.magisk317.relay.xpbridge.XpCodeNotificationOwner
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpNotificationBridge
 import io.github.magisk317.relay.xpbridge.XpPrefs
@@ -38,8 +37,8 @@ class NotifyAction(
 
     private fun showCodeNotification(smsMsg: SmsMsg): Bundle? {
         return when (XpPrefs.getCodeNotificationOwner(mPluginContext)) {
-            CodeNotificationOwner.PHONE -> showPhoneOwnedNotification(smsMsg)
-            CodeNotificationOwner.APP -> showAppOwnedNotification(smsMsg)
+            XpCodeNotificationOwner.PHONE -> showPhoneOwnedNotification(smsMsg)
+            XpCodeNotificationOwner.APP -> showAppOwnedNotification(smsMsg)
             else -> {
                 XLog.w("Skip code notification: owner not selected")
                 null
@@ -48,13 +47,13 @@ class NotifyAction(
     }
 
     private fun showAppOwnedNotification(smsMsg: SmsMsg): Bundle? {
-        NotificationUtils.createNotificationChannel(
+        XpNotificationBridge.createNotificationChannel(
             mPluginContext,
             XpNotificationBridge.CHANNEL_ID_RELAY_NOTIFICATION,
             mPluginContext.getString(R.string.channel_name_relay_notification),
             android.app.NotificationManager.IMPORTANCE_HIGH,
         )
-        val diagnostics = NotificationUtils.inspectDelivery(
+        val diagnostics = XpNotificationBridge.inspectDelivery(
             mPluginContext,
             XpNotificationBridge.CHANNEL_ID_RELAY_NOTIFICATION,
         )

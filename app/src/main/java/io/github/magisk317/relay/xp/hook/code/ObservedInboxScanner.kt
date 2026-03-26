@@ -58,6 +58,7 @@ internal class ObservedInboxScanner(
     companion object {
         private const val DEFAULT_SMS_TRIGGER_URI = "content://sms"
         private const val MAX_RECENT_SMS_COUNT = 32
+        private val TRIGGERED_SMS_ID_REGEX = Regex("""^content://sms(?:/[^/?#]+)*/(\d+)(?:[?#].*)?$""")
 
         private fun loadRecentInboxRows(
             phoneContext: Context,
@@ -107,10 +108,15 @@ internal class ObservedInboxScanner(
 
         private fun parseTriggeredSmsId(triggerUri: String): Long? {
             if (triggerUri.isBlank()) return null
-            val uri = runCatching { Uri.parse(triggerUri) }.getOrNull() ?: return null
-            if (uri.scheme != "content") return null
-            if (uri.authority != "sms") return null
-            return uri.lastPathSegment?.toLongOrNull()
+            val parsedId = runCatching { Uri.parse(triggerUri) }.getOrNull()
+                ?.takeIf { it.scheme == "content" && it.authority == "sms" }
+                ?.lastPathSegment
+                ?.toLongOrNull()
+            return parsedId
+                ?: TRIGGERED_SMS_ID_REGEX.find(triggerUri)
+                    ?.groupValues
+                    ?.getOrNull(1)
+                    ?.toLongOrNull()
         }
     }
 }

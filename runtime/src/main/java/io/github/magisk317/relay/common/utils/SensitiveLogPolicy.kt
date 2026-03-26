@@ -4,6 +4,9 @@ import io.github.magisk317.relay.runtime.BuildConfig
 import java.util.Locale
 
 object SensitiveLogPolicy {
+    private const val ENABLED_LOG_MAX_LENGTH = 1200
+    private const val SANITIZED_LOG_MAX_LENGTH = 800
+
     private val messageFieldNames = listOf(
         "from",
         "sender",
@@ -38,7 +41,7 @@ object SensitiveLogPolicy {
     fun sanitizeSenderLogMessage(message: String): String {
         var sanitized = maskSecrets(message)
         if (isEnabled()) {
-            return truncate(sanitized, 1200)
+            return truncate(sanitized, ENABLED_LOG_MAX_LENGTH)
         }
         sanitized = summarizeAfterLabel(sanitized, "requestMsg:")
         sanitized = summarizeAfterLabel(sanitized, "Response:")
@@ -50,7 +53,7 @@ object SensitiveLogPolicy {
         sanitized = summarizeFieldValue(sanitized, "body")
         sanitized = summarizeFieldValue(sanitized, "text")
         sanitized = summarizeKnownMessageFields(sanitized)
-        return truncate(sanitized, 800)
+        return truncate(sanitized, SANITIZED_LOG_MAX_LENGTH)
     }
 
     private fun summarizeAfterLabel(message: String, label: String): String {

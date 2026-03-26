@@ -32,6 +32,8 @@ forbid_pattern "$APP_BUILD" 'implementation\(project\(":runtime"\)\)' \
   "app must not runtime-package :runtime directly"
 forbid_pattern "$APP_BUILD" 'api\(project\(":runtime"\)\)' \
   "app must not expose :runtime directly"
+forbid_pattern "$APP_BUILD" 'compileOnly\(project\(":runtime"\)\)' \
+  "app must not compile against :runtime directly"
 forbid_pattern "$APP_BUILD" 'implementation\(project\(":smscode-core:core"\)\)' \
   "app must not runtime-package :smscode-core:core directly"
 forbid_pattern "$APP_BUILD" 'api\(project\(":smscode-core:core"\)\)' \

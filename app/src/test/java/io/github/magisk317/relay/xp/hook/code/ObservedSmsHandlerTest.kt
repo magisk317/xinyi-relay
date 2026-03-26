@@ -2,6 +2,7 @@ package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
 import io.github.magisk317.relay.xpbridge.SmsMsg
+import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
 import io.github.magisk317.smscode.xposed.utils.XLog
 import io.mockk.every
 import io.mockk.mockk
@@ -64,6 +65,7 @@ class ObservedSmsHandlerTest {
             planFactory = { observedPlan(autoInputEnabled = true, shouldRecord = true) },
             moduleEnabledReader = { true },
             conflictSuppressor = { _, _ -> false },
+            sharedGateClaimer = { _, _, _, _, _ -> XpSharedRuntimeGate.ClaimResult(claimed = true) },
             roleStateLogger = { eventId -> loggedEventId = eventId },
             duplicateChecker = { _, _, _, _ -> false },
             smsEnricher = { _, sender, body, date, code ->
@@ -142,7 +144,7 @@ class ObservedSmsHandlerTest {
             planFactory = { observedPlan() },
             moduleEnabledReader = { true },
             conflictSuppressor = { _, _ -> false },
-            sharedGateClaimer = { _, _, _, _, _ -> io.github.magisk317.relay.common.utils.SharedRuntimeGate.ClaimResult(claimed = false, ageMs = 12L) },
+            sharedGateClaimer = { _, _, _, _, _ -> XpSharedRuntimeGate.ClaimResult(claimed = false, ageMs = 12L) },
             roleStateLogger = { roleLogCount++ },
             duplicateChecker = { _, _, _, _ -> false },
             dispatcher = { _, _, _, _, _ -> dispatchCount++ },
@@ -168,6 +170,7 @@ class ObservedSmsHandlerTest {
             planFactory = { observedPlan() },
             moduleEnabledReader = { true },
             conflictSuppressor = { _, _ -> false },
+            sharedGateClaimer = { _, _, _, _, _ -> XpSharedRuntimeGate.ClaimResult(claimed = true) },
             duplicateChecker = { _, _, _, _ -> false },
             dispatcher = { _, _, _, eventId, _ -> dispatchedEventId = eventId },
             currentTimeMillis = { 1_234_567_890L },
@@ -234,7 +237,10 @@ class ObservedSmsHandlerTest {
 
     private fun stubXLog() {
         mockkObject(XLog)
+        every { XLog.v(any(), *anyVararg()) } returns Unit
+        every { XLog.d(any(), *anyVararg()) } returns Unit
         every { XLog.w(any(), *anyVararg()) } returns Unit
         every { XLog.i(any(), *anyVararg()) } returns Unit
+        every { XLog.e(any(), *anyVararg()) } returns Unit
     }
 }

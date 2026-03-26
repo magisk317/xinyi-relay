@@ -81,56 +81,35 @@ object AppNotificationIngressAdapter {
         notifyChannelId: String,
     ): String? {
         val flags = notification.flags
-        if ((flags and Notification.FLAG_FOREGROUND_SERVICE) != 0) {
-            return "foreground_service"
-        }
-        if ((flags and Notification.FLAG_ONGOING_EVENT) != 0) {
-            return "ongoing_event"
-        }
-        if (notification.category == Notification.CATEGORY_SERVICE) {
-            return "category_service"
-        }
-        if ((flags and Notification.FLAG_GROUP_SUMMARY) != 0) {
-            return "group_summary"
-        }
-
         val normalizedChannel = notifyChannelId.trim().lowercase()
-        if (normalizedChannel == "voicemail" || normalizedChannel == "voice_mail") {
-            return "channel_voicemail"
-        }
-        if (normalizedChannel.contains("foreground_service") || normalizedChannel.contains("foregroundservice")) {
-            return "channel_foreground_service"
-        }
-        if (normalizedChannel.contains("fgs")) {
-            return "channel_fgs"
-        }
-        if (normalizedChannel.contains("low_importance_service")) {
-            return "channel_low_importance_service"
-        }
-        if (normalizedChannel.contains("service_channel") || normalizedChannel.contains("servicechannel")) {
-            return "channel_service"
-        }
-        if (normalizedChannel.contains(".hide") || normalizedChannel.endsWith("_hide") || normalizedChannel.contains("_hide_")) {
-            return "channel_hidden"
-        }
-        if (normalizedChannel.contains("silent")) {
-            return "channel_silent"
-        }
-
         val normalizedText = buildString {
             append(title.trim())
             append('\n')
             append(body.trim())
         }.lowercase()
-        if (normalizedText.contains("正在运行")) {
-            return "content_running"
+
+        return when {
+            (flags and Notification.FLAG_FOREGROUND_SERVICE) != 0 -> "foreground_service"
+            (flags and Notification.FLAG_ONGOING_EVENT) != 0 -> "ongoing_event"
+            notification.category == Notification.CATEGORY_SERVICE -> "category_service"
+            (flags and Notification.FLAG_GROUP_SUMMARY) != 0 -> "group_summary"
+            normalizedChannel == "voicemail" || normalizedChannel == "voice_mail" -> "channel_voicemail"
+            normalizedChannel.contains("foreground_service") ||
+                normalizedChannel.contains("foregroundservice") -> "channel_foreground_service"
+            normalizedChannel.contains("fgs") -> "channel_fgs"
+            normalizedChannel.contains("low_importance_service") -> "channel_low_importance_service"
+            normalizedChannel.contains("service_channel") ||
+                normalizedChannel.contains("servicechannel") -> "channel_service"
+            normalizedChannel.contains(".hide") ||
+                normalizedChannel.endsWith("_hide") ||
+                normalizedChannel.contains("_hide_") -> "channel_hidden"
+            normalizedChannel.contains("silent") -> "channel_silent"
+            normalizedText.contains("正在运行") -> "content_running"
+            normalizedText.contains("前台服务") ||
+                normalizedText.contains("foreground service") -> "content_foreground_service"
+            normalizedText.contains("正在检查应用更新") ||
+                normalizedText.contains("checking app updates") -> "content_checking_updates"
+            else -> null
         }
-        if (normalizedText.contains("前台服务") || normalizedText.contains("foreground service")) {
-            return "content_foreground_service"
-        }
-        if (normalizedText.contains("正在检查应用更新") || normalizedText.contains("checking app updates")) {
-            return "content_checking_updates"
-        }
-        return null
     }
 }

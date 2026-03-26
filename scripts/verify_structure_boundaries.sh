@@ -55,7 +55,7 @@ forbid_imports_in_dir() {
         break
       fi
     done
-  done < <(find "$dir" -type f -name '*.kt' | sort)
+  done < <(find "$dir" -type f \( -name '*.kt' -o -name '*.java' \) | sort)
 }
 
 forbid_imports_in_dir "$APP_SRC/app" \
@@ -81,8 +81,8 @@ forbid_imports_in_dir "$APP_SRC/receiver" \
   '^import io\.github\.magisk317\.relay\.model\.' \
   '^import io\.github\.magisk317\.relay\.prefs\.' \
   '^import io\.github\.magisk317\.relay\.sms\.' \
-  '^import io\.github\.magisk317\.relay\.common\.(constant|utils)\.' \
-  '^import io\.github\.magisk317\.smscode\.(core|xposed|domain)\.'
+  '^import io\.github\.magisk317\.relay\.common\.constant\.CodeNotificationOwner' \
+  '^import io\.github\.magisk317\.relay\.common\.utils\.(NotificationUtils|SharedRuntimeGate)'
 
 forbid_imports_in_dir "$APP_SRC/service" \
   '^import io\.github\.magisk317\.relay\.bootstrap\.' \
@@ -94,8 +94,8 @@ forbid_imports_in_dir "$APP_SRC/service" \
   '^import io\.github\.magisk317\.relay\.model\.' \
   '^import io\.github\.magisk317\.relay\.prefs\.' \
   '^import io\.github\.magisk317\.relay\.sms\.' \
-  '^import io\.github\.magisk317\.relay\.common\.(constant|utils)\.' \
-  '^import io\.github\.magisk317\.smscode\.(core|xposed|domain)\.'
+  '^import io\.github\.magisk317\.relay\.common\.constant\.CodeNotificationOwner' \
+  '^import io\.github\.magisk317\.relay\.common\.utils\.(NotificationUtils|SharedRuntimeGate)'
 
 forbid_imports_in_dir "$APP_SRC/web" \
   '^import io\.github\.magisk317\.relay\.bootstrap\.' \
@@ -113,9 +113,10 @@ forbid_imports_in_dir "$APP_SRC/web" \
 forbid_imports_in_dir "$APP_SRC/xp" \
   '^import io\.github\.magisk317\.relay\.(bootstrap|data|domain|legacy|model|platform)\.' \
   '^import io\.github\.magisk317\.relay\.(diagnostics|prefs|sms)\.' \
-  '^import io\.github\.magisk317\.relay\.common\.' \
   '^import io\.github\.magisk317\.relay\.ui\.' \
-  '^import io\.github\.magisk317\.smscode\.(core|domain)\.'
+  '^import io\.github\.magisk317\.relay\.common\.constant\.CodeNotificationOwner' \
+  '^import io\.github\.magisk317\.relay\.common\.utils\.(NotificationUtils|SharedRuntimeGate)' \
+  '^import io\.github\.magisk317\.smscode\.core\.'
 
 if [[ "${#violations[@]}" -ne 0 ]]; then
   printf 'Structure boundary verification failed:\n' >&2

@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.sms
 
 import android.content.Context
+import android.database.SQLException
 import io.github.magisk317.relay.data.db.DBProvider
 import io.github.magisk317.relay.data.db.entity.SmsCodeRule
 import io.github.magisk317.relay.data.store.EntityStoreManager
@@ -110,8 +111,7 @@ object SmsCodeUtils {
             val smsCodeRuleUri = DBProvider.smsCodeRuleContentUri(context)
             val resolver = context.contentResolver
             val projection = arrayOf(COLUMN_COMPANY, COLUMN_KEYWORD, COLUMN_REGEX)
-            val cursor = resolver.query(smsCodeRuleUri, projection, null, null, null)
-            if (cursor != null) {
+            resolver.query(smsCodeRuleUri, projection, null, null, null)?.use { cursor ->
                 val resultRules = mutableListOf<SmsCodeRule>()
                 while (cursor.moveToNext()) {
                     resultRules.add(
@@ -122,17 +122,25 @@ object SmsCodeUtils {
                         ),
                     )
                 }
-                cursor.close()
                 rules = if (resultRules.isNotEmpty()) {
                     XLog.d("Load SmsCode rules succeed by content provider")
                     resultRules
                 } else {
                     loadRulesFromFile(context).also(::logProviderEmptyFallback)
                 }
-            } else {
-                throw IllegalStateException("Cursor is null for URI: $smsCodeRuleUri")
+                return rules
             }
-        } catch (throwable: Throwable) {
+            throw IllegalStateException("Cursor is null for URI: $smsCodeRuleUri")
+        } catch (throwable: SecurityException) {
+            rules = loadRulesFromFile(context)
+            logProviderFailureFallback(rules, throwable)
+        } catch (throwable: IllegalArgumentException) {
+            rules = loadRulesFromFile(context)
+            logProviderFailureFallback(rules, throwable)
+        } catch (throwable: IllegalStateException) {
+            rules = loadRulesFromFile(context)
+            logProviderFailureFallback(rules, throwable)
+        } catch (throwable: SQLException) {
             rules = loadRulesFromFile(context)
             logProviderFailureFallback(rules, throwable)
         }

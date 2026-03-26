@@ -446,7 +446,9 @@ class ForwardReceiver : BroadcastReceiver() {
         if (pkg.isEmpty()) {
             ForwardFlowLog.w(
                 traceId,
-                "App notify gate pkg=<empty> source=$forwardSource messageTypeEnabled=$messageTypeEnabled forwardTypeEnabled=$forwardTypeEnabled final_decision=drop reason=empty_package",
+                "App notify gate pkg=<empty> source=$forwardSource " +
+                    "messageTypeEnabled=$messageTypeEnabled forwardTypeEnabled=$forwardTypeEnabled " +
+                    "final_decision=drop reason=empty_package",
             )
             XLog.w(
                 "App notify gate: empty package source=%s messageTypeEnabled=%s forwardTypeEnabled=%s final_decision=drop",
@@ -459,7 +461,9 @@ class ForwardReceiver : BroadcastReceiver() {
         val appInfo = runCatching { runtimeGraph.database.appInfoDao().getByPackageName(pkg) }.getOrElse { error ->
             ForwardFlowLog.e(
                 traceId,
-                "App notify gate query failed pkg=$pkg source=$forwardSource messageTypeEnabled=$messageTypeEnabled forwardTypeEnabled=$forwardTypeEnabled final_decision=drop",
+                "App notify gate query failed pkg=$pkg source=$forwardSource " +
+                    "messageTypeEnabled=$messageTypeEnabled forwardTypeEnabled=$forwardTypeEnabled " +
+                    "final_decision=drop",
                 error,
             )
             XLog.e("App notify gate query failed: pkg=$pkg source=$forwardSource", error)
@@ -482,7 +486,9 @@ class ForwardReceiver : BroadcastReceiver() {
         }
         ForwardFlowLog.i(
             traceId,
-            "App notify gate pkg=$pkg source=$forwardSource state=$state messageTypeEnabled=$messageTypeEnabled forwardTypeEnabled=$forwardTypeEnabled final_decision=$finalDecision",
+            "App notify gate pkg=$pkg source=$forwardSource state=$state " +
+                "messageTypeEnabled=$messageTypeEnabled forwardTypeEnabled=$forwardTypeEnabled " +
+                "final_decision=$finalDecision",
         )
         XLog.d(
             "App notify gate: pkg=%s source=%s state=%s messageTypeEnabled=%s forwardTypeEnabled=%s final_decision=%s",

@@ -1,11 +1,11 @@
 package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
-import io.github.magisk317.relay.common.utils.SharedRuntimeGate
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.XpRecordFacade
+import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.smscode.xposed.utils.XLog
 import kotlinx.coroutines.runBlocking
@@ -21,9 +21,9 @@ internal class ObservedSmsHandler(
     private val conflictSuppressor: (Context, String) -> Boolean = { context, source ->
         ModuleConflictArbiter.shouldSuppressByRelay(context, source)
     },
-    private val sharedGateClaimer: (Context, String, String, Long, Int) -> SharedRuntimeGate.ClaimResult =
+    private val sharedGateClaimer: (Context, String, String, Long, Int) -> XpSharedRuntimeGate.ClaimResult =
         { context, fileName, key, windowMs, maxEntries ->
-            SharedRuntimeGate.claimWithinWindow(
+            XpSharedRuntimeGate.claimWithinWindow(
                 context = context,
                 fileName = fileName,
                 key = key,
