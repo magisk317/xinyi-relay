@@ -17,22 +17,32 @@ fun CommonExtension.configureRelayAndroidCommon() {
     if (!flavorDimensions.contains("distribution")) {
         flavorDimensions += "distribution"
     }
+    if (!flavorDimensions.contains("xposedApi")) {
+        flavorDimensions += "xposedApi"
+    }
 
     productFlavors {
         maybeCreate("play").apply {
             dimension = "distribution"
             buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "false")
             buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
+            buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "false")
         }
         maybeCreate("github").apply {
             dimension = "distribution"
             buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
             buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
+            buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
         }
         maybeCreate("fdroid").apply {
             dimension = "distribution"
             buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
             buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "false")
+            buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
+        }
+        maybeCreate("api101").apply {
+            dimension = "xposedApi"
+            buildConfigField("String", "XPOSED_API_FLAVOR", "\"api101\"")
         }
     }
 

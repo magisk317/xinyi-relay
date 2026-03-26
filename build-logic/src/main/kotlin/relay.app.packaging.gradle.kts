@@ -34,8 +34,8 @@ fun releaseBaseName(versionName: String): String {
     return "XinyiRelay_v${normalizedVersionName}_$suffix"
 }
 
-fun releaseApkName(versionName: String, buildType: String, abiSuffix: String): String {
-    return "${abiSuffix}_${releaseBaseName(versionName)}_${buildType}.apk"
+fun releaseApkName(versionName: String, buildType: String, abiSuffix: String, xposedApiFlavor: String): String {
+    return "${abiSuffix}_${xposedApiFlavor}_${releaseBaseName(versionName)}_${buildType}.apk"
 }
 
 fun releaseAabName(versionName: String): String = "${releaseBaseName(versionName)}_release.aab"
@@ -83,6 +83,8 @@ pluginManager.withPlugin("com.android.application") {
             val isDebug = variant.buildType == "debug"
             val suffix = if (isDebug) debugBuildTimestamp else ""
             val resolvedVersionName = if (isDebug) "$versionNameStr-$suffix" else versionNameStr
+            val flavorMap = variant.productFlavors.toMap()
+            val xposedApiFlavor = flavorMap["xposedApi"] ?: "api101"
 
             variant.outputs.forEach { output ->
                 if (isDebug) {
@@ -97,7 +99,7 @@ pluginManager.withPlugin("com.android.application") {
                     val outputFileName = output.javaClass.getMethod("getOutputFileName").invoke(output)
                     outputFileName.javaClass
                         .getMethod("set", Any::class.java)
-                        .invoke(outputFileName, releaseApkName(resolvedVersionName, variant.buildType ?: "", abi))
+                        .invoke(outputFileName, releaseApkName(resolvedVersionName, variant.buildType ?: "", abi, xposedApiFlavor))
                 } catch (_: Exception) {
                     // AGP preview APIs can shift; keep the build tolerant here.
                 }
@@ -106,9 +108,9 @@ pluginManager.withPlugin("com.android.application") {
     }
 
     tasks.register("renamePlayReleaseAab") {
-        dependsOn("bundlePlayRelease")
-        val bundleFileProvider = layout.buildDirectory.file("outputs/bundle/playRelease/app-play-release.aab")
-        val targetFileProvider = layout.buildDirectory.file("outputs/bundle/playRelease/${releaseAabName(versionNameStr)}")
+        dependsOn("bundlePlayApi101Release")
+        val bundleFileProvider = layout.buildDirectory.file("outputs/bundle/playApi101Release/app-play-api101-release.aab")
+        val targetFileProvider = layout.buildDirectory.file("outputs/bundle/playApi101Release/${releaseAabName(versionNameStr)}")
         doLast {
             val bundleFile = bundleFileProvider.get().asFile
             if (bundleFile.exists()) {
@@ -118,7 +120,7 @@ pluginManager.withPlugin("com.android.application") {
         }
     }
 
-    tasks.matching { it.name == "bundlePlayRelease" }.configureEach {
+    tasks.matching { it.name == "bundlePlayApi101Release" }.configureEach {
         finalizedBy("renamePlayReleaseAab")
     }
 }

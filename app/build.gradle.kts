@@ -84,12 +84,12 @@ tasks.matching {
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(project(":core"))
-    implementation(project(":runtime"))
     implementation(project(":smscode-core:smscode-domain"))
     compileOnly(project(":smscode-core:smscode-xposed-core"))
 
     implementation(libs.androidx.core.ktx)
-    compileOnly(libs.libxposed.api)
+    add("api101CompileOnly", libs.libxposed.api)
+    add("api101Implementation", libs.libxposed.service)
 
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)

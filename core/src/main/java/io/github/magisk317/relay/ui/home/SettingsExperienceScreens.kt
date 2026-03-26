@@ -491,8 +491,11 @@ fun VerificationSettingsScreen(
     var pendingNotificationPermissionEnable by remember { mutableStateOf(false) }
     var showSmsTestDialog by remember { mutableStateOf(false) }
     var smsTestInput by remember { mutableStateOf("") }
+    val supportsAccessibilityAutoInput = BuildConfig.ENABLE_ACCESSIBILITY_AUTO_INPUT
     var autoInputAccessibilityEnabled by remember {
-        mutableStateOf(isAutoInputAccessibilityServiceEnabled(context))
+        mutableStateOf(
+            supportsAccessibilityAutoInput && isAutoInputAccessibilityServiceEnabled(context),
+        )
     }
 
     suspend fun persistNotificationOwnerSelection(owner: String, enableNotification: Boolean) {
@@ -607,7 +610,8 @@ fun VerificationSettingsScreen(
     val accessibilitySettingsLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) {
-        autoInputAccessibilityEnabled = isAutoInputAccessibilityServiceEnabled(context)
+        autoInputAccessibilityEnabled =
+            supportsAccessibilityAutoInput && isAutoInputAccessibilityServiceEnabled(context)
     }
 
     fun openAccessibilitySettings() {
@@ -638,12 +642,14 @@ fun VerificationSettingsScreen(
     LaunchedEffect(Unit) {
         settings = repository.getVerificationSettings()
         recordSettings = repository.getRecordSettings()
-        autoInputAccessibilityEnabled = isAutoInputAccessibilityServiceEnabled(context)
+        autoInputAccessibilityEnabled =
+            supportsAccessibilityAutoInput && isAutoInputAccessibilityServiceEnabled(context)
     }
 
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
-            autoInputAccessibilityEnabled = isAutoInputAccessibilityServiceEnabled(context)
+            autoInputAccessibilityEnabled =
+                supportsAccessibilityAutoInput && isAutoInputAccessibilityServiceEnabled(context)
             if (
                 pendingNotificationOwnerPermissionSelection == CodeNotificationOwner.APP &&
                 NotificationUtils.hasPostNotificationsPermission(context)
@@ -754,14 +760,16 @@ fun VerificationSettingsScreen(
                 sectionExpanded = true,
                 onExpandedChange = {},
             ) {
-                Item(
-                    title = stringResource(id = R.string.pref_auto_input_accessibility_service_title),
-                    summary = accessibilityAutoInputServiceSummary(
-                        context = context,
-                        enabled = autoInputAccessibilityEnabled,
-                    ),
-                ) {
-                    openAccessibilitySettings()
+                if (supportsAccessibilityAutoInput) {
+                    Item(
+                        title = stringResource(id = R.string.pref_auto_input_accessibility_service_title),
+                        summary = accessibilityAutoInputServiceSummary(
+                            context = context,
+                            enabled = autoInputAccessibilityEnabled,
+                        ),
+                    ) {
+                        openAccessibilitySettings()
+                    }
                 }
                 StateSwitchItem(
                     title = stringResource(id = R.string.pref_enable_auto_input_code_title),
