@@ -1,4 +1,4 @@
-- Bump to 0.0.1 (14), the first stable release.
-- This build remains libxposed API 101 only; legacy compatibility will return in a later release.
-- APK filenames now include the `api101` marker and the flavor layout is ready for future legacy builds.
-- Release delivery is hardened with fastlane Play publishing and safer CI artifact checks.
+- Updated to 0.0.1 (14), the first stable release.
+- This release is libxposed API 101 only; legacy compatibility will return later.
+- APK names now include the api101 marker, with Play and CI release flow aligned.
+- Details: https://github.com/magisk317/xinyi-relay/releases

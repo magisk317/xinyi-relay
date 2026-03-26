@@ -1,4 +1,4 @@
-- 升级到 0.0.1（14），首个稳定版发布。
-- 当前仅提供 libxposed API 101；legacy 兼容后续版本补齐。
-- APK 命名补充 `api101` 标识，并为后续 legacy 双轨发布预留骨架。
-- 发布链路改为 fastlane + 更稳的 CI 产物检查。
+- 升级至 0.0.1（14），首个稳定版发布。
+- 当前先发 libxposed API 101；legacy 兼容后续版本补齐。
+- APK 命名补充 api101 标识，并同步完善 Play 与 CI 发布链路。
+- 详情与下载：https://github.com/magisk317/xinyi-relay/releases
