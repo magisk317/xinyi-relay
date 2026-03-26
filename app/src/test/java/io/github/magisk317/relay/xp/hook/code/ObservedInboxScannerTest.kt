@@ -22,7 +22,7 @@ class ObservedInboxScannerTest {
                     else -> ""
                 }
             },
-            inboxRowLoader = { _ ->
+            inboxRowLoader = { _, _ ->
                 listOf(
                     ObservedInboxScanner.InboxRow(
                         smsId = 10L,
@@ -67,7 +67,7 @@ class ObservedInboxScannerTest {
             phoneContext = phoneContext,
             smsIdTracker = SmsInboxSeenTracker(maxTrackedSmsIds = 8),
             smsCodeParser = { _, _ -> "654321" },
-            inboxRowLoader = { _ ->
+            inboxRowLoader = { _, _ ->
                 listOf(
                     ObservedInboxScanner.InboxRow(
                         smsId = 12L,
@@ -85,5 +85,36 @@ class ObservedInboxScannerTest {
         assertEquals(1, result.size)
         assertEquals("content://sms/inbox/12", result.first().triggerUri)
         assertTrue(result.first().code.isNotBlank())
+    }
+
+    @Test
+    fun scan_passesTriggeredSmsIdToLoader() {
+        val pluginContext = mockk<Context>(relaxed = true)
+        val phoneContext = mockk<Context>(relaxed = true)
+        var receivedTriggeredSmsId: Long? = null
+        val scanner = ObservedInboxScanner(
+            pluginContext = pluginContext,
+            phoneContext = phoneContext,
+            smsIdTracker = SmsInboxSeenTracker(maxTrackedSmsIds = 8),
+            smsCodeParser = { _, _ -> "888888" },
+            inboxRowLoader = { _, triggeredSmsId ->
+                receivedTriggeredSmsId = triggeredSmsId
+                listOf(
+                    ObservedInboxScanner.InboxRow(
+                        smsId = 66L,
+                        sender = "bank",
+                        body = "otp 888888",
+                        date = 300L,
+                        read = false,
+                    ),
+                )
+            },
+        )
+
+        val result = scanner.scan(triggerUri = "content://sms/66", recentSmsWindowMs = 60_000L)
+
+        assertEquals(66L, receivedTriggeredSmsId)
+        assertEquals(1, result.size)
+        assertEquals(66L, result.first().smsId)
     }
 }

@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
+import io.github.magisk317.relay.common.utils.SharedRuntimeGate
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
 import io.github.magisk317.relay.xpbridge.XpPrefs
@@ -20,6 +21,16 @@ internal class ObservedSmsHandler(
     private val conflictSuppressor: (Context, String) -> Boolean = { context, source ->
         ModuleConflictArbiter.shouldSuppressByRelay(context, source)
     },
+    private val sharedGateClaimer: (Context, String, String, Long, Int) -> SharedRuntimeGate.ClaimResult =
+        { context, fileName, key, windowMs, maxEntries ->
+            SharedRuntimeGate.claimWithinWindow(
+                context = context,
+                fileName = fileName,
+                key = key,
+                windowMs = windowMs,
+                maxEntries = maxEntries,
+            )
+        },
     private val roleStateLogger: (String) -> Unit = {},
     private val duplicateChecker: ((SmsCodePostParseCoordinator.Settings, String, String, Long) -> Boolean)? = null,
     private val smsEnricher: (Context, String, String, Long, String) -> SmsMsg = { context, sender, body, date, code ->
@@ -89,6 +100,19 @@ internal class ObservedSmsHandler(
             null -> Unit
         }
 
+        if (record.read) {
+            XLog.w(
+                "Diag observer skip: sms already read event_id=%s sms_id=%d uri=%s",
+                eventId,
+                record.smsId,
+                record.triggerUri,
+            )
+            return Outcome(eventId = eventId, decision = decision, dispatched = false)
+        }
+        if (!claimObservedSms(eventId, record)) {
+            return Outcome(eventId = eventId, decision = decision, dispatched = false)
+        }
+
         roleStateLogger(eventId)
 
         val smsMsg = smsEnricher(
@@ -148,6 +172,49 @@ internal class ObservedSmsHandler(
         return "sms_observed_${ts.toString(EVENT_ID_RADIX)}_${smsId.toString(EVENT_ID_RADIX)}"
     }
 
+    private fun claimObservedSms(
+        eventId: String,
+        record: ObservedInboxScanRecord,
+    ): Boolean {
+        val key = buildObservedSmsKey(
+            smsId = record.smsId,
+            date = record.date,
+            sender = record.sender,
+            body = record.body,
+            code = record.code,
+        )
+        val claim = sharedGateClaimer(
+            pluginContext,
+            SHARED_OBSERVED_SMS_FILE_NAME,
+            key,
+            OBSERVED_SMS_DEDUP_WINDOW_MS,
+            MAX_TRACKED_SMS_IDS,
+        )
+        if (claim.claimed) {
+            return true
+        }
+        XLog.w(
+            "Diag observer dedup skip: event_id=%s key=%s ageMs=%d",
+            eventId,
+            key,
+            claim.ageMs ?: -1L,
+        )
+        return false
+    }
+
+    private fun buildObservedSmsKey(
+        smsId: Long,
+        date: Long,
+        sender: String,
+        body: String,
+        code: String,
+    ): String {
+        if (smsId > 0) {
+            return "id:$smsId|date:$date|code:$code"
+        }
+        return "fp:${senderHash(sender)}:${Integer.toHexString(body.hashCode())}|date:$date|code:$code"
+    }
+
     private fun senderHash(sender: String): String {
         if (sender.isBlank()) return "none"
         return Integer.toHexString(sender.hashCode())
@@ -155,6 +222,9 @@ internal class ObservedSmsHandler(
 
     private companion object {
         private const val EVENT_ID_RADIX = 36
+        private const val OBSERVED_SMS_DEDUP_WINDOW_MS = 30_000L
+        private const val MAX_TRACKED_SMS_IDS = 128
         private const val OBSERVER_CONFLICT_SOURCE = "SmsInboxObserver#handleObservedCode"
+        private const val SHARED_OBSERVED_SMS_FILE_NAME = "observed_sms_dedup"
     }
 }

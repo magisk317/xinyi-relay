@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
+import android.net.Uri
 import android.provider.Telephony
 import io.github.magisk317.relay.xpbridge.XpSmsCodeParser
 import io.github.magisk317.smscode.xposed.utils.XLog
@@ -13,8 +14,8 @@ internal class ObservedInboxScanner(
     private val smsCodeParser: suspend (Context, String) -> String = { context, body ->
         XpSmsCodeParser.parseSmsCodeIfExists(context, body)
     },
-    private val inboxRowLoader: (Long) -> List<InboxRow> = { cutoff ->
-        loadRecentInboxRows(phoneContext, cutoff)
+    private val inboxRowLoader: (Long, Long?) -> List<InboxRow> = { cutoff, triggeredSmsId ->
+        loadRecentInboxRows(phoneContext, cutoff, triggeredSmsId)
     },
 ) {
     data class InboxRow(
@@ -28,8 +29,9 @@ internal class ObservedInboxScanner(
     fun scan(triggerUri: String, recentSmsWindowMs: Long): List<ObservedInboxScanRecord> {
         val cutoff = System.currentTimeMillis() - recentSmsWindowMs
         val resolvedTriggerUri = triggerUri.ifBlank { DEFAULT_SMS_TRIGGER_URI }
+        val triggeredSmsId = parseTriggeredSmsId(triggerUri)
         return runCatching {
-            inboxRowLoader(cutoff).mapNotNull { row ->
+            inboxRowLoader(cutoff, triggeredSmsId).mapNotNull { row ->
                 if (!smsIdTracker.markSeen(row.smsId)) {
                     return@mapNotNull null
                 }
@@ -60,6 +62,7 @@ internal class ObservedInboxScanner(
         private fun loadRecentInboxRows(
             phoneContext: Context,
             cutoff: Long,
+            triggeredSmsId: Long?,
         ): List<InboxRow> {
             val projection = arrayOf(
                 Telephony.Sms._ID,
@@ -69,9 +72,18 @@ internal class ObservedInboxScanner(
                 Telephony.Sms.TYPE,
                 Telephony.Sms.READ,
             )
-            val selection = "${Telephony.Sms.TYPE}=? AND ${Telephony.Sms.DATE}>?"
-            val selectionArgs = arrayOf(Telephony.Sms.MESSAGE_TYPE_INBOX.toString(), cutoff.toString())
-            val sortOrder = "${Telephony.Sms.DATE} DESC limit $MAX_RECENT_SMS_COUNT"
+            val selection: String
+            val selectionArgs: Array<String>
+            val sortOrder: String?
+            if (triggeredSmsId != null) {
+                selection = "${Telephony.Sms._ID}=? AND ${Telephony.Sms.TYPE}=?"
+                selectionArgs = arrayOf(triggeredSmsId.toString(), Telephony.Sms.MESSAGE_TYPE_INBOX.toString())
+                sortOrder = null
+            } else {
+                selection = "${Telephony.Sms.TYPE}=? AND ${Telephony.Sms.DATE}>?"
+                selectionArgs = arrayOf(Telephony.Sms.MESSAGE_TYPE_INBOX.toString(), cutoff.toString())
+                sortOrder = "${Telephony.Sms.DATE} DESC limit $MAX_RECENT_SMS_COUNT"
+            }
             val rows = mutableListOf<InboxRow>()
             phoneContext.contentResolver.query(
                 Telephony.Sms.CONTENT_URI,
@@ -91,6 +103,14 @@ internal class ObservedInboxScanner(
                 }
             }
             return rows
+        }
+
+        private fun parseTriggeredSmsId(triggerUri: String): Long? {
+            if (triggerUri.isBlank()) return null
+            val uri = runCatching { Uri.parse(triggerUri) }.getOrNull() ?: return null
+            if (uri.scheme != "content") return null
+            if (uri.authority != "sms") return null
+            return uri.lastPathSegment?.toLongOrNull()
         }
     }
 }

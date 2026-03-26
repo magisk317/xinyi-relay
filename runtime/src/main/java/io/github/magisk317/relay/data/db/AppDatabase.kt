@@ -131,7 +131,7 @@ abstract class AppDatabase : RoomDatabase() {
                         "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
                         "type TEXT NOT NULL DEFAULT 'sms', " +
                         "filed TEXT NOT NULL DEFAULT 'transpond_all', " +
-                        "check TEXT NOT NULL DEFAULT 'is', " +
+                        "`check` TEXT NOT NULL DEFAULT 'is', " +
                         "value TEXT NOT NULL DEFAULT '', " +
                         "sender_id INTEGER NOT NULL DEFAULT 0, " +
                         "sms_template TEXT NOT NULL DEFAULT '', " +

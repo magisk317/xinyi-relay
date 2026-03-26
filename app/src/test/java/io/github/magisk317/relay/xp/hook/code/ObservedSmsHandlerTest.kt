@@ -103,6 +103,59 @@ class ObservedSmsHandlerTest {
     }
 
     @Test
+    fun handle_skipsDispatchWhenSmsAlreadyRead() {
+        stubXLog()
+        val pluginContext = mockk<Context>(relaxed = true)
+        val phoneContext = mockk<Context>(relaxed = true)
+        var roleLogCount = 0
+        var dispatchCount = 0
+        val handler = ObservedSmsHandler(
+            pluginContext = pluginContext,
+            phoneContext = phoneContext,
+            settingsLoader = { settings() },
+            planFactory = { observedPlan() },
+            moduleEnabledReader = { true },
+            conflictSuppressor = { _, _ -> false },
+            roleStateLogger = { roleLogCount++ },
+            duplicateChecker = { _, _, _, _ -> false },
+            dispatcher = { _, _, _, _, _ -> dispatchCount++ },
+        )
+
+        val outcome = handler.handle(observedRecord(read = true))
+
+        assertFalse(outcome.dispatched)
+        assertEquals(0, roleLogCount)
+        assertEquals(0, dispatchCount)
+    }
+
+    @Test
+    fun handle_skipsDispatchWhenObservedSmsAlreadyClaimed() {
+        stubXLog()
+        val pluginContext = mockk<Context>(relaxed = true)
+        val phoneContext = mockk<Context>(relaxed = true)
+        var roleLogCount = 0
+        var dispatchCount = 0
+        val handler = ObservedSmsHandler(
+            pluginContext = pluginContext,
+            phoneContext = phoneContext,
+            settingsLoader = { settings() },
+            planFactory = { observedPlan() },
+            moduleEnabledReader = { true },
+            conflictSuppressor = { _, _ -> false },
+            sharedGateClaimer = { _, _, _, _, _ -> io.github.magisk317.relay.common.utils.SharedRuntimeGate.ClaimResult(claimed = false, ageMs = 12L) },
+            roleStateLogger = { roleLogCount++ },
+            duplicateChecker = { _, _, _, _ -> false },
+            dispatcher = { _, _, _, _, _ -> dispatchCount++ },
+        )
+
+        val outcome = handler.handle(observedRecord())
+
+        assertFalse(outcome.dispatched)
+        assertEquals(0, roleLogCount)
+        assertEquals(0, dispatchCount)
+    }
+
+    @Test
     fun handle_usesCurrentTimeForMissingSmsDate() {
         stubXLog()
         val pluginContext = mockk<Context>(relaxed = true)
