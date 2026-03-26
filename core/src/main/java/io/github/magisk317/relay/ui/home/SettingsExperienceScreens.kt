@@ -2,6 +2,7 @@ package io.github.magisk317.relay.ui.home
 
 import android.Manifest
 import android.app.Activity
+import android.content.ComponentName
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -490,6 +491,9 @@ fun VerificationSettingsScreen(
     var pendingNotificationPermissionEnable by remember { mutableStateOf(false) }
     var showSmsTestDialog by remember { mutableStateOf(false) }
     var smsTestInput by remember { mutableStateOf("") }
+    var autoInputAccessibilityEnabled by remember {
+        mutableStateOf(isAutoInputAccessibilityServiceEnabled(context))
+    }
 
     suspend fun persistNotificationOwnerSelection(owner: String, enableNotification: Boolean) {
         settings = repository.updateVerificationSettings(
@@ -600,13 +604,46 @@ fun VerificationSettingsScreen(
         return true
     }
 
+    val accessibilitySettingsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) {
+        autoInputAccessibilityEnabled = isAutoInputAccessibilityServiceEnabled(context)
+    }
+
+    fun openAccessibilitySettings() {
+        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+        if (activityOwner != null) {
+            runCatching {
+                accessibilitySettingsLauncher.launch(intent)
+            }.onFailure {
+                scope.launch {
+                    snackbarHostState.showSnackbar(
+                        context.getString(R.string.pref_auto_input_accessibility_service_open_failed),
+                    )
+                }
+            }
+            return
+        }
+        runCatching {
+            context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }.onFailure {
+            scope.launch {
+                snackbarHostState.showSnackbar(
+                    context.getString(R.string.pref_auto_input_accessibility_service_open_failed),
+                )
+            }
+        }
+    }
+
     LaunchedEffect(Unit) {
         settings = repository.getVerificationSettings()
         recordSettings = repository.getRecordSettings()
+        autoInputAccessibilityEnabled = isAutoInputAccessibilityServiceEnabled(context)
     }
 
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
+            autoInputAccessibilityEnabled = isAutoInputAccessibilityServiceEnabled(context)
             if (
                 pendingNotificationOwnerPermissionSelection == CodeNotificationOwner.APP &&
                 NotificationUtils.hasPostNotificationsPermission(context)
@@ -717,6 +754,15 @@ fun VerificationSettingsScreen(
                 sectionExpanded = true,
                 onExpandedChange = {},
             ) {
+                Item(
+                    title = stringResource(id = R.string.pref_auto_input_accessibility_service_title),
+                    summary = accessibilityAutoInputServiceSummary(
+                        context = context,
+                        enabled = autoInputAccessibilityEnabled,
+                    ),
+                ) {
+                    openAccessibilitySettings()
+                }
                 StateSwitchItem(
                     title = stringResource(id = R.string.pref_enable_auto_input_code_title),
                     summary = stringResource(id = R.string.pref_enable_auto_input_code_summary),
@@ -1012,6 +1058,39 @@ private fun notificationRetentionEntryLabel(
         return entries[index]
     }
     return value.takeIf { it.isNotBlank() } ?: "0"
+}
+
+private const val AUTO_INPUT_ACCESSIBILITY_SERVICE_CLASS_NAME =
+    "io.github.magisk317.relay.service.AutoInputAccessibilityService"
+
+private fun isAutoInputAccessibilityServiceEnabled(context: android.content.Context): Boolean {
+    val expectedService = ComponentName(
+        context.packageName,
+        AUTO_INPUT_ACCESSIBILITY_SERVICE_CLASS_NAME,
+    ).flattenToString()
+    val enabledServices = Settings.Secure.getString(
+        context.contentResolver,
+        Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+    ).orEmpty()
+    if (enabledServices.isBlank()) return false
+    return enabledServices.split(':').any { candidate ->
+        candidate.equals(expectedService, ignoreCase = true)
+    }
+}
+
+@Composable
+private fun accessibilityAutoInputServiceSummary(
+    context: android.content.Context,
+    enabled: Boolean,
+): String {
+    val status = stringResource(
+        id = if (enabled) {
+            R.string.pref_auto_input_accessibility_service_status_enabled
+        } else {
+            R.string.pref_auto_input_accessibility_service_status_disabled
+        },
+    )
+    return context.getString(R.string.pref_auto_input_accessibility_service_summary, status)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

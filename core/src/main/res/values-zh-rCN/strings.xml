@@ -70,6 +70,13 @@
     <string name="pref_category_auto_input_title">自动输入</string>
     <string name="pref_enable_auto_input_code_title">自动输入验证码</string>
     <string name="pref_enable_auto_input_code_summary">尝试自动输入验证码</string>
+    <string name="pref_auto_input_accessibility_service_title">输入框辅助</string>
+    <string name="pref_auto_input_accessibility_service_summary">无障碍服务状态：%1$s。点击前往系统无障碍设置。</string>
+    <string name="pref_auto_input_accessibility_service_status_enabled">已开启</string>
+    <string name="pref_auto_input_accessibility_service_status_disabled">未开启</string>
+    <string name="pref_auto_input_accessibility_service_open_failed">无法打开无障碍设置</string>
+    <string name="accessibility_auto_input_service_label">自动输入辅助服务</string>
+    <string name="accessibility_auto_input_service_description">优先查找当前验证码输入框并直接填入，失败后再回退到模拟按键输入。</string>
     <string name="pref_enable_auto_enter_code_title">自动确认/回车</string>
     <string name="pref_enable_auto_enter_code_summary">填充验证码后自动触发回车操作</string>
     <string name="pref_auto_input_code_delay_title">自动输入延迟</string>
