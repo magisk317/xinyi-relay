@@ -1,5 +1,4 @@
-- 升级到 0.0.1-alpha.7（11）。
-- 概览卡片编辑模式优化：晃动/拖动/删除更顺滑。
-- 仅支持 libxposed API 101；legacy 框架（API <= 100）不再兼容。
-- 验证码设置调整：拦截验证码短信移至实验性功能。
-- 远端偏好同步可靠性提升。
+- 升级至 0.0.1（14），首个稳定版发布。
+- 当前先发 libxposed API 101；legacy 兼容后续版本补齐。
+- APK 命名补充 api101 标识，并同步完善 Play 与 CI 发布链路。
+- 详情与下载：https://github.com/magisk317/xinyi-relay/releases
