@@ -22,14 +22,30 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
-      - uses: pnpm/action-setup@v5
-        with:
-          version: 10.33.0
+      - name: Resolve WebUI toolchain
+        id: webui_toolchain
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+
+          package_json = json.loads(Path("webui/package.json").read_text())
+          node_version = package_json.get("engines", {}).get("node")
+          package_manager = package_json.get("packageManager", "")
+          if not node_version:
+              raise SystemExit("webui/package.json is missing engines.node")
+          if not package_manager.startswith("pnpm@"):
+              raise SystemExit("webui/package.json must declare packageManager as pnpm@<version>")
+          print(f"node_version={node_version}")
+          print(f"pnpm_version={package_manager.split('@', 1)[1]}")
+          PY
       - uses: actions/setup-node@v6
         with:
-          node-version: "24"
-          cache: "pnpm"
-          cache-dependency-path: webui/pnpm-lock.yaml
+          node-version: ${{ steps.webui_toolchain.outputs.node_version }}
+      - uses: pnpm/action-setup@v5
+        with:
+          version: ${{ steps.webui_toolchain.outputs.pnpm_version }}
       - name: WebUI Install
         run: pnpm -C webui install --frozen-lockfile
       - name: WebUI Lint + Typecheck + Build
