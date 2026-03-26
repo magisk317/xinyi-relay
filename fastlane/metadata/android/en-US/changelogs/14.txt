@@ -1,0 +1,4 @@
+- Bump to 0.0.1 (14), the first stable release.
+- This build remains libxposed API 101 only; legacy compatibility will return in a later release.
+- APK filenames now include the `api101` marker and the flavor layout is ready for future legacy builds.
+- Release delivery is hardened with fastlane Play publishing and safer CI artifact checks.
