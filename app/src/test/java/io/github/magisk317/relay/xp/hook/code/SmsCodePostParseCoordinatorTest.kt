@@ -27,7 +27,6 @@ class SmsCodePostParseCoordinatorTest {
 
         val plan = SmsCodePostParseCoordinator.createParsedSmsPlan(
             settings = settings,
-            forwardDelayMs = 100L,
         )
 
         assertTrue(plan.blockSms)
@@ -37,7 +36,6 @@ class SmsCodePostParseCoordinatorTest {
         assertEquals(1_500L, plan.autoInputDelayMs)
         assertEquals(5_000L, plan.notificationPlan?.autoCancelDelayMs)
         assertTrue(plan.shouldRecord)
-        assertEquals(100L, plan.forwardDelayMs)
         assertEquals(listOf(300L, 1000L, 2000L), plan.operateSmsDelays)
     }
 
@@ -60,7 +58,6 @@ class SmsCodePostParseCoordinatorTest {
 
         val plan = SmsCodePostParseCoordinator.createParsedSmsPlan(
             settings = settings,
-            forwardDelayMs = 250L,
         )
 
         assertFalse(plan.blockSms)
@@ -69,7 +66,6 @@ class SmsCodePostParseCoordinatorTest {
         assertNull(plan.autoInputDelayMs)
         assertNull(plan.notificationPlan)
         assertFalse(plan.shouldRecord)
-        assertEquals(250L, plan.forwardDelayMs)
         assertEquals(listOf(300L), plan.operateSmsDelays)
     }
 

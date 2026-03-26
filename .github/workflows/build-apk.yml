@@ -32,6 +32,8 @@ jobs:
     name: Build APKs
     needs: [validate-release]
     runs-on: ubuntu-latest
+    outputs:
+      has_github_native_symbols: ${{ steps.github_symbols.outputs.exists }}
     env:
       HAS_RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE != '' }}
       HAS_GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
@@ -68,7 +70,7 @@ jobs:
           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/play/release/google-services.json
 
       - name: Build APKs with Splits
-        run: ./gradlew assembleGithubRelease -PbuildSplits
+        run: ./gradlew assembleGithubApi101Release -PbuildSplits
         env:
           KEYSTORE_FILE: release.jks
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
@@ -79,19 +81,38 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: apks
-          path: app/build/outputs/apk/github/release/*.apk
+          path: app/build/outputs/apk/**/release/*.apk
+
+      - name: Detect GitHub Native Symbols
+        id: github_symbols
+        shell: bash
+        run: |
+          shopt -s nullglob
+          files=(app/build/outputs/native-debug-symbols/githubApi101Release/native-debug-symbols.zip)
+          if (( ${#files[@]} == 0 )); then
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "exists=true" >> "$GITHUB_OUTPUT"
+          {
+            echo "paths<<EOF"
+            printf '%s\n' "${files[@]}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Upload Native Symbols Artifact
+        if: steps.github_symbols.outputs.exists == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: native-symbols-github
-          path: app/build/outputs/native-debug-symbols/githubRelease/native-debug-symbols.zip
-          if-no-files-found: warn
+          path: ${{ steps.github_symbols.outputs.paths }}
 
   build-aab:
     name: Build Bundle
     needs: [validate-release]
     runs-on: ubuntu-latest
+    outputs:
+      has_play_native_symbols: ${{ steps.play_symbols.outputs.exists }}
     env:
       HAS_RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE != '' }}
       HAS_GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
@@ -128,7 +149,7 @@ jobs:
           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/play/release/google-services.json
 
       - name: Build App Bundle
-        run: ./gradlew bundlePlayRelease
+        run: ./gradlew bundlePlayApi101Release
         env:
           KEYSTORE_FILE: release.jks
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
@@ -140,15 +161,27 @@ jobs:
         with:
           name: bundle-assets
           path: |
-            app/build/outputs/bundle/playRelease/*.aab
-            app/build/outputs/mapping/playRelease/mapping.txt
+            app/build/outputs/bundle/playApi101Release/*.aab
+            app/build/outputs/mapping/playApi101Release/mapping.txt
+
+      - name: Detect Play Native Symbols
+        id: play_symbols
+        shell: bash
+        run: |
+          file="app/build/outputs/native-debug-symbols/playApi101Release/native-debug-symbols.zip"
+          if [[ -f "$file" ]]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "path=$file" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Upload Play Native Symbols Artifact
+        if: steps.play_symbols.outputs.exists == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: native-symbols-play
-          path: app/build/outputs/native-debug-symbols/playRelease/native-debug-symbols.zip
-          if-no-files-found: warn
+          path: ${{ steps.play_symbols.outputs.path }}
 
   release:
     name: Create Release
@@ -176,7 +209,7 @@ jobs:
           path: artifacts/bundle
 
       - uses: actions/download-artifact@v8
-        continue-on-error: true
+        if: needs.build-aab.outputs.has_play_native_symbols == 'true'
         with:
           name: native-symbols-play
           path: artifacts/symbols-play
@@ -193,14 +226,14 @@ jobs:
           fi
 
       - name: Create Draft Release
-        uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') && env.HAS_RELEASE_KEYSTORE == 'true'
-        with:
-          name: ${{ steps.extract_version.outputs.version_name }}
-          draft: true
-          body: |
-            Release package.
+        shell: bash
+        run: |
+          set -euo pipefail
 
+          tag_name="${GITHUB_REF_NAME}"
+          release_name="${{ steps.extract_version.outputs.version_name }}"
+          release_notes=$(cat <<'EOF'
             <div align="center">
               <a href="https://play.google.com/store/apps/details?id=io.github.magisk317.xinyi.relay">
                 <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="80"/>
@@ -209,13 +242,31 @@ jobs:
                 <img src="https://raw.githubusercontent.com/machiav3lli/oandbackupx/master/badge_github.png" alt="Get it on GitHub" height="80"/>
               </a>
             </div>
+          EOF
+          )
 
-          files: |
-            artifacts/apks/*.apk
-            artifacts/bundle/bundle/playRelease/*.aab
-          generate_release_notes: true
+          mapfile -d '' release_assets < <(
+            find artifacts/apks artifacts/bundle -type f \( -name '*.apk' -o -name '*.aab' \) -print0 | sort -z
+          )
+          if [[ ${#release_assets[@]} -eq 0 ]]; then
+            echo "ERROR: no release assets found under artifacts/apks or artifacts/bundle" >&2
+            find artifacts/apks artifacts/bundle -maxdepth 6 -type f | sort >&2 || true
+            exit 1
+          fi
+
+          if gh release view "$tag_name" >/dev/null 2>&1; then
+            gh release upload "$tag_name" "${release_assets[@]}" --clobber
+            gh release edit "$tag_name" --title "$release_name"
+          else
+            gh release create "$tag_name" "${release_assets[@]}" \
+              --draft \
+              --title "$release_name" \
+              --verify-tag \
+              --generate-notes \
+              --notes "$release_notes"
+          fi
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          GH_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
 
       - name: Determine Release Track
         id: determine_track
@@ -231,17 +282,76 @@ jobs:
             echo "track=production" >> $GITHUB_OUTPUT
           fi
 
-      - name: Publish to Google Play
-        uses: r0adkll/upload-google-play@v1
+      - name: Resolve Play Publish Inputs
+        id: resolve_play
+        shell: bash
+        run: |
+          aab_file=$(find artifacts/bundle -type f -name 'XinyiRelay_v*.aab' | sort | head -n 1)
+          if [[ -z "$aab_file" ]]; then
+            aab_file=$(find artifacts/bundle -type f -name '*.aab' | sort | head -n 1)
+          fi
+          if [[ -z "$aab_file" ]]; then
+            echo "ERROR: no .aab found under artifacts/bundle" >&2
+            find artifacts/bundle -maxdepth 4 -type f | sort >&2 || true
+            exit 1
+          fi
+
+          mapping_file=$(find artifacts/bundle -type f -name mapping.txt | head -n 1)
+          if [[ -z "$mapping_file" ]]; then
+            echo "ERROR: mapping.txt not found under artifacts/bundle" >&2
+            find artifacts/bundle -maxdepth 4 -type f | sort >&2 || true
+            exit 1
+          fi
+
+          symbols_file=$(find artifacts/symbols-play -type f -name native-debug-symbols.zip 2>/dev/null | head -n 1 || true)
+
+          echo "aab_file=$aab_file" >> "$GITHUB_OUTPUT"
+          echo "mapping_file=$mapping_file" >> "$GITHUB_OUTPUT"
+          if [[ -n "$symbols_file" ]]; then
+            echo "has_symbols=true" >> "$GITHUB_OUTPUT"
+            echo "symbols_file=$symbols_file" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_symbols=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install fastlane
         if: startsWith(github.ref, 'refs/tags/') && env.HAS_GOOGLE_PLAY_CREDENTIALS == 'true'
-        with:
-          serviceAccountJsonPlainText: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS }}
-          packageName: io.github.magisk317.xinyi.relay
-          releaseFiles: artifacts/bundle/bundle/playRelease/*.aab
-          mappingFile: artifacts/bundle/mapping/playRelease/mapping.txt
-          track: ${{ steps.determine_track.outputs.track }}
-          status: completed
-          whatsNewDirectory: distribution/whatsnew
+        shell: bash
+        run: |
+          ruby --version
+          gem --version
+          gem install fastlane --no-document
+
+      - name: Publish to Google Play
+        if: startsWith(github.ref, 'refs/tags/') && env.HAS_GOOGLE_PLAY_CREDENTIALS == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cmd=(
+            fastlane supply
+            --aab "${{ steps.resolve_play.outputs.aab_file }}"
+            --package_name "io.github.magisk317.xinyi.relay"
+            --track "${{ steps.determine_track.outputs.track }}"
+            --release_status "completed"
+            --json_key_data "$ANDROID_PUBLISHER_CREDENTIALS"
+            --skip_upload_metadata true
+            --skip_upload_images true
+            --skip_upload_screenshots true
+          )
+
+          if [[ "${{ steps.resolve_play.outputs.has_symbols }}" == "true" ]]; then
+            cmd+=(--mapping_paths "${{ steps.resolve_play.outputs.mapping_file }},${{ steps.resolve_play.outputs.symbols_file }}")
+          else
+            cmd+=(--mapping "${{ steps.resolve_play.outputs.mapping_file }}")
+          fi
+
+          "${cmd[@]}"
+        env:
+          ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS }}
+          FASTLANE_SKIP_UPDATE_CHECK: '1'
+          FASTLANE_DISABLE_COLORS: '1'
+          CI: 'true'
 
   publish-to-modules-repo:
     name: Publish to Xposed-Modules-Repo
@@ -272,8 +382,14 @@ jobs:
       - name: Create Draft Release in Xposed-Modules-Repo
         if: env.HAS_MODULES_REPO_TOKEN == 'true' && env.HAS_RELEASE_KEYSTORE == 'true'
         run: |
+          mapfile -d '' apk_files < <(find artifacts/apks-modules -type f -name '*.apk' -print0 | sort -z)
+          if [[ ${#apk_files[@]} -eq 0 ]]; then
+            echo "ERROR: no APK files found under artifacts/apks-modules" >&2
+            find artifacts/apks-modules -maxdepth 6 -type f | sort >&2 || true
+            exit 1
+          fi
           gh release create "${{ github.ref_name }}" \
-            artifacts/apks-modules/*.apk \
+            "${apk_files[@]}" \
             --repo "${{ env.MODULES_REPO }}" \
             --title "${{ steps.extract_version.outputs.version_name }}" \
             --notes "<div align=\"center\">

@@ -1,7 +1,6 @@
 package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
-import android.content.Intent
 import android.os.Handler
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.mockk.mockk
@@ -19,7 +18,6 @@ class SmsCodeActionDispatcherTest {
         val pluginContext = mockk<Context>(relaxed = true)
         val phoneContext = mockk<Context>(relaxed = true)
         val smsMsg = smsMsg()
-        val smsIntent = mockk<Intent>(relaxed = true)
         val plan = SmsCodePostParseCoordinator.ParsedSmsPlan(
             blockSms = true,
             deduplicateSmsEnabled = true,
@@ -30,14 +28,12 @@ class SmsCodeActionDispatcherTest {
             autoInputDelayMs = 1_500L,
             notificationPlan = SmsCodePostParseCoordinator.NotificationPlan(autoCancelDelayMs = 5_000L),
             shouldRecord = true,
-            forwardDelayMs = 100L,
             operateSmsDelays = listOf(300L, 1000L),
         )
         var uiDispatched = false
         var autoInputDelay: Long? = null
         var notificationDelay: Long? = null
         var recordEventId: String? = null
-        var forwardDelay: Long? = null
         var operateSmsDelays: List<Long>? = null
 
         SmsCodeActionDispatcher.dispatchParsedSmsActions(
@@ -46,7 +42,6 @@ class SmsCodeActionDispatcherTest {
             pluginContext = pluginContext,
             phoneContext = phoneContext,
             smsMsg = smsMsg,
-            smsIntent = smsIntent,
             eventId = "evt-1",
             plan = plan,
             uiDispatcher = { _, _, _, _, uiPlan ->
@@ -61,11 +56,6 @@ class SmsCodeActionDispatcherTest {
             recordScheduler = { _, _, _, _, eventId, _ ->
                 recordEventId = eventId
             },
-            forwardScheduler = { _, _, _, _, intent, eventId, delayMs ->
-                assertEquals(smsIntent, intent)
-                assertEquals("evt-1", eventId)
-                forwardDelay = delayMs
-            },
             operateSmsScheduler = { _, _, _, _, delays ->
                 operateSmsDelays = delays
             },
@@ -75,7 +65,6 @@ class SmsCodeActionDispatcherTest {
         assertEquals(1_500L, autoInputDelay)
         assertEquals(5_000L, notificationDelay)
         assertEquals("evt-1", recordEventId)
-        assertEquals(100L, forwardDelay)
         assertEquals(listOf(300L, 1000L), operateSmsDelays)
     }
 

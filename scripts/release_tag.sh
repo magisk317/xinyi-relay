@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION_FILE="$ROOT_DIR/gradle/libs.versions.toml"
 FASTLANE_META_DIR="$ROOT_DIR/fastlane/metadata/android"
+WEBUI_ASSETS_DIR="$ROOT_DIR/app/src/main/assets/webui"
 
 count_sarif_results() {
   local sarif_file="$1"
@@ -15,19 +16,29 @@ count_sarif_results() {
   fi
 }
 
+ensure_no_staged_changes_for_auto_commit() {
+  local label="$1"
+  if ! git -C "$ROOT_DIR" diff --cached --quiet; then
+    echo "ERROR: staged changes detected; refusing to auto-commit $label." >&2
+    echo "Hint: commit or unstage existing changes before running release_tag.sh." >&2
+    exit 1
+  fi
+}
+
 run_webui_checks() {
   if ! command -v pnpm >/dev/null 2>&1; then
     echo "ERROR: pnpm is required for WebUI checks but was not found in PATH." >&2
     exit 1
   fi
 
-  echo "Running WebUI checks (install/lint/typecheck/build/check-dist)..."
+  echo "Running WebUI checks (install/lint/typecheck/build/sync-dist/check-dist)..."
   (
     cd "$ROOT_DIR"
     pnpm -C webui install --frozen-lockfile
     pnpm -C webui lint
     pnpm -C webui typecheck
     pnpm -C webui build
+    pnpm -C webui sync-dist
     pnpm -C webui check-dist
   )
 
@@ -67,11 +78,7 @@ run_sync_fastlane_metadata() {
 auto_commit_fastlane_metadata() {
   local fastlane_status
 
-  if ! git -C "$ROOT_DIR" diff --cached --quiet; then
-    echo "ERROR: staged changes detected; refusing to auto-commit fastlane metadata." >&2
-    echo "Hint: commit or unstage existing changes before running release_tag.sh." >&2
-    exit 1
-  fi
+  ensure_no_staged_changes_for_auto_commit "fastlane metadata"
 
   fastlane_status="$(git -C "$ROOT_DIR" status --porcelain -- "$FASTLANE_META_DIR")"
   if [[ -z "$fastlane_status" ]]; then
@@ -88,6 +95,26 @@ auto_commit_fastlane_metadata() {
   git -C "$ROOT_DIR" commit -m "chore(release): sync fastlane metadata"
 }
 
+auto_commit_webui_assets() {
+  local webui_status
+
+  ensure_no_staged_changes_for_auto_commit "webui assets"
+
+  webui_status="$(git -C "$ROOT_DIR" status --porcelain -- "$WEBUI_ASSETS_DIR")"
+  if [[ -z "$webui_status" ]]; then
+    echo "WebUI bundled assets are already clean; no auto-commit needed."
+    return
+  fi
+
+  echo "WebUI bundled assets updated; committing changes..."
+  git -C "$ROOT_DIR" add "$WEBUI_ASSETS_DIR"
+  if git -C "$ROOT_DIR" diff --cached --quiet; then
+    echo "WARN: no staged WebUI asset changes after add." >&2
+    return
+  fi
+  git -C "$ROOT_DIR" commit -m "chore(webui): sync bundled assets"
+}
+
 run_pre_push_checks() {
   echo "Running pre-push CI command..."
   (
@@ -97,11 +124,11 @@ run_pre_push_checks() {
       verifyModuleBoundaries \
       verifyStructureBoundaries \
       verifyEmbeddedSubmodules \
-      assembleGithubDebug \
-      testGithubDebugUnitTest \
+      assembleGithubApi101Debug \
+      testGithubApi101DebugUnitTest \
       :runtime:verifyNoComposeUiLeak \
-      :app:koverVerifyGithubDebug \
-      :app:koverHtmlReportGithubDebug \
+      :app:koverVerifyGithubApi101Debug \
+      :app:koverHtmlReportGithubApi101Debug \
       -PbuildSplits
   )
 
@@ -195,6 +222,7 @@ run_sync_fastlane_metadata
 auto_commit_fastlane_metadata
 ensure_fastlane_changelogs_ready
 run_webui_checks
+auto_commit_webui_assets
 "$ROOT_DIR/scripts/check_release_guard.sh" "$TAG_NAME"
 run_pre_push_checks
 
