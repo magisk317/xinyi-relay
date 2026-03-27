@@ -26,6 +26,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.data.datasource.PreferenceDataSource
@@ -165,18 +167,17 @@ fun TextInputDialog(
     onFocusLost: ((String) -> Unit)? = null,
     onConfirm: (String) -> Unit,
 ) {
-    var value by remember(title, initialValue) { mutableStateOf(initialValue) }
-    var errorText by remember(title, initialValue) { mutableStateOf<String?>(null) }
+    var fieldValue by remember(title, initialValue) { mutableStateOf(TextFieldValue(initialValue)) }
+    val errorText = validator?.invoke(fieldValue.text)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = title) },
         text = {
             Column {
                 OutlinedTextField(
-                    value = value,
+                    value = fieldValue,
                     onValueChange = {
-                        value = it
-                        errorText = validator?.invoke(it)
+                        fieldValue = it
                     },
                     singleLine = singleLine,
                     maxLines = maxLines,
@@ -184,7 +185,7 @@ fun TextInputDialog(
                         .fillMaxWidth()
                         .onFocusChanged { focusState ->
                             if (!focusState.isFocused && errorText == null) {
-                                onFocusLost?.invoke(value)
+                                onFocusLost?.invoke(fieldValue.text)
                             }
                         },
                     supportingText = {
@@ -198,8 +199,10 @@ fun TextInputDialog(
                 if (resetValue != null) {
                     Spacer(modifier = Modifier.height(8.dp))
                     TextButton(onClick = {
-                        value = resetValue
-                        errorText = validator?.invoke(resetValue)
+                        fieldValue = TextFieldValue(
+                            text = resetValue,
+                            selection = TextRange(resetValue.length),
+                        )
                     }) {
                         Text(text = stringResource(id = R.string.action_restore_default))
                     }
@@ -208,7 +211,7 @@ fun TextInputDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { onConfirm(value) },
+                onClick = { onConfirm(fieldValue.text) },
                 enabled = errorText == null,
             ) {
                 Text(text = stringResource(android.R.string.ok))

@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
+import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.core.BuildConfig
 import io.github.magisk317.relay.common.constant.Const
 import io.github.magisk317.relay.common.constant.CodeNotificationOwner
@@ -61,7 +62,6 @@ import io.github.magisk317.relay.common.utils.SensitiveLogPolicy
 import io.github.magisk317.relay.common.utils.NotificationUtils
 import io.github.magisk317.relay.diagnostics.LogBundleExporter
 import io.github.magisk317.relay.diagnostics.RuntimeLogStore
-import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.data.repository.DiagnosticsSettingsSnapshot
 import io.github.magisk317.relay.data.repository.DiagnosticsSettingsUpdate
@@ -932,8 +932,7 @@ fun VerificationSettingsScreen(
             initialValue = normalizeNumericInput(current.autoInputDelay),
             onDismiss = { showDelayDialog = false },
             validator = {
-                parseNonNegativeLong(it)?.let { null }
-                    ?: nonNegativeNumberError
+                if (parseNonNegativeLong(it) != null) null else nonNegativeNumberError
             },
         ) { updated ->
             showDelayDialog = false
@@ -954,8 +953,7 @@ fun VerificationSettingsScreen(
             initialValue = normalizeNumericInput(current.autoInputInterval),
             onDismiss = { showIntervalDialog = false },
             validator = {
-                parseNonNegativeLong(it)?.let { null }
-                    ?: nonNegativeNumberError
+                if (parseNonNegativeLong(it) != null) null else nonNegativeNumberError
             },
         ) { updated ->
             showIntervalDialog = false
@@ -1161,13 +1159,16 @@ private fun isAutoInputAccessibilityServiceListed(context: android.content.Conte
 }
 
 private fun normalizeNumericInput(raw: String): String {
-    return raw.trim().map { ch ->
-        when (ch) {
-            in '０'..'９' -> '0' + (ch - '０')
-            '－', '﹣', '—', '–' -> '-'
-            else -> ch
+    val normalized = StringBuilder(raw.length)
+    raw.forEach { ch ->
+        when {
+            ch.isWhitespace() || Character.getType(ch) == Character.FORMAT.toInt() -> Unit
+            ch.digitToIntOrNull() != null -> normalized.append(ch.digitToInt())
+            ch in setOf('-', '－', '﹣', '—', '–') && normalized.isEmpty() -> normalized.append('-')
+            else -> normalized.append(ch)
         }
-    }.joinToString("")
+    }
+    return normalized.toString()
 }
 
 private fun parseNonNegativeLong(raw: String): Long? {
