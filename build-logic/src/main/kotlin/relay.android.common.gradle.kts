@@ -1,4 +1,6 @@
 import com.android.build.api.dsl.CommonExtension
+import com.android.build.api.variant.ApplicationAndroidComponentsExtension
+import com.android.build.api.variant.LibraryAndroidComponentsExtension
 import org.gradle.api.JavaVersion
 import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.api.tasks.testing.Test
@@ -61,11 +63,25 @@ pluginManager.withPlugin("com.android.application") {
     extensions.configure<CommonExtension> {
         configureRelayAndroidCommon()
     }
+    extensions.getByType<ApplicationAndroidComponentsExtension>().beforeVariants(
+        extensions.getByType<ApplicationAndroidComponentsExtension>().selector().all(),
+    ) { variantBuilder ->
+        if (variantBuilder.productFlavors.toMap()["distribution"] == "fdroid") {
+            variantBuilder.enable = false
+        }
+    }
 }
 
 pluginManager.withPlugin("com.android.library") {
     extensions.configure<CommonExtension> {
         configureRelayAndroidCommon()
+    }
+    extensions.getByType<LibraryAndroidComponentsExtension>().beforeVariants(
+        extensions.getByType<LibraryAndroidComponentsExtension>().selector().all(),
+    ) { variantBuilder ->
+        if (variantBuilder.productFlavors.toMap()["distribution"] == "fdroid") {
+            variantBuilder.enable = false
+        }
     }
 }
 

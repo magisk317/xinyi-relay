@@ -77,7 +77,7 @@ pluginManager.withPlugin("com.android.application") {
             val distributionEnabled = when (distribution) {
                 "play" -> xposedApiFlavor == "api101"
                 "github" -> xposedApiFlavor == "legacy" || xposedApiFlavor == "api101"
-                "fdroid" -> xposedApiFlavor == "api101"
+                "fdroid" -> false
                 else -> false
             }
             if (!distributionEnabled) {
