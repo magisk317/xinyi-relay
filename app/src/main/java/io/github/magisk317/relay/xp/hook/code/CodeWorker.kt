@@ -2,16 +2,14 @@ package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
 import android.content.Intent
-import android.os.Handler
-import android.os.Looper
-import android.util.Log
 import androidx.core.os.BundleCompat
 import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xp.hook.code.action.impl.SmsParseAction
+import io.github.magisk317.smscode.verification.CodeWorker as SharedCodeWorker
+import io.github.magisk317.smscode.verification.SmsCodePostParseCoordinator as SharedSmsCodePostParseCoordinator
 import io.github.magisk317.smscode.xposed.utils.XLog
-import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 class CodeWorker(
@@ -20,93 +18,91 @@ class CodeWorker(
     private val mSmsIntent: Intent,
     private val eventId: String = "",
 ) {
-    private val mUIHandler: Handler = Handler(Looper.getMainLooper())
-    private val mScheduledExecutor = Executors.newSingleThreadScheduledExecutor()
-
     fun parse(): ParseResult? {
-        val settings = SmsCodePostParseCoordinator.loadSettings(mPluginContext)
-        val plan = SmsCodePostParseCoordinator.createParsedSmsPlan(settings)
-        val moduleEnabled = XpPrefs.isEnabled(mPluginContext)
-        val verboseLog = XpPrefs.isVerboseLogMode(mPluginContext)
-        XLog.w(
-            "Diag settings: event_id=%s enabled=%s, verbose=%s, showNotif=%s, autoCancel=%s, " +
-            "retentionSec=%d, autoInput=%s, copy=%s, toast=%s, record=%s, " +
-            "block=%s, markRead=%s, delete=%s, dedup=%s",
-            eventId.ifBlank { "<none>" },
-            moduleEnabled,
-            verboseLog,
-            settings.showNotification,
-            settings.autoCancelNotification,
-            settings.notificationRetentionMs / 1000L,
-            settings.autoInputEnabled,
-            settings.copyToClipboardEnabled,
-            settings.showToast,
-            settings.recordSmsEnabled,
-            settings.blockSmsEnabled,
-            settings.markAsReadEnabled,
-            settings.deleteSmsEnabled,
-            settings.deduplicateSmsEnabled,
-        )
-
-        if (!moduleEnabled) {
-            XLog.w("Diag: module disabled in settings")
-            XLog.i("XposedSmsCode disabled, exiting")
-            return null
-        }
-        if (verboseLog) {
-            XLog.setLogLevel(Log.VERBOSE)
-        } else {
-            XLog.setLogLevel(BuildConfig.LOG_LEVEL)
-        }
-        XLog.w(
-            "Diag log mode: verboseSetting=%s, activeLevel=%d, defaultLevel=%d",
-            verboseLog,
-            XLog.getLogLevel(),
-            BuildConfig.LOG_LEVEL,
-        )
-
-        val smsParseAction = SmsParseAction(mPluginContext, mPhoneContext, null)
-        smsParseAction.setSmsIntent(mSmsIntent)
-        smsParseAction.setDeduplicateEnabled(settings.deduplicateSmsEnabled)
-        val smsParseFuture = mScheduledExecutor.schedule(smsParseAction, 0, TimeUnit.MILLISECONDS)
-
-        val smsMsg: SmsMsg
-        try {
-            val parseBundle = smsParseFuture.get()
-            if (parseBundle == null) {
-                mScheduledExecutor.shutdown()
-                return null
-            }
-
-            val duplicated = parseBundle.getBoolean(SmsParseAction.SMS_DUPLICATED, false)
-            if (duplicated) {
-                mScheduledExecutor.shutdown()
-                return buildParseResult(plan.blockSms)
-            }
-
-            smsMsg = BundleCompat.getParcelable(parseBundle, SmsParseAction.SMS_MSG, SmsMsg::class.java) ?: return null
-        } catch (e: Exception) {
-            XLog.e("Error occurs when get SmsParseAction call value", e)
-            return null
-        }
-
-        SmsCodePostParseCoordinator.dispatchParsedSmsActions(
-            uiHandler = mUIHandler,
-            executor = mScheduledExecutor,
+        return SharedCodeWorker(
             pluginContext = mPluginContext,
             phoneContext = mPhoneContext,
-            smsMsg = smsMsg,
+            smsIntent = mSmsIntent,
             eventId = eventId,
-            plan = plan,
-        )
+            settingsLoader = { context -> SmsCodePostParseCoordinator.loadSettings(context).toShared() },
+            moduleEnabledReader = XpPrefs::isEnabled,
+            verboseLogReader = XpPrefs::isVerboseLogMode,
+            logLevelSetter = XLog::setLogLevel,
+            currentLogLevelReader = XLog::getLogLevel,
+            defaultLogLevel = BuildConfig.LOG_LEVEL,
+            parseRunner = ::runSmsParseAction,
+            parsedSmsDispatcher = { uiHandler, executor, pluginContext, phoneContext, smsMsg, eventId, plan ->
+                SmsCodePostParseCoordinator.dispatchParsedSmsActions(
+                    uiHandler = uiHandler,
+                    executor = executor,
+                    pluginContext = pluginContext,
+                    phoneContext = phoneContext,
+                    smsMsg = smsMsg,
+                    eventId = eventId,
+                    plan = plan.toLocal(),
+                )
+            },
+            parseResultFactory = ::buildParseResult,
+        ).parse()
+    }
 
-        mScheduledExecutor.shutdown()
-        return buildParseResult(plan.blockSms)
+    private fun runSmsParseAction(
+        executor: java.util.concurrent.ScheduledExecutorService,
+        pluginContext: Context,
+        phoneContext: Context,
+        smsIntent: Intent,
+        deduplicateEnabled: Boolean,
+    ): SharedCodeWorker.ParseOutcome<SmsMsg>? {
+        val smsParseAction = SmsParseAction(pluginContext, phoneContext, null)
+        smsParseAction.setSmsIntent(smsIntent)
+        smsParseAction.setDeduplicateEnabled(deduplicateEnabled)
+        val parseBundle = executor.schedule(smsParseAction, 0, TimeUnit.MILLISECONDS).get() ?: return null
+        if (parseBundle.getBoolean(SmsParseAction.SMS_DUPLICATED, false)) {
+            return SharedCodeWorker.ParseOutcome(duplicated = true)
+        }
+        val smsMsg = BundleCompat.getParcelable(parseBundle, SmsParseAction.SMS_MSG, SmsMsg::class.java)
+            ?: return null
+        return SharedCodeWorker.ParseOutcome(
+            smsMsg = smsMsg,
+            duplicated = false,
+        )
     }
 
     private fun buildParseResult(blockSms: Boolean): ParseResult {
-        val parseResult = ParseResult()
-        parseResult.isBlockSms = blockSms
-        return parseResult
+        return ParseResult().apply { isBlockSms = blockSms }
+    }
+
+    private fun SmsCodePostParseCoordinator.Settings.toShared(): SharedSmsCodePostParseCoordinator.Settings {
+        return SharedSmsCodePostParseCoordinator.Settings(
+            showNotification = showNotification,
+            autoCancelNotification = autoCancelNotification,
+            notificationRetentionMs = notificationRetentionMs,
+            autoInputEnabled = autoInputEnabled,
+            autoInputDelayMs = autoInputDelayMs,
+            copyToClipboardEnabled = copyToClipboardEnabled,
+            showToast = showToast,
+            recordSmsEnabled = recordSmsEnabled,
+            blockSmsEnabled = blockSmsEnabled,
+            markAsReadEnabled = markAsReadEnabled,
+            deleteSmsEnabled = deleteSmsEnabled,
+            deduplicateSmsEnabled = deduplicateSmsEnabled,
+        )
+    }
+
+    private fun SharedSmsCodePostParseCoordinator.ParsedSmsPlan.toLocal(): SmsCodePostParseCoordinator.ParsedSmsPlan {
+        return SmsCodePostParseCoordinator.ParsedSmsPlan(
+            blockSms = blockSms,
+            deduplicateSmsEnabled = deduplicateSmsEnabled,
+            uiPlan = SmsCodePostParseCoordinator.UiPlan(
+                copyToClipboardEnabled = uiPlan.copyToClipboardEnabled,
+                showToast = uiPlan.showToast,
+            ),
+            autoInputDelayMs = autoInputDelayMs,
+            notificationPlan = notificationPlan?.let {
+                SmsCodePostParseCoordinator.NotificationPlan(autoCancelDelayMs = it.autoCancelDelayMs)
+            },
+            shouldRecord = shouldRecord,
+            operateSmsDelays = operateSmsDelays,
+        )
     }
 }

@@ -9,6 +9,8 @@ import io.github.magisk317.relay.xp.hook.code.action.impl.NotifyAction
 import io.github.magisk317.relay.xp.hook.code.action.impl.OperateSmsAction
 import io.github.magisk317.relay.xp.hook.code.action.impl.RecordSmsAction
 import io.github.magisk317.relay.xp.hook.code.action.impl.ToastAction
+import io.github.magisk317.smscode.verification.SmsCodeActionDispatcher as SharedSmsCodeActionDispatcher
+import io.github.magisk317.smscode.verification.SmsCodePostParseCoordinator as SharedSmsCodePostParseCoordinator
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
@@ -57,54 +59,25 @@ internal object SmsCodeActionDispatcher {
             Context,
             SmsMsg,
             List<Long>,
-        ) -> Unit = ::scheduleOperateSmsActions,
+    ) -> Unit = ::scheduleOperateSmsActions,
     ) {
-        uiDispatcher(
-            uiHandler,
-            pluginContext,
-            phoneContext,
-            smsMsg,
-            plan.uiPlan,
-        )
-
-        plan.autoInputDelayMs?.let { delayMs ->
-            autoInputScheduler(
-                executor,
-                pluginContext,
-                phoneContext,
-                smsMsg,
-                delayMs,
-                plan.deduplicateSmsEnabled,
-            )
-        }
-
-        plan.notificationPlan?.let { notificationPlan ->
-            notificationScheduler(
-                executor,
-                pluginContext,
-                phoneContext,
-                smsMsg,
-                notificationPlan,
-            )
-        }
-
-        if (plan.shouldRecord) {
-            recordScheduler(
-                executor,
-                pluginContext,
-                phoneContext,
-                smsMsg,
-                eventId,
-                plan.deduplicateSmsEnabled,
-            )
-        }
-
-        operateSmsScheduler(
-            executor,
-            pluginContext,
-            phoneContext,
-            smsMsg,
-            plan.operateSmsDelays,
+        SharedSmsCodeActionDispatcher.dispatchParsedSmsActions(
+            uiHandler = uiHandler,
+            executor = executor,
+            pluginContext = pluginContext,
+            phoneContext = phoneContext,
+            smsMsg = smsMsg,
+            eventId = eventId,
+            plan = plan.toShared(),
+            uiDispatcher = { handler, plugin, phone, message, uiPlan ->
+                uiDispatcher(handler, plugin, phone, message, uiPlan.toLocal())
+            },
+            autoInputScheduler = autoInputScheduler,
+            notificationScheduler = { scheduledExecutor, plugin, phone, message, notificationPlan ->
+                notificationScheduler(scheduledExecutor, plugin, phone, message, notificationPlan.toLocal())
+            },
+            recordScheduler = recordScheduler,
+            operateSmsScheduler = operateSmsScheduler,
         )
     }
 
@@ -117,23 +90,15 @@ internal object SmsCodeActionDispatcher {
         autoInputRunner: (Context, Context, SmsMsg, Boolean) -> Unit = ::runAutoInputNow,
         recordRunner: (Context, Context, SmsMsg, String, Boolean) -> Unit = ::runRecordNow,
     ) {
-        if (plan.autoInputEnabled) {
-            autoInputRunner(
-                pluginContext,
-                phoneContext,
-                smsMsg,
-                plan.deduplicateSmsEnabled,
-            )
-        }
-        if (plan.shouldRecord) {
-            recordRunner(
-                pluginContext,
-                phoneContext,
-                smsMsg,
-                eventId,
-                plan.deduplicateSmsEnabled,
-            )
-        }
+        SharedSmsCodeActionDispatcher.dispatchObservedSmsActions(
+            pluginContext = pluginContext,
+            phoneContext = phoneContext,
+            smsMsg = smsMsg,
+            eventId = eventId,
+            plan = plan.toShared(),
+            autoInputRunner = autoInputRunner,
+            recordRunner = recordRunner,
+        )
     }
 
     private fun dispatchUiActions(
@@ -269,5 +234,51 @@ internal object SmsCodeActionDispatcher {
                 TimeUnit.MILLISECONDS,
             )
         }
+    }
+
+    private fun SmsCodePostParseCoordinator.ParsedSmsPlan.toShared(): SharedSmsCodePostParseCoordinator.ParsedSmsPlan {
+        return SharedSmsCodePostParseCoordinator.ParsedSmsPlan(
+            blockSms = blockSms,
+            deduplicateSmsEnabled = deduplicateSmsEnabled,
+            uiPlan = uiPlan.toShared(),
+            autoInputDelayMs = autoInputDelayMs,
+            notificationPlan = notificationPlan?.toShared(),
+            shouldRecord = shouldRecord,
+            operateSmsDelays = operateSmsDelays,
+        )
+    }
+
+    private fun SmsCodePostParseCoordinator.ObservedSmsPlan.toShared(): SharedSmsCodePostParseCoordinator.ObservedSmsPlan {
+        return SharedSmsCodePostParseCoordinator.ObservedSmsPlan(
+            deduplicateSmsEnabled = deduplicateSmsEnabled,
+            autoInputEnabled = autoInputEnabled,
+            shouldRecord = shouldRecord,
+        )
+    }
+
+    private fun SmsCodePostParseCoordinator.UiPlan.toShared(): SharedSmsCodePostParseCoordinator.UiPlan {
+        return SharedSmsCodePostParseCoordinator.UiPlan(
+            copyToClipboardEnabled = copyToClipboardEnabled,
+            showToast = showToast,
+        )
+    }
+
+    private fun SmsCodePostParseCoordinator.NotificationPlan.toShared(): SharedSmsCodePostParseCoordinator.NotificationPlan {
+        return SharedSmsCodePostParseCoordinator.NotificationPlan(
+            autoCancelDelayMs = autoCancelDelayMs,
+        )
+    }
+
+    private fun SharedSmsCodePostParseCoordinator.UiPlan.toLocal(): SmsCodePostParseCoordinator.UiPlan {
+        return SmsCodePostParseCoordinator.UiPlan(
+            copyToClipboardEnabled = copyToClipboardEnabled,
+            showToast = showToast,
+        )
+    }
+
+    private fun SharedSmsCodePostParseCoordinator.NotificationPlan.toLocal(): SmsCodePostParseCoordinator.NotificationPlan {
+        return SmsCodePostParseCoordinator.NotificationPlan(
+            autoCancelDelayMs = autoCancelDelayMs,
+        )
     }
 }

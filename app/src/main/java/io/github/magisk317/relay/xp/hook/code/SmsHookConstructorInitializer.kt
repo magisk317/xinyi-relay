@@ -5,8 +5,8 @@ import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
+import io.github.magisk317.smscode.verification.SmsHookConstructorInitializer as SharedSmsHookConstructorInitializer
 import io.github.magisk317.smscode.xposed.utils.ModuleActivationStore
-import io.github.magisk317.smscode.xposed.utils.XLog
 
 internal class SmsHookConstructorInitializer(
     private val runtimeInitializer: (Context) -> SmsHookRuntimeContext?,
@@ -34,36 +34,31 @@ internal class SmsHookConstructorInitializer(
         val initialized: Boolean = stopReason == null
     }
 
+    private val delegate = SharedSmsHookConstructorInitializer(
+        runtimeInitializer = runtimeInitializer,
+        conflictNoticeChannelInitializer = conflictNoticeChannelInitializer,
+        conflictSuppressor = conflictSuppressor,
+        showNotificationReader = showNotificationReader,
+        notificationChannelInitializer = notificationChannelInitializer,
+        copyCodeRegistrar = copyCodeRegistrar,
+        activationMarker = activationMarker,
+        heartbeatRecorder = heartbeatRecorder,
+        suppressionLogger = suppressionLogger,
+        inboxObserverRegistrar = inboxObserverRegistrar,
+    )
+
     fun handle(phoneContext: Context): Outcome {
-        val runtime = runCatching { runtimeInitializer(phoneContext) }
-            .onFailure { XLog.e("Create plugin context failed: %s", it) }
-            .getOrNull()
-        if (runtime == null) {
-            XLog.e("Plugin context is null after creation attempt")
-            return Outcome(stopReason = StopReason.RUNTIME_UNAVAILABLE)
-        }
-
-        conflictNoticeChannelInitializer(runtime.pluginContext, runtime.phoneContext)
-        val suppressByRelay = conflictSuppressor(runtime.phoneContext, CONSTRUCTOR_CONFLICT_SOURCE)
-        if (showNotificationReader(runtime.pluginContext)) {
-            notificationChannelInitializer(runtime)
-            if (!suppressByRelay) {
-                copyCodeRegistrar(runtime)
-            }
-        }
-        activationMarker(runtime.pluginContext)
-        heartbeatRecorder(CONSTRUCTOR_HEARTBEAT_SOURCE)
-        if (suppressByRelay) {
-            suppressionLogger(CONSTRUCTOR_STAGE)
-        } else {
-            inboxObserverRegistrar(runtime)
-        }
-        return Outcome(suppressedByRelay = suppressByRelay)
+        val outcome = delegate.handle(phoneContext)
+        return Outcome(
+            stopReason = outcome.stopReason?.toLocal(),
+            suppressedByRelay = outcome.suppressedByRelay,
+        )
     }
+}
 
-    private companion object {
-        private const val CONSTRUCTOR_CONFLICT_SOURCE = "SmsHandlerHook#constructor"
-        private const val CONSTRUCTOR_HEARTBEAT_SOURCE = "sms_handler_constructor"
-        private const val CONSTRUCTOR_STAGE = "constructor"
+private fun SharedSmsHookConstructorInitializer.StopReason.toLocal(): SmsHookConstructorInitializer.StopReason {
+    return when (this) {
+        SharedSmsHookConstructorInitializer.StopReason.RUNTIME_UNAVAILABLE ->
+            SmsHookConstructorInitializer.StopReason.RUNTIME_UNAVAILABLE
     }
 }

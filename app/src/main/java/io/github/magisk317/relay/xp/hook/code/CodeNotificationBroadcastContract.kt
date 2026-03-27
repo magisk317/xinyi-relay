@@ -3,17 +3,18 @@ package io.github.magisk317.relay.xp.hook.code
 import android.content.Intent
 import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.receiver.CodeNotificationReceiver
+import io.github.magisk317.smscode.verification.CodeNotificationPayload
 
 object CodeNotificationBroadcastContract {
     const val ACTION_SHOW_CODE_NOTIFICATION = "${BuildConfig.APPLICATION_ID}.ACTION_SHOW_CODE_NOTIFICATION"
 
-    const val EXTRA_SENDER = "sender"
-    const val EXTRA_COMPANY = "company"
-    const val EXTRA_SMS_CODE = "sms_code"
-    const val EXTRA_NOTIFICATION_ID = "notification_id"
-    const val EXTRA_AUTO_CANCEL_ENABLED = "auto_cancel_enabled"
-    const val EXTRA_RETENTION_TIME_MS = "retention_time_ms"
-    const val EXTRA_IPC_TOKEN = "ipc_token"
+    const val EXTRA_SENDER = CodeNotificationPayload.EXTRA_SENDER
+    const val EXTRA_COMPANY = CodeNotificationPayload.EXTRA_COMPANY
+    const val EXTRA_SMS_CODE = CodeNotificationPayload.EXTRA_SMS_CODE
+    const val EXTRA_NOTIFICATION_ID = CodeNotificationPayload.EXTRA_NOTIFICATION_ID
+    const val EXTRA_AUTO_CANCEL_ENABLED = CodeNotificationPayload.EXTRA_AUTO_CANCEL_ENABLED
+    const val EXTRA_RETENTION_TIME_MS = CodeNotificationPayload.EXTRA_RETENTION_TIME_MS
+    const val EXTRA_IPC_TOKEN = CodeNotificationPayload.EXTRA_IPC_TOKEN
 
     fun createIntent(
         sender: String?,
@@ -24,16 +25,18 @@ object CodeNotificationBroadcastContract {
         retentionTimeMs: Long,
         token: String?,
     ): Intent =
-        Intent(ACTION_SHOW_CODE_NOTIFICATION).apply {
+        CodeNotificationPayload.fillIntent(
+            Intent(ACTION_SHOW_CODE_NOTIFICATION).apply {
             setClassName(BuildConfig.APPLICATION_ID, CodeNotificationReceiver::class.java.name)
-            putExtra(EXTRA_SENDER, sender)
-            putExtra(EXTRA_COMPANY, company)
-            putExtra(EXTRA_SMS_CODE, smsCode)
-            putExtra(EXTRA_NOTIFICATION_ID, notificationId)
-            putExtra(EXTRA_AUTO_CANCEL_ENABLED, autoCancelEnabled)
-            putExtra(EXTRA_RETENTION_TIME_MS, retentionTimeMs)
-            if (!token.isNullOrBlank()) {
-                putExtra(EXTRA_IPC_TOKEN, token)
-            }
-        }
+            },
+            CodeNotificationPayload.Payload(
+                sender = sender,
+                company = company,
+                smsCode = smsCode,
+                notificationId = notificationId,
+                autoCancelEnabled = autoCancelEnabled,
+                retentionTimeMs = retentionTimeMs,
+                token = token,
+            ),
+        )
 }

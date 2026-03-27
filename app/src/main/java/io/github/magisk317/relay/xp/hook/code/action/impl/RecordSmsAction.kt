@@ -7,7 +7,9 @@ import io.github.magisk317.relay.xpbridge.XpCodeRecordExporter
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
-import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.smscode.verification.RecordSmsDedupHelper
+import io.github.magisk317.smscode.verification.RecordSmsActionHelper
+import io.github.magisk317.smscode.verification.RecordSmsInsertResultHelper
 import kotlinx.coroutines.runBlocking
 
 /**
@@ -25,41 +27,23 @@ class RecordSmsAction(
     private val runtimeRecordFacade = XpRecordFacade(pluginContext)
 
     override fun action(): Bundle? {
-        if (enabled) {
-            recordSmsMsg(mSmsMsg)
-        }
-        return null
+        return RecordSmsActionHelper(
+            pluginContext = mPluginContext,
+            smsMsg = mSmsMsg,
+            eventId = eventId,
+            enabled = enabled,
+            deduplicateEnabled = deduplicateEnabled,
+            withFileLock = { context, fileName, block ->
+                XpSharedRuntimeGate.withFileLock(context, fileName) { block() }
+            },
+            shouldSkipByDedup = ::shouldSkipByDedup,
+            primaryInserter = ::insertPrimary,
+            fallbackExporter = ::exportFallback,
+        ).run()
     }
 
-    private fun recordSmsMsg(smsMsg: SmsMsg) {
-        val eventLabel = eventId.ifBlank { "<none>" }
-        XLog.w(
-            "Diag record start: event_id=%s sender_hash=%s body_len=%d code_present=%s",
-            eventLabel,
-            senderHash(smsMsg.sender),
-            smsMsg.body?.length ?: 0,
-            !smsMsg.smsCode.isNullOrBlank(),
-        )
-        if (deduplicateEnabled) {
-            val locked = XpSharedRuntimeGate.withFileLock(mPluginContext, SHARED_RECORD_DEDUP_FILE_NAME) {
-                if (shouldSkipByDedup(smsMsg, eventLabel)) {
-                    return@withFileLock false
-                }
-                insertSmsMsg(smsMsg, eventLabel)
-                true
-            }
-            if (locked != null) {
-                return
-            }
-            if (shouldSkipByDedup(smsMsg, eventLabel)) {
-                return
-            }
-        }
-        insertSmsMsg(smsMsg, eventLabel)
-    }
-
-    private fun insertSmsMsg(smsMsg: SmsMsg, eventLabel: String) {
-        try {
+    private fun insertPrimary(smsMsg: SmsMsg): RecordSmsActionHelper.InsertResult {
+        return RecordSmsInsertResultHelper.capture {
             val recordId = runBlocking {
                 runtimeRecordFacade.insertSmsRecord(
                     smsMsg = smsMsg,
@@ -67,75 +51,47 @@ class RecordSmsAction(
                 )
             }
             if (recordId != null) {
-                XLog.w("Diag record provider insert success: event_id=%s record_id=%d", eventLabel, recordId)
-                return
+                return RecordSmsInsertResultHelper.success(detail = "record_id=$recordId")
             }
-            XLog.w("Diag record provider insert failed: event_id=%s err=insert_returned_null", eventLabel)
-        } catch (t: Throwable) {
-            XLog.w(
-                "Diag record provider insert failed: event_id=%s err=%s",
-                eventLabel,
-                t.message ?: t.javaClass.simpleName,
-            )
+            RecordSmsInsertResultHelper.failure("insert_returned_null")
         }
-        if (XpCodeRecordExporter.exportToFile(mPluginContext, smsMsg)) {
-            XLog.w("Diag record file fallback success: event_id=%s", eventLabel)
-        } else {
-            XLog.w("Diag record file fallback failed: event_id=%s", eventLabel)
-        }
+    }
+
+    private fun exportFallback(smsMsg: SmsMsg): Boolean {
+        return XpCodeRecordExporter.exportToFile(mPluginContext, smsMsg)
     }
 
     private fun shouldSkipByDedup(smsMsg: SmsMsg, eventLabel: String): Boolean {
-        val sender = smsMsg.sender
-        val body = smsMsg.body
-        if (sender.isNullOrBlank() || body.isNullOrBlank()) {
-            return false
-        }
-        val timestamp = if (smsMsg.date > 0) smsMsg.date else System.currentTimeMillis()
-        val from = (timestamp - DEDUP_WINDOW_MS).coerceAtLeast(0L)
-        val to = timestamp + DEDUP_WINDOW_MS
-        val fingerprintDup = runBlocking {
-            runCatching {
-                runtimeRecordFacade.hasSmsDuplicateInRange(
-                    sender = sender,
-                    body = body,
-                    dateFrom = from,
-                    dateTo = to,
-                    msgType = SmsMsg.MSG_TYPE_SMS,
-                )
-            }.getOrDefault(false)
-        }
-        if (fingerprintDup) {
-            XLog.w("Diag record dedup skip: reason=fingerprint_window event_id=%s", eventLabel)
-            return true
-        }
-
-        val code = smsMsg.smsCode
-        if (code.isNullOrBlank()) return false
-
-        val pkg = smsMsg.packageName
-        val company = smsMsg.company
-        val channelDup = runBlocking {
-            runCatching {
-                (pkg?.isNotBlank() == true && runtimeRecordFacade.hasSmsCodeDuplicateByPackageInRange(code, pkg, from, to)) ||
-                    (company?.isNotBlank() == true && runtimeRecordFacade.hasSmsCodeDuplicateByCompanyInRange(code, company, from, to))
-            }.getOrDefault(false)
-        }
-        if (channelDup) {
-            XLog.w("Diag record dedup skip: reason=code_channel event_id=%s", eventLabel)
-            return true
-        }
-        return false
-    }
-
-    private fun senderHash(sender: String?): String {
-        val value = sender.orEmpty()
-        if (value.isBlank()) return "none"
-        return Integer.toHexString(value.hashCode())
-    }
-
-    companion object {
-        private const val SHARED_RECORD_DEDUP_FILE_NAME = "record_insert_gate"
-        private const val DEDUP_WINDOW_MS = 5_000L
+        return RecordSmsDedupHelper.shouldSkipByWindow(
+            smsMsg = smsMsg,
+            eventLabel = eventLabel,
+            hasFingerprintDuplicate = { sender, body, from, to ->
+                runBlocking {
+                    runCatching {
+                        runtimeRecordFacade.hasSmsDuplicateInRange(
+                            sender = sender,
+                            body = body,
+                            dateFrom = from,
+                            dateTo = to,
+                            msgType = SmsMsg.MSG_TYPE_SMS,
+                        )
+                    }.getOrDefault(false)
+                }
+            },
+            hasCodeDuplicateByPackage = { code, pkg, from, to ->
+                runBlocking {
+                    runCatching {
+                        runtimeRecordFacade.hasSmsCodeDuplicateByPackageInRange(code, pkg, from, to)
+                    }.getOrDefault(false)
+                }
+            },
+            hasCodeDuplicateByCompany = { code, company, from, to ->
+                runBlocking {
+                    runCatching {
+                        runtimeRecordFacade.hasSmsCodeDuplicateByCompanyInRange(code, company, from, to)
+                    }.getOrDefault(false)
+                }
+            },
+        )
     }
 }
