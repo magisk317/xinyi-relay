@@ -29,7 +29,17 @@ internal object SmsCodeActionDispatcher {
             Context,
             SmsMsg,
             SmsCodePostParseCoordinator.UiPlan,
-        ) -> Unit = ::dispatchUiActions,
+        ) -> Unit = { handler, plugin, phone, message, uiPlan ->
+            dispatchUiActions(
+                uiHandler = handler,
+                executor = executor,
+                pluginContext = plugin,
+                phoneContext = phone,
+                smsMsg = message,
+                uiPlan = uiPlan,
+                autoInputDelayMs = plan.autoInputDelayMs,
+            )
+        },
         autoInputScheduler: (
             ScheduledExecutorService,
             Context,
@@ -103,10 +113,12 @@ internal object SmsCodeActionDispatcher {
 
     private fun dispatchUiActions(
         uiHandler: Handler,
+        executor: ScheduledExecutorService,
         pluginContext: Context,
         phoneContext: Context,
         smsMsg: SmsMsg,
         uiPlan: SmsCodePostParseCoordinator.UiPlan,
+        autoInputDelayMs: Long?,
     ) {
         uiHandler.post(
             CopyToClipboardAction(
@@ -116,14 +128,29 @@ internal object SmsCodeActionDispatcher {
                 enabled = uiPlan.copyToClipboardEnabled,
             ),
         )
-        uiHandler.post(
-            ToastAction(
-                pluginContext = pluginContext,
-                phoneContext = phoneContext,
-                smsMsg = smsMsg,
-                enabled = uiPlan.showToast,
-            ),
+        if (!uiPlan.showToast) return
+
+        val toastAction = ToastAction(
+            pluginContext = pluginContext,
+            phoneContext = phoneContext,
+            smsMsg = smsMsg,
+            enabled = true,
         )
+        val toastDelayMs = resolveToastDelayMs(autoInputDelayMs)
+        if (toastDelayMs <= 0L) {
+            uiHandler.post(toastAction)
+        } else {
+            executor.schedule(
+                { uiHandler.post(toastAction) },
+                toastDelayMs,
+                TimeUnit.MILLISECONDS,
+            )
+        }
+    }
+
+    private fun resolveToastDelayMs(autoInputDelayMs: Long?): Long {
+        if (autoInputDelayMs == null) return 0L
+        return autoInputDelayMs + TOAST_AFTER_AUTO_INPUT_BUFFER_MS
     }
 
     fun runAutoInputNow(
@@ -281,4 +308,6 @@ internal object SmsCodeActionDispatcher {
             autoCancelDelayMs = autoCancelDelayMs,
         )
     }
+
+    private const val TOAST_AFTER_AUTO_INPUT_BUFFER_MS = 250L
 }

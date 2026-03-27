@@ -3,8 +3,12 @@ package io.github.magisk317.relay.xp.hook.code
 import android.content.Context
 import android.os.Handler
 import io.github.magisk317.relay.xpbridge.SmsMsg
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -97,6 +101,44 @@ class SmsCodeActionDispatcherTest {
 
         assertEquals(true, autoInputDedup)
         assertEquals(false, recordCalled)
+    }
+
+    @Test
+    fun dispatchParsedSmsActions_delaysToastUntilAfterAutoInputAttemptWindow() {
+        val uiHandler = mockk<Handler>(relaxed = true)
+        val executor = mockk<ScheduledExecutorService>(relaxed = true)
+        every {
+            executor.schedule(any<Runnable>(), any<Long>(), any<TimeUnit>())
+        } returns mockk<ScheduledFuture<*>>(relaxed = true)
+
+        SmsCodeActionDispatcher.dispatchParsedSmsActions(
+            uiHandler = uiHandler,
+            executor = executor,
+            pluginContext = mockk(relaxed = true),
+            phoneContext = mockk(relaxed = true),
+            smsMsg = smsMsg(),
+            eventId = "evt-3",
+            plan = SmsCodePostParseCoordinator.ParsedSmsPlan(
+                blockSms = false,
+                deduplicateSmsEnabled = true,
+                uiPlan = SmsCodePostParseCoordinator.UiPlan(
+                    copyToClipboardEnabled = false,
+                    showToast = true,
+                ),
+                autoInputDelayMs = 1_500L,
+                notificationPlan = null,
+                shouldRecord = false,
+                operateSmsDelays = emptyList(),
+            ),
+            autoInputScheduler = { _, _, _, _, _, _ -> },
+            notificationScheduler = { _, _, _, _, _ -> },
+            recordScheduler = { _, _, _, _, _, _ -> },
+            operateSmsScheduler = { _, _, _, _, _ -> },
+        )
+
+        verify {
+            executor.schedule(any<Runnable>(), 1_750L, TimeUnit.MILLISECONDS)
+        }
     }
 
     private fun smsMsg(): SmsMsg {
