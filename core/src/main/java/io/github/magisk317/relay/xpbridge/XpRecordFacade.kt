@@ -37,7 +37,7 @@ class XpRecordFacade(
         attemptId: Long,
         success: Boolean,
         reason: String?,
-    ) = delegate.updateAutoInputResult(attemptId = attemptId, success = success, reason = reason)
+    ): Int = delegate.updateAutoInputResult(attemptId = attemptId, success = success, reason = reason)
 
     suspend fun hasSmsDuplicateInRange(
         sender: String?,

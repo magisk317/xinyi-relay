@@ -206,7 +206,7 @@ interface AutoInputEventDao {
     fun insert(event: AutoInputEvent): Long
 
     @Query("UPDATE auto_input_event SET success = :success, fail_reason = :reason WHERE id = :id")
-    fun updateResult(id: Long, success: Boolean, reason: String?)
+    fun updateResult(id: Long, success: Boolean, reason: String?): Int
 
     @Query("SELECT COUNT(*) FROM auto_input_event WHERE attempt_at >= :fromMs")
     fun countAttempts(fromMs: Long): Long

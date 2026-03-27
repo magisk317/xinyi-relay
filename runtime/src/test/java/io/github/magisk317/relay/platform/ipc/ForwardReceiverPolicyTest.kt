@@ -142,6 +142,115 @@ class ForwardReceiverPolicyTest {
     }
 
     @Test
+    fun shouldDropDuplicateForward_deduplicatesReclassifiedNmsSms() {
+        val recentNotify = linkedMapOf<String, Long>()
+
+        assertFalse(
+            ForwardReceiverPolicy.shouldDropDuplicateForward(
+                msgType = ForwardBroadcastContract.MSG_TYPE_SMS,
+                forwardSource = ForwardBroadcastContract.SOURCE_NMS_HOOK,
+                packageName = "com.android.messaging",
+                sender = "豆包",
+                body = "验证码 744474",
+                notifyChannelId = "messages",
+                smsCode = "744474",
+                recentNotify = recentNotify,
+                nowMs = 1_000L,
+            ),
+        )
+        assertTrue(
+            ForwardReceiverPolicy.shouldDropDuplicateForward(
+                msgType = ForwardBroadcastContract.MSG_TYPE_SMS,
+                forwardSource = ForwardBroadcastContract.SOURCE_NMS_HOOK,
+                packageName = "com.android.messaging",
+                sender = "豆包",
+                body = "验证码 744474，5分钟内有效",
+                notifyChannelId = "messages",
+                smsCode = "744474",
+                recentNotify = recentNotify,
+                nowMs = 5_000L,
+            ),
+        )
+        assertFalse(
+            ForwardReceiverPolicy.shouldDropDuplicateForward(
+                msgType = ForwardBroadcastContract.MSG_TYPE_SMS,
+                forwardSource = ForwardBroadcastContract.SOURCE_NMS_HOOK,
+                packageName = "com.android.messaging",
+                sender = "豆包",
+                body = "验证码 744474",
+                notifyChannelId = "messages",
+                smsCode = "744474",
+                recentNotify = recentNotify,
+                nowMs = 12_000L,
+            ),
+        )
+    }
+
+    @Test
+    fun shouldDropDuplicateForward_deduplicatesAcrossSourcesWhenSmsCodeMatches() {
+        val recentNotify = linkedMapOf<String, Long>()
+
+        assertFalse(
+            ForwardReceiverPolicy.shouldDropDuplicateForward(
+                msgType = ForwardBroadcastContract.MSG_TYPE_SMS,
+                forwardSource = ForwardBroadcastContract.SOURCE_NMS_HOOK,
+                packageName = "com.android.messaging",
+                sender = "豆包",
+                body = "验证码 744474，5分钟内有效",
+                notifyChannelId = "messages",
+                smsCode = "744474",
+                recentNotify = recentNotify,
+                nowMs = 1_000L,
+            ),
+        )
+        assertTrue(
+            ForwardReceiverPolicy.shouldDropDuplicateForward(
+                msgType = ForwardBroadcastContract.MSG_TYPE_SMS,
+                forwardSource = ForwardBroadcastContract.SOURCE_SMS_HOOK,
+                packageName = "com.android.messaging",
+                sender = "豆包",
+                body = "您的验证码是 744474",
+                notifyChannelId = "",
+                smsCode = "744474",
+                recentNotify = recentNotify,
+                nowMs = 5_000L,
+            ),
+        )
+    }
+
+    @Test
+    fun shouldDropDuplicateForward_doesNotUseNotifyCacheForSmsHookSms() {
+        val recentNotify = linkedMapOf<String, Long>()
+
+        assertFalse(
+            ForwardReceiverPolicy.shouldDropDuplicateForward(
+                msgType = ForwardBroadcastContract.MSG_TYPE_SMS,
+                forwardSource = ForwardBroadcastContract.SOURCE_SMS_HOOK,
+                packageName = "com.android.messaging",
+                sender = "1068",
+                body = "验证码 123456",
+                notifyChannelId = "messages",
+                smsCode = "123456",
+                recentNotify = recentNotify,
+                nowMs = 1_000L,
+            ),
+        )
+        assertFalse(
+            ForwardReceiverPolicy.shouldDropDuplicateForward(
+                msgType = ForwardBroadcastContract.MSG_TYPE_SMS,
+                forwardSource = ForwardBroadcastContract.SOURCE_SMS_HOOK,
+                packageName = "com.android.messaging",
+                sender = "1068",
+                body = "验证码 123456",
+                notifyChannelId = "messages",
+                smsCode = "654321",
+                recentNotify = recentNotify,
+                nowMs = 5_000L,
+            ),
+        )
+    }
+
+    @Test
     fun callNotifyHelpers_handleOngoingAndTelephonySuppression() {
         assertTrue(
             ForwardReceiverPolicy.shouldDropOngoingCallNotify(

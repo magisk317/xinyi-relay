@@ -41,9 +41,26 @@ object AutoInputResultHandler {
 
         thread(name = "auto-input-result") {
             runCatching {
-                runBlocking {
+                val updatedRows = runBlocking {
                     RuntimeGraph.from(context).runtimeRecordFacade
                         .updateAutoInputResult(attemptId, success, reason)
+                }
+                if (updatedRows <= 0) {
+                    XLog.w(
+                        "Diag AutoInputResultReceiver skipped stale result: attemptId=%d success=%s reason=%s",
+                        attemptId,
+                        success,
+                        reason ?: "<none>",
+                    )
+                    return@runCatching
+                }
+                if (success) {
+                    AnalyticsTracker.logEvent("auto_input_success")
+                } else {
+                    AnalyticsTracker.logEvent(
+                        "auto_input_fail",
+                        mapOf("reason" to (reason ?: "unknown")),
+                    )
                 }
             }.onFailure { error ->
                 XLog.w(
@@ -51,15 +68,6 @@ object AutoInputResultHandler {
                     error.message ?: error.javaClass.simpleName,
                 )
             }
-        }
-
-        if (success) {
-            AnalyticsTracker.logEvent("auto_input_success")
-        } else {
-            AnalyticsTracker.logEvent(
-                "auto_input_fail",
-                mapOf("reason" to (reason ?: "unknown")),
-            )
         }
     }
 }

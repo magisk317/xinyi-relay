@@ -59,7 +59,7 @@ class RuntimeRecordFacade(
         attemptId: Long,
         success: Boolean,
         reason: String?,
-    ) = withContext(Dispatchers.IO) {
+    ): Int = withContext(Dispatchers.IO) {
         db.autoInputEventDao().updateResult(attemptId, success, reason)
     }
 

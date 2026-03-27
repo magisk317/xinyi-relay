@@ -98,6 +98,45 @@ object ForwardReceiverPolicy {
         return false
     }
 
+    fun shouldDropDuplicateForward(
+        msgType: String,
+        forwardSource: String,
+        packageName: String?,
+        sender: String?,
+        body: String?,
+        notifyChannelId: String?,
+        smsCode: String?,
+        recentNotify: MutableMap<String, Long>,
+        nowMs: Long = System.currentTimeMillis(),
+    ): Boolean {
+        val key = when {
+            msgType == ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY ||
+                msgType == ForwardBroadcastContract.MSG_TYPE_CALL_NOTIFY ->
+                buildNotifyDedupKey(msgType, packageName, sender, body, notifyChannelId)
+
+            msgType == ForwardBroadcastContract.MSG_TYPE_SMS && !smsCode.isNullOrBlank() ->
+                buildSmsCodeForwardDedupKey(packageName, sender, smsCode)
+
+            msgType == ForwardBroadcastContract.MSG_TYPE_SMS &&
+                forwardSource == ForwardBroadcastContract.SOURCE_NMS_HOOK ->
+                buildNotifyDedupKey(msgType, packageName, sender, body, notifyChannelId)
+
+            else -> null
+        } ?: return false
+
+        val previous = recentNotify[key]
+        if (previous != null && nowMs - previous < NOTIFY_DEDUP_WINDOW_MS) {
+            return true
+        }
+        recentNotify[key] = nowMs
+
+        if (recentNotify.size > NOTIFY_DEDUP_MAX_ENTRIES) {
+            val cutoff = nowMs - NOTIFY_DEDUP_WINDOW_MS * 2
+            recentNotify.entries.removeIf { it.value < cutoff }
+        }
+        return false
+    }
+
     fun shouldDropOngoingCallNotify(
         callStage: String?,
         notifyChannelId: String?,
@@ -164,6 +203,26 @@ object ForwardReceiverPolicy {
             append(normalizedBody)
             append('|')
             append(normalizedChannel)
+        }
+    }
+
+    private fun buildSmsCodeForwardDedupKey(
+        packageName: String?,
+        sender: String?,
+        smsCode: String?,
+    ): String? {
+        val normalizedPackage = packageName.orEmpty().trim()
+        val normalizedSender = sender.orEmpty().trim()
+        val normalizedCode = smsCode.orEmpty().trim()
+        if (normalizedCode.isEmpty()) return null
+        if (normalizedPackage.isEmpty() && normalizedSender.isEmpty()) return null
+        return buildString {
+            append("sms_code|")
+            append(normalizedPackage)
+            append('|')
+            append(normalizedSender)
+            append('|')
+            append(normalizedCode)
         }
     }
 }

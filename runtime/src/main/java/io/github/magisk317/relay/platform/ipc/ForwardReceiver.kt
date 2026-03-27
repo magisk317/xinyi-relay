@@ -11,6 +11,7 @@ import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.relay.platform.metadata.SourceMetadataResolver
+import io.github.magisk317.relay.sms.SmsCodeUtils
 import io.github.magisk317.smscode.domain.utils.RecentEventDeduplicator
 import io.github.magisk317.smscode.domain.utils.SmsForwardDedupKeyFactory
 import io.github.magisk317.smscode.domain.utils.SmsForwardDedupSpec
@@ -57,55 +58,18 @@ class ForwardReceiver : BroadcastReceiver() {
                     return@runCatching
                 }
 
-                val payload = ForwardBroadcastPayload.fromIntent(intent)
-                val sender = payload.sender
-                val body = payload.body
-                val date = payload.date
-                val company = payload.company
-                val smsCode = payload.smsCode
-                val packageName = payload.packageName
-                val notifyChannelId = payload.notifyChannelId
+                val rawPayload = ForwardBroadcastPayload.fromIntent(intent)
+                val sender = rawPayload.sender
+                val body = rawPayload.body
+                val date = rawPayload.date
+                val packageName = rawPayload.packageName
                 val receivedToken = intent.getStringExtra(ForwardBroadcastContract.EXTRA_IPC_TOKEN)
-                val msgTypeStr = payload.msgType
-                val forwardSource = payload.forwardSource
-                val callStage = payload.callStage
+                val originalMsgTypeStr = rawPayload.msgType
+                val forwardSource = rawPayload.forwardSource
                 val sentFromUid = resolveSentFromUidCompat()
                 val sentFromPkg = resolveSentFromPackageCompat()
-                val subId = payload.subId
-                val rawSlot = payload.simSlot
-                val callType = payload.callType
-                if (
-                    msgTypeStr == ForwardBroadcastContract.MSG_TYPE_SMS &&
-                    forwardSource == ForwardBroadcastContract.SOURCE_SMS_HOOK
-                ) {
-                    val dedupKey = SmsForwardDedupKeyFactory.build(
-                        SmsForwardDedupSpec(
-                            eventId = eventId,
-                            sender = sender,
-                            body = body,
-                            timestamp = date,
-                            msgType = msgTypeStr,
-                            source = forwardSource,
-                            simSlot = rawSlot,
-                            subId = subId,
-                        ),
-                    )
-                    if (recentSmsForward.shouldDrop(dedupKey)) {
-                        ForwardFlowLog.i(
-                            traceId,
-                            buildString {
-                                append("Drop duplicate sms forward event=")
-                                append(eventId.ifBlank { "<none>" })
-                                append(" key=")
-                                append(dedupKey)
-                                append(" source=")
-                                append(forwardSource)
-                            },
-                        )
-                        markResult(RESULT_DROP_DUPLICATE, "duplicate_sms_drop")
-                        return@runCatching
-                    }
-                }
+                val subId = rawPayload.subId
+                val rawSlot = rawPayload.simSlot
 
                 // 2. Verifying IPC Token: prevent third-party apps from spoofing broadcasts.
                 // We retrieve local token from DataStore (which is synced to xposed_prefs).
@@ -119,7 +83,7 @@ class ForwardReceiver : BroadcastReceiver() {
                 }
                 val tokenMatched = expectedToken.isNotEmpty() && receivedToken == expectedToken
                 val allowSystemBypass = ForwardReceiverPolicy.shouldAllowSystemTokenBypass(
-                    msgType = msgTypeStr,
+                    msgType = originalMsgTypeStr,
                     forwardSource = forwardSource,
                     sentFromUid = sentFromUid,
                 )
@@ -154,7 +118,7 @@ class ForwardReceiver : BroadcastReceiver() {
                         append("Token bypass accepted source=")
                         append(forwardSource)
                         append(" msgType=")
-                        append(msgTypeStr)
+                        append(originalMsgTypeStr)
                         append(" sentFromUid=")
                         append(sentFromUid ?: -1)
                         append(" sentFromPkg=")
@@ -174,24 +138,75 @@ class ForwardReceiver : BroadcastReceiver() {
                         }
                     }
                 }
+                val payload = normalizeNmsSmsPayload(
+                    context = context,
+                    payload = rawPayload,
+                    traceId = traceId,
+                )
+                val normalizedSender = payload.sender
+                val normalizedBody = payload.body
+                val normalizedDate = payload.date
+                val normalizedPackageName = payload.packageName
+                val normalizedNotifyChannelId = payload.notifyChannelId
+                val msgTypeStr = payload.msgType
+                val normalizedCallStage = payload.callStage
+                val normalizedSubId = payload.subId
+                val normalizedRawSlot = payload.simSlot
+                val normalizedCallType = payload.callType
+                if (
+                    msgTypeStr == ForwardBroadcastContract.MSG_TYPE_SMS &&
+                    forwardSource == ForwardBroadcastContract.SOURCE_SMS_HOOK
+                ) {
+                    val dedupKey = SmsForwardDedupKeyFactory.build(
+                        SmsForwardDedupSpec(
+                            eventId = eventId,
+                            sender = normalizedSender,
+                            body = normalizedBody,
+                            timestamp = normalizedDate,
+                            msgType = msgTypeStr,
+                            source = forwardSource,
+                            simSlot = normalizedRawSlot,
+                            subId = normalizedSubId,
+                        ),
+                    )
+                    if (recentSmsForward.shouldDrop(dedupKey)) {
+                        ForwardFlowLog.i(
+                            traceId,
+                            buildString {
+                                append("Drop duplicate sms forward event=")
+                                append(eventId.ifBlank { "<none>" })
+                                append(" key=")
+                                append(dedupKey)
+                                append(" source=")
+                                append(forwardSource)
+                            },
+                        )
+                        markResult(RESULT_DROP_DUPLICATE, "duplicate_sms_drop")
+                        return@runCatching
+                    }
+                }
                 if (
                     msgTypeStr == ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY &&
-                    !shouldForwardAppNotify(runtimeGraph, packageName, traceId, forwardSource)
+                    !shouldForwardAppNotify(runtimeGraph, normalizedPackageName, traceId, forwardSource)
                 ) {
                     markResult(RESULT_REJECT_APP_GATE, "app_gate_drop")
                     return@runCatching
                 }
                 if (
                     msgTypeStr == ForwardBroadcastContract.MSG_TYPE_CALL_NOTIFY &&
-                    ForwardReceiverPolicy.shouldDropOngoingCallNotify(callStage, notifyChannelId, body)
+                    ForwardReceiverPolicy.shouldDropOngoingCallNotify(
+                        normalizedCallStage,
+                        normalizedNotifyChannelId,
+                        normalizedBody,
+                    )
                 ) {
                     ForwardFlowLog.i(
                         traceId,
                         buildString {
                             append("Drop ongoing call notify stage=")
-                            append(callStage.ifBlank { "<empty>" })
+                            append(normalizedCallStage.ifBlank { "<empty>" })
                             append(" channel=")
-                            append(notifyChannelId)
+                            append(normalizedNotifyChannelId)
                             append(" source=")
                             append(forwardSource)
                         },
@@ -201,10 +216,10 @@ class ForwardReceiver : BroadcastReceiver() {
                 }
                 if (msgTypeStr == ForwardBroadcastContract.MSG_TYPE_CALL_NOTIFY) {
                     val sourceKey = CallSessionTracker.buildSourceKey(
-                        sender = sender,
-                        body = body,
-                        callType = callType,
-                        packageName = packageName,
+                        sender = normalizedSender,
+                        body = normalizedBody,
+                        callType = normalizedCallType,
+                        packageName = normalizedPackageName,
                     )
                     if (forwardSource == ROUTE_NMS_HOOK) {
                         ForwardReceiverPolicy.markNmsHookSeen(sourceKey, nmsHookSeen)
@@ -224,26 +239,24 @@ class ForwardReceiver : BroadcastReceiver() {
                     }
                 }
                 if (
-                    (
-                        msgTypeStr == ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY ||
-                            msgTypeStr == ForwardBroadcastContract.MSG_TYPE_CALL_NOTIFY
-                        ) &&
-                    ForwardReceiverPolicy.shouldDropDuplicateNotify(
+                    ForwardReceiverPolicy.shouldDropDuplicateForward(
                         msgType = msgTypeStr,
-                        packageName = packageName,
-                        sender = sender,
-                        body = body,
-                        notifyChannelId = notifyChannelId,
+                        forwardSource = forwardSource,
+                        packageName = normalizedPackageName,
+                        sender = normalizedSender,
+                        body = normalizedBody,
+                        notifyChannelId = normalizedNotifyChannelId,
+                        smsCode = payload.smsCode,
                         recentNotify = recentNotify,
                     )
                 ) {
                     XLog.i(
                         "Drop duplicate notify: type=%s pkg=%s sender=%s channel=%s callType=%d source=%s",
                         msgTypeStr,
-                        packageName.orEmpty(),
-                        sender.orEmpty(),
-                        notifyChannelId,
-                        callType,
+                        normalizedPackageName.orEmpty(),
+                        normalizedSender.orEmpty(),
+                        normalizedNotifyChannelId,
+                        normalizedCallType,
                         forwardSource,
                     )
                     ForwardFlowLog.i(
@@ -252,13 +265,13 @@ class ForwardReceiver : BroadcastReceiver() {
                             append("Drop duplicate notify type=")
                             append(msgTypeStr)
                             append(" pkg=")
-                            append(packageName.orEmpty())
+                            append(normalizedPackageName.orEmpty())
                             append(" sender=")
-                            append(sender.orEmpty())
+                            append(normalizedSender.orEmpty())
                             append(" channel=")
-                            append(notifyChannelId)
+                            append(normalizedNotifyChannelId)
                             append(" callType=")
-                            append(callType)
+                            append(normalizedCallType)
                             append(" source=")
                             append(forwardSource)
                         },
@@ -268,11 +281,11 @@ class ForwardReceiver : BroadcastReceiver() {
                 }
                 val callSessionDecision = if (msgTypeStr == ForwardBroadcastContract.MSG_TYPE_CALL_NOTIFY) {
                     CallSessionTracker.evaluate(
-                        stageRaw = callStage,
-                        sender = sender,
-                        body = body,
-                        callType = callType,
-                        packageName = packageName,
+                        stageRaw = normalizedCallStage,
+                        sender = normalizedSender,
+                        body = normalizedBody,
+                        callType = normalizedCallType,
+                        packageName = normalizedPackageName,
                     )
                 } else {
                     null
@@ -298,17 +311,17 @@ class ForwardReceiver : BroadcastReceiver() {
                     return@runCatching
                 }
 
-                XLog.i("IPC verified and received message from: %s", sender ?: "")
-                val normalizedSubId = subId ?: 0
-                val resolvedSimSlot = ForwardReceiverPolicy.resolveSimSlot(rawSlot, normalizedSubId) { id ->
+                XLog.i("IPC verified and received message from: %s", normalizedSender ?: "")
+                val resolvedSubId = normalizedSubId ?: 0
+                val resolvedSimSlot = ForwardReceiverPolicy.resolveSimSlot(normalizedRawSlot, resolvedSubId) { id ->
                     runCatching { android.telephony.SubscriptionManager.getSlotIndex(id) }.getOrDefault(-1)
                 }
-                val contactName = SourceMetadataResolver.resolveContactName(context, sender ?: "")
-                val phoneArea = SourceMetadataResolver.resolvePhoneArea(sender ?: "")
+                val contactName = SourceMetadataResolver.resolveContactName(context, normalizedSender ?: "")
+                val phoneArea = SourceMetadataResolver.resolvePhoneArea(normalizedSender ?: "")
                 XLog.i(
                     "Resolved metadata: sim_slot=%d sub_id=%d contact=%s area=%s",
                     resolvedSimSlot,
-                    normalizedSubId,
+                    resolvedSubId,
                     contactName.ifBlank { "<empty>" },
                     phoneArea.ifBlank { "<empty>" },
                 )
@@ -318,7 +331,7 @@ class ForwardReceiver : BroadcastReceiver() {
                         append("Resolved metadata simSlot=")
                         append(resolvedSimSlot)
                         append(" subId=")
-                        append(normalizedSubId)
+                        append(resolvedSubId)
                         append(" contact=")
                         append(contactName.ifBlank { "<empty>" })
                         append(" area=")
@@ -329,7 +342,7 @@ class ForwardReceiver : BroadcastReceiver() {
                 val relayEvent = payload.copy(
                     callStage = resolvedCallStage,
                     simSlot = resolvedSimSlot,
-                    subId = normalizedSubId,
+                    subId = resolvedSubId,
                 ).toRelayEvent(
                     contactName = contactName,
                     phoneArea = phoneArea,
@@ -412,6 +425,14 @@ class ForwardReceiver : BroadcastReceiver() {
         private const val ROUTE_NMS_HOOK = ForwardBroadcastContract.SOURCE_NMS_HOOK
         private const val ROUTE_TELEPHONY_STATE = ForwardBroadcastContract.SOURCE_TELEPHONY_STATE
         private const val SMS_FORWARD_DEDUP_WINDOW_MS = 10_000L
+        private val TELEPHONY_NMS_PACKAGE_ALLOWLIST = setOf(
+            "com.android.phone",
+            "com.android.providers.telephony",
+            "com.android.mms",
+            "com.android.messaging",
+            "com.google.android.apps.messaging",
+            "com.samsung.android.messaging",
+        )
     }
 
     private fun resolveSentFromUidCompat(): Int? {
@@ -422,6 +443,53 @@ class ForwardReceiver : BroadcastReceiver() {
     private fun resolveSentFromPackageCompat(): String? {
         if (Build.VERSION.SDK_INT < ForwardReceiverPolicy.API_LEVEL_34) return null
         return runCatching { getSentFromPackage() }.getOrNull()
+    }
+
+    private fun normalizeNmsSmsPayload(
+        context: Context,
+        payload: ForwardBroadcastPayload,
+        traceId: String,
+    ): ForwardBroadcastPayload {
+        if (payload.msgType != ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY) return payload
+        if (payload.forwardSource != ForwardBroadcastContract.SOURCE_NMS_HOOK) return payload
+        val packageName = payload.packageName.orEmpty().trim()
+        if (!isTelephonyNmsPackage(packageName)) return payload
+        val content = buildNmsNotificationContent(payload)
+        if (content.isBlank()) return payload
+        val parsedResult = runCatching {
+            runBlocking { SmsCodeUtils.parseSmsCodeResultIfExists(context, content) }
+        }.getOrNull() ?: return payload
+        val smsCode = parsedResult.code.trim()
+        if (smsCode.isBlank()) return payload
+        val company = SmsCodeUtils.parseCompany(content).ifBlank {
+            payload.company.orEmpty().ifBlank { payload.sender.orEmpty() }
+        }
+        ForwardFlowLog.i(
+            traceId,
+            "Reclassified nms_hook telephony notify to sms_code pkg=$packageName codeLength=${smsCode.length}",
+        )
+        XLog.w(
+            "NMS telephony notify reclassified to sms_code: pkg=%s code_len=%d",
+            packageName,
+            smsCode.length,
+        )
+        return payload.copy(
+            msgType = ForwardBroadcastContract.MSG_TYPE_SMS,
+            smsCode = smsCode,
+            company = company.ifBlank { payload.company.orEmpty() }.takeIf { it.isNotBlank() },
+        )
+    }
+
+    private fun buildNmsNotificationContent(payload: ForwardBroadcastPayload): String {
+        return buildString {
+            payload.sender?.trim()?.takeIf { it.isNotBlank() }?.let { appendLine(it) }
+            payload.body?.trim()?.takeIf { it.isNotBlank() }?.let { append(it) }
+        }.trim()
+    }
+
+    private fun isTelephonyNmsPackage(packageName: String): Boolean {
+        if (packageName.isBlank()) return false
+        return packageName in TELEPHONY_NMS_PACKAGE_ALLOWLIST || packageName.contains("telephony")
     }
 
     private fun shouldForwardAppNotify(
