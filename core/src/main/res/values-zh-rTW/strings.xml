@@ -70,8 +70,8 @@
     <string name="pref_category_auto_input_title">自動輸入</string>
     <string name="pref_enable_auto_input_code_title">自動輸入驗證碼</string>
     <string name="pref_enable_auto_input_code_summary">嘗試自動輸入驗證碼</string>
-    <string name="pref_auto_input_accessibility_service_title">輸入框輔助</string>
-    <string name="pref_auto_input_accessibility_service_summary">無障礙服務狀態：%1$s。點擊前往系統無障礙設定。</string>
+    <string name="pref_auto_input_accessibility_service_title">無障礙服務狀態</string>
+    <string name="pref_auto_input_accessibility_service_summary">協助尋找目前的驗證碼輸入框並優先直接填入。</string>
     <string name="pref_auto_input_accessibility_service_summary_unavailable">系統目前沒有列出這個無障礙服務。若為側載安裝，請先到應用資訊允許「受限設定」，再返回無障礙設定。</string>
     <string name="pref_auto_input_accessibility_service_status_enabled">已開啟</string>
     <string name="pref_auto_input_accessibility_service_status_disabled">未開啟</string>

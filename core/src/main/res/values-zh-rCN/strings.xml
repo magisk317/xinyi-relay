@@ -70,8 +70,8 @@
     <string name="pref_category_auto_input_title">自动输入</string>
     <string name="pref_enable_auto_input_code_title">自动输入验证码</string>
     <string name="pref_enable_auto_input_code_summary">尝试自动输入验证码</string>
-    <string name="pref_auto_input_accessibility_service_title">输入框辅助</string>
-    <string name="pref_auto_input_accessibility_service_summary">无障碍服务状态：%1$s。点击前往系统无障碍设置。</string>
+    <string name="pref_auto_input_accessibility_service_title">无障碍服务状态</string>
+    <string name="pref_auto_input_accessibility_service_summary">辅助查找当前验证码输入框并优先直接填入。</string>
     <string name="pref_auto_input_accessibility_service_summary_unavailable">系统当前没有列出这个无障碍服务。若为侧载安装，请先到应用信息里允许“受限设置”，再返回无障碍设置。</string>
     <string name="pref_auto_input_accessibility_service_status_enabled">已开启</string>
     <string name="pref_auto_input_accessibility_service_status_disabled">未开启</string>

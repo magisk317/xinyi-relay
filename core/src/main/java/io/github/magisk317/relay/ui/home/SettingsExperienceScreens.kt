@@ -791,13 +791,11 @@ fun VerificationSettingsScreen(
                 onExpandedChange = {},
             ) {
                 if (supportsAccessibilityAutoInput) {
-                    Item(
+                    StateSwitchItem(
                         title = stringResource(id = R.string.pref_auto_input_accessibility_service_title),
-                        summary = accessibilityAutoInputServiceSummary(
-                            context = context,
-                            enabled = autoInputAccessibilityEnabled,
-                            listed = autoInputAccessibilityListed,
-                        ),
+                        summary = stringResource(id = R.string.pref_auto_input_accessibility_service_summary),
+                        checked = autoInputAccessibilityEnabled,
+                        onTitleClick = ::openAccessibilitySettings,
                     ) {
                         openAccessibilitySettings()
                     }
@@ -1147,25 +1145,6 @@ private fun isAutoInputAccessibilityServiceListed(context: android.content.Conte
         resolvedServiceInfo.packageName == expectedComponent.packageName &&
             resolvedServiceInfo.name == expectedComponent.className
     }
-}
-
-@Composable
-private fun accessibilityAutoInputServiceSummary(
-    context: android.content.Context,
-    enabled: Boolean,
-    listed: Boolean,
-): String {
-    if (!enabled && !listed && isAutoInputAccessibilityServiceDeclared(context)) {
-        return stringResource(id = R.string.pref_auto_input_accessibility_service_summary_unavailable)
-    }
-    val status = stringResource(
-        id = if (enabled) {
-            R.string.pref_auto_input_accessibility_service_status_enabled
-        } else {
-            R.string.pref_auto_input_accessibility_service_status_disabled
-        },
-    )
-    return context.getString(R.string.pref_auto_input_accessibility_service_summary, status)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

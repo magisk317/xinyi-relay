@@ -70,8 +70,8 @@
     <string name="pref_category_auto_input_title">Auto Input</string>
     <string name="pref_enable_auto_input_code_title">Auto input SMS code</string>
     <string name="pref_enable_auto_input_code_summary">Try to input SMS code automatically</string>
-    <string name="pref_auto_input_accessibility_service_title">Input box assistant</string>
-    <string name="pref_auto_input_accessibility_service_summary">Accessibility service status: %1$s. Tap to open Accessibility settings.</string>
+    <string name="pref_auto_input_accessibility_service_title">Accessibility service status</string>
+    <string name="pref_auto_input_accessibility_service_summary">Helps find the active verification field and fill the code directly.</string>
     <string name="pref_auto_input_accessibility_service_summary_unavailable">The system is not listing this accessibility service. If the app was sideloaded, allow restricted settings from App info first, then reopen Accessibility.</string>
     <string name="pref_auto_input_accessibility_service_status_enabled">Enabled</string>
     <string name="pref_auto_input_accessibility_service_status_disabled">Not enabled</string>
