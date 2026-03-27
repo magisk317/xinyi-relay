@@ -40,6 +40,10 @@ fun CommonExtension.configureRelayAndroidCommon() {
             buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "false")
             buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
         }
+        maybeCreate("legacy").apply {
+            dimension = "xposedApi"
+            buildConfigField("String", "XPOSED_API_FLAVOR", "\"legacy\"")
+        }
         maybeCreate("api101").apply {
             dimension = "xposedApi"
             buildConfigField("String", "XPOSED_API_FLAVOR", "\"api101\"")

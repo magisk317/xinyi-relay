@@ -22,6 +22,8 @@ data class ActivationDiagnosticsSnapshot(
 
 object ActivationDiagnosticsStore {
     private const val FILE_NAME = "activation_diagnostics"
+    private const val LEGACY_ACTIVATED_FILE_NAME = "module_activated"
+    private const val LEGACY_MAX_ACTIVE_AGE_MS = 24 * 60 * 60 * 1000L
     private const val KEY_LAST_SERVICE_BIND_AT_MS = "last_service_bind_at_ms"
     private const val KEY_LAST_SERVICE_FRAMEWORK_NAME = "last_service_framework_name"
     private const val KEY_LAST_SERVICE_FRAMEWORK_VERSION = "last_service_framework_version"
@@ -45,7 +47,9 @@ object ActivationDiagnosticsStore {
     fun isRuntimeConnected(): Boolean = RuntimeActivationState.isRuntimeActivated()
 
     fun isModuleActivated(context: Context): Boolean {
-        return isRuntimeConnected() || hasHookHeartbeatThisBoot(context)
+        return isRuntimeConnected() ||
+            hasHookHeartbeatThisBoot(context) ||
+            hasLegacyActivationMarker(context)
     }
 
     fun recordServiceBind(
@@ -165,6 +169,22 @@ object ActivationDiagnosticsStore {
 
     private fun currentBootStartAtMs(): Long {
         return (System.currentTimeMillis() - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
+    }
+
+    private fun hasLegacyActivationMarker(context: Context): Boolean {
+        val lastActivatedAt = getLegacyActivationTimestamp(context)
+        if (lastActivatedAt <= 0L) return false
+        return System.currentTimeMillis() - lastActivatedAt <= LEGACY_MAX_ACTIVE_AGE_MS
+    }
+
+    private fun getLegacyActivationTimestamp(context: Context): Long {
+        val file = File(context.getExternalFilesDir(null) ?: context.filesDir, LEGACY_ACTIVATED_FILE_NAME)
+        return try {
+            val text = file.readText().trim()
+            text.toLongOrNull() ?: file.lastModified()
+        } catch (_: IOException) {
+            0L
+        }
     }
 
     private fun readSnapshotLocked(context: Context): ActivationDiagnosticsSnapshot {

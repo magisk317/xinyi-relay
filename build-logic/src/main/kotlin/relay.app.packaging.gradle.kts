@@ -71,11 +71,22 @@ pluginManager.withPlugin("com.android.application") {
 
     extensions.getByType<ApplicationAndroidComponentsExtension>().apply {
         beforeVariants(selector().all()) { variantBuilder ->
-            if (isBundleTask) {
-                val isPlayVariant = variantBuilder.productFlavors.any { it.second == "play" }
-                if (!isPlayVariant) {
-                    variantBuilder.enable = false
-                }
+            val flavors = variantBuilder.productFlavors.toMap()
+            val distribution = flavors["distribution"]
+            val xposedApiFlavor = flavors["xposedApi"]
+            val distributionEnabled = when (distribution) {
+                "play" -> xposedApiFlavor == "api101"
+                "github" -> xposedApiFlavor == "legacy" || xposedApiFlavor == "api101"
+                "fdroid" -> xposedApiFlavor == "api101"
+                else -> false
+            }
+            if (!distributionEnabled) {
+                variantBuilder.enable = false
+                return@beforeVariants
+            }
+
+            if (isBundleTask && distribution != "play") {
+                variantBuilder.enable = false
             }
         }
 

@@ -1,4 +1,4 @@
 - Updated to 0.0.1 (14), the first stable release.
-- This release is libxposed API 101 only; legacy compatibility will return later.
-- APK names now include the api101 marker, with Play and CI release flow aligned.
+- GitHub Releases now ship both legacy and api101 APKs; choose legacy for older frameworks.
+- Google Play remains api101 only, while update selection and CI now recognize both Xposed API tracks.
 - Details: https://github.com/magisk317/xinyi-relay/releases

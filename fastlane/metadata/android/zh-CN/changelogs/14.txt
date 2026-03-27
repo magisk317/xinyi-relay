@@ -1,4 +1,4 @@
 - 升级至 0.0.1（14），首个稳定版发布。
-- 当前先发 libxposed API 101；legacy 兼容后续版本补齐。
-- APK 命名补充 api101 标识，并同步完善 Play 与 CI 发布链路。
+- GitHub Release 现已同时提供 legacy 与 api101 APK，旧框架请下载 legacy。
+- Google Play 继续仅提供 api101，并补齐更新选择与 CI 的双轨识别能力。
 - 详情与下载：https://github.com/magisk317/xinyi-relay/releases

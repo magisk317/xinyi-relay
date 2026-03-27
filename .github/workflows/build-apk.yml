@@ -102,7 +102,11 @@ jobs:
           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/play/release/google-services.json
 
       - name: Build APKs with Splits
-        run: ./gradlew assembleGithubApi101Release -PbuildSplits
+        run: >
+          ./gradlew
+          assembleGithubApi101Release
+          assembleGithubLegacyRelease
+          -PbuildSplits
         env:
           KEYSTORE_FILE: release.jks
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
@@ -120,7 +124,7 @@ jobs:
         shell: bash
         run: |
           shopt -s nullglob
-          files=(app/build/outputs/native-debug-symbols/githubApi101Release/native-debug-symbols.zip)
+          files=(app/build/outputs/native-debug-symbols/github*Release/native-debug-symbols.zip)
           if (( ${#files[@]} == 0 )); then
             echo "exists=false" >> "$GITHUB_OUTPUT"
             exit 0

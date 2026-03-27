@@ -61,7 +61,7 @@
 
 # ==========================
 # Xposed start
--keep class io.github.magisk317.relay.xp.RelayXposedModule { *; }
+-keep class io.github.magisk317.relay.xp.LibXposedEntry { *; }
 -keep class io.github.magisk317.relay.xp.HookEntry { *; }
 -keep class io.github.magisk317.relay.xp.hook.** { *; }
 -keep class io.github.magisk317.relay.xp.compat.** { *; }

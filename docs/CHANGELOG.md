@@ -3,8 +3,9 @@
 ## [v0.0.1]
 
 - 首个稳定版发布，版本号去除 alpha 标记，发布编号升级到 14。
-- 当前仅提供 libxposed API 101 构建；legacy 兼容后续版本补齐，旧框架请继续停留旧版。
-- APK 产物命名补充 `api101` 标识，并为后续恢复 legacy 双轨发布预留命名与 flavor 骨架。
+- GitHub Release 恢复 `legacy + api101` 双轨 APK 发布，旧框架用户可继续使用 `legacy` 兼容轨。
+- Google Play 保持仅发布 `api101`，避免商店分发与旧框架兼容轨混淆。
+- APK 产物、更新选择与 CI 全部补齐 `legacy/api101` 标识，避免设备拿到错误 Xposed API flavor 的安装包。
 - 发布链路更新：Google Play 改走 fastlane，GitHub Release 与符号包上传补齐存在性判断，减少 CI 因空产物失败。
 - 延续上一轮体验优化：概览卡片编辑模式更顺滑，验证码拦截开关移入实验性功能，远端偏好同步可靠性提升，部分图标语义更一致。
 

@@ -70,7 +70,15 @@ jobs:
           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/github/debug/google-services.json
           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/github/release/google-services.json
       - name: Build & Test
-        run: ./gradlew --warning-mode all app:assembleGithubApi101Debug app:testGithubApi101DebugUnitTest :app:koverVerifyGithubApi101Debug :app:koverHtmlReportGithubApi101Debug -PbuildSplits
+        run: >
+          ./gradlew --warning-mode all
+          app:assembleGithubApi101Debug
+          app:assembleGithubLegacyDebug
+          app:testGithubApi101DebugUnitTest
+          app:testGithubLegacyDebugUnitTest
+          :app:koverVerifyGithubApi101Debug
+          :app:koverHtmlReportGithubApi101Debug
+          -PbuildSplits
       - name: Write build summary
         if: always()
         run: |
@@ -79,45 +87,21 @@ jobs:
             echo ""
             echo "| File | Size |"
             echo "| --- | --- |"
-            for apk in app/build/outputs/apk/githubApi101/debug/*.apk; do
+            while IFS= read -r apk; do
               if [ ! -f "$apk" ]; then
                 continue
               fi
               size=$(du -h "$apk" | awk '{print $1}')
               name=$(basename "$apk")
               echo "| $name | $size |"
-            done
+            done < <(find app/build/outputs/apk -path '*/debug/*.apk' | sort)
           } >> "$GITHUB_STEP_SUMMARY"
-      - name: Upload Debug APK (arm64-v8a)
+      - name: Upload Debug APKs
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: XinyiRelay-debug-arm64-v8a
-          path: app/build/outputs/apk/githubApi101/debug/*arm64-v8a*.apk
-      - name: Upload Debug APK (armeabi-v7a)
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: XinyiRelay-debug-armeabi-v7a
-          path: app/build/outputs/apk/githubApi101/debug/*armeabi-v7a*.apk
-      - name: Upload Debug APK (x86)
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: XinyiRelay-debug-x86
-          path: app/build/outputs/apk/githubApi101/debug/*_x86.apk
-      - name: Upload Debug APK (x86_64)
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: XinyiRelay-debug-x86_64
-          path: app/build/outputs/apk/githubApi101/debug/*_x86_64.apk
-      - name: Upload Debug APK (universal)
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: XinyiRelay-debug-universal
-          path: app/build/outputs/apk/githubApi101/debug/*universal*.apk
+          name: XinyiRelay-debug-apks
+          path: app/build/outputs/apk/**/debug/*.apk
       - name: Upload Kover Report
         if: always()
         uses: actions/upload-artifact@v7
