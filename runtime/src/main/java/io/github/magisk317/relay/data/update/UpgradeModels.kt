@@ -15,6 +15,7 @@ data class UpgradeApkAsset(
     val downloadUrl: String = "",
     val fileSize: Long = 0L,
     val sha256: String = "",
+    val xposedApiFlavor: String = "",
 )
 
 @Serializable

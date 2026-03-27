@@ -94,8 +94,8 @@ class GithubUpdateCheckerTest {
               "changelog": "fixes",
               "versionLogs": [{"name":"3.1.8","code":31800,"desc":"line1"}],
               "apks": [
-                {"abi":"arm64-v8a","downloadUrl":"https://example.com/app-arm64.apk","fileSize":100,"sha256":"abcd"},
-                {"abi":"universal","downloadUrl":"https://example.com/app-universal.apk","fileSize":200,"sha256":"efgh"}
+                {"abi":"arm64-v8a","downloadUrl":"https://example.com/arm64_api101_release.apk","fileSize":100,"sha256":"abcd","xposedApiFlavor":"api101"},
+                {"abi":"universal","downloadUrl":"https://example.com/universal_legacy_release.apk","fileSize":200,"sha256":"efgh"}
               ],
               "signingCertSha256": "AA:BB"
             }
@@ -108,6 +108,8 @@ class GithubUpdateCheckerTest {
         assertEquals("3.1.8", info?.versionName)
         assertEquals(2, info?.apks?.size)
         assertEquals("AA:BB", info?.signingCertSha256)
+        assertEquals("api101", info?.apks?.firstOrNull()?.xposedApiFlavor)
+        assertEquals("legacy", info?.apks?.getOrNull(1)?.xposedApiFlavor)
     }
 
     @Test
@@ -120,22 +122,42 @@ class GithubUpdateCheckerTest {
     }
 
     @Test
-    fun selectBestApkForDevice_prefersExactAbiThenUniversal() {
+    fun selectBestApkForDevice_prefersExactAbiWithinMatchingFlavor() {
         val apks = listOf(
-            UpgradeApkAsset(abi = "arm64-v8a", downloadUrl = "a"),
-            UpgradeApkAsset(abi = "universal", downloadUrl = "u"),
+            UpgradeApkAsset(abi = "arm64-v8a", downloadUrl = "legacy-arm64", xposedApiFlavor = "legacy"),
+            UpgradeApkAsset(abi = "arm64-v8a", downloadUrl = "api101-arm64", xposedApiFlavor = "api101"),
+            UpgradeApkAsset(abi = "universal", downloadUrl = "legacy-universal", xposedApiFlavor = "legacy"),
+            UpgradeApkAsset(abi = "universal", downloadUrl = "api101-universal", xposedApiFlavor = "api101"),
         )
 
         val arm64 = GithubUpdateChecker.selectBestApkForDevice(
             apks = apks,
             supportedAbis = listOf("arm64-v8a"),
+            requiredXposedApiFlavor = "legacy",
         )
-        assertEquals("a", arm64?.downloadUrl)
+        assertEquals("legacy-arm64", arm64?.downloadUrl)
 
         val x86 = GithubUpdateChecker.selectBestApkForDevice(
             apks = apks,
             supportedAbis = listOf("x86_64"),
+            requiredXposedApiFlavor = "api101",
         )
-        assertEquals("u", x86?.downloadUrl)
+        assertEquals("api101-universal", x86?.downloadUrl)
+    }
+
+    @Test
+    fun selectBestApkForDevice_fallsBackToUntaggedUniversalWhenFlavorSpecificMissing() {
+        val apks = listOf(
+            UpgradeApkAsset(abi = "arm64-v8a", downloadUrl = "api101-arm64", xposedApiFlavor = "api101"),
+            UpgradeApkAsset(abi = "universal", downloadUrl = "untagged-universal"),
+        )
+
+        val selected = GithubUpdateChecker.selectBestApkForDevice(
+            apks = apks,
+            supportedAbis = listOf("x86_64"),
+            requiredXposedApiFlavor = "legacy",
+        )
+
+        assertEquals("untagged-universal", selected?.downloadUrl)
     }
 }

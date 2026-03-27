@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.data.update
 
 import android.os.Build
+import io.github.magisk317.relay.runtime.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -10,6 +11,7 @@ import kotlinx.serialization.json.JsonObject
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.net.URI
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.math.max
 
@@ -129,6 +131,11 @@ object GithubUpdateChecker {
                 downloadUrl = resolvedUrl,
                 fileSize = obj.longOrZero("fileSize").takeIf { it > 0L } ?: obj.longOrZero("size"),
                 sha256 = obj.stringOrBlank("sha256"),
+                xposedApiFlavor = normalizeXposedApiFlavor(
+                    obj.stringOrBlank("xposedApiFlavor")
+                        .ifBlank { obj.stringOrBlank("xposed_api_flavor") }
+                        .ifBlank { parseXposedApiFlavorFromUrl(resolvedUrl) },
+                ),
             )
         }
 
@@ -146,9 +153,11 @@ object GithubUpdateChecker {
     fun selectBestApkForDevice(
         apks: List<UpgradeApkAsset>,
         supportedAbis: List<String> = Build.SUPPORTED_ABIS.toList(),
+        requiredXposedApiFlavor: String = BuildConfig.XPOSED_API_FLAVOR,
     ): UpgradeApkAsset? {
         if (apks.isEmpty()) return null
-        val indexed = apks.associateBy { normalizeAbi(it.abi) }
+        val candidates = filterByXposedApiFlavor(apks, requiredXposedApiFlavor)
+        val indexed = candidates.associateBy { normalizeAbi(it.abi) }
 
         for (abi in supportedAbis) {
             val normalized = normalizeAbi(abi)
@@ -163,7 +172,7 @@ object GithubUpdateChecker {
         indexed["any"]?.let { return it }
         indexed["*"]?.let { return it }
         indexed[""]?.let { return it }
-        return apks.firstOrNull()
+        return candidates.firstOrNull()
     }
 
     fun parseLatestReleaseJson(body: String): GithubReleaseInfo? {
@@ -200,6 +209,39 @@ object GithubUpdateChecker {
 
     private fun normalizeAbi(abi: String): String = abi.trim().lowercase()
 
+    private fun normalizeXposedApiFlavor(flavor: String): String =
+        flavor.trim().lowercase(Locale.ROOT)
+
+    private fun filterByXposedApiFlavor(
+        apks: List<UpgradeApkAsset>,
+        requiredXposedApiFlavor: String,
+    ): List<UpgradeApkAsset> {
+        val normalizedRequired = normalizeXposedApiFlavor(requiredXposedApiFlavor)
+        if (normalizedRequired.isBlank()) return apks
+
+        val sameFlavor = apks.filter { asset ->
+            normalizeXposedApiFlavor(asset.xposedApiFlavor) == normalizedRequired
+        }
+        if (sameFlavor.isNotEmpty()) return sameFlavor
+
+        val untagged = apks.filter { asset ->
+            normalizeXposedApiFlavor(asset.xposedApiFlavor).isBlank()
+        }
+        if (untagged.isNotEmpty()) return untagged
+
+        return apks
+    }
+
+    private fun parseXposedApiFlavorFromUrl(url: String): String {
+        val path = runCatching { URI(url).path.orEmpty() }.getOrDefault("")
+        val fileName = path.substringAfterLast('/').lowercase(Locale.ROOT)
+        return when {
+            XPOSED_API101_PATTERN.containsMatchIn(fileName) -> "api101"
+            XPOSED_LEGACY_PATTERN.containsMatchIn(fileName) -> "legacy"
+            else -> ""
+        }
+    }
+
     private fun resolveUrl(baseUrl: String, raw: String): String {
         val trimmed = raw.trim()
         if (trimmed.isBlank()) return ""
@@ -230,4 +272,6 @@ object GithubUpdateChecker {
             .toList()
 
     private val VERSION_PART_REGEX = Regex("\\d+")
+    private val XPOSED_API101_PATTERN = Regex("(^|_)api101(_|\\.)")
+    private val XPOSED_LEGACY_PATTERN = Regex("(^|_)legacy(_|\\.)")
 }

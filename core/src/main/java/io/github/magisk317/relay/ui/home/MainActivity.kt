@@ -803,7 +803,10 @@ class MainActivity : AppCompatActivity() {
                     return GithubUpdateQueryResult.NoUpdate
                 }
 
-                val selectedApk = GithubUpdateChecker.selectBestApkForDevice(info.apks)
+                val selectedApk = GithubUpdateChecker.selectBestApkForDevice(
+                    apks = info.apks,
+                    requiredXposedApiFlavor = BuildConfig.XPOSED_API_FLAVOR,
+                )
                 if (selectedApk != null && selectedApk.sha256.isNotBlank() && info.signingCertSha256.isNotBlank()) {
                     GithubUpdateUiState.Structured(
                         update = GithubStructuredUpdate(

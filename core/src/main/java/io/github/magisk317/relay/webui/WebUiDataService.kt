@@ -245,6 +245,10 @@ class WebUiDataService(context: Context) {
 
             is UpgradeCheckResult.Structured -> {
                 val info = result.info
+                val selectedApk = GithubUpdateChecker.selectBestApkForDevice(
+                    apks = info.apks,
+                    requiredXposedApiFlavor = BuildConfig.XPOSED_API_FLAVOR,
+                )
                 val newer = if (info.versionCode > 0L) {
                     GithubUpdateChecker.isNewer(localVersionCode.toLong(), info.versionCode)
                 } else {
@@ -255,7 +259,7 @@ class WebUiDataService(context: Context) {
                     localVersionCode = localVersionCode,
                     latestVersionName = info.versionName.ifBlank { null },
                     latestVersionCode = info.versionCode.takeIf { it > 0L },
-                    releaseUrl = info.htmlUrl.ifBlank { null },
+                    releaseUrl = selectedApk?.downloadUrl ?: info.htmlUrl.ifBlank { null },
                     updateAvailable = newer,
                     status = if (newer) "ok" else "no_update",
                     checkedAt = checkedAt,
