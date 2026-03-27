@@ -190,7 +190,7 @@ fun TextInputDialog(
                         },
                     supportingText = {
                         when {
-                            errorText != null -> Text(errorText!!)
+                            errorText != null -> Text(errorText)
                             !supportingText.isNullOrBlank() -> Text(supportingText)
                         }
                     },
