@@ -28,7 +28,7 @@ object PrefConst {
     const val KEY_AUTO_INPUT_CODE_DELAY = "pref_auto_input_code_delay"
     const val KEY_AUTO_INPUT_CODE_DELAY_DEFAULT = "0"
     const val KEY_AUTO_INPUT_CODE_INTERVAL = "pref_auto_input_code_interval"
-    const val KEY_AUTO_INPUT_CODE_INTERVAL_DEFAULT = "100"
+    const val KEY_AUTO_INPUT_CODE_INTERVAL_DEFAULT = "80"
     const val KEY_APP_BLOCK_ENTRY = "pref_app_block_entry"
     const val KEY_BLOCK_SMS = "pref_block_sms"
     const val KEY_DEDUPLICATE_SMS = "pref_deduplicate_sms"
