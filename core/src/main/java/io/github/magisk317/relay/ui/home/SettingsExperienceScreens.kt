@@ -420,18 +420,18 @@ fun SettingsHomeScreen(
         val rootDbIntervalError = stringResource(id = R.string.pref_root_db_catchup_interval_error)
         TextInputDialog(
             title = stringResource(id = R.string.pref_root_db_catchup_interval_title),
-            initialValue = currentDiagnostics.rootDbCatchupIntervalMin,
+            initialValue = normalizeNumericInput(currentDiagnostics.rootDbCatchupIntervalMin),
             onDismiss = { showRootDbIntervalDialog = false },
             supportingText = stringResource(id = R.string.pref_root_db_catchup_interval_hint),
             validator = {
-                it.toIntOrNull()?.takeIf { value -> value in 1..120 }?.let { null }
+                parseIntInRange(it, 1..120)?.let { null }
                     ?: rootDbIntervalError
             },
         ) { updated ->
             showRootDbIntervalDialog = false
             scope.launch {
                 diagnostics = repository.updateDiagnosticsSettings(
-                    DiagnosticsSettingsUpdate(rootDbCatchupIntervalMin = updated),
+                    DiagnosticsSettingsUpdate(rootDbCatchupIntervalMin = normalizeNumericInput(updated)),
                 )
                 notifySaved()
             }
@@ -445,14 +445,19 @@ fun SettingsHomeScreen(
             onDismiss = { showRuntimeLogDialog = false },
             supportingText = stringResource(id = R.string.pref_runtime_log_file_size_hint),
             validator = {
-                it.toIntOrNull()?.takeIf { value -> value >= PrefConst.RUNTIME_LOG_FILE_SIZE_MB_MIN }?.let { null }
+                parseIntAtLeast(it, PrefConst.RUNTIME_LOG_FILE_SIZE_MB_MIN)?.let { null }
                     ?: runtimeLogFileSizeError
             },
         ) { updated ->
             showRuntimeLogDialog = false
             scope.launch {
                 diagnostics = repository.updateDiagnosticsSettings(
-                    DiagnosticsSettingsUpdate(runtimeLogFileSizeMb = updated.toInt()),
+                    DiagnosticsSettingsUpdate(
+                        runtimeLogFileSizeMb = parseIntAtLeast(
+                            updated,
+                            PrefConst.RUNTIME_LOG_FILE_SIZE_MB_MIN,
+                        ) ?: PrefConst.RUNTIME_LOG_FILE_SIZE_MB_MIN,
+                    ),
                 )
                 notifySaved()
             }
@@ -924,16 +929,20 @@ fun VerificationSettingsScreen(
         val nonNegativeNumberError = stringResource(id = R.string.pref_number_non_negative_error)
         TextInputDialog(
             title = stringResource(id = R.string.pref_auto_input_code_delay_title),
-            initialValue = current.autoInputDelay,
+            initialValue = normalizeNumericInput(current.autoInputDelay),
             onDismiss = { showDelayDialog = false },
             validator = {
-                it.toLongOrNull()?.takeIf { value -> value >= 0L }?.let { null }
+                parseNonNegativeLong(it)?.let { null }
                     ?: nonNegativeNumberError
             },
         ) { updated ->
             showDelayDialog = false
             scope.launch {
-                settings = repository.updateVerificationSettings(VerificationSettingsUpdate(autoInputDelay = updated))
+                settings = repository.updateVerificationSettings(
+                    VerificationSettingsUpdate(
+                        autoInputDelay = normalizeNumericInput(updated),
+                    ),
+                )
                 notifySaved()
             }
         }
@@ -942,16 +951,20 @@ fun VerificationSettingsScreen(
         val nonNegativeNumberError = stringResource(id = R.string.pref_number_non_negative_error)
         TextInputDialog(
             title = stringResource(id = R.string.pref_auto_input_code_interval_title),
-            initialValue = current.autoInputInterval,
+            initialValue = normalizeNumericInput(current.autoInputInterval),
             onDismiss = { showIntervalDialog = false },
             validator = {
-                it.toLongOrNull()?.takeIf { value -> value >= 0L }?.let { null }
+                parseNonNegativeLong(it)?.let { null }
                     ?: nonNegativeNumberError
             },
         ) { updated ->
             showIntervalDialog = false
             scope.launch {
-                settings = repository.updateVerificationSettings(VerificationSettingsUpdate(autoInputInterval = updated))
+                settings = repository.updateVerificationSettings(
+                    VerificationSettingsUpdate(
+                        autoInputInterval = normalizeNumericInput(updated),
+                    ),
+                )
                 notifySaved()
             }
         }
@@ -1145,6 +1158,34 @@ private fun isAutoInputAccessibilityServiceListed(context: android.content.Conte
         resolvedServiceInfo.packageName == expectedComponent.packageName &&
             resolvedServiceInfo.name == expectedComponent.className
     }
+}
+
+private fun normalizeNumericInput(raw: String): String {
+    return raw.trim().map { ch ->
+        when (ch) {
+            in '０'..'９' -> '0' + (ch - '０')
+            '－', '﹣', '—', '–' -> '-'
+            else -> ch
+        }
+    }.joinToString("")
+}
+
+private fun parseNonNegativeLong(raw: String): Long? {
+    return normalizeNumericInput(raw)
+        .toLongOrNull()
+        ?.takeIf { it >= 0L }
+}
+
+private fun parseIntAtLeast(raw: String, min: Int): Int? {
+    return normalizeNumericInput(raw)
+        .toIntOrNull()
+        ?.takeIf { it >= min }
+}
+
+private fun parseIntInRange(raw: String, range: IntRange): Int? {
+    return normalizeNumericInput(raw)
+        .toIntOrNull()
+        ?.takeIf { it in range }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1403,18 +1444,18 @@ fun DiagnosticsSettingsScreen(onBack: () -> Unit) {
         val rootDbIntervalError = stringResource(id = R.string.pref_root_db_catchup_interval_error)
         TextInputDialog(
             title = stringResource(id = R.string.pref_root_db_catchup_interval_title),
-            initialValue = current.rootDbCatchupIntervalMin,
+            initialValue = normalizeNumericInput(current.rootDbCatchupIntervalMin),
             onDismiss = { showRootDbIntervalDialog = false },
             supportingText = stringResource(id = R.string.pref_root_db_catchup_interval_hint),
             validator = {
-                it.toIntOrNull()?.takeIf { value -> value in 1..120 }?.let { null }
+                parseIntInRange(it, 1..120)?.let { null }
                     ?: rootDbIntervalError
             },
         ) { updated ->
             showRootDbIntervalDialog = false
             scope.launch {
                 settings = repository.updateDiagnosticsSettings(
-                    DiagnosticsSettingsUpdate(rootDbCatchupIntervalMin = updated),
+                    DiagnosticsSettingsUpdate(rootDbCatchupIntervalMin = normalizeNumericInput(updated)),
                 )
                 notifySaved()
             }
@@ -1428,14 +1469,19 @@ fun DiagnosticsSettingsScreen(onBack: () -> Unit) {
             onDismiss = { showRuntimeLogDialog = false },
             supportingText = stringResource(id = R.string.pref_runtime_log_file_size_hint),
             validator = {
-                it.toIntOrNull()?.takeIf { value -> value >= PrefConst.RUNTIME_LOG_FILE_SIZE_MB_MIN }?.let { null }
+                parseIntAtLeast(it, PrefConst.RUNTIME_LOG_FILE_SIZE_MB_MIN)?.let { null }
                     ?: runtimeLogFileSizeError
             },
         ) { updated ->
             showRuntimeLogDialog = false
             scope.launch {
                 settings = repository.updateDiagnosticsSettings(
-                    DiagnosticsSettingsUpdate(runtimeLogFileSizeMb = updated.toInt()),
+                    DiagnosticsSettingsUpdate(
+                        runtimeLogFileSizeMb = parseIntAtLeast(
+                            updated,
+                            PrefConst.RUNTIME_LOG_FILE_SIZE_MB_MIN,
+                        ) ?: PrefConst.RUNTIME_LOG_FILE_SIZE_MB_MIN,
+                    ),
                 )
                 notifySaved()
             }
