@@ -1,5 +1,7 @@
 package io.github.magisk317.relay.xp.hook.code
 
-class ParseResult {
-    var isBlockSms: Boolean = false
+import io.github.magisk317.smscode.verification.SmsParseResult
+
+class ParseResult : SmsParseResult {
+    override var isBlockSms: Boolean = false
 }

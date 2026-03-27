@@ -52,6 +52,7 @@ dependencies {
     implementation(project(":runtime"))
     implementation(project(":magisk-ui-kit"))
     implementation(project(":smscode-core:smscode-domain"))
+    implementation(project(":smscode-core:smscode-verification-core"))
     implementation(project(":smscode-core:smscode-xposed-core"))
 
     implementation(libs.androidx.core.ktx)
@@ -92,7 +93,6 @@ dependencies {
     implementation(libs.haze.android)
     implementation(libs.timber)
     implementation(libs.kotlinx.collections.immutable)
-    implementation(libs.libxposed.service)
     add("playImplementation", libs.play.app.update)
 
     testImplementation(libs.junit.jupiter)

@@ -7,6 +7,8 @@ import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.XpRecordFacade
 import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
+import io.github.magisk317.smscode.verification.SmsMessageDedupKeys
+import io.github.magisk317.smscode.verification.SmsInboxObserverDecision
 import io.github.magisk317.smscode.xposed.utils.XLog
 import kotlinx.coroutines.runBlocking
 
@@ -78,7 +80,9 @@ internal class ObservedSmsHandler(
                 record.body,
                 record.date,
             ),
-            plan = plan,
+            autoInputEnabled = plan.autoInputEnabled,
+            shouldRecord = plan.shouldRecord,
+            deduplicateSmsEnabled = plan.deduplicateSmsEnabled,
         )
 
         when (decision.skipReason) {
@@ -209,10 +213,13 @@ internal class ObservedSmsHandler(
         body: String,
         code: String,
     ): String {
-        if (smsId > 0) {
-            return "id:$smsId|date:$date|code:$code"
-        }
-        return "fp:${senderHash(sender)}:${Integer.toHexString(body.hashCode())}|date:$date|code:$code"
+        return SmsMessageDedupKeys.buildObservedKey(
+            smsId = smsId,
+            date = date,
+            sender = sender,
+            body = body,
+            code = code,
+        )
     }
 
     private fun senderHash(sender: String): String {

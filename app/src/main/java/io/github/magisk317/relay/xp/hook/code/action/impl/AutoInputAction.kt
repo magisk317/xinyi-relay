@@ -6,8 +6,10 @@ import android.os.Bundle
 import io.github.magisk317.relay.xpbridge.XpAppConfigFacade
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.SmsMsg
+import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 import io.github.magisk317.relay.xp.hook.code.helper.InputHelper
+import io.github.magisk317.smscode.verification.SmsMessageDedupKeys
 import io.github.magisk317.smscode.xposed.utils.XLog
 import kotlinx.coroutines.runBlocking
 import java.util.*
@@ -95,8 +97,23 @@ class AutoInputAction(
     }
 
     private fun shouldSkipByRecentAutoInput(smsMsg: SmsMsg): Boolean {
-        val key = buildAutoInputKey(smsMsg)
+        val key = SmsMessageDedupKeys.buildMessageKey(smsMsg)
         if (key.isBlank()) return false
+        val sharedClaim = XpSharedRuntimeGate.claimWithinWindow(
+            context = mPluginContext,
+            fileName = SHARED_AUTO_INPUT_FILE_NAME,
+            key = key,
+            windowMs = AUTO_INPUT_DEDUP_WINDOW_MS,
+            maxEntries = MAX_AUTO_INPUT_CACHE_SIZE,
+        )
+        if (!sharedClaim.claimed) {
+            XLog.w(
+                "Diag auto-input dedup skip: key=%s ageMs=%d source=shared_store",
+                key,
+                sharedClaim.ageMs ?: -1L,
+            )
+            return true
+        }
         val now = System.currentTimeMillis()
         synchronized(AUTO_INPUT_CACHE_LOCK) {
             val iterator = recentAutoInputs.entries.iterator()
@@ -124,29 +141,6 @@ class AutoInputAction(
         return false
     }
 
-    private fun buildAutoInputKey(smsMsg: SmsMsg): String {
-        val sender = smsMsg.sender.orEmpty()
-        val body = smsMsg.body.orEmpty()
-        val code = smsMsg.smsCode.orEmpty()
-        if (sender.isBlank() && body.isBlank() && code.isBlank()) return ""
-
-        val parts = ArrayList<String>(4)
-        if (sender.isNotBlank() && body.isNotBlank()) {
-            parts += "fp:${hash(sender)}:${hash(body)}"
-        }
-        if (code.isNotBlank()) {
-            val channel = when {
-                !smsMsg.packageName.isNullOrBlank() -> "pkg:${smsMsg.packageName}"
-                !smsMsg.company.isNullOrBlank() -> "co:${smsMsg.company}"
-                else -> "co:unknown"
-            }
-            parts += "code:${code}|$channel"
-        }
-        return parts.joinToString("|")
-    }
-
-    private fun hash(value: String): String = Integer.toHexString(value.hashCode())
-
     private fun isPackageBlocked(packageName: String): Boolean {
         return runBlocking {
             runtimeAppConfigFacade.isPackageBlocked(packageName)
@@ -169,6 +163,7 @@ class AutoInputAction(
     }
 
     companion object {
+        private const val SHARED_AUTO_INPUT_FILE_NAME = "auto_input_dedup"
         private const val AUTO_INPUT_DEDUP_WINDOW_MS = 5_000L
         private const val MAX_AUTO_INPUT_CACHE_SIZE = 128
         private val AUTO_INPUT_CACHE_LOCK = Any()

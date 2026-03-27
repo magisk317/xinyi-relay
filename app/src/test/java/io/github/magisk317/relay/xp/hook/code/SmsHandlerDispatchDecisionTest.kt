@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.xp.hook.code
 
-import io.github.magisk317.relay.xpbridge.XpSmsBlacklist
+import io.github.magisk317.smscode.verification.SmsHandlerDispatchDecision
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -12,13 +12,11 @@ class SmsHandlerDispatchDecisionTest {
     @Test
     fun evaluate_prioritizesBlacklistBlock() {
         val decision = SmsHandlerDispatchDecision.evaluate(
-            blacklistResult = XpSmsBlacklist.MatchResult(
-                matched = true,
-                actionDelete = true,
-                actionBlock = true,
-            ),
+            blacklistMatched = true,
+            blacklistActionDelete = true,
+            blacklistActionBlock = true,
             smsMsgAvailable = true,
-            parseResult = ParseResult().apply { isBlockSms = false },
+            parseResultBlockSms = false,
         )
 
         assertFalse(decision.shouldDeleteByBlacklist)
@@ -29,13 +27,11 @@ class SmsHandlerDispatchDecisionTest {
     @Test
     fun evaluate_schedulesBlacklistDeleteWithoutBlocking() {
         val decision = SmsHandlerDispatchDecision.evaluate(
-            blacklistResult = XpSmsBlacklist.MatchResult(
-                matched = true,
-                actionDelete = true,
-                actionBlock = false,
-            ),
+            blacklistMatched = true,
+            blacklistActionDelete = true,
+            blacklistActionBlock = false,
             smsMsgAvailable = true,
-            parseResult = null,
+            parseResultBlockSms = null,
         )
 
         assertTrue(decision.shouldDeleteByBlacklist)
@@ -46,13 +42,11 @@ class SmsHandlerDispatchDecisionTest {
     @Test
     fun evaluate_prefBlockWinsWhenBlacklistDoesNotBlock() {
         val decision = SmsHandlerDispatchDecision.evaluate(
-            blacklistResult = XpSmsBlacklist.MatchResult(
-                matched = true,
-                actionDelete = false,
-                actionBlock = false,
-            ),
+            blacklistMatched = true,
+            blacklistActionDelete = false,
+            blacklistActionBlock = false,
             smsMsgAvailable = true,
-            parseResult = ParseResult().apply { isBlockSms = true },
+            parseResultBlockSms = true,
         )
 
         assertFalse(decision.shouldDeleteByBlacklist)
@@ -63,9 +57,11 @@ class SmsHandlerDispatchDecisionTest {
     @Test
     fun evaluate_allowsSystemPersistWhenParseSucceedsWithoutBlock() {
         val decision = SmsHandlerDispatchDecision.evaluate(
-            blacklistResult = XpSmsBlacklist.MatchResult(matched = false),
+            blacklistMatched = false,
+            blacklistActionDelete = false,
+            blacklistActionBlock = false,
             smsMsgAvailable = false,
-            parseResult = ParseResult().apply { isBlockSms = false },
+            parseResultBlockSms = false,
         )
 
         assertFalse(decision.shouldDeleteByBlacklist)

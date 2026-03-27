@@ -2,68 +2,108 @@ package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
 import io.github.magisk317.relay.xpbridge.XpPrefs
+import io.github.magisk317.smscode.verification.SmsCodePlanFactory as SharedSmsCodePlanFactory
+import io.github.magisk317.smscode.verification.SmsCodePostParseCoordinator as SharedSmsCodePostParseCoordinator
+import io.github.magisk317.smscode.verification.VerificationPrefs
 
 internal object SmsCodePlanFactory {
     fun loadSettings(pluginContext: Context): SmsCodePostParseCoordinator.Settings {
-        return SmsCodePostParseCoordinator.Settings(
-            showNotification = XpPrefs.showCodeNotification(pluginContext),
-            autoCancelNotification = XpPrefs.autoCancelCodeNotification(pluginContext),
-            notificationRetentionMs = XpPrefs.getNotificationRetentionTime(pluginContext) * 1000L,
-            autoInputEnabled = XpPrefs.autoInputCodeEnabled(pluginContext),
-            autoInputDelayMs = XpPrefs.getAutoInputCodeDelay(pluginContext) * 1000L,
-            copyToClipboardEnabled = XpPrefs.copyToClipboardEnabled(pluginContext),
-            showToast = XpPrefs.shouldShowToast(pluginContext),
-            recordSmsEnabled = XpPrefs.recordSmsCodeEnabled(pluginContext),
-            blockSmsEnabled = XpPrefs.blockSmsEnabled(pluginContext),
-            markAsReadEnabled = XpPrefs.markAsReadEnabled(pluginContext),
-            deleteSmsEnabled = XpPrefs.deleteSmsEnabled(pluginContext),
-            deduplicateSmsEnabled = XpPrefs.deduplicateSms(pluginContext),
-        )
+        return SharedSmsCodePlanFactory
+            .loadSettings(RelayVerificationPrefs(pluginContext))
+            .toLocal()
     }
 
     fun resolveOperateSmsDelays(
         settings: SmsCodePostParseCoordinator.Settings,
     ): List<Long> {
-        return when {
-            settings.deleteSmsEnabled -> DELETE_SMS_DELAYS_MS
-            settings.markAsReadEnabled -> MARK_AS_READ_RETRY_DELAYS_MS
-            else -> emptyList()
-        }
+        return SharedSmsCodePlanFactory.resolveOperateSmsDelays(settings.toShared())
     }
 
     fun createParsedSmsPlan(
         settings: SmsCodePostParseCoordinator.Settings,
     ): SmsCodePostParseCoordinator.ParsedSmsPlan {
-        return SmsCodePostParseCoordinator.ParsedSmsPlan(
-            blockSms = settings.blockSmsEnabled,
-            deduplicateSmsEnabled = settings.deduplicateSmsEnabled,
-            uiPlan = SmsCodePostParseCoordinator.UiPlan(
-                copyToClipboardEnabled = settings.copyToClipboardEnabled,
-                showToast = settings.showToast,
-            ),
-            autoInputDelayMs = if (settings.autoInputEnabled) settings.autoInputDelayMs else null,
-            notificationPlan = if (settings.showNotification) {
-                SmsCodePostParseCoordinator.NotificationPlan(
-                    autoCancelDelayMs = if (settings.autoCancelNotification) settings.notificationRetentionMs else null,
-                )
-            } else {
-                null
-            },
-            shouldRecord = settings.recordSmsEnabled,
-            operateSmsDelays = resolveOperateSmsDelays(settings),
-        )
+        return SharedSmsCodePlanFactory.createParsedSmsPlan(settings.toShared()).toLocal()
     }
 
     fun createObservedSmsPlan(
         settings: SmsCodePostParseCoordinator.Settings,
     ): SmsCodePostParseCoordinator.ObservedSmsPlan {
-        return SmsCodePostParseCoordinator.ObservedSmsPlan(
-            deduplicateSmsEnabled = settings.deduplicateSmsEnabled,
-            autoInputEnabled = settings.autoInputEnabled,
-            shouldRecord = settings.recordSmsEnabled && !settings.deduplicateSmsEnabled,
-        )
+        return SharedSmsCodePlanFactory.createObservedSmsPlan(settings.toShared()).toLocal()
     }
+}
 
-    private val MARK_AS_READ_RETRY_DELAYS_MS = listOf(300L, 1000L, 2000L)
-    private val DELETE_SMS_DELAYS_MS = listOf(300L)
+private class RelayVerificationPrefs(
+    private val context: Context,
+) : VerificationPrefs {
+    override fun showNotification(): Boolean = XpPrefs.showCodeNotification(context)
+    override fun autoCancelNotification(): Boolean = XpPrefs.autoCancelCodeNotification(context)
+    override fun notificationRetentionMs(): Long = XpPrefs.getNotificationRetentionTime(context) * 1000L
+    override fun autoInputEnabled(): Boolean = XpPrefs.autoInputCodeEnabled(context)
+    override fun autoInputDelayMs(): Long = XpPrefs.getAutoInputCodeDelay(context) * 1000L
+    override fun copyToClipboardEnabled(): Boolean = XpPrefs.copyToClipboardEnabled(context)
+    override fun showToast(): Boolean = XpPrefs.shouldShowToast(context)
+    override fun recordSmsEnabled(): Boolean = XpPrefs.recordSmsCodeEnabled(context)
+    override fun blockSmsEnabled(): Boolean = XpPrefs.blockSmsEnabled(context)
+    override fun markAsReadEnabled(): Boolean = XpPrefs.markAsReadEnabled(context)
+    override fun deleteSmsEnabled(): Boolean = XpPrefs.deleteSmsEnabled(context)
+    override fun deduplicateSmsEnabled(): Boolean = XpPrefs.deduplicateSms(context)
+}
+
+private fun SharedSmsCodePostParseCoordinator.Settings.toLocal(): SmsCodePostParseCoordinator.Settings {
+    return SmsCodePostParseCoordinator.Settings(
+        showNotification = showNotification,
+        autoCancelNotification = autoCancelNotification,
+        notificationRetentionMs = notificationRetentionMs,
+        autoInputEnabled = autoInputEnabled,
+        autoInputDelayMs = autoInputDelayMs,
+        copyToClipboardEnabled = copyToClipboardEnabled,
+        showToast = showToast,
+        recordSmsEnabled = recordSmsEnabled,
+        blockSmsEnabled = blockSmsEnabled,
+        markAsReadEnabled = markAsReadEnabled,
+        deleteSmsEnabled = deleteSmsEnabled,
+        deduplicateSmsEnabled = deduplicateSmsEnabled,
+    )
+}
+
+private fun SmsCodePostParseCoordinator.Settings.toShared(): SharedSmsCodePostParseCoordinator.Settings {
+    return SharedSmsCodePostParseCoordinator.Settings(
+        showNotification = showNotification,
+        autoCancelNotification = autoCancelNotification,
+        notificationRetentionMs = notificationRetentionMs,
+        autoInputEnabled = autoInputEnabled,
+        autoInputDelayMs = autoInputDelayMs,
+        copyToClipboardEnabled = copyToClipboardEnabled,
+        showToast = showToast,
+        recordSmsEnabled = recordSmsEnabled,
+        blockSmsEnabled = blockSmsEnabled,
+        markAsReadEnabled = markAsReadEnabled,
+        deleteSmsEnabled = deleteSmsEnabled,
+        deduplicateSmsEnabled = deduplicateSmsEnabled,
+    )
+}
+
+private fun SharedSmsCodePostParseCoordinator.ParsedSmsPlan.toLocal(): SmsCodePostParseCoordinator.ParsedSmsPlan {
+    return SmsCodePostParseCoordinator.ParsedSmsPlan(
+        blockSms = blockSms,
+        deduplicateSmsEnabled = deduplicateSmsEnabled,
+        uiPlan = SmsCodePostParseCoordinator.UiPlan(
+            copyToClipboardEnabled = uiPlan.copyToClipboardEnabled,
+            showToast = uiPlan.showToast,
+        ),
+        autoInputDelayMs = autoInputDelayMs,
+        notificationPlan = notificationPlan?.let {
+            SmsCodePostParseCoordinator.NotificationPlan(autoCancelDelayMs = it.autoCancelDelayMs)
+        },
+        shouldRecord = shouldRecord,
+        operateSmsDelays = operateSmsDelays,
+    )
+}
+
+private fun SharedSmsCodePostParseCoordinator.ObservedSmsPlan.toLocal(): SmsCodePostParseCoordinator.ObservedSmsPlan {
+    return SmsCodePostParseCoordinator.ObservedSmsPlan(
+        deduplicateSmsEnabled = deduplicateSmsEnabled,
+        autoInputEnabled = autoInputEnabled,
+        shouldRecord = shouldRecord,
+    )
 }

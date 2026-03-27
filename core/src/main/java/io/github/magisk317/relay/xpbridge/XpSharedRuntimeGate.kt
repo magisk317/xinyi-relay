@@ -2,6 +2,7 @@ package io.github.magisk317.relay.xpbridge
 
 import android.content.Context
 import io.github.magisk317.relay.common.utils.SharedRuntimeGate
+import java.io.RandomAccessFile
 
 object XpSharedRuntimeGate {
     data class ClaimResult(
@@ -26,6 +27,18 @@ object XpSharedRuntimeGate {
         return ClaimResult(
             claimed = result.claimed,
             ageMs = result.ageMs,
+        )
+    }
+
+    fun <T> withFileLock(
+        context: Context,
+        fileName: String,
+        block: (RandomAccessFile) -> T,
+    ): T? {
+        return SharedRuntimeGate.withFileLock(
+            context = context,
+            fileName = fileName,
+            block = block,
         )
     }
 

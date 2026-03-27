@@ -15,6 +15,7 @@ import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
 import io.github.magisk317.smscode.domain.utils.RecentEventDeduplicator
 import io.github.magisk317.smscode.domain.utils.SmsForwardDedupKeyFactory
 import io.github.magisk317.smscode.domain.utils.SmsForwardDedupSpec
+import io.github.magisk317.smscode.verification.SmsIntentHookSupport
 import io.github.magisk317.smscode.xposed.helper.XposedWrapper
 import io.github.magisk317.smscode.xposed.hook.BaseHook
 import io.github.magisk317.smscode.xposed.hookapi.LoadParam
@@ -139,7 +140,7 @@ class SmsForwardHook : BaseHook() {
     }
 
     private fun shouldSkipDispatch(dispatch: IncomingSmsDispatch): Boolean {
-        if (markDispatchHandled(dispatch.intent, dispatch.action)) {
+        if (SmsIntentHookSupport.markDispatchHandled(dispatch.intent, dispatch.action)) {
             XLog.w(
                 "SmsForwardHook duplicate sms suppressed: event_id=%s action=%s source=intent_extra",
                 dispatch.eventId,
@@ -311,16 +312,6 @@ class SmsForwardHook : BaseHook() {
         )
     }
 
-    private fun markDispatchHandled(intent: Intent, action: String?): Boolean {
-        if (action.isNullOrBlank()) return false
-        val key = "$DISPATCH_HANDLED_EXTRA_PREFIX$action"
-        if (intent.getBooleanExtra(key, false)) {
-            return true
-        }
-        intent.putExtra(key, true)
-        return false
-    }
-
     private fun logSuppressedOnce(stage: String) {
         if (suppressionLogged) return
         synchronized(this) {
@@ -344,7 +335,6 @@ class SmsForwardHook : BaseHook() {
         private const val SMS_MSG_TYPE = "sms"
         private const val SMS_HOOK_SOURCE = "sms_hook"
         private const val SMS_FORWARD_DEDUP_WINDOW_MS = 10_000L
-        private const val DISPATCH_HANDLED_EXTRA_PREFIX = "relay_sms_forward_handled:"
         private const val DISPATCH_DEDUP_FILE_NAME = "sms_forward_dispatch_dedup"
         private const val MAX_DISPATCH_DEDUP_ENTRIES = 256
         private val recentSmsForward = RecentEventDeduplicator(windowMs = SMS_FORWARD_DEDUP_WINDOW_MS)

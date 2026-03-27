@@ -131,7 +131,7 @@ internal object SmsCodeActionDispatcher {
                 phoneContext,
                 smsMsg,
                 eventId,
-                false,
+                plan.deduplicateSmsEnabled,
             )
         }
     }

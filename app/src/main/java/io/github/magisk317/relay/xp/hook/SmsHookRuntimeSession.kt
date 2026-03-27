@@ -1,11 +1,12 @@
 package io.github.magisk317.relay.xp.hook
 
 import android.content.Context
+import io.github.magisk317.smscode.verification.VerificationRuntimeContext
 
 internal data class SmsHookRuntimeContext(
-    val phoneContext: Context,
-    val pluginContext: Context,
-)
+    override val phoneContext: Context,
+    override val pluginContext: Context,
+) : VerificationRuntimeContext
 
 internal class SmsHookRuntimeSession(
     private val applicationId: String,

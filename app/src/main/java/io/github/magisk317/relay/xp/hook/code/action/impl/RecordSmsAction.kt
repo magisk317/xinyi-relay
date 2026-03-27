@@ -5,6 +5,7 @@ import android.os.Bundle
 import io.github.magisk317.relay.xpbridge.XpRecordFacade
 import io.github.magisk317.relay.xpbridge.XpCodeRecordExporter
 import io.github.magisk317.relay.xpbridge.SmsMsg
+import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 import io.github.magisk317.smscode.xposed.utils.XLog
 import kotlinx.coroutines.runBlocking
@@ -40,10 +41,24 @@ class RecordSmsAction(
             !smsMsg.smsCode.isNullOrBlank(),
         )
         if (deduplicateEnabled) {
+            val locked = XpSharedRuntimeGate.withFileLock(mPluginContext, SHARED_RECORD_DEDUP_FILE_NAME) {
+                if (shouldSkipByDedup(smsMsg, eventLabel)) {
+                    return@withFileLock false
+                }
+                insertSmsMsg(smsMsg, eventLabel)
+                true
+            }
+            if (locked != null) {
+                return
+            }
             if (shouldSkipByDedup(smsMsg, eventLabel)) {
                 return
             }
         }
+        insertSmsMsg(smsMsg, eventLabel)
+    }
+
+    private fun insertSmsMsg(smsMsg: SmsMsg, eventLabel: String) {
         try {
             val recordId = runBlocking {
                 runtimeRecordFacade.insertSmsRecord(
@@ -120,6 +135,7 @@ class RecordSmsAction(
     }
 
     companion object {
+        private const val SHARED_RECORD_DEDUP_FILE_NAME = "record_insert_gate"
         private const val DEDUP_WINDOW_MS = 5_000L
     }
 }

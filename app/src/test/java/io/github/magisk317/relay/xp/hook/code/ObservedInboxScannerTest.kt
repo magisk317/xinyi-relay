@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
+import io.github.magisk317.smscode.verification.SmsInboxSeenTracker
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue

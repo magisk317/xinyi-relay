@@ -9,6 +9,7 @@ import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.smscode.xposed.utils.ModuleActivationStore
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
+import io.github.magisk317.smscode.verification.SmsIntentHookSupport
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
 import io.github.magisk317.smscode.xposed.utils.XLog
@@ -246,12 +247,18 @@ class SmsHandlerHook : BaseHook() {
             }
         }
 
-        if (action != Telephony.Sms.Intents.SMS_DELIVER_ACTION &&
-            action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION
-        ) {
+        if (!SmsIntentHookSupport.isSmsAction(action)) {
             return
         }
         val eventId = ensureEventId(intent)
+        if (SmsIntentHookSupport.markDispatchHandled(intent, action)) {
+            XLog.w(
+                "SmsHandlerHook duplicate sms suppressed: event_id=%s action=%s source=intent_extra",
+                eventId,
+                action,
+            )
+            return
+        }
         val pduCount = getPduCount(intent)
         XLog.w(
             "Diag SMS intent intercepted: event_id=%s action=%s, pduCount=%d, extras=%s",

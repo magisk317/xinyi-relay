@@ -4,8 +4,9 @@ import android.content.Context
 import android.net.Uri
 import android.provider.Telephony
 import io.github.magisk317.relay.xpbridge.XpSmsCodeParser
-import io.github.magisk317.smscode.xposed.utils.XLog
-import kotlinx.coroutines.runBlocking
+import io.github.magisk317.smscode.verification.ObservedInboxScanRecord
+import io.github.magisk317.smscode.verification.ObservedInboxScanner as SharedObservedInboxScanner
+import io.github.magisk317.smscode.verification.SmsInboxSeenTracker
 
 internal class ObservedInboxScanner(
     private val pluginContext: Context,
@@ -26,39 +27,30 @@ internal class ObservedInboxScanner(
         val read: Boolean,
     )
 
-    fun scan(triggerUri: String, recentSmsWindowMs: Long): List<ObservedInboxScanRecord> {
-        val cutoff = System.currentTimeMillis() - recentSmsWindowMs
-        val resolvedTriggerUri = triggerUri.ifBlank { DEFAULT_SMS_TRIGGER_URI }
-        val triggeredSmsId = parseTriggeredSmsId(triggerUri)
-        return runCatching {
-            inboxRowLoader(cutoff, triggeredSmsId).mapNotNull { row ->
-                if (!smsIdTracker.markSeen(row.smsId)) {
-                    return@mapNotNull null
-                }
-                val code = runBlocking { smsCodeParser(pluginContext, row.body) }.orEmpty()
-                if (code.isBlank()) {
-                    return@mapNotNull null
-                }
-                ObservedInboxScanRecord(
+    private val delegate = SharedObservedInboxScanner(
+        pluginContext = pluginContext,
+        phoneContext = phoneContext,
+        smsIdTracker = smsIdTracker,
+        smsCodeParser = smsCodeParser,
+        inboxRowLoader = { cutoff, triggeredSmsId ->
+            inboxRowLoader(cutoff, triggeredSmsId).map { row ->
+                SharedObservedInboxScanner.InboxRow(
                     smsId = row.smsId,
-                    triggerUri = resolvedTriggerUri,
                     sender = row.sender,
                     body = row.body,
                     date = row.date,
                     read = row.read,
-                    code = code,
                 )
             }
-        }.getOrElse {
-            XLog.w("SmsInboxObserver scan failed: %s", it.message ?: it.javaClass.simpleName)
-            emptyList()
-        }
+        },
+    )
+
+    fun scan(triggerUri: String, recentSmsWindowMs: Long): List<ObservedInboxScanRecord> {
+        return delegate.scan(triggerUri, recentSmsWindowMs)
     }
 
     companion object {
-        private const val DEFAULT_SMS_TRIGGER_URI = "content://sms"
         private const val MAX_RECENT_SMS_COUNT = 32
-        private val TRIGGERED_SMS_ID_REGEX = Regex("""^content://sms(?:/[^/?#]+)*/(\d+)(?:[?#].*)?$""")
 
         private fun loadRecentInboxRows(
             phoneContext: Context,
@@ -106,14 +98,15 @@ internal class ObservedInboxScanner(
             return rows
         }
 
-        private fun parseTriggeredSmsId(triggerUri: String): Long? {
+        fun parseTriggeredSmsId(triggerUri: String): Long? {
             if (triggerUri.isBlank()) return null
             val parsedId = runCatching { Uri.parse(triggerUri) }.getOrNull()
                 ?.takeIf { it.scheme == "content" && it.authority == "sms" }
                 ?.lastPathSegment
                 ?.toLongOrNull()
             return parsedId
-                ?: TRIGGERED_SMS_ID_REGEX.find(triggerUri)
+                ?: Regex("""^content://sms(?:/[^/?#]+)*/(\d+)(?:[?#].*)?$""")
+                    .find(triggerUri)
                     ?.groupValues
                     ?.getOrNull(1)
                     ?.toLongOrNull()

@@ -4,18 +4,19 @@ import android.content.Intent
 import android.os.Parcelable
 import androidx.compose.runtime.Immutable
 import io.github.magisk317.relay.data.db.entity.SmsMsg as RuntimeSmsMsg
+import io.github.magisk317.smscode.verification.SmsMessage
 import kotlinx.parcelize.Parcelize
 
 @Immutable
 @Parcelize
 data class XpSmsMessage(
     val id: Long = 0,
-    val sender: String? = null,
-    val body: String? = null,
-    val date: Long = 0,
-    val company: String? = null,
-    val smsCode: String? = null,
-    val packageName: String? = null,
+    override val sender: String? = null,
+    override val body: String? = null,
+    override val date: Long = 0,
+    override val company: String? = null,
+    override val smsCode: String? = null,
+    override val packageName: String? = null,
     val notifyChannelId: String = "",
     var forwardStatus: Int = FORWARD_STATUS_NONE,
     var forwardTarget: String? = null,
@@ -23,7 +24,7 @@ data class XpSmsMessage(
     var forwardTime: Long = 0L,
     val msgType: Int = MSG_TYPE_SMS,
     val callType: Int = 0,
-) : Parcelable {
+) : Parcelable, SmsMessage {
     fun toRuntime(): RuntimeSmsMsg {
         return RuntimeSmsMsg(
             id = id,

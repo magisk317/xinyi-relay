@@ -7,4 +7,13 @@ pluginManagement {
     }
 }
 
-include(":app", ":runtime", ":core", ":smscode-core:smscode-xposed-core", ":smscode-core:smscode-domain", ":magisk-ui-kit")
+include(
+    ":app",
+    ":runtime",
+    ":core",
+    ":smscode-core:smscode-xposed-core",
+    ":smscode-core:smscode-domain",
+    ":smscode-core:smscode-verification-core",
+    ":xposed-stub",
+    ":magisk-ui-kit",
+)

@@ -3,8 +3,9 @@ package io.github.magisk317.relay.xp.hook.code
 import android.content.Context
 import android.content.Intent
 import io.github.magisk317.relay.xpbridge.SmsMsg
-import io.github.magisk317.relay.xpbridge.XpSmsBlacklist
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
+import io.github.magisk317.smscode.verification.BlacklistMatchResult
+import io.github.magisk317.smscode.verification.SmsHandlerDispatchDecision
 import io.github.magisk317.smscode.xposed.utils.XLog
 import io.mockk.every
 import io.mockk.mockk
@@ -162,8 +163,8 @@ class SmsDispatchIntentHandlerTest {
         )
     }
 
-    private fun noMatch(): XpSmsBlacklist.MatchResult {
-        return XpSmsBlacklist.MatchResult(matched = false)
+    private fun noMatch(): BlacklistMatchResult {
+        return BlacklistMatchResult(matched = false)
     }
 
     private fun stubXLog() {

@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import io.github.magisk317.smscode.verification.SmsInboxObserverDecision
 
 class SmsInboxObserverDecisionTest {
 
@@ -14,7 +15,9 @@ class SmsInboxObserverDecisionTest {
             moduleEnabled = true,
             suppressedByRelay = true,
             duplicated = false,
-            plan = observedPlan(),
+            autoInputEnabled = true,
+            shouldRecord = true,
+            deduplicateSmsEnabled = false,
         )
 
         assertEquals(SmsInboxObserverDecision.SkipReason.CONFLICT_SUPPRESSED, decision.skipReason)
@@ -28,7 +31,9 @@ class SmsInboxObserverDecisionTest {
             moduleEnabled = false,
             suppressedByRelay = false,
             duplicated = false,
-            plan = observedPlan(),
+            autoInputEnabled = true,
+            shouldRecord = true,
+            deduplicateSmsEnabled = false,
         )
 
         assertEquals(SmsInboxObserverDecision.SkipReason.MODULE_DISABLED, decision.skipReason)
@@ -42,7 +47,9 @@ class SmsInboxObserverDecisionTest {
             moduleEnabled = true,
             suppressedByRelay = false,
             duplicated = true,
-            plan = observedPlan(),
+            autoInputEnabled = true,
+            shouldRecord = true,
+            deduplicateSmsEnabled = false,
         )
 
         assertEquals(SmsInboxObserverDecision.SkipReason.DUPLICATED, decision.skipReason)
@@ -56,11 +63,9 @@ class SmsInboxObserverDecisionTest {
             moduleEnabled = true,
             suppressedByRelay = false,
             duplicated = false,
-            plan = observedPlan(
-                autoInputEnabled = false,
-                shouldRecord = false,
-                deduplicateSmsEnabled = true,
-            ),
+            autoInputEnabled = false,
+            shouldRecord = false,
+            deduplicateSmsEnabled = true,
         )
 
         assertNull(decision.skipReason)
@@ -75,11 +80,9 @@ class SmsInboxObserverDecisionTest {
             moduleEnabled = true,
             suppressedByRelay = false,
             duplicated = false,
-            plan = observedPlan(
-                autoInputEnabled = true,
-                shouldRecord = true,
-                deduplicateSmsEnabled = false,
-            ),
+            autoInputEnabled = true,
+            shouldRecord = true,
+            deduplicateSmsEnabled = false,
         )
 
         assertNull(decision.skipReason)
@@ -88,15 +91,4 @@ class SmsInboxObserverDecisionTest {
         assertNull(decision.recordSkipReason)
     }
 
-    private fun observedPlan(
-        autoInputEnabled: Boolean = true,
-        shouldRecord: Boolean = true,
-        deduplicateSmsEnabled: Boolean = false,
-    ): SmsCodePostParseCoordinator.ObservedSmsPlan {
-        return SmsCodePostParseCoordinator.ObservedSmsPlan(
-            deduplicateSmsEnabled = deduplicateSmsEnabled,
-            autoInputEnabled = autoInputEnabled,
-            shouldRecord = shouldRecord,
-        )
-    }
 }

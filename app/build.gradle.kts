@@ -64,6 +64,7 @@ android {
             excludes += "META-INF/LICENSE.md"
             excludes += "META-INF/INDEX.LIST"
             excludes += "META-INF/io.netty.versions.properties"
+            merges += "META-INF/xposed/*"
         }
     }
 
@@ -85,9 +86,11 @@ dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(project(":core"))
     implementation(project(":smscode-core:smscode-domain"))
+    implementation(project(":smscode-core:smscode-verification-core"))
     compileOnly(project(":smscode-core:smscode-xposed-core"))
 
     implementation(libs.androidx.core.ktx)
+    add("legacyCompileOnly", project(":xposed-stub"))
     add("api101CompileOnly", libs.libxposed.api)
     add("api101Implementation", libs.libxposed.service)
 
