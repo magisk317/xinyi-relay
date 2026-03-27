@@ -5,6 +5,7 @@ import android.content.ContentValues
 import android.net.Uri
 import android.os.Binder
 import io.github.magisk317.relay.BuildConfig
+import io.github.magisk317.relay.xp.HookTargetDiagnostics
 import io.github.magisk317.relay.xpbridge.XpHookDiagnostics
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.smscode.xposed.utils.XLog
@@ -23,12 +24,23 @@ class SmsProviderHook : BaseHook() {
 
     override fun onLoadPackage(lpparam: LoadParam) {
         if (lpparam.packageName != TELEPHONY_PROVIDER_PACKAGE) return
+        HookTargetDiagnostics.logTargetProcessHitIfVerbose(
+            hookName = "SmsProviderHook",
+            loadParam = lpparam,
+            targetPackage = TELEPHONY_PROVIDER_PACKAGE,
+        )
         hookProviderMethods(lpparam.classLoader)
     }
 
     private fun hookProviderMethods(classLoader: ClassLoader) {
         val providerClass = XposedWrapper.findClass(TELEPHONY_PROVIDER_CLASS, classLoader) ?: run {
             XLog.w("SmsProviderHook: class not found: %s", TELEPHONY_PROVIDER_CLASS)
+            HookTargetDiagnostics.logTargetMissIfVerbose(
+                hookName = "SmsProviderHook",
+                loadParam = LoadParam(TELEPHONY_PROVIDER_PACKAGE, TELEPHONY_PROVIDER_PACKAGE, classLoader),
+                reason = "class_not_found",
+                detail = TELEPHONY_PROVIDER_CLASS,
+            )
             return
         }
 

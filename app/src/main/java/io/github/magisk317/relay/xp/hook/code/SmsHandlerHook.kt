@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Build
 import android.provider.Telephony
 import io.github.magisk317.relay.BuildConfig
+import io.github.magisk317.relay.xp.HookTargetDiagnostics
 import io.github.magisk317.smscode.xposed.utils.ModuleActivationStore
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
@@ -56,6 +57,11 @@ class SmsHandlerHook : BaseHook() {
 
     override fun onLoadPackage(lpparam: LoadParam) {
         if (ANDROID_PHONE_PACKAGE == lpparam.packageName) {
+            HookTargetDiagnostics.logTargetProcessHitIfVerbose(
+                hookName = "SmsHandlerHook",
+                loadParam = lpparam,
+                targetPackage = ANDROID_PHONE_PACKAGE,
+            )
             XLog.i("SmsCode initializing")
             printDeviceInfo()
             try {
@@ -101,6 +107,13 @@ class SmsHandlerHook : BaseHook() {
         val smsHandlerClazz = XposedWrapper.findClass(SMS_HANDLER_CLASS, classLoader)
         if (smsHandlerClazz != null) {
             HookBridge.hookAllConstructors(smsHandlerClazz, ConstructorHook())
+        } else {
+            HookTargetDiagnostics.logTargetMissIfVerbose(
+                hookName = "SmsHandlerHook",
+                loadParam = LoadParam(ANDROID_PHONE_PACKAGE, ANDROID_PHONE_PACKAGE, classLoader),
+                reason = "class_not_found",
+                detail = SMS_HANDLER_CLASS,
+            )
         }
     }
 
@@ -200,6 +213,12 @@ class SmsHandlerHook : BaseHook() {
             XposedWrapper.hookMethod(it, DispatchIntentHook(receiverIndex))
         } ?: run {
             XLog.e("Method %s for Class %s cannot found", dispatchIntentMethodName, SMS_HANDLER_CLASS)
+            HookTargetDiagnostics.logTargetMissIfVerbose(
+                hookName = "SmsHandlerHook",
+                loadParam = LoadParam(ANDROID_PHONE_PACKAGE, ANDROID_PHONE_PACKAGE, classLoader),
+                reason = "method_not_found",
+                detail = "$SMS_HANDLER_CLASS#$dispatchIntentMethodName",
+            )
         }
     }
 

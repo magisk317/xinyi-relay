@@ -86,6 +86,7 @@ class LibXposedEntry : XposedModule {
     private fun dispatchLoad(loadParam: LoadParam) {
         installCoreRuntime()
         XLog.d("LibXposedEntry: Loaded package: ${loadParam.packageName} process: ${loadParam.processName}")
+        HookTargetDiagnostics.logPackageReadyProbeIfVerbose(loadParam)
         if (isCriticalHookTarget(loadParam.packageName)) {
             val message = "LibXposedEntry package ready: pkg=${loadParam.packageName} process=${loadParam.processName}"
             Log.w(BuildConfig.LOG_TAG, message)
