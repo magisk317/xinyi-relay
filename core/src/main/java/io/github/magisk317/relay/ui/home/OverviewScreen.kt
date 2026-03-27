@@ -211,12 +211,7 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
     val context = LocalContext.current
     val settingsRepository: SettingsRepository = koinInject()
     val analyticsRepository: AnalyticsRepository = koinInject()
-    val activityOwner = context as? ComponentActivity
-    val settingsViewModel = if (activityOwner != null) {
-        koinViewModel<SettingsViewModel>(viewModelStoreOwner = activityOwner)
-    } else {
-        koinViewModel()
-    }
+    val settingsViewModel = rememberSharedSettingsViewModel()
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = LocalSnackbarHostState.current
     fun showMessage(message: String) {

@@ -72,11 +72,13 @@
     <string name="pref_enable_auto_input_code_summary">Try to input SMS code automatically</string>
     <string name="pref_auto_input_accessibility_service_title">Input box assistant</string>
     <string name="pref_auto_input_accessibility_service_summary">Accessibility service status: %1$s. Tap to open Accessibility settings.</string>
+    <string name="pref_auto_input_accessibility_service_summary_unavailable">The system is not listing this accessibility service. If the app was sideloaded, allow restricted settings from App info first, then reopen Accessibility.</string>
     <string name="pref_auto_input_accessibility_service_status_enabled">Enabled</string>
     <string name="pref_auto_input_accessibility_service_status_disabled">Not enabled</string>
     <string name="pref_auto_input_accessibility_service_open_failed">Unable to open Accessibility settings</string>
+    <string name="pref_auto_input_accessibility_service_restricted_hint">This service is not currently listed by the system. Open App info first and allow restricted settings if needed.</string>
     <string name="accessibility_auto_input_service_label">Auto input assistant</string>
-    <string name="accessibility_auto_input_service_description">Find the active verification code input box and fill it before falling back to simulated key input.</string>
+    <string name="accessibility_auto_input_service_description">Auto input assistant: find the active verification code input box and fill it before falling back to simulated key input.</string>
     <string name="pref_enable_auto_enter_code_title">Auto-Enter/Submit</string>
     <string name="pref_enable_auto_enter_code_summary">Automatically trigger Enter after filling the code</string>
     <string name="pref_auto_input_code_delay_title">Auto input delay</string>

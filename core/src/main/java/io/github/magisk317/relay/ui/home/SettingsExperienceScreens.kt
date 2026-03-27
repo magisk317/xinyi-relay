@@ -4,6 +4,8 @@ import android.Manifest
 import android.app.Activity
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.view.accessibility.AccessibilityManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -76,7 +78,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
-import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -95,7 +96,7 @@ fun SettingsHomeScreen(
             snackbarHostState.showSnackbar(savedSnackbarText)
         }
     }
-    val settingsViewModel: SettingsViewModel = koinViewModel()
+    val settingsViewModel = rememberSharedSettingsViewModel()
     val themeState by settingsViewModel.themeState.collectAsStateWithLifecycle()
     val languageState by settingsViewModel.languageState.collectAsStateWithLifecycle()
     var general by remember { mutableStateOf<GeneralSettingsSnapshot?>(null) }
@@ -478,7 +479,7 @@ fun VerificationSettingsScreen(
             snackbarHostState.showSnackbar(savedSnackbarText)
         }
     }
-    val settingsViewModel: SettingsViewModel = koinViewModel()
+    val settingsViewModel = rememberSharedSettingsViewModel()
     var settings by remember { mutableStateOf<VerificationSettingsSnapshot?>(null) }
     var recordSettings by remember { mutableStateOf<RecordSettingsSnapshot?>(null) }
     var showDelayDialog by remember { mutableStateOf(false) }
@@ -495,6 +496,11 @@ fun VerificationSettingsScreen(
     var autoInputAccessibilityEnabled by remember {
         mutableStateOf(
             supportsAccessibilityAutoInput && isAutoInputAccessibilityServiceEnabled(context),
+        )
+    }
+    var autoInputAccessibilityListed by remember {
+        mutableStateOf(
+            supportsAccessibilityAutoInput && isAutoInputAccessibilityServiceListed(context),
         )
     }
 
@@ -612,13 +618,33 @@ fun VerificationSettingsScreen(
     ) {
         autoInputAccessibilityEnabled =
             supportsAccessibilityAutoInput && isAutoInputAccessibilityServiceEnabled(context)
+        autoInputAccessibilityListed =
+            supportsAccessibilityAutoInput && isAutoInputAccessibilityServiceListed(context)
     }
 
     fun openAccessibilitySettings() {
-        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+        val accessibilityIntent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+        val appDetailsIntent = Intent(
+            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            Uri.fromParts("package", context.packageName, null),
+        )
+        val targetIntent = if (
+            supportsAccessibilityAutoInput &&
+            isAutoInputAccessibilityServiceDeclared(context) &&
+            !isAutoInputAccessibilityServiceListed(context)
+        ) {
+            scope.launch {
+                snackbarHostState.showSnackbar(
+                    context.getString(R.string.pref_auto_input_accessibility_service_restricted_hint),
+                )
+            }
+            appDetailsIntent
+        } else {
+            accessibilityIntent
+        }
         if (activityOwner != null) {
             runCatching {
-                accessibilitySettingsLauncher.launch(intent)
+                accessibilitySettingsLauncher.launch(targetIntent)
             }.onFailure {
                 scope.launch {
                     snackbarHostState.showSnackbar(
@@ -629,7 +655,7 @@ fun VerificationSettingsScreen(
             return
         }
         runCatching {
-            context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            context.startActivity(targetIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }.onFailure {
             scope.launch {
                 snackbarHostState.showSnackbar(
@@ -644,12 +670,16 @@ fun VerificationSettingsScreen(
         recordSettings = repository.getRecordSettings()
         autoInputAccessibilityEnabled =
             supportsAccessibilityAutoInput && isAutoInputAccessibilityServiceEnabled(context)
+        autoInputAccessibilityListed =
+            supportsAccessibilityAutoInput && isAutoInputAccessibilityServiceListed(context)
     }
 
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
             autoInputAccessibilityEnabled =
                 supportsAccessibilityAutoInput && isAutoInputAccessibilityServiceEnabled(context)
+            autoInputAccessibilityListed =
+                supportsAccessibilityAutoInput && isAutoInputAccessibilityServiceListed(context)
             if (
                 pendingNotificationOwnerPermissionSelection == CodeNotificationOwner.APP &&
                 NotificationUtils.hasPostNotificationsPermission(context)
@@ -766,6 +796,7 @@ fun VerificationSettingsScreen(
                         summary = accessibilityAutoInputServiceSummary(
                             context = context,
                             enabled = autoInputAccessibilityEnabled,
+                            listed = autoInputAccessibilityListed,
                         ),
                     ) {
                         openAccessibilitySettings()
@@ -1086,11 +1117,47 @@ private fun isAutoInputAccessibilityServiceEnabled(context: android.content.Cont
     }
 }
 
+private fun isAutoInputAccessibilityServiceDeclared(context: android.content.Context): Boolean {
+    val componentName = ComponentName(
+        context.packageName,
+        AUTO_INPUT_ACCESSIBILITY_SERVICE_CLASS_NAME,
+    )
+    val packageManager = context.packageManager
+    return runCatching {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            packageManager.getServiceInfo(
+                componentName,
+                PackageManager.ComponentInfoFlags.of(PackageManager.GET_META_DATA.toLong()),
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            packageManager.getServiceInfo(componentName, PackageManager.GET_META_DATA)
+        }
+    }.isSuccess
+}
+
+private fun isAutoInputAccessibilityServiceListed(context: android.content.Context): Boolean {
+    val expectedComponent = ComponentName(
+        context.packageName,
+        AUTO_INPUT_ACCESSIBILITY_SERVICE_CLASS_NAME,
+    )
+    val accessibilityManager = context.getSystemService(AccessibilityManager::class.java) ?: return false
+    return accessibilityManager.getInstalledAccessibilityServiceList().any { serviceInfo ->
+        val resolvedServiceInfo = serviceInfo.resolveInfo?.serviceInfo ?: return@any false
+        resolvedServiceInfo.packageName == expectedComponent.packageName &&
+            resolvedServiceInfo.name == expectedComponent.className
+    }
+}
+
 @Composable
 private fun accessibilityAutoInputServiceSummary(
     context: android.content.Context,
     enabled: Boolean,
+    listed: Boolean,
 ): String {
+    if (!enabled && !listed && isAutoInputAccessibilityServiceDeclared(context)) {
+        return stringResource(id = R.string.pref_auto_input_accessibility_service_summary_unavailable)
+    }
     val status = stringResource(
         id = if (enabled) {
             R.string.pref_auto_input_accessibility_service_status_enabled
