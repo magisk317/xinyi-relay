@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.xp.hook.code
 
+import io.github.magisk317.smscode.xposed.hook.telephony.InboundSmsMethodInvoker
 import io.github.magisk317.smscode.xposed.utils.XLog
 import io.mockk.every
 import io.mockk.mockkObject
