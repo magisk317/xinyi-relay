@@ -1,10 +1,9 @@
 [versions]
 # Build SDK versions
-compileSdk = "36"
-compileSdkExtension = "19"
+compileSdk = "37"
 minSdk = "26"
-targetSdk = "36"
-ndk = "29.0.14206865"
+targetSdk = "37"
+ndk = "30.0.14904198"
 
 # JVM versions
 javaBytecode = "25"
@@ -15,7 +14,7 @@ versionName = "0.0.1"
 
 activity-compose = "1.13.0"
 adaptive = "1.2.0"
-agp = "9.2.0-alpha06"
+agp = "9.1.0"
 androidx-browser = "1.10.0"
 androidx-core-ktx = "1.18.0"
 androidx-annotation = "1.9.1"

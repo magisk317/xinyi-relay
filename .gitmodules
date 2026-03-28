@@ -4,3 +4,6 @@
 [submodule "magisk-ui-kit"]
 	path = magisk-ui-kit
 	url = https://github.com/magisk317/magisk-ui-kit.git
+[submodule "build-logic"]
+	path = build-logic
+	url = https://github.com/magisk317/magisk-build-logic.git
