@@ -33,9 +33,15 @@ class ForwardReceiver : BroadcastReceiver() {
         val traceId = buildTraceId(intent, eventId)
         val task = Runnable {
             var resultMarked = false
+            var broadcastFinished = false
             fun markResult(code: Int, reason: String) {
                 resultMarked = true
                 setOrderedResult(pendingResult, ordered, code, reason, eventId)
+            }
+            fun finishBroadcast() {
+                if (broadcastFinished) return
+                broadcastFinished = true
+                pendingResult.finish()
             }
             runCatching {
                 val receiveStartMessage = buildString {
@@ -354,6 +360,15 @@ class ForwardReceiver : BroadcastReceiver() {
                         "pkg=${relayEvent.packageName.ifBlank { "<none>" }} " +
                         "source=$forwardSource",
                 )
+
+                if (!resultMarked) {
+                    // Foreground broadcasts have a tight timeout budget; acknowledge after the
+                    // cheap validation path and keep the expensive dispatch work out of it.
+                    markResult(RESULT_OK, "accepted_async")
+                    ForwardFlowLog.i(traceId, "ForwardReceiver broadcast acknowledged result=accepted_async")
+                    finishBroadcast()
+                }
+
                 val pipelineResult = runBlocking {
                     eventPipeline.process(
                         event = relayEvent,
@@ -361,9 +376,17 @@ class ForwardReceiver : BroadcastReceiver() {
                     )
                 }
                 if (pipelineResult.dispatchError != null) {
-                    markResult(RESULT_DISPATCH_FAILED, "dispatch_failed")
+                    ForwardFlowLog.w(
+                        traceId,
+                        "Async dispatch finished with error after broadcast ack: " +
+                            (pipelineResult.dispatchError.message ?: pipelineResult.dispatchError.javaClass.simpleName),
+                    )
                 } else {
-                    markResult(RESULT_OK, pipelineResult.blockedReason ?: "processed")
+                    ForwardFlowLog.i(
+                        traceId,
+                        "Async dispatch completed dispatched=${pipelineResult.dispatched} " +
+                            "blockedReason=${pipelineResult.blockedReason ?: "<none>"}",
+                    )
                 }
             }.onFailure { error ->
                 XLog.e("ForwardReceiver unexpected error", error)
@@ -385,7 +408,7 @@ class ForwardReceiver : BroadcastReceiver() {
                 markResult(RESULT_DISPATCH_FAILED, "receiver_no_result")
             }
             ForwardFlowLog.d(traceId, "ForwardReceiver finished")
-            pendingResult.finish()
+            finishBroadcast()
         }
         runCatching {
             FORWARD_EXECUTOR.execute(task)
