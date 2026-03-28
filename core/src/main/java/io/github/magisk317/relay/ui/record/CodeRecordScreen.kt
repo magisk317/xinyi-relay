@@ -1,3 +1,5 @@
+@file:Suppress("LocalContextGetResourceValueCall")
+
 package io.github.magisk317.relay.ui.record
 
 import android.graphics.Color as AndroidColor

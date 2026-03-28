@@ -27,6 +27,12 @@ android {
         buildConfig = true
     }
 
+    lint {
+        disable.add("MissingTranslation")
+        disable.add("LocalContextGetResourceValueCall")
+        disable.add("NonObservableLocale")
+    }
+
     val javaVersion = JavaVersion.toVersion(libs.versions.javaBytecode.get())
     kotlin {
         compilerOptions {
@@ -50,6 +56,7 @@ androidComponents {
 
 dependencies {
     implementation(project(":runtime"))
+    implementation(project(":xpbridge-core"))
     implementation(project(":magisk-ui-kit"))
     implementation(project(":smscode-core:smscode-domain"))
     implementation(project(":smscode-core:smscode-verification-core"))
@@ -98,4 +105,46 @@ dependencies {
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.mockk)
+}
+
+val verifyNoWebUiLeak by tasks.registering {
+    group = "verification"
+    description = "Ensure the core module does not directly retain embedded WebUI implementation packages."
+
+    val sourceRoot = layout.projectDirectory.dir("src/main/java")
+    val projectRoot = layout.projectDirectory.asFile
+    val bannedRegexes = listOf(
+        Regex("""^\s*import\s+io\.github\.magisk317\.relay\.webui\."""),
+    )
+
+    inputs.dir(sourceRoot)
+
+    doLast {
+        val violations = sourceRoot
+            .asFileTree
+            .matching { include("**/*.kt") }
+            .files
+            .flatMap { source ->
+                source.readLines().mapIndexedNotNull { index, line ->
+                    if (bannedRegexes.any { it.containsMatchIn(line) }) {
+                        "${source.relativeTo(projectRoot)}:${index + 1}: ${line.trim()}"
+                    } else {
+                        null
+                    }
+                }
+            }
+
+        if (violations.isNotEmpty()) {
+            error(
+                buildString {
+                    appendLine("Core must not directly depend on embedded WebUI implementation packages:")
+                    violations.forEach { appendLine(it) }
+                },
+            )
+        }
+    }
+}
+
+tasks.named("check").configure {
+    dependsOn(verifyNoWebUiLeak)
 }

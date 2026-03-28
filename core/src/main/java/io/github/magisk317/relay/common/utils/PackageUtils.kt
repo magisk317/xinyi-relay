@@ -1,5 +1,7 @@
 package io.github.magisk317.relay.common.utils
 
+import android.annotation.SuppressLint
+import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
@@ -10,6 +12,7 @@ import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
 import androidx.annotation.IntDef
+import androidx.core.content.ContextCompat
 import androidx.core.content.pm.PackageInfoCompat
 import io.github.magisk317.relay.common.constant.Const
 import io.github.magisk317.relay.core.R
@@ -283,8 +286,17 @@ object PackageUtils {
         if (playStoreAvailable) UpdateDestination.PLAY else UpdateDestination.GITHUB
 
     @JvmStatic
+    @SuppressLint("MissingPermission")
     fun isOnWifi(context: Context): Boolean {
         return try {
+            if (
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.ACCESS_NETWORK_STATE,
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                return false
+            }
             val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 val network = cm.activeNetwork ?: return false

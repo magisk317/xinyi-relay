@@ -12,7 +12,7 @@ import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
 import timber.log.Timber
 
-internal data class WebUiRuntimeConfig(
+data class WebUiRuntimeConfig(
     val host: String,
     val port: Int,
     val username: String,
@@ -21,7 +21,7 @@ internal data class WebUiRuntimeConfig(
     val tlsMaterial: WebUiTlsMaterial,
 )
 
-internal class WebUiServer(
+class WebUiServer(
     context: Context,
     private val runtimeConfig: WebUiRuntimeConfig,
 ) {

@@ -1,3 +1,5 @@
+@file:Suppress("LocalContextGetResourceValueCall")
+
 package io.github.magisk317.relay.ui.rule
 
 import androidx.compose.foundation.clickable

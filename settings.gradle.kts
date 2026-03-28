@@ -11,6 +11,8 @@ include(
     ":app",
     ":runtime",
     ":core",
+    ":webui-core",
+    ":xpbridge-core",
     ":smscode-core:smscode-xposed-core",
     ":smscode-core:smscode-domain",
     ":smscode-core:smscode-verification-core",

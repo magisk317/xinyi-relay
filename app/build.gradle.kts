@@ -85,6 +85,9 @@ tasks.matching {
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(project(":core"))
+    implementation(project(":runtime"))
+    implementation(project(":webui-core"))
+    implementation(project(":xpbridge-core"))
     implementation(project(":smscode-core:smscode-domain"))
     implementation(project(":smscode-core:smscode-verification-core"))
     compileOnly(project(":smscode-core:smscode-xposed-core"))
@@ -108,4 +111,46 @@ dependencies {
     testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.mockk)
     testImplementation(project(":smscode-core:smscode-xposed-core"))
+}
+
+val verifyNoRuntimePipelineLeak by tasks.registering {
+    group = "verification"
+    description = "Ensure the app shell does not directly depend on runtime/bootstrap/domain/platform implementation packages."
+
+    val sourceRoot = layout.projectDirectory.dir("src/main/java")
+    val projectRoot = layout.projectDirectory.asFile
+    val bannedRegexes = listOf(
+        Regex("""^\s*import\s+io\.github\.magisk317\.relay\.(bootstrap|data|domain|platform|prefs)\."""),
+    )
+
+    inputs.dir(sourceRoot)
+
+    doLast {
+        val violations = sourceRoot
+            .asFileTree
+            .matching { include("**/*.kt") }
+            .files
+            .flatMap { source ->
+                source.readLines().mapIndexedNotNull { index, line ->
+                    if (bannedRegexes.any { it.containsMatchIn(line) }) {
+                        "${source.relativeTo(projectRoot)}:${index + 1}: ${line.trim()}"
+                    } else {
+                        null
+                    }
+                }
+            }
+
+        if (violations.isNotEmpty()) {
+            error(
+                buildString {
+                    appendLine("App must not directly depend on runtime/bootstrap/domain/platform implementation packages:")
+                    violations.forEach { appendLine(it) }
+                },
+            )
+        }
+    }
+}
+
+tasks.named("check").configure {
+    dependsOn(verifyNoRuntimePipelineLeak)
 }

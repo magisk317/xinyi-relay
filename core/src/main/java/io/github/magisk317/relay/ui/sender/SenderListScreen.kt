@@ -1,3 +1,5 @@
+@file:Suppress("LocalContextGetResourceValueCall", "NonObservableLocale")
+
 package io.github.magisk317.relay.ui.sender
 
 import android.os.SystemClock

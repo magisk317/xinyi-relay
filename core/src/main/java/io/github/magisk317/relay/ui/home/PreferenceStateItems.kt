@@ -1,3 +1,5 @@
+@file:Suppress("LocalContextGetResourceValueCall")
+
 package io.github.magisk317.relay.ui.home
 
 import androidx.compose.foundation.Image

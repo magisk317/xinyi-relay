@@ -1,6 +1,5 @@
 package io.github.magisk317.relay.ui.app.base
 
-import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
@@ -16,19 +15,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.activity.ComponentActivity
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
+import io.github.magisk317.uikit.theme.UpdateSystemBars as UpdateUiKitSystemBars
+import io.github.magisk317.uikit.theme.applyEdgeToEdge as applyUiKitEdgeToEdge
 
 fun applyEdgeToEdge(activity: ComponentActivity) {
-    // Keep a single edge-to-edge path to avoid deprecated cutout-mode APIs in Play scans.
-    WindowCompat.setDecorFitsSystemWindows(activity.window, false)
+    applyUiKitEdgeToEdge(activity)
 }
 
 @Composable
@@ -69,14 +66,5 @@ fun rememberHazeStyle(
 
 @Composable
 fun UpdateSystemBars(darkTheme: Boolean) {
-    val view = LocalView.current
-    if (view.isInEditMode) {
-        return
-    }
-    val window = (view.context as Activity).window
-    SideEffect {
-        val controller = WindowInsetsControllerCompat(window, view)
-        controller.isAppearanceLightStatusBars = !darkTheme
-        controller.isAppearanceLightNavigationBars = !darkTheme
-    }
+    UpdateUiKitSystemBars(darkTheme)
 }

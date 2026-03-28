@@ -1,8 +1,11 @@
 package io.github.magisk317.relay.feature.reminder
 
+import android.annotation.SuppressLint
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.content.pm.PackageManager
 import android.media.AudioAttributes
 import android.media.RingtoneManager
 import android.os.Build
@@ -166,6 +169,15 @@ object SpecialAlertNotifier {
                 builder.setSilent(true)
             }
         }
+        if (
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            XLog.w("Special alert notify skipped: POST_NOTIFICATIONS not granted")
+            return
+        }
+        @SuppressLint("MissingPermission")
         runCatching {
             NotificationManagerCompat.from(context).notify(dedupKey.hashCode(), builder.build())
         }.onFailure { error ->

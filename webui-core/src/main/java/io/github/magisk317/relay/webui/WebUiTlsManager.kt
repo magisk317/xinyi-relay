@@ -15,14 +15,14 @@ import java.security.cert.X509Certificate
 import java.util.Collections
 import java.util.concurrent.TimeUnit
 
-internal data class WebUiTlsMaterial(
+data class WebUiTlsMaterial(
     val keyStore: KeyStore,
     val keyAlias: String,
     val storePassword: String,
     val keyPassword: String,
 )
 
-internal object WebUiTlsManager {
+object WebUiTlsManager {
 
     private const val KEYSTORE_FILE_NAME = "webui_tls_keystore.p12"
     private const val KEYSTORE_TYPE = "PKCS12"

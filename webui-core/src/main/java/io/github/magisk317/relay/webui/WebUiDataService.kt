@@ -2,6 +2,8 @@ package io.github.magisk317.relay.webui
 
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.pm.PackageInfoCompat
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.data.db.entity.AppInfo
 import io.github.magisk317.relay.data.db.entity.SmsMsg
@@ -14,7 +16,7 @@ import io.github.magisk317.relay.data.update.GithubUpdateChecker
 import io.github.magisk317.relay.data.update.UpgradeCheckResult
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.sender.SenderType
-import io.github.magisk317.relay.core.BuildConfig
+import io.github.magisk317.relay.webuicore.BuildConfig
 import io.github.magisk317.relay.domain.model.Sender
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -210,8 +212,10 @@ class WebUiDataService(context: Context) {
     }
 
     suspend fun getVersionState(): VersionState = withContext(Dispatchers.IO) {
-        val localVersionName = BuildConfig.VERSION_NAME
-        val localVersionCode = BuildConfig.VERSION_CODE
+        val packageInfo = resolveSelfPackageInfo()
+        val localVersionName = packageInfo?.versionName ?: BuildConfig.VERSION_NAME
+        val localVersionCode = packageInfo?.let(PackageInfoCompat::getLongVersionCode)?.toInt()
+            ?: BuildConfig.VERSION_CODE
         val checkedAt = System.currentTimeMillis()
         when (val result = GithubUpdateChecker.fetchUpgradeInfo()) {
             is UpgradeCheckResult.CheckFailed -> VersionState(
@@ -267,6 +271,16 @@ class WebUiDataService(context: Context) {
             }
         }
     }
+
+    private fun resolveSelfPackageInfo() = runCatching {
+        val packageManager = appContext.packageManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            packageManager.getPackageInfo(appContext.packageName, PackageManager.PackageInfoFlags.of(0))
+        } else {
+            @Suppress("DEPRECATION")
+            packageManager.getPackageInfo(appContext.packageName, 0)
+        }
+    }.getOrNull()
 
     suspend fun getInterceptState(): InterceptState = withContext(Dispatchers.IO) {
         InterceptState(

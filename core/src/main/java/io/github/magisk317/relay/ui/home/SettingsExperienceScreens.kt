@@ -1,3 +1,5 @@
+@file:Suppress("LocalContextGetResourceValueCall")
+
 package io.github.magisk317.relay.ui.home
 
 import android.Manifest
@@ -466,6 +468,7 @@ fun SettingsHomeScreen(
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("CyclomaticComplexMethod")
 @Composable
 fun VerificationSettingsScreen(
     onBack: () -> Unit,

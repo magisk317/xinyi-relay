@@ -103,12 +103,13 @@ class AutoInputAccessibilityService : AccessibilityService() {
         autoEnter: Boolean,
     ): AutoInputResult {
         val homePackages = resolveHomePackages()
+        val targetPackageHint = resolveTargetPackageHint()
         return AutoInputFallbackPolicy.runWithRetries(
-            maxAttempts = MAX_ACTIVE_WINDOW_ATTEMPTS,
-            delayMs = ACTIVE_WINDOW_RETRY_DELAY_MS,
+            maxAttempts = MAX_WINDOW_SETTLE_ATTEMPTS,
+            delayMs = WINDOW_SETTLE_RETRY_DELAY_MS,
             perform = { attempt ->
                 val result = performAutoInput(code, autoEnter)
-                if (attempt < MAX_ACTIVE_WINDOW_ATTEMPTS - 1 &&
+                if (attempt < MAX_WINDOW_SETTLE_ATTEMPTS - 1 &&
                     AutoInputFallbackPolicy.shouldRetryAccessibilityResult(
                         success = result.success,
                         reason = result.reason,
@@ -118,15 +119,20 @@ class AutoInputAccessibilityService : AccessibilityService() {
                     )
                 ) {
                     XLog.w(
-                        "Accessibility auto input retry: attempt=%d reason=%s windowPkg=%s",
+                        "Accessibility auto input retry: attempt=%d reason=%s windowPkg=%s targetPkg=%s",
                         attempt + 2,
                         result.reason,
                         result.windowPackage.ifBlank { "<none>" },
+                        targetPackageHint.orEmpty().ifBlank { "<none>" },
                     )
                 }
                 result
             },
             shouldRetry = { result ->
+                shouldWaitForTargetWindow(
+                    result = result,
+                    targetPackageHint = targetPackageHint,
+                ) ||
                 AutoInputFallbackPolicy.shouldRetryAccessibilityResult(
                     success = result.success,
                     reason = result.reason,
@@ -176,6 +182,30 @@ class AutoInputAccessibilityService : AccessibilityService() {
         }
 
         return groupedResult.copy(windowPackage = windowPackage)
+    }
+
+    private fun shouldWaitForTargetWindow(
+        result: AutoInputResult,
+        targetPackageHint: String?,
+    ): Boolean {
+        if (result.success) return false
+        val target = targetPackageHint.orEmpty()
+        if (target.isBlank()) return false
+        val current = result.windowPackage
+        if (current.isBlank()) return false
+        if (current == target) return false
+        return current == packageName
+    }
+
+    private fun resolveTargetPackageHint(): String? {
+        return runCatching {
+            packageManager.getLaunchIntentForPackage(packageName)
+            val recents = getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager
+            recents?.runningAppProcesses
+                ?.firstOrNull { it.importance == android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND }
+                ?.pkgList
+                ?.firstOrNull { it.isNotBlank() && it != packageName }
+        }.getOrNull()
     }
     private fun findFocusedEditableNode(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
         val inputFocus = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
@@ -376,7 +406,7 @@ class AutoInputAccessibilityService : AccessibilityService() {
 
     private companion object {
         private const val RECEIVER_PRIORITY_ACCESSIBILITY = 1000
-        private const val MAX_ACTIVE_WINDOW_ATTEMPTS = 3
-        private const val ACTIVE_WINDOW_RETRY_DELAY_MS = 150L
+        private const val MAX_WINDOW_SETTLE_ATTEMPTS = 6
+        private const val WINDOW_SETTLE_RETRY_DELAY_MS = 200L
     }
 }

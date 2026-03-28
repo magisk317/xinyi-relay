@@ -37,12 +37,23 @@
 - 不直接承载转发主编排
 - `app/web` 仅保留 `WebUiServer`、`WebUiManager`、`WebUiTlsManager`、`WebUiAssetHandler`
 
+### `webui-core`
+- WebUI HTTP 路由、会话、鉴权、静态资源与配置读写编排
+- 仅承载 `io.github.magisk317.relay.webui.*`
+- 不承载应用生命周期与前台服务入口
+
+### `xpbridge-core`
+- Xposed/runtime 之间的桥接 DTO 与 facade
+- 仅承载 `io.github.magisk317.relay.xpbridge.*`
+- 不承载应用 UI 页面或应用生命周期装配
+
 ### `core`
 - Compose UI、页面导航、ViewModel、系统能力外观层
 - WebUI 数据编排、状态模型、会话/鉴权/路由协议层
 - 通话监听与电量提醒等应用内协调逻辑
 - 设置页优先通过 repository 读写配置
 - `ComposeSettingsScreen` 仅保留为兼容壳；主路径使用新的设置体验页
+- 不再内嵌 `webui/*` 与 `xpbridge/*` 包实现
 
 ## 运行时主链
 
