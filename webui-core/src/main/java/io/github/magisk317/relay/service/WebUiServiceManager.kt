@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.service
 
 import android.content.Context
+import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.webui.WebUiConfigStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -16,10 +17,20 @@ class WebUiServiceManager(private val context: Context) {
 
     fun start() {
         if (configJob != null) return
+        XLog.i("WebUI service manager start requested")
         configJob = scope.launch {
             configStore.ensureInitialized()
             configStore.observe().collect { snapshot ->
+                XLog.i(
+                    "WebUI config observed enabled=%s host=%s port=%d lan=%s username=%s",
+                    snapshot.enabled,
+                    snapshot.host,
+                    snapshot.port,
+                    snapshot.allowLanAccess,
+                    snapshot.username,
+                )
                 if (!snapshot.enabled) {
+                    XLog.w("WebUI config disabled, stopping foreground service")
                     WebUiForegroundService.stop(context)
                     return@collect
                 }
@@ -33,6 +44,7 @@ class WebUiServiceManager(private val context: Context) {
     }
 
     fun stop() {
+        XLog.i("WebUI service manager stop requested")
         configJob?.cancel()
         configJob = null
         scope.cancel()

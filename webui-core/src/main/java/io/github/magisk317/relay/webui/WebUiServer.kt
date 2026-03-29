@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.webui
 
 import android.content.Context
+import io.github.magisk317.relay.common.utils.XLog
 import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.applicationEnvironment
 import io.ktor.server.engine.embeddedServer
@@ -66,12 +67,19 @@ class WebUiServer(
             runtimeConfig.port,
             runtimeConfig.allowLanAccess,
         )
+        XLog.i(
+            "WebUI server started host=%s port=%d lan=%s",
+            runtimeConfig.host,
+            runtimeConfig.port,
+            runtimeConfig.allowLanAccess,
+        )
     }
 
     fun stop() {
         engine?.stop(gracePeriodMillis = 500, timeoutMillis = 2_000)
         engine = null
         Timber.i("WebUI server stopped")
+        XLog.i("WebUI server stopped")
     }
 
     private fun io.ktor.server.application.Application.configureRoutes() {
@@ -84,6 +92,7 @@ class WebUiServer(
                 json = json,
                 expectedUsername = runtimeConfig.username,
                 expectedPassword = runtimeConfig.password,
+                dataService = dataService,
                 sessionManager = sessionManager,
                 csrfVerifier = csrfVerifier,
                 rateLimiter = rateLimiter,

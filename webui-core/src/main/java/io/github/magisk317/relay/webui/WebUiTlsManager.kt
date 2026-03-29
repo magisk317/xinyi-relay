@@ -3,6 +3,7 @@ package io.github.magisk317.relay.webui
 import android.content.Context
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.common.constant.PrefConst
+import io.github.magisk317.relay.common.utils.XLog
 import okhttp3.tls.HeldCertificate
 import timber.log.Timber
 import java.io.File
@@ -71,6 +72,12 @@ object WebUiTlsManager {
                             requiredHosts = requiredCertificateHosts(includeLocalNetworkHosts),
                         )
                     ) {
+                        XLog.i(
+                            "WebUI TLS keystore loaded alias=%s lan=%s path=%s",
+                            resolvedAlias,
+                            includeLocalNetworkHosts,
+                            keyStoreFile.absolutePath,
+                        )
                         return WebUiTlsMaterial(
                             keyStore = keyStore,
                             keyAlias = resolvedAlias,
@@ -82,6 +89,11 @@ object WebUiTlsManager {
                 }
                 throw IllegalStateException("TLS keystore missing alias")
             }.onFailure {
+                XLog.w(
+                    "WebUI TLS keystore invalid, regenerating path=%s reason=%s",
+                    keyStoreFile.absolutePath,
+                    it.message ?: it.javaClass.simpleName,
+                )
                 Timber.w(it, "WebUI TLS keystore invalid, regenerating")
             }
         }
@@ -99,15 +111,15 @@ object WebUiTlsManager {
         storePassword: String,
     ): WebUiTlsMaterial {
         val rootCaCertificate = HeldCertificate.Builder()
-            .commonName("信驿 Relay WebUI Root CA")
-            .organizationalUnit("信驿 Relay")
+            .commonName("Xinyi Relay WebUI Root CA")
+            .organizationalUnit("Xinyi Relay")
             .certificateAuthority(0)
             .duration(3650L, TimeUnit.DAYS)
             .build()
 
         val serverCertificateBuilder = HeldCertificate.Builder()
-            .commonName("信驿 Relay WebUI")
-            .organizationalUnit("信驿 Relay")
+            .commonName("Xinyi Relay WebUI")
+            .organizationalUnit("Xinyi Relay")
             .duration(825L, TimeUnit.DAYS)
             .signedBy(rootCaCertificate)
             .addSubjectAlternativeName("localhost")
@@ -140,6 +152,11 @@ object WebUiTlsManager {
         )
 
         Timber.i("WebUI TLS keystore generated: %s", keyStoreFile.absolutePath)
+        XLog.i(
+            "WebUI TLS keystore generated path=%s hosts=%s",
+            keyStoreFile.absolutePath,
+            requiredCertificateHosts(includeLocalNetworkHosts = true).sorted().joinToString(","),
+        )
         return WebUiTlsMaterial(
             keyStore = keyStore,
             keyAlias = KEY_ALIAS,

@@ -8,6 +8,7 @@ import android.content.pm.ServiceInfo
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import io.github.magisk317.relay.common.constant.NotificationConst
+import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.common.utils.NotificationUtils
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.ui.home.MainActivity
@@ -38,6 +39,12 @@ class WebUiForegroundController(private val service: Service) {
                 val allowLanAccess = intent?.getBooleanExtra(EXTRA_ALLOW_LAN_ACCESS, false)
                     ?: runningConfig?.allowLanAccess
                     ?: false
+                XLog.i(
+                    "WebUI foreground controller start action=%s port=%d lan=%s",
+                    intent?.action ?: ACTION_START,
+                    port,
+                    allowLanAccess,
+                )
                 ensureChannel()
                 ServiceCompat.startForeground(
                     service,
@@ -55,6 +62,7 @@ class WebUiForegroundController(private val service: Service) {
     }
 
     fun onDestroy() {
+        XLog.w("WebUI foreground controller destroyed")
         applyJob?.cancel()
         stopServer()
         serviceScope.cancel()
@@ -101,13 +109,23 @@ class WebUiForegroundController(private val service: Service) {
 
     private suspend fun applyCurrentConfig() {
         val snapshot = configStore.loadSnapshot()
+        XLog.i(
+            "WebUI apply config enabled=%s host=%s port=%d lan=%s username=%s",
+            snapshot.enabled,
+            snapshot.host,
+            snapshot.port,
+            snapshot.allowLanAccess,
+            snapshot.username,
+        )
         if (!snapshot.enabled) {
+            XLog.w("WebUI apply config aborted because feature is disabled")
             stopServer()
             service.stopSelf()
             return
         }
 
         if (snapshot == runningConfig && webUiServer != null) {
+            XLog.i("WebUI config unchanged, refreshing foreground notification only")
             updateForegroundNotification(snapshot)
             return
         }
@@ -131,9 +149,19 @@ class WebUiForegroundController(private val service: Service) {
                 webUiServer = it
             }
             runningConfig = snapshot
+            XLog.i(
+                "WebUI server applied host=%s port=%d lan=%s",
+                snapshot.host,
+                snapshot.port,
+                snapshot.allowLanAccess,
+            )
             updateForegroundNotification(snapshot)
         }.onFailure {
             stopServer()
+            XLog.e(
+                "WebUI start failed host=${snapshot.host} port=${snapshot.port} lan=${snapshot.allowLanAccess}",
+                it,
+            )
             Timber.e(
                 it,
                 "Failed to start WebUI server (host=%s port=%s lan=%s)",
@@ -156,6 +184,9 @@ class WebUiForegroundController(private val service: Service) {
     }
 
     private fun stopServer() {
+        if (webUiServer != null) {
+            XLog.i("WebUI server stop requested")
+        }
         webUiServer?.stop()
         webUiServer = null
         runningConfig = null

@@ -71,9 +71,9 @@ class DispatchExecutor(private val context: Context) {
     ): SenderDispatchResult {
         val senderName = sender.name.ifBlank { "通道${sender.type}" }
         XLog.d("Dispatching to sender: id=%d, type=%d, name=%s", sender.id, sender.type, sender.name)
-            ForwardFlowLog.d(traceId, "Dispatch sender start name=$senderName type=${sender.type}")
-            try {
-                when (sender.type) {
+        ForwardFlowLog.d(traceId, "Dispatch sender start name=$senderName type=${sender.type}")
+        try {
+            when (sender.type) {
                 SenderType.DINGTALK_GROUP_ROBOT -> DingtalkGroupRobotUtils.sendMsg(
                     gson.fromJson(sender.jsonSetting, DingtalkGroupRobotSetting::class.java),
                     msgInfo,
@@ -115,11 +115,16 @@ class DispatchExecutor(private val context: Context) {
             ForwardFlowLog.i(traceId, "Dispatch sender success name=$senderName")
             return SenderDispatchResult(sender.id, sender.type, senderName, true, "OK")
         } catch (e: com.google.gson.JsonSyntaxException) {
-            ForwardFlowLog.e(traceId, "Dispatch sender json parse failed name=$senderName", e)
+            ForwardFlowLog.e(
+                traceId,
+                "Dispatch sender json parse failed name=$senderName cause=${e.javaClass.simpleName}: ${e.message ?: "<empty>"}",
+                e,
+            )
             return SenderDispatchResult(sender.id, sender.type, senderName, false, "配置解析失败: ${e.message ?: "JsonSyntaxException"}")
         } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-            ForwardFlowLog.e(traceId, "Dispatch sender failed name=$senderName", e)
-            return SenderDispatchResult(sender.id, sender.type, senderName, false, e.message ?: e.javaClass.simpleName)
+            val errorSummary = "${e.javaClass.simpleName}: ${e.message ?: "<empty>"}"
+            ForwardFlowLog.e(traceId, "Dispatch sender failed name=$senderName cause=$errorSummary", e)
+            return SenderDispatchResult(sender.id, sender.type, senderName, false, errorSummary)
         }
     }
 }

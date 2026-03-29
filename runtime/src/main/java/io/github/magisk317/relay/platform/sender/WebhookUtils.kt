@@ -13,17 +13,21 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.IOException
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.text.SimpleDateFormat
 import java.util.Locale
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 object WebhookUtils {
     private const val TAG = "WebhookUtils"
+    private const val MAX_ATTEMPTS = 2
+    private const val RETRY_DELAY_MS = 400L
     private val client = OkHttpClient.Builder().build()
 
     private val receiveTimeTag = Regex("\\[receive_time(:(.*?))?]")
@@ -160,14 +164,13 @@ object WebhookUtils {
                 .get()
                 .build()
 
-            client.newCall(request).execute().use { response ->
-                val respBody = response.body.string()
-                if (!response.isSuccessful) {
-                    SLog.e(TAG, t("Webhook GET Failed: ${response.code} ${response.message} $respBody"))
-                    throw IllegalStateException("Webhook GET 失败: HTTP ${response.code}")
-                }
-                SLog.i(TAG, t("Webhook GET Success: ${response.code}"))
-            }
+            executeRequestWithRetry(
+                request = request,
+                traceId = traceId,
+                method = method,
+                successPrefix = "Webhook GET Success",
+                failurePrefix = "Webhook GET Failed",
+            )
         } else {
             if (!methodNeedsBody) {
                 throw IllegalStateException("Webhook 不支持的请求方法: $method")
@@ -235,15 +238,64 @@ object WebhookUtils {
             val request = requestBuilder
                 .build()
 
-            client.newCall(request).execute().use { response ->
-                val respBody = response.body.string()
-                if (!response.isSuccessful) {
-                    SLog.e(TAG, t("Webhook POST Failed: ${response.code} ${response.message} $respBody"))
-                    throw IllegalStateException("Webhook POST 失败: HTTP ${response.code}")
+            executeRequestWithRetry(
+                request = request,
+                traceId = traceId,
+                method = method,
+                successPrefix = "Webhook POST Success",
+                failurePrefix = "Webhook POST Failed",
+            )
+        }
+    }
+
+    private suspend fun executeRequestWithRetry(
+        request: Request,
+        traceId: String?,
+        method: String,
+        successPrefix: String,
+        failurePrefix: String,
+    ) {
+        fun t(message: String): String = if (traceId.isNullOrBlank()) message else "[trace=$traceId] $message"
+        var attempt = 1
+        var lastError: IOException? = null
+
+        while (attempt <= MAX_ATTEMPTS) {
+            try {
+                client.newCall(request).execute().use { response ->
+                    val respBody = response.body.string()
+                    if (!response.isSuccessful) {
+                        SLog.e(
+                            TAG,
+                            t(
+                                "$failurePrefix: attempt=$attempt http=${response.code} " +
+                                    "${response.message} $respBody",
+                            ),
+                        )
+                        throw IllegalStateException("Webhook $method 失败: HTTP ${response.code}")
+                    }
+                    SLog.i(TAG, t("$successPrefix: ${response.code} attempt=$attempt"))
+                    return
                 }
-                SLog.i(TAG, t("Webhook POST Success: ${response.code}"))
+            } catch (e: IOException) {
+                lastError = e
+                val willRetry = attempt < MAX_ATTEMPTS
+                SLog.e(
+                    TAG,
+                    t(
+                        "$failurePrefix: attempt=$attempt exception=${e.javaClass.simpleName} " +
+                            "message=${e.message ?: "<empty>"} retry=$willRetry",
+                    ),
+                    e,
+                )
+                if (!willRetry) {
+                    throw e
+                }
+                delay(RETRY_DELAY_MS)
+                attempt++
             }
         }
+
+        throw lastError ?: IllegalStateException("Webhook $method failed without captured IOException")
     }
 
     // Keep escaping behavior close to SmsForwarder JSON template rendering.
