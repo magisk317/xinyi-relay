@@ -10,7 +10,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.domain.model.MsgInfo
 import io.github.magisk317.relay.domain.model.Sender
 import io.github.magisk317.relay.platform.sender.config.TelegramSetting
@@ -18,6 +20,7 @@ import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.platform.sender.TelegramUtils
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
+import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
@@ -126,12 +129,12 @@ fun TelegramConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
                 coroutineScope.launch {
                     runCatching { viewModel.saveSenderSync(buildSender(status = 0)) }
                         .onSuccess {
-                            showMessage("信息已保存")
+                            showMessage(context.getString(R.string.sender_form_draft_saved))
                             showExitDialog = false
                             onBack()
                         }
                         .onFailure { e ->
-                            showMessage("保存草稿失败: ${e.message}")
+                            showMessage(context.getString(R.string.sender_form_draft_save_failed, e.message.orEmpty()))
                         }
                 }
             },
@@ -146,23 +149,30 @@ fun TelegramConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (senderId == 0L) "新增 Telegram" else "编辑 Telegram") },
+                title = {
+                    Text(
+                        context.getString(
+                            if (senderId == 0L) R.string.sender_form_create_title else R.string.sender_form_edit_title,
+                            getSenderTypeName(context, SenderType.TELEGRAM),
+                        ),
+                    )
+                },
                 navigationIcon = {
-                    IconButton(onClick = { showExitDialog = true }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
+                    IconButton(onClick = { showExitDialog = true }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
                 },
                 actions = {
                     TextButton(onClick = {
                         coroutineScope.launch {
                             runCatching { viewModel.saveSenderSync(buildSender(status = 1)) }
                                 .onSuccess {
-                                    showMessage("保存成功")
+                                    showMessage(context.getString(R.string.sender_form_save_success))
                                     onBack()
                                 }
                                 .onFailure { e ->
-                                    showMessage("保存失败: ${e.message}")
+                                    showMessage(context.getString(R.string.sender_form_save_failed, e.message.orEmpty()))
                                 }
                         }
-                    }) { Text("保存") }
+                    }) { Text(stringResource(R.string.save)) }
                 }
             )
         }
@@ -173,28 +183,28 @@ fun TelegramConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("通道名称") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = apiToken, onValueChange = { apiToken = it }, label = { Text("Bot API Token (必填)") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = chatId, onValueChange = { chatId = it }, label = { Text("Chat ID (必填)") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.sender_form_name_label)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = apiToken, onValueChange = { apiToken = it }, label = { Text(stringResource(R.string.sender_form_label_bot_api_token_required)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = chatId, onValueChange = { chatId = it }, label = { Text(stringResource(R.string.sender_form_label_chat_id_required)) }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(
                 value = topicId,
                 onValueChange = { topicId = it },
-                label = { Text("Topic ID (选填)") },
-                supportingText = { Text("群组话题 Thread ID") },
+                label = { Text(stringResource(R.string.sender_form_label_topic_id_optional)) },
+                supportingText = { Text(stringResource(R.string.sender_form_label_group_thread_id)) },
                 modifier = Modifier.fillMaxWidth(),
             )
             SingleChoiceSegmentedSelector(
                 options = listOf(
-                    SegmentedOption("GET", "GET"),
-                    SegmentedOption("POST", "POST"),
+                    SegmentedOption("GET", stringResource(R.string.sender_segment_get)),
+                    SegmentedOption("POST", stringResource(R.string.sender_segment_post)),
                 ),
                 selected = method,
                 onSelect = { method = it },
             )
             SingleChoiceSegmentedSelector(
                 options = listOf(
-                    SegmentedOption("HTML", "HTML"),
-                    SegmentedOption("MarkdownV2", "MarkdownV2"),
+                    SegmentedOption("HTML", stringResource(R.string.sender_segment_html)),
+                    SegmentedOption("MarkdownV2", stringResource(R.string.sender_segment_markdown_v2)),
                 ),
                 selected = parseMode,
                 onSelect = { parseMode = it },
@@ -202,13 +212,13 @@ fun TelegramConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
             OutlinedTextField(
                 value = proxyHost,
                 onValueChange = { proxyHost = it },
-                label = { Text("Proxy Host (如 127.0.0.1)") },
+                label = { Text(stringResource(R.string.sender_form_label_proxy_host)) },
                 modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
                 value = proxyPort,
                 onValueChange = { proxyPort = it },
-                label = { Text("Proxy Port (如 7890)") },
+                label = { Text(stringResource(R.string.sender_form_label_proxy_port)) },
                 modifier = Modifier.fillMaxWidth()
             )
             ForwardToggleSection(
@@ -233,13 +243,7 @@ fun TelegramConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
                     proxyPort = proxyPort,
                     proxyType = Proxy.Type.DIRECT,
                 )
-                val msg = MsgInfo(
-                    type = "sms",
-                    from = "10086",
-                    content = "Telegram 连通性测试消息",
-                    date = Date(),
-                    simInfo = "SIM1",
-                )
+                val msg = buildSenderTestMsgInfo(context, getSenderTypeName(context, SenderType.TELEGRAM))
                 TelegramUtils.sendMsg(setting, msg)
             }
         }

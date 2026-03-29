@@ -8,10 +8,13 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.domain.model.Rule
 import io.github.magisk317.relay.domain.model.Sender
+import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.displayName
@@ -26,6 +29,7 @@ fun RuleConfigScreen(
     onBack: () -> Unit,
     viewModel: RuleViewModel = koinViewModel()
 ) {
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var isLoaded by remember { mutableStateOf(false) }
 
@@ -64,10 +68,10 @@ fun RuleConfigScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (ruleId == 0L) "新建规则" else "编辑规则") },
+                title = { Text(stringResource(if (ruleId == 0L) R.string.create_rule else R.string.edit_rule)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 }
             )
@@ -87,22 +91,27 @@ fun RuleConfigScreen(
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text("规则名称（备注）") },
+                label = { Text(stringResource(R.string.rule_config_name_label)) },
                 modifier = Modifier.fillMaxWidth()
             )
 
             // 目标通道选择
-            Text("目标发送通道", style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.rule_config_sender_target_label), style = MaterialTheme.typography.labelMedium)
             SenderDropdown(
                 senders = senders,
                 selectedId = selectedSenderId,
+                context = context,
                 onSelect = { selectedSenderId = it }
             )
 
             // 匹配字段
-            Text("匹配字段", style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.rule_config_match_field_label), style = MaterialTheme.typography.labelMedium)
             SegmentedPicker(
-                options = listOf("transpond_all" to "全部转发", "content" to "内容匹配", "sender" to "发件人匹配"),
+                options = listOf(
+                    "transpond_all" to stringResource(R.string.rule_config_match_all),
+                    "content" to stringResource(R.string.rule_config_match_content),
+                    "sender" to stringResource(R.string.rule_config_match_sender),
+                ),
                 selected = filed,
                 onSelect = { filed = it }
             )
@@ -110,12 +119,12 @@ fun RuleConfigScreen(
             // 仅在内容/发件人匹配时显示
             if (filed != "transpond_all") {
                 // 匹配方式
-                Text("匹配方式", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.rule_config_match_mode_label), style = MaterialTheme.typography.labelMedium)
                 SegmentedPicker(
                     options = listOf(
-                        "contains" to "包含",
-                        "is" to "完全匹配",
-                        "regex" to "正则"
+                        "contains" to stringResource(R.string.rule_config_match_contains),
+                        "is" to stringResource(R.string.rule_config_match_exact),
+                        "regex" to stringResource(R.string.rule_config_match_regex),
                     ),
                     selected = check,
                     onSelect = { check = it }
@@ -125,7 +134,14 @@ fun RuleConfigScreen(
                 OutlinedTextField(
                     value = value,
                     onValueChange = { value = it },
-                    label = { Text(if (filed == "content") "关键词 / 正则表达式" else "发件号码") },
+                    label = {
+                        Text(
+                            stringResource(
+                                if (filed == "content") R.string.rule_config_content_value_label
+                                else R.string.rule_config_sender_value_label,
+                            ),
+                        )
+                    },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -134,8 +150,8 @@ fun RuleConfigScreen(
             OutlinedTextField(
                 value = smsTemplate,
                 onValueChange = { smsTemplate = it },
-                label = { Text("自定义消息模板（留空使用默认）") },
-                placeholder = { Text("[来源] {from}\\n{content}") },
+                label = { Text(stringResource(R.string.rule_config_template_label)) },
+                placeholder = { Text(stringResource(R.string.rule_config_template_placeholder)) },
                 minLines = 2,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -164,7 +180,7 @@ fun RuleConfigScreen(
                 enabled = selectedSenderId != 0L,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (ruleId == 0L) "保存规则" else "更新规则")
+                Text(stringResource(if (ruleId == 0L) R.string.rule_config_save_new else R.string.rule_config_save_update))
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -177,10 +193,12 @@ fun RuleConfigScreen(
 fun SenderDropdown(
     senders: List<Sender>,
     selectedId: Long,
+    context: android.content.Context,
     onSelect: (Long) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val selectedName = senders.find { it.id == selectedId }?.displayName() ?: "请选择通道"
+    val selectedName = senders.find { it.id == selectedId }?.displayName(context)
+        ?: context.getString(R.string.rule_config_sender_placeholder)
 
     ExposedDropdownMenuBox(
         expanded = expanded,
@@ -198,7 +216,7 @@ fun SenderDropdown(
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             senders.forEach { sender ->
                 DropdownMenuItem(
-                    text = { Text(sender.displayName()) },
+                    text = { Text(sender.displayName(context)) },
                     onClick = {
                         onSelect(sender.id)
                         expanded = false

@@ -17,7 +17,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.magisk317.relay.core.R
 
 data class SenderNotifyScopeEntry(
     val senderId: Long,
@@ -52,41 +54,41 @@ fun ForwardToggleSection(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text("转发开关", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.pref_forwarding_title), style = MaterialTheme.typography.titleSmall)
             ForwardToggleItem(
-                title = "转发验证码短信",
-                summary = "开启后接收验证码短信转发",
+                title = stringResource(R.string.pref_forward_sms_code_title),
+                summary = stringResource(R.string.pref_forward_sms_code_summary),
                 checked = receiveCode,
                 onCheckedChange = onReceiveCodeChange,
             )
             ForwardToggleItem(
-                title = "转发非验证码短信",
-                summary = "开启后所有短信都会转发",
+                title = stringResource(R.string.pref_forward_sms_plain_title),
+                summary = stringResource(R.string.pref_forward_sms_plain_summary),
                 checked = receiveNonCode,
                 onCheckedChange = onReceiveNonCodeChange,
             )
             ForwardToggleItem(
-                title = "转发应用通知",
-                summary = "开启后接收应用通知转发",
+                title = stringResource(R.string.pref_forward_app_notify_title),
+                summary = stringResource(R.string.pref_forward_app_notify_summary),
                 checked = receiveAppNotify,
                 onCheckedChange = onReceiveAppNotifyChange,
             )
             ForwardToggleItem(
-                title = "转发通话通知",
-                summary = "开启后接收来电/去电/未接等通话通知",
+                title = stringResource(R.string.pref_forward_call_notify_title),
+                summary = stringResource(R.string.pref_forward_call_notify_summary),
                 checked = receiveCallNotify,
                 onCheckedChange = onReceiveCallNotifyChange,
             )
             if (notifyScopeEntry != null && notifyScopeEntry.senderId > 0L) {
                 ForwardConfigActionItem(
-                    title = "通知应用范围",
+                    title = stringResource(R.string.sender_notify_scope_title),
                     summary = notifyScopeEntry.summary,
                     onClick = { notifyScopeEntry.onClick(notifyScopeEntry.senderId) },
                 )
             }
             if (forwardFilterEntry != null && forwardFilterEntry.senderId > 0L) {
                 ForwardConfigActionItem(
-                    title = "通道关键词过滤",
+                    title = stringResource(R.string.forward_filter_sender_title),
                     summary = forwardFilterEntry.summary,
                     onClick = { forwardFilterEntry.onClick(forwardFilterEntry.senderId) },
                 )

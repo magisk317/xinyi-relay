@@ -90,6 +90,21 @@ IP地址列表：{{IP_LIST}}
     fun defaultTemplate(): String = DEFAULT_TEMPLATE.trimIndent()
     fun fullInfoTemplate(): String = FULL_INFO_TEMPLATE.trimIndent()
 
+    fun adaptTemplateForMessageType(
+        template: String,
+        messageType: MessageType,
+    ): String {
+        return when (messageType) {
+            MessageType.APP_NOTIFY -> template
+                .replace(Regex("(?m)^(\\s*)卡槽([:：])"), "$1应用$2")
+                .replace("【卡槽与来源】", "【应用与来源】")
+            MessageType.CALL_NOTIFY -> template
+                .replace(Regex("(?m)^(\\s*)卡槽([:：])"), "$1通话$2")
+                .replace("【卡槽与来源】", "【通话与来源】")
+            else -> template
+        }
+    }
+
     fun applyToMessage(
         context: Context,
         messageType: MessageType,
@@ -149,15 +164,7 @@ IP地址列表：{{IP_LIST}}
         variables.forEach { (name, value) ->
             rendered = rendered.replace("{{$name}}", value)
         }
-        if (messageType == MessageType.APP_NOTIFY) {
-            rendered = rendered
-                .replace(Regex("(?m)^(\\s*)卡槽([:：])"), "$1应用$2")
-                .replace("【卡槽与来源】", "【应用与来源】")
-        } else if (messageType == MessageType.CALL_NOTIFY) {
-            rendered = rendered
-                .replace(Regex("(?m)^(\\s*)卡槽([:：])"), "$1通话$2")
-                .replace("【卡槽与来源】", "【通话与来源】")
-        }
+        rendered = adaptTemplateForMessageType(rendered, messageType)
         val cleaned = removeEmptyValueLines(rendered)
         return msgInfo.copy(content = cleaned)
     }

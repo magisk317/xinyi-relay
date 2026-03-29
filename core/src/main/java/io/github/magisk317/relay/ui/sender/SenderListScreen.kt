@@ -54,50 +54,45 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.compose.koinInject
 
 private data class TemplateVariable(
-    val label: String,
+    val labelRes: Int,
     val token: String,
 )
 
 private val forwardTemplateVariables = listOf(
-    TemplateVariable("来源号码", "{{FROM}}"),
-    TemplateVariable("短信内容", "{{SMS}}"),
-    TemplateVariable("通话类型", "{{CALL_TYPE}}"),
-    TemplateVariable("卡槽备注", "{{CARD_SLOT}}"),
-    TemplateVariable("卡槽主键", "{{CARD_SUBID}}"),
-    TemplateVariable("来源姓名", "{{CONTACT_NAME}}"),
-    TemplateVariable("来源归属", "{{PHONE_AREA}}"),
-    TemplateVariable("APP包名", "{{PACKAGE_NAME}}"),
-    TemplateVariable("APP应用名", "{{APP_NAME}}"),
-    TemplateVariable("通知内容", "{{MSG}}"),
-    TemplateVariable("电池电量", "{{BATTERY_PCT}}"),
-    TemplateVariable("电池状态", "{{BATTERY_STATUS}}"),
-    TemplateVariable("充电方式", "{{BATTERY_PLUGGED}}"),
-    TemplateVariable("电池完整信息", "{{BATTERY_INFO}}"),
-    TemplateVariable("电池简单信息", "{{BATTERY_INFO_SIMPLE}}"),
-    TemplateVariable("公网IPv4", "{{IPV4}}"),
-    TemplateVariable("公网IPv6", "{{IPV6}}"),
-    TemplateVariable("IP地址列表", "{{IP_LIST}}"),
-    TemplateVariable("网络状态", "{{NET_TYPE}}"),
-    TemplateVariable("接收时间", "{{RECEIVE_TIME}}"),
-    TemplateVariable("当前时间", "{{CURRENT_TIME}}"),
-    TemplateVariable("设备名称", "{{DEVICE_NAME}}"),
-    TemplateVariable("软件版本", "{{APP_VERSION}}"),
+    TemplateVariable(R.string.sender_template_var_sender, "{{FROM}}"),
+    TemplateVariable(R.string.sender_template_var_sms_body, "{{SMS}}"),
+    TemplateVariable(R.string.sender_template_var_call_type, "{{CALL_TYPE}}"),
+    TemplateVariable(R.string.sender_template_var_sim_note, "{{CARD_SLOT}}"),
+    TemplateVariable(R.string.sender_template_var_sim_sub_id, "{{CARD_SUBID}}"),
+    TemplateVariable(R.string.sender_template_var_contact_name, "{{CONTACT_NAME}}"),
+    TemplateVariable(R.string.sender_template_var_phone_area, "{{PHONE_AREA}}"),
+    TemplateVariable(R.string.sender_template_var_app_package, "{{PACKAGE_NAME}}"),
+    TemplateVariable(R.string.sender_template_var_app_name, "{{APP_NAME}}"),
+    TemplateVariable(R.string.sender_template_var_notification_body, "{{MSG}}"),
+    TemplateVariable(R.string.sender_template_var_battery_percent, "{{BATTERY_PCT}}"),
+    TemplateVariable(R.string.sender_template_var_battery_status, "{{BATTERY_STATUS}}"),
+    TemplateVariable(R.string.sender_template_var_charging_source, "{{BATTERY_PLUGGED}}"),
+    TemplateVariable(R.string.sender_template_var_battery_info, "{{BATTERY_INFO}}"),
+    TemplateVariable(R.string.sender_template_var_battery_info_brief, "{{BATTERY_INFO_SIMPLE}}"),
+    TemplateVariable(R.string.sender_template_var_public_ipv4, "{{IPV4}}"),
+    TemplateVariable(R.string.sender_template_var_public_ipv6, "{{IPV6}}"),
+    TemplateVariable(R.string.sender_template_var_ip_list, "{{IP_LIST}}"),
+    TemplateVariable(R.string.sender_template_var_network_state, "{{NET_TYPE}}"),
+    TemplateVariable(R.string.sender_template_var_received_at, "{{RECEIVE_TIME}}"),
+    TemplateVariable(R.string.sender_template_var_current_time, "{{CURRENT_TIME}}"),
+    TemplateVariable(R.string.sender_template_var_device_name, "{{DEVICE_NAME}}"),
+    TemplateVariable(R.string.sender_template_var_app_version, "{{APP_VERSION}}"),
 )
 private val templateTokenRegex = Regex("\\{\\{[^{}]+\\}\\}")
-private val cardSlotLineRegex = Regex("(?m)^(\\s*)卡槽([:：])")
 
-private fun toAppNotifyTemplate(template: String): String {
-    return template
-        .replace(cardSlotLineRegex, "$1应用$2")
-        .replace("【卡槽与来源】", "【应用与来源】")
-}
+private fun toAppNotifyTemplate(template: String): String =
+    ForwardCommonConfigStore.adaptTemplateForMessageType(template, MessageType.APP_NOTIFY)
 
-private fun toCallNotifyTemplate(template: String): String {
-    return template
-        .replace("{{SMS}}", "{{CALL_TYPE}} {{SMS}}")
-        .replace(cardSlotLineRegex, "$1通话$2")
-        .replace("【卡槽与来源】", "【通话与来源】")
-}
+private fun toCallNotifyTemplate(template: String): String =
+    ForwardCommonConfigStore.adaptTemplateForMessageType(
+        template.replace("{{SMS}}", "{{CALL_TYPE}} {{SMS}}"),
+        MessageType.CALL_NOTIFY,
+    )
 
 private fun appNotifyDefaultTemplate(): String = toAppNotifyTemplate(ForwardCommonConfigStore.defaultTemplate())
 private fun appNotifyFullTemplate(): String = toAppNotifyTemplate(ForwardCommonConfigStore.fullInfoTemplate())
@@ -106,17 +101,17 @@ private fun callNotifyFullTemplate(): String = toCallNotifyTemplate(ForwardCommo
 
 private val appNotifyTemplateVariables = forwardTemplateVariables.map { variable ->
     when (variable.token) {
-        "{{CARD_SLOT}}" -> variable.copy(label = "应用备注")
-        "{{CARD_SUBID}}" -> variable.copy(label = "应用主键")
+        "{{CARD_SLOT}}" -> variable.copy(labelRes = R.string.sender_template_var_app_note)
+        "{{CARD_SUBID}}" -> variable.copy(labelRes = R.string.sender_template_var_app_key)
         else -> variable
     }
 }
 
 private val callNotifyTemplateVariables = forwardTemplateVariables.map { variable ->
     when (variable.token) {
-        "{{SMS}}" -> variable.copy(label = "通话详情")
-        "{{CARD_SLOT}}" -> variable.copy(label = "通话来源")
-        "{{CARD_SUBID}}" -> variable.copy(label = "通话主键")
+        "{{SMS}}" -> variable.copy(labelRes = R.string.sender_template_var_call_details)
+        "{{CARD_SLOT}}" -> variable.copy(labelRes = R.string.sender_template_var_call_source)
+        "{{CARD_SUBID}}" -> variable.copy(labelRes = R.string.sender_template_var_call_key)
         else -> variable
     }
 }
@@ -124,47 +119,55 @@ private const val DIALOG_WIDTH_FRACTION = 0.92f
 private const val UNDO_SNACKBAR_DURATION_MS = 5_000L
 private const val UNDO_COUNTDOWN_TICK_MS = 50L
 
-private fun buildSmsPreviewMessage(): io.github.magisk317.relay.domain.model.MsgInfo {
+private fun senderTypeGroupLabel(context: android.content.Context, key: String): String {
+    return when (key) {
+        "collaboration" -> context.getString(R.string.sender_group_collaboration)
+        "push" -> context.getString(R.string.sender_group_push)
+        else -> context.getString(R.string.sender_group_other)
+    }
+}
+
+private fun buildSmsPreviewMessage(context: android.content.Context): io.github.magisk317.relay.domain.model.MsgInfo {
     return io.github.magisk317.relay.domain.model.MsgInfo(
         type = "sms",
-        from = "10690001234",
-        content = "【测试银行】您的验证码为 123456，请勿泄露。",
+        from = context.getString(R.string.sender_preview_sms_from),
+        content = context.getString(R.string.sender_preview_sms_content),
         date = Date(),
-        simInfo = "SIM1",
+        simInfo = context.getString(R.string.sender_preview_sms_sim_info),
         simSlot = 0,
         subId = 1,
-        contactName = "测试银行",
-        phoneArea = "上海",
+        contactName = context.getString(R.string.sender_preview_sms_contact_name),
+        phoneArea = context.getString(R.string.sender_preview_sms_phone_area),
     )
 }
 
-private fun buildAppNotifyPreviewMessage(): io.github.magisk317.relay.domain.model.MsgInfo {
+private fun buildAppNotifyPreviewMessage(context: android.content.Context): io.github.magisk317.relay.domain.model.MsgInfo {
     return io.github.magisk317.relay.domain.model.MsgInfo(
         type = "app_notify",
-        from = "微信支付",
-        content = "收款到账 52.00 元",
+        from = context.getString(R.string.sender_preview_app_from),
+        content = context.getString(R.string.sender_preview_app_content),
         date = Date(),
-        simInfo = "微信",
+        simInfo = context.getString(R.string.sender_preview_app_sim_info),
         packageName = "com.tencent.mm",
-        appName = "微信",
-        title = "微信支付",
-        message = "张三向你转账 52.00 元",
-        contactName = "微信支付",
+        appName = context.getString(R.string.sender_preview_app_name),
+        title = context.getString(R.string.sender_preview_app_title),
+        message = context.getString(R.string.sender_preview_app_message),
+        contactName = context.getString(R.string.sender_preview_app_contact_name),
     )
 }
 
-private fun buildCallNotifyPreviewMessage(): io.github.magisk317.relay.domain.model.MsgInfo {
+private fun buildCallNotifyPreviewMessage(context: android.content.Context): io.github.magisk317.relay.domain.model.MsgInfo {
     return io.github.magisk317.relay.domain.model.MsgInfo(
         type = "call_notify",
         from = "10086",
-        content = "时长 00:32",
+        content = context.getString(R.string.sender_preview_call_content),
         date = Date(),
-        simInfo = "SIM1",
+        simInfo = context.getString(R.string.sender_preview_call_sim_info),
         simSlot = 0,
         subId = 42,
         callType = 3,
-        contactName = "中国移动",
-        phoneArea = "上海",
+        contactName = context.getString(R.string.sender_preview_call_contact_name),
+        phoneArea = context.getString(R.string.sender_preview_call_phone_area),
     )
 }
 
@@ -234,32 +237,32 @@ fun SenderListScreen(
 
     if (showTypeDialog) {
         val otherChannels = mutableListOf(
-            SenderType.EMAIL to "邮件",
-            SenderType.URL_SCHEME to "Url Scheme",
-            SenderType.SOCKET to "Socket",
+            SenderType.EMAIL to getSenderTypeName(context, SenderType.EMAIL),
+            SenderType.URL_SCHEME to getSenderTypeName(context, SenderType.URL_SCHEME),
+            SenderType.SOCKET to getSenderTypeName(context, SenderType.SOCKET),
         )
         if (BuildConfig.ENABLE_SMS_CHANNEL) {
-            otherChannels.add(1, SenderType.SMS to "短信")
+            otherChannels.add(1, SenderType.SMS to getSenderTypeName(context, SenderType.SMS))
         }
         val supportedTypeGroups = listOf(
-            "企业协作" to listOf(
-                SenderType.DINGTALK_GROUP_ROBOT to "钉钉群机器人",
-                SenderType.DINGTALK_INNER_ROBOT to "钉钉内部机器人",
-                SenderType.FEISHU to "飞书机器人",
-                SenderType.FEISHU_APP to "飞书应用",
-                SenderType.WEWORK_ROBOT to "企微群机器人",
-                SenderType.WEWORK_AGENT to "企微应用",
+            senderTypeGroupLabel(context, "collaboration") to listOf(
+                SenderType.DINGTALK_GROUP_ROBOT to getSenderTypeName(context, SenderType.DINGTALK_GROUP_ROBOT),
+                SenderType.DINGTALK_INNER_ROBOT to getSenderTypeName(context, SenderType.DINGTALK_INNER_ROBOT),
+                SenderType.FEISHU to getSenderTypeName(context, SenderType.FEISHU),
+                SenderType.FEISHU_APP to getSenderTypeName(context, SenderType.FEISHU_APP),
+                SenderType.WEWORK_ROBOT to getSenderTypeName(context, SenderType.WEWORK_ROBOT),
+                SenderType.WEWORK_AGENT to getSenderTypeName(context, SenderType.WEWORK_AGENT),
             ),
-            "消息推送" to listOf(
-                SenderType.TELEGRAM to "Telegram",
-                SenderType.WEBHOOK to "Webhook",
-                SenderType.SERVERCHAN to "Server酱",
-                SenderType.PUSHPLUS to "PushPlus",
-                SenderType.GOTIFY to "Gotify",
-                SenderType.NTFY to "ntfy",
-                SenderType.BARK to "Bark",
+            senderTypeGroupLabel(context, "push") to listOf(
+                SenderType.TELEGRAM to getSenderTypeName(context, SenderType.TELEGRAM),
+                SenderType.WEBHOOK to getSenderTypeName(context, SenderType.WEBHOOK),
+                SenderType.SERVERCHAN to getSenderTypeName(context, SenderType.SERVERCHAN),
+                SenderType.PUSHPLUS to getSenderTypeName(context, SenderType.PUSHPLUS),
+                SenderType.GOTIFY to getSenderTypeName(context, SenderType.GOTIFY),
+                SenderType.NTFY to getSenderTypeName(context, SenderType.NTFY),
+                SenderType.BARK to getSenderTypeName(context, SenderType.BARK),
             ),
-            "其他" to listOf(
+            senderTypeGroupLabel(context, "other") to listOf(
                 *otherChannels.toTypedArray(),
             ),
         )
@@ -269,7 +272,7 @@ fun SenderListScreen(
             modifier = Modifier.fillMaxWidth(0.88f),
             properties = DialogProperties(usePlatformDefaultWidth = false),
             onDismissRequest = { showTypeDialog = false },
-            title = { Text("选择新建通道类型") },
+            title = { Text(stringResource(R.string.sender_add_type_title)) },
             text = {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
@@ -306,7 +309,7 @@ fun SenderListScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showTypeDialog = false }) {
-                    Text("取消")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -394,7 +397,7 @@ fun SenderListScreen(
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("通道配置") }) },
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.sender_config_title)) }) },
         floatingActionButton = {
             FloatingActionButton(
                 modifier = Modifier
@@ -402,7 +405,7 @@ fun SenderListScreen(
                     .padding(bottom = 56.dp),
                 onClick = { showTypeDialog = true },
             ) {
-                Icon(Icons.Filled.Add, contentDescription = "Add Sender")
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.sender_add_sender_content_description))
             }
         }
     ) { paddingValues ->
@@ -462,7 +465,7 @@ fun SenderListScreen(
                                 .padding(vertical = 48.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Text("暂无发送通道，请点击右下角添加")
+                            Text(stringResource(R.string.sender_empty_message))
                         }
                     }
                 } else {
@@ -475,7 +478,9 @@ fun SenderListScreen(
                                     val result = viewModel.validateSenderForEnable(sender)
                                     if (!result.valid) {
                                         scope.launch {
-                                            snackbarHostState.showSnackbar("无法开启：${result.message}")
+                                            snackbarHostState.showSnackbar(
+                                                context.getString(R.string.sender_enable_failed, result.message),
+                                            )
                                         }
                                     } else {
                                         viewModel.toggleSenderStatus(sender, enabled)
@@ -498,7 +503,7 @@ fun SenderListScreen(
                                         snackbarHostState.showSnackbar(
                                             message = context.getString(
                                                 R.string.sender_removed_with_undo,
-                                                removedSender.name.ifBlank { getSenderTypeName(removedSender.type) },
+                                                removedSender.name.ifBlank { getSenderTypeName(context, removedSender.type) },
                                             ),
                                             actionLabel = context.getString(R.string.revoke),
                                             duration = SnackbarDuration.Indefinite,
@@ -622,19 +627,17 @@ private fun GeneralConfigCard(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                text = "通用配置",
+                text = stringResource(R.string.sender_general_config_title),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                 maxLines = 1,
             )
             Text(
-                text = buildString {
-                    append("设备: ")
-                    append(deviceName.ifBlank { "默认系统值" })
-                    append(" / SIM1: ")
-                    append(simSlot1Remark.ifBlank { "未设置" })
-                    append(" / SIM2: ")
-                    append(simSlot2Remark.ifBlank { "未设置" })
-                },
+                text = stringResource(
+                    R.string.sender_general_config_summary,
+                    deviceName.ifBlank { stringResource(R.string.sender_system_default) },
+                    simSlot1Remark.ifBlank { stringResource(R.string.sender_not_set) },
+                    simSlot2Remark.ifBlank { stringResource(R.string.sender_not_set) },
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
             )
@@ -656,12 +659,12 @@ private fun SmsConfigCard(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                text = "短信配置",
+                text = stringResource(R.string.sender_sms_config_title),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                 maxLines = 1,
             )
             Text(
-                text = "点击设置转发模板",
+                text = stringResource(R.string.sender_config_card_summary),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -683,12 +686,12 @@ private fun AppNotifyConfigCard(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                text = "应用配置",
+                text = stringResource(R.string.sender_app_config_title),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                 maxLines = 1,
             )
             Text(
-                text = "点击设置转发模板",
+                text = stringResource(R.string.sender_config_card_summary),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -710,12 +713,12 @@ private fun CallNotifyConfigCard(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                text = "通话配置",
+                text = stringResource(R.string.sender_call_config_title),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                 maxLines = 1,
             )
             Text(
-                text = "点击设置转发模板",
+                text = stringResource(R.string.sender_config_card_summary),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -760,31 +763,31 @@ private fun GeneralConfigDialog(
     var simSlot2Remark by remember(currentSimSlot2Remark) { mutableStateOf(currentSimSlot2Remark) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("通用配置") },
+        title = { Text(stringResource(R.string.sender_general_config_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = deviceName,
                     onValueChange = { deviceName = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("设备名称") },
-                    placeholder = { Text("默认读取系统值") },
+                    label = { Text(stringResource(R.string.sender_dialog_device_name_label)) },
+                    placeholder = { Text(stringResource(R.string.sender_dialog_device_name_placeholder)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
                     value = simSlot1Remark,
                     onValueChange = { simSlot1Remark = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("SIM1 备注") },
-                    placeholder = { Text("用于 {{CARD_SLOT}} 显示") },
+                    label = { Text(stringResource(R.string.sender_dialog_sim1_note_label)) },
+                    placeholder = { Text(stringResource(R.string.sender_dialog_sim_note_placeholder)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
                     value = simSlot2Remark,
                     onValueChange = { simSlot2Remark = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("SIM2 备注") },
-                    placeholder = { Text("用于 {{CARD_SLOT}} 显示") },
+                    label = { Text(stringResource(R.string.sender_dialog_sim2_note_label)) },
+                    placeholder = { Text(stringResource(R.string.sender_dialog_sim_note_placeholder)) },
                     singleLine = true,
                 )
             }
@@ -799,12 +802,12 @@ private fun GeneralConfigDialog(
                     )
                 },
             ) {
-                Text("保存")
+                Text(stringResource(R.string.save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(stringResource(R.string.cancel))
             }
         },
     )
@@ -839,7 +842,7 @@ private fun ForwardCommonConfigDialog(
         return ForwardCommonConfigStore.applyToMessage(
             context = context,
             messageType = MessageType.SMS_PLAIN,
-            msgInfo = buildSmsPreviewMessage(),
+            msgInfo = buildSmsPreviewMessage(context),
             config = previewConfig,
             simRemarkSnapshot = simRemarkSettings,
         ).content
@@ -907,7 +910,7 @@ private fun ForwardCommonConfigDialog(
         modifier = Modifier.fillMaxWidth(DIALOG_WIDTH_FRACTION),
         properties = DialogProperties(usePlatformDefaultWidth = false),
         onDismissRequest = onDismiss,
-        title = { Text("短信配置") },
+        title = { Text(stringResource(R.string.sender_sms_config_title)) },
         text = {
             Column(
                 modifier = Modifier
@@ -917,11 +920,11 @@ private fun ForwardCommonConfigDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    text = "进入处理管线",
+                    text = stringResource(R.string.sender_gate_ingress_title),
                     style = MaterialTheme.typography.titleSmall,
                 )
                 Text(
-                    text = "关闭后将不进入处理流程（不识别/不记录/不转发）。",
+                    text = stringResource(R.string.sender_gate_ingress_summary_sms),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -939,7 +942,7 @@ private fun ForwardCommonConfigDialog(
                 )
                 HorizontalDivider()
                 Text(
-                    text = "转发开关（仅影响转发）",
+                    text = stringResource(R.string.sender_gate_forwarding_title),
                     style = MaterialTheme.typography.titleSmall,
                 )
                 ConfigGateToggle(
@@ -969,12 +972,12 @@ private fun ForwardCommonConfigDialog(
                             }
                             templateFocused = focusState.isFocused
                         },
-                    label = { Text("转发信息模板") },
-                    placeholder = { Text("留空使用默认模板") },
-                    supportingText = { Text("Tip: 按需插入内容标签；可用变量见下方按钮") },
+                    label = { Text(stringResource(R.string.sender_template_sms_label)) },
+                    placeholder = { Text(stringResource(R.string.sender_template_placeholder)) },
+                    supportingText = { Text(stringResource(R.string.sender_template_supporting)) },
                 )
                 Text(
-                    text = "效果预览：\n$previewText",
+                    text = stringResource(R.string.sender_template_preview, previewText),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -997,7 +1000,7 @@ private fun ForwardCommonConfigDialog(
                         },
                         interactionSource = fillTemplateInteractionSource,
                     ) {
-                        Text("填入默认模板")
+                        Text(stringResource(R.string.sender_template_fill_default))
                     }
                 }
                 HorizontalDivider()
@@ -1016,7 +1019,7 @@ private fun ForwardCommonConfigDialog(
                             modifier = Modifier.fillMaxWidth(),
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
                         ) {
-                            Text(variable.label, style = MaterialTheme.typography.labelSmall)
+                            Text(stringResource(variable.labelRes), style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
@@ -1032,12 +1035,12 @@ private fun ForwardCommonConfigDialog(
                     )
                 },
             ) {
-                Text("保存")
+                Text(stringResource(R.string.save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(stringResource(R.string.cancel))
             }
         },
     )
@@ -1067,7 +1070,7 @@ private fun AppNotifyTemplateDialog(
         return ForwardCommonConfigStore.applyToMessage(
             context = context,
             messageType = MessageType.APP_NOTIFY,
-            msgInfo = buildAppNotifyPreviewMessage(),
+            msgInfo = buildAppNotifyPreviewMessage(context),
             config = previewConfig,
             simRemarkSnapshot = simRemarkSettings,
         ).content
@@ -1136,7 +1139,7 @@ private fun AppNotifyTemplateDialog(
         modifier = Modifier.fillMaxWidth(DIALOG_WIDTH_FRACTION),
         properties = DialogProperties(usePlatformDefaultWidth = false),
         onDismissRequest = onDismiss,
-        title = { Text("应用通知配置") },
+        title = { Text(stringResource(R.string.sender_app_config_title)) },
         text = {
             Column(
                 modifier = Modifier
@@ -1146,11 +1149,11 @@ private fun AppNotifyTemplateDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    text = "进入处理管线",
+                    text = stringResource(R.string.sender_gate_ingress_title),
                     style = MaterialTheme.typography.titleSmall,
                 )
                 Text(
-                    text = "关闭后将不进入处理流程（不记录/不转发）。",
+                    text = stringResource(R.string.sender_gate_ingress_summary_event),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1162,7 +1165,7 @@ private fun AppNotifyTemplateDialog(
                 )
                 HorizontalDivider()
                 Text(
-                    text = "转发开关（仅影响转发）",
+                    text = stringResource(R.string.sender_gate_forwarding_title),
                     style = MaterialTheme.typography.titleSmall,
                 )
                 ConfigGateToggle(
@@ -1186,12 +1189,12 @@ private fun AppNotifyTemplateDialog(
                             }
                             templateFocused = focusState.isFocused
                         },
-                    label = { Text("应用通知转发模板") },
-                    placeholder = { Text("留空使用默认模板") },
-                    supportingText = { Text("Tip: 按需插入内容标签；可用变量见下方按钮") },
+                    label = { Text(stringResource(R.string.sender_template_app_label)) },
+                    placeholder = { Text(stringResource(R.string.sender_template_placeholder)) },
+                    supportingText = { Text(stringResource(R.string.sender_template_supporting)) },
                 )
                 Text(
-                    text = "效果预览：\n$previewText",
+                    text = stringResource(R.string.sender_template_preview, previewText),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1214,7 +1217,7 @@ private fun AppNotifyTemplateDialog(
                         },
                         interactionSource = fillTemplateInteractionSource,
                     ) {
-                        Text("填入默认模板")
+                        Text(stringResource(R.string.sender_template_fill_default))
                     }
                 }
                 HorizontalDivider()
@@ -1233,7 +1236,7 @@ private fun AppNotifyTemplateDialog(
                             modifier = Modifier.fillMaxWidth(),
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
                         ) {
-                            Text(variable.label, style = MaterialTheme.typography.labelSmall)
+                            Text(stringResource(variable.labelRes), style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
@@ -1241,12 +1244,12 @@ private fun AppNotifyTemplateDialog(
         },
         confirmButton = {
             TextButton(onClick = { onSave(templateValue.text) }) {
-                Text("保存")
+                Text(stringResource(R.string.save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(stringResource(R.string.cancel))
             }
         },
     )
@@ -1276,7 +1279,7 @@ private fun CallNotifyTemplateDialog(
         return ForwardCommonConfigStore.applyToMessage(
             context = context,
             messageType = MessageType.CALL_NOTIFY,
-            msgInfo = buildCallNotifyPreviewMessage(),
+            msgInfo = buildCallNotifyPreviewMessage(context),
             config = previewConfig,
             simRemarkSnapshot = simRemarkSettings,
         ).content
@@ -1345,7 +1348,7 @@ private fun CallNotifyTemplateDialog(
         modifier = Modifier.fillMaxWidth(DIALOG_WIDTH_FRACTION),
         properties = DialogProperties(usePlatformDefaultWidth = false),
         onDismissRequest = onDismiss,
-        title = { Text("通话通知配置") },
+        title = { Text(stringResource(R.string.sender_call_config_title)) },
         text = {
             Column(
                 modifier = Modifier
@@ -1355,11 +1358,11 @@ private fun CallNotifyTemplateDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    text = "进入处理管线",
+                    text = stringResource(R.string.sender_gate_ingress_title),
                     style = MaterialTheme.typography.titleSmall,
                 )
                 Text(
-                    text = "关闭后将不进入处理流程（不记录/不转发）。",
+                    text = stringResource(R.string.sender_gate_ingress_summary_event),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1371,7 +1374,7 @@ private fun CallNotifyTemplateDialog(
                 )
                 HorizontalDivider()
                 Text(
-                    text = "转发开关（仅影响转发）",
+                    text = stringResource(R.string.sender_gate_forwarding_title),
                     style = MaterialTheme.typography.titleSmall,
                 )
                 ConfigGateToggle(
@@ -1395,12 +1398,12 @@ private fun CallNotifyTemplateDialog(
                             }
                             templateFocused = focusState.isFocused
                         },
-                    label = { Text("通话通知转发模板") },
-                    placeholder = { Text("留空使用默认模板") },
-                    supportingText = { Text("Tip: 按需插入内容标签；可用变量见下方按钮") },
+                    label = { Text(stringResource(R.string.sender_template_call_label)) },
+                    placeholder = { Text(stringResource(R.string.sender_template_placeholder)) },
+                    supportingText = { Text(stringResource(R.string.sender_template_supporting)) },
                 )
                 Text(
-                    text = "效果预览：\n$previewText",
+                    text = stringResource(R.string.sender_template_preview, previewText),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1423,7 +1426,7 @@ private fun CallNotifyTemplateDialog(
                         },
                         interactionSource = fillTemplateInteractionSource,
                     ) {
-                        Text("填入默认模板")
+                        Text(stringResource(R.string.sender_template_fill_default))
                     }
                 }
                 HorizontalDivider()
@@ -1442,7 +1445,7 @@ private fun CallNotifyTemplateDialog(
                             modifier = Modifier.fillMaxWidth(),
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
                         ) {
-                            Text(variable.label, style = MaterialTheme.typography.labelSmall)
+                            Text(stringResource(variable.labelRes), style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
@@ -1450,12 +1453,12 @@ private fun CallNotifyTemplateDialog(
         },
         confirmButton = {
             TextButton(onClick = { onSave(templateValue.text) }) {
-                Text("保存")
+                Text(stringResource(R.string.save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(stringResource(R.string.cancel))
             }
         },
     )
@@ -1468,6 +1471,7 @@ fun SenderCard(
     onToggle: (Boolean) -> Unit,
     onDelete: () -> Unit
 ) {
+    val context = LocalContext.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -1484,7 +1488,7 @@ fun SenderCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = sender.name.ifEmpty { getSenderTypeName(sender.type) },
+                    text = sender.name.ifEmpty { getSenderTypeName(context, sender.type) },
                     style = MaterialTheme.typography.titleMedium
                 )
                 Switch(
@@ -1494,7 +1498,11 @@ fun SenderCard(
             }
             val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
             Text(
-                text = "类型: ${getSenderTypeName(sender.type)} | 修改于: ${sdf.format(sender.time)}",
+                text = stringResource(
+                    R.string.sender_type_line,
+                    getSenderTypeName(context, sender.type),
+                    sdf.format(sender.time),
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -1503,32 +1511,36 @@ fun SenderCard(
                 horizontalArrangement = Arrangement.End
             ) {
                 TextButton(onClick = onDelete) {
-                    Text("删除", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error)
                 }
             }
         }
     }
 }
 
-fun getSenderTypeName(type: Int): String {
+fun getSenderTypeName(context: android.content.Context, type: Int): String {
     return when (type) {
-        SenderType.DINGTALK_GROUP_ROBOT -> "钉钉群机器人"
-        SenderType.EMAIL -> "邮件"
-        SenderType.BARK -> "Bark"
-        SenderType.WEBHOOK -> "Webhook"
-        SenderType.WEWORK_ROBOT -> "企微群机器人"
-        SenderType.WEWORK_AGENT -> "企微应用"
-        SenderType.SERVERCHAN -> "Server酱"
-        SenderType.TELEGRAM -> "Telegram机器人"
-        SenderType.SMS -> if (BuildConfig.ENABLE_SMS_CHANNEL) "短信" else "短信(不可用)"
-        SenderType.FEISHU -> "飞书机器人"
-        SenderType.PUSHPLUS -> "PushPlus"
-        SenderType.GOTIFY -> "Gotify"
-        SenderType.NTFY -> "ntfy"
-        SenderType.DINGTALK_INNER_ROBOT -> "钉钉内部机器人"
-        SenderType.FEISHU_APP -> "飞书应用"
-        SenderType.URL_SCHEME -> "Url Scheme"
-        SenderType.SOCKET -> "Socket"
-        else -> "未知通道"
+        SenderType.DINGTALK_GROUP_ROBOT -> context.getString(R.string.sender_type_dingtalk_group_robot)
+        SenderType.EMAIL -> context.getString(R.string.sender_type_email)
+        SenderType.BARK -> context.getString(R.string.sender_type_bark)
+        SenderType.WEBHOOK -> context.getString(R.string.sender_type_webhook)
+        SenderType.WEWORK_ROBOT -> context.getString(R.string.sender_type_wework_robot)
+        SenderType.WEWORK_AGENT -> context.getString(R.string.sender_type_wework_agent)
+        SenderType.SERVERCHAN -> context.getString(R.string.sender_type_serverchan)
+        SenderType.TELEGRAM -> context.getString(R.string.sender_type_telegram)
+        SenderType.SMS -> if (BuildConfig.ENABLE_SMS_CHANNEL) {
+            context.getString(R.string.sender_type_sms)
+        } else {
+            context.getString(R.string.sender_type_sms_unavailable)
+        }
+        SenderType.FEISHU -> context.getString(R.string.sender_type_feishu)
+        SenderType.PUSHPLUS -> context.getString(R.string.sender_type_pushplus)
+        SenderType.GOTIFY -> context.getString(R.string.sender_type_gotify)
+        SenderType.NTFY -> context.getString(R.string.sender_type_ntfy)
+        SenderType.DINGTALK_INNER_ROBOT -> context.getString(R.string.sender_type_dingtalk_inner_robot)
+        SenderType.FEISHU_APP -> context.getString(R.string.sender_type_feishu_app)
+        SenderType.URL_SCHEME -> context.getString(R.string.sender_type_url_scheme)
+        SenderType.SOCKET -> context.getString(R.string.sender_type_socket)
+        else -> context.getString(R.string.sender_type_unknown)
     }
 }

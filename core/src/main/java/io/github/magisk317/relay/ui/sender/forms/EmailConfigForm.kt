@@ -31,12 +31,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.domain.model.MsgInfo
 import io.github.magisk317.relay.domain.model.Sender
 import io.github.magisk317.relay.platform.sender.config.EmailSetting
 import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.platform.sender.EmailUtils
+import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
@@ -138,11 +141,11 @@ fun EmailConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMod
                 scope.launch {
                     runCatching { viewModel.saveSenderSync(buildSender(status = 0)) }
                         .onSuccess {
-                            showMessage("信息已保存")
+                            showMessage(context.getString(R.string.sender_form_draft_saved))
                             showExitDialog = false
                             onBack()
                         }
-                        .onFailure { showMessage("保存草稿失败: ${it.message}") }
+                        .onFailure { showMessage(context.getString(R.string.sender_form_draft_save_failed, it.message ?: it.javaClass.simpleName)) }
                 }
             },
             onDiscard = {
@@ -156,19 +159,26 @@ fun EmailConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMod
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (senderId == 0L) "新增 邮件通道" else "编辑 邮件通道") },
-                navigationIcon = { IconButton(onClick = { showExitDialog = true }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } },
+                title = {
+                    Text(
+                        context.getString(
+                            if (senderId == 0L) R.string.sender_form_create_title else R.string.sender_form_edit_title,
+                            getSenderTypeName(context, SenderType.EMAIL),
+                        ),
+                    )
+                },
+                navigationIcon = { IconButton(onClick = { showExitDialog = true }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back)) } },
                 actions = {
                     TextButton(onClick = {
                         scope.launch {
                             runCatching { viewModel.saveSenderSync(buildSender(status = 1)) }
                                 .onSuccess {
-                                    showMessage("保存成功")
+                                    showMessage(context.getString(R.string.sender_form_save_success))
                                     onBack()
                                 }
-                                .onFailure { showMessage("保存失败: ${it.message}") }
+                                .onFailure { showMessage(context.getString(R.string.sender_form_save_failed, it.message ?: it.javaClass.simpleName)) }
                         }
-                    }) { Text("保存") }
+                    }) { Text(stringResource(R.string.save)) }
                 },
             )
         },
@@ -177,26 +187,26 @@ fun EmailConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMod
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            OutlinedTextField(name, { name = it }, label = { Text("通道名称") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(mailType, { mailType = it }, label = { Text("mailType(如 @qq.com)") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(fromEmail, { fromEmail = it }, label = { Text("发件邮箱") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(pwd, { pwd = it }, label = { Text("授权码/密码") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(host, { host = it }, label = { Text("SMTP Host") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(port, { port = it }, label = { Text("SMTP Port") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(toEmail, { toEmail = it }, label = { Text("收件人(逗号分隔)") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.sender_form_name_label)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(mailType, { mailType = it }, label = { Text(stringResource(R.string.sender_form_label_mail_type_example)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(fromEmail, { fromEmail = it }, label = { Text(stringResource(R.string.sender_form_label_from_email)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(pwd, { pwd = it }, label = { Text(stringResource(R.string.sender_form_label_auth_code_or_password)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(host, { host = it }, label = { Text(stringResource(R.string.sender_form_label_smtp_host)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(port, { port = it }, label = { Text(stringResource(R.string.sender_form_label_smtp_port)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(toEmail, { toEmail = it }, label = { Text(stringResource(R.string.sender_form_label_recipients_comma)) }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(
                 title,
                 { title = it },
-                label = { Text("标题") },
-                placeholder = { Text("默认为信息驿站，可自行修改") },
+                label = { Text(stringResource(R.string.sender_form_label_title)) },
+                placeholder = { Text(stringResource(R.string.sender_form_title_template_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
             )
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("SSL")
+                Text(stringResource(R.string.sender_segment_ssl))
                 Switch(checked = ssl, onCheckedChange = { ssl = it })
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("STARTTLS")
+                Text(stringResource(R.string.sender_segment_starttls))
                 Switch(checked = startTls, onCheckedChange = { startTls = it })
             }
             ForwardToggleSection(
@@ -222,7 +232,7 @@ fun EmailConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMod
                         toEmail = toEmail,
                         title = title,
                     ),
-                    MsgInfo("sms", "10086", "Email 测试消息", Date(), "SIM1"),
+                    buildSenderTestMsgInfo(context, getSenderTypeName(context, SenderType.EMAIL)),
                 )
             }
         }

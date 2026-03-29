@@ -10,12 +10,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.domain.model.MsgInfo
 import io.github.magisk317.relay.domain.model.Sender
 import io.github.magisk317.relay.platform.sender.config.PushplusSetting
 import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.platform.sender.PushplusUtils
+import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
@@ -119,12 +122,12 @@ fun PushplusConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
                 coroutineScope.launch {
                     runCatching { viewModel.saveSenderSync(buildSender(status = 0)) }
                         .onSuccess {
-                            showMessage("信息已保存")
+                            showMessage(context.getString(R.string.sender_form_draft_saved))
                             showExitDialog = false
                             onBack()
                         }
                         .onFailure { e ->
-                            showMessage("保存草稿失败: ${e.message}")
+                            showMessage(context.getString(R.string.sender_form_draft_save_failed, e.message.orEmpty()))
                         }
                 }
             },
@@ -139,23 +142,30 @@ fun PushplusConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (senderId == 0L) "新增 Pushplus" else "编辑 Pushplus") },
+                title = {
+                    Text(
+                        context.getString(
+                            if (senderId == 0L) R.string.sender_form_create_title else R.string.sender_form_edit_title,
+                            getSenderTypeName(context, SenderType.PUSHPLUS),
+                        ),
+                    )
+                },
                 navigationIcon = {
-                    IconButton(onClick = { showExitDialog = true }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
+                    IconButton(onClick = { showExitDialog = true }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
                 },
                 actions = {
                     TextButton(onClick = {
                         coroutineScope.launch {
                             runCatching { viewModel.saveSenderSync(buildSender(status = 1)) }
                                 .onSuccess {
-                                    showMessage("保存成功")
+                                    showMessage(context.getString(R.string.sender_form_save_success))
                                     onBack()
                                 }
                                 .onFailure { e ->
-                                    showMessage("保存失败: ${e.message}")
+                                    showMessage(context.getString(R.string.sender_form_save_failed, e.message.orEmpty()))
                                 }
                         }
-                    }) { Text("保存") }
+                    }) { Text(stringResource(R.string.save)) }
                 }
             )
         }
@@ -166,17 +176,17 @@ fun PushplusConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("通道名称") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = token, onValueChange = { token = it }, label = { Text("Token (必填)") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = topic, onValueChange = { topic = it }, label = { Text("群组编码 topic (选填)") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = template, onValueChange = { template = it }, label = { Text("消息模板 template") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = channel, onValueChange = { channel = it }, label = { Text("发送渠道 channel") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = website, onValueChange = { website = it }, label = { Text("请求地址 website") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.sender_form_name_label)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = token, onValueChange = { token = it }, label = { Text(stringResource(R.string.sender_form_label_token_required)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = topic, onValueChange = { topic = it }, label = { Text(stringResource(R.string.sender_form_label_topic_code_optional)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = template, onValueChange = { template = it }, label = { Text(stringResource(R.string.sender_form_label_message_template)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = channel, onValueChange = { channel = it }, label = { Text(stringResource(R.string.sender_form_label_delivery_channel)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = website, onValueChange = { website = it }, label = { Text(stringResource(R.string.sender_form_label_request_url)) }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(
                 value = titleTemplate,
                 onValueChange = { titleTemplate = it },
-                label = { Text("自定义标题模板") },
-                placeholder = { Text("默认为信息驿站，可自行修改") },
+                label = { Text(stringResource(R.string.sender_form_title_template_label)) },
+                placeholder = { Text(stringResource(R.string.sender_form_title_template_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -201,13 +211,7 @@ fun PushplusConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
                     channel = channel,
                     titleTemplate = titleTemplate,
                 )
-                val msg = MsgInfo(
-                    type = "sms",
-                    from = "10086",
-                    content = "Pushplus 连通性测试消息",
-                    date = Date(),
-                    simInfo = "SIM1",
-                )
+                val msg = buildSenderTestMsgInfo(context, getSenderTypeName(context, SenderType.PUSHPLUS))
                 PushplusUtils.sendMsg(setting, msg)
             }
         }

@@ -3,6 +3,7 @@
 package io.github.magisk317.relay.ui.home
 
 import android.content.Intent
+import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -51,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.navigationBarsPadding
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.utils.ClipboardUtils
+import io.github.magisk317.relay.common.utils.Utils
 import io.github.magisk317.relay.platform.web.WebUiCertificateHelper
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.data.datasource.PreferenceDataSource
@@ -63,6 +65,7 @@ import org.koin.compose.koinInject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.net.NetworkInterface
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,6 +89,7 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
     var certPeriodSummary by remember { mutableStateOf("") }
     var certStatusSummary by remember { mutableStateOf("") }
     var exportedP12Password by remember { mutableStateOf("") }
+    var lanIpv4Hosts by remember { mutableStateOf(emptyList<String>()) }
     var initialLoading by remember { mutableStateOf(true) }
     var certLoading by remember { mutableStateOf(false) }
     var saveInProgress by remember { mutableStateOf(false) }
@@ -101,6 +105,8 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
     val certExportP12FailedText = stringResource(id = R.string.pref_webui_cert_export_p12_failed)
     val certOpenInstallerFailedText = stringResource(id = R.string.pref_webui_cert_open_installer_failed)
     val certTimeLabelText = stringResource(id = R.string.pref_webui_cert_validity_label)
+    val unknownText = stringResource(id = R.string.unknown)
+    val browserInstallOrEnablePrompt = stringResource(id = R.string.browser_install_or_enable_prompt)
     fun showMessage(message: String) {
         scope.launch {
             snackbarHostState.showSnackbar(message)
@@ -120,7 +126,7 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
                     showMessage(certExportSuccessText)
                 }
                 .onFailure {
-                    showMessage("$certExportFailedText: ${it.message ?: "unknown"}")
+                    showMessage("$certExportFailedText: ${it.message ?: unknownText}")
                 }
         }
     }
@@ -137,7 +143,7 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
                     showMessage(certExportP12SuccessText)
                 }
                 .onFailure {
-                    showMessage("$certExportP12FailedText: ${it.message ?: "unknown"}")
+                    showMessage("$certExportP12FailedText: ${it.message ?: unknownText}")
                 }
         }
     }
@@ -146,6 +152,29 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
         if (value.isBlank()) return
         ClipboardUtils.copyToClipboard(context, value)
         showMessage(context.getString(R.string.prompt_field_copied, context.getString(labelRes)))
+    }
+
+    fun copyValue(label: String, value: String) {
+        if (value.isBlank()) return
+        ClipboardUtils.copyToClipboard(context, value)
+        showMessage(context.getString(R.string.prompt_field_copied, label))
+    }
+
+    fun openWebUiUrl(url: String) {
+        if (url.isBlank()) return
+        runCatching {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            if (intent.resolveActivity(context.packageManager) != null) {
+                context.startActivity(intent)
+            } else {
+                throw IllegalStateException(browserInstallOrEnablePrompt)
+            }
+        }.onFailure {
+            Utils.showWebPage(context, url)?.let(::showMessage)
+                ?: showMessage(it.message ?: browserInstallOrEnablePrompt)
+        }
     }
 
     fun validateInput(): Boolean {
@@ -184,7 +213,7 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
                 certFingerprint = ""
                 certPeriodSummary = ""
                 exportedP12Password = ""
-                certStatusSummary = "$certLoadFailedText: ${err.message ?: "unknown"}"
+                certStatusSummary = "$certLoadFailedText: ${err.message ?: unknownText}"
             }
         certLoading = false
     }
@@ -217,10 +246,18 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
                 certFingerprint = ""
                 certPeriodSummary = ""
                 exportedP12Password = ""
-                certStatusSummary = "$certLoadFailedText: ${err.message ?: "unknown"}"
+                certStatusSummary = "$certLoadFailedText: ${err.message ?: unknownText}"
             }
         certLoading = false
         initialLoading = false
+    }
+
+    LaunchedEffect(lanAccess) {
+        lanIpv4Hosts = if (lanAccess) {
+            withContext(Dispatchers.IO) { resolveLanIpv4Hosts() }
+        } else {
+            emptyList()
+        }
     }
 
     Scaffold(
@@ -423,6 +460,88 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
                             },
                         )
 
+                        Button(
+                            onClick = {
+                                if (!validateInput()) return@Button
+                                scope.launch {
+                                    saveInProgress = true
+                                    withContext(Dispatchers.IO) {
+                                        repository.updateWebUiConfig(
+                                            io.github.magisk317.relay.data.repository.WebUiConfigUpdate(
+                                                enabled = webUiEnabled,
+                                                lanAccess = lanAccess,
+                                                port = port.trim(),
+                                                username = username.trim(),
+                                                password = password.trim(),
+                                            ),
+                                        )
+                                    }
+                                    saveInProgress = false
+                                    showMessage(savedSnackbarText)
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = PaddingValues(vertical = 14.dp),
+                            enabled = !saveInProgress,
+                        ) {
+                            Text(text = stringResource(id = R.string.confirm))
+                        }
+
+                        val normalizedPort = port.trim().toIntOrNull()?.takeIf { it in 1..65535 }
+                        val localUrl = normalizedPort?.let { "https://127.0.0.1:$it" }.orEmpty()
+                        val lanUrls = normalizedPort
+                            ?.takeIf { lanAccess }
+                            ?.let { resolvedPort -> lanIpv4Hosts.map { host -> "https://$host:$resolvedPort" } }
+                            .orEmpty()
+
+                        Text(
+                            text = stringResource(id = R.string.pref_webui_access_section_title),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        Text(
+                            text = stringResource(id = R.string.pref_webui_access_section_summary),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (normalizedPort == null) {
+                            Text(
+                                text = stringResource(id = R.string.pref_webui_access_invalid_port),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        } else {
+                            val localUrlLabel = stringResource(id = R.string.pref_webui_access_local_url_title)
+                            WebUiAccessUrlField(
+                                label = localUrlLabel,
+                                url = localUrl,
+                                onCopy = { copyValue(localUrlLabel, localUrl) },
+                                onOpen = { openWebUiUrl(localUrl) },
+                            )
+                            if (lanAccess) {
+                                if (lanUrls.isEmpty()) {
+                                    Text(
+                                        text = stringResource(id = R.string.pref_webui_access_lan_empty),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                } else {
+                                    lanUrls.forEachIndexed { index, url ->
+                                        val label = if (lanUrls.size == 1) {
+                                            stringResource(id = R.string.pref_webui_access_lan_url_title)
+                                        } else {
+                                            "${stringResource(id = R.string.pref_webui_access_lan_url_title)} ${index + 1}"
+                                        }
+                                        WebUiAccessUrlField(
+                                            label = label,
+                                            url = url,
+                                            onCopy = { copyValue(label, url) },
+                                            onOpen = { openWebUiUrl(url) },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
                         Text(
                             text = stringResource(id = R.string.pref_webui_https_note),
                             style = MaterialTheme.typography.bodySmall,
@@ -565,33 +684,60 @@ fun WebUiConfigScreen(onBack: () -> Unit) {
                     }
                 }
             }
-
-            Button(
-                onClick = {
-                    if (!validateInput()) return@Button
-                    scope.launch {
-                        saveInProgress = true
-                        withContext(Dispatchers.IO) {
-                            repository.updateWebUiConfig(
-                                io.github.magisk317.relay.data.repository.WebUiConfigUpdate(
-                                    enabled = webUiEnabled,
-                                    lanAccess = lanAccess,
-                                    port = port.trim(),
-                                    username = username.trim(),
-                                    password = password.trim(),
-                                ),
-                            )
-                        }
-                        saveInProgress = false
-                        showMessage(savedSnackbarText)
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(vertical = 14.dp),
-                enabled = !saveInProgress,
-            ) {
-                Text(text = stringResource(id = R.string.confirm))
-            }
         }
     }
+}
+
+@Composable
+private fun WebUiAccessUrlField(
+    label: String,
+    url: String,
+    onCopy: () -> Unit,
+    onOpen: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        OutlinedTextField(
+            value = url,
+            onValueChange = {},
+            readOnly = true,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text(text = label) },
+            singleLine = true,
+            trailingIcon = {
+                IconButton(onClick = onCopy) {
+                    Icon(
+                        imageVector = Icons.Default.ContentCopy,
+                        contentDescription = stringResource(id = R.string.action_copy),
+                    )
+                }
+            },
+        )
+        OutlinedButton(
+            onClick = onOpen,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(text = stringResource(id = R.string.pref_webui_open_in_browser))
+        }
+    }
+}
+
+private fun resolveLanIpv4Hosts(): List<String> {
+    val hosts = mutableListOf<String>()
+    val interfaces = runCatching { NetworkInterface.getNetworkInterfaces() }.getOrNull()
+    while (interfaces != null && interfaces.hasMoreElements()) {
+        val networkInterface = interfaces.nextElement() ?: continue
+        if (!networkInterface.isUp || networkInterface.isLoopback) continue
+        val addresses = networkInterface.inetAddresses
+        while (addresses.hasMoreElements()) {
+            val raw = addresses.nextElement().hostAddress.orEmpty()
+            val normalized = raw.substringBefore('%').trim()
+            if (normalized.isBlank() || normalized.startsWith("127.") || normalized == "::1") continue
+            if (!normalized.contains(".")) continue
+            if (!hosts.contains(normalized)) hosts.add(normalized)
+        }
+    }
+    return hosts
 }

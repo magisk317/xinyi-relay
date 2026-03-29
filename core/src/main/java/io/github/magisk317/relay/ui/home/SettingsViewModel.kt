@@ -205,7 +205,7 @@ class SettingsViewModel(
                 .build()
             ShortcutManagerCompat.requestPinShortcut(context, shortcut, null)
         } else {
-            _eventsFlow.tryEmit(SettingsEvent.ShowSnackbar("当前系统不支持创建快捷方式"))
+            _eventsFlow.tryEmit(SettingsEvent.ShowSnackbar(context.getString(R.string.settings_shortcut_unsupported)))
         }
     }
 

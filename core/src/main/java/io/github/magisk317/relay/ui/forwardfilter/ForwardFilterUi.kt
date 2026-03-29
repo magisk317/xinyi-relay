@@ -86,8 +86,18 @@ fun ForwardFilterRuleList(
                     .padding(horizontal = 16.dp, vertical = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                val policyLabel = if (rule.policy == ForwardFilterConst.POLICY_ALLOW) "白名单" else "黑名单"
-                val modeLabel = if (rule.matchMode == ForwardFilterConst.MATCH_REGEX) "正则" else "包含"
+                val policyLabel =
+                    if (rule.policy == ForwardFilterConst.POLICY_ALLOW) {
+                        stringResource(id = R.string.forward_filter_rule_allow)
+                    } else {
+                        stringResource(id = R.string.forward_filter_rule_deny)
+                    }
+                val modeLabel =
+                    if (rule.matchMode == ForwardFilterConst.MATCH_REGEX) {
+                        stringResource(id = R.string.forward_filter_rule_regex)
+                    } else {
+                        stringResource(id = R.string.forward_filter_rule_contains)
+                    }
                 Text(
                     text = "[$policyLabel][$modeLabel] ${rule.pattern}",
                     style = MaterialTheme.typography.bodyMedium,
@@ -96,7 +106,7 @@ fun ForwardFilterRuleList(
                 )
                 channelIdLabelProvider(rule)?.takeIf { it.isNotBlank() }?.let { channelId ->
                     Text(
-                        text = "渠道ID: $channelId",
+                        text = stringResource(id = R.string.forward_filter_rule_channel_id, channelId),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -112,7 +122,11 @@ fun ForwardFilterRuleList(
                             onCheckedChange = { onToggleEnabled(rule.id, it) },
                         )
                         Text(
-                            text = if (rule.enabled == 1) "已启用" else "已停用",
+                            text = if (rule.enabled == 1) {
+                                stringResource(id = R.string.forward_filter_rule_enabled)
+                            } else {
+                                stringResource(id = R.string.forward_filter_rule_disabled)
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.padding(start = 8.dp),
                         )

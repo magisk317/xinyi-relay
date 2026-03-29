@@ -119,7 +119,7 @@ import io.github.magisk317.relay.data.db.dao.SenderDispatchStatRow
 import io.github.magisk317.relay.data.repository.AnalyticsRepository
 import io.github.magisk317.relay.data.repository.OverviewSettingsUpdate
 import io.github.magisk317.relay.data.repository.SettingsRepository
-import io.github.magisk317.relay.domain.sender.SenderType
+import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import java.text.SimpleDateFormat
@@ -521,9 +521,9 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
                 statusTapStartedAtMs = 0L
                 showMessage(
                     if (showStatusDiagnostics) {
-                        "已显示运行时诊断"
+                        context.getString(R.string.overview_runtime_diagnostics_shown)
                     } else {
-                        "已隐藏运行时诊断"
+                        context.getString(R.string.overview_runtime_diagnostics_hidden)
                     },
                 )
             }
@@ -786,6 +786,7 @@ private fun OverviewCardItem(
                     isEnabled = isEnabled,
                     showDiagnostics = showStatusDiagnostics,
                     diagnostics = buildStatusDiagnostics(
+                        context = context,
                         snapshot = activationDiagnostics,
                         runtimeConnected = runtimeConnected,
                     ),
@@ -1233,6 +1234,7 @@ private fun HomeChartBody(
     showTitle: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     val colors = listOf(
         MaterialTheme.colorScheme.primary,
         MaterialTheme.colorScheme.tertiary,
@@ -1329,7 +1331,7 @@ private fun HomeChartBody(
                     } else {
                         data.senderStats.mapIndexed { index, row ->
                             PieSlice(
-                                label = senderTypeLabel(row.senderType),
+                                label = getSenderTypeName(context, row.senderType),
                                 value = row.sent,
                                 color = colors[index % colors.size],
                             )
@@ -1621,32 +1623,41 @@ fun StatusCard(
 }
 
 private fun buildStatusDiagnostics(
+    context: android.content.Context,
     snapshot: ActivationDiagnosticsSnapshot,
     runtimeConnected: Boolean,
 ): List<Pair<String, String>> {
     val serviceValue = buildString {
-        append(if (runtimeConnected) "已连接" else "未连接")
+        append(
+            if (runtimeConnected) {
+                context.getString(R.string.overview_runtime_connected)
+            } else {
+                context.getString(R.string.overview_runtime_disconnected)
+            },
+        )
         if (snapshot.lastServiceBindAtMs > 0L) {
-            append(" · 最近连接 ")
+            append(" · ")
+            append(context.getString(R.string.overview_runtime_last_connected))
+            append(" ")
             append(formatStatusDiagnosticTime(snapshot.lastServiceBindAtMs))
         }
         if (snapshot.lastServiceFrameworkName.isNotBlank() || snapshot.lastServiceFrameworkVersion.isNotBlank()) {
             append(" · ")
-            append(snapshot.lastServiceFrameworkName.ifBlank { "unknown" })
+            append(snapshot.lastServiceFrameworkName.ifBlank { context.getString(R.string.overview_runtime_unknown) })
             append(" ")
-            append(snapshot.lastServiceFrameworkVersion.ifBlank { "unknown" })
+            append(snapshot.lastServiceFrameworkVersion.ifBlank { context.getString(R.string.overview_runtime_unknown) })
         }
     }
     val hookProcess = listOf(
-        snapshot.lastHookPackage.ifBlank { "<none>" },
-        snapshot.lastHookProcess.ifBlank { "<none>" },
+        snapshot.lastHookPackage.ifBlank { context.getString(R.string.overview_runtime_none) },
+        snapshot.lastHookProcess.ifBlank { context.getString(R.string.overview_runtime_none) },
     ).joinToString(" / ")
     val hookTime = buildString {
         append(
             if (snapshot.lastHookAtMs > 0L) {
                 formatStatusDiagnosticTime(snapshot.lastHookAtMs)
             } else {
-                "暂无"
+                context.getString(R.string.overview_runtime_not_available)
             },
         )
         if (snapshot.lastHookSource.isNotBlank()) {
@@ -1655,14 +1666,14 @@ private fun buildStatusDiagnostics(
         }
     }
     return listOf(
-        "Xposed Service" to serviceValue,
-        "最近 Hook 进程" to hookProcess,
-        "最近 Hook 时间" to hookTime,
+        context.getString(R.string.overview_runtime_service_label) to serviceValue,
+        context.getString(R.string.overview_runtime_recent_hook_process) to hookProcess,
+        context.getString(R.string.overview_runtime_recent_hook_time) to hookTime,
     )
 }
 
 private fun formatStatusDiagnosticTime(timestampMs: Long): String {
-    if (timestampMs <= 0L) return "暂无"
+    if (timestampMs <= 0L) return ""
     return SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(timestampMs))
 }
 
@@ -1761,27 +1772,4 @@ private fun moveCardByVisible(order: List<String>, visible: List<String>, cardId
     val insertIndex = mutable.indexOf(targetId).let { if (direction > 0) it + 1 else it }
     mutable.add(insertIndex, cardId)
     return mutable
-}
-
-private fun senderTypeLabel(type: Int): String {
-    return when (type) {
-        SenderType.DINGTALK_GROUP_ROBOT -> "钉钉群机器人"
-        SenderType.EMAIL -> "邮件"
-        SenderType.BARK -> "Bark"
-        SenderType.WEBHOOK -> "Webhook"
-        SenderType.WEWORK_ROBOT -> "企微群机器人"
-        SenderType.WEWORK_AGENT -> "企微应用"
-        SenderType.SERVERCHAN -> "Server酱"
-        SenderType.TELEGRAM -> "Telegram"
-        SenderType.SMS -> "短信"
-        SenderType.FEISHU -> "飞书机器人"
-        SenderType.PUSHPLUS -> "PushPlus"
-        SenderType.GOTIFY -> "Gotify"
-        SenderType.NTFY -> "ntfy"
-        SenderType.DINGTALK_INNER_ROBOT -> "钉钉内部机器人"
-        SenderType.FEISHU_APP -> "飞书应用"
-        SenderType.URL_SCHEME -> "Url Scheme"
-        SenderType.SOCKET -> "Socket"
-        else -> "通道$type"
-    }
 }

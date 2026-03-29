@@ -10,7 +10,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.domain.model.MsgInfo
 import io.github.magisk317.relay.domain.model.Sender
 import io.github.magisk317.relay.platform.sender.config.DingtalkGroupRobotSetting
@@ -18,6 +20,7 @@ import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.platform.sender.DingtalkGroupRobotUtils
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
+import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
@@ -118,12 +121,12 @@ fun DingtalkConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
                 coroutineScope.launch {
                     runCatching { viewModel.saveSenderSync(buildSender(status = 0)) }
                         .onSuccess {
-                            showMessage("信息已保存")
+                            showMessage(context.getString(R.string.sender_form_draft_saved))
                             showExitDialog = false
                             onBack()
                         }
                         .onFailure { e ->
-                            showMessage("保存草稿失败: ${e.message}")
+                            showMessage(context.getString(R.string.sender_form_draft_save_failed, e.message ?: e.javaClass.simpleName))
                         }
                 }
             },
@@ -138,23 +141,30 @@ fun DingtalkConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (senderId == 0L) "新增 钉钉群机器人" else "编辑 钉钉群机器人") },
+                title = {
+                    Text(
+                        context.getString(
+                            if (senderId == 0L) R.string.sender_form_create_title else R.string.sender_form_edit_title,
+                            getSenderTypeName(context, SenderType.DINGTALK_GROUP_ROBOT),
+                        ),
+                    )
+                },
                 navigationIcon = {
-                    IconButton(onClick = { showExitDialog = true }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
+                    IconButton(onClick = { showExitDialog = true }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back)) }
                 },
                 actions = {
                     TextButton(onClick = {
                         coroutineScope.launch {
                             runCatching { viewModel.saveSenderSync(buildSender(status = 1)) }
                                 .onSuccess {
-                                    showMessage("保存成功")
+                                    showMessage(context.getString(R.string.sender_form_save_success))
                                     onBack()
                                 }
                                 .onFailure { e ->
-                                    showMessage("保存失败: ${e.message}")
+                                    showMessage(context.getString(R.string.sender_form_save_failed, e.message ?: e.javaClass.simpleName))
                                 }
                         }
-                    }) { Text("保存") }
+                    }) { Text(stringResource(R.string.save)) }
                 }
             )
         }
@@ -165,26 +175,36 @@ fun DingtalkConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("通道名称") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = token, onValueChange = { token = it }, label = { Text("Token (必填)") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = secret, onValueChange = { secret = it }, label = { Text("Secret 加签密钥 (选填)") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.sender_form_name_label)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                value = token,
+                onValueChange = { token = it },
+                label = { Text(stringResource(R.string.sender_form_label_token_required)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = secret,
+                onValueChange = { secret = it },
+                label = { Text(stringResource(R.string.sender_form_label_secret_signature_key_optional)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
             SingleChoiceSegmentedSelector(
                 options = listOf(
-                    SegmentedOption("text", "Text"),
-                    SegmentedOption("markdown", "Markdown"),
+                    SegmentedOption("text", stringResource(R.string.sender_segment_text)),
+                    SegmentedOption("markdown", stringResource(R.string.sender_segment_markdown)),
                 ),
                 selected = msgtype,
                 onSelect = { msgtype = it },
             )
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 Checkbox(checked = atAll, onCheckedChange = { atAll = it })
-                Text("是否 @所有人")
+                Text(stringResource(R.string.sender_form_label_at_all))
             }
             OutlinedTextField(
                 value = titleTemplate,
                 onValueChange = { titleTemplate = it },
-                label = { Text("标题模板 (选填)") },
-                placeholder = { Text("默认为信息驿站，可自行修改") },
+                label = { Text(stringResource(R.string.sender_form_title_template_optional_label)) },
+                placeholder = { Text(stringResource(R.string.sender_form_title_template_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -207,13 +227,7 @@ fun DingtalkConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
                     atAll = atAll,
                     titleTemplate = titleTemplate,
                 )
-                val msg = MsgInfo(
-                    type = "sms",
-                    from = "10086",
-                    content = "钉钉群机器人测试消息",
-                    date = Date(),
-                    simInfo = "SIM1",
-                )
+                val msg = buildSenderTestMsgInfo(context, getSenderTypeName(context, SenderType.DINGTALK_GROUP_ROBOT))
                 DingtalkGroupRobotUtils.sendMsg(setting, msg)
             }
         }

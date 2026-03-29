@@ -16,9 +16,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.core.BuildConfig
+import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.ui.sender.forms.*
 import kotlinx.coroutines.flow.flowOf
@@ -33,6 +36,7 @@ fun SenderConfigScreen(
     onOpenSenderForwardFilter: (Long) -> Unit = {},
     viewModel: SenderViewModel = koinViewModel()
 ) {
+    val context = LocalContext.current
     var type by remember { mutableStateOf(senderTypeArg) }
     var isLoaded by remember { mutableStateOf(false) }
 
@@ -69,7 +73,7 @@ fun SenderConfigScreen(
         if (senderId > 0L) {
             SenderNotifyScopeEntry(
                 senderId = senderId,
-                summary = notifyScopeSummary.ifBlank { "白名单0 / 黑名单0" },
+                summary = notifyScopeSummary.ifBlank { context.getString(R.string.sender_notify_scope_summary, 0, 0) },
                 onClick = onOpenSenderNotifyScope,
             )
         } else {
@@ -80,7 +84,7 @@ fun SenderConfigScreen(
         if (senderId > 0L) {
             SenderForwardFilterEntry(
                 senderId = senderId,
-                summary = forwardFilterSummary.ifBlank { "短信 白0/黑0 · 通知 白0/黑0" },
+                summary = forwardFilterSummary.ifBlank { context.getString(R.string.sender_filter_summary_default) },
                 onClick = onOpenSenderForwardFilter,
             )
         } else {
@@ -144,17 +148,17 @@ private fun SmsChannelDisabledScreen(onBack: () -> Unit) {
             .padding(24.dp),
     ) {
         Text(
-            text = "当前构建版本不支持短信通道",
+            text = stringResource(R.string.sender_channel_disabled_title),
             style = MaterialTheme.typography.titleMedium,
         )
         Text(
-            text = "该能力仅在 GitHub 版提供。",
+            text = stringResource(R.string.sender_channel_disabled_summary),
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(top = 8.dp),
         )
         Box(modifier = Modifier.padding(top = 16.dp)) {
             androidx.compose.material3.TextButton(onClick = onBack) {
-                Text("返回")
+                Text(stringResource(R.string.action_back))
             }
         }
     }

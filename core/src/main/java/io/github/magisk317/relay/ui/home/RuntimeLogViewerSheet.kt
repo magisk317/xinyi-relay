@@ -35,9 +35,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.common.utils.ClipboardUtils
+import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.diagnostics.LogBundleExporter
 import io.github.magisk317.relay.diagnostics.RuntimeLogEntry
 import io.github.magisk317.relay.diagnostics.RuntimeLogStore
@@ -94,10 +96,10 @@ fun RuntimeLogViewerSheet(onDismiss: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("详细日志", style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(R.string.runtime_log_viewer_title), style = MaterialTheme.typography.titleLarge)
                 Row {
                     IconButton(onClick = { refreshTick += 1 }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.action_refresh))
                     }
                     IconButton(onClick = {
                         scope.launch {
@@ -106,17 +108,17 @@ fun RuntimeLogViewerSheet(onDismiss: () -> Unit) {
                             }
                             val file = result.file
                             if (file == null) {
-                                showMessage("导出失败: ${result.details}")
+                                showMessage(context.getString(R.string.runtime_log_export_failed, result.details))
                                 return@launch
                             }
                             runCatching {
                                 LogBundleExporter.shareLogBundle(context, file)
                             }.onFailure {
-                                showMessage("分享失败: ${it.message}")
+                                showMessage(context.getString(R.string.runtime_log_share_failed, it.message ?: it.javaClass.simpleName))
                             }
                         }
                     }) {
-                        Icon(Icons.Default.Share, contentDescription = "Share")
+                        Icon(Icons.Default.Share, contentDescription = stringResource(R.string.action_share))
                     }
                     IconButton(onClick = {
                         val text = RuntimeLogStore.exportText(
@@ -125,9 +127,9 @@ fun RuntimeLogViewerSheet(onDismiss: () -> Unit) {
                             limit = 800,
                         )
                         ClipboardUtils.copyToClipboard(context, text)
-                        showMessage("日志已复制")
+                        showMessage(context.getString(R.string.runtime_log_copied))
                     }) {
-                        Icon(Icons.Default.ContentCopy, contentDescription = "Copy")
+                        Icon(Icons.Default.ContentCopy, contentDescription = stringResource(R.string.action_copy))
                     }
                     IconButton(onClick = {
                         scope.launch {
@@ -136,14 +138,14 @@ fun RuntimeLogViewerSheet(onDismiss: () -> Unit) {
                             }
                             refreshTick += 1
                             val messageText = if (result.success) {
-                                "日志与崩溃文件已清空"
+                                context.getString(R.string.runtime_log_cleared)
                             } else {
-                                "部分清空失败: ${result.details}"
+                                context.getString(R.string.runtime_log_clear_partial_failed, result.details)
                             }
                             showMessage(messageText)
                         }
                     }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Clear")
+                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.action_clear))
                     }
                 }
             }
@@ -153,7 +155,7 @@ fun RuntimeLogViewerSheet(onDismiss: () -> Unit) {
                 onValueChange = { keyword = it },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                label = { Text("关键字搜索") },
+                label = { Text(stringResource(R.string.runtime_log_keyword_search)) },
             )
 
             Row(
@@ -161,25 +163,25 @@ fun RuntimeLogViewerSheet(onDismiss: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 TextButton(onClick = { keyword = "ForwardFlow" }) {
-                    Text("转发链路")
+                    Text(stringResource(R.string.runtime_log_filter_forward_flow))
                 }
                 TextButton(onClick = { keyword = "WebhookUtils" }) {
-                    Text("Webhook")
+                    Text(stringResource(R.string.runtime_log_filter_webhook))
                 }
                 TextButton(onClick = { keyword = "EmailUtils" }) {
-                    Text("Email")
+                    Text(stringResource(R.string.runtime_log_filter_email))
                 }
                 TextButton(onClick = { keyword = "" }) {
-                    Text("清空筛选")
+                    Text(stringResource(R.string.runtime_log_filter_clear))
                 }
             }
 
             SingleChoiceSegmentedSelector(
                 options = listOf(
-                    SegmentedOption(1, "近1分钟"),
-                    SegmentedOption(5, "近5分钟"),
-                    SegmentedOption(10, "近10分钟"),
-                    SegmentedOption(0, "全部"),
+                    SegmentedOption(1, stringResource(R.string.runtime_log_window_1m)),
+                    SegmentedOption(5, stringResource(R.string.runtime_log_window_5m)),
+                    SegmentedOption(10, stringResource(R.string.runtime_log_window_10m)),
+                    SegmentedOption(0, stringResource(R.string.runtime_log_window_all)),
                 ),
                 selected = selectedMinutes,
                 onSelect = { selectedMinutes = it },
@@ -193,7 +195,7 @@ fun RuntimeLogViewerSheet(onDismiss: () -> Unit) {
                     ),
                 ) {
                     Text(
-                        text = "当前筛选条件下没有日志",
+                        text = stringResource(R.string.runtime_log_empty_filtered),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(16.dp),
                     )
@@ -201,7 +203,7 @@ fun RuntimeLogViewerSheet(onDismiss: () -> Unit) {
             } else {
                 AssistChip(
                     onClick = {},
-                    label = { Text("共 ${entries.size} 条") },
+                    label = { Text(stringResource(R.string.runtime_log_total_count, entries.size)) },
                 )
                 LazyColumn(
                     modifier = Modifier

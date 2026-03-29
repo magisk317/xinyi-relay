@@ -29,13 +29,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.google.gson.Gson
+import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.domain.model.MsgInfo
 import io.github.magisk317.relay.domain.model.Sender
 import io.github.magisk317.relay.platform.sender.config.NtfySetting
 import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.platform.sender.NtfyUtils
+import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import java.util.Date
 import kotlinx.coroutines.launch
@@ -127,11 +130,11 @@ fun NtfyConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
                 scope.launch {
                     runCatching { viewModel.saveSenderSync(buildSender(status = 0)) }
                         .onSuccess {
-                            showMessage("信息已保存")
+                            showMessage(context.getString(R.string.sender_form_draft_saved))
                             showExitDialog = false
                             onBack()
                         }
-                        .onFailure { showMessage("保存草稿失败: ${it.message}") }
+                        .onFailure { showMessage(context.getString(R.string.sender_form_draft_save_failed, it.message.orEmpty())) }
                 }
             },
             onDiscard = {
@@ -145,7 +148,14 @@ fun NtfyConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (senderId == 0L) "新增 ntfy" else "编辑 ntfy") },
+                title = {
+                    Text(
+                        context.getString(
+                            if (senderId == 0L) R.string.sender_form_create_title else R.string.sender_form_edit_title,
+                            getSenderTypeName(context, SenderType.NTFY),
+                        ),
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { showExitDialog = true }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
@@ -156,12 +166,12 @@ fun NtfyConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
                         scope.launch {
                             runCatching { viewModel.saveSenderSync(buildSender(status = 1)) }
                                 .onSuccess {
-                                    showMessage("保存成功")
+                                    showMessage(context.getString(R.string.sender_form_save_success))
                                     onBack()
                                 }
-                                .onFailure { showMessage("保存失败: ${it.message}") }
+                                .onFailure { showMessage(context.getString(R.string.sender_form_save_failed, it.message.orEmpty())) }
                         }
-                    }) { Text("保存") }
+                    }) { Text(stringResource(R.string.save)) }
                 },
             )
         },
@@ -174,34 +184,34 @@ fun NtfyConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            OutlinedTextField(name, { name = it }, label = { Text("通道名称") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.sender_form_name_label)) }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(
                 value = server,
                 onValueChange = { server = it },
-                label = { Text("Server (必填)") },
-                supportingText = { Text("例如 https://ntfy.sh") },
+                label = { Text(stringResource(R.string.sender_form_label_server_required)) },
+                supportingText = { Text(stringResource(R.string.sender_form_label_server_example)) },
                 modifier = Modifier.fillMaxWidth(),
             )
-            OutlinedTextField(topic, { topic = it }, label = { Text("Topic (必填)") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(token, { token = it }, label = { Text("Bearer Token (选填)") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(topic, { topic = it }, label = { Text(stringResource(R.string.sender_form_label_topic_required)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(token, { token = it }, label = { Text(stringResource(R.string.sender_form_label_bearer_token_optional)) }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(
                 title,
                 { title = it },
-                label = { Text("标题 (选填)") },
-                placeholder = { Text("默认为信息驿站，可自行修改") },
+                label = { Text(stringResource(R.string.sender_form_label_title_optional)) },
+                placeholder = { Text(stringResource(R.string.sender_form_title_template_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 priority,
                 { priority = it },
-                label = { Text("优先级 (1-5)") },
+                label = { Text(stringResource(R.string.sender_form_label_priority_1_5)) },
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 tags,
                 { tags = it },
-                label = { Text("Tags (选填)") },
-                supportingText = { Text("逗号分隔，如 sms,android") },
+                label = { Text(stringResource(R.string.sender_form_label_tags_optional)) },
+                supportingText = { Text(stringResource(R.string.sender_form_label_tags_example)) },
                 modifier = Modifier.fillMaxWidth(),
             )
             ForwardToggleSection(
@@ -225,13 +235,7 @@ fun NtfyConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
                         priority = priority,
                         tags = tags,
                     ),
-                    MsgInfo(
-                        type = "sms",
-                        from = "10086",
-                        content = "ntfy 连通性测试消息",
-                        date = Date(),
-                        simInfo = "SIM1",
-                    ),
+                    buildSenderTestMsgInfo(context, getSenderTypeName(context, SenderType.NTFY)),
                 )
             }
         }

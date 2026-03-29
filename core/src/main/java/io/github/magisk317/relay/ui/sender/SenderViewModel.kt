@@ -219,7 +219,11 @@ class SenderViewModel(
             senderAllowPackagesFlow(senderId),
             senderDenyPackagesFlow(senderId),
         ) { allowPkgs, denyPkgs ->
-            "白名单${allowPkgs.size} / 黑名单${denyPkgs.size}"
+            getApplication<Application>().getString(
+                io.github.magisk317.relay.core.R.string.sender_scope_summary_format,
+                allowPkgs.size,
+                denyPkgs.size,
+            )
         }
     }
 
@@ -240,7 +244,13 @@ class SenderViewModel(
             val smsDeny = smsRules.count { it.policy == ForwardFilterConst.POLICY_DENY }
             val appAllow = appRules.count { it.policy == ForwardFilterConst.POLICY_ALLOW }
             val appDeny = appRules.count { it.policy == ForwardFilterConst.POLICY_DENY }
-            "短信 白$smsAllow/黑$smsDeny · 通知 白$appAllow/黑$appDeny"
+            getApplication<Application>().getString(
+                io.github.magisk317.relay.core.R.string.sender_filter_summary_format,
+                smsAllow,
+                smsDeny,
+                appAllow,
+                appDeny,
+            )
         }
     }
 

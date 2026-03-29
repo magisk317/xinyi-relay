@@ -13,9 +13,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.common.utils.ClipboardUtils
+import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.diagnostics.RuntimeLogStore
+import io.github.magisk317.relay.domain.model.MsgInfo
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -31,6 +34,16 @@ internal fun logSenderTest(channel: String, message: String, priority: Int = Log
         message = message,
         force = true,
         route = RuntimeLogStore.ROUTE_SENDER,
+    )
+}
+
+internal fun buildSenderTestMsgInfo(context: Context, senderName: String): MsgInfo {
+    return MsgInfo(
+        type = "sms",
+        from = "10086",
+        content = context.getString(R.string.sender_test_message_template, senderName),
+        date = Date(),
+        simInfo = "SIM1",
     )
 }
 
@@ -53,15 +66,17 @@ internal fun copySenderContextLog(context: Context, channel: String) {
         }
     }
     val payload = buildString {
-        append("渠道: ")
+        append(context.getString(R.string.sender_test_log_channel))
+        append(": ")
         append(channel)
         append('\n')
-        append("导出时间: ")
+        append(context.getString(R.string.sender_test_log_exported_at))
+        append(": ")
         append(now)
         append('\n')
         append("------------------------------")
         append('\n')
-        append(if (mergedLogs.isNotBlank()) mergedLogs else "暂无发送测试相关日志")
+        append(if (mergedLogs.isNotBlank()) mergedLogs else context.getString(R.string.sender_test_log_empty))
     }
     ClipboardUtils.copyToClipboard(context, payload)
 }
@@ -99,47 +114,47 @@ internal fun SenderTestActionRow(
         Button(
             onClick = {
                 scope.launch {
-                    logSenderTest(channel, "开始发送测试")
+                    logSenderTest(channel, context.getString(R.string.sender_test_started))
                     runCatching {
                         // Force sender test execution off the main thread.
                         withContext(Dispatchers.IO) { onSendTest() }
                     }
                         .onSuccess {
-                            logSenderTest(channel, "发送测试成功")
+                            logSenderTest(channel, context.getString(R.string.sender_test_succeeded))
                             scope.launch {
-                                showMessage("发送成功")
+                                showMessage(context.getString(R.string.sender_send_success))
                             }
                         }
                         .onFailure { error ->
                             val readable = error.toReadableError()
                             logSenderTest(
                                 channel = channel,
-                                message = "发送测试失败: $readable\n${Log.getStackTraceString(error)}",
+                                message = context.getString(R.string.sender_test_failed, readable) + "\n${Log.getStackTraceString(error)}",
                                 priority = Log.ERROR,
                             )
                             scope.launch {
-                                showMessage("异常: $readable")
+                                showMessage(context.getString(R.string.sender_send_exception, readable))
                             }
                         }
                 }
             },
             modifier = Modifier.weight(1f),
         ) {
-            Text("发送测试")
+            Text(stringResource(R.string.sender_test_send))
         }
 
         OutlinedButton(
             onClick = {
                 copySenderContextLog(context, channel)
                 scope.launch {
-                    showMessage("上下文日志已复制")
+                    showMessage(context.getString(R.string.sender_log_copied))
                 }
             },
             modifier = Modifier
                 .weight(1f)
                 .widthIn(min = 120.dp),
         ) {
-            Text("复制日志")
+            Text(stringResource(R.string.sender_copy_log))
         }
     }
 }

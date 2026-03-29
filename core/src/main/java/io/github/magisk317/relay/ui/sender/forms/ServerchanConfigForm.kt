@@ -31,12 +31,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.domain.model.MsgInfo
 import io.github.magisk317.relay.domain.model.Sender
 import io.github.magisk317.relay.platform.sender.config.ServerchanSetting
 import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.platform.sender.ServerchanUtils
+import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
@@ -118,11 +121,11 @@ fun ServerchanConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVi
                 scope.launch {
                     runCatching { viewModel.saveSenderSync(buildSender(status = 0)) }
                         .onSuccess {
-                            showMessage("信息已保存")
+                            showMessage(context.getString(R.string.sender_form_draft_saved))
                             showExitDialog = false
                             onBack()
                         }
-                        .onFailure { showMessage("保存草稿失败: ${it.message}") }
+                        .onFailure { showMessage(context.getString(R.string.sender_form_draft_save_failed, it.message.orEmpty())) }
                 }
             },
             onDiscard = {
@@ -136,19 +139,26 @@ fun ServerchanConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVi
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (senderId == 0L) "新增 Server酱" else "编辑 Server酱") },
+                title = {
+                    Text(
+                        context.getString(
+                            if (senderId == 0L) R.string.sender_form_create_title else R.string.sender_form_edit_title,
+                            getSenderTypeName(context, SenderType.SERVERCHAN),
+                        ),
+                    )
+                },
                 navigationIcon = { IconButton(onClick = { showExitDialog = true }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } },
                 actions = {
                     TextButton(onClick = {
                         scope.launch {
                             runCatching { viewModel.saveSenderSync(buildSender(status = 1)) }
                                 .onSuccess {
-                                    showMessage("保存成功")
+                                    showMessage(context.getString(R.string.sender_form_save_success))
                                     onBack()
                                 }
-                                .onFailure { showMessage("保存失败: ${it.message}") }
+                                .onFailure { showMessage(context.getString(R.string.sender_form_save_failed, it.message.orEmpty())) }
                         }
-                    }) { Text("保存") }
+                    }) { Text(stringResource(R.string.save)) }
                 },
             )
         },
@@ -157,15 +167,15 @@ fun ServerchanConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVi
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            OutlinedTextField(name, { name = it }, label = { Text("通道名称") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(sendKey, { sendKey = it }, label = { Text("SendKey") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(channel, { channel = it }, label = { Text("channel") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(openid, { openid = it }, label = { Text("openid") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.sender_form_name_label)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(sendKey, { sendKey = it }, label = { Text(stringResource(R.string.sender_form_label_send_key)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(channel, { channel = it }, label = { Text(stringResource(R.string.sender_form_label_channel)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(openid, { openid = it }, label = { Text(stringResource(R.string.sender_form_label_openid)) }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(
                 titleTemplate,
                 { titleTemplate = it },
-                label = { Text("标题模板") },
-                placeholder = { Text("默认为信息驿站，可自行修改") },
+                label = { Text(stringResource(R.string.sender_form_title_template_label)) },
+                placeholder = { Text(stringResource(R.string.sender_form_title_template_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
             )
             ForwardToggleSection(
@@ -186,7 +196,7 @@ fun ServerchanConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVi
                         openid = openid,
                         titleTemplate = titleTemplate,
                     ),
-                    MsgInfo("sms", "10086", "Server酱 测试消息", Date(), "SIM1"),
+                    buildSenderTestMsgInfo(context, getSenderTypeName(context, SenderType.SERVERCHAN)),
                 )
             }
         }

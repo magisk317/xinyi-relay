@@ -25,6 +25,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.domain.model.Rule
@@ -48,7 +49,7 @@ fun RuleListScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val rules by viewModel.ruleList.collectAsStateWithLifecycle()
     val senders by viewModel.senderList.collectAsStateWithLifecycle()
-    val senderName = if (senderId != 0L) senders.find { it.id == senderId }?.displayName() else null
+    val senderName = if (senderId != 0L) senders.find { it.id == senderId }?.displayName(context) else null
 
     LaunchedEffect(senderId) {
         viewModel.loadRules(senderId)
@@ -57,7 +58,10 @@ fun RuleListScreen(
     Scaffold(
         topBar = {
             TopAppBar(title = {
-                Text(if (senderName != null) "$senderName 的规则" else "转发规则")
+                Text(
+                    senderName?.let { context.getString(R.string.rule_list_title_named, it) }
+                        ?: stringResource(R.string.rule_list_title),
+                )
             })
         },
         snackbarHost = {
@@ -73,7 +77,7 @@ fun RuleListScreen(
                     .padding(bottom = 56.dp),
                 onClick = onAddClick,
             ) {
-                Icon(Icons.Filled.Add, contentDescription = "添加规则")
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.rule_add_rule_content_description))
             }
         }
     ) { paddingValues ->
@@ -84,9 +88,11 @@ fun RuleListScreen(
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                Text("暂无规则，点击右下角添加\n规则决定哪些短信发到哪个通道",
+                Text(
+                    stringResource(R.string.rule_list_empty_message),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         } else {
             LazyColumn(
@@ -97,7 +103,9 @@ fun RuleListScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(rules, key = { it.id }) { rule ->
-                    val senderName = senders.find { it.id == rule.senderId }?.displayName() ?: "未知通道"
+                    val senderName =
+                        senders.find { it.id == rule.senderId }?.displayName(context)
+                            ?: stringResource(R.string.rule_unknown_sender)
                     RuleCard(
                         rule = rule,
                         senderName = senderName,
@@ -137,7 +145,7 @@ fun RuleCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = rule.title.ifEmpty { "未命名规则" },
+                    text = rule.title.ifEmpty { stringResource(R.string.rule_unnamed) },
                     style = MaterialTheme.typography.titleMedium
                 )
                 Switch(
@@ -147,9 +155,9 @@ fun RuleCard(
             }
             Spacer(modifier = Modifier.height(4.dp))
             val matchDesc = when (rule.filed) {
-                "transpond_all" -> "匹配全部短信"
-                "content" -> "内容包含: ${rule.value}"
-                "sender" -> "发件人: ${rule.value}"
+                "transpond_all" -> stringResource(R.string.rule_match_all_sms)
+                "content" -> stringResource(R.string.rule_match_content, rule.value)
+                "sender" -> stringResource(R.string.rule_match_sender, rule.value)
                 else -> "${rule.filed} ${rule.check} ${rule.value}"
             }
             Text(
@@ -158,7 +166,7 @@ fun RuleCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "→ 通道: $senderName",
+                text = stringResource(R.string.rule_sender_channel_format, senderName),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -167,7 +175,7 @@ fun RuleCard(
                 horizontalArrangement = Arrangement.End
             ) {
                 TextButton(onClick = onDelete) {
-                    Text("删除", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error)
                 }
             }
         }

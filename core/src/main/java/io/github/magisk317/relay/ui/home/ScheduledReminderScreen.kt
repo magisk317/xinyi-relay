@@ -204,7 +204,7 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
         val options = senderList
             .filter { it.status == 1 }
             .map { sender ->
-                val label = sender.displayName()
+                val label = sender.displayName(context)
                 ChannelOption(sender.id.toString(), label)
             }
         channelOptions = options

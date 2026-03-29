@@ -31,12 +31,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.domain.model.MsgInfo
 import io.github.magisk317.relay.domain.model.Sender
 import io.github.magisk317.relay.platform.sender.config.WeworkAgentSetting
 import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.platform.sender.WeworkAgentUtils
+import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
@@ -126,11 +129,11 @@ fun WeworkAgentConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderV
                 scope.launch {
                     runCatching { viewModel.saveSenderSync(buildSender(status = 0)) }
                         .onSuccess {
-                            showMessage("信息已保存")
+                            showMessage(context.getString(R.string.sender_form_draft_saved))
                             showExitDialog = false
                             onBack()
                         }
-                        .onFailure { showMessage("保存草稿失败: ${it.message}") }
+                        .onFailure { showMessage(context.getString(R.string.sender_form_draft_save_failed, it.message.orEmpty())) }
                 }
             },
             onDiscard = {
@@ -144,19 +147,26 @@ fun WeworkAgentConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderV
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (senderId == 0L) "新增 企微应用" else "编辑 企微应用") },
+                title = {
+                    Text(
+                        context.getString(
+                            if (senderId == 0L) R.string.sender_form_create_title else R.string.sender_form_edit_title,
+                            getSenderTypeName(context, SenderType.WEWORK_AGENT),
+                        ),
+                    )
+                },
                 navigationIcon = { IconButton(onClick = { showExitDialog = true }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } },
                 actions = {
                     TextButton(onClick = {
                         scope.launch {
                             runCatching { viewModel.saveSenderSync(buildSender(status = 1)) }
                                 .onSuccess {
-                                    showMessage("保存成功")
+                                    showMessage(context.getString(R.string.sender_form_save_success))
                                     onBack()
                                 }
-                                .onFailure { showMessage("保存失败: ${it.message}") }
+                                .onFailure { showMessage(context.getString(R.string.sender_form_save_failed, it.message.orEmpty())) }
                         }
-                    }) { Text("保存") }
+                    }) { Text(stringResource(R.string.save)) }
                 },
             )
         },
@@ -165,12 +175,12 @@ fun WeworkAgentConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderV
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            OutlinedTextField(name, { name = it }, label = { Text("通道名称") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(corpID, { corpID = it }, label = { Text("CorpID") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(agentID, { agentID = it }, label = { Text("AgentID") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(secret, { secret = it }, label = { Text("Secret") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(toUser, { toUser = it }, label = { Text("ToUser") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(customizeAPI, { customizeAPI = it }, label = { Text("API Base") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.sender_form_name_label)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(corpID, { corpID = it }, label = { Text(stringResource(R.string.sender_form_label_corp_id)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(agentID, { agentID = it }, label = { Text(stringResource(R.string.sender_form_label_agent_id)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(secret, { secret = it }, label = { Text(stringResource(R.string.sender_form_label_secret)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(toUser, { toUser = it }, label = { Text(stringResource(R.string.sender_form_label_to_user)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(customizeAPI, { customizeAPI = it }, label = { Text(stringResource(R.string.sender_form_label_api_base)) }, modifier = Modifier.fillMaxWidth())
             ForwardToggleSection(
                 receiveCode = receiveCode,
                 onReceiveCodeChange = { receiveCode = it },
@@ -190,7 +200,7 @@ fun WeworkAgentConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderV
                         toUser = toUser,
                         customizeAPI = customizeAPI,
                     ),
-                    MsgInfo("sms", "10086", "企微应用测试消息", Date(), "SIM1"),
+                    buildSenderTestMsgInfo(context, getSenderTypeName(context, SenderType.WEWORK_AGENT)),
                 )
             }
         }

@@ -157,10 +157,10 @@ fun AppConfigDetailScreen(
                     HorizontalDivider()
                     androidx.compose.material3.ListItem(
                         headlineContent = {
-                            Text(text = "应用关键词过滤")
+                            Text(text = stringResource(R.string.app_detail_forward_filter_title))
                         },
                         supportingContent = {
-                            Text(text = "配置应用级与通知渠道ID级别的关键词黑白名单")
+                            Text(text = stringResource(R.string.app_detail_forward_filter_summary))
                         },
                         trailingContent = {
                             TextButton(onClick = onConfigureForwardFilters) {
@@ -191,13 +191,13 @@ private fun AppRecentLogCard(logs: List<SmsMsg>) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = "近期转发日志",
+                text = stringResource(R.string.app_detail_recent_logs_title),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
             )
             if (logs.isEmpty()) {
                 Text(
-                    text = "暂无日志",
+                    text = stringResource(R.string.app_detail_recent_logs_empty),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -205,32 +205,33 @@ private fun AppRecentLogCard(logs: List<SmsMsg>) {
             }
 
             logs.forEachIndexed { index, log ->
+                val forwardMessage = log.forwardMessage.orEmpty()
                 val statusText = when (log.forwardStatus) {
-                    SmsMsg.FORWARD_STATUS_SUCCESS -> "成功"
-                    SmsMsg.FORWARD_STATUS_FAILED -> "失败"
-                    SmsMsg.FORWARD_STATUS_PARTIAL -> "部分成功"
-                    SmsMsg.FORWARD_STATUS_BLOCKED -> "未转发"
-                    else -> "未转发"
+                    SmsMsg.FORWARD_STATUS_SUCCESS -> stringResource(R.string.forward_status_success)
+                    SmsMsg.FORWARD_STATUS_FAILED -> stringResource(R.string.forward_status_failed)
+                    SmsMsg.FORWARD_STATUS_PARTIAL -> stringResource(R.string.app_detail_status_partial)
+                    SmsMsg.FORWARD_STATUS_BLOCKED -> stringResource(R.string.forward_status_none)
+                    else -> stringResource(R.string.forward_status_none)
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        text = "时间: ${dateFormat.format(java.util.Date(log.date))}",
+                        text = stringResource(R.string.app_detail_recent_logs_time, dateFormat.format(java.util.Date(log.date))),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        text = "内容: ${log.body.orEmpty()}",
+                        text = stringResource(R.string.app_detail_recent_logs_content, log.body.orEmpty()),
                         style = MaterialTheme.typography.bodySmall,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = "状态: $statusText  目标: ${log.forwardTarget ?: "-"}",
+                        text = stringResource(R.string.app_detail_recent_logs_status, statusText, log.forwardTarget ?: "-"),
                         style = MaterialTheme.typography.bodySmall,
                     )
-                    if (!log.forwardMessage.isNullOrBlank()) {
+                    if (forwardMessage.isNotBlank()) {
                         Text(
-                            text = "结果: ${log.forwardMessage}",
+                            text = stringResource(R.string.app_detail_recent_logs_result, forwardMessage),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 2,

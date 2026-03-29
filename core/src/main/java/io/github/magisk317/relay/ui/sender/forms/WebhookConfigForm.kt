@@ -10,8 +10,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.BuildConfig
+import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.domain.model.MsgInfo
 import io.github.magisk317.relay.domain.model.Sender
 import io.github.magisk317.relay.platform.sender.config.WebhookSetting
@@ -19,6 +21,7 @@ import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.platform.sender.WebhookUtils
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
+import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -50,9 +53,9 @@ fun WebhookConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewM
     var currentSender by remember { mutableStateOf<Sender?>(null) }
     var showExitDialog by remember { mutableStateOf(false) }
     val webhookAddressHint = if (BuildConfig.ALLOW_HTTP_WEBHOOK) {
-        "支持 http:// 或 https://"
+        context.getString(R.string.sender_form_webhook_hint_http_https)
     } else {
-        "当前构建仅支持 https://"
+        context.getString(R.string.sender_form_webhook_hint_https_only)
     }
 
     LaunchedEffect(senderId) {
@@ -91,7 +94,7 @@ fun WebhookConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewM
                 .filterKeys { it.isNotBlank() }
                 .mapValues { it.value?.toString() ?: "" }
         } catch (_: Exception) {
-            throw IllegalArgumentException("请求头 JSON 格式错误，例如 {\"Authorization\":\"Bearer xxx\"}")
+            throw IllegalArgumentException("Invalid headers JSON, e.g. {\"Authorization\":\"Bearer xxx\"}")
         }
     }
 
@@ -130,7 +133,7 @@ fun WebhookConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewM
     fun isWebhookUrlPolicyValid(url: String): Boolean {
         val trimmed = url.trim()
         if (!BuildConfig.ALLOW_HTTP_WEBHOOK && trimmed.startsWith("http://", ignoreCase = true)) {
-            showMessage("当前构建版本仅支持 HTTPS Webhook 地址")
+            showMessage(context.getString(R.string.sender_form_https_only_webhook))
             return false
         }
         return true
@@ -146,12 +149,12 @@ fun WebhookConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewM
                 coroutineScope.launch {
                     runCatching { viewModel.saveSenderSync(buildSender(status = 0)) }
                         .onSuccess {
-                            showMessage("信息已保存")
+                            showMessage(context.getString(R.string.sender_form_draft_saved))
                             showExitDialog = false
                             onBack()
                         }
                         .onFailure { e ->
-                            showMessage("保存草稿失败: ${e.message}")
+                            showMessage(context.getString(R.string.sender_form_draft_save_failed, e.message.orEmpty()))
                         }
                 }
             },
@@ -166,10 +169,17 @@ fun WebhookConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewM
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (senderId == 0L) "新增 Webhook" else "编辑 Webhook") },
+                title = {
+                    Text(
+                        context.getString(
+                            if (senderId == 0L) R.string.sender_form_create_title else R.string.sender_form_edit_title,
+                            getSenderTypeName(context, SenderType.WEBHOOK),
+                        ),
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { showExitDialog = true }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                     }
                 },
                 actions = {
@@ -178,15 +188,15 @@ fun WebhookConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewM
                         coroutineScope.launch {
                             runCatching { viewModel.saveSenderSync(buildSender(status = 1)) }
                                 .onSuccess {
-                                    showMessage("保存成功")
+                                    showMessage(context.getString(R.string.sender_form_save_success))
                                     onBack()
                                 }
                                 .onFailure { e ->
-                                    showMessage("保存失败: ${e.message}")
+                                    showMessage(context.getString(R.string.sender_form_save_failed, e.message.orEmpty()))
                                 }
                         }
                     }) {
-                        Text("保存")
+                        Text(stringResource(R.string.save))
                     }
                 }
             )
@@ -205,26 +215,26 @@ fun WebhookConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewM
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("通道名称") },
+                label = { Text(stringResource(R.string.sender_form_name_label)) },
                 modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
                 value = webServer,
                 onValueChange = { webServer = it },
-                label = { Text("Webhook 完整地址 (必填)") },
+                label = { Text(stringResource(R.string.sender_form_label_full_webhook_url_required)) },
                 supportingText = { Text(webhookAddressHint) },
                 modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
                 value = secret,
                 onValueChange = { secret = it },
-                label = { Text("加签密钥 (选填)") },
+                label = { Text(stringResource(R.string.sender_form_label_signature_secret_optional)) },
                 modifier = Modifier.fillMaxWidth()
             )
             SingleChoiceSegmentedSelector(
                 options = listOf(
-                    SegmentedOption("GET", "GET"),
-                    SegmentedOption("POST", "POST"),
+                    SegmentedOption("GET", stringResource(R.string.sender_segment_get)),
+                    SegmentedOption("POST", stringResource(R.string.sender_segment_post)),
                 ),
                 selected = method,
                 onSelect = { method = it },
@@ -232,15 +242,15 @@ fun WebhookConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewM
             OutlinedTextField(
                 value = webParams,
                 onValueChange = { webParams = it },
-                label = { Text("自定义 WebParams / JSON 体 (选填)") },
+                label = { Text(stringResource(R.string.sender_form_label_custom_webparams_optional)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3
             )
             OutlinedTextField(
                 value = headersJson,
                 onValueChange = { headersJson = it },
-                label = { Text("自定义 Headers JSON (选填)") },
-                supportingText = { Text("例如: {\"Authorization\":\"Bearer xxx\"}") },
+                label = { Text(stringResource(R.string.sender_form_label_custom_headers_json_optional)) },
+                supportingText = { Text(stringResource(R.string.sender_form_label_custom_headers_json_example)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2
             )
@@ -264,13 +274,7 @@ fun WebhookConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewM
                     webParams = webParams,
                     headers = parseHeadersOrThrow(),
                 )
-                val msg = MsgInfo(
-                    type = "sms",
-                    from = "10086",
-                    content = "Webhook 连通性测试消息",
-                    date = Date(),
-                    simInfo = "SIM1",
-                )
+                val msg = buildSenderTestMsgInfo(context, getSenderTypeName(context, SenderType.WEBHOOK))
                 WebhookUtils.sendMsg(setting, msg)
             }
         }

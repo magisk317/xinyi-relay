@@ -1135,8 +1135,11 @@ private fun sanitizeForwardTarget(rawTarget: String?): String {
 
 private data class ForwardCounts(val success: Int, val failed: Int)
 
+@Composable
 private fun parseForwardCountsFromMessage(rawMessage: String?): ForwardCounts {
     if (rawMessage.isNullOrBlank()) return ForwardCounts(success = 0, failed = 0)
+    val successLabel = stringResource(R.string.forward_status_success)
+    val failedLabel = stringResource(R.string.forward_status_failed)
     var success = 0
     var failed = 0
     rawMessage.lineSequence()
@@ -1144,8 +1147,8 @@ private fun parseForwardCountsFromMessage(rawMessage: String?): ForwardCounts {
         .filter { it.isNotEmpty() }
         .forEach { line ->
             when {
-                line.contains("转发成功") -> success++
-                line.contains("转发失败") -> failed++
+                line.contains(successLabel) -> success++
+                line.contains(failedLabel) -> failed++
             }
         }
     return ForwardCounts(success = success, failed = failed)
@@ -1174,6 +1177,8 @@ private fun formatForwardMessage(rawMessage: String?): String {
 @Composable
 private fun resolveForwardMessageAnnotated(rawMessage: String?): AnnotatedString {
     if (rawMessage.isNullOrBlank()) return AnnotatedString("-")
+    val successLabel = stringResource(R.string.forward_status_success)
+    val failedLabel = stringResource(R.string.forward_status_failed)
     val lines = rawMessage
         .replace(Regex("\\s*\\|\\s*"), "\n")
         .lineSequence()
@@ -1185,8 +1190,8 @@ private fun resolveForwardMessageAnnotated(rawMessage: String?): AnnotatedString
         lines.forEachIndexed { index, line ->
             if (index > 0) append("\n")
             val color = when {
-                line.contains("转发成功") -> FORWARD_SUCCESS_COLOR
-                line.contains("转发失败") -> FORWARD_FAILED_COLOR
+                line.contains(successLabel) -> FORWARD_SUCCESS_COLOR
+                line.contains(failedLabel) -> FORWARD_FAILED_COLOR
                 else -> MaterialTheme.colorScheme.onSurfaceVariant
             }
             pushStyle(SpanStyle(color = color))
@@ -1202,6 +1207,7 @@ private data class ForwardStatusSnapshot(
     val failedCount: Int,
 )
 
+@Composable
 private fun resolveForwardStatusSnapshot(smsMsg: SmsMsg): ForwardStatusSnapshot {
     val parsed = parseForwardCountsFromMessage(smsMsg.forwardMessage)
     val targetCount = countForwardTargets(smsMsg.forwardTarget)

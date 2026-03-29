@@ -279,13 +279,20 @@ fun SettingsHomeScreen(
                             }
                             val file = result.file
                             if (file == null) {
-                                snackbarHostState.showSnackbar("导出失败: ${result.details}")
+                                snackbarHostState.showSnackbar(
+                                    context.getString(R.string.runtime_log_export_failed, result.details),
+                                )
                                 return@launch
                             }
                             runCatching {
                                 LogBundleExporter.shareLogBundle(context, file)
                             }.onFailure {
-                                snackbarHostState.showSnackbar("分享失败: ${it.message}")
+                                snackbarHostState.showSnackbar(
+                                    context.getString(
+                                        R.string.runtime_log_share_failed,
+                                        it.message ?: it.javaClass.simpleName,
+                                    ),
+                                )
                             }
                         }
                     },

@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -49,6 +50,7 @@ fun AppNotifySenderBindingScreen(
     onBack: () -> Unit,
     viewModel: AppConfigViewModel = koinViewModel(),
 ) {
+    val context = LocalContext.current
     val senders by viewModel.notifySenderListFlow.collectAsStateWithLifecycle()
     val selectedFlow = remember(packageName) { viewModel.appNotifyBoundSenderIdsFlow(packageName) }
     val deniedBySenderFlow = remember(packageName) { viewModel.senderDenyingPackageIdsFlow(packageName) }
@@ -68,7 +70,7 @@ fun AppNotifySenderBindingScreen(
             senders
         } else {
             senders.filter { sender ->
-                senderDisplayName(sender).lowercase().contains(query) ||
+                senderDisplayName(sender, context).lowercase().contains(query) ||
                     sender.id.toString().contains(query)
             }
         }
@@ -171,7 +173,7 @@ fun AppNotifySenderBindingScreen(
                         androidx.compose.material3.ListItem(
                             headlineContent = {
                                 Text(
-                                    text = senderDisplayName(sender),
+                                    text = senderDisplayName(sender, context),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
@@ -242,6 +244,6 @@ private fun RowEnd(
     }
 }
 
-private fun senderDisplayName(sender: Sender): String {
-    return sender.displayName()
+private fun senderDisplayName(sender: Sender, context: android.content.Context): String {
+    return sender.displayName(context)
 }
