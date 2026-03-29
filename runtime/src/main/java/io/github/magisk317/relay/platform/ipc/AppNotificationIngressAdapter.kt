@@ -19,13 +19,14 @@ object AppNotificationIngressAdapter {
         val notification = sbn.notification
         val title = notification.extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
         val text = notification.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
+        val expandedText = resolveExpandedText(notification)
         val tickerText = notification.tickerText?.toString() ?: ""
         val notifyChannelId = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             notification.channelId.orEmpty()
         } else {
             ""
         }
-        val body = if (text.isNotEmpty()) text else tickerText
+        val body = resolveNotificationBody(text, expandedText, tickerText)
 
         if (title.isBlank() && body.isBlank()) return null
         val skipReason = resolveSkipReason(
@@ -111,5 +112,67 @@ object AppNotificationIngressAdapter {
                 normalizedText.contains("checking app updates") -> "content_checking_updates"
             else -> null
         }
+    }
+
+    internal fun resolveNotificationBody(
+        text: String,
+        expandedText: String,
+        tickerText: String,
+    ): String {
+        val normalizedText = text.trim()
+        val normalizedExpanded = expandedText.trim()
+        val normalizedTicker = tickerText.trim()
+        return when {
+            shouldPreferExpandedText(normalizedText, normalizedExpanded) -> normalizedExpanded
+            normalizedText.isNotEmpty() -> normalizedText
+            normalizedExpanded.isNotEmpty() -> normalizedExpanded
+            else -> normalizedTicker
+        }
+    }
+
+    private fun resolveExpandedText(notification: Notification): String {
+        val extras = notification.extras
+        val bigText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString().orEmpty()
+        val subText = extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString().orEmpty()
+        val lines = extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
+            ?.mapNotNull { it?.toString()?.trim() }
+            ?.filter { it.isNotEmpty() }
+            ?.joinToString("\n")
+            .orEmpty()
+        return listOf(bigText, lines, subText)
+            .map { it.trim() }
+            .firstOrNull { it.isNotEmpty() }
+            .orEmpty()
+    }
+
+    private fun shouldPreferExpandedText(
+        text: String,
+        expandedText: String,
+    ): Boolean {
+        if (expandedText.isBlank()) return false
+        if (text.isBlank()) return true
+        if (looksTruncated(text) && expandedText.length >= text.length) return true
+        val comparableText = stripEdgeEllipsis(text)
+        if (comparableText.isNotEmpty() && expandedText.contains(comparableText) && expandedText.length > comparableText.length) {
+            return true
+        }
+        return expandedText.length >= text.length + 8
+    }
+
+    private fun looksTruncated(text: String): Boolean {
+        val normalized = text.trim()
+        return normalized.startsWith("...") ||
+            normalized.startsWith("…") ||
+            normalized.endsWith("...") ||
+            normalized.endsWith("…")
+    }
+
+    private fun stripEdgeEllipsis(text: String): String {
+        return text.trim()
+            .removePrefix("...")
+            .removePrefix("…")
+            .removeSuffix("...")
+            .removeSuffix("…")
+            .trim()
     }
 }

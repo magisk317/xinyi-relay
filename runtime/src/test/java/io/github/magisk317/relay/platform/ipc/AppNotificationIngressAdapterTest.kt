@@ -74,4 +74,28 @@ class AppNotificationIngressAdapterTest {
             ),
         )
     }
+
+    @Test
+    fun resolveNotificationBody_prefersExpandedTextWhenTextLooksTruncated() {
+        assertEquals(
+            "【潇湘一卡通】尊敬的用户:您的登录验证码是230244，5分钟内有效",
+            AppNotificationIngressAdapter.resolveNotificationBody(
+                text = "...登录验证码是230244，5分钟内有效",
+                expandedText = "【潇湘一卡通】尊敬的用户:您的登录验证码是230244，5分钟内有效",
+                tickerText = "",
+            ),
+        )
+    }
+
+    @Test
+    fun resolveNotificationBody_fallsBackToTickerWhenTextMissing() {
+        assertEquals(
+            "ticker-body",
+            AppNotificationIngressAdapter.resolveNotificationBody(
+                text = "",
+                expandedText = "",
+                tickerText = "ticker-body",
+            ),
+        )
+    }
 }
