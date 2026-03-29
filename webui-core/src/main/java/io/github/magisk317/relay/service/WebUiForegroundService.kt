@@ -23,8 +23,6 @@ class WebUiForegroundService : Service() {
         private const val ACTION_START = "$ACTION_NAMESPACE.WEBUI_FOREGROUND_START"
         private const val EXTRA_PORT = "port"
         private const val EXTRA_ALLOW_LAN_ACCESS = "allow_lan_access"
-        private const val NOTIFICATION_ID = 0x52454c
-        private const val DEFAULT_PORT = 8787
 
         fun start(context: Context, port: Int, allowLanAccess: Boolean) {
             ContextCompat.startForegroundService(

@@ -1,4 +1,5 @@
-- Updated to 0.0.1 (14), the first stable release.
-- GitHub Releases now ship both legacy and api101 APKs; choose legacy for older frameworks.
-- Google Play remains api101 only, while update selection and CI now recognize both Xposed API tracks.
+- Updated to 0.0.2 (15).
+- Continued aligning the shared smscode-core and tightening hook exception boundaries for better stability.
+- WebUI and xpbridge are now split into dedicated modules, forward broadcasts are acknowledged before async dispatch, and auto-input feedback timing is improved.
+- GitHub update selection now matches the active Xposed flavor, with legacy/api101 release lanes further refined.
 - Details: https://github.com/magisk317/xinyi-relay/releases

@@ -1,41 +1,16 @@
 package io.github.magisk317.relay.web
 
 import android.content.Context
-import io.github.magisk317.relay.service.WebUiForegroundService
-import io.github.magisk317.relay.webui.WebUiConfigStore
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
+import io.github.magisk317.relay.service.WebUiServiceManager
 
 class WebUiManager(private val context: Context) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private var configJob: Job? = null
-    private val configStore by lazy { WebUiConfigStore(context) }
+    private val delegate by lazy { WebUiServiceManager(context) }
 
     fun start() {
-        if (configJob != null) return
-        configJob = scope.launch {
-            configStore.ensureInitialized()
-            configStore.observe().collect { snapshot ->
-                if (!snapshot.enabled) {
-                    WebUiForegroundService.stop(context)
-                    return@collect
-                }
-                WebUiForegroundService.start(
-                    context = context,
-                    port = snapshot.port,
-                    allowLanAccess = snapshot.allowLanAccess,
-                )
-            }
-        }
+        delegate.start()
     }
 
     fun stop() {
-        configJob?.cancel()
-        configJob = null
-        WebUiForegroundService.stop(context)
+        delegate.stop()
     }
 }
