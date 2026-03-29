@@ -664,8 +664,7 @@ fun MainScreen(
                     .align(Alignment.BottomCenter)
                     .hazeEffect(hazeState, hazeStyle) {
                         forceInvalidateOnPreDraw = true
-                    }
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.35f)),
+                    },
             ) {
                 NavigationBar(
                     containerColor = Color.Transparent,
