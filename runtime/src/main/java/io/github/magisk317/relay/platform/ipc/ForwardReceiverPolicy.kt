@@ -9,6 +9,7 @@ object ForwardReceiverPolicy {
     const val PHONE_UID = 1001
     private const val NOTIFY_DEDUP_WINDOW_MS = 10_000L
     private const val NMS_HOOK_SUPPRESS_TTL_MS = 30_000L
+    private const val SMS_HOOK_SUCCESS_SUPPRESS_TTL_MS = 120_000L
     private const val NOTIFY_DEDUP_MAX_ENTRIES = 256
 
     fun shouldAllowSystemTokenBypass(
@@ -170,6 +171,33 @@ object ForwardReceiverPolicy {
         return nowMs - seenAt < NMS_HOOK_SUPPRESS_TTL_MS
     }
 
+    fun markSuccessfulSmsHookDispatch(
+        smsCode: String?,
+        company: String?,
+        sender: String?,
+        recentSuccessfulSmsHook: MutableMap<String, Long>,
+        nowMs: Long = System.currentTimeMillis(),
+    ) {
+        val key = buildSuccessfulSmsHookKey(smsCode = smsCode, company = company, sender = sender) ?: return
+        recentSuccessfulSmsHook[key] = nowMs
+        if (recentSuccessfulSmsHook.size > NOTIFY_DEDUP_MAX_ENTRIES) {
+            val cutoff = nowMs - SMS_HOOK_SUCCESS_SUPPRESS_TTL_MS * 2
+            recentSuccessfulSmsHook.entries.removeIf { it.value < cutoff }
+        }
+    }
+
+    fun shouldSuppressReclassifiedNmsSms(
+        smsCode: String?,
+        company: String?,
+        sender: String?,
+        recentSuccessfulSmsHook: Map<String, Long>,
+        nowMs: Long = System.currentTimeMillis(),
+    ): Boolean {
+        val key = buildSuccessfulSmsHookKey(smsCode = smsCode, company = company, sender = sender) ?: return false
+        val seenAt = recentSuccessfulSmsHook[key] ?: return false
+        return nowMs - seenAt < SMS_HOOK_SUCCESS_SUPPRESS_TTL_MS
+    }
+
     private fun buildNotifyDedupKey(
         msgType: String,
         packageName: String?,
@@ -224,5 +252,19 @@ object ForwardReceiverPolicy {
             append('|')
             append(normalizedCode)
         }
+    }
+
+    private fun buildSuccessfulSmsHookKey(
+        smsCode: String?,
+        company: String?,
+        sender: String?,
+    ): String? {
+        val normalizedCode = smsCode.orEmpty().trim()
+        if (normalizedCode.isEmpty()) return null
+        val normalizedCompany = company.orEmpty().trim()
+        val normalizedSender = sender.orEmpty().trim()
+        val identity = normalizedCompany.ifEmpty { normalizedSender }
+        if (identity.isEmpty()) return null
+        return "sms_hook_success|$identity|$normalizedCode"
     }
 }

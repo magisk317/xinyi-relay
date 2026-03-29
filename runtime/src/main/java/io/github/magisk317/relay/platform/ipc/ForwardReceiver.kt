@@ -148,10 +148,12 @@ class ForwardReceiver : BroadcastReceiver() {
                     context = context,
                     payload = rawPayload,
                     traceId = traceId,
+                    runtimeGraph = runtimeGraph,
                 )
                 val normalizedSender = payload.sender
                 val normalizedBody = payload.body
                 val normalizedDate = payload.date
+                val normalizedCompany = payload.company
                 val normalizedPackageName = payload.packageName
                 val normalizedNotifyChannelId = payload.notifyChannelId
                 val msgTypeStr = payload.msgType
@@ -196,6 +198,30 @@ class ForwardReceiver : BroadcastReceiver() {
                     !shouldForwardAppNotify(runtimeGraph, normalizedPackageName, traceId, forwardSource)
                 ) {
                     markResult(RESULT_REJECT_APP_GATE, "app_gate_drop")
+                    return@runCatching
+                }
+                if (
+                    msgTypeStr == ForwardBroadcastContract.MSG_TYPE_SMS &&
+                    forwardSource == ForwardBroadcastContract.SOURCE_NMS_HOOK &&
+                    ForwardReceiverPolicy.shouldSuppressReclassifiedNmsSms(
+                        smsCode = payload.smsCode,
+                        company = normalizedCompany,
+                        sender = normalizedSender,
+                        recentSuccessfulSmsHook = recentSuccessfulSmsHook,
+                    )
+                ) {
+                    ForwardFlowLog.i(
+                        traceId,
+                        buildString {
+                            append("Drop reclassified nms sms after successful sms_hook code=")
+                            append(payload.smsCode.orEmpty())
+                            append(" company=")
+                            append(normalizedCompany.orEmpty().ifBlank { "<empty>" })
+                            append(" sender=")
+                            append(normalizedSender.orEmpty().ifBlank { "<empty>" })
+                        },
+                    )
+                    markResult(RESULT_DROP_DUPLICATE, "nms_sms_suppressed_after_sms_hook")
                     return@runCatching
                 }
                 if (
@@ -387,6 +413,18 @@ class ForwardReceiver : BroadcastReceiver() {
                         "Async dispatch completed dispatched=${pipelineResult.dispatched} " +
                             "blockedReason=${pipelineResult.blockedReason ?: "<none>"}",
                     )
+                    if (
+                        pipelineResult.dispatched &&
+                        msgTypeStr == ForwardBroadcastContract.MSG_TYPE_SMS &&
+                        forwardSource == ForwardBroadcastContract.SOURCE_SMS_HOOK
+                    ) {
+                        ForwardReceiverPolicy.markSuccessfulSmsHookDispatch(
+                            smsCode = payload.smsCode,
+                            company = normalizedCompany,
+                            sender = normalizedSender,
+                            recentSuccessfulSmsHook = recentSuccessfulSmsHook,
+                        )
+                    }
                 }
             }.onFailure { error ->
                 XLog.e("ForwardReceiver unexpected error", error)
@@ -444,6 +482,7 @@ class ForwardReceiver : BroadcastReceiver() {
         }
         private val recentNotify = ConcurrentHashMap<String, Long>()
         private val recentSmsForward = RecentEventDeduplicator(windowMs = SMS_FORWARD_DEDUP_WINDOW_MS)
+        private val recentSuccessfulSmsHook = ConcurrentHashMap<String, Long>()
         private val nmsHookSeen = ConcurrentHashMap<String, Long>()
         private const val ROUTE_NMS_HOOK = ForwardBroadcastContract.SOURCE_NMS_HOOK
         private const val ROUTE_TELEPHONY_STATE = ForwardBroadcastContract.SOURCE_TELEPHONY_STATE
@@ -472,11 +511,19 @@ class ForwardReceiver : BroadcastReceiver() {
         context: Context,
         payload: ForwardBroadcastPayload,
         traceId: String,
+        runtimeGraph: RuntimeGraph,
     ): ForwardBroadcastPayload {
         if (payload.msgType != ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY) return payload
         if (payload.forwardSource != ForwardBroadcastContract.SOURCE_NMS_HOOK) return payload
         val packageName = payload.packageName.orEmpty().trim()
         if (!isTelephonyNmsPackage(packageName)) return payload
+        if (!shouldForwardAppNotify(runtimeGraph, packageName, traceId, payload.forwardSource)) {
+            ForwardFlowLog.i(
+                traceId,
+                "Skip nms_hook telephony sms promotion pkg=$packageName reason=app_notify_gate",
+            )
+            return payload
+        }
         val content = buildNmsNotificationContent(payload)
         if (content.isBlank()) return payload
         val parsedResult = runCatching {

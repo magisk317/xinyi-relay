@@ -251,6 +251,52 @@ class ForwardReceiverPolicyTest {
     }
 
     @Test
+    fun successfulSmsHookSuppression_blocksDelayedNmsFallbackWithinWindow() {
+        val recentSuccessfulSmsHook = linkedMapOf<String, Long>()
+
+        ForwardReceiverPolicy.markSuccessfulSmsHookDispatch(
+            smsCode = "230244",
+            company = "潇湘一卡通",
+            sender = "1068",
+            recentSuccessfulSmsHook = recentSuccessfulSmsHook,
+            nowMs = 1_000L,
+        )
+
+        assertTrue(
+            ForwardReceiverPolicy.shouldSuppressReclassifiedNmsSms(
+                smsCode = "230244",
+                company = "潇湘一卡通",
+                sender = "短信",
+                recentSuccessfulSmsHook = recentSuccessfulSmsHook,
+                nowMs = 31_000L,
+            ),
+        )
+    }
+
+    @Test
+    fun successfulSmsHookSuppression_expiresAfterWindow() {
+        val recentSuccessfulSmsHook = linkedMapOf<String, Long>()
+
+        ForwardReceiverPolicy.markSuccessfulSmsHookDispatch(
+            smsCode = "230244",
+            company = "潇湘一卡通",
+            sender = "1068",
+            recentSuccessfulSmsHook = recentSuccessfulSmsHook,
+            nowMs = 1_000L,
+        )
+
+        assertFalse(
+            ForwardReceiverPolicy.shouldSuppressReclassifiedNmsSms(
+                smsCode = "230244",
+                company = "潇湘一卡通",
+                sender = "短信",
+                recentSuccessfulSmsHook = recentSuccessfulSmsHook,
+                nowMs = 130_000L,
+            ),
+        )
+    }
+
+    @Test
     fun callNotifyHelpers_handleOngoingAndTelephonySuppression() {
         assertTrue(
             ForwardReceiverPolicy.shouldDropOngoingCallNotify(
