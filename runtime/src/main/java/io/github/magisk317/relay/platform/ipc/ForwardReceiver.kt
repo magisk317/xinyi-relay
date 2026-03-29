@@ -148,7 +148,6 @@ class ForwardReceiver : BroadcastReceiver() {
                     context = context,
                     payload = rawPayload,
                     traceId = traceId,
-                    runtimeGraph = runtimeGraph,
                 )
                 val normalizedSender = payload.sender
                 val normalizedBody = payload.body
@@ -511,19 +510,11 @@ class ForwardReceiver : BroadcastReceiver() {
         context: Context,
         payload: ForwardBroadcastPayload,
         traceId: String,
-        runtimeGraph: RuntimeGraph,
     ): ForwardBroadcastPayload {
         if (payload.msgType != ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY) return payload
         if (payload.forwardSource != ForwardBroadcastContract.SOURCE_NMS_HOOK) return payload
         val packageName = payload.packageName.orEmpty().trim()
         if (!isTelephonyNmsPackage(packageName)) return payload
-        if (!shouldForwardAppNotify(runtimeGraph, packageName, traceId, payload.forwardSource)) {
-            ForwardFlowLog.i(
-                traceId,
-                "Skip nms_hook telephony sms promotion pkg=$packageName reason=app_notify_gate",
-            )
-            return payload
-        }
         val content = buildNmsNotificationContent(payload)
         if (content.isBlank()) return payload
         val parsedResult = runCatching {
