@@ -18,6 +18,8 @@ import java.util.zip.ZipOutputStream
 
 object LogBundleExporter {
     private const val ZIP_MIME_TYPE = "application/zip"
+    private const val EXPORT_FILE_PREFIX = "relay_logs_"
+    private const val STAGING_DIR_PREFIX = ".tmp_relay_logs_"
     private val LSPOSED_LOG_DIRS = listOf(
         "/data/adb/lspd/log",
     )
@@ -47,7 +49,7 @@ object LogBundleExporter {
                 XLog.e("buildLogBundle failed: %s", details)
                 return ExportResult(null, details)
             }
-            val stagingDir = File(exportDir, ".tmp_logs_$timestamp").apply {
+            val stagingDir = File(exportDir, "${STAGING_DIR_PREFIX}$timestamp").apply {
                 if (exists()) deleteRecursively()
             }
             if (!ensureDirectory(stagingDir, recreateWhenFile = true)) {
@@ -92,7 +94,7 @@ object LogBundleExporter {
                     },
                 )
 
-                val zipFile = File(exportDir, "logs_$timestamp.zip")
+                val zipFile = File(exportDir, "${EXPORT_FILE_PREFIX}$timestamp.zip")
                 zipDirectory(stagingDir, zipFile)
                 StorageUtils.setFileWorldReadable(zipFile, 1)
                 XLog.i(
