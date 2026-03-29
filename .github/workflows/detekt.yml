@@ -55,6 +55,8 @@ jobs:
         with:
           validate-wrappers: false
           allow-snapshot-wrappers: true
+      - name: Normalize Android SDK platform aliases
+        run: bash scripts/ensure_android_sdk_platform_alias.sh
 
       - name: Run Detekt
         continue-on-error: true
@@ -62,38 +64,44 @@ jobs:
           chmod +x gradlew
           ./gradlew detekt --continue
 
-      - name: Check reports existence
-        id: check
-        if: always()
-        run: |
-          if [ -f app/build/reports/detekt/detekt.sarif ]; then echo "app=true" >> $GITHUB_OUTPUT; fi
-          if [ -f core/build/reports/detekt/detekt.sarif ]; then echo "core=true" >> $GITHUB_OUTPUT; fi
-          if [ -f storage/build/reports/detekt/detekt.sarif ]; then echo "storage=true" >> $GITHUB_OUTPUT; fi
-
       - name: Merge SARIF files
+        id: merge_sarif
         if: always()
         run: |
           mkdir -p merged-sarif
-          # Merge all SARIF files into one
-          jq -s '
-            {
-              "$schema": .[0]."$schema",
-              "version": .[0].version,
-              "runs": [
-                {
-                  "tool": .[0].runs[0].tool,
-                  "results": ([.[].runs[].results] | add)
-                }
-              ]
-            }
-          ' app/build/reports/detekt/detekt.sarif \
-            $([ -f storage/build/reports/detekt/detekt.sarif ] && echo "storage/build/reports/detekt/detekt.sarif" || echo "/dev/null") \
-            $([ -f core/build/reports/detekt/detekt.sarif ] && echo "core/build/reports/detekt/detekt.sarif" || echo "/dev/null") \
-            > merged-sarif/detekt.sarif 2>/dev/null || cp app/build/reports/detekt/detekt.sarif merged-sarif/detekt.sarif
+          mapfile -t sarif_files < <(find . -path '*/build/reports/detekt/detekt.sarif' -type f | sort)
+          if (( ${#sarif_files[@]} == 0 )); then
+            echo "No SARIF files found"
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          python3 - "${sarif_files[@]}" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          inputs = [Path(path) for path in sys.argv[1:]]
+          merged = None
+          merged_runs = []
+
+          for path in inputs:
+              data = json.loads(path.read_text())
+              if merged is None:
+                  merged = data
+                  merged["runs"] = []
+              merged_runs.extend(data.get("runs") or [])
+
+          if merged is None:
+              raise SystemExit("No SARIF inputs")
+
+          merged["runs"] = merged_runs
+          Path("merged-sarif/detekt.sarif").write_text(json.dumps(merged))
+          PY
+          echo "exists=true" >> "$GITHUB_OUTPUT"
 
       - name: Upload merged SARIF results
         uses: github/codeql-action/upload-sarif@v4
-        if: always()
+        if: always() && steps.merge_sarif.outputs.exists == 'true'
         continue-on-error: true
         with:
           sarif_file: merged-sarif/detekt.sarif

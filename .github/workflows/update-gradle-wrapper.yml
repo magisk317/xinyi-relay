@@ -27,6 +27,9 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Normalize Android SDK platform aliases
+        run: bash scripts/ensure_android_sdk_platform_alias.sh
+
       - name: Update Gradle Wrapper to Nightly
         run: ./gradlew wrapper --gradle-version nightly
 

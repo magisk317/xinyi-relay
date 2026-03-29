@@ -77,5 +77,7 @@ jobs:
         with:
           validate-wrappers: false
           allow-snapshot-wrappers: true
+      - name: Normalize Android SDK platform aliases
+        run: bash scripts/ensure_android_sdk_platform_alias.sh
       - name: Verify shared submodule compatibility
         run: bash scripts/verify_shared_submodule_compat.sh "$GITHUB_WORKSPACE/sibling-xposed-smscode"

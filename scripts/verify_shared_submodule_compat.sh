@@ -27,6 +27,8 @@ if [[ -n "$SIBLING_REPO" ]]; then
     compare_submodule_sha "smscode-core"
 fi
 
+bash scripts/ensure_android_sdk_platform_alias.sh
+
 ./gradlew \
   :smscode-core:smscode-domain:testDebugUnitTest \
   :magisk-ui-kit:validateDebugScreenshotTest \
