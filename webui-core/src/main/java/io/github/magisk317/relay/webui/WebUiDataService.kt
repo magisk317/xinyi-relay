@@ -31,6 +31,10 @@ class WebUiDataService(context: Context) {
     private val relayRecordRepository by lazy { runtimeGraph.relayRecordRepository }
     private val preferenceDataSource by lazy { runtimeGraph.preferenceDataSource }
 
+    suspend fun getLanguageTag(): String = withContext(Dispatchers.IO) {
+        settingsRepository.getLanguageTag()
+    }
+
     suspend fun getOverview(): OverviewState = withContext(Dispatchers.IO) {
         val apps = loadMergedAppItems()
         val records = relayRecordRepository.listRecords(80)
@@ -414,21 +418,21 @@ class WebUiDataService(context: Context) {
     )
 
     private fun senderTypeLabel(type: Int): String = when (type) {
-        SenderType.DINGTALK_GROUP_ROBOT -> "钉钉群机器人"
-        SenderType.EMAIL -> "邮件"
+        SenderType.DINGTALK_GROUP_ROBOT -> "DingTalk Group Bot"
+        SenderType.EMAIL -> "Email"
         SenderType.BARK -> "Bark"
         SenderType.WEBHOOK -> "Webhook"
-        SenderType.WEWORK_ROBOT -> "企业微信机器人"
-        SenderType.WEWORK_AGENT -> "企业微信应用"
-        SenderType.SERVERCHAN -> "Server酱"
+        SenderType.WEWORK_ROBOT -> "WeCom Group Bot"
+        SenderType.WEWORK_AGENT -> "WeCom App"
+        SenderType.SERVERCHAN -> "ServerChan"
         SenderType.TELEGRAM -> "Telegram"
-        SenderType.SMS -> "短信"
-        SenderType.FEISHU -> "飞书"
+        SenderType.SMS -> "SMS"
+        SenderType.FEISHU -> "Feishu"
         SenderType.PUSHPLUS -> "PushPlus"
         SenderType.GOTIFY -> "Gotify"
         SenderType.NTFY -> "ntfy"
-        SenderType.DINGTALK_INNER_ROBOT -> "钉钉内部机器人"
-        SenderType.FEISHU_APP -> "飞书应用"
+        SenderType.DINGTALK_INNER_ROBOT -> "DingTalk Internal Bot"
+        SenderType.FEISHU_APP -> "Feishu App"
         SenderType.URL_SCHEME -> "URL Scheme"
         SenderType.SOCKET -> "Socket"
         else -> "Unknown($type)"

@@ -8,6 +8,7 @@ import {
   type PropsWithChildren
 } from 'react'
 import { apiClient, setCsrfToken } from './api/client'
+import { useI18n } from './i18n'
 
 type AuthState = {
   loading: boolean
@@ -21,6 +22,7 @@ type AuthState = {
 const AuthContext = createContext<AuthState | null>(null)
 
 export function AuthProvider({ children }: PropsWithChildren) {
+  const { syncServerLanguageTag } = useI18n()
   const [loading, setLoading] = useState(true)
   const [connected, setConnected] = useState(false)
   const [authenticated, setAuthenticated] = useState(false)
@@ -33,9 +35,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
         const me = await apiClient.me()
         if (cancelled) return
         setConnected(true)
+        syncServerLanguageTag(me.languageTag ?? '')
         if (me.authenticated && me.username && me.csrfToken) {
-          setAuthenticated(true)
-          setUsername(me.username)
+            setAuthenticated(true)
+            setUsername(me.username)
           setCsrfToken(me.csrfToken)
         } else {
           setAuthenticated(false)
@@ -68,10 +71,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setAuthenticated(resp.authenticated)
       setUsername(resp.username)
       setCsrfToken(resp.csrfToken)
+      syncServerLanguageTag(resp.languageTag ?? '')
     } catch (error) {
       if (error instanceof Error) {
         const message = error.message
-        if (message.includes('无法连接到 WebUI') || message.includes('连接超时')) {
+        if (
+          message.includes('Unable to connect to WebUI') ||
+          message.includes('Connection timed out') ||
+          message.includes('无法连接到 WebUI') ||
+          message.includes('连接超时')
+        ) {
           setConnected(false)
         } else {
           setConnected(true)
@@ -79,7 +88,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
       throw error
     }
-  }, [])
+  }, [syncServerLanguageTag])
 
   const logout = useCallback(async () => {
     await apiClient.logout()

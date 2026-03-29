@@ -11,6 +11,7 @@ import type {
   SettingsState,
   VersionState
 } from '../types'
+import { translateStatic } from '../i18n'
 
 let csrfToken = ''
 const DEFAULT_TIMEOUT_MS = 8_000
@@ -27,7 +28,7 @@ export function setCsrfToken(nextToken: string): void {
 function extractErrorMessage(text: string, status: number): string {
   const trimmed = text.trim()
   if (!trimmed) {
-    return `请求失败 (${status})`
+    return `${translateStatic('common.requestFailed')}${status}`
   }
 
   try {
@@ -44,12 +45,12 @@ function extractErrorMessage(text: string, status: number): string {
 
 function normalizeRequestError(error: unknown): Error {
   if (error instanceof DOMException && error.name === 'AbortError') {
-    return new Error('连接超时，请确认 WebUI 所在应用仍保持前台后再试')
+    return new Error('Connection timed out. Make sure the host app or WebUI service is still active.')
   }
   if (error instanceof TypeError) {
-    return new Error('无法连接到 WebUI，请确认主应用或 WebUI 服务仍在运行后再重试')
+    return new Error('Unable to connect to WebUI. Make sure the app or WebUI service is still running.')
   }
-  return error instanceof Error ? error : new Error('请求失败')
+  return error instanceof Error ? error : new Error(translateStatic('common.requestFailed'))
 }
 
 async function request<T>(

@@ -2,27 +2,29 @@ import { useEffect, useMemo, useState } from 'react'
 import { apiClient } from '../api/client'
 import type { AnalyticsResponse, AnalyticsWindow } from '../types'
 import { trackEvent } from '../analytics'
+import { useI18n } from '../i18n'
 import { ActionButton, ErrorBanner, LoadingCard, MetricCard, PageShell, SurfaceCard, cx } from '../template'
 
-const ranges = [
-  { key: 'allTime', label: '全量' },
-  { key: 'last7d', label: '近7天' },
-  { key: 'last30d', label: '近30天' }
-] as const
-
-type RangeKey = (typeof ranges)[number]['key']
+type RangeKey = 'allTime' | 'last7d' | 'last30d'
 
 export function AnalyticsPage() {
+  const { t } = useI18n()
   const [data, setData] = useState<AnalyticsResponse | null>(null)
   const [error, setError] = useState('')
   const [range, setRange] = useState<RangeKey>('allTime')
+
+  const ranges = [
+    { key: 'allTime', label: t('analytics.range.all') },
+    { key: 'last7d', label: t('analytics.range.7d') },
+    { key: 'last30d', label: t('analytics.range.30d') }
+  ] as const
 
   const load = async () => {
     try {
       setError('')
       setData(await apiClient.getAnalytics())
     } catch (err) {
-      setError(err instanceof Error ? err.message : '加载失败')
+      setError(err instanceof Error ? err.message : t('common.loadFailed'))
     }
   }
 
@@ -44,32 +46,22 @@ export function AnalyticsPage() {
         void load()
       }}
     >
-      刷新统计
+      {t('analytics.refresh')}
     </ActionButton>
   )
 
   if (!data && !error) {
     return (
-      <PageShell
-        title="统计"
-        description="按时间范围查看验证码识别、自动输入和各通道发送表现。"
-        badge="Analytics"
-        actions={actions}
-      >
-        <LoadingCard title="正在加载统计" message="正在汇总全量、7 天和 30 天窗口数据。" />
+      <PageShell title={t('analytics.title')} description={t('analytics.description')} badge="Analytics" actions={actions}>
+        <LoadingCard title={t('analytics.loadingTitle')} message={t('analytics.loadingMessage')} />
       </PageShell>
     )
   }
 
   return (
-    <PageShell
-      title="统计"
-      description="用统一窗口对比验证码识别、自动输入和通道发送表现。"
-      badge="Analytics"
-      actions={actions}
-    >
+    <PageShell title={t('analytics.title')} description={t('analytics.description')} badge="Analytics" actions={actions}>
       <ErrorBanner message={error} />
-      <SurfaceCard title="时间窗口" subtitle="切换不同统计范围，卡片和通道表会同步更新。">
+      <SurfaceCard title={t('analytics.rangeTitle')} subtitle={t('analytics.rangeSubtitle')}>
         <div className="flex flex-wrap gap-2">
           {ranges.map((item) => (
             <button
@@ -87,29 +79,31 @@ export function AnalyticsPage() {
             </button>
           ))}
         </div>
-        <div className="mt-4 text-sm text-[#6c785d]">已切换到 {ranges.find((item) => item.key === range)?.label ?? '全量'} 统计窗口。</div>
+        <div className="mt-4 text-sm text-[#6c785d]">
+          {t('analytics.range.switched', { label: ranges.find((item) => item.key === range)?.label ?? t('analytics.range.all') })}
+        </div>
       </SurfaceCard>
       {window && (
         <>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-            <MetricCard title="验证码识别" value={window.summary.smsCodeDetected} tone="info" />
-            <MetricCard title="自动输入尝试" value={window.summary.autoInputAttempt} />
-            <MetricCard title="自动输入成功" value={window.summary.autoInputSuccess} tone="success" />
-            <MetricCard title="自动输入失败" value={window.summary.autoInputFail} tone="warning" />
-            <MetricCard title="消息总量" value={window.summary.messageTotal} />
+            <MetricCard title={t('analytics.metric.detected')} value={window.summary.smsCodeDetected} tone="info" />
+            <MetricCard title={t('analytics.metric.attempt')} value={window.summary.autoInputAttempt} />
+            <MetricCard title={t('analytics.metric.success')} value={window.summary.autoInputSuccess} tone="success" />
+            <MetricCard title={t('analytics.metric.fail')} value={window.summary.autoInputFail} tone="warning" />
+            <MetricCard title={t('analytics.metric.total')} value={window.summary.messageTotal} />
           </div>
 
-          <SurfaceCard title="通道表现" subtitle="按通道类型查看配置、启用和发送结果。">
+          <SurfaceCard title={t('analytics.tableTitle')} subtitle={t('analytics.tableSubtitle')}>
             <div className="relay-table-shell">
               <table className="relay-table">
                 <thead>
                   <tr>
-                    <th>通道类型</th>
-                    <th>配置数</th>
-                    <th>启用数</th>
-                    <th>发送数</th>
-                    <th>成功</th>
-                    <th>失败</th>
+                    <th>{t('analytics.table.type')}</th>
+                    <th>{t('analytics.table.configured')}</th>
+                    <th>{t('analytics.table.enabled')}</th>
+                    <th>{t('analytics.table.sent')}</th>
+                    <th>{t('analytics.table.success')}</th>
+                    <th>{t('analytics.table.failed')}</th>
                   </tr>
                 </thead>
                 <tbody>

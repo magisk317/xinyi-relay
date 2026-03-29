@@ -11,16 +11,18 @@ import { RecordsPage } from './pages/RecordsPage'
 import { SendersPage } from './pages/SendersPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { trackPageView } from './analytics'
+import { useI18n } from './i18n'
 import { RelaySpinner } from './template'
 
 function ProtectedLayout() {
+  const { t } = useI18n()
   const { loading, authenticated } = useAuth()
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[linear-gradient(180deg,#fbfef2_0%,#eef7d7_100%)]">
         <div className="flex items-center gap-3 rounded-[24px] border border-[#d6e7a2] bg-white/90 px-5 py-4 text-sm text-[#5f6d45] shadow-[0_20px_50px_-36px_rgba(98,122,28,0.24)]">
           <RelaySpinner />
-          正在连接内嵌 WebUI...
+          {t('app.embeddedConnecting')}
         </div>
       </div>
     )

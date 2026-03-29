@@ -2,22 +2,23 @@ import { useEffect, useRef, useState } from 'react'
 import { ClipboardListIcon, HomeIcon, StarIcon } from 'flowbite-react/icons'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from './auth'
+import { type LocaleSetting, useI18n } from './i18n'
 import { cx } from './template'
 
-const navItems = [
-  { to: '/overview', label: '概览', icon: HomeIcon },
-  { to: '/analytics', label: '统计', icon: StarIcon },
-  { to: '/apps', label: '应用', icon: ClipboardListIcon },
-  { to: '/records', label: '记录', icon: ClipboardListIcon },
-  { to: '/senders', label: '通道', icon: StarIcon },
-  { to: '/settings', label: '设置', icon: HomeIcon },
-  { to: '/advanced', label: '高级', icon: ClipboardListIcon }
-]
-
 export function AppLayout() {
+  const { t, selectedLocale, setSelectedLocale } = useI18n()
   const { username, logout } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
+  const navItems = [
+    { to: '/overview', label: t('layout.nav.overview'), icon: HomeIcon },
+    { to: '/analytics', label: t('layout.nav.analytics'), icon: StarIcon },
+    { to: '/apps', label: t('layout.nav.apps'), icon: ClipboardListIcon },
+    { to: '/records', label: t('layout.nav.records'), icon: ClipboardListIcon },
+    { to: '/senders', label: t('layout.nav.senders'), icon: StarIcon },
+    { to: '/settings', label: t('layout.nav.settings'), icon: HomeIcon },
+    { to: '/advanced', label: t('layout.nav.advanced'), icon: ClipboardListIcon }
+  ] as const
 
   const renderNavTabs = (mobile = false) => (
     <>
@@ -69,15 +70,20 @@ export function AppLayout() {
             onClick={() => navigate('/overview')}
           >
             <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[18px] bg-white/14 ring-1 ring-white/18">
-              <img src="/app-logo.png" alt="信驿 Relay" className="h-full w-full object-contain p-1.5" />
+              <img src="/app-logo.png" alt="Xinyi Relay" className="h-full w-full object-contain p-1.5" />
             </div>
             <div>
-              <div className="text-lg font-semibold tracking-[-0.03em] text-[#f8ffe6]">信驿 Relay</div>
+              <div className="text-lg font-semibold tracking-[-0.03em] text-[#f8ffe6]">Xinyi Relay</div>
               <div className="text-xs uppercase tracking-[0.24em] text-[#eef8cf]">WebUI</div>
             </div>
           </button>
 
-          <AccountMenu username={username} onLogout={() => void logout()} />
+          <AccountMenu
+            username={username}
+            onLogout={() => void logout()}
+            selectedLocale={selectedLocale}
+            onChangeLocale={setSelectedLocale}
+          />
         </div>
       </header>
 
@@ -90,14 +96,20 @@ export function AppLayout() {
               onClick={() => navigate('/overview')}
             >
               <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-[18px] bg-white/14 ring-1 ring-white/18">
-                <img src="/app-logo.png" alt="信驿 Relay" className="h-full w-full object-contain p-1.5" />
+                <img src="/app-logo.png" alt="Xinyi Relay" className="h-full w-full object-contain p-1.5" />
               </div>
               <div className="min-w-0">
-                <div className="truncate text-[1.55rem] font-semibold tracking-[-0.05em] text-[#f8ffe6]">信驿</div>
+                <div className="truncate text-[1.55rem] font-semibold tracking-[-0.05em] text-[#f8ffe6]">Xinyi</div>
               </div>
             </button>
 
-            <AccountMenu username={username} onLogout={() => void logout()} compact />
+            <AccountMenu
+              username={username}
+              onLogout={() => void logout()}
+              selectedLocale={selectedLocale}
+              onChangeLocale={setSelectedLocale}
+              compact
+            />
           </div>
         </section>
 
@@ -105,8 +117,8 @@ export function AppLayout() {
           <aside className="hidden w-[260px] shrink-0 lg:block">
             <div className="sticky top-28 overflow-hidden rounded-[34px] border border-[#d5e79b]/50 bg-[linear-gradient(180deg,rgba(255,255,255,0.74),rgba(244,251,223,0.94))] p-4 shadow-[0_24px_70px_-40px_rgba(98,122,28,0.2)] backdrop-blur-xl">
               <div className="mb-4 px-2 pt-2">
-                <div className="text-xs font-semibold uppercase tracking-[0.28em] text-[#708b23]">Workspace</div>
-                <div className="mt-2 text-sm leading-6 text-[#6c785d]">切换页面后，当前内容区会保持同一视觉层级和工作节奏。</div>
+                <div className="text-xs font-semibold uppercase tracking-[0.28em] text-[#708b23]">{t('layout.workspace')}</div>
+                <div className="mt-2 text-sm leading-6 text-[#6c785d]">{t('layout.workspaceDesc')}</div>
               </div>
 
               <nav className="space-y-1.5">
@@ -114,8 +126,8 @@ export function AppLayout() {
               </nav>
 
               <div className="mt-5 rounded-[26px] bg-[#eff8cf] px-4 py-4">
-                <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[#708b23]">保活提示</div>
-                <p className="mt-2 text-sm leading-6 text-[#637152]">如果页面长时间无响应，先确认状态栏里的 WebUI 前台服务通知还在。</p>
+                <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[#708b23]">{t('layout.keepaliveTitle')}</div>
+                <p className="mt-2 text-sm leading-6 text-[#637152]">{t('layout.keepaliveBody')}</p>
               </div>
             </div>
           </aside>
@@ -130,7 +142,7 @@ export function AppLayout() {
             <footer className="mt-8 rounded-[28px] border border-[#d5e79b]/42 bg-white/72 px-5 py-4 text-sm leading-6 text-[#6c785d] shadow-[0_18px_50px_-38px_rgba(98,122,28,0.18)]">
               <span className="font-medium text-[#34461b]">Relay WebUI</span>
               <span className="mx-2 text-[#b3c37d]">/</span>
-              如果页面长时间无响应，请先回到主应用前台，或检查 WebUI 前台服务通知。
+              {t('layout.footerHint')}
             </footer>
           </main>
         </div>
@@ -142,12 +154,17 @@ export function AppLayout() {
 function AccountMenu({
   username,
   onLogout,
+  selectedLocale,
+  onChangeLocale,
   compact = false
 }: {
   username: string
   onLogout: () => void
+  selectedLocale: LocaleSetting
+  onChangeLocale: (next: LocaleSetting) => void
   compact?: boolean
 }) {
+  const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement | null>(null)
 
@@ -178,6 +195,26 @@ function AccountMenu({
 
       {open && (
         <div className="absolute right-0 top-[calc(100%+10px)] min-w-[9rem] rounded-[22px] border border-[#d8e6ae] bg-[rgba(255,255,248,0.98)] p-2 shadow-[0_28px_80px_-42px_rgba(67,86,20,0.34)] backdrop-blur-xl">
+          <div className="px-3 pb-2 pt-1">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#708b23]">{t('layout.language')}</div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {(['system', 'zh-CN', 'zh-TW', 'en'] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => onChangeLocale(value)}
+                  className={cx(
+                    'rounded-full px-3 py-1.5 text-xs font-medium transition',
+                    selectedLocale === value
+                      ? 'bg-[linear-gradient(135deg,#87ad1e,#6f8e18)] text-[#243115]'
+                      : 'bg-[#f4fbe0] text-[#51613a]'
+                  )}
+                >
+                  {t(`locale.${value}`)}
+                </button>
+              ))}
+            </div>
+          </div>
           <button
             type="button"
             onClick={() => {
@@ -186,7 +223,7 @@ function AccountMenu({
             }}
             className="flex w-full items-center justify-between rounded-[16px] px-4 py-3 text-left text-sm font-medium text-[#415117] transition hover:bg-[#f4fbe0]"
           >
-            <span>退出登录</span>
+            <span>{t('layout.logout')}</span>
             <span className="text-xs text-[#7b8f4a]">→</span>
           </button>
         </div>

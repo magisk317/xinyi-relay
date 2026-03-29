@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { apiClient } from '../api/client'
 import type { OverviewState } from '../types'
 import { trackEvent } from '../analytics'
+import { useI18n } from '../i18n'
 import { ActionButton, ErrorBanner, LoadingCard, MetricCard, PageShell } from '../template'
 
 export function OverviewPage() {
+  const { t } = useI18n()
   const [data, setData] = useState<OverviewState | null>(null)
   const [error, setError] = useState('')
 
@@ -13,7 +15,7 @@ export function OverviewPage() {
       setError('')
       setData(await apiClient.getOverview())
     } catch (err) {
-      setError(err instanceof Error ? err.message : '加载失败')
+      setError(err instanceof Error ? err.message : t('common.loadFailed'))
     }
   }
 
@@ -30,41 +32,41 @@ export function OverviewPage() {
         void load()
       }}
     >
-      刷新概览
+      {t('overview.refresh')}
     </ActionButton>
   )
 
   if (!data && !error) {
     return (
       <PageShell
-        title="概览"
-        description="统一查看当前应用数量、通道启用状态和近期记录规模。"
+        title={t('overview.title')}
+        description={t('overview.description')}
         badge="Dashboard"
         actions={actions}
       >
-        <LoadingCard title="正在加载概览" message="正在汇总应用、记录和通道状态。" />
+        <LoadingCard title={t('overview.loadingTitle')} message={t('overview.loadingMessage')} />
       </PageShell>
     )
   }
 
   return (
     <PageShell
-      title="概览"
-      description="这是 WebUI 的总览页，适合快速确认当前规模、版本和通道覆盖面。"
+      title={t('overview.title')}
+      description={t('overview.description')}
       badge="Dashboard"
       actions={actions}
     >
       <ErrorBanner message={error} />
       {data && (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <MetricCard title="应用数" value={data.appCount} helper="已纳入控制台的应用总数" />
-          <MetricCard title="自动输入拦截" value={data.blockedCount} tone="warning" helper="已开启验证码拦截的应用" />
-          <MetricCard title="通知转发应用" value={data.forwardingCount} tone="info" helper="已配置通知转发的应用" />
-          <MetricCard title="近期记录" value={data.recordCount} helper="最近一次汇总看到的记录条数" />
-          <MetricCard title="通道总数" value={data.senderTotal} tone="info" helper="当前配置中的全部发送通道" />
-          <MetricCard title="启用通道" value={data.senderEnabled} tone="success" helper="已处于启用状态的发送通道" />
-          <MetricCard title="应用通知通道" value={data.senderAppNotifyEnabled} helper="可接收应用通知的通道" />
-          <MetricCard title="当前版本" value={data.version.localVersionName} tone="success" helper={`版本号 ${data.version.localVersionCode}`} />
+          <MetricCard title={t('overview.metric.appCount')} value={data.appCount} helper={t('overview.metric.appCountHelper')} />
+          <MetricCard title={t('overview.metric.blockedCount')} value={data.blockedCount} tone="warning" helper={t('overview.metric.blockedCountHelper')} />
+          <MetricCard title={t('overview.metric.forwardingCount')} value={data.forwardingCount} tone="info" helper={t('overview.metric.forwardingCountHelper')} />
+          <MetricCard title={t('overview.metric.recordCount')} value={data.recordCount} helper={t('overview.metric.recordCountHelper')} />
+          <MetricCard title={t('overview.metric.senderTotal')} value={data.senderTotal} tone="info" helper={t('overview.metric.senderTotalHelper')} />
+          <MetricCard title={t('overview.metric.senderEnabled')} value={data.senderEnabled} tone="success" helper={t('overview.metric.senderEnabledHelper')} />
+          <MetricCard title={t('overview.metric.senderAppNotifyEnabled')} value={data.senderAppNotifyEnabled} helper={t('overview.metric.senderAppNotifyEnabledHelper')} />
+          <MetricCard title={t('overview.metric.version')} value={data.version.localVersionName} tone="success" helper={t('overview.metric.versionHelper', { code: data.version.localVersionCode })} />
         </div>
       )}
     </PageShell>

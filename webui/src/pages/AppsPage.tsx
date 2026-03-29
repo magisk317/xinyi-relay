@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { apiClient } from '../api/client'
 import type { AppItem } from '../types'
 import { trackEvent } from '../analytics'
+import { useI18n } from '../i18n'
 import { ActionButton, ErrorBanner, LoadingCard, PageShell, RelaySwitch, SurfaceCard } from '../template'
 
 export function AppsPage() {
+  const { t } = useI18n()
   const [apps, setApps] = useState<AppItem[]>([])
   const [search, setSearch] = useState('')
   const [saving, setSaving] = useState<string>('')
@@ -15,7 +17,7 @@ export function AppsPage() {
       setError('')
       setApps(await apiClient.getApps())
     } catch (err) {
-      setError(err instanceof Error ? err.message : '加载失败')
+      setError(err instanceof Error ? err.message : t('common.loadFailed'))
     }
   }
 
@@ -37,7 +39,7 @@ export function AppsPage() {
       const updated = await apiClient.patchApp(item.packageName, patch)
       setApps((prev) => prev.map((x) => (x.packageName === item.packageName ? updated : x)))
     } catch (err) {
-      setError(err instanceof Error ? err.message : '保存失败')
+      setError(err instanceof Error ? err.message : t('common.saveFailed'))
     } finally {
       setSaving('')
     }
@@ -47,7 +49,7 @@ export function AppsPage() {
     <div className="flex flex-wrap items-center gap-3">
       <input
         className="relay-input min-w-[16rem] text-sm"
-        placeholder="搜索包名或应用名"
+        placeholder={t('apps.searchPlaceholder')}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
@@ -57,7 +59,7 @@ export function AppsPage() {
           void load()
         }}
       >
-        刷新应用
+        {t('apps.refresh')}
       </ActionButton>
     </div>
   )
@@ -65,37 +67,37 @@ export function AppsPage() {
   if (!apps.length && !error) {
     return (
       <PageShell
-        title="应用控制"
-        description="在这里统一管理自动输入拦截、通知转发和应用级模板。"
+        title={t('apps.title')}
+        description={t('apps.description')}
         badge="Applications"
         actions={actions}
       >
-        <LoadingCard title="正在加载应用列表" message="正在合并已安装应用与现有配置。" />
+        <LoadingCard title={t('apps.loadingTitle')} message={t('apps.loadingMessage')} />
       </PageShell>
     )
   }
 
   return (
     <PageShell
-      title="应用控制"
-      description="管理应用级拦截和通知转发策略，模板会在失焦后自动保存。"
+      title={t('apps.title')}
+      description={t('apps.description')}
       badge="Applications"
       actions={actions}
     >
       <ErrorBanner message={error} />
       <SurfaceCard
-        title="应用列表"
-        subtitle={`当前显示 ${filtered.length} / ${apps.length} 个应用，模板字段失焦后自动提交。`}
+        title={t('apps.listTitle')}
+        subtitle={t('apps.listSubtitle', { filtered: filtered.length, total: apps.length })}
       >
         <div className="relay-table-shell">
           <table className="relay-table">
             <thead>
               <tr>
-                <th>应用</th>
-                <th>包名</th>
-                <th>自动输入拦截</th>
-                <th>通知转发</th>
-                <th>模板</th>
+                <th>{t('apps.table.app')}</th>
+                <th>{t('apps.table.package')}</th>
+                <th>{t('apps.table.blocked')}</th>
+                <th>{t('apps.table.forwarding')}</th>
+                <th>{t('apps.table.template')}</th>
               </tr>
             </thead>
             <tbody>

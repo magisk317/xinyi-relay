@@ -2,28 +2,30 @@ import { useEffect, useMemo, useState } from 'react'
 import { apiClient } from '../api/client'
 import type { RecordItem } from '../types'
 import { trackEvent } from '../analytics'
+import { useI18n } from '../i18n'
 import { ActionButton, EmptyCard, ErrorBanner, LoadingCard, PageShell, RelayBadge, SurfaceCard, cx } from '../template'
 
-const recordTabs = [
-  { key: 'code', label: '验证码' },
-  { key: 'plain', label: '短信' },
-  { key: 'app', label: '应用通知' },
-  { key: 'call', label: '通话' }
-] as const
-
-type RecordTabKey = (typeof recordTabs)[number]['key']
+type RecordTabKey = 'code' | 'plain' | 'app' | 'call'
 
 export function RecordsPage() {
+  const { t } = useI18n()
   const [records, setRecords] = useState<RecordItem[]>([])
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState<RecordTabKey>('code')
+
+  const recordTabs = [
+    { key: 'code', label: t('records.tab.code') },
+    { key: 'plain', label: t('records.tab.plain') },
+    { key: 'app', label: t('records.tab.app') },
+    { key: 'call', label: t('records.tab.call') }
+  ] as const
 
   const load = async () => {
     try {
       setError('')
       setRecords(await apiClient.getRecords())
     } catch (err) {
-      setError(err instanceof Error ? err.message : '加载失败')
+      setError(err instanceof Error ? err.message : t('common.loadFailed'))
     }
   }
 
@@ -34,12 +36,12 @@ export function RecordsPage() {
   }, [])
 
   const deleteRecord = async (recordId: number) => {
-    if (!window.confirm('确认删除该记录？')) return
+    if (!window.confirm(t('common.confirmDeleteRecord'))) return
     try {
       await apiClient.deleteRecord(recordId)
       setRecords((prev) => prev.filter((item) => item.id !== recordId))
     } catch (err) {
-      setError(err instanceof Error ? err.message : '删除失败')
+      setError(err instanceof Error ? err.message : t('common.deleteFailed'))
     }
   }
 
@@ -50,7 +52,7 @@ export function RecordsPage() {
         void load()
       }}
     >
-      刷新记录
+      {t('records.refresh')}
     </ActionButton>
   )
 
@@ -61,30 +63,20 @@ export function RecordsPage() {
 
   if (!records.length && !error) {
     return (
-      <PageShell
-        title="记录"
-        description="查看最近转发和识别记录，支持直接删除历史项。"
-        badge="Records"
-        actions={actions}
-      >
-        <LoadingCard title="正在加载记录" message="正在读取最近 80 条记录。" />
+      <PageShell title={t('records.title')} description={t('records.description')} badge="Records" actions={actions}>
+        <LoadingCard title={t('records.loadingTitle')} message={t('records.loadingMessage')} />
       </PageShell>
     )
   }
 
   return (
-    <PageShell
-      title="记录"
-      description="查看最近转发、验证码提取与来源信息，适合排查运行状态。"
-      badge="Records"
-      actions={actions}
-    >
+    <PageShell title={t('records.title')} description={t('records.description')} badge="Records" actions={actions}>
       <ErrorBanner message={error} />
       {!records.length ? (
-        <EmptyCard title="暂无记录" message="当前还没有可展示的转发或识别记录。" />
+        <EmptyCard title={t('records.empty')} message={t('records.emptyMessage')} />
       ) : (
         <div className="space-y-4">
-          <SurfaceCard title="记录分类" subtitle="按和 app 一致的四类记录查看，避免短信、通知和通话混在一起。">
+          <SurfaceCard title={t('records.classificationTitle')} subtitle={t('records.classificationSubtitle')}>
             <div className="flex flex-wrap gap-2">
               {recordTabs.map((tab) => {
                 const count = records.filter((item) => recordTabKeyOf(item) === tab.key).length
@@ -108,7 +100,10 @@ export function RecordsPage() {
           </SurfaceCard>
 
           {!filteredRecords.length ? (
-            <EmptyCard title={`暂无${recordTabs.find((item) => item.key === activeTab)?.label ?? '记录'}`} message="当前分类下还没有可展示的记录。" />
+            <EmptyCard
+              title={t('records.emptyTab', { label: recordTabs.find((item) => item.key === activeTab)?.label ?? t('records.title') })}
+              message={t('records.emptyTabMessage')}
+            />
           ) : null}
 
           {filteredRecords.map((item) => (
@@ -116,20 +111,20 @@ export function RecordsPage() {
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <div className="font-medium text-[#243115]">{recordTitleOf(item)}</div>
-                    <RelayBadge tone={recordBadgeToneOf(item)}>{recordLabelOf(item)}</RelayBadge>
+                    <div className="font-medium text-[#243115]">{recordTitleOf(item, t)}</div>
+                    <RelayBadge tone={recordBadgeToneOf(item)}>{recordLabelOf(item, t)}</RelayBadge>
                   </div>
                   <div className="mt-1 text-xs text-[#73805d]">{new Date(item.date).toLocaleString()}</div>
                 </div>
                 <ActionButton tone="danger" className="shrink-0 px-3 py-2 text-xs" onClick={() => void deleteRecord(item.id)}>
-                  删除
+                  {t('common.delete')}
                 </ActionButton>
               </div>
               <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[#465533]">{item.body || '-'}</p>
               <div className="mt-3 flex flex-wrap gap-2">
-                {item.smsCode ? <RelayBadge tone="accent">验证码: {item.smsCode}</RelayBadge> : null}
-                {item.packageName ? <RelayBadge>包名: {item.packageName}</RelayBadge> : null}
-                <RelayBadge tone={forwardStatusTone(item.forwardStatus)}>{forwardStatusLabel(item.forwardStatus)}</RelayBadge>
+                {item.smsCode ? <RelayBadge tone="accent">{t('records.smsCode', { code: item.smsCode })}</RelayBadge> : null}
+                {item.packageName ? <RelayBadge>{t('records.package', { packageName: item.packageName })}</RelayBadge> : null}
+                <RelayBadge tone={forwardStatusTone(item.forwardStatus)}>{forwardStatusLabel(item.forwardStatus, t)}</RelayBadge>
               </div>
             </SurfaceCard>
           ))}
@@ -145,10 +140,10 @@ function recordTabKeyOf(item: RecordItem): RecordTabKey {
   return item.smsCode ? 'code' : 'plain'
 }
 
-function recordLabelOf(item: RecordItem): string {
-  if (item.msgType === 1) return '应用通知'
-  if (item.msgType === 2) return callTypeLabel(item.callType)
-  return item.smsCode ? '验证码短信' : '普通短信'
+function recordLabelOf(item: RecordItem, t: ReturnType<typeof useI18n>['t']): string {
+  if (item.msgType === 1) return t('records.badge.app')
+  if (item.msgType === 2) return callTypeLabel(item.callType, t)
+  return item.smsCode ? t('records.badge.code') : t('records.badge.plain')
 }
 
 function recordBadgeToneOf(item: RecordItem): 'accent' | 'muted' | 'warning' {
@@ -157,37 +152,37 @@ function recordBadgeToneOf(item: RecordItem): 'accent' | 'muted' | 'warning' {
   return 'accent'
 }
 
-function recordTitleOf(item: RecordItem): string {
-  return item.sender || item.packageName || (item.msgType === 2 ? '通话记录' : '未知来源')
+function recordTitleOf(item: RecordItem, t: ReturnType<typeof useI18n>['t']): string {
+  return item.sender || item.packageName || (item.msgType === 2 ? t('records.title.call') : t('records.title.unknown'))
 }
 
-function callTypeLabel(callType: number): string {
+function callTypeLabel(callType: number, t: ReturnType<typeof useI18n>['t']): string {
   switch (callType) {
     case 1:
-      return '来电'
+      return t('records.call.incoming')
     case 2:
-      return '去电'
+      return t('records.call.outgoing')
     case 3:
-      return '未接来电'
+      return t('records.call.missed')
     case 7:
-      return '异地接听'
+      return t('records.call.external')
     default:
-      return '通话通知'
+      return t('records.call.default')
   }
 }
 
-function forwardStatusLabel(status: number): string {
+function forwardStatusLabel(status: number, t: ReturnType<typeof useI18n>['t']): string {
   switch (status) {
     case 1:
-      return '转发成功'
+      return t('records.status.success')
     case 2:
-      return '转发失败'
+      return t('records.status.failed')
     case 3:
-      return '部分成功'
+      return t('records.status.partial')
     case 4:
-      return '已拦截'
+      return t('records.status.blocked')
     default:
-      return '未转发'
+      return t('records.status.none')
   }
 }
 

@@ -13,6 +13,7 @@ fun Route.registerAuthRoutes(
     json: Json,
     expectedUsername: String,
     expectedPassword: String,
+    dataService: WebUiDataService,
     sessionManager: SessionManager,
     csrfVerifier: CsrfVerifier,
     rateLimiter: AuthRateLimiter,
@@ -45,6 +46,7 @@ fun Route.registerAuthRoutes(
             rateLimiter.recordSuccess(remoteHost)
 
             val session = sessionManager.create(trimmedUsername)
+            val languageTag = dataService.getLanguageTag()
             call.response.cookies.append(
                 Cookie(
                     name = SessionManager.COOKIE_NAME,
@@ -62,16 +64,21 @@ fun Route.registerAuthRoutes(
                     authenticated = true,
                     username = session.username,
                     csrfToken = session.csrfToken,
+                    languageTag = languageTag,
                 ),
             )
         }
 
         get("/me") {
+            val languageTag = dataService.getLanguageTag()
             val session = sessionManager.get(call.request.cookies[SessionManager.COOKIE_NAME])
             if (session == null) {
                 call.respondJson(
                     json = json,
-                    payload = MeResponse(authenticated = false),
+                    payload = MeResponse(
+                        authenticated = false,
+                        languageTag = languageTag,
+                    ),
                 )
                 return@get
             }
@@ -81,6 +88,7 @@ fun Route.registerAuthRoutes(
                     authenticated = true,
                     username = session.username,
                     csrfToken = session.csrfToken,
+                    languageTag = languageTag,
                 ),
             )
         }

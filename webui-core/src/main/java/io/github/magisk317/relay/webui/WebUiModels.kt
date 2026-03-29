@@ -23,6 +23,7 @@ data class LoginResponse(
     val authenticated: Boolean,
     val username: String,
     val csrfToken: String,
+    val languageTag: String = "",
 )
 
 @Serializable
@@ -30,6 +31,7 @@ data class MeResponse(
     val authenticated: Boolean,
     val username: String? = null,
     val csrfToken: String? = null,
+    val languageTag: String = "",
 )
 
 @Serializable

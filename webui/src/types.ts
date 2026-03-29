@@ -6,12 +6,14 @@ export interface LoginResponse {
   authenticated: boolean
   username: string
   csrfToken: string
+  languageTag: string
 }
 
 export interface MeResponse {
   authenticated: boolean
   username?: string
   csrfToken?: string
+  languageTag: string
 }
 
 export interface VersionState {

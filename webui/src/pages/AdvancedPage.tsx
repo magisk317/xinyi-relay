@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { apiClient } from '../api/client'
 import type { AdvancedState, InterceptState, SettingsState } from '../types'
 import { trackEvent } from '../analytics'
+import { useI18n } from '../i18n'
 import { ActionButton, ErrorBanner, LoadingCard, PageShell, RelayBadge, SurfaceCard, ToggleRow, cx } from '../template'
 
 type AdvancedSectionKey = 'relay' | 'alerts' | 'intercept' | 'webui'
 
 export function AdvancedPage() {
+  const { t } = useI18n()
   const [advanced, setAdvanced] = useState<AdvancedState | null>(null)
   const [intercept, setIntercept] = useState<InterceptState | null>(null)
   const [settings, setSettings] = useState<SettingsState | null>(null)
@@ -23,7 +25,7 @@ export function AdvancedPage() {
       setIntercept(itc)
       setSettings(stg)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '加载失败')
+      setError(err instanceof Error ? err.message : t('common.loadFailed'))
     }
   }
 
@@ -39,7 +41,7 @@ export function AdvancedPage() {
       setAdvanced(next)
       setSettings((prev) => (prev ? { ...prev, smsBlacklistEnabled: next.enableSmsBlacklist } : prev))
     } catch (err) {
-      setError(err instanceof Error ? err.message : '保存失败')
+      setError(err instanceof Error ? err.message : t('common.saveFailed'))
     }
   }
 
@@ -48,7 +50,7 @@ export function AdvancedPage() {
       const next = await apiClient.patchIntercept(patch)
       setIntercept(next)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '保存失败')
+      setError(err instanceof Error ? err.message : t('common.saveFailed'))
     }
   }
 
@@ -58,7 +60,7 @@ export function AdvancedPage() {
       setSettings(next)
       setAdvanced((prev) => (prev ? { ...prev, enableSmsBlacklist: next.smsBlacklistEnabled } : prev))
     } catch (err) {
-      setError(err instanceof Error ? err.message : '保存失败')
+      setError(err instanceof Error ? err.message : t('common.saveFailed'))
     }
   }
 
@@ -69,55 +71,45 @@ export function AdvancedPage() {
         void load()
       }}
     >
-      刷新高级配置
+      {t('advanced.refresh')}
     </ActionButton>
   )
 
   if (!advanced || !intercept || !settings) {
     return (
-      <PageShell
-        title="高级"
-        description="按主应用的高级入口方式组织转发配置、提醒、拦截和 WebUI 配置。"
-        badge="Advanced"
-        actions={actions}
-      >
-        <LoadingCard title="正在加载高级配置" message="正在同步高级入口、提醒、拦截和 WebUI 配置。" />
+      <PageShell title={t('advanced.title')} description={t('advanced.description')} badge="Advanced" actions={actions}>
+        <LoadingCard title={t('advanced.loadingTitle')} message={t('advanced.loadingMessage')} />
       </PageShell>
     )
   }
 
   return (
-    <PageShell
-      title="高级"
-      description="和 app 一样，先按入口分组，再进入具体配置。"
-      badge="Advanced"
-      actions={actions}
-    >
+    <PageShell title={t('advanced.title')} description={t('advanced.description')} badge="Advanced" actions={actions}>
       <ErrorBanner message={error} />
 
-      <SurfaceCard title="高级入口" subtitle="按主应用里的入口方式组织，不再把不同能力揉成一页。">
+      <SurfaceCard title={t('advanced.entryTitle')} subtitle={t('advanced.entrySubtitle')}>
         <div className="grid gap-3 lg:grid-cols-2">
           <EntryCard
-            title="转发配置"
-            subtitle="通道、应用通知转发、过滤规则与记录设置"
+            title={t('advanced.entry.relayTitle')}
+            subtitle={t('advanced.entry.relaySubtitle')}
             active={activeSection === 'relay'}
             onClick={() => setActiveSection('relay')}
           />
           <EntryCard
-            title="特殊提醒"
-            subtitle="Toast、状态栏通知与恢复提醒"
+            title={t('advanced.entry.alertsTitle')}
+            subtitle={t('advanced.entry.alertsSubtitle')}
             active={activeSection === 'alerts'}
             onClick={() => setActiveSection('alerts')}
           />
           <EntryCard
-            title="拦截与过滤"
-            subtitle="短信黑名单、删除与阻断规则"
+            title={t('advanced.entry.interceptTitle')}
+            subtitle={t('advanced.entry.interceptSubtitle')}
             active={activeSection === 'intercept'}
             onClick={() => setActiveSection('intercept')}
           />
           <EntryCard
-            title="WebUI 配置"
-            subtitle="局域网访问与当前 WebUI 服务能力"
+            title={t('advanced.entry.webuiTitle')}
+            subtitle={t('advanced.entry.webuiSubtitle')}
             active={activeSection === 'webui'}
             onClick={() => setActiveSection('webui')}
           />
@@ -125,40 +117,40 @@ export function AdvancedPage() {
       </SurfaceCard>
 
       {activeSection === 'relay' && (
-        <SurfaceCard title="转发配置" subtitle="对应 app 里的转发配置入口，这里直接跳到相关工作区。">
+        <SurfaceCard title={t('advanced.relayTitle')} subtitle={t('advanced.relaySubtitle')}>
           <div className="grid gap-3 md:grid-cols-3">
-            <InfoTile label="通道总数" value={String(advanced.senderTotal)} />
-            <InfoTile label="启用通道" value={String(advanced.senderEnabled)} />
-            <InfoTile label="应用通知通道" value={String(advanced.senderAppNotifyEnabled)} />
+            <InfoTile label={t('advanced.relay.senderTotal')} value={String(advanced.senderTotal)} />
+            <InfoTile label={t('advanced.relay.senderEnabled')} value={String(advanced.senderEnabled)} />
+            <InfoTile label={t('advanced.relay.senderAppNotifyEnabled')} value={String(advanced.senderAppNotifyEnabled)} />
           </div>
           <div className="mt-4 flex flex-wrap gap-3">
             <ActionButton tone="primary" onClick={() => navigate('/senders')}>
-              打开通道管理
+              {t('advanced.relay.openSenders')}
             </ActionButton>
-            <ActionButton onClick={() => navigate('/apps')}>打开应用控制</ActionButton>
-            <ActionButton onClick={() => navigate('/records')}>打开记录页面</ActionButton>
+            <ActionButton onClick={() => navigate('/apps')}>{t('advanced.relay.openApps')}</ActionButton>
+            <ActionButton onClick={() => navigate('/records')}>{t('advanced.relay.openRecords')}</ActionButton>
           </div>
         </SurfaceCard>
       )}
 
       {activeSection === 'alerts' && (
-        <SurfaceCard title="特殊提醒" subtitle="把提醒相关开关收在一起，更接近 app 端的高级入口。">
+        <SurfaceCard title={t('advanced.alertsTitle')} subtitle={t('advanced.alertsSubtitle')}>
           <div className="space-y-3">
             <ToggleRow
-              label="Toast 提示"
-              hint="处理成功或异常时显示本机提示。"
+              label={t('advanced.alerts.toast')}
+              hint={t('advanced.alerts.toastHint')}
               checked={settings.showToast}
               onChange={(value) => void patchSettings({ showToast: value })}
             />
             <ToggleRow
-              label="状态栏通知"
-              hint="提取到验证码后显示状态栏通知。"
+              label={t('advanced.alerts.notification')}
+              hint={t('advanced.alerts.notificationHint')}
               checked={settings.showCodeNotification}
               onChange={(value) => void patchSettings({ showCodeNotification: value })}
             />
             <ToggleRow
-              label="保活恢复"
-              hint="用于应用被系统终止后的恢复流程。"
+              label={t('advanced.alerts.recovery')}
+              hint={t('advanced.alerts.recoveryHint')}
               checked={settings.forceStopRecoveryEnabled}
               onChange={(value) => void patchSettings({ forceStopRecoveryEnabled: value })}
             />
@@ -167,48 +159,48 @@ export function AdvancedPage() {
       )}
 
       {activeSection === 'intercept' && (
-        <SurfaceCard title="拦截与过滤" subtitle="和 app 一样，先控制总开关，再编辑号码、号段、正则和内容规则。">
+        <SurfaceCard title={t('advanced.interceptTitle')} subtitle={t('advanced.interceptSubtitle')}>
           <div className="space-y-4">
             <ToggleRow
-              label="启用短信黑名单"
-              hint="支持号码、号段、正则和内容匹配。"
+              label={t('advanced.intercept.enable')}
+              hint={t('advanced.intercept.enableHint')}
               checked={advanced.enableSmsBlacklist}
               onChange={(value) => void patchAdvanced({ enableSmsBlacklist: value })}
             />
             <div className="grid gap-4 lg:grid-cols-2">
               <ToggleRow
-                label="匹配后删除短信"
+                label={t('advanced.intercept.delete')}
                 checked={intercept.smsBlacklistActionDelete}
                 onChange={(value) => void patchIntercept({ smsBlacklistActionDelete: value })}
               />
               <ToggleRow
-                label="匹配后阻断处理"
+                label={t('advanced.intercept.block')}
                 checked={intercept.smsBlacklistActionBlock}
                 onChange={(value) => void patchIntercept({ smsBlacklistActionBlock: value })}
               />
             </div>
             <TextAreaField
-              label="黑名单号码"
+              label={t('advanced.intercept.numbers')}
               value={intercept.smsBlacklistNumbers}
-              hint="示例：10086, 10010"
+              hint={t('advanced.intercept.numbersHint')}
               onBlur={(value) => void patchIntercept({ smsBlacklistNumbers: value })}
             />
             <TextAreaField
-              label="黑名单前缀"
+              label={t('advanced.intercept.prefixes')}
               value={intercept.smsBlacklistPrefixes}
-              hint="示例：1069, 1065"
+              hint={t('advanced.intercept.prefixesHint')}
               onBlur={(value) => void patchIntercept({ smsBlacklistPrefixes: value })}
             />
             <TextAreaField
-              label="黑名单正则"
+              label={t('advanced.intercept.regex')}
               value={intercept.smsBlacklistRegex}
-              hint="示例：(?i)\\b(退订|黑名单)\\b"
+              hint={t('advanced.intercept.regexHint')}
               onBlur={(value) => void patchIntercept({ smsBlacklistRegex: value })}
             />
             <TextAreaField
-              label="黑名单内容"
+              label={t('advanced.intercept.content')}
               value={intercept.smsBlacklistContent}
-              hint="示例：退订回T, 回复TD"
+              hint={t('advanced.intercept.contentHint')}
               onBlur={(value) => void patchIntercept({ smsBlacklistContent: value })}
             />
           </div>
@@ -216,20 +208,20 @@ export function AdvancedPage() {
       )}
 
       {activeSection === 'webui' && (
-        <SurfaceCard title="WebUI 配置" subtitle="保留 WebUI 自己的配置，不再和拦截规则混在一起。">
+        <SurfaceCard title={t('advanced.webuiTitle')} subtitle={t('advanced.webuiSubtitle')}>
           <div className="space-y-4">
             <ToggleRow
-              label="允许局域网访问"
-              hint="开启后可使用当前局域网地址访问 WebUI。"
+              label={t('advanced.webui.allowLan')}
+              hint={t('advanced.webui.allowLanHint')}
               checked={advanced.webUiLanAccess}
               onChange={(value) => void patchAdvanced({ webUiLanAccess: value })}
             />
             <div className="flex flex-wrap gap-2">
               <RelayBadge tone={advanced.webUiLanAccess ? 'success' : 'muted'}>
-                {advanced.webUiLanAccess ? '已开启局域网访问' : '仅本机访问'}
+                {advanced.webUiLanAccess ? t('common.lanEnabled') : t('common.systemOnly')}
               </RelayBadge>
-              <RelayBadge tone="accent">默认用户名：relay</RelayBadge>
-              <RelayBadge>HTTPS WebUI</RelayBadge>
+              <RelayBadge tone="accent">{t('common.defaultUsername')}</RelayBadge>
+              <RelayBadge>{t('common.httpsWebui')}</RelayBadge>
             </div>
           </div>
         </SurfaceCard>

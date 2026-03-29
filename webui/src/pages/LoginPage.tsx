@@ -2,9 +2,11 @@ import { type FormEvent, type ReactNode, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth'
 import { trackEvent } from '../analytics'
+import { useI18n } from '../i18n'
 import { ActionButton, cx } from '../template'
 
 export function LoginPage() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const { authenticated, loading, connected, login } = useAuth()
   const [username, setUsername] = useState('relay')
@@ -25,7 +27,7 @@ export function LoginPage() {
       trackEvent('login_success')
       navigate('/overview', { replace: true })
     } catch (err) {
-      setError(err instanceof Error ? err.message : '登录失败')
+      setError(err instanceof Error ? err.message : t('login.failed'))
     } finally {
       setSubmitting(false)
     }
@@ -41,10 +43,10 @@ export function LoginPage() {
         <section className="w-full rounded-[36px] border border-[#d8e9a6]/72 bg-[rgba(252,255,245,0.86)] px-6 py-8 shadow-[0_30px_80px_-44px_rgba(98,122,28,0.22)] backdrop-blur-xl sm:px-8 sm:py-10">
           <div className="flex flex-col items-center text-center">
             <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-[28px] bg-white ring-1 ring-[#dbe9a9] shadow-[0_18px_50px_-26px_rgba(98,122,28,0.36)]">
-              <img src="/app-logo.png" alt="信驿 Relay" className="h-full w-full object-cover" />
+              <img src="/app-logo.png" alt="Xinyi Relay" className="h-full w-full object-cover" />
             </div>
-            <div className="mt-5 text-[11px] font-semibold uppercase tracking-[0.32em] text-[#708b23]">Relay</div>
-            <h1 className="mt-3 text-4xl font-semibold tracking-[-0.06em] text-[#243115]">信驿 Relay WebUI</h1>
+            <div className="mt-5 text-[11px] font-semibold uppercase tracking-[0.32em] text-[#708b23]">{t('login.brand')}</div>
+            <h1 className="mt-3 text-4xl font-semibold tracking-[-0.06em] text-[#243115]">{t('login.title')}</h1>
             <div
               className={cx(
                 'mt-5 rounded-full px-3 py-2 text-sm font-medium',
@@ -55,12 +57,12 @@ export function LoginPage() {
                     : 'bg-[#fff4ef] text-[#b24a24]'
               )}
             >
-              {loading ? '正在连接' : connected ? '连接就绪' : '连接失败'}
+              {loading ? t('login.status.connecting') : connected ? t('login.status.ready') : t('login.status.failed')}
             </div>
           </div>
 
           <form className="mt-8 space-y-5" onSubmit={onSubmit}>
-              <Field label="用户名">
+              <Field label={t('login.username')}>
                 <input
                   id="webui-username"
                   value={username}
@@ -71,14 +73,14 @@ export function LoginPage() {
                 />
               </Field>
 
-              <Field label="密码">
+              <Field label={t('login.password')}>
                 <input
                   id="webui-password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
-                  placeholder="输入 WebUI 密码"
+                  placeholder={t('login.passwordPlaceholder')}
                   className="relay-input"
                 />
               </Field>
@@ -95,7 +97,7 @@ export function LoginPage() {
                 disabled={submitting}
                 className="w-full rounded-[22px] py-3 text-base font-semibold"
               >
-                {submitting ? '正在验证连接...' : '进入 WebUI'}
+                {submitting ? t('login.submitting') : t('login.submit')}
               </ActionButton>
           </form>
         </section>

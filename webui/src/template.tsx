@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import { useI18n } from './i18n'
 
 function cx(...values: Array<string | false | null | undefined>): string {
   return values.filter(Boolean).join(' ')
@@ -92,22 +93,24 @@ export function PageShell({ title, description, badge, actions, children }: Page
 }
 
 export function ErrorBanner({ message }: { message: string }) {
+  const { t } = useI18n()
   if (!message) return null
   return (
     <div className="rounded-[28px] border border-[#f7c9bf] bg-[#fff8f3] px-5 py-4 text-sm leading-6 text-[#b24a24] shadow-[0_18px_50px_-34px_rgba(178,74,36,0.24)]">
-      <span className="font-semibold">请求失败：</span>
+      <span className="font-semibold">{t('common.requestFailed')}</span>
       {message}
     </div>
   )
 }
 
 export function LoadingCard({
-  title = '正在加载',
-  message = '正在同步最新数据，请稍候。'
+  title,
+  message
 }: {
   title?: string
   message?: string
 }) {
+  const { t } = useI18n()
   return (
     <div className="rounded-[30px] border border-[rgba(126,153,45,0.14)] bg-white/92 px-6 py-7 shadow-[0_18px_60px_-38px_rgba(98,122,28,0.22)]">
       <div className="flex items-center gap-4">
@@ -115,8 +118,8 @@ export function LoadingCard({
           <RelaySpinner className="h-6 w-6" />
         </div>
         <div>
-          <p className="text-base font-semibold text-[#243115]">{title}</p>
-          <p className="mt-1 text-sm leading-6 text-[#6c785d]">{message}</p>
+          <p className="text-base font-semibold text-[#243115]">{title ?? t('common.loading')}</p>
+          <p className="mt-1 text-sm leading-6 text-[#6c785d]">{message ?? t('common.loadingMessage')}</p>
         </div>
       </div>
     </div>
