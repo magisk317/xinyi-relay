@@ -1,7 +1,6 @@
 package io.github.magisk317.relay.service
 
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.content.pm.ServiceInfo
@@ -11,7 +10,6 @@ import io.github.magisk317.relay.common.constant.NotificationConst
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.common.utils.NotificationUtils
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.ui.home.MainActivity
 import io.github.magisk317.relay.webui.WebUiConfigSnapshot
 import io.github.magisk317.relay.webui.WebUiConfigStore
 import io.github.magisk317.relay.webui.WebUiRuntimeConfig
@@ -90,16 +88,6 @@ class WebUiForegroundController(private val service: Service) {
                         R.string.webui_foreground_content_local
                     },
                     port,
-                ),
-            )
-            .setContentIntent(
-                PendingIntent.getActivity(
-                    service,
-                    0,
-                    Intent(service, MainActivity::class.java).apply {
-                        flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                    },
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                 ),
             )
             .setOngoing(true)
