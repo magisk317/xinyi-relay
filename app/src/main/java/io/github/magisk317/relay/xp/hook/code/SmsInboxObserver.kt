@@ -11,6 +11,7 @@ import io.github.magisk317.smscode.verification.SmsInboxSeenTracker
 import io.github.magisk317.smscode.verification.SmsRoleStateResolver
 import io.github.magisk317.smscode.xposed.utils.XLog
 import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
 
 internal class SmsInboxObserver(
     private val pluginContext: Context,
@@ -25,6 +26,7 @@ internal class SmsInboxObserver(
     private val observedSmsHandler = ObservedSmsHandler(
         pluginContext = pluginContext,
         phoneContext = phoneContext,
+        actionExecutor = queryExecutor,
         roleStateLogger = ::logSmsRoleState,
     )
     private val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
@@ -96,6 +98,6 @@ internal class SmsInboxObserver(
     companion object {
         private const val RECENT_SMS_WINDOW_MS = 10 * 60 * 1000L
         private const val MAX_TRACKED_SMS_IDS = 128
-        private val queryExecutor = Executors.newSingleThreadExecutor()
+        private val queryExecutor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
     }
 }

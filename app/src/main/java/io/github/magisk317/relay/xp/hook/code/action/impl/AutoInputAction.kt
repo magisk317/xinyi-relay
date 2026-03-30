@@ -22,6 +22,7 @@ class AutoInputAction(
     phoneContext: Context,
     smsMsg: SmsMsg,
     private val deduplicateEnabled: Boolean? = null,
+    private val dispatchDelayMs: Long = 0L,
 ) :
     CallableAction(pluginContext, phoneContext, smsMsg) {
     private val runtimeAppConfigFacade = XpAppConfigFacade(pluginContext)
@@ -33,6 +34,7 @@ class AutoInputAction(
             phoneContext = mPhoneContext,
             smsMsg = mSmsMsg,
             deduplicateEnabled = deduplicateEnabled,
+            dispatchDelayMs = dispatchDelayMs,
             deduplicateReader = XpPrefs::deduplicateSms,
             sharedGateClaimer = { context, fileName, key, windowMs, maxEntries ->
                 XpSharedRuntimeGate.claimWithinWindow(

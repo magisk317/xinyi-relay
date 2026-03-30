@@ -43,6 +43,7 @@ internal object SmsCodePostParseCoordinator {
     data class ObservedSmsPlan(
         val deduplicateSmsEnabled: Boolean,
         val autoInputEnabled: Boolean,
+        val autoInputDelayMs: Long?,
         val shouldRecord: Boolean,
     )
 
@@ -85,6 +86,7 @@ internal object SmsCodePostParseCoordinator {
     }
 
     fun dispatchObservedSmsActions(
+        executor: java.util.concurrent.ScheduledExecutorService?,
         pluginContext: Context,
         phoneContext: Context,
         smsMsg: SmsMsg,
@@ -92,6 +94,7 @@ internal object SmsCodePostParseCoordinator {
         plan: ObservedSmsPlan,
     ) {
         SmsCodeActionDispatcher.dispatchObservedSmsActions(
+            executor = executor,
             pluginContext = pluginContext,
             phoneContext = phoneContext,
             smsMsg = smsMsg,

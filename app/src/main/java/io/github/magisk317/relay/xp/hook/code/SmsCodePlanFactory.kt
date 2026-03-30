@@ -104,6 +104,7 @@ private fun SharedSmsCodePostParseCoordinator.ObservedSmsPlan.toLocal(): SmsCode
     return SmsCodePostParseCoordinator.ObservedSmsPlan(
         deduplicateSmsEnabled = deduplicateSmsEnabled,
         autoInputEnabled = autoInputEnabled,
+        autoInputDelayMs = autoInputDelayMs,
         shouldRecord = shouldRecord,
     )
 }

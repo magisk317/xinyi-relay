@@ -11,10 +11,12 @@ import io.github.magisk317.smscode.verification.ObservedSmsHandler as SharedObse
 import io.github.magisk317.smscode.verification.SmsInboxObserverDecision
 import io.github.magisk317.smscode.verification.SmsCodePostParseCoordinator as SharedSmsCodePostParseCoordinator
 import kotlinx.coroutines.runBlocking
+import java.util.concurrent.ScheduledExecutorService
 
 internal class ObservedSmsHandler(
     private val pluginContext: Context,
     private val phoneContext: Context,
+    private val actionExecutor: ScheduledExecutorService? = null,
     private val runtimeRecordFacadeProvider: (() -> XpRecordFacade)? = null,
     private val settingsLoader: (Context) -> SmsCodePostParseCoordinator.Settings = SmsCodePostParseCoordinator::loadSettings,
     private val planFactory: (SmsCodePostParseCoordinator.Settings) -> SmsCodePostParseCoordinator.ObservedSmsPlan =
@@ -52,6 +54,7 @@ internal class ObservedSmsHandler(
         SmsCodePostParseCoordinator.ObservedSmsPlan,
     ) -> Unit = { pluginContext, phoneContext, smsMsg, eventId, plan ->
         SmsCodePostParseCoordinator.dispatchObservedSmsActions(
+            executor = actionExecutor,
             pluginContext = pluginContext,
             phoneContext = phoneContext,
             smsMsg = smsMsg,
@@ -165,6 +168,7 @@ internal class ObservedSmsHandler(
         return SmsCodePostParseCoordinator.ObservedSmsPlan(
             deduplicateSmsEnabled = deduplicateSmsEnabled,
             autoInputEnabled = autoInputEnabled,
+            autoInputDelayMs = autoInputDelayMs,
             shouldRecord = shouldRecord,
         )
     }
