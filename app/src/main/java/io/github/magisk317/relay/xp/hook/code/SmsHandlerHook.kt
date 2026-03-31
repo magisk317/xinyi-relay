@@ -65,8 +65,12 @@ class SmsHandlerHook : BaseHook() {
             )
             XLog.i("SmsCode initializing")
             printDeviceInfo()
+            val classLoader = lpparam.classLoader ?: run {
+                XLog.w("SmsHandlerHook skipped: classLoader is null for %s", lpparam.packageName)
+                return
+            }
             try {
-                hookSmsHandler(lpparam.classLoader)
+                hookSmsHandler(classLoader)
             } catch (e: Throwable) {
                 XLog.e("Failed to hook SmsHandler", e)
             }
@@ -271,7 +275,7 @@ class SmsHandlerHook : BaseHook() {
             return
         }
         val eventId = ensureEventId(intent)
-        if (SmsIntentHookSupport.markDispatchHandled(intent, action)) {
+        if (SmsIntentHookSupport.markDispatchHandled(intent, action, DISPATCH_HANDLER_KEY)) {
             XLog.w(
                 "SmsHandlerHook duplicate sms suppressed: event_id=%s action=%s source=intent_extra",
                 eventId,
@@ -347,6 +351,7 @@ class SmsHandlerHook : BaseHook() {
         const val ANDROID_PHONE_PACKAGE = "com.android.phone"
         private const val TELEPHONY_PACKAGE = "com.android.internal.telephony"
         private const val SMS_HANDLER_CLASS = "$TELEPHONY_PACKAGE.InboundSmsHandler"
+        private const val DISPATCH_HANDLER_KEY = "sms_handler"
         private val SMSCODE_PACKAGE = BuildConfig.APPLICATION_ID
         private val SMS_OPERATION_EXECUTOR = Executors.newSingleThreadExecutor()
     }

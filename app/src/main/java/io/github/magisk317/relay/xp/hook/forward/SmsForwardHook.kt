@@ -49,9 +49,13 @@ class SmsForwardHook : BaseHook() {
     override fun onLoadPackage(lpparam: LoadParam) {
         if (ANDROID_PHONE_PACKAGE != lpparam.packageName) return
         XLog.i("SmsForwardHook initializing")
+        val classLoader = lpparam.classLoader ?: run {
+            XLog.w("SmsForwardHook skipped: classLoader is null for %s", lpparam.packageName)
+            return
+        }
         try {
-            hookConstructor(lpparam.classLoader)
-            hookDispatchIntent(lpparam.classLoader)
+            hookConstructor(classLoader)
+            hookDispatchIntent(classLoader)
         } catch (t: Throwable) {
             XLog.e("SmsForwardHook init failed", t)
         }
@@ -140,7 +144,7 @@ class SmsForwardHook : BaseHook() {
     }
 
     private fun shouldSkipDispatch(dispatch: IncomingSmsDispatch): Boolean {
-        if (SmsIntentHookSupport.markDispatchHandled(dispatch.intent, dispatch.action)) {
+        if (SmsIntentHookSupport.markDispatchHandled(dispatch.intent, dispatch.action, DISPATCH_HANDLER_KEY)) {
             XLog.w(
                 "SmsForwardHook duplicate sms suppressed: event_id=%s action=%s source=intent_extra",
                 dispatch.eventId,
@@ -330,6 +334,7 @@ class SmsForwardHook : BaseHook() {
         private const val ANDROID_PHONE_PACKAGE = "com.android.phone"
         private const val TELEPHONY_PACKAGE = "com.android.internal.telephony"
         private const val SMS_HANDLER_CLASS = "$TELEPHONY_PACKAGE.InboundSmsHandler"
+        private const val DISPATCH_HANDLER_KEY = "sms_forward"
         private val SMSCODE_PACKAGE = BuildConfig.APPLICATION_ID
         private const val DISPATCH_INTENT_METHOD = "dispatchIntent"
         private const val SMS_MSG_TYPE = "sms"

@@ -29,7 +29,11 @@ class SmsProviderHook : BaseHook() {
             loadParam = lpparam,
             targetPackage = TELEPHONY_PROVIDER_PACKAGE,
         )
-        hookProviderMethods(lpparam.classLoader)
+        val classLoader = lpparam.classLoader ?: run {
+            XLog.w("SmsProviderHook skipped: classLoader is null for %s", lpparam.packageName)
+            return
+        }
+        hookProviderMethods(classLoader)
     }
 
     private fun hookProviderMethods(classLoader: ClassLoader) {
