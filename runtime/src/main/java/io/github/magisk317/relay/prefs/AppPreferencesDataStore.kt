@@ -25,19 +25,19 @@ object AppPreferencesDataStore {
 
     @Volatile
     private var INSTANCE: DataStore<Preferences>? = null
+    @Volatile
+    private var resolvedDataStoreFile: File? = null
 
     private fun getInstance(context: Context): DataStore<Preferences> {
         INSTANCE?.let { return it }
         return synchronized(this) {
             INSTANCE ?: PreferenceDataStoreFactory.create {
-                // In Xposed/createPackageContext scenarios applicationContext may be null.
-                val safeContext = context.applicationContext ?: context
-                File(safeContext.dataDir, "datastore/$DATASTORE_FILE_NAME")
+                resolveDataStoreFile(context)
             }.also { INSTANCE = it }
         }
     }
 
-    private fun getDataStoreFile(context: Context): File = File(context.dataDir, "datastore/$DATASTORE_FILE_NAME")
+    private fun getDataStoreFile(context: Context): File = resolveDataStoreFile(context)
 
     private fun getSharedPrefsFile(context: Context): File =
         File(context.dataDir, "shared_prefs/$SHARED_PREFS_FILE_NAME.xml")
@@ -65,6 +65,56 @@ object AppPreferencesDataStore {
     fun ensureReadable(context: Context) {
         ensureDataStoreReadable(context)
         ensureSharedPrefsReadable(context)
+    }
+
+    private fun resolveDataStoreFile(context: Context): File {
+        resolvedDataStoreFile?.let { return it }
+        return synchronized(this) {
+            resolvedDataStoreFile ?: buildDataStoreFile(context).also { resolvedDataStoreFile = it }
+        }
+    }
+
+    private fun buildDataStoreFile(context: Context): File {
+        val safeContext = context.applicationContext ?: context
+        val primary = File(safeContext.dataDir, "datastore/$DATASTORE_FILE_NAME")
+        prepareDataStoreCandidate(primary, label = "primary")?.let { return it }
+
+        val fallback = File(safeContext.filesDir, "datastore/$DATASTORE_FILE_NAME")
+        prepareDataStoreCandidate(fallback, label = "fallback")?.let { return it }
+
+        XLog.w(
+            "DataStore path fallback unresolved, using primary path anyway: %s",
+            primary.absolutePath,
+        )
+        return primary
+    }
+
+    private fun prepareDataStoreCandidate(targetFile: File, label: String): File? {
+        val parent = targetFile.parentFile ?: return targetFile
+        if (parent.exists() && !parent.isDirectory) {
+            val backup = File(
+                parent.parentFile ?: targetFile.parentFile ?: targetFile,
+                "${parent.name}.corrupted.${System.currentTimeMillis()}",
+            )
+            val moved = runCatching { parent.renameTo(backup) }.getOrDefault(false)
+            XLog.w(
+                "DataStore parent path is not a directory: label=%s path=%s moved=%s backup=%s",
+                label,
+                parent.absolutePath,
+                moved,
+                backup.absolutePath,
+            )
+            if (!moved) return null
+        }
+        if (!parent.exists() && !parent.mkdirs()) {
+            XLog.w(
+                "DataStore parent mkdirs failed: label=%s path=%s",
+                label,
+                parent.absolutePath,
+            )
+            return null
+        }
+        return targetFile
     }
 
     @Volatile

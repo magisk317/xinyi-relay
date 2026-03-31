@@ -14,7 +14,7 @@ class SecurityInitializer : AppInitializer {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun init(application: Application) {
-        scope.launch {
+        AppInitExecution.runWhenUserUnlocked(application, scope, "SecurityInitializer") {
             val preferenceDataSource = RuntimeGraph.from(application).preferenceDataSource
             val token = preferenceDataSource.getString(PrefConst.KEY_IPC_TOKEN, "")
             if (token.isEmpty()) {
