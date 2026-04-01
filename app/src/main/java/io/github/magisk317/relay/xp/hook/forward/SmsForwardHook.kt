@@ -134,6 +134,20 @@ class SmsForwardHook : BaseHook() {
             )
             return null
         }
+        val hadSimRouting = SmsForwardSimRoutingResolver.readFromIntent(intent).hasValue()
+        val resolvedRouting = SmsForwardSimRoutingResolver.ensureSimRoutingExtras(
+            intent = intent,
+            handler = param.thisObject,
+            args = param.args,
+        )
+        if (!hadSimRouting && resolvedRouting?.hasValue() == true) {
+            XLog.i(
+                "SmsForwardHook inferred sim routing: event_id=%s sim_slot=%s sub_id=%s",
+                eventId,
+                resolvedRouting.simSlot?.toString() ?: "<none>",
+                resolvedRouting.subId?.toString() ?: "<none>",
+            )
+        }
         return IncomingSmsDispatch(
             intent = intent,
             action = action,
