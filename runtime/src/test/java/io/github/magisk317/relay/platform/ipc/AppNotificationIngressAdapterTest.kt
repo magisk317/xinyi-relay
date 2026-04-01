@@ -3,9 +3,10 @@ package io.github.magisk317.relay.platform.ipc
 import android.app.Notification
 import android.content.Context
 import android.service.notification.StatusBarNotification
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import io.mockk.every
 import io.mockk.mockk
@@ -71,6 +72,34 @@ class AppNotificationIngressAdapterTest {
                 title = "应用商店正在检查应用更新",
                 body = "",
                 notifyChannelId = "",
+            ),
+        )
+    }
+
+    @Test
+    fun shouldSkipRelayOwnedTelephonyNotification_skipsPhoneOwnedRelayChannel() {
+        assertTrue(
+            AppNotificationIngressAdapter.shouldSkipRelayOwnedTelephonyNotification(
+                packageName = "com.android.phone",
+                notifyChannelId = "relay_notification",
+            ),
+        )
+        assertTrue(
+            AppNotificationIngressAdapter.shouldSkipRelayOwnedTelephonyNotification(
+                packageName = "com.android.providers.telephony",
+                notifyChannelId = "relay_notification",
+            ),
+        )
+        assertTrue(
+            AppNotificationIngressAdapter.shouldSkipRelayOwnedTelephonyNotification(
+                packageName = "org.example.telephony.bridge",
+                notifyChannelId = "relay_notification",
+            ),
+        )
+        assertFalse(
+            AppNotificationIngressAdapter.shouldSkipRelayOwnedTelephonyNotification(
+                packageName = "io.github.magisk317.xinyi.relay",
+                notifyChannelId = "relay_notification",
             ),
         )
     }

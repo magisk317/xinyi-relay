@@ -26,6 +26,14 @@ object AppNotificationIngressAdapter {
         } else {
             ""
         }
+        if (shouldSkipRelayOwnedTelephonyNotification(packageName, notifyChannelId)) {
+            XLog.d(
+                "Notification ingress skipped: pkg=%s reason=channel_relay_notification channel=%s",
+                packageName,
+                notifyChannelId.ifBlank { "<empty>" },
+            )
+            return null
+        }
         val body = resolveNotificationBody(text, expandedText, tickerText)
 
         if (title.isBlank() && body.isBlank()) return null
@@ -175,4 +183,25 @@ object AppNotificationIngressAdapter {
             .removeSuffix("…")
             .trim()
     }
+
+    internal fun shouldSkipRelayOwnedTelephonyNotification(
+        packageName: String,
+        notifyChannelId: String,
+    ): Boolean {
+        val normalizedPackage = packageName.trim().lowercase()
+        val normalizedChannel = notifyChannelId.trim().lowercase()
+        if (normalizedChannel != RELAY_NOTIFICATION_CHANNEL_ID) return false
+        return normalizedPackage in TELEPHONY_SMS_PACKAGE_ALLOWLIST || normalizedPackage.contains("telephony")
+    }
+
+    private const val RELAY_NOTIFICATION_CHANNEL_ID = "relay_notification"
+
+    private val TELEPHONY_SMS_PACKAGE_ALLOWLIST = setOf(
+        "com.android.phone",
+        "com.android.providers.telephony",
+        "com.android.mms",
+        "com.android.messaging",
+        "com.google.android.apps.messaging",
+        "com.samsung.android.messaging",
+    )
 }
