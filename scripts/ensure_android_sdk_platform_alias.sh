@@ -59,10 +59,26 @@ if [[ ! -d "$source_path" ]]; then
   exit 1
 fi
 
-if [[ -L "$target_path" || -e "$target_path" ]]; then
+if [[ -e "$target_path" && ! -L "$target_path" ]]; then
   echo "Android SDK alias already present: $target_path"
   exit 0
 fi
 
-ln -s "$SOURCE_PLATFORM_DIR" "$target_path"
-echo "Created Android SDK alias: $target_path -> $SOURCE_PLATFORM_DIR"
+rm -rf "$target_path"
+cp -a "$source_path" "$target_path"
+
+source_properties="$target_path/source.properties"
+package_xml="$target_path/package.xml"
+target_api="${TARGET_PLATFORM_ALIAS#android-}"
+
+if [[ -f "$source_properties" ]]; then
+  sed -i "s/^AndroidVersion\\.ApiLevel=.*/AndroidVersion.ApiLevel=$target_api/" "$source_properties"
+fi
+
+if [[ -f "$package_xml" ]]; then
+  sed -i "s#path=\"platforms;${SOURCE_PLATFORM_DIR}\"#path=\"platforms;${TARGET_PLATFORM_ALIAS}\"#" "$package_xml"
+  sed -i "s#<api-level>${SOURCE_PLATFORM_DIR#android-}</api-level>#<api-level>$target_api</api-level>#" "$package_xml"
+  sed -i "s#<display-name>Android SDK Platform ${SOURCE_PLATFORM_DIR#android-}</display-name>#<display-name>Android SDK Platform $target_api</display-name>#" "$package_xml"
+fi
+
+echo "Created Android SDK compatibility platform: $target_path"
