@@ -36,7 +36,6 @@ class DBProvider : ContentProvider() {
 
     override fun insert(uri: Uri, values: ContentValues?): Uri? {
         val uriType = uriMatcher.match(uri)
-        val id: Long
         val path: String
         when (uriType) {
             SMS_MSG_DIR -> {
@@ -55,7 +54,21 @@ class DBProvider : ContentProvider() {
                     forwardMessage = values?.getAsString("forward_message"),
                     forwardTime = values?.getAsLong("forward_time") ?: 0L,
                 )
-                id = mDatabase!!.smsMsgDao().insert(msg)
+                val dao = mDatabase!!.smsMsgDao()
+                val id = synchronized(dao) {
+                    val existing = dao.getByFingerprint(
+                        sender = msg.sender,
+                        body = msg.body,
+                        date = msg.date,
+                        msgType = msg.msgType,
+                    )
+                    if (existing != null) {
+                        dao.update(mergeSmsMsgForInsert(existing, msg))
+                        existing.id
+                    } else {
+                        dao.insert(msg)
+                    }
+                }
                 path = "$PATH_SMS_MSG/$id"
             }
 
@@ -431,4 +444,26 @@ class DBProvider : ContentProvider() {
         fun appInfoContentUri(context: Context): Uri =
             Uri.parse("content://${context.packageName}.db.provider/$PATH_APP_INFO")
     }
+}
+
+internal fun mergeSmsMsgForInsert(existing: SmsMsg, incoming: SmsMsg): SmsMsg {
+    val incomingHasForwardState = incoming.forwardStatus != SmsMsg.FORWARD_STATUS_NONE ||
+        !incoming.forwardTarget.isNullOrBlank() ||
+        !incoming.forwardMessage.isNullOrBlank() ||
+        incoming.forwardTime > 0L
+    return existing.copy(
+        sender = incoming.sender ?: existing.sender,
+        body = incoming.body ?: existing.body,
+        date = incoming.date.takeIf { it > 0L } ?: existing.date,
+        company = incoming.company?.takeIf { it.isNotBlank() } ?: existing.company,
+        smsCode = incoming.smsCode?.takeIf { it.isNotBlank() } ?: existing.smsCode,
+        packageName = incoming.packageName?.takeIf { it.isNotBlank() } ?: existing.packageName,
+        notifyChannelId = incoming.notifyChannelId.takeIf { it.isNotBlank() } ?: existing.notifyChannelId,
+        msgType = incoming.msgType,
+        callType = incoming.callType.takeIf { it != 0 } ?: existing.callType,
+        forwardStatus = if (incomingHasForwardState) incoming.forwardStatus else existing.forwardStatus,
+        forwardTarget = if (incomingHasForwardState) incoming.forwardTarget else existing.forwardTarget,
+        forwardMessage = if (incomingHasForwardState) incoming.forwardMessage else existing.forwardMessage,
+        forwardTime = if (incomingHasForwardState) incoming.forwardTime else existing.forwardTime,
+    )
 }
