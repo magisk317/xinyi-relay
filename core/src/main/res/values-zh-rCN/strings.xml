@@ -25,7 +25,7 @@
     <string name="pref_general_title">通用设置</string>
     <string name="pref_enable_title">主开关</string>
     <string name="pref_enable_summary">模块已激活</string>
-    <string name="pref_settings_display_mode_title">手风琴模式</string>
+    <string name="pref_settings_display_mode_title">折叠分组</string>
     <string name="pref_settings_display_mode_summary">开启：分组可折叠；关闭：全部设置直接展开</string>
     <string name="pref_create_shortcut_title">创建桌面快捷方式</string>
     <string name="pref_create_shortcut_summary">将图标固定到桌面上以便快速访问</string>
@@ -303,6 +303,7 @@
     <string name="pref_relay_records_summary">查看和管理短信、通知与来电记录</string>
     <string name="advanced_filter_title">拦截与过滤</string>
     <string name="advanced_filter_summary">短信黑名单、全局过滤与来源拦截规则</string>
+    <string name="advanced_keepalive_summary">强停恢复与 Root 直查库补偿</string>
     <string name="advanced_diagnostics_title">实验性与诊断</string>
     <string name="advanced_diagnostics_summary">自恢复、补偿、日志、更新与统计</string>
     <string name="call_alert_forward_summary_from_relay">来电转发已移至“高级 - 转发配置”，这里只保留本地提醒</string>

@@ -18,6 +18,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -47,6 +48,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
@@ -75,6 +77,7 @@ import io.github.magisk317.relay.data.repository.RelaySettingsUpdate
 import io.github.magisk317.relay.data.repository.SettingsRepository
 import io.github.magisk317.relay.data.repository.VerificationSettingsSnapshot
 import io.github.magisk317.relay.data.repository.VerificationSettingsUpdate
+import io.github.magisk317.relay.data.backup.BackupManager
 import io.github.magisk317.relay.ui.common.SingleChoiceOptionDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -91,6 +94,7 @@ fun SettingsHomeScreen(
     val repository: SettingsRepository = koinInject()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val activityOwner = context as? ComponentActivity
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
     val snackbarHostState = remember { SnackbarHostState() }
     val notifySaved = {
@@ -99,6 +103,7 @@ fun SettingsHomeScreen(
         }
     }
     val settingsViewModel = rememberSharedSettingsViewModel()
+    val lifecycleOwner = LocalLifecycleOwner.current
     val themeState by settingsViewModel.themeState.collectAsStateWithLifecycle()
     val languageState by settingsViewModel.languageState.collectAsStateWithLifecycle()
     var general by remember { mutableStateOf<GeneralSettingsSnapshot?>(null) }
@@ -107,18 +112,91 @@ fun SettingsHomeScreen(
     var diagnostics by remember { mutableStateOf<DiagnosticsSettingsSnapshot?>(null) }
     var showThemeDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
-    var showRootDbIntervalDialog by remember { mutableStateOf(false) }
     var showRuntimeLogDialog by remember { mutableStateOf(false) }
+    var showBackupDialog by remember { mutableStateOf(false) }
+    var showRestoreDialog by remember { mutableStateOf(false) }
+    var pendingBackupSelection by remember { mutableStateOf<BackupSelection?>(null) }
+    var pendingRestoreUri by remember { mutableStateOf<Uri?>(null) }
     var themeDialogInitialMode by remember { mutableStateOf(0) }
     var themeDialogSelectedMode by remember { mutableStateOf(0) }
     var languageDialogInitialTag by remember { mutableStateOf("") }
     var languageDialogSelectedTag by remember { mutableStateOf("") }
+    var expandGeneral by rememberSaveable { mutableStateOf(false) }
+    var expandFeatures by rememberSaveable { mutableStateOf(false) }
+    var expandBackupRestore by rememberSaveable { mutableStateOf(false) }
+    var expandOthers by rememberSaveable { mutableStateOf(false) }
+
+    val backupDocumentLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        val selection = pendingBackupSelection
+        pendingBackupSelection = null
+        val uri = result.data?.data ?: return@rememberLauncherForActivityResult
+        if (result.resultCode != Activity.RESULT_OK || selection == null) return@rememberLauncherForActivityResult
+        settingsViewModel.performBackup(
+            uri = uri,
+            includeConfig = selection.includeConfig,
+            includeRules = selection.includeRules,
+            includeRecords = selection.includeRecords,
+            includeDatabase = selection.includeDatabase,
+        )
+    }
+
+    val restoreDocumentLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        if (result.resultCode != Activity.RESULT_OK) return@rememberLauncherForActivityResult
+        val uri = result.data?.data ?: return@rememberLauncherForActivityResult
+        pendingRestoreUri = uri
+        showRestoreDialog = true
+    }
 
     LaunchedEffect(Unit) {
         general = repository.getGeneralSettings()
         verification = repository.getVerificationSettings()
         relay = repository.getRelaySettings()
         diagnostics = repository.getDiagnosticsSettings()
+    }
+
+    LaunchedEffect(general?.accordionMode) {
+        val accordionEnabled = general?.accordionMode ?: return@LaunchedEffect
+        val expanded = !accordionEnabled
+        expandGeneral = expanded
+        expandFeatures = expanded
+        expandBackupRestore = expanded
+        expandOthers = expanded
+    }
+
+    LaunchedEffect(activityOwner?.intent?.data) {
+        val backupUri = activityOwner?.intent?.data ?: return@LaunchedEffect
+        pendingRestoreUri = backupUri
+        showRestoreDialog = true
+        activityOwner.intent = Intent(activityOwner.intent).apply {
+            data = null
+        }
+    }
+
+    LaunchedEffect(lifecycleOwner, settingsViewModel) {
+        lifecycleOwner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+            settingsViewModel.eventsFlow.collect { event ->
+                when (event) {
+                    is SettingsEvent.BackupResultEvent -> {
+                        snackbarHostState.showSnackbar(backupResultMessage(context, event.success))
+                    }
+
+                    is SettingsEvent.RestoreResultEvent -> {
+                        snackbarHostState.showSnackbar(restoreResultMessage(context, event.result))
+                    }
+
+                    is SettingsEvent.ImportDialogConfirm -> {
+                        pendingRestoreUri = event.uri
+                        showRestoreDialog = true
+                    }
+
+                    else -> Unit
+                }
+            }
+        }
     }
 
     Scaffold(
@@ -157,9 +235,9 @@ fun SettingsHomeScreen(
             Spacer(modifier = Modifier.height(Const.PADDING_SMALL.dp))
             SectionCard(
                 title = stringResource(id = R.string.settings_group_general),
-                sectionExpanded = true,
-                onExpandedChange = {},
-                accordionMode = false,
+                sectionExpanded = expandGeneral,
+                onExpandedChange = { expandGeneral = !expandGeneral },
+                accordionMode = true,
             ) {
                 StateSwitchItem(
                     title = stringResource(id = R.string.pref_enable_title),
@@ -168,6 +246,16 @@ fun SettingsHomeScreen(
                 ) { enabled ->
                     scope.launch {
                         general = repository.updateGeneralSettings(GeneralSettingsUpdate(moduleEnabled = enabled))
+                        notifySaved()
+                    }
+                }
+                StateSwitchItem(
+                    title = stringResource(id = R.string.pref_settings_display_mode_title),
+                    summary = stringResource(id = R.string.pref_settings_display_mode_summary),
+                    checked = generalSnapshot.accordionMode,
+                ) { enabled ->
+                    scope.launch {
+                        general = repository.updateGeneralSettings(GeneralSettingsUpdate(accordionMode = enabled))
                         notifySaved()
                     }
                 }
@@ -190,9 +278,9 @@ fun SettingsHomeScreen(
             }
             SectionCard(
                 title = stringResource(id = R.string.settings_group_features),
-                sectionExpanded = true,
-                onExpandedChange = {},
-                accordionMode = false,
+                sectionExpanded = expandFeatures,
+                onExpandedChange = { expandFeatures = !expandFeatures },
+                accordionMode = true,
             ) {
                 ActionSwitchItem(
                     title = stringResource(id = R.string.pref_verification_settings_title),
@@ -220,54 +308,30 @@ fun SettingsHomeScreen(
                 }
             }
             SectionCard(
-                title = stringResource(id = R.string.settings_group_others),
-                sectionExpanded = true,
-                onExpandedChange = {},
-                accordionMode = false,
+                title = stringResource(id = R.string.pref_backup_restore_title),
+                sectionExpanded = expandBackupRestore,
+                onExpandedChange = { expandBackupRestore = !expandBackupRestore },
+                accordionMode = true,
             ) {
-                StateSwitchItem(
-                    title = stringResource(id = R.string.pref_root_db_catchup_enable_title),
-                    summary = stringResource(id = R.string.pref_root_db_catchup_enable_summary),
-                    checked = diagnosticsSnapshot.rootDbCatchupEnabled,
-                ) { enabled ->
-                    scope.launch {
-                        diagnostics = repository.updateDiagnosticsSettings(
-                            DiagnosticsSettingsUpdate(rootDbCatchupEnabled = enabled),
-                        )
-                        notifySaved()
-                    }
+                Item(
+                    title = stringResource(id = R.string.pref_backup_title),
+                    summary = stringResource(id = R.string.pref_backup_summary),
+                ) {
+                    showBackupDialog = true
                 }
                 Item(
-                    title = stringResource(id = R.string.pref_root_db_catchup_interval_title),
-                    summary = stringResource(
-                        id = R.string.pref_root_db_catchup_interval_summary,
-                        diagnosticsSnapshot.rootDbCatchupIntervalMin,
-                    ),
-                ) { showRootDbIntervalDialog = true }
-                StateSwitchItem(
-                    title = stringResource(id = R.string.pref_force_stop_recovery_title),
-                    summary = stringResource(id = R.string.pref_force_stop_recovery_summary),
-                    checked = diagnosticsSnapshot.forceStopRecoveryEnabled,
-                ) { enabled ->
-                    scope.launch {
-                        diagnostics = repository.updateDiagnosticsSettings(
-                            DiagnosticsSettingsUpdate(forceStopRecoveryEnabled = enabled),
-                        )
-                        notifySaved()
-                    }
+                    title = stringResource(id = R.string.pref_restore_title),
+                    summary = stringResource(id = R.string.pref_restore_summary),
+                ) {
+                    restoreDocumentLauncher.launch(BackupManager.getImportRuleListSAFIntent(context))
                 }
-                StateSwitchItem(
-                    title = stringResource(id = R.string.pref_force_stop_recovery_relaunch_once_title),
-                    summary = stringResource(id = R.string.pref_force_stop_recovery_relaunch_once_summary),
-                    checked = diagnosticsSnapshot.forceStopRecoveryRelaunchOnceEnabled,
-                ) { enabled ->
-                    scope.launch {
-                        diagnostics = repository.updateDiagnosticsSettings(
-                            DiagnosticsSettingsUpdate(forceStopRecoveryRelaunchOnceEnabled = enabled),
-                        )
-                        notifySaved()
-                    }
-                }
+            }
+            SectionCard(
+                title = stringResource(id = R.string.settings_group_others),
+                sectionExpanded = expandOthers,
+                onExpandedChange = { expandOthers = !expandOthers },
+                accordionMode = true,
+            ) {
                 StateSwitchItem(
                     title = stringResource(id = R.string.pref_verbose_log_mode_title),
                     summary = stringResource(id = R.string.pref_verbose_log_mode_summary),
@@ -425,27 +489,6 @@ fun SettingsHomeScreen(
         }
     }
     val currentDiagnostics = diagnostics
-    if (showRootDbIntervalDialog && currentDiagnostics != null) {
-        val rootDbIntervalError = stringResource(id = R.string.pref_root_db_catchup_interval_error)
-        TextInputDialog(
-            title = stringResource(id = R.string.pref_root_db_catchup_interval_title),
-            initialValue = normalizeNumericInput(currentDiagnostics.rootDbCatchupIntervalMin),
-            onDismiss = { showRootDbIntervalDialog = false },
-            supportingText = stringResource(id = R.string.pref_root_db_catchup_interval_hint),
-            validator = {
-                parseIntInRange(it, 1..120)?.let { null }
-                    ?: rootDbIntervalError
-            },
-        ) { updated ->
-            showRootDbIntervalDialog = false
-            scope.launch {
-                diagnostics = repository.updateDiagnosticsSettings(
-                    DiagnosticsSettingsUpdate(rootDbCatchupIntervalMin = normalizeNumericInput(updated)),
-                )
-                notifySaved()
-            }
-        }
-    }
     if (showRuntimeLogDialog && currentDiagnostics != null) {
         val runtimeLogFileSizeError = stringResource(id = R.string.pref_runtime_log_file_size_error)
         TextInputDialog(
@@ -472,6 +515,46 @@ fun SettingsHomeScreen(
             }
         }
     }
+    if (showBackupDialog) {
+        BackupRestoreOptionsDialog(
+            title = stringResource(id = R.string.dialog_backup_title),
+            message = stringResource(id = R.string.dialog_backup_msg),
+            initialSelection = BackupSelection(),
+            onDismiss = { showBackupDialog = false },
+        ) { selection ->
+            showBackupDialog = false
+            pendingBackupSelection = selection
+            backupDocumentLauncher.launch(
+                BackupManager.getExportRuleListSAFIntent(
+                    context = context,
+                    includeDatabase = selection.includeDatabase,
+                ),
+            )
+        }
+    }
+    if (showRestoreDialog && pendingRestoreUri != null) {
+        BackupRestoreOptionsDialog(
+            title = stringResource(id = R.string.dialog_restore_title),
+            message = stringResource(id = R.string.dialog_restore_msg),
+            initialSelection = BackupSelection(),
+            warningMessage = stringResource(id = R.string.restore_warning_msg),
+            onDismiss = {
+                showRestoreDialog = false
+                pendingRestoreUri = null
+            },
+        ) { selection ->
+            val restoreUri = pendingRestoreUri ?: return@BackupRestoreOptionsDialog
+            showRestoreDialog = false
+            pendingRestoreUri = null
+            settingsViewModel.performRestore(
+                uri = restoreUri,
+                restoreConfig = selection.includeConfig,
+                restoreRules = selection.includeRules,
+                restoreRecords = selection.includeRecords,
+                restoreDatabase = selection.includeDatabase,
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -495,6 +578,7 @@ fun VerificationSettingsScreen(
         }
     }
     val settingsViewModel = rememberSharedSettingsViewModel()
+    val accordionMode = rememberPrefBoolean(PrefConst.KEY_SETTINGS_ACCORDION_MODE, true)
     var settings by remember { mutableStateOf<VerificationSettingsSnapshot?>(null) }
     var recordSettings by remember { mutableStateOf<RecordSettingsSnapshot?>(null) }
     var showDelayDialog by remember { mutableStateOf(false) }
@@ -507,6 +591,10 @@ fun VerificationSettingsScreen(
     var pendingNotificationPermissionEnable by remember { mutableStateOf(false) }
     var showSmsTestDialog by remember { mutableStateOf(false) }
     var smsTestInput by remember { mutableStateOf("") }
+    var expandRelaySection by rememberSaveable { mutableStateOf(true) }
+    var expandAutoInputSection by rememberSaveable { mutableStateOf(true) }
+    var expandNotificationSection by rememberSaveable { mutableStateOf(true) }
+    var expandExperimentalSection by rememberSaveable { mutableStateOf(true) }
     val supportsAccessibilityAutoInput = BuildConfig.ENABLE_ACCESSIBILITY_AUTO_INPUT
     var autoInputAccessibilityEnabled by remember {
         mutableStateOf(
@@ -757,9 +845,9 @@ fun VerificationSettingsScreen(
             }
             SectionCard(
                 title = stringResource(id = R.string.settings_group_relay),
-                accordionMode = false,
-                sectionExpanded = true,
-                onExpandedChange = {},
+                accordionMode = accordionMode.value,
+                sectionExpanded = if (accordionMode.value) expandRelaySection else true,
+                onExpandedChange = { expandRelaySection = !expandRelaySection },
             ) {
                 StateSwitchItem(
                     title = stringResource(id = R.string.pref_copy_to_clipboard_title),
@@ -801,9 +889,9 @@ fun VerificationSettingsScreen(
             }
             SectionCard(
                 title = stringResource(id = R.string.settings_group_auto_input),
-                accordionMode = false,
-                sectionExpanded = true,
-                onExpandedChange = {},
+                accordionMode = accordionMode.value,
+                sectionExpanded = if (accordionMode.value) expandAutoInputSection else true,
+                onExpandedChange = { expandAutoInputSection = !expandAutoInputSection },
             ) {
                 if (supportsAccessibilityAutoInput) {
                     StateSwitchItem(
@@ -848,9 +936,9 @@ fun VerificationSettingsScreen(
             }
             SectionCard(
                 title = stringResource(id = R.string.settings_group_notification),
-                accordionMode = false,
-                sectionExpanded = true,
-                onExpandedChange = {},
+                accordionMode = accordionMode.value,
+                sectionExpanded = if (accordionMode.value) expandNotificationSection else true,
+                onExpandedChange = { expandNotificationSection = !expandNotificationSection },
             ) {
                 StateSwitchItem(
                     title = stringResource(id = R.string.pref_show_toast_title),
@@ -914,9 +1002,9 @@ fun VerificationSettingsScreen(
             }
             SectionCard(
                 title = stringResource(id = R.string.settings_group_experimental),
-                accordionMode = false,
-                sectionExpanded = true,
-                onExpandedChange = {},
+                accordionMode = accordionMode.value,
+                sectionExpanded = if (accordionMode.value) expandExperimentalSection else true,
+                onExpandedChange = { expandExperimentalSection = !expandExperimentalSection },
             ) {
                 StateSwitchItem(
                     title = stringResource(id = R.string.pref_block_sms_title),
@@ -1278,10 +1366,9 @@ fun RelayConfigScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DiagnosticsSettingsScreen(onBack: () -> Unit) {
+fun ForwardKeepAliveScreen(onBack: () -> Unit) {
     val repository: SettingsRepository = koinInject()
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
     val snackbarHostState = remember { SnackbarHostState() }
     val notifySaved = {
@@ -1291,8 +1378,6 @@ fun DiagnosticsSettingsScreen(onBack: () -> Unit) {
     }
     var settings by remember { mutableStateOf<DiagnosticsSettingsSnapshot?>(null) }
     var showRootDbIntervalDialog by remember { mutableStateOf(false) }
-    var showRuntimeLogDialog by remember { mutableStateOf(false) }
-    var showRuntimeLogSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         settings = repository.getDiagnosticsSettings()
@@ -1301,7 +1386,7 @@ fun DiagnosticsSettingsScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(id = R.string.advanced_diagnostics_title)) },
+                title = { Text(stringResource(id = R.string.settings_group_background_keepalive)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
@@ -1351,6 +1436,18 @@ fun DiagnosticsSettingsScreen(onBack: () -> Unit) {
                     ),
                 ) { showRootDbIntervalDialog = true }
                 StateSwitchItem(
+                    title = stringResource(id = R.string.pref_root_db_catchup_writeback_title),
+                    summary = stringResource(id = R.string.pref_root_db_catchup_writeback_summary),
+                    checked = current.rootDbCatchupWriteback,
+                ) { enabled ->
+                    scope.launch {
+                        settings = repository.updateDiagnosticsSettings(
+                            DiagnosticsSettingsUpdate(rootDbCatchupWriteback = enabled),
+                        )
+                        notifySaved()
+                    }
+                }
+                StateSwitchItem(
                     title = stringResource(id = R.string.pref_force_stop_recovery_title),
                     summary = stringResource(id = R.string.pref_force_stop_recovery_summary),
                     checked = current.forceStopRecoveryEnabled,
@@ -1371,78 +1468,6 @@ fun DiagnosticsSettingsScreen(onBack: () -> Unit) {
                         settings = repository.updateDiagnosticsSettings(
                             DiagnosticsSettingsUpdate(forceStopRecoveryRelaunchOnceEnabled = enabled),
                         )
-                        notifySaved()
-                    }
-                }
-            }
-            SectionCard(
-                title = stringResource(id = R.string.settings_group_others),
-                accordionMode = false,
-                sectionExpanded = true,
-                onExpandedChange = {},
-            ) {
-                StateSwitchItem(
-                    title = stringResource(id = R.string.pref_verbose_log_mode_title),
-                    summary = stringResource(id = R.string.pref_verbose_log_mode_summary),
-                    checked = current.verboseLogMode,
-                    onTitleClick = { showRuntimeLogSheet = true },
-                ) { enabled ->
-                    scope.launch {
-                        settings = repository.updateDiagnosticsSettings(DiagnosticsSettingsUpdate(verboseLogMode = enabled))
-                        notifySaved()
-                    }
-                }
-                if (BuildConfig.DEBUG) {
-                    StateSwitchItem(
-                        title = stringResource(id = R.string.pref_sensitive_debug_log_mode_title),
-                        summary = stringResource(id = R.string.pref_sensitive_debug_log_mode_summary),
-                        checked = current.sensitiveDebugLogMode,
-                    ) { enabled ->
-                        scope.launch {
-                            settings = repository.updateDiagnosticsSettings(
-                                DiagnosticsSettingsUpdate(sensitiveDebugLogMode = enabled),
-                            )
-                            SensitiveLogPolicy.setEnabled(enabled)
-                            notifySaved()
-                        }
-                    }
-                }
-                Item(
-                    title = stringResource(id = R.string.pref_runtime_log_file_size_title),
-                    summary = stringResource(
-                        id = R.string.pref_runtime_log_file_size_summary,
-                        current.runtimeLogFileSizeMb,
-                    ),
-                ) { showRuntimeLogDialog = true }
-                StateSwitchItem(
-                    title = stringResource(id = R.string.pref_auto_update_on_start_title),
-                    summary = stringResource(id = R.string.pref_auto_update_on_start_summary),
-                    checked = current.autoUpdateOnStart,
-                ) { enabled ->
-                    scope.launch {
-                        settings = repository.updateDiagnosticsSettings(DiagnosticsSettingsUpdate(autoUpdateOnStart = enabled))
-                        notifySaved()
-                    }
-                }
-                StateSwitchItem(
-                    title = stringResource(id = R.string.pref_auto_update_wifi_only_title),
-                    summary = stringResource(id = R.string.pref_auto_update_wifi_only_summary),
-                    checked = current.autoUpdateWifiOnly,
-                ) { enabled ->
-                    scope.launch {
-                        settings = repository.updateDiagnosticsSettings(
-                            DiagnosticsSettingsUpdate(autoUpdateWifiOnly = enabled),
-                        )
-                        notifySaved()
-                    }
-                }
-                StateSwitchItem(
-                    title = stringResource(id = R.string.pref_enable_analytics_title),
-                    summary = stringResource(id = R.string.pref_enable_analytics_summary),
-                    checked = current.analyticsEnabled,
-                ) { enabled ->
-                    scope.launch {
-                        settings = repository.updateDiagnosticsSettings(DiagnosticsSettingsUpdate(analyticsEnabled = enabled))
                         notifySaved()
                     }
                 }
@@ -1471,37 +1496,6 @@ fun DiagnosticsSettingsScreen(onBack: () -> Unit) {
                 notifySaved()
             }
         }
-    }
-    if (showRuntimeLogDialog && current != null) {
-        val runtimeLogFileSizeError = stringResource(id = R.string.pref_runtime_log_file_size_error)
-        TextInputDialog(
-            title = stringResource(id = R.string.pref_runtime_log_file_size_title),
-            initialValue = current.runtimeLogFileSizeMb.toString(),
-            onDismiss = { showRuntimeLogDialog = false },
-            supportingText = stringResource(id = R.string.pref_runtime_log_file_size_hint),
-            validator = {
-                parseIntAtLeast(it, PrefConst.RUNTIME_LOG_FILE_SIZE_MB_MIN)?.let { null }
-                    ?: runtimeLogFileSizeError
-            },
-        ) { updated ->
-            showRuntimeLogDialog = false
-            scope.launch {
-                settings = repository.updateDiagnosticsSettings(
-                    DiagnosticsSettingsUpdate(
-                        runtimeLogFileSizeMb = parseIntAtLeast(
-                            updated,
-                            PrefConst.RUNTIME_LOG_FILE_SIZE_MB_MIN,
-                        ) ?: PrefConst.RUNTIME_LOG_FILE_SIZE_MB_MIN,
-                    ),
-                )
-                notifySaved()
-            }
-        }
-    }
-    if (showRuntimeLogSheet) {
-        RuntimeLogViewerSheet(
-            onDismiss = { showRuntimeLogSheet = false },
-        )
     }
 }
 

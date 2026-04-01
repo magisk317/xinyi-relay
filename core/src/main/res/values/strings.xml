@@ -25,7 +25,7 @@
     <string name="pref_general_title">General</string>
     <string name="pref_enable_title">Main switch</string>
     <string name="pref_enable_summary">Module active</string>
-    <string name="pref_settings_display_mode_title">Accordion mode</string>
+    <string name="pref_settings_display_mode_title">Collapsible groups</string>
     <string name="pref_settings_display_mode_summary">On: collapsible groups; Off: show all settings</string>
     <string name="pref_create_shortcut_title">Create Desktop Shortcut</string>
     <string name="pref_create_shortcut_summary">Pin a shortcut to the launcher for quick access</string>
@@ -301,6 +301,7 @@
     <string name="pref_relay_records_summary">View and manage SMS, app, and call records</string>
     <string name="advanced_filter_title">Intercept &amp; filters</string>
     <string name="advanced_filter_summary">SMS blacklist, global filters, and source-level interception rules</string>
+    <string name="advanced_keepalive_summary">Force-stop recovery and root DB catchup fallback</string>
     <string name="advanced_diagnostics_title">Experimental &amp; diagnostics</string>
     <string name="advanced_diagnostics_summary">Recovery, catchup, logs, updates, and analytics</string>
     <string name="call_alert_forward_summary_from_relay">Call forwarding moved to Advanced - Relay config. This page now only handles local alerts.</string>

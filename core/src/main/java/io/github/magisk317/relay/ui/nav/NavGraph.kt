@@ -63,6 +63,9 @@ object WebUiConfigRoute
 object ScheduledReminderRoute
 
 @Serializable
+object ForwardKeepAliveRoute
+
+@Serializable
 object VerificationSettingsRoute
 
 @Serializable

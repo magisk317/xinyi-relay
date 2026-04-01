@@ -100,6 +100,7 @@ fun MainScreen(
             destination.hasRoute(InterceptRoute::class) -> NavigationSection.ADVANCED
             destination.hasRoute(WebUiConfigRoute::class) -> NavigationSection.ADVANCED
             destination.hasRoute(ScheduledReminderRoute::class) -> NavigationSection.ADVANCED
+            destination.hasRoute(ForwardKeepAliveRoute::class) -> NavigationSection.ADVANCED
             destination.hasRoute(RelayConfigRoute::class) ->
                 sectionFromOrigin(entry.toRoute<RelayConfigRoute>().origin)
             destination.hasRoute(SendersRoute::class) ->
@@ -462,6 +463,7 @@ fun MainScreen(
                                 onRelayConfigClick = {
                                     navController.navigate(RelayConfigRoute(origin = ROUTE_ORIGIN_ADVANCED))
                                 },
+                                onForwardKeepAliveClick = { navController.navigate(ForwardKeepAliveRoute) },
                                 onWebUiConfigClick = { navController.navigate(WebUiConfigRoute) },
                                 onScheduledReminderClick = { navController.navigate(ScheduledReminderRoute) },
                             )
@@ -486,6 +488,9 @@ fun MainScreen(
                         }
                         composable<ScheduledReminderRoute> {
                             ScheduledReminderScreen(onBack = { navController.popBackStack() })
+                        }
+                        composable<ForwardKeepAliveRoute> {
+                            ForwardKeepAliveScreen(onBack = { navController.popBackStack() })
                         }
                         composable<GlobalForwardFilterRoute> {
                             GlobalForwardFilterScreen(onBack = { navController.popBackStack() })

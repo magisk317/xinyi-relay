@@ -348,6 +348,9 @@ class MainActivity : AppCompatActivity() {
                         }
                         LaunchedEffect(intent) {
                             viewModel.handleArguments(intent.extras)
+                            if (intent?.data != null) {
+                                requestedTab = io.github.magisk317.relay.ui.nav.SettingsRoute
+                            }
                         }
 
                         Box(modifier = Modifier.fillMaxSize()) {

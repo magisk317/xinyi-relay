@@ -33,6 +33,7 @@ import io.github.magisk317.relay.core.R
 fun AdvancedScreen(
     onInterceptClick: () -> Unit,
     onRelayConfigClick: () -> Unit,
+    onForwardKeepAliveClick: () -> Unit,
     onWebUiConfigClick: () -> Unit,
     onScheduledReminderClick: () -> Unit,
 ) {
@@ -55,6 +56,12 @@ fun AdvancedScreen(
                 subtitle = stringResource(id = R.string.pref_relay_config_summary),
                 icon = { Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null) },
                 onClick = onRelayConfigClick,
+            )
+            AdvancedEntryCard(
+                title = stringResource(id = R.string.settings_group_background_keepalive),
+                subtitle = stringResource(id = R.string.advanced_keepalive_summary),
+                icon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                onClick = onForwardKeepAliveClick,
             )
             AdvancedEntryCard(
                 title = stringResource(id = R.string.scheduled_reminder_entry_title),

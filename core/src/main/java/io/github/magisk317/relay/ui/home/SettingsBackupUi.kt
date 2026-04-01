@@ -1,0 +1,171 @@
+package io.github.magisk317.relay.ui.home
+
+import android.content.Context
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.data.backup.BackupImportResult
+import io.github.magisk317.relay.data.backup.ImportResult
+import io.github.magisk317.relay.data.backup.ImportWarning
+
+internal data class BackupSelection(
+    val includeConfig: Boolean = true,
+    val includeRules: Boolean = true,
+    val includeRecords: Boolean = true,
+    val includeDatabase: Boolean = true,
+) {
+    fun hasSelection(): Boolean {
+        return includeConfig || includeRules || includeRecords || includeDatabase
+    }
+}
+
+@Composable
+internal fun BackupRestoreOptionsDialog(
+    title: String,
+    message: String,
+    initialSelection: BackupSelection,
+    warningMessage: String? = null,
+    onDismiss: () -> Unit,
+    onConfirm: (BackupSelection) -> Unit,
+) {
+    var includeConfig by remember(initialSelection) { mutableStateOf(initialSelection.includeConfig) }
+    var includeRules by remember(initialSelection) { mutableStateOf(initialSelection.includeRules) }
+    var includeRecords by remember(initialSelection) { mutableStateOf(initialSelection.includeRecords) }
+    var includeDatabase by remember(initialSelection) { mutableStateOf(initialSelection.includeDatabase) }
+
+    val selection = BackupSelection(
+        includeConfig = includeConfig,
+        includeRules = includeRules,
+        includeRecords = includeRecords,
+        includeDatabase = includeDatabase,
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(text = message)
+                BackupRestoreOptionRow(
+                    label = stringResource(id = R.string.item_config),
+                    checked = includeConfig,
+                    onCheckedChange = { includeConfig = it },
+                )
+                BackupRestoreOptionRow(
+                    label = stringResource(id = R.string.item_rules),
+                    checked = includeRules,
+                    onCheckedChange = { includeRules = it },
+                )
+                BackupRestoreOptionRow(
+                    label = stringResource(id = R.string.item_records),
+                    checked = includeRecords,
+                    onCheckedChange = { includeRecords = it },
+                )
+                BackupRestoreOptionRow(
+                    label = stringResource(id = R.string.item_database_with_note),
+                    checked = includeDatabase,
+                    onCheckedChange = { includeDatabase = it },
+                )
+                warningMessage?.takeIf { it.isNotBlank() }?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(selection) },
+                enabled = selection.hasSelection(),
+            ) {
+                Text(text = stringResource(android.R.string.ok))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(android.R.string.cancel))
+            }
+        },
+    )
+}
+
+@Composable
+private fun BackupRestoreOptionRow(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Checkbox(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+internal fun backupResultMessage(
+    context: Context,
+    success: Boolean,
+): String {
+    return if (success) {
+        context.getString(R.string.backup_success)
+    } else {
+        context.getString(R.string.backup_failed)
+    }
+}
+
+internal fun restoreResultMessage(
+    context: Context,
+    result: BackupImportResult,
+): String {
+    val base = when (result.result) {
+        ImportResult.SUCCESS -> context.getString(R.string.restore_success)
+        ImportResult.VERSION_MISSED -> context.getString(R.string.import_failed_version_missed)
+        ImportResult.VERSION_UNKNOWN -> context.getString(R.string.import_failed_version_unknown)
+        ImportResult.VERSION_TOO_NEW -> context.getString(R.string.import_failed_version_too_new)
+        ImportResult.VERSION_TOO_OLD -> context.getString(R.string.import_failed_version_too_old)
+        ImportResult.BACKUP_INVALID -> context.getString(R.string.import_failed_backup_invalid)
+        ImportResult.READ_FAILED -> context.getString(R.string.import_failed_read_error)
+    }
+    val warning = when (result.warning) {
+        ImportWarning.APP_VERSION_MISMATCH -> context.getString(R.string.import_warning_app_version_mismatch)
+        null -> null
+    }
+    return if (result.result == ImportResult.SUCCESS && !warning.isNullOrBlank()) {
+        "$base · $warning"
+    } else {
+        base
+    }
+}

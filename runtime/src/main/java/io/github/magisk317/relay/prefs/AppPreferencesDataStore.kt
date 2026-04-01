@@ -638,7 +638,7 @@ object AppPreferencesDataStore {
         )
         editor.putBoolean(
             PrefConst.KEY_ROOT_DB_CATCHUP_ENABLE,
-            getBoolean(context, PrefConst.KEY_ROOT_DB_CATCHUP_ENABLE, true),
+            getBoolean(context, PrefConst.KEY_ROOT_DB_CATCHUP_ENABLE, false),
         )
         editor.putString(
             PrefConst.KEY_ROOT_DB_CATCHUP_INTERVAL_MIN,
@@ -885,7 +885,7 @@ object AppPreferencesDataStore {
             )
             editor.putBoolean(
                 PrefConst.KEY_ROOT_DB_CATCHUP_ENABLE,
-                getBoolean(context, PrefConst.KEY_ROOT_DB_CATCHUP_ENABLE, true),
+                getBoolean(context, PrefConst.KEY_ROOT_DB_CATCHUP_ENABLE, false),
             )
             editor.putString(
                 PrefConst.KEY_ROOT_DB_CATCHUP_INTERVAL_MIN,

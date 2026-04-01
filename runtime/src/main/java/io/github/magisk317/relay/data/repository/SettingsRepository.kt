@@ -63,6 +63,7 @@ data class RelaySettingsUpdate(
 data class DiagnosticsSettingsSnapshot(
     val rootDbCatchupEnabled: Boolean,
     val rootDbCatchupIntervalMin: String,
+    val rootDbCatchupWriteback: Boolean,
     val forceStopRecoveryEnabled: Boolean,
     val forceStopRecoveryRelaunchOnceEnabled: Boolean,
     val verboseLogMode: Boolean,
@@ -76,6 +77,7 @@ data class DiagnosticsSettingsSnapshot(
 data class DiagnosticsSettingsUpdate(
     val rootDbCatchupEnabled: Boolean? = null,
     val rootDbCatchupIntervalMin: String? = null,
+    val rootDbCatchupWriteback: Boolean? = null,
     val forceStopRecoveryEnabled: Boolean? = null,
     val forceStopRecoveryRelaunchOnceEnabled: Boolean? = null,
     val verboseLogMode: Boolean? = null,
@@ -379,8 +381,9 @@ class SettingsRepository(
 
     suspend fun getDiagnosticsSettings(): DiagnosticsSettingsSnapshot {
         return DiagnosticsSettingsSnapshot(
-            rootDbCatchupEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_ROOT_DB_CATCHUP_ENABLE, true),
+            rootDbCatchupEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_ROOT_DB_CATCHUP_ENABLE, false),
             rootDbCatchupIntervalMin = preferenceDataSource.getString(PrefConst.KEY_ROOT_DB_CATCHUP_INTERVAL_MIN, "5"),
+            rootDbCatchupWriteback = preferenceDataSource.getBoolean(PrefConst.KEY_ROOT_DB_CATCHUP_WRITEBACK, false),
             forceStopRecoveryEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_FORCE_STOP_RECOVERY, false),
             forceStopRecoveryRelaunchOnceEnabled = preferenceDataSource.getBoolean(
                 PrefConst.KEY_FORCE_STOP_RECOVERY_RELAUNCH_ONCE,
@@ -401,6 +404,7 @@ class SettingsRepository(
     suspend fun updateDiagnosticsSettings(update: DiagnosticsSettingsUpdate): DiagnosticsSettingsSnapshot {
         update.rootDbCatchupEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ROOT_DB_CATCHUP_ENABLE, it) }
         update.rootDbCatchupIntervalMin?.let { preferenceDataSource.setString(PrefConst.KEY_ROOT_DB_CATCHUP_INTERVAL_MIN, it) }
+        update.rootDbCatchupWriteback?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ROOT_DB_CATCHUP_WRITEBACK, it) }
         update.forceStopRecoveryEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_FORCE_STOP_RECOVERY, it) }
         update.forceStopRecoveryRelaunchOnceEnabled?.let {
             preferenceDataSource.setBoolean(PrefConst.KEY_FORCE_STOP_RECOVERY_RELAUNCH_ONCE, it)

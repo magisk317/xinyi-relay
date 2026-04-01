@@ -25,7 +25,7 @@
     <string name="pref_general_title">一般設定</string>
     <string name="pref_enable_title">主開關</string>
     <string name="pref_enable_summary">模組已啟用</string>
-    <string name="pref_settings_display_mode_title">手風琴模式</string>
+    <string name="pref_settings_display_mode_title">摺疊分組</string>
     <string name="pref_settings_display_mode_summary">開啟：分組可摺疊；關閉：全部設定直接展開</string>
     <string name="pref_create_shortcut_title">建立桌面捷徑</string>
     <string name="pref_create_shortcut_summary">將捷徑固定在桌面上以便快速存取</string>
@@ -302,6 +302,7 @@
     <string name="pref_relay_records_summary">查看和管理簡訊、通知與來電記錄</string>
     <string name="advanced_filter_title">攔截與過濾</string>
     <string name="advanced_filter_summary">簡訊黑名單、全域過濾與來源攔截規則</string>
+    <string name="advanced_keepalive_summary">強停恢復與 Root 直查庫補償</string>
     <string name="advanced_diagnostics_title">實驗性與診斷</string>
     <string name="advanced_diagnostics_summary">自恢復、補償、日誌、更新與統計</string>
     <string name="call_alert_forward_summary_from_relay">來電轉發已移至「高級 - 轉發配置」，這裡只保留本地提醒</string>

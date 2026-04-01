@@ -586,7 +586,7 @@ object PrefsReader {
 
     @JvmStatic
     fun rootDbCatchupEnabled(context: Context): Boolean {
-        return getBooleanViaProvider(context, PrefConst.KEY_ROOT_DB_CATCHUP_ENABLE, true)
+        return getBooleanViaProvider(context, PrefConst.KEY_ROOT_DB_CATCHUP_ENABLE, false)
     }
 
     @JvmStatic
