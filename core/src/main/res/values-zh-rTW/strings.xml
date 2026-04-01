@@ -444,7 +444,7 @@
     <string name="app_block_settings">停用自動輸入</string>
     <string name="tab_overview">總覽</string>
     <string name="tab_blacklist">應用</string>
-    <string name="tab_intercept">簡訊攔截</string>
+    <string name="tab_intercept">攔截與過濾</string>
     <string name="tab_faq">FAQ</string>
     <string name="tab_records">紀錄</string>
     <string name="tab_advanced">進階</string>

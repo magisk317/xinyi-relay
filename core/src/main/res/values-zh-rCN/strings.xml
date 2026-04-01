@@ -445,7 +445,7 @@
     <string name="app_block_settings">禁用自动输入列表</string>
     <string name="tab_overview">概览</string>
     <string name="tab_blacklist">应用</string>
-    <string name="tab_intercept">短信拦截</string>
+    <string name="tab_intercept">拦截与过滤</string>
     <string name="tab_faq">FAQ</string>
     <string name="tab_records">记录</string>
     <string name="tab_advanced">高级</string>

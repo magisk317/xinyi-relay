@@ -443,7 +443,7 @@
     <string name="app_block_settings">Disable auto-input</string>
     <string name="tab_overview">Overview</string>
     <string name="tab_blacklist">Apps</string>
-    <string name="tab_intercept">SMS Intercept</string>
+    <string name="tab_intercept">Intercept &amp; filters</string>
     <string name="tab_faq">FAQ</string>
     <string name="tab_records">Records</string>
     <string name="tab_advanced">Advanced</string>

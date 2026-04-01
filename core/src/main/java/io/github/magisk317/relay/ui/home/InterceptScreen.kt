@@ -132,7 +132,7 @@ fun InterceptScreen(
         ),
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.tab_intercept)) },
+                title = { Text(stringResource(R.string.advanced_filter_title)) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
                     scrolledContainerColor = Color.Transparent,
@@ -161,10 +161,6 @@ fun InterceptScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(bottom = 80.dp),
             ) {
-                SectionHeader(
-                    text = stringResource(R.string.pref_sms_blacklist_title),
-                    modifier = Modifier.padding(top = Const.SPACING_SMALL.dp),
-                )
                 StateSwitchItem(
                     title = stringResource(R.string.pref_enable_sms_blacklist_title),
                     summary = stringResource(R.string.pref_enable_sms_blacklist_summary),
