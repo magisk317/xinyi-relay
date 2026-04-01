@@ -144,7 +144,12 @@ fun BarkConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { showExitDialog = true }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back)) }
+                    IconButton(onClick = { showExitDialog = true }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.action_back),
+                        )
+                    }
                 },
                 actions = {
                     TextButton(onClick = {
@@ -154,7 +159,14 @@ fun BarkConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
                                     showMessage(context.getString(R.string.sender_form_save_success))
                                     onBack()
                                 }
-                                .onFailure { showMessage(context.getString(R.string.sender_form_save_failed, it.message ?: it.javaClass.simpleName)) }
+                                .onFailure {
+                                    showMessage(
+                                        context.getString(
+                                            R.string.sender_form_save_failed,
+                                            it.message ?: it.javaClass.simpleName,
+                                        ),
+                                    )
+                                }
                         }
                     }) { Text(stringResource(R.string.save)) }
                 },
@@ -165,7 +177,12 @@ fun BarkConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.sender_form_name_label)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                name,
+                { name = it },
+                label = { Text(stringResource(R.string.sender_form_name_label)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
             OutlinedTextField(
                 server,
                 { server = it },

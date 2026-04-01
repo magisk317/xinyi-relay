@@ -169,9 +169,24 @@ fun SmsConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewModel
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.sender_form_name_label)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(mobiles, { mobiles = it }, label = { Text(stringResource(R.string.sender_form_label_target_numbers_comma)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(simSlot, { simSlot = it }, label = { Text(stringResource(R.string.sender_form_label_sim_slot)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                name,
+                { name = it },
+                label = { Text(stringResource(R.string.sender_form_name_label)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                mobiles,
+                { mobiles = it },
+                label = { Text(stringResource(R.string.sender_form_label_target_numbers_comma)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                simSlot,
+                { simSlot = it },
+                label = { Text(stringResource(R.string.sender_form_label_sim_slot)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
             ForwardToggleSection(
                 receiveCode = receiveCode,
                 onReceiveCodeChange = { receiveCode = it },

@@ -145,7 +145,14 @@ fun EmailConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMod
                             showExitDialog = false
                             onBack()
                         }
-                        .onFailure { showMessage(context.getString(R.string.sender_form_draft_save_failed, it.message ?: it.javaClass.simpleName)) }
+                        .onFailure {
+                            showMessage(
+                                context.getString(
+                                    R.string.sender_form_draft_save_failed,
+                                    it.message ?: it.javaClass.simpleName,
+                                ),
+                            )
+                        }
                 }
             },
             onDiscard = {
@@ -167,7 +174,14 @@ fun EmailConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMod
                         ),
                     )
                 },
-                navigationIcon = { IconButton(onClick = { showExitDialog = true }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back)) } },
+                navigationIcon = {
+                    IconButton(onClick = { showExitDialog = true }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            stringResource(R.string.action_back),
+                        )
+                    }
+                },
                 actions = {
                     TextButton(onClick = {
                         scope.launch {
@@ -176,7 +190,14 @@ fun EmailConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMod
                                     showMessage(context.getString(R.string.sender_form_save_success))
                                     onBack()
                                 }
-                                .onFailure { showMessage(context.getString(R.string.sender_form_save_failed, it.message ?: it.javaClass.simpleName)) }
+                                .onFailure {
+                                    showMessage(
+                                        context.getString(
+                                            R.string.sender_form_save_failed,
+                                            it.message ?: it.javaClass.simpleName,
+                                        ),
+                                    )
+                                }
                         }
                     }) { Text(stringResource(R.string.save)) }
                 },
@@ -187,13 +208,48 @@ fun EmailConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMod
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.sender_form_name_label)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(mailType, { mailType = it }, label = { Text(stringResource(R.string.sender_form_label_mail_type_example)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(fromEmail, { fromEmail = it }, label = { Text(stringResource(R.string.sender_form_label_from_email)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(pwd, { pwd = it }, label = { Text(stringResource(R.string.sender_form_label_auth_code_or_password)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(host, { host = it }, label = { Text(stringResource(R.string.sender_form_label_smtp_host)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(port, { port = it }, label = { Text(stringResource(R.string.sender_form_label_smtp_port)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(toEmail, { toEmail = it }, label = { Text(stringResource(R.string.sender_form_label_recipients_comma)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                name,
+                { name = it },
+                label = { Text(stringResource(R.string.sender_form_name_label)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                mailType,
+                { mailType = it },
+                label = { Text(stringResource(R.string.sender_form_label_mail_type_example)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                fromEmail,
+                { fromEmail = it },
+                label = { Text(stringResource(R.string.sender_form_label_from_email)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                pwd,
+                { pwd = it },
+                label = { Text(stringResource(R.string.sender_form_label_auth_code_or_password)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                host,
+                { host = it },
+                label = { Text(stringResource(R.string.sender_form_label_smtp_host)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                port,
+                { port = it },
+                label = { Text(stringResource(R.string.sender_form_label_smtp_port)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                toEmail,
+                { toEmail = it },
+                label = { Text(stringResource(R.string.sender_form_label_recipients_comma)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
             OutlinedTextField(
                 title,
                 { title = it },

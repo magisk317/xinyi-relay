@@ -36,7 +36,9 @@ class ConfigDiagnosticsInitializer : AppInitializer {
         val appNotifyEnabledSenders = senders.count { it.status == 1 && it.receiveAppNotify == 1 }
 
         XLog.i(
-            "Config snapshot: senders=%d enabledSenders=%d appNotifyEnabledSenders=%d legacyRules=%d smsRules=%d notifyRoutes=%d forwardFilters=%d forwardingApps=%d",
+            "Config snapshot: senders=%d enabledSenders=%d " +
+                "appNotifyEnabledSenders=%d legacyRules=%d smsRules=%d " +
+                "notifyRoutes=%d forwardFilters=%d forwardingApps=%d",
             senders.size,
             enabledSenders,
             appNotifyEnabledSenders,

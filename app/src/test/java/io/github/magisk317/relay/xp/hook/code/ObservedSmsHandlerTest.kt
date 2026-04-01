@@ -232,6 +232,7 @@ class ObservedSmsHandlerTest {
         return SmsCodePostParseCoordinator.ObservedSmsPlan(
             deduplicateSmsEnabled = deduplicateSmsEnabled,
             autoInputEnabled = autoInputEnabled,
+            autoInputDelayMs = 0L,
             shouldRecord = shouldRecord,
         )
     }

@@ -167,10 +167,30 @@ fun ServerchanConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVi
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.sender_form_name_label)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(sendKey, { sendKey = it }, label = { Text(stringResource(R.string.sender_form_label_send_key)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(channel, { channel = it }, label = { Text(stringResource(R.string.sender_form_label_channel)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(openid, { openid = it }, label = { Text(stringResource(R.string.sender_form_label_openid)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                name,
+                { name = it },
+                label = { Text(stringResource(R.string.sender_form_name_label)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                sendKey,
+                { sendKey = it },
+                label = { Text(stringResource(R.string.sender_form_label_send_key)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                channel,
+                { channel = it },
+                label = { Text(stringResource(R.string.sender_form_label_channel)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                openid,
+                { openid = it },
+                label = { Text(stringResource(R.string.sender_form_label_openid)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
             OutlinedTextField(
                 titleTemplate,
                 { titleTemplate = it },

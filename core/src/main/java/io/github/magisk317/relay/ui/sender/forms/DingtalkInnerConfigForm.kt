@@ -139,7 +139,14 @@ fun DingtalkInnerConfigForm(senderId: Long, onBack: () -> Unit, viewModel: Sende
                             showExitDialog = false
                             onBack()
                         }
-                        .onFailure { showMessage(context.getString(R.string.sender_form_draft_save_failed, it.message ?: it.javaClass.simpleName)) }
+                        .onFailure {
+                            showMessage(
+                                context.getString(
+                                    R.string.sender_form_draft_save_failed,
+                                    it.message ?: it.javaClass.simpleName,
+                                ),
+                            )
+                        }
                 }
             },
             onDiscard = {
@@ -161,7 +168,14 @@ fun DingtalkInnerConfigForm(senderId: Long, onBack: () -> Unit, viewModel: Sende
                         ),
                     )
                 },
-                navigationIcon = { IconButton(onClick = { showExitDialog = true }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back)) } },
+                navigationIcon = {
+                    IconButton(onClick = { showExitDialog = true }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            stringResource(R.string.action_back),
+                        )
+                    }
+                },
                 actions = {
                     TextButton(onClick = {
                         scope.launch {
@@ -170,7 +184,14 @@ fun DingtalkInnerConfigForm(senderId: Long, onBack: () -> Unit, viewModel: Sende
                                     showMessage(context.getString(R.string.sender_form_save_success))
                                     onBack()
                                 }
-                                .onFailure { showMessage(context.getString(R.string.sender_form_save_failed, it.message ?: it.javaClass.simpleName)) }
+                                .onFailure {
+                                    showMessage(
+                                        context.getString(
+                                            R.string.sender_form_save_failed,
+                                            it.message ?: it.javaClass.simpleName,
+                                        ),
+                                    )
+                                }
                         }
                     }) { Text(stringResource(R.string.save)) }
                 },
@@ -181,11 +202,36 @@ fun DingtalkInnerConfigForm(senderId: Long, onBack: () -> Unit, viewModel: Sende
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.sender_form_name_label)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(agentID, { agentID = it }, label = { Text(stringResource(R.string.sender_form_label_agent_id)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(appKey, { appKey = it }, label = { Text(stringResource(R.string.sender_form_label_app_key)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(appSecret, { appSecret = it }, label = { Text(stringResource(R.string.sender_form_label_app_secret)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(userIds, { userIds = it }, label = { Text(stringResource(R.string.sender_form_label_user_ids_comma)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                name,
+                { name = it },
+                label = { Text(stringResource(R.string.sender_form_name_label)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                agentID,
+                { agentID = it },
+                label = { Text(stringResource(R.string.sender_form_label_agent_id)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                appKey,
+                { appKey = it },
+                label = { Text(stringResource(R.string.sender_form_label_app_key)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                appSecret,
+                { appSecret = it },
+                label = { Text(stringResource(R.string.sender_form_label_app_secret)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                userIds,
+                { userIds = it },
+                label = { Text(stringResource(R.string.sender_form_label_user_ids_comma)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
             SingleChoiceSegmentedSelector(
                 options = listOf(
                     SegmentedOption("sampleText", stringResource(R.string.sender_segment_text)),

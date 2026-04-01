@@ -184,11 +184,36 @@ fun FeishuAppConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVie
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.sender_form_name_label)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(appId, { appId = it }, label = { Text(stringResource(R.string.sender_form_label_app_id)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(appSecret, { appSecret = it }, label = { Text(stringResource(R.string.sender_form_label_app_secret)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(receiveId, { receiveId = it }, label = { Text(stringResource(R.string.sender_form_label_receive_id)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(receiveIdType, { receiveIdType = it }, label = { Text(stringResource(R.string.sender_form_label_receive_id_type)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                name,
+                { name = it },
+                label = { Text(stringResource(R.string.sender_form_name_label)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                appId,
+                { appId = it },
+                label = { Text(stringResource(R.string.sender_form_label_app_id)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                appSecret,
+                { appSecret = it },
+                label = { Text(stringResource(R.string.sender_form_label_app_secret)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                receiveId,
+                { receiveId = it },
+                label = { Text(stringResource(R.string.sender_form_label_receive_id)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                receiveIdType,
+                { receiveIdType = it },
+                label = { Text(stringResource(R.string.sender_form_label_receive_id_type)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
             SingleChoiceSegmentedSelector(
                 options = listOf(
                     SegmentedOption("interactive", stringResource(R.string.sender_segment_interactive)),
@@ -204,7 +229,13 @@ fun FeishuAppConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVie
                 placeholder = { Text(stringResource(R.string.sender_form_title_template_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
             )
-            OutlinedTextField(messageCard, { messageCard = it }, label = { Text(stringResource(R.string.sender_form_label_message_card_json_optional)) }, modifier = Modifier.fillMaxWidth(), minLines = 4)
+            OutlinedTextField(
+                messageCard,
+                { messageCard = it },
+                label = { Text(stringResource(R.string.sender_form_label_message_card_json_optional)) },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 4,
+            )
             ForwardToggleSection(
                 receiveCode = receiveCode,
                 onReceiveCodeChange = { receiveCode = it },

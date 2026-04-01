@@ -158,7 +158,9 @@ fun TelegramConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { showExitDialog = true }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
+                    IconButton(onClick = { showExitDialog = true }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                    }
                 },
                 actions = {
                     TextButton(onClick = {
@@ -183,9 +185,24 @@ fun TelegramConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.sender_form_name_label)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = apiToken, onValueChange = { apiToken = it }, label = { Text(stringResource(R.string.sender_form_label_bot_api_token_required)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = chatId, onValueChange = { chatId = it }, label = { Text(stringResource(R.string.sender_form_label_chat_id_required)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text(stringResource(R.string.sender_form_name_label)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = apiToken,
+                onValueChange = { apiToken = it },
+                label = { Text(stringResource(R.string.sender_form_label_bot_api_token_required)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = chatId,
+                onValueChange = { chatId = it },
+                label = { Text(stringResource(R.string.sender_form_label_chat_id_required)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
             OutlinedTextField(
                 value = topicId,
                 onValueChange = { topicId = it },

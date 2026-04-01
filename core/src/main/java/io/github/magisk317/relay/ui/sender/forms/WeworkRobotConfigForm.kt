@@ -178,8 +178,18 @@ fun WeworkRobotConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderV
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.sender_form_name_label)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(webHook, { webHook = it }, label = { Text(stringResource(R.string.sender_form_label_webhook_url)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                name,
+                { name = it },
+                label = { Text(stringResource(R.string.sender_form_name_label)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                webHook,
+                { webHook = it },
+                label = { Text(stringResource(R.string.sender_form_label_webhook_url)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
             SingleChoiceSegmentedSelector(
                 options = listOf(
                     SegmentedOption("text", stringResource(R.string.sender_segment_text)),
@@ -192,8 +202,18 @@ fun WeworkRobotConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderV
                 Text(stringResource(R.string.sender_form_label_at_all))
                 Switch(checked = atAll, onCheckedChange = { atAll = it })
             }
-            OutlinedTextField(atUserIds, { atUserIds = it }, label = { Text(stringResource(R.string.sender_form_label_at_user_ids_comma)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(atMobiles, { atMobiles = it }, label = { Text(stringResource(R.string.sender_form_label_at_mobile_numbers_comma)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                atUserIds,
+                { atUserIds = it },
+                label = { Text(stringResource(R.string.sender_form_label_at_user_ids_comma)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                atMobiles,
+                { atMobiles = it },
+                label = { Text(stringResource(R.string.sender_form_label_at_mobile_numbers_comma)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
             ForwardToggleSection(
                 receiveCode = receiveCode,
                 onReceiveCodeChange = { receiveCode = it },

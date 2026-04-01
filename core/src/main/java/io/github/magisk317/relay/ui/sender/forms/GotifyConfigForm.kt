@@ -165,8 +165,18 @@ fun GotifyConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMo
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.sender_form_name_label)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(webServer, { webServer = it }, label = { Text(stringResource(R.string.sender_form_label_gotify_server)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                name,
+                { name = it },
+                label = { Text(stringResource(R.string.sender_form_name_label)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                webServer,
+                { webServer = it },
+                label = { Text(stringResource(R.string.sender_form_label_gotify_server)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
             OutlinedTextField(
                 title,
                 { title = it },
@@ -174,7 +184,12 @@ fun GotifyConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMo
                 placeholder = { Text(stringResource(R.string.sender_form_title_template_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
             )
-            OutlinedTextField(priority, { priority = it }, label = { Text(stringResource(R.string.sender_form_label_priority)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                priority,
+                { priority = it },
+                label = { Text(stringResource(R.string.sender_form_label_priority)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
             ForwardToggleSection(
                 receiveCode = receiveCode,
                 onReceiveCodeChange = { receiveCode = it },

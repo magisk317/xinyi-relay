@@ -176,12 +176,42 @@ fun PushplusConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.sender_form_name_label)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = token, onValueChange = { token = it }, label = { Text(stringResource(R.string.sender_form_label_token_required)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = topic, onValueChange = { topic = it }, label = { Text(stringResource(R.string.sender_form_label_topic_code_optional)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = template, onValueChange = { template = it }, label = { Text(stringResource(R.string.sender_form_label_message_template)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = channel, onValueChange = { channel = it }, label = { Text(stringResource(R.string.sender_form_label_delivery_channel)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = website, onValueChange = { website = it }, label = { Text(stringResource(R.string.sender_form_label_request_url)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text(stringResource(R.string.sender_form_name_label)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = token,
+                onValueChange = { token = it },
+                label = { Text(stringResource(R.string.sender_form_label_token_required)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = topic,
+                onValueChange = { topic = it },
+                label = { Text(stringResource(R.string.sender_form_label_topic_code_optional)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = template,
+                onValueChange = { template = it },
+                label = { Text(stringResource(R.string.sender_form_label_message_template)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = channel,
+                onValueChange = { channel = it },
+                label = { Text(stringResource(R.string.sender_form_label_delivery_channel)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = website,
+                onValueChange = { website = it },
+                label = { Text(stringResource(R.string.sender_form_label_request_url)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
             OutlinedTextField(
                 value = titleTemplate,
                 onValueChange = { titleTemplate = it },

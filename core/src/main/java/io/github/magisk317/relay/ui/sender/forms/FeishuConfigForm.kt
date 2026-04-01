@@ -178,9 +178,24 @@ fun FeishuConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMo
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.sender_form_name_label)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(webhook, { webhook = it }, label = { Text(stringResource(R.string.sender_type_webhook)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(secret, { secret = it }, label = { Text(stringResource(R.string.sender_form_label_secret_optional)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                name,
+                { name = it },
+                label = { Text(stringResource(R.string.sender_form_name_label)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                webhook,
+                { webhook = it },
+                label = { Text(stringResource(R.string.sender_type_webhook)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                secret,
+                { secret = it },
+                label = { Text(stringResource(R.string.sender_form_label_secret_optional)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
             SingleChoiceSegmentedSelector(
                 options = listOf(
                     SegmentedOption("interactive", stringResource(R.string.sender_segment_interactive)),
@@ -196,7 +211,13 @@ fun FeishuConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMo
                 placeholder = { Text(stringResource(R.string.sender_form_title_template_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
             )
-            OutlinedTextField(messageCard, { messageCard = it }, label = { Text(stringResource(R.string.sender_form_label_message_card_json_optional)) }, modifier = Modifier.fillMaxWidth(), minLines = 4)
+            OutlinedTextField(
+                messageCard,
+                { messageCard = it },
+                label = { Text(stringResource(R.string.sender_form_label_message_card_json_optional)) },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 4,
+            )
             ForwardToggleSection(
                 receiveCode = receiveCode,
                 onReceiveCodeChange = { receiveCode = it },

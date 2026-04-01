@@ -178,7 +178,12 @@ fun SocketConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMo
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.sender_form_name_label)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                name,
+                { name = it },
+                label = { Text(stringResource(R.string.sender_form_name_label)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
             SingleChoiceSegmentedSelector(
                 options = listOf(
                     SegmentedOption("TCP", stringResource(R.string.sender_segment_tcp)),
@@ -188,10 +193,31 @@ fun SocketConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMo
                 selected = method,
                 onSelect = { method = it },
             )
-            OutlinedTextField(address, { address = it }, label = { Text(stringResource(R.string.sender_form_label_address)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(port, { port = it }, label = { Text(stringResource(R.string.sender_form_label_port)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(msgTemplate, { msgTemplate = it }, label = { Text(stringResource(R.string.sender_form_label_message_template)) }, modifier = Modifier.fillMaxWidth(), minLines = 3)
-            OutlinedTextField(outTopic, { outTopic = it }, label = { Text(stringResource(R.string.sender_form_label_mqtt_output_topic)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                address,
+                { address = it },
+                label = { Text(stringResource(R.string.sender_form_label_address)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                port,
+                { port = it },
+                label = { Text(stringResource(R.string.sender_form_label_port)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                msgTemplate,
+                { msgTemplate = it },
+                label = { Text(stringResource(R.string.sender_form_label_message_template)) },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3,
+            )
+            OutlinedTextField(
+                outTopic,
+                { outTopic = it },
+                label = { Text(stringResource(R.string.sender_form_label_mqtt_output_topic)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
             ForwardToggleSection(
                 receiveCode = receiveCode,
                 onReceiveCodeChange = { receiveCode = it },

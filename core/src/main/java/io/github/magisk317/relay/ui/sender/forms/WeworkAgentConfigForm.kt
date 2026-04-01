@@ -175,12 +175,42 @@ fun WeworkAgentConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderV
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.sender_form_name_label)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(corpID, { corpID = it }, label = { Text(stringResource(R.string.sender_form_label_corp_id)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(agentID, { agentID = it }, label = { Text(stringResource(R.string.sender_form_label_agent_id)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(secret, { secret = it }, label = { Text(stringResource(R.string.sender_form_label_secret)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(toUser, { toUser = it }, label = { Text(stringResource(R.string.sender_form_label_to_user)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(customizeAPI, { customizeAPI = it }, label = { Text(stringResource(R.string.sender_form_label_api_base)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                name,
+                { name = it },
+                label = { Text(stringResource(R.string.sender_form_name_label)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                corpID,
+                { corpID = it },
+                label = { Text(stringResource(R.string.sender_form_label_corp_id)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                agentID,
+                { agentID = it },
+                label = { Text(stringResource(R.string.sender_form_label_agent_id)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                secret,
+                { secret = it },
+                label = { Text(stringResource(R.string.sender_form_label_secret)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                toUser,
+                { toUser = it },
+                label = { Text(stringResource(R.string.sender_form_label_to_user)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                customizeAPI,
+                { customizeAPI = it },
+                label = { Text(stringResource(R.string.sender_form_label_api_base)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
             ForwardToggleSection(
                 receiveCode = receiveCode,
                 onReceiveCodeChange = { receiveCode = it },

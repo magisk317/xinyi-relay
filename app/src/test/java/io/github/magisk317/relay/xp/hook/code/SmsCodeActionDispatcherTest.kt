@@ -80,12 +80,14 @@ class SmsCodeActionDispatcherTest {
         val plan = SmsCodePostParseCoordinator.ObservedSmsPlan(
             deduplicateSmsEnabled = true,
             autoInputEnabled = true,
+            autoInputDelayMs = 0L,
             shouldRecord = false,
         )
         var autoInputDedup: Boolean? = null
         var recordCalled = false
 
         SmsCodeActionDispatcher.dispatchObservedSmsActions(
+            executor = null,
             pluginContext = pluginContext,
             phoneContext = phoneContext,
             smsMsg = smsMsg,

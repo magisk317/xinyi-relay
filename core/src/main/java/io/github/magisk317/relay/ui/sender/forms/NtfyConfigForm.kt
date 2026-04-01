@@ -184,7 +184,12 @@ fun NtfyConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.sender_form_name_label)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                name,
+                { name = it },
+                label = { Text(stringResource(R.string.sender_form_name_label)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
             OutlinedTextField(
                 value = server,
                 onValueChange = { server = it },
@@ -192,8 +197,18 @@ fun NtfyConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
                 supportingText = { Text(stringResource(R.string.sender_form_label_server_example)) },
                 modifier = Modifier.fillMaxWidth(),
             )
-            OutlinedTextField(topic, { topic = it }, label = { Text(stringResource(R.string.sender_form_label_topic_required)) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(token, { token = it }, label = { Text(stringResource(R.string.sender_form_label_bearer_token_optional)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                topic,
+                { topic = it },
+                label = { Text(stringResource(R.string.sender_form_label_topic_required)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                token,
+                { token = it },
+                label = { Text(stringResource(R.string.sender_form_label_bearer_token_optional)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
             OutlinedTextField(
                 title,
                 { title = it },
