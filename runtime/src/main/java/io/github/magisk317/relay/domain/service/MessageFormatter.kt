@@ -8,7 +8,10 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class MessageFormatter(private val systemInfoProvider: SystemInfoProvider) {
+class MessageFormatter(
+    private val systemInfoProvider: SystemInfoProvider,
+    private val simSlotRemarkResolver: (Int) -> String = { "" },
+) {
 
     private companion object {
         private const val CALL_TYPE_ANSWERED_EXTERNALLY = 7
@@ -99,6 +102,8 @@ class MessageFormatter(private val systemInfoProvider: SystemInfoProvider) {
         payloadContext: DispatchPayloadContext,
     ): String {
         if (event.simSlot >= 0) {
+            val remark = simSlotRemarkResolver(event.simSlot).trim()
+            if (remark.isNotBlank()) return remark
             return "SIM${event.simSlot + 1}"
         }
         if (payloadContext.appName.isNotBlank() && event.companyOrAppName.isNotBlank()) return event.companyOrAppName

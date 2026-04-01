@@ -65,7 +65,12 @@ class RuntimeGraph private constructor(
     }
 
     val messageFormatter: MessageFormatter by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
-        MessageFormatter(systemInfoProvider)
+        MessageFormatter(
+            systemInfoProvider = systemInfoProvider,
+            simSlotRemarkResolver = { simSlot ->
+                io.github.magisk317.relay.prefs.PrefsReader.getSimSlotRemark(appContext, simSlot)
+            },
+        )
     }
 
     val eventGatekeeper: EventGatekeeper by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {

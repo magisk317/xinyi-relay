@@ -12,12 +12,13 @@ import org.junit.jupiter.api.Test
 
 class MessageFormatterTest {
 
-    private val formatter = MessageFormatter(
+    private fun formatter(simSlotRemarkResolver: (Int) -> String = { "" }) = MessageFormatter(
         systemInfoProvider = object : SystemInfoProvider {
             override fun getSnapshot(deviceName: String): SystemEnvironment = snapshot
 
             override fun resolveAppName(packageName: String): String = "ResolvedApp"
         },
+        simSlotRemarkResolver = simSlotRemarkResolver,
     )
 
     private val snapshot = SystemEnvironment(
@@ -41,7 +42,7 @@ class MessageFormatterTest {
 
     @Test
     fun `app notify formatting uses app wording`() {
-        val result = formatter.format(
+        val result = formatter().format(
             event = baseEvent.copy(
                 messageType = MessageType.APP_NOTIFY,
                 sender = "微信支付",
@@ -64,7 +65,7 @@ class MessageFormatterTest {
 
     @Test
     fun `call notify formatting uses call wording`() {
-        val result = formatter.format(
+        val result = formatter().format(
             event = baseEvent.copy(
                 messageType = MessageType.CALL_NOTIFY,
                 callType = 3,
@@ -80,7 +81,7 @@ class MessageFormatterTest {
 
     @Test
     fun `sms formatting keeps card slot wording`() {
-        val result = formatter.format(
+        val result = formatter().format(
             event = baseEvent.copy(messageType = MessageType.SMS_PLAIN),
             payloadContext = DispatchPayloadContext.from(baseEvent.copy(messageType = MessageType.SMS_PLAIN)),
             config = ForwardCommonConfig(messageTemplate = "卡槽：{{CARD_SLOT}}"),
@@ -90,6 +91,21 @@ class MessageFormatterTest {
         assertTrue(result.contains("卡槽：SIM1"))
         assertFalse(result.contains("应用："))
         assertFalse(result.contains("通话："))
+    }
+
+    @Test
+    fun `sms formatting prefers configured sim remark`() {
+        val result = formatter { simSlot ->
+            if (simSlot == 0) "联通主卡" else ""
+        }.format(
+            event = baseEvent.copy(messageType = MessageType.SMS_PLAIN),
+            payloadContext = DispatchPayloadContext.from(baseEvent.copy(messageType = MessageType.SMS_PLAIN)),
+            config = ForwardCommonConfig(messageTemplate = "卡槽：{{CARD_SLOT}}"),
+            env = snapshot,
+        )
+
+        assertTrue(result.contains("卡槽：联通主卡"))
+        assertFalse(result.contains("卡槽：SIM1"))
     }
 
     private companion object {
