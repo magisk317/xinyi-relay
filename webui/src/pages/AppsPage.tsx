@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { apiClient } from '../api/client'
 import type { AppItem } from '../types'
 import { trackEvent } from '../analytics'
@@ -12,18 +12,18 @@ export function AppsPage() {
   const [saving, setSaving] = useState<string>('')
   const [error, setError] = useState('')
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       setError('')
       setApps(await apiClient.getApps())
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.loadFailed'))
     }
-  }
+  }, [t])
 
   useEffect(() => {
     void load()
-  }, [])
+  }, [load])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()

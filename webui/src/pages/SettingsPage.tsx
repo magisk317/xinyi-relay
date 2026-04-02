@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { apiClient } from '../api/client'
 import type { SettingsState } from '../types'
 import { trackEvent } from '../analytics'
@@ -10,20 +10,20 @@ export function SettingsPage() {
   const [data, setData] = useState<SettingsState | null>(null)
   const [error, setError] = useState('')
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       setError('')
       setData(await apiClient.getSettings())
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.loadFailed'))
     }
-  }
+  }, [t])
 
   useEffect(() => {
     queueMicrotask(() => {
       void load()
     })
-  }, [])
+  }, [load])
 
   const update = async (patch: Partial<SettingsState>) => {
     if (!data) return

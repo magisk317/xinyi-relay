@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { apiClient } from '../api/client'
 import type { RecordItem } from '../types'
 import { trackEvent } from '../analytics'
@@ -20,20 +20,20 @@ export function RecordsPage() {
     { key: 'call', label: t('records.tab.call') }
   ] as const
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       setError('')
       setRecords(await apiClient.getRecords())
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.loadFailed'))
     }
-  }
+  }, [t])
 
   useEffect(() => {
     queueMicrotask(() => {
       void load()
     })
-  }, [])
+  }, [load])
 
   const deleteRecord = async (recordId: number) => {
     if (!window.confirm(t('common.confirmDeleteRecord'))) return

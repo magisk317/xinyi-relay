@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { apiClient } from '../api/client'
 import type { SenderItem } from '../types'
 import { trackEvent } from '../analytics'
@@ -31,20 +31,20 @@ export function SendersPage() {
     [t]
   )
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       setError('')
       setItems(await apiClient.getSenders())
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.loadFailed'))
     }
-  }
+  }, [t])
 
   useEffect(() => {
     queueMicrotask(() => {
       void load()
     })
-  }, [])
+  }, [load])
 
   const create = async () => {
     if (!draft.name?.trim()) {

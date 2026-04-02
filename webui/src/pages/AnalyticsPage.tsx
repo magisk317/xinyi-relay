@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { apiClient } from '../api/client'
 import type { AnalyticsResponse, AnalyticsWindow } from '../types'
 import { trackEvent } from '../analytics'
@@ -19,20 +19,20 @@ export function AnalyticsPage() {
     { key: 'last30d', label: t('analytics.range.30d') }
   ] as const
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       setError('')
       setData(await apiClient.getAnalytics())
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.loadFailed'))
     }
-  }
+  }, [t])
 
   useEffect(() => {
     queueMicrotask(() => {
       void load()
     })
-  }, [])
+  }, [load])
 
   const window = useMemo<AnalyticsWindow | null>(() => {
     if (!data) return null

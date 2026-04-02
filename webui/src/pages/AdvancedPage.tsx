@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiClient } from '../api/client'
 import type { AdvancedState, InterceptState, SettingsState } from '../types'
@@ -17,7 +17,7 @@ export function AdvancedPage() {
   const [activeSection, setActiveSection] = useState<AdvancedSectionKey>('relay')
   const navigate = useNavigate()
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       setError('')
       const [adv, itc, stg] = await Promise.all([apiClient.getAdvanced(), apiClient.getIntercept(), apiClient.getSettings()])
@@ -27,13 +27,13 @@ export function AdvancedPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.loadFailed'))
     }
-  }
+  }, [t])
 
   useEffect(() => {
     queueMicrotask(() => {
       void load()
     })
-  }, [])
+  }, [load])
 
   const patchAdvanced = async (patch: Partial<AdvancedState>) => {
     try {

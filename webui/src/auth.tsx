@@ -62,7 +62,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [syncServerLanguageTag])
 
   const login = useCallback(async (inputUsername: string, password: string) => {
     try {
