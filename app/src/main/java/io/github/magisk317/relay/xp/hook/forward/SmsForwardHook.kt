@@ -147,6 +147,12 @@ class SmsForwardHook : BaseHook() {
                 resolvedRouting.simSlot?.toString() ?: "<none>",
                 resolvedRouting.subId?.toString() ?: "<none>",
             )
+        } else if (!hadSimRouting) {
+            XLog.w(
+                "SmsForwardHook sim routing unresolved: event_id=%s detail=%s",
+                eventId,
+                SmsForwardSimRoutingResolver.debugSnapshot(param.thisObject, param.args),
+            )
         }
         return IncomingSmsDispatch(
             intent = intent,

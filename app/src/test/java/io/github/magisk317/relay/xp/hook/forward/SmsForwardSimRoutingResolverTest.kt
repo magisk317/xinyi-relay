@@ -79,6 +79,18 @@ class SmsForwardSimRoutingResolverTest {
         verify(exactly = 0) { intent.putExtra(any<String>(), any<Int>()) }
     }
 
+    @Test
+    fun resolve_readsRoutingFromVendorToString() {
+        val resolved = SmsForwardSimRoutingResolver.resolve(
+            handler = VendorPhoneDump(),
+            args = emptyArray(),
+        )
+
+        assertNotNull(resolved)
+        assertEquals(0, resolved?.simSlot)
+        assertEquals(1, resolved?.subId)
+    }
+
     private class FakePhone(
         private val subId: Int,
         private val phoneId: Int,
@@ -95,5 +107,11 @@ class SmsForwardSimRoutingResolverTest {
     ) {
         fun getSlotIndex(): Int = slotIndex
         fun getSubscriptionId(): Int = subscriptionId
+    }
+
+    private class VendorPhoneDump {
+        override fun toString(): String {
+            return "Handler (com.qualcomm.qti.internal.telephony.QtiGsmCdmaPhone) {30bfcc0} phondId=0 subId=1"
+        }
     }
 }

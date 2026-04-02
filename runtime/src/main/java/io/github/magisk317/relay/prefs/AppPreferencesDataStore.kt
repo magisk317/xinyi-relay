@@ -201,9 +201,18 @@ object AppPreferencesDataStore {
 
     suspend fun getInt(context: Context, key: String, defaultValue: Int): Int {
         val prefKey = intPreferencesKey(key)
-        return getInstance(context).data
+        return runCatching {
+            getInstance(context).data
             .map { prefs: Preferences -> safeRead(prefs, prefKey, defaultValue) }
             .first()
+        }.getOrElse {
+            XLog.w(
+                "DataStore int read failed key=%s err=%s",
+                key,
+                it.message ?: it.javaClass.simpleName,
+            )
+            recoverIntFromSharedPrefs(context, key, defaultValue)
+        }
     }
 
     suspend fun setInt(context: Context, key: String, value: Int) {
@@ -269,12 +278,7 @@ object AppPreferencesDataStore {
             runCatching {
                 sharedPrefs.getInt(key, defaultValue)
             }.getOrElse {
-                XLog.w(
-                    "SharedPreferences int type mismatch key=%s err=%s",
-                    key,
-                    it.message ?: it.javaClass.simpleName,
-                )
-                getInt(context, key, defaultValue)
+                recoverIntFromSharedPrefs(context, key, defaultValue)
             }
         } else {
             getInt(context, key, defaultValue)
@@ -963,5 +967,38 @@ object AppPreferencesDataStore {
             )
             defaultValue
         }
+    }
+
+    private suspend fun recoverIntFromSharedPrefs(
+        context: Context,
+        key: String,
+        defaultValue: Int,
+    ): Int {
+        val sharedPrefs = getSharedPrefs(context)
+        sharedPrefs.getString(key, null)
+            ?.trim()
+            ?.toIntOrNull()
+            ?.let { recovered ->
+                XLog.w(
+                    "Recovered int preference from string key=%s value=%d",
+                    key,
+                    recovered,
+                )
+                runCatching { setInt(context, key, recovered) }
+                    .onFailure { error ->
+                        XLog.w(
+                            "Failed to rewrite recovered int preference key=%s err=%s",
+                            key,
+                            error.message ?: error.javaClass.simpleName,
+                        )
+                    }
+                return recovered
+            }
+        XLog.w(
+            "SharedPreferences int type mismatch key=%s fallback=%d",
+            key,
+            defaultValue,
+        )
+        return defaultValue
     }
 }

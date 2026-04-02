@@ -78,6 +78,7 @@ object PrefRestoreTypeRegistry {
         PrefConst.KEY_CHOOSE_THEME,
         PrefConst.KEY_HAZE_BLUR_RADIUS,
         PrefConst.KEY_LOW_BATTERY_THRESHOLD,
+        PrefConst.KEY_RUNTIME_LOG_FILE_SIZE_MB,
         "local_version_code",
     )
 

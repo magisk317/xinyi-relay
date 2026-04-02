@@ -1,6 +1,8 @@
 package io.github.magisk317.relay.xp.hook.forward
 
 import android.content.Intent
+import java.util.Collections
+import java.util.IdentityHashMap
 
 internal data class SmsForwardSimRouting(
     val simSlot: Int? = null,
@@ -12,6 +14,17 @@ internal data class SmsForwardSimRouting(
 internal object SmsForwardSimRoutingResolver {
     private const val EXTRA_SIM_SLOT = "sim_slot"
     private const val EXTRA_SUB_ID = "sub_id"
+    private const val MAX_TEXT_SNAPSHOT_LENGTH = 120
+
+    private val slotTextRegex = Regex(
+        """\b(?:phoneId|phondId|slotId|slotIndex|simSlot|simId)\s*[=:]\s*(-?\d+)\b""",
+        RegexOption.IGNORE_CASE,
+    )
+    private val subIdTextRegex = Regex(
+        """\b(?:subId|subscriptionId)\s*[=:]\s*(-?\d+)\b""",
+        RegexOption.IGNORE_CASE,
+    )
+
     private val slotMethodNames = listOf(
         "getSlotIndex",
         "getSlotId",
@@ -41,8 +54,40 @@ internal object SmsForwardSimRoutingResolver {
         "subscriptionId",
         "mSubscriptionId",
     )
-    private val phoneMethodNames = listOf("getPhone")
-    private val phoneFieldNames = listOf("mPhone", "phone")
+    private val nestedMethodNames = listOf(
+        "getPhone",
+        "getDefaultPhone",
+        "getPhoneExt",
+        "getTracker",
+        "getInboundSmsTracker",
+        "getSmsTracker",
+        "getDispatcher",
+        "getDispatchersController",
+        "getSender",
+        "getOwner",
+    )
+    private val nestedFieldNames = listOf(
+        "mPhone",
+        "phone",
+        "mDefaultPhone",
+        "defaultPhone",
+        "mPhoneExt",
+        "phoneExt",
+        "mTracker",
+        "tracker",
+        "mInboundSmsTracker",
+        "inboundSmsTracker",
+        "mSmsTracker",
+        "smsTracker",
+        "mDispatcher",
+        "dispatcher",
+        "mDispatchersController",
+        "dispatchersController",
+        "sender",
+        "mSender",
+        "owner",
+        "mOwner",
+    )
 
     fun readFromIntent(intent: Intent): SmsForwardSimRouting {
         val simSlot = readIntExtra(
@@ -83,29 +128,77 @@ internal object SmsForwardSimRoutingResolver {
         handler: Any?,
         args: Array<Any?>?,
     ): SmsForwardSimRouting? {
+        val visited = Collections.newSetFromMap(IdentityHashMap<Any, Boolean>())
         val fromArgs = args.orEmpty()
             .asSequence()
-            .mapNotNull { resolveFromTarget(it, allowNestedPhone = true).takeIf(SmsForwardSimRouting::hasValue) }
+            .mapNotNull { resolveFromTarget(it, depth = 2, visited = visited).takeIf(SmsForwardSimRouting::hasValue) }
             .firstOrNull()
-        val fromHandler = resolveFromTarget(handler, allowNestedPhone = true)
+        val fromHandler = resolveFromTarget(handler, depth = 3, visited = visited)
         return merge(fromArgs, fromHandler).takeIf(SmsForwardSimRouting::hasValue)
     }
 
-    private fun resolveFromTarget(
-        target: Any?,
-        allowNestedPhone: Boolean,
-    ): SmsForwardSimRouting {
-        if (target == null) return SmsForwardSimRouting()
+    fun debugSnapshot(
+        handler: Any?,
+        args: Array<Any?>?,
+    ): String {
+        val parts = buildList {
+            handler?.let { add(describeTarget("handler", it)) }
+            args.orEmpty().forEachIndexed { index, arg ->
+                if (arg != null) {
+                    add(describeTarget("arg[$index]", arg))
+                }
+            }
+        }
+        return parts.joinToString(separator = " | ").ifBlank { "<no_targets>" }
+    }
 
+    private fun describeTarget(
+        label: String,
+        target: Any,
+    ): String {
         val direct = SmsForwardSimRouting(
             simSlot = extractSlot(target),
             subId = extractSubId(target),
         )
-        if (!allowNestedPhone) return direct
+        val children = extractObjects(target, nestedMethodNames, nestedFieldNames)
+        val childClasses = children.joinToString(prefix = "[", postfix = "]") { it.javaClass.simpleName }
+        return buildString {
+            append(label)
+            append('=')
+            append(target.javaClass.name)
+            append("(slot=")
+            append(direct.simSlot?.toString() ?: "<none>")
+            append(",subId=")
+            append(direct.subId?.toString() ?: "<none>")
+            append(",children=")
+            append(childClasses)
+            append(",text=")
+            append(summarizeText(target))
+            append(')')
+        }
+    }
 
-        val phone = extractObject(target, phoneMethodNames, phoneFieldNames)
-        val fromPhone = resolveFromTarget(phone, allowNestedPhone = false)
-        return merge(direct, fromPhone)
+    private fun resolveFromTarget(
+        target: Any?,
+        depth: Int,
+        visited: MutableSet<Any>,
+    ): SmsForwardSimRouting {
+        if (target == null) return SmsForwardSimRouting()
+        if (!visited.add(target)) return SmsForwardSimRouting()
+
+        var merged = SmsForwardSimRouting(
+            simSlot = extractSlot(target),
+            subId = extractSubId(target),
+        )
+        if (depth <= 0) return merged
+
+        extractObjects(target, nestedMethodNames, nestedFieldNames).forEach { child ->
+            merged = merge(merged, resolveFromTarget(child, depth = depth - 1, visited = visited))
+            if (merged.simSlot != null && merged.subId != null) {
+                return merged
+            }
+        }
+        return merged
     }
 
     private fun merge(
@@ -119,41 +212,44 @@ internal object SmsForwardSimRoutingResolver {
     }
 
     private fun extractSlot(target: Any): Int? {
-        return extractInt(target, slotMethodNames, slotFieldNames)?.takeIf { it >= 0 }
+        return extractInt(target, slotMethodNames, slotFieldNames, slotTextRegex)?.takeIf { it >= 0 }
     }
 
     private fun extractSubId(target: Any): Int? {
-        return extractInt(target, subIdMethodNames, subIdFieldNames)?.takeIf { it > 0 }
+        return extractInt(target, subIdMethodNames, subIdFieldNames, subIdTextRegex)?.takeIf { it > 0 }
     }
 
     private fun extractInt(
         target: Any,
         methodNames: List<String>,
         fieldNames: List<String>,
+        textRegex: Regex,
     ): Int? {
         methodNames.forEach { name ->
-            val value = invokeNoArg(target, name)?.toIntOrNull()
+            val value = invokeNoArg(target, name)?.coerceIntOrNull()
             if (value != null) return value
         }
         fieldNames.forEach { name ->
-            val value = readField(target, name)?.toIntOrNull()
+            val value = readField(target, name)?.coerceIntOrNull()
             if (value != null) return value
         }
+        textRegex.find(target.toString())?.groupValues?.getOrNull(1)?.toIntOrNull()?.let { return it }
         return null
     }
 
-    private fun extractObject(
+    private fun extractObjects(
         target: Any,
         methodNames: List<String>,
         fieldNames: List<String>,
-    ): Any? {
+    ): List<Any> {
+        val values = mutableListOf<Any>()
         methodNames.forEach { name ->
-            invokeNoArg(target, name)?.let { return it }
+            invokeNoArg(target, name)?.let(values::add)
         }
         fieldNames.forEach { name ->
-            readField(target, name)?.let { return it }
+            readField(target, name)?.let(values::add)
         }
-        return null
+        return values.distinctBy { System.identityHashCode(it) }
     }
 
     private fun invokeNoArg(target: Any, name: String): Any? {
@@ -190,13 +286,20 @@ internal object SmsForwardSimRoutingResolver {
         return null
     }
 
-    private fun Any.toIntOrNull(): Int? {
+    private fun Any.coerceIntOrNull(): Int? {
         return when (this) {
             is Int -> this
             is Number -> toInt()
-            is String -> toIntOrNull()
+            is String -> trim().toIntOrNull()
             else -> null
         }
+    }
+
+    private fun summarizeText(target: Any): String {
+        return target.toString()
+            .replace('\n', ' ')
+            .replace('\r', ' ')
+            .take(MAX_TEXT_SNAPSHOT_LENGTH)
     }
 
     private fun readIntExtra(intent: Intent, vararg keys: String): Int? {
@@ -206,7 +309,7 @@ internal object SmsForwardSimRoutingResolver {
             if (intValue != Int.MIN_VALUE) return intValue
             val longValue = intent.getLongExtra(key, Long.MIN_VALUE)
             if (longValue != Long.MIN_VALUE) return longValue.toInt()
-            intent.getStringExtra(key)?.toIntOrNull()?.let { return it }
+            intent.getStringExtra(key)?.trim()?.toIntOrNull()?.let { return it }
         }
         return null
     }
