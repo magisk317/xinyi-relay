@@ -542,9 +542,9 @@ class OperateSmsAction(pluginContext: Context, phoneContext: Context, smsMsg: Sm
     )
 
     companion object {
-        const val FORCE_DELETE = 0
-        private const val OP_DELETE = FORCE_DELETE
-        private const val OP_MARK_AS_READ = 1
+        const val OP_DELETE = 0
+        const val FORCE_DELETE = OP_DELETE
+        const val OP_MARK_AS_READ = 1
         private const val EXTERNAL_PROVIDER_CHANGE_DELAY_MS = 500L
         private const val SMS_DELETE_OBSERVER_TIMEOUT_MS = 45000L
         private const val SMS_MATCH_WINDOW_MS = 5 * 60 * 1000L

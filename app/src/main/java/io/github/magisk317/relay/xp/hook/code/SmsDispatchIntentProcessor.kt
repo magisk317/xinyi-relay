@@ -2,12 +2,16 @@ package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
 import android.content.Intent
+import android.os.Process
+import io.github.magisk317.relay.xpbridge.PreparedSmsHookDispatch
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
 import io.github.magisk317.relay.xpbridge.XpSmsBlacklist
 import io.github.magisk317.smscode.verification.BlacklistMatchResult
 import io.github.magisk317.smscode.verification.SmsDispatchIntentProcessor as SharedSmsDispatchIntentProcessor
 import io.github.magisk317.smscode.verification.SmsHandlerDispatchDecision
+import io.github.magisk317.smscode.xposed.utils.XLog
+import kotlinx.coroutines.runBlocking
 
 internal class SmsDispatchIntentProcessor(
     private val pluginContext: Context,
@@ -19,6 +23,44 @@ internal class SmsDispatchIntentProcessor(
     private val codeParser: (Context, Context, Intent, String) -> ParseResult? = { pluginContext, phoneContext, intent, eventId ->
         CodeWorker(pluginContext, phoneContext, intent, eventId).parse()
     },
+    private val smsForwardPreparer: suspend (Context, Context, SmsMsg, Intent, String) -> PreparedSmsHookDispatch? =
+        { resolvedPluginContext, resolvedPhoneContext, smsMsg, intent, eventId ->
+            XpDispatchCoordinator.prepareIngressSms(
+                pluginContext = resolvedPluginContext,
+                phoneContext = resolvedPhoneContext,
+                smsMsg = smsMsg,
+                sourceIntent = intent,
+                eventId = eventId,
+            )
+        },
+    private val smsForwardDispatcher: (Context, PreparedSmsHookDispatch, String) -> Unit =
+        { resolvedPluginContext, prepared, eventId ->
+            val dispatchResult = XpDispatchCoordinator.dispatchPreparedSms(
+                context = resolvedPluginContext,
+                prepared = prepared,
+                sentFromUid = Process.myUid(),
+            )
+            if (!dispatchResult.dispatched) {
+                XLog.e(
+                    "SmsDispatchIntentProcessor: IPC token empty, skip direct sms forward. event_id=%s",
+                    eventId,
+                )
+            } else {
+                if (dispatchResult.bypassUsed) {
+                    XLog.w(
+                        "SmsDispatchIntentProcessor: IPC token empty, continue with receiver-side bypass. event_id=%s uid=%d",
+                        eventId,
+                        Process.myUid(),
+                    )
+                }
+                XLog.i(
+                    "SmsDispatchIntentProcessor dispatched parsed sms forward: event_id=%s code_present=%s tokenPresent=%s",
+                    eventId,
+                    prepared.smsMsg.smsCode?.isNotBlank() == true,
+                    dispatchResult.tokenPresent,
+                )
+            }
+        },
     private val delegateFactory: (
         Context,
         Context,
@@ -50,10 +92,32 @@ internal class SmsDispatchIntentProcessor(
             blacklistMatcher,
             codeParser,
         ).handle(intent, eventId)
+        val parseResult = outcome.parseResult as? ParseResult
+        val smsMsg = outcome.smsMsg
+        val preparedForward = if (smsMsg != null && parseResult != null) {
+            runCatching {
+                runBlocking {
+                    smsForwardPreparer(
+                        pluginContext,
+                        phoneContext,
+                        smsMsg,
+                        intent,
+                        eventId,
+                    )
+                }
+            }.onFailure { error ->
+                XLog.e("SmsDispatchIntentProcessor failed to prepare direct sms forward", error)
+            }.getOrNull()
+        } else {
+            null
+        }
+        if (preparedForward?.smsMsg?.smsCode?.isNotBlank() == true) {
+            smsForwardDispatcher(pluginContext, preparedForward, eventId)
+        }
         return Outcome(
             smsMsg = outcome.smsMsg,
             blacklistResult = outcome.blacklistResult,
-            parseResult = outcome.parseResult as? ParseResult,
+            parseResult = parseResult,
             decision = outcome.decision,
         )
     }

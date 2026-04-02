@@ -68,9 +68,9 @@ jobs:
       - name: Decode Google Services
         if: env.HAS_GOOGLE_SERVICES_JSON == 'true'
         run: |
-          mkdir -p app/src/github/debug app/src/github/release
-          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/github/debug/google-services.json
-          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/github/release/google-services.json
+          mkdir -p app/src/github app/src/play
+          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/github/google-services.json
+          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/play/google-services.json
       - name: Build & Test
         run: >
           ./gradlew --warning-mode all

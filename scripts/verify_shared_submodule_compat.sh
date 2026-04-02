@@ -7,9 +7,15 @@ cd "$ROOT_DIR"
 
 bash scripts/ensure_android_sdk_platform_alias.sh
 
+gradle_args=()
+if [[ "${SKIP_GOOGLE_SERVICES:-false}" == "true" ]]; then
+  gradle_args+=("-PskipGoogleServices=true")
+fi
+
 ./gradlew \
+  "${gradle_args[@]}" \
   :smscode-core:smscode-domain:testDebugUnitTest \
-  :magisk-ui-kit:validateDebugScreenshotTest \
+  :magisk-ui-kit:compileDebugScreenshotTestKotlin \
   :webui-core:testGithubApi101DebugUnitTest \
   :webui-core:compileGithubApi101DebugKotlin \
   :xpbridge-core:compileGithubApi101DebugKotlin \

@@ -3,6 +3,9 @@
 
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-feature
+        android:name="android.hardware.telephony"
+        android:required="false" />
 
     <application android:usesCleartextTraffic="false" />
 

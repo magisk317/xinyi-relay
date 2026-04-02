@@ -16,6 +16,10 @@ val allowConflictBypass = findProperty("allowConflictBypass")
     ?.toString()
     ?.toBooleanStrictOrNull()
     ?: false
+val skipGoogleServices = findProperty("skipGoogleServices")
+    ?.toString()
+    ?.toBooleanStrictOrNull()
+    ?: false
 
 android {
     namespace = "io.github.magisk317.relay"
@@ -76,15 +80,17 @@ android {
     }
 }
 
-tasks.matching {
-    it.name.startsWith("processFdroid") && it.name.endsWith("GoogleServices")
-}.configureEach {
-    enabled = false
+tasks.matching { it.name.endsWith("GoogleServices") }.configureEach {
+    val shouldDisableForFdroid = name.startsWith("processFdroid")
+    if (skipGoogleServices || shouldDisableForFdroid) {
+        enabled = false
+    }
 }
 
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(project(":core"))
+    compileOnly(project(":runtime"))
     implementation(project(":webui-core"))
     implementation(project(":xpbridge-core"))
     implementation(project(":smscode-core:smscode-domain"))

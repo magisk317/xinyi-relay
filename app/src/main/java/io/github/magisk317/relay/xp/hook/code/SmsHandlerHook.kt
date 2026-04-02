@@ -321,7 +321,7 @@ class SmsHandlerHook : BaseHook() {
                     pluginContext,
                     phoneContext,
                     smsMsg,
-                    OperateSmsAction.FORCE_DELETE,
+                    OperateSmsAction.OP_DELETE,
                 ).call()
             }.onFailure {
                 XLog.w("Diag sms blacklist delete task failed: %s", it.message ?: "unknown")
