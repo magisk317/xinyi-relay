@@ -6,6 +6,13 @@ VERSION_FILE="$ROOT_DIR/gradle/libs.versions.toml"
 FASTLANE_META_DIR="$ROOT_DIR/fastlane/metadata/android"
 WEBUI_ASSETS_DIR="$ROOT_DIR/app/src/main/assets/webui"
 
+working_tree_dirty() {
+  if ! git -C "$ROOT_DIR" diff --quiet || ! git -C "$ROOT_DIR" diff --cached --quiet; then
+    return 0
+  fi
+  [[ -n "$(git -C "$ROOT_DIR" status --porcelain)" ]]
+}
+
 count_sarif_results() {
   local sarif_file="$1"
   if command -v jq >/dev/null 2>&1; then
@@ -78,6 +85,11 @@ run_sync_fastlane_metadata() {
 auto_commit_fastlane_metadata() {
   local fastlane_status
 
+  if [[ "$INITIAL_WORKTREE_DIRTY" -eq 1 ]]; then
+    echo "Working tree was already dirty at startup; skipping fastlane metadata auto-commit."
+    return
+  fi
+
   ensure_no_staged_changes_for_auto_commit "fastlane metadata"
 
   fastlane_status="$(git -C "$ROOT_DIR" status --porcelain -- "$FASTLANE_META_DIR")"
@@ -97,6 +109,11 @@ auto_commit_fastlane_metadata() {
 
 auto_commit_webui_assets() {
   local webui_status
+
+  if [[ "$INITIAL_WORKTREE_DIRTY" -eq 1 ]]; then
+    echo "Working tree was already dirty at startup; skipping WebUI asset auto-commit."
+    return
+  fi
 
   ensure_no_staged_changes_for_auto_commit "webui assets"
 
@@ -197,6 +214,11 @@ if [[ -z "$current_branch" ]]; then
   exit 1
 fi
 
+INITIAL_WORKTREE_DIRTY=0
+if working_tree_dirty; then
+  INITIAL_WORKTREE_DIRTY=1
+fi
+
 ensure_fastlane_changelogs_ready() {
   local locales=(en-US zh-CN)
   local missing_files=()
@@ -226,7 +248,7 @@ auto_commit_webui_assets
 "$ROOT_DIR/scripts/check_release_guard.sh" "$TAG_NAME"
 run_pre_push_checks
 
-if ! git -C "$ROOT_DIR" diff --quiet || ! git -C "$ROOT_DIR" diff --cached --quiet; then
+if working_tree_dirty; then
   echo "ERROR: working tree is not clean. Commit/stash changes before tagging." >&2
   exit 1
 fi
