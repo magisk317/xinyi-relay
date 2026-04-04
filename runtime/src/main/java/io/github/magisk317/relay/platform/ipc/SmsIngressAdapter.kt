@@ -19,6 +19,7 @@ object SmsIngressAdapter {
         smsMsg: SmsMsg,
         sourceIntent: Intent? = null,
         eventId: String? = null,
+        smsCodeParser: suspend (Context, String) -> String = ::parseSmsCode,
     ): Result? {
         val sender = smsMsg.sender
         val body = smsMsg.body
@@ -26,7 +27,7 @@ object SmsIngressAdapter {
             return null
         }
 
-        val smsCode = SmsCodeUtils.parseSmsCodeIfExists(pluginContext, body, null)
+        val smsCode = smsCodeParser(pluginContext, body)
         val messageType = if (smsCode.isBlank()) MessageType.SMS_PLAIN else MessageType.SMS_CODE
         val resolvedSmsMsg = enrichSmsMsg(
             phoneContext = phoneContext,
@@ -87,5 +88,12 @@ object SmsIngressAdapter {
 
     private fun normalizeCompanyLabel(value: String): String {
         return value.trim().trim('【', '】', '[', ']')
+    }
+
+    private suspend fun parseSmsCode(
+        context: Context,
+        body: String,
+    ): String {
+        return SmsCodeUtils.parseSmsCodeIfExists(context, body, null)
     }
 }

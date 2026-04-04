@@ -1,26 +1,34 @@
 package io.github.magisk317.relay.platform.ipc
 
 import android.app.Notification
-import android.content.Context
-import android.service.notification.StatusBarNotification
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import io.mockk.every
-import io.mockk.mockk
 
 class AppNotificationIngressAdapterTest {
 
     @Test
-    fun toPayload_returnsNullForSelfPackage() {
-        val context = mockk<Context>()
-        val sbn = mockk<StatusBarNotification>()
-        every { context.packageName } returns "io.github.magisk317.xinyi.relay"
-        every { sbn.packageName } returns "io.github.magisk317.xinyi.relay"
-
-        assertNull(AppNotificationIngressAdapter.toPayload(context, sbn))
+    fun shouldIgnoreSourcePackage_matchesHostAndAndroidPackages() {
+        assertTrue(
+            AppNotificationIngressAdapter.shouldIgnoreSourcePackage(
+                hostPackageName = "io.github.magisk317.xinyi.relay",
+                sourcePackageName = "io.github.magisk317.xinyi.relay",
+            ),
+        )
+        assertTrue(
+            AppNotificationIngressAdapter.shouldIgnoreSourcePackage(
+                hostPackageName = "io.github.magisk317.xinyi.relay",
+                sourcePackageName = "android",
+            ),
+        )
+        assertFalse(
+            AppNotificationIngressAdapter.shouldIgnoreSourcePackage(
+                hostPackageName = "io.github.magisk317.xinyi.relay",
+                sourcePackageName = "com.example.other",
+            ),
+        )
     }
 
     @Test

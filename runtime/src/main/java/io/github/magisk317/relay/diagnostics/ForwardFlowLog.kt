@@ -8,6 +8,8 @@ import android.util.Log
  */
 object ForwardFlowLog {
     private const val TAG = "ForwardFlow"
+    @Volatile
+    private var testSink: ((Int, String) -> Unit)? = null
 
     fun d(traceId: String?, message: String) {
         write(Log.DEBUG, traceId, message)
@@ -36,6 +38,10 @@ object ForwardFlowLog {
         } else {
             "[trace=$traceId] $message"
         }
+        testSink?.let { sink ->
+            sink(priority, prefixed)
+            return
+        }
         Log.println(priority, TAG, prefixed)
         RuntimeLogStore.append(
             priority = priority,
@@ -44,5 +50,9 @@ object ForwardFlowLog {
             force = true,
             route = RuntimeLogStore.ROUTE_FORWARD,
         )
+    }
+
+    fun setTestSink(sink: ((Int, String) -> Unit)?) {
+        testSink = sink
     }
 }

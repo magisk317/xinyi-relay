@@ -1,18 +1,19 @@
 package io.github.magisk317.relay.domain.pipeline
 
-import android.util.Log
+import dev.mokkery.MockMode.autofill
+import dev.mokkery.every
+import dev.mokkery.everySuspend
+import dev.mokkery.mock
+import dev.mokkery.answering.returns
 import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.common.constant.PrefConst
+import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.data.db.AppDatabase
 import io.github.magisk317.relay.data.db.dao.AppInfoDao
 import io.github.magisk317.relay.data.db.entity.AppInfo
+import io.github.magisk317.relay.diagnostics.ForwardFlowLog
 import io.github.magisk317.relay.domain.event.RelayEvent
-import io.mockk.coEvery
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.mockkStatic
-import io.mockk.unmockkStatic
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -25,13 +26,14 @@ class EventGatekeeperTest {
 
     @BeforeEach
     fun setUp() {
-        mockkStatic(Log::class)
-        every { Log.println(any(), any(), any()) } returns 0
+        XLog.setTestSink { _, _ -> }
+        ForwardFlowLog.setTestSink { _, _ -> }
     }
 
     @AfterEach
     fun tearDown() {
-        unmockkStatic(Log::class)
+        XLog.setTestSink(null)
+        ForwardFlowLog.setTestSink(null)
     }
 
     @Test
@@ -95,15 +97,15 @@ class EventGatekeeperTest {
     }
 
     private fun createGatekeeper(appInfo: AppInfo?): EventGatekeeper {
-        val appInfoDao = mockk<AppInfoDao>()
-        every { appInfoDao.getByPackageName(any()) } returns appInfo
+        val appInfoDao = mock<AppInfoDao>(autofill)
+        every { appInfoDao.getByPackageName("com.tencent.mm") } returns appInfo
 
-        val database = mockk<AppDatabase>()
+        val database = mock<AppDatabase>(autofill)
         every { database.appInfoDao() } returns appInfoDao
 
-        val preferences = mockk<PreferenceDataSource>()
-        coEvery { preferences.getBoolean(PrefConst.KEY_ENABLE, true) } returns true
-        coEvery {
+        val preferences = mock<PreferenceDataSource>(autofill)
+        everySuspend { preferences.getBoolean(PrefConst.KEY_ENABLE, true) } returns true
+        everySuspend {
             preferences.getBooleanCompat(
                 PrefConst.KEY_MSG_TYPE_APP_NOTIFY_ENABLED,
                 true,

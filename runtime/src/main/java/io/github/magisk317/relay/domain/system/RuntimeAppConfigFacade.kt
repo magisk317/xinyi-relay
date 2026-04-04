@@ -14,13 +14,24 @@ import kotlinx.coroutines.withContext
  */
 class RuntimeAppConfigFacade(
     context: Context,
-    private val configRepository: ConfigRepository = RuntimeGraph.from(context).configRepository,
+    configRepository: ConfigRepository? = null,
+    private val appInfoLookup: (suspend (String) -> AppInfo?)? = null,
     private val appConfigFallbackLoader: () -> List<AppInfo> = {
         EntityStoreManager.loadEntitiesFromFile(context, EntityType.APP_CONFIG, AppInfo::class.java)
     },
 ) {
+    private val configRepository: ConfigRepository by lazy {
+        configRepository ?: RuntimeGraph.from(context).configRepository
+    }
+
     suspend fun isPackageBlocked(packageName: String): Boolean = withContext(Dispatchers.IO) {
-        val dbResult = runCatching { configRepository.getAppInfoByPackage(packageName) }
+        val dbResult = runCatching {
+            if (appInfoLookup != null) {
+                appInfoLookup.invoke(packageName)
+            } else {
+                configRepository.getAppInfoByPackage(packageName)
+            }
+        }
         dbResult.getOrNull()?.let { appInfo -> return@withContext appInfo.blocked }
         if (dbResult.isSuccess) {
             return@withContext false

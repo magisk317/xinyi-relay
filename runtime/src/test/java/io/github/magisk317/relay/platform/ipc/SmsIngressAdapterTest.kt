@@ -4,16 +4,13 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.content.Context
 import android.content.Intent
+import dev.mokkery.MockMode.autofill
+import dev.mokkery.every
+import dev.mokkery.mock
+import dev.mokkery.answering.returns
 import io.github.magisk317.relay.common.constant.MessageType
-import io.github.magisk317.relay.sms.SmsCodeUtils
 import io.github.magisk317.relay.data.db.entity.SmsMsg
-import io.mockk.coEvery
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.mockkObject
-import io.mockk.unmockkAll
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -21,18 +18,11 @@ import org.junit.jupiter.api.Test
 
 class SmsIngressAdapterTest {
 
-    @AfterEach
-    fun tearDown() {
-        unmockkAll()
-    }
-
     @Test
     fun toPayload_returnsCodeMessageWithResolvedPackage() = runBlocking {
-        mockkObject(SmsCodeUtils)
-        val pluginContext = mockk<Context>(relaxed = true)
-        val phoneContext = mockk<Context>(relaxed = true)
-        val packageManager = mockk<PackageManager>()
-        val sourceIntent = mockk<Intent>(relaxed = true)
+        val pluginContext = mock<Context>(autofill)
+        val phoneContext = mock<Context>(autofill)
+        val packageManager = mock<PackageManager>(autofill)
         val appInfo = ApplicationInfo().apply {
             packageName = "com.bank.app"
         }
@@ -42,9 +32,6 @@ class SmsIngressAdapterTest {
             date = 123L,
         )
 
-        coEvery {
-            SmsCodeUtils.parseSmsCodeIfExists(pluginContext, "【Bank】code 123456", null)
-        } returns "123456"
         every { phoneContext.packageManager } returns packageManager
         every { packageManager.getInstalledApplications(PackageManager.MATCH_ALL) } returns listOf(appInfo)
         every { packageManager.getApplicationLabel(appInfo) } returns "Bank"
@@ -53,8 +40,11 @@ class SmsIngressAdapterTest {
             pluginContext = pluginContext,
             phoneContext = phoneContext,
             smsMsg = smsMsg,
-            sourceIntent = sourceIntent,
+            sourceIntent = null,
             eventId = "sms_test",
+            smsCodeParser = { _, body ->
+                if (body == "【Bank】code 123456") "123456" else ""
+            },
         )
 
         requireNotNull(result)
@@ -67,24 +57,21 @@ class SmsIngressAdapterTest {
 
     @Test
     fun toPayload_returnsPlainMessageWhenNoCodeMatched() = runBlocking {
-        mockkObject(SmsCodeUtils)
-        val pluginContext = mockk<Context>(relaxed = true)
-        val phoneContext = mockk<Context>(relaxed = true)
-        val sourceIntent = mockk<Intent>(relaxed = true)
+        val pluginContext = mock<Context>(autofill)
+        val phoneContext = mock<Context>(autofill)
         val smsMsg = SmsMsg(
             sender = "service",
             body = "hello world",
             date = 0L,
         )
 
-        coEvery { SmsCodeUtils.parseSmsCodeIfExists(pluginContext, "hello world", null) } returns ""
-
         val result = SmsIngressAdapter.toPayload(
             pluginContext = pluginContext,
             phoneContext = phoneContext,
             smsMsg = smsMsg,
-            sourceIntent = sourceIntent,
+            sourceIntent = null,
             eventId = "sms_plain",
+            smsCodeParser = { _, _ -> "" },
         )
 
         requireNotNull(result)
@@ -97,8 +84,8 @@ class SmsIngressAdapterTest {
 
     @Test
     fun enrichSmsMsg_usesProvidedCodeAndNormalizesDate() {
-        val phoneContext = mockk<Context>(relaxed = true)
-        val packageManager = mockk<PackageManager>()
+        val phoneContext = mock<Context>(autofill)
+        val packageManager = mock<PackageManager>(autofill)
         val appInfo = ApplicationInfo().apply {
             packageName = "com.bank.app"
         }

@@ -11,26 +11,20 @@ object XLog {
 
     @Volatile
     private var sLogLevel = BuildConfig.LOG_LEVEL
+    @Volatile
+    private var testSink: ((Int, String) -> Unit)? = null
     private const val LOG_TO_XPOSED = BuildConfig.LOG_TO_XPOSED
 
     private fun log(priority: Int, message: String, vararg args: Any?) {
         if (priority < sLogLevel) return
 
-        // Write to the default log tag
-        val lastArg = args.lastOrNull()
-        val logMessage = if (lastArg is Throwable) {
-            message + '\n' + Log.getStackTraceString(lastArg)
-        } else {
-            if (args.isNotEmpty()) {
-                try {
-                    String.format(message, *args)
-                } catch (ignored: Exception) {
-                    message
-                }
-            } else {
-                message
-            }
+        val logMessage = formatMessageForTest(message, args)
+        testSink?.let { sink ->
+            sink(priority, logMessage)
+            return
         }
+
+        // Write to the default log tag
         Log.println(priority, LOG_TAG, logMessage)
 
         // Duplicate to the Xposed log if enabled
@@ -91,4 +85,30 @@ object XLog {
 
     @JvmStatic
     fun getLogLevel(): Int = sLogLevel
+
+    @JvmStatic
+    fun setTestSink(sink: ((Int, String) -> Unit)?) {
+        testSink = sink
+    }
+
+    @JvmStatic
+    internal fun formatMessageForTest(
+        message: String,
+        args: Array<out Any?>,
+    ): String {
+        val lastArg = args.lastOrNull()
+        return if (lastArg is Throwable) {
+            message + '\n' + Log.getStackTraceString(lastArg)
+        } else {
+            if (args.isNotEmpty()) {
+                try {
+                    String.format(message, *args)
+                } catch (ignored: Exception) {
+                    message
+                }
+            } else {
+                message
+            }
+        }
+    }
 }

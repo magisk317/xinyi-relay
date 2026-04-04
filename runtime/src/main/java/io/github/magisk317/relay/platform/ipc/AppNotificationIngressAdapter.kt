@@ -12,7 +12,7 @@ object AppNotificationIngressAdapter {
         sbn: StatusBarNotification,
     ): ForwardBroadcastPayload? {
         val packageName = sbn.packageName
-        if (packageName == context.packageName || packageName == "android") {
+        if (shouldIgnoreSourcePackage(context.packageName, packageName)) {
             return null
         }
 
@@ -192,6 +192,13 @@ object AppNotificationIngressAdapter {
         val normalizedChannel = notifyChannelId.trim().lowercase()
         if (normalizedChannel != RELAY_NOTIFICATION_CHANNEL_ID) return false
         return normalizedPackage in TELEPHONY_SMS_PACKAGE_ALLOWLIST || normalizedPackage.contains("telephony")
+    }
+
+    internal fun shouldIgnoreSourcePackage(
+        hostPackageName: String,
+        sourcePackageName: String,
+    ): Boolean {
+        return sourcePackageName == hostPackageName || sourcePackageName == "android"
     }
 
     private const val RELAY_NOTIFICATION_CHANNEL_ID = "relay_notification"

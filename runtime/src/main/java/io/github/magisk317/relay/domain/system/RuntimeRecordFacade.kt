@@ -15,12 +15,18 @@ import kotlinx.coroutines.withContext
 class RuntimeRecordFacade(
     context: Context,
     private val db: AppDatabase = AppDatabase.getInstance(context),
-    private val relayRecordRepository: RelayRecordRepository = RelayRecordRepository(
-        context = context,
-        db = db,
-        preferenceDataSource = PreferenceDataSourceImpl(context.applicationContext ?: context),
-    ),
+    relayRecordRepository: RelayRecordRepository? = null,
+    private val recordInserter: (suspend (SmsMsg, Boolean) -> Long?)? = null,
 ) {
+    private val appContext = context.applicationContext ?: context
+    private val relayRecordRepository: RelayRecordRepository by lazy {
+        relayRecordRepository ?: RelayRecordRepository(
+            context = appContext,
+            db = db,
+            preferenceDataSource = PreferenceDataSourceImpl(appContext),
+        )
+    }
+
     suspend fun isDuplicateSms(
         sender: String?,
         body: String?,
@@ -140,7 +146,7 @@ class RuntimeRecordFacade(
         smsMsg: SmsMsg,
         isCodeSms: Boolean,
     ): Long? = withContext(Dispatchers.IO) {
-        relayRecordRepository.insertRecord(
+        recordInserter?.invoke(smsMsg, isCodeSms) ?: relayRecordRepository.insertRecord(
             smsMsg = smsMsg,
             isCodeSms = isCodeSms,
         )

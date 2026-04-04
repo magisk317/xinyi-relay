@@ -1,9 +1,11 @@
 package io.github.magisk317.relay.platform.ipc
 
 import android.content.Intent
+import dev.mokkery.MockMode.autofill
+import dev.mokkery.every
+import dev.mokkery.mock
+import dev.mokkery.answering.returns
 import io.github.magisk317.relay.common.constant.MessageType
-import io.mockk.every
-import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
@@ -12,7 +14,7 @@ class ForwardBroadcastPayloadTest {
 
     @Test
     fun fromIntent_readsContractExtras() {
-        val intent = mockk<Intent>()
+        val intent = mock<Intent>(autofill)
         every { intent.getStringExtra(ForwardBroadcastContract.EXTRA_SENDER) } returns "Bank"
         every { intent.getStringExtra(ForwardBroadcastContract.EXTRA_BODY) } returns "Your code is 123456"
         every { intent.getLongExtra(ForwardBroadcastContract.EXTRA_DATE, 0L) } returns 123_456_789L
@@ -97,7 +99,7 @@ class ForwardBroadcastPayloadTest {
 
     @Test
     fun withSimRoutingFrom_readsLegacyAliases() {
-        val source = mockk<Intent>()
+        val source = mock<Intent>(autofill)
         every { source.hasExtra("slot") } returns true
         every { source.getIntExtra("slot", Int.MIN_VALUE) } returns 2
         every { source.hasExtra("subscription") } returns false

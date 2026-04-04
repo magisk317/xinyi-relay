@@ -1,10 +1,9 @@
 package io.github.magisk317.relay.domain.system
 
 import android.content.Context
+import dev.mokkery.MockMode.autofill
+import dev.mokkery.mock
 import io.github.magisk317.relay.data.db.entity.AppInfo
-import io.github.magisk317.relay.data.repository.ConfigRepository
-import io.mockk.coEvery
-import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -14,16 +13,16 @@ class RuntimeAppConfigFacadeTest {
 
     @Test
     fun isPackageBlocked_returnsDatabaseFlagWhenConfigExists() = runBlocking {
-        val context = mockk<Context>(relaxed = true)
-        val configRepository = mockk<ConfigRepository>()
-        coEvery { configRepository.getAppInfoByPackage("com.bank.app") } returns AppInfo(
-            packageName = "com.bank.app",
-            blocked = true,
-        )
+        val context = mock<Context>(autofill)
 
         val facade = RuntimeAppConfigFacade(
             context = context,
-            configRepository = configRepository,
+            appInfoLookup = {
+                AppInfo(
+                    packageName = "com.bank.app",
+                    blocked = true,
+                )
+            },
             appConfigFallbackLoader = { emptyList() },
         )
 
@@ -32,13 +31,11 @@ class RuntimeAppConfigFacadeTest {
 
     @Test
     fun isPackageBlocked_returnsFalseWhenPackageMissing() = runBlocking {
-        val context = mockk<Context>(relaxed = true)
-        val configRepository = mockk<ConfigRepository>()
-        coEvery { configRepository.getAppInfoByPackage("com.unknown.app") } returns null
+        val context = mock<Context>(autofill)
 
         val facade = RuntimeAppConfigFacade(
             context = context,
-            configRepository = configRepository,
+            appInfoLookup = { null },
             appConfigFallbackLoader = {
                 listOf(AppInfo(packageName = "com.unknown.app", blocked = true))
             },
@@ -49,13 +46,11 @@ class RuntimeAppConfigFacadeTest {
 
     @Test
     fun isPackageBlocked_fallsBackToFileWhenRepositoryFails() = runBlocking {
-        val context = mockk<Context>(relaxed = true)
-        val configRepository = mockk<ConfigRepository>()
-        coEvery { configRepository.getAppInfoByPackage("com.bank.app") } throws IllegalStateException("db unavailable")
+        val context = mock<Context>(autofill)
 
         val facade = RuntimeAppConfigFacade(
             context = context,
-            configRepository = configRepository,
+            appInfoLookup = { throw IllegalStateException("db unavailable") },
             appConfigFallbackLoader = {
                 listOf(
                     AppInfo(packageName = "com.bank.app", blocked = true),
