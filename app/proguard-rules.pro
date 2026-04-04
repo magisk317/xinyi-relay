@@ -84,16 +84,3 @@
 -dontwarn java.lang.management.RuntimeMXBean
 # Ktor debug detector end
 # ==========================
-
-# ==========================
-# Ktor Netty on Android start
-# Netty contains optional integrations for OpenSSL/JFR/JNDI/Log4j which are not
-# packaged in Android runtime. Suppress missing-class warnings for these paths.
--dontwarn reactor.blockhound.integration.BlockHoundIntegration
--dontwarn io.netty.internal.tcnative.**
--dontwarn javax.naming.ldap.**
--dontwarn jdk.jfr.**
--dontwarn org.apache.log4j.**
--dontwarn org.apache.logging.log4j.**
-# Ktor Netty on Android end
-# ==========================

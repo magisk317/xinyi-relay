@@ -35,7 +35,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.auth)
-    implementation(libs.ktor.server.netty)
+    implementation(libs.ktor.server.cio)
     implementation(libs.okhttp.tls)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.timber)

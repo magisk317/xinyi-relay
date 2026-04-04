@@ -69,9 +69,6 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.ktor.server.core)
-    implementation(libs.ktor.server.auth)
-    implementation(libs.ktor.server.netty)
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.kotlinx.serialization)
     implementation(libs.retrofit.converter.scalars)

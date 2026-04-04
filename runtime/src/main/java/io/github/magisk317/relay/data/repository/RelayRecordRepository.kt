@@ -1,13 +1,11 @@
 package io.github.magisk317.relay.data.repository
 
-import android.content.ContentResolver
-import android.content.ContentValues
 import android.content.Context
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.data.db.AppDatabase
-import io.github.magisk317.relay.data.db.DBProvider
 import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.data.db.mergeSmsMsgForInsert
 import io.github.magisk317.relay.domain.pipeline.SenderDispatchResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -17,8 +15,6 @@ class RelayRecordRepository(
     private val db: AppDatabase = AppDatabase.getInstance(context),
     private val preferenceDataSource: PreferenceDataSource,
 ) {
-    private val appContext = context.applicationContext ?: context
-
     suspend fun listRecords(limit: Int): List<SmsMsg> = db.smsMsgDao().getAll().take(limit)
 
     /** 观察全量记录的 Flow，Room 自动在 DB 变更时发出新列表。 */
@@ -83,28 +79,9 @@ class RelayRecordRepository(
         date: Long,
         msgType: Int,
     ): Long? {
-        val resolver = appContext.contentResolver
-        val smsMsgUri = DBProvider.smsMsgContentUri(appContext)
-        val projection = arrayOf("_id", "sender", "body", "date", "msg_type")
-        return runCatching {
-            resolver.query(smsMsgUri, projection, null, null, "date DESC")?.use { cursor ->
-                val idIdx = cursor.getColumnIndex("_id")
-                val senderIdx = cursor.getColumnIndex("sender")
-                val bodyIdx = cursor.getColumnIndex("body")
-                val dateIdx = cursor.getColumnIndex("date")
-                val msgTypeIdx = cursor.getColumnIndex("msg_type")
-                while (cursor.moveToNext()) {
-                    val senderValue = if (senderIdx >= 0) cursor.getString(senderIdx) else null
-                    val bodyValue = if (bodyIdx >= 0) cursor.getString(bodyIdx) else null
-                    val dateValue = if (dateIdx >= 0) cursor.getLong(dateIdx) else -1L
-                    val msgTypeValue = if (msgTypeIdx >= 0) cursor.getInt(msgTypeIdx) else SmsMsg.MSG_TYPE_SMS
-                    if (senderValue == sender && bodyValue == body && dateValue == date && msgTypeValue == msgType) {
-                        return if (idIdx >= 0) cursor.getLong(idIdx) else null
-                    }
-                }
-                null
-            }
-        }.getOrNull()
+        return db.smsMsgDao()
+            .getByFingerprint(sender = sender, body = body, date = date, msgType = msgType)
+            ?.id
     }
 
     suspend fun insertRecord(
@@ -139,25 +116,19 @@ class RelayRecordRepository(
         smsMsg: SmsMsg,
         isCodeSms: Boolean,
     ): Long? {
-        val resolver = appContext.contentResolver
-        val smsMsgUri = DBProvider.smsMsgContentUri(appContext)
-        trimOldRecordsIfNeeded(resolver, smsMsg.msgType, isCodeSms)
-        val values = ContentValues().apply {
-            put("body", smsMsg.body)
-            put("company", smsMsg.company)
-            put("date", smsMsg.date)
-            put("sender", smsMsg.sender)
-            put("sms_code", smsMsg.smsCode)
-            put("package_name", smsMsg.packageName)
-            put("notify_channel_id", smsMsg.notifyChannelId)
-            put("forward_status", smsMsg.forwardStatus)
-            put("forward_target", smsMsg.forwardTarget)
-            put("forward_message", smsMsg.forwardMessage)
-            put("forward_time", smsMsg.forwardTime)
-            put("msg_type", smsMsg.msgType)
-            put("call_type", smsMsg.callType)
+        val dao = db.smsMsgDao()
+        trimOldRecordsIfNeeded(dao, smsMsg.msgType, isCodeSms)
+        val existing = dao.getByFingerprint(
+            sender = smsMsg.sender,
+            body = smsMsg.body,
+            date = smsMsg.date,
+            msgType = smsMsg.msgType,
+        )
+        if (existing != null) {
+            dao.update(mergeSmsMsgForInsert(existing, smsMsg))
+            return existing.id
         }
-        return resolver.insert(smsMsgUri, values)?.lastPathSegment?.toLongOrNull()
+        return dao.insert(smsMsg)
     }
 
     fun persistForwardResult(
@@ -197,29 +168,20 @@ class RelayRecordRepository(
     }
 
     private suspend fun trimOldRecordsIfNeeded(
-        resolver: ContentResolver,
+        dao: io.github.magisk317.relay.data.db.dao.SmsMsgDao,
         msgType: Int,
         isCodeSms: Boolean,
     ) {
-        val smsMsgUri = DBProvider.smsMsgContentUri(appContext)
-        val (selection, selectionArgs) = recordSelectionForType(msgType, isCodeSms)
-        val cursor = resolver.query(smsMsgUri, arrayOf("_id"), selection, selectionArgs, "date ASC") ?: return
-        cursor.use {
-            val count = it.count
-            val limit = getHistoryLimit(msgType, isCodeSms)
-            if (limit <= 0 || count < limit) return
-            val operations = ArrayList<android.content.ContentProviderOperation>()
-            for (i in 0 until (count - limit + 1)) {
-                if (!it.moveToNext()) break
-                val id = it.getLong(0)
-                operations += android.content.ContentProviderOperation.newDelete(smsMsgUri)
-                    .withSelection("_id = ?", arrayOf(id.toString()))
-                    .build()
-            }
-            if (operations.isNotEmpty()) {
-                resolver.applyBatch(DBProvider.authority(appContext), operations)
-            }
-        }
+        val limit = getHistoryLimit(msgType, isCodeSms)
+        if (limit <= 0) return
+        val matching = dao.getAll()
+            .asSequence()
+            .filter { recordMatchesType(it, msgType, isCodeSms) }
+            .sortedBy { it.date }
+            .toList()
+        if (matching.size < limit) return
+        val deleteCount = matching.size - limit + 1
+        dao.deleteInTx(matching.take(deleteCount))
     }
 
     private suspend fun getHistoryLimit(msgType: Int, isCodeSms: Boolean): Int {
@@ -234,19 +196,13 @@ class RelayRecordRepository(
         return value.toIntOrNull() ?: 0
     }
 
-    private fun recordSelectionForType(msgType: Int, isCodeSms: Boolean): Pair<String, Array<String>> {
-        return when (msgType) {
-            SmsMsg.MSG_TYPE_APP_NOTIFY -> "msg_type = ?" to arrayOf(SmsMsg.MSG_TYPE_APP_NOTIFY.toString())
-            SmsMsg.MSG_TYPE_SMS -> {
-                if (isCodeSms) {
-                    "msg_type = ? AND sms_code IS NOT NULL AND sms_code != ''" to arrayOf(SmsMsg.MSG_TYPE_SMS.toString())
-                } else {
-                    "msg_type = ? AND (sms_code IS NULL OR sms_code = '')" to arrayOf(SmsMsg.MSG_TYPE_SMS.toString())
-                }
-            }
-
-            else -> "msg_type = ?" to arrayOf(msgType.toString())
+    private fun recordMatchesType(record: SmsMsg, msgType: Int, isCodeSms: Boolean): Boolean = when (msgType) {
+        SmsMsg.MSG_TYPE_APP_NOTIFY -> record.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY
+        SmsMsg.MSG_TYPE_SMS -> {
+            val hasCode = !record.smsCode.isNullOrBlank()
+            record.msgType == SmsMsg.MSG_TYPE_SMS && if (isCodeSms) hasCode else !hasCode
         }
+        else -> record.msgType == msgType
     }
 
     private companion object {

@@ -6,7 +6,7 @@ import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.applicationEnvironment
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.engine.sslConnector
-import io.ktor.server.netty.Netty
+import io.ktor.server.cio.CIO
 import io.ktor.server.routing.get
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
@@ -45,7 +45,7 @@ class WebUiServer(
         if (engine != null) return
         val environment = applicationEnvironment {}
         engine = embeddedServer(
-            factory = Netty,
+            factory = CIO,
             environment = environment,
             configure = {
                 sslConnector(

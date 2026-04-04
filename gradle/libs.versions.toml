@@ -47,7 +47,6 @@ ksp = "2.3.6"
 lifecycle = "2.10.0"
 mockk = "1.14.9"
 navigation = "2.9.7"
-netty = "4.2.12.Final"
 okhttp = "5.3.2"
 paho-mqtt = "1.2.5"
 play-app-update = "2.1.0"
@@ -116,17 +115,8 @@ kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-c
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "kotlin-ktor" }
 ktor-server-auth = { module = "io.ktor:ktor-server-auth", version.ref = "kotlin-ktor" }
-ktor-server-netty = { module = "io.ktor:ktor-server-netty", version.ref = "kotlin-ktor" }
 ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "kotlin-ktor" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
-netty-buffer = { module = "io.netty:netty-buffer", version.ref = "netty" }
-netty-codec = { module = "io.netty:netty-codec", version.ref = "netty" }
-netty-codec-http = { module = "io.netty:netty-codec-http", version.ref = "netty" }
-netty-codec-http2 = { module = "io.netty:netty-codec-http2", version.ref = "netty" }
-netty-common = { module = "io.netty:netty-common", version.ref = "netty" }
-netty-handler = { module = "io.netty:netty-handler", version.ref = "netty" }
-netty-resolver = { module = "io.netty:netty-resolver", version.ref = "netty" }
-netty-transport = { module = "io.netty:netty-transport", version.ref = "netty" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 okhttp-tls = { module = "com.squareup.okhttp3:okhttp-tls", version.ref = "okhttp" }
 okhttp-logging-interceptor = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "okhttp" }

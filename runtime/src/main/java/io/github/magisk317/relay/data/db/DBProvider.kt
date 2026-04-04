@@ -7,6 +7,9 @@ import android.content.UriMatcher
 import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
+import android.os.Binder
+import android.os.Process
+import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.data.db.entity.AppInfo
 import io.github.magisk317.relay.data.db.entity.SmsCodeRule
 import io.github.magisk317.relay.data.db.entity.SmsMsg
@@ -35,7 +38,12 @@ class DBProvider : ContentProvider() {
     override fun getType(uri: Uri): String? = null
 
     override fun insert(uri: Uri, values: ContentValues?): Uri? {
+        val ctx = context ?: return null
         val uriType = uriMatcher.match(uri)
+        if (!isCallerAllowedForMutation(ctx)) {
+            XLog.w("DBProvider: deny insert uid=%d uri=%s", Binder.getCallingUid(), uri)
+            return null
+        }
         val path: String
         when (uriType) {
             SMS_MSG_DIR -> {
@@ -85,7 +93,12 @@ class DBProvider : ContentProvider() {
         selectionArgs: Array<String>?,
         sortOrder: String?,
     ): Cursor? {
+        val ctx = context ?: return null
         val uriType = uriMatcher.match(uri)
+        if (!isCallerAllowedForQuery(ctx, uriType)) {
+            XLog.w("DBProvider: deny query uid=%d uri=%s", Binder.getCallingUid(), uri)
+            return null
+        }
         return when (uriType) {
             SMS_CODE_RULE_DIR -> querySmsCodeRules(projection)
             SMS_CODE_RULE_ID -> querySmsCodeRuleById(projection, uri)
@@ -98,7 +111,12 @@ class DBProvider : ContentProvider() {
     }
 
     override fun delete(uri: Uri, selection: String?, selectionArgs: Array<String>?): Int {
+        val ctx = context ?: return 0
         val uriType = uriMatcher.match(uri)
+        if (!isCallerAllowedForMutation(ctx)) {
+            XLog.w("DBProvider: deny delete uid=%d uri=%s", Binder.getCallingUid(), uri)
+            return 0
+        }
         val rowsDeleted: Int = when (uriType) {
             SMS_MSG_DIR -> deleteSmsMsg(selection, selectionArgs)
             SMS_MSG_ID -> uri.lastPathSegment?.toLongOrNull()?.let { deleteSmsMsgById(it) } ?: 0
@@ -289,7 +307,12 @@ class DBProvider : ContentProvider() {
         }
 
     override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<String>?): Int {
+        val ctx = context ?: return 0
         val uriType = uriMatcher.match(uri)
+        if (!isCallerAllowedForMutation(ctx)) {
+            XLog.w("DBProvider: deny update uid=%d uri=%s", Binder.getCallingUid(), uri)
+            return 0
+        }
         val rowsUpdated = when (uriType) {
             SMS_MSG_DIR -> updateSmsMsg(values, selection, selectionArgs)
             SMS_MSG_ID -> updateSmsMsgByUriId(uri, values)
@@ -301,6 +324,39 @@ class DBProvider : ContentProvider() {
             context?.contentResolver?.notifyChange(uri, null)
         }
         return rowsUpdated
+    }
+
+    private fun isCallerAllowedForQuery(ctx: Context, uriType: Int): Boolean {
+        if (isCallerSelf(ctx)) return true
+        if (!isPrivilegedCaller(ctx)) return false
+        return when (uriType) {
+            SMS_CODE_RULE_DIR, SMS_CODE_RULE_ID, APP_INFO_DIR, APP_INFO_ITEM -> true
+            else -> false
+        }
+    }
+
+    private fun isCallerAllowedForMutation(ctx: Context): Boolean = isCallerSelf(ctx)
+
+    private fun isCallerSelf(ctx: Context): Boolean = Binder.getCallingUid() == ctx.applicationInfo?.uid
+
+    private fun isPrivilegedCaller(ctx: Context): Boolean {
+        val uid = Binder.getCallingUid()
+        if (uid < Process.FIRST_APPLICATION_UID) return true
+        return try {
+            val packages = ctx.packageManager.getPackagesForUid(uid) ?: return false
+            packages.any { packageName -> isSystemApp(ctx, packageName) }
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun isSystemApp(context: Context, packageName: String): Boolean = try {
+        val info = context.packageManager.getApplicationInfo(packageName, 0)
+        (info.flags and
+            (android.content.pm.ApplicationInfo.FLAG_SYSTEM or
+                android.content.pm.ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0
+    } catch (_: Exception) {
+        false
     }
 
     private fun updateSmsMsgByUriId(uri: Uri, values: ContentValues?): Int {
