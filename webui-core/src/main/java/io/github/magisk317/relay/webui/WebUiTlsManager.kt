@@ -4,6 +4,7 @@ import android.content.Context
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.utils.XLog
+import io.github.magisk317.relay.data.secret.InternalSecretStore
 import okhttp3.tls.HeldCertificate
 import timber.log.Timber
 import java.io.File
@@ -41,16 +42,24 @@ object WebUiTlsManager {
             PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_VERSION,
             PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_VERSION_DEFAULT,
         )
-        var storePassword = preferenceDataSource.getString(
-            PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS,
-            "",
+        var storePassword = InternalSecretStore.getOrMigrateString(
+            context = safeContext,
+            key = PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS,
+            defaultValue = "",
+            legacyValueProvider = {
+                preferenceDataSource.getString(
+                    PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS,
+                    "",
+                )
+            },
+            legacyValueCleaner = {
+                preferenceDataSource.setString(PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS, "")
+            },
         )
         if (storePassword.isBlank()) {
             storePassword = generateRandomCredential(PASSWORD_LENGTH)
-            preferenceDataSource.setString(
-                PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS,
-                storePassword,
-            )
+            InternalSecretStore.putString(safeContext, PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS, storePassword)
+            preferenceDataSource.setString(PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS, "")
         }
 
         if (

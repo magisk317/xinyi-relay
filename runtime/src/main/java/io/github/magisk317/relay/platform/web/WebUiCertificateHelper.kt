@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.data.datasource.PreferenceDataSource
+import io.github.magisk317.relay.data.secret.InternalSecretStore
 import java.io.File
 import java.io.FileInputStream
 import java.security.KeyStore
@@ -31,9 +32,19 @@ object WebUiCertificateHelper {
         preferenceDataSource: PreferenceDataSource,
     ): Result<CertificateInfo> = runCatching {
         val appContext = context.applicationContext ?: context
-        val keyStorePassword = preferenceDataSource.getString(
-            PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS,
-            "",
+        val keyStorePassword = InternalSecretStore.getOrMigrateString(
+            context = appContext,
+            key = PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS,
+            defaultValue = "",
+            legacyValueProvider = {
+                preferenceDataSource.getString(
+                    PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS,
+                    "",
+                )
+            },
+            legacyValueCleaner = {
+                preferenceDataSource.setString(PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS, "")
+            },
         )
         require(keyStorePassword.isNotBlank()) { "webui keystore password missing" }
 
@@ -91,9 +102,19 @@ object WebUiCertificateHelper {
         targetUri: Uri,
     ): Result<String> = runCatching {
         val appContext = context.applicationContext ?: context
-        val keyStorePassword = preferenceDataSource.getString(
-            PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS,
-            "",
+        val keyStorePassword = InternalSecretStore.getOrMigrateString(
+            context = appContext,
+            key = PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS,
+            defaultValue = "",
+            legacyValueProvider = {
+                preferenceDataSource.getString(
+                    PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS,
+                    "",
+                )
+            },
+            legacyValueCleaner = {
+                preferenceDataSource.setString(PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS, "")
+            },
         )
         require(keyStorePassword.isNotBlank()) { "webui keystore password missing" }
 

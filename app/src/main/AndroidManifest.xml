@@ -22,8 +22,9 @@
     <application
         android:name="io.github.magisk317.relay.ui.app.SmsCodeApplication"
         android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:description="@string/xposed_description"
-        android:fullBackupContent="true"
+        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:localeConfig="@xml/locales_config"

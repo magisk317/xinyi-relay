@@ -3,6 +3,7 @@ package io.github.magisk317.relay.webui
 import android.content.Context
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.common.constant.PrefConst
+import io.github.magisk317.relay.data.secret.InternalSecretStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -26,7 +27,7 @@ class WebUiConfigStore(context: Context) {
             preferenceDataSource.getBooleanFlow(PrefConst.KEY_WEBUI_LAN_ACCESS, false),
             preferenceDataSource.getStringFlow(PrefConst.KEY_WEBUI_PORT, PrefConst.KEY_WEBUI_PORT_DEFAULT),
             preferenceDataSource.getStringFlow(PrefConst.KEY_WEBUI_USERNAME, PrefConst.KEY_WEBUI_USERNAME_DEFAULT),
-            preferenceDataSource.getStringFlow(PrefConst.KEY_WEBUI_PASSWORD, ""),
+            InternalSecretStore.observeString(appContext, PrefConst.KEY_WEBUI_PASSWORD, ""),
         ) { webUiEnabled, allowLanAccess, portString, username, password ->
             snapshotFrom(
                 enabled = webUiEnabled,
@@ -47,7 +48,13 @@ class WebUiConfigStore(context: Context) {
                 PrefConst.KEY_WEBUI_USERNAME,
                 PrefConst.KEY_WEBUI_USERNAME_DEFAULT,
             ),
-            password = preferenceDataSource.getString(PrefConst.KEY_WEBUI_PASSWORD, ""),
+            password = InternalSecretStore.getOrMigrateString(
+                context = appContext,
+                key = PrefConst.KEY_WEBUI_PASSWORD,
+                defaultValue = "",
+                legacyValueProvider = { preferenceDataSource.getString(PrefConst.KEY_WEBUI_PASSWORD, "") },
+                legacyValueCleaner = { preferenceDataSource.setString(PrefConst.KEY_WEBUI_PASSWORD, "") },
+            ),
         )
     }
 
@@ -62,12 +69,20 @@ class WebUiConfigStore(context: Context) {
         if (username.isBlank() || username == "xsmscode") {
             preferenceDataSource.setString(PrefConst.KEY_WEBUI_USERNAME, PrefConst.KEY_WEBUI_USERNAME_DEFAULT)
         }
-        val password = preferenceDataSource.getString(PrefConst.KEY_WEBUI_PASSWORD, "")
+        val password = InternalSecretStore.getOrMigrateString(
+            context = appContext,
+            key = PrefConst.KEY_WEBUI_PASSWORD,
+            defaultValue = "",
+            legacyValueProvider = { preferenceDataSource.getString(PrefConst.KEY_WEBUI_PASSWORD, "") },
+            legacyValueCleaner = { preferenceDataSource.setString(PrefConst.KEY_WEBUI_PASSWORD, "") },
+        )
         if (password.isBlank()) {
-            preferenceDataSource.setString(
+            InternalSecretStore.putString(
+                appContext,
                 PrefConst.KEY_WEBUI_PASSWORD,
                 WebUiTlsManager.generateRandomCredential(8),
             )
+            preferenceDataSource.setString(PrefConst.KEY_WEBUI_PASSWORD, "")
         }
     }
 

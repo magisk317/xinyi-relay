@@ -624,10 +624,7 @@ object AppPreferencesDataStore {
             PrefConst.KEY_WEBUI_USERNAME,
             getString(context, PrefConst.KEY_WEBUI_USERNAME, PrefConst.KEY_WEBUI_USERNAME_DEFAULT),
         )
-        editor.putString(
-            PrefConst.KEY_WEBUI_PASSWORD,
-            getString(context, PrefConst.KEY_WEBUI_PASSWORD, ""),
-        )
+        editor.remove(PrefConst.KEY_WEBUI_PASSWORD)
         editor.putString(
             PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_VERSION,
             getString(
@@ -636,10 +633,7 @@ object AppPreferencesDataStore {
                 PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_VERSION_DEFAULT,
             ),
         )
-        editor.putString(
-            PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS,
-            getString(context, PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS, ""),
-        )
+        editor.remove(PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS)
         editor.putBoolean(
             PrefConst.KEY_ROOT_DB_CATCHUP_ENABLE,
             getBoolean(context, PrefConst.KEY_ROOT_DB_CATCHUP_ENABLE, false),
@@ -871,10 +865,7 @@ object AppPreferencesDataStore {
                 PrefConst.KEY_WEBUI_USERNAME,
                 getString(context, PrefConst.KEY_WEBUI_USERNAME, PrefConst.KEY_WEBUI_USERNAME_DEFAULT),
             )
-            editor.putString(
-                PrefConst.KEY_WEBUI_PASSWORD,
-                getString(context, PrefConst.KEY_WEBUI_PASSWORD, ""),
-            )
+            editor.remove(PrefConst.KEY_WEBUI_PASSWORD)
             editor.putString(
                 PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_VERSION,
                 getString(
@@ -883,10 +874,7 @@ object AppPreferencesDataStore {
                     PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_VERSION_DEFAULT,
                 ),
             )
-            editor.putString(
-                PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS,
-                getString(context, PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS, ""),
-            )
+            editor.remove(PrefConst.KEY_INTERNAL_WEBUI_TLS_KEYSTORE_PASS)
             editor.putBoolean(
                 PrefConst.KEY_ROOT_DB_CATCHUP_ENABLE,
                 getBoolean(context, PrefConst.KEY_ROOT_DB_CATCHUP_ENABLE, false),

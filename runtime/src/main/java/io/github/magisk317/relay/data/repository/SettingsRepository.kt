@@ -6,6 +6,7 @@ import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.utils.SensitiveLogPolicy
 import io.github.magisk317.relay.data.datasource.PreferenceDataSource
+import io.github.magisk317.relay.data.secret.InternalSecretStore
 import io.github.magisk317.relay.domain.model.ForwardCommonConfig
 import io.github.magisk317.relay.domain.system.DeviceIdentityUtils
 import kotlinx.coroutines.flow.Flow
@@ -642,7 +643,13 @@ class SettingsRepository(
             lanAccess = preferenceDataSource.getBoolean(PrefConst.KEY_WEBUI_LAN_ACCESS, false),
             port = preferenceDataSource.getString(PrefConst.KEY_WEBUI_PORT, PrefConst.KEY_WEBUI_PORT_DEFAULT),
             username = preferenceDataSource.getString(PrefConst.KEY_WEBUI_USERNAME, PrefConst.KEY_WEBUI_USERNAME_DEFAULT),
-            password = preferenceDataSource.getString(PrefConst.KEY_WEBUI_PASSWORD, ""),
+            password = InternalSecretStore.getOrMigrateString(
+                context = appContext,
+                key = PrefConst.KEY_WEBUI_PASSWORD,
+                defaultValue = "",
+                legacyValueProvider = { preferenceDataSource.getString(PrefConst.KEY_WEBUI_PASSWORD, "") },
+                legacyValueCleaner = { preferenceDataSource.setString(PrefConst.KEY_WEBUI_PASSWORD, "") },
+            ),
         )
     }
 
@@ -651,7 +658,10 @@ class SettingsRepository(
         update.lanAccess?.let { preferenceDataSource.setBoolean(PrefConst.KEY_WEBUI_LAN_ACCESS, it) }
         update.port?.let { preferenceDataSource.setString(PrefConst.KEY_WEBUI_PORT, it) }
         update.username?.let { preferenceDataSource.setString(PrefConst.KEY_WEBUI_USERNAME, it) }
-        update.password?.let { preferenceDataSource.setString(PrefConst.KEY_WEBUI_PASSWORD, it) }
+        update.password?.let {
+            InternalSecretStore.putString(appContext, PrefConst.KEY_WEBUI_PASSWORD, it)
+            preferenceDataSource.setString(PrefConst.KEY_WEBUI_PASSWORD, "")
+        }
         preferenceDataSource.syncToSharedPrefs()
         return getWebUiConfig()
     }
