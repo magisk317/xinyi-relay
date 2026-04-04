@@ -1,14 +1,12 @@
 package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
+import dev.mokkery.MockMode.autofill
+import dev.mokkery.mock
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
 import io.github.magisk317.smscode.verification.SmsInboxObserverDecision
 import io.github.magisk317.smscode.xposed.utils.XLog
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.mockkObject
-import io.mockk.unmockkAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -20,14 +18,14 @@ class ObservedSmsHandlerTest {
 
     @AfterEach
     fun tearDown() {
-        unmockkAll()
+        XLog.setTestSink(null)
     }
 
     @Test
     fun handle_skipsDispatchWhenConflictSuppressed() {
         stubXLog()
-        val pluginContext = mockk<Context>(relaxed = true)
-        val phoneContext = mockk<Context>(relaxed = true)
+        val pluginContext = mock<Context>(autofill)
+        val phoneContext = mock<Context>(autofill)
         var roleLogCount = 0
         var dispatchCount = 0
         val handler = ObservedSmsHandler(
@@ -53,8 +51,8 @@ class ObservedSmsHandlerTest {
     @Test
     fun handle_dispatchesObservedSmsWhenHealthy() {
         stubXLog()
-        val pluginContext = mockk<Context>(relaxed = true)
-        val phoneContext = mockk<Context>(relaxed = true)
+        val pluginContext = mock<Context>(autofill)
+        val phoneContext = mock<Context>(autofill)
         var loggedEventId: String? = null
         var dispatchedEventId: String? = null
         var dispatchedSms: SmsMsg? = null
@@ -108,8 +106,8 @@ class ObservedSmsHandlerTest {
     @Test
     fun handle_skipsDispatchWhenSmsAlreadyRead() {
         stubXLog()
-        val pluginContext = mockk<Context>(relaxed = true)
-        val phoneContext = mockk<Context>(relaxed = true)
+        val pluginContext = mock<Context>(autofill)
+        val phoneContext = mock<Context>(autofill)
         var roleLogCount = 0
         var dispatchCount = 0
         val handler = ObservedSmsHandler(
@@ -134,8 +132,8 @@ class ObservedSmsHandlerTest {
     @Test
     fun handle_skipsDispatchWhenObservedSmsAlreadyClaimed() {
         stubXLog()
-        val pluginContext = mockk<Context>(relaxed = true)
-        val phoneContext = mockk<Context>(relaxed = true)
+        val pluginContext = mock<Context>(autofill)
+        val phoneContext = mock<Context>(autofill)
         var roleLogCount = 0
         var dispatchCount = 0
         val handler = ObservedSmsHandler(
@@ -161,8 +159,8 @@ class ObservedSmsHandlerTest {
     @Test
     fun handle_usesCurrentTimeForMissingSmsDate() {
         stubXLog()
-        val pluginContext = mockk<Context>(relaxed = true)
-        val phoneContext = mockk<Context>(relaxed = true)
+        val pluginContext = mock<Context>(autofill)
+        val phoneContext = mock<Context>(autofill)
         var dispatchedEventId: String? = null
         val handler = ObservedSmsHandler(
             pluginContext = pluginContext,
@@ -238,11 +236,6 @@ class ObservedSmsHandlerTest {
     }
 
     private fun stubXLog() {
-        mockkObject(XLog)
-        every { XLog.v(any(), *anyVararg()) } returns Unit
-        every { XLog.d(any(), *anyVararg()) } returns Unit
-        every { XLog.w(any(), *anyVararg()) } returns Unit
-        every { XLog.i(any(), *anyVararg()) } returns Unit
-        every { XLog.e(any(), *anyVararg()) } returns Unit
+        XLog.setTestSink { _, _ -> }
     }
 }

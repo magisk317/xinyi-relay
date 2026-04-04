@@ -1,8 +1,8 @@
 package io.github.magisk317.relay.xp.hook
 
 import android.content.Context
-import io.mockk.every
-import io.mockk.mockk
+import dev.mokkery.MockMode.autofill
+import dev.mokkery.mock
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -12,8 +12,8 @@ class SmsHookRuntimeSessionTest {
 
     @Test
     fun initialize_resolvesPluginContextOnce() {
-        val phoneContext = mockk<Context>(relaxed = true)
-        val pluginContext = mockk<Context>(relaxed = true)
+        val phoneContext = mock<Context>(autofill)
+        val pluginContext = mock<Context>(autofill)
         var resolveCalls = 0
         val session = SmsHookRuntimeSession(
             applicationId = "io.github.magisk317.test",
@@ -48,8 +48,8 @@ class SmsHookRuntimeSessionTest {
 
     @Test
     fun recordHeartbeat_usesResolvedRuntimeContexts() {
-        val phoneContext = mockk<Context>(relaxed = true)
-        val pluginContext = mockk<Context>(relaxed = true)
+        val phoneContext = mock<Context>(autofill)
+        val pluginContext = mock<Context>(autofill)
         var recordedSource: String? = null
         var recordedPackageName: String? = null
         val session = SmsHookRuntimeSession(

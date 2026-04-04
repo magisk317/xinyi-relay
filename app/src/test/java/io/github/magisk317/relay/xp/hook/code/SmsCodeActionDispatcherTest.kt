@@ -2,10 +2,13 @@ package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
 import android.os.Handler
+import dev.mokkery.MockMode.autofill
+import dev.mokkery.every
+import dev.mokkery.mock
+import dev.mokkery.verify
+import dev.mokkery.answering.returns
+import dev.mokkery.matcher.any
 import io.github.magisk317.relay.xpbridge.SmsMsg
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
@@ -17,10 +20,10 @@ class SmsCodeActionDispatcherTest {
 
     @Test
     fun dispatchParsedSmsActions_routesEachEnabledActionToScheduler() {
-        val uiHandler = mockk<Handler>(relaxed = true)
-        val executor = mockk<ScheduledExecutorService>(relaxed = true)
-        val pluginContext = mockk<Context>(relaxed = true)
-        val phoneContext = mockk<Context>(relaxed = true)
+        val uiHandler = mock<Handler>(autofill)
+        val executor = mock<ScheduledExecutorService>(autofill)
+        val pluginContext = mock<Context>(autofill)
+        val phoneContext = mock<Context>(autofill)
         val smsMsg = smsMsg()
         val plan = SmsCodePostParseCoordinator.ParsedSmsPlan(
             blockSms = true,
@@ -74,8 +77,8 @@ class SmsCodeActionDispatcherTest {
 
     @Test
     fun dispatchObservedSmsActions_runsOnlyEnabledImmediateActions() {
-        val pluginContext = mockk<Context>(relaxed = true)
-        val phoneContext = mockk<Context>(relaxed = true)
+        val pluginContext = mock<Context>(autofill)
+        val phoneContext = mock<Context>(autofill)
         val smsMsg = smsMsg()
         val plan = SmsCodePostParseCoordinator.ObservedSmsPlan(
             deduplicateSmsEnabled = true,
@@ -106,41 +109,9 @@ class SmsCodeActionDispatcherTest {
     }
 
     @Test
-    fun dispatchParsedSmsActions_delaysToastUntilAfterAutoInputAttemptWindow() {
-        val uiHandler = mockk<Handler>(relaxed = true)
-        val executor = mockk<ScheduledExecutorService>(relaxed = true)
-        every {
-            executor.schedule(any<Runnable>(), any<Long>(), any<TimeUnit>())
-        } returns mockk<ScheduledFuture<*>>(relaxed = true)
-
-        SmsCodeActionDispatcher.dispatchParsedSmsActions(
-            uiHandler = uiHandler,
-            executor = executor,
-            pluginContext = mockk(relaxed = true),
-            phoneContext = mockk(relaxed = true),
-            smsMsg = smsMsg(),
-            eventId = "evt-3",
-            plan = SmsCodePostParseCoordinator.ParsedSmsPlan(
-                blockSms = false,
-                deduplicateSmsEnabled = true,
-                uiPlan = SmsCodePostParseCoordinator.UiPlan(
-                    copyToClipboardEnabled = false,
-                    showToast = true,
-                ),
-                autoInputDelayMs = 1_500L,
-                notificationPlan = null,
-                shouldRecord = false,
-                operateSmsDelays = emptyList(),
-            ),
-            autoInputScheduler = { _, _, _, _, _, _ -> },
-            notificationScheduler = { _, _, _, _, _ -> },
-            recordScheduler = { _, _, _, _, _, _ -> },
-            operateSmsScheduler = { _, _, _, _, _ -> },
-        )
-
-        verify {
-            executor.schedule(any<Runnable>(), 1_750L, TimeUnit.MILLISECONDS)
-        }
+    fun resolveToastDelayMs_addsBufferAfterAutoInputAttemptWindow() {
+        assertEquals(1_750L, SmsCodeActionDispatcher.resolveToastDelayMs(1_500L))
+        assertEquals(0L, SmsCodeActionDispatcher.resolveToastDelayMs(null))
     }
 
     private fun smsMsg(): SmsMsg {

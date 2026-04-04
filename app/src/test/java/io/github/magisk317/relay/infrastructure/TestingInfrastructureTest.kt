@@ -1,8 +1,10 @@
 package io.github.magisk317.relay.infrastructure
 
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
+import dev.mokkery.every
+import dev.mokkery.mock
+import dev.mokkery.verify
+import dev.mokkery.answering.returns
+import dev.mokkery.verify.VerifyMode.Companion.exactly
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.DisplayName
@@ -14,17 +16,14 @@ class TestingInfrastructureTest {
     }
 
     @Test
-    @DisplayName("JUnit 5 and MockK should work together")
-    fun testMockkIntegration() {
-        // Arrange
-        val service = mockk<SimpleService>()
+    @DisplayName("JUnit 5 and Mokkery should work together")
+    fun testMokkeryIntegration() {
+        val service = mock<SimpleService>()
         every { service.getValue() } returns "mocked value"
 
-        // Act
         val result = service.getValue()
 
-        // Assert
         assertEquals("mocked value", result)
-        verify(exactly = 1) { service.getValue() }
+        verify(exactly(1)) { service.getValue() }
     }
 }

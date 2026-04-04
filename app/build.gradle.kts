@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.google.services)
+    alias(libs.plugins.mokkery)
     id("relay.android.common")
     id("relay.app.signing")
     id("relay.app.webui")
@@ -86,6 +87,11 @@ tasks.matching { it.name.endsWith("GoogleServices") }.configureEach {
     }
 }
 
+mokkery {
+    defaultMockMode.set(dev.mokkery.MockMode.autofill)
+    ignoreFinalMembers.set(true)
+}
+
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(project(":core"))
@@ -113,7 +119,7 @@ dependencies {
 
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
-    testImplementation(libs.mockk)
+    testImplementation(libs.mokkery.runtime.jvm)
     testImplementation(project(":smscode-core:smscode-xposed-core"))
 }
 

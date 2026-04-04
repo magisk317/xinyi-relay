@@ -1,8 +1,9 @@
 package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
+import dev.mokkery.MockMode.autofill
+import dev.mokkery.mock
 import io.github.magisk317.smscode.verification.SmsRoleStateResolver
-import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
@@ -10,7 +11,7 @@ class SmsRoleStateResolverTest {
 
     @Test
     fun resolve_returnsProvidersOutput() {
-        val context = mockk<Context>(relaxed = true)
+        val context = mock<Context>(autofill)
         val resolver = SmsRoleStateResolver(
             defaultSmsProvider = { receivedContext ->
                 assertEquals(context, receivedContext)

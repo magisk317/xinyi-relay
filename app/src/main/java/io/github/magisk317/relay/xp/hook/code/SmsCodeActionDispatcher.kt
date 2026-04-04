@@ -155,7 +155,7 @@ internal object SmsCodeActionDispatcher {
         }
     }
 
-    private fun resolveToastDelayMs(autoInputDelayMs: Long?): Long {
+    internal fun resolveToastDelayMs(autoInputDelayMs: Long?): Long {
         if (autoInputDelayMs == null) return 0L
         return autoInputDelayMs + TOAST_AFTER_AUTO_INPUT_BUFFER_MS
     }

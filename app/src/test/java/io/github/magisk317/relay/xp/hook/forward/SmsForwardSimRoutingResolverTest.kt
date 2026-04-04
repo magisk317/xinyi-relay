@@ -1,9 +1,13 @@
 package io.github.magisk317.relay.xp.hook.forward
 
 import android.content.Intent
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
+import dev.mokkery.MockMode.autofill
+import dev.mokkery.every
+import dev.mokkery.mock
+import dev.mokkery.verify
+import dev.mokkery.answering.returns
+import dev.mokkery.matcher.any
+import dev.mokkery.verify.VerifyMode.Companion.exactly
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
@@ -16,7 +20,7 @@ class SmsForwardSimRoutingResolverTest {
 
     @Test
     fun ensureSimRoutingExtras_readsPhoneFromHandler() {
-        val intent = mockk<Intent>(relaxed = true)
+        val intent = mock<Intent>(autofill)
         every { intent.hasExtra(any()) } returns false
 
         val resolved = SmsForwardSimRoutingResolver.ensureSimRoutingExtras(
@@ -34,7 +38,7 @@ class SmsForwardSimRoutingResolverTest {
 
     @Test
     fun ensureSimRoutingExtras_prefersArgsWhenIntentMissing() {
-        val intent = mockk<Intent>(relaxed = true)
+        val intent = mock<Intent>(autofill)
         every { intent.hasExtra(any()) } returns false
 
         val resolved = SmsForwardSimRoutingResolver.ensureSimRoutingExtras(
@@ -52,7 +56,7 @@ class SmsForwardSimRoutingResolverTest {
 
     @Test
     fun ensureSimRoutingExtras_keepsExistingIntentExtras() {
-        val intent = mockk<Intent>(relaxed = true)
+        val intent = mock<Intent>(autofill)
         every { intent.hasExtra(EXTRA_SIM_SLOT) } returns true
         every { intent.hasExtra(EXTRA_SUB_ID) } returns true
         every { intent.hasExtra("slot") } returns false
@@ -76,7 +80,7 @@ class SmsForwardSimRoutingResolverTest {
         assertNotNull(resolved)
         assertEquals(0, resolved?.simSlot)
         assertEquals(11, resolved?.subId)
-        verify(exactly = 0) { intent.putExtra(any<String>(), any<Int>()) }
+        verify(exactly(0)) { intent.putExtra(any<String>(), any<Int>()) }
     }
 
     @Test

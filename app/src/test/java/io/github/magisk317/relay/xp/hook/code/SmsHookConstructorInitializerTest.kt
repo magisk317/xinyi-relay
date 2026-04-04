@@ -1,12 +1,10 @@
 package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
+import dev.mokkery.MockMode.autofill
+import dev.mokkery.mock
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
 import io.github.magisk317.smscode.xposed.utils.XLog
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.mockkObject
-import io.mockk.unmockkAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -18,13 +16,13 @@ class SmsHookConstructorInitializerTest {
 
     @AfterEach
     fun tearDown() {
-        unmockkAll()
+        XLog.setTestSink(null)
     }
 
     @Test
     fun handle_stopsWhenRuntimeUnavailable() {
         stubXLog()
-        val phoneContext = mockk<Context>(relaxed = true)
+        val phoneContext = mock<Context>(autofill)
         var activationCalls = 0
         val initializer = SmsHookConstructorInitializer(
             runtimeInitializer = { null },
@@ -103,13 +101,12 @@ class SmsHookConstructorInitializerTest {
 
     private fun runtime(): SmsHookRuntimeContext {
         return SmsHookRuntimeContext(
-            pluginContext = mockk<Context>(relaxed = true),
-            phoneContext = mockk<Context>(relaxed = true),
+            pluginContext = mock<Context>(autofill),
+            phoneContext = mock<Context>(autofill),
         )
     }
 
     private fun stubXLog() {
-        mockkObject(XLog)
-        every { XLog.e(any(), *anyVararg()) } returns Unit
+        XLog.setTestSink { _, _ -> }
     }
 }

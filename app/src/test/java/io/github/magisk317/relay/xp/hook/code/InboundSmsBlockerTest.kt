@@ -3,9 +3,6 @@ package io.github.magisk317.relay.xp.hook.code
 import io.github.magisk317.smscode.xposed.hook.telephony.InboundSmsBlocker
 import io.github.magisk317.smscode.xposed.hook.telephony.InboundSmsMethodInvoker
 import io.github.magisk317.smscode.xposed.utils.XLog
-import io.mockk.every
-import io.mockk.mockkObject
-import io.mockk.unmockkAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -14,7 +11,7 @@ class InboundSmsBlockerTest {
 
     @AfterEach
     fun tearDown() {
-        unmockkAll()
+        XLog.setTestSink(null)
     }
 
     @Test
@@ -82,8 +79,6 @@ class InboundSmsBlockerTest {
     }
 
     private fun stubXLog() {
-        mockkObject(XLog)
-        every { XLog.w(any(), *anyVararg()) } returns Unit
-        every { XLog.e(any(), *anyVararg()) } returns Unit
+        XLog.setTestSink { _, _ -> }
     }
 }
