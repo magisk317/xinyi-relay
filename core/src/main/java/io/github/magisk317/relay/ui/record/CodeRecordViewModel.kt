@@ -7,7 +7,7 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.magisk317.relay.common.constant.Const
-import io.github.magisk317.relay.common.utils.JsonUtils
+import io.github.magisk317.smscode.runtime.common.utils.JsonUtils
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.data.repository.RelayRecordRepository

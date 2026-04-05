@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.data.backup
 
-import io.github.magisk317.relay.common.utils.JsonUtils
+import io.github.magisk317.smscode.runtime.common.utils.JsonUtils
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.data.backup.exception.BackupInvalidException
 import io.github.magisk317.relay.data.backup.exception.VersionInvalidException

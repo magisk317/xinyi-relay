@@ -59,6 +59,7 @@ mokkery {
 
 dependencies {
     implementation(project(":smscode-core:smscode-domain"))
+    implementation(project(":smscode-core:smscode-runtime-common"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.serialization.json)

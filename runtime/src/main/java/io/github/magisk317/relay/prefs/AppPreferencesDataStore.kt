@@ -11,7 +11,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.utils.StorageUtils
+import io.github.magisk317.smscode.runtime.common.utils.StorageUtils
 import io.github.magisk317.relay.common.utils.XLog
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first

@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.common.utils
 
 import io.github.magisk317.relay.runtime.BuildConfig
+import io.github.magisk317.smscode.runtime.common.utils.StringUtils
 import java.util.Locale
 
 object SensitiveLogPolicy {

@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.xpbridge
 
 import android.content.Context
-import io.github.magisk317.relay.common.utils.SharedRuntimeGate
+import io.github.magisk317.smscode.runtime.common.utils.SharedRuntimeGate
 import java.io.RandomAccessFile
 
 object XpSharedRuntimeGate {

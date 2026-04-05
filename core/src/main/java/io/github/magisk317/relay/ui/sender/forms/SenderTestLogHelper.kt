@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import io.github.magisk317.relay.common.utils.ClipboardUtils
+import io.github.magisk317.smscode.runtime.common.utils.ClipboardUtils
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.domain.model.MsgInfo

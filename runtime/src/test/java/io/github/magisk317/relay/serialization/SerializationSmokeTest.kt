@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.serialization
 
-import io.github.magisk317.relay.common.utils.JsonUtils
+import io.github.magisk317.smscode.runtime.common.utils.JsonUtils
 import io.github.magisk317.relay.data.backup.BackupConst
 import io.github.magisk317.relay.data.backup.BackupPayload
 import io.github.magisk317.relay.data.backup.BackupRule

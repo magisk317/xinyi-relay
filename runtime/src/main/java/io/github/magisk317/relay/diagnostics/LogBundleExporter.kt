@@ -5,7 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
-import io.github.magisk317.relay.common.utils.StorageUtils
+import io.github.magisk317.smscode.runtime.common.utils.StorageUtils
 import io.github.magisk317.relay.common.utils.XLog
 import java.io.File
 import java.io.FileOutputStream

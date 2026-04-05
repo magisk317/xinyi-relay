@@ -3,7 +3,7 @@ package io.github.magisk317.relay.diagnostics
 import android.content.Context
 import android.util.Log
 import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.utils.StorageUtils
+import io.github.magisk317.smscode.runtime.common.utils.StorageUtils
 import io.github.magisk317.relay.runtime.BuildConfig
 import java.io.File
 import java.io.FileOutputStream

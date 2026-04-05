@@ -3,7 +3,7 @@ package io.github.magisk317.relay.diagnostics
 import android.content.Context
 import android.os.SystemClock
 import android.util.Log
-import io.github.magisk317.relay.common.utils.StorageUtils
+import io.github.magisk317.smscode.runtime.common.utils.StorageUtils
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat

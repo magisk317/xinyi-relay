@@ -51,7 +51,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.navigationBarsPadding
 import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.utils.ClipboardUtils
+import io.github.magisk317.smscode.runtime.common.utils.ClipboardUtils
 import io.github.magisk317.relay.common.utils.Utils
 import io.github.magisk317.relay.platform.web.WebUiCertificateHelper
 import io.github.magisk317.relay.core.R

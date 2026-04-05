@@ -11,12 +11,18 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
+import android.os.SystemClock
 import androidx.annotation.IntDef
 import androidx.core.content.ContextCompat
 import androidx.core.content.pm.PackageInfoCompat
 import io.github.magisk317.relay.common.constant.Const
+import io.github.magisk317.relay.diagnostics.ActivationDiagnosticsStore
+import io.github.magisk317.relay.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.runtime.BuildConfig
+import io.github.magisk317.smscode.runtime.common.utils.FrameworkCompatibilityMonitor
+import io.github.magisk317.smscode.runtime.common.utils.FrameworkInfo
+import io.github.magisk317.smscode.runtime.common.utils.FrameworkInfoResolver
 
 /**
  * 包相关工具类
@@ -24,6 +30,7 @@ import io.github.magisk317.relay.runtime.BuildConfig
 object PackageUtils {
 
     private const val PLAY_STORE_PACKAGE_NAME = "com.android.vending"
+    private const val HOOKER_ANNOTATION_ERROR_TEXT = "Hooker should be annotated with @XposedHooker"
 
     enum class UpdateDestination {
         PLAY,
@@ -118,13 +125,41 @@ object PackageUtils {
         }
 
     @JvmStatic
-    fun getLsposedModuleVersion(): String? {
-        return FrameworkInfoResolver.resolveInstalledModuleInfo()?.displayVersion
+    fun resolveFrameworkInfo(context: Context): FrameworkInfo? {
+        val installedInfo = FrameworkInfoResolver.resolveInstalledModuleInfo()
+        if (installedInfo != null) return installedInfo
+        val snapshot = ActivationDiagnosticsStore.snapshot(context)
+        return FrameworkInfoResolver.resolveFromServiceSnapshot(
+            frameworkName = snapshot.lastServiceFrameworkName,
+            frameworkVersion = snapshot.lastServiceFrameworkVersion,
+        )
     }
 
     @JvmStatic
-    fun getLsposedModuleInfo(): Pair<String, String>? {
-        val info = FrameworkInfoResolver.resolveInstalledModuleInfo() ?: return null
+    fun inspectFrameworkIssue(context: Context): FrameworkCompatibilityMonitor.FrameworkIssue? {
+        val frameworkInfo = resolveFrameworkInfo(context)
+        val now = System.currentTimeMillis()
+        val bootStartAt = (now - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
+        val matched = RuntimeLogStore.query(minutes = null, keyword = null, limit = 2000)
+            .lastOrNull { entry ->
+                entry.timestamp >= bootStartAt &&
+                    entry.message.contains(HOOKER_ANNOTATION_ERROR_TEXT)
+            }
+        return FrameworkCompatibilityMonitor.detectIssue(
+            frameworkInfo = frameworkInfo,
+            latestLogMessage = matched?.message,
+            detectedAt = matched?.timestamp ?: now,
+        )
+    }
+
+    @JvmStatic
+    fun getLsposedModuleVersion(context: Context): String? {
+        return resolveFrameworkInfo(context)?.displayVersion
+    }
+
+    @JvmStatic
+    fun getLsposedModuleInfo(context: Context): Pair<String, String>? {
+        val info = resolveFrameworkInfo(context) ?: return null
         return info.displayName to info.displayVersion
     }
 

@@ -64,7 +64,7 @@ import io.github.magisk317.relay.core.BuildConfig
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.common.constant.Const
 import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.utils.FrameworkCompatibilityMonitor
+import io.github.magisk317.smscode.runtime.common.utils.FrameworkCompatibilityMonitor
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.common.utils.PackageUtils
 import io.github.magisk317.relay.common.utils.Utils
@@ -77,7 +77,7 @@ import io.github.magisk317.relay.data.update.UpgradeCheckResult
 import io.github.magisk317.relay.data.update.UpgradeDownloader
 import io.github.magisk317.relay.data.update.UpgradeInfo
 import io.github.magisk317.relay.data.update.UpgradeInstaller
-import io.github.magisk317.relay.data.update.UpdatePolicy
+import io.github.magisk317.smscode.runtime.common.update.UpdatePolicy
 import io.github.magisk317.relay.ui.app.base.UpdateSystemBars
 import io.github.magisk317.relay.ui.app.base.applyEdgeToEdge
 import io.github.magisk317.relay.ui.app.base.rememberHazeStyle
@@ -228,7 +228,7 @@ class MainActivity : AppCompatActivity() {
                     return@LaunchedEffect
                 }
                 val frameworkIssue = withContext(Dispatchers.IO) {
-                    FrameworkCompatibilityMonitor.inspect(context)
+                    PackageUtils.inspectFrameworkIssue(context)
                 }
                 if (frameworkIssue != null) {
                     blockingStartupDialog = BlockingStartupDialog.FrameworkIncompatibility(frameworkIssue)

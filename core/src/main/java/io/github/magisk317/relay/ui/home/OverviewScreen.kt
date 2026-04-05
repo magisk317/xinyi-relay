@@ -110,7 +110,6 @@ import io.github.magisk317.relay.common.constant.Const
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.diagnostics.ActivationDiagnosticsSnapshot
 import io.github.magisk317.relay.diagnostics.ActivationDiagnosticsStore
-import io.github.magisk317.relay.common.utils.FrameworkInfoResolver
 import io.github.magisk317.relay.common.utils.PackageUtils
 import io.github.magisk317.relay.common.utils.Utils
 import io.github.magisk317.relay.common.utils.XLog
@@ -236,15 +235,15 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val density = LocalDensity.current
     val dragThresholdPx = remember(density) { with(density) { 72.dp.toPx() } }
-    val frameworkInfoState by produceState<io.github.magisk317.relay.common.utils.FrameworkInfo?>(
+    val frameworkInfoState by produceState<Pair<String, String>?>(
         initialValue = null,
     ) {
         value = withContext(Dispatchers.IO) {
-            FrameworkInfoResolver.resolve(context)
+            PackageUtils.getLsposedModuleInfo(context)
         }
     }
-    val frameworkType = frameworkInfoState?.displayName ?: stringResource(id = R.string.unknown)
-    val frameworkVersion = frameworkInfoState?.displayVersion ?: run {
+    val frameworkType = frameworkInfoState?.first ?: stringResource(id = R.string.unknown)
+    val frameworkVersion = frameworkInfoState?.second ?: run {
         val lsposedVersion = PackageUtils.getPackageVersion(context, Const.LSPOSED_MANAGER_PACKAGE_NAME)
         when {
             lsposedVersion != null && lsposedVersion.first.isNotBlank() ->

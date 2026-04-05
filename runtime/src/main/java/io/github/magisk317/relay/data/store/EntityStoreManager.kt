@@ -1,8 +1,8 @@
 package io.github.magisk317.relay.data.store
 
 import android.content.Context
-import io.github.magisk317.relay.common.utils.JsonUtils
-import io.github.magisk317.relay.common.utils.StorageUtils
+import io.github.magisk317.smscode.runtime.common.utils.JsonUtils
+import io.github.magisk317.smscode.runtime.common.utils.StorageUtils
 import io.github.magisk317.relay.common.utils.XLog
 import java.io.File
 import java.io.FileInputStream

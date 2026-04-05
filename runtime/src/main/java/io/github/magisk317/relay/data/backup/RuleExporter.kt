@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.data.backup
 
-import io.github.magisk317.relay.common.utils.JsonUtils
+import io.github.magisk317.smscode.runtime.common.utils.JsonUtils
 import java.io.Closeable
 import java.io.File
 import java.io.FileOutputStream
