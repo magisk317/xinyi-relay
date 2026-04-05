@@ -119,54 +119,13 @@ object PackageUtils {
 
     @JvmStatic
     fun getLsposedModuleVersion(): String? {
-        val propPath = "/data/adb/modules/zygisk_lsposed/module.prop"
-        val output = runSuCommand("cat $propPath") ?: return null
-        val lines = output.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }.toList()
-        val rawVersion = lines.firstOrNull { it.startsWith("version=") }
-            ?.substringAfter("version=")
-            ?.trim()
-        val versionCode = lines.firstOrNull { it.startsWith("versionCode=") }
-            ?.substringAfter("versionCode=")
-            ?.trim()
-        val normalized = rawVersion?.removePrefix("v")?.trim()
-        return when {
-            !normalized.isNullOrBlank() && !versionCode.isNullOrBlank() && !normalized.contains("(") ->
-                "$normalized ($versionCode)"
-
-            !normalized.isNullOrBlank() -> normalized
-
-            !versionCode.isNullOrBlank() -> versionCode
-
-            else -> null
-        }
+        return FrameworkInfoResolver.resolveInstalledModuleInfo()?.displayVersion
     }
 
     @JvmStatic
     fun getLsposedModuleInfo(): Pair<String, String>? {
-        val propPath = "/data/adb/modules/zygisk_lsposed/module.prop"
-        val output = runSuCommand("cat $propPath") ?: return null
-        val lines = output.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }.toList()
-        val name = lines.firstOrNull { it.startsWith("name=") }
-            ?.substringAfter("name=")
-            ?.trim()
-        val rawVersion = lines.firstOrNull { it.startsWith("version=") }
-            ?.substringAfter("version=")
-            ?.trim()
-        val versionCode = lines.firstOrNull { it.startsWith("versionCode=") }
-            ?.substringAfter("versionCode=")
-            ?.trim()
-        val normalized = rawVersion?.removePrefix("v")?.trim()
-        val version = when {
-            !normalized.isNullOrBlank() && !versionCode.isNullOrBlank() && !normalized.contains("(") ->
-                "$normalized ($versionCode)"
-
-            !normalized.isNullOrBlank() -> normalized
-
-            !versionCode.isNullOrBlank() -> versionCode
-
-            else -> null
-        }
-        return if (!name.isNullOrBlank() && !version.isNullOrBlank()) name to version else null
+        val info = FrameworkInfoResolver.resolveInstalledModuleInfo() ?: return null
+        return info.displayName to info.displayVersion
     }
 
     @JvmStatic

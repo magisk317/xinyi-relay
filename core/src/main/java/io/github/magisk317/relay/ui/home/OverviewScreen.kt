@@ -110,7 +110,7 @@ import io.github.magisk317.relay.common.constant.Const
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.diagnostics.ActivationDiagnosticsSnapshot
 import io.github.magisk317.relay.diagnostics.ActivationDiagnosticsStore
-import io.github.magisk317.relay.common.utils.FrameworkCompatibilityMonitor
+import io.github.magisk317.relay.common.utils.FrameworkInfoResolver
 import io.github.magisk317.relay.common.utils.PackageUtils
 import io.github.magisk317.relay.common.utils.Utils
 import io.github.magisk317.relay.common.utils.XLog
@@ -138,7 +138,6 @@ private const val CARD_CHART = "chart"
 private const val CARD_APP_INFO = "app_info"
 private const val CARD_DEVICE_INFO = "device_info"
 private const val CARD_LINKS = "links"
-private const val FRAMEWORK_MONITOR_REFRESH_INTERVAL_MS = 1_500L
 
 private data class HomeAnalyticsSnapshot(
     val totalMessages: Long,
@@ -229,26 +228,23 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
 
     val isEnabled = ActivationDiagnosticsStore.isModuleActivated(context)
     val runtimeConnected = ActivationDiagnosticsStore.isRuntimeConnected()
-    val frameworkIssue by FrameworkCompatibilityMonitor.issueState.collectAsStateWithLifecycle()
     var statusTapCount by remember { mutableStateOf(0) }
     var statusTapStartedAtMs by remember { mutableStateOf(0L) }
     var showStatusDiagnostics by remember { mutableStateOf(false) }
-
-    FrameworkMonitorEffect()
 
     val listState = rememberLazyListState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val density = LocalDensity.current
     val dragThresholdPx = remember(density) { with(density) { 72.dp.toPx() } }
-    val frameworkInfoState by produceState<Pair<String, String>?>(
+    val frameworkInfoState by produceState<io.github.magisk317.relay.common.utils.FrameworkInfo?>(
         initialValue = null,
     ) {
         value = withContext(Dispatchers.IO) {
-            PackageUtils.getLsposedModuleInfo()
+            FrameworkInfoResolver.resolve(context)
         }
     }
-    val frameworkType = frameworkInfoState?.first ?: stringResource(id = R.string.unknown)
-    val frameworkVersion = frameworkInfoState?.second ?: run {
+    val frameworkType = frameworkInfoState?.displayName ?: stringResource(id = R.string.unknown)
+    val frameworkVersion = frameworkInfoState?.displayVersion ?: run {
         val lsposedVersion = PackageUtils.getPackageVersion(context, Const.LSPOSED_MANAGER_PACKAGE_NAME)
         when {
             lsposedVersion != null && lsposedVersion.first.isNotBlank() ->
@@ -454,7 +450,6 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
         hazeStyle = hazeStyle,
         listState = listState,
         scrollBehavior = scrollBehavior,
-        frameworkIssue = frameworkIssue,
         visibleCardSpecs = visibleCardSpecs,
         cardOrder = cardOrder,
         enabledCardIds = enabledCardIds,
@@ -546,16 +541,6 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
     )
 }
 
-@Composable
-private fun FrameworkMonitorEffect() {
-    LaunchedEffect(Unit) {
-        while (true) {
-            FrameworkCompatibilityMonitor.refreshFromRuntimeLogs()
-            delay(FRAMEWORK_MONITOR_REFRESH_INTERVAL_MS)
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun OverviewContent(
@@ -563,7 +548,6 @@ private fun OverviewContent(
     hazeStyle: HazeStyle,
     listState: androidx.compose.foundation.lazy.LazyListState,
     scrollBehavior: androidx.compose.material3.TopAppBarScrollBehavior,
-    frameworkIssue: FrameworkCompatibilityMonitor.FrameworkIssue?,
     visibleCardSpecs: List<HomeCardSpec>,
     cardOrder: List<String>,
     enabledCardIds: Set<String>,
@@ -619,17 +603,6 @@ private fun OverviewContent(
             ),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            frameworkIssue?.let { issue ->
-                item {
-                    FrameworkIncompatibilityCard(
-                        message = when (issue.issueType) {
-                            FrameworkCompatibilityMonitor.FrameworkIssueType.HOOKER_ANNOTATION_INCOMPATIBLE ->
-                                stringResource(id = R.string.framework_incompatibility_hooker_annotation_message)
-                        },
-                    )
-                }
-            }
-
             items(visibleCardSpecs, key = { it.id }) { spec ->
                 OverviewCardItem(
                     context = context,
@@ -1675,44 +1648,6 @@ private fun buildStatusDiagnostics(
 private fun formatStatusDiagnosticTime(timestampMs: Long): String {
     if (timestampMs <= 0L) return ""
     return SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(timestampMs))
-}
-
-@Composable
-private fun FrameworkIncompatibilityCard(message: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer,
-            contentColor = MaterialTheme.colorScheme.onErrorContainer,
-        ),
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(20.dp)
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Warning,
-                    contentDescription = null,
-                )
-                Text(
-                    text = stringResource(id = R.string.framework_incompatibility_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        }
-    }
 }
 
 @Composable

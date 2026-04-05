@@ -64,6 +64,7 @@ import io.github.magisk317.relay.core.BuildConfig
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.common.constant.Const
 import io.github.magisk317.relay.common.constant.PrefConst
+import io.github.magisk317.relay.common.utils.FrameworkCompatibilityMonitor
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.common.utils.PackageUtils
 import io.github.magisk317.relay.common.utils.Utils
@@ -88,9 +89,11 @@ import io.github.magisk317.relay.ui.privacy.PrivacyPolicyPage
 import io.github.magisk317.relay.ui.theme.AppTheme
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import androidx.lifecycle.lifecycleScope
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -135,7 +138,7 @@ class MainActivity : AppCompatActivity() {
             val appSnackbarHostState = remember { SnackbarHostState() }
             var showPrivacyPolicyDialog by remember { mutableStateOf(false) }
             var showPrivacyPolicyPage by remember { mutableStateOf(false) }
-            var showSmsCodeConflictDialog by remember { mutableStateOf(false) }
+            var blockingStartupDialog by remember { mutableStateOf<BlockingStartupDialog?>(null) }
             var githubUpdateUiState by remember { mutableStateOf<GithubUpdateUiState?>(null) }
             var downloadState by remember { mutableStateOf<UpdateDownloadState>(UpdateDownloadState.Idle) }
             var unknownSourceApk by remember { mutableStateOf<File?>(null) }
@@ -220,10 +223,15 @@ class MainActivity : AppCompatActivity() {
                     XLog.w(
                         "SmsCode conflict guard bypassed by build flag allowConflictBypass=true",
                     )
+                } else if (PackageUtils.isPackageInstalled(context, Const.XPOSED_SMSCODE_PACKAGE_NAME)) {
+                    blockingStartupDialog = BlockingStartupDialog.SmsCodeConflict
                     return@LaunchedEffect
                 }
-                if (PackageUtils.isPackageInstalled(context, Const.XPOSED_SMSCODE_PACKAGE_NAME)) {
-                    showSmsCodeConflictDialog = true
+                val frameworkIssue = withContext(Dispatchers.IO) {
+                    FrameworkCompatibilityMonitor.inspect(context)
+                }
+                if (frameworkIssue != null) {
+                    blockingStartupDialog = BlockingStartupDialog.FrameworkIncompatibility(frameworkIssue)
                 }
             }
             LaunchedEffect(Unit) {
@@ -372,7 +380,7 @@ class MainActivity : AppCompatActivity() {
                                 hazeStyle = hazeStyle,
                             )
 
-                        if (showPrivacyPolicyDialog) {
+                        if (blockingStartupDialog == null && showPrivacyPolicyDialog) {
                             PrivacyPolicyDialog(
                                 onDismiss = {},
                                 onConfirm = {
@@ -393,7 +401,7 @@ class MainActivity : AppCompatActivity() {
                             )
                         }
 
-                        if (showPrivacyPolicyPage) {
+                        if (blockingStartupDialog == null && showPrivacyPolicyPage) {
                             PrivacyPolicyPage(
                                 onDismiss = {
                                     showPrivacyPolicyPage = false
@@ -406,12 +414,16 @@ class MainActivity : AppCompatActivity() {
                             )
                         }
 
-                        if (showSmsCodeConflictDialog) {
-                            AlertDialog(
-                                onDismissRequest = {},
-                                title = { Text(getString(R.string.smscode_conflict_dialog_title)) },
-                                text = {
-                                    Text(
+                        blockingStartupDialog?.let { dialog ->
+                            ExitOnlyConflictDialog(
+                                title = when (dialog) {
+                                    is BlockingStartupDialog.SmsCodeConflict ->
+                                        getString(R.string.smscode_conflict_dialog_title)
+                                    is BlockingStartupDialog.FrameworkIncompatibility ->
+                                        getString(R.string.framework_incompatibility_title)
+                                },
+                                text = when (dialog) {
+                                    is BlockingStartupDialog.SmsCodeConflict -> {
                                         buildAnnotatedString {
                                             append(getString(R.string.smscode_conflict_dialog_prefix))
                                             withStyle(
@@ -437,23 +449,37 @@ class MainActivity : AppCompatActivity() {
                                                 append(getString(R.string.app_name))
                                             }
                                             append(getString(R.string.smscode_conflict_dialog_suffix))
-                                        },
-                                    )
-                                },
-                                confirmButton = {
-                                    FilledTonalButton(
-                                        onClick = {
-                                            showSmsCodeConflictDialog = false
-                                            finish()
-                                        },
-                                    ) {
-                                        Text(getString(R.string.smscode_conflict_dialog_exit))
+                                        }
                                     }
+                                    is BlockingStartupDialog.FrameworkIncompatibility -> {
+                                        val issue = dialog.issue
+                                        buildAnnotatedString {
+                                            append(
+                                                when (issue.issueType) {
+                                                    FrameworkCompatibilityMonitor.FrameworkIssueType.KNOWN_INCOMPATIBLE_FRAMEWORK ->
+                                                        getString(
+                                                            R.string.framework_incompatibility_known_framework_message,
+                                                            issue.frameworkInfo?.displayLabel
+                                                                ?: getString(R.string.unknown),
+                                                        )
+
+                                                    FrameworkCompatibilityMonitor.FrameworkIssueType.HOOKER_ANNOTATION_INCOMPATIBLE ->
+                                                        getString(R.string.framework_incompatibility_hooker_annotation_message)
+                                                },
+                                            )
+                                        }
+                                    }
+                                },
+                                confirmText = getString(R.string.smscode_conflict_dialog_exit),
+                                onExit = {
+                                    blockingStartupDialog = null
+                                    finish()
                                 },
                             )
                         }
 
-                        githubUpdateUiState?.let { updateState ->
+                        if (blockingStartupDialog == null) {
+                            githubUpdateUiState?.let { updateState ->
                             AlertDialog(
                                 onDismissRequest = { githubUpdateUiState = null },
                                 title = { Text(getString(R.string.github_update_dialog_title)) },
@@ -508,6 +534,7 @@ class MainActivity : AppCompatActivity() {
                                     }
                                 },
                             )
+                        }
                         }
 
                         when (val state = downloadState) {
@@ -889,6 +916,32 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+}
+
+private sealed interface BlockingStartupDialog {
+    data object SmsCodeConflict : BlockingStartupDialog
+    data class FrameworkIncompatibility(
+        val issue: FrameworkCompatibilityMonitor.FrameworkIssue,
+    ) : BlockingStartupDialog
+}
+
+@Composable
+private fun ExitOnlyConflictDialog(
+    title: String,
+    text: androidx.compose.ui.text.AnnotatedString,
+    confirmText: String,
+    onExit: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = {},
+        title = { Text(title) },
+        text = { Text(text) },
+        confirmButton = {
+            FilledTonalButton(onClick = onExit) {
+                Text(confirmText)
+            }
+        },
+    )
 }
 
 private data class GithubStructuredUpdate(
