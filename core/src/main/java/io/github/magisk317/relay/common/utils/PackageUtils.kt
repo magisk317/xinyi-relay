@@ -16,13 +16,12 @@ import androidx.annotation.IntDef
 import androidx.core.content.ContextCompat
 import androidx.core.content.pm.PackageInfoCompat
 import io.github.magisk317.relay.common.constant.Const
-import io.github.magisk317.relay.diagnostics.ActivationDiagnosticsStore
-import io.github.magisk317.relay.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.runtime.BuildConfig
+import io.github.magisk317.smscode.runtime.common.packageenv.PackageEnvCore
+import io.github.magisk317.smscode.runtime.common.packageenv.PackageState as SharedPackageState
 import io.github.magisk317.smscode.runtime.common.utils.FrameworkCompatibilityMonitor
 import io.github.magisk317.smscode.runtime.common.utils.FrameworkInfo
-import io.github.magisk317.smscode.runtime.common.utils.FrameworkInfoResolver
 
 /**
  * 包相关工具类
@@ -57,14 +56,10 @@ object PackageUtils {
     annotation class PackageState
 
     private fun checkPackageState(context: Context, packageName: String): Int =
-        if (isPackageEnabled(context, packageName)) {
-            PACKAGE_ENABLED
-        } else {
-            if (isPackageInstalled(context, packageName)) {
-                PACKAGE_DISABLED
-            } else {
-                PACKAGE_NOT_INSTALLED
-            }
+        when (PackageEnvCore.getPackageState(context, packageName)) {
+            SharedPackageState.ENABLED -> PACKAGE_ENABLED
+            SharedPackageState.DISABLED -> PACKAGE_DISABLED
+            SharedPackageState.NOT_INSTALLED -> PACKAGE_NOT_INSTALLED
         }
 
     /**
@@ -72,13 +67,7 @@ object PackageUtils {
      */
     @JvmStatic
     fun isPackageInstalled(context: Context, packageName: String): Boolean {
-        val pm = context.packageManager
-        return try {
-            getPackageInfoCompat(pm, packageName)
-            true
-        } catch (ignored: PackageManager.NameNotFoundException) {
-            false
-        }
+        return PackageEnvCore.isPackageInstalled(context, packageName)
     }
 
     /**
@@ -86,70 +75,23 @@ object PackageUtils {
      */
     @JvmStatic
     fun isPackageEnabled(context: Context, packageName: String): Boolean {
-        val pm = context.packageManager
-        return try {
-            val appInfo = getApplicationInfoCompat(pm, packageName)
-            appInfo.enabled
-        } catch (ignored: PackageManager.NameNotFoundException) {
-            false
-        }
+        return PackageEnvCore.isPackageEnabled(context, packageName)
     }
 
     @JvmStatic
     fun getPackageVersion(context: Context, packageName: String): Pair<String, Long>? {
-        val pm = context.packageManager
-        return try {
-            val packageInfo = getPackageInfoCompat(pm, packageName)
-            val versionName = packageInfo.versionName ?: ""
-            val versionCode = PackageInfoCompat.getLongVersionCode(packageInfo)
-            versionName to versionCode
-        } catch (ignored: PackageManager.NameNotFoundException) {
-            null
-        }
+        val info = PackageEnvCore.getPackageVersion(context, packageName) ?: return null
+        return info.versionName to info.versionCode
     }
-
-    private fun getPackageInfoCompat(pm: PackageManager, packageName: String): PackageInfo =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            pm.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0))
-        } else {
-            @Suppress("DEPRECATION")
-            pm.getPackageInfo(packageName, 0)
-        }
-
-    private fun getApplicationInfoCompat(pm: PackageManager, packageName: String): ApplicationInfo =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            pm.getApplicationInfo(packageName, PackageManager.ApplicationInfoFlags.of(0))
-        } else {
-            @Suppress("DEPRECATION")
-            pm.getApplicationInfo(packageName, 0)
-        }
 
     @JvmStatic
     fun resolveFrameworkInfo(context: Context): FrameworkInfo? {
-        val installedInfo = FrameworkInfoResolver.resolveInstalledModuleInfo()
-        if (installedInfo != null) return installedInfo
-        val snapshot = ActivationDiagnosticsStore.snapshot(context)
-        return FrameworkInfoResolver.resolveFromServiceSnapshot(
-            frameworkName = snapshot.lastServiceFrameworkName,
-            frameworkVersion = snapshot.lastServiceFrameworkVersion,
-        )
+        return PackageEnvCore.resolveFrameworkInfo(context)
     }
 
     @JvmStatic
     fun inspectFrameworkIssue(context: Context): FrameworkCompatibilityMonitor.FrameworkIssue? {
-        val frameworkInfo = resolveFrameworkInfo(context)
-        val now = System.currentTimeMillis()
-        val bootStartAt = (now - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
-        val matched = RuntimeLogStore.query(minutes = null, keyword = null, limit = 2000)
-            .lastOrNull { entry ->
-                entry.timestamp >= bootStartAt &&
-                    entry.message.contains(HOOKER_ANNOTATION_ERROR_TEXT)
-            }
-        return FrameworkCompatibilityMonitor.detectIssue(
-            frameworkInfo = frameworkInfo,
-            latestLogMessage = matched?.message,
-            detectedAt = matched?.timestamp ?: now,
-        )
+        return PackageEnvCore.inspectFrameworkIssue(context)
     }
 
     @JvmStatic
@@ -165,17 +107,7 @@ object PackageUtils {
 
     @JvmStatic
     fun hasRootAccess(): Boolean {
-        val uid = runSuCommand("id -u")?.trim()
-        return uid == "0"
-    }
-
-    private fun runSuCommand(command: String): String? = try {
-        val process = ProcessBuilder("su", "-c", command).start()
-        val output = process.inputStream.bufferedReader().use { it.readText() }
-        val exitCode = process.waitFor()
-        if (exitCode == 0 && output.isNotBlank()) output else null
-    } catch (ignored: Exception) {
-        null
+        return PackageEnvCore.hasRootAccess()
     }
 
     private fun checkAlipayStateMessage(context: Context): String? {
@@ -231,17 +163,8 @@ object PackageUtils {
 
     @JvmStatic
     fun isInstalledFromPlay(context: Context): Boolean = try {
-        val pm = context.packageManager
-        val installer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            pm.getInstallSourceInfo(BuildConfig.APPLICATION_ID).installingPackageName
-        } else {
-            @Suppress("DEPRECATION")
-            pm.getInstallerPackageName(BuildConfig.APPLICATION_ID)
-        }
-        installer == PLAY_STORE_PACKAGE_NAME
-    } catch (ignored: Exception) {
-        false
-    }
+        PackageEnvCore.isInstalledFromPlay(context)
+    } catch (ignored: Exception) { false }
 
     @JvmStatic
     fun showAppDetailsInPlayStore(context: Context) {
@@ -291,15 +214,7 @@ object PackageUtils {
             ) {
                 return false
             }
-            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                val network = cm.activeNetwork ?: return false
-                val capabilities = cm.getNetworkCapabilities(network) ?: return false
-                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
-            } else {
-                @Suppress("DEPRECATION")
-                cm.activeNetworkInfo?.type == ConnectivityManager.TYPE_WIFI
-            }
+            PackageEnvCore.isOnWifi(context)
         } catch (_: SecurityException) {
             false
         }

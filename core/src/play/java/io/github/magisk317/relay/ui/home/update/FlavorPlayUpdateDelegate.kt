@@ -13,7 +13,7 @@ import com.google.android.play.core.install.InstallStateUpdatedListener
 import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.InstallStatus
 import com.google.android.play.core.install.model.UpdateAvailability
-import io.github.magisk317.relay.data.update.UpdateCoordinator
+import io.github.magisk317.smscode.runtime.common.update.UpdateCoordinator
 
 class FlavorPlayUpdateDelegate : PlayUpdateDelegate {
 

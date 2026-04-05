@@ -13,11 +13,11 @@ import io.github.magisk317.relay.data.repository.RelayRecordRepository
 import io.github.magisk317.relay.data.repository.SettingsRepository
 import io.github.magisk317.relay.data.repository.UserSettingsUpdate
 import io.github.magisk317.relay.data.update.GithubUpdateChecker
-import io.github.magisk317.relay.data.update.UpgradeCheckResult
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.webuicore.BuildConfig
 import io.github.magisk317.relay.domain.model.Sender
+import io.github.magisk317.smscode.runtime.common.update.UpgradeCheckResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

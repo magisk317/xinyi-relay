@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.common.constant
 
-import io.github.magisk317.relay.sms.SmsCodeConst
+import io.github.magisk317.smscode.domain.constant.SmsCodeConst
 
 /**
  * Preference相关的常量

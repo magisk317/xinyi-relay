@@ -70,13 +70,13 @@ import io.github.magisk317.relay.common.utils.PackageUtils
 import io.github.magisk317.relay.common.utils.Utils
 import io.github.magisk317.relay.data.repository.SettingsRepository
 import io.github.magisk317.relay.data.update.ApkSecurityVerifier
-import io.github.magisk317.relay.data.update.GithubReleaseInfo
 import io.github.magisk317.relay.data.update.GithubUpdateChecker
 import io.github.magisk317.relay.data.update.UpgradeApkAsset
-import io.github.magisk317.relay.data.update.UpgradeCheckResult
 import io.github.magisk317.relay.data.update.UpgradeDownloader
-import io.github.magisk317.relay.data.update.UpgradeInfo
 import io.github.magisk317.relay.data.update.UpgradeInstaller
+import io.github.magisk317.smscode.runtime.common.update.GithubReleaseInfo
+import io.github.magisk317.smscode.runtime.common.update.UpgradeCheckResult
+import io.github.magisk317.smscode.runtime.common.update.UpgradeInfo
 import io.github.magisk317.smscode.runtime.common.update.UpdatePolicy
 import io.github.magisk317.relay.ui.app.base.UpdateSystemBars
 import io.github.magisk317.relay.ui.app.base.applyEdgeToEdge
