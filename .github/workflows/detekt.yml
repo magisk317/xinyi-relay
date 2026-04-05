@@ -60,9 +60,7 @@ jobs:
 
       - name: Run Detekt
         continue-on-error: true
-        run: |
-          chmod +x gradlew
-          ./gradlew detekt --continue
+        run: bash scripts/with_workspace_gradle_lock.sh detekt --continue
 
       - name: Merge SARIF files
         id: merge_sarif

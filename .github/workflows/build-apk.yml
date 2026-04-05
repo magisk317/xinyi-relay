@@ -101,9 +101,6 @@ jobs:
       - name: Normalize Android SDK platform aliases
         run: bash scripts/ensure_android_sdk_platform_alias.sh
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
       - name: Decode Keystore
         if: env.HAS_RELEASE_KEYSTORE == 'true'
         run: echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > app/release.jks
@@ -117,7 +114,7 @@ jobs:
 
       - name: Build GitHub APK with Splits
         run: >
-          ./gradlew
+          bash scripts/with_workspace_gradle_lock.sh
           ${{ matrix.assemble_task }}
           -PbuildSplits
         env:
@@ -217,9 +214,6 @@ jobs:
       - name: Normalize Android SDK platform aliases
         run: bash scripts/ensure_android_sdk_platform_alias.sh
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
       - name: Decode Keystore
         if: env.HAS_RELEASE_KEYSTORE == 'true'
         run: echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > app/release.jks
@@ -232,7 +226,7 @@ jobs:
           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/play/google-services.json
 
       - name: Build App Bundle
-        run: ./gradlew bundlePlayApi101Release
+        run: bash scripts/with_workspace_gradle_lock.sh bundlePlayApi101Release
         env:
           KEYSTORE_FILE: release.jks
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}

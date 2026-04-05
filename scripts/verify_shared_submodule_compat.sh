@@ -12,7 +12,7 @@ if [[ "${SKIP_GOOGLE_SERVICES:-false}" == "true" ]]; then
   gradle_args+=("-PskipGoogleServices=true")
 fi
 
-./gradlew \
+bash scripts/with_workspace_gradle_lock.sh \
   "${gradle_args[@]}" \
   :smscode-core:smscode-domain:testDebugUnitTest \
   :magisk-ui-kit:compileDebugScreenshotTestKotlin \

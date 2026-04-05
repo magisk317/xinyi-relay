@@ -73,7 +73,7 @@ jobs:
           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/play/google-services.json
       - name: Build & Test
         run: >
-          ./gradlew --warning-mode all
+          bash scripts/with_workspace_gradle_lock.sh --warning-mode all
           app:assembleGithubApi101Debug
           app:assembleGithubLegacyDebug
           app:testGithubApi101DebugUnitTest

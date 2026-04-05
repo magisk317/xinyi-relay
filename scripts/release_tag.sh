@@ -136,8 +136,7 @@ run_pre_push_checks() {
   echo "Running pre-push CI command..."
   (
     cd "$ROOT_DIR"
-    chmod +x gradlew
-    ./gradlew --warning-mode all \
+    bash scripts/with_workspace_gradle_lock.sh --warning-mode all \
       verifyModuleBoundaries \
       verifyStructureBoundaries \
       verifyEmbeddedSubmodules \
@@ -152,7 +151,7 @@ run_pre_push_checks() {
   echo "Running pre-push Detekt command..."
   (
     cd "$ROOT_DIR"
-    ./gradlew detekt --continue
+    bash scripts/with_workspace_gradle_lock.sh detekt --continue
   )
 
   local sarif_files=(

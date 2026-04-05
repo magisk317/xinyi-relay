@@ -35,9 +35,7 @@ jobs:
 
       - name: Run Detekt with Auto Correct
         continue-on-error: true
-        run: |
-          chmod +x gradlew
-          ./gradlew detekt --auto-correct
+        run: bash scripts/with_workspace_gradle_lock.sh detekt --auto-correct
           
       - name: Create Pull Request
         id: cpr
