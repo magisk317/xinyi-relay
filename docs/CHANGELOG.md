@@ -1,4 +1,17 @@
-# 更新日志
+# 更新日志 (CHANGELOG)
+
+本日志记录了项目近期的主要变更。
+
+---
+
+## [v0.0.4] - 2026-04-06
+- 版本：`versionCode 17` / `versionName 0.0.4`。
+- 发布说明：当前版本开始为后续 `Android Agent + 云端 Backend + Web / Desktop` 新架构做准备，嵌入式 WebUI 配置入口已隐藏，并默认停用本地 WebUI 服务与相关开关。
+- `[architecture]` 高级页与嵌入式 WebUI 高级页中的 WebUI 配置入口已隐藏，运行时默认关闭本地 WebUI 开关与 LAN 访问能力，避免旧链路继续自启动。
+- `[forwarding]` 验证码短信转发链路继续收敛：分发前统一补齐 SIM 路由，并让已成功的验证码直发路径抑制后续重复广播，`CARD_SLOT` / SIM 备注显示更稳定。
+- `[release]` 已同步对齐最新 `beta` 远端提交与共享子模块指针，继续收敛构建基线、发布输入与 CI 拉取一致性。
+
+> Full Changelog: https://github.com/magisk317/xinyi-relay/compare/v0.0.3...v0.0.4
 
 ## [v0.0.3]
 
