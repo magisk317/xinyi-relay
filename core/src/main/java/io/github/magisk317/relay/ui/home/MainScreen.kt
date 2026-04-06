@@ -464,7 +464,6 @@ fun MainScreen(
                                     navController.navigate(RelayConfigRoute(origin = ROUTE_ORIGIN_ADVANCED))
                                 },
                                 onForwardKeepAliveClick = { navController.navigate(ForwardKeepAliveRoute) },
-                                onWebUiConfigClick = { navController.navigate(WebUiConfigRoute) },
                                 onScheduledReminderClick = { navController.navigate(ScheduledReminderRoute) },
                             )
                         }

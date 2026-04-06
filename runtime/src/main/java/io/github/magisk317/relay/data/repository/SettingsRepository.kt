@@ -4,6 +4,7 @@ import android.content.Context
 import io.github.magisk317.relay.common.constant.CodeNotificationOwner
 import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.common.constant.PrefConst
+import io.github.magisk317.relay.common.feature.WebUiFeatureGate
 import io.github.magisk317.relay.common.utils.SensitiveLogPolicy
 import io.github.magisk317.relay.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.data.secret.InternalSecretStore
@@ -431,13 +432,13 @@ class SettingsRepository(
     suspend fun getAdvancedSnapshot(): AdvancedSettingsSnapshot {
         return AdvancedSettingsSnapshot(
             enableSmsBlacklist = preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE_SMS_BLACKLIST, false),
-            webUiLanAccess = preferenceDataSource.getBoolean(PrefConst.KEY_WEBUI_LAN_ACCESS, false),
+            webUiLanAccess = false,
         )
     }
 
     suspend fun updateAdvanced(update: AdvancedSettingsUpdate): AdvancedSettingsSnapshot {
         update.enableSmsBlacklist?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE_SMS_BLACKLIST, it) }
-        update.webUiLanAccess?.let { preferenceDataSource.setBoolean(PrefConst.KEY_WEBUI_LAN_ACCESS, it) }
+        preferenceDataSource.setBoolean(PrefConst.KEY_WEBUI_LAN_ACCESS, false)
         preferenceDataSource.syncToSharedPrefs()
         return getAdvancedSnapshot()
     }
@@ -639,8 +640,8 @@ class SettingsRepository(
 
     suspend fun getWebUiConfig(): WebUiConfigSnapshot {
         return WebUiConfigSnapshot(
-            enabled = preferenceDataSource.getBoolean(PrefConst.KEY_WEBUI_ENABLE, true),
-            lanAccess = preferenceDataSource.getBoolean(PrefConst.KEY_WEBUI_LAN_ACCESS, false),
+            enabled = false,
+            lanAccess = false,
             port = preferenceDataSource.getString(PrefConst.KEY_WEBUI_PORT, PrefConst.KEY_WEBUI_PORT_DEFAULT),
             username = preferenceDataSource.getString(PrefConst.KEY_WEBUI_USERNAME, PrefConst.KEY_WEBUI_USERNAME_DEFAULT),
             password = InternalSecretStore.getOrMigrateString(
@@ -654,13 +655,15 @@ class SettingsRepository(
     }
 
     suspend fun updateWebUiConfig(update: WebUiConfigUpdate): WebUiConfigSnapshot {
-        update.enabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_WEBUI_ENABLE, it) }
-        update.lanAccess?.let { preferenceDataSource.setBoolean(PrefConst.KEY_WEBUI_LAN_ACCESS, it) }
-        update.port?.let { preferenceDataSource.setString(PrefConst.KEY_WEBUI_PORT, it) }
-        update.username?.let { preferenceDataSource.setString(PrefConst.KEY_WEBUI_USERNAME, it) }
-        update.password?.let {
-            InternalSecretStore.putString(appContext, PrefConst.KEY_WEBUI_PASSWORD, it)
-            preferenceDataSource.setString(PrefConst.KEY_WEBUI_PASSWORD, "")
+        preferenceDataSource.setBoolean(PrefConst.KEY_WEBUI_ENABLE, false)
+        preferenceDataSource.setBoolean(PrefConst.KEY_WEBUI_LAN_ACCESS, false)
+        if (WebUiFeatureGate.EMBEDDED_WEBUI_ENABLED) {
+            update.port?.let { preferenceDataSource.setString(PrefConst.KEY_WEBUI_PORT, it) }
+            update.username?.let { preferenceDataSource.setString(PrefConst.KEY_WEBUI_USERNAME, it) }
+            update.password?.let {
+                InternalSecretStore.putString(appContext, PrefConst.KEY_WEBUI_PASSWORD, it)
+                preferenceDataSource.setString(PrefConst.KEY_WEBUI_PASSWORD, "")
+            }
         }
         preferenceDataSource.syncToSharedPrefs()
         return getWebUiConfig()

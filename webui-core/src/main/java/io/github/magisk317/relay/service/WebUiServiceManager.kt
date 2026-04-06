@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.service
 
 import android.content.Context
+import io.github.magisk317.relay.common.feature.WebUiFeatureGate
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.webui.WebUiConfigStore
 import kotlinx.coroutines.CoroutineScope
@@ -17,6 +18,11 @@ class WebUiServiceManager(private val context: Context) {
 
     fun start() {
         if (configJob != null) return
+        if (!WebUiFeatureGate.EMBEDDED_WEBUI_ENABLED) {
+            XLog.w("WebUI service manager disabled by feature gate, stopping foreground service")
+            WebUiForegroundService.stop(context)
+            return
+        }
         XLog.i("WebUI service manager start requested")
         configJob = scope.launch {
             configStore.ensureInitialized()

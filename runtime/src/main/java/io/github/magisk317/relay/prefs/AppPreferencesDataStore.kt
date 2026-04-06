@@ -610,7 +610,7 @@ object AppPreferencesDataStore {
         )
         editor.putBoolean(
             PrefConst.KEY_WEBUI_ENABLE,
-            getBoolean(context, PrefConst.KEY_WEBUI_ENABLE, true),
+            getBoolean(context, PrefConst.KEY_WEBUI_ENABLE, false),
         )
         editor.putBoolean(
             PrefConst.KEY_WEBUI_LAN_ACCESS,

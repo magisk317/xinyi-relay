@@ -34,7 +34,6 @@ fun AdvancedScreen(
     onInterceptClick: () -> Unit,
     onRelayConfigClick: () -> Unit,
     onForwardKeepAliveClick: () -> Unit,
-    onWebUiConfigClick: () -> Unit,
     onScheduledReminderClick: () -> Unit,
 ) {
     Scaffold(
@@ -74,12 +73,6 @@ fun AdvancedScreen(
                 subtitle = stringResource(id = R.string.advanced_filter_summary),
                 icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = null) },
                 onClick = onInterceptClick,
-            )
-            AdvancedEntryCard(
-                title = stringResource(id = R.string.pref_webui_config_title),
-                subtitle = stringResource(id = R.string.pref_webui_config_summary_short),
-                icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                onClick = onWebUiConfigClick,
             )
         }
     }

@@ -7,7 +7,7 @@ class WebUiManager(private val context: Context) {
     private val delegate by lazy { WebUiServiceManager(context) }
 
     fun start() {
-        delegate.start()
+        delegate.stop()
     }
 
     fun stop() {

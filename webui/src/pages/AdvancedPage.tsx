@@ -4,9 +4,9 @@ import { apiClient } from '../api/client'
 import type { AdvancedState, InterceptState, SettingsState } from '../types'
 import { trackEvent } from '../analytics'
 import { useI18n } from '../i18n'
-import { ActionButton, ErrorBanner, LoadingCard, PageShell, RelayBadge, SurfaceCard, ToggleRow, cx } from '../template'
+import { ActionButton, ErrorBanner, LoadingCard, PageShell, SurfaceCard, ToggleRow, cx } from '../template'
 
-type AdvancedSectionKey = 'relay' | 'alerts' | 'intercept' | 'webui'
+type AdvancedSectionKey = 'relay' | 'alerts' | 'intercept'
 
 export function AdvancedPage() {
   const { t } = useI18n()
@@ -107,12 +107,6 @@ export function AdvancedPage() {
             active={activeSection === 'intercept'}
             onClick={() => setActiveSection('intercept')}
           />
-          <EntryCard
-            title={t('advanced.entry.webuiTitle')}
-            subtitle={t('advanced.entry.webuiSubtitle')}
-            active={activeSection === 'webui'}
-            onClick={() => setActiveSection('webui')}
-          />
         </div>
       </SurfaceCard>
 
@@ -203,26 +197,6 @@ export function AdvancedPage() {
               hint={t('advanced.intercept.contentHint')}
               onBlur={(value) => void patchIntercept({ smsBlacklistContent: value })}
             />
-          </div>
-        </SurfaceCard>
-      )}
-
-      {activeSection === 'webui' && (
-        <SurfaceCard title={t('advanced.webuiTitle')} subtitle={t('advanced.webuiSubtitle')}>
-          <div className="space-y-4">
-            <ToggleRow
-              label={t('advanced.webui.allowLan')}
-              hint={t('advanced.webui.allowLanHint')}
-              checked={advanced.webUiLanAccess}
-              onChange={(value) => void patchAdvanced({ webUiLanAccess: value })}
-            />
-            <div className="flex flex-wrap gap-2">
-              <RelayBadge tone={advanced.webUiLanAccess ? 'success' : 'muted'}>
-                {advanced.webUiLanAccess ? t('common.lanEnabled') : t('common.systemOnly')}
-              </RelayBadge>
-              <RelayBadge tone="accent">{t('common.defaultUsername')}</RelayBadge>
-              <RelayBadge>{t('common.httpsWebui')}</RelayBadge>
-            </div>
           </div>
         </SurfaceCard>
       )}

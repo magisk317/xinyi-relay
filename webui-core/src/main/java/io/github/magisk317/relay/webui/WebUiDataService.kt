@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.pm.PackageInfoCompat
 import io.github.magisk317.relay.common.constant.PrefConst
+import io.github.magisk317.relay.common.feature.WebUiFeatureGate
 import io.github.magisk317.relay.data.db.entity.AppInfo
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.data.repository.AnalyticsRepository
@@ -160,7 +161,7 @@ class WebUiDataService(context: Context) {
         val advanced = settingsRepository.getAdvancedSnapshot()
         AdvancedState(
             enableSmsBlacklist = advanced.enableSmsBlacklist,
-            webUiLanAccess = advanced.webUiLanAccess,
+            webUiLanAccess = false,
             senderTotal = senders.size,
             senderEnabled = senders.count { it.status == 1 },
             senderAppNotifyEnabled = senders.count { it.status == 1 && it.receiveAppNotify == 1 },
@@ -171,7 +172,7 @@ class WebUiDataService(context: Context) {
         settingsRepository.updateAdvanced(
             AdvancedSettingsUpdate(
                 enableSmsBlacklist = payload.enableSmsBlacklist,
-                webUiLanAccess = payload.webUiLanAccess,
+                webUiLanAccess = payload.webUiLanAccess?.takeIf { WebUiFeatureGate.EMBEDDED_WEBUI_ENABLED },
             ),
         )
         getAdvancedState()

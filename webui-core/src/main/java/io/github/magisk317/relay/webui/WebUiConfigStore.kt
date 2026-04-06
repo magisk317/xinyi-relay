@@ -3,6 +3,7 @@ package io.github.magisk317.relay.webui
 import android.content.Context
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.common.constant.PrefConst
+import io.github.magisk317.relay.common.feature.WebUiFeatureGate
 import io.github.magisk317.relay.data.secret.InternalSecretStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -23,7 +24,7 @@ class WebUiConfigStore(context: Context) {
 
     fun observe(): Flow<WebUiConfigSnapshot> {
         return combine(
-            preferenceDataSource.getBooleanFlow(PrefConst.KEY_WEBUI_ENABLE, true),
+            preferenceDataSource.getBooleanFlow(PrefConst.KEY_WEBUI_ENABLE, false),
             preferenceDataSource.getBooleanFlow(PrefConst.KEY_WEBUI_LAN_ACCESS, false),
             preferenceDataSource.getStringFlow(PrefConst.KEY_WEBUI_PORT, PrefConst.KEY_WEBUI_PORT_DEFAULT),
             preferenceDataSource.getStringFlow(PrefConst.KEY_WEBUI_USERNAME, PrefConst.KEY_WEBUI_USERNAME_DEFAULT),
@@ -41,7 +42,7 @@ class WebUiConfigStore(context: Context) {
 
     suspend fun loadSnapshot(): WebUiConfigSnapshot {
         return snapshotFrom(
-            enabled = preferenceDataSource.getBoolean(PrefConst.KEY_WEBUI_ENABLE, true),
+            enabled = preferenceDataSource.getBoolean(PrefConst.KEY_WEBUI_ENABLE, false),
             allowLanAccess = preferenceDataSource.getBoolean(PrefConst.KEY_WEBUI_LAN_ACCESS, false),
             portString = preferenceDataSource.getString(PrefConst.KEY_WEBUI_PORT, PrefConst.KEY_WEBUI_PORT_DEFAULT),
             username = preferenceDataSource.getString(
@@ -59,8 +60,8 @@ class WebUiConfigStore(context: Context) {
     }
 
     suspend fun ensureInitialized() {
-        val webUiEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_WEBUI_ENABLE, true)
-        preferenceDataSource.setBoolean(PrefConst.KEY_WEBUI_ENABLE, webUiEnabled)
+        preferenceDataSource.setBoolean(PrefConst.KEY_WEBUI_ENABLE, false)
+        preferenceDataSource.setBoolean(PrefConst.KEY_WEBUI_LAN_ACCESS, false)
         val port = preferenceDataSource.getString(PrefConst.KEY_WEBUI_PORT, "")
         if (port.isBlank()) {
             preferenceDataSource.setString(PrefConst.KEY_WEBUI_PORT, PrefConst.KEY_WEBUI_PORT_DEFAULT)
@@ -96,13 +97,15 @@ class WebUiConfigStore(context: Context) {
         val port = portString.toIntOrNull()
             ?.takeIf { it in 1..65535 }
             ?: PrefConst.KEY_WEBUI_PORT_DEFAULT.toInt()
+        val resolvedEnabled = WebUiFeatureGate.EMBEDDED_WEBUI_ENABLED && enabled
+        val resolvedAllowLan = WebUiFeatureGate.EMBEDDED_WEBUI_ENABLED && allowLanAccess
         return WebUiConfigSnapshot(
-            enabled = enabled,
-            host = if (allowLanAccess) "0.0.0.0" else "127.0.0.1",
+            enabled = resolvedEnabled,
+            host = if (resolvedAllowLan) "0.0.0.0" else "127.0.0.1",
             port = port,
             username = username.ifBlank { PrefConst.KEY_WEBUI_USERNAME_DEFAULT },
             password = password,
-            allowLanAccess = allowLanAccess,
+            allowLanAccess = resolvedAllowLan,
         )
     }
 }
