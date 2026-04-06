@@ -3,6 +3,7 @@ package io.github.magisk317.relay.xp.hook.code
 import android.content.Context
 import android.content.Intent
 import android.os.Process
+import io.github.magisk317.relay.xp.hook.SmsForwardConvergence
 import io.github.magisk317.relay.xpbridge.PreparedSmsHookDispatch
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
@@ -33,7 +34,7 @@ internal class SmsDispatchIntentProcessor(
                 eventId = eventId,
             )
         },
-    private val smsForwardDispatcher: (Context, PreparedSmsHookDispatch, String) -> Unit =
+    private val smsForwardDispatcher: (Context, PreparedSmsHookDispatch, String) -> Boolean =
         { resolvedPluginContext, prepared, eventId ->
             val dispatchResult = XpDispatchCoordinator.dispatchPreparedSms(
                 context = resolvedPluginContext,
@@ -45,6 +46,7 @@ internal class SmsDispatchIntentProcessor(
                     "SmsDispatchIntentProcessor: IPC token empty, skip direct sms forward. event_id=%s",
                     eventId,
                 )
+                false
             } else {
                 if (dispatchResult.bypassUsed) {
                     XLog.w(
@@ -59,6 +61,7 @@ internal class SmsDispatchIntentProcessor(
                     prepared.smsMsg.smsCode?.isNotBlank() == true,
                     dispatchResult.tokenPresent,
                 )
+                true
             }
         },
     private val delegateFactory: (
@@ -112,7 +115,10 @@ internal class SmsDispatchIntentProcessor(
             null
         }
         if (preparedForward?.smsMsg?.smsCode?.isNotBlank() == true) {
-            smsForwardDispatcher(pluginContext, preparedForward, eventId)
+            val dispatched = smsForwardDispatcher(pluginContext, preparedForward, eventId)
+            if (dispatched) {
+                SmsForwardConvergence.markParsedSmsForwardDispatched(intent)
+            }
         }
         return Outcome(
             smsMsg = outcome.smsMsg,

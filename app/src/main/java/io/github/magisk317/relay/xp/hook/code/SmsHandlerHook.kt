@@ -296,6 +296,7 @@ class SmsHandlerHook : BaseHook() {
             eventId = eventId,
             inboundSmsHandler = param.thisObject,
             receiver = param.args.getOrNull(receiverIndex),
+            hookArgs = param.args,
         )
         if (outcome.inboundBlocked) {
             param.result = null

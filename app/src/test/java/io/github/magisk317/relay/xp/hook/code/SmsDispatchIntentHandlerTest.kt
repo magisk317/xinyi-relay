@@ -154,6 +154,48 @@ class SmsDispatchIntentHandlerTest {
         assertEquals("1068", deletedSender)
     }
 
+    @Test
+    fun handle_mutatesIntentBeforeDispatchProcessorRuns() {
+        stubXLog()
+        val runtime = runtime()
+        var mutatorRan = false
+        val inboundSmsHandler = Any()
+        val hookArg = Any()
+        val handler = SmsDispatchIntentHandler(
+            runtimeResolver = { runtime },
+            moduleEnabledReader = { true },
+            conflictSuppressor = { _, _ -> false },
+            preDispatchIntentMutator = { _, resolvedHandler, hookArgs ->
+                assertEquals(inboundSmsHandler, resolvedHandler)
+                assertEquals(hookArg, hookArgs?.singleOrNull())
+                mutatorRan = true
+            },
+            dispatchProcessor = { _, _, _, _ ->
+                assertTrue(mutatorRan)
+                SmsDispatchIntentProcessor.Outcome(
+                    smsMsg = null,
+                    blacklistResult = noMatch(),
+                    parseResult = null,
+                    decision = SmsHandlerDispatchDecision.Decision(
+                        shouldDeleteByBlacklist = false,
+                    ),
+                )
+            },
+        )
+
+        val outcome = handler.handle(
+            intent = mock<Intent>(autofill),
+            eventId = "evt-5",
+            inboundSmsHandler = inboundSmsHandler,
+            receiver = Any(),
+            hookArgs = arrayOf(hookArg),
+        )
+
+        assertNull(outcome.stopReason)
+        assertFalse(outcome.inboundBlocked)
+        assertTrue(mutatorRan)
+    }
+
     private fun runtime(): SmsHookRuntimeContext {
         return SmsHookRuntimeContext(
             pluginContext = mock<Context>(autofill),

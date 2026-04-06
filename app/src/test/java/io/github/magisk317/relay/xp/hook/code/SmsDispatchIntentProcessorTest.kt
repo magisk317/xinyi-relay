@@ -3,7 +3,12 @@ package io.github.magisk317.relay.xp.hook.code
 import android.content.Context
 import android.content.Intent
 import dev.mokkery.MockMode.autofill
+import dev.mokkery.answering.returns
+import dev.mokkery.every
 import dev.mokkery.mock
+import dev.mokkery.verify
+import dev.mokkery.verify.VerifyMode.Companion.exactly
+import io.github.magisk317.relay.xp.hook.EXTRA_PARSED_SMS_FORWARD_DISPATCHED
 import io.github.magisk317.relay.xpbridge.PreparedSmsHookDispatch
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
@@ -99,6 +104,7 @@ class SmsDispatchIntentProcessorTest {
         val pluginContext = mock<Context>(autofill)
         val phoneContext = mock<Context>(autofill)
         val intent = mock<Intent>(autofill)
+        every { intent.putExtra(EXTRA_PARSED_SMS_FORWARD_DISPATCHED, true) } returns intent
         val smsMsg = SmsMsg(
             sender = "1068",
             body = "otp 123456",
@@ -132,6 +138,7 @@ class SmsDispatchIntentProcessorTest {
             smsForwardDispatcher = { _, prepared, eventId ->
                 dispatchedPrepared = prepared
                 dispatchedEventId = eventId
+                true
             },
         )
 
@@ -143,6 +150,40 @@ class SmsDispatchIntentProcessorTest {
         assertEquals("123456", dispatchedPrepared?.smsMsg?.smsCode)
         assertEquals("com.bank.app", dispatchedPrepared?.smsMsg?.packageName)
         assertEquals("evt-3", dispatchedEventId)
+        verify { intent.putExtra(EXTRA_PARSED_SMS_FORWARD_DISPATCHED, true) }
+    }
+
+    @Test
+    fun handle_doesNotMarkIntentWhenDirectSmsForwardFails() {
+        stubXLog()
+        val pluginContext = mock<Context>(autofill)
+        val phoneContext = mock<Context>(autofill)
+        val intent = mock<Intent>(autofill)
+        val smsMsg = SmsMsg(
+            sender = "1068",
+            body = "otp 123456",
+            date = 100L,
+            msgType = SmsMsg.MSG_TYPE_SMS,
+        )
+        val processor = SmsDispatchIntentProcessor(
+            pluginContext = pluginContext,
+            phoneContext = phoneContext,
+            incomingSmsParser = { smsMsg },
+            blacklistMatcher = { _, _, _ -> BlacklistMatchResult(matched = false) },
+            codeParser = { _, _, _, _ -> ParseResult().apply { isBlockSms = false } },
+            smsForwardPreparer = { _, _, _, sourceIntent, eventId ->
+                XpDispatchCoordinator.prepareParsedSms(
+                    smsMsg = smsMsg.copy(smsCode = "123456"),
+                    sourceIntent = sourceIntent,
+                    eventId = eventId,
+                )
+            },
+            smsForwardDispatcher = { _, _, _ -> false },
+        )
+
+        processor.handle(intent, "evt-3b")
+
+        verify(exactly(0)) { intent.putExtra(EXTRA_PARSED_SMS_FORWARD_DISPATCHED, true) }
     }
 
     @Test
@@ -171,7 +212,10 @@ class SmsDispatchIntentProcessorTest {
                     eventId = eventId,
                 )
             },
-            smsForwardDispatcher = { _, _, _ -> dispatched = true },
+            smsForwardDispatcher = { _, _, _ ->
+                dispatched = true
+                true
+            },
         )
 
         processor.handle(intent, "evt-4")

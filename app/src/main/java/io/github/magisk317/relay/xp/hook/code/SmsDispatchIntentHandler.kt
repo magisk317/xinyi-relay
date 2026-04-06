@@ -5,6 +5,7 @@ import android.content.Intent
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
+import io.github.magisk317.relay.xp.hook.forward.SmsForwardSimRoutingResolver
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
 import io.github.magisk317.smscode.verification.DispatchGateDecision
@@ -27,6 +28,13 @@ internal class SmsDispatchIntentHandler(
     private val conflictNotifier: (Context, Context, String, String) -> Unit =
         SmsCodeConflictNoticeHelper::notifyConflictOnSms,
     private val suppressionLogger: (String) -> Unit = {},
+    private val preDispatchIntentMutator: (Intent, Any?, Array<Any?>?) -> Unit = { intent, inboundSmsHandler, hookArgs ->
+        SmsForwardSimRoutingResolver.ensureSimRoutingExtras(
+            intent = intent,
+            handler = inboundSmsHandler,
+            args = hookArgs,
+        )
+    },
     private val blacklistDeleteScheduler: (Context, Context, SmsMsg) -> Unit = { _, _, _ -> },
     private val inboundBlocker: (Any, Any, String, String) -> Unit = { _, _, _, _ -> },
     private val gateEvaluator: (Boolean, Boolean) -> DispatchGateDecision = ::defaultGateDecision,
@@ -72,7 +80,9 @@ internal class SmsDispatchIntentHandler(
         eventId: String,
         inboundSmsHandler: Any?,
         receiver: Any?,
+        hookArgs: Array<Any?>? = null,
     ): Outcome {
+        preDispatchIntentMutator(intent, inboundSmsHandler, hookArgs)
         val outcome = delegate.handle(
             intent = intent,
             eventId = eventId,

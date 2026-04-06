@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Process
 import android.provider.Telephony
 import io.github.magisk317.relay.BuildConfig
+import io.github.magisk317.relay.xp.hook.SmsForwardConvergence
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
@@ -126,6 +127,13 @@ class SmsForwardHook : BaseHook() {
             return null
         }
         val eventId = XpDispatchCoordinator.ensureIncomingEventId(intent)
+        if (SmsForwardConvergence.wasParsedSmsForwardDispatched(intent)) {
+            XLog.i(
+                "SmsForwardHook skipped: parsed sms forward already dispatched. event_id=%s",
+                eventId,
+            )
+            return null
+        }
         val runtime = runtimeSession.recordHeartbeat("sms_forward_dispatch") ?: run {
             XLog.e(
                 "SmsForwardHook: Context is null, skip. pluginContext=%s phoneContext=%s",
