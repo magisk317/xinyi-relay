@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.25.8-alpine3.23 AS build
+FROM --platform=$BUILDPLATFORM golang:1.26.1-alpine3.23 AS build
 WORKDIR /src
 ARG GOPROXY=https://goproxy.cn,direct
 ARG TARGETOS
