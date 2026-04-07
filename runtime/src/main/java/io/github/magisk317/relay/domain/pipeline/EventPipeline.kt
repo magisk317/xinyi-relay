@@ -48,91 +48,96 @@ class EventPipeline(
     private val systemInfoProvider: SystemInfoProvider,
     private val settingsRepository: SettingsRepository,
     private val preferenceDataSource: PreferenceDataSource,
+    private val messageSyncTrigger: ((String) -> Unit)? = null,
 ) {
     suspend fun process(
         event: RelayEvent,
         preferredRecordId: Long? = null,
         traceId: String? = null,
     ): EventPipelineResult {
-        val gateDecision = eventGatekeeper.check(event, traceId.orEmpty())
-        if (!gateDecision.allowed) {
-            ForwardFlowLog.w(traceId, "Event gate blocked type=${event.messageType} reason=${gateDecision.reason}")
-            return EventPipelineResult(dispatched = false, blockedReason = gateDecision.reason)
-        }
+        try {
+            val gateDecision = eventGatekeeper.check(event, traceId.orEmpty())
+            if (!gateDecision.allowed) {
+                ForwardFlowLog.w(traceId, "Event gate blocked type=${event.messageType} reason=${gateDecision.reason}")
+                return EventPipelineResult(dispatched = false, blockedReason = gateDecision.reason)
+            }
 
-        val preRouteDecision = routingResolver.evaluatePreRoute(event)
-        if (preRouteDecision.blocked) {
-            ForwardFlowLog.w(
-                traceId,
-                "Forward filter pre-route blocked type=${event.messageType} pkg=${event.packageName} reason=${preRouteDecision.reason}",
-            )
-            return EventPipelineResult(dispatched = false, blockedReason = preRouteDecision.reason)
-        }
+            val preRouteDecision = routingResolver.evaluatePreRoute(event)
+            if (preRouteDecision.blocked) {
+                ForwardFlowLog.w(
+                    traceId,
+                    "Forward filter pre-route blocked type=${event.messageType} pkg=${event.packageName} reason=${preRouteDecision.reason}",
+                )
+                return EventPipelineResult(dispatched = false, blockedReason = preRouteDecision.reason)
+            }
 
-        val recordContext = resolveRecordContext(event, preferredRecordId)
+            val recordContext = resolveRecordContext(event, preferredRecordId)
 
-        if (!preferenceDataSource.getBoolean(PrefConst.KEY_RELAY_FEATURES_ENABLED, true)) {
-            val reason = "转发功能已关闭"
-            dispatchResultWriter.persistForwardResult(
-                recordId = recordContext.recordId,
-                results = emptyList(),
-                defaultMessage = reason,
-                msgTypeForAnalytics = recordContext.smsMsgType,
-            )
-            ForwardFlowLog.i(traceId, "Relay feature gate blocked sender dispatch type=${event.messageType}")
-            return EventPipelineResult(dispatched = false, blockedReason = reason)
-        }
-
-        if (!isForwardTypeEnabled(event.messageType)) {
-            val reason = "转发开关已关闭"
-            dispatchResultWriter.persistForwardResult(
-                recordId = recordContext.recordId,
-                results = emptyList(),
-                defaultMessage = reason,
-                msgTypeForAnalytics = recordContext.smsMsgType,
-            )
-            ForwardFlowLog.i(traceId, "Forward type gate blocked sender dispatch type=${event.messageType}")
-            return EventPipelineResult(dispatched = false, blockedReason = reason)
-        }
-
-        return runCatching {
-            val senderResolution = resolveSenders(event, traceId)
-            if (senderResolution.selectedSenders.isEmpty()) {
-                val reason = senderResolution.blockedReason ?: "未启用任何转发通道"
+            if (!preferenceDataSource.getBoolean(PrefConst.KEY_RELAY_FEATURES_ENABLED, true)) {
+                val reason = "转发功能已关闭"
                 dispatchResultWriter.persistForwardResult(
                     recordId = recordContext.recordId,
                     results = emptyList(),
                     defaultMessage = reason,
-                    forcedStatus = senderResolution.forcedStatus,
                     msgTypeForAnalytics = recordContext.smsMsgType,
                 )
-                ForwardFlowLog.w(traceId, "No eligible senders: $reason")
+                ForwardFlowLog.i(traceId, "Relay feature gate blocked sender dispatch type=${event.messageType}")
                 return EventPipelineResult(dispatched = false, blockedReason = reason)
             }
 
-            val msgForSend = buildDispatchPayload(event)
-            val dispatchResults = dispatchExecutor.dispatchToSenders(
-                senderResolution.selectedSenders,
-                msgForSend,
-                traceId,
-            )
-            dispatchResultWriter.persistForwardResult(
-                recordId = recordContext.recordId,
-                results = dispatchResults,
-                defaultMessage = "未启用任何转发通道",
-                msgTypeForAnalytics = recordContext.smsMsgType,
-            )
-            EventPipelineResult(dispatched = true)
-        }.getOrElse { error ->
-            XLog.e("Event pipeline failed", error)
-            dispatchResultWriter.persistForwardResult(
-                recordId = recordContext.recordId,
-                results = emptyList(),
-                defaultMessage = "转发异常: ${error.message ?: error.javaClass.simpleName}",
-                forceFailed = true,
-                msgTypeForAnalytics = recordContext.smsMsgType,
-            )
-            EventPipelineResult(dispatched = false, dispatchError = error)
+            if (!isForwardTypeEnabled(event.messageType)) {
+                val reason = "转发开关已关闭"
+                dispatchResultWriter.persistForwardResult(
+                    recordId = recordContext.recordId,
+                    results = emptyList(),
+                    defaultMessage = reason,
+                    msgTypeForAnalytics = recordContext.smsMsgType,
+                )
+                ForwardFlowLog.i(traceId, "Forward type gate blocked sender dispatch type=${event.messageType}")
+                return EventPipelineResult(dispatched = false, blockedReason = reason)
+            }
+
+            return runCatching {
+                val senderResolution = resolveSenders(event, traceId)
+                if (senderResolution.selectedSenders.isEmpty()) {
+                    val reason = senderResolution.blockedReason ?: "未启用任何转发通道"
+                    dispatchResultWriter.persistForwardResult(
+                        recordId = recordContext.recordId,
+                        results = emptyList(),
+                        defaultMessage = reason,
+                        forcedStatus = senderResolution.forcedStatus,
+                        msgTypeForAnalytics = recordContext.smsMsgType,
+                    )
+                    ForwardFlowLog.w(traceId, "No eligible senders: $reason")
+                    return EventPipelineResult(dispatched = false, blockedReason = reason)
+                }
+
+                val msgForSend = buildDispatchPayload(event)
+                val dispatchResults = dispatchExecutor.dispatchToSenders(
+                    senderResolution.selectedSenders,
+                    msgForSend,
+                    traceId,
+                )
+                dispatchResultWriter.persistForwardResult(
+                    recordId = recordContext.recordId,
+                    results = dispatchResults,
+                    defaultMessage = "未启用任何转发通道",
+                    msgTypeForAnalytics = recordContext.smsMsgType,
+                )
+                EventPipelineResult(dispatched = true)
+            }.getOrElse { error ->
+                XLog.e("Event pipeline failed", error)
+                dispatchResultWriter.persistForwardResult(
+                    recordId = recordContext.recordId,
+                    results = emptyList(),
+                    defaultMessage = "转发异常: ${error.message ?: error.javaClass.simpleName}",
+                    forceFailed = true,
+                    msgTypeForAnalytics = recordContext.smsMsgType,
+                )
+                EventPipelineResult(dispatched = false, dispatchError = error)
+            }
+        } finally {
+            messageSyncTrigger?.invoke(event.messageType.name.lowercase())
         }
     }
 

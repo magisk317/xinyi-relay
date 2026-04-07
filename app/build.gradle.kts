@@ -4,7 +4,6 @@ plugins {
     alias(libs.plugins.mokkery)
     id("relay.android.common")
     id("relay.app.signing")
-    id("relay.app.webui")
     id("relay.app.packaging")
 }
 
@@ -95,7 +94,7 @@ mokkery {
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(project(":core"))
-    implementation(project(":webui-core"))
+    implementation(project(":runtime"))
     implementation(project(":xpbridge-core"))
     implementation(project(":smscode-core:smscode-domain"))
     implementation(project(":smscode-core:smscode-verification-core"))

@@ -7,6 +7,7 @@ import io.github.magisk317.relay.data.db.AppDatabase
 import io.github.magisk317.relay.data.repository.AnalyticsRepository
 import io.github.magisk317.relay.data.repository.ConfigRepository
 import io.github.magisk317.relay.data.repository.RelayRecordRepository
+import io.github.magisk317.relay.data.repository.RemoteAgentRepository
 import io.github.magisk317.relay.data.repository.SettingsRepository
 import io.github.magisk317.relay.domain.pipeline.DispatchExecutor
 import io.github.magisk317.relay.domain.pipeline.DispatchResultWriter
@@ -44,12 +45,17 @@ class RuntimeGraph private constructor(
         AnalyticsRepository(appContext, database)
     }
 
+    val remoteAgentRepository: RemoteAgentRepository by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+        RemoteAgentRepository(appContext, preferenceDataSource)
+    }
+
     val runtimeRecordFacade: RuntimeRecordFacade by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         RuntimeRecordFacade(appContext, database, relayRecordRepository)
     }
 
     val configRepository: ConfigRepository by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         ConfigRepository(
+            context = appContext,
             db = database,
             smsCodeRuleDao = database.smsCodeRuleDao(),
             appInfoDao = database.appInfoDao(),
@@ -105,6 +111,7 @@ class RuntimeGraph private constructor(
             systemInfoProvider = systemInfoProvider,
             settingsRepository = settingsRepository,
             preferenceDataSource = preferenceDataSource,
+            messageSyncTrigger = remoteAgentRepository::scheduleMessageTriggeredSync,
         )
     }
 

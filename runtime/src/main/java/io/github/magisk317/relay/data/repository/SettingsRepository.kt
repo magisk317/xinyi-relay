@@ -6,6 +6,7 @@ import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.feature.WebUiFeatureGate
 import io.github.magisk317.relay.common.utils.SensitiveLogPolicy
+import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.data.secret.InternalSecretStore
 import io.github.magisk317.relay.domain.model.ForwardCommonConfig
@@ -308,7 +309,7 @@ class SettingsRepository(
     suspend fun updateGeneralSettings(update: GeneralSettingsUpdate): GeneralSettingsSnapshot {
         update.moduleEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE, it) }
         update.accordionMode?.let { preferenceDataSource.setBoolean(PrefConst.KEY_SETTINGS_ACCORDION_MODE, it) }
-        preferenceDataSource.syncToSharedPrefs()
+        syncAndNoteRemoteMutation("settings.general")
         return getGeneralSettings()
     }
 
@@ -363,7 +364,7 @@ class SettingsRepository(
         update.autoInputInterval?.let { preferenceDataSource.setString(PrefConst.KEY_AUTO_INPUT_CODE_INTERVAL, it) }
         update.relayKeywords?.let { preferenceDataSource.setString(PrefConst.KEY_SMSCODE_KEYWORDS, it) }
         update.blockSmsEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_BLOCK_SMS, it) }
-        preferenceDataSource.syncToSharedPrefs()
+        syncAndNoteRemoteMutation("settings.verification")
         return getVerificationSettings()
     }
 
@@ -377,7 +378,7 @@ class SettingsRepository(
         update.relayFeaturesEnabled?.let {
             preferenceDataSource.setBoolean(PrefConst.KEY_RELAY_FEATURES_ENABLED, it)
         }
-        preferenceDataSource.syncToSharedPrefs()
+        syncAndNoteRemoteMutation("settings.relay")
         return getRelaySettings()
     }
 
@@ -425,7 +426,7 @@ class SettingsRepository(
         update.autoUpdateOnStart?.let { preferenceDataSource.setBoolean(PrefConst.KEY_AUTO_UPDATE_ON_START, it) }
         update.autoUpdateWifiOnly?.let { preferenceDataSource.setBoolean(PrefConst.KEY_AUTO_UPDATE_WIFI_ONLY, it) }
         update.analyticsEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE_ANALYTICS, it) }
-        preferenceDataSource.syncToSharedPrefs()
+        syncAndNoteRemoteMutation("settings.diagnostics")
         return getDiagnosticsSettings()
     }
 
@@ -439,7 +440,7 @@ class SettingsRepository(
     suspend fun updateAdvanced(update: AdvancedSettingsUpdate): AdvancedSettingsSnapshot {
         update.enableSmsBlacklist?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE_SMS_BLACKLIST, it) }
         preferenceDataSource.setBoolean(PrefConst.KEY_WEBUI_LAN_ACCESS, false)
-        preferenceDataSource.syncToSharedPrefs()
+        syncAndNoteRemoteMutation("settings.advanced")
         return getAdvancedSnapshot()
     }
 
@@ -483,7 +484,7 @@ class SettingsRepository(
         update.appKeywordNotificationEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_APP_KEYWORD_ALERT_NOTIFICATION, it) }
         update.appKeywordSoundEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_APP_KEYWORD_ALERT_SOUND, it) }
         update.appKeywordVibrateEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_APP_KEYWORD_ALERT_VIBRATE, it) }
-        preferenceDataSource.syncToSharedPrefs()
+        syncAndNoteRemoteMutation("settings.special_alerts")
         return getSpecialAlertSettings()
     }
 
@@ -521,7 +522,7 @@ class SettingsRepository(
         update.callNotifyEnabled?.let {
             preferenceDataSource.setBoolean(PrefConst.KEY_MSG_TYPE_CALL_NOTIFY_ENABLED, it)
         }
-        preferenceDataSource.syncToSharedPrefs()
+        syncAndNoteRemoteMutation("settings.message_type_gates")
         return getMessageTypeGates()
     }
 
@@ -559,7 +560,7 @@ class SettingsRepository(
         update.callNotifyEnabled?.let {
             preferenceDataSource.setBoolean(PrefConst.KEY_FORWARD_CALL_NOTIFY_ENABLED, it)
         }
-        preferenceDataSource.syncToSharedPrefs()
+        syncAndNoteRemoteMutation("settings.forward_type_gates")
         return getForwardTypeGates()
     }
 
@@ -582,7 +583,7 @@ class SettingsRepository(
         if (clearFullBatteryAbove) {
             preferenceDataSource.setBoolean(PrefConst.KEY_INTERNAL_FULL_BATTERY_ABOVE, false)
         }
-        preferenceDataSource.syncToSharedPrefs()
+        syncLocalOnly()
     }
 
     suspend fun getRecordSettings(): RecordSettingsSnapshot {
@@ -610,7 +611,7 @@ class SettingsRepository(
         update.plainSmsHistoryLimit?.let { preferenceDataSource.setString(PrefConst.KEY_HISTORY_LIMIT_PLAIN_SMS, it) }
         update.appNotifyHistoryLimit?.let { preferenceDataSource.setString(PrefConst.KEY_HISTORY_LIMIT_APP_NOTIFY, it) }
         update.callNotifyHistoryLimit?.let { preferenceDataSource.setString(PrefConst.KEY_HISTORY_LIMIT_CALL_NOTIFY, it) }
-        preferenceDataSource.syncToSharedPrefs()
+        syncAndNoteRemoteMutation("settings.records")
         return getRecordSettings()
     }
 
@@ -634,7 +635,7 @@ class SettingsRepository(
         update.prefixes?.let { preferenceDataSource.setString(PrefConst.KEY_SMS_BLACKLIST_PREFIXES, it) }
         update.regexRules?.let { preferenceDataSource.setString(PrefConst.KEY_SMS_BLACKLIST_REGEX, it) }
         update.contentRules?.let { preferenceDataSource.setString(PrefConst.KEY_SMS_BLACKLIST_CONTENT, it) }
-        preferenceDataSource.syncToSharedPrefs()
+        syncAndNoteRemoteMutation("settings.sms_blacklist")
         return getSmsBlacklistSettings()
     }
 
@@ -665,7 +666,7 @@ class SettingsRepository(
                 preferenceDataSource.setString(PrefConst.KEY_WEBUI_PASSWORD, "")
             }
         }
-        preferenceDataSource.syncToSharedPrefs()
+        syncLocalOnly()
         return getWebUiConfig()
     }
 
@@ -679,7 +680,7 @@ class SettingsRepository(
     suspend fun updateSimRemarkSettings(update: SimRemarkSettingsUpdate): SimRemarkSettingsSnapshot {
         update.simSlot1Remark?.let { preferenceDataSource.setString(PrefConst.KEY_SIM_SLOT1_REMARK, it) }
         update.simSlot2Remark?.let { preferenceDataSource.setString(PrefConst.KEY_SIM_SLOT2_REMARK, it) }
-        preferenceDataSource.syncToSharedPrefs()
+        syncAndNoteRemoteMutation("settings.sim_remarks")
         return getSimRemarkSettings()
     }
 
@@ -735,7 +736,7 @@ class SettingsRepository(
             PrefConst.KEY_FORWARD_COMMON_INCLUDE_DEVICE_NAME,
             config.includeDeviceName,
         )
-        preferenceDataSource.syncToSharedPrefs()
+        syncAndNoteRemoteMutation("settings.forward_common")
     }
 
     suspend fun loadAppNotifyTemplate(): String {
@@ -744,7 +745,7 @@ class SettingsRepository(
 
     suspend fun saveAppNotifyTemplate(template: String) {
         preferenceDataSource.setString(PrefConst.KEY_FORWARD_APP_NOTIFY_TEMPLATE, template)
-        preferenceDataSource.syncToSharedPrefs()
+        syncAndNoteRemoteMutation("settings.app_notify_template")
     }
 
     suspend fun loadCallNotifyTemplate(): String {
@@ -753,7 +754,7 @@ class SettingsRepository(
 
     suspend fun saveCallNotifyTemplate(template: String) {
         preferenceDataSource.setString(PrefConst.KEY_FORWARD_CALL_NOTIFY_TEMPLATE, template)
-        preferenceDataSource.syncToSharedPrefs()
+        syncAndNoteRemoteMutation("settings.call_notify_template")
     }
 
     suspend fun getUserSettingsSnapshot(): UserSettingsSnapshot {
@@ -793,7 +794,7 @@ class SettingsRepository(
         update.verboseLogMode?.let { preferenceDataSource.setBoolean(PrefConst.KEY_VERBOSE_LOG_MODE, it) }
         update.smsBlacklistEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE_SMS_BLACKLIST, it) }
         update.forceStopRecoveryEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_FORCE_STOP_RECOVERY, it) }
-        preferenceDataSource.syncToSharedPrefs()
+        syncAndNoteRemoteMutation("settings.user_settings")
         return getUserSettingsSnapshot()
     }
 
@@ -811,7 +812,7 @@ class SettingsRepository(
         update.enabledCardIds?.let { preferenceDataSource.setString(PrefConst.KEY_HOME_CARD_ENABLED, it) }
         update.chartType?.let { preferenceDataSource.setString(PrefConst.KEY_HOME_CHART_TYPE, it) }
         update.chartWindow?.let { preferenceDataSource.setString(PrefConst.KEY_HOME_CHART_WINDOW, it) }
-        preferenceDataSource.syncToSharedPrefs()
+        syncAndNoteRemoteMutation("settings.overview")
         return getOverviewSettings()
     }
 
@@ -839,7 +840,7 @@ class SettingsRepository(
 
     suspend fun setIgnoredGithubVersion(versionName: String) {
         preferenceDataSource.setString(PrefConst.KEY_GITHUB_IGNORED_VERSION, versionName)
-        preferenceDataSource.syncToSharedPrefs()
+        syncLocalOnly()
     }
 
     suspend fun getThemeMode(): Int {
@@ -848,7 +849,7 @@ class SettingsRepository(
 
     suspend fun setThemeMode(mode: Int) {
         preferenceDataSource.setInt(PrefConst.KEY_CHOOSE_THEME, mode)
-        preferenceDataSource.syncToSharedPrefs()
+        syncLocalOnly()
     }
 
     suspend fun getLanguageTag(): String {
@@ -857,7 +858,7 @@ class SettingsRepository(
 
     suspend fun setLanguageTag(languageTag: String) {
         preferenceDataSource.setString(PrefConst.KEY_LANGUAGE, languageTag)
-        preferenceDataSource.syncToSharedPrefs()
+        syncLocalOnly()
     }
 
     suspend fun isPrivacyPolicyAccepted(): Boolean {
@@ -866,6 +867,15 @@ class SettingsRepository(
 
     suspend fun setPrivacyPolicyAccepted(accepted: Boolean) {
         preferenceDataSource.setBoolean(PrefConst.KEY_PRIVACY_POLICY_ACCEPTED, accepted)
+        syncLocalOnly()
+    }
+
+    private suspend fun syncAndNoteRemoteMutation(source: String) {
+        preferenceDataSource.syncToSharedPrefs()
+        RuntimeGraph.from(appContext).remoteAgentRepository.noteLocalMutation(source)
+    }
+
+    private suspend fun syncLocalOnly() {
         preferenceDataSource.syncToSharedPrefs()
     }
 }

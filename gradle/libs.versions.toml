@@ -59,6 +59,7 @@ libxposed-api = "101.0.0"
 libxposed-service = "101.0.0"
 firebase-bom = "34.11.0"
 google-services = "4.4.4"
+zxing-android-embedded = "4.3.0"
 
 
 [libraries]
@@ -130,6 +131,7 @@ libxposed-api = { module = "io.github.libxposed:api", version.ref = "libxposed-a
 libxposed-service = { module = "io.github.libxposed:service", version.ref = "libxposed-service" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
+zxing-android-embedded = { module = "com.journeyapps:zxing-android-embedded", version.ref = "zxing-android-embedded" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

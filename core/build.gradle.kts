@@ -98,6 +98,7 @@ dependencies {
     implementation(libs.haze.android)
     implementation(libs.timber)
     implementation(libs.kotlinx.collections.immutable)
+    implementation(libs.zxing.android.embedded)
     add("playImplementation", libs.play.app.update)
 
     testImplementation(libs.junit.jupiter)

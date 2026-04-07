@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.data.repository
 
 import android.content.Context
+import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.data.db.AppDatabase
@@ -15,6 +16,8 @@ class RelayRecordRepository(
     private val db: AppDatabase = AppDatabase.getInstance(context),
     private val preferenceDataSource: PreferenceDataSource,
 ) {
+    private val appContext = context.applicationContext ?: context
+
     suspend fun listRecords(limit: Int): List<SmsMsg> = db.smsMsgDao().getAll().take(limit)
 
     /** 观察全量记录的 Flow，Room 自动在 DB 变更时发出新列表。 */
@@ -40,6 +43,7 @@ class RelayRecordRepository(
     suspend fun insertList(list: List<SmsMsg>) {
         if (list.isEmpty()) return
         db.smsMsgDao().insertAll(list)
+        scheduleRecordUpload("insert_list")
     }
 
     suspend fun insertListAndTrim(list: List<SmsMsg>, maxCount: Int) {
@@ -52,24 +56,29 @@ class RelayRecordRepository(
             val outdatedMsgList = allMsgList.subList(maxCount, allMsgList.size)
             dao.deleteInTx(outdatedMsgList)
         }
+        scheduleRecordUpload("insert_list_trim")
     }
 
     /** 批量删除（同一事务内执行）。 */
     suspend fun removeList(list: List<SmsMsg>) {
         if (list.isEmpty()) return
         db.smsMsgDao().deleteInTx(list)
+        scheduleRecordUpload("remove_list")
     }
 
     /** 获取记录总数的实时观察流。 */
     fun countFlow(): Flow<Long> = db.smsMsgDao().countFlow()
 
     /** 清空所有记录。 */
-    suspend fun clearAll() = db.smsMsgDao().clearAll()
-
+    suspend fun clearAll() {
+        db.smsMsgDao().clearAll()
+        scheduleRecordUpload("clear_all")
+    }
 
     suspend fun deleteRecord(recordId: Long): Boolean {
         val existing = db.smsMsgDao().getById(recordId) ?: return false
         db.smsMsgDao().delete(existing)
+        scheduleRecordUpload("delete_record")
         return true
     }
 
@@ -126,9 +135,10 @@ class RelayRecordRepository(
         )
         if (existing != null) {
             dao.update(mergeSmsMsgForInsert(existing, smsMsg))
+            scheduleRecordUpload("update_record")
             return existing.id
         }
-        return dao.insert(smsMsg)
+        return dao.insert(smsMsg).also { scheduleRecordUpload("insert_record") }
     }
 
     fun persistForwardResult(
@@ -165,6 +175,7 @@ class RelayRecordRepository(
                 forwardTime = System.currentTimeMillis(),
             ),
         )
+        scheduleRecordUpload("persist_forward_result")
     }
 
     private suspend fun trimOldRecordsIfNeeded(
@@ -203,6 +214,10 @@ class RelayRecordRepository(
             record.msgType == SmsMsg.MSG_TYPE_SMS && if (isCodeSms) hasCode else !hasCode
         }
         else -> record.msgType == msgType
+    }
+
+    private fun scheduleRecordUpload(reason: String) {
+        RuntimeGraph.from(appContext).remoteAgentRepository.scheduleRecordUpload(reason)
     }
 
     private companion object {

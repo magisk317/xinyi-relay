@@ -385,6 +385,11 @@ class ForwardReceiver : BroadcastReceiver() {
                         "pkg=${relayEvent.packageName.ifBlank { "<none>" }} " +
                         "source=$forwardSource",
                 )
+                runCatching {
+                    runtimeGraph.remoteAgentRepository.scheduleMessageTriggeredSync(
+                        "${relayEvent.messageType.name.lowercase()}_ingress",
+                    )
+                }
 
                 if (!resultMarked) {
                     // Foreground broadcasts have a tight timeout budget; acknowledge after the

@@ -4,7 +4,6 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION_FILE="$ROOT_DIR/gradle/libs.versions.toml"
 FASTLANE_META_DIR="$ROOT_DIR/fastlane/metadata/android"
-WEBUI_ASSETS_DIR="$ROOT_DIR/app/src/main/assets/webui"
 
 working_tree_dirty() {
   if ! git -C "$ROOT_DIR" diff --quiet || ! git -C "$ROOT_DIR" diff --cached --quiet; then
@@ -38,15 +37,13 @@ run_webui_checks() {
     exit 1
   fi
 
-  echo "Running WebUI checks (install/lint/typecheck/build/sync-dist/check-dist)..."
+  echo "Running WebUI checks (install/lint/typecheck/build)..."
   (
     cd "$ROOT_DIR"
     pnpm -C webui install --frozen-lockfile
     pnpm -C webui lint
     pnpm -C webui typecheck
     pnpm -C webui build
-    pnpm -C webui sync-dist
-    pnpm -C webui check-dist
   )
 
   echo "WebUI checks passed."
@@ -105,31 +102,6 @@ auto_commit_fastlane_metadata() {
     return
   fi
   git -C "$ROOT_DIR" commit -m "chore(release): sync fastlane metadata"
-}
-
-auto_commit_webui_assets() {
-  local webui_status
-
-  if [[ "$INITIAL_WORKTREE_DIRTY" -eq 1 ]]; then
-    echo "Working tree was already dirty at startup; skipping WebUI asset auto-commit."
-    return
-  fi
-
-  ensure_no_staged_changes_for_auto_commit "webui assets"
-
-  webui_status="$(git -C "$ROOT_DIR" status --porcelain -- "$WEBUI_ASSETS_DIR")"
-  if [[ -z "$webui_status" ]]; then
-    echo "WebUI bundled assets are already clean; no auto-commit needed."
-    return
-  fi
-
-  echo "WebUI bundled assets updated; committing changes..."
-  git -C "$ROOT_DIR" add "$WEBUI_ASSETS_DIR"
-  if git -C "$ROOT_DIR" diff --cached --quiet; then
-    echo "WARN: no staged WebUI asset changes after add." >&2
-    return
-  fi
-  git -C "$ROOT_DIR" commit -m "chore(webui): sync bundled assets"
 }
 
 run_pre_push_checks() {
@@ -243,7 +215,6 @@ run_sync_fastlane_metadata
 auto_commit_fastlane_metadata
 ensure_fastlane_changelogs_ready
 run_webui_checks
-auto_commit_webui_assets
 "$ROOT_DIR/scripts/check_release_guard.sh" "$TAG_NAME"
 run_pre_push_checks
 

@@ -57,9 +57,6 @@ object AdvancedGraphRoute
 object AdvancedRoute
 
 @Serializable
-object WebUiConfigRoute
-
-@Serializable
 object ScheduledReminderRoute
 
 @Serializable
@@ -67,6 +64,9 @@ object ForwardKeepAliveRoute
 
 @Serializable
 object VerificationSettingsRoute
+
+@Serializable
+object RemoteAgentRoute
 
 @Serializable
 data class RelayConfigRoute(val origin: String = ROUTE_ORIGIN_ADVANCED)

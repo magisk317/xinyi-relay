@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Intent
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
+import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.core.BuildConfig
 import io.github.magisk317.relay.feature.reminder.SpecialAlertCoordinator
@@ -45,6 +46,10 @@ class AppNotificationListenerService : NotificationListenerService() {
             payload.sender.orEmpty(),
             payload.body.orEmpty(),
         )
+        runCatching {
+            RuntimeGraph.from(applicationContext).remoteAgentRepository
+                .scheduleMessageTriggeredSync("app_notify_ingress")
+        }
         if (BuildConfig.DEBUG) {
             ForwardBroadcastDispatcher.dispatchFromHost(
                 context = applicationContext,

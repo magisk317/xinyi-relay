@@ -97,8 +97,8 @@ fun MainScreen(
             destination.hasRoute(AdvancedRoute::class) -> NavigationSection.ADVANCED
             destination.hasRoute(SettingsRoute::class) -> NavigationSection.SETTINGS
             destination.hasRoute(VerificationSettingsRoute::class) -> NavigationSection.SETTINGS
+            destination.hasRoute(RemoteAgentRoute::class) -> NavigationSection.SETTINGS
             destination.hasRoute(InterceptRoute::class) -> NavigationSection.ADVANCED
-            destination.hasRoute(WebUiConfigRoute::class) -> NavigationSection.ADVANCED
             destination.hasRoute(ScheduledReminderRoute::class) -> NavigationSection.ADVANCED
             destination.hasRoute(ForwardKeepAliveRoute::class) -> NavigationSection.ADVANCED
             destination.hasRoute(RelayConfigRoute::class) ->
@@ -495,9 +495,6 @@ fun MainScreen(
                             GlobalForwardFilterScreen(onBack = { navController.popBackStack() })
                         }
                     }
-                    composable<WebUiConfigRoute> {
-                        WebUiConfigScreen(onBack = { navController.popBackStack() })
-                    }
                     composable<SendersRoute> { backStackEntry ->
                         val route = backStackEntry.toRoute<SendersRoute>()
                         val reopenTypeDialog by backStackEntry.savedStateHandle
@@ -644,6 +641,7 @@ fun MainScreen(
                                 onOpenAdvancedRelay = {
                                     navController.navigate(RelayConfigRoute(origin = ROUTE_ORIGIN_SETTINGS))
                                 },
+                                onOpenRemoteAgent = { navController.navigate(RemoteAgentRoute) },
                             )
                         }
                         composable<VerificationSettingsRoute> {
@@ -656,6 +654,9 @@ fun MainScreen(
                                     navController.navigate(ScopedRecordsRoute(origin = ROUTE_ORIGIN_SETTINGS))
                                 },
                             )
+                        }
+                        composable<RemoteAgentRoute> {
+                            RemoteAgentScreen(onBack = { navController.popBackStack() })
                         }
                     }
                 }

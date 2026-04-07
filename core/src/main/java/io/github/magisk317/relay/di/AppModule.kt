@@ -13,6 +13,7 @@ import io.github.magisk317.relay.data.repository.AnalyticsRepository
 import io.github.magisk317.relay.data.repository.SettingsRepository
 import io.github.magisk317.relay.data.repository.RelayRecordRepository
 import io.github.magisk317.relay.data.repository.ConfigRepository
+import io.github.magisk317.relay.data.repository.RemoteAgentRepository
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.pipeline.DispatchResultWriter
 import io.github.magisk317.relay.domain.service.*
@@ -30,6 +31,7 @@ val appModule = module {
     single<RelayRecordRepository> { get<RuntimeGraph>().relayRecordRepository }
     single<AnalyticsRepository> { get<RuntimeGraph>().analyticsRepository }
     single<ConfigRepository> { get<RuntimeGraph>().configRepository }
+    single<RemoteAgentRepository> { get<RuntimeGraph>().remoteAgentRepository }
 
     single<SystemInfoProvider> { get<RuntimeGraph>().systemInfoProvider }
     single<MessageFormatter> { get<RuntimeGraph>().messageFormatter }

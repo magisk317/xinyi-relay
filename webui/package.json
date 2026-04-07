@@ -8,9 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "lint": "eslint src --ext .ts,.tsx",
-    "typecheck": "tsc --noEmit",
-    "sync-dist": "node ./scripts/sync-dist.mjs",
-    "check-dist": "node ./scripts/check-dist.mjs"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@radix-ui/react-tabs": "^1.1.13",

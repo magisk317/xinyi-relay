@@ -4,11 +4,9 @@ import android.app.Application
 import io.github.magisk317.relay.app.AppInitializer
 import io.github.magisk317.relay.di.appDependencyModule
 import io.github.magisk317.relay.di.appModule
-import io.github.magisk317.relay.web.WebUiManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import org.koin.android.ext.android.inject
 import org.koin.android.ext.android.getKoin
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
@@ -17,7 +15,6 @@ import org.koin.core.context.startKoin
 class SmsCodeApplication : Application() {
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val webUiManager: WebUiManager by inject()
 
     override fun onCreate() {
         super.onCreate()
@@ -31,11 +28,5 @@ class SmsCodeApplication : Application() {
         FlavorXposedServiceBridge.initialize(this, applicationScope)
         val initializers = getKoin().getAll<AppInitializer>()
         initializers.forEach { it.init(this) }
-        webUiManager.start()
-    }
-
-    override fun onTerminate() {
-        webUiManager.stop()
-        super.onTerminate()
     }
 }

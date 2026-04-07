@@ -89,6 +89,7 @@ import org.koin.compose.koinInject
 fun SettingsHomeScreen(
     onOpenVerification: () -> Unit,
     onOpenAdvancedRelay: () -> Unit,
+    onOpenRemoteAgent: () -> Unit,
     onBack: (() -> Unit)? = null,
 ) {
     val repository: SettingsRepository = koinInject()
@@ -305,6 +306,12 @@ fun SettingsHomeScreen(
                         relay = repository.updateRelaySettings(RelaySettingsUpdate(relayFeaturesEnabled = enabled))
                         notifySaved()
                     }
+                }
+                Item(
+                    title = stringResource(id = R.string.pref_remote_agent_title),
+                    summary = stringResource(id = R.string.pref_remote_agent_summary),
+                ) {
+                    onOpenRemoteAgent()
                 }
             }
             SectionCard(

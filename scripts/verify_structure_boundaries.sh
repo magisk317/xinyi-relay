@@ -35,7 +35,7 @@ expect_no_kotlin_files() {
   fi
 }
 
-expect_only_files "$APP_SRC/web" "WebUiManager.kt"
+expect_no_kotlin_files "$APP_SRC/web"
 
 expect_no_kotlin_files "$APP_SRC/feature"
 expect_no_kotlin_files "$RUNTIME_SRC/feature"
@@ -96,19 +96,6 @@ forbid_imports_in_dir "$APP_SRC/service" \
   '^import io\.github\.magisk317\.relay\.sms\.' \
   '^import io\.github\.magisk317\.relay\.common\.constant\.CodeNotificationOwner' \
   '^import io\.github\.magisk317\.relay\.common\.utils\.(NotificationUtils|SharedRuntimeGate)'
-
-forbid_imports_in_dir "$APP_SRC/web" \
-  '^import io\.github\.magisk317\.relay\.bootstrap\.' \
-  '^import io\.github\.magisk317\.relay\.diagnostics\.' \
-  '^import io\.github\.magisk317\.relay\.data\.' \
-  '^import io\.github\.magisk317\.relay\.domain\.' \
-  '^import io\.github\.magisk317\.relay\.platform\.' \
-  '^import io\.github\.magisk317\.relay\.legacy\.' \
-  '^import io\.github\.magisk317\.relay\.model\.' \
-  '^import io\.github\.magisk317\.relay\.prefs\.' \
-  '^import io\.github\.magisk317\.relay\.sms\.' \
-  '^import io\.github\.magisk317\.relay\.common\.(constant|utils)\.' \
-  '^import io\.github\.magisk317\.smscode\.(core|xposed|domain)\.'
 
 forbid_imports_in_dir "$APP_SRC/xp" \
   '^import io\.github\.magisk317\.relay\.(bootstrap|data|domain|legacy|model|platform)\.' \

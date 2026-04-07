@@ -3,12 +3,18 @@ package io.github.magisk317.relay.app
 import android.app.Activity
 import android.app.Application
 import android.os.Bundle
+import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.recovery.RootDbCatchupScheduler
 import io.github.magisk317.relay.feature.reminder.BatteryReminderForegroundMonitor
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 class LifecycleMonitorInitializer : AppInitializer {
     private var startedActivityCount: Int = 0
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun init(application: Application) {
         application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
@@ -19,6 +25,11 @@ class LifecycleMonitorInitializer : AppInitializer {
                 if (startedActivityCount == 1) {
                     RootDbCatchupScheduler.stopPeriodic(reason = "app_foreground")
                     BatteryReminderForegroundMonitor.start(application)
+                    scope.launch {
+                        runCatching {
+                            RuntimeGraph.from(application).remoteAgentRepository.onAppForegrounded()
+                        }
+                    }
                 }
             }
 
@@ -38,6 +49,11 @@ class LifecycleMonitorInitializer : AppInitializer {
                 if (startedActivityCount == 0) {
                     RootDbCatchupScheduler.startPeriodic(application, reason = "app_background")
                     BatteryReminderForegroundMonitor.stop(application)
+                    scope.launch {
+                        runCatching {
+                            RuntimeGraph.from(application).remoteAgentRepository.onAppBackgrounded()
+                        }
+                    }
                 }
             }
 
