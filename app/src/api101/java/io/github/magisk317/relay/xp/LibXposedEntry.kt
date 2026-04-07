@@ -10,6 +10,7 @@ import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.xp.hook.code.SmsHandlerHook
 import io.github.magisk317.relay.xp.hook.forward.SmsForwardHook
 import io.github.magisk317.relay.xp.hook.me.ModuleUtilsHook
+import io.github.magisk317.relay.xp.hook.mms.MmsMessagesHook
 import io.github.magisk317.relay.xp.hook.telephony.SmsProviderHook
 import io.github.magisk317.relay.xp.runtime.RuntimeBridgeFactory
 import io.github.magisk317.relay.xpbridge.XpHookDiagnostics
@@ -38,6 +39,7 @@ class LibXposedEntry : XposedModule {
 
     private val hookList: List<BaseHook> = listOf(
         SmsHandlerHook(),
+        MmsMessagesHook(),
         SmsForwardHook(),
         ModuleUtilsHook(),
         PermissionGranterHook(),

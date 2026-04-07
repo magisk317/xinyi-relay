@@ -101,6 +101,10 @@ class RelayRecordRepository(
         smsCode: String?,
         packageName: String,
         notifyChannelId: String,
+        simSlot: Int,
+        subId: Int,
+        contactName: String,
+        phoneArea: String,
         msgType: Int,
         isCodeSms: Boolean,
         callType: Int = 0,
@@ -114,6 +118,10 @@ class RelayRecordRepository(
                 smsCode = smsCode,
                 packageName = packageName,
                 notifyChannelId = notifyChannelId,
+                simSlot = simSlot,
+                subId = subId,
+                contactName = contactName,
+                phoneArea = phoneArea,
                 msgType = msgType,
                 callType = callType,
             ),
@@ -127,6 +135,12 @@ class RelayRecordRepository(
     ): Long? {
         val dao = db.smsMsgDao()
         trimOldRecordsIfNeeded(dao, smsMsg.msgType, isCodeSms)
+        if (isCodeSms) {
+            findCodeDuplicateRecordId(dao, smsMsg)?.let { duplicateId ->
+                scheduleRecordUpload("skip_duplicate_code_record")
+                return duplicateId
+            }
+        }
         val existing = dao.getByFingerprint(
             sender = smsMsg.sender,
             body = smsMsg.body,
@@ -139,6 +153,63 @@ class RelayRecordRepository(
             return existing.id
         }
         return dao.insert(smsMsg).also { scheduleRecordUpload("insert_record") }
+    }
+
+    private fun findCodeDuplicateRecordId(
+        dao: io.github.magisk317.relay.data.db.dao.SmsMsgDao,
+        smsMsg: SmsMsg,
+    ): Long? {
+        val sender = smsMsg.sender
+        val body = smsMsg.body
+        if (sender.isNullOrBlank() || body.isNullOrBlank()) return null
+
+        val timestamp = if (smsMsg.date > 0) smsMsg.date else System.currentTimeMillis()
+        val from = (timestamp - CODE_RECORD_DEDUP_WINDOW_MS).coerceAtLeast(0L)
+        val to = timestamp + CODE_RECORD_DEDUP_WINDOW_MS
+
+        dao.getByFingerprintInRange(
+            sender = sender,
+            body = body,
+            msgType = smsMsg.msgType,
+            dateFrom = from,
+            dateTo = to,
+        )?.let { return it.id }
+
+        val code = smsMsg.smsCode
+        if (code.isNullOrBlank()) return null
+
+        if (smsMsg.simSlot >= 0) {
+            dao.getBySimSlotInRange(
+                simSlot = smsMsg.simSlot,
+                msgType = smsMsg.msgType,
+                dateFrom = from,
+                dateTo = to,
+            )?.let { return it.id }
+        }
+
+        val pkg = smsMsg.packageName
+        if (!pkg.isNullOrBlank()) {
+            dao.getByCodeAndPackageInRange(
+                smsCode = code,
+                packageName = pkg,
+                msgType = smsMsg.msgType,
+                dateFrom = from,
+                dateTo = to,
+            )?.let { return it.id }
+        }
+
+        val company = smsMsg.company
+        if (!company.isNullOrBlank()) {
+            dao.getByCodeAndCompanyInRange(
+                smsCode = code,
+                company = company,
+                msgType = smsMsg.msgType,
+                dateFrom = from,
+                dateTo = to,
+            )?.let { return it.id }
+        }
+
+        return null
     }
 
     fun persistForwardResult(
@@ -157,7 +228,7 @@ class RelayRecordRepository(
             forceFailed -> SmsMsg.FORWARD_STATUS_FAILED
             successResults.isNotEmpty() && failedResults.isNotEmpty() -> SmsMsg.FORWARD_STATUS_PARTIAL
             successResults.isNotEmpty() -> SmsMsg.FORWARD_STATUS_SUCCESS
-            else -> SmsMsg.FORWARD_STATUS_FAILED
+            else -> SmsMsg.FORWARD_STATUS_NONE
         }
         val target = results.joinToString(", ") { it.senderName }.ifBlank { null }
         val message = when {
@@ -222,5 +293,6 @@ class RelayRecordRepository(
 
     private companion object {
         private const val MAX_FORWARD_MESSAGE_LEN = 2000
+        private const val CODE_RECORD_DEDUP_WINDOW_MS = 5_000L
     }
 }

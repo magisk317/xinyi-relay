@@ -38,7 +38,7 @@ import io.github.magisk317.relay.common.utils.XLog
     ForwardFilterRuleEntity::class,
     SenderEntity::class,
     RuleEntity::class
-], version = 23, exportSchema = false)
+], version = 24, exportSchema = false)
 @TypeConverters(ConvertersDate::class, ConvertersSenderList::class)
 abstract class AppDatabase : RoomDatabase() {
 
@@ -758,6 +758,31 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_23_24 = object : androidx.room.migration.Migration(23, 24) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                execSqlSafely(
+                    db = db,
+                    sql = "ALTER TABLE sms_msg ADD COLUMN sim_slot INTEGER NOT NULL DEFAULT -1",
+                    migration = "23_24",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "ALTER TABLE sms_msg ADD COLUMN sub_id INTEGER NOT NULL DEFAULT 0",
+                    migration = "23_24",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "ALTER TABLE sms_msg ADD COLUMN contact_name TEXT NOT NULL DEFAULT ''",
+                    migration = "23_24",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "ALTER TABLE sms_msg ADD COLUMN phone_area TEXT NOT NULL DEFAULT ''",
+                    migration = "23_24",
+                )
+            }
+        }
+
         private fun execSqlSafely(
             db: androidx.sqlite.db.SupportSQLiteDatabase,
             sql: String,
@@ -801,6 +826,7 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_20_21,
                     MIGRATION_21_22,
                     MIGRATION_22_23,
+                    MIGRATION_23_24,
                 )
                 .enableMultiInstanceInvalidation()
                 .build().also { instance = it }

@@ -286,6 +286,10 @@ class DBProvider : ContentProvider() {
             "sms_code" -> msg.smsCode
             "package_name" -> msg.packageName
             "notify_channel_id" -> msg.notifyChannelId
+            "sim_slot" -> msg.simSlot
+            "sub_id" -> msg.subId
+            "contact_name" -> msg.contactName
+            "phone_area" -> msg.phoneArea
             "msg_type" -> msg.msgType
             "call_type" -> msg.callType
             "forward_status" -> msg.forwardStatus
@@ -387,6 +391,10 @@ class DBProvider : ContentProvider() {
             smsCode = values?.getAsString("sms_code") ?: existing.smsCode,
             packageName = values?.getAsString("package_name") ?: existing.packageName,
             notifyChannelId = values?.getAsString("notify_channel_id") ?: existing.notifyChannelId,
+            simSlot = values?.getAsInteger("sim_slot") ?: existing.simSlot,
+            subId = values?.getAsInteger("sub_id") ?: existing.subId,
+            contactName = values?.getAsString("contact_name") ?: existing.contactName,
+            phoneArea = values?.getAsString("phone_area") ?: existing.phoneArea,
             msgType = values?.getAsInteger("msg_type") ?: existing.msgType,
             callType = values?.getAsInteger("call_type") ?: existing.callType,
             forwardStatus = values?.getAsInteger("forward_status") ?: existing.forwardStatus,
@@ -515,6 +523,10 @@ internal fun mergeSmsMsgForInsert(existing: SmsMsg, incoming: SmsMsg): SmsMsg {
         smsCode = incoming.smsCode?.takeIf { it.isNotBlank() } ?: existing.smsCode,
         packageName = incoming.packageName?.takeIf { it.isNotBlank() } ?: existing.packageName,
         notifyChannelId = incoming.notifyChannelId.takeIf { it.isNotBlank() } ?: existing.notifyChannelId,
+        simSlot = incoming.simSlot.takeIf { it >= 0 } ?: existing.simSlot,
+        subId = incoming.subId.takeIf { it > 0 } ?: existing.subId,
+        contactName = incoming.contactName.takeIf { it.isNotBlank() } ?: existing.contactName,
+        phoneArea = incoming.phoneArea.takeIf { it.isNotBlank() } ?: existing.phoneArea,
         msgType = incoming.msgType,
         callType = incoming.callType.takeIf { it != 0 } ?: existing.callType,
         forwardStatus = if (incomingHasForwardState) incoming.forwardStatus else existing.forwardStatus,

@@ -94,6 +94,7 @@ private val FORWARD_FAILED_COLOR = Color(AndroidColor.parseColor("#C62828"))
 private val FORWARD_WARNING_COLOR = Color(AndroidColor.parseColor("#B26A00"))
 private val RECORD_TAB_ITEM_HEIGHT = 60.dp
 private val CALL_NUMBER_VIEWPORT_WIDTH = 84.dp
+private const val CODE_RECORD_DEDUP_WINDOW_MS = 5_000L
 
 private fun recordEnableTitleRes(tab: Int): Int = when (tab) {
     0 -> R.string.pref_enable_code_records_title
@@ -131,10 +132,90 @@ private fun recordColumnShortTitleRes(tab: Int): Int = when (tab) {
 }
 
 private fun recordsForTab(records: List<SmsMsg>, tab: Int): List<SmsMsg> = when (tab) {
-    0 -> records.filter { it.msgType == SmsMsg.MSG_TYPE_SMS && !it.smsCode.isNullOrBlank() }
+    0 -> deduplicateCodeRecords(records.filter { it.msgType == SmsMsg.MSG_TYPE_SMS && !it.smsCode.isNullOrBlank() })
     1 -> records.filter { it.msgType == SmsMsg.MSG_TYPE_SMS && it.smsCode.isNullOrBlank() }
     2 -> records.filter { it.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY }
     else -> records.filter { it.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY }
+}
+
+private fun deduplicateCodeRecords(records: List<SmsMsg>): List<SmsMsg> {
+    if (records.size < 2) return records
+    val sorted = records.sortedByDescending { it.date }
+    val kept = mutableListOf<SmsMsg>()
+    sorted.forEach { candidate ->
+        val duplicateIndex = kept.indexOfFirst { existing ->
+            shouldMergeCodeRecord(existing, candidate)
+        }
+        if (duplicateIndex < 0) {
+            kept += candidate
+        } else {
+            val preferred = preferCodeRecord(kept[duplicateIndex], candidate)
+            kept[duplicateIndex] = preferred
+        }
+    }
+    return kept.sortedByDescending { it.date }
+}
+
+private fun shouldMergeCodeRecord(first: SmsMsg, second: SmsMsg): Boolean {
+    val firstCode = first.smsCode.orEmpty().trim()
+    val secondCode = second.smsCode.orEmpty().trim()
+    if (firstCode.isBlank() || secondCode.isBlank() || firstCode != secondCode) return false
+    if (kotlin.math.abs(first.date - second.date) > CODE_RECORD_DEDUP_WINDOW_MS) return false
+
+    val firstBody = normalizeCodeRecordBody(first.body)
+    val secondBody = normalizeCodeRecordBody(second.body)
+    if (firstBody.isNotBlank() && secondBody.isNotBlank() && firstBody == secondBody) {
+        return true
+    }
+
+    val firstCompany = normalizeCodeRecordLabel(first.company)
+    val secondCompany = normalizeCodeRecordLabel(second.company)
+    if (firstCompany.isNotBlank() && secondCompany.isNotBlank() && firstCompany == secondCompany) {
+        return true
+    }
+
+    val firstSender = normalizeCodeRecordLabel(first.sender)
+    val secondSender = normalizeCodeRecordLabel(second.sender)
+    return firstSender.isNotBlank() && secondSender.isNotBlank() && firstSender == secondSender
+}
+
+private fun preferCodeRecord(existing: SmsMsg, candidate: SmsMsg): SmsMsg {
+    val existingScore = scoreCodeRecord(existing)
+    val candidateScore = scoreCodeRecord(candidate)
+    return when {
+        candidateScore > existingScore -> candidate
+        candidateScore < existingScore -> existing
+        candidate.date > existing.date -> candidate
+        else -> existing
+    }
+}
+
+private fun scoreCodeRecord(record: SmsMsg): Int {
+    var score = 0
+    if (!record.packageName.isNullOrBlank()) score += 4
+    if (!record.company.isNullOrBlank()) score += 2
+    if (!record.sender.isNullOrBlank()) score += 1
+    return score
+}
+
+private fun normalizeCodeRecordBody(body: String?): String {
+    val normalized = body.orEmpty()
+        .replace(Regex("^\\s*[【\\[].*?[】\\]]\\s*"), "")
+        .replace(Regex("\\s+"), "")
+        .trim()
+    return normalized
+}
+
+private fun normalizeCodeRecordLabel(value: String?): String {
+    return value.orEmpty()
+        .trim()
+        .trim('【', '】', '[', ']')
+        .replace(Regex("\\s+"), "")
+}
+
+private fun compactSenderTitle(sender: String?, fallback: String): String {
+    val raw = sender?.takeIf { it.isNotBlank() } ?: fallback
+    return raw.trim().take(8)
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -622,6 +703,7 @@ fun CodeRecordScreen(
                             title = activeTitle,
                             emptyHint = activeEmptyHint,
                             list = activeSmsList,
+                            recordTab = selectedRecordTab,
                             isSelectionMode = isSelectionMode,
                             selectedIds = selectedIds,
                             onToggleSelection = { toggleSelection(it) },
@@ -1215,6 +1297,9 @@ private fun resolveForwardStatusSnapshot(smsMsg: SmsMsg): ForwardStatusSnapshot 
         parsed.success > 0 && parsed.failed > 0 -> SmsMsg.FORWARD_STATUS_PARTIAL
         parsed.success > 0 -> SmsMsg.FORWARD_STATUS_SUCCESS
         parsed.failed > 0 -> SmsMsg.FORWARD_STATUS_FAILED
+        smsMsg.forwardStatus == SmsMsg.FORWARD_STATUS_FAILED &&
+            targetCount == 0 &&
+            !smsMsg.forwardMessage.isNullOrBlank() -> SmsMsg.FORWARD_STATUS_NONE
         else -> smsMsg.forwardStatus
     }
     val successCount = when {
@@ -1307,6 +1392,7 @@ private fun RecordSplitColumn(
     title: String,
     emptyHint: String,
     list: List<SmsMsg>,
+    recordTab: Int,
     isSelectionMode: Boolean,
     selectedIds: Set<Long>,
     onToggleSelection: (Long) -> Unit,
@@ -1387,6 +1473,7 @@ private fun RecordSplitColumn(
                             } else {
                                 CodeRecordItem(
                                     smsMsg = smsMsg,
+                                    recordTab = recordTab,
                                     isSelectionMode = true,
                                     isSelected = isSelected,
                                     onClick = { onToggleSelection(smsMsg.id) },
@@ -1441,6 +1528,7 @@ private fun RecordSplitColumn(
                                     } else {
                                         CodeRecordItem(
                                             smsMsg = smsMsg,
+                                            recordTab = recordTab,
                                             isSelectionMode = false,
                                             isSelected = false,
                                             onClick = { onCopyCode(smsMsg) },
@@ -1464,6 +1552,7 @@ private fun RecordSplitColumn(
 @Composable
 fun CodeRecordItem(
     smsMsg: SmsMsg,
+    recordTab: Int,
     isSelectionMode: Boolean,
     isSelected: Boolean,
     onClick: () -> Unit,
@@ -1473,6 +1562,8 @@ fun CodeRecordItem(
 ) {
     val dateFormatter = remember { SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.getDefault()) }
     val context = LocalContext.current
+    val showAppIcon = recordTab == 0 && !smsMsg.packageName.isNullOrBlank()
+    val showIconLabel = false
 
     Row(
         modifier = modifier
@@ -1495,7 +1586,6 @@ fun CodeRecordItem(
             )
         }
 
-        // Left Side: Icon + App Name
         val fallbackLabel = (smsMsg.company ?: smsMsg.sender ?: stringResource(R.string.unknown))
             .trim()
             .trim('【', '】', '[', ']')
@@ -1521,42 +1611,43 @@ fun CodeRecordItem(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .width(92.dp)
+                .width(56.dp)
                 .padding(end = 16.dp),
         ) {
             AppIconImage(
-                packageName = smsMsg.packageName,
-                label = iconLabel,
+                packageName = smsMsg.packageName.takeIf { showAppIcon },
+                label = iconLabel.takeIf { showAppIcon },
                 contentDescription = stringResource(R.string.sms_icon_description),
-                fallbackIcon = if (smsMsg.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY) {
-                    Icons.Default.Call
-                } else {
-                    Icons.Default.Build
+                fallbackIcon = when {
+                    smsMsg.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY -> Icons.Default.Call
+                    else -> Icons.Default.Email
                 },
             )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = displayLabel,
-                style = MaterialTheme.typography.labelMedium,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .basicMarquee(),
-            )
+            if (showIconLabel) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = displayLabel,
+                    style = MaterialTheme.typography.labelMedium,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .basicMarquee(),
+                )
+            }
         }
 
-        // Right Side
         Column(modifier = Modifier.weight(1f)) {
             val hasCode = !smsMsg.smsCode.isNullOrBlank()
-            val codeOrSender = smsMsg.smsCode?.takeIf { it.isNotBlank() }
-                ?: smsMsg.sender?.takeIf { it.isNotBlank() }
-                ?: fallbackLabel
-            // Top Row: Code + Time
+            val codeOrSender = when {
+                hasCode -> smsMsg.smsCode.orEmpty()
+                else -> compactSenderTitle(smsMsg.sender, fallbackLabel)
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
                     text = codeOrSender,
@@ -1564,31 +1655,27 @@ fun CodeRecordItem(
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                     maxLines = 1,
-                    overflow = if (hasCode) TextOverflow.Ellipsis else TextOverflow.Clip,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = if (hasCode) {
                         Modifier
                             .weight(1f)
                             .padding(end = 8.dp)
                     } else {
-                        // Keep a fixed 7-char-like viewport so the trailing timestamp stays on one line.
                         Modifier
                             .width(
                                 if (smsMsg.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY) {
                                     CALL_NUMBER_VIEWPORT_WIDTH
                                 } else {
-                                    120.dp
+                                    96.dp
                                 },
                             )
-                            .basicMarquee()
                     },
                 )
-                if (!hasCode) {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
                 Text(
                     text = dateFormatter.format(Date(smsMsg.date)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
                 )
             }
             Spacer(modifier = Modifier.height(4.dp))

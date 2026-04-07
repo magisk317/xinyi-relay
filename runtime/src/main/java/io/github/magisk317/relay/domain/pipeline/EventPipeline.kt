@@ -56,9 +56,16 @@ class EventPipeline(
         traceId: String? = null,
     ): EventPipelineResult {
         try {
+            val recordContext = resolveRecordContext(event, preferredRecordId)
             val gateDecision = eventGatekeeper.check(event, traceId.orEmpty())
             if (!gateDecision.allowed) {
                 ForwardFlowLog.w(traceId, "Event gate blocked type=${event.messageType} reason=${gateDecision.reason}")
+                dispatchResultWriter.persistForwardResult(
+                    recordId = recordContext.recordId,
+                    results = emptyList(),
+                    defaultMessage = gateDecision.reason,
+                    msgTypeForAnalytics = recordContext.smsMsgType,
+                )
                 return EventPipelineResult(dispatched = false, blockedReason = gateDecision.reason)
             }
 
@@ -68,10 +75,15 @@ class EventPipeline(
                     traceId,
                     "Forward filter pre-route blocked type=${event.messageType} pkg=${event.packageName} reason=${preRouteDecision.reason}",
                 )
+                dispatchResultWriter.persistForwardResult(
+                    recordId = recordContext.recordId,
+                    results = emptyList(),
+                    defaultMessage = preRouteDecision.reason ?: "forward_filter_blocked",
+                    forcedStatus = SmsMsg.FORWARD_STATUS_BLOCKED,
+                    msgTypeForAnalytics = recordContext.smsMsgType,
+                )
                 return EventPipelineResult(dispatched = false, blockedReason = preRouteDecision.reason)
             }
-
-            val recordContext = resolveRecordContext(event, preferredRecordId)
 
             if (!preferenceDataSource.getBoolean(PrefConst.KEY_RELAY_FEATURES_ENABLED, true)) {
                 val reason = "转发功能已关闭"
@@ -166,6 +178,10 @@ class EventPipeline(
                 smsCode = event.smsCode,
                 packageName = event.packageName,
                 notifyChannelId = event.notifyChannelId,
+                simSlot = event.simSlot,
+                subId = event.subId,
+                contactName = event.contactName,
+                phoneArea = event.phoneArea,
                 msgType = smsMsgType,
                 isCodeSms = event.messageType == MessageType.SMS_CODE,
                 callType = event.callType,

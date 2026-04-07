@@ -56,6 +56,22 @@ data class SmsMsg(
     @SerialName("notifyChannelId")
     val notifyChannelId: String = "",
 
+    @ColumnInfo(name = "sim_slot", defaultValue = "-1")
+    @SerialName("simSlot")
+    val simSlot: Int = -1,
+
+    @ColumnInfo(name = "sub_id", defaultValue = "0")
+    @SerialName("subId")
+    val subId: Int = 0,
+
+    @ColumnInfo(name = "contact_name", defaultValue = "''")
+    @SerialName("contactName")
+    val contactName: String = "",
+
+    @ColumnInfo(name = "phone_area", defaultValue = "''")
+    @SerialName("phoneArea")
+    val phoneArea: String = "",
+
     @ColumnInfo(name = "forward_status")
     @SerialName("forwardStatus")
     var forwardStatus: Int = FORWARD_STATUS_NONE,
