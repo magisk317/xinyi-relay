@@ -1,0 +1,164 @@
+:root {
+  color-scheme: light;
+  font-family: "SF Pro Display", "Segoe UI", sans-serif;
+  background: linear-gradient(180deg, #f8fce8 0%, #ebf4cf 100%);
+  color: #223213;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+.shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+  gap: 20px;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.card {
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(124, 155, 33, 0.18);
+  box-shadow: 0 28px 80px -48px rgba(98, 122, 28, 0.28);
+  padding: 28px;
+  min-height: 0;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #6f8e18;
+  font-size: 12px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+h1 {
+  margin: 0;
+  font-size: 36px;
+  letter-spacing: -0.05em;
+}
+
+h2 {
+  margin: 0;
+  font-size: 26px;
+  letter-spacing: -0.04em;
+}
+
+.subtitle {
+  margin: 12px 0 0;
+  color: #5f6f47;
+  line-height: 1.7;
+}
+
+.field {
+  display: block;
+  margin-top: 24px;
+}
+
+.field span {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.field input {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 18px;
+  border: 1px solid #d7e6a6;
+  background: #fbfef3;
+  padding: 14px 16px;
+  font-size: 15px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+button {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #f6fbe6;
+  color: #30431a;
+}
+
+button.primary {
+  background: linear-gradient(135deg, #bce620, #99bf1f);
+}
+
+.status {
+  margin: 18px 0 0;
+  color: #667552;
+  font-size: 14px;
+}
+
+.card--control {
+  align-self: start;
+}
+
+.card--viewer {
+  display: flex;
+  flex-direction: column;
+}
+
+.viewer-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.viewer-url {
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #667552;
+  font-size: 13px;
+}
+
+.viewer-shell {
+  margin-top: 18px;
+  min-height: 0;
+  flex: 1;
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid #d8e7ae;
+  background: #f4f9df;
+}
+
+#console-frame {
+  display: block;
+  width: 100%;
+  min-height: 72vh;
+  border: 0;
+  background: white;
+}
+
+@media (max-width: 980px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .viewer-url {
+    max-width: 100%;
+  }
+
+  #console-frame {
+    min-height: 60vh;
+  }
+}
