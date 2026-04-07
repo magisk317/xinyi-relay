@@ -8,6 +8,7 @@ import io.github.magisk317.relay.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.data.db.AppDatabase
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.data.db.mergeSmsMsgForInsert
+import io.github.magisk317.smscode.domain.utils.CodeRecordSimilarityUtils
 import io.github.magisk317.relay.domain.pipeline.SenderDispatchResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -346,46 +347,6 @@ class RelayRecordRepository(
 
     private companion object {
         private const val MAX_FORWARD_MESSAGE_LEN = 2000
-        private const val CODE_RECORD_DEDUP_WINDOW_MS = 20_000L
+        private const val CODE_RECORD_DEDUP_WINDOW_MS = CodeRecordSimilarityUtils.DEFAULT_WINDOW_MS
     }
-}
-
-private fun crossSourceCodeMatchScore(existing: SmsMsg, incoming: SmsMsg): Int {
-    val existingCode = existing.smsCode.orEmpty().trim()
-    val incomingCode = incoming.smsCode.orEmpty().trim()
-    if (existingCode.isBlank() || existingCode != incomingCode) return 0
-
-    val existingBody = normalizeCodeRecordBodyForStorage(existing.body)
-    val incomingBody = normalizeCodeRecordBodyForStorage(incoming.body)
-    var score = 0
-    if (existingBody.isNotBlank() && incomingBody.isNotBlank() && existingBody == incomingBody) {
-        score += 3
-    }
-
-    val existingCompany = normalizeCodeRecordLabelForStorage(existing.company)
-    val incomingCompany = normalizeCodeRecordLabelForStorage(incoming.company)
-    if (existingCompany.isNotBlank() && incomingCompany.isNotBlank() && existingCompany == incomingCompany) {
-        score += 2
-    }
-
-    val existingSender = normalizeCodeRecordLabelForStorage(existing.sender)
-    val incomingSender = normalizeCodeRecordLabelForStorage(incoming.sender)
-    if (existingSender.isNotBlank() && incomingSender.isNotBlank() && existingSender == incomingSender) {
-        score += 1
-    }
-    return score
-}
-
-private fun normalizeCodeRecordBodyForStorage(body: String?): String {
-    return body.orEmpty()
-        .replace(Regex("^\\s*[【\\[].*?[】\\]]\\s*"), "")
-        .replace(Regex("\\s+"), "")
-        .trim()
-}
-
-private fun normalizeCodeRecordLabelForStorage(value: String?): String {
-    return value.orEmpty()
-        .trim()
-        .trim('【', '】', '[', ']')
-        .replace(Regex("\\s+"), "")
 }

@@ -61,6 +61,7 @@ import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.data.repository.RecordSettingsUpdate
 import io.github.magisk317.relay.data.repository.SettingsRepository
 import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.smscode.domain.utils.CodeRecordSimilarityUtils
 import io.github.magisk317.relay.ui.common.AppIconLoader
 import io.github.magisk317.relay.ui.common.AppIconImage
 import io.github.magisk317.relay.ui.common.LoadingIndicatorTokens
@@ -94,7 +95,7 @@ private val FORWARD_SUCCESS_COLOR = Color(AndroidColor.parseColor("#2E7D32"))
 private val FORWARD_FAILED_COLOR = Color(AndroidColor.parseColor("#C62828"))
 private val FORWARD_WARNING_COLOR = Color(AndroidColor.parseColor("#B26A00"))
 private val RECORD_TAB_ITEM_HEIGHT = 60.dp
-private const val CODE_RECORD_DEDUP_WINDOW_MS = 20_000L
+private const val CODE_RECORD_DEDUP_WINDOW_MS = CodeRecordSimilarityUtils.DEFAULT_WINDOW_MS
 
 private fun recordEnableTitleRes(tab: Int): Int = when (tab) {
     0 -> R.string.pref_enable_code_records_title
@@ -139,78 +140,20 @@ private fun recordsForTab(records: List<SmsMsg>, tab: Int): List<SmsMsg> = when 
 }
 
 private fun deduplicateCodeRecords(records: List<SmsMsg>): List<SmsMsg> {
-    if (records.size < 2) return records
-    val sorted = records.sortedByDescending { it.date }
-    val kept = mutableListOf<SmsMsg>()
-    sorted.forEach { candidate ->
-        val duplicateIndex = kept.indexOfFirst { existing ->
-            shouldMergeCodeRecord(existing, candidate)
-        }
-        if (duplicateIndex < 0) {
-            kept += candidate
-        } else {
-            val preferred = preferCodeRecord(kept[duplicateIndex], candidate)
-            kept[duplicateIndex] = preferred
-        }
-    }
-    return kept.sortedByDescending { it.date }
-}
-
-private fun shouldMergeCodeRecord(first: SmsMsg, second: SmsMsg): Boolean {
-    val firstCode = first.smsCode.orEmpty().trim()
-    val secondCode = second.smsCode.orEmpty().trim()
-    if (firstCode.isBlank() || secondCode.isBlank() || firstCode != secondCode) return false
-    if (kotlin.math.abs(first.date - second.date) > CODE_RECORD_DEDUP_WINDOW_MS) return false
-
-    val firstBody = normalizeCodeRecordBody(first.body)
-    val secondBody = normalizeCodeRecordBody(second.body)
-    if (firstBody.isNotBlank() && secondBody.isNotBlank() && firstBody == secondBody) {
-        return true
-    }
-
-    val firstCompany = normalizeCodeRecordLabel(first.company)
-    val secondCompany = normalizeCodeRecordLabel(second.company)
-    if (firstCompany.isNotBlank() && secondCompany.isNotBlank() && firstCompany == secondCompany) {
-        return true
-    }
-
-    val firstSender = normalizeCodeRecordLabel(first.sender)
-    val secondSender = normalizeCodeRecordLabel(second.sender)
-    return firstSender.isNotBlank() && secondSender.isNotBlank() && firstSender == secondSender
-}
-
-private fun preferCodeRecord(existing: SmsMsg, candidate: SmsMsg): SmsMsg {
-    val existingScore = scoreCodeRecord(existing)
-    val candidateScore = scoreCodeRecord(candidate)
-    return when {
-        candidateScore > existingScore -> candidate
-        candidateScore < existingScore -> existing
-        candidate.date > existing.date -> candidate
-        else -> existing
-    }
-}
-
-private fun scoreCodeRecord(record: SmsMsg): Int {
-    var score = 0
-    if (!record.packageName.isNullOrBlank()) score += 4
-    if (!record.company.isNullOrBlank()) score += 2
-    if (!record.sender.isNullOrBlank()) score += 1
-    return score
-}
-
-private fun normalizeCodeRecordBody(body: String?): String {
-    val normalized = body.orEmpty()
-        .replace(Regex("^\\s*[【\\[].*?[】\\]]\\s*"), "")
-        .replace(Regex("\\s+"), "")
-        .trim()
-    return normalized
-}
-
-private fun normalizeCodeRecordLabel(value: String?): String {
-    return value.orEmpty()
-        .trim()
-        .trim('【', '】', '[', ']')
-        .replace(Regex("\\s+"), "")
+    return CodeRecordSimilarityUtils.deduplicateRecords(
+        records = records,
+        projection = { record ->
+            CodeRecordSimilarityUtils.Projection(
+                code = record.smsCode,
+                body = record.body,
+                company = record.company,
+                sender = record.sender,
+                packageName = record.packageName,
+                date = record.date,
+            )
+        },
+        windowMs = CODE_RECORD_DEDUP_WINDOW_MS,
+    )
 }
 
 private fun compactSenderTitle(sender: String?, fallback: String): String {
@@ -590,6 +533,12 @@ fun CodeRecordScreen(
     val appNotifyList = smsList.filter { it.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY }
     val callNotifyList = smsList.filter { it.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY }
     val activeSmsList = recordsForTab(smsList, selectedRecordTab)
+    val rawRecordsForSelectedTab = when (selectedRecordTab) {
+        0 -> codeSmsList
+        1 -> plainSmsList
+        2 -> appNotifyList
+        else -> callNotifyList
+    }
     val activeTitle = context.getString(recordColumnTitleRes(selectedRecordTab))
     val activeEmptyHint = when (selectedRecordTab) {
         0 -> context.getString(R.string.records_column_code_empty)
@@ -607,7 +556,7 @@ fun CodeRecordScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        val deleteList = activeSmsList
+                        val deleteList = rawRecordsForSelectedTab
                         if (deleteList.isNotEmpty()) {
                             viewModel.removeSmsMsg(deleteList)
                             scope.launch {

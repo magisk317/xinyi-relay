@@ -6,6 +6,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import io.github.magisk317.smscode.domain.utils.SmsMessageUtils
+import io.github.magisk317.smscode.runtime.common.record.SmsMsgRecord
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -30,35 +31,35 @@ import java.text.Normalizer
 data class SmsMsg(
     @PrimaryKey(autoGenerate = true)
     @SerialName("id")
-    val id: Long = 0,
+    override val id: Long = 0,
 
     @ColumnInfo(name = "sender")
     @SerialName("sender")
-    val sender: String? = null,
+    override val sender: String? = null,
 
     @ColumnInfo(name = "body")
     @SerialName("body")
-    val body: String? = null,
+    override val body: String? = null,
 
     @ColumnInfo(name = "date")
     @SerialName("date")
-    val date: Long = 0,
+    override val date: Long = 0,
 
     @ColumnInfo(name = "company")
     @SerialName("company")
-    val company: String? = null,
+    override val company: String? = null,
 
     @ColumnInfo(name = "sms_code")
     @SerialName("code")
-    val smsCode: String? = null,
+    override val smsCode: String? = null,
 
     @ColumnInfo(name = "package_name")
     @SerialName("packageName")
-    val packageName: String? = null,
+    override val packageName: String? = null,
 
     @ColumnInfo(name = "notify_channel_id", defaultValue = "''")
     @SerialName("notifyChannelId")
-    val notifyChannelId: String = "",
+    override val notifyChannelId: String = "",
 
     @ColumnInfo(name = "sim_slot", defaultValue = "-1")
     @SerialName("simSlot")
@@ -78,33 +79,33 @@ data class SmsMsg(
 
     @ColumnInfo(name = "forward_status")
     @SerialName("forwardStatus")
-    var forwardStatus: Int = FORWARD_STATUS_NONE,
+    override var forwardStatus: Int = FORWARD_STATUS_NONE,
 
     @ColumnInfo(name = "forward_target")
     @SerialName("forwardTarget")
-    var forwardTarget: String? = null,
+    override var forwardTarget: String? = null,
 
     @ColumnInfo(name = "forward_message")
     @SerialName("forwardMessage")
-    var forwardMessage: String? = null,
+    override var forwardMessage: String? = null,
 
     @ColumnInfo(name = "forward_time")
     @SerialName("forwardTime")
-    var forwardTime: Long = 0L,
+    override var forwardTime: Long = 0L,
 
     @ColumnInfo(name = "msg_type", defaultValue = "0")
     @SerialName("msgType")
-    val msgType: Int = MSG_TYPE_SMS,
+    override val msgType: Int = MSG_TYPE_SMS,
 
     @ColumnInfo(name = "call_type", defaultValue = "0")
     @SerialName("callType")
-    val callType: Int = 0,
+    override val callType: Int = 0,
 
     @ColumnInfo(name = "session_key", defaultValue = "''")
     @SerialName("sessionKey")
     val sessionKey: String = "",
 
-) : Parcelable {
+) : Parcelable, SmsMsgRecord {
 
     companion object {
         const val FORWARD_STATUS_NONE = 0
