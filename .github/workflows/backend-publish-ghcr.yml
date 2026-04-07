@@ -20,10 +20,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  publish:
+  prepare:
+    name: Prepare backend publish
     runs-on: ubuntu-latest
-    env:
-      GHCR_IMAGE: ghcr.io/${{ github.repository }}-backend
+    outputs:
+      ghcr_image: ${{ steps.vars.outputs.ghcr_image }}
+      dockerhub_enabled: ${{ steps.vars.outputs.dockerhub_enabled }}
+      dockerhub_image: ${{ steps.vars.outputs.dockerhub_image }}
+      tags_json: ${{ steps.vars.outputs.tags_json }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -38,25 +42,56 @@ jobs:
         working-directory: backend/api
         run: go test ./...
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
+      - name: Derive publish targets
+        id: vars
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ghcr_image="ghcr.io/${GITHUB_REPOSITORY}-backend"
+
+          if [[ -n "${{ secrets.DOCKERHUB_USERNAME }}" && -n "${{ secrets.DOCKERHUB_TOKEN }}" ]]; then
+            dockerhub_enabled=1
+            if [[ -n "${{ secrets.DOCKERHUB_IMAGE }}" ]]; then
+              dockerhub_image="${{ secrets.DOCKERHUB_IMAGE }}"
+            else
+              dockerhub_image="docker.io/${{ secrets.DOCKERHUB_USERNAME }}/xinyi-relay-backend"
+            fi
+          else
+            dockerhub_enabled=0
+            dockerhub_image=""
+          fi
+
+          tags=()
+          if [[ "$GITHUB_REF" == "refs/heads/beta" ]]; then
+            tags+=("beta")
+          fi
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            tags+=("${GITHUB_REF_NAME}" "latest")
+          fi
+
+          if [[ ${#tags[@]} -eq 0 ]]; then
+            echo "Unsupported ref for backend publish: $GITHUB_REF" >&2
+            exit 1
+          fi
+
+          {
+            echo "ghcr_image=$ghcr_image"
+            echo "dockerhub_enabled=$dockerhub_enabled"
+            echo "dockerhub_image=$dockerhub_image"
+            printf 'tags_json=%s\n' "$(printf '%s\n' "${tags[@]}" | jq -R . | jq -sc .)"
+          } >> "$GITHUB_OUTPUT"
+
+  build_amd64:
+    name: Build backend image (amd64)
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
-
-      - name: Derive Docker Hub target (optional)
-        run: |
-          if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ] && [ -n "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
-            echo "DOCKERHUB_ENABLED=1" >> "$GITHUB_ENV"
-            if [ -n "${{ secrets.DOCKERHUB_IMAGE }}" ]; then
-              echo "DOCKERHUB_IMAGE=${{ secrets.DOCKERHUB_IMAGE }}" >> "$GITHUB_ENV"
-            else
-              echo "DOCKERHUB_IMAGE=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/xinyi-relay-backend" >> "$GITHUB_ENV"
-            fi
-          else
-            echo "DOCKERHUB_ENABLED=0" >> "$GITHUB_ENV"
-            echo "DOCKERHUB_IMAGE=" >> "$GITHUB_ENV"
-          fi
 
       - name: Log in to GHCR
         uses: docker/login-action@v4
@@ -66,38 +101,180 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log in to Docker Hub
-        if: env.DOCKERHUB_ENABLED == '1' && github.actor != 'dependabot[bot]'
+        if: needs.prepare.outputs.dockerhub_enabled == '1' && github.actor != 'dependabot[bot]'
         uses: docker/login-action@v4
         with:
           registry: docker.io
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Docker metadata
-        id: meta
-        uses: docker/metadata-action@v6
-        with:
-          images: |
-            ${{ env.GHCR_IMAGE }}
-            ${{ env.DOCKERHUB_IMAGE }}
-          tags: |
-            type=raw,value=beta,enable=${{ github.ref == 'refs/heads/beta' }}
-            type=semver,pattern={{version}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
-            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
-          labels: |
-            org.opencontainers.image.title=xinyi-relay-backend
-            org.opencontainers.image.description=Remote backend for Xinyi Relay
-            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+      - name: Derive image tags
+        id: tags
+        shell: bash
+        env:
+          GHCR_IMAGE: ${{ needs.prepare.outputs.ghcr_image }}
+          DOCKERHUB_IMAGE: ${{ needs.prepare.outputs.dockerhub_image }}
+          DOCKERHUB_ENABLED: ${{ needs.prepare.outputs.dockerhub_enabled }}
+          TAGS_JSON: ${{ needs.prepare.outputs.tags_json }}
+        run: |
+          set -euo pipefail
 
-      - name: Build and push backend image
+          image_tags=()
+          while IFS= read -r tag; do
+            image_tags+=("${GHCR_IMAGE}:${tag}-amd64")
+            if [[ "$DOCKERHUB_ENABLED" == "1" ]]; then
+              image_tags+=("${DOCKERHUB_IMAGE}:${tag}-amd64")
+            fi
+          done < <(jq -r '.[]' <<<"$TAGS_JSON")
+
+          {
+            echo "tags<<EOF"
+            printf '%s\n' "${image_tags[@]}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and push (amd64)
         uses: docker/build-push-action@v7
         with:
           context: backend/api
           file: backend/api/Dockerfile
           push: true
           provenance: false
-          platforms: linux/amd64,linux/arm64
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=backend-image
-          cache-to: type=gha,mode=max,scope=backend-image
+          platforms: linux/amd64
+          tags: ${{ steps.tags.outputs.tags }}
+          labels: |
+            org.opencontainers.image.title=xinyi-relay-backend
+            org.opencontainers.image.description=Remote backend for Xinyi Relay
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.ref.name=${{ github.ref_name }}
+          cache-from: type=gha,scope=backend-image-amd64
+          cache-to: type=gha,mode=max,scope=backend-image-amd64
+
+  build_arm64:
+    name: Build backend image (arm64)
+    needs: prepare
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        if: needs.prepare.outputs.dockerhub_enabled == '1' && github.actor != 'dependabot[bot]'
+        uses: docker/login-action@v4
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Derive image tags
+        id: tags
+        shell: bash
+        env:
+          GHCR_IMAGE: ${{ needs.prepare.outputs.ghcr_image }}
+          DOCKERHUB_IMAGE: ${{ needs.prepare.outputs.dockerhub_image }}
+          DOCKERHUB_ENABLED: ${{ needs.prepare.outputs.dockerhub_enabled }}
+          TAGS_JSON: ${{ needs.prepare.outputs.tags_json }}
+        run: |
+          set -euo pipefail
+
+          image_tags=()
+          while IFS= read -r tag; do
+            image_tags+=("${GHCR_IMAGE}:${tag}-arm64")
+            if [[ "$DOCKERHUB_ENABLED" == "1" ]]; then
+              image_tags+=("${DOCKERHUB_IMAGE}:${tag}-arm64")
+            fi
+          done < <(jq -r '.[]' <<<"$TAGS_JSON")
+
+          {
+            echo "tags<<EOF"
+            printf '%s\n' "${image_tags[@]}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and push (arm64)
+        uses: docker/build-push-action@v7
+        with:
+          context: backend/api
+          file: backend/api/Dockerfile
+          push: true
+          provenance: false
+          platforms: linux/arm64
+          tags: ${{ steps.tags.outputs.tags }}
+          labels: |
+            org.opencontainers.image.title=xinyi-relay-backend
+            org.opencontainers.image.description=Remote backend for Xinyi Relay
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.ref.name=${{ github.ref_name }}
+          cache-from: type=gha,scope=backend-image-arm64
+          cache-to: type=gha,mode=max,scope=backend-image-arm64
+
+  publish_manifests:
+    name: Publish multi-arch manifests
+    needs:
+      - prepare
+      - build_amd64
+      - build_arm64
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        if: needs.prepare.outputs.dockerhub_enabled == '1' && github.actor != 'dependabot[bot]'
+        uses: docker/login-action@v4
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Publish GHCR multi-arch manifests
+        shell: bash
+        env:
+          GHCR_IMAGE: ${{ needs.prepare.outputs.ghcr_image }}
+          TAGS_JSON: ${{ needs.prepare.outputs.tags_json }}
+        run: |
+          set -euo pipefail
+
+          while IFS= read -r tag; do
+            docker buildx imagetools create \
+              --tag "${GHCR_IMAGE}:${tag}" \
+              "${GHCR_IMAGE}:${tag}-amd64" \
+              "${GHCR_IMAGE}:${tag}-arm64"
+            docker buildx imagetools inspect "${GHCR_IMAGE}:${tag}"
+          done < <(jq -r '.[]' <<<"$TAGS_JSON")
+
+      - name: Publish Docker Hub multi-arch manifests
+        if: needs.prepare.outputs.dockerhub_enabled == '1' && github.actor != 'dependabot[bot]'
+        shell: bash
+        env:
+          DOCKERHUB_IMAGE: ${{ needs.prepare.outputs.dockerhub_image }}
+          TAGS_JSON: ${{ needs.prepare.outputs.tags_json }}
+        run: |
+          set -euo pipefail
+
+          while IFS= read -r tag; do
+            docker buildx imagetools create \
+              --tag "${DOCKERHUB_IMAGE}:${tag}" \
+              "${DOCKERHUB_IMAGE}:${tag}-amd64" \
+              "${DOCKERHUB_IMAGE}:${tag}-arm64"
+            docker buildx imagetools inspect "${DOCKERHUB_IMAGE}:${tag}"
+          done < <(jq -r '.[]' <<<"$TAGS_JSON")
