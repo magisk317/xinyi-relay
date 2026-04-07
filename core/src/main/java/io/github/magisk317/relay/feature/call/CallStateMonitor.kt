@@ -9,6 +9,7 @@ import android.telephony.TelephonyManager
 import androidx.core.content.ContextCompat
 import io.github.magisk317.relay.core.BuildConfig
 import io.github.magisk317.relay.common.constant.PrefConst
+import io.github.magisk317.relay.common.utils.CallSessionTracker
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.feature.reminder.SpecialAlertCoordinator
@@ -150,6 +151,12 @@ object CallStateMonitor {
                     val (forwardEnabled, _) = loadCallAlertFlags(context)
                     if (forwardEnabled) {
                         val number = lastNumber?.ifBlank { null }
+                            ?: CallSessionTracker.findRecentNumber(
+                                if (lastDirection == 0) CALL_TYPE_INCOMING else lastDirection,
+                            )
+                        if (lastNumber.isNullOrBlank() && !number.isNullOrBlank()) {
+                            XLog.i("CallStateMonitor recovered call number from recent ingress")
+                        }
                         if (!number.isNullOrBlank()) {
                             sendCallBroadcast(
                                 context = context,
@@ -209,12 +216,18 @@ object CallStateMonitor {
         ) { key, defaultValue ->
             runtimeGraph.preferenceDataSource.getBoolean(key, defaultValue)
         }
+        val finalForwardEnabled = RuntimeSettingsCache.getBoolean(
+            key = PrefConst.KEY_FORWARD_CALL_NOTIFY_FINAL_ENABLED,
+            defaultValue = false,
+        ) { key, defaultValue ->
+            runtimeGraph.preferenceDataSource.getBoolean(key, defaultValue)
+        }
         val forwardEnabled = messageTypeEnabled || RuntimeSettingsCache.getBoolean(
             key = PrefConst.KEY_CALL_ALERT_FORWARD_ENABLED,
             defaultValue = false,
         ) { key, defaultValue ->
             runtimeGraph.preferenceDataSource.getBoolean(key, defaultValue)
-        }
+        } || finalForwardEnabled
         val localEnabled = RuntimeSettingsCache
             .getSpecialAlertSettings(runtimeGraph.settingsRepository)
             .callAlertLocalEnabled

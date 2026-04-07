@@ -97,7 +97,7 @@ class EventPipeline(
                 return EventPipelineResult(dispatched = false, blockedReason = reason)
             }
 
-            if (!isForwardTypeEnabled(event.messageType)) {
+            if (!isForwardTypeEnabled(event)) {
                 val reason = "转发开关已关闭"
                 dispatchResultWriter.persistForwardResult(
                     recordId = recordContext.recordId,
@@ -165,11 +165,17 @@ class EventPipeline(
             date = event.timestamp,
             msgType = smsMsgType,
         )
-        if (
-            canRecord &&
-            recordId == null &&
-            !(event.messageType == MessageType.CALL_NOTIFY && event.isCallAlertStart())
-        ) {
+        if (canRecord && recordId == null) {
+            val sessionKey = if (event.messageType == MessageType.CALL_NOTIFY) {
+                dispatchResultWriter.buildCallSessionKey(
+                    sender = event.sender,
+                    body = event.body,
+                    callType = event.callType,
+                    packageName = event.packageName,
+                )
+            } else {
+                ""
+            }
             recordId = dispatchResultWriter.insertRecord(
                 sender = event.sender,
                 body = event.body,
@@ -185,6 +191,7 @@ class EventPipeline(
                 msgType = smsMsgType,
                 isCodeSms = event.messageType == MessageType.SMS_CODE,
                 callType = event.callType,
+                sessionKey = sessionKey,
             )
         }
         return RecordContext(
@@ -264,8 +271,8 @@ class EventPipeline(
         }
     }
 
-    private suspend fun isForwardTypeEnabled(messageType: MessageType): Boolean {
-        return when (messageType) {
+    private suspend fun isForwardTypeEnabled(event: RelayEvent): Boolean {
+        return when (event.messageType) {
             MessageType.SMS_CODE -> preferenceDataSource.getBooleanCompat(
                 PrefConst.KEY_FORWARD_SMS_CODE_ENABLED,
                 defaultForwardEnabled(MessageType.SMS_CODE),
@@ -278,10 +285,14 @@ class EventPipeline(
                 PrefConst.KEY_FORWARD_APP_NOTIFY_ENABLED,
                 defaultForwardEnabled(MessageType.APP_NOTIFY),
             )
-            MessageType.CALL_NOTIFY -> preferenceDataSource.getBooleanCompat(
-                PrefConst.KEY_FORWARD_CALL_NOTIFY_ENABLED,
-                defaultForwardEnabled(MessageType.CALL_NOTIFY),
-            )
+            MessageType.CALL_NOTIFY -> {
+                val key = if (event.isCallAlertStart()) {
+                    PrefConst.KEY_FORWARD_CALL_NOTIFY_ENABLED
+                } else {
+                    PrefConst.KEY_FORWARD_CALL_NOTIFY_FINAL_ENABLED
+                }
+                preferenceDataSource.getBooleanCompat(key, defaultForwardEnabled(MessageType.CALL_NOTIFY))
+            }
         }
     }
 

@@ -9,6 +9,12 @@ object CallSessionTracker {
     private const val MAINLAND_CHINA_MOBILE_LENGTH = 11
     private val activeSessions = ConcurrentHashMap<String, Long>()
     private val endedSessions = ConcurrentHashMap<String, Long>()
+    private val recentNumbers = ConcurrentHashMap<String, RecentNumber>()
+
+    private data class RecentNumber(
+        val number: String,
+        val updatedAt: Long,
+    )
 
     data class Decision(
         val allow: Boolean,
@@ -29,6 +35,9 @@ object CallSessionTracker {
         val key = buildKey(number, direction, packageName, sender, body)
         val now = System.currentTimeMillis()
         cleanup(now)
+        if (number.isNotBlank()) {
+            recentNumbers[direction] = RecentNumber(number = number, updatedAt = now)
+        }
         return when (stage) {
             "ringing", "dialing", "ongoing" -> {
                 val activeAt = activeSessions[key]
@@ -153,10 +162,20 @@ object CallSessionTracker {
         return buildKey(number, direction, packageName, sender, body)
     }
 
+    fun findRecentNumber(callType: Int): String? {
+        val now = System.currentTimeMillis()
+        cleanup(now)
+        return recentNumbers[resolveDirection(callType)]
+            ?.takeIf { now - it.updatedAt < SESSION_TTL_MS }
+            ?.number
+            ?.ifBlank { null }
+    }
+
     private fun cleanup(now: Long) {
         val cutoff = now - SESSION_TTL_MS
         activeSessions.entries.removeIf { it.value < cutoff }
         endedSessions.entries.removeIf { it.value < cutoff }
+        recentNumbers.entries.removeIf { it.value.updatedAt < cutoff }
     }
 
     private val PHONE_CANDIDATE_REGEX = Regex("(\\+?\\d[\\d\\s\\-]{4,}\\d)")

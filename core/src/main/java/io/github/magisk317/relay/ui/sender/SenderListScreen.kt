@@ -209,6 +209,7 @@ fun SenderListScreen(
         smsPlainEnabled = true,
         appNotifyEnabled = true,
         callNotifyEnabled = false,
+        callNotifyFinalEnabled = false,
     )
     val updateMessageGate: (MessageTypeGateUpdate) -> Unit = { update ->
         scope.launch {
@@ -387,6 +388,10 @@ fun SenderListScreen(
             forwardCallNotifyEnabled = forwardGateSnapshot.callNotifyEnabled,
             onForwardCallNotifyToggle = { enabled ->
                 updateForwardGate(ForwardTypeGateUpdate(callNotifyEnabled = enabled))
+            },
+            forwardCallNotifyFinalEnabled = forwardGateSnapshot.callNotifyFinalEnabled,
+            onForwardCallNotifyFinalToggle = { enabled ->
+                updateForwardGate(ForwardTypeGateUpdate(callNotifyFinalEnabled = enabled))
             },
             onDismiss = { showCallNotifyConfigDialog = false },
             onSave = {
@@ -1264,6 +1269,8 @@ private fun CallNotifyTemplateDialog(
     onCallNotifyToggle: (Boolean) -> Unit,
     forwardCallNotifyEnabled: Boolean,
     onForwardCallNotifyToggle: (Boolean) -> Unit,
+    forwardCallNotifyFinalEnabled: Boolean,
+    onForwardCallNotifyFinalToggle: (Boolean) -> Unit,
     onDismiss: () -> Unit,
     onSave: (String) -> Unit,
 ) {
@@ -1382,6 +1389,12 @@ private fun CallNotifyTemplateDialog(
                     summary = stringResource(id = R.string.pref_forward_call_notify_summary),
                     checked = forwardCallNotifyEnabled,
                     onCheckedChange = onForwardCallNotifyToggle,
+                )
+                ConfigGateToggle(
+                    title = stringResource(id = R.string.pref_forward_call_notify_final_title),
+                    summary = stringResource(id = R.string.pref_forward_call_notify_final_summary),
+                    checked = forwardCallNotifyFinalEnabled,
+                    onCheckedChange = onForwardCallNotifyFinalToggle,
                 )
                 HorizontalDivider()
                 OutlinedTextField(

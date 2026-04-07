@@ -4,6 +4,7 @@ import android.content.Context
 import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.sms.SmsCodeUtils
+import io.github.magisk317.relay.common.utils.CallSessionTracker
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.data.db.dao.SmsMsgDao
@@ -261,38 +262,26 @@ internal object RootDbCatchupEngine {
         val date = if (row.date > 0L) row.date else System.currentTimeMillis()
         val callLabel = callTypeLabel(row.callType)
         val body = "通话通知：$callLabel\\n号码：$number"
-
-        val canRecord = runtimeGraph.preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE_CODE_RECORDS_CALL_NOTIFY, true)
-        var recordId = dao.getByFingerprint(
+        val sessionKey = CallSessionTracker.buildSourceKey(
             sender = number,
             body = body,
-            date = date,
-            msgType = SmsMsg.MSG_TYPE_CALL_NOTIFY,
-        )?.id
+            callType = row.callType,
+            packageName = null,
+        )
 
-        if (recordId == null && canRecord) {
+        val canRecord = runtimeGraph.preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE_CODE_RECORDS_CALL_NOTIFY, true)
+        if (canRecord && dao.getBySessionKey(SmsMsg.MSG_TYPE_CALL_NOTIFY, sessionKey) == null) {
             trimOldRecordsIfNeeded(
                 runtimeGraph = runtimeGraph,
                 dao = dao,
                 msgType = SmsMsg.MSG_TYPE_CALL_NOTIFY,
                 isCodeSms = false,
             )
-            recordId = dao.insert(
-                SmsMsg(
-                    sender = number,
-                    body = body,
-                    date = date,
-                    company = callLabel,
-                    smsCode = "",
-                    msgType = SmsMsg.MSG_TYPE_CALL_NOTIFY,
-                    callType = row.callType,
-                ),
-            )
         }
 
         runtimeGraph.eventPipeline.process(
             event = buildCallRelayEvent(row),
-            preferredRecordId = recordId,
+            preferredRecordId = null,
             traceId = "root_call_${row.id}",
         )
 

@@ -52,6 +52,7 @@ object PrefRestoreTypeRegistry {
         PrefConst.KEY_FORWARD_SMS_PLAIN_ENABLED,
         PrefConst.KEY_FORWARD_APP_NOTIFY_ENABLED,
         PrefConst.KEY_FORWARD_CALL_NOTIFY_ENABLED,
+        PrefConst.KEY_FORWARD_CALL_NOTIFY_FINAL_ENABLED,
         PrefConst.KEY_VERIFICATION_FEATURES_ENABLED,
         PrefConst.KEY_RELAY_FEATURES_ENABLED,
         PrefConst.KEY_SMS_KEYWORD_ALERT_ENABLED,
@@ -65,8 +66,6 @@ object PrefRestoreTypeRegistry {
         PrefConst.KEY_FORWARD_COMMON_INCLUDE_TIME,
         PrefConst.KEY_FORWARD_COMMON_INCLUDE_SENDER,
         PrefConst.KEY_FORWARD_COMMON_INCLUDE_DEVICE_NAME,
-        PrefConst.KEY_WEBUI_ENABLE,
-        PrefConst.KEY_WEBUI_LAN_ACCESS,
         PrefConst.KEY_PRIVACY_POLICY_ACCEPTED,
         PrefConst.KEY_BACKUP_COMPAT_TIP_SHOWN,
         // Compatibility keys for imports from older backups.

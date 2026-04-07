@@ -47,6 +47,20 @@ class DispatchResultWriter(
         return relayRecordRepository.findRecordIdByFingerprint(sender, body, date, msgType)
     }
 
+    fun buildCallSessionKey(
+        sender: String?,
+        body: String?,
+        callType: Int,
+        packageName: String?,
+    ): String {
+        return relayRecordRepository.buildCallSessionKey(
+            sender = sender,
+            body = body,
+            callType = callType,
+            packageName = packageName,
+        )
+    }
+
     suspend fun insertRecord(
         sender: String,
         body: String,
@@ -62,6 +76,7 @@ class DispatchResultWriter(
         msgType: Int,
         isCodeSms: Boolean,
         callType: Int = 0,
+        sessionKey: String = "",
     ): Long? {
         return relayRecordRepository.insertRecord(
             sender = sender,
@@ -78,6 +93,7 @@ class DispatchResultWriter(
             msgType = msgType,
             isCodeSms = isCodeSms,
             callType = callType,
+            sessionKey = sessionKey,
         )
     }
 

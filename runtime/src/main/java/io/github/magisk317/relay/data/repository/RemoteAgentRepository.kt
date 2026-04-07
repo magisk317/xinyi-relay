@@ -545,6 +545,7 @@ class RemoteAgentRepository(
                     smsPlainEnabled = payload.forwardTypeGates.smsPlainEnabled,
                     appNotifyEnabled = payload.forwardTypeGates.appNotifyEnabled,
                     callNotifyEnabled = payload.forwardTypeGates.callNotifyEnabled,
+                    callNotifyFinalEnabled = payload.forwardTypeGates.callNotifyFinalEnabled,
                 ),
             )
             settingsRepository.updateRecordSettings(

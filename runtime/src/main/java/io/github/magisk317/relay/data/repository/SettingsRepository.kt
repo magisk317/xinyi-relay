@@ -4,11 +4,9 @@ import android.content.Context
 import io.github.magisk317.relay.common.constant.CodeNotificationOwner
 import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.feature.WebUiFeatureGate
 import io.github.magisk317.relay.common.utils.SensitiveLogPolicy
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.data.datasource.PreferenceDataSource
-import io.github.magisk317.relay.data.secret.InternalSecretStore
 import io.github.magisk317.relay.domain.model.ForwardCommonConfig
 import io.github.magisk317.relay.domain.system.DeviceIdentityUtils
 import kotlinx.coroutines.flow.Flow
@@ -93,12 +91,10 @@ data class DiagnosticsSettingsUpdate(
 
 data class AdvancedSettingsSnapshot(
     val enableSmsBlacklist: Boolean,
-    val webUiLanAccess: Boolean,
 )
 
 data class AdvancedSettingsUpdate(
     val enableSmsBlacklist: Boolean? = null,
-    val webUiLanAccess: Boolean? = null,
 )
 
 data class SpecialAlertSettingsSnapshot(
@@ -184,22 +180,6 @@ data class SmsBlacklistSettingsUpdate(
     val contentRules: String? = null,
 )
 
-data class WebUiConfigSnapshot(
-    val enabled: Boolean,
-    val lanAccess: Boolean,
-    val port: String,
-    val username: String,
-    val password: String,
-)
-
-data class WebUiConfigUpdate(
-    val enabled: Boolean? = null,
-    val lanAccess: Boolean? = null,
-    val port: String? = null,
-    val username: String? = null,
-    val password: String? = null,
-)
-
 data class SimRemarkSettingsSnapshot(
     val simSlot1Remark: String,
     val simSlot2Remark: String,
@@ -233,6 +213,7 @@ data class ForwardTypeGateSnapshot(
     val smsPlainEnabled: Boolean,
     val appNotifyEnabled: Boolean,
     val callNotifyEnabled: Boolean,
+    val callNotifyFinalEnabled: Boolean,
 )
 
 data class ForwardTypeGateUpdate(
@@ -240,6 +221,7 @@ data class ForwardTypeGateUpdate(
     val smsPlainEnabled: Boolean? = null,
     val appNotifyEnabled: Boolean? = null,
     val callNotifyEnabled: Boolean? = null,
+    val callNotifyFinalEnabled: Boolean? = null,
 )
 
 
@@ -433,13 +415,11 @@ class SettingsRepository(
     suspend fun getAdvancedSnapshot(): AdvancedSettingsSnapshot {
         return AdvancedSettingsSnapshot(
             enableSmsBlacklist = preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE_SMS_BLACKLIST, false),
-            webUiLanAccess = false,
         )
     }
 
     suspend fun updateAdvanced(update: AdvancedSettingsUpdate): AdvancedSettingsSnapshot {
         update.enableSmsBlacklist?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE_SMS_BLACKLIST, it) }
-        preferenceDataSource.setBoolean(PrefConst.KEY_WEBUI_LAN_ACCESS, false)
         syncAndNoteRemoteMutation("settings.advanced")
         return getAdvancedSnapshot()
     }
@@ -544,6 +524,10 @@ class SettingsRepository(
                 PrefConst.KEY_FORWARD_CALL_NOTIFY_ENABLED,
                 defaultMessageTypeEnabled(MessageType.CALL_NOTIFY),
             ),
+            callNotifyFinalEnabled = preferenceDataSource.getBoolean(
+                PrefConst.KEY_FORWARD_CALL_NOTIFY_FINAL_ENABLED,
+                false,
+            ),
         )
     }
 
@@ -559,6 +543,9 @@ class SettingsRepository(
         }
         update.callNotifyEnabled?.let {
             preferenceDataSource.setBoolean(PrefConst.KEY_FORWARD_CALL_NOTIFY_ENABLED, it)
+        }
+        update.callNotifyFinalEnabled?.let {
+            preferenceDataSource.setBoolean(PrefConst.KEY_FORWARD_CALL_NOTIFY_FINAL_ENABLED, it)
         }
         syncAndNoteRemoteMutation("settings.forward_type_gates")
         return getForwardTypeGates()
@@ -637,37 +624,6 @@ class SettingsRepository(
         update.contentRules?.let { preferenceDataSource.setString(PrefConst.KEY_SMS_BLACKLIST_CONTENT, it) }
         syncAndNoteRemoteMutation("settings.sms_blacklist")
         return getSmsBlacklistSettings()
-    }
-
-    suspend fun getWebUiConfig(): WebUiConfigSnapshot {
-        return WebUiConfigSnapshot(
-            enabled = false,
-            lanAccess = false,
-            port = preferenceDataSource.getString(PrefConst.KEY_WEBUI_PORT, PrefConst.KEY_WEBUI_PORT_DEFAULT),
-            username = preferenceDataSource.getString(PrefConst.KEY_WEBUI_USERNAME, PrefConst.KEY_WEBUI_USERNAME_DEFAULT),
-            password = InternalSecretStore.getOrMigrateString(
-                context = appContext,
-                key = PrefConst.KEY_WEBUI_PASSWORD,
-                defaultValue = "",
-                legacyValueProvider = { preferenceDataSource.getString(PrefConst.KEY_WEBUI_PASSWORD, "") },
-                legacyValueCleaner = { preferenceDataSource.setString(PrefConst.KEY_WEBUI_PASSWORD, "") },
-            ),
-        )
-    }
-
-    suspend fun updateWebUiConfig(update: WebUiConfigUpdate): WebUiConfigSnapshot {
-        preferenceDataSource.setBoolean(PrefConst.KEY_WEBUI_ENABLE, false)
-        preferenceDataSource.setBoolean(PrefConst.KEY_WEBUI_LAN_ACCESS, false)
-        if (WebUiFeatureGate.EMBEDDED_WEBUI_ENABLED) {
-            update.port?.let { preferenceDataSource.setString(PrefConst.KEY_WEBUI_PORT, it) }
-            update.username?.let { preferenceDataSource.setString(PrefConst.KEY_WEBUI_USERNAME, it) }
-            update.password?.let {
-                InternalSecretStore.putString(appContext, PrefConst.KEY_WEBUI_PASSWORD, it)
-                preferenceDataSource.setString(PrefConst.KEY_WEBUI_PASSWORD, "")
-            }
-        }
-        syncLocalOnly()
-        return getWebUiConfig()
     }
 
     suspend fun getSimRemarkSettings(): SimRemarkSettingsSnapshot {

@@ -61,6 +61,7 @@ import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.data.repository.RecordSettingsUpdate
 import io.github.magisk317.relay.data.repository.SettingsRepository
 import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.ui.common.AppIconLoader
 import io.github.magisk317.relay.ui.common.AppIconImage
 import io.github.magisk317.relay.ui.common.LoadingIndicatorTokens
 import io.github.magisk317.relay.ui.common.PolygonMorphLoadingIndicator
@@ -93,7 +94,6 @@ private val FORWARD_SUCCESS_COLOR = Color(AndroidColor.parseColor("#2E7D32"))
 private val FORWARD_FAILED_COLOR = Color(AndroidColor.parseColor("#C62828"))
 private val FORWARD_WARNING_COLOR = Color(AndroidColor.parseColor("#B26A00"))
 private val RECORD_TAB_ITEM_HEIGHT = 60.dp
-private val CALL_NUMBER_VIEWPORT_WIDTH = 84.dp
 private const val CODE_RECORD_DEDUP_WINDOW_MS = 20_000L
 
 private fun recordEnableTitleRes(tab: Int): Int = when (tab) {
@@ -1607,6 +1607,16 @@ fun CodeRecordItem(
         } else {
             null
         }
+        val iconPackageName = remember(smsMsg.packageName, smsMsg.msgType, showAppIcon) {
+            when {
+                showAppIcon && !smsMsg.packageName.isNullOrBlank() -> smsMsg.packageName
+                smsMsg.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY -> AppIconLoader.resolveDefaultDialerPackage(context)
+                smsMsg.msgType == SmsMsg.MSG_TYPE_SMS -> AppIconLoader.resolveDefaultSmsPackage(context)
+                else -> null
+            }
+        }
+        val resolvedIconLabel = iconLabel.takeIf { iconPackageName.isNullOrBlank() && showAppIcon }
+
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
@@ -1614,8 +1624,8 @@ fun CodeRecordItem(
                 .padding(end = 16.dp),
         ) {
             AppIconImage(
-                packageName = smsMsg.packageName.takeIf { showAppIcon },
-                label = iconLabel.takeIf { showAppIcon },
+                packageName = iconPackageName,
+                label = resolvedIconLabel,
                 contentDescription = stringResource(R.string.sms_icon_description),
                 fallbackIcon = when {
                     smsMsg.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY -> Icons.Default.Call
@@ -1646,7 +1656,6 @@ fun CodeRecordItem(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
                     text = codeOrSender,
@@ -1655,26 +1664,16 @@ fun CodeRecordItem(
                     fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = if (hasCode) {
-                        Modifier
-                            .weight(1f)
-                            .padding(end = 8.dp)
-                    } else {
-                        Modifier
-                            .width(
-                                if (smsMsg.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY) {
-                                    CALL_NUMBER_VIEWPORT_WIDTH
-                                } else {
-                                    96.dp
-                                },
-                            )
-                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 8.dp),
                 )
                 Text(
                     text = dateFormatter.format(Date(smsMsg.date)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
+                    textAlign = TextAlign.End,
                 )
             }
             Spacer(modifier = Modifier.height(4.dp))
