@@ -543,21 +543,12 @@
     <!-- faq end -->
 
     <!-- alipay packet start -->
-    <string name="pref_get_alipay_packet_title">領個紅包救救孩子</string>
-    <string name="pref_get_alipay_packet_summary">每天領個免費紅包也是對我的一點支持了 T_T</string>
-    <string name="pref_get_alipay_packet_content">求求了，支付寶搜這個口令領每天的免費紅包，我就能吃上肉了 %s</string>
-    <string name="copy_packet_code_open_alipay"><![CDATA[複製口令並打開支付寶]]></string>
-    <string name="alipay_red_packet_code_copied">紅包口令已複製，快去白嫖吧: %s</string>
-    <string name="get_red_packet">領個紅包</string>
     <string name="dialog_donate_title">買杯咖啡吧 T_T</string>
     <string name="dialog_donate_summary">感謝開發者</string>
     <string name="dialog_donate_content">開發者已經餓得快寫不動代碼了，求各位大發慈悲賞口飯吃吧！不管是微信還是支付寶，哪怕是一分錢也是對我的巨大救贖 ✿✿ヽ(°▽°)ノ✿</string>
     <string name="dialog_donate_wechat">咖啡 (微信)</string>
     <string name="dialog_donate_alipay">咖啡 (支付寶)</string>
-    <string name="dialog_donate_alipay_choice_title">請選擇支持方式</string>
-    <string name="dialog_donate_alipay_choice_content">您可以「複製紅包口令」免費支持我，或者「保存收款碼」直接捐贈。保存圖片後會自動幫您打開支付寶哦~</string>
-    <string name="dialog_donate_alipay_token">複製口令</string>
-    <string name="dialog_donate_alipay_qrcode">保存收款碼</string>
+    <string name="dialog_donate_alipay_qrcode">查看收款碼</string>
     <string name="dialog_donate_cancel">下次一定</string>
     <string name="long_press_save_hint">長按圖片可保存到相簿</string>
     <string name="save_to_gallery_success">圖片已保存到相簿，正在打開 %s...</string>

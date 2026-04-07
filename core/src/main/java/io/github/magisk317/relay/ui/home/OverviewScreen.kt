@@ -216,7 +216,6 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
         coroutineScope.launch { snackbarHostState.showSnackbar(message) }
     }
     var showDonateDialog by remember { mutableStateOf(false) }
-    var showAlipayChoiceDialog by remember { mutableStateOf(false) }
     var showQRCodeDialog by remember { mutableStateOf<Pair<Int, String>?>(null) }
     var showAddCardSheet by remember { mutableStateOf(false) }
     var editMode by remember { mutableStateOf(false) }
@@ -529,12 +528,10 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
         showAddCardSheet = showAddCardSheet,
         addableCardSpecs = addableCardSpecs,
         showDonateDialog = showDonateDialog,
-        showAlipayChoiceDialog = showAlipayChoiceDialog,
         showQRCodeDialog = showQRCodeDialog,
         onDismissAddSheet = { showAddCardSheet = false },
         onAddCard = ::addCard,
         onToggleDonateDialog = { showDonateDialog = it },
-        onToggleAlipayChoiceDialog = { showAlipayChoiceDialog = it },
         onShowQrCodeDialog = { showQRCodeDialog = it },
         onShowMessage = ::showMessage,
     )
@@ -822,12 +819,10 @@ private fun OverviewDialogs(
     showAddCardSheet: Boolean,
     addableCardSpecs: List<HomeCardSpec>,
     showDonateDialog: Boolean,
-    showAlipayChoiceDialog: Boolean,
     showQRCodeDialog: Pair<Int, String>?,
     onDismissAddSheet: () -> Unit,
     onAddCard: (String) -> Unit,
     onToggleDonateDialog: (Boolean) -> Unit,
-    onToggleAlipayChoiceDialog: (Boolean) -> Unit,
     onShowQrCodeDialog: (Pair<Int, String>?) -> Unit,
     onShowMessage: (String) -> Unit,
 ) {
@@ -844,26 +839,11 @@ private fun OverviewDialogs(
             onDismiss = { onToggleDonateDialog(false) },
             onAlipay = {
                 onToggleDonateDialog(false)
-                onToggleAlipayChoiceDialog(true)
+                onShowQrCodeDialog(Pair(R.drawable.alipay, "alipay"))
             },
             onWechat = {
                 onToggleDonateDialog(false)
                 onShowQrCodeDialog(Pair(R.drawable.wx, "wechat"))
-            },
-        )
-    }
-
-    if (showAlipayChoiceDialog) {
-        AlipayChoiceDialog(
-            onDismiss = { onToggleAlipayChoiceDialog(false) },
-            onQRCode = {
-                onToggleAlipayChoiceDialog(false)
-                onShowQrCodeDialog(Pair(R.drawable.alipay, "alipay"))
-            },
-            onToken = {
-                onToggleAlipayChoiceDialog(false)
-                PackageUtils.copyAlipayPocketToken(context).let(onShowMessage)
-                PackageUtils.startAlipayActivity(context)?.let(onShowMessage)
             },
         )
     }

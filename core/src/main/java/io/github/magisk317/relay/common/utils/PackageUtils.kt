@@ -242,11 +242,4 @@ object PackageUtils {
         context.startActivity(intent)
         return null
     }
-
-    @JvmStatic
-    fun copyAlipayPocketToken(context: Context): String {
-        Utils.copyToClipboard(context, Const.ALIPAY_POCKET_TOKEN)
-        val text = context.getString(R.string.alipay_red_packet_code_copied, Const.ALIPAY_POCKET_TOKEN)
-        return text
-    }
 }

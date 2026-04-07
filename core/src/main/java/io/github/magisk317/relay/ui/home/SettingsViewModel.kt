@@ -53,7 +53,6 @@ import java.util.Locale
 
 sealed class SettingsEvent {
     data object ShowPrivacyPolicy : SettingsEvent()
-    data object ShowAlipayPacket : SettingsEvent()
     data class SmsCodeTestResult(
         val code: String,
         val matchedRuleLabel: String? = null,
@@ -175,10 +174,7 @@ class SettingsViewModel(
                 _eventsFlow.tryEmit(SettingsEvent.ShowPrivacyPolicy)
             } else {
                 val extraAction = args.getString(Const.EXTRA_ACTION)
-                if (Const.ACTION_DONATE_BY_ALIPAY == extraAction) {
-                    args.remove(Const.EXTRA_ACTION)
-                    _eventsFlow.tryEmit(SettingsEvent.ShowAlipayPacket)
-                } else if ("relay_records" == extraAction || "smscode_records" == extraAction) {
+                if ("relay_records" == extraAction || "smscode_records" == extraAction) {
                     args.remove(Const.EXTRA_ACTION)
                     _eventsFlow.tryEmit(SettingsEvent.NavigateToRecords)
                 } else if ("relay_rules" == extraAction || "smscode_rules" == extraAction) {

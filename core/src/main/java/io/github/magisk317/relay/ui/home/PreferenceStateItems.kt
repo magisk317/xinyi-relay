@@ -281,30 +281,6 @@ fun DonateDialog(
 }
 
 @Composable
-fun AlipayChoiceDialog(
-    onDismiss: () -> Unit,
-    onQRCode: () -> Unit,
-    onToken: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = stringResource(id = R.string.dialog_donate_alipay_choice_title)) },
-        text = { Text(text = stringResource(id = R.string.dialog_donate_alipay_choice_content)) },
-        confirmButton = {
-            TextButton(onClick = onQRCode) {
-                Text(text = stringResource(id = R.string.dialog_donate_alipay_qrcode))
-            }
-        },
-        dismissButton = {
-            Row {
-                TextButton(onClick = onToken) { Text(text = stringResource(id = R.string.dialog_donate_alipay_token)) }
-                TextButton(onClick = onDismiss) { Text(text = stringResource(id = R.string.cancel)) }
-            }
-        },
-    )
-}
-
-@Composable
 fun QRCodeDialog(
     resId: Int,
     type: String,

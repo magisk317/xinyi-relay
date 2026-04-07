@@ -14,8 +14,6 @@ object Const {
     // 收款码 URL
     const val ALIPAY_QRCODE_URL = "HTTPS://QR.ALIPAY.COM/FKX074142EKXD0OIMV8B60"
 
-    // 红包口令
-    const val ALIPAY_POCKET_TOKEN = "J:/wkSIPXL689C 或📸復 zhi📸此消息打开🔍吱.f`u宝🔎，得幸福宏饱，天天等着你  s:/r HU6311 $801"
     /* Alipay end */
 
     /* QQ begin */
@@ -26,7 +24,6 @@ object Const {
     /* Xposed SmsCode begin */
     const val HOME_ACTIVITY_ALIAS = BuildConfig.APPLICATION_ID + ".HomeActivityAlias"
     const val EXTRA_ACTION = "extra_action"
-    const val ACTION_DONATE_BY_ALIPAY = "donate_by_alipay"
 
     const val PROJECT_SOURCE_CODE_URL = "https://github.com/magisk317/xinyi-relay"
     const val PROJECT_GITHUB_LATEST_RELEASE_URL = PROJECT_SOURCE_CODE_URL + "/releases/latest"
