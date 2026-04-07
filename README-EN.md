@@ -17,7 +17,14 @@
 
 </div>
 
-Xinyi Relay is a relay and verification-code autofill module for Xposed/LSPosed, with unified handling for SMS, app notifications, and incoming call events.
+Xinyi Relay is a relay and verification-code autofill project for Xposed/LSPosed, with unified handling for SMS, app notifications, and incoming call events.
+
+The project now ships in two parts:
+
+- Android App: local event capture, verification parsing, autofill, and Xposed hooks
+- Backend: device binding, config snapshots, record upload, and the Web / Desktop remote console
+
+The old embedded WebUI has been retired from the Android runtime path. The current official architecture is `Android Agent + Backend + Web / Desktop`.
 
 [中文版本](./README.md)
 
@@ -27,28 +34,53 @@ Xinyi Relay is a relay and verification-code autofill module for Xposed/LSPosed,
 # Communication & Feedback
 - [Telegram Group](https://t.me/+NR2QaQ4dlEgxYmNl)
 
-# Usage
-1. Root your device and install LSPosed/Xposed framework.
-2. Install Xinyi Relay, enable the module, then reboot.
-3. Configure senders, routing rules, and verification-code autofill policies.
+## Android App
+
+The Android app is the on-device module for Xposed/LSPosed. It is responsible for local event capture, verification parsing, autofill, and runtime hooks.
+
+### Install & Use
+1. Root your device and install LSPosed/Xposed.
+2. Install Xinyi Relay and pick the matching APK:
+   - GitHub Releases: `legacy` and `api101`
+   - Google Play: `api101` only
+3. Enable the module and reboot.
+4. Configure sender channels, routing rules, filters, and verification-code autofill policies.
+
+### Compatibility
+- **Minimum Android 8.0 (API 26), target SDK 37.**
+- **Designed for AOSP-like systems; heavily customized ROMs may have compatibility issues.**
+- **Codebase: 100% Kotlin + Jetpack Compose + Room + Coroutines.**
+
+### Core Features
+- SMS relay: relay verification SMS and plain SMS with rules
+- App notification relay: bind apps to sender channels
+- Call-event relay: capture and relay incoming-call metadata
+- Global and app-level filtering: keywords, sources, priorities, and forward filters
+- Verification code parsing, copy, and autofill
+- Records and backup: export/import config and history
+
+## Backend
+
+The Backend is the self-hosted remote control plane for Xinyi Relay, with a local-first deployment model and optional public access.
+
+### Stack
+- Go API
+- PostgreSQL
+- Caddy
+- Web console
+- Tauri desktop shell
+
+### Default Deployment
+- Docker Compose pulls `ghcr.io/magisk317/xinyi-relay-backend:beta` by default
+- Android Agent, Web, and Desktop share the same backend API
+- Local HTTPS uses Caddy `tls internal`, with user CA installation available for Android Agent
+
+### Entry Docs
+- [Backend Guide](backend/README.md)
+- [Backend API Overview](backend/API_OVERVIEW.md)
+- [Remote Architecture](docs/REMOTE_ARCHITECTURE.md)
 
 Feedback and suggestions are welcome.
-
-# Attention
-- **Designed for AOSP-like systems; heavily customized ROMs may have compatibility issues.**
-- **Compatibility: Minimum Android 8.0 (API 26), target Android 16 (API 36).**
-- **GitHub Releases ship both `legacy` and `api101` APKs; choose `legacy` for older frameworks.**
-- **Google Play remains `api101` only, while `legacy` is maintained as the compatibility track on GitHub.**
-- **Codebase: 100% Kotlin + Jetpack Compose + Room + Coroutines.**
-- **Please check the in-app FAQ first if you run into issues.**
-
-# Features
-- SMS relay: relay verification SMS and plain SMS with rules
-- App notification relay: bind apps to specific sender channels
-- Call-event relay: capture and relay incoming call metadata
-- Global/app-level relay filtering: keywords, sources, and priority controls
-- Verification code parsing and autofill
-- Records and backup: export/import config and history
 
 # Release Metadata
 - Fastlane metadata location: `fastlane/metadata/android`
@@ -63,6 +95,10 @@ Feedback and suggestions are welcome.
 
 # Documentation
 - [Release Logs](docs/CHANGELOG.md)
+- [Architecture & Runtime Refactoring](docs/REFACTORING.md)
+- [Remote Architecture](docs/REMOTE_ARCHITECTURE.md)
+- [Backend Guide](backend/README.md)
+- [Backend API Overview](backend/API_OVERVIEW.md)
 - [Privacy Policy](docs/PRIVACY.md)
 - [Donations](docs/DONATIONS.md)
 

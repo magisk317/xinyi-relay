@@ -1,6 +1,6 @@
 # Relay 架构重整说明
 
-本文档描述当前代码库在“第二阶段架构收口”后的推荐分层，以及后续开发应遵循的落点规则。
+本文档描述当前代码库在远程架构正式落地后的推荐分层，以及后续开发应遵循的落点规则。
 
 ## 当前分层
 
@@ -32,15 +32,14 @@
 ### `app`
 - Android 应用壳
 - Xposed hook 与系统事件采集
-- WebUI 服务启动、TLS 与静态资源入口
 - 尽量只保留入口、生命周期与装配代码
 - 不直接承载转发主编排
-- `app/web` 仅保留 `WebUiServer`、`WebUiManager`、`WebUiTlsManager`、`WebUiAssetHandler`
+- 不再承载嵌入式 WebUI 服务启动、TLS 或静态资源打包链路
 
 ### `webui-core`
-- WebUI HTTP 路由、会话、鉴权、静态资源与配置读写编排
-- 仅承载 `io.github.magisk317.relay.webui.*`
-- 不承载应用生命周期与前台服务入口
+- 历史嵌入式 WebUI 代码残留
+- 不再参与 Android 主运行链
+- 仅作为迁移期参考与后续清理对象
 
 ### `xpbridge-core`
 - Xposed/runtime 之间的桥接 DTO 与 facade
@@ -49,7 +48,6 @@
 
 ### `core`
 - Compose UI、页面导航、ViewModel、系统能力外观层
-- WebUI 数据编排、状态模型、会话/鉴权/路由协议层
 - 通话监听与电量提醒等应用内协调逻辑
 - 设置页优先通过 repository 读写配置
 - `ComposeSettingsScreen` 仅保留为兼容壳；主路径使用新的设置体验页
@@ -88,10 +86,14 @@
 
 ## 配置访问规则
 
-### 应用内 UI / WebUI
+### 应用内 UI
 - 优先使用 repository
 - 不直接拼 pref key
 - 不直接依赖 Provider URI
+
+### Web / Desktop 控制台
+- 统一通过 Backend API 访问配置、记录与设备状态
+- 不直接访问 Android 端 repository、Provider 或 DataStore
 
 ### Xposed / 跨进程运行时
 - 继续使用 `PrefsReader`
@@ -110,11 +112,11 @@
 
 ## 配置访问矩阵
 
-本文档中的矩阵用于约束主要配置项的唯一写入口、UI 读取入口与 runtime 读取入口，避免再次出现多套事实来源。
+本文档中的矩阵用于约束主要配置项的唯一写入口、Native UI 读取入口与 runtime 读取入口，避免再次出现多套事实来源。
 
 ### 访问原则
 
-- UI / WebUI 优先走 repository
+- Native UI 优先走 repository
 - 运行时 / Xposed / 跨进程读取优先走 `PrefsReader`
 - `AppPreferencesDataStore` 仅作为 repository 与应用启动初始化层的底层实现
 - `PrefsProvider` 仅作为跨进程读取桥
@@ -124,12 +126,11 @@
 | 配置域 | 唯一写入口 | UI 读取入口 | runtime 读取入口 | Provider fallback |
 | --- | --- | --- | --- | --- |
 | 模块总开关、显示模式 | `SettingsRepository.get/updateGeneralSettings()` | Native 设置页 | `PrefsReader.isEnabled()` | 允许 |
-| 验证码功能 | `SettingsRepository.get/updateVerificationSettings()` | Native / WebUI 设置页 | `PrefsReader.verificationFeaturesEnabled()` 及相关验证码 getter | 允许 |
-| 转发功能 | `SettingsRepository.get/updateRelaySettings()` | Native / WebUI 设置页 | `PrefsReader.relayFeaturesEnabled()`、消息类型 getter | 允许 |
+| 验证码功能 | `SettingsRepository.get/updateVerificationSettings()` | Native 设置页 | `PrefsReader.verificationFeaturesEnabled()` 及相关验证码 getter | 允许 |
+| 转发功能 | `SettingsRepository.get/updateRelaySettings()` | Native 设置页 | `PrefsReader.relayFeaturesEnabled()`、消息类型 getter | 允许 |
 | 特殊提醒 | `SettingsRepository.get/updateSpecialAlertSettings()` | Native 高级页 | `PrefsReader.lowBatteryReminderEnabled()` 等 | 允许 |
 | 记录设置 | `SettingsRepository.get/updateRecordSettings()` | 记录页设置面板 | `PrefsReader.recordCodeSmsEnabled()` 等 | 允许 |
 | 高级诊断 | `SettingsRepository.get/updateDiagnosticsSettings()` | Native 高级页 | `PrefsReader.analyticsEnabled()` 等 | 允许 |
-| WebUI 高级设置 | `SettingsRepository.get/updateAdvanced()` 与 WebUI settings route | Native / WebUI | `PrefsReader` 非主入口 | 可选 |
 | IPC token | `SecurityInitializer` | 不直接暴露 | `PrefsReader.getIpcToken()` | 必需 |
 
 ### 仍处于兼容期的直接访问
@@ -137,7 +138,7 @@
 以下位置仍可直接访问底层配置，但不应继续扩散：
 
 - `SmsCodeApplication`
-  - Koin 启动、initializer 调度、WebUI manager 生命周期
+  - Koin 启动与 initializer 调度
 - `RuntimeGraph`
   - 应用进程内运行时单例装配中心
 - `PrefsReader`
@@ -147,7 +148,7 @@
   - 仅缓存 `PreferenceDataSource` / `SettingsRepository` 的运行时快照，不提供新的业务语义入口
 - `SmsBlacklistUtils`
   - runtime-only 工具箱
-  - 仅限 runtime/Xposed 使用，不作为 UI / WebUI / repository API
+  - 仅限 runtime/Xposed 使用，不作为 Native UI / repository API
 - `PrefsSourceChain`
   - 仅负责运行时 source-chain 解析逻辑
 - `PrefsProvider`
@@ -168,7 +169,7 @@
 ### 配置治理后续约束
 
 1. Native 剩余直接依赖 `AppPreferencesDataStore` 的页面继续迁到 repository
-2. WebUI 设置接口统一通过 repository 返回配置快照
+2. Native 设置入口继续统一通过 repository 返回配置快照
 3. 内部 `MessageTypeGateSnapshot` 仅供 runtime / diagnostics 使用，不再作为用户设置模型
 4. 新配置项默认先在本文件登记，再落地实现
 
@@ -200,7 +201,7 @@
 
 说明：
 - UI 不应依赖这条链路作为主配置 API
-- 应用内设置页与 WebUI 优先走 repository
+- 应用内设置页优先走 repository
 - `PrefsProvider` 仅作为跨进程 fallback，不承载业务语义
 - `PrefsReader` 的职责是 runtime source-chain resolver，不是全项目通用配置 API
 
@@ -241,13 +242,13 @@
 - 转发配置
 - 特殊提醒
 - 拦截与过滤
-- WebUI
+- Remote Agent / Backend
 - 实验性与诊断
 
 说明：
 - “消息类型进入主处理管线”只保留为内部运行时概念
 - 不再作为面向用户的设置术语
-- WebUI 设置页也只暴露用户能力开关，不直接暴露内部 message-type gate
+- 远程控制台也只暴露用户能力开关，不直接暴露内部 message-type gate
 
 ## 后续开发约束
 

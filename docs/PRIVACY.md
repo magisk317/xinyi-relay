@@ -1,6 +1,6 @@
 # Privacy Policy / 隐私政策
 
-**Effective Date / 生效日期:** 2026-03-06
+**Effective Date / 生效日期:** 2026-04-07
 
 [English Version](#privacy-policy-for-信驿-relay) | [中文版本](#信驿-relay-隐私政策)
 
@@ -42,18 +42,18 @@ To support migration, 信驿 Relay may read export data from compatible local so
 
 ### 4. Data Sharing
 - We do not sell your personal data.
-- We do not run a backend service to collect your SMS/notification/call content.
+- We do not operate a mandatory central backend to collect your SMS/notification/call content.
 - Data leaves your device only when you explicitly configure and enable relay targets.
 
-#### 4.1 Planned Remote Architecture (Draft)
-We are preparing an optional future architecture based on Android Agent + Backend + Web/Desktop console.
-- This architecture is not the default behavior in the current stable app.
-- If it is introduced in a future version, the privacy policy will be updated before it becomes generally available.
-- Under the current draft, a self-hosted or cloud backend may store:
+#### 4.1 Optional Remote Backend and Console
+信驿 Relay now supports an optional architecture based on Android Agent + Backend + Web/Desktop console.
+- This architecture is optional and not required for local-only usage.
+- If you deploy or bind to a backend, that backend may store:
   - device metadata
   - configuration snapshots
   - relay / record data that you choose to sync
-- The planned first version assumes the backend stores these records in plaintext for management and synchronization.
+- The project provides self-hosted backend software and container images, but you decide whether to deploy it and where it runs.
+- In the current implementation, synced records and configuration may be stored in plaintext on the backend for management and synchronization.
 
 ### 5. Security
 - Sensitive permissions are used only for declared features.
@@ -109,18 +109,18 @@ If you have questions about this policy, contact:
 
 ### 4. 数据共享
 - 我们不会出售你的个人数据；
-- 我们没有用于收集短信/通知/来电内容的后端服务；
+- 我们不运营一个强制使用的中心化后端来收集短信/通知/来电内容；
 - 仅当你明确配置并启用转发目标时，数据才会离开你的设备。
 
-#### 4.1 远程架构规划（草案）
-我们正在规划一个可选的未来架构：Android Agent + Backend + Web/Desktop 控制台。
-- 该架构目前不是稳定版应用的默认行为；
-- 如果未来正式引入，我们会在对外启用前同步更新隐私政策；
-- 按当前草案，若你主动启用自建或云端 Backend，后端可能保存：
+#### 4.1 可选远程 Backend 与控制台
+信驿 Relay 当前已支持一个可选架构：Android Agent + Backend + Web/Desktop 控制台。
+- 该架构为可选能力，不影响本地单机使用；
+- 若你主动启用自建或云端 Backend，后端可能保存：
   - 设备元数据
   - 配置快照
   - 你选择同步的转发/记录数据
-- 规划中的第一版默认假定后端以明文形式保存这些记录与配置，用于管理与同步。
+- 项目提供自建 Backend 程序与容器镜像，但是否部署、部署到哪里由你自行决定。
+- 当前实现下，后端会以明文形式保存你选择同步的记录与配置，用于管理与同步。
 
 ### 5. 安全
 - 敏感权限仅用于声明功能；

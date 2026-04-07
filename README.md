@@ -19,12 +19,12 @@
 
 信驿 Relay 是一个面向 Xposed/LSPosed 的消息转发与验证码自动填写工具，支持短信、应用通知、来电等来源的统一处理。
 
-当前主线正在收敛到 `Android Agent + Backend + Web / Desktop` 远程架构：
+项目当前由两部分组成：
 
-- Android 端继续负责短信、通知、来电、自动输入与 Hook 能力
-- Backend 负责设备绑定、配置快照、记录上报与实时状态
-- Web / Desktop 作为主控制台
-- 旧内嵌 WebUI 已退出主运行链，不再随应用启动
+- 手机端：负责短信、通知、来电、自动输入与 Xposed Hook
+- Backend：负责设备绑定、配置快照、记录上报，以及 Web / Desktop 远程控制台
+
+旧内嵌 WebUI 已退出 Android 主运行链，当前正式架构为 `Android Agent + Backend + Web / Desktop`。
 
 [English Version](./README-EN.md)
 
@@ -35,28 +35,53 @@
 - [Telegram Group](https://t.me/+NR2QaQ4dlEgxYmNl)
 
 
-# 使用
+## 手机端
+
+手机端是面向 Xposed/LSPosed 的 Android 模块，负责本地事件采集、验证码解析与自动填写。
+
+### 安装与使用
 1. Root 设备并安装 LSPosed/Xposed 框架；
-2. 安装信驿 Relay，激活模块并重启；
-3. 配置转发通道、路由规则和验证码自动填写策略。
+2. 安装信驿 Relay，按框架版本选择合适 APK：
+   - GitHub Release：提供 `legacy` 与 `api101`
+   - Google Play：仅提供 `api101`
+3. 激活模块并重启；
+4. 在应用内配置转发通道、路由规则、拦截策略与验证码自动填写。
 
-欢迎反馈，欢迎提出意见或建议。
-
-# 注意
-- **此模块适用于偏原生的系统，其他第三方定制 Rom 可能不适用。**
-- **兼容性：最低 Android 8.0（API 26），目标 Android 16（API 36）。**
-- **GitHub Release 同时提供 `legacy` 和 `api101` APK；旧框架用户请选择 `legacy`。**
-- **Google Play 仅提供 `api101`；`legacy` 作为旧框架兼容轨仅在 GitHub 发布。**
+### 兼容性
+- **最低 Android 8.0（API 26），Target SDK 37。**
+- **适用于偏原生系统，第三方深度定制 Rom 可能存在兼容性差异。**
 - **代码库：100% Kotlin + Jetpack Compose + Room + Coroutines。**
-- **遇到问题请先阅读模块中的“常见问题”。**
 
-# 功能
+### 主要能力
 - 短信转发：按规则转发验证码短信与普通短信
 - 应用通知转发：按应用维度绑定转发通道
 - 来电信息转发：提取并转发来电相关信息
 - 全局/应用级转发过滤：关键词、来源、优先级等策略控制
-- 验证码自动解析与自动填写
+- 验证码自动解析、复制与自动填写
 - 记录与备份：支持导出/导入配置与历史记录
+
+## Backend
+
+Backend 是信驿 Relay 的自建远程控制面，默认部署模式为“本地优先、保留公网能力”。
+
+### 组成
+- Go API
+- PostgreSQL
+- Caddy
+- Web 控制台
+- Tauri Desktop 桌面壳
+
+### 默认部署方式
+- Docker Compose 默认直接拉取 GHCR 镜像 `ghcr.io/magisk317/xinyi-relay-backend:beta`
+- Android Agent、Web 与 Desktop 共享同一套 Backend API
+- 本地 HTTPS 使用 Caddy `tls internal`，可通过用户证书接入 Android Agent
+
+### 入口文档
+- [Backend 使用说明](backend/README.md)
+- [Backend API 概览](backend/API_OVERVIEW.md)
+- [远程架构](docs/REMOTE_ARCHITECTURE.md)
+
+欢迎反馈，欢迎提出意见或建议。
 
 # 发布元数据维护
 - Fastlane 元数据目录：`fastlane/metadata/android`
@@ -72,7 +97,9 @@
 # 文档
 - [更新日志 (Changelog)](docs/CHANGELOG.md)
 - [架构与运行时重构说明](docs/REFACTORING.md)
-- [远程架构草案 (Remote Architecture)](docs/REMOTE_ARCHITECTURE.md)
+- [远程架构 (Remote Architecture)](docs/REMOTE_ARCHITECTURE.md)
+- [Backend 使用说明](backend/README.md)
+- [Backend API 概览](backend/API_OVERVIEW.md)
 - [隐私政策 (Privacy Policy)](docs/PRIVACY.md)
 - [赞助与捐赠 (Donations)](docs/DONATIONS.md)
 

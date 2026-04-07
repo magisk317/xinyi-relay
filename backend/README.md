@@ -1,13 +1,14 @@
-# Backend Foundation
+# Backend
 
-这个目录承载“本地优先、保留公网能力”的远程 Backend 脚手架。
+这个目录承载信驿 Relay 正式支持的远程 Backend，部署策略为“本地优先、保留公网能力”。
 
-当前阶段仅提供：
+当前包含：
 
 - Docker Compose 基础编排
-- Go 最小 API 服务
+- Go API 服务
 - PostgreSQL
 - Caddy 反向代理
+- Web 控制台托管入口
 - API 概览文档
 
 ## 快速开始
@@ -69,12 +70,11 @@ backend/caddy-data/caddy/pki/authorities/local/root.crt
 
 如果后续切到公网域名和正式证书，就不再需要这个步骤。
 
-## 后续计划
+## 后续演进
 
-- M1：用户 / 设备 / 绑定 Token
-- M2：配置同步
-- M3：记录上报
-- M4：WebSocket / 实时状态
+- 继续收敛 Web / Desktop 与手机端的功能 parity
+- 继续减少历史嵌入式 WebUI 代码残留
+- 逐步把前端静态资源也纳入远端镜像链，减少宿主机对本地 `webui/dist` 的依赖
 
 ## 容器镜像托管
 
@@ -137,5 +137,5 @@ docker pull docker.io/magisk317/xinyi-relay-backend:latest
 
 ## 文档
 
-- 架构草案：`docs/REMOTE_ARCHITECTURE.md`
+- 远程架构：`docs/REMOTE_ARCHITECTURE.md`
 - API 概览：`backend/API_OVERVIEW.md`
