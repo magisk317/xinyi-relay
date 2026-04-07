@@ -14,8 +14,18 @@ import {
   SurfaceCard,
   ToggleRow
 } from '../template'
-import type { SnapshotAppInfo } from '../types'
+import type {
+  SnapshotAppInfo,
+  SnapshotForwardFilterRule,
+  SnapshotNotifyRouteRule,
+  SnapshotSmsCodeRule
+} from '../types'
 import { useConfigSnapshotEditor } from '../useConfigSnapshotEditor'
+
+const EMPTY_APP_INFOS: SnapshotAppInfo[] = []
+const EMPTY_NOTIFY_ROUTES: SnapshotNotifyRouteRule[] = []
+const EMPTY_SMS_CODE_RULES: SnapshotSmsCodeRule[] = []
+const EMPTY_FORWARD_FILTERS: SnapshotForwardFilterRule[] = []
 
 export function AppsPage() {
   const { t } = useI18n()
@@ -37,10 +47,10 @@ export function AppsPage() {
     }
   }, [lastEvent, load])
 
-  const appInfos = root?.appInfos ?? []
-  const notifyRoutes = root?.notifyRoutes ?? []
-  const smsCodeRules = root?.smsCodeRules ?? []
-  const forwardFilters = root?.forwardFilters ?? []
+  const appInfos = useMemo(() => root?.appInfos ?? EMPTY_APP_INFOS, [root?.appInfos])
+  const notifyRoutes = useMemo(() => root?.notifyRoutes ?? EMPTY_NOTIFY_ROUTES, [root?.notifyRoutes])
+  const smsCodeRules = useMemo(() => root?.smsCodeRules ?? EMPTY_SMS_CODE_RULES, [root?.smsCodeRules])
+  const forwardFilters = useMemo(() => root?.forwardFilters ?? EMPTY_FORWARD_FILTERS, [root?.forwardFilters])
 
   const filteredItems = useMemo(() => {
     const keyword = search.trim().toLowerCase()

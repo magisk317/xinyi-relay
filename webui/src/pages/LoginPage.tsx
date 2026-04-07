@@ -17,10 +17,6 @@ export function LoginPage() {
   const [error, setError] = useState('')
   const [adminInitialized, setAdminInitialized] = useState(true)
 
-  if (!loading && authenticated) {
-    return <Navigate to="/overview" replace />
-  }
-
   useEffect(() => {
     let cancelled = false
     void apiClient
@@ -39,6 +35,10 @@ export function LoginPage() {
       cancelled = true
     }
   }, [])
+
+  if (!loading && authenticated) {
+    return <Navigate to="/overview" replace />
+  }
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
