@@ -1,16 +1,16 @@
 import type {
-  AdvancedState,
-  AnalyticsResponse,
-  AppItem,
-  InterceptState,
+  BindCodeResponse,
+  ConfigAuditLogsResponse,
+  ConfigSnapshotState,
+  DeviceItem,
+  DevicesResponse,
   LoginResponse,
   MeResponse,
-  OverviewState,
   RecordItem,
-  SenderItem,
-  SettingsState,
-  VersionState
+  RecordsResponse,
+  SystemInfoState
 } from '../types'
+import { ConfigConflictError } from '../configSnapshot'
 import { translateStatic } from '../i18n'
 
 let csrfToken = ''
@@ -45,10 +45,10 @@ function extractErrorMessage(text: string, status: number): string {
 
 function normalizeRequestError(error: unknown): Error {
   if (error instanceof DOMException && error.name === 'AbortError') {
-    return new Error('Connection timed out. Make sure the host app or WebUI service is still active.')
+    return new Error('Connection timed out. Make sure the remote backend is still active.')
   }
   if (error instanceof TypeError) {
-    return new Error('Unable to connect to WebUI. Make sure the app or WebUI service is still running.')
+    return new Error('Unable to connect to the remote backend.')
   }
   return error instanceof Error ? error : new Error(translateStatic('common.requestFailed'))
 }
@@ -93,67 +93,93 @@ async function request<T>(
 }
 
 export const apiClient = {
+  bootstrapAdmin: (username: string, password: string) =>
+    request<{ ok: boolean; userId: number; username: string }>('/api/v1/bootstrap/admin', {
+      method: 'POST',
+      body: JSON.stringify({ username, password })
+    }),
+
   login: (username: string, password: string) =>
-    request<LoginResponse>('/auth/login', {
+    request<LoginResponse>('/api/v1/auth/login', {
       method: 'POST',
       body: JSON.stringify({ username, password })
     }, { timeoutMs: 6_000 }),
 
-  me: () => request<MeResponse>('/auth/me', {}, { timeoutMs: 2_500 }),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request('/api/v1/auth/password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword })
+    }, { requiresCsrf: true }),
+
+  me: () => request<MeResponse>('/api/v1/auth/me', {}, { timeoutMs: 2_500 }),
 
   logout: () =>
-    request('/auth/logout', {
+    request('/api/v1/auth/logout', {
       method: 'POST'
     }, { requiresCsrf: true }),
 
-  getOverview: () => request<OverviewState>('/api/v1/overview'),
-  getApps: () => request<AppItem[]>('/api/v1/apps'),
-  patchApp: (packageName: string, payload: Partial<AppItem>) =>
-    request<AppItem>(`/api/v1/apps/${encodeURIComponent(packageName)}`, {
+  getSystemInfo: () => request<SystemInfoState>('/api/v1/system/info'),
+
+  getDevices: () => request<DevicesResponse>('/api/v1/devices'),
+
+  patchDevice: (deviceId: number, payload: Partial<Pick<DeviceItem, 'displayName' | 'enabled'>>) =>
+    request<DeviceItem>(`/api/v1/devices/${deviceId}`, {
       method: 'PATCH',
       body: JSON.stringify(payload)
     }, { requiresCsrf: true }),
 
-  getRecords: (limit = 80) => request<RecordItem[]>(`/api/v1/records?limit=${limit}`),
-  deleteRecord: (recordId: number) =>
-    request(`/api/v1/records/${recordId}`, { method: 'DELETE' }, { requiresCsrf: true }),
-
-  getSenders: () => request<SenderItem[]>('/api/v1/senders'),
-  createSender: (payload: Partial<SenderItem>) =>
-    request<SenderItem>('/api/v1/senders', {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    }, { requiresCsrf: true }),
-  patchSender: (senderId: number, payload: Partial<SenderItem>) =>
-    request<SenderItem>(`/api/v1/senders/${senderId}`, {
-      method: 'PATCH',
-      body: JSON.stringify(payload)
-    }, { requiresCsrf: true }),
-  deleteSender: (senderId: number) =>
-    request(`/api/v1/senders/${senderId}`, { method: 'DELETE' }, { requiresCsrf: true }),
-
-  getSettings: () => request<SettingsState>('/api/v1/settings'),
-  patchSettings: (payload: Partial<SettingsState>) =>
-    request<SettingsState>('/api/v1/settings', {
-      method: 'PATCH',
-      body: JSON.stringify(payload)
+  revokeDevice: (deviceId: number) =>
+    request('/api/v1/devices/' + deviceId + '/revoke', {
+      method: 'POST'
     }, { requiresCsrf: true }),
 
-  getAdvanced: () => request<AdvancedState>('/api/v1/advanced'),
-  patchAdvanced: (payload: Partial<AdvancedState>) =>
-    request<AdvancedState>('/api/v1/advanced', {
-      method: 'PATCH',
-      body: JSON.stringify(payload)
+  createBindCode: () =>
+    request<BindCodeResponse>('/api/v1/devices/bind-codes', {
+      method: 'POST'
     }, { requiresCsrf: true }),
 
-  getAnalytics: () => request<AnalyticsResponse>('/api/v1/analytics'),
+  getConfigSnapshot: () => request<ConfigSnapshotState>('/api/v1/config/snapshot'),
 
-  getIntercept: () => request<InterceptState>('/api/v1/intercept'),
-  patchIntercept: (payload: Partial<InterceptState>) =>
-    request<InterceptState>('/api/v1/intercept', {
-      method: 'PATCH',
-      body: JSON.stringify(payload)
-    }, { requiresCsrf: true }),
+  putConfigSnapshot: (baseRevision: number, snapshot: Record<string, unknown>) =>
+    (async () => {
+      const headers = new Headers({ 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken })
+      const controller = new AbortController()
+      const timeoutId = window.setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS)
 
-  getVersion: () => request<VersionState>('/api/v1/version')
+      try {
+        const resp = await fetch('/api/v1/config/snapshot', {
+          method: 'PUT',
+          credentials: 'include',
+          headers,
+          body: JSON.stringify({
+            base_revision: baseRevision,
+            snapshot
+          }),
+          signal: controller.signal
+        })
+
+        const text = await resp.text()
+        if (resp.status === 409) {
+          const latest = JSON.parse(text) as ConfigSnapshotState
+          throw new ConfigConflictError('Cloud config changed on another client. Reloaded the latest revision.', latest)
+        }
+        if (!resp.ok) {
+          throw new Error(extractErrorMessage(text, resp.status))
+        }
+
+        return JSON.parse(text) as ConfigSnapshotState
+      } catch (error) {
+        throw normalizeRequestError(error)
+      } finally {
+        window.clearTimeout(timeoutId)
+      }
+    })(),
+
+  getConfigAuditLogs: (limit = 50, offset = 0) =>
+    request<ConfigAuditLogsResponse>(`/api/v1/config/audit?limit=${limit}&offset=${offset}`),
+
+  getRecords: (limit = 80, deviceId?: number) =>
+    request<RecordsResponse>(`/api/v1/records?limit=${limit}${deviceId ? `&device_id=${deviceId}` : ''}`),
+
+  getRecord: (recordId: number) => request<RecordItem>(`/api/v1/records/${recordId}`)
 }

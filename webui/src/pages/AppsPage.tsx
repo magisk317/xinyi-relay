@@ -1,62 +1,65 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { apiClient } from '../api/client'
-import type { AppItem } from '../types'
+import { useEffect, useMemo, useState } from 'react'
+import { cloneSnapshot } from '../configSnapshot'
+import { useRealtimeFeed } from '../realtime'
 import { trackEvent } from '../analytics'
 import { useI18n } from '../i18n'
-import { ActionButton, ErrorBanner, LoadingCard, PageShell, RelaySwitch, SurfaceCard } from '../template'
+import {
+  ActionButton,
+  EmptyCard,
+  ErrorBanner,
+  LoadingCard,
+  MetricCard,
+  PageShell,
+  RelayBadge,
+  SurfaceCard,
+  ToggleRow
+} from '../template'
+import type { SnapshotAppInfo } from '../types'
+import { useConfigSnapshotEditor } from '../useConfigSnapshotEditor'
 
 export function AppsPage() {
   const { t } = useI18n()
-  const [apps, setApps] = useState<AppItem[]>([])
+  const { connected, lastEvent } = useRealtimeFeed()
+  const { config, root, loading, saving, error, setError, load, saveRoot } = useConfigSnapshotEditor()
   const [search, setSearch] = useState('')
-  const [saving, setSaving] = useState<string>('')
-  const [error, setError] = useState('')
-
-  const load = useCallback(async () => {
-    try {
-      setError('')
-      setApps(await apiClient.getApps())
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('common.loadFailed'))
-    }
-  }, [t])
+  const [draftPackageName, setDraftPackageName] = useState('')
+  const [draftLabel, setDraftLabel] = useState('')
 
   useEffect(() => {
-    void load()
+    queueMicrotask(() => {
+      void load().catch(() => {})
+    })
   }, [load])
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    if (!q) return apps
-    return apps.filter((item) =>
-      item.packageName.toLowerCase().includes(q) || item.label.toLowerCase().includes(q)
-    )
-  }, [apps, search])
-
-  const updateItem = async (item: AppItem, patch: Partial<AppItem>) => {
-    setSaving(item.packageName)
-    try {
-      const updated = await apiClient.patchApp(item.packageName, patch)
-      setApps((prev) => prev.map((x) => (x.packageName === item.packageName ? updated : x)))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('common.saveFailed'))
-    } finally {
-      setSaving('')
+  useEffect(() => {
+    if (lastEvent?.type === 'config.updated') {
+      void load().catch(() => {})
     }
-  }
+  }, [lastEvent, load])
+
+  const appInfos = root?.appInfos ?? []
+  const notifyRoutes = root?.notifyRoutes ?? []
+  const smsCodeRules = root?.smsCodeRules ?? []
+  const forwardFilters = root?.forwardFilters ?? []
+
+  const filteredItems = useMemo(() => {
+    const keyword = search.trim().toLowerCase()
+    if (!keyword) return appInfos
+    return appInfos.filter((item) => {
+      const label = item.label?.toLowerCase() ?? ''
+      return item.packageName.toLowerCase().includes(keyword) || label.includes(keyword)
+    })
+  }, [appInfos, search])
 
   const actions = (
     <div className="flex flex-wrap items-center gap-3">
-      <input
-        className="relay-input min-w-[16rem] text-sm"
-        placeholder={t('apps.searchPlaceholder')}
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
+      <RelayBadge tone={connected ? 'success' : 'warning'}>
+        {connected ? t('common.liveConnected') : t('common.liveReconnecting')}
+      </RelayBadge>
       <ActionButton
         onClick={() => {
           trackEvent('refresh', { page: 'apps' })
-          void load()
+          void load().catch(() => {})
         }}
       >
         {t('apps.refresh')}
@@ -64,82 +67,190 @@ export function AppsPage() {
     </div>
   )
 
-  if (!apps.length && !error) {
+  async function persistApps(nextApps: SnapshotAppInfo[]) {
+    if (!root) return
+    const nextRoot = cloneSnapshot(root)
+    nextRoot.appInfos = nextApps
+    try {
+      await saveRoot(nextRoot)
+    } catch {
+      // saveRoot updates error state itself.
+    }
+  }
+
+  if (loading && !root && !error) {
     return (
-      <PageShell
-        title={t('apps.title')}
-        description={t('apps.description')}
-        badge="Applications"
-        actions={actions}
-      >
+      <PageShell title={t('apps.title')} description={t('apps.description')} badge={t('apps.title')} actions={actions}>
         <LoadingCard title={t('apps.loadingTitle')} message={t('apps.loadingMessage')} />
       </PageShell>
     )
   }
 
   return (
-    <PageShell
-      title={t('apps.title')}
-      description={t('apps.description')}
-      badge="Applications"
-      actions={actions}
-    >
+    <PageShell title={t('apps.title')} description={t('apps.remoteDescription')} badge={t('apps.title')} actions={actions}>
       <ErrorBanner message={error} />
-      <SurfaceCard
-        title={t('apps.listTitle')}
-        subtitle={t('apps.listSubtitle', { filtered: filtered.length, total: apps.length })}
-      >
-        <div className="relay-table-shell">
-          <table className="relay-table">
-            <thead>
-              <tr>
-                <th>{t('apps.table.app')}</th>
-                <th>{t('apps.table.package')}</th>
-                <th>{t('apps.table.blocked')}</th>
-                <th>{t('apps.table.forwarding')}</th>
-                <th>{t('apps.table.template')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((item) => (
-                <tr key={item.packageName}>
-                  <td data-strong="true">{item.label}</td>
-                  <td>{item.packageName}</td>
-                  <td>
-                    <RelaySwitch
-                      checked={item.blocked}
-                      disabled={saving === item.packageName}
-                      onChange={(value) => void updateItem(item, { blocked: value })}
-                    />
-                  </td>
-                  <td>
-                    <RelaySwitch
-                      checked={item.forwarding}
-                      disabled={saving === item.packageName}
-                      onChange={(value) => void updateItem(item, { forwarding: value })}
-                    />
-                  </td>
-                  <td>
+
+      <div className="grid gap-4 md:grid-cols-4">
+        <MetricCard title={t('apps.metric.tracked')} value={appInfos.length} helper={t('apps.metric.trackedHelper')} />
+        <MetricCard title={t('apps.metric.blocked')} value={appInfos.filter((item) => item.blocked).length} tone="warning" helper={t('apps.metric.blockedHelper')} />
+        <MetricCard title={t('apps.metric.forwarding')} value={appInfos.filter((item) => item.forwarding).length} tone="success" helper={t('apps.metric.forwardingHelper')} />
+        <MetricCard title={t('apps.metric.routingAssets')} value={notifyRoutes.length + smsCodeRules.length + forwardFilters.length} tone="info" helper={t('apps.metric.routingAssetsHelper')} />
+      </div>
+
+      <SurfaceCard title={t('apps.addTitle')} subtitle={t('apps.addSubtitle')}>
+        <div className="grid gap-3 md:grid-cols-[1.4fr_1fr_auto]">
+          <input
+            className="relay-input"
+            placeholder={t('apps.packagePlaceholder')}
+            value={draftPackageName}
+            onChange={(event) => setDraftPackageName(event.target.value)}
+          />
+          <input
+            className="relay-input"
+            placeholder={t('apps.labelPlaceholder')}
+            value={draftLabel}
+            onChange={(event) => setDraftLabel(event.target.value)}
+          />
+          <ActionButton
+            tone="primary"
+            disabled={saving}
+            onClick={() => {
+              const packageName = draftPackageName.trim()
+              if (!packageName) {
+                setError(t('apps.packageRequired'))
+                return
+              }
+              const nextApp: SnapshotAppInfo = {
+                packageName,
+                label: draftLabel.trim() || packageName,
+                blocked: false,
+                forwarding: false,
+                forwardingConfigured: false,
+                notifyTemplate: ''
+              }
+              void persistApps([nextApp, ...appInfos.filter((item) => item.packageName !== packageName)]).then(() => {
+                setDraftPackageName('')
+                setDraftLabel('')
+              })
+            }}
+          >
+            {saving ? t('common.saving') : t('apps.addAction')}
+          </ActionButton>
+        </div>
+      </SurfaceCard>
+
+      <SurfaceCard title={t('apps.listTitle')} subtitle={t('apps.filteredSubtitle', { filtered: filteredItems.length, total: appInfos.length })}>
+        <div className="mb-4">
+          <input
+            className="relay-input"
+            placeholder={t('apps.searchPlaceholder')}
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+        </div>
+
+        {!filteredItems.length ? (
+          <EmptyCard
+            title={appInfos.length ? t('apps.emptyFilteredTitle') : t('apps.emptyTitle')}
+            message={appInfos.length ? t('apps.emptyFilteredMessage') : t('apps.emptyMessage')}
+          />
+        ) : (
+          <div className="space-y-4">
+            {filteredItems.map((item) => {
+              const routeCount = notifyRoutes.filter((route) => route.packageName === item.packageName).length
+              const filterCount = forwardFilters.filter((rule) => rule.scopeKey === item.packageName || rule.scopeKey.startsWith(`${item.packageName}:`)).length
+              return (
+                <SurfaceCard key={`${item.packageName}-${config?.revision ?? 0}`} className="bg-white/96">
+                  <div className="mb-4 flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-medium text-[#243115]">{item.label || item.packageName}</div>
+                      <div className="mt-1 text-sm text-[#6c785d]">{item.packageName}</div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <RelayBadge tone={item.blocked ? 'warning' : 'muted'}>
+                          {item.blocked ? t('apps.badge.blocked') : t('apps.badge.allowed')}
+                        </RelayBadge>
+                        <RelayBadge tone={item.forwarding ? 'success' : 'muted'}>
+                          {item.forwarding ? t('apps.badge.forwardingEnabled') : t('apps.badge.forwardingDisabled')}
+                        </RelayBadge>
+                        <RelayBadge>{t('apps.badge.routes', { count: routeCount })}</RelayBadge>
+                        <RelayBadge>{t('apps.badge.filters', { count: filterCount })}</RelayBadge>
+                      </div>
+                    </div>
+                    <ActionButton
+                      tone="danger"
+                      className="px-3 py-2 text-xs"
+                      onClick={() => {
+                        if (!window.confirm(t('apps.deleteConfirm'))) return
+                        void persistApps(appInfos.filter((app) => app.packageName !== item.packageName))
+                      }}
+                    >
+                      {t('common.delete')}
+                    </ActionButton>
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-2">
                     <input
-                      className="relay-input min-w-72 text-sm"
-                      value={item.notifyTemplate}
-                      disabled={saving === item.packageName}
-                      onChange={(e) => {
-                        const value = e.target.value
-                        setApps((prev) =>
-                          prev.map((x) =>
-                            x.packageName === item.packageName ? { ...x, notifyTemplate: value } : x
+                      className="relay-input"
+                      defaultValue={item.label ?? ''}
+                      onBlur={(event) => {
+                        const value = event.target.value
+                        if (value === (item.label ?? '')) return
+                        void persistApps(
+                          appInfos.map((app) => (app.packageName === item.packageName ? { ...app, label: value } : app))
+                        )
+                      }}
+                    />
+                    <div className="rounded-[24px] border border-[#d9e6b1] bg-[linear-gradient(180deg,#ffffff_0%,#f7fbe9_100%)] px-4 py-3.5 text-sm text-[#5d6c47] shadow-[0_12px_30px_-24px_rgba(98,122,28,0.2)]">
+                      {t('apps.forwardingConfigured')}: <span className="font-medium text-[#243115]">{item.forwardingConfigured ? t('common.yes') : t('common.no')}</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <ToggleRow
+                      label={t('apps.table.blocked')}
+                      checked={item.blocked}
+                      onChange={(value) => {
+                        void persistApps(
+                          appInfos.map((app) => (app.packageName === item.packageName ? { ...app, blocked: value } : app))
+                        )
+                      }}
+                    />
+                    <ToggleRow
+                      label={t('apps.table.forwarding')}
+                      checked={item.forwarding}
+                      onChange={(value) => {
+                        void persistApps(
+                          appInfos.map((app) =>
+                            app.packageName === item.packageName
+                              ? { ...app, forwarding: value, forwardingConfigured: value || app.forwardingConfigured }
+                              : app
                           )
                         )
                       }}
-                      onBlur={() => void updateItem(item, { notifyTemplate: item.notifyTemplate })}
                     />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+
+                  <textarea
+                    className="relay-input mt-4 min-h-[8rem]"
+                    placeholder={t('apps.table.template')}
+                    defaultValue={item.notifyTemplate}
+                    onBlur={(event) => {
+                      const value = event.target.value
+                      if (value === item.notifyTemplate) return
+                      void persistApps(
+                        appInfos.map((app) =>
+                          app.packageName === item.packageName
+                            ? { ...app, notifyTemplate: value, forwardingConfigured: value.trim().length > 0 || app.forwardingConfigured }
+                            : app
+                        )
+                      )
+                    }}
+                  />
+                </SurfaceCard>
+              )
+            })}
+          </div>
+        )}
       </SurfaceCard>
     </PageShell>
   )

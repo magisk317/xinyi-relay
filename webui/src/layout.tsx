@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ClipboardListIcon, HomeIcon, StarIcon } from 'flowbite-react/icons'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from './auth'
-import { type LocaleSetting, useI18n } from './i18n'
+import { useI18n } from './i18n'
 import { cx } from './template'
 
 export function AppLayout() {
@@ -60,6 +61,10 @@ export function AppLayout() {
     </>
   )
 
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [location.pathname])
+
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,#fbfef2_0%,#f0f8d9_50%,#e7f1cb_100%)] text-[#243115]">
       <header className="fixed inset-x-0 top-0 z-40 hidden border-b border-[#89a240]/18 bg-[linear-gradient(135deg,rgba(135,173,30,0.96),rgba(111,142,24,0.94))] backdrop-blur-xl lg:block">
@@ -115,24 +120,14 @@ export function AppLayout() {
 
         <div className="mt-4 flex gap-8">
           <aside className="hidden w-[260px] shrink-0 lg:block">
-            <div className="sticky top-28 overflow-hidden rounded-[34px] border border-[#d5e79b]/50 bg-[linear-gradient(180deg,rgba(255,255,255,0.74),rgba(244,251,223,0.94))] p-4 shadow-[0_24px_70px_-40px_rgba(98,122,28,0.2)] backdrop-blur-xl">
-              <div className="mb-4 px-2 pt-2">
-                <div className="text-xs font-semibold uppercase tracking-[0.28em] text-[#708b23]">{t('layout.workspace')}</div>
-                <div className="mt-2 text-sm leading-6 text-[#6c785d]">{t('layout.workspaceDesc')}</div>
-              </div>
-
+            <div className="sticky top-32 overflow-hidden rounded-[34px] border border-[#d5e79b]/50 bg-[linear-gradient(180deg,rgba(255,255,255,0.74),rgba(244,251,223,0.94))] p-4 shadow-[0_24px_70px_-40px_rgba(98,122,28,0.2)] backdrop-blur-xl">
               <nav className="space-y-1.5">
                 {renderNavTabs()}
               </nav>
-
-              <div className="mt-5 rounded-[26px] bg-[#eff8cf] px-4 py-4">
-                <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[#708b23]">{t('layout.keepaliveTitle')}</div>
-                <p className="mt-2 text-sm leading-6 text-[#637152]">{t('layout.keepaliveBody')}</p>
-              </div>
             </div>
           </aside>
 
-          <main className="min-w-0 flex-1">
+          <main className="relay-main-shell min-w-0 flex-1">
             <div className="sticky top-0 z-30 -mx-4 mb-4 border-b border-[#d8e6ae]/70 bg-[linear-gradient(180deg,rgba(251,255,244,0.88),rgba(243,249,220,0.96))] px-4 pb-3 pt-4 shadow-[0_18px_42px_-34px_rgba(98,122,28,0.18)] backdrop-blur-xl lg:hidden">
               <div className="flex gap-2 overflow-x-auto py-1">{renderNavTabs(true)}</div>
             </div>
@@ -160,13 +155,15 @@ function AccountMenu({
 }: {
   username: string
   onLogout: () => void
-  selectedLocale: LocaleSetting
-  onChangeLocale: (next: LocaleSetting) => void
+  selectedLocale: 'system' | 'zh-CN' | 'zh-TW' | 'en'
+  onChangeLocale: (next: 'system' | 'zh-CN' | 'zh-TW' | 'en') => void
   compact?: boolean
 }) {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement | null>(null)
+  const triggerRef = useRef<HTMLButtonElement | null>(null)
+  const [menuStyle, setMenuStyle] = useState({ top: 0, left: 0, width: 0 })
 
   useEffect(() => {
     if (!open) return
@@ -179,9 +176,30 @@ function AccountMenu({
     return () => window.removeEventListener('pointerdown', handlePointerDown)
   }, [open])
 
+  useLayoutEffect(() => {
+    if (!open) return
+    const updateMenuPosition = () => {
+      const rect = triggerRef.current?.getBoundingClientRect()
+      if (!rect) return
+      setMenuStyle({
+        top: rect.bottom + 10,
+        left: rect.right - 224,
+        width: 224
+      })
+    }
+    updateMenuPosition()
+    window.addEventListener('resize', updateMenuPosition)
+    window.addEventListener('scroll', updateMenuPosition, true)
+    return () => {
+      window.removeEventListener('resize', updateMenuPosition)
+      window.removeEventListener('scroll', updateMenuPosition, true)
+    }
+  }, [open])
+
   return (
     <div ref={rootRef} className="relative shrink-0">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((value) => !value)}
         className={cx(
@@ -193,41 +211,50 @@ function AccountMenu({
         <span className={cx('text-[10px] transition', open && 'rotate-180')}>▼</span>
       </button>
 
-      {open && (
-        <div className="absolute right-0 top-[calc(100%+10px)] min-w-[9rem] rounded-[22px] border border-[#d8e6ae] bg-[rgba(255,255,248,0.98)] p-2 shadow-[0_28px_80px_-42px_rgba(67,86,20,0.34)] backdrop-blur-xl">
-          <div className="px-3 pb-2 pt-1">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#708b23]">{t('layout.language')}</div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {(['system', 'zh-CN', 'zh-TW', 'en'] as const).map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => onChangeLocale(value)}
-                  className={cx(
-                    'rounded-full px-3 py-1.5 text-xs font-medium transition',
-                    selectedLocale === value
-                      ? 'bg-[linear-gradient(135deg,#87ad1e,#6f8e18)] text-[#243115]'
-                      : 'bg-[#f4fbe0] text-[#51613a]'
-                  )}
-                >
-                  {t(`locale.${value}`)}
-                </button>
-              ))}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              setOpen(false)
-              onLogout()
-            }}
-            className="flex w-full items-center justify-between rounded-[16px] px-4 py-3 text-left text-sm font-medium text-[#415117] transition hover:bg-[#f4fbe0]"
-          >
-            <span>{t('layout.logout')}</span>
-            <span className="text-xs text-[#7b8f4a]">→</span>
-          </button>
-        </div>
-      )}
+      {open
+        ? createPortal(
+            <div
+              className="fixed z-[1300] rounded-[22px] border border-[#d8e6ae] bg-[rgba(255,255,248,0.98)] p-2 shadow-[0_28px_80px_-42px_rgba(67,86,20,0.34)] backdrop-blur-xl"
+              style={{
+                top: menuStyle.top,
+                left: Math.max(8, menuStyle.left),
+                width: Math.min(menuStyle.width, window.innerWidth - 16)
+              }}
+            >
+              <div className="px-3 pb-2 pt-1">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#708b23]">{t('layout.language')}</div>
+                <div className="mt-2 grid gap-2">
+                  {(['system', 'zh-CN', 'zh-TW', 'en'] as const).map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => onChangeLocale(value)}
+                      className={cx(
+                        'flex w-full items-center justify-center rounded-full px-3 py-2 text-sm font-medium whitespace-nowrap transition',
+                        selectedLocale === value
+                          ? 'bg-[linear-gradient(135deg,#87ad1e,#6f8e18)] text-[#243115]'
+                          : 'bg-[#f4fbe0] text-[#51613a]'
+                      )}
+                    >
+                      {t(`locale.${value}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false)
+                  onLogout()
+                }}
+                className="flex w-full items-center justify-center rounded-[18px] px-4 py-3 text-center text-sm font-medium text-[#415117] transition hover:bg-[#f4fbe0]"
+              >
+                <span>{t('layout.logout')}</span>
+              </button>
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   )
 }

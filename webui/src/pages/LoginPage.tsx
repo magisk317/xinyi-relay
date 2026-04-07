@@ -1,7 +1,9 @@
 import { type FormEvent, type ReactNode, useState } from 'react'
+import { useEffect } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth'
 import { trackEvent } from '../analytics'
+import { apiClient } from '../api/client'
 import { useI18n } from '../i18n'
 import { ActionButton, cx } from '../template'
 
@@ -13,10 +15,30 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [adminInitialized, setAdminInitialized] = useState(true)
 
   if (!loading && authenticated) {
     return <Navigate to="/overview" replace />
   }
+
+  useEffect(() => {
+    let cancelled = false
+    void apiClient
+      .getSystemInfo()
+      .then((info) => {
+        if (!cancelled) {
+          setAdminInitialized(info.userCount > 0)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAdminInitialized(true)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -99,6 +121,12 @@ export function LoginPage() {
               >
                 {submitting ? t('login.submitting') : t('login.submit')}
               </ActionButton>
+
+              {!adminInitialized ? (
+                <div className="rounded-[22px] border border-[#d7e6a6] bg-[#f9fce9] px-4 py-3 text-sm leading-6 text-[#5f6f47]">
+                  {t('login.bootstrapHint')}
+                </div>
+              ) : null}
           </form>
         </section>
       </div>

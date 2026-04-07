@@ -34,6 +34,7 @@ body,
 
 html {
   scroll-behavior: smooth;
+  scrollbar-gutter: stable both-edges;
 }
 
 body {
@@ -44,6 +45,10 @@ body {
     radial-gradient(circle at bottom right, rgba(150, 191, 28, 0.14), transparent 30%),
     linear-gradient(180deg, #fbfef2 0%, #eef7d7 100%);
   color: #243115;
+}
+
+.relay-main-shell {
+  overflow-anchor: none;
 }
 
 button,

@@ -1,4 +1,13 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ButtonHTMLAttributes,
+  type ReactNode
+} from 'react'
+import { createPortal } from 'react-dom'
 import { useI18n } from './i18n'
 
 function cx(...values: Array<string | false | null | undefined>): string {
@@ -14,7 +23,7 @@ type PageShellProps = {
 }
 
 type ActionButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  tone?: 'primary' | 'neutral' | 'danger'
+  tone?: 'primary' | 'neutral' | 'warning' | 'danger'
 }
 
 type RelayBadgeProps = {
@@ -30,6 +39,20 @@ type RelaySwitchProps = {
   className?: string
 }
 
+type RelaySelectOption<T extends string | number> = {
+  value: T
+  label: ReactNode
+  description?: ReactNode
+}
+
+type RelaySelectProps<T extends string | number> = {
+  value: T
+  options: ReadonlyArray<RelaySelectOption<T>>
+  onChange: (value: T) => void
+  className?: string
+  menuClassName?: string
+}
+
 export function ActionButton({
   tone = 'neutral',
   className,
@@ -40,6 +63,8 @@ export function ActionButton({
   const toneClass =
     tone === 'primary'
       ? 'bg-[linear-gradient(135deg,#bce620,#99bf1f)] text-[#263215] shadow-[0_18px_42px_-24px_rgba(135,171,22,0.68)] hover:brightness-[1.02]'
+      : tone === 'warning'
+        ? 'bg-[#fff8ea] text-[#8f5d12] ring-1 ring-[#e8c873] hover:bg-[#fff2da]'
       : tone === 'danger'
         ? 'bg-[#fffaf0] text-[#8a5318] ring-1 ring-[#e6c36f] hover:bg-[#fff3df]'
         : 'bg-[#f8fbe9] text-[#34461b] ring-1 ring-[#d2e09d] hover:bg-[#ffffff]'
@@ -84,7 +109,11 @@ export function PageShell({ title, description, badge, actions, children }: Page
             <h1 className="text-[2rem] font-semibold tracking-[-0.04em] text-[#243115] md:text-[2.4rem]">{title}</h1>
             <p className="mt-3 text-sm leading-7 text-[#647254] md:text-[15px]">{description}</p>
           </div>
-          {actions && <div className="flex shrink-0 items-center gap-3">{actions}</div>}
+          {actions ? (
+            <div className="flex w-full flex-wrap items-center gap-3 md:w-auto md:shrink-0 md:justify-end">
+              {actions}
+            </div>
+          ) : null}
         </div>
       </section>
       {children}
@@ -245,6 +274,151 @@ export function RelaySwitch({ checked, onChange, disabled = false, className }: 
         )}
       />
     </button>
+  )
+}
+
+export function RelaySelect<T extends string | number>({
+  value,
+  options,
+  onChange,
+  className,
+  menuClassName
+}: RelaySelectProps<T>) {
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef<HTMLDivElement | null>(null)
+  const triggerRef = useRef<HTMLButtonElement | null>(null)
+  const menuRef = useRef<HTMLDivElement | null>(null)
+  const [menuStyle, setMenuStyle] = useState<{ top: number; left: number; width: number }>({
+    top: 0,
+    left: 0,
+    width: 0
+  })
+
+  useEffect(() => {
+    if (!open) return
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node
+      if (!rootRef.current?.contains(target) && !menuRef.current?.contains(target)) {
+        setOpen(false)
+      }
+    }
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false)
+      }
+    }
+    window.addEventListener('pointerdown', handlePointerDown)
+    window.addEventListener('keydown', handleEscape)
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown)
+      window.removeEventListener('keydown', handleEscape)
+    }
+  }, [open])
+
+  useLayoutEffect(() => {
+    if (!open) return
+
+    const updateMenuPosition = () => {
+      const rect = triggerRef.current?.getBoundingClientRect()
+      if (!rect) return
+      setMenuStyle({
+        top: rect.bottom + 10,
+        left: rect.left,
+        width: Math.max(rect.width, 224)
+      })
+    }
+
+    updateMenuPosition()
+    window.addEventListener('resize', updateMenuPosition)
+    window.addEventListener('scroll', updateMenuPosition, true)
+    return () => {
+      window.removeEventListener('resize', updateMenuPosition)
+      window.removeEventListener('scroll', updateMenuPosition, true)
+    }
+  }, [open])
+
+  const selected = useMemo(
+    () => options.find((option) => String(option.value) === String(value)) ?? options[0],
+    [options, value]
+  )
+
+  return (
+    <div ref={rootRef} className={cx('relative', className)}>
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+        className={cx(
+          'flex w-full items-center justify-between gap-3 rounded-[24px] border border-[rgba(136,166,64,0.34)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(247,251,232,0.94))] px-4 py-3.5 text-left text-sm text-[#243115] shadow-[inset_0_1px_0_rgba(255,255,255,0.94),0_14px_36px_-28px_rgba(98,122,28,0.2)] transition hover:border-[#a9c84d] hover:bg-white focus:outline-none focus-visible:ring-4 focus-visible:ring-[#dceaa4]'
+        )}
+      >
+        <span className="min-w-0 truncate font-medium">{selected?.label}</span>
+        <span
+          className={cx(
+            'flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#eef8cf] text-[#6f8e18] transition',
+            open && 'rotate-180 bg-[#dff4b8]'
+          )}
+        >
+          ▼
+        </span>
+      </button>
+
+      {open
+        ? createPortal(
+            <div
+              ref={menuRef}
+              className={cx(
+                'fixed z-[1200] overflow-hidden rounded-[26px] border border-[#d8e6ae] bg-[linear-gradient(180deg,rgba(255,255,249,0.99),rgba(245,250,229,0.97))] p-2 shadow-[0_24px_64px_-34px_rgba(67,86,20,0.34)] backdrop-blur-xl',
+                menuClassName
+              )}
+              style={{
+                top: menuStyle.top,
+                left: menuStyle.left,
+                width: menuStyle.width,
+                maxWidth: 'calc(100vw - 1rem)',
+                maxHeight: 'min(22rem, calc(100vh - 2rem))'
+              }}
+            >
+              <div className="space-y-1 overflow-y-auto overscroll-contain">
+                {options.map((option) => {
+                  const active = String(option.value) === String(value)
+                  return (
+                    <button
+                      key={String(option.value)}
+                      type="button"
+                      role="option"
+                      aria-selected={active}
+                      onClick={() => {
+                        setOpen(false)
+                        onChange(option.value)
+                      }}
+                      className={cx(
+                        'flex w-full items-center justify-between gap-3 rounded-[18px] px-4 py-3 text-left transition',
+                        active
+                          ? 'bg-[linear-gradient(135deg,#87ad1e,#6f8e18)] text-[#1f2a10] shadow-[0_18px_32px_-24px_rgba(111,142,24,0.48)]'
+                          : 'text-[#42512a] hover:bg-white/90'
+                      )}
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium">{option.label}</span>
+                        {option.description ? (
+                          <span className={cx('mt-1 block text-xs', active ? 'text-[#304016]' : 'text-[#71805d]')}>
+                            {option.description}
+                          </span>
+                        ) : null}
+                      </span>
+                      {active ? <span className="text-sm">✓</span> : null}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
+    </div>
   )
 }
 

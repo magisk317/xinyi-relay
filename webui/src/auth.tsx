@@ -76,9 +76,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
       if (error instanceof Error) {
         const message = error.message
         if (
-          message.includes('Unable to connect to WebUI') ||
+          message.includes('Unable to connect to the remote backend') ||
+          message.includes('Unable to connect') ||
           message.includes('Connection timed out') ||
-          message.includes('无法连接到 WebUI') ||
+          message.includes('无法连接到远程后端') ||
           message.includes('连接超时')
         ) {
           setConnected(false)

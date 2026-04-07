@@ -12,6 +12,7 @@ import { SendersPage } from './pages/SendersPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { trackPageView } from './analytics'
 import { useI18n } from './i18n'
+import { RealtimeProvider } from './realtime'
 import { RelaySpinner } from './template'
 
 function ProtectedLayout() {
@@ -30,7 +31,11 @@ function ProtectedLayout() {
   if (!authenticated) {
     return <Navigate to="/login" replace />
   }
-  return <AppLayout />
+  return (
+    <RealtimeProvider>
+      <AppLayout />
+    </RealtimeProvider>
+  )
 }
 
 function AppRoutes() {
