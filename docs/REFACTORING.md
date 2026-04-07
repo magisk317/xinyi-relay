@@ -36,11 +36,6 @@
 - 不直接承载转发主编排
 - 不再承载嵌入式 WebUI 服务启动、TLS 或静态资源打包链路
 
-### `webui-core`
-- 历史嵌入式 WebUI 代码残留
-- 不再参与 Android 主运行链
-- 仅作为迁移期参考与后续清理对象
-
 ### `xpbridge-core`
 - Xposed/runtime 之间的桥接 DTO 与 facade
 - 仅承载 `io.github.magisk317.relay.xpbridge.*`

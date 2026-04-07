@@ -84,10 +84,8 @@
 - 当前 Android Gradle 工程保持不变，不将 Backend 纳入 Android 构建图
 - `webui/` 作为远程控制台前端保留
 - Android 主运行链已停止启动旧内嵌 WebUI 服务
-- 历史 `webui-core` 代码仍暂留仓库，作为迁移期参考与清理对象，不再参与主流程启用
 
 ## 后续演进
 
 - 继续收敛 Web / Desktop 与手机端的功能 parity
-- 继续减少历史嵌入式 WebUI 代码残留
 - 逐步把前端静态资源也纳入远端镜像链，减少宿主机对本地 `webui/dist` 的依赖
