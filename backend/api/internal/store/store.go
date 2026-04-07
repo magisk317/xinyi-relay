@@ -143,12 +143,12 @@ func (s *Store) UpdateUserPassword(ctx context.Context, userID int64, passwordHa
 }
 
 func (s *Store) CreateSession(
-		ctx context.Context,
-		user User,
-		tokenHash string,
-		csrfToken string,
-		expiresAt time.Time,
-	) (Session, error) {
+	ctx context.Context,
+	user User,
+	tokenHash string,
+	csrfToken string,
+	expiresAt time.Time,
+) (Session, error) {
 	var session Session
 	err := s.db.Pool.QueryRow(
 		ctx,
@@ -226,14 +226,14 @@ func (s *Store) ConsumeBindCode(ctx context.Context, codeHash string) (BindCode,
 }
 
 func (s *Store) CreateDevice(
-		ctx context.Context,
-		userID int64,
-		deviceName string,
-		deviceModel string,
-		platform string,
-		appVersion string,
-		tokenHash string,
-	) (Device, error) {
+	ctx context.Context,
+	userID int64,
+	deviceName string,
+	deviceModel string,
+	platform string,
+	appVersion string,
+	tokenHash string,
+) (Device, error) {
 	var device Device
 	err := s.db.Pool.QueryRow(
 		ctx,
@@ -340,12 +340,12 @@ func (s *Store) ListDevicesByUser(ctx context.Context, userID int64) ([]Device, 
 }
 
 func (s *Store) UpdateDeviceHeartbeat(
-		ctx context.Context,
-		deviceID int64,
-		appVersion string,
-		localAddresses json.RawMessage,
-		capabilities json.RawMessage,
-	) error {
+	ctx context.Context,
+	deviceID int64,
+	appVersion string,
+	localAddresses json.RawMessage,
+	capabilities json.RawMessage,
+) error {
 	_, err := s.db.Pool.Exec(
 		ctx,
 		`UPDATE devices
@@ -462,12 +462,12 @@ func (s *Store) GetConfigSnapshot(ctx context.Context, userID int64) (ConfigSnap
 func (s *Store) PutConfigSnapshot(
 	ctx context.Context,
 	userID int64,
-		baseRevision int64,
-		content json.RawMessage,
-		actorType string,
-		actorID int64,
-	) (ConfigSnapshot, error) {
-		tx, err := s.db.Pool.BeginTx(ctx, pgx.TxOptions{})
+	baseRevision int64,
+	content json.RawMessage,
+	actorType string,
+	actorID int64,
+) (ConfigSnapshot, error) {
+	tx, err := s.db.Pool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return ConfigSnapshot{}, err
 	}

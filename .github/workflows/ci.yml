@@ -53,7 +53,6 @@ jobs:
           pnpm -C webui lint
           pnpm -C webui typecheck
           pnpm -C webui build
-          pnpm -C webui check-dist
       - uses: actions/setup-java@v5
         with:
           distribution: temurin

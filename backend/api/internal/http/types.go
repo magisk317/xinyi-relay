@@ -30,11 +30,11 @@ type bindCodeResponse struct {
 }
 
 type agentRegisterRequest struct {
-	BindCode   string `json:"bindCode"`
-	DeviceName string `json:"deviceName"`
+	BindCode    string `json:"bindCode"`
+	DeviceName  string `json:"deviceName"`
 	DeviceModel string `json:"deviceModel"`
-	Platform   string `json:"platform"`
-	AppVersion string `json:"appVersion"`
+	Platform    string `json:"platform"`
+	AppVersion  string `json:"appVersion"`
 }
 
 type agentRegisterResponse struct {

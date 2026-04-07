@@ -7,6 +7,7 @@ BASE_URL="${BASE_URL:-https://localhost:8443}"
 USERNAME="${RELAY_SMOKE_USERNAME:-relay}"
 PASSWORD="${RELAY_SMOKE_PASSWORD:-relay-pass}"
 COOKIE_JAR="$(mktemp)"
+SMOKE_IMAGE="${RELAY_SMOKE_API_IMAGE:-relay-backend-smoke:local}"
 
 cleanup() {
   rm -f "$COOKIE_JAR"
@@ -20,7 +21,8 @@ trap cleanup EXIT
 
 cd "$BACKEND_DIR"
 cp -f .env.example .env
-docker compose up --build -d postgres api caddy >/dev/null
+docker build -t "$SMOKE_IMAGE" api >/dev/null
+RELAY_API_IMAGE="$SMOKE_IMAGE" RELAY_API_PULL_POLICY=never docker compose up -d postgres api caddy >/dev/null
 sleep 8
 
 echo "[smoke] backend health"

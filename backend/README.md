@@ -50,6 +50,7 @@ backend/scripts/smoke_local.sh
 
 ```text
 RELAY_API_IMAGE=ghcr.io/magisk317/xinyi-relay-backend:beta
+RELAY_API_PULL_POLICY=always
 ```
 
 ## Android Agent 接入本地 HTTPS
