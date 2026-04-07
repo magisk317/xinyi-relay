@@ -4,6 +4,11 @@
 
 ---
 
+## [Unreleased]
+- `[remote]` 远程架构继续落地：Backend 已补齐设备绑定、配置快照、记录上报、配置审计与实时事件；Web 远程控制台已接入设备、记录、发送器、应用与审计视图；Tauri 桌面壳已补齐托盘与内嵌控制台。
+- `[agent]` Android Agent 新增远程绑定页、自动前后台同步调度、配置/记录变更入队与冲突收敛；本地 HTTPS 连接现已显式信任用户证书，便于对接本地 Docker + Caddy 自签环境。
+- `[retire]` 旧嵌入式 WebUI 已退出 Android 主运行链：应用不再启动内嵌 WebUI 前台服务，旧 WebUI 配置页与导航入口已从主线移除。
+
 ## [v0.0.4] - 2026-04-06
 - 版本：`versionCode 17` / `versionName 0.0.4`。
 - 发布说明：当前版本开始为后续 `Android Agent + 云端 Backend + Web / Desktop` 新架构做准备，嵌入式 WebUI 配置入口已隐藏，并默认停用本地 WebUI 服务与相关开关。
