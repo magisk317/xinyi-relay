@@ -1,0 +1,87 @@
+# Compose 项目名，用于固定网络名和资源名前缀
+name: relay-backend
+
+services:
+  # PostgreSQL：负责保存用户、设备、配置快照和记录数据
+  postgres:
+    # 固定容器名，方便 docker ps / logs / exec
+    container_name: relay-backend-postgres
+    # 官方 PostgreSQL Alpine 镜像
+    image: postgres:17.9-alpine3.23
+    # 容器异常退出后自动拉起；手动 docker stop 不会强制重启
+    restart: unless-stopped
+    # 从 .env 读取数据库相关变量
+    env_file:
+      - .env
+    environment:
+      # 初始化数据库名
+      POSTGRES_DB: ${POSTGRES_DB}
+      # 初始化数据库用户
+      POSTGRES_USER: ${POSTGRES_USER}
+      # 初始化数据库密码
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      # 持久化数据库文件，避免容器重建后丢数据
+      - ./postgres-data:/var/lib/postgresql/data
+    ports:
+      # 暴露 PostgreSQL 到宿主机，便于本地调试和手工连接
+      - "5432:5432"
+
+  # Go API：提供认证、设备管理、配置同步、记录查询等后端接口
+  api:
+    # 固定容器名，方便 docker ps / logs / exec
+    container_name: relay-backend-api
+    # 默认直接拉取 GHCR 上发布好的后端镜像
+    image: ${RELAY_API_IMAGE:-ghcr.io/magisk317/xinyi-relay-backend:beta}
+    # 优先拉取远端 beta 镜像，避免每次部署前手工改 compose
+    pull_policy: always
+    # 容器异常退出后自动拉起；手动 docker stop 不会强制重启
+    restart: unless-stopped
+    # 从 .env 读取运行时配置
+    env_file:
+      - .env
+    environment:
+      # 后端运行环境标识
+      RELAY_APP_ENV: ${RELAY_APP_ENV}
+      # API 容器监听地址
+      RELAY_HTTP_ADDR: ${RELAY_HTTP_ADDR}
+      # 本地优先访问地址
+      RELAY_LOCAL_BASE_URL: ${RELAY_LOCAL_BASE_URL}
+      # 可选公网访问地址
+      RELAY_PUBLIC_BASE_URL: ${RELAY_PUBLIC_BASE_URL}
+      # 允许跨域的前端来源
+      RELAY_CORS_ORIGIN: ${RELAY_CORS_ORIGIN}
+      # 连接 PostgreSQL 的 DSN
+      RELAY_DATABASE_URL: ${RELAY_DATABASE_URL}
+    depends_on:
+      # API 依赖数据库容器先启动
+      - postgres
+
+  # Caddy：统一对外暴露 HTTP/HTTPS，并托管前端静态资源
+  caddy:
+    # 固定容器名，方便 docker ps / logs / exec
+    container_name: relay-backend-caddy
+    # 官方 Caddy Alpine 镜像
+    image: caddy:2.11.2-alpine
+    # 容器异常退出后自动拉起；手动 docker stop 不会强制重启
+    restart: unless-stopped
+    # 从 .env 读取域名等代理配置
+    env_file:
+      - .env
+    depends_on:
+      # Caddy 需要等 API 服务可用后再代理
+      - api
+    ports:
+      # HTTPS 本地入口
+      - "8443:8443"
+      # HTTP 本地入口，便于局域网或本机快速调试
+      - "8088:8088"
+    volumes:
+      # 挂载 Caddy 配置文件（只读）
+      - ./proxy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # 挂载前端构建产物，由 Caddy 直接托管
+      - ../webui/dist:/srv:ro
+      # 持久化 Caddy 证书、内部 CA 和运行数据
+      - ./caddy-data:/data
+      # 持久化 Caddy 配置状态
+      - ./caddy-config:/config

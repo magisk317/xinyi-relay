@@ -1,0 +1,29 @@
+(relay_routes) {
+    @backend_api {
+        path /healthz /api/*
+    }
+
+    handle @backend_api {
+        reverse_proxy api:8080
+    }
+
+    handle {
+        root * /srv
+        try_files {path} /index.html
+        file_server
+    }
+}
+
+https://{$RELAY_DOMAIN}:8443 {
+    tls internal {
+        curves x25519 secp256r1
+        key_type rsa2048
+    }
+    encode gzip zstd
+    import relay_routes
+}
+
+http://{$RELAY_HTTP_HOST}:8088 {
+    encode gzip zstd
+    import relay_routes
+}

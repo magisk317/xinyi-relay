@@ -19,6 +19,13 @@
 
 信驿 Relay 是一个面向 Xposed/LSPosed 的消息转发与验证码自动填写工具，支持短信、应用通知、来电等来源的统一处理。
 
+当前主线正在收敛到 `Android Agent + Backend + Web / Desktop` 远程架构：
+
+- Android 端继续负责短信、通知、来电、自动输入与 Hook 能力
+- Backend 负责设备绑定、配置快照、记录上报与实时状态
+- Web / Desktop 作为主控制台
+- 旧内嵌 WebUI 已退出主运行链，不再随应用启动
+
 [English Version](./README-EN.md)
 
 # 应用截图
@@ -65,6 +72,7 @@
 # 文档
 - [更新日志 (Changelog)](docs/CHANGELOG.md)
 - [架构与运行时重构说明](docs/REFACTORING.md)
+- [远程架构草案 (Remote Architecture)](docs/REMOTE_ARCHITECTURE.md)
 - [隐私政策 (Privacy Policy)](docs/PRIVACY.md)
 - [赞助与捐赠 (Donations)](docs/DONATIONS.md)
 

@@ -1,0 +1,60 @@
+name: Backend CI
+
+on:
+  pull_request:
+    branches:
+      - beta
+    paths:
+      - "backend/**"
+      - "docs/REMOTE_ARCHITECTURE.md"
+      - ".github/workflows/backend-ci.yml"
+  push:
+    branches:
+      - beta
+    paths:
+      - "backend/**"
+      - "docs/REMOTE_ARCHITECTURE.md"
+      - ".github/workflows/backend-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.25.8"
+          cache-dependency-path: backend/api/go.sum
+
+      - name: Go fmt
+        run: |
+          cd backend/api
+          test -z "$(gofmt -l .)"
+
+      - name: Go test
+        run: |
+          cd backend/api
+          go test ./...
+
+      - name: Go build
+        run: |
+          cd backend/api
+          go build ./...
+
+      - name: Docker Compose config
+        run: |
+          cp backend/.env.example backend/.env
+          docker compose -f backend/docker-compose.yml config
+          rm backend/.env
+
+      - name: Local smoke flow
+        run: |
+          chmod +x backend/scripts/smoke_local.sh
+          backend/scripts/smoke_local.sh
