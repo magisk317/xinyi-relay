@@ -206,6 +206,8 @@ class ForwardReceiver : BroadcastReceiver() {
                         smsCode = payload.smsCode,
                         company = normalizedCompany,
                         sender = normalizedSender,
+                        body = normalizedBody,
+                        packageName = normalizedPackageName,
                         recentSuccessfulSmsHook = recentSuccessfulSmsHook,
                     )
                 ) {
@@ -385,6 +387,21 @@ class ForwardReceiver : BroadcastReceiver() {
                         "pkg=${relayEvent.packageName.ifBlank { "<none>" }} " +
                         "source=$forwardSource",
                 )
+                if (
+                    msgTypeStr == ForwardBroadcastContract.MSG_TYPE_SMS &&
+                    forwardSource == ForwardBroadcastContract.SOURCE_SMS_HOOK &&
+                    relayEvent.messageType == io.github.magisk317.relay.common.constant.MessageType.SMS_CODE
+                ) {
+                    // Mark the sms_hook code path as soon as it enters the runtime pipeline so
+                    // reclassified NMS copies arriving milliseconds later can be suppressed.
+                    ForwardReceiverPolicy.markSuccessfulSmsHookDispatch(
+                        smsCode = payload.smsCode,
+                        company = normalizedCompany,
+                        sender = normalizedSender,
+                        body = normalizedBody,
+                        recentSuccessfulSmsHook = recentSuccessfulSmsHook,
+                    )
+                }
                 runCatching {
                     runtimeGraph.remoteAgentRepository.scheduleMessageTriggeredSync(
                         "${relayEvent.messageType.name.lowercase()}_ingress",
@@ -426,6 +443,7 @@ class ForwardReceiver : BroadcastReceiver() {
                             smsCode = payload.smsCode,
                             company = normalizedCompany,
                             sender = normalizedSender,
+                            body = normalizedBody,
                             recentSuccessfulSmsHook = recentSuccessfulSmsHook,
                         )
                     }

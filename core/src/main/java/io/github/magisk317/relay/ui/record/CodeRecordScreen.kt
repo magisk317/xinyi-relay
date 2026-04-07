@@ -94,7 +94,7 @@ private val FORWARD_FAILED_COLOR = Color(AndroidColor.parseColor("#C62828"))
 private val FORWARD_WARNING_COLOR = Color(AndroidColor.parseColor("#B26A00"))
 private val RECORD_TAB_ITEM_HEIGHT = 60.dp
 private val CALL_NUMBER_VIEWPORT_WIDTH = 84.dp
-private const val CODE_RECORD_DEDUP_WINDOW_MS = 5_000L
+private const val CODE_RECORD_DEDUP_WINDOW_MS = 20_000L
 
 private fun recordEnableTitleRes(tab: Int): Int = when (tab) {
     0 -> R.string.pref_enable_code_records_title
@@ -1607,7 +1607,6 @@ fun CodeRecordItem(
         } else {
             null
         }
-
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier

@@ -515,23 +515,74 @@ internal fun mergeSmsMsgForInsert(existing: SmsMsg, incoming: SmsMsg): SmsMsg {
         !incoming.forwardTarget.isNullOrBlank() ||
         !incoming.forwardMessage.isNullOrBlank() ||
         incoming.forwardTime > 0L
+    val preferred = preferRicherSmsMsg(existing, incoming)
+    val fallback = if (preferred === existing) incoming else existing
     return existing.copy(
-        sender = incoming.sender ?: existing.sender,
-        body = incoming.body ?: existing.body,
+        sender = preferred.sender ?: fallback.sender ?: existing.sender,
+        body = preferred.body ?: fallback.body ?: existing.body,
         date = incoming.date.takeIf { it > 0L } ?: existing.date,
-        company = incoming.company?.takeIf { it.isNotBlank() } ?: existing.company,
-        smsCode = incoming.smsCode?.takeIf { it.isNotBlank() } ?: existing.smsCode,
-        packageName = incoming.packageName?.takeIf { it.isNotBlank() } ?: existing.packageName,
-        notifyChannelId = incoming.notifyChannelId.takeIf { it.isNotBlank() } ?: existing.notifyChannelId,
-        simSlot = incoming.simSlot.takeIf { it >= 0 } ?: existing.simSlot,
-        subId = incoming.subId.takeIf { it > 0 } ?: existing.subId,
-        contactName = incoming.contactName.takeIf { it.isNotBlank() } ?: existing.contactName,
-        phoneArea = incoming.phoneArea.takeIf { it.isNotBlank() } ?: existing.phoneArea,
+        company = preferred.company?.takeIf { it.isNotBlank() }
+            ?: fallback.company?.takeIf { it.isNotBlank() }
+            ?: existing.company,
+        smsCode = preferred.smsCode?.takeIf { it.isNotBlank() }
+            ?: fallback.smsCode?.takeIf { it.isNotBlank() }
+            ?: existing.smsCode,
+        packageName = preferred.packageName?.takeIf { it.isNotBlank() }
+            ?: fallback.packageName?.takeIf { it.isNotBlank() }
+            ?: existing.packageName,
+        notifyChannelId = preferred.notifyChannelId.takeIf { it.isNotBlank() }
+            ?: fallback.notifyChannelId.takeIf { it.isNotBlank() }
+            ?: existing.notifyChannelId,
+        simSlot = preferred.simSlot.takeIf { it >= 0 }
+            ?: fallback.simSlot.takeIf { it >= 0 }
+            ?: existing.simSlot,
+        subId = preferred.subId.takeIf { it > 0 }
+            ?: fallback.subId.takeIf { it > 0 }
+            ?: existing.subId,
+        contactName = preferred.contactName.takeIf { it.isNotBlank() }
+            ?: fallback.contactName.takeIf { it.isNotBlank() }
+            ?: existing.contactName,
+        phoneArea = preferred.phoneArea.takeIf { it.isNotBlank() }
+            ?: fallback.phoneArea.takeIf { it.isNotBlank() }
+            ?: existing.phoneArea,
         msgType = incoming.msgType,
-        callType = incoming.callType.takeIf { it != 0 } ?: existing.callType,
+        callType = preferred.callType.takeIf { it != 0 }
+            ?: fallback.callType.takeIf { it != 0 }
+            ?: existing.callType,
+        sessionKey = preferred.sessionKey.takeIf { it.isNotBlank() }
+            ?: fallback.sessionKey.takeIf { it.isNotBlank() }
+            ?: existing.sessionKey,
         forwardStatus = if (incomingHasForwardState) incoming.forwardStatus else existing.forwardStatus,
         forwardTarget = if (incomingHasForwardState) incoming.forwardTarget else existing.forwardTarget,
         forwardMessage = if (incomingHasForwardState) incoming.forwardMessage else existing.forwardMessage,
         forwardTime = if (incomingHasForwardState) incoming.forwardTime else existing.forwardTime,
     )
+}
+
+private fun preferRicherSmsMsg(existing: SmsMsg, incoming: SmsMsg): SmsMsg {
+    val existingScore = scoreSmsMsg(existing)
+    val incomingScore = scoreSmsMsg(incoming)
+    return when {
+        incomingScore > existingScore -> incoming
+        incomingScore < existingScore -> existing
+        incoming.date > existing.date -> incoming
+        else -> existing
+    }
+}
+
+private fun scoreSmsMsg(record: SmsMsg): Int {
+    var score = 0
+    val pkg = record.packageName.orEmpty()
+    if (pkg.isNotBlank() && !isSystemSmsPackage(pkg)) score += 4
+    if (record.company.orEmpty().isNotBlank()) score += 2
+    if (record.simSlot >= 0) score += 2
+    if (record.sender.orEmpty().isNotBlank()) score += 1
+    if (record.contactName.isNotBlank()) score += 1
+    return score
+}
+
+private fun isSystemSmsPackage(packageName: String): Boolean {
+    return packageName == "com.android.mms" ||
+        packageName == "com.android.messaging" ||
+        packageName == "com.google.android.apps.messaging"
 }

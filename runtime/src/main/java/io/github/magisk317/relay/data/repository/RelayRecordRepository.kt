@@ -3,6 +3,7 @@ package io.github.magisk317.relay.data.repository
 import android.content.Context
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.common.constant.PrefConst
+import io.github.magisk317.relay.common.utils.CallSessionTracker
 import io.github.magisk317.relay.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.data.db.AppDatabase
 import io.github.magisk317.relay.data.db.entity.SmsMsg
@@ -108,6 +109,7 @@ class RelayRecordRepository(
         msgType: Int,
         isCodeSms: Boolean,
         callType: Int = 0,
+        sessionKey: String = "",
     ): Long? {
         return insertRecord(
             smsMsg = SmsMsg(
@@ -124,6 +126,7 @@ class RelayRecordRepository(
                 phoneArea = phoneArea,
                 msgType = msgType,
                 callType = callType,
+                sessionKey = sessionKey,
             ),
             isCodeSms = isCodeSms,
         )
@@ -141,6 +144,13 @@ class RelayRecordRepository(
                 return duplicateId
             }
         }
+        if (smsMsg.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY && smsMsg.sessionKey.isNotBlank()) {
+            dao.getBySessionKey(smsMsg.msgType, smsMsg.sessionKey)?.let { existing ->
+                dao.update(mergeSmsMsgForInsert(existing, smsMsg))
+                scheduleRecordUpload("update_call_session_record")
+                return existing.id
+            }
+        }
         val existing = dao.getByFingerprint(
             sender = smsMsg.sender,
             body = smsMsg.body,
@@ -153,6 +163,20 @@ class RelayRecordRepository(
             return existing.id
         }
         return dao.insert(smsMsg).also { scheduleRecordUpload("insert_record") }
+    }
+
+    fun buildCallSessionKey(
+        sender: String?,
+        body: String?,
+        callType: Int,
+        packageName: String?,
+    ): String {
+        return CallSessionTracker.buildSourceKey(
+            sender = sender,
+            body = body,
+            callType = callType,
+            packageName = null,
+        )
     }
 
     private fun findCodeDuplicateRecordId(
@@ -208,6 +232,35 @@ class RelayRecordRepository(
                 dateTo = to,
             )?.let { return it.id }
         }
+
+        dao.getByCodeInRange(
+            smsCode = code,
+            msgType = smsMsg.msgType,
+            dateFrom = from,
+            dateTo = to,
+        ).sortedByDescending { existing ->
+            CodeRecordSimilarityUtils.scoreRecordPreference(
+                packageName = existing.packageName,
+                company = existing.company,
+                sender = existing.sender,
+            )
+        }.firstOrNull { existing ->
+            CodeRecordSimilarityUtils.shouldMergeByCodeWithinWindow(
+                firstCode = existing.smsCode,
+                firstBody = existing.body,
+                firstCompany = existing.company,
+                firstSender = existing.sender,
+                firstPackageName = existing.packageName,
+                firstDate = existing.date,
+                secondCode = smsMsg.smsCode,
+                secondBody = smsMsg.body,
+                secondCompany = smsMsg.company,
+                secondSender = smsMsg.sender,
+                secondPackageName = smsMsg.packageName,
+                secondDate = smsMsg.date,
+                windowMs = CODE_RECORD_DEDUP_WINDOW_MS,
+            )
+        }?.let { return it.id }
 
         return null
     }
@@ -293,6 +346,46 @@ class RelayRecordRepository(
 
     private companion object {
         private const val MAX_FORWARD_MESSAGE_LEN = 2000
-        private const val CODE_RECORD_DEDUP_WINDOW_MS = 5_000L
+        private const val CODE_RECORD_DEDUP_WINDOW_MS = 20_000L
     }
+}
+
+private fun crossSourceCodeMatchScore(existing: SmsMsg, incoming: SmsMsg): Int {
+    val existingCode = existing.smsCode.orEmpty().trim()
+    val incomingCode = incoming.smsCode.orEmpty().trim()
+    if (existingCode.isBlank() || existingCode != incomingCode) return 0
+
+    val existingBody = normalizeCodeRecordBodyForStorage(existing.body)
+    val incomingBody = normalizeCodeRecordBodyForStorage(incoming.body)
+    var score = 0
+    if (existingBody.isNotBlank() && incomingBody.isNotBlank() && existingBody == incomingBody) {
+        score += 3
+    }
+
+    val existingCompany = normalizeCodeRecordLabelForStorage(existing.company)
+    val incomingCompany = normalizeCodeRecordLabelForStorage(incoming.company)
+    if (existingCompany.isNotBlank() && incomingCompany.isNotBlank() && existingCompany == incomingCompany) {
+        score += 2
+    }
+
+    val existingSender = normalizeCodeRecordLabelForStorage(existing.sender)
+    val incomingSender = normalizeCodeRecordLabelForStorage(incoming.sender)
+    if (existingSender.isNotBlank() && incomingSender.isNotBlank() && existingSender == incomingSender) {
+        score += 1
+    }
+    return score
+}
+
+private fun normalizeCodeRecordBodyForStorage(body: String?): String {
+    return body.orEmpty()
+        .replace(Regex("^\\s*[【\\[].*?[】\\]]\\s*"), "")
+        .replace(Regex("\\s+"), "")
+        .trim()
+}
+
+private fun normalizeCodeRecordLabelForStorage(value: String?): String {
+    return value.orEmpty()
+        .trim()
+        .trim('【', '】', '[', ']')
+        .replace(Regex("\\s+"), "")
 }

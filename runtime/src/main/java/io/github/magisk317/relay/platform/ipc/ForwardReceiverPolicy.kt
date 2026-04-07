@@ -2,6 +2,7 @@ package io.github.magisk317.relay.platform.ipc
 
 import android.os.Build
 import io.github.magisk317.relay.common.constant.MessageType
+import io.github.magisk317.smscode.domain.utils.CodeRecordSimilarityUtils
 
 object ForwardReceiverPolicy {
     const val API_LEVEL_34 = 34
@@ -10,6 +11,7 @@ object ForwardReceiverPolicy {
     private const val NOTIFY_DEDUP_WINDOW_MS = 10_000L
     private const val NMS_HOOK_SUPPRESS_TTL_MS = 30_000L
     private const val SMS_HOOK_SUCCESS_SUPPRESS_TTL_MS = 120_000L
+    private const val SYSTEM_SUMMARY_CODE_ONLY_WINDOW_MS = 20_000L
     private const val NOTIFY_DEDUP_MAX_ENTRIES = 256
 
     fun shouldAllowSystemTokenBypass(
@@ -175,11 +177,18 @@ object ForwardReceiverPolicy {
         smsCode: String?,
         company: String?,
         sender: String?,
+        body: String?,
         recentSuccessfulSmsHook: MutableMap<String, Long>,
         nowMs: Long = System.currentTimeMillis(),
     ) {
-        val key = buildSuccessfulSmsHookKey(smsCode = smsCode, company = company, sender = sender) ?: return
-        recentSuccessfulSmsHook[key] = nowMs
+        buildSuccessfulSmsHookKeys(
+            smsCode = smsCode,
+            company = company,
+            sender = sender,
+            body = body,
+        ).forEach { key ->
+            recentSuccessfulSmsHook[key] = nowMs
+        }
         if (recentSuccessfulSmsHook.size > NOTIFY_DEDUP_MAX_ENTRIES) {
             val cutoff = nowMs - SMS_HOOK_SUCCESS_SUPPRESS_TTL_MS * 2
             recentSuccessfulSmsHook.entries.removeIf { it.value < cutoff }
@@ -190,12 +199,32 @@ object ForwardReceiverPolicy {
         smsCode: String?,
         company: String?,
         sender: String?,
+        body: String?,
+        packageName: String?,
         recentSuccessfulSmsHook: Map<String, Long>,
         nowMs: Long = System.currentTimeMillis(),
     ): Boolean {
-        val key = buildSuccessfulSmsHookKey(smsCode = smsCode, company = company, sender = sender) ?: return false
-        val seenAt = recentSuccessfulSmsHook[key] ?: return false
-        return nowMs - seenAt < SMS_HOOK_SUCCESS_SUPPRESS_TTL_MS
+        val matched = buildSuccessfulSmsHookKeys(
+            smsCode = smsCode,
+            company = company,
+            sender = sender,
+            body = body,
+        ).any { key ->
+            val seenAt = recentSuccessfulSmsHook[key] ?: return@any false
+            nowMs - seenAt < SMS_HOOK_SUCCESS_SUPPRESS_TTL_MS
+        }
+        if (matched) return true
+
+        if (
+            CodeRecordSimilarityUtils.isSystemSmsPackage(packageName) &&
+            CodeRecordSimilarityUtils.isSystemSmsSummaryBody(body)
+        ) {
+            val normalizedCode = smsCode.orEmpty().trim()
+            if (normalizedCode.isBlank()) return false
+            val seenAt = recentSuccessfulSmsHook["sms_hook_success|code:$normalizedCode"] ?: return false
+            return nowMs - seenAt < SYSTEM_SUMMARY_CODE_ONLY_WINDOW_MS
+        }
+        return false
     }
 
     private fun buildNotifyDedupKey(
@@ -254,17 +283,32 @@ object ForwardReceiverPolicy {
         }
     }
 
-    private fun buildSuccessfulSmsHookKey(
+    private fun buildSuccessfulSmsHookKeys(
         smsCode: String?,
         company: String?,
         sender: String?,
-    ): String? {
+        body: String?,
+    ): List<String> {
         val normalizedCode = smsCode.orEmpty().trim()
-        if (normalizedCode.isEmpty()) return null
-        val normalizedCompany = company.orEmpty().trim()
-        val normalizedSender = sender.orEmpty().trim()
-        val identity = normalizedCompany.ifEmpty { normalizedSender }
-        if (identity.isEmpty()) return null
-        return "sms_hook_success|$identity|$normalizedCode"
+        if (normalizedCode.isEmpty()) return emptyList()
+        val normalizedBody = normalizeSmsBodyForDedup(body)
+        val normalizedCompany = normalizeSmsLabelForDedup(company)
+        val normalizedSender = normalizeSmsLabelForDedup(sender)
+        val candidates = linkedSetOf<String>()
+        candidates += "sms_hook_success|code:$normalizedCode"
+        if (normalizedBody.isNotEmpty()) {
+            candidates += "sms_hook_success|code:$normalizedCode|body:$normalizedBody"
+        }
+        if (normalizedCompany.isNotEmpty() && normalizedCompany != normalizedSender) {
+            candidates += "sms_hook_success|code:$normalizedCode|company:$normalizedCompany"
+        }
+        if (normalizedSender.isNotEmpty()) {
+            candidates += "sms_hook_success|code:$normalizedCode|sender:$normalizedSender"
+        }
+        return candidates.toList()
     }
 }
+
+private fun normalizeSmsBodyForDedup(body: String?): String = CodeRecordSimilarityUtils.normalizeBody(body)
+
+private fun normalizeSmsLabelForDedup(value: String?): String = CodeRecordSimilarityUtils.normalizeLabel(value)

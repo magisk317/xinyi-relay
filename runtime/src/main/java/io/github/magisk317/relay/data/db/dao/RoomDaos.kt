@@ -59,6 +59,9 @@ interface SmsMsgDao {
     @Query("SELECT * FROM sms_msg WHERE sender IS :sender AND body IS :body AND date = :date AND msg_type = :msgType LIMIT 1")
     fun getByFingerprint(sender: String?, body: String?, date: Long, msgType: Int): SmsMsg?
 
+    @Query("SELECT * FROM sms_msg WHERE msg_type = :msgType AND session_key = :sessionKey LIMIT 1")
+    fun getBySessionKey(msgType: Int, sessionKey: String): SmsMsg?
+
     @Query(
         "SELECT * FROM sms_msg " +
             "WHERE sender IS :sender AND body IS :body " +
@@ -97,6 +100,18 @@ interface SmsMsgDao {
         dateFrom: Long,
         dateTo: Long,
     ): SmsMsg?
+
+    @Query(
+        "SELECT * FROM sms_msg " +
+            "WHERE sms_code IS :smsCode " +
+            "AND msg_type = :msgType AND date BETWEEN :dateFrom AND :dateTo",
+    )
+    fun getByCodeInRange(
+        smsCode: String?,
+        msgType: Int,
+        dateFrom: Long,
+        dateTo: Long,
+    ): List<SmsMsg>
 
     @Query(
         "SELECT * FROM sms_msg " +

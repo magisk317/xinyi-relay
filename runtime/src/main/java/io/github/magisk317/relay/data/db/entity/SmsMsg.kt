@@ -19,6 +19,10 @@ import java.text.Normalizer
             value = ["package_name", "msg_type", "notify_channel_id", "date"],
             name = "index_sms_msg_pkg_type_channel_date",
         ),
+        androidx.room.Index(
+            value = ["msg_type", "session_key"],
+            name = "index_sms_msg_type_session_key",
+        ),
     ],
 )
 @Parcelize
@@ -95,6 +99,10 @@ data class SmsMsg(
     @ColumnInfo(name = "call_type", defaultValue = "0")
     @SerialName("callType")
     val callType: Int = 0,
+
+    @ColumnInfo(name = "session_key", defaultValue = "''")
+    @SerialName("sessionKey")
+    val sessionKey: String = "",
 
 ) : Parcelable {
 
