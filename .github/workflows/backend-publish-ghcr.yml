@@ -316,3 +316,85 @@ jobs:
               "${DOCKERHUB_IMAGE}:${tag}-arm64"
             docker buildx imagetools inspect "${DOCKERHUB_IMAGE}:${tag}"
           done < <(jq -r '.[]' <<<"$TAGS_JSON")
+
+  notify_telegram:
+    name: Notify Telegram
+    if: ${{ needs.build_amd64.result == 'success' && needs.build_arm64.result == 'success' && needs.publish_manifests.result == 'success' }}
+    needs:
+      - prepare
+      - build_amd64
+      - build_arm64
+      - publish_manifests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Telegram notification
+        env:
+          GHCR_IMAGE: ${{ needs.prepare.outputs.ghcr_image }}
+          TAGS_JSON: ${{ needs.prepare.outputs.tags_json }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          DOCKERHUB_IMAGE_OVERRIDE: ${{ secrets.DOCKERHUB_IMAGE }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_TO_GROUP: ${{ secrets.TELEGRAM_TO_GROUP }}
+          TELEGRAM_TOPIC_ID: ${{ secrets.TELEGRAM_TOPIC_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${TELEGRAM_TOKEN:-}" || -z "${TELEGRAM_TO_GROUP:-}" ]]; then
+            echo "Telegram secrets not configured, skip notification."
+            exit 0
+          fi
+
+          dockerhub_enabled=0
+          dockerhub_image=""
+          if [[ -n "$DOCKERHUB_USERNAME" && -n "$DOCKERHUB_TOKEN" ]]; then
+            dockerhub_enabled=1
+            if [[ -n "$DOCKERHUB_IMAGE_OVERRIDE" ]]; then
+              dockerhub_image="$DOCKERHUB_IMAGE_OVERRIDE"
+            else
+              dockerhub_image="docker.io/${DOCKERHUB_USERNAME}/xinyi-relay-backend"
+            fi
+          fi
+
+          image_lines=()
+          while IFS= read -r tag; do
+            [[ -z "$tag" ]] && continue
+            image_lines+=("  - ${GHCR_IMAGE}:${tag}")
+            if [[ "$dockerhub_enabled" == "1" && -n "$dockerhub_image" ]]; then
+              image_lines+=("  - ${dockerhub_image}:${tag}")
+            fi
+          done < <(jq -r '.[]' <<<"$TAGS_JSON")
+
+          images_block="$(printf '%s\n' "${image_lines[@]}")"
+          if [[ -z "$images_block" ]]; then
+            images_block="  - ${GHCR_IMAGE}:<unresolved>"
+          fi
+
+          message="$(cat <<EOF
+          ✅ Docker Publish Success
+
+          Repo: ${{ github.repository }}
+          Ref: ${{ github.ref_name }} @ ${{ github.sha }}
+          Workflow: backend-publish-ghcr
+          Results:
+            - amd64: ${AMD64_RESULT}
+            - arm64: ${ARM64_RESULT}
+            - manifests: ${MANIFEST_RESULT}
+          Images:
+          ${images_block}
+          Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          EOF
+          )"
+
+          curl_args=(
+            -fSs
+            -X POST
+            "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage"
+            -d "chat_id=${TELEGRAM_TO_GROUP}"
+            --data-urlencode "text=${message}"
+          )
+          if [[ -n "${TELEGRAM_TOPIC_ID:-}" ]]; then
+            curl_args+=(-d "message_thread_id=${TELEGRAM_TOPIC_ID}")
+          fi
+          curl "${curl_args[@]}"
