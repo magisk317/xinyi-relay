@@ -77,6 +77,7 @@ jobs:
           app:testGithubLegacyDebugUnitTest
           :app:koverVerifyGithubApi101Debug
           :app:koverHtmlReportGithubApi101Debug
+          -PallowIncompatibleDebugSigning=true
           -PbuildSplits
       - name: Write build summary
         if: always()

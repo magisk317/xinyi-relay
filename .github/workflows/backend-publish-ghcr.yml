@@ -25,8 +25,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       ghcr_image: ${{ steps.vars.outputs.ghcr_image }}
-      dockerhub_enabled: ${{ steps.vars.outputs.dockerhub_enabled }}
-      dockerhub_image: ${{ steps.vars.outputs.dockerhub_image }}
       tags_json: ${{ steps.vars.outputs.tags_json }}
     steps:
       - name: Checkout
@@ -77,8 +75,6 @@ jobs:
 
           {
             echo "ghcr_image=$ghcr_image"
-            echo "dockerhub_enabled=$dockerhub_enabled"
-            echo "dockerhub_image=$dockerhub_image"
             printf 'tags_json=%s\n' "$(printf '%s\n' "${tags[@]}" | jq -R . | jq -sc .)"
           } >> "$GITHUB_OUTPUT"
 
@@ -100,8 +96,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Derive Docker Hub target (optional)
+        run: |
+          if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ] && [ -n "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
+            echo "DOCKERHUB_ENABLED=1" >> "$GITHUB_ENV"
+            if [ -n "${{ secrets.DOCKERHUB_IMAGE }}" ]; then
+              echo "DOCKERHUB_IMAGE=${{ secrets.DOCKERHUB_IMAGE }}" >> "$GITHUB_ENV"
+            else
+              echo "DOCKERHUB_IMAGE=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/xinyi-relay-backend" >> "$GITHUB_ENV"
+            fi
+          else
+            echo "DOCKERHUB_ENABLED=0" >> "$GITHUB_ENV"
+            echo "DOCKERHUB_IMAGE=" >> "$GITHUB_ENV"
+          fi
+
       - name: Log in to Docker Hub
-        if: needs.prepare.outputs.dockerhub_enabled == '1' && github.actor != 'dependabot[bot]'
+        if: env.DOCKERHUB_ENABLED == '1' && github.actor != 'dependabot[bot]'
         uses: docker/login-action@v4
         with:
           registry: docker.io
@@ -113,16 +123,16 @@ jobs:
         shell: bash
         env:
           GHCR_IMAGE: ${{ needs.prepare.outputs.ghcr_image }}
-          DOCKERHUB_IMAGE: ${{ needs.prepare.outputs.dockerhub_image }}
-          DOCKERHUB_ENABLED: ${{ needs.prepare.outputs.dockerhub_enabled }}
           TAGS_JSON: ${{ needs.prepare.outputs.tags_json }}
+          DOCKERHUB_ENABLED: ${{ env.DOCKERHUB_ENABLED }}
+          DOCKERHUB_IMAGE: ${{ env.DOCKERHUB_IMAGE }}
         run: |
           set -euo pipefail
 
           image_tags=()
           while IFS= read -r tag; do
             image_tags+=("${GHCR_IMAGE}:${tag}-amd64")
-            if [[ "$DOCKERHUB_ENABLED" == "1" ]]; then
+            if [[ "$DOCKERHUB_ENABLED" == "1" && -n "$DOCKERHUB_IMAGE" ]]; then
               image_tags+=("${DOCKERHUB_IMAGE}:${tag}-amd64")
             fi
           done < <(jq -r '.[]' <<<"$TAGS_JSON")
@@ -169,8 +179,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Derive Docker Hub target (optional)
+        run: |
+          if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ] && [ -n "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
+            echo "DOCKERHUB_ENABLED=1" >> "$GITHUB_ENV"
+            if [ -n "${{ secrets.DOCKERHUB_IMAGE }}" ]; then
+              echo "DOCKERHUB_IMAGE=${{ secrets.DOCKERHUB_IMAGE }}" >> "$GITHUB_ENV"
+            else
+              echo "DOCKERHUB_IMAGE=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/xinyi-relay-backend" >> "$GITHUB_ENV"
+            fi
+          else
+            echo "DOCKERHUB_ENABLED=0" >> "$GITHUB_ENV"
+            echo "DOCKERHUB_IMAGE=" >> "$GITHUB_ENV"
+          fi
+
       - name: Log in to Docker Hub
-        if: needs.prepare.outputs.dockerhub_enabled == '1' && github.actor != 'dependabot[bot]'
+        if: env.DOCKERHUB_ENABLED == '1' && github.actor != 'dependabot[bot]'
         uses: docker/login-action@v4
         with:
           registry: docker.io
@@ -182,16 +206,16 @@ jobs:
         shell: bash
         env:
           GHCR_IMAGE: ${{ needs.prepare.outputs.ghcr_image }}
-          DOCKERHUB_IMAGE: ${{ needs.prepare.outputs.dockerhub_image }}
-          DOCKERHUB_ENABLED: ${{ needs.prepare.outputs.dockerhub_enabled }}
           TAGS_JSON: ${{ needs.prepare.outputs.tags_json }}
+          DOCKERHUB_ENABLED: ${{ env.DOCKERHUB_ENABLED }}
+          DOCKERHUB_IMAGE: ${{ env.DOCKERHUB_IMAGE }}
         run: |
           set -euo pipefail
 
           image_tags=()
           while IFS= read -r tag; do
             image_tags+=("${GHCR_IMAGE}:${tag}-arm64")
-            if [[ "$DOCKERHUB_ENABLED" == "1" ]]; then
+            if [[ "$DOCKERHUB_ENABLED" == "1" && -n "$DOCKERHUB_IMAGE" ]]; then
               image_tags+=("${DOCKERHUB_IMAGE}:${tag}-arm64")
             fi
           done < <(jq -r '.[]' <<<"$TAGS_JSON")
@@ -238,8 +262,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Derive Docker Hub target (optional)
+        run: |
+          if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ] && [ -n "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
+            echo "DOCKERHUB_ENABLED=1" >> "$GITHUB_ENV"
+            if [ -n "${{ secrets.DOCKERHUB_IMAGE }}" ]; then
+              echo "DOCKERHUB_IMAGE=${{ secrets.DOCKERHUB_IMAGE }}" >> "$GITHUB_ENV"
+            else
+              echo "DOCKERHUB_IMAGE=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/xinyi-relay-backend" >> "$GITHUB_ENV"
+            fi
+          else
+            echo "DOCKERHUB_ENABLED=0" >> "$GITHUB_ENV"
+            echo "DOCKERHUB_IMAGE=" >> "$GITHUB_ENV"
+          fi
+
       - name: Log in to Docker Hub
-        if: needs.prepare.outputs.dockerhub_enabled == '1' && github.actor != 'dependabot[bot]'
+        if: env.DOCKERHUB_ENABLED == '1' && github.actor != 'dependabot[bot]'
         uses: docker/login-action@v4
         with:
           registry: docker.io
@@ -263,11 +301,11 @@ jobs:
           done < <(jq -r '.[]' <<<"$TAGS_JSON")
 
       - name: Publish Docker Hub multi-arch manifests
-        if: needs.prepare.outputs.dockerhub_enabled == '1' && github.actor != 'dependabot[bot]'
+        if: env.DOCKERHUB_ENABLED == '1' && github.actor != 'dependabot[bot]'
         shell: bash
         env:
-          DOCKERHUB_IMAGE: ${{ needs.prepare.outputs.dockerhub_image }}
           TAGS_JSON: ${{ needs.prepare.outputs.tags_json }}
+          DOCKERHUB_IMAGE: ${{ env.DOCKERHUB_IMAGE }}
         run: |
           set -euo pipefail
 

@@ -29,3 +29,5 @@ jobs:
           
       - name: Submit Dependency Graph
         uses: gradle/actions/dependency-submission@v6
+        with:
+          dependency-graph-continue-on-failure: true
