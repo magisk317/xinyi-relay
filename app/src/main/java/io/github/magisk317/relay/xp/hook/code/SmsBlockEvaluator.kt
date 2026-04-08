@@ -2,9 +2,9 @@ package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
 import android.content.Intent
-import io.github.magisk317.relay.sms.SmsCodeUtils
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpPrefs
+import io.github.magisk317.relay.xpbridge.XpSmsCodeParser
 import io.github.magisk317.relay.xpbridge.XpSmsBlacklist
 import io.github.magisk317.smscode.verification.SmsIntentHookSupport
 import io.github.magisk317.smscode.xposed.utils.XLog
@@ -70,7 +70,7 @@ internal object SmsBlockEvaluator {
             )
         }
 
-        val smsCode = runBlocking { SmsCodeUtils.parseSmsCodeIfExists(pluginContext, body) }.orEmpty()
+        val smsCode = runBlocking { XpSmsCodeParser.parseSmsCodeIfExists(pluginContext, body) }.orEmpty()
         if (smsCode.isBlank()) {
             return Result(
                 smsMsg = smsMsg,

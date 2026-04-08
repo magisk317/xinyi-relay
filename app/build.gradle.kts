@@ -94,7 +94,6 @@ mokkery {
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(project(":core"))
-    implementation(project(":runtime"))
     implementation(project(":xpbridge-core"))
     implementation(project(":smscode-core:smscode-domain"))
     implementation(project(":smscode-core:smscode-verification-core"))

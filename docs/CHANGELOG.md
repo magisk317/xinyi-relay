@@ -5,10 +5,19 @@
 ---
 
 ## [Unreleased]
-- `[remote]` 远程架构继续落地：Backend 已补齐设备绑定、配置快照、记录上报、配置审计与实时事件；Web 远程控制台已接入设备、记录、发送器、应用与审计视图；Tauri 桌面壳已补齐托盘与内嵌控制台。
-- `[agent]` Android Agent 新增远程绑定页、自动前后台同步调度、配置/记录变更入队与冲突收敛；本地 HTTPS 连接现已显式信任用户证书，便于对接本地 Docker + Caddy 自签环境。
-- `[retire]` 旧嵌入式 WebUI 已退出 Android 主运行链：应用不再启动内嵌 WebUI 前台服务，旧 WebUI 配置页与导航入口已从主线移除。
-- `[docs]` README、远程架构、隐私政策与 Backend 文档已按“手机端 + Backend”正式架构口径同步更新，不再使用“草案”表述。
+- 待下个版本继续补充。
+
+## [v0.1.0] - 2026-04-08
+- 版本：`versionCode 18` / `versionName 0.1.0`。
+- 发布说明：本版本开始正式收敛 `Android Agent + Docker Backend + Web / Desktop` 远程形态，手机端、后端与控制台的职责边界更清晰，本地接入 Docker + Caddy 的使用路径也更稳定。
+- `[docker/backend]` Docker 后端 Agent 支持继续完善：Backend 已补齐设备绑定、配置快照、记录上报、配置审计与实时事件能力，Android Agent 对接本地 Docker + Caddy 自签 HTTPS 的路径更顺畅，README、Backend 文档与远程架构文档也已统一按正式架构表述更新。
+- `[remote-agent]` Android Agent 远程入口继续完善：高级页新增 Remote Agent 入口，远程控制页交互更顺手；配置快照应用改为先与本地完整配置合并再落地，避免服务端仅下发局部字段时误清空未包含的本地配置。
+- `[sms-hook]` 验证码短信在部分 ROM 上即便走 `dispatchSmsDeliveryIntent` 备用拦截链路，也会在 `pref_block_sms` 成功拦截后继续补发 Relay 转发，不再出现“验证码能自动填写但不转发”的路径缺口。
+- `[records]` 验证码记录写主库失败时仍会落到 `CodeRecord_*` fallback 文件；应用启动后现在会自动把这批 fallback 记录回灌数据库，修复“验证码记录未出现在界面”的旧问题。
+- `[forwarding]` 转发接收侧新增对 telephony NMS 副本的抑制：短信 Hook 已成功转发后，后续系统短信应用的通知副本会被压制，减少验证码和普通短信在记录与转发链路中的重复回环。
+- `[ci/build]` Android 37 SDK 兼容方案已从 CI 里的 `android-37 -> android-37.0` 目录 alias workaround 切换为 `compileSdkMinor = 0`，并同步到共享 `build-logic`、`magisk-ui-kit` 与 `smscode-core`；同时移除了已失效的 alias helper，并修复了相机权限对应的 ChromeOS lint 错误。
+
+> Full Changelog: https://github.com/magisk317/xinyi-relay/compare/v0.0.4...v0.1.0
 
 ## [v0.0.4] - 2026-04-06
 - 版本：`versionCode 17` / `versionName 0.0.4`。

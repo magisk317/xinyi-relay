@@ -290,7 +290,7 @@ class RemoteAgentRepository(
         runCatching {
             client.newCall(request).execute().use { response ->
                 val responseText = response.body.string()
-                if (response.code == 409) {
+                if (response.code == HTTP_CONFLICT) {
                     val payload = gson.fromJson(responseText, ConfigSnapshotResponse::class.java)
                     payload.snapshot?.let { applyRemoteConfigPayload(it) }
                     preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_REVISION, payload.revision.toString())
@@ -744,6 +744,8 @@ class RemoteAgentRepository(
         }.getOrDefault("unknown")
     }
 }
+
+private const val HTTP_CONFLICT = 409
 
 internal fun mergeRemoteConfigJson(
     base: JsonObject,
