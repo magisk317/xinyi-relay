@@ -194,6 +194,30 @@ class ForwardReceiver : BroadcastReceiver() {
                 }
                 if (
                     msgTypeStr == ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY &&
+                    forwardSource == ForwardBroadcastContract.SOURCE_NMS_HOOK &&
+                    ForwardReceiverPolicy.shouldSuppressTelephonyNmsCopyAfterSmsHook(
+                        smsCode = payload.smsCode,
+                        company = normalizedCompany,
+                        sender = normalizedSender,
+                        body = normalizedBody,
+                        packageName = normalizedPackageName,
+                        recentForwardedSmsHook = recentForwardedSmsHook,
+                    )
+                ) {
+                    ForwardFlowLog.i(
+                        traceId,
+                        buildString {
+                            append("Drop telephony nms app notify after sms_hook success pkg=")
+                            append(normalizedPackageName.orEmpty().ifBlank { "<empty>" })
+                            append(" sender=")
+                            append(normalizedSender.orEmpty().ifBlank { "<empty>" })
+                        },
+                    )
+                    markResult(RESULT_DROP_DUPLICATE, "telephony_nms_suppressed_after_sms_hook")
+                    return@runCatching
+                }
+                if (
+                    msgTypeStr == ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY &&
                     !shouldForwardAppNotify(runtimeGraph, normalizedPackageName, traceId, forwardSource)
                 ) {
                     markResult(RESULT_REJECT_APP_GATE, "app_gate_drop")
@@ -439,6 +463,13 @@ class ForwardReceiver : BroadcastReceiver() {
                         msgTypeStr == ForwardBroadcastContract.MSG_TYPE_SMS &&
                         forwardSource == ForwardBroadcastContract.SOURCE_SMS_HOOK
                     ) {
+                        ForwardReceiverPolicy.markForwardedSmsHookDispatch(
+                            smsCode = payload.smsCode,
+                            company = normalizedCompany,
+                            sender = normalizedSender,
+                            body = normalizedBody,
+                            recentForwardedSmsHook = recentForwardedSmsHook,
+                        )
                         ForwardReceiverPolicy.markSuccessfulSmsHookDispatch(
                             smsCode = payload.smsCode,
                             company = normalizedCompany,
@@ -503,6 +534,7 @@ class ForwardReceiver : BroadcastReceiver() {
             Thread(runnable, "ForwardReceiverWorker-${workerIndex.getAndIncrement()}")
         }
         private val recentNotify = ConcurrentHashMap<String, Long>()
+        private val recentForwardedSmsHook = ConcurrentHashMap<String, Long>()
         private val recentSmsForward = RecentEventDeduplicator(windowMs = SMS_FORWARD_DEDUP_WINDOW_MS)
         private val recentSuccessfulSmsHook = ConcurrentHashMap<String, Long>()
         private val nmsHookSeen = ConcurrentHashMap<String, Long>()

@@ -258,6 +258,7 @@ class ForwardReceiverPolicyTest {
             smsCode = "230244",
             company = "潇湘一卡通",
             sender = "1068",
+            body = "【潇湘一卡通】验证码 230244，5分钟内有效",
             recentSuccessfulSmsHook = recentSuccessfulSmsHook,
             nowMs = 1_000L,
         )
@@ -267,6 +268,8 @@ class ForwardReceiverPolicyTest {
                 smsCode = "230244",
                 company = "潇湘一卡通",
                 sender = "短信",
+                body = "[2条]...验证码 230244，5分钟内有效",
+                packageName = "com.android.mms",
                 recentSuccessfulSmsHook = recentSuccessfulSmsHook,
                 nowMs = 31_000L,
             ),
@@ -281,6 +284,7 @@ class ForwardReceiverPolicyTest {
             smsCode = "230244",
             company = "潇湘一卡通",
             sender = "1068",
+            body = "【潇湘一卡通】验证码 230244，5分钟内有效",
             recentSuccessfulSmsHook = recentSuccessfulSmsHook,
             nowMs = 1_000L,
         )
@@ -290,8 +294,62 @@ class ForwardReceiverPolicyTest {
                 smsCode = "230244",
                 company = "潇湘一卡通",
                 sender = "短信",
+                body = "[2条]...验证码 230244，5分钟内有效",
+                packageName = "com.android.mms",
                 recentSuccessfulSmsHook = recentSuccessfulSmsHook,
                 nowMs = 130_000L,
+            ),
+        )
+    }
+
+    @Test
+    fun forwardedSmsHookSuppression_blocksTelephonyNmsAppNotifyCopyWithinWindow() {
+        val recentForwardedSmsHook = linkedMapOf<String, Long>()
+
+        ForwardReceiverPolicy.markForwardedSmsHookDispatch(
+            smsCode = null,
+            company = "",
+            sender = "10687565251201",
+            body = "【招商银行】您尾号1234账户收入88.88元",
+            recentForwardedSmsHook = recentForwardedSmsHook,
+            nowMs = 1_000L,
+        )
+
+        assertTrue(
+            ForwardReceiverPolicy.shouldSuppressTelephonyNmsCopyAfterSmsHook(
+                smsCode = null,
+                company = "招商银行",
+                sender = "招商银行",
+                body = "[2条]...您尾号1234账户收入88.88元",
+                packageName = "com.android.mms",
+                recentForwardedSmsHook = recentForwardedSmsHook,
+                nowMs = 5_000L,
+            ),
+        )
+    }
+
+    @Test
+    fun forwardedSmsHookSuppression_ignoresNonTelephonyPackages() {
+        val recentForwardedSmsHook = linkedMapOf<String, Long>()
+
+        ForwardReceiverPolicy.markForwardedSmsHookDispatch(
+            smsCode = null,
+            company = "",
+            sender = "10687565251201",
+            body = "【招商银行】您尾号1234账户收入88.88元",
+            recentForwardedSmsHook = recentForwardedSmsHook,
+            nowMs = 1_000L,
+        )
+
+        assertFalse(
+            ForwardReceiverPolicy.shouldSuppressTelephonyNmsCopyAfterSmsHook(
+                smsCode = null,
+                company = "招商银行",
+                sender = "招商银行",
+                body = "[2条]...您尾号1234账户收入88.88元",
+                packageName = "com.eg.android.AlipayGphone",
+                recentForwardedSmsHook = recentForwardedSmsHook,
+                nowMs = 5_000L,
             ),
         )
     }

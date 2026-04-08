@@ -11,6 +11,7 @@ object ForwardReceiverPolicy {
     private const val NOTIFY_DEDUP_WINDOW_MS = 10_000L
     private const val NMS_HOOK_SUPPRESS_TTL_MS = 30_000L
     private const val SMS_HOOK_SUCCESS_SUPPRESS_TTL_MS = 120_000L
+    private const val SMS_HOOK_FORWARDED_SUPPRESS_TTL_MS = 30_000L
     private const val SYSTEM_SUMMARY_CODE_ONLY_WINDOW_MS = 20_000L
     private const val NOTIFY_DEDUP_MAX_ENTRIES = 256
 
@@ -227,6 +228,49 @@ object ForwardReceiverPolicy {
         return false
     }
 
+    fun markForwardedSmsHookDispatch(
+        smsCode: String?,
+        company: String?,
+        sender: String?,
+        body: String?,
+        recentForwardedSmsHook: MutableMap<String, Long>,
+        nowMs: Long = System.currentTimeMillis(),
+    ) {
+        buildForwardedSmsHookKeys(
+            smsCode = smsCode,
+            company = company,
+            sender = sender,
+            body = body,
+        ).forEach { key ->
+            recentForwardedSmsHook[key] = nowMs
+        }
+        if (recentForwardedSmsHook.size > NOTIFY_DEDUP_MAX_ENTRIES) {
+            val cutoff = nowMs - SMS_HOOK_FORWARDED_SUPPRESS_TTL_MS * 2
+            recentForwardedSmsHook.entries.removeIf { it.value < cutoff }
+        }
+    }
+
+    fun shouldSuppressTelephonyNmsCopyAfterSmsHook(
+        smsCode: String?,
+        company: String?,
+        sender: String?,
+        body: String?,
+        packageName: String?,
+        recentForwardedSmsHook: Map<String, Long>,
+        nowMs: Long = System.currentTimeMillis(),
+    ): Boolean {
+        if (!CodeRecordSimilarityUtils.isSystemSmsPackage(packageName)) return false
+        return buildForwardedSmsHookKeys(
+            smsCode = smsCode,
+            company = company,
+            sender = sender,
+            body = body,
+        ).any { key ->
+            val seenAt = recentForwardedSmsHook[key] ?: return@any false
+            nowMs - seenAt < SMS_HOOK_FORWARDED_SUPPRESS_TTL_MS
+        }
+    }
+
     private fun buildNotifyDedupKey(
         msgType: String,
         packageName: String?,
@@ -304,6 +348,35 @@ object ForwardReceiverPolicy {
         }
         if (normalizedSender.isNotEmpty()) {
             candidates += "sms_hook_success|code:$normalizedCode|sender:$normalizedSender"
+        }
+        return candidates.toList()
+    }
+
+    private fun buildForwardedSmsHookKeys(
+        smsCode: String?,
+        company: String?,
+        sender: String?,
+        body: String?,
+    ): List<String> {
+        val normalizedCode = smsCode.orEmpty().trim()
+        val normalizedBody = normalizeSmsBodyForDedup(body)
+        val normalizedCompany = normalizeSmsLabelForDedup(company)
+        val normalizedSender = normalizeSmsLabelForDedup(sender)
+        val candidates = linkedSetOf<String>()
+        if (normalizedBody.isNotEmpty()) {
+            candidates += "sms_hook_forwarded|body:$normalizedBody"
+            if (normalizedSender.isNotEmpty()) {
+                candidates += "sms_hook_forwarded|sender:$normalizedSender|body:$normalizedBody"
+            }
+            if (normalizedCompany.isNotEmpty() && normalizedCompany != normalizedSender) {
+                candidates += "sms_hook_forwarded|company:$normalizedCompany|body:$normalizedBody"
+            }
+        }
+        if (normalizedCode.isNotEmpty()) {
+            candidates += "sms_hook_forwarded|code:$normalizedCode"
+            if (normalizedBody.isNotEmpty()) {
+                candidates += "sms_hook_forwarded|code:$normalizedCode|body:$normalizedBody"
+            }
         }
         return candidates.toList()
     }
