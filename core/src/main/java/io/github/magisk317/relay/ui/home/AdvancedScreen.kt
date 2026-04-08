@@ -35,6 +35,7 @@ fun AdvancedScreen(
     onRelayConfigClick: () -> Unit,
     onForwardKeepAliveClick: () -> Unit,
     onScheduledReminderClick: () -> Unit,
+    onRemoteAgentClick: () -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -67,6 +68,12 @@ fun AdvancedScreen(
                 subtitle = stringResource(id = R.string.scheduled_reminder_entry_summary),
                 icon = { Icon(Icons.Default.DateRange, contentDescription = null) },
                 onClick = onScheduledReminderClick,
+            )
+            AdvancedEntryCard(
+                title = stringResource(id = R.string.pref_remote_agent_title),
+                subtitle = stringResource(id = R.string.pref_remote_agent_summary),
+                icon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                onClick = onRemoteAgentClick,
             )
             AdvancedEntryCard(
                 title = stringResource(id = R.string.advanced_filter_title),

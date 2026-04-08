@@ -23,7 +23,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -43,6 +42,7 @@ import com.journeyapps.barcodescanner.ScanOptions
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.data.repository.RemoteAgentRepository
 import io.github.magisk317.relay.data.repository.RemoteAgentSnapshot
+import io.github.magisk317.relay.ui.common.DismissibleSnackbarHost
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import java.text.DateFormat
@@ -125,7 +125,9 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                 },
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        snackbarHost = {
+            DismissibleSnackbarHost(hostState = snackbarHostState)
+        },
     ) { padding ->
         val current = snapshot
         Column(

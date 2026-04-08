@@ -465,6 +465,7 @@ fun MainScreen(
                                 },
                                 onForwardKeepAliveClick = { navController.navigate(ForwardKeepAliveRoute) },
                                 onScheduledReminderClick = { navController.navigate(ScheduledReminderRoute) },
+                                onRemoteAgentClick = { navController.navigate(RemoteAgentRoute) },
                             )
                         }
                         composable<RelayConfigRoute> { backStackEntry ->
@@ -641,7 +642,6 @@ fun MainScreen(
                                 onOpenAdvancedRelay = {
                                     navController.navigate(RelayConfigRoute(origin = ROUTE_ORIGIN_SETTINGS))
                                 },
-                                onOpenRemoteAgent = { navController.navigate(RemoteAgentRoute) },
                             )
                         }
                         composable<VerificationSettingsRoute> {

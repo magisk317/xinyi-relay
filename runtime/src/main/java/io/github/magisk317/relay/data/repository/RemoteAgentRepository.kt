@@ -6,8 +6,8 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.pm.PackageInfoCompat
 import com.google.gson.Gson
+import com.google.gson.JsonElement
 import com.google.gson.JsonObject
-import com.google.gson.JsonParser
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.data.db.entity.AppInfo
@@ -428,40 +428,48 @@ class RemoteAgentRepository(
     }
 
     private suspend fun buildConfigSnapshotPayload(): JsonObject {
+        return gson.toJsonTree(buildConfigSnapshotModel()).asJsonObject
+    }
+
+    private suspend fun buildConfigSnapshotModel(): RemoteConfigPayload {
         val runtimeGraph = RuntimeGraph.from(appContext)
         val settingsRepository = runtimeGraph.settingsRepository
         val configRepository = runtimeGraph.configRepository
-        return gson.toJsonTree(
-            RemoteConfigPayload(
-                general = settingsRepository.getGeneralSettings(),
-                verification = settingsRepository.getVerificationSettings(),
-                relay = settingsRepository.getRelaySettings(),
-                diagnostics = settingsRepository.getDiagnosticsSettings(),
-                advanced = settingsRepository.getAdvancedSnapshot(),
-                specialAlerts = settingsRepository.getSpecialAlertSettings(),
-                messageTypeGates = settingsRepository.getMessageTypeGates(),
-                forwardTypeGates = settingsRepository.getForwardTypeGates(),
-                records = settingsRepository.getRecordSettings(),
-                smsBlacklist = settingsRepository.getSmsBlacklistSettings(),
-                simRemarks = settingsRepository.getSimRemarkSettings(),
-                forwardCommon = settingsRepository.loadForwardCommonConfig(),
-                appNotifyTemplate = settingsRepository.loadAppNotifyTemplate(),
-                callNotifyTemplate = settingsRepository.loadCallNotifyTemplate(),
-                overview = settingsRepository.getOverviewSettings(),
-                senders = configRepository.getAllSenders(),
-                rules = configRepository.getAllRules(),
-                smsCodeRules = configRepository.getAllSmsCodeRules(),
-                appInfos = resolveInstalledAppCatalog(configRepository.getAllAppInfo()),
-                notifyRoutes = runtimeGraph.database.notifyRouteRuleDao().getAll(),
-                forwardFilters = runtimeGraph.database.forwardFilterRuleDao().getAll().map { it.toDomain() },
-            ),
-        ).asJsonObject
+        return RemoteConfigPayload(
+            general = settingsRepository.getGeneralSettings(),
+            verification = settingsRepository.getVerificationSettings(),
+            relay = settingsRepository.getRelaySettings(),
+            diagnostics = settingsRepository.getDiagnosticsSettings(),
+            advanced = settingsRepository.getAdvancedSnapshot(),
+            specialAlerts = settingsRepository.getSpecialAlertSettings(),
+            messageTypeGates = settingsRepository.getMessageTypeGates(),
+            forwardTypeGates = settingsRepository.getForwardTypeGates(),
+            records = settingsRepository.getRecordSettings(),
+            smsBlacklist = settingsRepository.getSmsBlacklistSettings(),
+            simRemarks = settingsRepository.getSimRemarkSettings(),
+            forwardCommon = settingsRepository.loadForwardCommonConfig(),
+            appNotifyTemplate = settingsRepository.loadAppNotifyTemplate(),
+            callNotifyTemplate = settingsRepository.loadCallNotifyTemplate(),
+            overview = settingsRepository.getOverviewSettings(),
+            senders = configRepository.getAllSenders(),
+            rules = configRepository.getAllRules(),
+            smsCodeRules = configRepository.getAllSmsCodeRules(),
+            appInfos = resolveInstalledAppCatalog(configRepository.getAllAppInfo()),
+            notifyRoutes = runtimeGraph.database.notifyRouteRuleDao().getAll(),
+            forwardFilters = runtimeGraph.database.forwardFilterRuleDao().getAll().map { it.toDomain() },
+        )
     }
 
     private suspend fun applyRemoteConfigPayload(snapshot: JsonObject) {
         applyingRemoteConfigDepth.incrementAndGet()
         try {
-            val payload = gson.fromJson(snapshot, RemoteConfigPayload::class.java)
+            val payload = gson.fromJson(
+                mergeRemoteConfigJson(
+                    base = buildConfigSnapshotPayload(),
+                    incoming = snapshot,
+                ),
+                RemoteConfigPayload::class.java,
+            )
             val runtimeGraph = RuntimeGraph.from(appContext)
             val settingsRepository = runtimeGraph.settingsRepository
             val configRepository = runtimeGraph.configRepository
@@ -735,4 +743,29 @@ class RemoteAgentRepository(
             packageInfo.versionName ?: PackageInfoCompat.getLongVersionCode(packageInfo).toString()
         }.getOrDefault("unknown")
     }
+}
+
+internal fun mergeRemoteConfigJson(
+    base: JsonObject,
+    incoming: JsonObject,
+): JsonObject {
+    val merged = base.deepCopy()
+    incoming.entrySet().forEach { (key, incomingValue) ->
+        val baseValue = merged.get(key)
+        merged.add(key, mergeRemoteConfigElement(baseValue, incomingValue))
+    }
+    return merged
+}
+
+private fun mergeRemoteConfigElement(
+    base: JsonElement?,
+    incoming: JsonElement?,
+): JsonElement {
+    if (incoming == null || incoming.isJsonNull) {
+        return base?.deepCopy() ?: JsonObject()
+    }
+    if (base != null && base.isJsonObject && incoming.isJsonObject) {
+        return mergeRemoteConfigJson(base.asJsonObject, incoming.asJsonObject)
+    }
+    return incoming.deepCopy()
 }

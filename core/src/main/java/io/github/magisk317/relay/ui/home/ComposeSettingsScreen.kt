@@ -19,7 +19,6 @@ fun ComposeSettingsScreen(
     SettingsHomeScreen(
         onOpenVerification = {},
         onOpenAdvancedRelay = {},
-        onOpenRemoteAgent = {},
         onBack = onExit,
     )
 }
