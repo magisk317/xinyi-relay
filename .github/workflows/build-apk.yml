@@ -98,8 +98,6 @@ jobs:
         with:
           validate-wrappers: false
           allow-snapshot-wrappers: true
-      - name: Normalize Android SDK platform aliases
-        run: bash scripts/ensure_android_sdk_platform_alias.sh
 
       - name: Decode Keystore
         if: env.HAS_RELEASE_KEYSTORE == 'true'
@@ -211,8 +209,6 @@ jobs:
         with:
           validate-wrappers: false
           allow-snapshot-wrappers: true
-      - name: Normalize Android SDK platform aliases
-        run: bash scripts/ensure_android_sdk_platform_alias.sh
 
       - name: Decode Keystore
         if: env.HAS_RELEASE_KEYSTORE == 'true'

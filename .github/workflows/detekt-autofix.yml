@@ -30,8 +30,6 @@ jobs:
         with:
           validate-wrappers: false
           allow-snapshot-wrappers: true
-      - name: Normalize Android SDK platform aliases
-        run: bash scripts/ensure_android_sdk_platform_alias.sh
 
       - name: Run Detekt with Auto Correct
         continue-on-error: true

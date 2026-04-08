@@ -5,8 +5,6 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 cd "$ROOT_DIR"
 
-bash scripts/ensure_android_sdk_platform_alias.sh
-
 gradle_args=()
 if [[ "${SKIP_GOOGLE_SERVICES:-false}" == "true" ]]; then
   gradle_args+=("-PskipGoogleServices=true")
