@@ -3,7 +3,6 @@ package io.github.magisk317.relay.xp.hook.code
 import android.content.Context
 import android.content.Intent
 import android.os.Process
-import io.github.magisk317.relay.xp.hook.SmsForwardConvergence
 import io.github.magisk317.relay.xpbridge.PreparedSmsHookDispatch
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
@@ -12,7 +11,6 @@ import io.github.magisk317.smscode.verification.BlacklistMatchResult
 import io.github.magisk317.smscode.verification.SmsDispatchIntentProcessor as SharedSmsDispatchIntentProcessor
 import io.github.magisk317.smscode.verification.SmsHandlerDispatchDecision
 import io.github.magisk317.smscode.xposed.utils.XLog
-import kotlinx.coroutines.runBlocking
 
 internal class SmsDispatchIntentProcessor(
     private val pluginContext: Context,
@@ -77,9 +75,14 @@ internal class SmsDispatchIntentProcessor(
             incomingSmsParser = incomingParser,
             blacklistMatcher = matcher,
             codeParser = parser,
-        )
-    },
+            )
+        },
 ) {
+    private val parsedCodeSmsForwarder = ParsedCodeSmsForwarder(
+        smsForwardPreparer = smsForwardPreparer,
+        smsForwardDispatcher = smsForwardDispatcher,
+    )
+
     data class Outcome(
         val smsMsg: SmsMsg?,
         val blacklistResult: BlacklistMatchResult,
@@ -97,28 +100,14 @@ internal class SmsDispatchIntentProcessor(
         ).handle(intent, eventId)
         val parseResult = outcome.parseResult as? ParseResult
         val smsMsg = outcome.smsMsg
-        val preparedForward = if (smsMsg != null && parseResult != null) {
-            runCatching {
-                runBlocking {
-                    smsForwardPreparer(
-                        pluginContext,
-                        phoneContext,
-                        smsMsg,
-                        intent,
-                        eventId,
-                    )
-                }
-            }.onFailure { error ->
-                XLog.e("SmsDispatchIntentProcessor failed to prepare direct sms forward", error)
-            }.getOrNull()
-        } else {
-            null
-        }
-        if (preparedForward?.smsMsg?.smsCode?.isNotBlank() == true) {
-            val dispatched = smsForwardDispatcher(pluginContext, preparedForward, eventId)
-            if (dispatched) {
-                SmsForwardConvergence.markParsedSmsForwardDispatched(intent)
-            }
+        if (smsMsg != null && parseResult != null) {
+            parsedCodeSmsForwarder.forwardIfCodeSms(
+                pluginContext = pluginContext,
+                phoneContext = phoneContext,
+                smsMsg = smsMsg,
+                sourceIntent = intent,
+                eventId = eventId,
+            )
         }
         return Outcome(
             smsMsg = outcome.smsMsg,

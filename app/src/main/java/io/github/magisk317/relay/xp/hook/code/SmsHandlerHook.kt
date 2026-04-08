@@ -37,6 +37,7 @@ import java.util.concurrent.Executors
 class SmsHandlerHook : BaseHook() {
     private val runtimeSession = SmsHookRuntimeSession(SMSCODE_PACKAGE, ANDROID_PHONE_PACKAGE)
     private val inboundSmsBlocker = InboundSmsBlocker(SMS_HANDLER_CLASS)
+    private val parsedCodeSmsForwarder = ParsedCodeSmsForwarder()
     private val constructorInitializer = SmsHookConstructorInitializer(
         runtimeInitializer = runtimeSession::initialize,
         heartbeatRecorder = { source -> runtimeSession.recordHeartbeat(source) },
@@ -399,6 +400,17 @@ class SmsHandlerHook : BaseHook() {
                     eventId,
                 )
                 return
+            }
+            if (reason == SmsBlockEvaluator.BLOCK_REASON_PREF_BLOCK) {
+                evaluation.smsMsg?.let { smsMsg ->
+                    parsedCodeSmsForwarder.forwardIfCodeSms(
+                        pluginContext = pluginContext,
+                        phoneContext = phoneContext,
+                        smsMsg = smsMsg,
+                        sourceIntent = intent,
+                        eventId = eventId,
+                    )
+                }
             }
         } else {
             XLog.w(

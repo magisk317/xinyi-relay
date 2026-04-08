@@ -10,6 +10,7 @@ val appDependencyModule = module {
     single { InfrastructureInitializer() } bind AppInitializer::class
     single { SecurityInitializer() } bind AppInitializer::class
     single { DataStoreSyncInitializer() } bind AppInitializer::class
+    single { CodeRecordImportInitializer() } bind AppInitializer::class
     single { ConfigDiagnosticsInitializer() } bind AppInitializer::class
     single { ServiceMonitorInitializer() } bind AppInitializer::class
     single { LifecycleMonitorInitializer() } bind AppInitializer::class
