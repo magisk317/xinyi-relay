@@ -8,7 +8,7 @@
 - 待下个版本继续补充。
 
 ## [v0.1.0] - 2026-04-08
-- 版本：`versionCode 18` / `versionName 0.1.0`。
+- 版本：`versionCode 19` / `versionName 0.1.0`。
 - 发布说明：本版本开始正式收敛 `Android Agent + Docker Backend + Web / Desktop` 远程形态，手机端、后端与控制台的职责边界更清晰，本地接入 Docker + Caddy 的使用路径也更稳定。
 - `[docker/backend]` Docker 后端 Agent 支持继续完善：Backend 已补齐设备绑定、配置快照、记录上报、配置审计与实时事件能力，Android Agent 对接本地 Docker + Caddy 自签 HTTPS 的路径更顺畅，README、Backend 文档与远程架构文档也已统一按正式架构表述更新。
 - `[remote-agent]` Android Agent 远程入口继续完善：高级页新增 Remote Agent 入口，远程控制页交互更顺手；配置快照应用改为先与本地完整配置合并再落地，避免服务端仅下发局部字段时误清空未包含的本地配置。
