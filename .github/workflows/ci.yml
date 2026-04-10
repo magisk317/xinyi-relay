@@ -43,7 +43,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ steps.webui_toolchain.outputs.node_version }}
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@v6
         with:
           version: ${{ steps.webui_toolchain.outputs.pnpm_version }}
       - name: WebUI Install
