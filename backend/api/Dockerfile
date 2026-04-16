@@ -9,7 +9,7 @@ RUN go mod download
 COPY . ./
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -o /out/relayd ./cmd/relayd
 
-FROM alpine:3.23.3
+FROM alpine:3.23.4
 WORKDIR /app
 COPY --from=build /out/relayd /usr/local/bin/relayd
 EXPOSE 8080
