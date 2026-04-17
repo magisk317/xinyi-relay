@@ -808,6 +808,15 @@ class SettingsRepository(
         syncLocalOnly()
     }
 
+    suspend fun getUiKitStyle(): Int {
+        return preferenceDataSource.getInt(PrefConst.KEY_UI_KIT_STYLE, 0)
+    }
+
+    suspend fun setUiKitStyle(style: Int) {
+        preferenceDataSource.setInt(PrefConst.KEY_UI_KIT_STYLE, style)
+        syncLocalOnly()
+    }
+
     suspend fun getLanguageTag(): String {
         return preferenceDataSource.getString(PrefConst.KEY_LANGUAGE, "")
     }

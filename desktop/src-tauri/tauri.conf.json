@@ -4,14 +4,19 @@
   "version": "0.1.0",
   "identifier": "io.github.magisk317.relay.desktop",
   "build": {
-    "frontendDist": "../src"
+    "beforeBuildCommand": "npm run build",
+    "beforeDevCommand": "npm run dev -- --host 127.0.0.1 --port 1420",
+    "devUrl": "http://127.0.0.1:1420",
+    "frontendDist": "../dist"
   },
   "app": {
     "windows": [
       {
         "title": "Xinyi Relay Desktop",
-        "width": 960,
-        "height": 720,
+        "width": 1440,
+        "height": 940,
+        "minWidth": 1080,
+        "minHeight": 760,
         "resizable": true
       }
     ],
@@ -21,7 +26,14 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
-    "icon": []
+    "targets": ["appimage", "deb", "nsis", "dmg"],
+    "icon": ["icons/icon.png"],
+    "windows": {
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "http://timestamp.digicert.com"
+    },
+    "macOS": {
+      "hardenedRuntime": true
+    }
   }
 }

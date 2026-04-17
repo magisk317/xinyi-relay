@@ -34,6 +34,9 @@
     <string name="pref_show_launcher_icon_failed">切換桌面圖示顯示狀態失敗</string>
     <string name="pref_choose_theme_title">主題</string>
     <string name="pref_choose_theme_summary">隨系統、淺色、深色或純黑</string>
+    <string name="pref_ui_kit_style_title">介面風格</string>
+    <string name="ui_kit_style_expressive">Expressive</string>
+    <string name="ui_kit_style_miuix">Miuix</string>
     <string name="theme_follow_system">自動 (隨系統)</string>
     <string name="theme_light">淺色</string>
     <string name="theme_dark">深色</string>
@@ -133,6 +136,8 @@
     <string name="detail_sender">發件人</string>
     <string name="detail_app">應用</string>
     <string name="detail_time">時間</string>
+    <string name="detail_original_time">簡訊原始時間</string>
+    <string name="detail_processed_time">模組處理時間</string>
     <string name="detail_content">內容</string>
     <string name="detail_click_copy_hint">（點擊複製內容）</string>
     <string name="detail_forward_status">狀態</string>

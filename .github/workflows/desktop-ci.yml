@@ -49,9 +49,16 @@ jobs:
       - name: Install desktop npm dependencies
         run: |
           cd desktop
-          npm install
+          npm ci
+
+      - name: Build desktop frontend
+        run: |
+          cd desktop
+          npm run build
 
       - name: Tauri Linux check
+        env:
+          PKG_CONFIG: /usr/bin/pkg-config
         run: |
           cd desktop
           npm run tauri:check:linux

@@ -12,6 +12,7 @@ object PrefConst {
     const val KEY_HIDE_LAUNCHER_ICON = "pref_hide_launcher_icon"
     const val KEY_SHOW_LAUNCHER_ICON = "pref_show_launcher_icon"
     const val KEY_CHOOSE_THEME = "pref_choose_theme"
+    const val KEY_UI_KIT_STYLE = "pref_ui_kit_style"
     const val KEY_LANGUAGE = "pref_language"
     const val KEY_COMPOSE_SETTINGS = "pref_compose_settings"
     const val KEY_SETTINGS_ACCORDION_MODE = "pref_settings_accordion_mode"

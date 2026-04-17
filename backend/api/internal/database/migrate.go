@@ -55,6 +55,33 @@ var schemaStatements = []string{
 	)
 	`,
 	`
+	CREATE TABLE IF NOT EXISTS desktop_auth_requests (
+		id BIGSERIAL PRIMARY KEY,
+		user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		code_hash TEXT NOT NULL UNIQUE,
+		redirect_uri TEXT NOT NULL,
+		state TEXT NOT NULL,
+		client_name TEXT NOT NULL DEFAULT 'Xinyi Relay Desktop',
+		expires_at TIMESTAMPTZ NOT NULL,
+		used_at TIMESTAMPTZ,
+		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+	)
+	`,
+	`
+	CREATE TABLE IF NOT EXISTS desktop_sessions (
+		id BIGSERIAL PRIMARY KEY,
+		user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		client_name TEXT NOT NULL DEFAULT 'Xinyi Relay Desktop',
+		access_token_hash TEXT NOT NULL UNIQUE,
+		refresh_token_hash TEXT NOT NULL UNIQUE,
+		expires_at TIMESTAMPTZ NOT NULL,
+		refresh_expires_at TIMESTAMPTZ NOT NULL,
+		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		revoked_at TIMESTAMPTZ
+	)
+	`,
+	`
 	CREATE TABLE IF NOT EXISTS config_snapshots (
 		id BIGSERIAL PRIMARY KEY,
 		user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

@@ -14,6 +14,7 @@ import io.github.magisk317.relay.data.db.entity.AppInfo
 import io.github.magisk317.relay.data.db.entity.SmsCodeRule
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.smscode.runtime.common.record.SmsMsgCursorContract
+import kotlinx.coroutines.runBlocking
 
 class DBProvider : ContentProvider() {
     private var mDatabase: AppDatabase? = null
@@ -52,6 +53,7 @@ class DBProvider : ContentProvider() {
                     sender = values?.getAsString("sender"),
                     body = values?.getAsString("body"),
                     date = values?.getAsLong("date") ?: 0L,
+                    processedTime = values?.getAsLong("processed_time") ?: System.currentTimeMillis(),
                     company = values?.getAsString("company"),
                     smsCode = values?.getAsString("sms_code"),
                     packageName = values?.getAsString("package_name"),
@@ -65,17 +67,19 @@ class DBProvider : ContentProvider() {
                 )
                 val dao = mDatabase!!.smsMsgDao()
                 val id = synchronized(dao) {
-                    val existing = dao.getByFingerprint(
-                        sender = msg.sender,
-                        body = msg.body,
-                        date = msg.date,
-                        msgType = msg.msgType,
-                    )
-                    if (existing != null) {
-                        dao.update(mergeSmsMsgForInsert(existing, msg))
-                        existing.id
-                    } else {
-                        dao.insert(msg)
+                    runBlocking {
+                        val existing = dao.getByFingerprint(
+                            sender = msg.sender,
+                            body = msg.body,
+                            date = msg.date,
+                            msgType = msg.msgType,
+                        )
+                        if (existing != null) {
+                            dao.update(mergeSmsMsgForInsert(existing, msg))
+                            existing.id
+                        } else {
+                            dao.insert(msg)
+                        }
                     }
                 }
                 path = "$PATH_SMS_MSG/$id"
@@ -142,24 +146,24 @@ class DBProvider : ContentProvider() {
         throw IllegalArgumentException("Unsupported delete selection: $selection")
     }
 
-    private fun deleteSmsMsgById(id: Long): Int {
+    private fun deleteSmsMsgById(id: Long): Int = runBlocking {
         val dao = mDatabase!!.smsMsgDao()
-        val msg = dao.getById(id) ?: return 0
+        val msg = dao.getById(id) ?: return@runBlocking 0
         dao.delete(msg)
-        return 1
+        1
     }
 
-    private fun querySmsCodeRules(projection: Array<String>?): Cursor {
+    private fun querySmsCodeRules(projection: Array<String>?): Cursor = runBlocking {
         val rules = mDatabase!!.smsCodeRuleDao().getAll()
         val columns = projection ?: arrayOf("company", "code_keyword", "code_regex", "_id")
         val cursor = MatrixCursor(columns)
         rules.forEach { rule ->
             cursor.addRow(buildRow(columns) { column -> valueFromSmsCodeRule(rule, column) })
         }
-        return cursor
+        return@runBlocking cursor
     }
 
-    private fun querySmsMsgs(projection: Array<String>?, sortOrder: String?): Cursor {
+    private fun querySmsMsgs(projection: Array<String>?, sortOrder: String?): Cursor = runBlocking {
         val rows = mDatabase!!.smsMsgDao().getAll().let { list ->
             when (sortOrder?.trim()?.lowercase()) {
                 "date asc" -> list.sortedBy { it.date }
@@ -172,10 +176,10 @@ class DBProvider : ContentProvider() {
         rows.forEach { msg ->
             cursor.addRow(buildRow(columns) { column -> valueFromSmsMsg(msg, column) })
         }
-        return cursor
+        return@runBlocking cursor
     }
 
-    private fun querySmsMsgById(projection: Array<String>?, uri: Uri): Cursor {
+    private fun querySmsMsgById(projection: Array<String>?, uri: Uri): Cursor = runBlocking {
         val id = uri.lastPathSegment?.toLongOrNull() ?: throw IllegalArgumentException("Invalid URI: $uri")
         val columns = projection ?: SmsMsgCursorContract.defaultColumns
         val cursor = MatrixCursor(columns)
@@ -183,10 +187,10 @@ class DBProvider : ContentProvider() {
         if (msg != null) {
             cursor.addRow(buildRow(columns) { column -> valueFromSmsMsg(msg, column) })
         }
-        return cursor
+        return@runBlocking cursor
     }
 
-    private fun querySmsCodeRuleById(projection: Array<String>?, uri: Uri): Cursor {
+    private fun querySmsCodeRuleById(projection: Array<String>?, uri: Uri): Cursor = runBlocking {
         val id = uri.lastPathSegment?.toLongOrNull() ?: throw IllegalArgumentException("Invalid URI: $uri")
         val columns = projection ?: arrayOf("company", "code_keyword", "code_regex", "_id")
         val cursor = MatrixCursor(columns)
@@ -194,14 +198,14 @@ class DBProvider : ContentProvider() {
         if (rule != null) {
             cursor.addRow(buildRow(columns) { column -> valueFromSmsCodeRule(rule, column) })
         }
-        return cursor
+        return@runBlocking cursor
     }
 
     private fun queryAppInfo(
         projection: Array<String>?,
         selection: String?,
         selectionArgs: Array<String>?,
-    ): Cursor {
+    ): Cursor = runBlocking {
         var rows = mDatabase!!.appInfoDao().getAll()
         if (!selection.isNullOrBlank()) {
             val normalized = selection.replace("`", "").trim().lowercase()
@@ -218,21 +222,21 @@ class DBProvider : ContentProvider() {
         rows.forEach { app: AppInfo ->
             cursor.addRow(buildRow(columns) { column -> valueFromAppInfo(app, column) })
         }
-        return cursor
+        return@runBlocking cursor
     }
 
-    private fun queryAppInfoByPackageName(projection: Array<String>?, uri: Uri): Cursor {
+    private fun queryAppInfoByPackageName(projection: Array<String>?, uri: Uri): Cursor = runBlocking {
         val packageName = uri.lastPathSegment.orEmpty()
         val columns = projection ?: arrayOf("package_name", "label", "blocked", "forwarding", "notify_template")
         val cursor = MatrixCursor(columns)
         if (packageName.isBlank()) {
-            return cursor
+            return@runBlocking cursor
         }
         val app = mDatabase!!.appInfoDao().getByPackageName(packageName)
         if (app != null) {
             cursor.addRow(buildRow(columns) { column -> valueFromAppInfo(app, column) })
         }
-        return cursor
+        return@runBlocking cursor
     }
 
     private fun buildRow(columns: Array<String>, resolver: (String) -> Any?): Array<Any?> =
@@ -337,13 +341,18 @@ class DBProvider : ContentProvider() {
         return 0
     }
 
-    private fun updateSmsMsgById(id: Long, values: ContentValues?): Int {
+    private fun updateSmsMsgById(id: Long, values: ContentValues?): Int = runBlocking {
         val dao = mDatabase!!.smsMsgDao()
-        val existing = dao.getById(id) ?: return 0
+        val existing = dao.getById(id) ?: return@runBlocking 0
         val updated = existing.copy(
             sender = values?.getAsString("sender") ?: existing.sender,
             body = values?.getAsString("body") ?: existing.body,
             date = values?.getAsLong("date") ?: existing.date,
+            processedTime = if (values?.containsKey("processed_time") == true) {
+                values.getAsLong("processed_time") ?: 0L
+            } else {
+                existing.processedTime
+            },
             company = values?.getAsString("company") ?: existing.company,
             smsCode = values?.getAsString("sms_code") ?: existing.smsCode,
             packageName = values?.getAsString("package_name") ?: existing.packageName,
@@ -360,7 +369,7 @@ class DBProvider : ContentProvider() {
             forwardTime = values?.getAsLong("forward_time") ?: existing.forwardTime,
         )
         dao.update(updated)
-        return 1
+        1
     }
 
     private fun updateAppInfo(values: ContentValues?, selection: String?, selectionArgs: Array<String>?): Int {
@@ -431,15 +440,15 @@ class DBProvider : ContentProvider() {
         }
     }
 
-    private fun deleteAppInfoByPackageName(uri: Uri): Int {
+    private fun deleteAppInfoByPackageName(uri: Uri): Int = runBlocking {
         val packageName = uri.lastPathSegment.orEmpty()
         if (packageName.isBlank()) {
-            return 0
+            return@runBlocking 0
         }
         val dao = mDatabase!!.appInfoDao()
-        val app = dao.getByPackageName(packageName) ?: return 0
+        val app = dao.getByPackageName(packageName) ?: return@runBlocking 0
         dao.delete(app)
-        return 1
+        1
     }
 
     companion object {
@@ -478,6 +487,9 @@ internal fun mergeSmsMsgForInsert(existing: SmsMsg, incoming: SmsMsg): SmsMsg {
         sender = preferred.sender ?: fallback.sender ?: existing.sender,
         body = preferred.body ?: fallback.body ?: existing.body,
         date = incoming.date.takeIf { it > 0L } ?: existing.date,
+        processedTime = existing.processedTime.takeIf { it > 0L }
+            ?: incoming.processedTime.takeIf { it > 0L }
+            ?: 0L,
         company = preferred.company?.takeIf { it.isNotBlank() }
             ?: fallback.company?.takeIf { it.isNotBlank() }
             ?: existing.company,

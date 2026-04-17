@@ -87,6 +87,7 @@ import io.github.magisk317.relay.ui.home.update.PlayUpdateDelegate
 import io.github.magisk317.relay.ui.nav.SmsCodeNavHost
 import io.github.magisk317.relay.ui.privacy.PrivacyPolicyPage
 import io.github.magisk317.relay.ui.theme.AppTheme
+import io.github.magisk317.uikit.theme.UiKitStyle
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -197,6 +198,7 @@ class MainActivity : AppCompatActivity() {
 
             // Circular Reveal Animation State
             var currentThemeMode by remember { mutableIntStateOf(themeState.mode) }
+            var currentUiKitStyle by remember { mutableIntStateOf(themeState.uiKitStyle) }
             var screenshotBitmap by remember { mutableStateOf<Bitmap?>(null) }
             val revealAnim = remember { Animatable(0f) }
             var isAnimating by remember { mutableStateOf(false) }
@@ -264,6 +266,7 @@ class MainActivity : AppCompatActivity() {
                         clearScreenshotBitmap()
                         isAnimating = false
                         currentThemeMode = themeState.mode
+                        currentUiKitStyle = themeState.uiKitStyle
                         return@LaunchedEffect
                     }
 
@@ -280,6 +283,7 @@ class MainActivity : AppCompatActivity() {
 
                         isAnimating = true
                         currentThemeMode = themeState.mode
+                        currentUiKitStyle = themeState.uiKitStyle
 
                         revealAnim.snapTo(0f)
                         revealAnim.animateTo(
@@ -289,6 +293,7 @@ class MainActivity : AppCompatActivity() {
                     } catch (oom: OutOfMemoryError) {
                         XLog.w("Theme capture OOM, fallback to direct mode switch", oom)
                         currentThemeMode = themeState.mode
+                        currentUiKitStyle = themeState.uiKitStyle
                     } catch (e: RuntimeException) {
                         if (e.message?.contains(LARGE_BITMAP_ERROR_KEYWORD, ignoreCase = true) == true) {
                             XLog.w("Theme capture too large bitmap, fallback to direct mode switch")
@@ -296,16 +301,21 @@ class MainActivity : AppCompatActivity() {
                             XLog.w("Theme capture runtime exception: %s", e.message ?: "unknown")
                         }
                         currentThemeMode = themeState.mode
+                        currentUiKitStyle = themeState.uiKitStyle
                     } catch (t: Throwable) {
                         XLog.w("Theme capture failed: %s", t.message ?: "unknown")
                         currentThemeMode = themeState.mode
+                        currentUiKitStyle = themeState.uiKitStyle
                     } finally {
                         isAnimating = false
                         clearScreenshotBitmap()
                     }
+                } else if (themeState.uiKitStyle != currentUiKitStyle) {
+                    currentUiKitStyle = themeState.uiKitStyle
                 } else {
                     // Initial load
                     currentThemeMode = themeState.mode
+                    currentUiKitStyle = themeState.uiKitStyle
                 }
             }
 
@@ -349,7 +359,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             CompositionLocalProvider(LocalSnackbarHostState provides appSnackbarHostState) {
-                AppTheme(themeMode = currentThemeMode) {
+                AppTheme(themeMode = currentThemeMode, uiKitStyle = currentUiKitStyle) {
                     Surface(color = MaterialTheme.colorScheme.background) {
                         LaunchedEffect(Unit) {
                             viewModel.setInternalFilesWritable()

@@ -2,6 +2,7 @@ package io.github.magisk317.relay.feature.reminder
 
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.BatteryManager
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.utils.XLog
@@ -12,6 +13,7 @@ import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.relay.platform.reminder.LowBatteryReminderScheduler
 import kotlinx.coroutines.runBlocking
+import java.util.Locale
 
 /**
  * 电量提醒处理器。
@@ -60,8 +62,8 @@ class BatteryReminderHandler(
         val prefs = context.getSharedPreferences("xposed_prefs", Context.MODE_PRIVATE)
 
         val threshold = if (lowEnabled) settings.lowBatteryThreshold else 0
-        val wasBelow = if (lowEnabled) prefs.getBoolean(PrefConst.KEY_INTERNAL_LOW_BATTERY_BELOW, false) else false
-        val wasFull = if (fullEnabled) prefs.getBoolean(PrefConst.KEY_INTERNAL_FULL_BATTERY_ABOVE, false) else false
+        val wasBelow = if (lowEnabled) prefs.safeGetBoolean(PrefConst.KEY_INTERNAL_LOW_BATTERY_BELOW, false) else false
+        val wasFull = if (fullEnabled) prefs.safeGetBoolean(PrefConst.KEY_INTERNAL_FULL_BATTERY_ABOVE, false) else false
 
         if (lowEnabled) {
             if (percent <= threshold) {
@@ -148,6 +150,24 @@ class BatteryReminderHandler(
     }
 
     companion object {
+        private fun SharedPreferences.safeGetBoolean(key: String, defaultValue: Boolean): Boolean {
+            val rawValue = all[key] ?: return defaultValue
+            return when (rawValue) {
+                is Boolean -> rawValue
+                is Number -> rawValue.toInt() != 0
+                is String -> parseBoolean(rawValue) ?: defaultValue
+                else -> defaultValue
+            }
+        }
+
+        private fun parseBoolean(rawValue: String): Boolean? {
+            return when (rawValue.trim().lowercase(Locale.ROOT)) {
+                "1", "true", "yes", "y", "on" -> true
+                "0", "false", "no", "n", "off" -> false
+                else -> null
+            }
+        }
+
         fun handle(
             context: Context,
             batteryIntent: Intent,

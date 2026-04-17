@@ -8,6 +8,13 @@ import (
 
 func (s *Server) handleConfigSnapshot(w http.ResponseWriter, r *http.Request) {
 	if tokenHash := hashBearerToken(r); tokenHash != "" {
+		if auth, err := s.authenticateDesktopSession(r); err == nil {
+			s.handleConfigSnapshotForDesktop(w, r.WithContext(withAuthContext(r.Context(), auth)), auth)
+			return
+		} else if err != nil && err != store.ErrNotFound {
+			writeError(w, http.StatusInternalServerError, "desktop session lookup failed")
+			return
+		}
 		s.withDevice(s.handleConfigSnapshotForDevice)(w, r)
 		return
 	}
@@ -35,6 +42,17 @@ func (s *Server) handleConfigSnapshotForDevice(w http.ResponseWriter, r *http.Re
 		s.respondConfigSnapshot(w, r, auth.Device.UserID)
 	case http.MethodPut:
 		s.acceptConfigSnapshot(w, r, auth.Device.UserID, "device", auth.Device.ID)
+	default:
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+	}
+}
+
+func (s *Server) handleConfigSnapshotForDesktop(w http.ResponseWriter, r *http.Request, auth authContext) {
+	switch r.Method {
+	case http.MethodGet:
+		s.respondConfigSnapshot(w, r, auth.User.ID)
+	case http.MethodPut:
+		s.acceptConfigSnapshot(w, r, auth.User.ID, string(auth.Kind), auth.DesktopSession.ID)
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 	}

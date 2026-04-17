@@ -871,7 +871,8 @@ private fun RecordDetailOverlay(
     val isAppNotification = sms.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY
     val detailDateFormatter = remember { SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.getDefault()) }
     val sender = sms.sender ?: sms.company ?: context.getString(R.string.unknown)
-    val time = detailDateFormatter.format(Date(sms.date))
+    val originalTime = formatDetailTime(detailDateFormatter, sms.date)
+    val processedTime = formatDetailTime(detailDateFormatter, sms.processedTime)
     val content = sms.body.orEmpty()
     val forwardStatusAnnotated = resolveForwardStatusAnnotated(sms)
     val forwardTarget = sanitizeForwardTarget(sms.forwardTarget)
@@ -993,19 +994,48 @@ private fun RecordDetailOverlay(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text(
-                        text = "${stringResource(R.string.detail_time)}:",
+                        text = "${stringResource(R.string.detail_original_time)}:",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Text(
-                        text = time,
+                        text = originalTime,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.clickable {
-                            val message = context.getString(
-                                R.string.prompt_field_copied,
-                                context.getString(R.string.detail_time),
-                            )
-                            onCopy("sms_time", time, message)
+                        modifier = if (sms.date > 0L) {
+                            Modifier.clickable {
+                                val message = context.getString(
+                                    R.string.prompt_field_copied,
+                                    context.getString(R.string.detail_original_time),
+                                )
+                                onCopy("sms_original_time", originalTime, message)
+                            }
+                        } else {
+                            Modifier
+                        },
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        text = "${stringResource(R.string.detail_processed_time)}:",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        text = processedTime,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = if (sms.processedTime > 0L) {
+                            Modifier.clickable {
+                                val message = context.getString(
+                                    R.string.prompt_field_copied,
+                                    context.getString(R.string.detail_processed_time),
+                                )
+                                onCopy("sms_processed_time", processedTime, message)
+                            }
+                        } else {
+                            Modifier
                         },
                     )
                 }
@@ -1148,6 +1178,17 @@ private fun RecordDetailOverlay(
                 }
             }
         }
+    }
+}
+
+private fun formatDetailTime(
+    formatter: SimpleDateFormat,
+    timestamp: Long,
+): String {
+    return if (timestamp > 0L) {
+        formatter.format(Date(timestamp))
+    } else {
+        "-"
     }
 }
 

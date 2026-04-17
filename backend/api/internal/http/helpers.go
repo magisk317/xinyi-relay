@@ -4,7 +4,10 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -23,6 +26,12 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 
 func writeError(w http.ResponseWriter, status int, message string) {
 	writeJSON(w, status, errorResponse{Error: message})
+}
+
+func writeHTML(w http.ResponseWriter, status int, html string) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(status)
+	_, _ = w.Write([]byte(html))
 }
 
 func decodeJSON(r *http.Request, target any) error {
@@ -143,6 +152,33 @@ func hashBearerToken(r *http.Request) string {
 		return ""
 	}
 	return security.HashToken(token)
+}
+
+func validateLoopbackRedirectURL(raw string) (*url.URL, error) {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return nil, errors.New("redirect uri is required")
+	}
+
+	parsed, err := url.Parse(value)
+	if err != nil {
+		return nil, fmt.Errorf("parse redirect uri: %w", err)
+	}
+	if parsed.Scheme != "http" {
+		return nil, errors.New("redirect uri must use http")
+	}
+
+	host := parsed.Hostname()
+	switch host {
+	case "localhost", "127.0.0.1", "::1":
+	default:
+		ip := net.ParseIP(host)
+		if ip == nil || !ip.IsLoopback() {
+			return nil, errors.New("redirect uri must target a loopback address")
+		}
+	}
+
+	return parsed, nil
 }
 
 var websocketUpgrader = websocket.Upgrader{

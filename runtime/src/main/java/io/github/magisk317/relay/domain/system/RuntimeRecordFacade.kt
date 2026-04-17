@@ -108,13 +108,14 @@ class RuntimeRecordFacade(
     ) = withContext(Dispatchers.IO) {
         val dao = db.smsMsgDao()
         val timestamp = smsMsg.date.takeIf { it > 0L } ?: System.currentTimeMillis()
+        val processedTime = smsMsg.processedTime.takeIf { it > 0L } ?: System.currentTimeMillis()
         val existing = dao.getByFingerprint(
             sender = smsMsg.sender,
             body = smsMsg.body,
             date = timestamp,
             msgType = smsMsg.msgType,
         )
-        val updated = (existing ?: smsMsg.copy(date = timestamp)).copy(
+        val updated = (existing ?: smsMsg.copy(date = timestamp, processedTime = processedTime)).copy(
             forwardStatus = if (success) SmsMsg.FORWARD_STATUS_SUCCESS else SmsMsg.FORWARD_STATUS_FAILED,
             forwardTarget = target,
             forwardMessage = message.take(maxMessageLength),

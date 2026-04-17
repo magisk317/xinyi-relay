@@ -4,7 +4,12 @@ import { cloneSnapshot } from '../configSnapshot'
 import { useRealtimeFeed } from '../realtime'
 import { trackEvent } from '../analytics'
 import { translateSenderType, useI18n } from '../i18n'
-import { buildSenderDraftJson, nextSenderId, normalizeSnapshotSender } from '../senderDefaults'
+import {
+  buildSenderDraftJson,
+  nextSenderId,
+  normalizeSnapshotSender,
+  resolveSenderJsonForTypeChange
+} from '../senderDefaults'
 import {
   ActionButton,
   EmptyCard,
@@ -125,13 +130,10 @@ export function SendersPage() {
             onChange={(event) => {
               const nextType = Number(event)
               setDraft((prev) => {
-                const previousDefaultJson = buildSenderDraftJson(prev.type)
-                const nextDefaultJson = buildSenderDraftJson(nextType)
-                const shouldReplaceJson = !prev.jsonSetting.trim() || prev.jsonSetting === previousDefaultJson
                 return {
                   ...prev,
                   type: nextType,
-                  jsonSetting: shouldReplaceJson ? nextDefaultJson : prev.jsonSetting
+                  jsonSetting: resolveSenderJsonForTypeChange(prev.type, nextType, prev.jsonSetting)
                 }
               })
             }}
@@ -229,18 +231,13 @@ export function SendersPage() {
                     }))}
                     onChange={(event) => {
                       const value = Number(event)
-                      const currentDefaultJson = buildSenderDraftJson(item.type)
-                      const nextDefaultJson = buildSenderDraftJson(value)
                       void persistSenders(
                         senders.map((sender) =>
                           sender.id === item.id
                             ? {
                                 ...sender,
                                 type: value,
-                                jsonSetting:
-                                  !sender.jsonSetting.trim() || sender.jsonSetting === currentDefaultJson
-                                    ? nextDefaultJson
-                                    : sender.jsonSetting
+                                jsonSetting: resolveSenderJsonForTypeChange(sender.type, value, sender.jsonSetting)
                               }
                             : sender
                         )

@@ -1,35 +1,121 @@
-# Desktop Shell
+# Xinyi Relay Desktop
 
-这个目录承载远程控制台的 Tauri 桌面壳。
+`desktop/` 现在不再只是内嵌 `iframe` 的远程壳，而是一个独立的 Tauri 2 桌面客户端：
 
-当前阶段提供：
+- React + TypeScript 桌面 UI
+- Rust 负责 backend 连接、desktop auth handoff、session 持久化、tray、诊断导出、连接监控
+- 与 `webui` 共享一套前端契约定义，避免 response shape 漂移
 
-- 一个最小 Tauri 工程骨架
-- 本地保存 Backend 地址
-- 一键在系统浏览器打开远程控制台
-- 托盘常驻与窗口隐藏/唤起
+## 当前定位
+
+桌面端的目标是成为 `webui` 的超集：
+
+- 保留 Web 端管理能力：
+  - overview
+  - devices / bind codes
+  - records
+  - config snapshot editor
+  - senders
+  - apps
+  - analytics
+  - advanced / settings
+- 叠加桌面特有能力：
+  - browser-delegated login
+  - 本地 backend profile 管理
+  - tray 快捷入口
+  - 原生通知
+  - 本地诊断包导出
+  - 本地自签 TLS override 开关
+
+## 架构
+
+### Frontend
+
+- 入口：`desktop/src/main.tsx`
+- 路由：`desktop/src/App.tsx`
+- 状态层：`desktop/src/state/DesktopContext.tsx`
+- 页面：
+  - `desktop/src/pages/LoginPage.tsx`
+  - `desktop/src/pages/OverviewPage.tsx`
+  - `desktop/src/pages/DevicesPage.tsx`
+  - `desktop/src/pages/RecordsPage.tsx`
+  - `desktop/src/pages/ConfigPage.tsx`
+  - `desktop/src/pages/SendersPage.tsx`
+  - `desktop/src/pages/AppsPage.tsx`
+  - `desktop/src/pages/AnalyticsPage.tsx`
+  - `desktop/src/pages/AdvancedPage.tsx`
+
+### Native runtime
+
+- 入口：`desktop/src-tauri/src/main.rs`
+- 核心能力：
+  - backend profile 持久化
+  - keyring session 存储
+  - browser handoff + loopback callback
+  - desktop token refresh / logout
+  - tray 导航和 reconnect action
+  - 连接监控和原生通知
+  - 诊断导出
+
+### Shared contract
+
+- `shared/contracts/console.ts`
+
+`webui` 和 `desktop` 共用这份类型定义，便于后端 API 变动时统一收敛。
+
+## Browser-delegated login
+
+桌面端登录链路：
+
+1. 桌面端启动本地 loopback callback。
+2. 桌面端打开系统浏览器到 backend 的 `/api/v1/auth/desktop/start`。
+3. 用户在浏览器里复用已有 session 或直接登录。
+4. backend 将 one-time code 回跳到 `127.0.0.1` callback。
+5. 桌面 runtime 调用 `/api/v1/auth/desktop/exchange` 换取 desktop access/refresh token。
+
+## Local Docker + self-signed HTTPS
+
+默认提供一个本地 profile：
+
+- `Local Docker Backend`
+- `https://localhost:8443`
+
+这个 profile 默认打开 `allowSelfSigned`，方便本地 Docker + Caddy 自签 HTTPS 场景。
+
+当前实现已经支持：
+
+- 对 profile 级别启用本地 TLS override
+- native runtime 通过 Rust `reqwest` 访问 backend，而不是浏览器 `fetch`
 
 ## 开发
 
 ```bash
 cd desktop
 npm install
+npm run build
+npm run tauri:check:linux
 npm run tauri:dev
 ```
 
-Linux 如果同时装了 Homebrew 和 apt 版依赖，建议在检查或构建时显式使用系统 `pkg-config`：
+桌面端的 Linux 构建脚本会自动强制系统 `pkg-config` 优先：
 
 ```bash
-cd desktop
-npm run tauri:check:linux
-PKG_CONFIG=/usr/bin/pkg-config npm run tauri:build
+./scripts/with-system-pkg-config.sh
 ```
 
-默认后端地址示例：
+这会在 Linux 下自动：
 
-- `https://localhost:8443`
+- 导出 `TAURI_LINUX_AYATANA_APPINDICATOR=1`
+- 把 `PATH` 前置到 `/usr/bin`
+- 导出 `PKG_CONFIG=/usr/bin/pkg-config`
+- 把系统 `pkg-config` 搜索路径前置到 `PKG_CONFIG_PATH`
 
-## 目标
+这样即使本机同时装了 Homebrew，也不会误用 Homebrew 的 `pkg-config`，并且会强制 Tauri bundler 在 Linux 上使用 `libayatana-appindicator`。
 
-- 后续逐步复用远程 Web 控制台能力
-- 增加托盘、通知、连接状态与日志导出
+## 构建目标
+
+- Linux：AppImage / `.deb`
+- Windows：NSIS
+- macOS：`.dmg`
+
+CI 会保留一个轻量 `desktop-ci.yml` 做 Linux compile check，同时提供独立 `desktop-release.yml` 做跨平台打包。

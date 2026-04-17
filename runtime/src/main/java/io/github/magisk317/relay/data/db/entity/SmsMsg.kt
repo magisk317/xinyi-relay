@@ -45,6 +45,10 @@ data class SmsMsg(
     @SerialName("date")
     override val date: Long = 0,
 
+    @ColumnInfo(name = "processed_time", defaultValue = "0")
+    @SerialName("processedTime")
+    override val processedTime: Long = 0L,
+
     @ColumnInfo(name = "company")
     @SerialName("company")
     override val company: String? = null,

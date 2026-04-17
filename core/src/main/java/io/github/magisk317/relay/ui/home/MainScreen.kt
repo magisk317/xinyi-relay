@@ -35,6 +35,9 @@ import androidx.navigation.compose.navigation
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import io.github.magisk317.uikit.surface.AppBottomNavigationBar
+import io.github.magisk317.uikit.surface.AppNavigationItemSpec
+import io.github.magisk317.uikit.surface.AppNavigationRail
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.ui.nav.*
 import io.github.magisk317.relay.ui.record.CodeRecordScreen
@@ -247,7 +250,7 @@ fun MainScreen(
             modifier = Modifier.fillMaxSize(),
         ) {
             if (!isCompact) {
-                NavigationRail(
+                AppNavigationRail(
                     header = {
                         Icon(
                             imageVector = Icons.Default.Email,
@@ -256,18 +259,16 @@ fun MainScreen(
                         )
                     },
                     modifier = Modifier.fillMaxHeight(),
-                ) {
-                    tabs.forEach { tab ->
-                        val selected = tabs.indexOf(tab) == selectedIndex
-                        NavigationRailItem(
-                            icon = { Icon(tab.icon, contentDescription = tab.label) },
-                            label = { Text(tab.label) },
-                            selected = selected,
-                            alwaysShowLabel = false,
-                            onClick = { handleTabClick(tab, selected) },
+                    alwaysShowLabel = false,
+                    items = tabs.mapIndexed { index, tab ->
+                        AppNavigationItemSpec(
+                            label = tab.label,
+                            icon = tab.icon,
+                            selected = index == selectedIndex,
+                            onClick = { handleTabClick(tab, index == selectedIndex) },
                         )
-                    }
-                }
+                    },
+                )
             }
 
             Box(
@@ -671,24 +672,18 @@ fun MainScreen(
                         forceInvalidateOnPreDraw = true
                     },
             ) {
-                NavigationBar(
+                AppBottomNavigationBar(
                     containerColor = Color.Transparent,
-                    tonalElevation = 0.dp,
-                ) {
-                    tabs.forEach { tab ->
-                        val selected = tabs.indexOf(tab) == selectedIndex
-                        NavigationBarItem(
-                            icon = { Icon(tab.icon, contentDescription = tab.label) },
-                            label = { Text(tab.label) },
-                            selected = selected,
-                            colors = NavigationBarItemDefaults.colors(
-                                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
-                            ),
-                            alwaysShowLabel = false,
-                            onClick = { handleTabClick(tab, selected) },
+                    alwaysShowLabel = false,
+                    items = tabs.mapIndexed { index, tab ->
+                        AppNavigationItemSpec(
+                            label = tab.label,
+                            icon = tab.icon,
+                            selected = index == selectedIndex,
+                            onClick = { handleTabClick(tab, index == selectedIndex) },
                         )
-                    }
-                }
+                    },
+                )
             }
         }
     }

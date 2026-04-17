@@ -231,6 +231,7 @@ internal object RootDbCatchupEngine {
                     sender = sender,
                     body = body,
                     date = date,
+                    processedTime = System.currentTimeMillis(),
                     company = "",
                     smsCode = smsCode,
                     msgType = SmsMsg.MSG_TYPE_SMS,

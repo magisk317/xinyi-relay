@@ -34,6 +34,9 @@
     <string name="pref_show_launcher_icon_failed">Failed to switch launcher icon visibility</string>
     <string name="pref_choose_theme_title">Theme</string>
     <string name="pref_choose_theme_summary">Follow System, Light, Dark or Pure Black</string>
+    <string name="pref_ui_kit_style_title">UI style</string>
+    <string name="ui_kit_style_expressive">Expressive</string>
+    <string name="ui_kit_style_miuix">Miuix</string>
     <string name="theme_follow_system">Automatic (Follow System)</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
@@ -132,6 +135,8 @@
     <string name="detail_sender">Sender</string>
     <string name="detail_app">App</string>
     <string name="detail_time">Time</string>
+    <string name="detail_original_time">Original time</string>
+    <string name="detail_processed_time">Processed time</string>
     <string name="detail_content">Content</string>
     <string name="detail_click_copy_hint">(Tap content to copy)</string>
     <string name="detail_forward_status">Status</string>

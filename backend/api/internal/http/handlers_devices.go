@@ -15,7 +15,7 @@ func (s *Server) handleCreateBindCode(w http.ResponseWriter, r *http.Request, au
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
-	if !verifyCSRF(r, auth.Session) {
+	if auth.Kind == authKindSession && !verifyCSRF(r, auth.Session) {
 		writeError(w, http.StatusForbidden, "invalid csrf token")
 		return
 	}
@@ -158,7 +158,7 @@ func (s *Server) handleDeviceByID(w http.ResponseWriter, r *http.Request, auth a
 			writeError(w, http.StatusBadRequest, "invalid device id")
 			return
 		}
-		if !verifyCSRF(r, auth.Session) {
+		if auth.Kind == authKindSession && !verifyCSRF(r, auth.Session) {
 			writeError(w, http.StatusForbidden, "invalid csrf token")
 			return
 		}
@@ -188,7 +188,7 @@ func (s *Server) handleDeviceByID(w http.ResponseWriter, r *http.Request, auth a
 			writeError(w, http.StatusBadRequest, "invalid device id")
 			return
 		}
-		if !verifyCSRF(r, auth.Session) {
+		if auth.Kind == authKindSession && !verifyCSRF(r, auth.Session) {
 			writeError(w, http.StatusForbidden, "invalid csrf token")
 			return
 		}

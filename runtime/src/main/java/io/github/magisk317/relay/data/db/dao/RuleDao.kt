@@ -8,32 +8,32 @@ import kotlinx.coroutines.flow.Flow
 interface RuleDao {
 
     @Insert
-    fun insert(rule: RuleEntity): Long
+    suspend fun insert(rule: RuleEntity): Long
 
     @Delete
-    fun delete(rule: RuleEntity)
+    suspend fun delete(rule: RuleEntity)
 
     @Query("DELETE FROM Rule where id=:id")
-    fun delete(id: Long)
+    suspend fun delete(id: Long)
 
     @Query("DELETE FROM Rule")
-    fun deleteAll()
+    suspend fun deleteAll()
 
     @Update
-    fun update(rule: RuleEntity)
+    suspend fun update(rule: RuleEntity)
 
     @Query("UPDATE Rule SET status=:status WHERE id IN (:ids)")
-    fun updateStatusByIds(ids: List<Long>, status: Int)
+    suspend fun updateStatusByIds(ids: List<Long>, status: Int)
 
     @Query("SELECT * FROM Rule where id=:id")
-    fun getOne(id: Long): RuleEntity
+    suspend fun getOne(id: Long): RuleEntity
 
     @Transaction
     @Query("SELECT * FROM Rule where type=:type and status=:status and (sim_slot='ALL' or sim_slot=:simSlot)")
-    fun getRuleList(type: String, status: Int, simSlot: String): List<RuleEntity>
+    suspend fun getRuleList(type: String, status: Int, simSlot: String): List<RuleEntity>
 
     @Query("SELECT * FROM Rule ORDER BY id DESC")
-    fun getAll(): List<RuleEntity>
+    suspend fun getAll(): List<RuleEntity>
 
     @Query("SELECT * FROM Rule ORDER BY id DESC")
     fun observeAll(): Flow<List<RuleEntity>>

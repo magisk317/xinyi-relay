@@ -8,31 +8,31 @@ import kotlinx.coroutines.flow.Flow
 interface SenderDao {
 
     @Insert
-    fun insert(sender: SenderEntity): Long
+    suspend fun insert(sender: SenderEntity): Long
 
     @Delete
-    fun delete(sender: SenderEntity)
+    suspend fun delete(sender: SenderEntity)
 
     @Query("DELETE FROM Sender where id=:id")
-    fun delete(id: Long)
+    suspend fun delete(id: Long)
 
     @Query("DELETE FROM Sender")
-    fun deleteAll()
+    suspend fun deleteAll()
 
     @Update
-    fun update(sender: SenderEntity)
+    suspend fun update(sender: SenderEntity)
 
     @Query("UPDATE Sender SET status=:status WHERE id IN (:ids)")
-    fun updateStatusByIds(ids: List<Long>, status: Int)
+    suspend fun updateStatusByIds(ids: List<Long>, status: Int)
 
     @Query("SELECT * FROM Sender where id=:id")
-    fun getOne(id: Long): SenderEntity?
+    suspend fun getOne(id: Long): SenderEntity?
 
     @Query("SELECT * FROM Sender WHERE id IN (:ids)")
-    fun getByIds(ids: List<Long>): List<SenderEntity>
+    suspend fun getByIds(ids: List<Long>): List<SenderEntity>
 
     @Query("SELECT * FROM Sender ORDER BY id DESC")
-    fun getAll(): List<SenderEntity>
+    suspend fun getAll(): List<SenderEntity>
 
     @Query("SELECT * FROM Sender ORDER BY id DESC")
     fun getAllFlow(): Flow<List<SenderEntity>>

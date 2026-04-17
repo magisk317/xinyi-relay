@@ -6,6 +6,7 @@ import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.common.utils.SensitiveLogPolicy
 import io.github.magisk317.relay.common.utils.XLog
+import io.github.magisk317.relay.prefs.AppPreferencesDataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -15,6 +16,10 @@ class DataStoreSyncInitializer : AppInitializer {
 
     override fun init(application: Application) {
         AppInitExecution.runWhenUserUnlocked(application, scope, "DataStoreSyncInitializer") {
+            val repaired = AppPreferencesDataStore.repairKnownTypedPrefs(application)
+            if (repaired > 0) {
+                XLog.w("Startup pref repair applied: count=%d", repaired)
+            }
             val preferenceDataSource = RuntimeGraph.from(application).preferenceDataSource
             preferenceDataSource.syncToSharedPrefs()
             preferenceDataSource.ensureReadable()

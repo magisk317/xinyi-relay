@@ -19,6 +19,26 @@ type loginRequest struct {
 	Password string `json:"password"`
 }
 
+type desktopLoginPageRequest struct {
+	Username    string `json:"username"`
+	Password    string `json:"password"`
+	RedirectURI string `json:"redirect_uri"`
+	State       string `json:"state"`
+	ClientName  string `json:"client_name"`
+}
+
+type desktopExchangeRequest struct {
+	Code string `json:"code"`
+}
+
+type desktopRefreshRequest struct {
+	RefreshToken string `json:"refreshToken"`
+}
+
+type desktopLogoutRequest struct {
+	RefreshToken string `json:"refreshToken"`
+}
+
 type changePasswordRequest struct {
 	CurrentPassword string `json:"currentPassword"`
 	NewPassword     string `json:"newPassword"`
@@ -110,6 +130,15 @@ type loginResponse struct {
 	Authenticated bool   `json:"authenticated"`
 	Username      string `json:"username"`
 	CSRFToken     string `json:"csrfToken"`
+}
+
+type desktopSessionResponse struct {
+	Authenticated    bool      `json:"authenticated"`
+	Username         string    `json:"username"`
+	AccessToken      string    `json:"accessToken"`
+	RefreshToken     string    `json:"refreshToken"`
+	ExpiresAt        time.Time `json:"expiresAt"`
+	RefreshExpiresAt time.Time `json:"refreshExpiresAt"`
 }
 
 type simpleOKResponse struct {

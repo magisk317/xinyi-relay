@@ -1,14 +1,23 @@
 [package]
 name = "xinyi-relay-desktop"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [build-dependencies]
-tauri-build = { version = "2.1.1" }
+tauri-build = { version = "2.1.1", features = [] }
 
 [dependencies]
-tauri = { version = "2.10.3", features = ["tray-icon"] }
+chrono = { version = "0.4.42", features = ["serde"] }
+keyring = "3.6.3"
+reqwest = { version = "0.12.24", default-features = false, features = ["json", "native-tls"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
+tauri = { version = "2.10.3", features = ["tray-icon", "image-png"] }
+tauri-plugin-notification = "2.3.3"
 tauri-plugin-shell = "2.3.5"
+tauri-plugin-single-instance = "2.4.1"
+tokio = { version = "1.48.0", features = ["time"] }
+uuid = { version = "1.18.1", features = ["v4", "serde"] }
 
 [features]
 default = ["custom-protocol"]

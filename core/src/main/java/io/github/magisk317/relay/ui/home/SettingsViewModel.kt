@@ -36,6 +36,7 @@ import io.github.magisk317.relay.data.backup.BackupSmsRecord
 import io.github.magisk317.relay.data.backup.ExportResult
 import io.github.magisk317.smscode.domain.model.SmsCodeMatchedRule
 import io.github.magisk317.smscode.domain.model.SmsCodeMatchedRuleSource
+import io.github.magisk317.uikit.theme.UiKitStyle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -99,7 +100,12 @@ class SettingsViewModel(
     )
     val eventsFlow = _eventsFlow.asSharedFlow()
 
-    data class ThemeState(val mode: Int, val centerX: Float = -1f, val centerY: Float = -1f)
+    data class ThemeState(
+        val mode: Int,
+        val uiKitStyle: Int = UiKitStyle.Expressive.value,
+        val centerX: Float = -1f,
+        val centerY: Float = -1f,
+    )
     data class LanguageState(val languageTag: String = "")
 
     val themeState: StateFlow<ThemeState> = sharedThemeState.asStateFlow()
@@ -115,7 +121,8 @@ class SettingsViewModel(
     init {
         viewModelScope.launch {
             val mode = settingsRepository.getThemeMode()
-            sharedThemeState.value = ThemeState(mode)
+            val uiKitStyle = settingsRepository.getUiKitStyle()
+            sharedThemeState.value = ThemeState(mode, uiKitStyle)
         }
         viewModelScope.launch {
             sharedLanguageState.value = LanguageState(settingsRepository.getLanguageTag())
@@ -130,13 +137,24 @@ class SettingsViewModel(
     }
 
     fun previewThemeMode(mode: Int, x: Float = -1f, y: Float = -1f) {
-        sharedThemeState.value = ThemeState(mode, x, y)
+        sharedThemeState.value = sharedThemeState.value.copy(mode = mode, centerX = x, centerY = y)
     }
 
     fun persistThemeMode(mode: Int, x: Float = -1f, y: Float = -1f) {
         viewModelScope.launch {
             settingsRepository.setThemeMode(mode)
-            sharedThemeState.value = ThemeState(mode, x, y)
+            sharedThemeState.value = sharedThemeState.value.copy(mode = mode, centerX = x, centerY = y)
+        }
+    }
+
+    fun previewUiKitStyle(style: Int) {
+        sharedThemeState.value = sharedThemeState.value.copy(uiKitStyle = style)
+    }
+
+    fun persistUiKitStyle(style: Int) {
+        viewModelScope.launch {
+            settingsRepository.setUiKitStyle(style)
+            sharedThemeState.value = sharedThemeState.value.copy(uiKitStyle = style)
         }
     }
 
@@ -345,6 +363,7 @@ class SettingsViewModel(
                                     sender = it.sender,
                                     body = it.body,
                                     date = it.date,
+                                    processedTime = it.processedTime,
                                     company = it.company,
                                     smsCode = it.smsCode,
                                     packageName = it.packageName,
@@ -490,6 +509,7 @@ class SettingsViewModel(
                 sender = it.sender,
                 body = it.body,
                 date = it.date,
+                processedTime = it.processedTime,
                 company = it.company,
                 smsCode = it.smsCode,
                 packageName = it.packageName,
@@ -559,7 +579,7 @@ class SettingsViewModel(
     }
 
     companion object {
-        private val sharedThemeState = MutableStateFlow(ThemeState(0))
+        private val sharedThemeState = MutableStateFlow(ThemeState(0, UiKitStyle.Expressive.value))
         private val sharedLanguageState = MutableStateFlow(LanguageState())
 
         @JvmStatic

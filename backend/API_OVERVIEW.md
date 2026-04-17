@@ -20,12 +20,18 @@
 - `POST /api/v1/auth/logout`
 - `POST /api/v1/auth/password`
 - `GET /api/v1/auth/me`
+- `GET /api/v1/auth/desktop/start`
+- `POST /api/v1/auth/desktop/exchange`
+- `POST /api/v1/auth/desktop/refresh`
+- `POST /api/v1/auth/desktop/logout`
 
 说明：
 
 - `bootstrap/admin` 仅允许在数据库还没有用户时使用；正常部署优先使用 `.env` 中的 `RELAY_ADMIN_USERNAME` / `RELAY_ADMIN_PASSWORD` 自动初始化管理员
 - 登录成功后会返回 `relay_session` cookie 和 `csrfToken`
 - 后续写接口需携带 `X-CSRF-Token`
+- Desktop 客户端通过 browser handoff 走 `/auth/desktop/start -> /exchange`
+- Desktop 登录成功后会拿到 access/refresh token，并通过 `Authorization: Bearer <desktop_access_token>` 调用管理接口
 
 ## Device Management
 
@@ -57,7 +63,8 @@
 
 说明：
 
-- Web/Tauri 通过 cookie session + CSRF 调用
+- Web 通过 cookie session + CSRF 调用
+- Desktop 通过 desktop bearer token 调用
 - Agent 通过 device token 调用
 - `PUT` 必须带 `base_revision`
 - revision 不一致时返回 `409` 与当前云端快照

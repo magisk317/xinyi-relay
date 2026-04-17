@@ -10,14 +10,16 @@ type authKind string
 
 const (
 	authKindSession authKind = "session"
+	authKindDesktop authKind = "desktop_session"
 	authKindDevice  authKind = "device"
 )
 
 type authContext struct {
-	Kind    authKind
-	User    store.User
-	Session store.Session
-	Device  store.Device
+	Kind           authKind
+	User           store.User
+	Session        store.Session
+	DesktopSession store.DesktopSession
+	Device         store.Device
 }
 
 type contextKey string

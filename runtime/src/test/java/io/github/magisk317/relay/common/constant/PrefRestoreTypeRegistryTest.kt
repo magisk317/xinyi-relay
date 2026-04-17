@@ -20,6 +20,17 @@ class PrefRestoreTypeRegistryTest {
     }
 
     @Test
+    fun typeOf_restoreAndRelayBooleanKeys_areBoolean() {
+        assertEquals(PrefValueType.BOOLEAN, PrefRestoreTypeRegistry.typeOf(PrefConst.KEY_ENABLE_ANALYTICS))
+        assertEquals(PrefValueType.BOOLEAN, PrefRestoreTypeRegistry.typeOf(PrefConst.KEY_ENABLE_CALL_RELAY))
+        assertEquals(PrefValueType.BOOLEAN, PrefRestoreTypeRegistry.typeOf(PrefConst.KEY_ENABLE_SMS_RELAY))
+        assertEquals(PrefValueType.BOOLEAN, PrefRestoreTypeRegistry.typeOf(PrefConst.KEY_ENABLE_APP_RELAY))
+        assertEquals(PrefValueType.BOOLEAN, PrefRestoreTypeRegistry.typeOf(PrefConst.KEY_RELAY_BY_WIFI))
+        assertEquals(PrefValueType.BOOLEAN, PrefRestoreTypeRegistry.typeOf(PrefConst.KEY_RELAY_BY_DATA))
+        assertEquals(PrefValueType.BOOLEAN, PrefRestoreTypeRegistry.typeOf(PrefConst.KEY_RELAY_KEYWORDS_CASE_INSENSITIVE))
+    }
+
+    @Test
     fun typeOf_runtimeLogSize_isInt() {
         assertEquals(PrefValueType.INT, PrefRestoreTypeRegistry.typeOf(PrefConst.KEY_RUNTIME_LOG_FILE_SIZE_MB))
     }

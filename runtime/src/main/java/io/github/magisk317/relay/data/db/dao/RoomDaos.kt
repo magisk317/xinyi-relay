@@ -13,10 +13,10 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface SmsCodeRuleDao {
     @Query("SELECT * FROM sms_code_rule")
-    fun getAll(): List<SmsCodeRule>
+    suspend fun getAll(): List<SmsCodeRule>
 
     @Query("SELECT * FROM sms_code_rule WHERE id = :id")
-    fun getById(id: Long): SmsCodeRule?
+    suspend fun getById(id: Long): SmsCodeRule?
 
     @Query("SELECT * FROM sms_code_rule")
     fun getAllFlow(): Flow<List<SmsCodeRule>>
@@ -24,40 +24,40 @@ interface SmsCodeRuleDao {
     @Query(
         "SELECT * FROM sms_code_rule WHERE company = :company AND code_keyword = :codeKeyword AND code_regex = :codeRegex",
     )
-    fun queryRules(company: String?, codeKeyword: String, codeRegex: String): List<SmsCodeRule>
+    suspend fun queryRules(company: String?, codeKeyword: String, codeRegex: String): List<SmsCodeRule>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(rule: SmsCodeRule): Long
+    suspend fun insert(rule: SmsCodeRule): Long
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertAll(rules: List<SmsCodeRule>)
+    suspend fun insertAll(rules: List<SmsCodeRule>)
 
     @Update
-    fun update(rule: SmsCodeRule)
+    suspend fun update(rule: SmsCodeRule)
 
     @Delete
-    fun delete(rule: SmsCodeRule)
+    suspend fun delete(rule: SmsCodeRule)
 
     @Delete
-    fun deleteAll(rules: List<SmsCodeRule>)
+    suspend fun deleteAll(rules: List<SmsCodeRule>)
 
     @Query("DELETE FROM sms_code_rule")
-    fun clearAll()
+    suspend fun clearAll()
 
     @Query("SELECT count(*) FROM sms_code_rule")
-    fun count(): Long
+    suspend fun count(): Long
 }
 
 @Dao
 interface SmsMsgDao {
     @Query("SELECT * FROM sms_msg ORDER BY date DESC")
-    fun getAll(): List<SmsMsg>
+    suspend fun getAll(): List<SmsMsg>
 
     @Query("SELECT * FROM sms_msg WHERE id = :id LIMIT 1")
-    fun getById(id: Long): SmsMsg?
+    suspend fun getById(id: Long): SmsMsg?
 
     @Query("SELECT * FROM sms_msg WHERE sender IS :sender AND body IS :body AND date = :date AND msg_type = :msgType LIMIT 1")
-    fun getByFingerprint(sender: String?, body: String?, date: Long, msgType: Int): SmsMsg?
+    suspend fun getByFingerprint(sender: String?, body: String?, date: Long, msgType: Int): SmsMsg?
 
     @Query("SELECT * FROM sms_msg WHERE msg_type = :msgType AND session_key = :sessionKey LIMIT 1")
     fun getBySessionKey(msgType: Int, sessionKey: String): SmsMsg?
@@ -106,7 +106,7 @@ interface SmsMsgDao {
             "WHERE sms_code IS :smsCode " +
             "AND msg_type = :msgType AND date BETWEEN :dateFrom AND :dateTo",
     )
-    fun getByCodeInRange(
+    suspend fun getByCodeInRange(
         smsCode: String?,
         msgType: Int,
         dateFrom: Long,
@@ -118,7 +118,7 @@ interface SmsMsgDao {
             "WHERE sim_slot = :simSlot AND msg_type = :msgType " +
             "AND date BETWEEN :dateFrom AND :dateTo LIMIT 1",
     )
-    fun getBySimSlotInRange(
+    suspend fun getBySimSlotInRange(
         simSlot: Int,
         msgType: Int,
         dateFrom: Long,
@@ -137,7 +137,7 @@ interface SmsMsgDao {
             "ORDER BY MAX(date) DESC " +
             "LIMIT :limit",
     )
-    fun queryRecentNotifyChannelIds(
+    suspend fun queryRecentNotifyChannelIds(
         packageName: String,
         msgType: Int = SmsMsg.MSG_TYPE_APP_NOTIFY,
         limit: Int = 20,
@@ -159,25 +159,25 @@ interface SmsMsgDao {
     ): Flow<List<String>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(msg: SmsMsg): Long
+    suspend fun insert(msg: SmsMsg): Long
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertAll(msgs: List<SmsMsg>)
+    suspend fun insertAll(msgs: List<SmsMsg>)
 
     @Update
-    fun update(msg: SmsMsg)
+    suspend fun update(msg: SmsMsg)
 
     @Query("DELETE FROM sms_msg")
-    fun clearAll()
+    suspend fun clearAll()
 
     @Query("SELECT count(*) FROM sms_msg")
-    fun count(): Long
+    suspend fun count(): Long
 
     @Query("SELECT count(*) FROM sms_msg")
     fun countFlow(): Flow<Long>
 
     @Query("SELECT count(*) FROM sms_msg WHERE date >= :fromMs")
-    fun countFrom(fromMs: Long): Long
+    suspend fun countFrom(fromMs: Long): Long
 
     @Query(
         "SELECT count(*) FROM sms_msg " +
@@ -185,13 +185,13 @@ interface SmsMsgDao {
             "AND sms_code IS NOT NULL AND sms_code != '' " +
             "AND date >= :fromMs",
     )
-    fun countCodeSmsFrom(fromMs: Long, msgType: Int = SmsMsg.MSG_TYPE_SMS): Long
+    suspend fun countCodeSmsFrom(fromMs: Long, msgType: Int = SmsMsg.MSG_TYPE_SMS): Long
 
     @Delete
-    fun delete(msg: SmsMsg)
+    suspend fun delete(msg: SmsMsg)
 
     @Delete
-    fun deleteInTx(msgs: List<SmsMsg>)
+    suspend fun deleteInTx(msgs: List<SmsMsg>)
 }
 
 data class SenderDispatchStatRow(
@@ -204,16 +204,16 @@ data class SenderDispatchStatRow(
 @Dao
 interface SenderDispatchLogDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(log: SenderDispatchLog): Long
+    suspend fun insert(log: SenderDispatchLog): Long
 
     @Query("SELECT COUNT(*) FROM sender_dispatch_log WHERE created_at >= :fromMs")
-    fun countTotalFrom(fromMs: Long): Long
+    suspend fun countTotalFrom(fromMs: Long): Long
 
     @Query("SELECT COUNT(*) FROM sender_dispatch_log WHERE created_at >= :fromMs AND success = 1")
-    fun countSuccessFrom(fromMs: Long): Long
+    suspend fun countSuccessFrom(fromMs: Long): Long
 
     @Query("SELECT COUNT(*) FROM sender_dispatch_log WHERE created_at >= :fromMs AND success = 0")
-    fun countFailedFrom(fromMs: Long): Long
+    suspend fun countFailedFrom(fromMs: Long): Long
 
     @Query(
         "SELECT sender_type AS senderType, " +
@@ -224,118 +224,118 @@ interface SenderDispatchLogDao {
             "WHERE created_at >= :fromMs " +
             "GROUP BY sender_type",
     )
-    fun aggregateBySenderType(fromMs: Long): List<SenderDispatchStatRow>
+    suspend fun aggregateBySenderType(fromMs: Long): List<SenderDispatchStatRow>
 }
 
 @Dao
 interface AutoInputEventDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(event: AutoInputEvent): Long
+    suspend fun insert(event: AutoInputEvent): Long
 
     @Query("UPDATE auto_input_event SET success = :success, fail_reason = :reason WHERE id = :id")
-    fun updateResult(id: Long, success: Boolean, reason: String?): Int
+    suspend fun updateResult(id: Long, success: Boolean, reason: String?): Int
 
     @Query("SELECT COUNT(*) FROM auto_input_event WHERE attempt_at >= :fromMs")
-    fun countAttempts(fromMs: Long): Long
+    suspend fun countAttempts(fromMs: Long): Long
 
     @Query("SELECT COUNT(*) FROM auto_input_event WHERE attempt_at >= :fromMs AND success = 1")
-    fun countSuccess(fromMs: Long): Long
+    suspend fun countSuccess(fromMs: Long): Long
 
     @Query("SELECT COUNT(*) FROM auto_input_event WHERE attempt_at >= :fromMs AND success = 0")
-    fun countFailed(fromMs: Long): Long
+    suspend fun countFailed(fromMs: Long): Long
 }
 
 @Dao
 interface AppInfoDao {
     @Query("SELECT * FROM app_info")
-    fun getAll(): List<AppInfo>
+    suspend fun getAll(): List<AppInfo>
 
     @Query("SELECT * FROM app_info")
     fun getAllFlow(): Flow<List<AppInfo>>
 
     @Query("SELECT * FROM app_info WHERE blocked = 1")
-    fun getBlockedApps(): List<AppInfo>
+    suspend fun getBlockedApps(): List<AppInfo>
 
     @Query("SELECT * FROM app_info WHERE forwarding = 1")
-    fun getForwardingApps(): List<AppInfo>
+    suspend fun getForwardingApps(): List<AppInfo>
 
     @Query("SELECT * FROM app_info WHERE package_name = :packageName")
-    fun getByPackageName(packageName: String): AppInfo?
+    suspend fun getByPackageName(packageName: String): AppInfo?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(appInfo: AppInfo)
+    suspend fun insert(appInfo: AppInfo)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertAll(appInfos: List<AppInfo>)
+    suspend fun insertAll(appInfos: List<AppInfo>)
 
     @Update
-    fun update(appInfo: AppInfo)
+    suspend fun update(appInfo: AppInfo)
 
     @Delete
-    fun delete(appInfo: AppInfo)
+    suspend fun delete(appInfo: AppInfo)
 
     @Delete
-    fun deleteInTx(appInfos: List<AppInfo>)
+    suspend fun deleteInTx(appInfos: List<AppInfo>)
 
     @Query("DELETE FROM app_info WHERE package_name IN (:packageNames)")
-    fun deleteByPackageNames(packageNames: List<String>): Int
+    suspend fun deleteByPackageNames(packageNames: List<String>): Int
 
     @Query("DELETE FROM app_info")
-    fun clearAll()
+    suspend fun clearAll()
 }
 
 @Dao
 interface NotifyRouteRuleDao {
     @Query("SELECT * FROM notify_route_rule")
-    fun getAll(): List<NotifyRouteRule>
+    suspend fun getAll(): List<NotifyRouteRule>
 
     @Query("SELECT * FROM notify_route_rule")
     fun getAllFlow(): Flow<List<NotifyRouteRule>>
 
     @Query("SELECT sender_id FROM notify_route_rule WHERE scope = :scope AND package_name = :packageName")
-    fun getSenderIdsByScopeAndPackage(scope: Int, packageName: String): List<Long>
+    suspend fun getSenderIdsByScopeAndPackage(scope: Int, packageName: String): List<Long>
 
     @Query("SELECT sender_id FROM notify_route_rule WHERE scope = :scope AND package_name = :packageName")
     fun observeSenderIdsByScopeAndPackage(scope: Int, packageName: String): Flow<List<Long>>
 
     @Query("SELECT package_name FROM notify_route_rule WHERE scope = :scope AND sender_id = :senderId")
-    fun getPackageNamesByScopeAndSender(scope: Int, senderId: Long): List<String>
+    suspend fun getPackageNamesByScopeAndSender(scope: Int, senderId: Long): List<String>
 
     @Query("SELECT package_name FROM notify_route_rule WHERE scope = :scope AND sender_id = :senderId")
     fun observePackageNamesByScopeAndSender(scope: Int, senderId: Long): Flow<List<String>>
 
     @Query("SELECT DISTINCT sender_id FROM notify_route_rule WHERE scope = :scope AND sender_id IN (:senderIds)")
-    fun getDistinctSenderIdsByScopeIn(scope: Int, senderIds: List<Long>): List<Long>
+    suspend fun getDistinctSenderIdsByScopeIn(scope: Int, senderIds: List<Long>): List<Long>
 
     @Query("DELETE FROM notify_route_rule WHERE scope = :scope AND package_name = :packageName")
-    fun deleteByScopeAndPackage(scope: Int, packageName: String): Int
+    suspend fun deleteByScopeAndPackage(scope: Int, packageName: String): Int
 
     @Query("DELETE FROM notify_route_rule WHERE scope = :scope AND sender_id = :senderId")
-    fun deleteByScopeAndSender(scope: Int, senderId: Long): Int
+    suspend fun deleteByScopeAndSender(scope: Int, senderId: Long): Int
 
     @Query("DELETE FROM notify_route_rule WHERE scope IN (:scopes) AND sender_id = :senderId")
-    fun deleteByScopesAndSender(scopes: List<Int>, senderId: Long): Int
+    suspend fun deleteByScopesAndSender(scopes: List<Int>, senderId: Long): Int
 
     @Query("DELETE FROM notify_route_rule")
-    fun clearAll()
+    suspend fun clearAll()
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(rule: NotifyRouteRule): Long
+    suspend fun insert(rule: NotifyRouteRule): Long
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertAll(rules: List<NotifyRouteRule>)
+    suspend fun insertAll(rules: List<NotifyRouteRule>)
 }
 
 @Dao
 interface ForwardFilterRuleDao {
     @Query("SELECT * FROM forward_filter_rule ORDER BY id DESC")
-    fun getAll(): List<ForwardFilterRuleEntity>
+    suspend fun getAll(): List<ForwardFilterRuleEntity>
 
     @Query("SELECT * FROM forward_filter_rule ORDER BY id DESC")
     fun getAllFlow(): Flow<List<ForwardFilterRuleEntity>>
 
     @Query("SELECT * FROM forward_filter_rule WHERE msg_type = :msgType AND enabled = 1 ORDER BY id DESC")
-    fun getEnabledByMsgType(msgType: String): List<ForwardFilterRuleEntity>
+    suspend fun getEnabledByMsgType(msgType: String): List<ForwardFilterRuleEntity>
 
     @Query(
         "SELECT * FROM forward_filter_rule " +
@@ -366,23 +366,23 @@ interface ForwardFilterRuleDao {
     ): Flow<List<ForwardFilterRuleEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(rule: ForwardFilterRuleEntity): Long
+    suspend fun insert(rule: ForwardFilterRuleEntity): Long
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertAll(rules: List<ForwardFilterRuleEntity>)
+    suspend fun insertAll(rules: List<ForwardFilterRuleEntity>)
 
     @Update
-    fun update(rule: ForwardFilterRuleEntity)
+    suspend fun update(rule: ForwardFilterRuleEntity)
 
     @Delete
-    fun delete(rule: ForwardFilterRuleEntity)
+    suspend fun delete(rule: ForwardFilterRuleEntity)
 
     @Query("DELETE FROM forward_filter_rule WHERE id = :id")
-    fun deleteById(id: Long): Int
+    suspend fun deleteById(id: Long): Int
 
     @Query("UPDATE forward_filter_rule SET enabled = :enabled, update_time = :updateTime WHERE id = :id")
-    fun updateEnabledById(id: Long, enabled: Int, updateTime: Long): Int
+    suspend fun updateEnabledById(id: Long, enabled: Int, updateTime: Long): Int
 
     @Query("DELETE FROM forward_filter_rule")
-    fun clearAll()
+    suspend fun clearAll()
 }

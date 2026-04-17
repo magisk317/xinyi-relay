@@ -138,32 +138,33 @@ class RelayRecordRepository(
         isCodeSms: Boolean,
     ): Long? {
         val dao = db.smsMsgDao()
-        trimOldRecordsIfNeeded(dao, smsMsg.msgType, isCodeSms)
+        val normalizedSmsMsg = ensureProcessedTime(smsMsg)
+        trimOldRecordsIfNeeded(dao, normalizedSmsMsg.msgType, isCodeSms)
         if (isCodeSms) {
-            findCodeDuplicateRecordId(dao, smsMsg)?.let { duplicateId ->
+            findCodeDuplicateRecordId(dao, normalizedSmsMsg)?.let { duplicateId ->
                 scheduleRecordUpload("skip_duplicate_code_record")
                 return duplicateId
             }
         }
-        if (smsMsg.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY && smsMsg.sessionKey.isNotBlank()) {
-            dao.getBySessionKey(smsMsg.msgType, smsMsg.sessionKey)?.let { existing ->
-                dao.update(mergeSmsMsgForInsert(existing, smsMsg))
+        if (normalizedSmsMsg.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY && normalizedSmsMsg.sessionKey.isNotBlank()) {
+            dao.getBySessionKey(normalizedSmsMsg.msgType, normalizedSmsMsg.sessionKey)?.let { existing ->
+                dao.update(mergeSmsMsgForInsert(existing, normalizedSmsMsg))
                 scheduleRecordUpload("update_call_session_record")
                 return existing.id
             }
         }
         val existing = dao.getByFingerprint(
-            sender = smsMsg.sender,
-            body = smsMsg.body,
-            date = smsMsg.date,
-            msgType = smsMsg.msgType,
+            sender = normalizedSmsMsg.sender,
+            body = normalizedSmsMsg.body,
+            date = normalizedSmsMsg.date,
+            msgType = normalizedSmsMsg.msgType,
         )
         if (existing != null) {
-            dao.update(mergeSmsMsgForInsert(existing, smsMsg))
+            dao.update(mergeSmsMsgForInsert(existing, normalizedSmsMsg))
             scheduleRecordUpload("update_record")
             return existing.id
         }
-        return dao.insert(smsMsg).also { scheduleRecordUpload("insert_record") }
+        return dao.insert(normalizedSmsMsg).also { scheduleRecordUpload("insert_record") }
     }
 
     fun buildCallSessionKey(
@@ -264,6 +265,14 @@ class RelayRecordRepository(
         }?.let { return it.id }
 
         return null
+    }
+
+    private fun ensureProcessedTime(smsMsg: SmsMsg): SmsMsg {
+        return if (smsMsg.processedTime > 0L) {
+            smsMsg
+        } else {
+            smsMsg.copy(processedTime = System.currentTimeMillis())
+        }
     }
 
     fun persistForwardResult(
