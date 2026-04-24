@@ -397,7 +397,9 @@ class DBProvider : ContentProvider() {
 
     private fun updateAppInfoByPackageName(packageName: String, values: ContentValues?): Int {
         val dao = mDatabase!!.appInfoDao()
-        val existing = dao.getByPackageName(packageName) ?: AppInfo(packageName = packageName)
+        val existing = runBlocking {
+            dao.getByPackageName(packageName)
+        } ?: AppInfo(packageName = packageName)
         val blocked = parseBooleanValue(values, "blocked", existing.blocked)
         val forwarding = parseBooleanValue(values, "forwarding", existing.forwarding)
         val forwardingConfigured = when {
@@ -417,15 +419,17 @@ class DBProvider : ContentProvider() {
             values?.containsKey("notify_template") == true -> values.getAsString("notify_template").orEmpty()
             else -> existing.notifyTemplate
         }
-        dao.insert(
-            existing.copy(
-                label = label,
-                blocked = blocked,
-                forwarding = forwarding,
-                forwardingConfigured = forwardingConfigured,
-                notifyTemplate = notifyTemplate,
-            ),
-        )
+        runBlocking {
+            dao.insert(
+                existing.copy(
+                    label = label,
+                    blocked = blocked,
+                    forwarding = forwarding,
+                    forwardingConfigured = forwardingConfigured,
+                    notifyTemplate = notifyTemplate,
+                ),
+            )
+        }
         return 1
     }
 

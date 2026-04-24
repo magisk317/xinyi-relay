@@ -26,7 +26,7 @@ class RoutingResolver(private val db: AppDatabase) {
         MessageType.CALL_NOTIFY -> false
     }
 
-    fun resolve(
+    suspend fun resolve(
         baseSenders: List<Sender>,
         event: RelayEvent,
         traceId: String? = null,
@@ -72,7 +72,7 @@ class RoutingResolver(private val db: AppDatabase) {
         return SenderRoutingResolution(filtered, routingResult, senderFilteredReasonParts)
     }
 
-    fun evaluatePreRoute(
+    suspend fun evaluatePreRoute(
         event: RelayEvent,
     ): ForwardFilterDecision = when {
         needsFilterEvaluation(event.messageType) -> {

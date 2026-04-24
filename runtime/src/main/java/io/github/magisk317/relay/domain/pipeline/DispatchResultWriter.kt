@@ -38,7 +38,7 @@ class DispatchResultWriter(
         }
     }
 
-    fun findRecordIdByFingerprint(
+    suspend fun findRecordIdByFingerprint(
         sender: String,
         body: String,
         date: Long,
@@ -97,7 +97,7 @@ class DispatchResultWriter(
         )
     }
 
-    private fun persistSenderDispatchLogs(
+    private suspend fun persistSenderDispatchLogs(
         recordId: Long,
         msgType: Int,
         results: List<SenderDispatchResult>,

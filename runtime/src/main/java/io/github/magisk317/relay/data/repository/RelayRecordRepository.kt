@@ -84,7 +84,7 @@ class RelayRecordRepository(
         return true
     }
 
-    fun findRecordIdByFingerprint(
+    suspend fun findRecordIdByFingerprint(
         sender: String,
         body: String,
         date: Long,
@@ -181,7 +181,7 @@ class RelayRecordRepository(
         )
     }
 
-    private fun findCodeDuplicateRecordId(
+    private suspend fun findCodeDuplicateRecordId(
         dao: io.github.magisk317.relay.data.db.dao.SmsMsgDao,
         smsMsg: SmsMsg,
     ): Long? {
@@ -275,7 +275,7 @@ class RelayRecordRepository(
         }
     }
 
-    fun persistForwardResult(
+    suspend fun persistForwardResult(
         recordId: Long,
         results: List<SenderDispatchResult>,
         defaultMessage: String,

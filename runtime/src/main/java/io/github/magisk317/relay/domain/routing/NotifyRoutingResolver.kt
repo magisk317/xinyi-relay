@@ -16,7 +16,7 @@ data class NotifyRoutingResult(
 
 object NotifyRoutingResolver {
 
-    fun resolveAppNotifySenders(
+    suspend fun resolveAppNotifySenders(
         candidates: List<Sender>,
         packageName: String,
         dao: NotifyRouteRuleDao,

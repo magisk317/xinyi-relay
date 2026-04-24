@@ -642,7 +642,9 @@ class ForwardReceiver : BroadcastReceiver() {
             )
             return false
         }
-        val appInfo = runCatching { runtimeGraph.database.appInfoDao().getByPackageName(pkg) }.getOrElse { error ->
+        val appInfo = runCatching {
+            runBlocking { runtimeGraph.database.appInfoDao().getByPackageName(pkg) }
+        }.getOrElse { error ->
             ForwardFlowLog.e(
                 traceId,
                 "App notify gate query failed pkg=$pkg source=$forwardSource " +
