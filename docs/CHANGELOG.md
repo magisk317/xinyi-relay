@@ -4,8 +4,14 @@
 
 ---
 
-## [Unreleased]
-- 待下个版本继续补充。
+## [v0.1.1] - 2026-04-24
+- 版本：`versionCode 20` / `versionName 0.1.1`。
+- `[desktop]` 新增信驿 Desktop 桌面端初始实现：基于 Tauri + React + Vite 构建，支持 Windows/macOS/Linux，提供配置管理、实时状态刷新、记录查看与发送器编辑能力。
+- `[performance]` 优化偏好项读取性能：为 `PrefsReader` 增加 10 秒 TTL 缓存，显著降低高频 Hook 场景下的跨进程或磁盘 IO 开销。
+- `[sms-hook]` 增强短信转发稳定性：SmsHandlerHook 引入内存二级去重缓存与非阻塞文件同步，并为短信解析增加严格超时判定，避免耗时任务挂起 Hook 线程。
+- `[maintenance]` 引入自动化 Gradle 维护插件：自动清理主工程、build-logic 及所有子模块的旧版 Gradle 缓存，保持开发环境整洁。
+- `[test]` 补充 DataStore 自动修复逻辑的回归测试，提升配置系统稳健性。
+- `[submodule]` 同步更新 `smscode-core` (含 Android 16 兼容性文档) 与 `magisk-ui-kit` 子模块指针。
 
 ## [v0.1.0] - 2026-04-08
 - 版本：`versionCode 19` / `versionName 0.1.0`。
