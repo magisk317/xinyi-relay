@@ -62,7 +62,9 @@ export function RecordsPage() {
 
   const handleRealtimeEvent = useEffectEvent((eventType: string) => {
     if (['records.ingested', 'device.heartbeat', 'device.revoked'].includes(eventType)) {
-      void load()
+      queueMicrotask(() => {
+        void load()
+      })
     }
   })
 

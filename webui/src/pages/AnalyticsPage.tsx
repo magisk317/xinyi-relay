@@ -54,7 +54,9 @@ export function AnalyticsPage() {
 
   const handleRealtimeEvent = useEffectEvent((eventType: string) => {
     if (['device.registered', 'device.updated', 'device.revoked', 'device.heartbeat', 'config.updated', 'records.ingested'].includes(eventType)) {
-      void load()
+      queueMicrotask(() => {
+        void load()
+      })
     }
   })
 

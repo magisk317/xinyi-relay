@@ -36,7 +36,9 @@ export function OverviewPage() {
 
   const handleRealtimeEvent = useEffectEvent((eventType: string) => {
     if (['device.registered', 'device.updated', 'device.heartbeat', 'device.revoked', 'config.updated', 'records.ingested'].includes(eventType)) {
-      void load()
+      queueMicrotask(() => {
+        void load()
+      })
     }
   })
 
