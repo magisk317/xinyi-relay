@@ -17,11 +17,13 @@ object BatteryReminderForegroundMonitor {
         val newReceiver = object : BroadcastReceiver() {
             override fun onReceive(ctx: Context, intent: Intent) {
                 if (intent.action != Intent.ACTION_BATTERY_CHANGED) return
-                BatteryReminderHandler.handle(
+                val pendingResult = goAsync()
+                BatteryReminderHandler.handleAsync(
                     context = appContext,
                     batteryIntent = intent,
                     scheduleNext = false,
                     reason = "foreground",
+                    onComplete = { pendingResult.finish() },
                 )
             }
         }

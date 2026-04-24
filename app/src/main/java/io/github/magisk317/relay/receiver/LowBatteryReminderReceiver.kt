@@ -7,6 +7,9 @@ import android.content.Intent
 class LowBatteryReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != LowBatteryReminderAlarmHandler.action) return
-        LowBatteryReminderAlarmHandler.handle(context)
+        val pendingResult = goAsync()
+        LowBatteryReminderAlarmHandler.handleAsync(context) {
+            pendingResult.finish()
+        }
     }
 }

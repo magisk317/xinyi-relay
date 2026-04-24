@@ -12,7 +12,10 @@ import io.github.magisk317.relay.domain.pipeline.EventPipeline
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.relay.platform.reminder.LowBatteryReminderScheduler
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import java.util.Locale
 
 /**
@@ -25,16 +28,14 @@ class BatteryReminderHandler(
     private val context: Context,
     private val eventPipeline: EventPipeline,
 ) {
-    fun handle(
+    suspend fun handle(
         batteryIntent: Intent,
         scheduleNext: Boolean,
         reason: String,
     ) {
-        val settings = runBlocking {
-            RuntimeSettingsCache.getSpecialAlertSettings(
-                RuntimeGraph.from(context).settingsRepository,
-            )
-        }
+        val settings = RuntimeSettingsCache.getSpecialAlertSettings(
+            RuntimeGraph.from(context).settingsRepository,
+        )
         val lowEnabled = settings.lowBatteryReminderEnabled
         val fullEnabled = settings.fullBatteryReminderEnabled
         if (!lowEnabled && !fullEnabled) {
@@ -93,63 +94,57 @@ class BatteryReminderHandler(
         }
     }
 
-    private fun sendLowReminder(percent: Int, threshold: Int) {
-        val senderId = runBlocking {
-            RuntimeSettingsCache.getSpecialAlertSettings(
-                RuntimeGraph.from(context).settingsRepository,
-            ).lowBatteryChannelId.trim().toLongOrNull()
-        }
+    private suspend fun sendLowReminder(percent: Int, threshold: Int) {
+        val senderId = RuntimeSettingsCache.getSpecialAlertSettings(
+            RuntimeGraph.from(context).settingsRepository,
+        ).lowBatteryChannelId.trim().toLongOrNull()
         if (senderId == null) {
             XLog.w("LowBattery reminder skipped: sender not set")
             return
         }
         val title = context.getString(R.string.low_battery_notification_title)
         val content = context.getString(R.string.low_battery_notification_content, percent, threshold)
-        runBlocking {
-            eventPipeline.process(
-                event = RelayEvent.batteryReminder(
-                    title = title,
-                    content = content,
-                    timestamp = System.currentTimeMillis(),
-                    packageName = context.packageName,
-                    senderId = senderId,
-                    sourceType = "battery_low",
-                ),
-                traceId = "low_battery_${System.currentTimeMillis()}",
-            )
-        }
+        eventPipeline.process(
+            event = RelayEvent.batteryReminder(
+                title = title,
+                content = content,
+                timestamp = System.currentTimeMillis(),
+                packageName = context.packageName,
+                senderId = senderId,
+                sourceType = "battery_low",
+            ),
+            traceId = "low_battery_${System.currentTimeMillis()}",
+        )
         XLog.i("LowBattery reminder routed through EventPipeline: pct=%d threshold=%d", percent, threshold)
     }
 
-    private fun sendFullReminder(percent: Int) {
-        val senderId = runBlocking {
-            RuntimeSettingsCache.getSpecialAlertSettings(
-                RuntimeGraph.from(context).settingsRepository,
-            ).fullBatteryChannelId.trim().toLongOrNull()
-        }
+    private suspend fun sendFullReminder(percent: Int) {
+        val senderId = RuntimeSettingsCache.getSpecialAlertSettings(
+            RuntimeGraph.from(context).settingsRepository,
+        ).fullBatteryChannelId.trim().toLongOrNull()
         if (senderId == null) {
             XLog.w("FullBattery reminder skipped: sender not set")
             return
         }
         val title = context.getString(R.string.full_battery_notification_title)
         val content = context.getString(R.string.full_battery_notification_content, percent)
-        runBlocking {
-            eventPipeline.process(
-                event = RelayEvent.batteryReminder(
-                    title = title,
-                    content = content,
-                    timestamp = System.currentTimeMillis(),
-                    packageName = context.packageName,
-                    senderId = senderId,
-                    sourceType = "battery_full",
-                ),
-                traceId = "full_battery_${System.currentTimeMillis()}",
-            )
-        }
+        eventPipeline.process(
+            event = RelayEvent.batteryReminder(
+                title = title,
+                content = content,
+                timestamp = System.currentTimeMillis(),
+                packageName = context.packageName,
+                senderId = senderId,
+                sourceType = "battery_full",
+            ),
+            traceId = "full_battery_${System.currentTimeMillis()}",
+        )
         XLog.i("FullBattery reminder routed through EventPipeline: pct=%d", percent)
     }
 
     companion object {
+        private val reminderScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
         private fun SharedPreferences.safeGetBoolean(key: String, defaultValue: Boolean): Boolean {
             val rawValue = all[key] ?: return defaultValue
             return when (rawValue) {
@@ -168,20 +163,29 @@ class BatteryReminderHandler(
             }
         }
 
-        fun handle(
+        fun handleAsync(
             context: Context,
             batteryIntent: Intent,
             scheduleNext: Boolean,
             reason: String,
+            onComplete: (() -> Unit)? = null,
         ) {
-            BatteryReminderHandler(
-                context = context,
-                eventPipeline = RuntimeGraph.from(context).eventPipeline,
-            ).handle(
-                batteryIntent = batteryIntent,
-                scheduleNext = scheduleNext,
-                reason = reason,
-            )
+            val appContext = context.applicationContext ?: context
+            reminderScope.launch {
+                runCatching {
+                    BatteryReminderHandler(
+                        context = appContext,
+                        eventPipeline = RuntimeGraph.from(appContext).eventPipeline,
+                    ).handle(
+                        batteryIntent = batteryIntent,
+                        scheduleNext = scheduleNext,
+                        reason = reason,
+                    )
+                }.onFailure {
+                    XLog.e("Battery reminder handling failed", it)
+                }
+                onComplete?.invoke()
+            }
         }
     }
 }
