@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2025",
+    "useDefineForClassFields": true,
+    "lib": ["ES2025", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "types": ["node", "vite/client", "vitest/globals"]
+  },
+  "include": ["src", "../shared/**/*.ts", "vite.config.ts", "vitest.config.ts"]
+}

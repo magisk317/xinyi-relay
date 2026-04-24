@@ -1,0 +1,116 @@
+name: Desktop Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "desktop-v*"
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            bundle_args: "--bundles appimage,deb,rpm"
+            artifact_label: linux
+          - os: windows-latest
+            bundle_args: "--bundles nsis,msi"
+            artifact_label: windows
+          - os: macos-latest
+            bundle_args: "--bundles app,dmg"
+            artifact_label: macos
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux desktop dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libgtk-3-dev \
+            pkg-config
+
+      - name: Install desktop npm dependencies
+        working-directory: desktop
+        run: npm ci
+
+      - name: Build desktop frontend
+        working-directory: desktop
+        run: npm run build
+
+      - name: Validate signing inputs
+        shell: bash
+        run: |
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            test -n "${{ secrets.WINDOWS_CERTIFICATE }}" || { echo "Missing WINDOWS_CERTIFICATE"; exit 1; }
+            test -n "${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}" || { echo "Missing WINDOWS_CERTIFICATE_PASSWORD"; exit 1; }
+          fi
+          if [ "${{ matrix.os }}" = "macos-latest" ]; then
+            test -n "${{ secrets.APPLE_CERTIFICATE }}" || { echo "Missing APPLE_CERTIFICATE"; exit 1; }
+            test -n "${{ secrets.APPLE_CERTIFICATE_PASSWORD }}" || { echo "Missing APPLE_CERTIFICATE_PASSWORD"; exit 1; }
+            test -n "${{ secrets.APPLE_SIGNING_IDENTITY }}" || { echo "Missing APPLE_SIGNING_IDENTITY"; exit 1; }
+            test -n "${{ secrets.APPLE_API_KEY_ID }}" || { echo "Missing APPLE_API_KEY_ID"; exit 1; }
+            test -n "${{ secrets.APPLE_API_ISSUER }}" || { echo "Missing APPLE_API_ISSUER"; exit 1; }
+            test -n "${{ secrets.APPLE_API_PRIVATE_KEY }}" || { echo "Missing APPLE_API_PRIVATE_KEY"; exit 1; }
+          fi
+
+      - name: Build desktop bundles
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PKG_CONFIG: ${{ matrix.os == 'ubuntu-latest' && '/usr/bin/pkg-config' || '' }}
+          TAURI_LINUX_AYATANA_APPINDICATOR: ${{ matrix.os == 'ubuntu-latest' && '1' || '' }}
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+        with:
+          projectPath: desktop
+          args: ${{ matrix.bundle_args }}
+          tagName: ${{ github.ref_name }}
+          releaseName: "Desktop ${{ github.ref_name }}"
+          releaseDraft: true
+          prerelease: false
+
+      - name: Upload desktop bundles
+        uses: actions/upload-artifact@v4
+        with:
+          name: xinyi-relay-desktop-${{ matrix.artifact_label }}
+          path: |
+            desktop/src-tauri/target/release/bundle/**/*.AppImage
+            desktop/src-tauri/target/release/bundle/**/*.deb
+            desktop/src-tauri/target/release/bundle/**/*.rpm
+            desktop/src-tauri/target/release/bundle/**/*.msi
+            desktop/src-tauri/target/release/bundle/**/*.exe
+            desktop/src-tauri/target/release/bundle/**/*.app
+            desktop/src-tauri/target/release/bundle/**/*.dmg
