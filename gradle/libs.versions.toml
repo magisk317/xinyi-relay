@@ -46,12 +46,14 @@ kover = "0.9.8"
 ksp = "2.3.7"
 lifecycle = "2.10.0"
 mokkery = "3.3.0"
+miuix = "0.8.8"
 navigation = "2.9.8"
 okhttp = "5.3.2"
 paho-mqtt = "1.2.5"
 play-app-update = "2.1.0"
 retrofit = "3.0.0"
 room = "2.8.4"
+screenshot-validation = "0.0.1-alpha14"
 test-logger = "4.0.0"
 timber = "5.0.1"
 version-catalog-update = "1.1.0"
@@ -67,6 +69,7 @@ androidx-activity-compose = { module = "androidx.activity:activity-compose", ver
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
 androidx-browser = { module = "androidx.browser:browser", version.ref = "androidx-browser" }
 androidx-compose-bom = { module = "androidx.compose:compose-bom-alpha", version.ref = "compose-bom" }
+androidx-compose-foundation = { module = "androidx.compose.foundation:foundation" }
 androidx-compose-material3-adaptive = { module = "androidx.compose.material3.adaptive:adaptive", version.ref = "adaptive" }
 androidx-compose-material3-adaptive-layout = { module = "androidx.compose.material3.adaptive:adaptive-layout", version.ref = "adaptive" }
 androidx-compose-material3-adaptive-navigation = { module = "androidx.compose.material3.adaptive:adaptive-navigation", version.ref = "adaptive" }
@@ -118,6 +121,7 @@ ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "kotlin-kt
 ktor-server-auth = { module = "io.ktor:ktor-server-auth", version.ref = "kotlin-ktor" }
 ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "kotlin-ktor" }
 mokkery-runtime-jvm = { module = "dev.mokkery:mokkery-runtime-jvm", version.ref = "mokkery" }
+miuix = { module = "top.yukonga.miuix.kmp:miuix", version.ref = "miuix" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 okhttp-tls = { module = "com.squareup.okhttp3:okhttp-tls", version.ref = "okhttp" }
 okhttp-logging-interceptor = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "okhttp" }
@@ -126,6 +130,7 @@ play-app-update = { module = "com.google.android.play:app-update", version.ref =
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 retrofit-converter-kotlinx-serialization = { module = "com.squareup.retrofit2:converter-kotlinx-serialization", version.ref = "retrofit" }
 retrofit-converter-scalars = { module = "com.squareup.retrofit2:converter-scalars", version.ref = "retrofit" }
+screenshot-validation = { module = "com.android.tools.screenshot:screenshot-validation-api", version.ref = "screenshot-validation" }
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 libxposed-api = { module = "io.github.libxposed:api", version.ref = "libxposed-api" }
 libxposed-service = { module = "io.github.libxposed:service", version.ref = "libxposed-service" }
