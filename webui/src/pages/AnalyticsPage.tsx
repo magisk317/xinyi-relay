@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useMemo, useState } from 'react'
 import { apiClient } from '../api/client'
 import { useRealtimeFeed } from '../realtime'
 import type { ConfigAuditLogItem, DeviceItem, RecordItem } from '../types'
@@ -52,12 +52,16 @@ export function AnalyticsPage() {
     })
   }, [load])
 
-  useEffect(() => {
-    if (!lastEvent) return
-    if (['device.registered', 'device.updated', 'device.revoked', 'device.heartbeat', 'config.updated', 'records.ingested'].includes(lastEvent.type)) {
+  const handleRealtimeEvent = useEffectEvent((eventType: string) => {
+    if (['device.registered', 'device.updated', 'device.revoked', 'device.heartbeat', 'config.updated', 'records.ingested'].includes(eventType)) {
       void load()
     }
-  }, [lastEvent, load])
+  })
+
+  useEffect(() => {
+    if (!lastEvent) return
+    handleRealtimeEvent(lastEvent.type)
+  }, [lastEvent])
 
   const stats = useMemo(() => {
     const smsCode = records.filter((record) => record.recordType === 'sms_code').length

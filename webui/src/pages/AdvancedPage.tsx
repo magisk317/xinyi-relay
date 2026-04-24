@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useState } from 'react'
 import { apiClient } from '../api/client'
 import { useRealtimeFeed } from '../realtime'
 import type { BindCodeResponse, DeviceItem } from '../types'
@@ -41,12 +41,16 @@ export function AdvancedPage() {
     })
   }, [load])
 
-  useEffect(() => {
-    if (!lastEvent) return
-    if (['device.registered', 'device.updated', 'device.heartbeat', 'device.revoked'].includes(lastEvent.type)) {
+  const handleRealtimeEvent = useEffectEvent((eventType: string) => {
+    if (['device.registered', 'device.updated', 'device.heartbeat', 'device.revoked'].includes(eventType)) {
       void load()
     }
-  }, [lastEvent, load])
+  })
+
+  useEffect(() => {
+    if (!lastEvent) return
+    handleRealtimeEvent(lastEvent.type)
+  }, [lastEvent])
 
   const actions = (
     <div className="flex flex-wrap items-center gap-3">

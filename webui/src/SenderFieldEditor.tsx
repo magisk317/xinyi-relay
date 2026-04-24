@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { SupportedLocale } from './i18n'
 import { ActionButton, RelaySelect, RelaySwitch } from './template'
 import {
@@ -53,7 +53,12 @@ const EDITOR_TEXT = {
   }
 } as const
 
-export function SenderFieldEditor({
+export function SenderFieldEditor(props: SenderFieldEditorProps) {
+  const resetKey = `${props.type}::${props.jsonSetting}`
+  return <SenderFieldEditorInner key={resetKey} {...props} />
+}
+
+function SenderFieldEditorInner({
   type,
   jsonSetting,
   locale,
@@ -64,12 +69,6 @@ export function SenderFieldEditor({
   const [formState, setFormState] = useState<JsonRecord>(() => parseSenderFormState(type, jsonSetting))
   const [rawJson, setRawJson] = useState(() => prettySenderJson(type, jsonSetting))
   const [rawError, setRawError] = useState('')
-
-  useEffect(() => {
-    setFormState(parseSenderFormState(type, jsonSetting))
-    setRawJson(prettySenderJson(type, jsonSetting))
-    setRawError('')
-  }, [type, jsonSetting])
 
   if (!fields.length) {
     return (

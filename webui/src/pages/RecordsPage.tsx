@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
 import { apiClient } from '../api/client'
 import { useRealtimeFeed } from '../realtime'
 import type { DeviceItem, RecordItem } from '../types'
@@ -60,12 +60,16 @@ export function RecordsPage() {
     })
   }, [load])
 
-  useEffect(() => {
-    if (!lastEvent) return
-    if (['records.ingested', 'device.heartbeat', 'device.revoked'].includes(lastEvent.type)) {
+  const handleRealtimeEvent = useEffectEvent((eventType: string) => {
+    if (['records.ingested', 'device.heartbeat', 'device.revoked'].includes(eventType)) {
       void load()
     }
-  }, [lastEvent, load])
+  })
+
+  useEffect(() => {
+    if (!lastEvent) return
+    handleRealtimeEvent(lastEvent.type)
+  }, [lastEvent])
 
   useEffect(() => {
     return () => {
