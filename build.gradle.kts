@@ -29,6 +29,7 @@ plugins {
     alias(libs.plugins.detekt) apply false
     alias(libs.plugins.kover)
     alias(libs.plugins.test.logger) apply false
+    id("magisk.maintenance")
 }
 
 kover {
@@ -113,12 +114,7 @@ tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
 
-tasks.register<Exec>("cleanupGradleCaches") {
-    group = "maintenance"
-    description = "Remove stale Gradle version caches under the project-local .gradle directory."
-    workingDir = rootProject.projectDir
-    commandLine("bash", "${rootProject.projectDir}/scripts/cleanup_gradle_caches.sh")
-}
+// Maintenance task now automatically hooked via magisk.maintenance plugin
 
 tasks.register<Exec>("verifyModuleBoundaries") {
     group = "verification"
