@@ -39,7 +39,9 @@ fun SenderConfigScreen(
 ) {
     val context = LocalContext.current
     var type by remember { mutableStateOf(senderTypeArg) }
+    var senderName by remember { mutableStateOf("") }
     var activeSchedule by remember { mutableStateOf(SenderActiveSchedule()) }
+    var showForwardFilterDialog by remember { mutableStateOf(false) }
     var isLoaded by remember { mutableStateOf(false) }
 
     LaunchedEffect(senderId) {
@@ -48,24 +50,18 @@ fun SenderConfigScreen(
         if (senderId != 0L) {
             val sender = viewModel.getSender(senderId)
             if (sender != null) {
+                senderName = sender.name
                 type = sender.type
                 activeSchedule = sender.activeSchedule
             }
         } else {
+            senderName = ""
             activeSchedule = SenderActiveSchedule()
         }
         isLoaded = true
     }
 
     val lastSavedStatus by viewModel.lastSavedStatus.collectAsStateWithLifecycle()
-    val notifyScopeSummaryFlow = remember(senderId) {
-        if (senderId > 0L) {
-            viewModel.senderNotifyScopeSummaryFlow(senderId)
-        } else {
-            flowOf("")
-        }
-    }
-    val notifyScopeSummary by notifyScopeSummaryFlow.collectAsStateWithLifecycle(initialValue = "")
     val forwardFilterSummaryFlow = remember(senderId) {
         if (senderId > 0L) {
             viewModel.senderForwardFilterSummaryFlow(senderId)
@@ -74,23 +70,23 @@ fun SenderConfigScreen(
         }
     }
     val forwardFilterSummary by forwardFilterSummaryFlow.collectAsStateWithLifecycle(initialValue = "")
-    val notifyScopeEntry = remember(senderId, notifyScopeSummary, onOpenSenderNotifyScope) {
+    val notifyScopeEntry = remember(senderId, onOpenSenderNotifyScope) {
         if (senderId > 0L) {
             SenderNotifyScopeEntry(
                 senderId = senderId,
-                summary = notifyScopeSummary.ifBlank { context.getString(R.string.sender_notify_scope_summary, 0, 0) },
+                summary = context.getString(R.string.subtitle_notification_rules),
                 onClick = onOpenSenderNotifyScope,
             )
         } else {
             null
         }
     }
-    val forwardFilterEntry = remember(senderId, forwardFilterSummary, onOpenSenderForwardFilter) {
+    val forwardFilterEntry = remember(senderId, forwardFilterSummary) {
         if (senderId > 0L) {
             SenderForwardFilterEntry(
                 senderId = senderId,
                 summary = forwardFilterSummary.ifBlank { context.getString(R.string.sender_filter_summary_default) },
-                onClick = onOpenSenderForwardFilter,
+                onClick = { showForwardFilterDialog = true },
             )
         } else {
             null
@@ -146,6 +142,14 @@ fun SenderConfigScreen(
             SenderType.SOCKET -> SocketConfigForm(senderId, handleBack, viewModel)
             else -> DingtalkConfigForm(senderId, handleBack, viewModel)
         }
+    }
+    if (showForwardFilterDialog && senderId > 0L) {
+        SenderForwardFilterDialog(
+            senderId = senderId,
+            senderName = senderName,
+            onDismiss = { showForwardFilterDialog = false },
+            viewModel = viewModel,
+        )
     }
 }
 

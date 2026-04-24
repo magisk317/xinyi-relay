@@ -17,13 +17,13 @@ data class SenderRoutingResolution(
 )
 
 class RoutingResolver(private val db: AppDatabase) {
-    /** 消息类型是否需要走过滤引擎（电话提醒走 EventGatekeeper 已经够了） */
+    /** 消息类型是否需要走过滤引擎。 */
     private fun needsFilterEvaluation(messageType: MessageType): Boolean = when (messageType) {
         MessageType.SMS_CODE,
         MessageType.SMS_PLAIN,
         MessageType.APP_NOTIFY,
+        MessageType.CALL_NOTIFY,
         -> true
-        MessageType.CALL_NOTIFY -> false
     }
 
     suspend fun resolve(

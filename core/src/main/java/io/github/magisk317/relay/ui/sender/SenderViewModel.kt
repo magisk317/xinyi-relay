@@ -239,17 +239,22 @@ class SenderViewModel(
         return combine(
             senderForwardRulesFlow(senderId, ForwardFilterConst.MSG_TYPE_SMS),
             senderForwardRulesFlow(senderId, ForwardFilterConst.MSG_TYPE_APP_NOTIFY),
-        ) { smsRules, appRules ->
+            senderForwardRulesFlow(senderId, ForwardFilterConst.MSG_TYPE_CALL_NOTIFY),
+        ) { smsRules, appRules, callRules ->
             val smsAllow = smsRules.count { it.policy == ForwardFilterConst.POLICY_ALLOW }
             val smsDeny = smsRules.count { it.policy == ForwardFilterConst.POLICY_DENY }
             val appAllow = appRules.count { it.policy == ForwardFilterConst.POLICY_ALLOW }
             val appDeny = appRules.count { it.policy == ForwardFilterConst.POLICY_DENY }
+            val callAllow = callRules.count { it.policy == ForwardFilterConst.POLICY_ALLOW }
+            val callDeny = callRules.count { it.policy == ForwardFilterConst.POLICY_DENY }
             getApplication<Application>().getString(
                 io.github.magisk317.relay.core.R.string.sender_filter_summary_format,
                 smsAllow,
                 smsDeny,
                 appAllow,
                 appDeny,
+                callAllow,
+                callDeny,
             )
         }
     }

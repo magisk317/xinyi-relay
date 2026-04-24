@@ -123,12 +123,6 @@ data class AppNotifySenderBindingRoute(
 )
 
 @Serializable
-data class SenderNotifyScopeRoute(
-    val senderId: Long,
-    val origin: String = ROUTE_ORIGIN_ADVANCED,
-)
-
-@Serializable
 data class AppForwardFilterRoute(
     val packageName: String,
     val origin: String = ROUTE_ORIGIN_APPS,

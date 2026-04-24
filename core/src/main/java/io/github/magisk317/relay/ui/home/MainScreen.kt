@@ -110,8 +110,6 @@ fun MainScreen(
                 sectionFromOrigin(entry.toRoute<SendersRoute>().origin)
             destination.hasRoute(SenderConfigRoute::class) ->
                 sectionFromOrigin(entry.toRoute<SenderConfigRoute>().origin)
-            destination.hasRoute(SenderNotifyScopeRoute::class) ->
-                sectionFromOrigin(entry.toRoute<SenderNotifyScopeRoute>().origin)
             destination.hasRoute(SenderForwardFilterRoute::class) ->
                 sectionFromOrigin(entry.toRoute<SenderForwardFilterRoute>().origin)
             destination.hasRoute(AppRoutingRoute::class) ->
@@ -461,6 +459,9 @@ fun MainScreen(
                         composable<AdvancedRoute> {
                             AdvancedScreen(
                                 onInterceptClick = { navController.navigate(InterceptRoute) },
+                                onVerificationConfigClick = {
+                                    navController.navigate(VerificationSettingsRoute)
+                                },
                                 onRelayConfigClick = {
                                     navController.navigate(RelayConfigRoute(origin = ROUTE_ORIGIN_ADVANCED))
                                 },
@@ -550,13 +551,8 @@ fun MainScreen(
                         io.github.magisk317.relay.ui.sender.SenderConfigScreen(
                             senderId = route.id,
                             senderTypeArg = route.type,
-                            onOpenSenderNotifyScope = { senderId ->
-                                navController.navigate(
-                                    SenderNotifyScopeRoute(
-                                        senderId = senderId,
-                                        origin = route.origin,
-                                    ),
-                                )
+                            onOpenSenderNotifyScope = {
+                                navController.navigate(AppRoutingRoute(origin = route.origin))
                             },
                             onOpenSenderForwardFilter = { senderId ->
                                 navController.navigate(
@@ -574,13 +570,6 @@ fun MainScreen(
                                 }
                                 navController.popBackStack()
                             }
-                        )
-                    }
-                    composable<SenderNotifyScopeRoute> { backStackEntry ->
-                        val route = backStackEntry.toRoute<SenderNotifyScopeRoute>()
-                        io.github.magisk317.relay.ui.sender.SenderNotifyScopeScreen(
-                            senderId = route.senderId,
-                            onBack = { navController.popBackStack() },
                         )
                     }
                     composable<SenderForwardFilterRoute> { backStackEntry ->

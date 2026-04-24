@@ -18,7 +18,6 @@ object ForwardFilterEngine {
 
     /**
      * 路由前置过滤：基于 [RelayEvent] 做全局/包名/渠道范围的规则评估。
-     * 仅对短信和应用通知有效；电话提醒直接放行。
      */
     fun evaluatePreRoute(
         rules: List<ForwardFilterRule>,

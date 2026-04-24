@@ -32,6 +32,7 @@ import io.github.magisk317.relay.core.R
 @Composable
 fun AdvancedScreen(
     onInterceptClick: () -> Unit,
+    onVerificationConfigClick: () -> Unit,
     onRelayConfigClick: () -> Unit,
     onForwardKeepAliveClick: () -> Unit,
     onScheduledReminderClick: () -> Unit,
@@ -51,6 +52,12 @@ fun AdvancedScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            AdvancedEntryCard(
+                title = stringResource(id = R.string.pref_verification_config_title),
+                subtitle = stringResource(id = R.string.pref_verification_config_summary),
+                icon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                onClick = onVerificationConfigClick,
+            )
             AdvancedEntryCard(
                 title = stringResource(id = R.string.pref_relay_config_title),
                 subtitle = stringResource(id = R.string.pref_relay_config_summary),

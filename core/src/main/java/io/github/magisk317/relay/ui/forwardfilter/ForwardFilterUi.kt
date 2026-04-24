@@ -17,9 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -45,19 +43,16 @@ fun ForwardFilterMsgTypeTabs(
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val msgTypeTabs = listOf(
-        ForwardFilterConst.MSG_TYPE_SMS to stringResource(id = R.string.forward_filter_msg_type_sms),
-        ForwardFilterConst.MSG_TYPE_APP_NOTIFY to stringResource(id = R.string.forward_filter_msg_type_app_notify),
+    SingleChoiceSegmentedSelector(
+        options = listOf(
+            SegmentedOption(ForwardFilterConst.MSG_TYPE_SMS, stringResource(id = R.string.forward_filter_msg_type_sms)),
+            SegmentedOption(ForwardFilterConst.MSG_TYPE_APP_NOTIFY, stringResource(id = R.string.forward_filter_msg_type_app_notify)),
+            SegmentedOption(ForwardFilterConst.MSG_TYPE_CALL_NOTIFY, stringResource(id = R.string.forward_filter_msg_type_call_notify)),
+        ),
+        selected = selectedMsgType,
+        onSelect = onSelect,
+        modifier = modifier,
     )
-    PrimaryTabRow(selectedTabIndex = msgTypeTabs.indexOfFirst { it.first == selectedMsgType }.coerceAtLeast(0), modifier = modifier) {
-        msgTypeTabs.forEach { (value, label) ->
-            Tab(
-                selected = selectedMsgType == value,
-                onClick = { onSelect(value) },
-                text = { Text(label) },
-            )
-        }
-    }
 }
 
 @Composable

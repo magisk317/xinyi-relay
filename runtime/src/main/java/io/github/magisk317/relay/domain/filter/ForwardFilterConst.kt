@@ -3,6 +3,7 @@ package io.github.magisk317.relay.domain.filter
 object ForwardFilterConst {
     const val MSG_TYPE_SMS = "sms"
     const val MSG_TYPE_APP_NOTIFY = "app_notify"
+    const val MSG_TYPE_CALL_NOTIFY = "call_notify"
 
     const val SCOPE_GLOBAL = "global"
     const val SCOPE_PACKAGE = "package"

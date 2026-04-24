@@ -102,7 +102,9 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
             }.onSuccess {
                 refresh()
                 bindCode = ""
-                snackbarHostState.showSnackbar("Remote agent bound: deviceId=${it.deviceId}")
+                snackbarHostState.showSnackbar(
+                    context.getString(R.string.pref_remote_agent_bind_done, it.deviceId),
+                )
             }.onFailure {
                 refresh()
                 snackbarHostState.showSnackbar(it.message ?: it.javaClass.simpleName)
@@ -169,7 +171,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                             }.onSuccess {
                                 refresh()
                                 snackbarHostState.showSnackbar(
-                                    "Remote agent bound: deviceId=${it.deviceId}",
+                                    context.getString(R.string.pref_remote_agent_bind_done, it.deviceId),
                                 )
                             }.onFailure {
                                 refresh()

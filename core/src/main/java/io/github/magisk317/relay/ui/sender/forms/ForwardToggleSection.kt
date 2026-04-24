@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
@@ -26,6 +27,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.domain.sender.SenderActiveSchedule
+import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
+import kotlinx.coroutines.launch
 
 data class SenderNotifyScopeEntry(
     val senderId: Long,
@@ -64,6 +67,8 @@ fun ForwardToggleSection(
     val notifyScopeEntry = LocalSenderNotifyScopeEntry.current
     val forwardFilterEntry = LocalSenderForwardFilterEntry.current
     val context = LocalContext.current
+    val snackbarHostState = LocalSnackbarHostState.current
+    val scope = rememberCoroutineScope()
     var showActiveScheduleDialog by remember { mutableStateOf(false) }
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -102,7 +107,7 @@ fun ForwardToggleSection(
             )
             if (notifyScopeEntry != null && notifyScopeEntry.senderId > 0L) {
                 ForwardConfigActionItem(
-                    title = stringResource(R.string.sender_notify_scope_title),
+                    title = stringResource(R.string.title_notification_rules),
                     summary = notifyScopeEntry.summary,
                     onClick = { notifyScopeEntry.onClick(notifyScopeEntry.senderId) },
                 )
@@ -122,6 +127,9 @@ fun ForwardToggleSection(
             onDismiss = { showActiveScheduleDialog = false },
             onConfirm = { nextSchedule ->
                 onActiveScheduleChange(nextSchedule)
+                scope.launch {
+                    snackbarHostState.showSnackbar(context.getString(R.string.pref_sync_snackbar))
+                }
                 showActiveScheduleDialog = false
             },
         )

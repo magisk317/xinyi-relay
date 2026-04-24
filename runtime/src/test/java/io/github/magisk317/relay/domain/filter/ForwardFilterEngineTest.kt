@@ -192,11 +192,19 @@ class ForwardFilterEngineTest {
     }
 
     @Test
-    fun preRoute_callNotify_alwaysPasses_filterNotEvaluated() {
-        // CALL_NOTIFY 不应走过滤引擎（调用方 RoutingResolver 不会传入规则）
+    fun preRoute_callNotify_supportsGlobalFilters() {
         val event = callNotify("13800138000")
-        val decision = ForwardFilterEngine.evaluatePreRoute(emptyList(), event)
-        assertFalse(decision.blocked)
+        val rules = listOf(
+            rule(
+                msgType = ForwardFilterConst.MSG_TYPE_CALL_NOTIFY,
+                scopeType = ForwardFilterConst.SCOPE_GLOBAL,
+                policy = ForwardFilterConst.POLICY_DENY,
+                matchMode = ForwardFilterConst.MATCH_CONTAINS,
+                pattern = "13800138000",
+            ),
+        )
+        val decision = ForwardFilterEngine.evaluatePreRoute(rules, event)
+        assertTrue(decision.blocked)
     }
 
     // --- helpers ---

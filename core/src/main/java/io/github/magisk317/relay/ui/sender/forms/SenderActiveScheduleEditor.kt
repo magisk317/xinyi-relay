@@ -2,9 +2,8 @@ package io.github.magisk317.relay.ui.sender.forms
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -12,15 +11,18 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,7 +30,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -38,6 +39,9 @@ import io.github.magisk317.relay.domain.sender.SenderActiveScheduleConst
 import io.github.magisk317.relay.domain.sender.SenderActiveScheduleEvaluator
 import io.github.magisk317.relay.domain.sender.SenderActiveScheduleRange
 import io.github.magisk317.relay.domain.sender.SenderActiveScheduleRule
+import io.github.magisk317.relay.ui.common.CenteredChipText
+import io.github.magisk317.relay.ui.common.SegmentedOption
+import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import java.time.DayOfWeek
 import java.time.format.TextStyle
 import java.util.Locale
@@ -47,6 +51,8 @@ enum class SenderScheduleSection {
     APP_NOTIFY,
     CALL_NOTIFY,
 }
+
+private val SenderScheduleStarterRange = SenderActiveScheduleRange("09:00", "18:00")
 
 fun buildSenderActiveScheduleSummary(
     schedule: SenderActiveSchedule,
@@ -65,7 +71,6 @@ fun buildSenderActiveScheduleSummary(
 }
 
 @Composable
-@OptIn(ExperimentalLayoutApi::class)
 fun SenderActiveScheduleDialog(
     schedule: SenderActiveSchedule,
     onDismiss: () -> Unit,
@@ -82,26 +87,10 @@ fun SenderActiveScheduleDialog(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SenderScheduleSection.entries.forEach { candidate ->
-                        FilterChip(
-                            selected = section == candidate,
-                            onClick = { section = candidate },
-                            label = {
-                                Text(
-                                    text = when (candidate) {
-                                        SenderScheduleSection.SMS -> stringResource(R.string.sender_active_schedule_sms)
-                                        SenderScheduleSection.APP_NOTIFY -> stringResource(R.string.sender_active_schedule_app_notify)
-                                        SenderScheduleSection.CALL_NOTIFY -> stringResource(R.string.sender_active_schedule_call_notify)
-                                    },
-                                )
-                            },
-                        )
-                    }
-                }
-
                 SenderActiveScheduleRuleEditor(
+                    section = section,
                     rule = draft.ruleFor(section),
+                    onSectionChange = { section = it },
                     onRuleChange = { nextRule ->
                         draft = draft.withRule(section, nextRule)
                     },
@@ -122,9 +111,10 @@ fun SenderActiveScheduleDialog(
 }
 
 @Composable
-@OptIn(ExperimentalLayoutApi::class)
 private fun SenderActiveScheduleRuleEditor(
+    section: SenderScheduleSection,
     rule: SenderActiveScheduleRule,
+    onSectionChange: (SenderScheduleSection) -> Unit,
     onRuleChange: (SenderActiveScheduleRule) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -135,7 +125,7 @@ private fun SenderActiveScheduleRuleEditor(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = stringResource(R.string.sender_active_schedule_title),
+                    text = stringResource(R.string.sender_active_schedule_switch_title),
                     style = MaterialTheme.typography.titleSmall,
                 )
                 Text(
@@ -154,7 +144,7 @@ private fun SenderActiveScheduleRuleEditor(
                             rule.copy(
                                 enabled = true,
                                 weekdays = if (rule.weekdays.isEmpty()) SenderActiveScheduleConst.ALL_WEEKDAYS else rule.weekdays,
-                                ranges = listOf(SenderActiveScheduleRange("09:00", "18:00")),
+                                ranges = listOf(SenderScheduleStarterRange),
                             )
                         } else {
                             rule.copy(enabled = enabled)
@@ -164,55 +154,61 @@ private fun SenderActiveScheduleRuleEditor(
             )
         }
 
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(
-                selected = rule.mode == SenderActiveScheduleConst.MODE_BLACKLIST,
-                onClick = {
-                    onRuleChange(rule.copy(mode = SenderActiveScheduleConst.MODE_BLACKLIST))
-                },
-                label = { Text(stringResource(R.string.sender_active_schedule_mode_blacklist)) },
-            )
-            FilterChip(
-                selected = rule.mode == SenderActiveScheduleConst.MODE_WHITELIST,
-                onClick = {
-                    onRuleChange(rule.copy(mode = SenderActiveScheduleConst.MODE_WHITELIST))
-                },
-                label = { Text(stringResource(R.string.sender_active_schedule_mode_whitelist)) },
-            )
-        }
+        SingleChoiceSegmentedSelector(
+            options = listOf(
+                SegmentedOption(SenderScheduleSection.SMS, stringResource(R.string.sender_active_schedule_sms)),
+                SegmentedOption(SenderScheduleSection.APP_NOTIFY, stringResource(R.string.sender_active_schedule_app_notify)),
+                SegmentedOption(SenderScheduleSection.CALL_NOTIFY, stringResource(R.string.sender_active_schedule_call_notify)),
+            ),
+            selected = section,
+            onSelect = onSectionChange,
+        )
+
+        SingleChoiceSegmentedSelector(
+            options = listOf(
+                SegmentedOption(SenderActiveScheduleConst.MODE_BLACKLIST, stringResource(R.string.sender_active_schedule_mode_blacklist)),
+                SegmentedOption(SenderActiveScheduleConst.MODE_WHITELIST, stringResource(R.string.sender_active_schedule_mode_whitelist)),
+            ),
+            selected = rule.mode,
+            onSelect = { nextMode -> onRuleChange(rule.copy(mode = nextMode)) },
+        )
 
         Text(
             text = stringResource(R.string.sender_active_schedule_weekdays_title),
             style = MaterialTheme.typography.titleSmall,
         )
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SenderActiveScheduleConst.ALL_WEEKDAYS.forEach { weekday ->
-                val selected = weekday in rule.weekdays
-                FilterChip(
-                    selected = selected,
-                    onClick = {
-                        val nextWeekdays = if (selected) {
-                            rule.weekdays.filterNot { it == weekday }
-                        } else {
-                            (rule.weekdays + weekday).distinct().sorted()
-                        }
-                        onRuleChange(
-                            rule.copy(
-                                weekdays = nextWeekdays.ifEmpty { SenderActiveScheduleConst.ALL_WEEKDAYS },
-                            ),
-                        )
-                    },
-                    label = {
-                        Text(
-                            DayOfWeek.of(weekday).getDisplayName(
-                                TextStyle.SHORT,
-                                Locale.getDefault(),
-                            ),
-                        )
-                    },
+        WeekdayRow(
+            weekdays = listOf(1, 2, 3, 4),
+            selectedWeekdays = rule.weekdays,
+            onWeekdayToggle = { weekday ->
+                val nextWeekdays = if (weekday in rule.weekdays) {
+                    rule.weekdays.filterNot { it == weekday }
+                } else {
+                    (rule.weekdays + weekday).distinct().sorted()
+                }
+                onRuleChange(
+                    rule.copy(
+                        weekdays = nextWeekdays.ifEmpty { SenderActiveScheduleConst.ALL_WEEKDAYS },
+                    ),
                 )
-            }
-        }
+            },
+        )
+        WeekdayRow(
+            weekdays = listOf(5, 6, 7),
+            selectedWeekdays = rule.weekdays,
+            onWeekdayToggle = { weekday ->
+                val nextWeekdays = if (weekday in rule.weekdays) {
+                    rule.weekdays.filterNot { it == weekday }
+                } else {
+                    (rule.weekdays + weekday).distinct().sorted()
+                }
+                onRuleChange(
+                    rule.copy(
+                        weekdays = nextWeekdays.ifEmpty { SenderActiveScheduleConst.ALL_WEEKDAYS },
+                    ),
+                )
+            },
+        )
 
         Text(
             text = stringResource(R.string.sender_active_schedule_ranges_title),
@@ -220,35 +216,52 @@ private fun SenderActiveScheduleRuleEditor(
         )
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (rule.ranges.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    CenteredChipText(
+                        text = stringResource(R.string.sender_active_schedule_start),
+                        modifier = Modifier.weight(1f),
+                    )
+                    CenteredChipText(
+                        text = stringResource(R.string.sender_active_schedule_end),
+                        modifier = Modifier.weight(1f),
+                    )
+                    Spacer(modifier = Modifier.weight(0.2f))
+                }
+            }
             rule.ranges.forEachIndexed { index, range ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    OutlinedTextField(
+                    TimeValueButton(
+                        modifier = Modifier.weight(1f),
                         value = range.start,
                         onValueChange = { value ->
                             onRuleChange(rule.withRange(index, range.copy(start = value)))
                         },
-                        modifier = Modifier.weight(1f),
-                        label = { Text(stringResource(R.string.sender_active_schedule_start)) },
-                        placeholder = { Text("09:00") },
-                        singleLine = true,
                     )
-                    OutlinedTextField(
+                    TimeValueButton(
+                        modifier = Modifier.weight(1f),
                         value = range.end,
                         onValueChange = { value ->
                             onRuleChange(rule.withRange(index, range.copy(end = value)))
                         },
-                        modifier = Modifier.weight(1f),
-                        label = { Text(stringResource(R.string.sender_active_schedule_end)) },
-                        placeholder = { Text("18:00") },
-                        singleLine = true,
                     )
                     IconButton(
+                        modifier = Modifier.weight(0.2f),
                         onClick = {
-                            onRuleChange(rule.copy(ranges = rule.ranges.filterIndexed { i, _ -> i != index }))
+                            val nextRanges = rule.ranges.filterIndexed { i, _ -> i != index }
+                            onRuleChange(
+                                rule.copy(
+                                    enabled = rule.enabled && nextRanges.isNotEmpty(),
+                                    ranges = nextRanges,
+                                ),
+                            )
                         },
                     ) {
                         Icon(
@@ -262,11 +275,69 @@ private fun SenderActiveScheduleRuleEditor(
 
         OutlinedButton(
             onClick = {
-                onRuleChange(rule.copy(ranges = rule.ranges + SenderActiveScheduleRange("09:00", "18:00")))
+                onRuleChange(rule.copy(ranges = rule.ranges + SenderScheduleStarterRange))
             },
         ) {
             Text(stringResource(R.string.sender_active_schedule_add_range))
         }
+    }
+}
+
+@Composable
+private fun WeekdayRow(
+    weekdays: List<Int>,
+    selectedWeekdays: List<Int>,
+    onWeekdayToggle: (Int) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        weekdays.forEach { weekday ->
+            FilterChip(
+                selected = weekday in selectedWeekdays,
+                onClick = { onWeekdayToggle(weekday) },
+                label = {
+                    CenteredChipText(
+                        text = DayOfWeek.of(weekday).getDisplayName(
+                            TextStyle.SHORT,
+                            Locale.getDefault(),
+                        ),
+                    )
+                },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun TimeValueButton(
+    modifier: Modifier = Modifier,
+    value: String,
+    onValueChange: (String) -> Unit,
+) {
+    var showPicker by remember { mutableStateOf(false) }
+    FilledTonalButton(
+        onClick = { showPicker = true },
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            maxLines = 1,
+            softWrap = false,
+        )
+    }
+    if (showPicker) {
+        TimeRangePickerDialog(
+            initialValue = value,
+            onDismiss = { showPicker = false },
+            onConfirm = { selected ->
+                onValueChange(selected)
+                showPicker = false
+            },
+        )
     }
 }
 
@@ -302,12 +373,62 @@ private fun SenderActiveScheduleRule.withRange(
 
 @Composable
 private fun buildRuleSummary(rule: SenderActiveScheduleRule): String {
-    if (!rule.enabled || rule.ranges.isEmpty()) {
-        return stringResource(R.string.sender_active_schedule_no_restrictions)
+    if (!rule.enabled) {
+        return stringResource(R.string.sender_active_schedule_disabled_summary)
     }
     val modeLabel = when (rule.mode) {
         SenderActiveScheduleConst.MODE_WHITELIST -> stringResource(R.string.sender_active_schedule_mode_whitelist)
         else -> stringResource(R.string.sender_active_schedule_mode_blacklist)
     }
-    return "$modeLabel · ${rule.ranges.size}"
+    val modeExplanation = when (rule.mode) {
+        SenderActiveScheduleConst.MODE_WHITELIST -> stringResource(R.string.sender_active_schedule_mode_whitelist_explanation)
+        else -> stringResource(R.string.sender_active_schedule_mode_blacklist_explanation)
+    }
+    return "$modeLabel · $modeExplanation"
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun TimeRangePickerDialog(
+    initialValue: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    val totalMinutes = SenderActiveScheduleConst.parseMinutes(initialValue) ?: (9 * 60)
+    val initialHour = totalMinutes / 60
+    val initialMinute = totalMinutes % 60
+    val pickerState = rememberTimePickerState(
+        initialHour = initialHour,
+        initialMinute = initialMinute,
+        is24Hour = true,
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.sender_active_schedule_pick_time)) },
+        text = {
+            TimePicker(state = pickerState)
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onConfirm(
+                        String.format(
+                            Locale.US,
+                            "%02d:%02d",
+                            pickerState.hour,
+                            pickerState.minute,
+                        ),
+                    )
+                },
+            ) {
+                Text(stringResource(R.string.confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
+    )
 }
