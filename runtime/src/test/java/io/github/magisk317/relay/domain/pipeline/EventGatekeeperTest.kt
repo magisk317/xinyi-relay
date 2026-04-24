@@ -98,7 +98,7 @@ class EventGatekeeperTest {
 
     private fun createGatekeeper(appInfo: AppInfo?): EventGatekeeper {
         val appInfoDao = mock<AppInfoDao>(autofill)
-        every { appInfoDao.getByPackageName("com.tencent.mm") } returns appInfo
+        everySuspend { appInfoDao.getByPackageName("com.tencent.mm") } returns appInfo
 
         val database = mock<AppDatabase>(autofill)
         every { database.appInfoDao() } returns appInfoDao

@@ -85,6 +85,21 @@ class SenderSettingSanitizerTest {
     }
 
     @Test
+    fun sanitizeSenderLenient_emailFallsBackToVisibleAndLegacyAlias() {
+        val sender = newSender(
+            SenderType.EMAIL,
+            """{"fromEmail":"relay@example.com","authEmail":"","nickname":"Android relay","fromEmailAlias":""}""",
+        )
+
+        val sanitized = SenderSettingSanitizer.sanitizeSenderLenient(sender)
+        val setting = gson.fromJson(sanitized.jsonSetting, EmailSetting::class.java)
+
+        assertEquals("relay@example.com", setting.authEmail)
+        assertEquals("Android relay", setting.fromEmailAlias)
+        assertEquals("Android relay", setting.nickname)
+    }
+
+    @Test
     fun sanitizeJsonLenient_invalidJson_fallsBackToDefaults() {
         val sanitized = SenderSettingSanitizer.sanitizeJsonLenient(SenderType.WEBHOOK, "{broken")
         val setting = gson.fromJson(sanitized, WebhookSetting::class.java)

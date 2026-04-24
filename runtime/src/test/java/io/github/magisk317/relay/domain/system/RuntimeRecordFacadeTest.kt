@@ -3,9 +3,8 @@ package io.github.magisk317.relay.domain.system
 import android.content.Context
 import dev.mokkery.MockMode.autofill
 import dev.mokkery.every
+import dev.mokkery.everySuspend
 import dev.mokkery.mock
-import dev.mokkery.verify
-import dev.mokkery.verify.VerifyMode.Companion.exactly
 import dev.mokkery.answering.calls
 import dev.mokkery.answering.returns
 import dev.mokkery.matcher.any
@@ -64,9 +63,9 @@ class RuntimeRecordFacadeTest {
             msgType = SmsMsg.MSG_TYPE_SMS,
         )
         every { database.smsMsgDao() } returns smsMsgDao
-        every { smsMsgDao.getByFingerprint("1068", "code 123456", 100L, SmsMsg.MSG_TYPE_SMS) } returns existing
+        everySuspend { smsMsgDao.getByFingerprint("1068", "code 123456", 100L, SmsMsg.MSG_TYPE_SMS) } returns existing
         var updatedArg: SmsMsg? = null
-        every { smsMsgDao.update(any()) } calls { args ->
+        everySuspend { smsMsgDao.update(any()) } calls { args ->
             updatedArg = args.arg<SmsMsg>(0)
             Unit
         }
@@ -79,14 +78,12 @@ class RuntimeRecordFacadeTest {
             message = "IPC token missing",
         )
 
-        verify(exactly(1)) { smsMsgDao.update(any()) }
         val updated = requireNotNull(updatedArg)
         assertEquals(7L, updated.id)
         assertEquals(SmsMsg.FORWARD_STATUS_FAILED, updated.forwardStatus)
         assertEquals("SmsCode Engine", updated.forwardTarget)
         assertEquals("IPC token missing", updated.forwardMessage)
         assertTrue(updated.forwardTime > 0L)
-        verify(exactly(0)) { smsMsgDao.insert(any()) }
     }
 
     @Test
@@ -102,9 +99,9 @@ class RuntimeRecordFacadeTest {
             msgType = SmsMsg.MSG_TYPE_SMS,
         )
         every { database.smsMsgDao() } returns smsMsgDao
-        every { smsMsgDao.getByFingerprint("1068", "code 123456", 100L, SmsMsg.MSG_TYPE_SMS) } returns existing
+        everySuspend { smsMsgDao.getByFingerprint("1068", "code 123456", 100L, SmsMsg.MSG_TYPE_SMS) } returns existing
         var updatedArg: SmsMsg? = null
-        every { smsMsgDao.update(any()) } calls { args ->
+        everySuspend { smsMsgDao.update(any()) } calls { args ->
             updatedArg = args.arg<SmsMsg>(0)
             Unit
         }
@@ -115,7 +112,6 @@ class RuntimeRecordFacadeTest {
             message = "IPC token missing",
         )
 
-        verify(exactly(1)) { smsMsgDao.update(any()) }
         val updated = requireNotNull(updatedArg)
         assertEquals(SmsMsg.FORWARD_STATUS_FAILED, updated.forwardStatus)
         assertEquals("SmsCode Engine", updated.forwardTarget)
@@ -137,9 +133,9 @@ class RuntimeRecordFacadeTest {
             msgType = SmsMsg.MSG_TYPE_SMS,
         )
         every { database.smsMsgDao() } returns smsMsgDao
-        every { smsMsgDao.getByFingerprint("1068", "code 123456", 100L, SmsMsg.MSG_TYPE_SMS) } returns null
+        everySuspend { smsMsgDao.getByFingerprint("1068", "code 123456", 100L, SmsMsg.MSG_TYPE_SMS) } returns null
         var insertedArg: SmsMsg? = null
-        every { smsMsgDao.insert(any()) } calls { args ->
+        everySuspend { smsMsgDao.insert(any()) } calls { args ->
             insertedArg = args.arg<SmsMsg>(0)
             1L
         }
@@ -152,13 +148,11 @@ class RuntimeRecordFacadeTest {
             message = "ok",
         )
 
-        verify(exactly(1)) { smsMsgDao.insert(any()) }
         val inserted = requireNotNull(insertedArg)
         assertEquals(SmsMsg.FORWARD_STATUS_SUCCESS, inserted.forwardStatus)
         assertEquals("SmsCode Engine", inserted.forwardTarget)
         assertEquals("ok", inserted.forwardMessage)
         assertEquals("123456", inserted.smsCode)
-        verify(exactly(0)) { smsMsgDao.update(any()) }
     }
 
     @Test

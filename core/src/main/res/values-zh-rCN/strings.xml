@@ -944,7 +944,9 @@
     <string name="sender_form_label_app_secret">AppSecret</string>
     <string name="sender_form_label_user_ids_comma">用户 ID（逗号分隔）</string>
     <string name="sender_form_label_mail_type_example">mailType（例如 @qq.com）</string>
-    <string name="sender_form_label_from_email">发件邮箱</string>
+    <string name="sender_form_label_auth_email">登录邮箱</string>
+    <string name="sender_form_label_from_email">显示发件邮箱</string>
+    <string name="sender_form_label_from_email_alias">显示发件人名称</string>
     <string name="sender_form_label_auth_code_or_password">授权码 / 密码</string>
     <string name="sender_form_label_smtp_host">SMTP 主机</string>
     <string name="sender_form_label_smtp_port">SMTP 端口</string>

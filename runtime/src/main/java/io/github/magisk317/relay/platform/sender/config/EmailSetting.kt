@@ -4,6 +4,7 @@ import java.io.Serializable
 
 data class EmailSetting(
     var mailType: String = "",
+    var authEmail: String = "",
     var fromEmail: String = "",
     var pwd: String = "",
     var nickname: String = "",

@@ -27,7 +27,7 @@ const PROXY_DIRECT = 'DIRECT'
 
 const DEFAULT_SENDER_SETTINGS: Record<number, JsonRecord | null> = {
   0: { token: '', secret: '', atAll: false, atMobiles: '', atDingtalkIds: '', msgtype: 'text', titleTemplate: '' },
-  1: { mailType: '', fromEmail: '', pwd: '', nickname: '', host: '', port: '', ssl: false, startTls: false, title: '', recipients: {}, toEmail: '', keystore: '', password: '', encryptionProtocol: 'Plain', fromEmailAlias: '' },
+  1: { mailType: '', authEmail: '', fromEmail: '', pwd: '', nickname: '', host: '', port: '', ssl: false, startTls: false, title: '', recipients: {}, toEmail: '', keystore: '', password: '', encryptionProtocol: 'Plain', fromEmailAlias: '' },
   2: { server: '', group: '', icon: '', sound: '', badge: '', url: '', level: 'active', title: '', transformation: 'none', key: '', iv: '', call: '', autoCopy: '' },
   3: { method: 'POST', webServer: '', secret: '', response: '', webParams: '', headers: {}, proxyType: PROXY_DIRECT, proxyHost: '', proxyPort: '', proxyAuthenticator: false, proxyUsername: '', proxyPassword: '' },
   4: { webHook: '', msgType: 'text', atAll: false, atUserIds: '', atMobiles: '' },
@@ -65,16 +65,16 @@ const SENDER_FIELD_SCHEMAS: Record<number, SenderFieldSchema[]> = {
   ],
   1: [
     field('mailType', 'text', '邮件类型', 'Mail type'),
-    field('fromEmail', 'text', '发件邮箱', 'From email'),
+    field('authEmail', 'text', '登录邮箱', 'Authentication email'),
+    field('fromEmail', 'text', '显示发件邮箱', 'Visible from email'),
     field('pwd', 'text', '邮箱密码', 'Password'),
-    field('nickname', 'text', '昵称', 'Nickname'),
     field('host', 'text', 'SMTP 主机', 'SMTP host'),
     field('port', 'text', 'SMTP 端口', 'SMTP port'),
     field('ssl', 'boolean', '启用 SSL', 'Enable SSL'),
     field('startTls', 'boolean', '启用 STARTTLS', 'Enable STARTTLS'),
     field('title', 'text', '邮件标题', 'Email title'),
     field('toEmail', 'text', '收件邮箱', 'Recipient email'),
-    field('fromEmailAlias', 'text', '发件别名', 'Sender alias'),
+    field('fromEmailAlias', 'text', '显示发件人名称', 'Visible sender name'),
     field('encryptionProtocol', 'text', '加密协议', 'Encryption protocol'),
     field('keystore', 'textarea', '证书内容', 'Keystore / certificate', { rows: 3 }),
     field('password', 'text', '证书密码', 'Certificate password'),
@@ -306,6 +306,14 @@ export function parseSenderFormState(type: number, rawJson: string): JsonRecord 
       ? JSON.stringify(isPlainObject(value) ? value : {}, null, 2)
       : value
   }
+  if (type === 1) {
+    const authEmail = typeof formState.authEmail === 'string' ? formState.authEmail : ''
+    const fromEmail = typeof formState.fromEmail === 'string' ? formState.fromEmail : ''
+    const alias = typeof formState.fromEmailAlias === 'string' ? formState.fromEmailAlias : ''
+    const nickname = typeof parsed.nickname === 'string' ? parsed.nickname : ''
+    formState.authEmail = authEmail || fromEmail
+    formState.fromEmailAlias = alias || nickname
+  }
   return formState
 }
 
@@ -325,6 +333,13 @@ export function buildSenderJsonFromFormState(type: number, formState: JsonRecord
       continue
     }
     raw[key] = normalizeFormValue(field, defaultValue, candidate)
+  }
+  if (type === 1) {
+    const authEmail = typeof raw.authEmail === 'string' ? raw.authEmail : ''
+    const fromEmail = typeof raw.fromEmail === 'string' ? raw.fromEmail : ''
+    const alias = typeof raw.fromEmailAlias === 'string' ? raw.fromEmailAlias : ''
+    raw.authEmail = authEmail || fromEmail
+    raw.nickname = alias
   }
   return JSON.stringify(sanitizeBySchema(defaults, raw))
 }
@@ -418,6 +433,16 @@ function sanitizeBySchema(schema: JsonRecord, raw: JsonRecord | null): JsonRecor
   for (const [key, defaultValue] of Object.entries(schema)) {
     const candidate = raw?.[key]
     normalized[key] = sanitizeValue(defaultValue, candidate)
+  }
+  if (schema === DEFAULT_SENDER_SETTINGS[1]) {
+    const fromEmail = typeof normalized.fromEmail === 'string' ? normalized.fromEmail : ''
+    const authEmail = typeof normalized.authEmail === 'string' ? normalized.authEmail : ''
+    const rawNickname = typeof raw?.nickname === 'string' ? raw.nickname : ''
+    const alias = typeof normalized.fromEmailAlias === 'string' ? normalized.fromEmailAlias : ''
+    const resolvedAlias = alias || rawNickname
+    normalized.authEmail = authEmail || fromEmail
+    normalized.fromEmailAlias = resolvedAlias
+    normalized.nickname = resolvedAlias
   }
   return normalized
 }

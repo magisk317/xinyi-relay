@@ -59,7 +59,9 @@ fun EmailConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMod
     }
     var name by remember { mutableStateOf("") }
     var mailType by remember { mutableStateOf("") }
+    var authEmail by remember { mutableStateOf("") }
     var fromEmail by remember { mutableStateOf("") }
+    var fromEmailAlias by remember { mutableStateOf("") }
     var pwd by remember { mutableStateOf("") }
     var host by remember { mutableStateOf("") }
     var port by remember { mutableStateOf("465") }
@@ -85,7 +87,9 @@ fun EmailConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMod
                 receiveCallNotify = sender.receiveCallNotify == 1
                 runCatching { Gson().fromJson(sender.jsonSetting, EmailSetting::class.java) }.getOrNull()?.let {
                     mailType = it.mailType
+                    authEmail = it.authEmail.ifBlank { it.fromEmail }
                     fromEmail = it.fromEmail
+                    fromEmailAlias = it.fromEmailAlias.ifBlank { it.nickname }
                     pwd = it.pwd
                     host = it.host
                     port = it.port
@@ -101,7 +105,9 @@ fun EmailConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMod
     fun buildSender(status: Int): Sender {
         val setting = EmailSetting(
             mailType = mailType,
+            authEmail = authEmail,
             fromEmail = fromEmail,
+            fromEmailAlias = fromEmailAlias,
             pwd = pwd,
             host = host,
             port = port,
@@ -221,9 +227,21 @@ fun EmailConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMod
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
+                authEmail,
+                { authEmail = it },
+                label = { Text(stringResource(R.string.sender_form_label_auth_email)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
                 fromEmail,
                 { fromEmail = it },
                 label = { Text(stringResource(R.string.sender_form_label_from_email)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                fromEmailAlias,
+                { fromEmailAlias = it },
+                label = { Text(stringResource(R.string.sender_form_label_from_email_alias)) },
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
@@ -279,7 +297,9 @@ fun EmailConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMod
                 EmailUtils.sendMsg(
                     EmailSetting(
                         mailType = mailType,
+                        authEmail = authEmail,
                         fromEmail = fromEmail,
+                        fromEmailAlias = fromEmailAlias,
                         pwd = pwd,
                         host = host,
                         port = port,

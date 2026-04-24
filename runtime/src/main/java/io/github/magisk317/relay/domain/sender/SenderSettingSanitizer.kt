@@ -101,11 +101,15 @@ object SenderSettingSanitizer {
 
     fun sanitizeEmailSetting(raw: EmailSetting?): EmailSetting {
         val defaults = EmailSetting()
+        val fromEmail = safeString(raw?.fromEmail)
+        val authEmail = safeString(raw?.authEmail).ifBlank { fromEmail }
+        val alias = safeString(raw?.fromEmailAlias).ifBlank { safeString(raw?.nickname) }
         return EmailSetting(
             mailType = safeString(raw?.mailType),
-            fromEmail = safeString(raw?.fromEmail),
+            authEmail = authEmail,
+            fromEmail = fromEmail,
             pwd = safeString(raw?.pwd),
-            nickname = safeString(raw?.nickname),
+            nickname = safeString(raw?.nickname).ifBlank { alias },
             host = safeString(raw?.host),
             port = safeString(raw?.port),
             ssl = safeBoolean(raw?.ssl, defaults.ssl),
@@ -116,7 +120,7 @@ object SenderSettingSanitizer {
             keystore = safeString(raw?.keystore),
             password = safeString(raw?.password),
             encryptionProtocol = safeString(raw?.encryptionProtocol).ifBlank { defaults.encryptionProtocol },
-            fromEmailAlias = safeString(raw?.fromEmailAlias),
+            fromEmailAlias = alias,
         )
     }
 

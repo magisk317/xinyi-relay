@@ -27,6 +27,7 @@ object EmailUtils {
             normalizeMailType(safeSetting)
 
             val fromEmail = safeSetting.fromEmail
+            val authEmail = safeSetting.authEmail.ifBlank { fromEmail }
             val password = safeSetting.pwd
             val host = safeSetting.host
             val port = safeSetting.port.ifBlank { "465" }
@@ -48,17 +49,24 @@ object EmailUtils {
 
             val session = Session.getInstance(props, object : jakarta.mail.Authenticator() {
                 override fun getPasswordAuthentication(): PasswordAuthentication {
-                    return PasswordAuthentication(fromEmail, password)
+                    return PasswordAuthentication(authEmail, password)
                 }
             })
 
             val message = MimeMessage(session)
-            message.setFrom(InternetAddress(fromEmail, safeSetting.fromEmailAlias.ifBlank { fromEmail }))
+            message.setFrom(
+                InternetAddress(
+                    fromEmail,
+                    safeSetting.fromEmailAlias.ifBlank {
+                        safeSetting.nickname.ifBlank { fromEmail }
+                    },
+                ),
+            )
             message.setRecipients(Message.RecipientType.TO, recipients.map { InternetAddress(it) }.toTypedArray())
             message.subject = if (safeSetting.title.isBlank()) "信息驿站: ${msgInfo.from}" else safeSetting.title
             message.setText(msgInfo.content)
 
-            sendByTransport(session, message, host, portInt, fromEmail, password)
+            sendByTransport(session, message, host, portInt, authEmail, password)
             SLog.i(TAG, t("Email send success"))
         }.onFailure {
             SLog.e(TAG, t("Email send failed"), it)
@@ -112,41 +120,52 @@ object EmailUtils {
                 setting.host = "smtp.qq.com"
                 setting.port = "465"
                 setting.ssl = true
-                setting.fromEmail = appendDomain(setting.fromEmail, setting.mailType)
+                setting.authEmail = appendDomainIfNeeded(setting.authEmail, setting.mailType)
+                setting.fromEmail = appendDomainIfNeeded(setting.fromEmail, setting.mailType)
             }
             "@gmail.com" -> {
                 setting.host = "smtp.gmail.com"
                 setting.port = "465"
                 setting.ssl = true
-                setting.fromEmail = appendDomain(setting.fromEmail, setting.mailType)
+                setting.authEmail = appendDomainIfNeeded(setting.authEmail, setting.mailType)
+                setting.fromEmail = appendDomainIfNeeded(setting.fromEmail, setting.mailType)
             }
             "@163.com" -> {
                 setting.host = "smtp.163.com"
                 setting.port = "465"
                 setting.ssl = true
-                setting.fromEmail = appendDomain(setting.fromEmail, setting.mailType)
+                setting.authEmail = appendDomainIfNeeded(setting.authEmail, setting.mailType)
+                setting.fromEmail = appendDomainIfNeeded(setting.fromEmail, setting.mailType)
             }
             "@126.com" -> {
                 setting.host = "smtp.126.com"
                 setting.port = "465"
                 setting.ssl = true
-                setting.fromEmail = appendDomain(setting.fromEmail, setting.mailType)
+                setting.authEmail = appendDomainIfNeeded(setting.authEmail, setting.mailType)
+                setting.fromEmail = appendDomainIfNeeded(setting.fromEmail, setting.mailType)
             }
             "@outlook.com" -> {
                 setting.host = "smtp.office365.com"
                 setting.port = "587"
                 setting.ssl = false
                 setting.startTls = true
-                setting.fromEmail = appendDomain(setting.fromEmail, setting.mailType)
+                setting.authEmail = appendDomainIfNeeded(setting.authEmail, setting.mailType)
+                setting.fromEmail = appendDomainIfNeeded(setting.fromEmail, setting.mailType)
             }
             "@icloud.com" -> {
                 setting.host = "smtp.mail.me.com"
                 setting.port = "587"
                 setting.ssl = false
                 setting.startTls = true
-                setting.fromEmail = appendDomain(setting.fromEmail, setting.mailType)
+                setting.authEmail = appendDomainIfNeeded(setting.authEmail, setting.mailType)
+                setting.fromEmail = appendDomainIfNeeded(setting.fromEmail, setting.mailType)
             }
         }
+    }
+
+    private fun appendDomainIfNeeded(name: String, domain: String): String {
+        if (name.isBlank()) return name
+        return appendDomain(name, domain)
     }
 
     private fun appendDomain(name: String, domain: String): String {

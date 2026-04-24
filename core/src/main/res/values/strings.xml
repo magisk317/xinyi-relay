@@ -933,7 +933,9 @@
     <string name="sender_form_label_app_secret">AppSecret</string>
     <string name="sender_form_label_user_ids_comma">User IDs (comma separated)</string>
     <string name="sender_form_label_mail_type_example">mailType (e.g. @qq.com)</string>
-    <string name="sender_form_label_from_email">From email</string>
+    <string name="sender_form_label_auth_email">Authentication email</string>
+    <string name="sender_form_label_from_email">Visible from email</string>
+    <string name="sender_form_label_from_email_alias">Visible sender name</string>
     <string name="sender_form_label_auth_code_or_password">Authorization code / password</string>
     <string name="sender_form_label_smtp_host">SMTP Host</string>
     <string name="sender_form_label_smtp_port">SMTP Port</string>
