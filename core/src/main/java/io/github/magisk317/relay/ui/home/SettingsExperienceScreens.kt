@@ -79,7 +79,6 @@ import io.github.magisk317.relay.data.repository.VerificationSettingsSnapshot
 import io.github.magisk317.relay.data.repository.VerificationSettingsUpdate
 import io.github.magisk317.relay.data.backup.BackupManager
 import io.github.magisk317.relay.ui.common.SingleChoiceOptionDialog
-import io.github.magisk317.uikit.theme.UiKitStyle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -112,7 +111,6 @@ fun SettingsHomeScreen(
     var relay by remember { mutableStateOf<RelaySettingsSnapshot?>(null) }
     var diagnostics by remember { mutableStateOf<DiagnosticsSettingsSnapshot?>(null) }
     var showThemeDialog by remember { mutableStateOf(false) }
-    var showUiKitStyleDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showRuntimeLogDialog by remember { mutableStateOf(false) }
     var showBackupDialog by remember { mutableStateOf(false) }
@@ -121,8 +119,6 @@ fun SettingsHomeScreen(
     var pendingRestoreUri by remember { mutableStateOf<Uri?>(null) }
     var themeDialogInitialMode by remember { mutableStateOf(0) }
     var themeDialogSelectedMode by remember { mutableStateOf(0) }
-    var uiKitStyleInitial by remember { mutableStateOf(UiKitStyle.Expressive.value) }
-    var uiKitStyleSelected by remember { mutableStateOf(UiKitStyle.Expressive.value) }
     var languageDialogInitialTag by remember { mutableStateOf("") }
     var languageDialogSelectedTag by remember { mutableStateOf("") }
     var expandGeneral by rememberSaveable { mutableStateOf(false) }
@@ -270,14 +266,6 @@ fun SettingsHomeScreen(
                     themeDialogInitialMode = themeState.mode
                     themeDialogSelectedMode = themeState.mode
                     showThemeDialog = true
-                }
-                Item(
-                    title = stringResource(id = R.string.pref_ui_kit_style_title),
-                    summary = uiKitStyleSummary(themeState.uiKitStyle),
-                ) {
-                    uiKitStyleInitial = themeState.uiKitStyle
-                    uiKitStyleSelected = themeState.uiKitStyle
-                    showUiKitStyleDialog = true
                 }
                 Item(
                     title = stringResource(id = R.string.pref_language_title),
@@ -473,31 +461,6 @@ fun SettingsHomeScreen(
             notifySaved()
         }
     }
-    if (showUiKitStyleDialog) {
-        val styleOptions = listOf(
-            stringResource(id = R.string.ui_kit_style_expressive),
-            stringResource(id = R.string.ui_kit_style_miuix),
-        )
-        val styleValues = listOf(UiKitStyle.Expressive.value, UiKitStyle.Miuix.value)
-        SingleChoiceDialog(
-            title = stringResource(id = R.string.pref_ui_kit_style_title),
-            options = styleOptions,
-            selectedIndex = styleValues.indexOf(uiKitStyleSelected).takeIf { it >= 0 } ?: 0,
-            onDismiss = {
-                settingsViewModel.previewUiKitStyle(uiKitStyleInitial)
-                showUiKitStyleDialog = false
-            },
-            onSelectionChange = { index ->
-                uiKitStyleSelected = styleValues[index]
-                settingsViewModel.previewUiKitStyle(styleValues[index])
-            },
-        ) { index ->
-            showUiKitStyleDialog = false
-            uiKitStyleSelected = styleValues[index]
-            settingsViewModel.persistUiKitStyle(styleValues[index])
-            notifySaved()
-        }
-    }
     if (showLanguageDialog) {
         val languageTags = listOf("", "zh-CN", "zh-TW", "en")
         val languageOptions = listOf(
@@ -591,14 +554,6 @@ fun SettingsHomeScreen(
                 restoreDatabase = selection.includeDatabase,
             )
         }
-    }
-}
-
-@Composable
-private fun uiKitStyleSummary(style: Int): String {
-    return when (UiKitStyle.fromValue(style)) {
-        UiKitStyle.Miuix -> stringResource(id = R.string.ui_kit_style_miuix)
-        UiKitStyle.Expressive -> stringResource(id = R.string.ui_kit_style_expressive)
     }
 }
 

@@ -279,6 +279,10 @@ class SettingsRepository(
     context: Context,
     private val preferenceDataSource: PreferenceDataSource,
 ) {
+    private companion object {
+        const val UI_KIT_STYLE_EXPRESSIVE = 0
+    }
+
     private val appContext = context.applicationContext ?: context
 
     suspend fun getGeneralSettings(): GeneralSettingsSnapshot {
@@ -809,11 +813,11 @@ class SettingsRepository(
     }
 
     suspend fun getUiKitStyle(): Int {
-        return preferenceDataSource.getInt(PrefConst.KEY_UI_KIT_STYLE, 0)
+        return UI_KIT_STYLE_EXPRESSIVE
     }
 
     suspend fun setUiKitStyle(style: Int) {
-        preferenceDataSource.setInt(PrefConst.KEY_UI_KIT_STYLE, style)
+        preferenceDataSource.setInt(PrefConst.KEY_UI_KIT_STYLE, UI_KIT_STYLE_EXPRESSIVE)
         syncLocalOnly()
     }
 
