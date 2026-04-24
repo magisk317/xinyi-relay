@@ -24,6 +24,14 @@
                 <action android:name="io.github.magisk317.relay.ACTION_FORWARD_SMS" />
             </intent-filter>
         </receiver>
+
+        <receiver
+            android:name="io.github.magisk317.relay.platform.ipc.CustomMessageReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="io.github.magisk317.relay.ACTION_INGEST_CUSTOM_MESSAGE" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

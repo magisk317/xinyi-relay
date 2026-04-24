@@ -60,6 +60,31 @@
 - 验证码自动解析、复制与自动填写
 - 记录与备份：支持导出/导入配置与历史记录
 
+### 自定义消息广播接口
+- 首版开放安全广播入口：`io.github.magisk317.relay.ACTION_INGEST_CUSTOM_MESSAGE`
+- 必填参数：
+  - `ipc_token`
+  - `message`
+- 选填参数：
+  - `title`
+  - `app_name`
+  - `package_name`
+  - `notify_channel_id`
+  - `event_id`
+  - `target_sender_ids`（`long[]`，仅向指定 senderId 列表分发）
+- 示例：
+
+```bash
+adb shell am broadcast \
+  -a io.github.magisk317.relay.ACTION_INGEST_CUSTOM_MESSAGE \
+  -n io.github.magisk317.xinyi.relay/io.github.magisk317.relay.platform.ipc.CustomMessageReceiver \
+  --es ipc_token YOUR_IPC_TOKEN \
+  --es title "自定义消息" \
+  --es message "Hello from adb" \
+  --es app_name "ADB" \
+  --es package_name "com.example.custom"
+```
+
 ## Backend
 
 Backend 是信驿 Relay 的自建远程控制面，默认部署模式为“本地优先、保留公网能力”。
