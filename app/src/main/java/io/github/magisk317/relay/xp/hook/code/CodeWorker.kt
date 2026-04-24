@@ -56,7 +56,19 @@ class CodeWorker(
         val smsParseAction = SmsParseAction(pluginContext, phoneContext, null)
         smsParseAction.setSmsIntent(smsIntent)
         smsParseAction.setDeduplicateEnabled(deduplicateEnabled)
-        val parseBundle = executor.schedule(smsParseAction, 0, TimeUnit.MILLISECONDS).get() ?: return null
+
+        // Submit to executor but wait with a strict timeout to avoid hanging the hook thread.
+        val future = executor.submit(java.util.concurrent.Callable {
+            smsParseAction.action()
+        })
+        val parseBundle = try {
+            future.get(PARSE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+        } catch (e: Exception) {
+            XLog.w("SmsParseAction timed out or failed: %s", e.message ?: e.javaClass.simpleName)
+            future.cancel(true)
+            null
+        } ?: return null
+
         if (parseBundle.getBoolean(SmsParseAction.SMS_DUPLICATED, false)) {
             return SharedCodeWorker.ParseOutcome(duplicated = true)
         }
@@ -104,5 +116,9 @@ class CodeWorker(
             shouldRecord = shouldRecord,
             operateSmsDelays = operateSmsDelays,
         )
+    }
+
+    companion object {
+        private const val PARSE_TIMEOUT_MS = 2000L
     }
 }

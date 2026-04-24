@@ -541,49 +541,71 @@ class SmsHandlerHook : BaseHook() {
         if (eventId.isBlank() || action.isNullOrBlank()) return false
         val now = System.currentTimeMillis()
         val key = "$eventId|$action"
-        return runCatching {
+
+        // 1. Quick in-memory check (process-local)
+        synchronized(SHARED_DEDUP_MEMORY_LOCK) {
+            val last = sharedDedupMemoryCache[key]
+            if (last != null && now - last <= DISPATCH_DEDUP_WINDOW_MS) {
+                XLog.d("Diag SMS dispatch duplicate skip (memory): event_id=%s action=%s", eventId, action)
+                return true
+            }
+            sharedDedupMemoryCache[key] = now
+            // Trim memory cache
+            if (sharedDedupMemoryCache.size > MAX_DISPATCH_DEDUP_ENTRIES) {
+                val iterator = sharedDedupMemoryCache.entries.iterator()
+                if (iterator.hasNext()) {
+                    iterator.next()
+                    iterator.remove()
+                }
+            }
+        }
+
+        // 2. Offload file-based cross-process sync to background
+        SMS_OPERATION_EXECUTOR.execute {
+            syncSharedDedupToFile(pluginContext, key, now)
+        }
+
+        return false
+    }
+
+    private fun syncSharedDedupToFile(pluginContext: Context, key: String, now: Long) {
+        runCatching {
             val file = File(pluginContext.getExternalFilesDir(null) ?: pluginContext.filesDir, DISPATCH_DEDUP_FILE_NAME)
             file.parentFile?.mkdirs()
             RandomAccessFile(file, "rw").use { raf ->
                 raf.channel.use { channel ->
-                    channel.lock().use {
+                    // Use a short timeout for the lock to avoid hanging the background thread indefinitely
+                    val lock = channel.tryLock() ?: return@runCatching 
+                    try {
                         val entries = readDispatchDedupEntries(raf)
                         val iterator = entries.entries.iterator()
+                        var changed = false
                         while (iterator.hasNext()) {
                             val entry = iterator.next()
                             if (now - entry.value > DISPATCH_DEDUP_WINDOW_MS) {
                                 iterator.remove()
+                                changed = true
                             }
                         }
-                        val last = entries[key]
-                        if (last != null && now - last <= DISPATCH_DEDUP_WINDOW_MS) {
-                            XLog.w(
-                                "Diag SMS dispatch duplicate skip: event_id=%s action=%s source=shared_store ageMs=%d",
-                                eventId,
-                                action,
-                                now - last,
-                            )
+                        if (!entries.containsKey(key)) {
+                            entries[key] = now
+                            changed = true
+                        }
+                        if (changed) {
+                            while (entries.size > MAX_DISPATCH_DEDUP_ENTRIES) {
+                                val firstKey = entries.entries.firstOrNull()?.key ?: break
+                                entries.remove(firstKey)
+                            }
                             writeDispatchDedupEntries(raf, entries)
-                            return true
                         }
-                        entries[key] = now
-                        while (entries.size > MAX_DISPATCH_DEDUP_ENTRIES) {
-                            val firstKey = entries.entries.firstOrNull()?.key ?: break
-                            entries.remove(firstKey)
-                        }
-                        writeDispatchDedupEntries(raf, entries)
-                        false
+                    } finally {
+                        lock.release()
                     }
                 }
             }
         }.onFailure {
-            XLog.w(
-                "Diag SMS dispatch shared dedup failed: event_id=%s action=%s err=%s",
-                eventId,
-                action,
-                it.message ?: it.javaClass.simpleName,
-            )
-        }.getOrDefault(false)
+            // Silently ignore background sync failures
+        }
     }
 
     private fun readDispatchDedupEntries(raf: RandomAccessFile): LinkedHashMap<String, Long> {
@@ -646,5 +668,7 @@ class SmsHandlerHook : BaseHook() {
         private val SMS_OPERATION_EXECUTOR = Executors.newSingleThreadExecutor()
         private val dispatchChainBlockHistory = LinkedHashMap<String, Long>()
         private val DISPATCH_CHAIN_BLOCK_LOCK = Any()
+        private val sharedDedupMemoryCache = LinkedHashMap<String, Long>()
+        private val SHARED_DEDUP_MEMORY_LOCK = Any()
     }
 }

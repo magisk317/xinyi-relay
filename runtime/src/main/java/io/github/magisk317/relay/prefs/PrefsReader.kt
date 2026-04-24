@@ -23,6 +23,14 @@ object PrefsReader {
     private val providerPrefsSource = ProviderPrefsSource()
     private val sharedPrefsSource = SharedPrefsSource()
     private val runtimeBridgeLogOnce = AtomicBoolean(false)
+    private val cache = java.util.concurrent.ConcurrentHashMap<String, CachedResult<*>>()
+    private const val CACHE_TTL_MS = 10_000L
+
+    private data class CachedResult<T>(
+        val value: T,
+        val source: String,
+        val timestamp: Long = System.currentTimeMillis(),
+    )
 
     @Volatile
     private var runtimeBridge: XpRuntimeBridge = NoopXpRuntimeBridge
@@ -82,42 +90,77 @@ object PrefsReader {
         key: String,
         defaultValue: Boolean,
         sources: List<PrefsSource> = resolveSources(),
-    ): PrefReadResult<Boolean> = PrefsSourceChain.resolveBoolean(
-        context = context,
-        key = key,
-        defaultValue = defaultValue,
-        sources = sources,
-        logRuntimeBridgeOnce = ::logRuntimeBridgeOnce,
-        warn = ::safeWarn,
-    )
+    ): PrefReadResult<Boolean> {
+        val cached = getFromCache<Boolean>(key)
+        if (cached != null) return cached
+
+        val result = PrefsSourceChain.resolveBoolean(
+            context = context,
+            key = key,
+            defaultValue = defaultValue,
+            sources = sources,
+            logRuntimeBridgeOnce = ::logRuntimeBridgeOnce,
+            warn = ::safeWarn,
+        )
+        putToCache(key, result)
+        return result
+    }
 
     private fun resolveString(
         context: Context,
         key: String,
         defaultValue: String,
         sources: List<PrefsSource> = resolveSources(),
-    ): PrefReadResult<String> = PrefsSourceChain.resolveString(
-        context = context,
-        key = key,
-        defaultValue = defaultValue,
-        sources = sources,
-        logRuntimeBridgeOnce = ::logRuntimeBridgeOnce,
-        warn = ::safeWarn,
-    )
+    ): PrefReadResult<String> {
+        val cached = getFromCache<String>(key)
+        if (cached != null) return cached
+
+        val result = PrefsSourceChain.resolveString(
+            context = context,
+            key = key,
+            defaultValue = defaultValue,
+            sources = sources,
+            logRuntimeBridgeOnce = ::logRuntimeBridgeOnce,
+            warn = ::safeWarn,
+        )
+        putToCache(key, result)
+        return result
+    }
 
     private fun resolveInt(
         context: Context,
         key: String,
         defaultValue: Int,
         sources: List<PrefsSource> = resolveSources(),
-    ): PrefReadResult<Int> = PrefsSourceChain.resolveInt(
-        context = context,
-        key = key,
-        defaultValue = defaultValue,
-        sources = sources,
-        logRuntimeBridgeOnce = ::logRuntimeBridgeOnce,
-        warn = ::safeWarn,
-    )
+    ): PrefReadResult<Int> {
+        val cached = getFromCache<Int>(key)
+        if (cached != null) return cached
+
+        val result = PrefsSourceChain.resolveInt(
+            context = context,
+            key = key,
+            defaultValue = defaultValue,
+            sources = sources,
+            logRuntimeBridgeOnce = ::logRuntimeBridgeOnce,
+            warn = ::safeWarn,
+        )
+        putToCache(key, result)
+        return result
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun <T> getFromCache(key: String): PrefReadResult<T>? {
+        val cached = cache[key] as? CachedResult<T> ?: return null
+        if (System.currentTimeMillis() - cached.timestamp > CACHE_TTL_MS) {
+            cache.remove(key)
+            return null
+        }
+        return PrefReadResult(cached.value, cached.source)
+    }
+
+    private fun <T> putToCache(key: String, result: PrefReadResult<T>) {
+        cache[key] = CachedResult(result.value, result.source)
+    }
 
     private fun safeWarn(message: String, vararg args: Any?) {
         runCatching { XLog.w(message, *args) }
