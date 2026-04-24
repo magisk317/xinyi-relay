@@ -1,4 +1,4 @@
-import type { SenderActiveSchedule } from './senderActiveSchedule'
+import type { SenderActiveSchedule } from '../senderActiveSchedule'
 
 export interface ErrorResponse {
   error: string
