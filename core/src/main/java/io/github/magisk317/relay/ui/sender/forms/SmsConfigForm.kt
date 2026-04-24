@@ -57,6 +57,8 @@ fun SmsConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewModel
     fun showMessage(message: String) {
         scope.launch { snackbarHostState.showSnackbar(message) }
     }
+    val activeScheduleEntry = LocalSenderActiveScheduleEntry.current
+    val activeSchedule = activeScheduleEntry?.schedule ?: io.github.magisk317.relay.domain.sender.SenderActiveSchedule()
     var name by remember { mutableStateOf("") }
     var mobiles by remember { mutableStateOf("") }
     var simSlot by remember { mutableStateOf("0") }
@@ -100,6 +102,7 @@ fun SmsConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewModel
             receiveNonCode = if (receiveNonCode) 1 else 0,
             receiveAppNotify = if (receiveAppNotify) 1 else 0,
             receiveCallNotify = if (receiveCallNotify) 1 else 0,
+            activeSchedule = activeSchedule,
             time = Date(),
         ) ?: Sender(
             id = 0,
@@ -111,6 +114,7 @@ fun SmsConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewModel
             receiveNonCode = if (receiveNonCode) 1 else 0,
             receiveAppNotify = if (receiveAppNotify) 1 else 0,
             receiveCallNotify = if (receiveCallNotify) 1 else 0,
+            activeSchedule = activeSchedule,
             time = Date(),
         )
     }
@@ -196,6 +200,8 @@ fun SmsConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewModel
                 onReceiveAppNotifyChange = { receiveAppNotify = it },
                 receiveCallNotify = receiveCallNotify,
                 onReceiveCallNotifyChange = { receiveCallNotify = it },
+                activeSchedule = activeSchedule,
+                onActiveScheduleChange = { activeScheduleEntry?.onChange(it) },
             )
             SenderTestActionRow(channel = "SMS") {
                 SmsUtils.sendMsg(

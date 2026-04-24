@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.core.BuildConfig
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.domain.sender.SenderActiveSchedule
 import io.github.magisk317.relay.domain.sender.SenderType
 import io.github.magisk317.relay.ui.sender.forms.*
 import kotlinx.coroutines.flow.flowOf
@@ -38,6 +39,7 @@ fun SenderConfigScreen(
 ) {
     val context = LocalContext.current
     var type by remember { mutableStateOf(senderTypeArg) }
+    var activeSchedule by remember { mutableStateOf(SenderActiveSchedule()) }
     var isLoaded by remember { mutableStateOf(false) }
 
     LaunchedEffect(senderId) {
@@ -47,7 +49,10 @@ fun SenderConfigScreen(
             val sender = viewModel.getSender(senderId)
             if (sender != null) {
                 type = sender.type
+                activeSchedule = sender.activeSchedule
             }
+        } else {
+            activeSchedule = SenderActiveSchedule()
         }
         isLoaded = true
     }
@@ -110,6 +115,10 @@ fun SenderConfigScreen(
     CompositionLocalProvider(
         LocalSenderNotifyScopeEntry provides notifyScopeEntry,
         LocalSenderForwardFilterEntry provides forwardFilterEntry,
+        LocalSenderActiveScheduleEntry provides SenderActiveScheduleEntry(
+            schedule = activeSchedule,
+            onChange = { nextSchedule -> activeSchedule = nextSchedule },
+        ),
     ) {
         when (type) {
             SenderType.DINGTALK_GROUP_ROBOT -> DingtalkConfigForm(senderId, handleBack, viewModel)

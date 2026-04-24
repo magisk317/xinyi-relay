@@ -14,12 +14,18 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.domain.sender.SenderActiveSchedule
 
 data class SenderNotifyScopeEntry(
     val senderId: Long,
@@ -33,8 +39,14 @@ data class SenderForwardFilterEntry(
     val onClick: (Long) -> Unit,
 )
 
+data class SenderActiveScheduleEntry(
+    val schedule: SenderActiveSchedule,
+    val onChange: (SenderActiveSchedule) -> Unit,
+)
+
 val LocalSenderNotifyScopeEntry = staticCompositionLocalOf<SenderNotifyScopeEntry?> { null }
 val LocalSenderForwardFilterEntry = staticCompositionLocalOf<SenderForwardFilterEntry?> { null }
+val LocalSenderActiveScheduleEntry = staticCompositionLocalOf<SenderActiveScheduleEntry?> { null }
 
 @Composable
 fun ForwardToggleSection(
@@ -46,9 +58,13 @@ fun ForwardToggleSection(
     onReceiveAppNotifyChange: (Boolean) -> Unit,
     receiveCallNotify: Boolean,
     onReceiveCallNotifyChange: (Boolean) -> Unit,
+    activeSchedule: SenderActiveSchedule,
+    onActiveScheduleChange: (SenderActiveSchedule) -> Unit,
 ) {
     val notifyScopeEntry = LocalSenderNotifyScopeEntry.current
     val forwardFilterEntry = LocalSenderForwardFilterEntry.current
+    val context = LocalContext.current
+    var showActiveScheduleDialog by remember { mutableStateOf(false) }
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -79,6 +95,11 @@ fun ForwardToggleSection(
                 checked = receiveCallNotify,
                 onCheckedChange = onReceiveCallNotifyChange,
             )
+            ForwardConfigActionItem(
+                title = stringResource(R.string.sender_active_schedule_title),
+                summary = buildSenderActiveScheduleSummary(activeSchedule, context),
+                onClick = { showActiveScheduleDialog = true },
+            )
             if (notifyScopeEntry != null && notifyScopeEntry.senderId > 0L) {
                 ForwardConfigActionItem(
                     title = stringResource(R.string.sender_notify_scope_title),
@@ -94,6 +115,16 @@ fun ForwardToggleSection(
                 )
             }
         }
+    }
+    if (showActiveScheduleDialog) {
+        SenderActiveScheduleDialog(
+            schedule = activeSchedule,
+            onDismiss = { showActiveScheduleDialog = false },
+            onConfirm = { nextSchedule ->
+                onActiveScheduleChange(nextSchedule)
+                showActiveScheduleDialog = false
+            },
+        )
     }
 }
 

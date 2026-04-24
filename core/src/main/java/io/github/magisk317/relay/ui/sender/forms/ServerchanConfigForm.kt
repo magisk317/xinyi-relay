@@ -57,6 +57,8 @@ fun ServerchanConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVi
     fun showMessage(message: String) {
         scope.launch { snackbarHostState.showSnackbar(message) }
     }
+    val activeScheduleEntry = LocalSenderActiveScheduleEntry.current
+    val activeSchedule = activeScheduleEntry?.schedule ?: io.github.magisk317.relay.domain.sender.SenderActiveSchedule()
     var name by remember { mutableStateOf("") }
     var sendKey by remember { mutableStateOf("") }
     var channel by remember { mutableStateOf("") }
@@ -98,6 +100,7 @@ fun ServerchanConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVi
             receiveNonCode = if (receiveNonCode) 1 else 0,
             receiveAppNotify = if (receiveAppNotify) 1 else 0,
             receiveCallNotify = if (receiveCallNotify) 1 else 0,
+            activeSchedule = activeSchedule,
             time = Date(),
         ) ?: Sender(
             id = 0,
@@ -109,6 +112,7 @@ fun ServerchanConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVi
             receiveNonCode = if (receiveNonCode) 1 else 0,
             receiveAppNotify = if (receiveAppNotify) 1 else 0,
             receiveCallNotify = if (receiveCallNotify) 1 else 0,
+            activeSchedule = activeSchedule,
             time = Date(),
         )
     }
@@ -207,6 +211,8 @@ fun ServerchanConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVi
                 onReceiveAppNotifyChange = { receiveAppNotify = it },
                 receiveCallNotify = receiveCallNotify,
                 onReceiveCallNotifyChange = { receiveCallNotify = it },
+                activeSchedule = activeSchedule,
+                onActiveScheduleChange = { activeScheduleEntry?.onChange(it) },
             )
             SenderTestActionRow(channel = "Serverchan") {
                 ServerchanUtils.sendMsg(

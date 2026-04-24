@@ -29,7 +29,7 @@ class PrefsReaderSourceChainTest {
 
         val result = PrefsReader.resolveBooleanWithSourcesForTest(
             context = context,
-            key = "pref_key",
+            key = "pref_key_remote_bool",
             defaultValue = false,
             sources = listOf(remote, provider, shared),
         )
@@ -59,7 +59,7 @@ class PrefsReaderSourceChainTest {
 
         val result = PrefsReader.resolveBooleanWithSourcesForTest(
             context = context,
-            key = "pref_key",
+            key = "pref_key_provider_bool",
             defaultValue = false,
             sources = listOf(remoteThrows, provider),
         )
@@ -79,7 +79,7 @@ class PrefsReaderSourceChainTest {
 
         val result = PrefsReader.resolveStringWithSourcesForTest(
             context = context,
-            key = "pref_key",
+            key = "pref_key_provider_string",
             defaultValue = "default",
             sources = listOf(remote, provider),
         )
@@ -97,7 +97,7 @@ class PrefsReaderSourceChainTest {
 
         val result = PrefsReader.resolveIntWithSourcesForTest(
             context = context,
-            key = "pref_key",
+            key = "pref_key_default_int",
             defaultValue = 7,
             sources = listOf(remote, provider, shared),
         )

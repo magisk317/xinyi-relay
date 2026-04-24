@@ -71,4 +71,26 @@ describe('SendersPage', () => {
     expect(nextRoot.senders[0].type).toBe(7)
     expect(nextRoot.senders[0].jsonSetting).toBe('{"custom":"keep-me"}')
   })
+
+  it('persists active schedule changes through the sender page', async () => {
+    render(
+      <DesktopI18nProvider>
+        <SendersPage />
+      </DesktopI18nProvider>
+    )
+
+    const card = screen.getByText('Ops Robot').closest('article')
+    expect(card).not.toBeNull()
+
+    const enableCheckbox = within(card as HTMLElement).getByLabelText('SMS enabled')
+    fireEvent.click(enableCheckbox)
+
+    await waitFor(() => {
+      expect(saveRoot).toHaveBeenCalled()
+    })
+
+    const nextRoot = saveRoot.mock.calls[saveRoot.mock.calls.length - 1]?.[0]
+    expect(nextRoot.senders[0].activeSchedule.sms.enabled).toBe(true)
+    expect(nextRoot.senders[0].activeSchedule.sms.ranges).toEqual([{ start: '09:00', end: '18:00' }])
+  })
 })

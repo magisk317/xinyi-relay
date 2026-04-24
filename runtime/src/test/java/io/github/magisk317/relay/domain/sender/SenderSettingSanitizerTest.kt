@@ -19,8 +19,8 @@ import io.github.magisk317.relay.platform.sender.config.WebhookSetting
 import io.github.magisk317.relay.platform.sender.config.WeworkAgentSetting
 import io.github.magisk317.relay.platform.sender.config.WeworkRobotSetting
 import com.google.gson.Gson
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -97,6 +97,28 @@ class SenderSettingSanitizerTest {
         assertEquals("relay@example.com", setting.authEmail)
         assertEquals("Android relay", setting.fromEmailAlias)
         assertEquals("Android relay", setting.nickname)
+    }
+
+    @Test
+    fun sanitizeSenderLenient_normalizesInvalidActiveSchedule() {
+        val sender = newSender(SenderType.WEBHOOK, """{"method":"POST","webServer":"https://example.com"}""").copy(
+            activeSchedule = SenderActiveSchedule(
+                appNotify = SenderActiveScheduleRule(
+                    enabled = true,
+                    mode = "unknown",
+                    weekdays = listOf(9),
+                    ranges = listOf(
+                        SenderActiveScheduleRange("bad", "18:00"),
+                    ),
+                ),
+            ),
+        )
+
+        val sanitized = SenderSettingSanitizer.sanitizeSenderLenient(sender)
+
+        assertFalse(sanitized.activeSchedule.appNotify.enabled)
+        assertEquals(SenderActiveScheduleConst.ALL_WEEKDAYS, sanitized.activeSchedule.appNotify.weekdays)
+        assertTrue(sanitized.activeSchedule.appNotify.ranges.isEmpty())
     }
 
     @Test

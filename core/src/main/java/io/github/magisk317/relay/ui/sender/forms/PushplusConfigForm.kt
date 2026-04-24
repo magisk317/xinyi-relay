@@ -35,6 +35,8 @@ fun PushplusConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
         coroutineScope.launch { snackbarHostState.showSnackbar(message) }
     }
 
+    val activeScheduleEntry = LocalSenderActiveScheduleEntry.current
+    val activeSchedule = activeScheduleEntry?.schedule ?: io.github.magisk317.relay.domain.sender.SenderActiveSchedule()
     var name by remember { mutableStateOf("") }
     var token by remember { mutableStateOf("") }
     var topic by remember { mutableStateOf("") }
@@ -97,6 +99,7 @@ fun PushplusConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
             receiveNonCode = if (receiveNonCode) 1 else 0,
             receiveAppNotify = if (receiveAppNotify) 1 else 0,
             receiveCallNotify = if (receiveCallNotify) 1 else 0,
+            activeSchedule = activeSchedule,
             time = Date()
         ) ?: Sender(
             id = 0,
@@ -108,6 +111,7 @@ fun PushplusConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
             receiveNonCode = if (receiveNonCode) 1 else 0,
             receiveAppNotify = if (receiveAppNotify) 1 else 0,
             receiveCallNotify = if (receiveCallNotify) 1 else 0,
+            activeSchedule = activeSchedule,
             time = Date()
         )
     }
@@ -230,6 +234,8 @@ fun PushplusConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
                 onReceiveAppNotifyChange = { receiveAppNotify = it },
                 receiveCallNotify = receiveCallNotify,
                 onReceiveCallNotifyChange = { receiveCallNotify = it },
+                activeSchedule = activeSchedule,
+                onActiveScheduleChange = { activeScheduleEntry?.onChange(it) },
             )
             Spacer(modifier = Modifier.height(8.dp))
             SenderTestActionRow(channel = "Pushplus") {

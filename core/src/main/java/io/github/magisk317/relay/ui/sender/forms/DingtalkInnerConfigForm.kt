@@ -60,6 +60,8 @@ fun DingtalkInnerConfigForm(senderId: Long, onBack: () -> Unit, viewModel: Sende
     fun showMessage(message: String) {
         scope.launch { snackbarHostState.showSnackbar(message) }
     }
+    val activeScheduleEntry = LocalSenderActiveScheduleEntry.current
+    val activeSchedule = activeScheduleEntry?.schedule ?: io.github.magisk317.relay.domain.sender.SenderActiveSchedule()
     var name by remember { mutableStateOf("") }
     var agentID by remember { mutableStateOf("") }
     var appKey by remember { mutableStateOf("") }
@@ -112,6 +114,7 @@ fun DingtalkInnerConfigForm(senderId: Long, onBack: () -> Unit, viewModel: Sende
             receiveNonCode = if (receiveNonCode) 1 else 0,
             receiveAppNotify = if (receiveAppNotify) 1 else 0,
             receiveCallNotify = if (receiveCallNotify) 1 else 0,
+            activeSchedule = activeSchedule,
             time = Date(),
         ) ?: Sender(
             id = 0,
@@ -123,6 +126,7 @@ fun DingtalkInnerConfigForm(senderId: Long, onBack: () -> Unit, viewModel: Sende
             receiveNonCode = if (receiveNonCode) 1 else 0,
             receiveAppNotify = if (receiveAppNotify) 1 else 0,
             receiveCallNotify = if (receiveCallNotify) 1 else 0,
+            activeSchedule = activeSchedule,
             time = Date(),
         )
     }
@@ -256,6 +260,8 @@ fun DingtalkInnerConfigForm(senderId: Long, onBack: () -> Unit, viewModel: Sende
                 onReceiveAppNotifyChange = { receiveAppNotify = it },
                 receiveCallNotify = receiveCallNotify,
                 onReceiveCallNotifyChange = { receiveCallNotify = it },
+                activeSchedule = activeSchedule,
+                onActiveScheduleChange = { activeScheduleEntry?.onChange(it) },
             )
             SenderTestActionRow(channel = "DingtalkInner") {
                 DingtalkInnerRobotUtils.sendMsg(

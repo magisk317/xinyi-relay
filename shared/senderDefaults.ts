@@ -1,4 +1,7 @@
 import type { SnapshotSender } from './contracts/console'
+import {
+  normalizeSenderActiveSchedule
+} from './senderActiveSchedule'
 
 export type SenderUiLocale = 'en' | 'zh-CN' | 'zh-TW'
 export type SenderFieldKind = 'text' | 'textarea' | 'number' | 'boolean' | 'select' | 'json'
@@ -282,6 +285,7 @@ export function normalizeSnapshotSender(sender: SnapshotSender): SnapshotSender 
     type: Number.isFinite(sender.type) ? Math.trunc(sender.type) : 0,
     name: sender.name.trim(),
     jsonSetting: sender.jsonSetting.trim(),
+    activeSchedule: normalizeSenderActiveSchedule(sender.activeSchedule),
   }
 
   for (const field of FLAG_FIELDS) {

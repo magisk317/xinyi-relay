@@ -57,6 +57,8 @@ fun WeworkAgentConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderV
     fun showMessage(message: String) {
         scope.launch { snackbarHostState.showSnackbar(message) }
     }
+    val activeScheduleEntry = LocalSenderActiveScheduleEntry.current
+    val activeSchedule = activeScheduleEntry?.schedule ?: io.github.magisk317.relay.domain.sender.SenderActiveSchedule()
     var name by remember { mutableStateOf("") }
     var corpID by remember { mutableStateOf("") }
     var agentID by remember { mutableStateOf("") }
@@ -106,6 +108,7 @@ fun WeworkAgentConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderV
             receiveNonCode = if (receiveNonCode) 1 else 0,
             receiveAppNotify = if (receiveAppNotify) 1 else 0,
             receiveCallNotify = if (receiveCallNotify) 1 else 0,
+            activeSchedule = activeSchedule,
             time = Date(),
         ) ?: Sender(
             id = 0,
@@ -117,6 +120,7 @@ fun WeworkAgentConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderV
             receiveNonCode = if (receiveNonCode) 1 else 0,
             receiveAppNotify = if (receiveAppNotify) 1 else 0,
             receiveCallNotify = if (receiveCallNotify) 1 else 0,
+            activeSchedule = activeSchedule,
             time = Date(),
         )
     }
@@ -220,6 +224,8 @@ fun WeworkAgentConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderV
                 onReceiveAppNotifyChange = { receiveAppNotify = it },
                 receiveCallNotify = receiveCallNotify,
                 onReceiveCallNotifyChange = { receiveCallNotify = it },
+                activeSchedule = activeSchedule,
+                onActiveScheduleChange = { activeScheduleEntry?.onChange(it) },
             )
             SenderTestActionRow(channel = "WeworkAgent") {
                 WeworkAgentUtils.sendMsg(

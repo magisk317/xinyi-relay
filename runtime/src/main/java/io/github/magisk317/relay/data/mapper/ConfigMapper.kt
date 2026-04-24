@@ -6,8 +6,13 @@ import io.github.magisk317.relay.data.db.entity.SenderEntity
 import io.github.magisk317.relay.domain.model.ForwardFilterRule
 import io.github.magisk317.relay.domain.model.Rule
 import io.github.magisk317.relay.domain.model.Sender
+import io.github.magisk317.relay.domain.sender.SenderActiveSchedule
+import io.github.magisk317.relay.domain.sender.SenderActiveScheduleEvaluator
+import com.google.gson.Gson
 
 object ConfigMapper {
+    private val gson = Gson()
+
     fun RuleEntity.toDomain(): Rule = Rule(
         id = id,
         type = type,
@@ -58,7 +63,8 @@ object ConfigMapper {
         receiveCode = receiveCode,
         receiveNonCode = receiveNonCode,
         receiveAppNotify = receiveAppNotify,
-        receiveCallNotify = receiveCallNotify
+        receiveCallNotify = receiveCallNotify,
+        activeSchedule = parseActiveSchedule(activeScheduleJson),
     )
 
     fun Sender.toEntity(): SenderEntity = SenderEntity(
@@ -71,7 +77,8 @@ object ConfigMapper {
         receiveCode = receiveCode,
         receiveNonCode = receiveNonCode,
         receiveAppNotify = receiveAppNotify,
-        receiveCallNotify = receiveCallNotify
+        receiveCallNotify = receiveCallNotify,
+        activeScheduleJson = gson.toJson(SenderActiveScheduleEvaluator.sanitize(activeSchedule))
     )
 
     fun ForwardFilterRuleEntity.toDomain(): ForwardFilterRule = ForwardFilterRule(
@@ -99,4 +106,10 @@ object ConfigMapper {
         enabled = enabled,
         updateTime = updateTime
     )
+
+    private fun parseActiveSchedule(json: String): SenderActiveSchedule {
+        if (json.isBlank()) return SenderActiveSchedule()
+        val parsed = runCatching { gson.fromJson(json, SenderActiveSchedule::class.java) }.getOrNull()
+        return SenderActiveScheduleEvaluator.sanitize(parsed)
+    }
 }

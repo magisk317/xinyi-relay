@@ -3,11 +3,17 @@ package io.github.magisk317.relay.domain.pipeline
 import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.domain.event.RelayEvent
 import io.github.magisk317.relay.domain.model.Sender
-class SenderSelector {
+import io.github.magisk317.relay.domain.sender.SenderActiveScheduleEvaluator
+import java.time.LocalDateTime
+
+class SenderSelector(
+    private val nowProvider: () -> LocalDateTime = { LocalDateTime.now() },
+) {
     fun selectBaseSenders(
         enabledSenders: List<Sender>,
         event: RelayEvent,
     ): List<Sender> {
+        val now = nowProvider()
         val scopedSenders = event.targetSenderIds
             ?.takeIf { it.isNotEmpty() }
             ?.let { targetIds -> enabledSenders.filter { it.id in targetIds } }
@@ -19,6 +25,8 @@ class SenderSelector {
                 MessageType.APP_NOTIFY -> sender.receiveAppNotify == 1
                 MessageType.CALL_NOTIFY -> sender.receiveCallNotify == 1
             }
+        }.filter { sender ->
+            SenderActiveScheduleEvaluator.isAllowed(sender.activeSchedule, event.messageType, now)
         }
     }
 
@@ -27,10 +35,35 @@ class SenderSelector {
         enabledSenders: List<Sender>,
         event: RelayEvent,
     ): String {
+        val now = nowProvider()
         if (allSenders.isEmpty()) return "未配置任何转发通道"
         if (enabledSenders.isEmpty()) {
             val allNames = allSenders.joinToString(",") { it.name.ifBlank { fallbackSenderTypeName(it.type) } }
             return "所有转发通道均未启用（$allNames）"
+        }
+        val scopedSenders = event.targetSenderIds
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { targetIds -> enabledSenders.filter { it.id in targetIds } }
+            ?: enabledSenders
+        val flagMatchedSenders = scopedSenders.filter { sender ->
+            when (event.messageType) {
+                MessageType.SMS_CODE -> sender.receiveCode == 1
+                MessageType.SMS_PLAIN -> sender.receiveNonCode == 1
+                MessageType.APP_NOTIFY -> sender.receiveAppNotify == 1
+                MessageType.CALL_NOTIFY -> sender.receiveCallNotify == 1
+            }
+        }
+        if (flagMatchedSenders.isNotEmpty() && flagMatchedSenders.none {
+                SenderActiveScheduleEvaluator.isAllowed(it.activeSchedule, event.messageType, now)
+            }
+        ) {
+            return when (event.messageType) {
+                MessageType.SMS_CODE,
+                MessageType.SMS_PLAIN,
+                -> "已启用通道均不在短信生效时间段内"
+                MessageType.APP_NOTIFY -> "已启用通道均不在应用通知生效时间段内"
+                MessageType.CALL_NOTIFY -> "已启用通道均不在通话通知生效时间段内"
+            }
         }
         return when (event.messageType) {
             MessageType.APP_NOTIFY -> {

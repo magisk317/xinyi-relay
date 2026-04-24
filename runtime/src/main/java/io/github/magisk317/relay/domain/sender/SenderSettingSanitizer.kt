@@ -26,7 +26,12 @@ object SenderSettingSanitizer {
 
     fun sanitizeSenderLenient(sender: Sender): Sender {
         val safeJson = sanitizeJsonLenient(sender.type, sender.jsonSetting)
-        return if (safeJson == sender.jsonSetting) sender else sender.copy(jsonSetting = safeJson)
+        val safeSchedule = SenderActiveScheduleEvaluator.sanitize(sender.activeSchedule)
+        return if (safeJson == sender.jsonSetting && safeSchedule == sender.activeSchedule) {
+            sender
+        } else {
+            sender.copy(jsonSetting = safeJson, activeSchedule = safeSchedule)
+        }
     }
 
     fun sanitizeJsonLenient(type: Int, json: String): String {

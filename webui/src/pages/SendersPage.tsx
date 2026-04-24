@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { SenderFieldEditor } from '../SenderFieldEditor'
+import { SenderActiveScheduleEditor } from '../SenderActiveScheduleEditor'
 import { cloneSnapshot } from '../configSnapshot'
 import { useRealtimeFeed } from '../realtime'
 import { trackEvent } from '../analytics'
@@ -10,6 +11,7 @@ import {
   normalizeSnapshotSender,
   resolveSenderJsonForTypeChange
 } from '../senderDefaults'
+import { buildDefaultSenderActiveSchedule } from '../../../shared/senderActiveSchedule'
 import {
   ActionButton,
   EmptyCard,
@@ -34,7 +36,8 @@ export function SendersPage() {
   const [draft, setDraft] = useState(() => ({
     name: '',
     type: 4,
-    jsonSetting: buildSenderDraftJson(4)
+    jsonSetting: buildSenderDraftJson(4),
+    activeSchedule: buildDefaultSenderActiveSchedule()
   }))
 
   useEffect(() => {
@@ -146,6 +149,13 @@ export function SendersPage() {
               onLiveChange={(jsonSetting) => setDraft((prev) => ({ ...prev, jsonSetting }))}
             />
           </div>
+          <div className="md:col-span-2">
+            <SenderActiveScheduleEditor
+              schedule={draft.activeSchedule}
+              locale={locale}
+              onChange={(activeSchedule) => setDraft((prev) => ({ ...prev, activeSchedule }))}
+            />
+          </div>
         </div>
         <div className="mt-4">
           <ActionButton
@@ -162,6 +172,7 @@ export function SendersPage() {
                 type: draft.type,
                 name: draft.name.trim(),
                 jsonSetting: draft.jsonSetting,
+                activeSchedule: draft.activeSchedule,
                 status: 1,
                 receiveCode: 1,
                 receiveNonCode: 1,
@@ -172,7 +183,8 @@ export function SendersPage() {
                 setDraft({
                   name: '',
                   type: draft.type,
-                  jsonSetting: buildSenderDraftJson(draft.type)
+                  jsonSetting: buildSenderDraftJson(draft.type),
+                  activeSchedule: buildDefaultSenderActiveSchedule()
                 })
               })
             }}
@@ -273,6 +285,18 @@ export function SendersPage() {
                     checked={item.receiveAppNotify === 1}
                     onChange={(value) => {
                       void persistSenders(senders.map((sender) => (sender.id === item.id ? { ...sender, receiveAppNotify: value ? 1 : 0 } : sender)))
+                    }}
+                  />
+                </div>
+
+                <div className="mt-4">
+                  <SenderActiveScheduleEditor
+                    schedule={item.activeSchedule}
+                    locale={locale}
+                    onChange={(activeSchedule) => {
+                      void persistSenders(
+                        senders.map((sender) => (sender.id === item.id ? { ...sender, activeSchedule } : sender))
+                      )
                     }}
                   />
                 </div>

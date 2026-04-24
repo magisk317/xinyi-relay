@@ -1,3 +1,5 @@
+import type { SenderActiveSchedule } from './senderActiveSchedule'
+
 export interface ErrorResponse {
   error: string
 }
@@ -77,6 +79,7 @@ export interface SnapshotSender {
   type: number
   name: string
   jsonSetting: string
+  activeSchedule?: SenderActiveSchedule
   status: number
   receiveCode: number
   receiveNonCode: number

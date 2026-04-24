@@ -60,6 +60,8 @@ fun FeishuAppConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVie
     fun showMessage(message: String) {
         scope.launch { snackbarHostState.showSnackbar(message) }
     }
+    val activeScheduleEntry = LocalSenderActiveScheduleEntry.current
+    val activeSchedule = activeScheduleEntry?.schedule ?: io.github.magisk317.relay.domain.sender.SenderActiveSchedule()
     var name by remember { mutableStateOf("") }
     var appId by remember { mutableStateOf("") }
     var appSecret by remember { mutableStateOf("") }
@@ -115,6 +117,7 @@ fun FeishuAppConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVie
             receiveNonCode = if (receiveNonCode) 1 else 0,
             receiveAppNotify = if (receiveAppNotify) 1 else 0,
             receiveCallNotify = if (receiveCallNotify) 1 else 0,
+            activeSchedule = activeSchedule,
             time = Date(),
         ) ?: Sender(
             id = 0,
@@ -126,6 +129,7 @@ fun FeishuAppConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVie
             receiveNonCode = if (receiveNonCode) 1 else 0,
             receiveAppNotify = if (receiveAppNotify) 1 else 0,
             receiveCallNotify = if (receiveCallNotify) 1 else 0,
+            activeSchedule = activeSchedule,
             time = Date(),
         )
     }
@@ -245,6 +249,8 @@ fun FeishuAppConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVie
                 onReceiveAppNotifyChange = { receiveAppNotify = it },
                 receiveCallNotify = receiveCallNotify,
                 onReceiveCallNotifyChange = { receiveCallNotify = it },
+                activeSchedule = activeSchedule,
+                onActiveScheduleChange = { activeScheduleEntry?.onChange(it) },
             )
             SenderTestActionRow(channel = "FeishuApp") {
                 FeishuAppUtils.sendMsg(

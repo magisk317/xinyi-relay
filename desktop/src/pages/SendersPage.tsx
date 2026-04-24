@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { SenderFieldEditor } from '../components/SenderFieldEditor'
+import { SenderActiveScheduleEditor } from '../components/SenderActiveScheduleEditor'
 import { cloneSnapshot } from '../configSnapshot'
 import { useDesktopConfigSnapshotEditor } from '../hooks/useDesktopConfigSnapshotEditor'
 import { translateSenderType, useDesktopI18n } from '../i18n'
@@ -10,6 +11,7 @@ import {
   normalizeSnapshotSender,
   resolveSenderJsonForTypeChange
 } from '../../../shared/senderDefaults'
+import { buildDefaultSenderActiveSchedule } from '../../../shared/senderActiveSchedule'
 import type { SnapshotSender } from '../../../shared/contracts/console'
 import { DesktopSelect, EmptyState, Metric, Panel, Tag } from '../ui'
 
@@ -22,7 +24,8 @@ export function SendersPage() {
   const [draft, setDraft] = useState(() => ({
     name: '',
     type: 4,
-    jsonSetting: buildSenderDraftJson(4)
+    jsonSetting: buildSenderDraftJson(4),
+    activeSchedule: buildDefaultSenderActiveSchedule()
   }))
 
   useEffect(() => {
@@ -108,6 +111,11 @@ export function SendersPage() {
           locale={locale}
           onLiveChange={(jsonSetting) => setDraft((previous) => ({ ...previous, jsonSetting }))}
         />
+        <SenderActiveScheduleEditor
+          schedule={draft.activeSchedule}
+          locale={locale}
+          onChange={(activeSchedule) => setDraft((previous) => ({ ...previous, activeSchedule }))}
+        />
         <div className="button-row">
           <button
             type="button"
@@ -124,6 +132,7 @@ export function SendersPage() {
                 type: draft.type,
                 name: draft.name.trim(),
                 jsonSetting: draft.jsonSetting,
+                activeSchedule: draft.activeSchedule,
                 status: 1,
                 receiveCode: 1,
                 receiveNonCode: 1,
@@ -134,7 +143,8 @@ export function SendersPage() {
                 setDraft({
                   name: '',
                   type: draft.type,
-                  jsonSetting: buildSenderDraftJson(draft.type)
+                  jsonSetting: buildSenderDraftJson(draft.type),
+                  activeSchedule: buildDefaultSenderActiveSchedule()
                 })
               })
             }}
@@ -219,6 +229,16 @@ export function SendersPage() {
                       void persistSenders(senders.map((sender) => (sender.id === item.id ? { ...sender, receiveAppNotify: checked ? 1 : 0 } : sender)))
                     }} />
                   </div>
+
+                  <SenderActiveScheduleEditor
+                    schedule={item.activeSchedule}
+                    locale={locale}
+                    onChange={(activeSchedule) => {
+                      void persistSenders(
+                        senders.map((sender) => (sender.id === item.id ? { ...sender, activeSchedule } : sender))
+                      )
+                    }}
+                  />
 
                   <SenderFieldEditor
                     type={item.type}
