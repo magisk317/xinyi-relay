@@ -188,10 +188,13 @@ def command_apply_updates(args: argparse.Namespace) -> None:
     alerts = load_alerts(Path(args.alerts_json))
     security_forces: dict[str, str] = {}
     for alert in alerts:
+        ecosystem = alert.get("dependency", {}).get("package", {}).get("ecosystem")
         dep = alert.get("dependency", {}).get("package", {}).get("name")
         patched = alert.get("security_vulnerability", {}).get("first_patched_version", {}) or {}
         target = patched.get("identifier") or patched.get("version")
-        if dep and target:
+        # This workflow writes Gradle resolutionStrategy.force(...) entries, so only
+        # Maven coordinates are valid here. Ignore cargo/npm/etc alerts.
+        if ecosystem == "maven" and dep and ":" in dep and target:
             security_forces[dep] = target
 
     filtered: list[str] = []
