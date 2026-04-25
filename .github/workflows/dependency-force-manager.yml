@@ -87,6 +87,12 @@ jobs:
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/dependabot/alerts?state=open&per_page=100" \
             > /tmp/dependabot-alerts.json
 
+      - name: Resolve natural versions for security dependencies
+        run: |
+          python3 scripts/manage_dependency_forces.py resolve-alert-natural \
+            --alerts-json /tmp/dependabot-alerts.json \
+            --output /tmp/security-natural.json
+
       - name: Apply updates (remove + add security forces)
         id: apply
         run: |
@@ -94,7 +100,8 @@ jobs:
             --build-file build.gradle.kts \
             --toml-file gradle/libs.versions.toml \
             --removable-json /tmp/removable.json \
-            --alerts-json /tmp/dependabot-alerts.json
+            --alerts-json /tmp/dependabot-alerts.json \
+            --natural-json /tmp/security-natural.json
 
       - name: Create PR with dependency force updates
         uses: peter-evans/create-pull-request@v8

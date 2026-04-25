@@ -11,6 +11,9 @@ from typing import Any
 
 import tomllib
 
+AUTO_FORCE_BEGIN = "            // BEGIN AUTO FORCED DEPENDENCIES (managed by workflow)"
+AUTO_FORCE_END = "            // END AUTO FORCED DEPENDENCIES (managed by workflow)"
+
 
 def load_catalog(toml_path: Path) -> tuple[dict[str, Any], dict[str, Any]]:
     libs = tomllib.loads(toml_path.read_text())
@@ -65,13 +68,61 @@ def parse_force_line(line: str, versions: dict[str, Any], libraries: dict[str, A
     return None
 
 
+def iter_managed_blocks(lines: list[str]) -> list[tuple[int, int]]:
+    blocks: list[tuple[int, int]] = []
+    start: int | None = None
+    for index, line in enumerate(lines):
+        if line == AUTO_FORCE_BEGIN:
+            start = index
+        elif line == AUTO_FORCE_END:
+            if start is None:
+                raise SystemExit("Auto force block end found before begin in build.gradle.kts")
+            blocks.append((start, index))
+            start = None
+    if start is not None:
+        raise SystemExit("Auto force block begin without matching end in build.gradle.kts")
+    if not blocks:
+        raise SystemExit("Auto force block not found in build.gradle.kts")
+    return blocks
+
+
+def replace_managed_blocks(lines: list[str], block_lines: list[str]) -> list[str]:
+    output: list[str] = []
+    skip_until: int | None = None
+    for index, line in enumerate(lines):
+        if skip_until is not None:
+            if index <= skip_until:
+                continue
+            skip_until = None
+        if line == AUTO_FORCE_BEGIN:
+            _, end_index = next(block for block in iter_managed_blocks(lines) if block[0] == index)
+            output.extend(block_lines)
+            skip_until = end_index
+            continue
+        output.append(line)
+    return output
+
+
+def version_key(version: str) -> list[tuple[int, int | str]]:
+    parts = re.findall(r"\d+|[A-Za-z]+", version)
+    key: list[tuple[int, int | str]] = []
+    for part in parts:
+        if part.isdigit():
+            key.append((0, int(part)))
+        else:
+            key.append((1, part.lower()))
+    return key
+
+
 def command_read_forces(args: argparse.Namespace) -> None:
     versions, libraries = load_catalog(Path(args.toml_file))
     forces = []
-    for line in Path(args.build_file).read_text().splitlines():
-        resolved = parse_force_line(line, versions, libraries)
-        if resolved:
-            forces.append(resolved)
+    lines = Path(args.build_file).read_text().splitlines()
+    for start, end in iter_managed_blocks(lines):
+        for line in lines[start + 1 : end]:
+            resolved = parse_force_line(line, versions, libraries)
+            if resolved:
+                forces.append(resolved)
 
     Path(args.output).write_text(json.dumps(forces, indent=2) + "\n")
     print(f"Forced entries: {len(forces)}")
@@ -81,7 +132,7 @@ def command_strip_force_lines(args: argparse.Namespace) -> None:
     path = Path(args.build_file)
     original = path.read_text()
     lines = original.splitlines()
-    new_lines = [line for line in lines if "force(" not in line]
+    new_lines = replace_managed_blocks(lines, [AUTO_FORCE_BEGIN, AUTO_FORCE_END])
     path.write_text("\n".join(new_lines) + ("\n" if original.endswith("\n") else ""))
 
 
@@ -179,12 +230,49 @@ def line_dep(expr: str, versions: dict[str, Any], libraries: dict[str, Any]) -> 
     return None
 
 
+def command_resolve_alert_natural(args: argparse.Namespace) -> None:
+    alerts = load_alerts(Path(args.alerts_json))
+    deps = sorted(
+        {
+            alert.get("dependency", {}).get("package", {}).get("name")
+            for alert in alerts
+            if alert.get("dependency", {}).get("package", {}).get("ecosystem") == "maven"
+            and ":" in (alert.get("dependency", {}).get("package", {}).get("name") or "")
+        }
+    )
+
+    proc = subprocess.run(
+        [args.gradlew, "-q", "buildEnvironment"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    text = proc.stdout + "\n" + proc.stderr
+
+    results: dict[str, dict[str, dict[str, Any]]] = {}
+    for dep in deps:
+        group, artifact = dep.split(":", 1)
+        resolved = extract_resolved_version(text, group, artifact)
+        results[dep] = {
+            "buildscript.classpath": {
+                "resolved": resolved,
+                "returncode": proc.returncode,
+                "config_missing": False,
+            }
+        }
+        if not resolved:
+            print(f"  WARN: no buildscript.classpath version found for {dep}")
+
+    Path(args.output).write_text(json.dumps(results, indent=2) + "\n")
+
+
 def command_apply_updates(args: argparse.Namespace) -> None:
     build_path = Path(args.build_file)
     versions, libraries = load_catalog(Path(args.toml_file))
     text = build_path.read_text().splitlines()
 
     removable = set(json.loads(Path(args.removable_json).read_text()))
+    natural_versions = json.loads(Path(args.natural_json).read_text()) if args.natural_json else {}
     alerts = load_alerts(Path(args.alerts_json))
     security_forces: dict[str, str] = {}
     for alert in alerts:
@@ -195,7 +283,14 @@ def command_apply_updates(args: argparse.Namespace) -> None:
         # This workflow writes Gradle resolutionStrategy.force(...) entries, so only
         # Maven coordinates are valid here. Ignore cargo/npm/etc alerts.
         if ecosystem == "maven" and dep and ":" in dep and target:
-            security_forces[dep] = target
+            selected = target
+            for entry in natural_versions.get(dep, {}).values():
+                resolved = entry.get("resolved")
+                if resolved and version_key(resolved) > version_key(selected):
+                    selected = resolved
+            current = security_forces.get(dep)
+            if current is None or version_key(selected) > version_key(current):
+                security_forces[dep] = selected
 
     filtered: list[str] = []
     for line in text:
@@ -210,20 +305,12 @@ def command_apply_updates(args: argparse.Namespace) -> None:
             continue
         filtered.append(line)
 
-    begin = "            // BEGIN AUTO FORCED DEPENDENCIES (managed by workflow)"
-    end = "            // END AUTO FORCED DEPENDENCIES (managed by workflow)"
-    try:
-        start = filtered.index(begin)
-        stop = filtered.index(end)
-    except ValueError as exc:
-        raise SystemExit("Auto force block not found in build.gradle.kts") from exc
-
-    block_lines = [begin]
+    block_lines = [AUTO_FORCE_BEGIN]
     for dep in sorted(security_forces):
         block_lines.append(f"            force(\"{dep}:{security_forces[dep]}\")")
-    block_lines.append(end)
+    block_lines.append(AUTO_FORCE_END)
 
-    new_text = filtered[:start] + block_lines + filtered[stop + 1 :]
+    new_text = replace_managed_blocks(filtered, block_lines)
     build_path.write_text("\n".join(new_text) + "\n")
 
 
@@ -260,7 +347,14 @@ def build_parser() -> argparse.ArgumentParser:
     apply_updates.add_argument("--toml-file", required=True)
     apply_updates.add_argument("--removable-json", required=True)
     apply_updates.add_argument("--alerts-json", required=True)
+    apply_updates.add_argument("--natural-json")
     apply_updates.set_defaults(func=command_apply_updates)
+
+    resolve_alert_natural = subparsers.add_parser("resolve-alert-natural")
+    resolve_alert_natural.add_argument("--gradlew", default="./gradlew")
+    resolve_alert_natural.add_argument("--alerts-json", required=True)
+    resolve_alert_natural.add_argument("--output", required=True)
+    resolve_alert_natural.set_defaults(func=command_resolve_alert_natural)
 
     return parser
 
