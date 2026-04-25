@@ -270,6 +270,16 @@ def command_apply_updates(args: argparse.Namespace) -> None:
     build_path = Path(args.build_file)
     versions, libraries = load_catalog(Path(args.toml_file))
     text = build_path.read_text().splitlines()
+    existing_forces: dict[str, str] = {}
+    for start, end in iter_managed_blocks(text):
+        for line in text[start + 1 : end]:
+            resolved = parse_force_line(line, versions, libraries)
+            if not resolved:
+                continue
+            dep = f"{resolved['group']}:{resolved['artifact']}"
+            current = existing_forces.get(dep)
+            if current is None or version_key(resolved["version"]) > version_key(current):
+                existing_forces[dep] = resolved["version"]
 
     removable = set(json.loads(Path(args.removable_json).read_text()))
     natural_versions = json.loads(Path(args.natural_json).read_text()) if args.natural_json else {}
@@ -284,6 +294,9 @@ def command_apply_updates(args: argparse.Namespace) -> None:
         # Maven coordinates are valid here. Ignore cargo/npm/etc alerts.
         if ecosystem == "maven" and dep and ":" in dep and target:
             selected = target
+            existing = existing_forces.get(dep)
+            if existing and version_key(existing) > version_key(selected):
+                selected = existing
             for entry in natural_versions.get(dep, {}).values():
                 resolved = entry.get("resolved")
                 if resolved and version_key(resolved) > version_key(selected):
