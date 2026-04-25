@@ -1,4 +1,4 @@
-name: Dependabot Auto Merge
+name: Dependency PR Auto Merge
 
 on:
   pull_request:
@@ -14,32 +14,15 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       github.event.pull_request.base.ref == 'beta' &&
-      contains(fromJson('["dependabot[bot]","app/dependabot","renovate[bot]","app/renovate","github-actions[bot]","magisk317"]'), github.event.pull_request.user.login)
+      (
+        github.event.pull_request.user.login == 'github-actions[bot]' ||
+        (
+          github.event.pull_request.user.login == 'magisk317' &&
+          startsWith(github.head_ref, 'renovate/')
+        )
+      )
     steps:
-      - name: Dependabot metadata
-        id: metadata
-        if: github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'app/dependabot'
-        uses: dependabot/fetch-metadata@v3
-        with:
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
-          skip-commit-verification: true
-
-      - name: Enable auto-merge for Dependabot PRs
-        if: github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'app/dependabot'
-        run: gh pr merge --merge --delete-branch "$PR_URL"
-        env:
-          PR_URL: ${{github.event.pull_request.html_url}}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Enable auto-merge for Renovate PRs
-        if: github.event.pull_request.user.login == 'renovate[bot]' || github.event.pull_request.user.login == 'app/renovate'
-        run: gh pr merge --merge --delete-branch "$PR_URL"
-        env:
-          PR_URL: ${{github.event.pull_request.html_url}}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Enable auto-merge for GitHub Actions or magisk317 PRs
-        if: github.event.pull_request.user.login == 'github-actions[bot]' || github.event.pull_request.user.login == 'magisk317'
+      - name: Enable auto-merge for dependency PRs
         run: gh pr merge --merge --delete-branch "$PR_URL"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
