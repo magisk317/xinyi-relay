@@ -4,9 +4,19 @@ on:
   schedule:
     - cron: "0 */6 * * *"
   workflow_dispatch:
+  issues:
+    types:
+      - edited
+  pull_request_target:
+    types:
+      - edited
+    branches:
+      - beta
 
 permissions:
   contents: read
+  issues: read
+  pull-requests: read
 
 concurrency:
   group: renovate
@@ -15,6 +25,36 @@ concurrency:
 jobs:
   renovate:
     runs-on: ubuntu-latest
+    if: |
+      (
+        github.event_name != 'pull_request_target' &&
+        github.event_name != 'issues'
+      ) ||
+      (
+        github.event_name == 'pull_request_target' &&
+        github.event.pull_request.base.ref == 'beta' &&
+        github.event.pull_request.user.login == 'magisk317' &&
+        startsWith(github.event.pull_request.head.ref, 'renovate/') &&
+        github.event.changes.body != null &&
+        contains(github.event.pull_request.body, '- [x] <!-- rebase-check -->') &&
+        !contains(github.event.changes.body.from, '- [x] <!-- rebase-check -->')
+      ) ||
+      (
+        github.event_name == 'issues' &&
+        github.event.issue.title == 'Dependency Dashboard' &&
+        github.event.changes.body != null &&
+        contains(github.event.issue.body, 'This issue lists Renovate updates and detected dependencies.') &&
+        (
+          (
+            contains(github.event.issue.body, '- [x] <!-- rebase-all-open-prs -->') &&
+            !contains(github.event.changes.body.from, '- [x] <!-- rebase-all-open-prs -->')
+          ) ||
+          (
+            contains(github.event.issue.body, '- [x] <!-- rebase-branch=') &&
+            !contains(github.event.changes.body.from, '- [x] <!-- rebase-branch=')
+          )
+        )
+      )
     steps:
       - name: Checkout
         uses: actions/checkout@v6
