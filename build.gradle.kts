@@ -10,9 +10,6 @@ buildscript {
     }
     configurations.all {
         resolutionStrategy {
-            force(libs.jose4j)
-            force(libs.jdom2)
-            force(libs.apache.commons.lang3)
         }
     }
 }
@@ -100,11 +97,20 @@ subprojects {
 
     configurations.all {
         resolutionStrategy {
-            force(catalog.jose4j)
-            force(catalog.jdom2)
-            force(catalog.apache.commons.lang3)
             force(catalog.apache.httpclient)
             // BEGIN AUTO FORCED DEPENDENCIES (managed by workflow)
+            force("com.google.code.gson:gson:2.8.9")
+            force("com.google.guava:guava:32.0.0-android")
+            force("io.netty:netty-codec:4.1.125.Final")
+            force("io.netty:netty-codec-http:4.1.108.Final")
+            force("io.netty:netty-codec-http2:4.1.100.Final")
+            force("io.netty:netty-common:4.1.115.Final")
+            force("io.netty:netty-handler:4.1.94.Final")
+            force("org.apache.commons:commons-lang3:3.18.0")
+            force("org.bitbucket.b_c:jose4j:0.9.6")
+            force("org.bouncycastle:bcpkix-jdk18on:1.84")
+            force("org.bouncycastle:bcprov-jdk18on:1.84")
+            force("org.jdom:jdom2:2.0.6.1")
             // END AUTO FORCED DEPENDENCIES (managed by workflow)
         }
     }
