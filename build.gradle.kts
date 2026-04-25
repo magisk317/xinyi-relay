@@ -12,7 +12,7 @@ buildscript {
         resolutionStrategy {
             // BEGIN AUTO FORCED DEPENDENCIES (managed by workflow)
             force("com.google.code.gson:gson:2.14.0")
-            force("com.google.guava:guava:32.1.3-jre")
+            force("com.google.guava:guava:33.6.0-jre")
             force("io.netty:netty-codec:4.1.125.Final")
             force("io.netty:netty-codec-http:4.1.132.Final")
             force("io.netty:netty-codec-http2:4.1.132.Final")
@@ -114,7 +114,7 @@ subprojects {
             force(catalog.apache.httpclient)
             // BEGIN AUTO FORCED DEPENDENCIES (managed by workflow)
             force("com.google.code.gson:gson:2.14.0")
-            force("com.google.guava:guava:32.1.3-jre")
+            force("com.google.guava:guava:33.6.0-jre")
             force("io.netty:netty-codec:4.1.125.Final")
             force("io.netty:netty-codec-http:4.1.132.Final")
             force("io.netty:netty-codec-http2:4.1.132.Final")
