@@ -11,9 +11,9 @@ buildscript {
     configurations.all {
         resolutionStrategy {
             // BEGIN AUTO FORCED DEPENDENCIES (managed by workflow)
-            force("com.google.code.gson:gson:2.8.9")
-            force("com.google.guava:guava:32.0.0-android")
-            force("org.apache.commons:commons-lang3:3.18.0")
+            force("com.google.code.gson:gson:2.14.0")
+            force("com.google.guava:guava:32.1.3-jre")
+            force("org.apache.commons:commons-lang3:3.20.0")
             force("org.bitbucket.b_c:jose4j:0.9.6")
             force("org.bouncycastle:bcpkix-jdk18on:1.84")
             force("org.bouncycastle:bcprov-jdk18on:1.84")
@@ -108,9 +108,9 @@ subprojects {
         resolutionStrategy {
             force(catalog.apache.httpclient)
             // BEGIN AUTO FORCED DEPENDENCIES (managed by workflow)
-            force("com.google.code.gson:gson:2.8.9")
-            force("com.google.guava:guava:32.0.0-android")
-            force("org.apache.commons:commons-lang3:3.18.0")
+            force("com.google.code.gson:gson:2.14.0")
+            force("com.google.guava:guava:32.1.3-jre")
+            force("org.apache.commons:commons-lang3:3.20.0")
             force("org.bitbucket.b_c:jose4j:0.9.6")
             force("org.bouncycastle:bcpkix-jdk18on:1.84")
             force("org.bouncycastle:bcprov-jdk18on:1.84")
