@@ -4,6 +4,8 @@
         "config:recommended"
     ],
     "forkProcessing": "enabled",
+    "pruneStaleBranches": true,
+    "pruneBranchAfterAutomerge": true,
     "baseBranchPatterns": [
         "beta"
     ],
@@ -13,6 +15,8 @@
                 "minor",
                 "patch"
             ],
+            "automerge": true,
+            "automergeType": "pr",
             "groupName": "all non-major dependencies",
             "groupSlug": "all-minor-patch",
             "matchPackageNames": [
@@ -21,16 +25,16 @@
         },
         {
             "matchPackageNames": [
-                "int:LOG_LEVEL"
-            ],
-            "enabled": false
-        },
-        {
-            "matchPackageNames": [
-                "io.github.libxposed:api",
-                "io.github.libxposed:service"
+                "int:LOG_LEVEL",
+                "int:MODULE_VERSION",
+                "int:VERSION_CODE"
             ],
             "enabled": false
         }
-    ]
+    ],
+    "osvVulnerabilityAlerts": true,
+    "vulnerabilityAlerts": {
+        "enabled": true,
+        "labels": ["security"]
+    }
 }
