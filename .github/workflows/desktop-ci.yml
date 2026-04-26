@@ -18,8 +18,55 @@ permissions:
   contents: read
 
 jobs:
-  tauri-linux-check:
-    runs-on: ubuntu-latest
+  desktop-package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            os_name: linux
+            arch_name: x64
+            rust_target: x86_64-unknown-linux-gnu
+            bundle_args: "--target x86_64-unknown-linux-gnu --bundles appimage,deb,rpm"
+            bundle_dir: desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle
+          - runner: ubuntu-24.04-arm
+            os_name: linux
+            arch_name: arm64
+            rust_target: aarch64-unknown-linux-gnu
+            bundle_args: "--target aarch64-unknown-linux-gnu --bundles appimage,deb,rpm"
+            bundle_dir: desktop/src-tauri/target/aarch64-unknown-linux-gnu/release/bundle
+          - runner: windows-latest
+            os_name: windows
+            arch_name: x86
+            rust_target: i686-pc-windows-msvc
+            bundle_args: "--target i686-pc-windows-msvc --bundles nsis,msi"
+            bundle_dir: desktop/src-tauri/target/i686-pc-windows-msvc/release/bundle
+          - runner: windows-latest
+            os_name: windows
+            arch_name: x64
+            rust_target: x86_64-pc-windows-msvc
+            bundle_args: "--target x86_64-pc-windows-msvc --bundles nsis,msi"
+            bundle_dir: desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle
+          - runner: windows-11-arm
+            os_name: windows
+            arch_name: arm64
+            rust_target: aarch64-pc-windows-msvc
+            bundle_args: "--target aarch64-pc-windows-msvc --bundles nsis,msi"
+            bundle_dir: desktop/src-tauri/target/aarch64-pc-windows-msvc/release/bundle
+          - runner: macos-15-intel
+            os_name: macos
+            arch_name: intel
+            rust_target: x86_64-apple-darwin
+            bundle_args: "--target x86_64-apple-darwin --bundles app,dmg"
+            bundle_dir: desktop/src-tauri/target/x86_64-apple-darwin/release/bundle
+          - runner: macos-latest
+            os_name: macos
+            arch_name: apple-silicon
+            rust_target: aarch64-apple-darwin
+            bundle_args: "--target aarch64-apple-darwin --bundles app,dmg"
+            bundle_dir: desktop/src-tauri/target/aarch64-apple-darwin/release/bundle
+
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -30,7 +77,13 @@ jobs:
         with:
           node-version: "24"
 
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
       - name: Install desktop dependencies
+        if: matrix.os_name == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -56,9 +109,66 @@ jobs:
           cd desktop
           npm run build
 
-      - name: Tauri Linux check
+      - name: Build desktop bundles
         env:
-          PKG_CONFIG: /usr/bin/pkg-config
+          PKG_CONFIG: ${{ matrix.os_name == 'linux' && '/usr/bin/pkg-config' || '' }}
+          TAURI_LINUX_AYATANA_APPINDICATOR: ${{ matrix.os_name == 'linux' && '1' || '' }}
         run: |
           cd desktop
-          npm run tauri:check:linux
+          npm run tauri:build -- ${{ matrix.bundle_args }}
+
+      - name: Upload AppImage artifact
+        if: matrix.os_name == 'linux'
+        uses: actions/upload-artifact@v7
+        with:
+          name: xinyi-relay-desktop-${{ matrix.os_name }}-${{ matrix.arch_name }}-appimage
+          path: ${{ matrix.bundle_dir }}/**/*.AppImage
+          if-no-files-found: error
+
+      - name: Upload DEB artifact
+        if: matrix.os_name == 'linux'
+        uses: actions/upload-artifact@v7
+        with:
+          name: xinyi-relay-desktop-${{ matrix.os_name }}-${{ matrix.arch_name }}-deb
+          path: ${{ matrix.bundle_dir }}/**/*.deb
+          if-no-files-found: error
+
+      - name: Upload RPM artifact
+        if: matrix.os_name == 'linux'
+        uses: actions/upload-artifact@v7
+        with:
+          name: xinyi-relay-desktop-${{ matrix.os_name }}-${{ matrix.arch_name }}-rpm
+          path: ${{ matrix.bundle_dir }}/**/*.rpm
+          if-no-files-found: error
+
+      - name: Upload EXE artifact
+        if: matrix.os_name == 'windows'
+        uses: actions/upload-artifact@v7
+        with:
+          name: xinyi-relay-desktop-${{ matrix.os_name }}-${{ matrix.arch_name }}-exe
+          path: ${{ matrix.bundle_dir }}/**/*.exe
+          if-no-files-found: error
+
+      - name: Upload MSI artifact
+        if: matrix.os_name == 'windows'
+        uses: actions/upload-artifact@v7
+        with:
+          name: xinyi-relay-desktop-${{ matrix.os_name }}-${{ matrix.arch_name }}-msi
+          path: ${{ matrix.bundle_dir }}/**/*.msi
+          if-no-files-found: error
+
+      - name: Upload APP artifact
+        if: matrix.os_name == 'macos'
+        uses: actions/upload-artifact@v7
+        with:
+          name: xinyi-relay-desktop-${{ matrix.os_name }}-${{ matrix.arch_name }}-app
+          path: ${{ matrix.bundle_dir }}/**/*.app
+          if-no-files-found: error
+
+      - name: Upload DMG artifact
+        if: matrix.os_name == 'macos'
+        uses: actions/upload-artifact@v7
+        with:
+          name: xinyi-relay-desktop-${{ matrix.os_name }}-${{ matrix.arch_name }}-dmg
+          path: ${{ matrix.bundle_dir }}/**/*.dmg
+          if-no-files-found: error

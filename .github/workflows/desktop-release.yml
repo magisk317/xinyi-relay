@@ -16,17 +16,50 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            bundle_args: "--bundles appimage,deb,rpm"
-            artifact_label: linux
-          - os: windows-latest
-            bundle_args: "--bundles nsis,msi"
-            artifact_label: windows
-          - os: macos-latest
-            bundle_args: "--bundles app,dmg"
-            artifact_label: macos
+          - runner: ubuntu-latest
+            os_name: linux
+            arch_name: x64
+            rust_target: x86_64-unknown-linux-gnu
+            bundle_args: "--target x86_64-unknown-linux-gnu --bundles appimage,deb,rpm"
+            bundle_dir: desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle
+          - runner: ubuntu-24.04-arm
+            os_name: linux
+            arch_name: arm64
+            rust_target: aarch64-unknown-linux-gnu
+            bundle_args: "--target aarch64-unknown-linux-gnu --bundles appimage,deb,rpm"
+            bundle_dir: desktop/src-tauri/target/aarch64-unknown-linux-gnu/release/bundle
+          - runner: windows-latest
+            os_name: windows
+            arch_name: x86
+            rust_target: i686-pc-windows-msvc
+            bundle_args: "--target i686-pc-windows-msvc --bundles nsis,msi"
+            bundle_dir: desktop/src-tauri/target/i686-pc-windows-msvc/release/bundle
+          - runner: windows-latest
+            os_name: windows
+            arch_name: x64
+            rust_target: x86_64-pc-windows-msvc
+            bundle_args: "--target x86_64-pc-windows-msvc --bundles nsis,msi"
+            bundle_dir: desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle
+          - runner: windows-11-arm
+            os_name: windows
+            arch_name: arm64
+            rust_target: aarch64-pc-windows-msvc
+            bundle_args: "--target aarch64-pc-windows-msvc --bundles nsis,msi"
+            bundle_dir: desktop/src-tauri/target/aarch64-pc-windows-msvc/release/bundle
+          - runner: macos-15-intel
+            os_name: macos
+            arch_name: intel
+            rust_target: x86_64-apple-darwin
+            bundle_args: "--target x86_64-apple-darwin --bundles app,dmg"
+            bundle_dir: desktop/src-tauri/target/x86_64-apple-darwin/release/bundle
+          - runner: macos-latest
+            os_name: macos
+            arch_name: apple-silicon
+            rust_target: aarch64-apple-darwin
+            bundle_args: "--target aarch64-apple-darwin --bundles app,dmg"
+            bundle_dir: desktop/src-tauri/target/aarch64-apple-darwin/release/bundle
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - uses: actions/checkout@v6
@@ -38,9 +71,11 @@ jobs:
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
 
       - name: Install Linux desktop dependencies
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os_name == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -67,11 +102,11 @@ jobs:
       - name: Validate signing inputs
         shell: bash
         run: |
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          if [ "${{ matrix.os_name }}" = "windows" ]; then
             test -n "${{ secrets.WINDOWS_CERTIFICATE }}" || { echo "Missing WINDOWS_CERTIFICATE"; exit 1; }
             test -n "${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}" || { echo "Missing WINDOWS_CERTIFICATE_PASSWORD"; exit 1; }
           fi
-          if [ "${{ matrix.os }}" = "macos-latest" ]; then
+          if [ "${{ matrix.os_name }}" = "macos" ]; then
             test -n "${{ secrets.APPLE_CERTIFICATE }}" || { echo "Missing APPLE_CERTIFICATE"; exit 1; }
             test -n "${{ secrets.APPLE_CERTIFICATE_PASSWORD }}" || { echo "Missing APPLE_CERTIFICATE_PASSWORD"; exit 1; }
             test -n "${{ secrets.APPLE_SIGNING_IDENTITY }}" || { echo "Missing APPLE_SIGNING_IDENTITY"; exit 1; }
@@ -84,8 +119,8 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PKG_CONFIG: ${{ matrix.os == 'ubuntu-latest' && '/usr/bin/pkg-config' || '' }}
-          TAURI_LINUX_AYATANA_APPINDICATOR: ${{ matrix.os == 'ubuntu-latest' && '1' || '' }}
+          PKG_CONFIG: ${{ matrix.os_name == 'linux' && '/usr/bin/pkg-config' || '' }}
+          TAURI_LINUX_AYATANA_APPINDICATOR: ${{ matrix.os_name == 'linux' && '1' || '' }}
           WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
           WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -101,15 +136,15 @@ jobs:
       - name: Upload desktop bundles
         uses: actions/upload-artifact@v7
         with:
-          name: xinyi-relay-desktop-${{ matrix.artifact_label }}
+          name: xinyi-relay-desktop-${{ matrix.os_name }}-${{ matrix.arch_name }}
           path: |
-            desktop/src-tauri/target/release/bundle/**/*.AppImage
-            desktop/src-tauri/target/release/bundle/**/*.deb
-            desktop/src-tauri/target/release/bundle/**/*.rpm
-            desktop/src-tauri/target/release/bundle/**/*.msi
-            desktop/src-tauri/target/release/bundle/**/*.exe
-            desktop/src-tauri/target/release/bundle/**/*.app
-            desktop/src-tauri/target/release/bundle/**/*.dmg
+            ${{ matrix.bundle_dir }}/**/*.AppImage
+            ${{ matrix.bundle_dir }}/**/*.deb
+            ${{ matrix.bundle_dir }}/**/*.rpm
+            ${{ matrix.bundle_dir }}/**/*.msi
+            ${{ matrix.bundle_dir }}/**/*.exe
+            ${{ matrix.bundle_dir }}/**/*.app
+            ${{ matrix.bundle_dir }}/**/*.dmg
 
       - name: Publish desktop bundles to release
         if: startsWith(github.ref, 'refs/tags/')
@@ -122,13 +157,13 @@ jobs:
           eval "$(bash scripts/release_ref.sh parse-ref "${GITHUB_REF_TYPE}" "${GITHUB_REF_NAME}")"
 
           mapfile -d '' release_assets < <(
-            find desktop/src-tauri/target/release/bundle -type f \
+            find "${{ matrix.bundle_dir }}" -type f \
               \( -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' -o -name '*.msi' -o -name '*.exe' -o -name '*.app' -o -name '*.dmg' \) \
               -print0 | sort -z
           )
           if [[ ${#release_assets[@]} -eq 0 ]]; then
             echo "ERROR: no desktop release assets found" >&2
-            find desktop/src-tauri/target/release/bundle -type f | sort >&2 || true
+            find "${{ matrix.bundle_dir }}" -type f | sort >&2 || true
             exit 1
           fi
 
