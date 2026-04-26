@@ -71,6 +71,22 @@ class SenderSettingSanitizerTest {
     }
 
     @Test
+    fun sanitizeSenderLenient_webhookInvalidFieldTypes_preservesCoreSecrets() {
+        val sender = newSender(
+            SenderType.WEBHOOK,
+            """{"method":"POST","webServer":"https://example.com/hook","secret":"signing-key","headers":"bad","proxyType":{"bad":true}}""",
+        )
+
+        val sanitized = SenderSettingSanitizer.sanitizeSenderLenient(sender)
+        val setting = gson.fromJson(sanitized.jsonSetting, WebhookSetting::class.java)
+
+        assertEquals("https://example.com/hook", setting.webServer)
+        assertEquals("signing-key", setting.secret)
+        assertTrue(setting.headers.isEmpty())
+        assertEquals(java.net.Proxy.Type.DIRECT, setting.proxyType)
+    }
+
+    @Test
     fun sanitizeSenderLenient_emailNullFields_areSafeForValidation() {
         val sender = newSender(
             SenderType.EMAIL,
@@ -97,6 +113,23 @@ class SenderSettingSanitizerTest {
         assertEquals("relay@example.com", setting.authEmail)
         assertEquals("Android relay", setting.fromEmailAlias)
         assertEquals("Android relay", setting.nickname)
+    }
+
+    @Test
+    fun sanitizeSenderLenient_weworkAgentInvalidProxy_preservesSecretFields() {
+        val sender = newSender(
+            SenderType.WEWORK_AGENT,
+            """{"corpID":"corp-id","agentID":"1000001","secret":"corp-secret","proxyType":{"bad":true},"proxyPort":["oops"]}""",
+        )
+
+        val sanitized = SenderSettingSanitizer.sanitizeSenderLenient(sender)
+        val setting = gson.fromJson(sanitized.jsonSetting, WeworkAgentSetting::class.java)
+
+        assertEquals("corp-id", setting.corpID)
+        assertEquals("1000001", setting.agentID)
+        assertEquals("corp-secret", setting.secret)
+        assertEquals(java.net.Proxy.Type.DIRECT, setting.proxyType)
+        assertEquals("", setting.proxyPort)
     }
 
     @Test

@@ -19,6 +19,8 @@ import io.github.magisk317.relay.platform.sender.config.WebhookSetting
 import io.github.magisk317.relay.platform.sender.config.WeworkAgentSetting
 import io.github.magisk317.relay.platform.sender.config.WeworkRobotSetting
 import com.google.gson.Gson
+import com.google.gson.JsonElement
+import com.google.gson.JsonObject
 import java.net.Proxy
 
 object SenderSettingSanitizer {
@@ -35,306 +37,342 @@ object SenderSettingSanitizer {
     }
 
     fun sanitizeJsonLenient(type: Int, json: String): String {
+        val rawJson = parseSettingJson(json)
         return when (type) {
             SenderType.DINGTALK_GROUP_ROBOT -> gson.toJson(
-                sanitizeDingtalkGroupRobotSetting(parseSetting(json, DingtalkGroupRobotSetting::class.java)),
+                sanitizeDingtalkGroupRobotSetting(parseSetting(json, DingtalkGroupRobotSetting::class.java), rawJson),
             )
             SenderType.EMAIL -> gson.toJson(
-                sanitizeEmailSetting(parseSetting(json, EmailSetting::class.java)),
+                sanitizeEmailSetting(parseSetting(json, EmailSetting::class.java), rawJson),
             )
             SenderType.BARK -> gson.toJson(
-                sanitizeBarkSetting(parseSetting(json, BarkSetting::class.java)),
+                sanitizeBarkSetting(parseSetting(json, BarkSetting::class.java), rawJson),
             )
             SenderType.WEBHOOK -> gson.toJson(
-                sanitizeWebhookSetting(parseSetting(json, WebhookSetting::class.java)),
+                sanitizeWebhookSetting(parseSetting(json, WebhookSetting::class.java), rawJson),
             )
             SenderType.WEWORK_ROBOT -> gson.toJson(
-                sanitizeWeworkRobotSetting(parseSetting(json, WeworkRobotSetting::class.java)),
+                sanitizeWeworkRobotSetting(parseSetting(json, WeworkRobotSetting::class.java), rawJson),
             )
             SenderType.WEWORK_AGENT -> gson.toJson(
-                sanitizeWeworkAgentSetting(parseSetting(json, WeworkAgentSetting::class.java)),
+                sanitizeWeworkAgentSetting(parseSetting(json, WeworkAgentSetting::class.java), rawJson),
             )
             SenderType.SERVERCHAN -> gson.toJson(
-                sanitizeServerchanSetting(parseSetting(json, ServerchanSetting::class.java)),
+                sanitizeServerchanSetting(parseSetting(json, ServerchanSetting::class.java), rawJson),
             )
             SenderType.PUSHPLUS -> gson.toJson(
-                sanitizePushplusSetting(parseSetting(json, PushplusSetting::class.java)),
+                sanitizePushplusSetting(parseSetting(json, PushplusSetting::class.java), rawJson),
             )
             SenderType.TELEGRAM -> gson.toJson(
-                sanitizeTelegramSetting(parseSetting(json, TelegramSetting::class.java)),
+                sanitizeTelegramSetting(parseSetting(json, TelegramSetting::class.java), rawJson),
             )
             SenderType.SMS -> gson.toJson(
-                sanitizeSmsSetting(parseSetting(json, SmsSetting::class.java)),
+                sanitizeSmsSetting(parseSetting(json, SmsSetting::class.java), rawJson),
             )
             SenderType.FEISHU -> gson.toJson(
-                sanitizeFeishuSetting(parseSetting(json, FeishuSetting::class.java)),
+                sanitizeFeishuSetting(parseSetting(json, FeishuSetting::class.java), rawJson),
             )
             SenderType.GOTIFY -> gson.toJson(
-                sanitizeGotifySetting(parseSetting(json, GotifySetting::class.java)),
+                sanitizeGotifySetting(parseSetting(json, GotifySetting::class.java), rawJson),
             )
             SenderType.DINGTALK_INNER_ROBOT -> gson.toJson(
-                sanitizeDingtalkInnerRobotSetting(parseSetting(json, DingtalkInnerRobotSetting::class.java)),
+                sanitizeDingtalkInnerRobotSetting(parseSetting(json, DingtalkInnerRobotSetting::class.java), rawJson),
             )
             SenderType.FEISHU_APP -> gson.toJson(
-                sanitizeFeishuAppSetting(parseSetting(json, FeishuAppSetting::class.java)),
+                sanitizeFeishuAppSetting(parseSetting(json, FeishuAppSetting::class.java), rawJson),
             )
             SenderType.URL_SCHEME -> gson.toJson(
-                sanitizeUrlSchemeSetting(parseSetting(json, UrlSchemeSetting::class.java)),
+                sanitizeUrlSchemeSetting(parseSetting(json, UrlSchemeSetting::class.java), rawJson),
             )
             SenderType.SOCKET -> gson.toJson(
-                sanitizeSocketSetting(parseSetting(json, SocketSetting::class.java)),
+                sanitizeSocketSetting(parseSetting(json, SocketSetting::class.java), rawJson),
             )
             SenderType.NTFY -> gson.toJson(
-                sanitizeNtfySetting(parseSetting(json, NtfySetting::class.java)),
+                sanitizeNtfySetting(parseSetting(json, NtfySetting::class.java), rawJson),
             )
             else -> if (json.isBlank()) "" else json
         }
     }
 
-    fun sanitizeDingtalkGroupRobotSetting(raw: DingtalkGroupRobotSetting?): DingtalkGroupRobotSetting {
+    fun sanitizeDingtalkGroupRobotSetting(
+        raw: DingtalkGroupRobotSetting?,
+        rawJson: JsonObject? = null,
+    ): DingtalkGroupRobotSetting {
         val defaults = DingtalkGroupRobotSetting()
         return DingtalkGroupRobotSetting(
-            token = safeString(raw?.token),
-            secret = safeString(raw?.secret),
-            atAll = safeBoolean(raw?.atAll, defaults.atAll),
-            atMobiles = safeString(raw?.atMobiles),
-            atDingtalkIds = safeString(raw?.atDingtalkIds),
-            msgtype = safeString(raw?.msgtype).ifBlank { defaults.msgtype },
-            titleTemplate = safeString(raw?.titleTemplate),
+            token = safeString(resolveValue(raw?.token, rawJson, "token")),
+            secret = safeString(resolveValue(raw?.secret, rawJson, "secret")),
+            atAll = safeBoolean(resolveValue(raw?.atAll, rawJson, "atAll"), defaults.atAll),
+            atMobiles = safeString(resolveValue(raw?.atMobiles, rawJson, "atMobiles")),
+            atDingtalkIds = safeString(resolveValue(raw?.atDingtalkIds, rawJson, "atDingtalkIds")),
+            msgtype = safeString(resolveValue(raw?.msgtype, rawJson, "msgtype")).ifBlank { defaults.msgtype },
+            titleTemplate = safeString(resolveValue(raw?.titleTemplate, rawJson, "titleTemplate")),
         )
     }
 
-    fun sanitizeEmailSetting(raw: EmailSetting?): EmailSetting {
+    fun sanitizeEmailSetting(raw: EmailSetting?, rawJson: JsonObject? = null): EmailSetting {
         val defaults = EmailSetting()
-        val fromEmail = safeString(raw?.fromEmail)
-        val authEmail = safeString(raw?.authEmail).ifBlank { fromEmail }
-        val alias = safeString(raw?.fromEmailAlias).ifBlank { safeString(raw?.nickname) }
+        val fromEmail = safeString(resolveValue(raw?.fromEmail, rawJson, "fromEmail"))
+        val authEmail = safeString(resolveValue(raw?.authEmail, rawJson, "authEmail")).ifBlank { fromEmail }
+        val alias = safeString(resolveValue(raw?.fromEmailAlias, rawJson, "fromEmailAlias"))
+            .ifBlank { safeString(resolveValue(raw?.nickname, rawJson, "nickname")) }
         return EmailSetting(
-            mailType = safeString(raw?.mailType),
+            mailType = safeString(resolveValue(raw?.mailType, rawJson, "mailType")),
             authEmail = authEmail,
             fromEmail = fromEmail,
-            pwd = safeString(raw?.pwd),
-            nickname = safeString(raw?.nickname).ifBlank { alias },
-            host = safeString(raw?.host),
-            port = safeString(raw?.port),
-            ssl = safeBoolean(raw?.ssl, defaults.ssl),
-            startTls = safeBoolean(raw?.startTls, defaults.startTls),
-            title = safeString(raw?.title),
-            recipients = safeEmailRecipients(raw?.recipients),
-            toEmail = safeString(raw?.toEmail),
-            keystore = safeString(raw?.keystore),
-            password = safeString(raw?.password),
-            encryptionProtocol = safeString(raw?.encryptionProtocol).ifBlank { defaults.encryptionProtocol },
+            pwd = safeString(resolveValue(raw?.pwd, rawJson, "pwd")),
+            nickname = safeString(resolveValue(raw?.nickname, rawJson, "nickname")).ifBlank { alias },
+            host = safeString(resolveValue(raw?.host, rawJson, "host")),
+            port = safeString(resolveValue(raw?.port, rawJson, "port")),
+            ssl = safeBoolean(resolveValue(raw?.ssl, rawJson, "ssl"), defaults.ssl),
+            startTls = safeBoolean(resolveValue(raw?.startTls, rawJson, "startTls"), defaults.startTls),
+            title = safeString(resolveValue(raw?.title, rawJson, "title")),
+            recipients = safeEmailRecipients(resolveValue(raw?.recipients, rawJson, "recipients")),
+            toEmail = safeString(resolveValue(raw?.toEmail, rawJson, "toEmail")),
+            keystore = safeString(resolveValue(raw?.keystore, rawJson, "keystore")),
+            password = safeString(resolveValue(raw?.password, rawJson, "password")),
+            encryptionProtocol = safeString(resolveValue(raw?.encryptionProtocol, rawJson, "encryptionProtocol"))
+                .ifBlank { defaults.encryptionProtocol },
             fromEmailAlias = alias,
         )
     }
 
-    fun sanitizeBarkSetting(raw: BarkSetting?): BarkSetting {
+    fun sanitizeBarkSetting(raw: BarkSetting?, rawJson: JsonObject? = null): BarkSetting {
         val defaults = BarkSetting()
         return BarkSetting(
-            server = safeString(raw?.server),
-            group = safeString(raw?.group),
-            icon = safeString(raw?.icon),
-            sound = safeString(raw?.sound),
-            badge = safeString(raw?.badge),
-            url = safeString(raw?.url),
-            level = safeString(raw?.level).ifBlank { defaults.level },
-            title = safeString(raw?.title),
-            transformation = safeString(raw?.transformation).ifBlank { defaults.transformation },
-            key = safeString(raw?.key),
-            iv = safeString(raw?.iv),
-            call = safeString(raw?.call),
-            autoCopy = safeString(raw?.autoCopy),
+            server = safeString(resolveValue(raw?.server, rawJson, "server")),
+            group = safeString(resolveValue(raw?.group, rawJson, "group")),
+            icon = safeString(resolveValue(raw?.icon, rawJson, "icon")),
+            sound = safeString(resolveValue(raw?.sound, rawJson, "sound")),
+            badge = safeString(resolveValue(raw?.badge, rawJson, "badge")),
+            url = safeString(resolveValue(raw?.url, rawJson, "url")),
+            level = safeString(resolveValue(raw?.level, rawJson, "level")).ifBlank { defaults.level },
+            title = safeString(resolveValue(raw?.title, rawJson, "title")),
+            transformation = safeString(resolveValue(raw?.transformation, rawJson, "transformation"))
+                .ifBlank { defaults.transformation },
+            key = safeString(resolveValue(raw?.key, rawJson, "key")),
+            iv = safeString(resolveValue(raw?.iv, rawJson, "iv")),
+            call = safeString(resolveValue(raw?.call, rawJson, "call")),
+            autoCopy = safeString(resolveValue(raw?.autoCopy, rawJson, "autoCopy")),
         )
     }
 
-    fun sanitizeWebhookSetting(raw: WebhookSetting?): WebhookSetting {
+    fun sanitizeWebhookSetting(raw: WebhookSetting?, rawJson: JsonObject? = null): WebhookSetting {
         val defaults = WebhookSetting()
         return WebhookSetting(
-            method = safeString(raw?.method).ifBlank { defaults.method },
-            webServer = safeString(raw?.webServer),
-            secret = safeString(raw?.secret),
-            response = safeString(raw?.response),
-            webParams = safeString(raw?.webParams),
-            headers = safeMapStringString(raw?.headers),
-            proxyType = safeProxyType(raw?.proxyType),
-            proxyHost = safeString(raw?.proxyHost),
-            proxyPort = safeString(raw?.proxyPort),
-            proxyAuthenticator = safeBoolean(raw?.proxyAuthenticator, defaults.proxyAuthenticator),
-            proxyUsername = safeString(raw?.proxyUsername),
-            proxyPassword = safeString(raw?.proxyPassword),
+            method = safeString(resolveValue(raw?.method, rawJson, "method")).ifBlank { defaults.method },
+            webServer = safeString(resolveValue(raw?.webServer, rawJson, "webServer")),
+            secret = safeString(resolveValue(raw?.secret, rawJson, "secret")),
+            response = safeString(resolveValue(raw?.response, rawJson, "response")),
+            webParams = safeString(resolveValue(raw?.webParams, rawJson, "webParams")),
+            headers = safeMapStringString(resolveValue(raw?.headers, rawJson, "headers")),
+            proxyType = safeProxyType(resolveValue(raw?.proxyType, rawJson, "proxyType")),
+            proxyHost = safeString(resolveValue(raw?.proxyHost, rawJson, "proxyHost")),
+            proxyPort = safeString(resolveValue(raw?.proxyPort, rawJson, "proxyPort")),
+            proxyAuthenticator = safeBoolean(
+                resolveValue(raw?.proxyAuthenticator, rawJson, "proxyAuthenticator"),
+                defaults.proxyAuthenticator,
+            ),
+            proxyUsername = safeString(resolveValue(raw?.proxyUsername, rawJson, "proxyUsername")),
+            proxyPassword = safeString(resolveValue(raw?.proxyPassword, rawJson, "proxyPassword")),
         )
     }
 
-    fun sanitizeWeworkRobotSetting(raw: WeworkRobotSetting?): WeworkRobotSetting {
+    fun sanitizeWeworkRobotSetting(raw: WeworkRobotSetting?, rawJson: JsonObject? = null): WeworkRobotSetting {
         val defaults = WeworkRobotSetting()
         return WeworkRobotSetting(
-            webHook = safeString(raw?.webHook),
-            msgType = safeString(raw?.msgType).ifBlank { defaults.msgType },
-            atAll = safeBoolean(raw?.atAll, defaults.atAll),
-            atUserIds = safeString(raw?.atUserIds),
-            atMobiles = safeString(raw?.atMobiles),
+            webHook = safeString(resolveValue(raw?.webHook, rawJson, "webHook")),
+            msgType = safeString(resolveValue(raw?.msgType, rawJson, "msgType")).ifBlank { defaults.msgType },
+            atAll = safeBoolean(resolveValue(raw?.atAll, rawJson, "atAll"), defaults.atAll),
+            atUserIds = safeString(resolveValue(raw?.atUserIds, rawJson, "atUserIds")),
+            atMobiles = safeString(resolveValue(raw?.atMobiles, rawJson, "atMobiles")),
         )
     }
 
-    fun sanitizeWeworkAgentSetting(raw: WeworkAgentSetting?): WeworkAgentSetting {
+    fun sanitizeWeworkAgentSetting(raw: WeworkAgentSetting?, rawJson: JsonObject? = null): WeworkAgentSetting {
         val defaults = WeworkAgentSetting()
         return WeworkAgentSetting(
-            corpID = safeString(raw?.corpID),
-            agentID = safeString(raw?.agentID),
-            secret = safeString(raw?.secret),
-            atAll = safeBoolean(raw?.atAll, defaults.atAll),
-            toUser = safeString(raw?.toUser).ifBlank { defaults.toUser },
-            toParty = safeString(raw?.toParty),
-            toTag = safeString(raw?.toTag),
-            proxyType = safeProxyType(raw?.proxyType),
-            proxyHost = safeString(raw?.proxyHost),
-            proxyPort = safeString(raw?.proxyPort),
-            proxyAuthenticator = safeBoolean(raw?.proxyAuthenticator, defaults.proxyAuthenticator),
-            proxyUsername = safeString(raw?.proxyUsername),
-            proxyPassword = safeString(raw?.proxyPassword),
-            customizeAPI = safeString(raw?.customizeAPI).ifBlank { defaults.customizeAPI },
+            corpID = safeString(resolveValue(raw?.corpID, rawJson, "corpID")),
+            agentID = safeString(resolveValue(raw?.agentID, rawJson, "agentID")),
+            secret = safeString(resolveValue(raw?.secret, rawJson, "secret")),
+            atAll = safeBoolean(resolveValue(raw?.atAll, rawJson, "atAll"), defaults.atAll),
+            toUser = safeString(resolveValue(raw?.toUser, rawJson, "toUser")).ifBlank { defaults.toUser },
+            toParty = safeString(resolveValue(raw?.toParty, rawJson, "toParty")),
+            toTag = safeString(resolveValue(raw?.toTag, rawJson, "toTag")),
+            proxyType = safeProxyType(resolveValue(raw?.proxyType, rawJson, "proxyType")),
+            proxyHost = safeString(resolveValue(raw?.proxyHost, rawJson, "proxyHost")),
+            proxyPort = safeString(resolveValue(raw?.proxyPort, rawJson, "proxyPort")),
+            proxyAuthenticator = safeBoolean(
+                resolveValue(raw?.proxyAuthenticator, rawJson, "proxyAuthenticator"),
+                defaults.proxyAuthenticator,
+            ),
+            proxyUsername = safeString(resolveValue(raw?.proxyUsername, rawJson, "proxyUsername")),
+            proxyPassword = safeString(resolveValue(raw?.proxyPassword, rawJson, "proxyPassword")),
+            customizeAPI = safeString(resolveValue(raw?.customizeAPI, rawJson, "customizeAPI"))
+                .ifBlank { defaults.customizeAPI },
         )
     }
 
-    fun sanitizeServerchanSetting(raw: ServerchanSetting?): ServerchanSetting {
+    fun sanitizeServerchanSetting(raw: ServerchanSetting?, rawJson: JsonObject? = null): ServerchanSetting {
         return ServerchanSetting(
-            sendKey = safeString(raw?.sendKey),
-            channel = safeString(raw?.channel),
-            openid = safeString(raw?.openid),
-            titleTemplate = safeString(raw?.titleTemplate),
+            sendKey = safeString(resolveValue(raw?.sendKey, rawJson, "sendKey")),
+            channel = safeString(resolveValue(raw?.channel, rawJson, "channel")),
+            openid = safeString(resolveValue(raw?.openid, rawJson, "openid")),
+            titleTemplate = safeString(resolveValue(raw?.titleTemplate, rawJson, "titleTemplate")),
         )
     }
 
-    fun sanitizePushplusSetting(raw: PushplusSetting?): PushplusSetting {
+    fun sanitizePushplusSetting(raw: PushplusSetting?, rawJson: JsonObject? = null): PushplusSetting {
         val defaults = PushplusSetting()
         return PushplusSetting(
-            website = safeString(raw?.website).ifBlank { defaults.website },
-            token = safeString(raw?.token),
-            topic = safeString(raw?.topic),
-            template = safeString(raw?.template),
-            channel = safeString(raw?.channel),
-            webhook = safeString(raw?.webhook),
-            callbackUrl = safeString(raw?.callbackUrl),
-            validTime = safeString(raw?.validTime),
-            titleTemplate = safeString(raw?.titleTemplate),
+            website = safeString(resolveValue(raw?.website, rawJson, "website")).ifBlank { defaults.website },
+            token = safeString(resolveValue(raw?.token, rawJson, "token")),
+            topic = safeString(resolveValue(raw?.topic, rawJson, "topic")),
+            template = safeString(resolveValue(raw?.template, rawJson, "template")),
+            channel = safeString(resolveValue(raw?.channel, rawJson, "channel")),
+            webhook = safeString(resolveValue(raw?.webhook, rawJson, "webhook")),
+            callbackUrl = safeString(resolveValue(raw?.callbackUrl, rawJson, "callbackUrl")),
+            validTime = safeString(resolveValue(raw?.validTime, rawJson, "validTime")),
+            titleTemplate = safeString(resolveValue(raw?.titleTemplate, rawJson, "titleTemplate")),
         )
     }
 
-    fun sanitizeTelegramSetting(raw: TelegramSetting?): TelegramSetting {
+    fun sanitizeTelegramSetting(raw: TelegramSetting?, rawJson: JsonObject? = null): TelegramSetting {
         val defaults = TelegramSetting()
         return TelegramSetting(
-            method = safeString(raw?.method).ifBlank { defaults.method },
-            apiToken = safeString(raw?.apiToken),
-            chatId = safeString(raw?.chatId),
-            messageThreadId = safeString(raw?.messageThreadId),
-            proxyType = safeProxyType(raw?.proxyType),
-            proxyHost = safeString(raw?.proxyHost),
-            proxyPort = safeString(raw?.proxyPort),
-            proxyAuthenticator = safeBoolean(raw?.proxyAuthenticator, defaults.proxyAuthenticator),
-            proxyUsername = safeString(raw?.proxyUsername),
-            proxyPassword = safeString(raw?.proxyPassword),
-            parseMode = safeString(raw?.parseMode).ifBlank { defaults.parseMode },
+            method = safeString(resolveValue(raw?.method, rawJson, "method")).ifBlank { defaults.method },
+            apiToken = safeString(resolveValue(raw?.apiToken, rawJson, "apiToken")),
+            chatId = safeString(resolveValue(raw?.chatId, rawJson, "chatId")),
+            messageThreadId = safeString(
+                resolveValue(
+                    raw?.messageThreadId,
+                    rawJson,
+                    "messageThreadId",
+                    "topicId",
+                    "topic_id",
+                    "message_thread_id",
+                ),
+            ),
+            proxyType = safeProxyType(resolveValue(raw?.proxyType, rawJson, "proxyType")),
+            proxyHost = safeString(resolveValue(raw?.proxyHost, rawJson, "proxyHost")),
+            proxyPort = safeString(resolveValue(raw?.proxyPort, rawJson, "proxyPort")),
+            proxyAuthenticator = safeBoolean(
+                resolveValue(raw?.proxyAuthenticator, rawJson, "proxyAuthenticator"),
+                defaults.proxyAuthenticator,
+            ),
+            proxyUsername = safeString(resolveValue(raw?.proxyUsername, rawJson, "proxyUsername")),
+            proxyPassword = safeString(resolveValue(raw?.proxyPassword, rawJson, "proxyPassword")),
+            parseMode = safeString(resolveValue(raw?.parseMode, rawJson, "parseMode")).ifBlank { defaults.parseMode },
         )
     }
 
-    fun sanitizeSmsSetting(raw: SmsSetting?): SmsSetting {
+    fun sanitizeSmsSetting(raw: SmsSetting?, rawJson: JsonObject? = null): SmsSetting {
         val defaults = SmsSetting()
         return SmsSetting(
-            simSlot = safeInt(raw?.simSlot, defaults.simSlot),
-            mobiles = safeString(raw?.mobiles),
-            onlyNoNetwork = safeBoolean(raw?.onlyNoNetwork, defaults.onlyNoNetwork),
+            simSlot = safeInt(resolveValue(raw?.simSlot, rawJson, "simSlot"), defaults.simSlot),
+            mobiles = safeString(resolveValue(raw?.mobiles, rawJson, "mobiles")),
+            onlyNoNetwork = safeBoolean(
+                resolveValue(raw?.onlyNoNetwork, rawJson, "onlyNoNetwork"),
+                defaults.onlyNoNetwork,
+            ),
         )
     }
 
-    fun sanitizeFeishuSetting(raw: FeishuSetting?): FeishuSetting {
+    fun sanitizeFeishuSetting(raw: FeishuSetting?, rawJson: JsonObject? = null): FeishuSetting {
         val defaults = FeishuSetting()
         return FeishuSetting(
-            webhook = safeString(raw?.webhook),
-            secret = safeString(raw?.secret),
-            msgType = safeString(raw?.msgType).ifBlank { defaults.msgType },
-            titleTemplate = safeString(raw?.titleTemplate),
-            messageCard = safeString(raw?.messageCard),
+            webhook = safeString(resolveValue(raw?.webhook, rawJson, "webhook")),
+            secret = safeString(resolveValue(raw?.secret, rawJson, "secret")),
+            msgType = safeString(resolveValue(raw?.msgType, rawJson, "msgType")).ifBlank { defaults.msgType },
+            titleTemplate = safeString(resolveValue(raw?.titleTemplate, rawJson, "titleTemplate")),
+            messageCard = safeString(resolveValue(raw?.messageCard, rawJson, "messageCard")),
         )
     }
 
-    fun sanitizeGotifySetting(raw: GotifySetting?): GotifySetting {
+    fun sanitizeGotifySetting(raw: GotifySetting?, rawJson: JsonObject? = null): GotifySetting {
         return GotifySetting(
-            webServer = safeString(raw?.webServer),
-            title = safeString(raw?.title),
-            priority = safeString(raw?.priority),
+            webServer = safeString(resolveValue(raw?.webServer, rawJson, "webServer")),
+            title = safeString(resolveValue(raw?.title, rawJson, "title")),
+            priority = safeString(resolveValue(raw?.priority, rawJson, "priority")),
         )
     }
 
-    fun sanitizeNtfySetting(raw: NtfySetting?): NtfySetting {
+    fun sanitizeNtfySetting(raw: NtfySetting?, rawJson: JsonObject? = null): NtfySetting {
         val defaults = NtfySetting()
         return NtfySetting(
-            server = safeString(raw?.server),
-            topic = safeString(raw?.topic),
-            token = safeString(raw?.token),
-            title = safeString(raw?.title),
-            priority = safeString(raw?.priority).ifBlank { defaults.priority },
-            tags = safeString(raw?.tags),
+            server = safeString(resolveValue(raw?.server, rawJson, "server")),
+            topic = safeString(resolveValue(raw?.topic, rawJson, "topic")),
+            token = safeString(resolveValue(raw?.token, rawJson, "token")),
+            title = safeString(resolveValue(raw?.title, rawJson, "title")),
+            priority = safeString(resolveValue(raw?.priority, rawJson, "priority")).ifBlank { defaults.priority },
+            tags = safeString(resolveValue(raw?.tags, rawJson, "tags")),
         )
     }
 
-    fun sanitizeDingtalkInnerRobotSetting(raw: DingtalkInnerRobotSetting?): DingtalkInnerRobotSetting {
+    fun sanitizeDingtalkInnerRobotSetting(
+        raw: DingtalkInnerRobotSetting?,
+        rawJson: JsonObject? = null,
+    ): DingtalkInnerRobotSetting {
         val defaults = DingtalkInnerRobotSetting()
         return DingtalkInnerRobotSetting(
-            agentID = safeString(raw?.agentID),
-            appKey = safeString(raw?.appKey),
-            appSecret = safeString(raw?.appSecret),
-            userIds = safeString(raw?.userIds),
-            msgKey = safeString(raw?.msgKey).ifBlank { defaults.msgKey },
-            titleTemplate = safeString(raw?.titleTemplate),
-            proxyType = safeProxyType(raw?.proxyType),
-            proxyHost = safeString(raw?.proxyHost),
-            proxyPort = safeString(raw?.proxyPort),
-            proxyAuthenticator = safeBoolean(raw?.proxyAuthenticator, defaults.proxyAuthenticator),
-            proxyUsername = safeString(raw?.proxyUsername),
-            proxyPassword = safeString(raw?.proxyPassword),
+            agentID = safeString(resolveValue(raw?.agentID, rawJson, "agentID")),
+            appKey = safeString(resolveValue(raw?.appKey, rawJson, "appKey")),
+            appSecret = safeString(resolveValue(raw?.appSecret, rawJson, "appSecret")),
+            userIds = safeString(resolveValue(raw?.userIds, rawJson, "userIds")),
+            msgKey = safeString(resolveValue(raw?.msgKey, rawJson, "msgKey")).ifBlank { defaults.msgKey },
+            titleTemplate = safeString(resolveValue(raw?.titleTemplate, rawJson, "titleTemplate")),
+            proxyType = safeProxyType(resolveValue(raw?.proxyType, rawJson, "proxyType")),
+            proxyHost = safeString(resolveValue(raw?.proxyHost, rawJson, "proxyHost")),
+            proxyPort = safeString(resolveValue(raw?.proxyPort, rawJson, "proxyPort")),
+            proxyAuthenticator = safeBoolean(
+                resolveValue(raw?.proxyAuthenticator, rawJson, "proxyAuthenticator"),
+                defaults.proxyAuthenticator,
+            ),
+            proxyUsername = safeString(resolveValue(raw?.proxyUsername, rawJson, "proxyUsername")),
+            proxyPassword = safeString(resolveValue(raw?.proxyPassword, rawJson, "proxyPassword")),
         )
     }
 
-    fun sanitizeFeishuAppSetting(raw: FeishuAppSetting?): FeishuAppSetting {
+    fun sanitizeFeishuAppSetting(raw: FeishuAppSetting?, rawJson: JsonObject? = null): FeishuAppSetting {
         val defaults = FeishuAppSetting()
         return FeishuAppSetting(
-            appId = safeString(raw?.appId),
-            appSecret = safeString(raw?.appSecret),
-            receiveId = safeString(raw?.receiveId),
-            msgType = safeString(raw?.msgType).ifBlank { defaults.msgType },
-            titleTemplate = safeString(raw?.titleTemplate),
-            receiveIdType = safeString(raw?.receiveIdType).ifBlank { defaults.receiveIdType },
-            messageCard = safeString(raw?.messageCard),
+            appId = safeString(resolveValue(raw?.appId, rawJson, "appId")),
+            appSecret = safeString(resolveValue(raw?.appSecret, rawJson, "appSecret")),
+            receiveId = safeString(resolveValue(raw?.receiveId, rawJson, "receiveId")),
+            msgType = safeString(resolveValue(raw?.msgType, rawJson, "msgType")).ifBlank { defaults.msgType },
+            titleTemplate = safeString(resolveValue(raw?.titleTemplate, rawJson, "titleTemplate")),
+            receiveIdType = safeString(resolveValue(raw?.receiveIdType, rawJson, "receiveIdType"))
+                .ifBlank { defaults.receiveIdType },
+            messageCard = safeString(resolveValue(raw?.messageCard, rawJson, "messageCard")),
         )
     }
 
-    fun sanitizeUrlSchemeSetting(raw: UrlSchemeSetting?): UrlSchemeSetting {
+    fun sanitizeUrlSchemeSetting(raw: UrlSchemeSetting?, rawJson: JsonObject? = null): UrlSchemeSetting {
         return UrlSchemeSetting(
-            urlScheme = safeString(raw?.urlScheme),
+            urlScheme = safeString(resolveValue(raw?.urlScheme, rawJson, "urlScheme")),
         )
     }
 
-    fun sanitizeSocketSetting(raw: SocketSetting?): SocketSetting {
+    fun sanitizeSocketSetting(raw: SocketSetting?, rawJson: JsonObject? = null): SocketSetting {
         val defaults = SocketSetting()
         return SocketSetting(
-            method = safeString(raw?.method).ifBlank { defaults.method },
-            address = safeString(raw?.address),
-            port = safeInt(raw?.port, defaults.port),
-            msgTemplate = safeString(raw?.msgTemplate),
-            secret = safeString(raw?.secret),
-            response = safeString(raw?.response),
-            username = safeString(raw?.username),
-            password = safeString(raw?.password),
-            inCharset = safeString(raw?.inCharset),
-            outCharset = safeString(raw?.outCharset),
-            inMessageTopic = safeString(raw?.inMessageTopic),
-            outMessageTopic = safeString(raw?.outMessageTopic),
-            uriType = safeString(raw?.uriType).ifBlank { defaults.uriType },
-            path = safeString(raw?.path),
-            clientId = safeString(raw?.clientId),
-            qos = safeInt(raw?.qos, defaults.qos),
-            retained = safeBoolean(raw?.retained, defaults.retained),
+            method = safeString(resolveValue(raw?.method, rawJson, "method")).ifBlank { defaults.method },
+            address = safeString(resolveValue(raw?.address, rawJson, "address")),
+            port = safeInt(resolveValue(raw?.port, rawJson, "port"), defaults.port),
+            msgTemplate = safeString(resolveValue(raw?.msgTemplate, rawJson, "msgTemplate")),
+            secret = safeString(resolveValue(raw?.secret, rawJson, "secret")),
+            response = safeString(resolveValue(raw?.response, rawJson, "response")),
+            username = safeString(resolveValue(raw?.username, rawJson, "username")),
+            password = safeString(resolveValue(raw?.password, rawJson, "password")),
+            inCharset = safeString(resolveValue(raw?.inCharset, rawJson, "inCharset")),
+            outCharset = safeString(resolveValue(raw?.outCharset, rawJson, "outCharset")),
+            inMessageTopic = safeString(resolveValue(raw?.inMessageTopic, rawJson, "inMessageTopic")),
+            outMessageTopic = safeString(resolveValue(raw?.outMessageTopic, rawJson, "outMessageTopic")),
+            uriType = safeString(resolveValue(raw?.uriType, rawJson, "uriType")).ifBlank { defaults.uriType },
+            path = safeString(resolveValue(raw?.path, rawJson, "path")),
+            clientId = safeString(resolveValue(raw?.clientId, rawJson, "clientId")),
+            qos = safeInt(resolveValue(raw?.qos, rawJson, "qos"), defaults.qos),
+            retained = safeBoolean(resolveValue(raw?.retained, rawJson, "retained"), defaults.retained),
         )
     }
 
@@ -342,6 +380,7 @@ object SenderSettingSanitizer {
         return when (any) {
             null -> ""
             is String -> any
+            is Map<*, *>, is Iterable<*>, is Array<*> -> ""
             else -> any.toString()
         }
     }
@@ -417,5 +456,49 @@ object SenderSettingSanitizer {
     private fun <T> parseSetting(json: String, clazz: Class<T>): T? {
         if (json.isBlank()) return null
         return runCatching { gson.fromJson(json, clazz) }.getOrNull()
+    }
+
+    private fun parseSettingJson(json: String): JsonObject? {
+        if (json.isBlank()) return null
+        return runCatching { gson.fromJson(json, JsonObject::class.java) }.getOrNull()
+    }
+
+    private fun resolveValue(primary: Any?, rawJson: JsonObject?, vararg names: String): Any? {
+        return primary ?: fieldValue(rawJson, *names)
+    }
+
+    private fun fieldValue(rawJson: JsonObject?, vararg names: String): Any? {
+        if (rawJson == null) return null
+        names.forEach { name ->
+            val element = rawJson.get(name) ?: return@forEach
+            if (element.isJsonNull) return null
+            return jsonElementToAny(element)
+        }
+        return null
+    }
+
+    private fun jsonElementToAny(element: JsonElement): Any? {
+        return when {
+            element.isJsonNull -> null
+            element.isJsonPrimitive -> {
+                val primitive = element.asJsonPrimitive
+                when {
+                    primitive.isBoolean -> primitive.asBoolean
+                    primitive.isNumber -> runCatching { primitive.asInt }
+                        .recoverCatching { primitive.asLong }
+                        .recoverCatching { primitive.asDouble }
+                        .getOrNull()
+                    primitive.isString -> primitive.asString
+                    else -> primitive.toString()
+                }
+            }
+            element.isJsonArray -> element.asJsonArray.map { child -> jsonElementToAny(child) }
+            element.isJsonObject -> buildMap {
+                element.asJsonObject.entrySet().forEach { (key, value) ->
+                    put(key, jsonElementToAny(value))
+                }
+            }
+            else -> null
+        }
     }
 }
