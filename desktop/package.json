@@ -9,6 +9,7 @@
     "preview": "vite preview --host 127.0.0.1 --port 4173",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "icons:generate": "npm exec -- tauri icon src-tauri/icons/icon.png --output src-tauri/icons",
     "test:rust": "node ./scripts/with-system-pkg-config.mjs cargo test --manifest-path src-tauri/Cargo.toml",
     "tauri:dev": "node ./scripts/with-system-pkg-config.mjs tauri dev",
     "tauri:build": "node ./scripts/with-system-pkg-config.mjs tauri build",
