@@ -16,6 +16,7 @@ jobs:
     if: github.actor != 'dependabot[bot]'
     env:
       GRADLE_OPTS: -Dorg.gradle.warning.mode=all
+      HAS_RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE != '' }}
       HAS_GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
     steps:
       - uses: actions/checkout@v6
@@ -62,6 +63,9 @@ jobs:
         with:
           validate-wrappers: false
           allow-snapshot-wrappers: true
+      - name: Decode Keystore
+        if: env.HAS_RELEASE_KEYSTORE == 'true'
+        run: echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > app/release.jks
       - name: Decode Google Services
         if: env.HAS_GOOGLE_SERVICES_JSON == 'true'
         run: |
@@ -79,6 +83,11 @@ jobs:
           :app:koverHtmlReportGithubApi101Debug
           -PallowIncompatibleDebugSigning=true
           -PbuildSplits
+        env:
+          KEYSTORE_FILE: release.jks
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       - name: Write build summary
         if: always()
         run: |
