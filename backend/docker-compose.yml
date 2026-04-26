@@ -22,7 +22,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       # 持久化数据库文件，避免容器重建后丢数据
-      - ./postgres-data:/var/lib/postgresql/data
+      - ${RELAY_POSTGRES_DATA_DIR:-./postgres-data}:/var/lib/postgresql/data
     ports:
       # 暴露 PostgreSQL 到宿主机，便于本地调试和手工连接
       - "5432:5432"

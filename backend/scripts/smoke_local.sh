@@ -3,15 +3,17 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BACKEND_DIR="$ROOT_DIR/backend"
-BASE_URL="${BASE_URL:-https://localhost:8443}"
+BASE_URL="${BASE_URL:-http://localhost:8088}"
 USERNAME="${RELAY_SMOKE_USERNAME:-relay}"
 PASSWORD="${RELAY_SMOKE_PASSWORD:-relay-pass}"
 COOKIE_JAR="$(mktemp)"
+POSTGRES_DATA_DIR="$(mktemp -d)"
 SMOKE_IMAGE="${RELAY_SMOKE_API_IMAGE:-relay-backend-smoke:local}"
 
 cleanup() {
   rm -f "$COOKIE_JAR"
   rm -f "$BACKEND_DIR/.env"
+  rm -rf "$POSTGRES_DATA_DIR"
   (
     cd "$BACKEND_DIR"
     docker compose down >/dev/null 2>&1 || true
@@ -21,12 +23,53 @@ trap cleanup EXIT
 
 cd "$BACKEND_DIR"
 cp -f .env.example .env
+set -a
+# shellcheck disable=SC1091
+. ./.env
+set +a
 docker build -t "$SMOKE_IMAGE" api >/dev/null
-RELAY_API_IMAGE="$SMOKE_IMAGE" RELAY_API_PULL_POLICY=never docker compose up -d postgres api caddy >/dev/null
-sleep 8
+RELAY_API_IMAGE="$SMOKE_IMAGE" \
+RELAY_API_PULL_POLICY=never \
+RELAY_POSTGRES_DATA_DIR="$POSTGRES_DATA_DIR" \
+docker compose up -d postgres >/dev/null
+
+for attempt in $(seq 1 30); do
+  if docker compose exec -T postgres pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/tmp/relay_pg_ready.log 2>/tmp/relay_pg_ready.err; then
+    cat /tmp/relay_pg_ready.log
+    break
+  fi
+
+  if [[ "$attempt" -eq 30 ]]; then
+    echo "Postgres readiness check failed after ${attempt} attempts" >&2
+    cat /tmp/relay_pg_ready.err >&2 || true
+    docker compose logs postgres >&2 || true
+    exit 1
+  fi
+
+  sleep 2
+done
+
+RELAY_API_IMAGE="$SMOKE_IMAGE" \
+RELAY_API_PULL_POLICY=never \
+RELAY_POSTGRES_DATA_DIR="$POSTGRES_DATA_DIR" \
+docker compose up -d api caddy >/dev/null
 
 echo "[smoke] backend health"
-curl -kfsS "$BASE_URL/healthz" | jq .
+for attempt in $(seq 1 30); do
+  if curl -kfsS "$BASE_URL/healthz" >/tmp/relay_health.json 2>/tmp/relay_health.err; then
+    cat /tmp/relay_health.json | jq .
+    break
+  fi
+
+  if [[ "$attempt" -eq 30 ]]; then
+    echo "Backend health check failed after ${attempt} attempts" >&2
+    cat /tmp/relay_health.err >&2 || true
+    docker compose logs api caddy postgres >&2 || true
+    exit 1
+  fi
+
+  sleep 2
+done
 
 echo "[smoke] bootstrap admin if needed"
 curl -kfsS -X POST "$BASE_URL/api/v1/bootstrap/admin" \
