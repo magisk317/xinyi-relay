@@ -7,6 +7,8 @@ import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.data.db.AppDatabase
 import io.github.magisk317.relay.domain.event.RelayEvent
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 data class GateDecision(
     val allowed: Boolean,
@@ -30,7 +32,11 @@ class EventGatekeeper(
                 ForwardFlowLog.w(traceId, "App notify gate pkg=<empty> final_decision=drop reason=empty_package")
                 return GateDecision(false, "empty_package")
             }
-            val appInfo = runCatching { db.appInfoDao().getByPackageName(pkg) }.getOrElse { error ->
+            val appInfo = runCatching {
+                withContext(Dispatchers.IO) {
+                    db.appInfoDao().getByPackageName(pkg)
+                }
+            }.getOrElse { error ->
                 ForwardFlowLog.e(traceId, "App notify gate query failed pkg=$pkg final_decision=drop", error)
                 XLog.e("App notify gate query failed for pkg=$pkg", error)
                 return GateDecision(false, "app_gate_query_failed")

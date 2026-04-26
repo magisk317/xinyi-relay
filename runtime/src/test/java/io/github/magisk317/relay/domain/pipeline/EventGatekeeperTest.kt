@@ -5,6 +5,7 @@ import dev.mokkery.every
 import dev.mokkery.everySuspend
 import dev.mokkery.mock
 import dev.mokkery.answering.returns
+import dev.mokkery.answering.returnsBy
 import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.utils.XLog
@@ -94,6 +95,43 @@ class EventGatekeeperTest {
 
         assertFalse(decision.allowed)
         assertEquals("app_source_missing", decision.reason)
+    }
+
+    @Test
+    fun appNotify_queryRunsOffCallingThread() = runBlocking {
+        val callerThreadId = Thread.currentThread().threadId()
+        var queryThreadId: Long? = null
+        val appInfoDao = mock<AppInfoDao>(autofill)
+        everySuspend {
+            appInfoDao.getByPackageName("com.tencent.mm")
+        } returnsBy {
+            queryThreadId = Thread.currentThread().threadId()
+            AppInfo(
+                packageName = "com.tencent.mm",
+                forwarding = true,
+                forwardingConfigured = true,
+            )
+        }
+
+        val database = mock<AppDatabase>(autofill)
+        every { database.appInfoDao() } returns appInfoDao
+
+        val preferences = mock<PreferenceDataSource>(autofill)
+        everySuspend { preferences.getBoolean(PrefConst.KEY_ENABLE, true) } returns true
+        everySuspend {
+            preferences.getBooleanCompat(
+                PrefConst.KEY_MSG_TYPE_APP_NOTIFY_ENABLED,
+                true,
+            )
+        } returns true
+
+        val decision = EventGatekeeper(database, preferences)
+            .check(appNotify(packageName = "com.tencent.mm"), traceId = "t5")
+
+        assertTrue(decision.allowed)
+        assertEquals("allowed", decision.reason)
+        assertEquals(false, queryThreadId == null)
+        assertFalse(queryThreadId == callerThreadId)
     }
 
     private fun createGatekeeper(appInfo: AppInfo?): EventGatekeeper {
