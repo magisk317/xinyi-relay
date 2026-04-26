@@ -24,10 +24,58 @@
             ]
         },
         {
+            "matchManagers": [
+                "gradle",
+                "maven"
+            ],
+            "addLabels": [
+                "dependencies",
+                "java"
+            ]
+        },
+        {
+            "matchManagers": [
+                "npm",
+                "pnpm"
+            ],
+            "addLabels": [
+                "dependencies",
+                "javascript"
+            ]
+        },
+        {
+            "matchManagers": [
+                "github-actions"
+            ],
+            "addLabels": [
+                "dependencies",
+                "github_actions"
+            ]
+        },
+        {
+            "matchManagers": [
+                "cargo"
+            ],
+            "addLabels": [
+                "dependencies",
+                "rust"
+            ]
+        },
+        {
             "matchPackageNames": [
                 "int:LOG_LEVEL",
                 "int:MODULE_VERSION",
                 "int:VERSION_CODE"
+            ],
+            "enabled": false
+        },
+        {
+            "description": "The root Gradle force block is maintained by dependency-force-manager, not Renovate.",
+            "matchManagers": [
+                "gradle"
+            ],
+            "matchFileNames": [
+                "build.gradle.kts"
             ],
             "enabled": false
         }

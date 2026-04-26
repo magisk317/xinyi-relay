@@ -18,10 +18,7 @@ jobs:
         github.event.pull_request.user.login == 'github-actions[bot]' ||
         (
           github.event.pull_request.user.login == 'magisk317' &&
-          (
-            startsWith(github.head_ref, 'renovate/') ||
-            startsWith(github.head_ref, 'chore/dependency-force')
-          )
+          startsWith(github.head_ref, 'renovate/')
         )
       )
     steps:

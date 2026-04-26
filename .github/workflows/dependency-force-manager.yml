@@ -29,7 +29,24 @@ jobs:
     concurrency:
       group: dependency-force-manager
       cancel-in-progress: false
-    if: github.event_name != 'pull_request_target' || github.event.pull_request.head.repo.full_name == github.repository
+    if: |
+      (
+        github.event_name == 'push' &&
+        !(
+          github.event.head_commit != null &&
+          startsWith(github.event.head_commit.message, 'Merge pull request #') &&
+          contains(github.event.head_commit.message, 'from magisk317/chore/dependency-force-update')
+        )
+      ) ||
+      (
+        github.event_name != 'push' &&
+        github.event_name != 'pull_request_target'
+      ) ||
+      (
+        github.event_name == 'pull_request_target' &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        github.event.pull_request.head.ref != 'chore/dependency-force-update'
+      )
     env:
       DEPENDENCY_FORCE_CONFIGS: githubApi101DebugRuntimeClasspath,githubLegacyDebugRuntimeClasspath,playApi101DebugRuntimeClasspath,playLegacyDebugRuntimeClasspath,githubApi101ReleaseRuntimeClasspath,githubLegacyReleaseRuntimeClasspath,playApi101ReleaseRuntimeClasspath,playLegacyReleaseRuntimeClasspath
     steps:
@@ -73,6 +90,7 @@ jobs:
           python3 scripts/manage_dependency_forces.py resolve-natural \
             --forced-json /tmp/forced.json \
             --output /tmp/natural.json \
+            --include-build-environment \
             "${args[@]}"
 
       - name: Restore original build file
@@ -136,6 +154,9 @@ jobs:
           delete-branch: true
           title: "build: update forced dependencies"
           commit-message: "build: update forced dependencies"
+          labels: |
+            dependencies
+            java
           body: |
             Automated dependency force maintenance:
             - Removed force rules when natural resolution already matches forced versions.

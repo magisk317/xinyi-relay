@@ -25,6 +25,7 @@ on:
       - "magisk-ui-kit/**"
       - "smscode-core/**"
       - "scripts/verify_shared_submodule_compat.sh"
+  workflow_dispatch:
 
 jobs:
   shared-compat:
