@@ -146,11 +146,32 @@ def command_resolve_natural(args: argparse.Namespace) -> None:
     forced = json.loads(Path(args.forced_json).read_text())
     results: dict[str, dict[str, dict[str, Any]]] = {}
 
+    build_text = ""
+    build_returncode = 0
+    if args.include_build_environment:
+        build_proc = subprocess.run(
+            [args.gradlew, "-q", "buildEnvironment"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        build_text = build_proc.stdout + "\n" + build_proc.stderr
+        build_returncode = build_proc.returncode
+
     for item in forced:
         group = item["group"]
         artifact = item["artifact"]
         dep = f"{group}:{artifact}"
         results[dep] = {}
+
+        if args.include_build_environment:
+            results[dep]["buildscript.classpath"] = {
+                "resolved": extract_resolved_version(build_text, group, artifact),
+                "returncode": build_returncode,
+                "config_missing": False,
+            }
+            if not results[dep]["buildscript.classpath"]["resolved"]:
+                print(f"  WARN: no buildscript.classpath version found for {dep}")
 
         for config in args.config:
             print(f"Resolving {dep} in {config}...")
@@ -372,6 +393,7 @@ def build_parser() -> argparse.ArgumentParser:
     resolve_natural.add_argument("--forced-json", required=True)
     resolve_natural.add_argument("--output", required=True)
     resolve_natural.add_argument("--config", action="append", default=[])
+    resolve_natural.add_argument("--include-build-environment", action="store_true")
     resolve_natural.set_defaults(func=command_resolve_natural)
 
     determine_removable = subparsers.add_parser("determine-removable")

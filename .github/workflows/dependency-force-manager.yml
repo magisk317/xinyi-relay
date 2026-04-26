@@ -73,6 +73,7 @@ jobs:
           python3 scripts/manage_dependency_forces.py resolve-natural \
             --forced-json /tmp/forced.json \
             --output /tmp/natural.json \
+            --include-build-environment \
             "${args[@]}"
 
       - name: Restore original build file
