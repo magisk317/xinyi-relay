@@ -10,14 +10,27 @@ COOKIE_JAR="$(mktemp)"
 POSTGRES_DATA_DIR="$(mktemp -d)"
 SMOKE_IMAGE="${RELAY_SMOKE_API_IMAGE:-relay-backend-smoke:local}"
 
+prepare_postgres_data_dir() {
+  chmod 0777 "$POSTGRES_DATA_DIR"
+}
+
+remove_postgres_data_dir() {
+  chmod -R 0777 "$POSTGRES_DATA_DIR" >/dev/null 2>&1 || true
+  if command -v sudo >/dev/null 2>&1; then
+    sudo rm -rf "$POSTGRES_DATA_DIR" >/dev/null 2>&1 || rm -rf "$POSTGRES_DATA_DIR" >/dev/null 2>&1 || true
+  else
+    rm -rf "$POSTGRES_DATA_DIR" >/dev/null 2>&1 || true
+  fi
+}
+
 cleanup() {
   rm -f "$COOKIE_JAR"
   rm -f "$BACKEND_DIR/.env"
-  rm -rf "$POSTGRES_DATA_DIR"
   (
     cd "$BACKEND_DIR"
     docker compose down >/dev/null 2>&1 || true
   )
+  remove_postgres_data_dir
 }
 trap cleanup EXIT
 
@@ -27,6 +40,7 @@ set -a
 # shellcheck disable=SC1091
 . ./.env
 set +a
+prepare_postgres_data_dir
 docker build -t "$SMOKE_IMAGE" api >/dev/null
 RELAY_API_IMAGE="$SMOKE_IMAGE" \
 RELAY_API_PULL_POLICY=never \

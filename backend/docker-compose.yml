@@ -21,8 +21,8 @@ services:
       # 初始化数据库密码
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      # 持久化数据库文件，避免容器重建后丢数据
-      - ${RELAY_POSTGRES_DATA_DIR:-./postgres-data}:/var/lib/postgresql/data
+      # PostgreSQL 18+ 需要挂到上层目录，数据会落在其版本化子目录中
+      - ${RELAY_POSTGRES_DATA_DIR:-./postgres-data}:/var/lib/postgresql
     ports:
       # 暴露 PostgreSQL 到宿主机，便于本地调试和手工连接
       - "5432:5432"
