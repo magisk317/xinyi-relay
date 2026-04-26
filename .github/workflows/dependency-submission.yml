@@ -5,15 +5,16 @@ on:
   push:
     branches:
       - beta
+  pull_request:
+    branches:
+      - beta
+  workflow_dispatch:
 
 jobs:
   dependency-submission:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      
-    # Skip if dependabot (redundant if restricted to beta branch, but safe)
-    if: github.actor != 'dependabot[bot]'
 
     steps:
       - uses: actions/checkout@v6

@@ -241,27 +241,52 @@ def command_resolve_alert_natural(args: argparse.Namespace) -> None:
         }
     )
 
-    proc = subprocess.run(
+    results: dict[str, dict[str, dict[str, Any]]] = {}
+    build_proc = subprocess.run(
         [args.gradlew, "-q", "buildEnvironment"],
         capture_output=True,
         text=True,
         check=False,
     )
-    text = proc.stdout + "\n" + proc.stderr
+    build_text = build_proc.stdout + "\n" + build_proc.stderr
 
-    results: dict[str, dict[str, dict[str, Any]]] = {}
     for dep in deps:
         group, artifact = dep.split(":", 1)
-        resolved = extract_resolved_version(text, group, artifact)
         results[dep] = {
             "buildscript.classpath": {
-                "resolved": resolved,
-                "returncode": proc.returncode,
+                "resolved": extract_resolved_version(build_text, group, artifact),
+                "returncode": build_proc.returncode,
                 "config_missing": False,
             }
         }
-        if not resolved:
+        if not results[dep]["buildscript.classpath"]["resolved"]:
             print(f"  WARN: no buildscript.classpath version found for {dep}")
+
+        for config in args.config:
+            print(f"Resolving security alert dependency {dep} in {config}...")
+            cmd = [
+                args.gradlew,
+                f"{args.project}:dependencyInsight",
+                "--dependency",
+                dep,
+                "--configuration",
+                config,
+                "--console=plain",
+            ]
+            proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            text = proc.stdout + "\n" + proc.stderr
+            config_missing = (
+                proc.returncode != 0 and "configuration" in text.lower() and "not found" in text.lower()
+            )
+            results[dep][config] = {
+                "resolved": extract_resolved_version(text, group, artifact),
+                "returncode": proc.returncode,
+                "config_missing": config_missing,
+            }
+            if config_missing:
+                print(f"  INFO: configuration {config} not found for {dep}, skipping")
+            elif not results[dep][config]["resolved"]:
+                print(f"  WARN: no resolved version found for {dep} in {config}")
 
     Path(args.output).write_text(json.dumps(results, indent=2) + "\n")
 
@@ -365,8 +390,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     resolve_alert_natural = subparsers.add_parser("resolve-alert-natural")
     resolve_alert_natural.add_argument("--gradlew", default="./gradlew")
+    resolve_alert_natural.add_argument("--project", default=":app")
     resolve_alert_natural.add_argument("--alerts-json", required=True)
     resolve_alert_natural.add_argument("--output", required=True)
+    resolve_alert_natural.add_argument("--config", action="append", default=[])
     resolve_alert_natural.set_defaults(func=command_resolve_alert_natural)
 
     return parser

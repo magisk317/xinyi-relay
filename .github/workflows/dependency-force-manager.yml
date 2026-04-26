@@ -3,6 +3,17 @@ name: Dependency Force Manager
 on:
   schedule:
     - cron: "30 2 * * *" # Daily 02:30 UTC
+  push:
+    branches:
+      - beta
+  pull_request_target:
+    branches:
+      - beta
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
   workflow_dispatch:
 
 permissions:
@@ -12,9 +23,15 @@ permissions:
 
 jobs:
   dependency-force:
+    name: Attempt dependency remediation
     runs-on: ubuntu-latest
+    continue-on-error: true
+    concurrency:
+      group: dependency-force-manager
+      cancel-in-progress: false
+    if: github.event_name != 'pull_request_target' || github.event.pull_request.head.repo.full_name == github.repository
     env:
-      DEPENDENCY_FORCE_CONFIGS: githubApi101DebugRuntimeClasspath,playApi101DebugRuntimeClasspath
+      DEPENDENCY_FORCE_CONFIGS: githubApi101DebugRuntimeClasspath,githubLegacyDebugRuntimeClasspath,playApi101DebugRuntimeClasspath,playLegacyDebugRuntimeClasspath,githubApi101ReleaseRuntimeClasspath,githubLegacyReleaseRuntimeClasspath,playApi101ReleaseRuntimeClasspath,playLegacyReleaseRuntimeClasspath
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -89,9 +106,15 @@ jobs:
 
       - name: Resolve natural versions for security dependencies
         run: |
+          args=()
+          IFS=',' read -ra configs <<< "$DEPENDENCY_FORCE_CONFIGS"
+          for config in "${configs[@]}"; do
+            args+=(--config "$config")
+          done
           python3 scripts/manage_dependency_forces.py resolve-alert-natural \
             --alerts-json /tmp/dependabot-alerts.json \
-            --output /tmp/security-natural.json
+            --output /tmp/security-natural.json \
+            "${args[@]}"
 
       - name: Apply updates (remove + add security forces)
         id: apply
@@ -104,6 +127,7 @@ jobs:
             --natural-json /tmp/security-natural.json
 
       - name: Create PR with dependency force updates
+        id: cpr
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
@@ -116,3 +140,15 @@ jobs:
             Automated dependency force maintenance:
             - Removed force rules when natural resolution already matches forced versions.
             - Added or updated force rules for dependencies with open security alerts (Dependabot).
+
+      - name: Write remediation summary
+        if: always()
+        run: |
+          {
+            echo "## Dependency remediation"
+            echo ""
+            echo "- Trigger: ${{ github.event_name }}"
+            echo "- Base ref: ${{ github.base_ref || github.ref_name }}"
+            echo "- Auto PR operation: ${{ steps.cpr.outputs.pull-request-operation || 'none' }}"
+            echo "- Auto PR number: ${{ steps.cpr.outputs.pull-request-number || 'none' }}"
+          } >> "$GITHUB_STEP_SUMMARY"
