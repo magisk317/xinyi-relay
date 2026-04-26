@@ -67,6 +67,7 @@ class HookEntry :
         val loadParam = LoadParam(lpparam.packageName, lpparam.processName, lpparam.classLoader)
         XLog.d("HookEntry: Loaded package: ${loadParam.packageName} process: ${loadParam.processName}")
         HookTargetDiagnostics.logPackageReadyProbeIfVerbose(loadParam)
+        HookTargetDiagnostics.logInboundSmsClassProbeAtInfo(loadParam)
         if ("android" == loadParam.packageName || "system" == loadParam.packageName) {
             XLog.w(
                 "HookEntry: Android/system package loaded: pkg=%s process=%s",

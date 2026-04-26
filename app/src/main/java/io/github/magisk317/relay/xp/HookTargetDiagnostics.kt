@@ -6,8 +6,16 @@ import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.smscode.xposed.hookapi.LoadParam
 import io.github.magisk317.smscode.xposed.utils.XLog
+import java.util.concurrent.ConcurrentHashMap
 
 internal object HookTargetDiagnostics {
+    data class InboundSmsClassProbe(
+        val handlerClassFound: Boolean,
+        val handlerDispatchIntentFound: Boolean,
+        val dispatchersControllerClassFound: Boolean,
+        val dispatchersControllerDispatchFound: Boolean,
+    )
+
     data class ProbeResult(
         val candidateReasons: List<String>,
         val matchedTargets: List<String>,
@@ -73,6 +81,49 @@ internal object HookTargetDiagnostics {
             probe.candidateReasons.ifEmpty { listOf("<none>") }.joinToString(","),
             probe.missReason ?: "<none>",
             Integer.toHexString(System.identityHashCode(loadParam.classLoader)),
+        )
+    }
+
+    fun logInboundSmsClassProbeAtInfo(loadParam: LoadParam) {
+        val processName = loadParam.processName.ifBlank { loadParam.packageName }
+        if (!shouldLogInboundSmsClassProbe(loadParam.packageName, processName)) return
+        val probeKey = buildProbeKey(loadParam.packageName, processName)
+        if (!loggedInboundSmsClassProbes.add(probeKey)) return
+
+        val classProbe = probeInboundSmsClasses(loadParam.classLoader)
+        val packageProbe = describePackageProbe(loadParam.packageName, processName)
+        val mismatch = classProbe.handlerClassFound && loadParam.packageName != ANDROID_PHONE_PACKAGE
+        XLog.i(
+            "Diag inbound probe: pkg=%s process=%s matchedTargets=%s candidateReasons=%s " +
+                "handlerClass=%s handlerDispatch=%s controllerClass=%s controllerDispatch=%s " +
+                "expectedHookPkg=%s mismatch=%s",
+            loadParam.packageName,
+            processName,
+            packageProbe.matchedTargets.ifEmpty { listOf("<none>") }.joinToString(","),
+            packageProbe.candidateReasons.ifEmpty { listOf("<none>") }.joinToString(","),
+            classProbe.handlerClassFound,
+            classProbe.handlerDispatchIntentFound,
+            classProbe.dispatchersControllerClassFound,
+            classProbe.dispatchersControllerDispatchFound,
+            ANDROID_PHONE_PACKAGE,
+            mismatch,
+        )
+    }
+
+    fun logInboundSmsRuntimeHitAtInfo(
+        source: String,
+        packageName: String,
+        processName: String,
+        detail: String? = null,
+    ) {
+        val hitKey = "$source|$packageName|$processName"
+        if (!loggedInboundSmsRuntimeHits.add(hitKey)) return
+        XLog.i(
+            "Diag inbound hit: source=%s pkg=%s process=%s detail=%s",
+            source,
+            packageName,
+            processName,
+            detail ?: "<none>",
         )
     }
 
@@ -152,11 +203,49 @@ internal object HookTargetDiagnostics {
         return tokens.any(value::contains)
     }
 
+    internal fun shouldLogInboundSmsClassProbe(
+        packageName: String,
+        processName: String,
+    ): Boolean {
+        if (packageName == ANDROID_PHONE_PACKAGE || packageName == "android" || packageName == "system") {
+            return true
+        }
+        val probe = describePackageProbe(packageName, processName)
+        return probe.matchedTargets.contains("sms_handler,sms_forward") ||
+            probe.candidateReasons.contains("system_server_candidate")
+    }
+
+    internal fun probeInboundSmsClasses(classLoader: ClassLoader?): InboundSmsClassProbe {
+        val handlerClass = findClass(classLoader, INBOUND_SMS_HANDLER_CLASS)
+        val controllerClass = findClass(classLoader, SMS_DISPATCHERS_CONTROLLER_CLASS)
+        return InboundSmsClassProbe(
+            handlerClassFound = handlerClass != null,
+            handlerDispatchIntentFound = handlerClass?.declaredMethods?.any { it.name == "dispatchIntent" } == true,
+            dispatchersControllerClassFound = controllerClass != null,
+            dispatchersControllerDispatchFound = controllerClass?.declaredMethods?.any {
+                it.name == "dispatchSmsDeliveryIntent"
+            } == true,
+        )
+    }
+
+    private fun buildProbeKey(packageName: String, processName: String): String {
+        return "$packageName|$processName"
+    }
+
+    private fun findClass(classLoader: ClassLoader?, name: String): Class<*>? {
+        if (classLoader == null) return null
+        return runCatching { Class.forName(name, false, classLoader) }.getOrNull()
+    }
+
     private const val ANDROID_PHONE_PACKAGE = "com.android.phone"
     private const val TELEPHONY_PROVIDER_PACKAGE = "com.android.providers.telephony"
+    private const val INBOUND_SMS_HANDLER_CLASS = "com.android.internal.telephony.InboundSmsHandler"
+    private const val SMS_DISPATCHERS_CONTROLLER_CLASS = "com.android.internal.telephony.SmsDispatchersController"
     private val PHONE_TOKENS = listOf("phone", "dialer")
     private val TELEPHONY_TOKENS = listOf("telephony", "telecom")
     private val SMS_TOKENS = listOf("sms", "message")
     private val MMS_TOKENS = listOf("mms")
     private val PROVIDER_TOKENS = listOf("provider")
+    private val loggedInboundSmsClassProbes = ConcurrentHashMap.newKeySet<String>()
+    private val loggedInboundSmsRuntimeHits = ConcurrentHashMap.newKeySet<String>()
 }

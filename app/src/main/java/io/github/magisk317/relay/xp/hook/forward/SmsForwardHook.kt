@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Process
 import android.provider.Telephony
 import io.github.magisk317.relay.BuildConfig
+import io.github.magisk317.relay.xp.HookTargetDiagnostics
 import io.github.magisk317.relay.xp.hook.SmsForwardConvergence
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
 import io.github.magisk317.relay.xpbridge.XpPrefs
@@ -91,6 +92,11 @@ class SmsForwardHook : BaseHook() {
 
     private fun afterConstructorHandler(param: MethodHookParam) {
         val context = param.args.getOrNull(1) as? Context ?: return
+        HookTargetDiagnostics.logInboundSmsRuntimeHitAtInfo(
+            source = "SmsForwardHook#constructor",
+            packageName = context.packageName,
+            processName = context.applicationInfo?.processName ?: context.packageName,
+        )
         val runtime = runtimeSession.initialize(context)
         if (runtime == null) {
             XLog.e("SmsForwardHook: plugin context is null after creation attempt")
@@ -142,6 +148,12 @@ class SmsForwardHook : BaseHook() {
             )
             return null
         }
+        HookTargetDiagnostics.logInboundSmsRuntimeHitAtInfo(
+            source = "SmsForwardHook#dispatchIntent",
+            packageName = runtime.phoneContext.packageName,
+            processName = runtime.phoneContext.applicationInfo?.processName ?: runtime.phoneContext.packageName,
+            detail = "event_id=$eventId action=$action",
+        )
         val hadSimRouting = SmsForwardSimRoutingResolver.readFromIntent(intent).hasValue()
         val resolvedRouting = SmsForwardSimRoutingResolver.ensureSimRoutingExtras(
             intent = intent,

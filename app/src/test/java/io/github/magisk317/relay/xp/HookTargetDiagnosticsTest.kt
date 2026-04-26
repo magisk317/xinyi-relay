@@ -2,6 +2,7 @@ package io.github.magisk317.relay.xp
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 
 class HookTargetDiagnosticsTest {
@@ -52,5 +53,23 @@ class HookTargetDiagnosticsTest {
         assertTrue(result.candidateReasons.isEmpty())
         assertTrue(result.matchedTargets.isEmpty())
         assertEquals(false, result.isCandidate)
+    }
+
+    @Test
+    fun shouldLogInboundSmsClassProbe_matchesImmediateCandidates() {
+        assertTrue(HookTargetDiagnostics.shouldLogInboundSmsClassProbe("android", "android"))
+        assertTrue(HookTargetDiagnostics.shouldLogInboundSmsClassProbe("system", "system_server"))
+        assertTrue(HookTargetDiagnostics.shouldLogInboundSmsClassProbe("com.android.phone", "com.android.phone"))
+        assertFalse(HookTargetDiagnostics.shouldLogInboundSmsClassProbe("com.example.app", "com.example.app"))
+    }
+
+    @Test
+    fun probeInboundSmsClasses_withNullLoader_reportsAbsent() {
+        val result = HookTargetDiagnostics.probeInboundSmsClasses(null)
+
+        assertFalse(result.handlerClassFound)
+        assertFalse(result.handlerDispatchIntentFound)
+        assertFalse(result.dispatchersControllerClassFound)
+        assertFalse(result.dispatchersControllerDispatchFound)
     }
 }

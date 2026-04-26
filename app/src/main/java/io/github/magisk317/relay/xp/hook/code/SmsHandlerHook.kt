@@ -254,6 +254,11 @@ class SmsHandlerHook : BaseHook() {
 
     private fun afterConstructorHandler(param: MethodHookParam) {
         val context = param.args.getOrNull(1) as? Context ?: return
+        HookTargetDiagnostics.logInboundSmsRuntimeHitAtInfo(
+            source = "SmsHandlerHook#constructor",
+            packageName = context.packageName,
+            processName = context.applicationInfo?.processName ?: context.packageName,
+        )
         constructorInitializer.handle(context)
     }
 
@@ -288,6 +293,14 @@ class SmsHandlerHook : BaseHook() {
             return
         }
         val eventId = ensureEventId(intent)
+        runtimeSession.currentOrResolve()?.phoneContext?.let { phoneContext ->
+            HookTargetDiagnostics.logInboundSmsRuntimeHitAtInfo(
+                source = "SmsHandlerHook#dispatchIntent",
+                packageName = phoneContext.packageName,
+                processName = phoneContext.applicationInfo?.processName ?: phoneContext.packageName,
+                detail = "event_id=$eventId action=$action",
+            )
+        }
         if (SmsIntentHookSupport.markDispatchHandled(intent, action, DISPATCH_HANDLER_KEY)) {
             XLog.w(
                 "SmsHandlerHook duplicate sms suppressed: event_id=%s action=%s source=intent_extra",
