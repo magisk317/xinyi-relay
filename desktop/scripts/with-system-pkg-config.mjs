@@ -36,9 +36,12 @@ if (process.platform === "linux" && existsSync("/usr/bin/pkg-config")) {
   }
 }
 
+// npm scripts on Windows resolve local CLIs like `tauri` through cmd shim files
+// (for example `tauri.cmd`). Keep direct exec on Unix, but opt into shell
+// resolution on Windows so local package binaries continue to work.
 const child = spawn(args[0], args.slice(1), {
   env,
-  shell: false,
+  shell: process.platform === "win32",
   stdio: "inherit",
 });
 
