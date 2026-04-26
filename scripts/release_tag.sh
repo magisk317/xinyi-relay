@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION_FILE="$ROOT_DIR/gradle/libs.versions.toml"
 FASTLANE_META_DIR="$ROOT_DIR/fastlane/metadata/android"
+RELEASE_REF_SCRIPT="$ROOT_DIR/scripts/release_ref.sh"
 
 working_tree_dirty() {
   if ! git -C "$ROOT_DIR" diff --quiet || ! git -C "$ROOT_DIR" diff --cached --quiet; then
@@ -176,7 +177,8 @@ if [[ -z "$VERSION_CODE" ]]; then
   exit 2
 fi
 
-TAG_NAME="v$VERSION_NAME"
+RELEASE_TARGET="${1:-all}"
+TAG_NAME="$(bash "$RELEASE_REF_SCRIPT" tag-for-target "$VERSION_NAME" "$RELEASE_TARGET")"
 REMOTE_NAME="${RELEASE_REMOTE:-origin}"
 
 current_branch="$(git -C "$ROOT_DIR" branch --show-current)"
@@ -211,9 +213,13 @@ ensure_fastlane_changelogs_ready() {
 }
 
 run_sync_readme_badges
-run_sync_fastlane_metadata
-auto_commit_fastlane_metadata
-ensure_fastlane_changelogs_ready
+if [[ "$RELEASE_TARGET" == "all" || "$RELEASE_TARGET" == "mobile" ]]; then
+  run_sync_fastlane_metadata
+  auto_commit_fastlane_metadata
+  ensure_fastlane_changelogs_ready
+else
+  echo "Skipping fastlane metadata sync for release target: $RELEASE_TARGET"
+fi
 run_webui_checks
 "$ROOT_DIR/scripts/check_release_guard.sh" "$TAG_NAME"
 run_pre_push_checks

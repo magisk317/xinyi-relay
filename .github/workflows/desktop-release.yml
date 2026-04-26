@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - "desktop-v*"
-      - "v*"
+      - "desktop-v*.*.*"
+      - "v*.*.*"
 
 permissions:
   contents: write
@@ -97,10 +97,6 @@ jobs:
         with:
           projectPath: desktop
           args: ${{ matrix.bundle_args }}
-          tagName: ${{ github.ref_name }}
-          releaseName: "Desktop ${{ github.ref_name }}"
-          releaseDraft: true
-          prerelease: false
 
       - name: Upload desktop bundles
         uses: actions/upload-artifact@v7
@@ -114,3 +110,56 @@ jobs:
             desktop/src-tauri/target/release/bundle/**/*.exe
             desktop/src-tauri/target/release/bundle/**/*.app
             desktop/src-tauri/target/release/bundle/**/*.dmg
+
+      - name: Publish desktop bundles to release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
+        run: |
+          set -euo pipefail
+
+          eval "$(bash scripts/release_ref.sh parse-ref "${GITHUB_REF_TYPE}" "${GITHUB_REF_NAME}")"
+
+          mapfile -d '' release_assets < <(
+            find desktop/src-tauri/target/release/bundle -type f \
+              \( -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' -o -name '*.msi' -o -name '*.exe' -o -name '*.app' -o -name '*.dmg' \) \
+              -print0 | sort -z
+          )
+          if [[ ${#release_assets[@]} -eq 0 ]]; then
+            echo "ERROR: no desktop release assets found" >&2
+            find desktop/src-tauri/target/release/bundle -type f | sort >&2 || true
+            exit 1
+          fi
+
+          if [[ "$release_kind" == "full" ]]; then
+            for attempt in $(seq 1 60); do
+              if gh release view "$release_tag" >/dev/null 2>&1; then
+                break
+              fi
+              echo "Waiting for full release $release_tag to be created by APK workflow ($attempt/60)..."
+              sleep 20
+            done
+            gh release view "$release_tag" >/dev/null 2>&1 || {
+              echo "ERROR: full release $release_tag was not created in time" >&2
+              exit 1
+            }
+            gh release upload "$release_tag" "${release_assets[@]}" --clobber
+            exit 0
+          fi
+
+          release_notes="Desktop bundles for ${release_version}."
+          if gh release view "$release_tag" >/dev/null 2>&1; then
+            gh release upload "$release_tag" "${release_assets[@]}" --clobber
+            gh release edit "$release_tag" --title "$release_title"
+          else
+            if ! gh release create "$release_tag" "${release_assets[@]}" \
+              --draft \
+              --title "$release_title" \
+              --verify-tag \
+              --generate-notes \
+              --notes "$release_notes"; then
+              gh release upload "$release_tag" "${release_assets[@]}" --clobber
+              gh release edit "$release_tag" --title "$release_title"
+            fi
+          fi

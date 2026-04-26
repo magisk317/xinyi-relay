@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*.*.*'  # Semantic version tag, e.g. v3.1.4
+      - 'mobile-v*.*.*'
   workflow_dispatch:
 
 permissions:
@@ -288,25 +289,29 @@ jobs:
           name: native-symbols-play
           path: artifacts/symbols-play
 
-      - name: Extract Version Name from Tag
-        id: extract_version
+      - name: Parse release tag
+        id: release_meta
         if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
         run: |
-          TAG=${GITHUB_REF_NAME}       # e.g. v3.1.4
-          if [[ "$TAG" == v* ]]; then
-            echo "version_name=${TAG}" >> $GITHUB_OUTPUT
-          else
-            echo "version_name=v${TAG}" >> $GITHUB_OUTPUT
-          fi
+          eval "$(bash scripts/release_ref.sh parse-ref "${GITHUB_REF_TYPE}" "${GITHUB_REF_NAME}")"
+          {
+            echo "release_kind=$release_kind"
+            echo "release_version=$release_version"
+            echo "release_tag=$release_tag"
+            echo "release_title<<EOF"
+            echo "$release_title"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create Draft Release
-        if: startsWith(github.ref, 'refs/tags/') && env.HAS_RELEASE_KEYSTORE == 'true'
+        if: startsWith(github.ref, 'refs/tags/') && env.HAS_RELEASE_KEYSTORE == 'true' && (steps.release_meta.outputs.release_kind == 'full' || steps.release_meta.outputs.release_kind == 'mobile')
         shell: bash
         run: |
           set -euo pipefail
 
-          tag_name="${GITHUB_REF_NAME}"
-          release_name="${{ steps.extract_version.outputs.version_name }}"
+          tag_name="${{ steps.release_meta.outputs.release_tag }}"
+          release_name="${{ steps.release_meta.outputs.release_title }}"
           release_notes=$(cat <<'EOF'
             <div align="center">
               <a href="https://play.google.com/store/apps/details?id=io.github.magisk317.xinyi.relay">
@@ -344,8 +349,9 @@ jobs:
 
       - name: Determine Release Track
         id: determine_track
+        if: startsWith(github.ref, 'refs/tags/') && (steps.release_meta.outputs.release_kind == 'full' || steps.release_meta.outputs.release_kind == 'mobile')
         run: |
-          TAG_NAME=${{ github.ref_name }}
+          TAG_NAME="${{ steps.release_meta.outputs.release_tag }}"
           if [[ "$TAG_NAME" == *"-beta"* ]]; then
             echo "track=beta" >> $GITHUB_OUTPUT
           elif [[ "$TAG_NAME" == *"-alpha"* ]]; then
@@ -389,7 +395,7 @@ jobs:
           fi
 
       - name: Install fastlane
-        if: startsWith(github.ref, 'refs/tags/') && env.HAS_GOOGLE_PLAY_CREDENTIALS == 'true'
+        if: startsWith(github.ref, 'refs/tags/') && env.HAS_GOOGLE_PLAY_CREDENTIALS == 'true' && (steps.release_meta.outputs.release_kind == 'full' || steps.release_meta.outputs.release_kind == 'mobile')
         shell: bash
         run: |
           set -euo pipefail
@@ -401,7 +407,7 @@ jobs:
           gem install --user-install fastlane --no-document
 
       - name: Publish to Google Play
-        if: startsWith(github.ref, 'refs/tags/') && env.HAS_GOOGLE_PLAY_CREDENTIALS == 'true'
+        if: startsWith(github.ref, 'refs/tags/') && env.HAS_GOOGLE_PLAY_CREDENTIALS == 'true' && (steps.release_meta.outputs.release_kind == 'full' || steps.release_meta.outputs.release_kind == 'mobile')
         shell: bash
         run: |
           set -euo pipefail
@@ -448,18 +454,21 @@ jobs:
           merge-multiple: true
           path: artifacts/apks-modules
 
-      - name: Extract Version Name from Tag
-        id: extract_version
+      - name: Parse release tag
+        id: release_meta
+        shell: bash
         run: |
-          TAG=${GITHUB_REF_NAME}       # e.g. v3.1.4
-          if [[ "$TAG" == v* ]]; then
-            echo "version_name=${TAG}" >> $GITHUB_OUTPUT
-          else
-            echo "version_name=v${TAG}" >> $GITHUB_OUTPUT
-          fi
+          eval "$(bash scripts/release_ref.sh parse-ref "${GITHUB_REF_TYPE}" "${GITHUB_REF_NAME}")"
+          {
+            echo "release_kind=$release_kind"
+            echo "release_tag=$release_tag"
+            echo "release_title<<EOF"
+            echo "$release_title"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create Draft Release in Xposed-Modules-Repo
-        if: env.HAS_MODULES_REPO_TOKEN == 'true' && env.HAS_RELEASE_KEYSTORE == 'true'
+        if: env.HAS_MODULES_REPO_TOKEN == 'true' && env.HAS_RELEASE_KEYSTORE == 'true' && (steps.release_meta.outputs.release_kind == 'full' || steps.release_meta.outputs.release_kind == 'mobile')
         run: |
           mapfile -d '' apk_files < <(find artifacts/apks-modules -type f -name '*.apk' -print0 | sort -z)
           if [[ ${#apk_files[@]} -eq 0 ]]; then
@@ -467,20 +476,20 @@ jobs:
             find artifacts/apks-modules -maxdepth 6 -type f | sort >&2 || true
             exit 1
           fi
-          gh release create "${{ github.ref_name }}" \
+          gh release create "${{ steps.release_meta.outputs.release_tag }}" \
             "${apk_files[@]}" \
             --repo "${{ env.MODULES_REPO }}" \
-            --title "${{ steps.extract_version.outputs.version_name }}" \
+            --title "${{ steps.release_meta.outputs.release_title }}" \
             --notes "<div align=\"center\">
             <a href=\"https://play.google.com/store/apps/details?id=io.github.magisk317.xinyi.relay\">
               <img src=\"https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png\" alt=\"Get it on Google Play\" height=\"80\"/>
             </a>
-            <a href=\"https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}\">
+            <a href=\"https://github.com/${{ github.repository }}/releases/tag/${{ steps.release_meta.outputs.release_tag }}\">
               <img src=\"https://raw.githubusercontent.com/machiav3lli/oandbackupx/master/badge_github.png\" alt=\"Get it on GitHub\" height=\"80\"/>
             </a>
             </div>
 
-            Source: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}" \
+            Source: https://github.com/${{ github.repository }}/releases/tag/${{ steps.release_meta.outputs.release_tag }}" \
             --draft
         env:
           GH_TOKEN: ${{ secrets.XPOSED_MODULES_REPO_TOKEN }}

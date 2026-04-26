@@ -40,11 +40,29 @@ jobs:
             RELEASE_TAG="${GITHUB_REF_NAME:-manual}"
           fi
 
-          WHATSNEW_FILE="distribution/whatsnew/whatsnew-zh-CN"
-          if [ -f "$WHATSNEW_FILE" ]; then
-            WHATSNEW_CONTENT="$(cat "$WHATSNEW_FILE")"
+          RELEASE_KIND="manual"
+          RELEASE_VERSION="$RELEASE_TAG"
+          if [[ -n "$RELEASE_TAG" ]]; then
+            if release_meta="$(bash scripts/release_ref.sh parse-tag "$RELEASE_TAG" 2>/dev/null)"; then
+              eval "$release_meta"
+              RELEASE_KIND="$release_kind"
+              RELEASE_VERSION="${release_version:-$RELEASE_TAG}"
+            fi
+          fi
+
+          if [[ "$RELEASE_KIND" == "full" || "$RELEASE_KIND" == "mobile" ]]; then
+            WHATSNEW_FILE="distribution/whatsnew/whatsnew-zh-CN"
+            if [ -f "$WHATSNEW_FILE" ]; then
+              WHATSNEW_CONTENT="$(cat "$WHATSNEW_FILE")"
+            else
+              WHATSNEW_CONTENT="Release notes file not found: $WHATSNEW_FILE"
+            fi
+          elif [[ "$RELEASE_KIND" == "desktop" ]]; then
+            WHATSNEW_CONTENT="Desktop release ${RELEASE_VERSION} is published. See GitHub Release assets for platform bundles."
+          elif [[ "$RELEASE_KIND" == "backend" ]]; then
+            WHATSNEW_CONTENT="Backend release ${RELEASE_VERSION} is published. See GitHub Release notes for container image tags."
           else
-            WHATSNEW_CONTENT="Release notes file not found: $WHATSNEW_FILE"
+            WHATSNEW_CONTENT="Release ${RELEASE_TAG} is published."
           fi
 
           CAPTION=$(printf '📦 信驿 Relay Release: %s\n\n%s' "$RELEASE_TAG" "$WHATSNEW_CONTENT")
