@@ -5,7 +5,7 @@ mod storage;
 mod tray;
 
 use chrono::{DateTime, Utc};
-use keyring::{Entry, Error as KeyringError};
+use keyring_core::{Entry, Error as KeyringError};
 use reqwest::{Client, Method, StatusCode, Url};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
