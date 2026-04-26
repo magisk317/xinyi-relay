@@ -12,47 +12,55 @@ permissions:
 
 jobs:
   package:
+    name: ${{ matrix.job_label }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - runner: ubuntu-latest
+            job_label: Linux-x64
             os_name: linux
             arch_name: x64
             rust_target: x86_64-unknown-linux-gnu
             bundle_args: "--target x86_64-unknown-linux-gnu --bundles appimage,deb,rpm"
             bundle_dir: desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle
           - runner: ubuntu-24.04-arm
+            job_label: Linux-arm64
             os_name: linux
             arch_name: arm64
             rust_target: aarch64-unknown-linux-gnu
             bundle_args: "--target aarch64-unknown-linux-gnu --bundles appimage,deb,rpm"
             bundle_dir: desktop/src-tauri/target/aarch64-unknown-linux-gnu/release/bundle
           - runner: windows-latest
+            job_label: Windows-x86
             os_name: windows
             arch_name: x86
             rust_target: i686-pc-windows-msvc
             bundle_args: "--target i686-pc-windows-msvc --bundles nsis,msi"
             bundle_dir: desktop/src-tauri/target/i686-pc-windows-msvc/release/bundle
           - runner: windows-latest
+            job_label: Windows-x64
             os_name: windows
             arch_name: x64
             rust_target: x86_64-pc-windows-msvc
             bundle_args: "--target x86_64-pc-windows-msvc --bundles nsis,msi"
             bundle_dir: desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle
           - runner: windows-11-arm
+            job_label: Windows-arm64
             os_name: windows
             arch_name: arm64
             rust_target: aarch64-pc-windows-msvc
             bundle_args: "--target aarch64-pc-windows-msvc --bundles nsis,msi"
             bundle_dir: desktop/src-tauri/target/aarch64-pc-windows-msvc/release/bundle
           - runner: macos-15-intel
+            job_label: macOS-intel
             os_name: macos
             arch_name: intel
             rust_target: x86_64-apple-darwin
             bundle_args: "--target x86_64-apple-darwin --bundles app,dmg"
             bundle_dir: desktop/src-tauri/target/x86_64-apple-darwin/release/bundle
           - runner: macos-latest
+            job_label: macOS-arm64
             os_name: macos
             arch_name: apple-silicon
             rust_target: aarch64-apple-darwin
