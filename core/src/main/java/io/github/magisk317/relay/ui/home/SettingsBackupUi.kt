@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.data.backup.BackupManager
 import io.github.magisk317.relay.data.backup.BackupImportResult
 import io.github.magisk317.relay.data.backup.ImportResult
 import io.github.magisk317.relay.data.backup.ImportWarning
@@ -43,6 +44,7 @@ internal fun BackupRestoreOptionsDialog(
     message: String,
     initialSelection: BackupSelection,
     warningMessage: String? = null,
+    confirmEnabled: Boolean = true,
     onDismiss: () -> Unit,
     onConfirm: (BackupSelection) -> Unit,
 ) {
@@ -96,7 +98,7 @@ internal fun BackupRestoreOptionsDialog(
         confirmButton = {
             TextButton(
                 onClick = { onConfirm(selection) },
-                enabled = selection.hasSelection(),
+                enabled = selection.hasSelection() && confirmEnabled,
             ) {
                 Text(text = stringResource(android.R.string.ok))
             }
@@ -143,6 +145,83 @@ internal fun backupResultMessage(
         context.getString(R.string.backup_success)
     } else {
         context.getString(R.string.backup_failed)
+    }
+}
+
+internal fun backupInspectionDialogMessage(
+    context: Context,
+    inspection: BackupManager.BackupInspection?,
+): String {
+    if (inspection == null) {
+        return context.getString(R.string.backup_inspect_unavailable)
+    }
+    return inspectionSummaryMessage(context, inspection)
+}
+
+internal fun restoreInspectionMessage(
+    context: Context,
+    inspection: BackupManager.BackupInspection?,
+    loading: Boolean,
+): String {
+    if (loading) {
+        return buildString {
+            append(context.getString(R.string.restore_warning_msg))
+            append('\n')
+            append('\n')
+            append(context.getString(R.string.backup_inspect_loading))
+        }
+    }
+    if (inspection == null) {
+        return buildString {
+            append(context.getString(R.string.restore_warning_msg))
+            append('\n')
+            append(context.getString(R.string.backup_inspect_unavailable))
+        }
+    }
+    return buildString {
+        append(context.getString(R.string.restore_warning_msg))
+        append('\n')
+        append('\n')
+        append(inspectionSummaryMessage(context, inspection))
+    }
+}
+
+private fun inspectionSummaryMessage(
+    context: Context,
+    inspection: BackupManager.BackupInspection,
+): String {
+    val yesNoPayload = context.getString(if (inspection.payloadReadable) R.string.yes else R.string.no)
+    val yesNoDatabase = context.getString(if (inspection.databasePresent) R.string.yes else R.string.no)
+    return buildString {
+        append(context.getString(R.string.backup_inspect_payload_readable, yesNoPayload))
+        append('\n')
+        append(
+            context.getString(
+                R.string.backup_inspect_payload_counts,
+                inspection.payloadRules,
+                inspection.payloadPreferences,
+                inspection.payloadRecords,
+            ),
+        )
+        append('\n')
+        append(context.getString(R.string.backup_inspect_database_present, yesNoDatabase))
+        append('\n')
+        append(
+            context.getString(
+                R.string.backup_inspect_sender_counts,
+                inspection.senderCount,
+                inspection.blankSenderConfigs,
+                inspection.degradedSenderConfigs,
+            ),
+        )
+        if (!inspection.databasePresent) {
+            append('\n')
+            append(context.getString(R.string.backup_inspect_missing_database_hint))
+        }
+        if (inspection.degradedSenderConfigs > 0) {
+            append('\n')
+            append(context.getString(R.string.backup_inspect_degraded_sender_hint))
+        }
     }
 }
 

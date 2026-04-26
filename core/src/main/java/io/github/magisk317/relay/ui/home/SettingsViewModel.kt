@@ -63,7 +63,10 @@ sealed class SettingsEvent {
     data object StartPlayUpdate : SettingsEvent()
     data object StartGithubUpdateCheck : SettingsEvent()
     data class ShowSnackbar(val message: String) : SettingsEvent()
-    data class BackupResultEvent(val success: Boolean) : SettingsEvent()
+    data class BackupResultEvent(
+        val success: Boolean,
+        val inspection: BackupManager.BackupInspection? = null,
+    ) : SettingsEvent()
     data class RestoreResultEvent(val result: BackupImportResult) : SettingsEvent()
     data class ImportDialogConfirm(val uri: android.net.Uri) : SettingsEvent()
 }
@@ -417,7 +420,23 @@ class SettingsViewModel(
                     )
                 }
                 XLog.i("Backup finished: result=%s", result.name)
-                _eventsFlow.tryEmit(SettingsEvent.BackupResultEvent(result == ExportResult.SUCCESS))
+                var backupInspection: BackupManager.BackupInspection? = null
+                if (result == ExportResult.SUCCESS) {
+                    runCatching {
+                        BackupManager.inspectBackup(context, uri)
+                    }.onSuccess { inspected ->
+                        backupInspection = inspected
+                        XLog.i("Backup inspect: %s", inspected.toLogString())
+                    }.onFailure {
+                        XLog.w("Backup inspect failed: %s", it.message ?: it.javaClass.simpleName)
+                    }
+                }
+                _eventsFlow.tryEmit(
+                    SettingsEvent.BackupResultEvent(
+                        success = result == ExportResult.SUCCESS,
+                        inspection = backupInspection,
+                    ),
+                )
             } catch (e: Exception) {
                 XLog.e("Backup failed", e)
                 _eventsFlow.tryEmit(SettingsEvent.BackupResultEvent(false))
@@ -445,6 +464,13 @@ class SettingsViewModel(
                 )
                 val importResult = withContext(Dispatchers.IO) {
                     BackupManager.importRuleList(context, uri, BuildConfig.VERSION_NAME)
+                }
+                runCatching {
+                    BackupManager.inspectBackup(context, uri)
+                }.onSuccess { inspection ->
+                    XLog.i("Restore inspect: %s", inspection.toLogString())
+                }.onFailure {
+                    XLog.w("Restore inspect failed: %s", it.message ?: it.javaClass.simpleName)
                 }
                 XLog.i(
                     "Restore import result=%s rules=%d records=%d prefs=%d warning=%s",
@@ -576,6 +602,17 @@ class SettingsViewModel(
 
     private suspend fun ensureDataStoreLoaded(_context: android.content.Context) {
         // Trigger read to ensure in-memory cache if needed; keep no-op for now.
+    }
+
+    suspend fun inspectBackup(uri: android.net.Uri): BackupManager.BackupInspection? {
+        val context = getApplication<Application>()
+        return withContext(Dispatchers.IO) {
+            runCatching { BackupManager.inspectBackup(context, uri) }
+                .onFailure {
+                    XLog.w("Inspect backup failed: %s", it.message ?: it.javaClass.simpleName)
+                }
+                .getOrNull()
+        }
     }
 
     companion object {

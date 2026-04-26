@@ -743,6 +743,15 @@
     <string name="item_records">記錄</string>
     <string name="item_database_with_note">資料庫（較大，包含 db/wal/shm）</string>
     <string name="restore_warning_msg">現有資料將被合併或覆蓋。</string>
+    <string name="backup_inspect_title">備份檢查</string>
+    <string name="backup_inspect_loading">正在檢查備份內容...</string>
+    <string name="backup_inspect_unavailable">暫時無法檢查這份備份。</string>
+    <string name="backup_inspect_payload_readable">備份內容可讀取：%1$s</string>
+    <string name="backup_inspect_payload_counts">備份項目：規則 %1$d，設定 %2$d，記錄 %3$d</string>
+    <string name="backup_inspect_database_present">包含資料庫：%1$s</string>
+    <string name="backup_inspect_sender_counts">通道設定：總數 %1$d，空設定 %2$d，疑似退化 %3$d</string>
+    <string name="backup_inspect_missing_database_hint">這份備份不包含資料庫內容，通道中的 token、Webhook 位址等參數不會從中還原。</string>
+    <string name="backup_inspect_degraded_sender_hint">部分通道設定在還原後可能回退為預設值，請重點核對 token、Webhook 位址等參數。</string>
     <!-- backup and restore end -->
 
     <!-- overview -->

@@ -736,6 +736,15 @@
     <string name="item_records">Records</string>
     <string name="item_database_with_note">Database (larger, includes db/wal/shm)</string>
     <string name="restore_warning_msg">Existing data will be merged or overwritten.</string>
+    <string name="backup_inspect_title">Backup Check</string>
+    <string name="backup_inspect_loading">Inspecting backup content...</string>
+    <string name="backup_inspect_unavailable">Backup inspection unavailable.</string>
+    <string name="backup_inspect_payload_readable">Payload readable: %1$s</string>
+    <string name="backup_inspect_payload_counts">Payload counts: rules %1$d, prefs %2$d, records %3$d</string>
+    <string name="backup_inspect_database_present">Contains database: %1$s</string>
+    <string name="backup_inspect_sender_counts">Sender configs: total %1$d, blank %2$d, degraded %3$d</string>
+    <string name="backup_inspect_missing_database_hint">This backup does not include database content. Sender parameters like token and webhook URL will not be restored from it.</string>
+    <string name="backup_inspect_degraded_sender_hint">Some sender configs may fall back to defaults after restore. Please verify token, webhook URL, and other channel parameters.</string>
     <!-- backup and restore end -->
 
     <!-- overview -->

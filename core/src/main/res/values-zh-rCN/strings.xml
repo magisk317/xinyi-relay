@@ -746,6 +746,15 @@
     <string name="item_records">记录</string>
     <string name="item_database_with_note">数据库（较大，包含 db/wal/shm）</string>
     <string name="restore_warning_msg">现有数据将被合并或覆盖。</string>
+    <string name="backup_inspect_title">备份检查</string>
+    <string name="backup_inspect_loading">正在检查备份内容...</string>
+    <string name="backup_inspect_unavailable">暂时无法检查这份备份。</string>
+    <string name="backup_inspect_payload_readable">备份内容可读取：%1$s</string>
+    <string name="backup_inspect_payload_counts">备份条目：规则 %1$d，配置 %2$d，记录 %3$d</string>
+    <string name="backup_inspect_database_present">包含数据库：%1$s</string>
+    <string name="backup_inspect_sender_counts">通道配置：总数 %1$d，空配置 %2$d，疑似退化 %3$d</string>
+    <string name="backup_inspect_missing_database_hint">这份备份不包含数据库内容，通道里的 token、Webhook 地址等参数不会从中恢复。</string>
+    <string name="backup_inspect_degraded_sender_hint">部分通道配置在恢复后可能回退为默认值，请重点核对 token、Webhook 地址等参数。</string>
     <!-- backup and restore end -->
 
     <!-- overview -->

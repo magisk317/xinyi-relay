@@ -117,6 +117,9 @@ fun SettingsHomeScreen(
     var showRestoreDialog by remember { mutableStateOf(false) }
     var pendingBackupSelection by remember { mutableStateOf<BackupSelection?>(null) }
     var pendingRestoreUri by remember { mutableStateOf<Uri?>(null) }
+    var backupInspectionDialog by remember { mutableStateOf<BackupManager.BackupInspection?>(null) }
+    var restoreInspection by remember { mutableStateOf<BackupManager.BackupInspection?>(null) }
+    var restoreInspectionLoading by remember { mutableStateOf(false) }
     var themeDialogInitialMode by remember { mutableStateOf(0) }
     var themeDialogSelectedMode by remember { mutableStateOf(0) }
     var languageDialogInitialTag by remember { mutableStateOf("") }
@@ -170,10 +173,25 @@ fun SettingsHomeScreen(
     LaunchedEffect(activityOwner?.intent?.data) {
         val backupUri = activityOwner?.intent?.data ?: return@LaunchedEffect
         pendingRestoreUri = backupUri
+        restoreInspection = null
+        restoreInspectionLoading = true
         showRestoreDialog = true
         activityOwner.intent = Intent(activityOwner.intent).apply {
             data = null
         }
+    }
+
+    LaunchedEffect(showRestoreDialog, pendingRestoreUri) {
+        val restoreUri = pendingRestoreUri
+        if (!showRestoreDialog || restoreUri == null) {
+            restoreInspection = null
+            restoreInspectionLoading = false
+            return@LaunchedEffect
+        }
+        restoreInspection = null
+        restoreInspectionLoading = true
+        restoreInspection = settingsViewModel.inspectBackup(restoreUri)
+        restoreInspectionLoading = false
     }
 
     LaunchedEffect(lifecycleOwner, settingsViewModel) {
@@ -181,7 +199,11 @@ fun SettingsHomeScreen(
             settingsViewModel.eventsFlow.collect { event ->
                 when (event) {
                     is SettingsEvent.BackupResultEvent -> {
-                        snackbarHostState.showSnackbar(backupResultMessage(context, event.success))
+                        if (event.success) {
+                            backupInspectionDialog = event.inspection
+                        } else {
+                            snackbarHostState.showSnackbar(backupResultMessage(context, event.success))
+                        }
                     }
 
                     is SettingsEvent.RestoreResultEvent -> {
@@ -190,6 +212,8 @@ fun SettingsHomeScreen(
 
                     is SettingsEvent.ImportDialogConfirm -> {
                         pendingRestoreUri = event.uri
+                        restoreInspection = null
+                        restoreInspectionLoading = true
                         showRestoreDialog = true
                     }
 
@@ -537,15 +561,24 @@ fun SettingsHomeScreen(
             title = stringResource(id = R.string.dialog_restore_title),
             message = stringResource(id = R.string.dialog_restore_msg),
             initialSelection = BackupSelection(),
-            warningMessage = stringResource(id = R.string.restore_warning_msg),
+            warningMessage = restoreInspectionMessage(
+                context = context,
+                inspection = restoreInspection,
+                loading = restoreInspectionLoading,
+            ),
+            confirmEnabled = !restoreInspectionLoading,
             onDismiss = {
                 showRestoreDialog = false
                 pendingRestoreUri = null
+                restoreInspection = null
+                restoreInspectionLoading = false
             },
         ) { selection ->
             val restoreUri = pendingRestoreUri ?: return@BackupRestoreOptionsDialog
             showRestoreDialog = false
             pendingRestoreUri = null
+            restoreInspection = null
+            restoreInspectionLoading = false
             settingsViewModel.performRestore(
                 uri = restoreUri,
                 restoreConfig = selection.includeConfig,
@@ -554,6 +587,32 @@ fun SettingsHomeScreen(
                 restoreDatabase = selection.includeDatabase,
             )
         }
+    }
+    val backupInspectionState = backupInspectionDialog
+    if (backupInspectionState != null) {
+        AlertDialog(
+            onDismissRequest = { backupInspectionDialog = null },
+            title = { Text(text = stringResource(id = R.string.backup_success)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = stringResource(id = R.string.backup_inspect_title),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = backupInspectionDialogMessage(
+                            context = context,
+                            inspection = backupInspectionState,
+                        ),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { backupInspectionDialog = null }) {
+                    Text(text = stringResource(android.R.string.ok))
+                }
+            },
+        )
     }
 }
 
