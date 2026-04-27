@@ -27,25 +27,23 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     concurrency:
-      group: dependency-force-manager
+      group: dependency-force-manager-${{ github.ref }}
       cancel-in-progress: false
     if: |
-      (
+      !(
         github.event_name == 'push' &&
-        !(
-          github.event.head_commit != null &&
-          startsWith(github.event.head_commit.message, 'Merge pull request #') &&
-          contains(github.event.head_commit.message, 'from magisk317/chore/dependency-force-update')
+        github.ref == 'refs/heads/beta' &&
+        (
+          (
+            startsWith(github.event.head_commit.message, 'Merge pull request #') &&
+            contains(github.event.head_commit.message, 'from magisk317/chore/dependency-force-update')
+          ) ||
+          startsWith(github.event.head_commit.message, 'build: update forced dependencies')
         )
-      ) ||
-      (
-        github.event_name != 'push' &&
-        github.event_name != 'pull_request_target'
-      ) ||
-      (
+      ) &&
+      !(
         github.event_name == 'pull_request_target' &&
-        github.event.pull_request.head.repo.full_name == github.repository &&
-        github.event.pull_request.head.ref != 'chore/dependency-force-update'
+        github.event.pull_request.head.ref == 'chore/dependency-force-update'
       )
     env:
       DEPENDENCY_FORCE_CONFIGS: githubApi101DebugRuntimeClasspath,githubLegacyDebugRuntimeClasspath,playApi101DebugRuntimeClasspath,playLegacyDebugRuntimeClasspath,githubApi101ReleaseRuntimeClasspath,githubLegacyReleaseRuntimeClasspath,playApi101ReleaseRuntimeClasspath,playLegacyReleaseRuntimeClasspath
@@ -96,21 +94,6 @@ jobs:
       - name: Restore original build file
         run: git checkout -- build.gradle.kts
 
-      - name: Determine removable forces
-        id: removable
-        run: |
-          python3 scripts/manage_dependency_forces.py determine-removable \
-            --forced-json /tmp/forced.json \
-            --natural-json /tmp/natural.json \
-            --output /tmp/removable.json
-          count=$(python3 - <<'PY'
-          import json
-          from pathlib import Path
-          print(len(json.loads(Path("/tmp/removable.json").read_text())))
-          PY
-          )
-          echo "count=$count" >> "$GITHUB_OUTPUT"
-
       - name: Fetch Dependabot alerts
         id: alerts
         env:
@@ -121,6 +104,24 @@ jobs:
             -H "Authorization: Bearer $GH_TOKEN" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/dependabot/alerts?state=open&per_page=100" \
             > /tmp/dependabot-alerts.json
+
+      - name: Determine removable forces
+        id: removable
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
+        run: |
+          python3 scripts/manage_dependency_forces.py determine-removable \
+            --forced-json /tmp/forced.json \
+            --natural-json /tmp/natural.json \
+            --alerts-json /tmp/dependabot-alerts.json \
+            --output /tmp/removable.json
+          count=$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+          print(len(json.loads(Path("/tmp/removable.json").read_text())))
+          PY
+          )
+          echo "count=$count" >> "$GITHUB_OUTPUT"
 
       - name: Resolve natural versions for security dependencies
         run: |
