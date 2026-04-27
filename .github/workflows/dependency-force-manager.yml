@@ -99,10 +99,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
         run: |
-          curl -sS \
+          # Fetch ALL alerts regardless of state (open, dismissed, auto_dismissed, fixed).
+          # Historical alerts are used by determine-removable to prevent force-rule oscillation:
+          # Dependabot auto-dismisses alerts when a force is added, so checking only "open"
+          # alerts causes the force to be removed on the next run, reopening the alert.
+          # gh api --paginate follows Link headers automatically across all pages.
+          gh api \
+            --paginate \
             -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/dependabot/alerts?state=open&per_page=100" \
+            "repos/${GITHUB_REPOSITORY}/dependabot/alerts?per_page=100" \
+            | jq -s '[.[][]]' \
             > /tmp/dependabot-alerts.json
 
       - name: Determine removable forces
