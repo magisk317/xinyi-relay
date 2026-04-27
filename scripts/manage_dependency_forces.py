@@ -1,11 +1,27 @@
-#!/usr/bin/env python3
+"""manage_dependency_forces.py — Gradle dependency force rule manager.
+
+Design philosophy (conservative removal strategy):
+    A force rule may only be REMOVED if ALL of the following conditions are met:
+      1. The natural (un-forced) resolved version already equals the forced version
+         in every Gradle configuration checked (i.e. the force is redundant).
+      2. There is NO currently open Dependabot alert for that dependency.
+      3. The GitHub Advisory Database confirms that the natural version is NOT
+         within any known vulnerable version range for that package (ecosystem=MAVEN),
+         meaning Dependabot would NOT re-open an alert if the force were dropped.
+    If ANY condition fails — or if any network/API call errors out — the force is
+    kept. This conservative default prevents the ADD/REMOVE oscillation described in:
+    https://app.stilla.ai/m/memo_01kq6zw9k3f2199jtez41bzxqh
+"""
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Any
 
@@ -204,53 +220,6 @@ def command_resolve_natural(args: argparse.Namespace) -> None:
     Path(args.output).write_text(json.dumps(results, indent=2) + "\n")
 
 
-def command_determine_removable(args: argparse.Namespace) -> None:
-    forced = json.loads(Path(args.forced_json).read_text())
-    natural = json.loads(Path(args.natural_json).read_text())
-    removable: set[str] = set()
-
-    for item in forced:
-        dep = f"{item['group']}:{item['artifact']}"
-        resolved_by_config = natural.get(dep, {})
-        successful = [
-            entry["resolved"]
-            for entry in resolved_by_config.values()
-            if not entry.get("config_missing") and entry.get("resolved")
-        ]
-        if not successful:
-            continue
-        if all(version == item["version"] for version in successful):
-            removable.add(dep)
-
-    Path(args.output).write_text(json.dumps(sorted(removable), indent=2) + "\n")
-    print(f"Removable forces: {len(removable)}")
-
-
-def load_alerts(alerts_path: Path) -> list[dict[str, Any]]:
-    raw = json.loads(alerts_path.read_text())
-    if isinstance(raw, list):
-        return [item for item in raw if isinstance(item, dict)]
-    if isinstance(raw, dict):
-        message = raw.get("message")
-        if message:
-            print(f"WARN: dependabot alerts response is not a list: {message}")
-        alerts = raw.get("alerts")
-        if isinstance(alerts, list):
-            return [item for item in alerts if isinstance(item, dict)]
-    return []
-
-
-def line_dep(expr: str, versions: dict[str, Any], libraries: dict[str, Any]) -> str | None:
-    resolved = resolve_alias(expr, versions, libraries)
-    if resolved:
-        return f"{resolved['group']}:{resolved['artifact']}"
-    if ":" in expr:
-        parts = expr.split(":")
-        if len(parts) >= 2:
-            return f"{parts[0]}:{parts[1]}"
-    return None
-
-
 def command_resolve_alert_natural(args: argparse.Namespace) -> None:
     alerts = load_alerts(Path(args.alerts_json))
     deps = sorted(
@@ -310,6 +279,280 @@ def command_resolve_alert_natural(args: argparse.Namespace) -> None:
                 print(f"  WARN: no resolved version found for {dep} in {config}")
 
     Path(args.output).write_text(json.dumps(results, indent=2) + "\n")
+
+
+def load_alerts(alerts_path: Path) -> list[dict[str, Any]]:
+    raw = json.loads(alerts_path.read_text())
+    if isinstance(raw, list):
+        return [item for item in raw if isinstance(item, dict)]
+    if isinstance(raw, dict):
+        message = raw.get("message")
+        if message:
+            print(f"WARN: dependabot alerts response is not a list: {message}")
+        alerts = raw.get("alerts")
+        if isinstance(alerts, list):
+            return [item for item in alerts if isinstance(item, dict)]
+    return []
+
+
+def line_dep(expr: str, versions: dict[str, Any], libraries: dict[str, Any]) -> str | None:
+    resolved = resolve_alias(expr, versions, libraries)
+    if resolved:
+        return f"{resolved['group']}:{resolved['artifact']}"
+    if ":" in expr:
+        parts = expr.split(":")
+        if len(parts) >= 2:
+            return f"{parts[0]}:{parts[1]}"
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Conservative removal helpers
+# ---------------------------------------------------------------------------
+
+
+def _parse_maven_version(version_str: str) -> Any:
+    """Parse a Maven version string into a comparable object.
+
+    Strips common qualifiers like '.Final', '.RELEASE', '.GA' before parsing
+    so that ``packaging.version.parse`` (PEP 440) can handle them.
+    Falls back to the raw string if parsing fails.
+    """
+    try:
+        from packaging.version import InvalidVersion, Version
+    except ImportError:
+        return version_str
+
+    # Strip common Maven suffixes that PEP-440 doesn't understand
+    cleaned = re.sub(r"\.(Final|RELEASE|GA|SP\d*)$", "", version_str, flags=re.IGNORECASE)
+    # Normalise remaining separators
+    cleaned = re.sub(r"[._-]", ".", cleaned)
+    try:
+        return Version(cleaned)
+    except InvalidVersion:
+        return version_str
+
+
+def _version_in_range(version_str: str, vulnerable_range: str) -> bool:
+    """Return True if *version_str* falls within *vulnerable_range*.
+
+    Range format examples (GitHub Advisory Database):
+      ``>= 4.1.0, < 4.1.118.Final``
+      ``< 4.0.56.Final``
+      ``>= 0``
+    """
+    ver = _parse_maven_version(version_str)
+    try:
+        from packaging.version import Version
+
+        if not isinstance(ver, Version):
+            return False  # can't compare safely → caller treats False as uncertain
+    except ImportError:
+        return False
+
+    for clause in vulnerable_range.split(","):
+        clause = clause.strip()
+        m = re.match(r"([><=!]+)\s*(.+)", clause)
+        if not m:
+            continue
+        op, bound_str = m.group(1), m.group(2).strip()
+        bound = _parse_maven_version(bound_str)
+        try:
+            from packaging.version import Version
+
+            if not isinstance(bound, Version):
+                return False
+        except ImportError:
+            return False
+
+        if op == ">=" and not (ver >= bound):
+            return False
+        elif op == ">" and not (ver > bound):
+            return False
+        elif op == "<=" and not (ver <= bound):
+            return False
+        elif op == "<" and not (ver < bound):
+            return False
+        elif op in ("=", "==") and not (ver == bound):
+            return False
+        elif op == "!=" and not (ver != bound):
+            return False
+    return True
+
+
+def _has_open_alert(dep: str, alerts: list[dict[str, Any]]) -> bool:
+    """Return True if there is at least one OPEN Dependabot alert for *dep* (``group:artifact``)."""
+    for alert in alerts:
+        if alert.get("state", "").lower() != "open":
+            continue
+        pkg = alert.get("dependency", {}).get("package", {})
+        if pkg.get("ecosystem", "").lower() == "maven" and pkg.get("name") == dep:
+            return True
+    return False
+
+
+def _query_advisories_for_dep(group: str, artifact: str, gh_token: str) -> list[dict[str, Any]] | None:
+    """Query GitHub GraphQL for all security advisories affecting ``group:artifact`` (MAVEN).
+
+    Returns a list of advisory nodes with ``vulnerableVersionRange`` and
+    ``firstPatchedVersion``, or *None* on any error (caller should treat *None*
+    conservatively and refuse to remove the force rule).
+    """
+    package_name = f"{group}:{artifact}"
+    # Template the package name into the query string (it is not user-supplied at
+    # runtime, so this is safe in this context).
+    query_template = """
+query($after: String) {
+  securityVulnerabilities(ecosystem: MAVEN, package: "%s", first: 100, after: $after) {
+    pageInfo { hasNextPage endCursor }
+    nodes {
+      vulnerableVersionRange
+      firstPatchedVersion { identifier }
+    }
+  }
+}
+"""
+    query = query_template % package_name
+
+    results: list[dict[str, Any]] = []
+    after: str | None = None
+
+    for _ in range(20):  # safety cap: max 20 pages → 2 000 advisories
+        variables: dict[str, Any] = {}
+        if after:
+            variables["after"] = after
+
+        payload = json.dumps({"query": query, "variables": variables}).encode()
+        req = urllib.request.Request(
+            "https://api.github.com/graphql",
+            data=payload,
+            headers={
+                "Authorization": f"Bearer {gh_token}",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                data = json.loads(resp.read())
+        except Exception as exc:
+            print(f"  WARN: GraphQL query failed for {package_name}: {exc}")
+            return None
+
+        if "errors" in data:
+            print(f"  WARN: GraphQL errors for {package_name}: {data['errors']}")
+            return None
+
+        vulns = data.get("data", {}).get("securityVulnerabilities", {})
+        nodes = vulns.get("nodes", [])
+        results.extend(nodes)
+
+        page_info = vulns.get("pageInfo", {})
+        if not page_info.get("hasNextPage"):
+            break
+        after = page_info.get("endCursor")
+
+    return results
+
+
+def is_safe_to_remove(
+    dep: str,
+    natural_version: str,
+    alerts: list[dict[str, Any]],
+    check_advisories: bool = True,
+    gh_token: str | None = None,
+) -> bool:
+    """Return True only if it is safe to remove the force rule for *dep*.
+
+    Conditions (ALL must hold):
+      1. *natural_version* is truthy (caller already verified ``natural == forced``).
+      2. No open Dependabot alert for *dep*.
+      3. (If *check_advisories*) The natural version does not fall within any
+         known advisory's ``vulnerableVersionRange`` (GitHub Advisory Database).
+
+    On any uncertainty or error, returns False (conservative default).
+    """
+    # Condition 2: no open alert
+    if _has_open_alert(dep, alerts):
+        print(f"  INFO: skipping removal of {dep} — open Dependabot alert exists")
+        return False
+
+    # Condition 3: advisory check via GitHub GraphQL
+    if check_advisories:
+        if not gh_token:
+            print(
+                f"  INFO: skipping removal of {dep} — GH_TOKEN not set, "
+                "cannot verify advisories (conservative)"
+            )
+            return False
+        parts = dep.split(":", 1)
+        if len(parts) != 2:
+            print(f"  INFO: skipping removal of {dep} — cannot parse group:artifact")
+            return False
+        group, artifact = parts
+        advisories = _query_advisories_for_dep(group, artifact, gh_token)
+        if advisories is None:
+            print(f"  INFO: skipping removal of {dep} — advisory query failed (conservative)")
+            return False
+        for adv in advisories:
+            vrange = adv.get("vulnerableVersionRange") or ""
+            if vrange and _version_in_range(natural_version, vrange):
+                first_patched = (adv.get("firstPatchedVersion") or {}).get("identifier", "unknown")
+                print(
+                    f"  INFO: skipping removal of {dep}@{natural_version} — "
+                    f"falls in advisory range '{vrange}' (first patched: {first_patched})"
+                )
+                return False
+
+    return True
+
+
+def command_determine_removable(args: argparse.Namespace) -> None:
+    forced = json.loads(Path(args.forced_json).read_text())
+    natural = json.loads(Path(args.natural_json).read_text())
+    alerts = load_alerts(Path(args.alerts_json))
+    gh_token = os.environ.get("GH_TOKEN")
+    removable: set[str] = set()
+
+    for item in forced:
+        dep = f"{item['group']}:{item['artifact']}"
+        resolved_by_config = natural.get(dep, {})
+        successful = [
+            entry["resolved"]
+            for entry in resolved_by_config.values()
+            if not entry.get("config_missing") and entry.get("resolved")
+        ]
+
+        # Condition 1: natural version must equal forced version in all configs
+        if not successful:
+            print(f"  INFO: skipping removal of {dep} — no successful natural resolution found")
+            continue
+        if not all(version == item["version"] for version in successful):
+            natural_versions = sorted(set(successful))
+            print(
+                f"  INFO: skipping removal of {dep} — "
+                f"natural version(s) {natural_versions} != forced {item['version']}"
+            )
+            continue
+
+        natural_version = successful[0]  # All equal at this point
+
+        # Conditions 2 & 3: open alert check + advisory check
+        if not is_safe_to_remove(
+            dep,
+            natural_version,
+            alerts,
+            check_advisories=args.check_advisories,
+            gh_token=gh_token,
+        ):
+            continue
+
+        removable.add(dep)
+        print(f"  INFO: {dep}@{natural_version} is safe to remove — all conditions met")
+
+    Path(args.output).write_text(json.dumps(sorted(removable), indent=2) + "\n")
+    print(f"Removable forces: {len(removable)}")
 
 
 def command_apply_updates(args: argparse.Namespace) -> None:
@@ -399,6 +642,21 @@ def build_parser() -> argparse.ArgumentParser:
     determine_removable = subparsers.add_parser("determine-removable")
     determine_removable.add_argument("--forced-json", required=True)
     determine_removable.add_argument("--natural-json", required=True)
+    determine_removable.add_argument("--alerts-json", required=True)
+    determine_removable.add_argument(
+        "--repo",
+        default="",
+        help="OWNER/REPO (informational; token is read from GH_TOKEN env var)",
+    )
+    determine_removable.add_argument(
+        "--check-advisories",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "Query GitHub Advisory Database to verify the natural version is not "
+            "vulnerable before removing a force rule (default: True)"
+        ),
+    )
     determine_removable.add_argument("--output", required=True)
     determine_removable.set_defaults(func=command_determine_removable)
 
