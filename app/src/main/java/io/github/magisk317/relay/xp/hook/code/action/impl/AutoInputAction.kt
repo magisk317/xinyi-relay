@@ -36,11 +36,11 @@ class AutoInputAction(
             deduplicateEnabled = deduplicateEnabled,
             dispatchDelayMs = dispatchDelayMs,
             deduplicateReader = XpPrefs::deduplicateSms,
-            sharedGateClaimer = { context, fileName, key, windowMs, maxEntries ->
-                XpSharedRuntimeGate.claimWithinWindow(
+            sharedGateClaimer = { context, fileName, keys, windowMs, maxEntries ->
+                XpSharedRuntimeGate.claimAllWithinWindow(
                     context = context,
                     fileName = fileName,
-                    key = key,
+                    keys = keys,
                     windowMs = windowMs,
                     maxEntries = maxEntries,
                 ).toShared()
@@ -87,6 +87,7 @@ class AutoInputAction(
         return AutoInputActionHelper.ClaimResult(
             claimed = claimed,
             ageMs = ageMs,
+            key = key,
         )
     }
 }

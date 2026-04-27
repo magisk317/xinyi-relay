@@ -3,20 +3,22 @@ package io.github.magisk317.relay.xp.hook.code
 import android.content.Context
 import android.os.Handler
 import dev.mokkery.MockMode.autofill
-import dev.mokkery.every
 import dev.mokkery.mock
-import dev.mokkery.verify
-import dev.mokkery.answering.returns
-import dev.mokkery.matcher.any
 import io.github.magisk317.relay.xpbridge.SmsMsg
+import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
+import io.github.magisk317.smscode.xposed.utils.XLog
 import java.util.concurrent.ScheduledExecutorService
-import java.util.concurrent.ScheduledFuture
-import java.util.concurrent.TimeUnit
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class SmsCodeActionDispatcherTest {
+    @AfterEach
+    fun tearDown() {
+        XLog.setTestSink(null)
+    }
 
     @Test
     fun dispatchParsedSmsActions_routesEachEnabledActionToScheduler() {
@@ -114,11 +116,72 @@ class SmsCodeActionDispatcherTest {
         assertEquals(0L, SmsCodeActionDispatcher.resolveToastDelayMs(null))
     }
 
-    private fun smsMsg(): SmsMsg {
+    @Test
+    fun claimAutoInputDispatch_skipsSecondMessageWhenCodeMatchesWithinWindow() {
+        XLog.setTestSink { _, _ -> }
+        val pluginContext = mock<Context>(autofill)
+        val claimedAt = LinkedHashMap<String, Long>()
+        var now = 5_000L
+        val gateClaimer =
+            { _: Context, _: String, keys: List<String>, windowMs: Long, _: Int ->
+                val blockedKey = keys.firstOrNull { key ->
+                    val claimedTime = claimedAt[key]
+                    claimedTime != null && now - claimedTime <= windowMs
+                }
+                if (blockedKey != null) {
+                    XpSharedRuntimeGate.ClaimResult(
+                        claimed = false,
+                        ageMs = now - (claimedAt[blockedKey] ?: now),
+                        key = blockedKey,
+                    )
+                } else {
+                    keys.forEach { key -> claimedAt[key] = now }
+                    XpSharedRuntimeGate.ClaimResult(claimed = true)
+                }
+            }
+
+        val firstClaimed = SmsCodeActionDispatcher.claimAutoInputDispatch(
+            pluginContext = pluginContext,
+            smsMsg = smsMsg(
+                sender = "10690665401526040",
+                body = "京东云验证码 063664",
+                company = "京东云",
+                smsCode = "063664",
+            ),
+            delayMs = 0L,
+            gateClaimer = gateClaimer,
+        )
+
+        now += 1_000L
+
+        val secondClaimed = SmsCodeActionDispatcher.claimAutoInputDispatch(
+            pluginContext = pluginContext,
+            smsMsg = smsMsg(
+                sender = "JDCloud",
+                body = "验证码 063664，请勿泄露",
+                company = "京东云",
+                smsCode = "063664",
+            ),
+            delayMs = 0L,
+            gateClaimer = gateClaimer,
+        )
+
+        assertTrue(firstClaimed)
+        assertFalse(secondClaimed)
+    }
+
+    private fun smsMsg(
+        sender: String = "1068",
+        body: String = "otp 123456",
+        company: String? = null,
+        smsCode: String? = null,
+    ): SmsMsg {
         return SmsMsg(
-            sender = "1068",
-            body = "otp 123456",
+            sender = sender,
+            body = body,
             date = 100L,
+            company = company,
+            smsCode = smsCode,
             msgType = SmsMsg.MSG_TYPE_SMS,
         )
     }

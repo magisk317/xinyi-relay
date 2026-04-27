@@ -8,6 +8,7 @@ object XpSharedRuntimeGate {
     data class ClaimResult(
         val claimed: Boolean,
         val ageMs: Long? = null,
+        val key: String? = null,
     )
 
     fun claimWithinWindow(
@@ -27,6 +28,28 @@ object XpSharedRuntimeGate {
         return ClaimResult(
             claimed = result.claimed,
             ageMs = result.ageMs,
+            key = result.key,
+        )
+    }
+
+    fun claimAllWithinWindow(
+        context: Context,
+        fileName: String,
+        keys: Collection<String>,
+        windowMs: Long,
+        maxEntries: Int = DEFAULT_MAX_ENTRIES,
+    ): ClaimResult {
+        val result = SharedRuntimeGate.claimAllWithinWindow(
+            context = context,
+            fileName = fileName,
+            keys = keys,
+            windowMs = windowMs,
+            maxEntries = maxEntries,
+        )
+        return ClaimResult(
+            claimed = result.claimed,
+            ageMs = result.ageMs,
+            key = result.key,
         )
     }
 

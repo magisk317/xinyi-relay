@@ -325,28 +325,38 @@ internal object SmsCodeActionDispatcher {
         )
     }
 
-    private fun claimAutoInputDispatch(
+    internal fun claimAutoInputDispatch(
         pluginContext: Context,
         smsMsg: SmsMsg,
         delayMs: Long,
+        gateClaimer: (Context, String, List<String>, Long, Int) -> XpSharedRuntimeGate.ClaimResult =
+            { context, fileName, keys, windowMs, maxEntries ->
+                XpSharedRuntimeGate.claimAllWithinWindow(
+                    context = context,
+                    fileName = fileName,
+                    keys = keys,
+                    windowMs = windowMs,
+                    maxEntries = maxEntries,
+                )
+            },
     ): Boolean {
-        val key = SmsMessageDedupKeys.buildMessageKey(smsMsg)
-        if (key.isBlank()) return true
+        val keys = SmsMessageDedupKeys.buildAutoInputKeys(smsMsg)
+        if (keys.isEmpty()) return true
         val windowMs = (delayMs + AUTO_INPUT_DISPATCH_GUARD_EXTRA_MS)
             .coerceAtLeast(AUTO_INPUT_DISPATCH_GUARD_MIN_WINDOW_MS)
-        val claim = XpSharedRuntimeGate.claimWithinWindow(
-            context = pluginContext,
-            fileName = SHARED_AUTO_INPUT_DISPATCH_GUARD_FILE_NAME,
-            key = key,
-            windowMs = windowMs,
-            maxEntries = MAX_AUTO_INPUT_DISPATCH_GUARD_ENTRIES,
+        val claim = gateClaimer(
+            pluginContext,
+            SHARED_AUTO_INPUT_DISPATCH_GUARD_FILE_NAME,
+            keys,
+            windowMs,
+            MAX_AUTO_INPUT_DISPATCH_GUARD_ENTRIES,
         )
         if (claim.claimed) {
             return true
         }
         XLog.w(
             "Auto input dispatch skipped: key=%s ageMs=%d delayMs=%d windowMs=%d",
-            key,
+            claim.key ?: keys.first(),
             claim.ageMs ?: -1L,
             delayMs,
             windowMs,
