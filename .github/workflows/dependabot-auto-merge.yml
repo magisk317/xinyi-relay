@@ -18,7 +18,13 @@ jobs:
         github.event.pull_request.user.login == 'github-actions[bot]' ||
         (
           github.event.pull_request.user.login == 'magisk317' &&
-          startsWith(github.head_ref, 'renovate/')
+          (
+            startsWith(github.head_ref, 'renovate/') ||
+            (
+              github.head_ref == 'chore/dependency-force-update' &&
+              github.event.pull_request.title == 'build: update forced dependencies'
+            )
+          )
         )
       )
     steps:
