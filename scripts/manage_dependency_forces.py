@@ -4,13 +4,35 @@ Design philosophy (conservative removal strategy):
     A force rule may only be REMOVED if ALL of the following conditions are met:
       1. The natural (un-forced) resolved version already equals the forced version
          in every Gradle configuration checked (i.e. the force is redundant).
-      2. There is NO currently open Dependabot alert for that dependency.
+      2. The dependency has NEVER had a Dependabot alert in any state.
       3. The GitHub Advisory Database confirms that the natural version is NOT
          within any known vulnerable version range for that package (ecosystem=MAVEN),
          meaning Dependabot would NOT re-open an alert if the force were dropped.
     If ANY condition fails — or if any network/API call errors out — the force is
     kept. This conservative default prevents the ADD/REMOVE oscillation described in:
     https://app.stilla.ai/m/memo_01kq6zw9k3f2199jtez41bzxqh
+
+Why historical alerts (any state) instead of only open alerts?
+
+    Dependabot alerts get automatically dismissed/closed when a force rule is
+    added that pins to a patched version. If we only check open alerts, the
+    condition will always be False right after the force was added, and we
+    will incorrectly delete the force, causing Dependabot to reopen the alert,
+    causing automation to add the force back — the ADD/REMOVE oscillation.
+
+    By checking *historical* alerts (any state, including dismissed, auto_dismissed,
+    fixed), we ensure that once a dependency has been flagged as vulnerable, its
+    force rule is never automatically removed. Removal becomes an explicit human
+    decision, made when the upstream POM no longer declares vulnerable versions of
+    the dependency.
+
+Why tristate (True / False / None) for _version_in_range?
+
+    The original bool-returning implementation silently returned False on any
+    parse failure (ImportError, malformed range, unknown operator). False is
+    interpreted as "version NOT in vulnerable range → safe to remove", which is
+    the opposite of what we want when we cannot determine safety. The tristate
+    design makes parse errors explicit: callers treat None as "unsafe to remove".
 """
 
 from __future__ import annotations
@@ -333,8 +355,12 @@ def _parse_maven_version(version_str: str) -> Any:
         return version_str
 
 
-def _version_in_range(version_str: str, vulnerable_range: str) -> bool:
-    """Return True if *version_str* falls within *vulnerable_range*.
+def _version_in_range(version_str: str, vulnerable_range: str) -> bool | None:
+    """Return True if *version_str* is in *vulnerable_range*, False if definitely not,
+    or None if the result cannot be determined (parse failure, unknown operator, etc.).
+
+    Callers MUST treat None as "unsafe to remove" — it must NOT be silently
+    interpreted as "not in range" (which was the bug in the previous implementation).
 
     Range format examples (GitHub Advisory Database):
       ``>= 4.1.0, < 4.1.118.Final``
@@ -346,25 +372,30 @@ def _version_in_range(version_str: str, vulnerable_range: str) -> bool:
         from packaging.version import Version
 
         if not isinstance(ver, Version):
-            return False  # can't compare safely → caller treats False as uncertain
+            return None  # version_str could not be parsed → undetermined
     except ImportError:
-        return False
+        return None  # packaging library not available → undetermined
 
     for clause in vulnerable_range.split(","):
         clause = clause.strip()
+        if not clause:
+            continue
         m = re.match(r"([><=!]+)\s*(.+)", clause)
         if not m:
-            continue
+            return None  # malformed clause → undetermined
+
         op, bound_str = m.group(1), m.group(2).strip()
         bound = _parse_maven_version(bound_str)
         try:
             from packaging.version import Version
 
             if not isinstance(bound, Version):
-                return False
+                return None  # bound could not be parsed → undetermined
         except ImportError:
-            return False
+            return None
 
+        # Each clause constrains membership: if the version fails ANY clause the
+        # version is definitely outside the range (return False).
         if op == ">=" and not (ver >= bound):
             return False
         elif op == ">" and not (ver > bound):
@@ -377,14 +408,22 @@ def _version_in_range(version_str: str, vulnerable_range: str) -> bool:
             return False
         elif op == "!=" and not (ver != bound):
             return False
+        elif op not in (">=", ">", "<=", "<", "=", "==", "!="):
+            return None  # unknown operator → undetermined
+
+    # All clauses satisfied → version is within the range
     return True
 
 
-def _has_open_alert(dep: str, alerts: list[dict[str, Any]]) -> bool:
-    """Return True if there is at least one OPEN Dependabot alert for *dep* (``group:artifact``)."""
+def _has_any_historical_alert(dep: str, alerts: list[dict[str, Any]]) -> bool:
+    """Return True if *dep* (``group:artifact``) has EVER had a Dependabot alert
+    in ANY state (open, dismissed, auto_dismissed, fixed, …).
+
+    Once a dependency has triggered a Dependabot alert, automation must never
+    auto-remove its force rule. Only a human decision — after verifying the upstream
+    POM no longer declares vulnerable versions — should clear the force.
+    """
     for alert in alerts:
-        if alert.get("state", "").lower() != "open":
-            continue
         pkg = alert.get("dependency", {}).get("package", {})
         if pkg.get("ecosystem", "").lower() == "maven" and pkg.get("name") == dep:
             return True
@@ -467,15 +506,18 @@ def is_safe_to_remove(
 
     Conditions (ALL must hold):
       1. *natural_version* is truthy (caller already verified ``natural == forced``).
-      2. No open Dependabot alert for *dep*.
+      2. The dependency has never had a Dependabot alert in any state.
       3. (If *check_advisories*) The natural version does not fall within any
          known advisory's ``vulnerableVersionRange`` (GitHub Advisory Database).
 
     On any uncertainty or error, returns False (conservative default).
     """
-    # Condition 2: no open alert
-    if _has_open_alert(dep, alerts):
-        print(f"  INFO: skipping removal of {dep} — open Dependabot alert exists")
+    # Condition 2: no historical alert in any state
+    if _has_any_historical_alert(dep, alerts):
+        print(
+            f"  INFO: skipping removal of {dep} — "
+            "dependency has historical Dependabot alerts (any state)"
+        )
         return False
 
     # Condition 3: advisory check via GitHub GraphQL
@@ -497,13 +539,25 @@ def is_safe_to_remove(
             return False
         for adv in advisories:
             vrange = adv.get("vulnerableVersionRange") or ""
-            if vrange and _version_in_range(natural_version, vrange):
+            if not vrange:
+                continue
+            result = _version_in_range(natural_version, vrange)
+            if result is True:
                 first_patched = (adv.get("firstPatchedVersion") or {}).get("identifier", "unknown")
                 print(
                     f"  INFO: skipping removal of {dep}@{natural_version} — "
-                    f"falls in advisory range '{vrange}' (first patched: {first_patched})"
+                    f"natural version matches advisory range '{vrange}' "
+                    f"(first patched: {first_patched})"
                 )
                 return False
+            if result is None:
+                print(
+                    f"  INFO: skipping removal of {dep} — "
+                    f"advisory range '{vrange}' could not be evaluated; treating as unsafe"
+                )
+                return False
+            # result is False: version is definitively NOT in this advisory's range;
+            # continue checking remaining advisories.
 
     return True
 
@@ -538,7 +592,7 @@ def command_determine_removable(args: argparse.Namespace) -> None:
 
         natural_version = successful[0]  # All equal at this point
 
-        # Conditions 2 & 3: open alert check + advisory check
+        # Conditions 2 & 3: historical alert check + advisory check
         if not is_safe_to_remove(
             dep,
             natural_version,
