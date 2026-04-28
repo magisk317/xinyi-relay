@@ -47,6 +47,7 @@ jobs:
       )
     env:
       DEPENDENCY_FORCE_CONFIGS: githubApi101DebugRuntimeClasspath,githubLegacyDebugRuntimeClasspath,playApi101DebugRuntimeClasspath,playLegacyDebugRuntimeClasspath,githubApi101ReleaseRuntimeClasspath,githubLegacyReleaseRuntimeClasspath,playApi101ReleaseRuntimeClasspath,playLegacyReleaseRuntimeClasspath
+      DEPENDENCY_FORCE_HISTORICAL_ALERT_COOLDOWN_HOURS: 168
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -99,10 +100,18 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
         run: |
-          curl -sS \
+          # Fetch ALL alerts regardless of state (open, dismissed, auto_dismissed, fixed).
+          # Historical alerts are used by determine-removable as a cooldown signal:
+          # Dependabot may auto-dismiss alerts immediately after a force is added, so checking
+          # only "open" alerts can remove the force too early and reopen the alert on the next run.
+          # We therefore keep recent historical alerts long enough for the dependency graph to settle,
+          # but still allow automatic removal after the cooldown and safety checks pass.
+          # gh api --paginate follows Link headers automatically across all pages.
+          gh api \
+            --paginate \
             -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/dependabot/alerts?state=open&per_page=100" \
+            "repos/${GITHUB_REPOSITORY}/dependabot/alerts?per_page=100" \
+            | jq -s '[.[][]]' \
             > /tmp/dependabot-alerts.json
 
       - name: Determine removable forces
@@ -114,6 +123,7 @@ jobs:
             --forced-json /tmp/forced.json \
             --natural-json /tmp/natural.json \
             --alerts-json /tmp/dependabot-alerts.json \
+            --historical-alert-cooldown-hours "$DEPENDENCY_FORCE_HISTORICAL_ALERT_COOLDOWN_HOURS" \
             --output /tmp/removable.json
           count=$(python3 - <<'PY'
           import json

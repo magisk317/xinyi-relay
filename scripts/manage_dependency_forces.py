@@ -2,15 +2,38 @@
 
 Design philosophy (conservative removal strategy):
     A force rule may only be REMOVED if ALL of the following conditions are met:
-      1. The natural (un-forced) resolved version already equals the forced version
-         in every Gradle configuration checked (i.e. the force is redundant).
-      2. There is NO currently open Dependabot alert for that dependency.
-      3. The GitHub Advisory Database confirms that the natural version is NOT
+      1. All successful natural (un-forced) resolutions converge to the same
+         version across the checked Gradle configurations.
+      2. That natural version is not older than the forced version, and not older
+         than any known patched baseline from Dependabot alert history.
+      3. The dependency has no CURRENT open Dependabot alert.
+      4. If the dependency had historical alerts, the latest resolved alert is
+         older than the configured cooldown window.
+      5. The GitHub Advisory Database confirms that the natural version is NOT
          within any known vulnerable version range for that package (ecosystem=MAVEN),
-         meaning Dependabot would NOT re-open an alert if the force were dropped.
+         meaning Dependabot should not re-open an alert if the force were dropped.
     If ANY condition fails — or if any network/API call errors out — the force is
     kept. This conservative default prevents the ADD/REMOVE oscillation described in:
     https://app.stilla.ai/m/memo_01kq6zw9k3f2199jtez41bzxqh
+
+Why historical alerts plus cooldown instead of "ever alerted => never remove"?
+
+    Dependabot alerts often close automatically right after a force rule pins a
+    patched version. If we only check "open" alerts, the next run may wrongly
+    conclude the force is removable, reopen the alert, and start oscillating.
+
+    Historical alerts are therefore treated as a stabilization signal, but not a
+    permanent blacklist. Once the dependency has stayed resolved long enough and
+    the natural version remains at or above the patched baseline, automation may
+    remove the force again.
+
+Why tristate (True / False / None) for _version_in_range?
+
+    The original bool-returning implementation silently returned False on any
+    parse failure (ImportError, malformed range, unknown operator). False is
+    interpreted as "version NOT in vulnerable range → safe to remove", which is
+    the opposite of what we want when we cannot determine safety. The tristate
+    design makes parse errors explicit: callers treat None as "unsafe to remove".
 """
 
 from __future__ import annotations
@@ -22,13 +45,21 @@ import re
 import subprocess
 import urllib.error
 import urllib.request
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 import tomllib
 
+try:
+    from packaging.version import InvalidVersion, Version
+except ImportError:
+    InvalidVersion = None
+    Version = None
+
 AUTO_FORCE_BEGIN = "            // BEGIN AUTO FORCED DEPENDENCIES (managed by workflow)"
 AUTO_FORCE_END = "            // END AUTO FORCED DEPENDENCIES (managed by workflow)"
+DEFAULT_HISTORICAL_ALERT_COOLDOWN_HOURS = 24 * 7
 
 
 def load_catalog(toml_path: Path) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -130,6 +161,10 @@ def version_key(version: str) -> list[tuple[int, int | str]]:
     return key
 
 
+def version_gte(left: str, right: str) -> bool:
+    return version_key(left) >= version_key(right)
+
+
 def command_read_forces(args: argparse.Namespace) -> None:
     versions, libraries = load_catalog(Path(args.toml_file))
     forces = []
@@ -226,6 +261,7 @@ def command_resolve_alert_natural(args: argparse.Namespace) -> None:
         {
             alert.get("dependency", {}).get("package", {}).get("name")
             for alert in alerts
+            if _is_open_alert(alert)
             if alert.get("dependency", {}).get("package", {}).get("ecosystem") == "maven"
             and ":" in (alert.get("dependency", {}).get("package", {}).get("name") or "")
         }
@@ -311,6 +347,79 @@ def line_dep(expr: str, versions: dict[str, Any], libraries: dict[str, Any]) -> 
 # ---------------------------------------------------------------------------
 
 
+def _parse_github_timestamp(raw: str | None) -> datetime | None:
+    if not raw:
+        return None
+    try:
+        return datetime.fromisoformat(raw.replace("Z", "+00:00")).astimezone(timezone.utc)
+    except ValueError:
+        return None
+
+
+def _alert_resolution_timestamp(alert: dict[str, Any]) -> datetime | None:
+    for field in ("fixed_at", "dismissed_at", "auto_dismissed_at", "updated_at", "created_at"):
+        timestamp = _parse_github_timestamp(alert.get(field))
+        if timestamp is not None:
+            return timestamp
+    return None
+
+
+def _iter_dep_alerts(dep: str, alerts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    matched: list[dict[str, Any]] = []
+    for alert in alerts:
+        pkg = alert.get("dependency", {}).get("package", {})
+        if pkg.get("ecosystem", "").lower() == "maven" and pkg.get("name") == dep:
+            matched.append(alert)
+    return matched
+
+
+def _is_open_alert(alert: dict[str, Any]) -> bool:
+    return (alert.get("state") or "").lower() == "open"
+
+
+def _has_open_alert(dep: str, alerts: list[dict[str, Any]]) -> bool:
+    return any(_is_open_alert(alert) for alert in _iter_dep_alerts(dep, alerts))
+
+
+def _latest_resolved_alert_timestamp(dep: str, alerts: list[dict[str, Any]]) -> datetime | None:
+    timestamps = [
+        timestamp
+        for alert in _iter_dep_alerts(dep, alerts)
+        if (alert.get("state") or "").lower() != "open"
+        for timestamp in [_alert_resolution_timestamp(alert)]
+        if timestamp is not None
+    ]
+    return max(timestamps) if timestamps else None
+
+
+def _patched_baseline(dep: str, alerts: list[dict[str, Any]]) -> str | None:
+    baseline: str | None = None
+    for alert in _iter_dep_alerts(dep, alerts):
+        patched = (
+            (alert.get("security_vulnerability") or {}).get("first_patched_version") or {}
+        ).get("identifier") or (
+            (alert.get("security_vulnerability") or {}).get("first_patched_version") or {}
+        ).get("version")
+        if not patched:
+            continue
+        if baseline is None or version_gte(patched, baseline):
+            baseline = patched
+    return baseline
+
+
+def _cooldown_elapsed(
+    dep: str,
+    alerts: list[dict[str, Any]],
+    cooldown_hours: int,
+    now: datetime | None = None,
+) -> bool:
+    latest_resolved = _latest_resolved_alert_timestamp(dep, alerts)
+    if latest_resolved is None:
+        return True
+    current = now or datetime.now(timezone.utc)
+    return current - latest_resolved >= timedelta(hours=cooldown_hours)
+
+
 def _parse_maven_version(version_str: str) -> Any:
     """Parse a Maven version string into a comparable object.
 
@@ -318,9 +427,7 @@ def _parse_maven_version(version_str: str) -> Any:
     so that ``packaging.version.parse`` (PEP 440) can handle them.
     Falls back to the raw string if parsing fails.
     """
-    try:
-        from packaging.version import InvalidVersion, Version
-    except ImportError:
+    if Version is None or InvalidVersion is None:
         return version_str
 
     # Strip common Maven suffixes that PEP-440 doesn't understand
@@ -333,8 +440,12 @@ def _parse_maven_version(version_str: str) -> Any:
         return version_str
 
 
-def _version_in_range(version_str: str, vulnerable_range: str) -> bool:
-    """Return True if *version_str* falls within *vulnerable_range*.
+def _version_in_range(version_str: str, vulnerable_range: str) -> bool | None:
+    """Return True if *version_str* is in *vulnerable_range*, False if definitely not,
+    or None if the result cannot be determined (parse failure, unknown operator, etc.).
+
+    Callers MUST treat None as "unsafe to remove" — it must NOT be silently
+    interpreted as "not in range" (which was the bug in the previous implementation).
 
     Range format examples (GitHub Advisory Database):
       ``>= 4.1.0, < 4.1.118.Final``
@@ -342,29 +453,29 @@ def _version_in_range(version_str: str, vulnerable_range: str) -> bool:
       ``>= 0``
     """
     ver = _parse_maven_version(version_str)
-    try:
-        from packaging.version import Version
+    if Version is None:
+        return None  # packaging library not available → undetermined
+    if not isinstance(ver, Version):
+        return None  # version_str could not be parsed → undetermined
 
-        if not isinstance(ver, Version):
-            return False  # can't compare safely → caller treats False as uncertain
-    except ImportError:
-        return False
+    saw_valid_clause = False
 
     for clause in vulnerable_range.split(","):
         clause = clause.strip()
+        if not clause:
+            continue
         m = re.match(r"([><=!]+)\s*(.+)", clause)
         if not m:
-            continue
+            return None  # malformed clause → undetermined
+
         op, bound_str = m.group(1), m.group(2).strip()
         bound = _parse_maven_version(bound_str)
-        try:
-            from packaging.version import Version
+        if not isinstance(bound, Version):
+            return None  # bound could not be parsed → undetermined
+        saw_valid_clause = True
 
-            if not isinstance(bound, Version):
-                return False
-        except ImportError:
-            return False
-
+        # Each clause constrains membership: if the version fails ANY clause the
+        # version is definitely outside the range (return False).
         if op == ">=" and not (ver >= bound):
             return False
         elif op == ">" and not (ver > bound):
@@ -377,18 +488,14 @@ def _version_in_range(version_str: str, vulnerable_range: str) -> bool:
             return False
         elif op == "!=" and not (ver != bound):
             return False
+        elif op not in (">=", ">", "<=", "<", "=", "==", "!="):
+            return None  # unknown operator → undetermined
+
+    if not saw_valid_clause:
+        return None
+
+    # All clauses satisfied → version is within the range
     return True
-
-
-def _has_open_alert(dep: str, alerts: list[dict[str, Any]]) -> bool:
-    """Return True if there is at least one OPEN Dependabot alert for *dep* (``group:artifact``)."""
-    for alert in alerts:
-        if alert.get("state", "").lower() != "open":
-            continue
-        pkg = alert.get("dependency", {}).get("package", {})
-        if pkg.get("ecosystem", "").lower() == "maven" and pkg.get("name") == dep:
-            return True
-    return False
 
 
 def _query_advisories_for_dep(group: str, artifact: str, gh_token: str) -> list[dict[str, Any]] | None:
@@ -459,26 +566,58 @@ query($after: String) {
 def is_safe_to_remove(
     dep: str,
     natural_version: str,
+    forced_version: str,
     alerts: list[dict[str, Any]],
+    cooldown_hours: int,
     check_advisories: bool = True,
     gh_token: str | None = None,
+    now: datetime | None = None,
 ) -> bool:
     """Return True only if it is safe to remove the force rule for *dep*.
 
     Conditions (ALL must hold):
-      1. *natural_version* is truthy (caller already verified ``natural == forced``).
-      2. No open Dependabot alert for *dep*.
-      3. (If *check_advisories*) The natural version does not fall within any
+      1. *natural_version* is truthy and not older than the forced version.
+      2. The dependency has no open Dependabot alert.
+      3. If the dependency has historical resolved alerts, the configured cooldown
+         period has elapsed since the latest resolution/dismissal.
+      4. The natural version is not older than the strongest patched baseline seen
+         in alert history.
+      5. (If *check_advisories*) The natural version does not fall within any
          known advisory's ``vulnerableVersionRange`` (GitHub Advisory Database).
 
     On any uncertainty or error, returns False (conservative default).
     """
-    # Condition 2: no open alert
-    if _has_open_alert(dep, alerts):
-        print(f"  INFO: skipping removal of {dep} — open Dependabot alert exists")
+    if not natural_version:
+        print(f"  INFO: skipping removal of {dep} — natural version missing")
         return False
 
-    # Condition 3: advisory check via GitHub GraphQL
+    if not version_gte(natural_version, forced_version):
+        print(
+            f"  INFO: skipping removal of {dep} — "
+            f"natural version {natural_version} is older than forced {forced_version}"
+        )
+        return False
+
+    if _has_open_alert(dep, alerts):
+        print(f"  INFO: skipping removal of {dep} — dependency still has an open Dependabot alert")
+        return False
+
+    if not _cooldown_elapsed(dep, alerts, cooldown_hours, now=now):
+        latest_resolved = _latest_resolved_alert_timestamp(dep, alerts)
+        print(
+            f"  INFO: skipping removal of {dep} — "
+            f"historical alert cooldown still active since {latest_resolved.isoformat() if latest_resolved else 'unknown'}"
+        )
+        return False
+
+    patched_baseline = _patched_baseline(dep, alerts)
+    if patched_baseline and not version_gte(natural_version, patched_baseline):
+        print(
+            f"  INFO: skipping removal of {dep} — "
+            f"natural version {natural_version} is below patched baseline {patched_baseline}"
+        )
+        return False
+
     if check_advisories:
         if not gh_token:
             print(
@@ -497,13 +636,25 @@ def is_safe_to_remove(
             return False
         for adv in advisories:
             vrange = adv.get("vulnerableVersionRange") or ""
-            if vrange and _version_in_range(natural_version, vrange):
+            if not vrange:
+                continue
+            result = _version_in_range(natural_version, vrange)
+            if result is True:
                 first_patched = (adv.get("firstPatchedVersion") or {}).get("identifier", "unknown")
                 print(
                     f"  INFO: skipping removal of {dep}@{natural_version} — "
-                    f"falls in advisory range '{vrange}' (first patched: {first_patched})"
+                    f"natural version matches advisory range '{vrange}' "
+                    f"(first patched: {first_patched})"
                 )
                 return False
+            if result is None:
+                print(
+                    f"  INFO: skipping removal of {dep} — "
+                    f"advisory range '{vrange}' could not be evaluated; treating as unsafe"
+                )
+                return False
+            # result is False: version is definitively NOT in this advisory's range;
+            # continue checking remaining advisories.
 
     return True
 
@@ -524,25 +675,32 @@ def command_determine_removable(args: argparse.Namespace) -> None:
             if not entry.get("config_missing") and entry.get("resolved")
         ]
 
-        # Condition 1: natural version must equal forced version in all configs
         if not successful:
             print(f"  INFO: skipping removal of {dep} — no successful natural resolution found")
             continue
-        if not all(version == item["version"] for version in successful):
-            natural_versions = sorted(set(successful))
+        natural_versions = sorted(set(successful), key=version_key)
+        if len(natural_versions) != 1:
             print(
                 f"  INFO: skipping removal of {dep} — "
-                f"natural version(s) {natural_versions} != forced {item['version']}"
+                f"natural versions diverge across configs: {natural_versions}"
             )
             continue
 
-        natural_version = successful[0]  # All equal at this point
+        natural_version = natural_versions[0]
+        if not version_gte(natural_version, item["version"]):
+            natural_versions = sorted(set(successful))
+            print(
+                f"  INFO: skipping removal of {dep} — "
+                f"natural version {natural_version} is below forced {item['version']}"
+            )
+            continue
 
-        # Conditions 2 & 3: open alert check + advisory check
         if not is_safe_to_remove(
             dep,
             natural_version,
+            item["version"],
             alerts,
+            cooldown_hours=args.historical_alert_cooldown_hours,
             check_advisories=args.check_advisories,
             gh_token=gh_token,
         ):
@@ -575,6 +733,8 @@ def command_apply_updates(args: argparse.Namespace) -> None:
     alerts = load_alerts(Path(args.alerts_json))
     security_forces: dict[str, str] = {}
     for alert in alerts:
+        if not _is_open_alert(alert):
+            continue
         ecosystem = alert.get("dependency", {}).get("package", {}).get("ecosystem")
         dep = alert.get("dependency", {}).get("package", {}).get("name")
         patched = alert.get("security_vulnerability", {}).get("first_patched_version", {}) or {}
@@ -647,6 +807,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--repo",
         default="",
         help="OWNER/REPO (informational; token is read from GH_TOKEN env var)",
+    )
+    determine_removable.add_argument(
+        "--historical-alert-cooldown-hours",
+        type=int,
+        default=DEFAULT_HISTORICAL_ALERT_COOLDOWN_HOURS,
+        help=(
+            "Require this many hours to pass since the latest resolved/dismissed "
+            "historical alert before a force rule may be auto-removed"
+        ),
     )
     determine_removable.add_argument(
         "--check-advisories",
