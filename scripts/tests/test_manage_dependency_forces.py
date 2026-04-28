@@ -40,6 +40,10 @@ def alert(
 
 
 class ManageDependencyForcesTest(unittest.TestCase):
+    def test_version_in_range_returns_none_for_empty_range(self):
+        self.assertIsNone(mdf._version_in_range("4.1.132.Final", ""))
+        self.assertIsNone(mdf._version_in_range("4.1.132.Final", " , , "))
+
     def test_is_safe_to_remove_rejects_open_alert(self):
         result = mdf.is_safe_to_remove(
             dep="io.netty:netty-codec-http",
@@ -50,6 +54,17 @@ class ManageDependencyForcesTest(unittest.TestCase):
             check_advisories=False,
         )
         self.assertFalse(result)
+
+    def test_open_alert_filter_only_keeps_open_alerts_for_force_additions(self):
+        alerts = [
+            alert("io.netty:netty-codec-http", "open", patched="4.1.125.Final"),
+            alert("io.netty:netty-codec-http", "fixed", patched="4.1.125.Final"),
+        ]
+
+        open_alerts = [item for item in alerts if mdf._is_open_alert(item)]
+
+        self.assertEqual(1, len(open_alerts))
+        self.assertEqual("open", open_alerts[0]["state"])
 
     def test_is_safe_to_remove_rejects_recent_historical_alert(self):
         result = mdf.is_safe_to_remove(

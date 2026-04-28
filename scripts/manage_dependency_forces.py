@@ -51,6 +51,12 @@ from typing import Any
 
 import tomllib
 
+try:
+    from packaging.version import InvalidVersion, Version
+except ImportError:
+    InvalidVersion = None
+    Version = None
+
 AUTO_FORCE_BEGIN = "            // BEGIN AUTO FORCED DEPENDENCIES (managed by workflow)"
 AUTO_FORCE_END = "            // END AUTO FORCED DEPENDENCIES (managed by workflow)"
 DEFAULT_HISTORICAL_ALERT_COOLDOWN_HOURS = 24 * 7
@@ -255,6 +261,7 @@ def command_resolve_alert_natural(args: argparse.Namespace) -> None:
         {
             alert.get("dependency", {}).get("package", {}).get("name")
             for alert in alerts
+            if _is_open_alert(alert)
             if alert.get("dependency", {}).get("package", {}).get("ecosystem") == "maven"
             and ":" in (alert.get("dependency", {}).get("package", {}).get("name") or "")
         }
@@ -366,8 +373,12 @@ def _iter_dep_alerts(dep: str, alerts: list[dict[str, Any]]) -> list[dict[str, A
     return matched
 
 
+def _is_open_alert(alert: dict[str, Any]) -> bool:
+    return (alert.get("state") or "").lower() == "open"
+
+
 def _has_open_alert(dep: str, alerts: list[dict[str, Any]]) -> bool:
-    return any((alert.get("state") or "").lower() == "open" for alert in _iter_dep_alerts(dep, alerts))
+    return any(_is_open_alert(alert) for alert in _iter_dep_alerts(dep, alerts))
 
 
 def _latest_resolved_alert_timestamp(dep: str, alerts: list[dict[str, Any]]) -> datetime | None:
@@ -416,9 +427,7 @@ def _parse_maven_version(version_str: str) -> Any:
     so that ``packaging.version.parse`` (PEP 440) can handle them.
     Falls back to the raw string if parsing fails.
     """
-    try:
-        from packaging.version import InvalidVersion, Version
-    except ImportError:
+    if Version is None or InvalidVersion is None:
         return version_str
 
     # Strip common Maven suffixes that PEP-440 doesn't understand
@@ -444,13 +453,12 @@ def _version_in_range(version_str: str, vulnerable_range: str) -> bool | None:
       ``>= 0``
     """
     ver = _parse_maven_version(version_str)
-    try:
-        from packaging.version import Version
-
-        if not isinstance(ver, Version):
-            return None  # version_str could not be parsed → undetermined
-    except ImportError:
+    if Version is None:
         return None  # packaging library not available → undetermined
+    if not isinstance(ver, Version):
+        return None  # version_str could not be parsed → undetermined
+
+    saw_valid_clause = False
 
     for clause in vulnerable_range.split(","):
         clause = clause.strip()
@@ -462,13 +470,9 @@ def _version_in_range(version_str: str, vulnerable_range: str) -> bool | None:
 
         op, bound_str = m.group(1), m.group(2).strip()
         bound = _parse_maven_version(bound_str)
-        try:
-            from packaging.version import Version
-
-            if not isinstance(bound, Version):
-                return None  # bound could not be parsed → undetermined
-        except ImportError:
-            return None
+        if not isinstance(bound, Version):
+            return None  # bound could not be parsed → undetermined
+        saw_valid_clause = True
 
         # Each clause constrains membership: if the version fails ANY clause the
         # version is definitely outside the range (return False).
@@ -486,6 +490,9 @@ def _version_in_range(version_str: str, vulnerable_range: str) -> bool | None:
             return False
         elif op not in (">=", ">", "<=", "<", "=", "==", "!="):
             return None  # unknown operator → undetermined
+
+    if not saw_valid_clause:
+        return None
 
     # All clauses satisfied → version is within the range
     return True
@@ -726,6 +733,8 @@ def command_apply_updates(args: argparse.Namespace) -> None:
     alerts = load_alerts(Path(args.alerts_json))
     security_forces: dict[str, str] = {}
     for alert in alerts:
+        if not _is_open_alert(alert):
+            continue
         ecosystem = alert.get("dependency", {}).get("package", {}).get("ecosystem")
         dep = alert.get("dependency", {}).get("package", {}).get("name")
         patched = alert.get("security_vulnerability", {}).get("first_patched_version", {}) or {}
