@@ -754,25 +754,22 @@ def command_apply_updates(args: argparse.Namespace) -> None:
             if current is None or version_key(selected) > version_key(current):
                 security_forces[dep] = selected
 
-    filtered: list[str] = []
-    for line in text:
-        match = re.search(r"force\((.+)\)", line)
-        if not match:
-            filtered.append(line)
+    merged_forces: dict[str, str] = {}
+    for dep, version in existing_forces.items():
+        if dep in removable:
             continue
-
-        expr = match.group(1).strip().strip("\"'")
-        dep = line_dep(expr, versions, libraries)
-        if dep and (dep in removable or dep in security_forces):
-            continue
-        filtered.append(line)
+        merged_forces[dep] = version
+    for dep, version in security_forces.items():
+        current = merged_forces.get(dep)
+        if current is None or version_key(version) > version_key(current):
+            merged_forces[dep] = version
 
     block_lines = [AUTO_FORCE_BEGIN]
-    for dep in sorted(security_forces):
-        block_lines.append(f"            force(\"{dep}:{security_forces[dep]}\")")
+    for dep in sorted(merged_forces):
+        block_lines.append(f"            force(\"{dep}:{merged_forces[dep]}\")")
     block_lines.append(AUTO_FORCE_END)
 
-    new_text = replace_managed_blocks(filtered, block_lines)
+    new_text = replace_managed_blocks(text, block_lines)
     build_path.write_text("\n".join(new_text) + "\n")
 
 

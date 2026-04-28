@@ -2,6 +2,7 @@ import sys
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
+import tempfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -65,6 +66,54 @@ class ManageDependencyForcesTest(unittest.TestCase):
 
         self.assertEqual(1, len(open_alerts))
         self.assertEqual("open", open_alerts[0]["state"])
+
+    def test_apply_updates_preserves_non_removable_existing_forces_when_open_alerts_empty(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            build_file = Path(tmp) / "build.gradle.kts"
+            toml_file = Path(tmp) / "libs.versions.toml"
+            removable_json = Path(tmp) / "removable.json"
+            alerts_json = Path(tmp) / "alerts.json"
+            natural_json = Path(tmp) / "natural.json"
+
+            build_file.write_text(
+                "\n".join(
+                    [
+                        "buildscript {",
+                        "    configurations.all {",
+                        "        resolutionStrategy {",
+                        "            // BEGIN AUTO FORCED DEPENDENCIES (managed by workflow)",
+                        "            force(\"com.google.code.gson:gson:2.14.0\")",
+                        "            force(\"org.apache.commons:commons-lang3:3.20.0\")",
+                        "            // END AUTO FORCED DEPENDENCIES (managed by workflow)",
+                        "        }",
+                        "    }",
+                        "}",
+                    ]
+                )
+                + "\n"
+            )
+            toml_file.write_text("[versions]\n[libraries]\n")
+            removable_json.write_text("[]\n")
+            alerts_json.write_text("[]\n")
+            natural_json.write_text("{}\n")
+
+            args = type(
+                "Args",
+                (),
+                {
+                    "build_file": str(build_file),
+                    "toml_file": str(toml_file),
+                    "removable_json": str(removable_json),
+                    "alerts_json": str(alerts_json),
+                    "natural_json": str(natural_json),
+                },
+            )()
+
+            mdf.command_apply_updates(args)
+
+            text = build_file.read_text()
+            self.assertIn('force("com.google.code.gson:gson:2.14.0")', text)
+            self.assertIn('force("org.apache.commons:commons-lang3:3.20.0")', text)
 
     def test_is_safe_to_remove_rejects_recent_historical_alert(self):
         result = mdf.is_safe_to_remove(
