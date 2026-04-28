@@ -110,7 +110,7 @@ jobs:
           gh api \
             --paginate \
             -H "Accept: application/vnd.github+json" \
-            "repos/${GITHUB_REPOSITORY}/dependabot/alerts?per_page=100" \
+            "repos/${GITHUB_REPOSITORY}/dependabot/alerts?state=all&per_page=100" \
             | jq -s '[.[][]]' \
             > /tmp/dependabot-alerts.json
 
