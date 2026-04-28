@@ -1,3 +1,4 @@
+import json
 import sys
 import unittest
 from datetime import datetime, timezone
@@ -41,6 +42,39 @@ def alert(
 
 
 class ManageDependencyForcesTest(unittest.TestCase):
+    def make_apply_args(
+        self,
+        tmpdir: str,
+        *,
+        build_lines: list[str],
+        removable: list[str] | None = None,
+        alerts: list[dict] | None = None,
+        natural: dict | None = None,
+    ):
+        build_file = Path(tmpdir) / "build.gradle.kts"
+        toml_file = Path(tmpdir) / "libs.versions.toml"
+        removable_json = Path(tmpdir) / "removable.json"
+        alerts_json = Path(tmpdir) / "alerts.json"
+        natural_json = Path(tmpdir) / "natural.json"
+
+        build_file.write_text("\n".join(build_lines) + "\n")
+        toml_file.write_text("[versions]\n[libraries]\n")
+        removable_json.write_text(json.dumps(removable or [], indent=2) + "\n")
+        alerts_json.write_text(json.dumps(alerts or [], indent=2) + "\n")
+        natural_json.write_text(json.dumps(natural or {}, indent=2) + "\n")
+
+        return type(
+            "Args",
+            (),
+            {
+                "build_file": str(build_file),
+                "toml_file": str(toml_file),
+                "removable_json": str(removable_json),
+                "alerts_json": str(alerts_json),
+                "natural_json": str(natural_json),
+            },
+        )(), build_file
+
     def test_version_in_range_returns_none_for_empty_range(self):
         self.assertIsNone(mdf._version_in_range("4.1.132.Final", ""))
         self.assertIsNone(mdf._version_in_range("4.1.132.Final", " , , "))
@@ -69,51 +103,90 @@ class ManageDependencyForcesTest(unittest.TestCase):
 
     def test_apply_updates_preserves_non_removable_existing_forces_when_open_alerts_empty(self):
         with tempfile.TemporaryDirectory() as tmp:
-            build_file = Path(tmp) / "build.gradle.kts"
-            toml_file = Path(tmp) / "libs.versions.toml"
-            removable_json = Path(tmp) / "removable.json"
-            alerts_json = Path(tmp) / "alerts.json"
-            natural_json = Path(tmp) / "natural.json"
-
-            build_file.write_text(
-                "\n".join(
-                    [
-                        "buildscript {",
-                        "    configurations.all {",
-                        "        resolutionStrategy {",
-                        "            // BEGIN AUTO FORCED DEPENDENCIES (managed by workflow)",
-                        "            force(\"com.google.code.gson:gson:2.14.0\")",
-                        "            force(\"org.apache.commons:commons-lang3:3.20.0\")",
-                        "            // END AUTO FORCED DEPENDENCIES (managed by workflow)",
-                        "        }",
-                        "    }",
-                        "}",
-                    ]
-                )
-                + "\n"
+            args, build_file = self.make_apply_args(
+                tmp,
+                build_lines=[
+                    "buildscript {",
+                    "    configurations.all {",
+                    "        resolutionStrategy {",
+                    "            // BEGIN AUTO FORCED DEPENDENCIES (managed by workflow)",
+                    "            force(\"com.google.code.gson:gson:2.14.0\")",
+                    "            force(\"org.apache.commons:commons-lang3:3.20.0\")",
+                    "            // END AUTO FORCED DEPENDENCIES (managed by workflow)",
+                    "        }",
+                    "    }",
+                    "}",
+                ],
             )
-            toml_file.write_text("[versions]\n[libraries]\n")
-            removable_json.write_text("[]\n")
-            alerts_json.write_text("[]\n")
-            natural_json.write_text("{}\n")
-
-            args = type(
-                "Args",
-                (),
-                {
-                    "build_file": str(build_file),
-                    "toml_file": str(toml_file),
-                    "removable_json": str(removable_json),
-                    "alerts_json": str(alerts_json),
-                    "natural_json": str(natural_json),
-                },
-            )()
 
             mdf.command_apply_updates(args)
 
             text = build_file.read_text()
             self.assertIn('force("com.google.code.gson:gson:2.14.0")', text)
             self.assertIn('force("org.apache.commons:commons-lang3:3.20.0")', text)
+
+    def test_apply_updates_removes_only_existing_forces_marked_as_removable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            args, build_file = self.make_apply_args(
+                tmp,
+                build_lines=[
+                    "buildscript {",
+                    "    configurations.all {",
+                    "        resolutionStrategy {",
+                    "            // BEGIN AUTO FORCED DEPENDENCIES (managed by workflow)",
+                    "            force(\"com.google.code.gson:gson:2.14.0\")",
+                    "            force(\"org.apache.commons:commons-lang3:3.20.0\")",
+                    "            // END AUTO FORCED DEPENDENCIES (managed by workflow)",
+                    "        }",
+                    "    }",
+                    "}",
+                ],
+                removable=["com.google.code.gson:gson"],
+            )
+
+            mdf.command_apply_updates(args)
+
+            text = build_file.read_text()
+            self.assertNotIn('force("com.google.code.gson:gson:2.14.0")', text)
+            self.assertIn('force("org.apache.commons:commons-lang3:3.20.0")', text)
+
+    def test_apply_updates_merges_existing_and_security_forces_preferring_highest_version(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            args, build_file = self.make_apply_args(
+                tmp,
+                build_lines=[
+                    "buildscript {",
+                    "    configurations.all {",
+                    "        resolutionStrategy {",
+                    "            // BEGIN AUTO FORCED DEPENDENCIES (managed by workflow)",
+                    "            force(\"com.google.code.gson:gson:2.14.0\")",
+                    "            force(\"com.google.guava:guava:33.6.0-jre\")",
+                    "            // END AUTO FORCED DEPENDENCIES (managed by workflow)",
+                    "        }",
+                    "    }",
+                    "}",
+                ],
+                alerts=[
+                    alert("com.google.code.gson:gson", "open", patched="2.15.0"),
+                    alert("com.google.guava:guava", "open", patched="33.5.0-jre"),
+                ],
+                natural={
+                    "com.google.code.gson:gson": {
+                        "buildscript.classpath": {"resolved": "2.15.0"},
+                    },
+                    "com.google.guava:guava": {
+                        "buildscript.classpath": {"resolved": "33.5.0-jre"},
+                    },
+                },
+            )
+
+            mdf.command_apply_updates(args)
+
+            text = build_file.read_text()
+            self.assertIn('force("com.google.code.gson:gson:2.15.0")', text)
+            self.assertNotIn('force("com.google.code.gson:gson:2.14.0")', text)
+            self.assertIn('force("com.google.guava:guava:33.6.0-jre")', text)
+            self.assertNotIn('force("com.google.guava:guava:33.5.0-jre")', text)
 
     def test_is_safe_to_remove_rejects_recent_historical_alert(self):
         result = mdf.is_safe_to_remove(

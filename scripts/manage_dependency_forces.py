@@ -754,6 +754,10 @@ def command_apply_updates(args: argparse.Namespace) -> None:
             if current is None or version_key(selected) > version_key(current):
                 security_forces[dep] = selected
 
+    # This workflow owns only the managed force block. We preserve existing
+    # non-removable entries already inside that block, then merge in open-alert
+    # security forces. Non-managed force(...) lines elsewhere in the file are
+    # intentionally left untouched.
     merged_forces: dict[str, str] = {}
     for dep, version in existing_forces.items():
         if dep in removable:
