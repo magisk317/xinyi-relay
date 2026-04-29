@@ -1357,7 +1357,15 @@ fun RelayConfigScreen(
 ) {
     val repository: SettingsRepository = koinInject()
     val scope = rememberCoroutineScope()
+    val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
+    val snackbarHostState = remember { SnackbarHostState() }
+    val notifySaved = {
+        scope.launch {
+            snackbarHostState.showSnackbar(savedSnackbarText)
+        }
+    }
     var relay by remember { mutableStateOf<RelaySettingsSnapshot?>(null) }
+    var showDedupWindowDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         relay = repository.getRelaySettings()
@@ -1372,6 +1380,12 @@ fun RelayConfigScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                     }
                 },
+            )
+        },
+        snackbarHost = {
+            io.github.magisk317.relay.ui.common.DismissibleSnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.navigationBarsPadding(),
             )
         },
     ) { padding ->
@@ -1392,6 +1406,7 @@ fun RelayConfigScreen(
             ) { enabled ->
                 scope.launch {
                     relay = repository.updateRelaySettings(RelaySettingsUpdate(relayFeaturesEnabled = enabled))
+                    notifySaved()
                 }
             }
             if (current.relayFeaturesEnabled) {
@@ -1417,7 +1432,48 @@ fun RelayConfigScreen(
                         title = stringResource(id = R.string.pref_relay_records_title),
                         summary = stringResource(id = R.string.pref_relay_records_summary),
                     ) { onOpenRecords() }
+                    Item(
+                        title = stringResource(id = R.string.pref_sms_forward_dedup_window_title),
+                        summary = stringResource(
+                            id = R.string.pref_sms_forward_dedup_window_summary,
+                            current.smsForwardDedupWindowSec,
+                        ),
+                    ) { showDedupWindowDialog = true }
                 }
+            }
+        }
+    }
+
+    val current = relay
+    if (showDedupWindowDialog && current != null) {
+        val rangeError = stringResource(
+            id = R.string.pref_sms_forward_dedup_window_error,
+            PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_MIN,
+            PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_MAX,
+        )
+        TextInputDialog(
+            title = stringResource(id = R.string.pref_sms_forward_dedup_window_title),
+            initialValue = current.smsForwardDedupWindowSec.toString(),
+            onDismiss = { showDedupWindowDialog = false },
+            supportingText = stringResource(id = R.string.pref_sms_forward_dedup_window_hint),
+            validator = {
+                parseIntInRange(
+                    it,
+                    PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_MIN..PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_MAX,
+                )?.let { null } ?: rangeError
+            },
+        ) { updated ->
+            showDedupWindowDialog = false
+            scope.launch {
+                relay = repository.updateRelaySettings(
+                    RelaySettingsUpdate(
+                        smsForwardDedupWindowSec = parseIntInRange(
+                            updated,
+                            PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_MIN..PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_MAX,
+                        ) ?: PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_DEFAULT,
+                    ),
+                )
+                notifySaved()
             }
         }
     }

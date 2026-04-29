@@ -128,6 +128,10 @@ object PrefConst {
     const val KEY_ENABLE_APP_RELAY = "pref_enable_app_relay"
     const val KEY_RELAY_BY_WIFI = "pref_relay_by_wifi"
     const val KEY_RELAY_BY_DATA = "pref_relay_by_data"
+    const val KEY_SMS_FORWARD_DEDUP_WINDOW_SEC = "pref_sms_forward_dedup_window_sec"
+    const val SMS_FORWARD_DEDUP_WINDOW_SEC_DEFAULT = 60
+    const val SMS_FORWARD_DEDUP_WINDOW_SEC_MIN = 10
+    const val SMS_FORWARD_DEDUP_WINDOW_SEC_MAX = 300
     const val KEY_MSG_TYPE_SMS_CODE_ENABLED = "pref_msg_type_sms_code_enabled"
     const val KEY_MSG_TYPE_SMS_PLAIN_ENABLED = "pref_msg_type_sms_plain_enabled"
     const val KEY_MSG_TYPE_APP_NOTIFY_ENABLED = "pref_msg_type_app_notify_enabled"

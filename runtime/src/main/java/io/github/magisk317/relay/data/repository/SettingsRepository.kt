@@ -55,10 +55,12 @@ data class VerificationSettingsUpdate(
 
 data class RelaySettingsSnapshot(
     val relayFeaturesEnabled: Boolean,
+    val smsForwardDedupWindowSec: Int,
 )
 
 data class RelaySettingsUpdate(
     val relayFeaturesEnabled: Boolean? = null,
+    val smsForwardDedupWindowSec: Int? = null,
 )
 
 data class DiagnosticsSettingsSnapshot(
@@ -357,12 +359,28 @@ class SettingsRepository(
     suspend fun getRelaySettings(): RelaySettingsSnapshot {
         return RelaySettingsSnapshot(
             relayFeaturesEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_RELAY_FEATURES_ENABLED, true),
+            smsForwardDedupWindowSec = preferenceDataSource.getString(
+                PrefConst.KEY_SMS_FORWARD_DEDUP_WINDOW_SEC,
+                PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_DEFAULT.toString(),
+            ).toIntOrNull()?.coerceIn(
+                PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_MIN,
+                PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_MAX,
+            ) ?: PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_DEFAULT,
         )
     }
 
     suspend fun updateRelaySettings(update: RelaySettingsUpdate): RelaySettingsSnapshot {
         update.relayFeaturesEnabled?.let {
             preferenceDataSource.setBoolean(PrefConst.KEY_RELAY_FEATURES_ENABLED, it)
+        }
+        update.smsForwardDedupWindowSec?.let {
+            preferenceDataSource.setString(
+                PrefConst.KEY_SMS_FORWARD_DEDUP_WINDOW_SEC,
+                it.coerceIn(
+                    PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_MIN,
+                    PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_MAX,
+                ).toString(),
+            )
         }
         syncAndNoteRemoteMutation("settings.relay")
         return getRelaySettings()

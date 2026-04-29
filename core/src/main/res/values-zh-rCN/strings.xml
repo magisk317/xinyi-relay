@@ -301,6 +301,10 @@
     <string name="pref_relay_config_summary">通道、应用通知转发、过滤规则与记录设置</string>
     <string name="pref_relay_records_title">转发记录</string>
     <string name="pref_relay_records_summary">查看和管理短信、通知与来电记录</string>
+    <string name="pref_sms_forward_dedup_window_title">短信去重窗口</string>
+    <string name="pref_sms_forward_dedup_window_summary">%d 秒</string>
+    <string name="pref_sms_forward_dedup_window_hint">相同验证码在此窗口内不会重复转发（默认60秒），如果有收到重复转发，可适当增加此值</string>
+    <string name="pref_sms_forward_dedup_window_error">请输入 %1$d 到 %2$d 之间的值</string>
     <string name="pref_remote_agent_title">网页协作</string>
     <string name="pref_remote_agent_summary">连接你自建的 Web / Docker 后台，把手机接入网页控制台，同步配置、设备状态和记录</string>
     <string name="pref_remote_agent_base_url_title">Web / Docker 地址</string>

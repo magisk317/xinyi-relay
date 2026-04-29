@@ -299,6 +299,10 @@
     <string name="pref_relay_config_summary">Channels, app notification forwarding, filters, and record settings</string>
     <string name="pref_relay_records_title">Relay records</string>
     <string name="pref_relay_records_summary">View and manage SMS, app, and call records</string>
+    <string name="pref_sms_forward_dedup_window_title">SMS dedup window</string>
+    <string name="pref_sms_forward_dedup_window_summary">%d seconds</string>
+    <string name="pref_sms_forward_dedup_window_hint">Same verification code within this window will not be forwarded again (default 60s)</string>
+    <string name="pref_sms_forward_dedup_window_error">Please enter a value between %1$d and %2$d</string>
     <string name="pref_remote_agent_title">Web console sync</string>
     <string name="pref_remote_agent_summary">Connect this phone to your self-hosted Web / Docker backend so the web console can sync config, device state, and records.</string>
     <string name="pref_remote_agent_base_url_title">Web / Docker URL</string>

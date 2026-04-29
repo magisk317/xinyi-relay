@@ -300,6 +300,10 @@
     <string name="pref_relay_config_summary">通道、應用通知轉發、過濾規則與記錄設定</string>
     <string name="pref_relay_records_title">轉發記錄</string>
     <string name="pref_relay_records_summary">查看和管理簡訊、通知與來電記錄</string>
+    <string name="pref_sms_forward_dedup_window_title">簡訊去重視窗</string>
+    <string name="pref_sms_forward_dedup_window_summary">%d 秒</string>
+    <string name="pref_sms_forward_dedup_window_hint">相同驗證碼在此視窗內不會重複轉發（預設60秒），如果有收到重複轉發，可適當增加此值</string>
+    <string name="pref_sms_forward_dedup_window_error">請輸入 %1$d 到 %2$d 之間的值</string>
     <string name="pref_remote_agent_title">網頁協作</string>
     <string name="pref_remote_agent_summary">連接你自建的 Web / Docker 後台，把手機接入網頁控制台，同步設定、裝置狀態與記錄</string>
     <string name="pref_remote_agent_base_url_title">Web / Docker 位址</string>
