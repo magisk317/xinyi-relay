@@ -16,6 +16,8 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -945,6 +947,13 @@ private fun RecordDetailOverlay(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                Column(
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .heightIn(max = 400.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
                 if (isAppNotification && !appDisplayName.isNullOrBlank()) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1110,6 +1119,7 @@ private fun RecordDetailOverlay(
                         text = forwardMessageAnnotated,
                         style = MaterialTheme.typography.bodyMedium,
                     )
+                }
                 }
                 HorizontalDivider()
                 ButtonGroup(
