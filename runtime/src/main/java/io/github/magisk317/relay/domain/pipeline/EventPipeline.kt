@@ -273,15 +273,15 @@ class EventPipeline(
 
     private suspend fun isForwardTypeEnabled(event: RelayEvent): Boolean {
         return when (event.messageType) {
-            MessageType.SMS_CODE -> preferenceDataSource.getBooleanCompat(
+            MessageType.SMS_CODE -> preferenceDataSource.getBoolean(
                 PrefConst.KEY_FORWARD_SMS_CODE_ENABLED,
                 defaultForwardEnabled(MessageType.SMS_CODE),
             )
-            MessageType.SMS_PLAIN -> preferenceDataSource.getBooleanCompat(
+            MessageType.SMS_PLAIN -> preferenceDataSource.getBoolean(
                 PrefConst.KEY_FORWARD_SMS_PLAIN_ENABLED,
                 defaultForwardEnabled(MessageType.SMS_PLAIN),
             )
-            MessageType.APP_NOTIFY -> preferenceDataSource.getBooleanCompat(
+            MessageType.APP_NOTIFY -> preferenceDataSource.getBoolean(
                 PrefConst.KEY_FORWARD_APP_NOTIFY_ENABLED,
                 defaultForwardEnabled(MessageType.APP_NOTIFY),
             )
@@ -291,7 +291,7 @@ class EventPipeline(
                 } else {
                     PrefConst.KEY_FORWARD_CALL_NOTIFY_FINAL_ENABLED
                 }
-                preferenceDataSource.getBooleanCompat(key, defaultForwardEnabled(MessageType.CALL_NOTIFY))
+                preferenceDataSource.getBoolean(key, defaultForwardEnabled(MessageType.CALL_NOTIFY))
             }
         }
     }

@@ -6,6 +6,7 @@ import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.diagnostics.ActivationDiagnosticsStore
 import io.github.magisk317.relay.diagnostics.RuntimeActivationState
 import io.github.magisk317.relay.prefs.AppPreferencesDataStore
+import io.github.magisk317.relay.prefs.HookPreferenceMirror
 import io.github.magisk317.relay.prefs.PrefsReader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -24,7 +25,7 @@ object XposedServiceRuntimeCoordinator {
             if (pending) {
                 XLog.w("RemotePrefs sync pending detected; attempting sync on service bind")
             }
-            AppPreferencesDataStore.syncToRemotePrefs(application)
+            HookPreferenceMirror.publish(application)
         }
         val verboseLogEnabled = PrefsReader.isVerboseLogMode(application)
         RuntimeActivationState.setRuntimeActivated(true)

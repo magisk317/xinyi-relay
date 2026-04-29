@@ -119,7 +119,7 @@ class EventGatekeeperTest {
         val preferences = mock<PreferenceDataSource>(autofill)
         everySuspend { preferences.getBoolean(PrefConst.KEY_ENABLE, true) } returns true
         everySuspend {
-            preferences.getBooleanCompat(
+            preferences.getBoolean(
                 PrefConst.KEY_MSG_TYPE_APP_NOTIFY_ENABLED,
                 true,
             )
@@ -144,7 +144,7 @@ class EventGatekeeperTest {
         val preferences = mock<PreferenceDataSource>(autofill)
         everySuspend { preferences.getBoolean(PrefConst.KEY_ENABLE, true) } returns true
         everySuspend {
-            preferences.getBooleanCompat(
+            preferences.getBoolean(
                 PrefConst.KEY_MSG_TYPE_APP_NOTIFY_ENABLED,
                 true,
             )

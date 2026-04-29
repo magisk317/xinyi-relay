@@ -62,19 +62,19 @@ class EventGatekeeper(
 
     private suspend fun isMessageTypeEnabled(messageType: MessageType): Boolean {
         return when (messageType) {
-            MessageType.SMS_CODE -> preferenceDataSource.getBooleanCompat(
+            MessageType.SMS_CODE -> preferenceDataSource.getBoolean(
                 PrefConst.KEY_MSG_TYPE_SMS_CODE_ENABLED,
                 defaultMessageTypeEnabled(MessageType.SMS_CODE),
             )
-            MessageType.SMS_PLAIN -> preferenceDataSource.getBooleanCompat(
+            MessageType.SMS_PLAIN -> preferenceDataSource.getBoolean(
                 PrefConst.KEY_MSG_TYPE_SMS_PLAIN_ENABLED,
                 defaultMessageTypeEnabled(MessageType.SMS_PLAIN),
             )
-            MessageType.APP_NOTIFY -> preferenceDataSource.getBooleanCompat(
+            MessageType.APP_NOTIFY -> preferenceDataSource.getBoolean(
                 PrefConst.KEY_MSG_TYPE_APP_NOTIFY_ENABLED,
                 defaultMessageTypeEnabled(MessageType.APP_NOTIFY),
             )
-            MessageType.CALL_NOTIFY -> preferenceDataSource.getBooleanCompat(
+            MessageType.CALL_NOTIFY -> preferenceDataSource.getBoolean(
                 PrefConst.KEY_MSG_TYPE_CALL_NOTIFY_ENABLED,
                 defaultMessageTypeEnabled(MessageType.CALL_NOTIFY),
             )

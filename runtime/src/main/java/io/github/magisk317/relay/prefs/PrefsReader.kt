@@ -48,10 +48,14 @@ object PrefsReader {
             return
         }
         val capabilities = runtimeBridge.capabilities()
+        val chain = if (capabilities.supportsRemotePrefs) {
+            "remote->default"
+        } else {
+            "provider->shared->default"
+        }
         safeInfo(
             "PrefsReader runtime bridge: framework=%s version=%s api=%s privilege=%s " +
-                "properties=%s propRemote=%s remotePrefs=%s remoteFile=%s deopt=%s " +
-                "chain=remote->provider->shared->default",
+                "properties=%s propRemote=%s remotePrefs=%s remoteFile=%s deopt=%s chain=%s",
             capabilities.frameworkName,
             capabilities.frameworkVersion,
             capabilities.frameworkApiVersion?.toString() ?: "unknown",
@@ -61,6 +65,7 @@ object PrefsReader {
             capabilities.supportsRemotePrefs,
             capabilities.supportsRemoteFile,
             capabilities.supportsDeopt,
+            chain,
         )
     }
 

@@ -29,6 +29,7 @@ import io.github.magisk317.relay.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.data.repository.ConfigRepository
 import io.github.magisk317.relay.data.repository.RelayRecordRepository
 import io.github.magisk317.relay.data.repository.SettingsRepository
+import io.github.magisk317.relay.prefs.HookPreferenceMirror
 import io.github.magisk317.relay.data.backup.BackupImportResult
 import io.github.magisk317.relay.data.backup.BackupManager
 import io.github.magisk317.relay.data.backup.BackupRule
@@ -131,7 +132,7 @@ class SettingsViewModel(
             sharedLanguageState.value = LanguageState(settingsRepository.getLanguageTag())
         }
         viewModelScope.launch {
-            preferenceDataSource.syncToSharedPrefs()
+            HookPreferenceMirror.publish(getApplication())
         }
     }
 
@@ -313,7 +314,7 @@ class SettingsViewModel(
     fun setInternalFilesWritable() {
         StorageUtils.setFileWorldWritable(StorageUtils.getFilesDir(getApplication()), 1)
         viewModelScope.launch {
-            preferenceDataSource.ensureReadable()
+            HookPreferenceMirror.publish(getApplication())
         }
     }
 
@@ -597,7 +598,7 @@ class SettingsViewModel(
                 }
             }
         }
-        preferenceDataSource.syncToSharedPrefs()
+        HookPreferenceMirror.publish(getApplication())
     }
 
     private suspend fun ensureDataStoreLoaded(_context: android.content.Context) {

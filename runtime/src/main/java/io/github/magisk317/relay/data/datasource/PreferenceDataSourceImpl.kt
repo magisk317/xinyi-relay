@@ -14,10 +14,6 @@ class PreferenceDataSourceImpl(private val context: Context) : PreferenceDataSou
         AppPreferencesDataStore.setBoolean(context, key, value)
     }
 
-    override suspend fun getBooleanCompat(key: String, defaultValue: Boolean): Boolean {
-        return AppPreferencesDataStore.getBooleanCompat(context, key, defaultValue)
-    }
-
     override suspend fun getString(key: String, defaultValue: String): String {
         return AppPreferencesDataStore.getString(context, key, defaultValue)
     }
@@ -26,20 +22,12 @@ class PreferenceDataSourceImpl(private val context: Context) : PreferenceDataSou
         AppPreferencesDataStore.setString(context, key, value)
     }
 
-    override suspend fun getStringCompat(key: String, defaultValue: String): String {
-        return AppPreferencesDataStore.getStringCompat(context, key, defaultValue)
-    }
-
     override suspend fun getInt(key: String, defaultValue: Int): Int {
         return AppPreferencesDataStore.getInt(context, key, defaultValue)
     }
 
     override suspend fun setInt(key: String, value: Int) {
         AppPreferencesDataStore.setInt(context, key, value)
-    }
-
-    override suspend fun getIntCompat(key: String, defaultValue: Int): Int {
-        return AppPreferencesDataStore.getIntCompat(context, key, defaultValue)
     }
 
     override suspend fun getFloat(key: String, defaultValue: Float): Float {
@@ -64,13 +52,5 @@ class PreferenceDataSourceImpl(private val context: Context) : PreferenceDataSou
 
     override fun getFloatFlow(key: String, defaultValue: Float): Flow<Float> {
         return AppPreferencesDataStore.getFloatFlow(context, key, defaultValue)
-    }
-
-    override suspend fun ensureReadable() {
-        AppPreferencesDataStore.ensureReadable(context)
-    }
-
-    override suspend fun syncToSharedPrefs() {
-        AppPreferencesDataStore.syncToSharedPrefs(context)
     }
 }

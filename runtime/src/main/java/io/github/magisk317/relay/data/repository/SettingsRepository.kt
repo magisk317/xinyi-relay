@@ -9,6 +9,7 @@ import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.domain.model.ForwardCommonConfig
 import io.github.magisk317.relay.domain.system.DeviceIdentityUtils
+import io.github.magisk317.relay.prefs.HookPreferenceMirror
 import kotlinx.coroutines.flow.Flow
 
 data class GeneralSettingsSnapshot(
@@ -858,11 +859,11 @@ class SettingsRepository(
     }
 
     private suspend fun syncAndNoteRemoteMutation(source: String) {
-        preferenceDataSource.syncToSharedPrefs()
+        HookPreferenceMirror.publish(appContext)
         RuntimeGraph.from(appContext).remoteAgentRepository.noteLocalMutation(source)
     }
 
     private suspend fun syncLocalOnly() {
-        preferenceDataSource.syncToSharedPrefs()
+        HookPreferenceMirror.publish(appContext)
     }
 }

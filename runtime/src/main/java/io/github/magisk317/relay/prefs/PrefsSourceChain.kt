@@ -12,14 +12,17 @@ internal object PrefsSourceChain {
         sharedPrefsSource: PrefsSource,
         warn: (String, Throwable?) -> Unit,
     ): List<PrefsSource> {
+        val capabilities = runtimeBridge.capabilities()
         val remoteSource = runCatching {
             runtimeBridge.remotePrefsSource(PrefsReader.PREFS_NAME)
         }.getOrElse {
             warn("PrefsReader: runtime bridge remote source resolve failed", it)
             null
         }
+        if (capabilities.supportsRemotePrefs && remoteSource != null) {
+            return listOf(remoteSource)
+        }
         return buildList {
-            if (remoteSource != null) add(remoteSource)
             add(providerSource)
             add(sharedPrefsSource)
         }

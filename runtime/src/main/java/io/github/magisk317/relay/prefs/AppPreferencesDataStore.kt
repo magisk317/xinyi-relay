@@ -110,18 +110,12 @@ object AppPreferencesDataStore {
         }
     }
 
-    private fun ensureDataStoreReadable(context: Context) {
-        val file = getDataStoreFile(context)
-        StorageUtils.setFileWorldReadable(file, 3)
-    }
-
     private fun ensureSharedPrefsReadable(context: Context) {
         val file = getSharedPrefsFile(context)
         StorageUtils.setFileWorldReadable(file, 3)
     }
 
-    fun ensureReadable(context: Context) {
-        ensureDataStoreReadable(context)
+    fun ensureLegacySharedPrefsReadable(context: Context) {
         ensureSharedPrefsReadable(context)
     }
 
@@ -175,8 +169,6 @@ object AppPreferencesDataStore {
                 }
             }
         }
-        ensureDataStoreReadable(context)
-
         remoteSyncPending = true
         remoteSyncPendingLogged = false
 
@@ -188,6 +180,41 @@ object AppPreferencesDataStore {
             changedKeys,
         )
         return repairedValues.size + removedKeys.size
+    }
+
+    suspend fun importMissingSharedPrefsIntoDataStore(context: Context): Int {
+        val snapshot = getSharedPrefs(context).all
+        if (snapshot.isEmpty()) return 0
+
+        val existingKeys = getInstance(context).data.first().asMap().keys.map { it.name }.toSet()
+        val imported = linkedMapOf<String, Any>()
+
+        snapshot.forEach { (key, rawValue) ->
+            if (existingKeys.contains(key)) return@forEach
+            normalizeLegacySnapshotValue(key, rawValue)?.let { imported[key] = it }
+        }
+
+        if (imported.isEmpty()) return 0
+
+        getInstance(context).edit { prefs ->
+            imported.forEach { (key, value) ->
+                when (value) {
+                    is Boolean -> prefs[booleanPreferencesKey(key)] = coerceBooleanValue(key, value)
+                    is Int -> prefs[intPreferencesKey(key)] = value
+                    is Float -> prefs[floatPreferencesKey(key)] = value
+                    is String -> prefs[stringPreferencesKey(key)] = value
+                }
+            }
+        }
+
+        remoteSyncPending = true
+        remoteSyncPendingLogged = false
+        XLog.w(
+            "Imported missing shared prefs into DataStore: count=%d keys=%s",
+            imported.size,
+            imported.keys.joinToString(","),
+        )
+        return imported.size
     }
 
     private fun resolveDataStoreFile(context: Context): File {
@@ -279,9 +306,6 @@ object AppPreferencesDataStore {
         getInstance(context).edit { prefs ->
             prefs[backupCompatTipShownKey] = shown
         }
-        getSharedPrefs(context).edit().putBoolean(PrefConst.KEY_BACKUP_COMPAT_TIP_SHOWN, shown).apply()
-        ensureDataStoreReadable(context)
-        ensureSharedPrefsReadable(context)
     }
 
     suspend fun getBoolean(context: Context, key: String, defaultValue: Boolean): Boolean {
@@ -300,9 +324,6 @@ object AppPreferencesDataStore {
         getInstance(context).edit { prefs ->
             prefs[prefKey] = safeValue
         }
-        getSharedPrefs(context).edit().putBoolean(key, safeValue).apply()
-        ensureDataStoreReadable(context)
-        ensureSharedPrefsReadable(context)
     }
 
     suspend fun getString(context: Context, key: String, defaultValue: String): String {
@@ -317,9 +338,6 @@ object AppPreferencesDataStore {
         getInstance(context).edit { prefs ->
             prefs[prefKey] = value
         }
-        getSharedPrefs(context).edit().putString(key, value).apply()
-        ensureDataStoreReadable(context)
-        ensureSharedPrefsReadable(context)
     }
 
     suspend fun getInt(context: Context, key: String, defaultValue: Int): Int {
@@ -334,7 +352,7 @@ object AppPreferencesDataStore {
                 key,
                 it.message ?: it.javaClass.simpleName,
             )
-            recoverIntFromSharedPrefs(context, key, defaultValue)
+            defaultValue
         }
     }
 
@@ -343,9 +361,6 @@ object AppPreferencesDataStore {
         getInstance(context).edit { prefs ->
             prefs[prefKey] = value
         }
-        getSharedPrefs(context).edit().putInt(key, value).apply()
-        ensureDataStoreReadable(context)
-        ensureSharedPrefsReadable(context)
     }
 
     suspend fun getFloat(context: Context, key: String, defaultValue: Float): Float {
@@ -360,9 +375,6 @@ object AppPreferencesDataStore {
         getInstance(context).edit { prefs ->
             prefs[prefKey] = value
         }
-        getSharedPrefs(context).edit().putFloat(key, value).apply()
-        ensureDataStoreReadable(context)
-        ensureSharedPrefsReadable(context)
     }
 
     suspend fun getBooleanCompat(context: Context, key: String, defaultValue: Boolean): Boolean {
@@ -401,7 +413,7 @@ object AppPreferencesDataStore {
             runCatching {
                 sharedPrefs.getInt(key, defaultValue)
             }.getOrElse {
-                recoverIntFromSharedPrefs(context, key, defaultValue)
+                sharedPrefs.getString(key, null)?.trim()?.toIntOrNull() ?: defaultValue
             }
         } else {
             getInt(context, key, defaultValue)
@@ -1023,6 +1035,19 @@ object AppPreferencesDataStore {
             .map { prefs: Preferences -> safeRead(prefs, prefKey, defaultValue) }
     }
 
+    private fun normalizeLegacySnapshotValue(key: String, rawValue: Any?): Any? {
+        return when (PrefRestoreTypeRegistry.typeOf(key)) {
+            PrefValueType.BOOLEAN, PrefValueType.INT, PrefValueType.FLOAT ->
+                normalizeTypedPrefValue(key, rawValue)
+
+            PrefValueType.STRING -> when (rawValue) {
+                null -> null
+                is String -> rawValue
+                else -> rawValue.toString()
+            }
+        }
+    }
+
     private fun <T> safeRead(
         prefs: Preferences,
         key: Preferences.Key<T>,
@@ -1040,36 +1065,4 @@ object AppPreferencesDataStore {
         }
     }
 
-    private suspend fun recoverIntFromSharedPrefs(
-        context: Context,
-        key: String,
-        defaultValue: Int,
-    ): Int {
-        val sharedPrefs = getSharedPrefs(context)
-        sharedPrefs.getString(key, null)
-            ?.trim()
-            ?.toIntOrNull()
-            ?.let { recovered ->
-                XLog.w(
-                    "Recovered int preference from string key=%s value=%d",
-                    key,
-                    recovered,
-                )
-                runCatching { setInt(context, key, recovered) }
-                    .onFailure { error ->
-                        XLog.w(
-                            "Failed to rewrite recovered int preference key=%s err=%s",
-                            key,
-                            error.message ?: error.javaClass.simpleName,
-                        )
-                    }
-                return recovered
-            }
-        XLog.w(
-            "SharedPreferences int type mismatch key=%s fallback=%d",
-            key,
-            defaultValue,
-        )
-        return defaultValue
-    }
 }

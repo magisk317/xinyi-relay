@@ -7,12 +7,6 @@
             android:authorities="${applicationId}.db.provider"
             android:exported="true" />
 
-        <provider
-            android:name="io.github.magisk317.relay.data.prefs.PrefsProvider"
-            android:authorities="${applicationId}.pref.provider"
-            android:exported="true"
-            android:directBootAware="true" />
-
         <!-- IPC: receives forwarded SMS payload from the Xposed hook layer.
              Must be exported=true because Xposed hooks run under the hooked app's UID (cross-UID).
              Security: intent.setPackage(packageName) in ForwardAction ensures only this module

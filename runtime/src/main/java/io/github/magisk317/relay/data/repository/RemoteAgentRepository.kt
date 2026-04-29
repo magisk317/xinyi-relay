@@ -21,6 +21,7 @@ import io.github.magisk317.relay.domain.model.ForwardCommonConfig
 import io.github.magisk317.relay.domain.model.Rule
 import io.github.magisk317.relay.domain.model.Sender
 import io.github.magisk317.relay.domain.system.DeviceIdentityUtils
+import io.github.magisk317.relay.prefs.HookPreferenceMirror
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -137,7 +138,7 @@ class RemoteAgentRepository(
 
     suspend fun updateBackendBaseUrl(baseUrl: String): RemoteAgentSnapshot = withContext(Dispatchers.IO) {
         preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_BASE_URL, normalizeBaseUrl(baseUrl))
-        preferenceDataSource.syncToSharedPrefs()
+        publishHookPrefs()
         getSnapshot()
     }
 
@@ -152,7 +153,7 @@ class RemoteAgentRepository(
         preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_PUSH_AT, "0")
         preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_PENDING_MUTATIONS, "0")
         InternalSecretStore.putString(appContext, PrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, "")
-        preferenceDataSource.syncToSharedPrefs()
+        publishHookPrefs()
         getSnapshot()
     }
 
@@ -192,7 +193,7 @@ class RemoteAgentRepository(
                 InternalSecretStore.putString(appContext, PrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, payload.deviceToken)
                 preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, "")
                 setSyncState("bound")
-                preferenceDataSource.syncToSharedPrefs()
+                publishHookPrefs()
             }
         }.onFailure {
             preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, it.message ?: it.javaClass.simpleName)
@@ -254,7 +255,7 @@ class RemoteAgentRepository(
                 preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_PULL_AT, nowEpochMillis().toString())
                 preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, "")
                 setSyncState("idle")
-                preferenceDataSource.syncToSharedPrefs()
+                publishHookPrefs()
                 RemoteConfigSnapshot(
                     revision = payload.revision,
                     content = payload.snapshot ?: JsonObject(),
@@ -300,7 +301,7 @@ class RemoteAgentRepository(
                         "config conflict: cloud revision ${payload.revision} replaced local pending snapshot",
                     )
                     setSyncState("conflict")
-                    preferenceDataSource.syncToSharedPrefs()
+                    publishHookPrefs()
                     return@use
                 }
                 if (!response.isSuccessful) {
@@ -313,7 +314,7 @@ class RemoteAgentRepository(
                 preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_PUSH_AT, nowEpochMillis().toString())
                 preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, "")
                 setSyncState("idle")
-                preferenceDataSource.syncToSharedPrefs()
+                publishHookPrefs()
             }
         }.onFailure {
             preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, it.message ?: it.javaClass.simpleName)
@@ -397,7 +398,7 @@ class RemoteAgentRepository(
         if (preferenceDataSource.getString(PrefConst.KEY_REMOTE_AGENT_SYNC_STATE, "idle") == "idle") {
             setSyncState("dirty")
         }
-        preferenceDataSource.syncToSharedPrefs()
+        publishHookPrefs()
         scheduleBackgroundSync("local_mutation:$source")
     }
 
@@ -419,7 +420,7 @@ class RemoteAgentRepository(
                 preferenceDataSource.setString(timestampKey, nowEpochMillis().toString())
                 preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, "")
                 setSyncState("idle")
-                preferenceDataSource.syncToSharedPrefs()
+                publishHookPrefs()
             }
         }.onFailure {
             preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, it.message ?: it.javaClass.simpleName)
@@ -649,7 +650,7 @@ class RemoteAgentRepository(
             PrefConst.KEY_REMOTE_AGENT_PENDING_MUTATIONS,
             pendingMutations.coerceAtLeast(1).toString(),
         )
-        preferenceDataSource.syncToSharedPrefs()
+        publishHookPrefs()
         pushConfigSnapshot()
     }
 
@@ -742,6 +743,10 @@ class RemoteAgentRepository(
             }
             packageInfo.versionName ?: PackageInfoCompat.getLongVersionCode(packageInfo).toString()
         }.getOrDefault("unknown")
+    }
+
+    private suspend fun publishHookPrefs() {
+        HookPreferenceMirror.publish(appContext)
     }
 }
 

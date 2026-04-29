@@ -7,6 +7,7 @@ import io.github.magisk317.relay.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.common.utils.SensitiveLogPolicy
 import io.github.magisk317.relay.common.utils.XLog
 import io.github.magisk317.relay.prefs.AppPreferencesDataStore
+import io.github.magisk317.relay.prefs.HookPreferenceMirror
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -20,9 +21,13 @@ class DataStoreSyncInitializer : AppInitializer {
             if (repaired > 0) {
                 XLog.w("Startup pref repair applied: count=%d", repaired)
             }
+            val imported = AppPreferencesDataStore.importMissingSharedPrefsIntoDataStore(application)
+            if (imported > 0) {
+                XLog.w("Startup shared-pref import applied: count=%d", imported)
+            }
+            HookPreferenceMirror.publish(application)
+
             val preferenceDataSource = RuntimeGraph.from(application).preferenceDataSource
-            preferenceDataSource.syncToSharedPrefs()
-            preferenceDataSource.ensureReadable()
 
             val verboseLog = preferenceDataSource.getBoolean(PrefConst.KEY_VERBOSE_LOG_MODE, false)
             val sensitiveDebugLog = preferenceDataSource.getBoolean(PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE, false)

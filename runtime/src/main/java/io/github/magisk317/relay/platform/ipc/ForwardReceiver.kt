@@ -660,13 +660,13 @@ class ForwardReceiver : BroadcastReceiver() {
         forwardSource: String,
     ): Boolean {
         val messageTypeEnabled = runBlocking {
-            runtimeGraph.preferenceDataSource.getBooleanCompat(
+            runtimeGraph.preferenceDataSource.getBoolean(
                 PrefConst.KEY_MSG_TYPE_APP_NOTIFY_ENABLED,
                 true,
             )
         }
         val forwardTypeEnabled = runBlocking {
-            runtimeGraph.preferenceDataSource.getBooleanCompat(
+            runtimeGraph.preferenceDataSource.getBoolean(
                 PrefConst.KEY_FORWARD_APP_NOTIFY_ENABLED,
                 true,
             )

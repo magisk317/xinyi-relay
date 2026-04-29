@@ -3,6 +3,7 @@ package io.github.magisk317.relay.app
 import android.app.Application
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.common.constant.PrefConst
+import io.github.magisk317.relay.prefs.HookPreferenceMirror
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -22,7 +23,7 @@ class SecurityInitializer : AppInitializer {
                 preferenceDataSource.setString(PrefConst.KEY_IPC_TOKEN, newToken)
                 Timber.i("Generated new IPC Security Token via DataStore")
             }
-            preferenceDataSource.ensureReadable()
+            HookPreferenceMirror.publish(application)
         }
     }
 }
