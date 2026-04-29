@@ -316,7 +316,6 @@ object ForwardReceiverPolicy {
         val normalizedSender = sender.orEmpty().trim()
         val normalizedCode = smsCode.orEmpty().trim()
         if (normalizedCode.isEmpty()) return null
-        if (normalizedPackage.isEmpty() && normalizedSender.isEmpty()) return null
         return buildString {
             append("sms_code|")
             append(normalizedPackage)

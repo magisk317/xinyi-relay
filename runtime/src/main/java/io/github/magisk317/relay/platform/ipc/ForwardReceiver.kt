@@ -20,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 
 class ForwardReceiver : BroadcastReceiver() {
     @Suppress("CyclomaticComplexMethod")
@@ -190,6 +191,38 @@ class ForwardReceiver : BroadcastReceiver() {
                         )
                         markResult(RESULT_DROP_DUPLICATE, "duplicate_sms_drop")
                         return@runCatching
+                    }
+                    // Code-based long window dedup: same code within configurable window
+                    val smsCode = payload.smsCode
+                    if (!smsCode.isNullOrBlank()) {
+                        val codeDedupWindowSec = runCatching {
+                            runBlocking {
+                                runtimeGraph.preferenceDataSource.getString(
+                                    PrefConst.KEY_SMS_FORWARD_DEDUP_WINDOW_SEC,
+                                    PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_DEFAULT.toString(),
+                                ).toIntOrNull()?.coerceIn(
+                                    PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_MIN,
+                                    PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_MAX,
+                                ) ?: PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_DEFAULT
+                            }
+                        }.getOrDefault(PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_DEFAULT)
+                        val codeDedupKey = "code:${smsCode.trim()}"
+                        val codeDedup = getCodeDedup(codeDedupWindowSec * 1000L)
+                        if (codeDedup.shouldDrop(codeDedupKey)) {
+                            ForwardFlowLog.i(
+                                traceId,
+                                buildString {
+                                    append("Drop duplicate sms code forward code=")
+                                    append(smsCode)
+                                    append(" key=")
+                                    append(codeDedupKey)
+                                    append(" source=")
+                                    append(forwardSource)
+                                },
+                            )
+                            markResult(RESULT_DROP_DUPLICATE, "duplicate_code_drop")
+                            return@runCatching
+                        }
                     }
                 }
                 if (
@@ -538,6 +571,18 @@ class ForwardReceiver : BroadcastReceiver() {
         private val recentSmsForward = RecentEventDeduplicator(windowMs = SMS_FORWARD_DEDUP_WINDOW_MS)
         private val recentSuccessfulSmsHook = ConcurrentHashMap<String, Long>()
         private val nmsHookSeen = ConcurrentHashMap<String, Long>()
+        private val recentCodeDedupRef = AtomicReference<RecentEventDeduplicator?>(null)
+        private val recentCodeDedupWindowMs = java.util.concurrent.atomic.AtomicLong(0L)
+
+        internal fun getCodeDedup(windowMs: Long): RecentEventDeduplicator {
+            if (recentCodeDedupWindowMs.get() == windowMs) {
+                recentCodeDedupRef.get()?.let { return it }
+            }
+            val fresh = RecentEventDeduplicator(windowMs = windowMs)
+            recentCodeDedupRef.set(fresh)
+            recentCodeDedupWindowMs.set(windowMs)
+            return fresh
+        }
         private const val ROUTE_NMS_HOOK = ForwardBroadcastContract.SOURCE_NMS_HOOK
         private const val ROUTE_TELEPHONY_STATE = ForwardBroadcastContract.SOURCE_TELEPHONY_STATE
         private const val SMS_FORWARD_DEDUP_WINDOW_MS = 10_000L
