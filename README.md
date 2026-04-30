@@ -105,6 +105,14 @@ Backend 是信驿 Relay 的自建远程控制面，默认部署模式为“本�
 - [Backend 使用说明](backend/README.md)
 - [Backend API 概览](backend/API_OVERVIEW.md)
 - [远程架构](docs/REMOTE_ARCHITECTURE.md)
+- [Desktop 使用说明](desktop/README.md)
+
+## Desktop Release 说明
+
+- Desktop Release 默认提供 Linux、macOS 与 Windows 包。
+- macOS 当前为 unsigned 发布，首次运行时可能需要用户在系统设置里手动允许。
+- Windows 当前使用仓库自管的自签名证书签名；若系统拦截，可先导入公开证书 [desktop/certs/windows-codesign.cer](/home/lzc/wqk/xinyi-relay/desktop/certs/windows-codesign.cer) 再运行安装包。
+- 该 Windows 证书仅用于当前项目的小众分发，不是公有 CA 商业签名证书；请仅在你信任本项目 Release 的前提下导入。
 
 欢迎反馈，欢迎提出意见或建议。
 

@@ -118,4 +118,25 @@ npm run tauri:dev
 - Windows：NSIS
 - macOS：`.dmg`
 
-CI 会保留一个轻量 `desktop-ci.yml` 做 Linux compile check，同时提供独立 `desktop-release.yml` 做跨平台打包。
+CI 会保留 `desktop-ci.yml` 做日常跨平台构建校验，并提供独立 `desktop-release.yml` 做 Release 打包上传。
+
+## Windows 自签名证书
+
+仓库内置了当前 Release 使用的公开 Windows 自签名证书：
+
+- [desktop/certs/windows-codesign.cer](/home/lzc/wqk/xinyi-relay/desktop/certs/windows-codesign.cer)
+
+当前 Windows 安装包使用仓库自管的自签名证书，而不是公有 CA 证书。因此首次安装时，Windows 仍可能提示未知发布者或 SmartScreen 警告。对于愿意继续使用的用户，可以先导入上面的 `.cer` 证书，再运行安装包。
+
+建议导入方式：
+
+1. 双击 `windows-codesign.cer`。
+2. 选择“安装证书”。
+3. 当前用户即可，若你希望整机信任也可以选择本地计算机。
+4. 证书存储位置选“受信任的根证书颁发机构”。
+5. 完成导入后重新打开安装包。
+
+说明：
+
+- 这只是面向小众分发场景的自签方案，不等同于商业代码签名。
+- 如果你不信任该证书，请不要导入。

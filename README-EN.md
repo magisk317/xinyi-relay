@@ -79,6 +79,14 @@ The Backend is the self-hosted remote control plane for Xinyi Relay, with a loca
 - [Backend Guide](backend/README.md)
 - [Backend API Overview](backend/API_OVERVIEW.md)
 - [Remote Architecture](docs/REMOTE_ARCHITECTURE.md)
+- [Desktop Guide](desktop/README.md)
+
+## Desktop Release Notes
+
+- Desktop releases currently ship Linux, macOS, and Windows packages.
+- macOS builds are currently distributed unsigned, so first launch may require a manual allow step in system settings.
+- Windows builds are signed with the repository-managed self-signed certificate. If Windows blocks the installer, import the public certificate [desktop/certs/windows-codesign.cer](/home/lzc/wqk/xinyi-relay/desktop/certs/windows-codesign.cer) first and then retry the installer.
+- This Windows certificate is only intended for niche distribution of this project. It is not a public CA commercial code-signing certificate, so only import it if you trust this project's releases.
 
 Feedback and suggestions are welcome.
 

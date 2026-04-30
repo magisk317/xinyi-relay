@@ -405,6 +405,7 @@ jobs:
             --release_status "completed"
             --json_key_data "$ANDROID_PUBLISHER_CREDENTIALS"
             --skip_upload_metadata true
+            --skip_upload_changelogs true
             --skip_upload_images true
             --skip_upload_screenshots true
           )
