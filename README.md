@@ -113,6 +113,13 @@ Backend 是信驿 Relay 的自建远程控制面，默认部署模式为“本�
 - 发版前同步 Fastlane 更新日志与截图：`scripts/sync_fastlane_metadata.sh`
 - 发版前校验版本与发布元数据：`scripts/check_release_guard.sh`
 - Fastlane 的 `changelogs/{versionCode}.txt` 由 `distribution/whatsnew` 自动同步生成。
+- 打 tag 脚本：`scripts/release_tag.sh [all|mobile|desktop|backend]`
+- Tag 约定：
+  - `v0.1.1`：完整发布（移动端 + 桌面端 + 后端）
+  - `mobile-v0.1.1`：仅移动端
+  - `desktop-v0.1.1`：仅桌面端
+  - `backend-v0.1.1`：仅后端
+- `distribution/whatsnew` / Fastlane metadata 仅对完整发布和移动端发布生效；桌面端与后端组件 tag 会跳过 Android 发布元数据校验。
 
 # 代码库说明
 - 主工程入口始终以仓库根目录为准。

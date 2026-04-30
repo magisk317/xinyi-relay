@@ -1,7 +1,3 @@
-- Updated to 0.1.1 (20).
-- Added initial Desktop client (Windows/macOS/Linux) for remote management.
-- Improved PrefsReader performance with 10s TTL caching.
-- Enhanced SMS dispatch deduplication and added strict parsing timeout.
-- Integrated automated Gradle cache maintenance for submodules.
-- Consolidated the Xposed packaging and release lane into a single active track.
-- Details: https://github.com/magisk317/xinyi-relay/releases
+- 0.1.1 (20) adds sender active time windows, simpler remote/sender setup, split email auth vs visible identity, sender-config validation during backup/export, legacy JSON compatibility, and Desktop support for records, status refresh, senders, and config editing.
+- SMS forwarding is stronger with configurable dedup, long-window code dedup, repeated same-code auto-input blocking, 60-second DELIVER/RECEIVED dedup, and inbound hook diagnostics.
+- https://github.com/magisk317/xinyi-relay/releases

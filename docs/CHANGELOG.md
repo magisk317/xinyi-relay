@@ -4,14 +4,28 @@
 
 ---
 
-## [v0.1.1] - 2026-04-24
+## [v0.1.1] - 2026-05-01
 - 版本：`versionCode 20` / `versionName 0.1.1`。
 - `[desktop]` 新增信驿 Desktop 桌面端初始实现：基于 Tauri + React + Vite 构建，支持 Windows/macOS/Linux，提供配置管理、实时状态刷新、记录查看与发送器编辑能力。
+- `[sender]` 发送器能力继续完善：新增发送器生效时段，支持按时间窗口启停；邮件发送器拆分认证身份与对外展示身份，减少多账户或代发场景下的配置耦合；发送器与远程配置入口也同步收口，常用设置路径更直观。
+- `[backup]` 备份与导出链路增加发送器配置完整性检查，并兼容旧 JSON 中遗留的 sender 字段与参数格式，恢复时能更稳地保留历史通道配置。
 - `[performance]` 优化偏好项读取性能：为 `PrefsReader` 增加 10 秒 TTL 缓存，显著降低高频 Hook 场景下的跨进程或磁盘 IO 开销。
-- `[sms-hook]` 增强短信转发稳定性：SmsHandlerHook 引入内存二级去重缓存与非阻塞文件同步，并为短信解析增加严格超时判定，避免耗时任务挂起 Hook 线程。
+- `[sms-hook]` 增强短信转发稳定性：SmsHandlerHook 引入内存二级去重缓存与非阻塞文件同步，并为短信解析增加严格超时判定；新增可配置短信转发去重窗口、验证码长窗口去重、相同验证码重复自动输入拦截，同时合并 `DELIVER/RECEIVED` 双广播去重并将窗口扩展到 60 秒，压制重复转发、重复填码与通知回环。
+- `[runtime]` 新增安全自定义消息广播入口，并将通知门控查询、提醒电量接收等数据库与广播处理移出主线程，降低界面线程阻塞风险。
+- `[ui]` 记录详情弹层改为限高滚动布局，长内容场景下浏览与复制更稳定。
 - `[maintenance]` 引入自动化 Gradle 维护插件：自动清理主工程、build-logic 及所有子模块的旧版 Gradle 缓存，保持开发环境整洁。
-- `[test]` 补充 DataStore 自动修复逻辑的回归测试，提升配置系统稳健性。
+- `[diagnostics]` 增加入站短信 Hook 诊断输出，结合更新后的 `REFACTORING` 文档，排查兼容性与拦截异常时更容易定位问题。
+- `[test]` 补充 DataStore 自动修复逻辑、依赖强制规则合并行为等回归测试，提升配置系统与依赖治理脚本的稳健性。
 - `[submodule]` 同步更新 `smscode-core` (含 Android 16 兼容性文档) 与 `magisk-ui-kit` 子模块指针。
+- `[release/tag]` 发布入口从单一整包 tag 扩展为组件化 tag：`v0.1.1` 继续代表完整发布，另新增 `mobile-v0.1.1`、`desktop-v0.1.1`、`backend-v0.1.1`，分别驱动移动端、桌面端和后端的独立发布链路；`scripts/release_ref.sh` 统一负责 tag 生成、解析与 release kind 判断。
+- `[release/script]` `scripts/release_tag.sh` 现支持 `all|mobile|desktop|backend` 目标参数；仅 `all/mobile` 会同步 Android `distribution/whatsnew`、Fastlane changelog 与截图，`desktop/backend` 则跳过移动端元数据同步，避免组件发布被无关校验阻塞。
+- `[release/guard]` `scripts/check_release_guard.sh` 已按 release kind 分流：完整版与移动端 tag 继续校验 `CHANGELOG`、`distribution/whatsnew`、Fastlane metadata、截图与 tag/version 一致性；桌面端和后端 tag 则只保留与自身相关的版本和提交卫生检查。
+- `[ci/mobile]` Android 发布工作流现同时支持完整 tag 与 `mobile-v*`；GitHub Draft Release、Google Play 轨道选择、Xposed-Modules-Repo 发布、符号包上传与 release title 解析都统一走 `release_ref.sh`，减少脚本和 workflow 各自解析 tag 带来的分叉。
+- `[ci/desktop]` Desktop Release 工作流支持 `desktop-v*` 独立发布：若使用完整 tag，会等待移动端 workflow 创建同名 Release 后再补传桌面资产；若使用桌面组件 tag，则直接创建或更新桌面专用 Draft Release，方便桌面端单独迭代。
+- `[ci/backend]` Backend GHCR 发布工作流支持 `backend-v*` 独立镜像发布：`beta` 分支继续维护 `beta` 通道，多架构 manifest 仍会在完整 tag 下同步推送 `latest` 与版本标签，而后端组件 tag 会单独生成镜像说明并创建对应 GitHub Release 草稿。
+- `[notification]` Telegram 发布通知已按 release kind 切换内容来源：完整版/移动端继续引用 `distribution/whatsnew`，桌面端与后端则改为输出对应组件发布说明，避免沿用移动端文案误导用户。
+- `[xposed/build]` 移动端构建继续收敛到 libxposed 单轨：应用依赖与发布资产命名不再围绕 `legacy/api101` 双 flavor 展开，GitHub/Play 产物、AAB 路径、更新检查与 CI 任务名进一步统一，为后续只维护当前主线构建打基础。
+- `[ci/fix]` 发布工作流中的 APK artifact 下载名已与上传名重新对齐，避免 Release/Xposed-Modules-Repo 阶段因匹配不到 `apks-github` 而出现“构建成功但发布阶段无资产”的假失败。
 
 ## [v0.1.0] - 2026-04-08
 - 版本：`versionCode 19` / `versionName 0.1.0`。
