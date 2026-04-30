@@ -54,6 +54,12 @@
             android:name="xposedsharedprefs"
             android:value="true" />
 
+        <provider
+            android:name="io.github.libxposed.service.XposedProvider"
+            android:authorities="${applicationId}.XposedService"
+            android:exported="true"
+            tools:ignore="ExportedContentProvider" />
+
         <receiver
             android:name="io.github.magisk317.relay.receiver.SecretCodeReceiver"
             android:exported="true">

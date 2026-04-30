@@ -25,7 +25,7 @@ class SmsCodeApplication : Application() {
             modules(appModule, appDependencyModule)
         }
 
-        FlavorXposedServiceBridge.initialize(this, applicationScope)
+        XposedServiceBridge.initialize(this, applicationScope)
         val initializers = getKoin().getAll<AppInitializer>()
         initializers.forEach { it.init(this) }
     }
