@@ -1,6 +1,5 @@
 package io.github.magisk317.relay.prefs
 
-import android.content.SharedPreferences
 import android.content.Context
 import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.common.constant.PrefConst
@@ -20,8 +19,6 @@ object PrefsReader {
     internal const val PREFS_NAME = "xposed_prefs"
     private data class BooleanReadTrace(val value: Boolean, val source: String)
     private data class StringReadTrace(val value: String, val source: String)
-    private val providerPrefsSource = ProviderPrefsSource()
-    private val sharedPrefsSource = SharedPrefsSource()
     private val runtimeBridgeLogOnce = AtomicBoolean(false)
     private val cache = java.util.concurrent.ConcurrentHashMap<String, CachedResult<*>>()
     private const val CACHE_TTL_MS = 10_000L
@@ -48,11 +45,6 @@ object PrefsReader {
             return
         }
         val capabilities = runtimeBridge.capabilities()
-        val chain = if (capabilities.supportsRemotePrefs) {
-            "remote->default"
-        } else {
-            "provider->shared->default"
-        }
         safeInfo(
             "PrefsReader runtime bridge: framework=%s version=%s api=%s privilege=%s " +
                 "properties=%s propRemote=%s remotePrefs=%s remoteFile=%s deopt=%s chain=%s",
@@ -65,29 +57,15 @@ object PrefsReader {
             capabilities.supportsRemotePrefs,
             capabilities.supportsRemoteFile,
             capabilities.supportsDeopt,
-            chain,
+            "remote->default",
         )
     }
 
     private fun resolveSources(): List<PrefsSource> {
         return PrefsSourceChain.resolveSources(
             runtimeBridge = runtimeBridge,
-            providerSource = providerPrefsSource,
-            sharedPrefsSource = sharedPrefsSource,
             warn = ::safeWarn,
         )
-    }
-
-    private fun getSharedPrefs(context: Context): SharedPreferences? {
-        return runCatching {
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        }.getOrElse {
-            // CE storage may be unavailable before user unlock; fallback to DP storage context.
-            runCatching {
-                context.createDeviceProtectedStorageContext()
-                    .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            }.getOrNull()
-        }
     }
 
     private fun resolveBoolean(
@@ -221,101 +199,6 @@ object PrefsReader {
         defaultValue: Int,
         sources: List<PrefsSource>,
     ): PrefReadResult<Int> = resolveInt(context, key, defaultValue, sources)
-
-    private class ProviderPrefsSource : PrefsSource {
-        override val sourceName: String = "provider"
-
-        override fun readBoolean(context: Context, key: String, defaultValue: Boolean): PrefReadResult<Boolean>? {
-            val uri = io.github.magisk317.relay.data.prefs.PrefsProvider.buildBoolUri(context).buildUpon()
-                .appendQueryParameter("key", key)
-                .appendQueryParameter("default", defaultValue.toString())
-                .build()
-            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    val value = cursor.getString(0)
-                    return PrefReadResult(
-                        value = value == "1" || value.equals("true", ignoreCase = true),
-                        source = sourceName,
-                    )
-                }
-            }
-            return null
-        }
-
-        override fun readString(context: Context, key: String, defaultValue: String): PrefReadResult<String>? {
-            val uri = io.github.magisk317.relay.data.prefs.PrefsProvider.buildStringUri(context).buildUpon()
-                .appendQueryParameter("key", key)
-                .appendQueryParameter("default", defaultValue)
-                .build()
-            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    return PrefReadResult(
-                        value = cursor.getString(0) ?: defaultValue,
-                        source = sourceName,
-                    )
-                }
-            }
-            return null
-        }
-
-        override fun readInt(context: Context, key: String, defaultValue: Int): PrefReadResult<Int>? {
-            val uri = io.github.magisk317.relay.data.prefs.PrefsProvider.buildIntUri(context).buildUpon()
-                .appendQueryParameter("key", key)
-                .appendQueryParameter("default", defaultValue.toString())
-                .build()
-            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    return PrefReadResult(
-                        value = cursor.getString(0)?.toIntOrNull() ?: defaultValue,
-                        source = sourceName,
-                    )
-                }
-            }
-            return null
-        }
-    }
-
-    private class SharedPrefsSource : PrefsSource {
-        override val sourceName: String = "shared_prefs"
-
-        override fun readBoolean(context: Context, key: String, defaultValue: Boolean): PrefReadResult<Boolean>? {
-            val prefs = getSharedPrefs(context) ?: return null
-            if (!prefs.contains(key)) return null
-            val any = prefs.all[key]
-            val value = when (any) {
-                is Boolean -> any
-                is Number -> any.toInt() != 0
-                is String -> any == "1" || any.equals("true", ignoreCase = true)
-                else -> defaultValue
-            }
-            return PrefReadResult(value = value, source = sourceName)
-        }
-
-        override fun readString(context: Context, key: String, defaultValue: String): PrefReadResult<String>? {
-            val prefs = getSharedPrefs(context) ?: return null
-            if (!prefs.contains(key)) return null
-            val any = prefs.all[key]
-            val value = when (any) {
-                is String -> any
-                null -> defaultValue
-                else -> any.toString()
-            }
-            return PrefReadResult(value = value, source = sourceName)
-        }
-
-        override fun readInt(context: Context, key: String, defaultValue: Int): PrefReadResult<Int>? {
-            val prefs = getSharedPrefs(context) ?: return null
-            if (!prefs.contains(key)) return null
-            val any = prefs.all[key]
-            val value = when (any) {
-                is Int -> any
-                is Long -> any.toInt()
-                is String -> any.toIntOrNull() ?: defaultValue
-                else -> defaultValue
-            }
-            return PrefReadResult(value = value, source = sourceName)
-        }
-    }
 
     @JvmStatic
     fun isEnabled(context: Context): Boolean {
@@ -786,7 +669,7 @@ object PrefsReader {
     @JvmStatic
     fun getIpcToken(context: Context): String {
         val trace = readStringWithTrace(context, PrefConst.KEY_IPC_TOKEN, "")
-        if (trace.value.isBlank() || trace.source != "provider") {
+        if (trace.value.isBlank() || trace.source != "remote_libxposed") {
             XLog.w(
                 "Diag pref ipc_token: blank=%s source=%s",
                 trace.value.isBlank(),

@@ -1,7 +1,6 @@
 package io.github.magisk317.relay.xpbridge
 
 import android.content.Context
-import android.net.Uri
 import io.github.magisk317.relay.common.constant.PrefConst
 import io.github.magisk317.relay.common.constant.MessageType
 import io.github.magisk317.relay.prefs.PrefsReader
@@ -80,22 +79,19 @@ object XpPrefs {
                 }
                 val context = resolveCompatContext() ?: return defaultValue
                 bridge.remotePrefsSource(PREFS_NAME).readBoolean(context, key, defaultValue)?.let { return it.value }
-                if (bridge.capabilities().supportsRemotePrefs) return defaultValue
-                return readBooleanFromCompatFallbacks(context, key, defaultValue)
+                return defaultValue
             }
 
             override fun getString(key: String, defaultValue: String): String {
                 val context = resolveCompatContext() ?: return defaultValue
                 bridge.remotePrefsSource(PREFS_NAME).readString(context, key, defaultValue)?.let { return it.value }
-                if (bridge.capabilities().supportsRemotePrefs) return defaultValue
-                return readStringFromCompatFallbacks(context, key, defaultValue)
+                return defaultValue
             }
 
             override fun getInt(key: String, defaultValue: Int): Int {
                 val context = resolveCompatContext() ?: return defaultValue
                 bridge.remotePrefsSource(PREFS_NAME).readInt(context, key, defaultValue)?.let { return it.value }
-                if (bridge.capabilities().supportsRemotePrefs) return defaultValue
-                return readIntFromCompatFallbacks(context, key, defaultValue)
+                return defaultValue
             }
         }
     }
@@ -180,85 +176,6 @@ object XpPrefs {
             } ?: return@runCatching null
             systemContext.invoke(currentThread) as? Context
         }.getOrNull()
-    }
-
-    private fun readBooleanFromCompatFallbacks(context: Context, key: String, defaultValue: Boolean): Boolean {
-        val defaultParam = if (defaultValue) "true" else "false"
-        val providerUri = buildProviderUri(context, "bool", key, defaultParam)
-        runCatching {
-            context.contentResolver.query(providerUri, null, null, null, null)?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    val value = cursor.getString(0)
-                    return value == "1" || value.equals("true", ignoreCase = true)
-                }
-            }
-        }
-        return runCatching {
-            getSharedPrefs(context)?.getBoolean(key, defaultValue) ?: defaultValue
-        }.getOrDefault(defaultValue)
-    }
-
-    private fun readStringFromCompatFallbacks(context: Context, key: String, defaultValue: String): String {
-        val providerUri = buildProviderUri(context, "string", key, defaultValue)
-        runCatching {
-            context.contentResolver.query(providerUri, null, null, null, null)?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    return cursor.getString(0) ?: defaultValue
-                }
-            }
-        }
-        return runCatching {
-            getSharedPrefs(context)?.getString(key, defaultValue) ?: defaultValue
-        }.getOrDefault(defaultValue)
-    }
-
-    private fun readIntFromCompatFallbacks(context: Context, key: String, defaultValue: Int): Int {
-        val providerUri = buildProviderUri(context, "int", key, defaultValue.toString())
-        runCatching {
-            context.contentResolver.query(providerUri, null, null, null, null)?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    return cursor.getString(0)?.toIntOrNull() ?: defaultValue
-                }
-            }
-        }
-        return runCatching {
-            val prefs = getSharedPrefs(context)
-            when (val value = prefs?.all?.get(key)) {
-                is Int -> value
-                is Long -> value.toInt()
-                is String -> value.toIntOrNull() ?: defaultValue
-                else -> defaultValue
-            }
-        }.getOrDefault(defaultValue)
-    }
-
-    private fun buildProviderUri(
-        context: Context,
-        typePath: String,
-        key: String,
-        defaultValue: String,
-    ): Uri {
-        val authority = "${resolveModulePackageName(context)}.pref.provider"
-        return Uri.parse("content://$authority/$typePath")
-            .buildUpon()
-            .appendQueryParameter("key", key)
-            .appendQueryParameter("default", defaultValue)
-            .build()
-    }
-
-    private fun resolveModulePackageName(context: Context): String {
-        return CoreRuntime.access.applicationId.takeIf { it.isNotBlank() } ?: context.packageName
-    }
-
-    private fun getSharedPrefs(context: Context): android.content.SharedPreferences? {
-        return runCatching {
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        }.getOrElse {
-            runCatching {
-                context.createDeviceProtectedStorageContext()
-                    .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            }.getOrNull()
-        }
     }
 
     private fun XpMessageType.toRuntimeMessageType(): MessageType {

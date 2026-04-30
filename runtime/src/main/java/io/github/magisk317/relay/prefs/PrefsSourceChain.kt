@@ -8,24 +8,15 @@ import io.github.magisk317.relay.prefs.bridge.XpRuntimeBridge
 internal object PrefsSourceChain {
     fun resolveSources(
         runtimeBridge: XpRuntimeBridge,
-        providerSource: PrefsSource,
-        sharedPrefsSource: PrefsSource,
         warn: (String, Throwable?) -> Unit,
     ): List<PrefsSource> {
-        val capabilities = runtimeBridge.capabilities()
         val remoteSource = runCatching {
             runtimeBridge.remotePrefsSource(PrefsReader.PREFS_NAME)
         }.getOrElse {
             warn("PrefsReader: runtime bridge remote source resolve failed", it)
             null
         }
-        if (capabilities.supportsRemotePrefs && remoteSource != null) {
-            return listOf(remoteSource)
-        }
-        return buildList {
-            add(providerSource)
-            add(sharedPrefsSource)
-        }
+        return listOfNotNull(remoteSource.takeIf { runtimeBridge.capabilities().supportsRemotePrefs })
     }
 
     fun resolveBoolean(
