@@ -30,23 +30,9 @@ jobs:
           fi
 
   build-github-apk:
-    name: Build GitHub APK (${{ matrix.flavor_id }})
+    name: Build GitHub APK
     needs: [validate-release]
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - flavor_id: github-api101
-            assemble_task: assembleGithubApi101Release
-            artifact_name: apks-github-api101
-            symbols_artifact_name: native-symbols-github-api101
-            symbols_glob: app/build/outputs/native-debug-symbols/githubApi101Release/native-debug-symbols.zip
-          - flavor_id: github-legacy
-            assemble_task: assembleGithubLegacyRelease
-            artifact_name: apks-github-legacy
-            symbols_artifact_name: native-symbols-github-legacy
-            symbols_glob: app/build/outputs/native-debug-symbols/githubLegacyRelease/native-debug-symbols.zip
     env:
       HAS_RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE != '' }}
       HAS_GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
@@ -114,7 +100,7 @@ jobs:
       - name: Build GitHub APK with Splits
         run: >
           bash scripts/with_workspace_gradle_lock.sh
-          ${{ matrix.assemble_task }}
+          assembleGithubRelease
           -PbuildSplits
         env:
           KEYSTORE_FILE: release.jks
@@ -125,7 +111,7 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.artifact_name }}
+          name: apks-github
           path: app/build/outputs/apk/**/release/*.apk
 
       - name: Detect GitHub Native Symbols
@@ -133,7 +119,7 @@ jobs:
         shell: bash
         run: |
           shopt -s nullglob
-          files=(${{ matrix.symbols_glob }})
+          files=(app/build/outputs/native-debug-symbols/githubRelease/native-debug-symbols.zip)
           if (( ${#files[@]} == 0 )); then
             echo "exists=false" >> "$GITHUB_OUTPUT"
             exit 0
@@ -149,7 +135,7 @@ jobs:
         if: steps.github_symbols.outputs.exists == 'true'
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.symbols_artifact_name }}
+          name: native-symbols-github
           path: ${{ steps.github_symbols.outputs.paths }}
 
   build-aab:
@@ -223,7 +209,7 @@ jobs:
           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/play/google-services.json
 
       - name: Build App Bundle
-        run: bash scripts/with_workspace_gradle_lock.sh bundlePlayApi101Release
+        run: bash scripts/with_workspace_gradle_lock.sh bundlePlayRelease
         env:
           KEYSTORE_FILE: release.jks
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
@@ -235,14 +221,14 @@ jobs:
         with:
           name: bundle-assets
           path: |
-            app/build/outputs/bundle/playApi101Release/*.aab
-            app/build/outputs/mapping/playApi101Release/mapping.txt
+            app/build/outputs/bundle/playRelease/*.aab
+            app/build/outputs/mapping/playRelease/mapping.txt
 
       - name: Detect Play Native Symbols
         id: play_symbols
         shell: bash
         run: |
-          file="app/build/outputs/native-debug-symbols/playApi101Release/native-debug-symbols.zip"
+          file="app/build/outputs/native-debug-symbols/playRelease/native-debug-symbols.zip"
           if [[ -f "$file" ]]; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
             echo "path=$file" >> "$GITHUB_OUTPUT"

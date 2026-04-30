@@ -46,7 +46,7 @@ jobs:
         github.event.pull_request.head.ref == 'chore/dependency-force-update'
       )
     env:
-      DEPENDENCY_FORCE_CONFIGS: githubApi101DebugRuntimeClasspath,githubLegacyDebugRuntimeClasspath,playApi101DebugRuntimeClasspath,playLegacyDebugRuntimeClasspath,githubApi101ReleaseRuntimeClasspath,githubLegacyReleaseRuntimeClasspath,playApi101ReleaseRuntimeClasspath,playLegacyReleaseRuntimeClasspath
+      DEPENDENCY_FORCE_CONFIGS: githubDebugRuntimeClasspath,playDebugRuntimeClasspath,githubReleaseRuntimeClasspath,playReleaseRuntimeClasspath
       DEPENDENCY_FORCE_HISTORICAL_ALERT_COOLDOWN_HOURS: 168
     steps:
       - name: Checkout

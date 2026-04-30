@@ -17,7 +17,7 @@ bash scripts/with_workspace_gradle_lock.sh \
   "${gradle_args[@]}" \
   :smscode-core:smscode-domain:testDebugUnitTest \
   :magisk-ui-kit:compileDebugScreenshotTestKotlin \
-  :xpbridge-core:compileGithubApi101DebugKotlin \
-  :core:testGithubApi101DebugUnitTest \
-  :core:compileGithubApi101DebugKotlin \
+  :xpbridge-core:compileGithubDebugKotlin \
+  :core:testGithubDebugUnitTest \
+  :core:compileGithubDebugKotlin \
   :app:check

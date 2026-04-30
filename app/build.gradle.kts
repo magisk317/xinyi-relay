@@ -100,9 +100,8 @@ dependencies {
     compileOnly(project(":smscode-core:smscode-xposed-core"))
 
     implementation(libs.androidx.core.ktx)
-    add("legacyCompileOnly", project(":xposed-stub"))
-    add("api101CompileOnly", libs.libxposed.api)
-    add("api101Implementation", libs.libxposed.service)
+    compileOnly(libs.libxposed.api)
+    implementation(libs.libxposed.service)
 
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
