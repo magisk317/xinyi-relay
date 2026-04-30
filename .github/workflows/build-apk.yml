@@ -260,8 +260,7 @@ jobs:
 
       - uses: actions/download-artifact@v8
         with:
-          pattern: apks-github-*
-          merge-multiple: true
+          name: apks-github
           path: artifacts/apks
 
       - uses: actions/download-artifact@v8
@@ -436,8 +435,7 @@ jobs:
       - name: Download APK Artifacts
         uses: actions/download-artifact@v8
         with:
-          pattern: apks-github-*
-          merge-multiple: true
+          name: apks-github
           path: artifacts/apks-modules
 
       - name: Parse release tag

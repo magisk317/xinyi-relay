@@ -194,7 +194,7 @@ private fun SenderActiveScheduleRuleEditor(
             },
         )
         WeekdayRow(
-            weekdays = listOf(5, 6, 7),
+            weekdays = SENDER_ACTIVE_SCHEDULE_SECOND_WEEKDAY_ROW,
             selectedWeekdays = rule.weekdays,
             onWeekdayToggle = { weekday ->
                 val nextWeekdays = if (weekday in rule.weekdays) {
@@ -229,7 +229,7 @@ private fun SenderActiveScheduleRuleEditor(
                         text = stringResource(R.string.sender_active_schedule_end),
                         modifier = Modifier.weight(1f),
                     )
-                    Spacer(modifier = Modifier.weight(0.2f))
+                    Spacer(modifier = Modifier.weight(SENDER_ACTIVE_SCHEDULE_ACTION_WEIGHT))
                 }
             }
             rule.ranges.forEachIndexed { index, range ->
@@ -253,7 +253,7 @@ private fun SenderActiveScheduleRuleEditor(
                         },
                     )
                     IconButton(
-                        modifier = Modifier.weight(0.2f),
+                        modifier = Modifier.weight(SENDER_ACTIVE_SCHEDULE_ACTION_WEIGHT),
                         onClick = {
                             val nextRanges = rule.ranges.filterIndexed { i, _ -> i != index }
                             onRuleChange(
@@ -282,6 +282,9 @@ private fun SenderActiveScheduleRuleEditor(
         }
     }
 }
+
+private val SENDER_ACTIVE_SCHEDULE_SECOND_WEEKDAY_ROW = listOf(5, 6, 7)
+private const val SENDER_ACTIVE_SCHEDULE_ACTION_WEIGHT = 0.2f
 
 @Composable
 private fun WeekdayRow(

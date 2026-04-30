@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Process
 import android.provider.Telephony
+import androidx.core.os.BundleCompat
 import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.xp.HookTargetDiagnostics
 import io.github.magisk317.relay.xp.hook.SmsForwardConvergence
@@ -386,11 +387,12 @@ class SmsForwardHook : BaseHook() {
      * identical PDU payloads, so the key will match.
      */
     private fun buildPduFingerprintKey(intent: Intent): String? {
-        val pdus = intent.extras?.get("pdus") as? Array<*> ?: return null
+        val extras = intent.extras ?: return null
+        val pdus = BundleCompat.getSerializable(extras, "pdus", Array<ByteArray>::class.java) ?: return null
         if (pdus.isEmpty()) return null
-        var hash = 17
+        var hash = INITIAL_PDU_FINGERPRINT_HASH
         for (pdu in pdus) {
-            hash = 31 * hash + ((pdu as? ByteArray)?.contentHashCode() ?: 0)
+            hash = PDU_FINGERPRINT_HASH_MULTIPLIER * hash + pdu.contentHashCode()
         }
         return "pdu:$hash"
     }
@@ -407,6 +409,8 @@ class SmsForwardHook : BaseHook() {
         private const val SMS_FORWARD_DEDUP_WINDOW_MS = 60_000L
         private const val DISPATCH_DEDUP_FILE_NAME = "sms_forward_dispatch_dedup"
         private const val MAX_DISPATCH_DEDUP_ENTRIES = 256
+        private const val INITIAL_PDU_FINGERPRINT_HASH = 17
+        private const val PDU_FINGERPRINT_HASH_MULTIPLIER = 31
         private val recentSmsForward = RecentEventDeduplicator(windowMs = SMS_FORWARD_DEDUP_WINDOW_MS)
         private val recentActionDedup = RecentEventDeduplicator(windowMs = SMS_FORWARD_DEDUP_WINDOW_MS)
     }
