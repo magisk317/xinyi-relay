@@ -132,6 +132,16 @@ class SmsForwardHook : BaseHook() {
         ) {
             return null
         }
+        // Dedup across DELIVER / RECEIVED for the same SMS: whichever action arrives
+        // first gets processed; the other is silently skipped.
+        val pduKey = buildPduFingerprintKey(intent)
+        if (pduKey != null && recentActionDedup.shouldDrop(pduKey)) {
+            XLog.i(
+                "SmsForwardHook: skip redundant action=%s (same SMS already handled via other action)",
+                action,
+            )
+            return null
+        }
         val eventId = XpDispatchCoordinator.ensureIncomingEventId(intent)
         if (SmsForwardConvergence.wasParsedSmsForwardDispatched(intent)) {
             XLog.i(
@@ -370,6 +380,21 @@ class SmsForwardHook : BaseHook() {
         }
     }
 
+    /**
+     * Build a fingerprint key from the raw SMS PDU bytes carried in the intent.
+     * Two dispatchIntent calls (DELIVER + RECEIVED) for the same SMS carry
+     * identical PDU payloads, so the key will match.
+     */
+    private fun buildPduFingerprintKey(intent: Intent): String? {
+        val pdus = intent.extras?.get("pdus") as? Array<*> ?: return null
+        if (pdus.isEmpty()) return null
+        var hash = 17
+        for (pdu in pdus) {
+            hash = 31 * hash + ((pdu as? ByteArray)?.contentHashCode() ?: 0)
+        }
+        return "pdu:$hash"
+    }
+
     companion object {
         private const val ANDROID_PHONE_PACKAGE = "com.android.phone"
         private const val TELEPHONY_PACKAGE = "com.android.internal.telephony"
@@ -379,9 +404,10 @@ class SmsForwardHook : BaseHook() {
         private const val DISPATCH_INTENT_METHOD = "dispatchIntent"
         private const val SMS_MSG_TYPE = "sms"
         private const val SMS_HOOK_SOURCE = "sms_hook"
-        private const val SMS_FORWARD_DEDUP_WINDOW_MS = 10_000L
+        private const val SMS_FORWARD_DEDUP_WINDOW_MS = 60_000L
         private const val DISPATCH_DEDUP_FILE_NAME = "sms_forward_dispatch_dedup"
         private const val MAX_DISPATCH_DEDUP_ENTRIES = 256
         private val recentSmsForward = RecentEventDeduplicator(windowMs = SMS_FORWARD_DEDUP_WINDOW_MS)
+        private val recentActionDedup = RecentEventDeduplicator(windowMs = SMS_FORWARD_DEDUP_WINDOW_MS)
     }
 }
