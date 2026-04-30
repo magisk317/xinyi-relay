@@ -41,9 +41,9 @@
 
 ### 安装与使用
 1. Root 设备并安装 LSPosed/Xposed 框架；
-2. 安装信驿 Relay，按框架版本选择合适 APK：
-   - GitHub Release：提供 `legacy` 与 `api101`
-   - Google Play：仅提供 `api101`
+2. 安装信驿 Relay：
+   - GitHub Release：提供 APK 下载
+   - Google Play：提供商店分发
 3. 激活模块并重启；
 4. 在应用内配置转发通道、路由规则、拦截策略与验证码自动填写。
 

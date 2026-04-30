@@ -3,4 +3,5 @@
 - 优化 PrefsReader 性能，引入 10 秒 TTL 缓存。
 - 增强短信转发去重逻辑，并为解析逻辑增加严格超时控制。
 - 集成子模块自动化 Gradle 缓存清理维护。
+- Xposed 打包与发布链路已收敛为单一主线。
 - 详情与下载：https://github.com/magisk317/xinyi-relay/releases

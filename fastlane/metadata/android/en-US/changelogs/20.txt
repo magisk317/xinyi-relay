@@ -3,4 +3,5 @@
 - Improved PrefsReader performance with 10s TTL caching.
 - Enhanced SMS dispatch deduplication and added strict parsing timeout.
 - Integrated automated Gradle cache maintenance for submodules.
+- Consolidated the Xposed packaging and release lane into a single active track.
 - Details: https://github.com/magisk317/xinyi-relay/releases

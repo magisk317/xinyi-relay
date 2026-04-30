@@ -93,14 +93,13 @@
 ### Xposed / 跨进程运行时
 - 继续使用 `PrefsReader`
 - 读取链路固定为：
-  - `remote_libxposed -> provider -> shared_prefs -> default`
+  - `remote_libxposed -> default`
 - `PrefsReader` 负责 source-chain 解析，不扩展为 UI 通用配置 facade
 - 运行时工具箱（如 `SmsBlacklistUtils`）仅限 runtime/Xposed 使用
 - 应用进程内 runtime 热路径优先复用 `RuntimeSettingsCache`，避免分散的 `runBlocking + PreferenceDataSource`
 
 ### 兼容期允许保留
 - `AppPreferencesDataStore`
-- `PrefsProvider`
 - `DBProvider`
 
 但它们不应再作为新页面或新业务逻辑的首选入口。
@@ -114,19 +113,18 @@
 - Native UI 优先走 repository
 - 运行时 / Xposed / 跨进程读取优先走 `PrefsReader`
 - `AppPreferencesDataStore` 仅作为 repository 与应用启动初始化层的底层实现
-- `PrefsProvider` 仅作为跨进程读取桥
 
 ### 主要配置域
 
-| 配置域 | 唯一写入口 | UI 读取入口 | runtime 读取入口 | Provider fallback |
-| --- | --- | --- | --- | --- |
-| 模块总开关、显示模式 | `SettingsRepository.get/updateGeneralSettings()` | Native 设置页 | `PrefsReader.isEnabled()` | 允许 |
-| 验证码功能 | `SettingsRepository.get/updateVerificationSettings()` | Native 设置页 | `PrefsReader.verificationFeaturesEnabled()` 及相关验证码 getter | 允许 |
-| 转发功能 | `SettingsRepository.get/updateRelaySettings()` | Native 设置页 | `PrefsReader.relayFeaturesEnabled()`、消息类型 getter | 允许 |
-| 特殊提醒 | `SettingsRepository.get/updateSpecialAlertSettings()` | Native 高级页 | `PrefsReader.lowBatteryReminderEnabled()` 等 | 允许 |
-| 记录设置 | `SettingsRepository.get/updateRecordSettings()` | 记录页设置面板 | `PrefsReader.recordCodeSmsEnabled()` 等 | 允许 |
-| 高级诊断 | `SettingsRepository.get/updateDiagnosticsSettings()` | Native 高级页 | `PrefsReader.analyticsEnabled()` 等 | 允许 |
-| IPC token | `SecurityInitializer` | 不直接暴露 | `PrefsReader.getIpcToken()` | 必需 |
+| 配置域 | 唯一写入口 | UI 读取入口 | runtime 读取入口 |
+| --- | --- | --- | --- |
+| 模块总开关、显示模式 | `SettingsRepository.get/updateGeneralSettings()` | Native 设置页 | `PrefsReader.isEnabled()` |
+| 验证码功能 | `SettingsRepository.get/updateVerificationSettings()` | Native 设置页 | `PrefsReader.verificationFeaturesEnabled()` 及相关验证码 getter |
+| 转发功能 | `SettingsRepository.get/updateRelaySettings()` | Native 设置页 | `PrefsReader.relayFeaturesEnabled()`、消息类型 getter |
+| 特殊提醒 | `SettingsRepository.get/updateSpecialAlertSettings()` | Native 高级页 | `PrefsReader.lowBatteryReminderEnabled()` 等 |
+| 记录设置 | `SettingsRepository.get/updateRecordSettings()` | 记录页设置面板 | `PrefsReader.recordCodeSmsEnabled()` 等 |
+| 高级诊断 | `SettingsRepository.get/updateDiagnosticsSettings()` | Native 高级页 | `PrefsReader.analyticsEnabled()` 等 |
+| IPC token | `SecurityInitializer` | 不直接暴露 | `PrefsReader.getIpcToken()` |
 
 ### 仍处于兼容期的直接访问
 
@@ -146,8 +144,6 @@
   - 仅限 runtime/Xposed 使用，不作为 Native UI / repository API
 - `PrefsSourceChain`
   - 仅负责运行时 source-chain 解析逻辑
-- `PrefsProvider`
-  - 仅供 `PrefsReader` provider fallback 使用
 
 ### 运行时主链与配置落点
 
@@ -190,14 +186,11 @@
 `PrefsReader` 是 Xposed/runtime 场景的唯一首选入口，读取优先级固定为：
 
 1. `remote_libxposed`
-2. `PrefsProvider`
-3. `shared_prefs`
-4. `default`
+2. `default`
 
 说明：
 - UI 不应依赖这条链路作为主配置 API
 - 应用内设置页优先走 repository
-- `PrefsProvider` 仅作为跨进程 fallback，不承载业务语义
 - `PrefsReader` 的职责是 runtime source-chain resolver，不是全项目通用配置 API
 
 ### 运行时事件入口

@@ -40,9 +40,9 @@ The Android app is the on-device module for Xposed/LSPosed. It is responsible fo
 
 ### Install & Use
 1. Root your device and install LSPosed/Xposed.
-2. Install Xinyi Relay and pick the matching APK:
-   - GitHub Releases: `legacy` and `api101`
-   - Google Play: `api101` only
+2. Install Xinyi Relay:
+   - GitHub Releases: APK downloads
+   - Google Play: Store distribution
 3. Enable the module and reboot.
 4. Configure sender channels, routing rules, filters, and verification-code autofill policies.
 
