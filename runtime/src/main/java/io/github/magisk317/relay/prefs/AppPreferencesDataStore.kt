@@ -592,6 +592,18 @@ object AppPreferencesDataStore {
                 PrefConst.KEY_INTERNAL_ROOT_DB_LAST_CALL_ID,
                 getString(context, PrefConst.KEY_INTERNAL_ROOT_DB_LAST_CALL_ID, "0"),
             )
+            editor.putString(
+                PrefConst.KEY_IPC_TOKEN,
+                getString(context, PrefConst.KEY_IPC_TOKEN, ""),
+            )
+            editor.putBoolean(
+                PrefConst.KEY_FORCE_STOP_RECOVERY,
+                getBoolean(context, PrefConst.KEY_FORCE_STOP_RECOVERY, false),
+            )
+            editor.putBoolean(
+                PrefConst.KEY_FORCE_STOP_RECOVERY_RELAUNCH_ONCE,
+                getBoolean(context, PrefConst.KEY_FORCE_STOP_RECOVERY_RELAUNCH_ONCE, false),
+            )
             val committed = editor.commit()
             if (!committed) {
                 remoteSyncPending = true
