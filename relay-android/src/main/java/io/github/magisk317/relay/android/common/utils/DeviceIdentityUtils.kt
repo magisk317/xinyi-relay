@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.domain.system
+package io.github.magisk317.relay.android.common.utils
 
 import android.os.Build
 import android.util.Log
