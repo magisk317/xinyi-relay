@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.domain.system
 
 import io.github.magisk317.relay.data.repository.SettingsRepository
-import io.github.magisk317.relay.data.repository.SpecialAlertSettingsSnapshot
+import io.github.magisk317.relay.contract.settings.SpecialAlertSettingsSnapshot
 
 /**
  * Lightweight runtime settings cache to avoid frequent blocking reads.

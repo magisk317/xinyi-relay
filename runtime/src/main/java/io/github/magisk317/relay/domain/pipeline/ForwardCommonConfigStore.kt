@@ -12,7 +12,7 @@ import io.github.magisk317.relay.engine.model.ForwardCommonConfig
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.data.repository.SettingsRepository
-import io.github.magisk317.relay.data.repository.SimRemarkSettingsSnapshot
+import io.github.magisk317.relay.contract.settings.SimRemarkSettingsSnapshot
 import java.net.NetworkInterface
 import java.text.SimpleDateFormat
 import java.util.Date

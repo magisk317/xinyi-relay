@@ -9,6 +9,7 @@ import com.google.gson.Gson
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.contract.settings.*
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.entity.AppInfo
 import io.github.magisk317.relay.android.data.db.entity.NotifyRouteRule
@@ -36,21 +37,6 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
-
-data class RemoteAgentSnapshot(
-    val backendBaseUrl: String,
-    val bound: Boolean,
-    val userId: Long,
-    val deviceId: Long,
-    val deviceTokenPresent: Boolean,
-    val lastAppliedConfigRevision: Long,
-    val syncState: String,
-    val lastError: String,
-    val lastHeartbeatAt: Long,
-    val lastPullAt: Long,
-    val lastPushAt: Long,
-    val pendingMutations: Int,
-)
 
 data class RemoteConfigSnapshot(
     val revision: Long,

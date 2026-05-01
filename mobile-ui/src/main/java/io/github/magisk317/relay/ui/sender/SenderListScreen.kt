@@ -32,12 +32,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.mobileui.BuildConfig
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.data.repository.ForwardTypeGateSnapshot
-import io.github.magisk317.relay.data.repository.ForwardTypeGateUpdate
-import io.github.magisk317.relay.data.repository.MessageTypeGateSnapshot
-import io.github.magisk317.relay.data.repository.MessageTypeGateUpdate
+import io.github.magisk317.relay.contract.settings.ForwardTypeGateSnapshot
+import io.github.magisk317.relay.contract.settings.ForwardTypeGateUpdate
+import io.github.magisk317.relay.contract.settings.MessageTypeGateSnapshot
+import io.github.magisk317.relay.contract.settings.MessageTypeGateUpdate
 import io.github.magisk317.relay.data.repository.SettingsRepository
-import io.github.magisk317.relay.data.repository.SimRemarkSettingsSnapshot
+import io.github.magisk317.relay.contract.settings.SimRemarkSettingsSnapshot
 import io.github.magisk317.relay.domain.pipeline.ForwardCommonConfigStore
 import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.engine.model.ForwardCommonConfig

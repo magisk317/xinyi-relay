@@ -116,7 +116,7 @@ import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.android.data.db.dao.SenderDispatchStatRow
 import io.github.magisk317.relay.data.repository.AnalyticsRepository
-import io.github.magisk317.relay.data.repository.OverviewSettingsUpdate
+import io.github.magisk317.relay.contract.settings.OverviewSettingsUpdate
 import io.github.magisk317.relay.data.repository.SettingsRepository
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.common.SegmentedOption

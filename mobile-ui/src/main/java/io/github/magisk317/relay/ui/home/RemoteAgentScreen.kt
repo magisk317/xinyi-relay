@@ -41,7 +41,7 @@ import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.data.repository.RemoteAgentRepository
-import io.github.magisk317.relay.data.repository.RemoteAgentSnapshot
+import io.github.magisk317.relay.contract.settings.RemoteAgentSnapshot
 import io.github.magisk317.relay.ui.common.DismissibleSnackbarHost
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject

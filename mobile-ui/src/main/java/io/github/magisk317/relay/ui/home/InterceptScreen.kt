@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.data.repository.SettingsRepository
-import io.github.magisk317.relay.data.repository.SmsBlacklistSettingsUpdate
+import io.github.magisk317.relay.contract.settings.SmsBlacklistSettingsUpdate
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.hazeEffect

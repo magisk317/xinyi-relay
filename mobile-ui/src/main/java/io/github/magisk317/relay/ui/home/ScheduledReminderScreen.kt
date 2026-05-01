@@ -52,8 +52,8 @@ import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.mobileui.BuildConfig
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.data.repository.SettingsRepository
-import io.github.magisk317.relay.data.repository.SpecialAlertSettingsSnapshot
-import io.github.magisk317.relay.data.repository.SpecialAlertSettingsUpdate
+import io.github.magisk317.relay.contract.settings.SpecialAlertSettingsSnapshot
+import io.github.magisk317.relay.contract.settings.SpecialAlertSettingsUpdate
 import io.github.magisk317.relay.platform.reminder.LowBatteryReminderScheduler
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import io.github.magisk317.relay.ui.sender.displayName

@@ -17,8 +17,8 @@ import io.github.magisk317.relay.engine.routing.NotifyRouteScope
 import io.github.magisk317.relay.mobileui.BuildConfig
 import io.github.magisk317.relay.data.repository.ConfigRepository
 import io.github.magisk317.relay.data.repository.SettingsRepository
-import io.github.magisk317.relay.data.repository.SimRemarkSettingsSnapshot
-import io.github.magisk317.relay.data.repository.SimRemarkSettingsUpdate
+import io.github.magisk317.relay.contract.settings.SimRemarkSettingsSnapshot
+import io.github.magisk317.relay.contract.settings.SimRemarkSettingsUpdate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
