@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.xpbridge
 
 import android.content.Context
-import io.github.magisk317.relay.sms.SmsBlacklistUtils
+import io.github.magisk317.relay.android.sms.SmsBlacklistUtils
 
 object XpSmsBlacklist {
     data class MatchResult(

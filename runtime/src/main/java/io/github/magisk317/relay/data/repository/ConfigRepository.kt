@@ -10,8 +10,8 @@ import io.github.magisk317.relay.android.data.db.dao.SmsCodeRuleDao
 import io.github.magisk317.relay.android.data.db.entity.AppInfo
 import io.github.magisk317.relay.android.data.db.entity.NotifyRouteRule
 import io.github.magisk317.relay.android.data.db.entity.SmsCodeRule
-import io.github.magisk317.relay.data.mapper.ConfigMapper.toDomain
-import io.github.magisk317.relay.data.mapper.ConfigMapper.toEntity
+import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
+import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toEntity
 import io.github.magisk317.relay.android.data.db.dao.RuleDao
 import io.github.magisk317.relay.android.data.db.dao.SenderDao
 import io.github.magisk317.relay.engine.model.ForwardFilterRule

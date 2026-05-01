@@ -3,7 +3,7 @@ package io.github.magisk317.relay.platform.ipc
 import android.content.Context
 import android.content.Intent
 import io.github.magisk317.relay.contract.constant.MessageType
-import io.github.magisk317.relay.sms.SmsCodeUtils
+import io.github.magisk317.relay.android.sms.SmsCodeUtils
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 
 object SmsIngressAdapter {

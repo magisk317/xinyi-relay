@@ -3,7 +3,7 @@ package io.github.magisk317.relay.domain.recovery
 import android.content.Context
 import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
-import io.github.magisk317.relay.sms.SmsCodeUtils
+import io.github.magisk317.relay.android.sms.SmsCodeUtils
 import io.github.magisk317.relay.android.common.utils.CallSessionTracker
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource

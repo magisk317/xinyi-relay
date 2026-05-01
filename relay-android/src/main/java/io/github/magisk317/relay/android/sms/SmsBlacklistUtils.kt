@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.sms
+package io.github.magisk317.relay.android.sms
 
 import android.content.Context
 import io.github.magisk317.relay.android.prefs.PrefsReader

@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.data.datasource
+package io.github.magisk317.relay.android.data.datasource
 
 import android.content.Context
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource

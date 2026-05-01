@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.data.mapper
+package io.github.magisk317.relay.android.data.mapper
 
 import io.github.magisk317.relay.android.data.db.entity.ForwardFilterRuleEntity
 import io.github.magisk317.relay.android.data.db.entity.RuleEntity

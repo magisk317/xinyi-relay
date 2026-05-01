@@ -7,7 +7,7 @@ import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
-import io.github.magisk317.relay.data.mapper.ConfigMapper.toDomain
+import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
 import io.github.magisk317.relay.data.repository.SettingsRepository
 import io.github.magisk317.relay.engine.event.RelayEvent
 import io.github.magisk317.relay.engine.service.DispatchPayloadContext

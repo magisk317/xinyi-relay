@@ -1,5 +1,8 @@
 package io.github.magisk317.relay.data.mapper
 
+import io.github.magisk317.relay.android.data.mapper.ConfigMapper
+import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
+import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toEntity
 import io.github.magisk317.relay.android.data.db.entity.SenderEntity
 import io.github.magisk317.relay.engine.sender.SenderActiveSchedule
 import io.github.magisk317.relay.engine.sender.SenderActiveScheduleConst

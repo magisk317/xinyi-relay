@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.platform.metadata
+package io.github.magisk317.relay.android.platform.metadata
 
 import android.Manifest
 import android.content.Context

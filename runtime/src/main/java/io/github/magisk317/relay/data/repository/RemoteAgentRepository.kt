@@ -13,8 +13,8 @@ import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.entity.AppInfo
 import io.github.magisk317.relay.android.data.db.entity.NotifyRouteRule
 import io.github.magisk317.relay.android.data.db.entity.SmsCodeRule
-import io.github.magisk317.relay.data.mapper.ConfigMapper.toDomain
-import io.github.magisk317.relay.data.secret.InternalSecretStore
+import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
+import io.github.magisk317.relay.android.data.secret.InternalSecretStore
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.engine.model.ForwardFilterRule
 import io.github.magisk317.relay.engine.model.ForwardCommonConfig

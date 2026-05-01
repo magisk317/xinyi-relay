@@ -10,7 +10,7 @@ import io.github.magisk317.relay.engine.filter.ForwardFilterEngine
 import io.github.magisk317.relay.engine.routing.NotifyRouteRuleReader
 import io.github.magisk317.relay.engine.routing.NotifyRoutingResolver
 import io.github.magisk317.relay.engine.routing.NotifyRoutingResult
-import io.github.magisk317.relay.data.mapper.ConfigMapper.toDomain
+import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
 
 data class SenderRoutingResolution(
     val senders: List<Sender>,

@@ -10,8 +10,8 @@ import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
-import io.github.magisk317.relay.platform.metadata.SourceMetadataResolver
-import io.github.magisk317.relay.sms.SmsCodeUtils
+import io.github.magisk317.relay.android.platform.metadata.SourceMetadataResolver
+import io.github.magisk317.relay.android.sms.SmsCodeUtils
 import io.github.magisk317.smscode.domain.utils.RecentEventDeduplicator
 import io.github.magisk317.smscode.domain.utils.SmsForwardDedupKeyFactory
 import io.github.magisk317.smscode.domain.utils.SmsForwardDedupSpec
