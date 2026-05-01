@@ -1,0 +1,97 @@
+name: Release VersionCode Recovery
+
+on:
+  workflow_run:
+    workflows:
+      - Build APK/AAB
+    types:
+      - completed
+
+permissions:
+  actions: read
+  contents: write
+  pull-requests: write
+
+jobs:
+  recover-versioncode:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'failure'
+    steps:
+      - name: Filter non-tag release failures
+        id: filter
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag_name="${{ github.event.workflow_run.head_branch }}"
+          if [[ ! "$tag_name" =~ ^(v|mobile-v)[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "should_recover=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "should_recover=true" >> "$GITHUB_OUTPUT"
+          echo "tag_name=$tag_name" >> "$GITHUB_OUTPUT"
+
+      - name: Inspect failed run logs
+        id: inspect
+        if: steps.filter.outputs.should_recover == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_id="${{ github.event.workflow_run.id }}"
+          repo="${{ github.repository }}"
+          log_file="$(mktemp)"
+          gh run view "$run_id" --repo "$repo" --log-failed >"$log_file"
+
+          if grep -Fq "Google Api Error: Invalid request - Version code" "$log_file" && \
+             grep -Fq "has already been used" "$log_file"; then
+            echo "matched=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "matched=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout beta
+        if: steps.inspect.outputs.matched == 'true'
+        uses: actions/checkout@v6
+        with:
+          ref: beta
+          fetch-depth: 0
+          token: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
+
+      - name: Set up Git identity
+        if: steps.inspect.outputs.matched == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump versionCode
+        if: steps.inspect.outputs.matched == 'true'
+        run: bash scripts/bump_version_code.sh
+
+      - name: Create recovery PR
+        if: steps.inspect.outputs.matched == 'true'
+        id: cpr
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
+          base: beta
+          branch: chore/release-versioncode-${{ steps.filter.outputs.tag_name }}
+          delete-branch: true
+          title: "chore(release): bump versionCode for ${{ steps.filter.outputs.tag_name }} retry"
+          commit-message: "chore(release): bump versionCode for ${{ steps.filter.outputs.tag_name }} retry"
+          labels: |
+            release
+            android
+          body: |
+            Automated recovery after release failure.
+
+            Source run:
+            - ${{ github.event.workflow_run.html_url }}
+
+            Trigger:
+            - Detected Google Play error: `Version code has already been used`
+
+            Action:
+            - Bumped `versionCode`
+            - Resynced Fastlane changelogs
+            - Ready to auto-merge and recreate tag `${{ steps.filter.outputs.tag_name }}`

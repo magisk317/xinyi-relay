@@ -1,0 +1,51 @@
+name: Release Retry Retag
+
+on:
+  pull_request_target:
+    branches:
+      - beta
+    types:
+      - closed
+
+permissions:
+  contents: write
+
+jobs:
+  retag-release:
+    runs-on: ubuntu-latest
+    if: |
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'chore/release-versioncode-')
+    steps:
+      - name: Checkout merged commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+          token: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
+
+      - name: Set up Git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Delete old tag and push replacement
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag_name="${{ github.event.pull_request.head.ref }}"
+          tag_name="${tag_name#chore/release-versioncode-}"
+
+          remote_output="$(git ls-remote --tags origin "refs/tags/$tag_name")"
+          if [[ -n "$remote_output" ]]; then
+            git push origin ":refs/tags/$tag_name"
+          fi
+
+          if git rev-parse -q --verify "refs/tags/$tag_name" >/dev/null; then
+            git tag -d "$tag_name"
+          fi
+
+          git tag -a "$tag_name" -m "$tag_name"
+          git push origin "$tag_name"
