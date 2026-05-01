@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.domain.pipeline
 
 import io.github.magisk317.relay.contract.constant.MessageType
-import io.github.magisk317.relay.data.db.AppDatabase
+import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
 import io.github.magisk317.relay.engine.event.RelayEvent
 import io.github.magisk317.relay.engine.model.Sender

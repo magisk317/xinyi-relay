@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.data.db
+package io.github.magisk317.relay.android.data.db
 
 import android.content.ContentProvider
 import android.content.ContentValues
@@ -480,7 +480,7 @@ class DBProvider : ContentProvider() {
     }
 }
 
-internal fun mergeSmsMsgForInsert(existing: SmsMsg, incoming: SmsMsg): SmsMsg {
+fun mergeSmsMsgForInsert(existing: SmsMsg, incoming: SmsMsg): SmsMsg {
     val incomingHasForwardState = incoming.forwardStatus != SmsMsg.FORWARD_STATUS_NONE ||
         !incoming.forwardTarget.isNullOrBlank() ||
         !incoming.forwardMessage.isNullOrBlank() ||

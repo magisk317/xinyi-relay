@@ -5,7 +5,7 @@ import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
-import io.github.magisk317.relay.data.db.AppDatabase
+import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.data.mapper.ConfigMapper.toDomain
 import io.github.magisk317.relay.data.repository.SettingsRepository

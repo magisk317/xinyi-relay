@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.data.repository
 
 import android.content.Context
-import io.github.magisk317.relay.data.db.AppDatabase
+import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.dao.SenderDispatchStatRow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.domain.system
 
 import android.content.Context
-import io.github.magisk317.relay.data.db.AppDatabase
+import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.entity.AutoInputEvent
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.data.datasource.PreferenceDataSourceImpl

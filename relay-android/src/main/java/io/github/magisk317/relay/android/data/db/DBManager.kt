@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.data.db
+package io.github.magisk317.relay.android.data.db
 
 import android.content.Context
 import io.github.magisk317.relay.android.data.db.dao.AppInfoDao

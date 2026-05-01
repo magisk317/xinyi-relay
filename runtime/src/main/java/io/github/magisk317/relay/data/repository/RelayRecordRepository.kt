@@ -5,9 +5,9 @@ import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.common.utils.CallSessionTracker
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
-import io.github.magisk317.relay.data.db.AppDatabase
+import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
-import io.github.magisk317.relay.data.db.mergeSmsMsgForInsert
+import io.github.magisk317.relay.android.data.db.mergeSmsMsgForInsert
 import io.github.magisk317.smscode.domain.utils.CodeRecordSimilarityUtils
 import io.github.magisk317.relay.engine.service.SenderDispatchResult
 import kotlinx.coroutines.flow.Flow

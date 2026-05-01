@@ -3,7 +3,7 @@ package io.github.magisk317.relay.bootstrap
 import android.content.Context
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.data.datasource.PreferenceDataSourceImpl
-import io.github.magisk317.relay.data.db.AppDatabase
+import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.data.repository.AnalyticsRepository
 import io.github.magisk317.relay.data.repository.ConfigRepository
 import io.github.magisk317.relay.data.repository.RelayRecordRepository

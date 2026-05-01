@@ -1,2 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest package="io.github.magisk317.relay.android" />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="io.github.magisk317.relay.android">
+
+    <application>
+        <provider
+            android:name="io.github.magisk317.relay.android.data.db.DBProvider"
+            android:authorities="${applicationId}.db.provider"
+            android:exported="true" />
+    </application>
+
+</manifest>
