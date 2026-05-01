@@ -9,8 +9,8 @@ import dev.mokkery.answering.calls
 import dev.mokkery.answering.returns
 import dev.mokkery.matcher.any
 import io.github.magisk317.relay.data.db.AppDatabase
-import io.github.magisk317.relay.data.db.dao.SmsMsgDao
-import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.dao.SmsMsgDao
+import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue

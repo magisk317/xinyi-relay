@@ -9,7 +9,7 @@ import io.github.magisk317.relay.contract.prefs.XpCapabilities
 import io.github.magisk317.relay.contract.prefs.PrefReadResult
 import io.github.magisk317.relay.contract.prefs.PrefsSource
 import io.github.magisk317.relay.contract.prefs.XpRuntimeBridge
-import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.runtime.BuildConfig
 import io.github.magisk317.smscode.domain.constant.SmsCodeConst
 import java.util.concurrent.atomic.AtomicBoolean

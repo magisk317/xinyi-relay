@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.data.db.entity
+package io.github.magisk317.relay.android.data.db.entity
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
@@ -6,8 +6,8 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverters
-import io.github.magisk317.relay.data.db.ext.ConvertersDate
-import io.github.magisk317.relay.data.db.ext.ConvertersSenderList
+import io.github.magisk317.relay.android.data.db.ext.ConvertersDate
+import io.github.magisk317.relay.android.data.db.ext.ConvertersSenderList
 import java.util.Date
 
 @Entity(

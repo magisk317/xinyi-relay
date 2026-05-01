@@ -10,9 +10,9 @@ import android.net.Uri
 import android.os.Binder
 import android.os.Process
 import io.github.magisk317.relay.android.common.utils.XLog
-import io.github.magisk317.relay.data.db.entity.AppInfo
-import io.github.magisk317.relay.data.db.entity.SmsCodeRule
-import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.entity.AppInfo
+import io.github.magisk317.relay.android.data.db.entity.SmsCodeRule
+import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.smscode.runtime.common.record.SmsMsgCursorContract
 import kotlinx.coroutines.runBlocking
 

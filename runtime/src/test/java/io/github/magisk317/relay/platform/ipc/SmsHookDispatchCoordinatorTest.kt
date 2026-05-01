@@ -5,7 +5,7 @@ import android.content.Intent
 import dev.mokkery.MockMode.autofill
 import dev.mokkery.mock
 import io.github.magisk317.relay.contract.constant.MessageType
-import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse

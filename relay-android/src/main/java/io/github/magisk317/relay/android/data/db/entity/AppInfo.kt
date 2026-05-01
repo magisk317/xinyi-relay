@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.data.db.entity
+package io.github.magisk317.relay.android.data.db.entity
 
 import android.os.Parcelable
 import androidx.room.ColumnInfo

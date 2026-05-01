@@ -11,9 +11,9 @@ import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.engine.filter.ForwardFilterConst
 import io.github.magisk317.relay.android.platform.sender.SenderSettingSanitizer
 import io.github.magisk317.relay.android.common.utils.XLog
-import io.github.magisk317.relay.data.db.entity.NotifyRouteRule
-import io.github.magisk317.relay.data.db.entity.AppInfo
-import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.entity.NotifyRouteRule
+import io.github.magisk317.relay.android.data.db.entity.AppInfo
+import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.data.repository.ConfigRepository
 import io.github.magisk317.relay.data.repository.RelayRecordRepository
 import io.github.magisk317.relay.engine.routing.NotifyRouteScope

@@ -51,7 +51,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.data.db.entity.SmsCodeRule
+import io.github.magisk317.relay.android.data.db.entity.SmsCodeRule
 import io.github.magisk317.relay.data.repository.ConfigRepository
 import io.github.magisk317.smscode.domain.model.BuiltinSmsCodeRuleSpec
 import io.github.magisk317.smscode.domain.model.BuiltinSmsCodeRules

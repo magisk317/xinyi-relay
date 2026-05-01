@@ -3,7 +3,7 @@ package io.github.magisk317.relay.ui.block
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
-import io.github.magisk317.relay.data.db.entity.AppInfo
+import io.github.magisk317.relay.android.data.db.entity.AppInfo
 
 object AppInfoHelper {
     fun getAppInfo(pm: PackageManager, packageInfo: PackageInfo): AppInfo {

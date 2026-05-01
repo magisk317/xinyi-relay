@@ -3,7 +3,7 @@ package io.github.magisk317.relay.platform.ipc
 import android.content.Context
 import android.content.Intent
 import io.github.magisk317.relay.contract.constant.MessageType
-import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 
 data class PreparedSmsHookDispatch(
     val smsMsg: SmsMsg,

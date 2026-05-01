@@ -1,7 +1,7 @@
-package io.github.magisk317.relay.data.db.ext
+package io.github.magisk317.relay.android.data.db.ext
 
 import androidx.room.TypeConverter
-import io.github.magisk317.relay.data.db.entity.SenderEntity
+import io.github.magisk317.relay.android.data.db.entity.SenderEntity
 
 class ConvertersSenderList {
 

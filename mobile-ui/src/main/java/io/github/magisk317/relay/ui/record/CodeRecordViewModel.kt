@@ -9,7 +9,7 @@ import androidx.lifecycle.viewModelScope
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.smscode.runtime.common.utils.JsonUtils
 import io.github.magisk317.relay.android.common.utils.XLog
-import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.data.repository.RelayRecordRepository
 import kotlinx.serialization.Serializable
 import kotlinx.collections.immutable.ImmutableList

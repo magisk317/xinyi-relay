@@ -6,7 +6,7 @@ import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.smscode.runtime.common.utils.JsonUtils
 import io.github.magisk317.smscode.runtime.common.utils.StorageUtils
 import io.github.magisk317.relay.android.common.utils.XLog
-import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.xpbridge.XpSmsMessage
 import kotlinx.coroutines.runBlocking

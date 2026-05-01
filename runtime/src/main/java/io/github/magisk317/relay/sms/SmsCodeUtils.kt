@@ -3,7 +3,7 @@ package io.github.magisk317.relay.sms
 import android.content.Context
 import android.database.SQLException
 import io.github.magisk317.relay.data.db.DBProvider
-import io.github.magisk317.relay.data.db.entity.SmsCodeRule
+import io.github.magisk317.relay.android.data.db.entity.SmsCodeRule
 import io.github.magisk317.relay.android.data.store.EntityStoreManager
 import io.github.magisk317.relay.android.data.store.EntityType
 import io.github.magisk317.relay.android.common.utils.XLog

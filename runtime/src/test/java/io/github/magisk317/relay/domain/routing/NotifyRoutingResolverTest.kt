@@ -1,8 +1,8 @@
 package io.github.magisk317.relay.engine.routing
 
 import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.data.db.dao.NotifyRouteRuleDao
-import io.github.magisk317.relay.data.db.entity.NotifyRouteRule
+import io.github.magisk317.relay.android.data.db.dao.NotifyRouteRuleDao
+import io.github.magisk317.relay.android.data.db.entity.NotifyRouteRule
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking

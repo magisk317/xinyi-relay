@@ -1,8 +1,8 @@
 package io.github.magisk317.relay.data.mapper
 
-import io.github.magisk317.relay.data.db.entity.ForwardFilterRuleEntity
-import io.github.magisk317.relay.data.db.entity.RuleEntity
-import io.github.magisk317.relay.data.db.entity.SenderEntity
+import io.github.magisk317.relay.android.data.db.entity.ForwardFilterRuleEntity
+import io.github.magisk317.relay.android.data.db.entity.RuleEntity
+import io.github.magisk317.relay.android.data.db.entity.SenderEntity
 import io.github.magisk317.relay.engine.model.ForwardFilterRule
 import io.github.magisk317.relay.engine.model.Rule
 import io.github.magisk317.relay.engine.model.Sender

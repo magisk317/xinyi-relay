@@ -1,7 +1,7 @@
-package io.github.magisk317.relay.data.db.dao
+package io.github.magisk317.relay.android.data.db.dao
 
 import androidx.room.*
-import io.github.magisk317.relay.data.db.entity.SenderEntity
+import io.github.magisk317.relay.android.data.db.entity.SenderEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao

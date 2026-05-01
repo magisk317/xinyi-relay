@@ -62,7 +62,7 @@ import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.data.repository.RecordSettingsUpdate
 import io.github.magisk317.relay.data.repository.SettingsRepository
-import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.smscode.rule.utils.CodeRecordSimilarityUtils
 import io.github.magisk317.relay.ui.common.AppIconLoader
 import io.github.magisk317.relay.ui.common.AppIconImage

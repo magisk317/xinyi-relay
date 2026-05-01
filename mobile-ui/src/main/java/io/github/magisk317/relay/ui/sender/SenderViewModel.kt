@@ -6,8 +6,8 @@ import androidx.lifecycle.viewModelScope
 import io.github.magisk317.relay.engine.model.ForwardFilterRule
 import io.github.magisk317.relay.engine.model.ForwardCommonConfig
 import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.data.db.entity.NotifyRouteRule
-import io.github.magisk317.relay.domain.system.DeviceIdentityUtils
+import io.github.magisk317.relay.android.data.db.entity.NotifyRouteRule
+import io.github.magisk317.relay.android.common.utils.DeviceIdentityUtils
 import io.github.magisk317.relay.engine.filter.ForwardFilterConst
 import io.github.magisk317.relay.android.platform.sender.SenderSettingSanitizer
 import io.github.magisk317.relay.engine.sender.SenderType

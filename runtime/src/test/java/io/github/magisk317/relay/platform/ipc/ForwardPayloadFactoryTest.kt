@@ -5,7 +5,7 @@ import dev.mokkery.MockMode.autofill
 import dev.mokkery.every
 import dev.mokkery.mock
 import dev.mokkery.answering.returns
-import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test

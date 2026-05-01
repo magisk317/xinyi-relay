@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.Intent
 import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.sms.SmsCodeUtils
-import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 
 object SmsIngressAdapter {
     data class Result(

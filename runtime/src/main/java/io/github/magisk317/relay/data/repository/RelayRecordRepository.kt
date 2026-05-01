@@ -6,7 +6,7 @@ import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.common.utils.CallSessionTracker
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.data.db.AppDatabase
-import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.data.db.mergeSmsMsgForInsert
 import io.github.magisk317.smscode.domain.utils.CodeRecordSimilarityUtils
 import io.github.magisk317.relay.engine.service.SenderDispatchResult
@@ -182,7 +182,7 @@ class RelayRecordRepository(
     }
 
     private suspend fun findCodeDuplicateRecordId(
-        dao: io.github.magisk317.relay.data.db.dao.SmsMsgDao,
+        dao: io.github.magisk317.relay.android.data.db.dao.SmsMsgDao,
         smsMsg: SmsMsg,
     ): Long? {
         val sender = smsMsg.sender
@@ -313,7 +313,7 @@ class RelayRecordRepository(
     }
 
     private suspend fun trimOldRecordsIfNeeded(
-        dao: io.github.magisk317.relay.data.db.dao.SmsMsgDao,
+        dao: io.github.magisk317.relay.android.data.db.dao.SmsMsgDao,
         msgType: Int,
         isCodeSms: Boolean,
     ) {

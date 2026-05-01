@@ -7,8 +7,8 @@ import io.github.magisk317.relay.sms.SmsCodeUtils
 import io.github.magisk317.relay.android.common.utils.CallSessionTracker
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
-import io.github.magisk317.relay.data.db.dao.SmsMsgDao
-import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.dao.SmsMsgDao
+import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.engine.event.RelayEvent
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.smscode.domain.constant.SmsCodeConst

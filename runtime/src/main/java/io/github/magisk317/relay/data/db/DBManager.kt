@@ -1,12 +1,12 @@
 package io.github.magisk317.relay.data.db
 
 import android.content.Context
-import io.github.magisk317.relay.data.db.dao.AppInfoDao
-import io.github.magisk317.relay.data.db.dao.SmsCodeRuleDao
-import io.github.magisk317.relay.data.db.dao.SmsMsgDao
-import io.github.magisk317.relay.data.db.entity.AppInfo
-import io.github.magisk317.relay.data.db.entity.SmsCodeRule
-import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.dao.AppInfoDao
+import io.github.magisk317.relay.android.data.db.dao.SmsCodeRuleDao
+import io.github.magisk317.relay.android.data.db.dao.SmsMsgDao
+import io.github.magisk317.relay.android.data.db.entity.AppInfo
+import io.github.magisk317.relay.android.data.db.entity.SmsCodeRule
+import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.runBlocking

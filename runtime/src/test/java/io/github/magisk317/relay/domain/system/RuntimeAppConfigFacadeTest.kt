@@ -3,7 +3,7 @@ package io.github.magisk317.relay.domain.system
 import android.content.Context
 import dev.mokkery.MockMode.autofill
 import dev.mokkery.mock
-import io.github.magisk317.relay.data.db.entity.AppInfo
+import io.github.magisk317.relay.android.data.db.entity.AppInfo
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
