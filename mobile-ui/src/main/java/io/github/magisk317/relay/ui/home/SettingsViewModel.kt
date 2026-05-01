@@ -14,7 +14,6 @@ import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.constant.PrefRestoreTypeRegistry
 import io.github.magisk317.relay.contract.constant.PrefValueType
 import io.github.magisk317.relay.common.utils.PackageUtils
-import io.github.magisk317.relay.sms.SmsCodeUtils
 import io.github.magisk317.smscode.runtime.common.utils.StorageUtils
 import io.github.magisk317.relay.common.utils.Utils
 import io.github.magisk317.relay.android.common.utils.XLog
@@ -37,6 +36,8 @@ import io.github.magisk317.smscode.runtime.common.backup.BackupSmsRecord
 import io.github.magisk317.smscode.runtime.common.backup.ExportResult
 import io.github.magisk317.smscode.domain.model.SmsCodeMatchedRule
 import io.github.magisk317.smscode.domain.model.SmsCodeMatchedRuleSource
+import io.github.magisk317.smscode.domain.model.SmsCodeRuleSpec
+import io.github.magisk317.smscode.domain.utils.SmsCodeUtils as SharedSmsCodeUtils
 import io.github.magisk317.uikit.theme.UiKitStyle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -275,7 +276,18 @@ class SettingsViewModel(
                         null
                     } else {
                         val keywords = settingsRepository.getVerificationSettings().relayKeywords
-                        SmsCodeUtils.parseSmsCodeResultIfExists(getApplication(), msgBody, keywords)
+                        val rules = configRepository.getAllSmsCodeRules().map {
+                            SmsCodeRuleSpec(
+                                company = it.company,
+                                codeKeyword = it.codeKeyword,
+                                codeRegex = it.codeRegex,
+                            )
+                        }
+                        SharedSmsCodeUtils.parseSmsCodeResultIfExists(
+                            content = msgBody,
+                            keywordsRegex = keywords,
+                            rules = rules,
+                        )
                     }
                 }
             } catch (e: Exception) {
@@ -520,7 +532,7 @@ class SettingsViewModel(
     private suspend fun restoreRules(context: Context, rules: List<BackupRule>) {
         if (rules.isEmpty()) return
         val entities = rules.map {
-            io.github.magisk317.relay.data.db.entity.SmsCodeRule(it.company, it.codeKeyword, it.codeRegex)
+            io.github.magisk317.relay.android.data.db.entity.SmsCodeRule(it.company, it.codeKeyword, it.codeRegex)
         }
         configRepository.insertSmsCodeRules(entities)
     }
@@ -532,7 +544,7 @@ class SettingsViewModel(
         }
         val beforeCount = recordRepository.queryAll().size
         val entities = records.map {
-            io.github.magisk317.relay.data.db.entity.SmsMsg(
+            io.github.magisk317.relay.android.data.db.entity.SmsMsg(
                 sender = it.sender,
                 body = it.body,
                 date = it.date,
