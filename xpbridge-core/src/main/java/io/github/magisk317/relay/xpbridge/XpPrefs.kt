@@ -3,7 +3,7 @@ package io.github.magisk317.relay.xpbridge
 import android.content.Context
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.constant.MessageType
-import io.github.magisk317.relay.prefs.PrefsReader
+import io.github.magisk317.relay.android.prefs.PrefsReader
 import io.github.magisk317.relay.xpbridge.bridge.NoopXpRuntimeBridge
 import io.github.magisk317.relay.xpbridge.bridge.PrefReadResult as CorePrefReadResult
 import io.github.magisk317.relay.xpbridge.bridge.PrefsSource as CorePrefsSource

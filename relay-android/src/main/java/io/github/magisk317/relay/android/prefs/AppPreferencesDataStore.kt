@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.prefs
+package io.github.magisk317.relay.android.prefs
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -56,7 +56,7 @@ object AppPreferencesDataStore {
         return value
     }
 
-    internal fun normalizeTypedPrefValue(key: String, rawValue: Any?): Any? {
+    fun normalizeTypedPrefValue(key: String, rawValue: Any?): Any? {
         return when (PrefRestoreTypeRegistry.typeOf(key)) {
             PrefValueType.BOOLEAN -> normalizeBooleanRawValue(rawValue)
             PrefValueType.INT -> normalizeIntRawValue(rawValue)

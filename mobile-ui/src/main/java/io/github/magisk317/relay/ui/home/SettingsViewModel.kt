@@ -28,7 +28,7 @@ import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.data.repository.ConfigRepository
 import io.github.magisk317.relay.data.repository.RelayRecordRepository
 import io.github.magisk317.relay.data.repository.SettingsRepository
-import io.github.magisk317.relay.prefs.HookPreferenceMirror
+import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
 import io.github.magisk317.smscode.runtime.common.backup.BackupImportResult
 import io.github.magisk317.relay.data.backup.BackupManager
 import io.github.magisk317.smscode.runtime.common.backup.BackupRule

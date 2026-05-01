@@ -6,8 +6,8 @@ import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
 import io.github.magisk317.relay.android.common.utils.XLog
-import io.github.magisk317.relay.prefs.AppPreferencesDataStore
-import io.github.magisk317.relay.prefs.HookPreferenceMirror
+import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
+import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

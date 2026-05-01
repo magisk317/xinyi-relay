@@ -74,7 +74,7 @@ class RuntimeGraph private constructor(
         MessageFormatter(
             systemInfoProvider = systemInfoProvider,
             simSlotRemarkResolver = { simSlot ->
-                io.github.magisk317.relay.prefs.PrefsReader.getSimSlotRemark(appContext, simSlot)
+                io.github.magisk317.relay.android.prefs.PrefsReader.getSimSlotRemark(appContext, simSlot)
             },
         )
     }

@@ -9,7 +9,7 @@ import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.engine.model.ForwardCommonConfig
 import io.github.magisk317.relay.android.common.utils.DeviceIdentityUtils
-import io.github.magisk317.relay.prefs.HookPreferenceMirror
+import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
 import io.github.magisk317.smscode.domain.constant.SmsCodeConst
 import kotlinx.coroutines.flow.Flow
 

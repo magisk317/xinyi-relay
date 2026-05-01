@@ -33,7 +33,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
-import io.github.magisk317.relay.prefs.HookPreferenceMirror
+import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
 import io.github.magisk317.relay.ui.common.SingleChoiceOptionDialog
 import kotlinx.coroutines.launch

@@ -5,9 +5,9 @@ import android.content.SharedPreferences
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.diagnostics.ActivationDiagnosticsStore
 import io.github.magisk317.relay.android.diagnostics.RuntimeActivationState
-import io.github.magisk317.relay.prefs.AppPreferencesDataStore
-import io.github.magisk317.relay.prefs.HookPreferenceMirror
-import io.github.magisk317.relay.prefs.PrefsReader
+import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
+import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
+import io.github.magisk317.relay.android.prefs.PrefsReader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 

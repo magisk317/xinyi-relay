@@ -2,7 +2,7 @@ package io.github.magisk317.relay.data.datasource
 
 import android.content.Context
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
-import io.github.magisk317.relay.prefs.AppPreferencesDataStore
+import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
 import kotlinx.coroutines.flow.Flow
 
 class PreferenceDataSourceImpl(private val context: Context) : PreferenceDataSource {

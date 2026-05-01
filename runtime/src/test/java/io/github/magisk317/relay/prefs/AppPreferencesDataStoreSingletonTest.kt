@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.prefs
 
+import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
 import android.content.Context
 import dev.mokkery.MockMode.autofill
 import dev.mokkery.every

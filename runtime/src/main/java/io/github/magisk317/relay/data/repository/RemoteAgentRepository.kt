@@ -21,7 +21,7 @@ import io.github.magisk317.relay.engine.model.ForwardCommonConfig
 import io.github.magisk317.relay.engine.model.Rule
 import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.android.common.utils.DeviceIdentityUtils
-import io.github.magisk317.relay.prefs.HookPreferenceMirror
+import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

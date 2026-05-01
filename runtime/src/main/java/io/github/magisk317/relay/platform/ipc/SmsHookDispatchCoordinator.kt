@@ -79,7 +79,7 @@ object SmsHookDispatchCoordinator {
         prepared: PreparedSmsHookDispatch,
         sentFromUid: Int?,
         sdkInt: Int = android.os.Build.VERSION.SDK_INT,
-        tokenResolver: (Context) -> String = io.github.magisk317.relay.prefs.PrefsReader::getIpcToken,
+        tokenResolver: (Context) -> String = io.github.magisk317.relay.android.prefs.PrefsReader::getIpcToken,
         dispatchBlock: (String?) -> Unit = { resolvedToken ->
             ForwardBroadcastDispatcher.dispatch(
                 context = context,

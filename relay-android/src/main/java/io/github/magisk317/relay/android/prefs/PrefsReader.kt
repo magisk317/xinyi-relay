@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.prefs
+package io.github.magisk317.relay.android.prefs
 
 import android.content.Context
 import io.github.magisk317.relay.contract.constant.MessageType
@@ -10,7 +10,7 @@ import io.github.magisk317.relay.contract.prefs.PrefReadResult
 import io.github.magisk317.relay.contract.prefs.PrefsSource
 import io.github.magisk317.relay.contract.prefs.XpRuntimeBridge
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
-import io.github.magisk317.relay.runtime.BuildConfig
+import io.github.magisk317.relay.android.BuildConfig
 import io.github.magisk317.smscode.domain.constant.SmsCodeConst
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -180,21 +180,21 @@ object PrefsReader {
         return resolveInt(context, key, defaultValue).value
     }
 
-    internal fun resolveBooleanWithSourcesForTest(
+    fun resolveBooleanWithSourcesForTest(
         context: Context,
         key: String,
         defaultValue: Boolean,
         sources: List<PrefsSource>,
     ): PrefReadResult<Boolean> = resolveBoolean(context, key, defaultValue, sources)
 
-    internal fun resolveStringWithSourcesForTest(
+    fun resolveStringWithSourcesForTest(
         context: Context,
         key: String,
         defaultValue: String,
         sources: List<PrefsSource>,
     ): PrefReadResult<String> = resolveString(context, key, defaultValue, sources)
 
-    internal fun resolveIntWithSourcesForTest(
+    fun resolveIntWithSourcesForTest(
         context: Context,
         key: String,
         defaultValue: Int,
