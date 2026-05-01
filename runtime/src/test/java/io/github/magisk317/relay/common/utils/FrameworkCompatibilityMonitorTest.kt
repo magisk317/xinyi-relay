@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.common.utils
+package io.github.magisk317.relay.runtime.compat
 
 import io.github.magisk317.smscode.runtime.common.utils.FrameworkCompatibilityMonitor
 import io.github.magisk317.smscode.runtime.common.utils.FrameworkInfo

@@ -1,6 +1,7 @@
-package io.github.magisk317.relay.domain.sender
+package io.github.magisk317.relay.android.platform.sender
 
-import io.github.magisk317.relay.domain.model.Sender
+import io.github.magisk317.relay.engine.model.Sender
+import io.github.magisk317.relay.engine.sender.SenderType
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test

@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.common.constant
+package io.github.magisk317.relay.contract.constant
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

@@ -93,14 +93,14 @@ mokkery {
 
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
+    implementation(project(":hook-entry"))
     implementation(project(":core"))
+    implementation(project(":mobile-ui"))
     implementation(project(":xpbridge-core"))
-    implementation(project(":smscode-core:smscode-domain"))
     implementation(project(":smscode-core:smscode-verification-core"))
-    compileOnly(project(":smscode-core:smscode-xposed-core"))
+    implementation(project(":smscode-core:smscode-hook-core"))
 
     implementation(libs.androidx.core.ktx)
-    compileOnly(libs.libxposed.api)
     implementation(libs.libxposed.service)
 
     implementation(libs.kotlinx.coroutines.core)
@@ -112,11 +112,6 @@ dependencies {
     add("playImplementation", libs.firebase.analytics)
     add("githubImplementation", platform(libs.firebase.bom))
     add("githubImplementation", libs.firebase.analytics)
-
-    testImplementation(libs.junit.jupiter)
-    testRuntimeOnly(libs.junit.platform.launcher)
-    testImplementation(libs.mokkery.runtime.jvm)
-    testImplementation(project(":smscode-core:smscode-xposed-core"))
 }
 
 val verifyNoRuntimePipelineLeak by tasks.registering {

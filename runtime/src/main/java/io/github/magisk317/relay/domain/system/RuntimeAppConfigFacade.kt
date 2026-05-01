@@ -4,8 +4,8 @@ import android.content.Context
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.data.db.entity.AppInfo
 import io.github.magisk317.relay.data.repository.ConfigRepository
-import io.github.magisk317.relay.data.store.EntityStoreManager
-import io.github.magisk317.relay.data.store.EntityType
+import io.github.magisk317.relay.android.data.store.EntityStoreManager
+import io.github.magisk317.relay.android.data.store.EntityType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

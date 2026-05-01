@@ -7,7 +7,7 @@ import android.net.Uri
 import android.provider.ContactsContract
 import androidx.core.content.ContextCompat
 import com.google.gson.JsonParser
-import io.github.magisk317.relay.common.utils.XLog
+import io.github.magisk317.relay.android.common.utils.XLog
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.concurrent.ConcurrentHashMap

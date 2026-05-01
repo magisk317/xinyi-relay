@@ -2,7 +2,11 @@ package io.github.magisk317.relay.data.update
 
 import android.os.Build
 import io.github.magisk317.smscode.runtime.common.update.GithubUpdateChecker as SharedGithubUpdateChecker
+import io.github.magisk317.smscode.runtime.common.update.GithubReleaseInfo
 import io.github.magisk317.smscode.runtime.common.update.GithubUpdateConfig
+import io.github.magisk317.smscode.runtime.common.update.UpgradeApkAsset
+import io.github.magisk317.smscode.runtime.common.update.UpgradeCheckResult
+import io.github.magisk317.smscode.runtime.common.update.UpgradeInfo
 
 object GithubUpdateChecker {
 

@@ -58,6 +58,9 @@ mokkery {
 }
 
 dependencies {
+    implementation(project(":relay-contract"))
+    implementation(project(":relay-engine"))
+    implementation(project(":relay-android"))
     implementation(project(":smscode-core:smscode-domain"))
     implementation(project(":smscode-core:smscode-runtime-common"))
 
@@ -66,14 +69,8 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.gson)
     
-    // Networking (needed by GithubUpdateChecker)
+    // Networking (RemoteAgentRepository and metadata fetches)
     implementation(libs.okhttp)
-    implementation(libs.okhttp.logging.interceptor)
-    implementation(libs.retrofit)
-    implementation(libs.retrofit.converter.kotlinx.serialization)
-    implementation(libs.retrofit.converter.scalars)
-    implementation(libs.jakarta.mail)
-    implementation(libs.paho.mqtt)
     
     // Database (Room)
     implementation(libs.androidx.room.runtime)

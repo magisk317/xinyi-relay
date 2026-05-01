@@ -4,10 +4,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.BatteryManager
-import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.utils.XLog
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.domain.event.RelayEvent
+import io.github.magisk317.relay.engine.event.RelayEvent
 import io.github.magisk317.relay.domain.pipeline.EventPipeline
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache

@@ -8,18 +8,18 @@ import androidx.core.content.pm.PackageInfoCompat
 import com.google.gson.Gson
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
-import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.data.datasource.PreferenceDataSource
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.data.db.entity.AppInfo
 import io.github.magisk317.relay.data.db.entity.NotifyRouteRule
 import io.github.magisk317.relay.data.db.entity.SmsCodeRule
 import io.github.magisk317.relay.data.mapper.ConfigMapper.toDomain
 import io.github.magisk317.relay.data.secret.InternalSecretStore
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
-import io.github.magisk317.relay.domain.model.ForwardFilterRule
-import io.github.magisk317.relay.domain.model.ForwardCommonConfig
-import io.github.magisk317.relay.domain.model.Rule
-import io.github.magisk317.relay.domain.model.Sender
+import io.github.magisk317.relay.engine.model.ForwardFilterRule
+import io.github.magisk317.relay.engine.model.ForwardCommonConfig
+import io.github.magisk317.relay.engine.model.Rule
+import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.domain.system.DeviceIdentityUtils
 import io.github.magisk317.relay.prefs.HookPreferenceMirror
 import kotlinx.coroutines.CoroutineScope

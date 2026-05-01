@@ -1,15 +1,16 @@
 package io.github.magisk317.relay.data.repository
 
 import android.content.Context
-import io.github.magisk317.relay.common.constant.CodeNotificationOwner
-import io.github.magisk317.relay.common.constant.MessageType
-import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.utils.SensitiveLogPolicy
+import io.github.magisk317.relay.contract.constant.CodeNotificationOwner
+import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
-import io.github.magisk317.relay.data.datasource.PreferenceDataSource
-import io.github.magisk317.relay.domain.model.ForwardCommonConfig
+import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
+import io.github.magisk317.relay.engine.model.ForwardCommonConfig
 import io.github.magisk317.relay.domain.system.DeviceIdentityUtils
 import io.github.magisk317.relay.prefs.HookPreferenceMirror
+import io.github.magisk317.smscode.domain.constant.SmsCodeConst
 import kotlinx.coroutines.flow.Flow
 
 data class GeneralSettingsSnapshot(
@@ -326,7 +327,7 @@ class SettingsRepository(
             ),
             relayKeywords = preferenceDataSource.getString(
                 PrefConst.KEY_SMSCODE_KEYWORDS,
-                PrefConst.SMSCODE_KEYWORDS_DEFAULT,
+                SmsCodeConst.VERIFICATION_KEYWORDS_REGEX,
             ),
             blockSmsEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_BLOCK_SMS, false),
         )

@@ -10,11 +10,12 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.constant.PrefRestoreTypeRegistry
-import io.github.magisk317.relay.common.constant.PrefValueType
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.contract.constant.PrefRestoreTypeRegistry
+import io.github.magisk317.relay.contract.constant.PrefValueType
 import io.github.magisk317.smscode.runtime.common.utils.StorageUtils
-import io.github.magisk317.relay.common.utils.XLog
+import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.smscode.domain.constant.SmsCodeConst
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -422,7 +423,7 @@ object AppPreferencesDataStore {
             editor.putBoolean(PrefConst.KEY_SHOW_TOAST, getBoolean(context, PrefConst.KEY_SHOW_TOAST, true))
             editor.putString(
                 PrefConst.KEY_SMSCODE_KEYWORDS,
-                getString(context, PrefConst.KEY_SMSCODE_KEYWORDS, PrefConst.SMSCODE_KEYWORDS_DEFAULT),
+                getString(context, PrefConst.KEY_SMSCODE_KEYWORDS, SmsCodeConst.VERIFICATION_KEYWORDS_REGEX),
             )
             editor.putBoolean(PrefConst.KEY_MARK_AS_READ, getBoolean(context, PrefConst.KEY_MARK_AS_READ, false))
             editor.putBoolean(PrefConst.KEY_DELETE_SMS, getBoolean(context, PrefConst.KEY_DELETE_SMS, false))
@@ -529,7 +530,7 @@ object AppPreferencesDataStore {
             )
             editor.putString(
                 PrefConst.KEY_SMSCODE_REGEX,
-                getString(context, PrefConst.KEY_SMSCODE_REGEX, PrefConst.SMSCODE_REGEX_DEFAULT),
+                getString(context, PrefConst.KEY_SMSCODE_REGEX, SmsCodeConst.VERIFICATION_KEYWORDS_REGEX),
             )
             editor.putString(
                 PrefConst.KEY_SMSCODE_REGEX_EXCLUDE,

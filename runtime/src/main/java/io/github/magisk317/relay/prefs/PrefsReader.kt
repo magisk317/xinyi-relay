@@ -1,16 +1,17 @@
 package io.github.magisk317.relay.prefs
 
 import android.content.Context
-import io.github.magisk317.relay.common.constant.MessageType
-import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.utils.XLog
-import io.github.magisk317.relay.prefs.bridge.NoopXpRuntimeBridge
-import io.github.magisk317.relay.prefs.bridge.XpCapabilities
-import io.github.magisk317.relay.prefs.bridge.PrefReadResult
-import io.github.magisk317.relay.prefs.bridge.PrefsSource
-import io.github.magisk317.relay.prefs.bridge.XpRuntimeBridge
+import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.relay.contract.prefs.NoopXpRuntimeBridge
+import io.github.magisk317.relay.contract.prefs.XpCapabilities
+import io.github.magisk317.relay.contract.prefs.PrefReadResult
+import io.github.magisk317.relay.contract.prefs.PrefsSource
+import io.github.magisk317.relay.contract.prefs.XpRuntimeBridge
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.runtime.BuildConfig
+import io.github.magisk317.smscode.domain.constant.SmsCodeConst
 import java.util.concurrent.atomic.AtomicBoolean
 
 // Phase3 complete: PrefsReader is runtime/Xposed/跨进程只读 only.
@@ -285,7 +286,7 @@ object PrefsReader {
         val primary = readStringWithTrace(
             context,
             PrefConst.KEY_SMSCODE_KEYWORDS,
-            PrefConst.SMSCODE_KEYWORDS_DEFAULT,
+            SmsCodeConst.VERIFICATION_KEYWORDS_REGEX,
         )
         if (primary.source != "default") {
             return primary.value
@@ -293,7 +294,7 @@ object PrefsReader {
         return getStringViaProvider(
             context,
             PrefConst.KEY_RELAY_KEYWORDS,
-            PrefConst.RELAY_KEYWORDS_DEFAULT,
+            SmsCodeConst.VERIFICATION_KEYWORDS_REGEX,
         )
     }
 
@@ -541,7 +542,7 @@ object PrefsReader {
     @JvmStatic
     fun getCodeNotificationOwner(context: Context): String {
         val value = getStringViaProvider(context, PrefConst.KEY_CODE_NOTIFICATION_OWNER, "")
-        return io.github.magisk317.relay.common.constant.CodeNotificationOwner.normalize(value)
+        return io.github.magisk317.relay.contract.constant.CodeNotificationOwner.normalize(value)
     }
 
     @JvmStatic

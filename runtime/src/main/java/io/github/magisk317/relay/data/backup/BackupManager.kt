@@ -4,20 +4,24 @@ import android.content.Context
 import android.content.Intent
 import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
-import io.github.magisk317.relay.common.utils.XLog
-import io.github.magisk317.relay.domain.sender.SenderSettingSanitizer
+import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.relay.android.platform.sender.SenderSettingSanitizer
 import io.github.magisk317.relay.data.db.AppDatabase
 import io.github.magisk317.relay.runtime.BuildConfig
 import io.github.magisk317.smscode.runtime.common.backup.BackupDatabaseHooks
+import io.github.magisk317.smscode.runtime.common.backup.BackupImportResult
 import io.github.magisk317.smscode.runtime.common.backup.BackupManagerConfig
 import io.github.magisk317.smscode.runtime.common.backup.BackupManagerCore
+import io.github.magisk317.smscode.runtime.common.backup.BackupRule
+import io.github.magisk317.smscode.runtime.common.backup.BackupSmsRecord
+import io.github.magisk317.smscode.runtime.common.backup.ExportResult
+import io.github.magisk317.smscode.runtime.common.backup.ImportResult
 import java.io.BufferedInputStream
 import java.io.File
 import java.io.PushbackInputStream
 import java.util.zip.ZipInputStream
 
 object BackupManager {
-
     data class BackupInspection(
         val payloadReadable: Boolean,
         val payloadRules: Int,
@@ -29,14 +33,9 @@ object BackupManager {
         val degradedSenderConfigs: Int,
     ) {
         fun toLogString(): String {
-            return "payloadReadable=$payloadReadable " +
-                "rules=$payloadRules " +
-                "prefs=$payloadPreferences " +
-                "records=$payloadRecords " +
-                "databasePresent=$databasePresent " +
-                "senders=$senderCount " +
-                "blankSenderConfigs=$blankSenderConfigs " +
-                "degradedSenderConfigs=$degradedSenderConfigs"
+            return "payloadReadable=$payloadReadable rules=$payloadRules prefs=$payloadPreferences " +
+                "records=$payloadRecords databasePresent=$databasePresent senders=$senderCount " +
+                "blankSenderConfigs=$blankSenderConfigs degradedSenderConfigs=$degradedSenderConfigs"
         }
     }
 
@@ -85,19 +84,17 @@ object BackupManager {
         records: List<BackupSmsRecord>?,
         appVersion: String,
         includeDatabase: Boolean = false,
-    ): ExportResult {
-        return BackupManagerCore.exportBackup(
-            context = context,
-            uri = uri,
-            ruleList = ruleList,
-            preferences = preferences,
-            records = records,
-            appVersion = appVersion,
-            config = config,
-            hooks = databaseHooks,
-            includeDatabase = includeDatabase,
-        )
-    }
+    ): ExportResult = BackupManagerCore.exportBackup(
+        context = context,
+        uri = uri,
+        ruleList = ruleList,
+        preferences = preferences,
+        records = records,
+        appVersion = appVersion,
+        config = config,
+        hooks = databaseHooks,
+        includeDatabase = includeDatabase,
+    )
 
     @JvmStatic
     fun exportRuleList(context: Context, uri: Uri, ruleList: List<BackupRule>, appVersion: String): ExportResult =
@@ -121,10 +118,7 @@ object BackupManager {
 
     @JvmStatic
     fun inspectBackup(context: Context, uri: Uri): BackupInspection {
-        val importResult = runCatching {
-            BackupManagerCore.importRuleList(context, uri, resolveAppVersion(context))
-        }.getOrNull()
-
+        val importResult = runCatching { BackupManagerCore.importRuleList(context, uri, resolveAppVersion(context)) }.getOrNull()
         val dbInspection = inspectBackupDatabase(context, uri)
         return BackupInspection(
             payloadReadable = importResult?.result == ImportResult.SUCCESS,
@@ -155,12 +149,8 @@ object BackupManager {
             val pb = PushbackInputStream(BufferedInputStream(raw), 4)
             val header = ByteArray(4)
             val readCount = pb.read(header)
-            if (readCount > 0) {
-                pb.unread(header, 0, readCount)
-            }
-            val isZip = readCount == 4 &&
-                header[0] == 0x50.toByte() &&
-                header[1] == 0x4B.toByte()
+            if (readCount > 0) pb.unread(header, 0, readCount)
+            val isZip = readCount == 4 && header[0] == 0x50.toByte() && header[1] == 0x4B.toByte()
             if (!isZip) return null
 
             val tmpDir = File(context.cacheDir, "backup_inspect_tmp").apply {
@@ -178,22 +168,13 @@ object BackupManager {
                             if (normalized != null) {
                                 val outFile = File(tmpDir, normalized)
                                 outFile.outputStream().use { output -> zis.copyTo(output) }
-                                if (normalized == config.databaseFileName) {
-                                    foundMainDb = true
-                                }
+                                if (normalized == config.databaseFileName) foundMainDb = true
                             }
                         }
                         entry = zis.nextEntry
                     }
                 }
-                if (!foundMainDb) {
-                    return BackupDatabaseInspection(
-                        databasePresent = false,
-                        senderCount = 0,
-                        blankSenderConfigs = 0,
-                        degradedSenderConfigs = 0,
-                    )
-                }
+                if (!foundMainDb) return BackupDatabaseInspection(false, 0, 0, 0)
                 return inspectSenderConfigsFromDatabase(File(tmpDir, config.databaseFileName))
             } finally {
                 runCatching { tmpDir.deleteRecursively() }
@@ -213,20 +194,14 @@ object BackupManager {
     }
 
     private fun inspectSenderConfigsFromDatabase(databaseFile: File): BackupDatabaseInspection {
-        if (!databaseFile.exists()) {
-            return BackupDatabaseInspection(false, 0, 0, 0)
-        }
+        if (!databaseFile.exists()) return BackupDatabaseInspection(false, 0, 0, 0)
 
         var senderCount = 0
         var blankSenderConfigs = 0
         var degradedSenderConfigs = 0
         val defaultJsonCache = hashMapOf<Int, String>()
 
-        SQLiteDatabase.openDatabase(
-            databaseFile.absolutePath,
-            null,
-            SQLiteDatabase.OPEN_READONLY,
-        ).use { db ->
+        SQLiteDatabase.openDatabase(databaseFile.absolutePath, null, SQLiteDatabase.OPEN_READONLY).use { db ->
             db.rawQuery("SELECT id, type, name, json_setting FROM Sender", null).use { cursor ->
                 while (cursor.moveToNext()) {
                     senderCount += 1
@@ -238,7 +213,6 @@ object BackupManager {
                         blankSenderConfigs += 1
                         continue
                     }
-
                     val defaultJson = defaultJsonCache.getOrPut(type) {
                         SenderSettingSanitizer.sanitizeJsonLenient(type, "")
                     }
@@ -256,29 +230,23 @@ object BackupManager {
                 }
             }
         }
-
-        return BackupDatabaseInspection(
-            databasePresent = true,
-            senderCount = senderCount,
-            blankSenderConfigs = blankSenderConfigs,
-            degradedSenderConfigs = degradedSenderConfigs,
-        )
+        return BackupDatabaseInspection(true, senderCount, blankSenderConfigs, degradedSenderConfigs)
     }
 
     private fun canonicalizeJson(raw: String): String {
-        val trimmed = raw.trim()
-        if (trimmed.isBlank()) return ""
-        return runCatching {
-            io.github.magisk317.smscode.runtime.common.utils.JsonUtils.json
-                .parseToJsonElement(trimmed)
-                .toString()
-        }.getOrDefault(trimmed)
+        return SenderSettingSanitizer.sanitizeJsonLenient(0, raw).takeIf { raw.trim().isNotBlank() } ?: raw.trim()
     }
 
     private fun resolveAppVersion(context: Context): String {
+        val pm = context.packageManager
         return runCatching {
-            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            packageInfo.versionName.orEmpty()
+            val pkgInfo = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                pm.getPackageInfo(context.packageName, android.content.pm.PackageManager.PackageInfoFlags.of(0))
+            } else {
+                @Suppress("DEPRECATION")
+                pm.getPackageInfo(context.packageName, 0)
+            }
+            pkgInfo.versionName.orEmpty()
         }.getOrDefault("")
     }
 }

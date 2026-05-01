@@ -3,11 +3,11 @@ package io.github.magisk317.relay.data.mapper
 import io.github.magisk317.relay.data.db.entity.ForwardFilterRuleEntity
 import io.github.magisk317.relay.data.db.entity.RuleEntity
 import io.github.magisk317.relay.data.db.entity.SenderEntity
-import io.github.magisk317.relay.domain.model.ForwardFilterRule
-import io.github.magisk317.relay.domain.model.Rule
-import io.github.magisk317.relay.domain.model.Sender
-import io.github.magisk317.relay.domain.sender.SenderActiveSchedule
-import io.github.magisk317.relay.domain.sender.SenderActiveScheduleEvaluator
+import io.github.magisk317.relay.engine.model.ForwardFilterRule
+import io.github.magisk317.relay.engine.model.Rule
+import io.github.magisk317.relay.engine.model.Sender
+import io.github.magisk317.relay.engine.sender.SenderActiveSchedule
+import io.github.magisk317.relay.engine.sender.SenderActiveScheduleEvaluator
 import com.google.gson.Gson
 
 object ConfigMapper {

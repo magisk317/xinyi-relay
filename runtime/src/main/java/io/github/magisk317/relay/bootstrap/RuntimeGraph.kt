@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.bootstrap
 
 import android.content.Context
-import io.github.magisk317.relay.data.datasource.PreferenceDataSource
+import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.data.datasource.PreferenceDataSourceImpl
 import io.github.magisk317.relay.data.db.AppDatabase
 import io.github.magisk317.relay.data.repository.AnalyticsRepository
@@ -14,10 +14,10 @@ import io.github.magisk317.relay.domain.pipeline.DispatchResultWriter
 import io.github.magisk317.relay.domain.pipeline.EventGatekeeper
 import io.github.magisk317.relay.domain.pipeline.EventPipeline
 import io.github.magisk317.relay.domain.pipeline.RoutingResolver
-import io.github.magisk317.relay.domain.pipeline.SenderSelector
-import io.github.magisk317.relay.domain.service.MessageFormatter
-import io.github.magisk317.relay.domain.service.SystemInfoProvider
-import io.github.magisk317.relay.domain.service.SystemInfoProviderImpl
+import io.github.magisk317.relay.engine.pipeline.SenderSelector
+import io.github.magisk317.relay.engine.service.MessageFormatter
+import io.github.magisk317.relay.engine.service.SystemInfoProvider
+import io.github.magisk317.relay.android.service.SystemInfoProviderImpl
 import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
 
 class RuntimeGraph private constructor(

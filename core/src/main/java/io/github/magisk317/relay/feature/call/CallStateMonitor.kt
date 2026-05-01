@@ -8,9 +8,9 @@ import android.telephony.TelephonyCallback
 import android.telephony.TelephonyManager
 import androidx.core.content.ContextCompat
 import io.github.magisk317.relay.core.BuildConfig
-import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.utils.CallSessionTracker
-import io.github.magisk317.relay.common.utils.XLog
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.android.common.utils.CallSessionTracker
+import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.feature.reminder.SpecialAlertCoordinator
 import io.github.magisk317.relay.bootstrap.RuntimeGraph

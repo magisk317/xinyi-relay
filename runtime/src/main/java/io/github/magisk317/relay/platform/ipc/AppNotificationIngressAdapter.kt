@@ -4,7 +4,7 @@ import android.app.Notification
 import android.content.Context
 import android.content.pm.PackageManager
 import android.service.notification.StatusBarNotification
-import io.github.magisk317.relay.common.utils.XLog
+import io.github.magisk317.relay.android.common.utils.XLog
 
 object AppNotificationIngressAdapter {
     fun toPayload(

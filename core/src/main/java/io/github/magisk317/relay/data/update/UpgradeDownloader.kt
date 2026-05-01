@@ -2,6 +2,7 @@ package io.github.magisk317.relay.data.update
 
 import android.content.Context
 import io.github.magisk317.smscode.runtime.common.update.UpdateArtifactConfig
+import io.github.magisk317.smscode.runtime.common.update.UpgradeApkAsset
 import io.github.magisk317.smscode.runtime.common.update.UpgradeDownloader as SharedUpgradeDownloader
 import java.io.File
 

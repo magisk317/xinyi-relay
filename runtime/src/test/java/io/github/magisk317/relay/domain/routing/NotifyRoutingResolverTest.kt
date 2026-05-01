@@ -1,6 +1,6 @@
-package io.github.magisk317.relay.domain.routing
+package io.github.magisk317.relay.engine.routing
 
-import io.github.magisk317.relay.domain.model.Sender
+import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.data.db.dao.NotifyRouteRuleDao
 import io.github.magisk317.relay.data.db.entity.NotifyRouteRule
 import kotlinx.coroutines.flow.Flow
@@ -21,7 +21,7 @@ class NotifyRoutingResolverTest {
         val result = NotifyRoutingResolver.resolveAppNotifySenders(
             candidates = senders,
             packageName = "com.example.app",
-            dao = dao,
+            rules = dao,
         )
 
         assertEquals(listOf(1L, 2L, 3L), result.senders.map { it.id })
@@ -38,7 +38,7 @@ class NotifyRoutingResolverTest {
         val result = NotifyRoutingResolver.resolveAppNotifySenders(
             candidates = senders,
             packageName = "com.example.app",
-            dao = dao,
+            rules = dao,
         )
 
         assertEquals(listOf(2L, 3L), result.senders.map { it.id })
@@ -54,7 +54,7 @@ class NotifyRoutingResolverTest {
         val result = NotifyRoutingResolver.resolveAppNotifySenders(
             candidates = senders,
             packageName = "com.other.app",
-            dao = dao,
+            rules = dao,
         )
 
         assertEquals(listOf(1L, 3L), result.senders.map { it.id })
@@ -70,7 +70,7 @@ class NotifyRoutingResolverTest {
         val result = NotifyRoutingResolver.resolveAppNotifySenders(
             candidates = senders,
             packageName = "com.example.app",
-            dao = dao,
+            rules = dao,
         )
 
         assertEquals(listOf(1L, 3L), result.senders.map { it.id })
@@ -87,7 +87,7 @@ class NotifyRoutingResolverTest {
         val result = NotifyRoutingResolver.resolveAppNotifySenders(
             candidates = senders,
             packageName = "com.example.app",
-            dao = dao,
+            rules = dao,
         )
 
         assertEquals(listOf(1L, 3L), result.senders.map { it.id })
@@ -108,7 +108,7 @@ class NotifyRoutingResolverTest {
         updateTime = 0L,
     )
 
-    private class FakeNotifyRouteRuleDao : NotifyRouteRuleDao {
+    private class FakeNotifyRouteRuleDao : NotifyRouteRuleDao, NotifyRouteRuleReader {
         val rules = mutableListOf<NotifyRouteRule>()
 
         override suspend fun getAll(): List<NotifyRouteRule> = rules.toList()

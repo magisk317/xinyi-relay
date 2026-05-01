@@ -1,9 +1,9 @@
 package io.github.magisk317.relay.prefs
 
 import android.content.Context
-import io.github.magisk317.relay.prefs.bridge.PrefReadResult
-import io.github.magisk317.relay.prefs.bridge.PrefsSource
-import io.github.magisk317.relay.prefs.bridge.XpRuntimeBridge
+import io.github.magisk317.relay.contract.prefs.PrefReadResult
+import io.github.magisk317.relay.contract.prefs.PrefsSource
+import io.github.magisk317.relay.contract.prefs.XpRuntimeBridge
 
 internal object PrefsSourceChain {
     fun resolveSources(

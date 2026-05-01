@@ -1,13 +1,15 @@
 package io.github.magisk317.relay.domain.pipeline
 
-import io.github.magisk317.relay.common.constant.MessageType
+import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.data.db.AppDatabase
-import io.github.magisk317.relay.domain.event.RelayEvent
-import io.github.magisk317.relay.domain.model.Sender
-import io.github.magisk317.relay.domain.filter.ForwardFilterDecision
-import io.github.magisk317.relay.domain.filter.ForwardFilterEngine
-import io.github.magisk317.relay.domain.routing.NotifyRoutingResolver
-import io.github.magisk317.relay.domain.routing.NotifyRoutingResult
+import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
+import io.github.magisk317.relay.engine.event.RelayEvent
+import io.github.magisk317.relay.engine.model.Sender
+import io.github.magisk317.relay.engine.filter.ForwardFilterDecision
+import io.github.magisk317.relay.engine.filter.ForwardFilterEngine
+import io.github.magisk317.relay.engine.routing.NotifyRouteRuleReader
+import io.github.magisk317.relay.engine.routing.NotifyRoutingResolver
+import io.github.magisk317.relay.engine.routing.NotifyRoutingResult
 import io.github.magisk317.relay.data.mapper.ConfigMapper.toDomain
 
 data class SenderRoutingResolution(
@@ -42,11 +44,25 @@ class RoutingResolver(private val db: AppDatabase) {
             event.packageName.isNotBlank()
         ) {
             runCatching {
+                val routeRules = object : NotifyRouteRuleReader {
+                    override suspend fun getSenderIdsByScopeAndPackage(scope: Int, packageName: String): List<Long> {
+                        return db.notifyRouteRuleDao().getSenderIdsByScopeAndPackage(scope, packageName)
+                    }
+
+                    override suspend fun getDistinctSenderIdsByScopeIn(scope: Int, senderIds: List<Long>): List<Long> {
+                        return db.notifyRouteRuleDao().getDistinctSenderIdsByScopeIn(scope, senderIds)
+                    }
+                }
                 NotifyRoutingResolver.resolveAppNotifySenders(
                     candidates = baseSenders,
                     packageName = event.packageName,
-                    dao = db.notifyRouteRuleDao(),
-                    traceId = traceId,
+                    rules = routeRules,
+                    onConflict = { conflictSenderIds ->
+                        ForwardFlowLog.e(
+                            traceId,
+                            "Notify routing conflict pkg=${event.packageName.trim()} senderIds=$conflictSenderIds (both allow+deny); dropping them",
+                        )
+                    },
                 )
             }.getOrNull()?.also { routingResult = it }?.senders ?: baseSenders
         } else {

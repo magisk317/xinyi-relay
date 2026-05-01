@@ -2,8 +2,8 @@ package io.github.magisk317.relay.platform.ipc
 
 import android.content.Context
 import android.content.Intent
-import io.github.magisk317.relay.common.constant.MessageType
-import io.github.magisk317.relay.domain.event.RelayEvent
+import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.relay.engine.event.RelayEvent
 
 data class ForwardBroadcastPayload(
     val sender: String? = null,

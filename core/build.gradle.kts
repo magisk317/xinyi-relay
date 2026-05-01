@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     id(libs.plugins.kotlin.parcelize.get().pluginId)
     id("relay.android.common")
@@ -23,7 +22,6 @@ android {
     }
 
     buildFeatures {
-        compose = true
         buildConfig = true
     }
 
@@ -56,6 +54,9 @@ androidComponents {
 
 dependencies {
     implementation(project(":runtime"))
+    implementation(project(":relay-engine"))
+    implementation(project(":relay-android"))
+    implementation(project(":relay-contract"))
     implementation(project(":xpbridge-core"))
     implementation(project(":magisk-ui-kit"))
     implementation(project(":smscode-core:smscode-domain"))
@@ -79,27 +80,10 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
 
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.material.icons.core)
-    implementation(libs.androidx.material.icons.extended)
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.coil3.core)
-    implementation(libs.coil3.compose)
-
     implementation(libs.koin.android)
-    implementation(libs.koin.androidx.compose)
-    implementation(libs.koin.compose.viewmodel)
     implementation(libs.androidx.datastore.preferences)
-    implementation(libs.haze.android)
     implementation(libs.timber)
     implementation(libs.kotlinx.collections.immutable)
-    implementation(libs.zxing.android.embedded)
-    add("playImplementation", libs.play.app.update)
 
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)

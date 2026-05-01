@@ -3,8 +3,8 @@ package io.github.magisk317.relay.receiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.utils.XLog
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.feature.reminder.BatteryReminderHandler
 import io.github.magisk317.relay.platform.reminder.LowBatteryReminderScheduler

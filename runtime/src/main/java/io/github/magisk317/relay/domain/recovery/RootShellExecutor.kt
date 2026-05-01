@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.domain.recovery
 
-import io.github.magisk317.relay.common.utils.XLog
+import android.util.Log
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
@@ -48,29 +48,20 @@ internal object RootShellExecutor {
                 output = output,
             )
         } catch (e: IOException) {
-            XLog.w(
-                "RootShellExecutor run failed: %s",
-                e.message ?: e.javaClass.simpleName,
-            )
+            Log.w("RootShellExecutor", "run failed: ${e.message ?: e.javaClass.simpleName}")
             ShellResult(
                 exitCode = -1,
                 output = "",
             )
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            XLog.w(
-                "RootShellExecutor run interrupted: %s",
-                e.message ?: e.javaClass.simpleName,
-            )
+            Log.w("RootShellExecutor", "run interrupted: ${e.message ?: e.javaClass.simpleName}")
             ShellResult(
                 exitCode = -1,
                 output = "",
             )
         } catch (e: SecurityException) {
-            XLog.w(
-                "RootShellExecutor run denied: %s",
-                e.message ?: e.javaClass.simpleName,
-            )
+            Log.w("RootShellExecutor", "run denied: ${e.message ?: e.javaClass.simpleName}")
             ShellResult(
                 exitCode = -1,
                 output = "",

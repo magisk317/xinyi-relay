@@ -2,8 +2,8 @@ package io.github.magisk317.relay.xpbridge
 
 import android.app.NotificationManager
 import android.content.Context
-import io.github.magisk317.relay.common.constant.NotificationConst
-import io.github.magisk317.relay.common.utils.NotificationUtils
+import io.github.magisk317.relay.contract.constant.NotificationConst
+import io.github.magisk317.relay.android.common.utils.NotificationUtils
 
 object XpNotificationBridge {
     const val CHANNEL_ID_RELAY_NOTIFICATION: String = NotificationConst.CHANNEL_ID_RELAY_NOTIFICATION

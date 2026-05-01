@@ -5,7 +5,7 @@ import dev.mokkery.MockMode.autofill
 import dev.mokkery.every
 import dev.mokkery.mock
 import dev.mokkery.answering.returns
-import io.github.magisk317.relay.common.constant.MessageType
+import io.github.magisk317.relay.contract.constant.MessageType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test

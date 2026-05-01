@@ -15,7 +15,7 @@ import android.os.SystemClock
 import androidx.annotation.IntDef
 import androidx.core.content.ContextCompat
 import androidx.core.content.pm.PackageInfoCompat
-import io.github.magisk317.relay.common.constant.Const
+import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.runtime.BuildConfig
 import io.github.magisk317.smscode.runtime.common.packageenv.PackageEnvCore

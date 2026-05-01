@@ -30,6 +30,8 @@ require_pattern "$SUBMODULE_SETTINGS" 'include\(":smscode-xposed-core"\)' \
   "smscode-core/settings.gradle.kts must include :smscode-xposed-core"
 require_pattern "$SUBMODULE_SETTINGS" 'include\(":smscode-domain"\)' \
   "smscode-core/settings.gradle.kts must include :smscode-domain"
+require_pattern "$SUBMODULE_SETTINGS" 'include\(":smscode-runtime-contract"\)' \
+  "smscode-core/settings.gradle.kts must include :smscode-runtime-contract"
 require_pattern "$SUBMODULE_SETTINGS" 'include\(":smscode-verification-core"\)' \
   "smscode-core/settings.gradle.kts must include :smscode-verification-core"
 forbid_pattern "$SUBMODULE_SETTINGS" 'include\(":core"\)' \

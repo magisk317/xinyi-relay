@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.xpbridge
 
-import io.github.magisk317.relay.common.constant.CodeNotificationOwner
+import io.github.magisk317.relay.contract.constant.CodeNotificationOwner
 
 object XpCodeNotificationOwner {
     const val APP: String = CodeNotificationOwner.APP

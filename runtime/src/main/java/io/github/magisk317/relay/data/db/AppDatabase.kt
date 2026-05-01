@@ -26,7 +26,7 @@ import io.github.magisk317.relay.data.db.entity.NotifyRouteRule
 import io.github.magisk317.relay.data.db.entity.SmsCodeRule
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.data.db.entity.SenderDispatchLog
-import io.github.magisk317.relay.common.utils.XLog
+import io.github.magisk317.relay.android.common.utils.XLog
 
 @Database(entities = [
     SmsCodeRule::class,

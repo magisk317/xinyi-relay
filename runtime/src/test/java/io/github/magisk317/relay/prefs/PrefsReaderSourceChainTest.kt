@@ -3,8 +3,8 @@ package io.github.magisk317.relay.prefs
 import android.content.Context
 import dev.mokkery.MockMode.autofill
 import dev.mokkery.mock
-import io.github.magisk317.relay.prefs.bridge.PrefReadResult
-import io.github.magisk317.relay.prefs.bridge.PrefsSource
+import io.github.magisk317.relay.contract.prefs.PrefReadResult
+import io.github.magisk317.relay.contract.prefs.PrefsSource
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test

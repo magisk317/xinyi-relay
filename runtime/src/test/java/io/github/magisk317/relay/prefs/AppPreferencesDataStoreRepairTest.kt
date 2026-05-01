@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.prefs
 
-import io.github.magisk317.relay.common.constant.PrefConst
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test

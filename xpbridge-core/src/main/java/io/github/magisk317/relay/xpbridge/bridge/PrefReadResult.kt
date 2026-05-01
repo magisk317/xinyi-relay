@@ -1,6 +1,3 @@
 package io.github.magisk317.relay.xpbridge.bridge
 
-data class PrefReadResult<T>(
-    val value: T,
-    val source: String,
-)
+typealias PrefReadResult<T> = io.github.magisk317.relay.contract.prefs.PrefReadResult<T>

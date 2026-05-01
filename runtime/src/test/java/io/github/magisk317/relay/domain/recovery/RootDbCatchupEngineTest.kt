@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.domain.recovery
 
-import io.github.magisk317.relay.common.constant.MessageType
+import io.github.magisk317.relay.contract.constant.MessageType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 

@@ -5,13 +5,13 @@ import android.content.pm.PackageManager
 import android.os.Build
 import java.util.Locale
 
-internal enum class RomFamily {
+enum class RomFamily {
     HYPER_OS,
     AOSP_LIKE,
     UNKNOWN,
 }
 
-internal data class RomProfile(
+data class RomProfile(
     val manufacturer: String,
     val brand: String,
     val display: String,
@@ -19,12 +19,12 @@ internal data class RomProfile(
     val miOsVersionName: String,
 )
 
-internal data class DialerPackageStrategy(
+data class DialerPackageStrategy(
     val family: RomFamily,
     val preferredPackages: List<String>,
 )
 
-internal object RomDialerPackageResolver {
+object RomDialerPackageResolver {
 
     fun resolvePackageName(pm: PackageManager, label: String): String? {
         if (!isCallLikeLabel(label)) return null
@@ -48,7 +48,7 @@ internal object RomDialerPackageResolver {
         }?.packageName
     }
 
-    internal fun strategyFor(profile: RomProfile): DialerPackageStrategy {
+    fun strategyFor(profile: RomProfile): DialerPackageStrategy {
         return when (classify(profile)) {
             RomFamily.HYPER_OS -> DialerPackageStrategy(
                 family = RomFamily.HYPER_OS,
@@ -87,7 +87,7 @@ internal object RomDialerPackageResolver {
         }
     }
 
-    internal fun classify(profile: RomProfile): RomFamily {
+    fun classify(profile: RomProfile): RomFamily {
         val haystack = listOf(
             profile.manufacturer,
             profile.brand,
@@ -118,7 +118,7 @@ internal object RomDialerPackageResolver {
         return RomFamily.UNKNOWN
     }
 
-    internal fun isCallLikeLabel(label: String): Boolean {
+    fun isCallLikeLabel(label: String): Boolean {
         val normalized = label.lowercase(Locale.ROOT)
         return normalized.contains("电话") ||
             normalized.contains("來電") ||

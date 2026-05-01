@@ -1,16 +1,17 @@
 package io.github.magisk317.relay.domain.recovery
 
 import android.content.Context
-import io.github.magisk317.relay.common.constant.MessageType
-import io.github.magisk317.relay.common.constant.PrefConst
+import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.sms.SmsCodeUtils
-import io.github.magisk317.relay.common.utils.CallSessionTracker
-import io.github.magisk317.relay.common.utils.XLog
-import io.github.magisk317.relay.data.datasource.PreferenceDataSource
+import io.github.magisk317.relay.android.common.utils.CallSessionTracker
+import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.data.db.dao.SmsMsgDao
 import io.github.magisk317.relay.data.db.entity.SmsMsg
-import io.github.magisk317.relay.domain.event.RelayEvent
+import io.github.magisk317.relay.engine.event.RelayEvent
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
+import io.github.magisk317.smscode.domain.constant.SmsCodeConst
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
 
@@ -118,7 +119,7 @@ internal object RootDbCatchupEngine {
         val dao = db.smsMsgDao()
         val relayKeywords = runtimeGraph.preferenceDataSource.getString(
             PrefConst.KEY_SMSCODE_KEYWORDS,
-            PrefConst.SMSCODE_KEYWORDS_DEFAULT,
+            SmsCodeConst.VERIFICATION_KEYWORDS_REGEX,
         )
 
         var lastSmsId = stateStore.readWatermark(PrefConst.KEY_INTERNAL_ROOT_DB_LAST_SMS_ID)

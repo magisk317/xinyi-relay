@@ -60,14 +60,6 @@
 # ==========================
 
 # ==========================
-# Xposed start
--keep class io.github.magisk317.relay.xp.LibXposedEntry { *; }
--keep class io.github.magisk317.relay.xp.hook.** { *; }
--keep class io.github.magisk317.relay.xp.runtime.** { *; }
-# Xposed end
-# ==========================
-
-# ==========================
 # Jakarta Mail / SMTP start
 -keep class jakarta.mail.** { *; }
 -keep class com.sun.mail.** { *; }

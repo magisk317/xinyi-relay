@@ -4,10 +4,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.utils.CallSessionTracker
-import io.github.magisk317.relay.diagnostics.ForwardFlowLog
-import io.github.magisk317.relay.common.utils.XLog
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.android.common.utils.CallSessionTracker
+import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
+import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.relay.platform.metadata.SourceMetadataResolver
@@ -82,7 +82,7 @@ class ForwardReceiver : BroadcastReceiver() {
                 // We retrieve local token from DataStore (which is synced to xposed_prefs).
                 val expectedToken = runBlocking {
                     RuntimeSettingsCache.getString(
-                        key = io.github.magisk317.relay.common.constant.PrefConst.KEY_IPC_TOKEN,
+                        key = PrefConst.KEY_IPC_TOKEN,
                         defaultValue = "",
                     ) { key, defaultValue ->
                         runtimeGraph.preferenceDataSource.getString(key, defaultValue)
@@ -447,7 +447,7 @@ class ForwardReceiver : BroadcastReceiver() {
                 if (
                     msgTypeStr == ForwardBroadcastContract.MSG_TYPE_SMS &&
                     forwardSource == ForwardBroadcastContract.SOURCE_SMS_HOOK &&
-                    relayEvent.messageType == io.github.magisk317.relay.common.constant.MessageType.SMS_CODE
+                    relayEvent.messageType == io.github.magisk317.relay.contract.constant.MessageType.SMS_CODE
                 ) {
                     // Mark the sms_hook code path as soon as it enters the runtime pipeline so
                     // reclassified NMS copies arriving milliseconds later can be suppressed.

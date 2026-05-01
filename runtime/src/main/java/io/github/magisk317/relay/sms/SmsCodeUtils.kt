@@ -4,9 +4,9 @@ import android.content.Context
 import android.database.SQLException
 import io.github.magisk317.relay.data.db.DBProvider
 import io.github.magisk317.relay.data.db.entity.SmsCodeRule
-import io.github.magisk317.relay.data.store.EntityStoreManager
-import io.github.magisk317.relay.data.store.EntityType
-import io.github.magisk317.relay.common.utils.XLog
+import io.github.magisk317.relay.android.data.store.EntityStoreManager
+import io.github.magisk317.relay.android.data.store.EntityType
+import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.prefs.PrefsReader
 import io.github.magisk317.smscode.domain.model.SmsCodeParseResult
 import io.github.magisk317.smscode.domain.model.SmsCodeRuleSpec

@@ -1,8 +1,8 @@
 package io.github.magisk317.relay.xpbridge
 
 import android.content.Context
-import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.constant.MessageType
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.prefs.PrefsReader
 import io.github.magisk317.relay.xpbridge.bridge.NoopXpRuntimeBridge
 import io.github.magisk317.relay.xpbridge.bridge.PrefReadResult as CorePrefReadResult
@@ -12,10 +12,10 @@ import io.github.magisk317.relay.xpbridge.bridge.XpRuntimeBridge as CoreXpRuntim
 import io.github.magisk317.smscode.xposed.prefs.CorePrefs
 import io.github.magisk317.smscode.xposed.prefs.CorePrefsAccess
 import io.github.magisk317.smscode.xposed.runtime.CoreRuntime
-import io.github.magisk317.relay.prefs.bridge.PrefReadResult as RuntimePrefReadResult
-import io.github.magisk317.relay.prefs.bridge.PrefsSource as RuntimePrefsSource
-import io.github.magisk317.relay.prefs.bridge.XpCapabilities as RuntimeXpCapabilities
-import io.github.magisk317.relay.prefs.bridge.XpRuntimeBridge as RuntimeXpRuntimeBridge
+import io.github.magisk317.relay.contract.prefs.PrefReadResult as RuntimePrefReadResult
+import io.github.magisk317.relay.contract.prefs.PrefsSource as RuntimePrefsSource
+import io.github.magisk317.relay.contract.prefs.XpCapabilities as RuntimeXpCapabilities
+import io.github.magisk317.relay.contract.prefs.XpRuntimeBridge as RuntimeXpRuntimeBridge
 
 object XpPrefs {
     private const val PREFS_NAME = "xposed_prefs"

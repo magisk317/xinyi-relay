@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.platform.ipc
 
-import io.github.magisk317.relay.common.constant.MessageType
+import io.github.magisk317.relay.contract.constant.MessageType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue

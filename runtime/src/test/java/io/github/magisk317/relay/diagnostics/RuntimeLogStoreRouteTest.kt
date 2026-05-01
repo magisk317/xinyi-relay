@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.diagnostics
+package io.github.magisk317.relay.android.diagnostics
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

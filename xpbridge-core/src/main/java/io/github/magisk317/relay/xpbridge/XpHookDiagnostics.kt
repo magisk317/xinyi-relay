@@ -1,8 +1,8 @@
 package io.github.magisk317.relay.xpbridge
 
 import android.content.Context
-import io.github.magisk317.relay.diagnostics.ActivationDiagnosticsStore
-import io.github.magisk317.relay.diagnostics.RuntimeLogStore
+import io.github.magisk317.relay.android.diagnostics.ActivationDiagnosticsStore
+import io.github.magisk317.relay.android.diagnostics.RuntimeLogStore
 import io.github.magisk317.smscode.xposed.runtime.CoreLogSink
 import io.github.magisk317.smscode.xposed.runtime.CoreLogSinkHolder
 

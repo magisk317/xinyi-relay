@@ -2,7 +2,7 @@ package io.github.magisk317.relay.platform.ipc
 
 import android.content.Context
 import android.content.Intent
-import io.github.magisk317.relay.common.constant.PrefConst
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 
 object ForwardReceiverIntentFactory {
     fun newHostIntent(context: Context): Intent = Intent(PrefConst.ACTION_FORWARD_SMS).apply {

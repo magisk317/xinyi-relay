@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.prefs.bridge
+package io.github.magisk317.relay.contract.prefs
 
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue

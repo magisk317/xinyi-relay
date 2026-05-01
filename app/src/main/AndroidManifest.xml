@@ -37,29 +37,6 @@
         android:theme="@style/AppNoActionBarTheme"
         tools:ignore="GoogleAppIndexingWarning,UnusedAttribute">
 
-        <!-- xposed module configuration -->
-        <meta-data
-            android:name="xposedmodule"
-            android:value="true" />
-        <meta-data
-            android:name="xposeddescription"
-            android:value="@string/xposed_description" />
-        <meta-data
-            android:name="xposedminversion"
-            android:value="30" />
-        <meta-data
-            android:name="xposedscope"
-            android:resource="@array/xposed_scope" />
-        <meta-data
-            android:name="xposedsharedprefs"
-            android:value="true" />
-
-        <provider
-            android:name="io.github.libxposed.service.XposedProvider"
-            android:authorities="${applicationId}.XposedService"
-            android:exported="true"
-            tools:ignore="ExportedContentProvider" />
-
         <receiver
             android:name="io.github.magisk317.relay.receiver.SecretCodeReceiver"
             android:exported="true">
@@ -139,14 +116,6 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/auto_input_accessibility_service" />
         </service>
-
-        <receiver
-            android:name="io.github.magisk317.relay.xp.hook.code.AutoCancelReceiver"
-            android:exported="false" />
-
-        <receiver
-            android:name="io.github.magisk317.relay.xp.hook.code.CopyCodeReceiver"
-            android:exported="false" />
 
         <!-- IPC: receives code-notification requests from the SMS hook process and posts the
              actual status-bar notification from the module app process, so the notification is

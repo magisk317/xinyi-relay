@@ -1,22 +1,23 @@
 package io.github.magisk317.relay.domain.pipeline
 
-import io.github.magisk317.relay.common.constant.MessageType
-import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.diagnostics.ForwardFlowLog
-import io.github.magisk317.relay.common.utils.XLog
-import io.github.magisk317.relay.data.datasource.PreferenceDataSource
+import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
+import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.data.db.AppDatabase
 import io.github.magisk317.relay.data.db.entity.SmsMsg
 import io.github.magisk317.relay.data.mapper.ConfigMapper.toDomain
 import io.github.magisk317.relay.data.repository.SettingsRepository
-import io.github.magisk317.relay.domain.event.RelayEvent
-import io.github.magisk317.relay.domain.service.DispatchPayloadContext
-import io.github.magisk317.relay.domain.service.MessageFormatter
-import io.github.magisk317.relay.domain.service.SystemInfoProvider
-import io.github.magisk317.relay.domain.sender.SenderSettingSanitizer
-import io.github.magisk317.relay.domain.model.ForwardCommonConfig
-import io.github.magisk317.relay.domain.model.MsgInfo
-import io.github.magisk317.relay.domain.model.Sender
+import io.github.magisk317.relay.engine.event.RelayEvent
+import io.github.magisk317.relay.engine.service.DispatchPayloadContext
+import io.github.magisk317.relay.engine.service.MessageFormatter
+import io.github.magisk317.relay.engine.service.SystemInfoProvider
+import io.github.magisk317.relay.android.platform.sender.SenderSettingSanitizer
+import io.github.magisk317.relay.engine.model.ForwardCommonConfig
+import io.github.magisk317.relay.engine.model.MsgInfo
+import io.github.magisk317.relay.engine.model.Sender
+import io.github.magisk317.relay.engine.pipeline.SenderSelector
 
 data class EventPipelineResult(
     val dispatched: Boolean,

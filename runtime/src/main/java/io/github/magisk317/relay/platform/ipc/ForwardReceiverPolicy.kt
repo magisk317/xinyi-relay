@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.platform.ipc
 
 import android.os.Build
-import io.github.magisk317.relay.common.constant.MessageType
+import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.smscode.domain.utils.CodeRecordSimilarityUtils
 
 object ForwardReceiverPolicy {

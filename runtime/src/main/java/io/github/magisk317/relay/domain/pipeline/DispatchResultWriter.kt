@@ -1,9 +1,10 @@
 package io.github.magisk317.relay.domain.pipeline
 
 import io.github.magisk317.relay.analytics.AnalyticsTracker
-import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.utils.XLog
-import io.github.magisk317.relay.data.datasource.PreferenceDataSource
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.relay.engine.service.SenderDispatchResult
+import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.data.db.AppDatabase
 import io.github.magisk317.relay.data.db.entity.SenderDispatchLog
 import io.github.magisk317.relay.data.repository.RelayRecordRepository

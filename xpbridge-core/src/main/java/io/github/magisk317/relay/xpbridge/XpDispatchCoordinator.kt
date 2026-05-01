@@ -2,7 +2,7 @@ package io.github.magisk317.relay.xpbridge
 
 import android.content.Context
 import android.content.Intent
-import io.github.magisk317.relay.common.constant.MessageType
+import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
 import io.github.magisk317.relay.platform.ipc.PreparedSmsHookDispatch as RuntimePreparedSmsHookDispatch
 

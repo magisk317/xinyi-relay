@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.receiver
 
 import android.content.Context
-import io.github.magisk317.relay.common.constant.PrefConst
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.feature.call.CallStateMonitor
 
 object CallAlertMonitorRefreshHandler {

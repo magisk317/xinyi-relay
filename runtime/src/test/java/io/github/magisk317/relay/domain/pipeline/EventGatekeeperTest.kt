@@ -6,15 +6,15 @@ import dev.mokkery.everySuspend
 import dev.mokkery.mock
 import dev.mokkery.answering.returns
 import dev.mokkery.answering.returnsBy
-import io.github.magisk317.relay.common.constant.MessageType
-import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.common.utils.XLog
-import io.github.magisk317.relay.data.datasource.PreferenceDataSource
+import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.data.db.AppDatabase
 import io.github.magisk317.relay.data.db.dao.AppInfoDao
 import io.github.magisk317.relay.data.db.entity.AppInfo
-import io.github.magisk317.relay.diagnostics.ForwardFlowLog
-import io.github.magisk317.relay.domain.event.RelayEvent
+import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
+import io.github.magisk317.relay.engine.event.RelayEvent
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals

@@ -2,10 +2,10 @@ package io.github.magisk317.relay.app
 
 import android.app.Application
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
-import io.github.magisk317.relay.common.constant.PrefConst
-import io.github.magisk317.relay.diagnostics.RuntimeLogStore
-import io.github.magisk317.relay.common.utils.SensitiveLogPolicy
-import io.github.magisk317.relay.common.utils.XLog
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.android.diagnostics.RuntimeLogStore
+import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
+import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.prefs.HookPreferenceMirror
 import kotlinx.coroutines.CoroutineScope

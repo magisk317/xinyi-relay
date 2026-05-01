@@ -1,10 +1,10 @@
 package io.github.magisk317.relay.domain.system
 
 import android.content.Context
-import io.github.magisk317.relay.data.datasource.PreferenceDataSourceImpl
 import io.github.magisk317.relay.data.db.AppDatabase
 import io.github.magisk317.relay.data.db.entity.AutoInputEvent
 import io.github.magisk317.relay.data.db.entity.SmsMsg
+import io.github.magisk317.relay.data.datasource.PreferenceDataSourceImpl
 import io.github.magisk317.relay.data.repository.RelayRecordRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

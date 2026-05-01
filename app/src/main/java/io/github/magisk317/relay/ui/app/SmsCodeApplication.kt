@@ -3,7 +3,8 @@ package io.github.magisk317.relay.ui.app
 import android.app.Application
 import io.github.magisk317.relay.app.AppInitializer
 import io.github.magisk317.relay.di.appDependencyModule
-import io.github.magisk317.relay.di.appModule
+import io.github.magisk317.relay.di.coreModule
+import io.github.magisk317.relay.di.uiModule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -22,7 +23,7 @@ class SmsCodeApplication : Application() {
         startKoin {
             androidLogger()
             androidContext(this@SmsCodeApplication)
-            modules(appModule, appDependencyModule)
+            modules(coreModule, uiModule, appDependencyModule)
         }
 
         XposedServiceBridge.initialize(this, applicationScope)

@@ -1,10 +1,10 @@
 package io.github.magisk317.relay.data.mapper
 
 import io.github.magisk317.relay.data.db.entity.SenderEntity
-import io.github.magisk317.relay.domain.sender.SenderActiveSchedule
-import io.github.magisk317.relay.domain.sender.SenderActiveScheduleConst
-import io.github.magisk317.relay.domain.sender.SenderActiveScheduleRange
-import io.github.magisk317.relay.domain.sender.SenderActiveScheduleRule
+import io.github.magisk317.relay.engine.sender.SenderActiveSchedule
+import io.github.magisk317.relay.engine.sender.SenderActiveScheduleConst
+import io.github.magisk317.relay.engine.sender.SenderActiveScheduleRange
+import io.github.magisk317.relay.engine.sender.SenderActiveScheduleRule
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test

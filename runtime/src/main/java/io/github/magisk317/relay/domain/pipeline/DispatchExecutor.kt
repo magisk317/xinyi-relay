@@ -2,54 +2,47 @@ package io.github.magisk317.relay.domain.pipeline
 
 import android.content.Context
 import com.google.gson.Gson
-import io.github.magisk317.relay.diagnostics.ForwardFlowLog
-import io.github.magisk317.relay.common.utils.XLog
-import io.github.magisk317.relay.domain.model.MsgInfo
-import io.github.magisk317.relay.domain.model.Sender
-import io.github.magisk317.relay.platform.sender.config.BarkSetting
-import io.github.magisk317.relay.platform.sender.config.DingtalkGroupRobotSetting
-import io.github.magisk317.relay.platform.sender.config.DingtalkInnerRobotSetting
-import io.github.magisk317.relay.platform.sender.config.EmailSetting
-import io.github.magisk317.relay.platform.sender.config.FeishuAppSetting
-import io.github.magisk317.relay.platform.sender.config.FeishuSetting
-import io.github.magisk317.relay.platform.sender.config.GotifySetting
-import io.github.magisk317.relay.platform.sender.config.NtfySetting
-import io.github.magisk317.relay.platform.sender.config.PushplusSetting
-import io.github.magisk317.relay.platform.sender.config.ServerchanSetting
-import io.github.magisk317.relay.platform.sender.config.SmsSetting
-import io.github.magisk317.relay.platform.sender.config.SocketSetting
-import io.github.magisk317.relay.platform.sender.config.TelegramSetting
-import io.github.magisk317.relay.platform.sender.config.UrlSchemeSetting
-import io.github.magisk317.relay.platform.sender.config.WebhookSetting
-import io.github.magisk317.relay.platform.sender.config.WeworkAgentSetting
-import io.github.magisk317.relay.platform.sender.config.WeworkRobotSetting
-import io.github.magisk317.relay.domain.sender.SenderType
-import io.github.magisk317.relay.platform.sender.BarkUtils
-import io.github.magisk317.relay.platform.sender.DingtalkGroupRobotUtils
-import io.github.magisk317.relay.platform.sender.DingtalkInnerRobotUtils
-import io.github.magisk317.relay.platform.sender.EmailUtils
-import io.github.magisk317.relay.platform.sender.FeishuAppUtils
-import io.github.magisk317.relay.platform.sender.FeishuUtils
-import io.github.magisk317.relay.platform.sender.GotifyUtils
-import io.github.magisk317.relay.platform.sender.NtfyUtils
-import io.github.magisk317.relay.platform.sender.PushplusUtils
-import io.github.magisk317.relay.platform.sender.ServerchanUtils
-import io.github.magisk317.relay.platform.sender.SocketUtils
-import io.github.magisk317.relay.platform.sender.SmsUtils
-import io.github.magisk317.relay.platform.sender.TelegramUtils
-import io.github.magisk317.relay.platform.sender.UrlSchemeUtils
-import io.github.magisk317.relay.platform.sender.WebhookUtils
-import io.github.magisk317.relay.platform.sender.WeworkAgentUtils
-import io.github.magisk317.relay.platform.sender.WeworkRobotUtils
+import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
+import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.relay.engine.model.MsgInfo
+import io.github.magisk317.relay.engine.model.Sender
+import io.github.magisk317.relay.android.platform.sender.config.BarkSetting
+import io.github.magisk317.relay.android.platform.sender.config.DingtalkGroupRobotSetting
+import io.github.magisk317.relay.android.platform.sender.config.DingtalkInnerRobotSetting
+import io.github.magisk317.relay.android.platform.sender.config.EmailSetting
+import io.github.magisk317.relay.android.platform.sender.config.FeishuAppSetting
+import io.github.magisk317.relay.android.platform.sender.config.FeishuSetting
+import io.github.magisk317.relay.android.platform.sender.config.GotifySetting
+import io.github.magisk317.relay.android.platform.sender.config.NtfySetting
+import io.github.magisk317.relay.android.platform.sender.config.PushplusSetting
+import io.github.magisk317.relay.android.platform.sender.config.ServerchanSetting
+import io.github.magisk317.relay.android.platform.sender.config.SmsSetting
+import io.github.magisk317.relay.android.platform.sender.config.SocketSetting
+import io.github.magisk317.relay.android.platform.sender.config.TelegramSetting
+import io.github.magisk317.relay.android.platform.sender.config.UrlSchemeSetting
+import io.github.magisk317.relay.android.platform.sender.config.WebhookSetting
+import io.github.magisk317.relay.android.platform.sender.config.WeworkAgentSetting
+import io.github.magisk317.relay.android.platform.sender.config.WeworkRobotSetting
+import io.github.magisk317.relay.engine.sender.SenderType
+import io.github.magisk317.relay.android.platform.sender.BarkUtils
+import io.github.magisk317.relay.android.platform.sender.DingtalkGroupRobotUtils
+import io.github.magisk317.relay.android.platform.sender.DingtalkInnerRobotUtils
+import io.github.magisk317.relay.android.platform.sender.EmailUtils
+import io.github.magisk317.relay.android.platform.sender.FeishuAppUtils
+import io.github.magisk317.relay.android.platform.sender.FeishuUtils
+import io.github.magisk317.relay.android.platform.sender.GotifyUtils
+import io.github.magisk317.relay.android.platform.sender.NtfyUtils
+import io.github.magisk317.relay.android.platform.sender.PushplusUtils
+import io.github.magisk317.relay.android.platform.sender.ServerchanUtils
+import io.github.magisk317.relay.android.platform.sender.SocketUtils
+import io.github.magisk317.relay.android.platform.sender.SmsUtils
+import io.github.magisk317.relay.android.platform.sender.TelegramUtils
+import io.github.magisk317.relay.android.platform.sender.UrlSchemeUtils
+import io.github.magisk317.relay.android.platform.sender.WebhookUtils
+import io.github.magisk317.relay.android.platform.sender.WeworkAgentUtils
+import io.github.magisk317.relay.android.platform.sender.WeworkRobotUtils
+import io.github.magisk317.relay.engine.service.SenderDispatchResult
 import io.github.magisk317.relay.runtime.BuildConfig
-
-data class SenderDispatchResult(
-    val senderId: Long,
-    val senderType: Int,
-    val senderName: String,
-    val success: Boolean,
-    val message: String,
-)
 
 class DispatchExecutor(private val context: Context) {
     private val gson = Gson()
