@@ -37,9 +37,9 @@ import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.android.platform.sender.config.SocketSetting
+import io.github.magisk317.relay.sender.config.SocketSetting
 import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.android.platform.sender.SocketUtils
+import io.github.magisk317.relay.sender.SocketUtils
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.getSenderTypeName

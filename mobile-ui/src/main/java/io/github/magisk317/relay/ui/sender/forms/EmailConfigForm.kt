@@ -35,9 +35,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.android.platform.sender.config.EmailSetting
+import io.github.magisk317.relay.sender.config.EmailSetting
 import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.android.platform.sender.EmailUtils
+import io.github.magisk317.relay.sender.EmailUtils
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel

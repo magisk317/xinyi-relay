@@ -40,6 +40,7 @@ android {
 dependencies {
     implementation(project(":relay-contract"))
     implementation(project(":relay-engine"))
+    api(project(":relay-sender"))
     implementation(project(":smscode-core:smscode-domain"))
     implementation(project(":smscode-core:smscode-runtime-common"))
     implementation(libs.androidx.core.ktx)
@@ -51,8 +52,6 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.kotlinx.serialization)
     implementation(libs.retrofit.converter.scalars)
-    implementation(libs.jakarta.mail)
-    implementation(libs.paho.mqtt)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)

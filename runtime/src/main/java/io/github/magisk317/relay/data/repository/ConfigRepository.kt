@@ -17,7 +17,7 @@ import io.github.magisk317.relay.android.data.db.dao.SenderDao
 import io.github.magisk317.relay.engine.model.ForwardFilterRule
 import io.github.magisk317.relay.engine.model.Rule
 import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.android.platform.sender.SenderSettingSanitizer
+import io.github.magisk317.relay.sender.SenderSettingSanitizer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 

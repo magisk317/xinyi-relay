@@ -5,7 +5,7 @@ import android.content.Intent
 import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import io.github.magisk317.relay.android.common.utils.XLog
-import io.github.magisk317.relay.android.platform.sender.SenderSettingSanitizer
+import io.github.magisk317.relay.sender.SenderSettingSanitizer
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.runtime.BuildConfig
 import io.github.magisk317.smscode.runtime.common.backup.BackupDatabaseHooks

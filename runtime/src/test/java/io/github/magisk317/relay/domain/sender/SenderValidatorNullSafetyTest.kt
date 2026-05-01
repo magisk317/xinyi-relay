@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.android.platform.sender
+package io.github.magisk317.relay.sender
 
 import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.engine.sender.SenderType

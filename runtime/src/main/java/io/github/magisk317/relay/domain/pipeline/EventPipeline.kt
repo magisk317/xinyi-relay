@@ -13,7 +13,7 @@ import io.github.magisk317.relay.engine.event.RelayEvent
 import io.github.magisk317.relay.engine.service.DispatchPayloadContext
 import io.github.magisk317.relay.engine.service.MessageFormatter
 import io.github.magisk317.relay.engine.service.SystemInfoProvider
-import io.github.magisk317.relay.android.platform.sender.SenderSettingSanitizer
+import io.github.magisk317.relay.sender.SenderSettingSanitizer
 import io.github.magisk317.relay.engine.model.ForwardCommonConfig
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender

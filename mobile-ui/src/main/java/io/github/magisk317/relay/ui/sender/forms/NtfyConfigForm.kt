@@ -35,9 +35,9 @@ import com.google.gson.Gson
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.android.platform.sender.config.NtfySetting
+import io.github.magisk317.relay.sender.config.NtfySetting
 import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.android.platform.sender.NtfyUtils
+import io.github.magisk317.relay.sender.NtfyUtils
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import java.util.Date

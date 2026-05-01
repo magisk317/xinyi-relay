@@ -16,9 +16,9 @@ import io.github.magisk317.relay.mobileui.BuildConfig
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.android.platform.sender.config.WebhookSetting
+import io.github.magisk317.relay.sender.config.WebhookSetting
 import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.android.platform.sender.WebhookUtils
+import io.github.magisk317.relay.sender.WebhookUtils
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.getSenderTypeName

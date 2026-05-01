@@ -14,6 +14,7 @@ include(
     ":core",
     ":mobile-ui",
     ":relay-android",
+    ":relay-sender",
     ":relay-contract",
     ":relay-engine",
     ":xpbridge-core",
