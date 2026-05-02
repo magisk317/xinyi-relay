@@ -15,6 +15,7 @@ import io.github.magisk317.relay.android.data.db.entity.AppInfo
 import io.github.magisk317.relay.android.data.db.entity.NotifyRouteRule
 import io.github.magisk317.relay.android.data.db.entity.SmsCodeRule
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
+import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toEntity
 import io.github.magisk317.relay.android.data.secret.InternalSecretStore
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.engine.model.ForwardFilterRule
@@ -257,7 +258,9 @@ class RemoteAgentRepository(
         require(snapshot.bound) { "device not bound" }
         val token = InternalSecretStore.getString(appContext, PrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, "")
         val appCatalogDigest = computeAppCatalogDigest(
-            resolveInstalledAppCatalog(RuntimeGraph.from(appContext).configRepository.getAllAppInfo() as List<AppInfo>),
+            resolveInstalledAppCatalog(
+                RuntimeGraph.from(appContext).configRepository.getAllAppInfo().map { it.toEntity() },
+            ),
         )
         val body = gson.toJson(
             mapOf(
@@ -437,8 +440,8 @@ class RemoteAgentRepository(
             overview = settingsRepository.getOverviewSettings(),
             senders = configRepository.getAllSenders(),
             rules = configRepository.getAllRules(),
-            smsCodeRules = configRepository.getAllSmsCodeRules() as List<SmsCodeRule>,
-            appInfos = resolveInstalledAppCatalog(configRepository.getAllAppInfo() as List<AppInfo>),
+            smsCodeRules = configRepository.getAllSmsCodeRules().map { it.toEntity() },
+            appInfos = resolveInstalledAppCatalog(configRepository.getAllAppInfo().map { it.toEntity() }),
             notifyRoutes = runtimeGraph.database.notifyRouteRuleDao().getAll(),
             forwardFilters = runtimeGraph.database.forwardFilterRuleDao().getAll().map { it.toDomain() },
         )
@@ -621,7 +624,9 @@ class RemoteAgentRepository(
     private suspend fun pushInstalledAppCatalogIfNeeded() {
         val snapshot = getSnapshot()
         if (!snapshot.bound) return
-        val currentConfigs = RuntimeGraph.from(appContext).configRepository.getAllAppInfo() as List<AppInfo>
+        val currentConfigs = RuntimeGraph.from(appContext).configRepository
+            .getAllAppInfo()
+            .map { it.toEntity() }
         val digest = computeAppCatalogDigest(resolveInstalledAppCatalog(currentConfigs))
         val lastDigest = preferenceDataSource.getString(PrefConst.KEY_REMOTE_AGENT_LAST_APP_CATALOG_DIGEST, "")
         if (digest == lastDigest) return

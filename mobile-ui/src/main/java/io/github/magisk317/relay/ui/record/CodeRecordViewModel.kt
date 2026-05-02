@@ -24,7 +24,33 @@ import java.io.OutputStreamWriter
 import java.nio.charset.StandardCharsets
 
 @Immutable
-data class CodeRecordUiState(val smsList: ImmutableList<ReadRecordData> = persistentListOf(), val isLoading: Boolean = false)
+data class CodeRecordUiState(val smsList: ImmutableList<SmsMsg> = persistentListOf(), val isLoading: Boolean = false)
+
+private fun ReadRecordData.toSmsMsg(): SmsMsg = when (this) {
+    is SmsMsg -> this
+    else -> SmsMsg(
+        id = id,
+        sender = sender,
+        body = body,
+        date = date,
+        processedTime = processedTime,
+        company = company,
+        smsCode = smsCode,
+        packageName = packageName,
+        notifyChannelId = notifyChannelId,
+        simSlot = simSlot,
+        subId = subId,
+        contactName = contactName,
+        phoneArea = phoneArea,
+        forwardStatus = forwardStatus,
+        forwardTarget = forwardTarget,
+        forwardMessage = forwardMessage,
+        forwardTime = forwardTime,
+        msgType = msgType,
+        callType = callType,
+        sessionKey = sessionKey,
+    )
+}
 
 @Serializable
 private data class RecordExportPayload(
@@ -43,7 +69,7 @@ class CodeRecordViewModel(
 
     val uiState: StateFlow<CodeRecordUiState> = repository.queryAllFlow()
         .combine(_loading) { smsList, loading ->
-            CodeRecordUiState(smsList.toImmutableList(), loading)
+            CodeRecordUiState(smsList.map { it.toSmsMsg() }.toImmutableList(), loading)
         }
         .stateIn(
             scope = viewModelScope,
@@ -115,10 +141,10 @@ class CodeRecordViewModel(
                             if (exportAllTabs) {
                                 JsonUtils.toJson(
                                     RecordExportPayload(
-                                        codeRecords = codeRecords as List<SmsMsg>,
-                                        plainSmsRecords = plainSmsRecords as List<SmsMsg>,
-                                        appNotifyRecords = appNotifyRecords as List<SmsMsg>,
-                                        callNotifyRecords = callNotifyRecords as List<SmsMsg>,
+                                        codeRecords = codeRecords,
+                                        plainSmsRecords = plainSmsRecords,
+                                        appNotifyRecords = appNotifyRecords,
+                                        callNotifyRecords = callNotifyRecords,
                                     ),
                                     osw,
                                     true,

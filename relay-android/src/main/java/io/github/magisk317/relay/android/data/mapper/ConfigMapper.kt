@@ -1,11 +1,15 @@
 package io.github.magisk317.relay.android.data.mapper
 
+import io.github.magisk317.relay.android.data.db.entity.AppInfo
 import io.github.magisk317.relay.android.data.db.entity.ForwardFilterRuleEntity
 import io.github.magisk317.relay.android.data.db.entity.RuleEntity
 import io.github.magisk317.relay.android.data.db.entity.SenderEntity
+import io.github.magisk317.relay.android.data.db.entity.SmsCodeRule
+import io.github.magisk317.relay.engine.model.AppInfoData
 import io.github.magisk317.relay.engine.model.ForwardFilterRule
 import io.github.magisk317.relay.engine.model.Rule
 import io.github.magisk317.relay.engine.model.Sender
+import io.github.magisk317.relay.engine.model.SmsCodeRuleData
 import io.github.magisk317.relay.engine.sender.SenderActiveSchedule
 import io.github.magisk317.relay.engine.sender.SenderActiveScheduleEvaluator
 import com.google.gson.Gson
@@ -82,6 +86,28 @@ object ConfigMapper {
         activeScheduleJson = gson.toJson(SenderActiveScheduleEvaluator.sanitize(activeSchedule)),
         priority = priority,
     )
+
+    fun AppInfoData.toEntity(): AppInfo = when (this) {
+        is AppInfo -> this
+        else -> AppInfo(
+            packageName = packageName,
+            label = label,
+            blocked = blocked,
+            forwarding = forwarding,
+            forwardingConfigured = forwardingConfigured,
+            notifyTemplate = notifyTemplate,
+        )
+    }
+
+    fun SmsCodeRuleData.toEntity(): SmsCodeRule = when (this) {
+        is SmsCodeRule -> this
+        else -> SmsCodeRule(
+            company = company,
+            codeKeyword = codeKeyword,
+            codeRegex = codeRegex,
+            id = id,
+        )
+    }
 
     fun ForwardFilterRuleEntity.toDomain(): ForwardFilterRule = ForwardFilterRule(
         id = id,

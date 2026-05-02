@@ -14,6 +14,7 @@ import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.db.entity.NotifyRouteRule
 import io.github.magisk317.relay.android.data.db.entity.AppInfo
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toEntity
 import io.github.magisk317.relay.engine.service.AppConfigRepository
 import io.github.magisk317.relay.engine.service.MessageRecordRepository
 import io.github.magisk317.relay.engine.routing.NotifyRouteScope
@@ -131,7 +132,7 @@ class AppConfigViewModel(
                     val context = getApplication<Application>()
                     val pm = getApplication<Application>().packageManager
                     // Load all app infos from DB (both blocked and forwarding)
-                    var configs = configRepository.getAllAppInfo() as List<AppInfo>
+                    val configs = configRepository.getAllAppInfo().map { it.toEntity() }
                     EntityStoreManager.storeEntitiesToFile(
                         context,
                         EntityType.APP_CONFIG,

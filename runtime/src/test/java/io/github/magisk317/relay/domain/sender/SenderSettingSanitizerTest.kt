@@ -121,6 +121,52 @@ class SenderSettingSanitizerTest {
     }
 
     @Test
+    fun sanitizeJsonLenient_emailR8ObfuscatedJson_preservesChannelParams() {
+        val raw = """{"A":"keystore.p12","B":"cert-pass","C":"Plain","D":"Relay Bot","o":"SMTP","p":"auth@example.com","q":"from@example.com","r":"mail-pass","s":"Bot","t":"smtp.example.com","u":"465","v":true,"w":true,"x":"Message title","y":{},"z":"to@example.com"}"""
+
+        val sanitized = SenderSettingSanitizer.sanitizeJsonLenient(SenderType.EMAIL, raw)
+        val setting = gson.fromJson(sanitized, EmailSetting::class.java)
+
+        assertEquals("SMTP", setting.mailType)
+        assertEquals("auth@example.com", setting.authEmail)
+        assertEquals("from@example.com", setting.fromEmail)
+        assertEquals("mail-pass", setting.pwd)
+        assertEquals("smtp.example.com", setting.host)
+        assertEquals("465", setting.port)
+        assertTrue(setting.ssl)
+        assertTrue(setting.startTls)
+        assertEquals("Message title", setting.title)
+        assertEquals("to@example.com", setting.toEmail)
+        assertEquals("keystore.p12", setting.keystore)
+        assertEquals("cert-pass", setting.password)
+        assertEquals("Plain", setting.encryptionProtocol)
+        assertEquals("Relay Bot", setting.fromEmailAlias)
+        assertTrue(sanitized.contains(""""host":"smtp.example.com""""))
+        assertFalse(sanitized.contains(""""t":"smtp.example.com""""))
+    }
+
+    @Test
+    fun sanitizeJsonLenient_webhookR8ObfuscatedJson_preservesChannelParams() {
+        val raw = """{"o":"POST","p":"https://example.com/hook","q":"signing-key","r":"ok","s":"a=1","t":{"X-Token":"token"},"u":"HTTP","v":"127.0.0.1","w":"8080","x":true,"y":"proxy-user","z":"proxy-pass"}"""
+
+        val sanitized = SenderSettingSanitizer.sanitizeJsonLenient(SenderType.WEBHOOK, raw)
+        val setting = gson.fromJson(sanitized, WebhookSetting::class.java)
+
+        assertEquals("POST", setting.method)
+        assertEquals("https://example.com/hook", setting.webServer)
+        assertEquals("signing-key", setting.secret)
+        assertEquals("ok", setting.response)
+        assertEquals("a=1", setting.webParams)
+        assertEquals("token", setting.headers["X-Token"])
+        assertEquals(java.net.Proxy.Type.HTTP, setting.proxyType)
+        assertEquals("127.0.0.1", setting.proxyHost)
+        assertEquals("8080", setting.proxyPort)
+        assertTrue(setting.proxyAuthenticator)
+        assertEquals("proxy-user", setting.proxyUsername)
+        assertEquals("proxy-pass", setting.proxyPassword)
+    }
+
+    @Test
     fun sanitizeSenderLenient_weworkAgentInvalidProxy_preservesSecretFields() {
         val sender = newSender(
             SenderType.WEWORK_AGENT,

@@ -534,7 +534,7 @@ fun CodeRecordScreen(
     val plainSmsList = smsList.filter { it.msgType == SmsMsg.MSG_TYPE_SMS && it.smsCode.isNullOrBlank() }
     val appNotifyList = smsList.filter { it.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY }
     val callNotifyList = smsList.filter { it.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY }
-    val activeSmsList = recordsForTab(smsList as List<SmsMsg>, selectedRecordTab)
+    val activeSmsList = recordsForTab(smsList, selectedRecordTab)
     val rawRecordsForSelectedTab = when (selectedRecordTab) {
         0 -> codeSmsList
         1 -> plainSmsList
@@ -648,7 +648,7 @@ fun CodeRecordScreen(
                             },
                         )
                     } else {
-                        val activeSmsList = recordsForTab(list as List<SmsMsg>, selectedRecordTab)
+                        val activeSmsList = recordsForTab(list, selectedRecordTab)
 
                         RecordSplitColumn(
                             title = activeTitle,
