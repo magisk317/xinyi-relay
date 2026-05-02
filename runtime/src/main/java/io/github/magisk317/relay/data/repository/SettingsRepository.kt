@@ -8,7 +8,8 @@ import io.github.magisk317.relay.contract.settings.*
 import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
-import io.github.magisk317.relay.engine.model.ForwardCommonConfig
+import io.github.magisk317.relay.contract.model.ForwardCommonConfig
+import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.android.common.utils.DeviceIdentityUtils
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
 import io.github.magisk317.smscode.domain.constant.SmsCodeConst
@@ -17,28 +18,28 @@ import kotlinx.coroutines.flow.Flow
 class SettingsRepository(
     context: Context,
     private val preferenceDataSource: PreferenceDataSource,
-) {
+) : SettingsPreferencesRepository {
     private companion object {
         const val UI_KIT_STYLE_EXPRESSIVE = 0
     }
 
     private val appContext = context.applicationContext ?: context
 
-    suspend fun getGeneralSettings(): GeneralSettingsSnapshot {
+    override suspend fun getGeneralSettings(): GeneralSettingsSnapshot {
         return GeneralSettingsSnapshot(
             moduleEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE, true),
             accordionMode = preferenceDataSource.getBoolean(PrefConst.KEY_SETTINGS_ACCORDION_MODE, true),
         )
     }
 
-    suspend fun updateGeneralSettings(update: GeneralSettingsUpdate): GeneralSettingsSnapshot {
+    override suspend fun updateGeneralSettings(update: GeneralSettingsUpdate): GeneralSettingsSnapshot {
         update.moduleEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE, it) }
         update.accordionMode?.let { preferenceDataSource.setBoolean(PrefConst.KEY_SETTINGS_ACCORDION_MODE, it) }
         syncAndNoteRemoteMutation("settings.general")
         return getGeneralSettings()
     }
 
-    suspend fun getVerificationSettings(): VerificationSettingsSnapshot {
+    override suspend fun getVerificationSettings(): VerificationSettingsSnapshot {
         return VerificationSettingsSnapshot(
             verificationFeaturesEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_VERIFICATION_FEATURES_ENABLED, true),
             copyToClipboard = preferenceDataSource.getBoolean(PrefConst.KEY_COPY_TO_CLIPBOARD, false),
@@ -68,7 +69,7 @@ class SettingsRepository(
         )
     }
 
-    suspend fun updateVerificationSettings(update: VerificationSettingsUpdate): VerificationSettingsSnapshot {
+    override suspend fun updateVerificationSettings(update: VerificationSettingsUpdate): VerificationSettingsSnapshot {
         update.verificationFeaturesEnabled?.let {
             preferenceDataSource.setBoolean(PrefConst.KEY_VERIFICATION_FEATURES_ENABLED, it)
         }
@@ -93,7 +94,7 @@ class SettingsRepository(
         return getVerificationSettings()
     }
 
-    suspend fun getRelaySettings(): RelaySettingsSnapshot {
+    override suspend fun getRelaySettings(): RelaySettingsSnapshot {
         return RelaySettingsSnapshot(
             relayFeaturesEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_RELAY_FEATURES_ENABLED, true),
             smsForwardDedupWindowSec = preferenceDataSource.getString(
@@ -106,7 +107,7 @@ class SettingsRepository(
         )
     }
 
-    suspend fun updateRelaySettings(update: RelaySettingsUpdate): RelaySettingsSnapshot {
+    override suspend fun updateRelaySettings(update: RelaySettingsUpdate): RelaySettingsSnapshot {
         update.relayFeaturesEnabled?.let {
             preferenceDataSource.setBoolean(PrefConst.KEY_RELAY_FEATURES_ENABLED, it)
         }
@@ -123,7 +124,7 @@ class SettingsRepository(
         return getRelaySettings()
     }
 
-    suspend fun getDiagnosticsSettings(): DiagnosticsSettingsSnapshot {
+    override suspend fun getDiagnosticsSettings(): DiagnosticsSettingsSnapshot {
         return DiagnosticsSettingsSnapshot(
             rootDbCatchupEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_ROOT_DB_CATCHUP_ENABLE, false),
             rootDbCatchupIntervalMin = preferenceDataSource.getString(PrefConst.KEY_ROOT_DB_CATCHUP_INTERVAL_MIN, "5"),
@@ -145,7 +146,7 @@ class SettingsRepository(
         )
     }
 
-    suspend fun updateDiagnosticsSettings(update: DiagnosticsSettingsUpdate): DiagnosticsSettingsSnapshot {
+    override suspend fun updateDiagnosticsSettings(update: DiagnosticsSettingsUpdate): DiagnosticsSettingsSnapshot {
         update.rootDbCatchupEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ROOT_DB_CATCHUP_ENABLE, it) }
         update.rootDbCatchupIntervalMin?.let { preferenceDataSource.setString(PrefConst.KEY_ROOT_DB_CATCHUP_INTERVAL_MIN, it) }
         update.rootDbCatchupWriteback?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ROOT_DB_CATCHUP_WRITEBACK, it) }
@@ -171,19 +172,19 @@ class SettingsRepository(
         return getDiagnosticsSettings()
     }
 
-    suspend fun getAdvancedSnapshot(): AdvancedSettingsSnapshot {
+    override suspend fun getAdvancedSnapshot(): AdvancedSettingsSnapshot {
         return AdvancedSettingsSnapshot(
             enableSmsBlacklist = preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE_SMS_BLACKLIST, false),
         )
     }
 
-    suspend fun updateAdvanced(update: AdvancedSettingsUpdate): AdvancedSettingsSnapshot {
+    override suspend fun updateAdvanced(update: AdvancedSettingsUpdate): AdvancedSettingsSnapshot {
         update.enableSmsBlacklist?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE_SMS_BLACKLIST, it) }
         syncAndNoteRemoteMutation("settings.advanced")
         return getAdvancedSnapshot()
     }
 
-    suspend fun getSpecialAlertSettings(): SpecialAlertSettingsSnapshot {
+    override suspend fun getSpecialAlertSettings(): SpecialAlertSettingsSnapshot {
         return SpecialAlertSettingsSnapshot(
             lowBatteryReminderEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_LOW_BATTERY_REMINDER_ENABLE, false),
             lowBatteryThreshold = preferenceDataSource.getInt(PrefConst.KEY_LOW_BATTERY_THRESHOLD, PrefConst.LOW_BATTERY_THRESHOLD_DEFAULT),
@@ -205,7 +206,7 @@ class SettingsRepository(
         )
     }
 
-    suspend fun updateSpecialAlertSettings(update: SpecialAlertSettingsUpdate): SpecialAlertSettingsSnapshot {
+    override suspend fun updateSpecialAlertSettings(update: SpecialAlertSettingsUpdate): SpecialAlertSettingsSnapshot {
         update.lowBatteryReminderEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_LOW_BATTERY_REMINDER_ENABLE, it) }
         update.lowBatteryThreshold?.let { preferenceDataSource.setInt(PrefConst.KEY_LOW_BATTERY_THRESHOLD, it.coerceIn(1, 100)) }
         update.lowBatteryChannelId?.let { preferenceDataSource.setString(PrefConst.KEY_LOW_BATTERY_CHANNEL_ID, it) }
@@ -227,7 +228,7 @@ class SettingsRepository(
         return getSpecialAlertSettings()
     }
 
-    suspend fun getMessageTypeGates(): MessageTypeGateSnapshot {
+    override suspend fun getMessageTypeGates(): MessageTypeGateSnapshot {
         return MessageTypeGateSnapshot(
             smsCodeEnabled = preferenceDataSource.getBoolean(
                 PrefConst.KEY_MSG_TYPE_SMS_CODE_ENABLED,
@@ -248,7 +249,7 @@ class SettingsRepository(
         )
     }
 
-    suspend fun updateMessageTypeGates(update: MessageTypeGateUpdate): MessageTypeGateSnapshot {
+    override suspend fun updateMessageTypeGates(update: MessageTypeGateUpdate): MessageTypeGateSnapshot {
         update.smsCodeEnabled?.let {
             preferenceDataSource.setBoolean(PrefConst.KEY_MSG_TYPE_SMS_CODE_ENABLED, it)
         }
@@ -265,7 +266,7 @@ class SettingsRepository(
         return getMessageTypeGates()
     }
 
-    suspend fun getForwardTypeGates(): ForwardTypeGateSnapshot {
+    override suspend fun getForwardTypeGates(): ForwardTypeGateSnapshot {
         return ForwardTypeGateSnapshot(
             smsCodeEnabled = preferenceDataSource.getBoolean(
                 PrefConst.KEY_FORWARD_SMS_CODE_ENABLED,
@@ -290,7 +291,7 @@ class SettingsRepository(
         )
     }
 
-    suspend fun updateForwardTypeGates(update: ForwardTypeGateUpdate): ForwardTypeGateSnapshot {
+    override suspend fun updateForwardTypeGates(update: ForwardTypeGateUpdate): ForwardTypeGateSnapshot {
         update.smsCodeEnabled?.let {
             preferenceDataSource.setBoolean(PrefConst.KEY_FORWARD_SMS_CODE_ENABLED, it)
         }
@@ -319,9 +320,9 @@ class SettingsRepository(
         }
     }
 
-    suspend fun clearBatteryReminderRuntimeFlags(
-        clearLowBatteryBelow: Boolean = false,
-        clearFullBatteryAbove: Boolean = false,
+    override suspend fun clearBatteryReminderRuntimeFlags(
+        clearLowBatteryBelow: Boolean,
+        clearFullBatteryAbove: Boolean,
     ) {
         if (clearLowBatteryBelow) {
             preferenceDataSource.setBoolean(PrefConst.KEY_INTERNAL_LOW_BATTERY_BELOW, false)
@@ -332,7 +333,7 @@ class SettingsRepository(
         syncLocalOnly()
     }
 
-    suspend fun getRecordSettings(): RecordSettingsSnapshot {
+    override suspend fun getRecordSettings(): RecordSettingsSnapshot {
         val previousLimit = preferenceDataSource.getString(PrefConst.KEY_HISTORY_LIMIT, "0")
         val previousRecordEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE_CODE_RECORDS, true)
         return RecordSettingsSnapshot(
@@ -348,7 +349,7 @@ class SettingsRepository(
         )
     }
 
-    suspend fun updateRecordSettings(update: RecordSettingsUpdate): RecordSettingsSnapshot {
+    override suspend fun updateRecordSettings(update: RecordSettingsUpdate): RecordSettingsSnapshot {
         update.codeRecordEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE_CODE_RECORDS_CODE, it) }
         update.plainSmsRecordEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE_CODE_RECORDS_PLAIN_SMS, it) }
         update.appNotifyRecordEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE_CODE_RECORDS_APP_NOTIFY, it) }
@@ -361,7 +362,7 @@ class SettingsRepository(
         return getRecordSettings()
     }
 
-    suspend fun getSmsBlacklistSettings(): SmsBlacklistSettingsSnapshot {
+    override suspend fun getSmsBlacklistSettings(): SmsBlacklistSettingsSnapshot {
         return SmsBlacklistSettingsSnapshot(
             enabled = preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE_SMS_BLACKLIST, false),
             deleteBlockedSms = preferenceDataSource.getBoolean(PrefConst.KEY_SMS_BLACKLIST_ACTION_DELETE, true),
@@ -373,7 +374,7 @@ class SettingsRepository(
         )
     }
 
-    suspend fun updateSmsBlacklistSettings(update: SmsBlacklistSettingsUpdate): SmsBlacklistSettingsSnapshot {
+    override suspend fun updateSmsBlacklistSettings(update: SmsBlacklistSettingsUpdate): SmsBlacklistSettingsSnapshot {
         update.enabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE_SMS_BLACKLIST, it) }
         update.deleteBlockedSms?.let { preferenceDataSource.setBoolean(PrefConst.KEY_SMS_BLACKLIST_ACTION_DELETE, it) }
         update.blockIncomingSms?.let { preferenceDataSource.setBoolean(PrefConst.KEY_SMS_BLACKLIST_ACTION_BLOCK, it) }
@@ -385,21 +386,21 @@ class SettingsRepository(
         return getSmsBlacklistSettings()
     }
 
-    suspend fun getSimRemarkSettings(): SimRemarkSettingsSnapshot {
+    override suspend fun getSimRemarkSettings(): SimRemarkSettingsSnapshot {
         return SimRemarkSettingsSnapshot(
             simSlot1Remark = preferenceDataSource.getString(PrefConst.KEY_SIM_SLOT1_REMARK, ""),
             simSlot2Remark = preferenceDataSource.getString(PrefConst.KEY_SIM_SLOT2_REMARK, ""),
         )
     }
 
-    suspend fun updateSimRemarkSettings(update: SimRemarkSettingsUpdate): SimRemarkSettingsSnapshot {
+    override suspend fun updateSimRemarkSettings(update: SimRemarkSettingsUpdate): SimRemarkSettingsSnapshot {
         update.simSlot1Remark?.let { preferenceDataSource.setString(PrefConst.KEY_SIM_SLOT1_REMARK, it) }
         update.simSlot2Remark?.let { preferenceDataSource.setString(PrefConst.KEY_SIM_SLOT2_REMARK, it) }
         syncAndNoteRemoteMutation("settings.sim_remarks")
         return getSimRemarkSettings()
     }
 
-    suspend fun loadForwardCommonConfig(): ForwardCommonConfig {
+    override suspend fun loadForwardCommonConfig(): ForwardCommonConfig {
         val defaultDeviceName = DeviceIdentityUtils.resolveDefaultDeviceName()
         val configuredName = preferenceDataSource.getString(
             PrefConst.KEY_FORWARD_COMMON_DEVICE_NAME,
@@ -430,7 +431,7 @@ class SettingsRepository(
         )
     }
 
-    suspend fun saveForwardCommonConfig(config: ForwardCommonConfig) {
+    override suspend fun saveForwardCommonConfig(config: ForwardCommonConfig) {
         preferenceDataSource.setString(
             PrefConst.KEY_FORWARD_COMMON_DEVICE_NAME,
             config.deviceName.trim(),
@@ -454,25 +455,25 @@ class SettingsRepository(
         syncAndNoteRemoteMutation("settings.forward_common")
     }
 
-    suspend fun loadAppNotifyTemplate(): String {
+    override suspend fun loadAppNotifyTemplate(): String {
         return preferenceDataSource.getString(PrefConst.KEY_FORWARD_APP_NOTIFY_TEMPLATE, "")
     }
 
-    suspend fun saveAppNotifyTemplate(template: String) {
+    override suspend fun saveAppNotifyTemplate(template: String) {
         preferenceDataSource.setString(PrefConst.KEY_FORWARD_APP_NOTIFY_TEMPLATE, template)
         syncAndNoteRemoteMutation("settings.app_notify_template")
     }
 
-    suspend fun loadCallNotifyTemplate(): String {
+    override suspend fun loadCallNotifyTemplate(): String {
         return preferenceDataSource.getString(PrefConst.KEY_FORWARD_CALL_NOTIFY_TEMPLATE, "")
     }
 
-    suspend fun saveCallNotifyTemplate(template: String) {
+    override suspend fun saveCallNotifyTemplate(template: String) {
         preferenceDataSource.setString(PrefConst.KEY_FORWARD_CALL_NOTIFY_TEMPLATE, template)
         syncAndNoteRemoteMutation("settings.call_notify_template")
     }
 
-    suspend fun getUserSettingsSnapshot(): UserSettingsSnapshot {
+    override suspend fun getUserSettingsSnapshot(): UserSettingsSnapshot {
         val general = getGeneralSettings()
         val verification = getVerificationSettings()
         val relay = getRelaySettings()
@@ -494,7 +495,7 @@ class SettingsRepository(
         )
     }
 
-    suspend fun updateUserSettings(update: UserSettingsUpdate): UserSettingsSnapshot {
+    override suspend fun updateUserSettings(update: UserSettingsUpdate): UserSettingsSnapshot {
         update.moduleEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE, it) }
         update.verificationFeaturesEnabled?.let {
             preferenceDataSource.setBoolean(PrefConst.KEY_VERIFICATION_FEATURES_ENABLED, it)
@@ -513,7 +514,7 @@ class SettingsRepository(
         return getUserSettingsSnapshot()
     }
 
-    suspend fun getOverviewSettings(): OverviewSettingsSnapshot {
+    override suspend fun getOverviewSettings(): OverviewSettingsSnapshot {
         return OverviewSettingsSnapshot(
             cardOrder = preferenceDataSource.getString(PrefConst.KEY_HOME_CARD_ORDER, ""),
             enabledCardIds = preferenceDataSource.getString(PrefConst.KEY_HOME_CARD_ENABLED, ""),
@@ -522,7 +523,7 @@ class SettingsRepository(
         )
     }
 
-    suspend fun updateOverviewSettings(update: OverviewSettingsUpdate): OverviewSettingsSnapshot {
+    override suspend fun updateOverviewSettings(update: OverviewSettingsUpdate): OverviewSettingsSnapshot {
         update.cardOrder?.let { preferenceDataSource.setString(PrefConst.KEY_HOME_CARD_ORDER, it) }
         update.enabledCardIds?.let { preferenceDataSource.setString(PrefConst.KEY_HOME_CARD_ENABLED, it) }
         update.chartType?.let { preferenceDataSource.setString(PrefConst.KEY_HOME_CHART_TYPE, it) }
@@ -531,21 +532,21 @@ class SettingsRepository(
         return getOverviewSettings()
     }
 
-    fun getHazeBlurRadiusFlow(): Flow<Int> {
+    override fun getHazeBlurRadiusFlow(): Flow<Int> {
         return preferenceDataSource.getIntFlow(
             PrefConst.KEY_HAZE_BLUR_RADIUS,
             PrefConst.HAZE_BLUR_RADIUS_DEFAULT,
         )
     }
 
-    fun getHazeTintAlphaFlow(): Flow<Float> {
+    override fun getHazeTintAlphaFlow(): Flow<Float> {
         return preferenceDataSource.getFloatFlow(
             PrefConst.KEY_HAZE_TINT_ALPHA,
             PrefConst.HAZE_TINT_ALPHA_DEFAULT,
         )
     }
 
-    suspend fun getAutoUpdateSettings(): AutoUpdateSettingsSnapshot {
+    override suspend fun getAutoUpdateSettings(): AutoUpdateSettingsSnapshot {
         return AutoUpdateSettingsSnapshot(
             enabled = preferenceDataSource.getBoolean(PrefConst.KEY_AUTO_UPDATE_ON_START, true),
             wifiOnly = preferenceDataSource.getBoolean(PrefConst.KEY_AUTO_UPDATE_WIFI_ONLY, false),
@@ -553,43 +554,43 @@ class SettingsRepository(
         )
     }
 
-    suspend fun setIgnoredGithubVersion(versionName: String) {
+    override suspend fun setIgnoredGithubVersion(versionName: String) {
         preferenceDataSource.setString(PrefConst.KEY_GITHUB_IGNORED_VERSION, versionName)
         syncLocalOnly()
     }
 
-    suspend fun getThemeMode(): Int {
+    override suspend fun getThemeMode(): Int {
         return preferenceDataSource.getInt(PrefConst.KEY_CHOOSE_THEME, 0)
     }
 
-    suspend fun setThemeMode(mode: Int) {
+    override suspend fun setThemeMode(mode: Int) {
         preferenceDataSource.setInt(PrefConst.KEY_CHOOSE_THEME, mode)
         syncLocalOnly()
     }
 
-    suspend fun getUiKitStyle(): Int {
+    override suspend fun getUiKitStyle(): Int {
         return UI_KIT_STYLE_EXPRESSIVE
     }
 
-    suspend fun setUiKitStyle(style: Int) {
+    override suspend fun setUiKitStyle(style: Int) {
         preferenceDataSource.setInt(PrefConst.KEY_UI_KIT_STYLE, UI_KIT_STYLE_EXPRESSIVE)
         syncLocalOnly()
     }
 
-    suspend fun getLanguageTag(): String {
+    override suspend fun getLanguageTag(): String {
         return preferenceDataSource.getString(PrefConst.KEY_LANGUAGE, "")
     }
 
-    suspend fun setLanguageTag(languageTag: String) {
+    override suspend fun setLanguageTag(languageTag: String) {
         preferenceDataSource.setString(PrefConst.KEY_LANGUAGE, languageTag)
         syncLocalOnly()
     }
 
-    suspend fun isPrivacyPolicyAccepted(): Boolean {
+    override suspend fun isPrivacyPolicyAccepted(): Boolean {
         return preferenceDataSource.getBoolean(PrefConst.KEY_PRIVACY_POLICY_ACCEPTED, false)
     }
 
-    suspend fun setPrivacyPolicyAccepted(accepted: Boolean) {
+    override suspend fun setPrivacyPolicyAccepted(accepted: Boolean) {
         preferenceDataSource.setBoolean(PrefConst.KEY_PRIVACY_POLICY_ACCEPTED, accepted)
         syncLocalOnly()
     }

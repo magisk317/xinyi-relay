@@ -8,13 +8,13 @@ import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
-import io.github.magisk317.relay.data.repository.SettingsRepository
+import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.engine.event.RelayEvent
 import io.github.magisk317.relay.engine.service.DispatchPayloadContext
 import io.github.magisk317.relay.engine.service.MessageFormatter
 import io.github.magisk317.relay.engine.service.SystemInfoProvider
 import io.github.magisk317.relay.sender.SenderSettingSanitizer
-import io.github.magisk317.relay.engine.model.ForwardCommonConfig
+import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.engine.pipeline.SenderSelector
@@ -47,7 +47,7 @@ class EventPipeline(
     private val dispatchResultWriter: DispatchResultWriter,
     private val messageFormatter: MessageFormatter,
     private val systemInfoProvider: SystemInfoProvider,
-    private val settingsRepository: SettingsRepository,
+    private val settingsRepository: SettingsPreferencesRepository,
     private val preferenceDataSource: PreferenceDataSource,
     private val messageSyncTrigger: ((String) -> Unit)? = null,
 ) {

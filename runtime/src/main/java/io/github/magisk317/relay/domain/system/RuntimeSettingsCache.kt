@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.domain.system
 
-import io.github.magisk317.relay.data.repository.SettingsRepository
+import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.SpecialAlertSettingsSnapshot
 
 /**
@@ -26,7 +26,7 @@ object RuntimeSettingsCache {
     private val stringCache = mutableMapOf<String, StringEntry>()
 
     suspend fun getSpecialAlertSettings(
-        settingsRepository: SettingsRepository,
+        settingsRepository: SettingsPreferencesRepository,
         ttlMs: Long = DEFAULT_TTL_MS,
     ): SpecialAlertSettingsSnapshot {
         val now = System.currentTimeMillis()
