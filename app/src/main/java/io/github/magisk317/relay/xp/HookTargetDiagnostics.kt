@@ -1,7 +1,6 @@
 package io.github.magisk317.relay.xp
 
 import android.content.Context
-import android.util.Log
 import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.smscode.xposed.hookapi.LoadParam
