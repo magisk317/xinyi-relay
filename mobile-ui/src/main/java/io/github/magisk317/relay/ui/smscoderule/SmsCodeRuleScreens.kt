@@ -180,7 +180,7 @@ fun SmsCodeRuleListScreen(
                         onEdit = { onEditClick(rule.id) },
                         onDelete = {
                             scope.launch {
-                                repository.deleteSmsCodeRule(rule as SmsCodeRule)
+                                repository.deleteSmsCodeRule(rule)
                                 repository.checkpoint()
                                 snackbarHostState.showSnackbar("$removedLabel: ${rule.codeKeyword}")
                             }
