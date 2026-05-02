@@ -9,6 +9,8 @@ import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.android.data.db.mergeSmsMsgForInsert
 import io.github.magisk317.smscode.domain.utils.CodeRecordSimilarityUtils
+import io.github.magisk317.relay.engine.model.ReadRecordData
+import io.github.magisk317.relay.engine.service.MessageRecordRepository
 import io.github.magisk317.relay.engine.service.SenderDispatchResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -17,16 +19,16 @@ class RelayRecordRepository(
     context: Context,
     private val db: AppDatabase = AppDatabase.getInstance(context),
     private val preferenceDataSource: PreferenceDataSource,
-) {
+) : MessageRecordRepository {
     private val appContext = context.applicationContext ?: context
 
-    suspend fun listRecords(limit: Int): List<SmsMsg> = db.smsMsgDao().getAll().take(limit)
+    override suspend fun listRecords(limit: Int): List<ReadRecordData> = db.smsMsgDao().getAll().take(limit)
 
     /** 观察全量记录的 Flow，Room 自动在 DB 变更时发出新列表。 */
-    fun queryAllFlow(): Flow<List<SmsMsg>> = db.smsMsgDao().getAllFlow()
+    override fun queryAllFlow(): Flow<List<ReadRecordData>> = db.smsMsgDao().getAllFlow()
 
     /** 观察特定包名的通知日志（限额）。 */
-    fun observeLogsForPackage(packageName: String, limit: Int): Flow<List<SmsMsg>> =
+    override fun observeLogsForPackage(packageName: String, limit: Int): Flow<List<ReadRecordData>> =
         db.smsMsgDao().getAllFlow().map { list ->
             list.asSequence()
                 .filter { it.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY && it.packageName == packageName }
@@ -35,23 +37,23 @@ class RelayRecordRepository(
         }
 
     /** 观察最近使用的通知渠道 ID。 */
-    fun observeRecentNotifyChannelIds(packageName: String, limit: Int): Flow<List<String>> =
+    override fun observeRecentNotifyChannelIds(packageName: String, limit: Int): Flow<List<String>> =
         db.smsMsgDao().observeRecentNotifyChannelIds(packageName, SmsMsg.MSG_TYPE_APP_NOTIFY, limit)
 
     /** 一性读取全量记录。 */
-    suspend fun queryAll(): List<SmsMsg> = db.smsMsgDao().getAll()
+    override suspend fun queryAll(): List<ReadRecordData> = db.smsMsgDao().getAll()
 
     /** 批量插入（用于 undo/restore 场景）。 */
-    suspend fun insertList(list: List<SmsMsg>) {
+    override suspend fun insertList(list: List<ReadRecordData>) {
         if (list.isEmpty()) return
-        db.smsMsgDao().insertAll(list)
+        db.smsMsgDao().insertAll(list.map { it as SmsMsg })
         scheduleRecordUpload("insert_list")
     }
 
-    suspend fun insertListAndTrim(list: List<SmsMsg>, maxCount: Int) {
+    override suspend fun insertListAndTrim(list: List<ReadRecordData>, maxCount: Int) {
         if (list.isEmpty()) return
         val dao = db.smsMsgDao()
-        dao.insertAll(list)
+        dao.insertAll(list.map { it as SmsMsg })
         if (maxCount <= 0) return
         val allMsgList = dao.getAll()
         if (allMsgList.size > maxCount) {
@@ -62,29 +64,29 @@ class RelayRecordRepository(
     }
 
     /** 批量删除（同一事务内执行）。 */
-    suspend fun removeList(list: List<SmsMsg>) {
+    override suspend fun removeList(list: List<ReadRecordData>) {
         if (list.isEmpty()) return
-        db.smsMsgDao().deleteInTx(list)
+        db.smsMsgDao().deleteInTx(list.map { it as SmsMsg })
         scheduleRecordUpload("remove_list")
     }
 
     /** 获取记录总数的实时观察流。 */
-    fun countFlow(): Flow<Long> = db.smsMsgDao().countFlow()
+    override fun countFlow(): Flow<Long> = db.smsMsgDao().countFlow()
 
     /** 清空所有记录。 */
-    suspend fun clearAll() {
+    override suspend fun clearAll() {
         db.smsMsgDao().clearAll()
         scheduleRecordUpload("clear_all")
     }
 
-    suspend fun deleteRecord(recordId: Long): Boolean {
+    override suspend fun deleteRecord(recordId: Long): Boolean {
         val existing = db.smsMsgDao().getById(recordId) ?: return false
         db.smsMsgDao().delete(existing)
         scheduleRecordUpload("delete_record")
         return true
     }
 
-    suspend fun findRecordIdByFingerprint(
+    override suspend fun findRecordIdByFingerprint(
         sender: String,
         body: String,
         date: Long,
@@ -95,7 +97,7 @@ class RelayRecordRepository(
             ?.id
     }
 
-    suspend fun insertRecord(
+    override suspend fun insertRecord(
         sender: String,
         body: String,
         date: Long,
@@ -109,8 +111,8 @@ class RelayRecordRepository(
         phoneArea: String,
         msgType: Int,
         isCodeSms: Boolean,
-        callType: Int = 0,
-        sessionKey: String = "",
+        callType: Int,
+        sessionKey: String,
     ): Long? {
         return insertRecord(
             smsMsg = SmsMsg(
@@ -167,7 +169,7 @@ class RelayRecordRepository(
         return dao.insert(normalizedSmsMsg).also { scheduleRecordUpload("insert_record") }
     }
 
-    fun buildCallSessionKey(
+    override fun buildCallSessionKey(
         sender: String?,
         body: String?,
         callType: Int,
@@ -275,12 +277,12 @@ class RelayRecordRepository(
         }
     }
 
-    suspend fun persistForwardResult(
+    override suspend fun persistForwardResult(
         recordId: Long,
         results: List<SenderDispatchResult>,
         defaultMessage: String,
-        forceFailed: Boolean = false,
-        forcedStatus: Int? = null,
+        forceFailed: Boolean,
+        forcedStatus: Int?,
     ) {
         val msgDao = db.smsMsgDao()
         val existing = msgDao.getById(recordId) ?: return

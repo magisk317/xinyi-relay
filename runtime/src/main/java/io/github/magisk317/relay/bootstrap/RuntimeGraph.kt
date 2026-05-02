@@ -4,6 +4,11 @@ import android.content.Context
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSourceImpl
 import io.github.magisk317.relay.android.data.db.AppDatabase
+import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
+import io.github.magisk317.relay.contract.repository.RemoteSyncRepository
+import io.github.magisk317.relay.engine.service.AppConfigRepository
+import io.github.magisk317.relay.engine.service.MessageRecordRepository
+import io.github.magisk317.relay.engine.service.RuntimeAnalyticsProvider
 import io.github.magisk317.relay.data.repository.AnalyticsRepository
 import io.github.magisk317.relay.data.repository.ConfigRepository
 import io.github.magisk317.relay.data.repository.RelayRecordRepository
@@ -33,19 +38,19 @@ class RuntimeGraph private constructor(
         PreferenceDataSourceImpl(appContext)
     }
 
-    val settingsRepository: SettingsRepository by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+    val settingsRepository: SettingsPreferencesRepository by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         SettingsRepository(appContext, preferenceDataSource)
     }
 
-    val relayRecordRepository: RelayRecordRepository by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+    val relayRecordRepository: MessageRecordRepository by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         RelayRecordRepository(appContext, database, preferenceDataSource)
     }
 
-    val analyticsRepository: AnalyticsRepository by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+    val analyticsRepository: RuntimeAnalyticsProvider by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         AnalyticsRepository(appContext, database)
     }
 
-    val remoteAgentRepository: RemoteAgentRepository by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+    val remoteAgentRepository: RemoteSyncRepository by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         RemoteAgentRepository(appContext, preferenceDataSource)
     }
 
@@ -53,7 +58,7 @@ class RuntimeGraph private constructor(
         RuntimeRecordFacade(appContext, database, relayRecordRepository)
     }
 
-    val configRepository: ConfigRepository by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+    val configRepository: AppConfigRepository by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         ConfigRepository(
             context = appContext,
             db = database,

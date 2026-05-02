@@ -18,7 +18,9 @@ import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
 import io.github.magisk317.relay.android.data.secret.InternalSecretStore
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.engine.model.ForwardFilterRule
-import io.github.magisk317.relay.engine.model.ForwardCommonConfig
+import io.github.magisk317.relay.contract.model.ForwardCommonConfig
+import io.github.magisk317.relay.contract.model.RemoteConfigSnapshot
+import io.github.magisk317.relay.contract.repository.RemoteSyncRepository
 import io.github.magisk317.relay.engine.model.Rule
 import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.android.common.utils.DeviceIdentityUtils
@@ -37,11 +39,6 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
-
-data class RemoteConfigSnapshot(
-    val revision: Long,
-    val content: JsonObject,
-)
 
 private data class RemoteConfigPayload(
     val general: GeneralSettingsSnapshot,
@@ -94,7 +91,7 @@ private data class RelayRecordWire(
 class RemoteAgentRepository(
     private val appContext: Context,
     private val preferenceDataSource: PreferenceDataSource,
-) {
+) : RemoteSyncRepository {
     private val gson = Gson()
     private val client = OkHttpClient()
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
@@ -104,7 +101,7 @@ class RemoteAgentRepository(
     private val backgroundSyncQueued = AtomicBoolean(false)
     private val applyingRemoteConfigDepth = AtomicInteger(0)
 
-    suspend fun getSnapshot(): RemoteAgentSnapshot = withContext(Dispatchers.IO) {
+    override suspend fun getSnapshot(): RemoteAgentSnapshot = withContext(Dispatchers.IO) {
         val token = InternalSecretStore.getString(appContext, PrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, "")
         RemoteAgentSnapshot(
             backendBaseUrl = preferenceDataSource.getString(PrefConst.KEY_REMOTE_AGENT_BASE_URL, ""),
@@ -122,13 +119,13 @@ class RemoteAgentRepository(
         )
     }
 
-    suspend fun updateBackendBaseUrl(baseUrl: String): RemoteAgentSnapshot = withContext(Dispatchers.IO) {
+    override suspend fun updateBackendBaseUrl(baseUrl: String): RemoteAgentSnapshot = withContext(Dispatchers.IO) {
         preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_BASE_URL, normalizeBaseUrl(baseUrl))
         publishHookPrefs()
         getSnapshot()
     }
 
-    suspend fun clearBinding(): RemoteAgentSnapshot = withContext(Dispatchers.IO) {
+    override suspend fun clearBinding(): RemoteAgentSnapshot = withContext(Dispatchers.IO) {
         preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_USER_ID, "0")
         preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_DEVICE_ID, "0")
         preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_REVISION, "0")
@@ -143,7 +140,7 @@ class RemoteAgentRepository(
         getSnapshot()
     }
 
-    suspend fun bindDevice(bindCode: String): RemoteAgentSnapshot = withContext(Dispatchers.IO) {
+    override suspend fun bindDevice(bindCode: String): RemoteAgentSnapshot = withContext(Dispatchers.IO) {
         syncMutex.withLock {
         val baseUrl = normalizedBackendBaseUrl()
         val requestBody = gson.toJson(
@@ -192,7 +189,7 @@ class RemoteAgentRepository(
         snapshot
     }
 
-    suspend fun sendHeartbeat(): RemoteAgentSnapshot = withContext(Dispatchers.IO) {
+    override suspend fun sendHeartbeat(): RemoteAgentSnapshot = withContext(Dispatchers.IO) {
         syncMutex.withLock {
         val snapshot = getSnapshot()
         require(snapshot.bound) { "device not bound" }
@@ -219,7 +216,7 @@ class RemoteAgentRepository(
         }
     }
 
-    suspend fun pullConfigSnapshot(): RemoteConfigSnapshot = withContext(Dispatchers.IO) {
+    override suspend fun pullConfigSnapshot(): RemoteConfigSnapshot = withContext(Dispatchers.IO) {
         syncMutex.withLock {
         val snapshot = getSnapshot()
         require(snapshot.bound) { "device not bound" }
@@ -254,13 +251,13 @@ class RemoteAgentRepository(
         }
     }
 
-    suspend fun pushConfigSnapshot(): RemoteAgentSnapshot = withContext(Dispatchers.IO) {
+    override suspend fun pushConfigSnapshot(): RemoteAgentSnapshot = withContext(Dispatchers.IO) {
         syncMutex.withLock {
         val snapshot = getSnapshot()
         require(snapshot.bound) { "device not bound" }
         val token = InternalSecretStore.getString(appContext, PrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, "")
         val appCatalogDigest = computeAppCatalogDigest(
-            resolveInstalledAppCatalog(RuntimeGraph.from(appContext).configRepository.getAllAppInfo()),
+            resolveInstalledAppCatalog(RuntimeGraph.from(appContext).configRepository.getAllAppInfo() as List<AppInfo>),
         )
         val body = gson.toJson(
             mapOf(
@@ -310,7 +307,7 @@ class RemoteAgentRepository(
         }
     }
 
-    suspend fun uploadRecentRecords(limit: Int = 100): RemoteAgentSnapshot = withContext(Dispatchers.IO) {
+    override suspend fun uploadRecentRecords(limit: Int): RemoteAgentSnapshot = withContext(Dispatchers.IO) {
         syncMutex.withLock {
         val snapshot = getSnapshot()
         require(snapshot.bound) { "device not bound" }
@@ -357,21 +354,21 @@ class RemoteAgentRepository(
         }
     }
 
-    suspend fun startupSync() = withContext(Dispatchers.IO) {
+    override suspend fun startupSync() = withContext(Dispatchers.IO) {
         val snapshot = getSnapshot()
         if (!snapshot.bound) return@withContext
         scheduleBackgroundSync("startup")
     }
 
-    fun onAppForegrounded() {
+    override fun onAppForegrounded() {
         scheduleBackgroundSync("app_foreground")
     }
 
-    fun onAppBackgrounded() {
+    override fun onAppBackgrounded() {
         scheduleBackgroundSync("app_background")
     }
 
-    suspend fun noteLocalMutation(source: String) = withContext(Dispatchers.IO) {
+    override suspend fun noteLocalMutation(source: String) = withContext(Dispatchers.IO) {
         if (isApplyingRemoteConfig()) return@withContext
         val currentPending = preferenceDataSource.getString(
             PrefConst.KEY_REMOTE_AGENT_PENDING_MUTATIONS,
@@ -388,11 +385,11 @@ class RemoteAgentRepository(
         scheduleBackgroundSync("local_mutation:$source")
     }
 
-    fun scheduleRecordUpload(reason: String) {
+    override fun scheduleRecordUpload(reason: String) {
         scheduleBackgroundSync("records:$reason", preferConfigPush = false)
     }
 
-    fun scheduleMessageTriggeredSync(reason: String) {
+    override fun scheduleMessageTriggeredSync(reason: String) {
         scheduleBackgroundSync("message:$reason", preferConfigPush = true)
     }
 
@@ -440,8 +437,8 @@ class RemoteAgentRepository(
             overview = settingsRepository.getOverviewSettings(),
             senders = configRepository.getAllSenders(),
             rules = configRepository.getAllRules(),
-            smsCodeRules = configRepository.getAllSmsCodeRules(),
-            appInfos = resolveInstalledAppCatalog(configRepository.getAllAppInfo()),
+            smsCodeRules = configRepository.getAllSmsCodeRules() as List<SmsCodeRule>,
+            appInfos = resolveInstalledAppCatalog(configRepository.getAllAppInfo() as List<AppInfo>),
             notifyRoutes = runtimeGraph.database.notifyRouteRuleDao().getAll(),
             forwardFilters = runtimeGraph.database.forwardFilterRuleDao().getAll().map { it.toDomain() },
         )
@@ -624,7 +621,7 @@ class RemoteAgentRepository(
     private suspend fun pushInstalledAppCatalogIfNeeded() {
         val snapshot = getSnapshot()
         if (!snapshot.bound) return
-        val currentConfigs = RuntimeGraph.from(appContext).configRepository.getAllAppInfo()
+        val currentConfigs = RuntimeGraph.from(appContext).configRepository.getAllAppInfo() as List<AppInfo>
         val digest = computeAppCatalogDigest(resolveInstalledAppCatalog(currentConfigs))
         val lastDigest = preferenceDataSource.getString(PrefConst.KEY_REMOTE_AGENT_LAST_APP_CATALOG_DIGEST, "")
         if (digest == lastDigest) return

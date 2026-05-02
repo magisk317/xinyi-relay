@@ -6,6 +6,7 @@ import io.github.magisk317.relay.android.data.db.entity.AutoInputEvent
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSourceImpl
 import io.github.magisk317.relay.data.repository.RelayRecordRepository
+import io.github.magisk317.relay.engine.service.MessageRecordRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -15,11 +16,11 @@ import kotlinx.coroutines.withContext
 class RuntimeRecordFacade(
     context: Context,
     private val db: AppDatabase = AppDatabase.getInstance(context),
-    relayRecordRepository: RelayRecordRepository? = null,
+    relayRecordRepository: MessageRecordRepository? = null,
     private val recordInserter: (suspend (SmsMsg, Boolean) -> Long?)? = null,
 ) {
     private val appContext = context.applicationContext ?: context
-    private val relayRecordRepository: RelayRecordRepository by lazy {
+    private val relayRecordRepository: MessageRecordRepository by lazy {
         relayRecordRepository ?: RelayRecordRepository(
             context = appContext,
             db = db,
@@ -147,7 +148,7 @@ class RuntimeRecordFacade(
         smsMsg: SmsMsg,
         isCodeSms: Boolean,
     ): Long? = withContext(Dispatchers.IO) {
-        recordInserter?.invoke(smsMsg, isCodeSms) ?: relayRecordRepository.insertRecord(
+        recordInserter?.invoke(smsMsg, isCodeSms) ?: (relayRecordRepository as RelayRecordRepository).insertRecord(
             smsMsg = smsMsg,
             isCodeSms = isCodeSms,
         )
