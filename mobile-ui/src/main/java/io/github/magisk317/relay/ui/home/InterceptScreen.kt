@@ -38,7 +38,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
-import io.github.magisk317.relay.data.repository.SettingsRepository
+import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.SmsBlacklistSettingsUpdate
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
@@ -56,7 +56,7 @@ fun InterceptScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val repository: SettingsRepository = koinInject()
+    val repository: SettingsPreferencesRepository = koinInject()
     val snackbarHostState = remember { SnackbarHostState() }
     var smsBlacklistEnabled by remember { mutableStateOf(false) }
     var deleteBlockedSms by remember { mutableStateOf(true) }

@@ -10,7 +10,8 @@ import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.smscode.runtime.common.utils.JsonUtils
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
-import io.github.magisk317.relay.data.repository.RelayRecordRepository
+import io.github.magisk317.relay.engine.model.ReadRecordData
+import io.github.magisk317.relay.engine.service.MessageRecordRepository
 import kotlinx.serialization.Serializable
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
@@ -23,7 +24,7 @@ import java.io.OutputStreamWriter
 import java.nio.charset.StandardCharsets
 
 @Immutable
-data class CodeRecordUiState(val smsList: ImmutableList<SmsMsg> = persistentListOf(), val isLoading: Boolean = false)
+data class CodeRecordUiState(val smsList: ImmutableList<ReadRecordData> = persistentListOf(), val isLoading: Boolean = false)
 
 @Serializable
 private data class RecordExportPayload(
@@ -35,7 +36,7 @@ private data class RecordExportPayload(
 
 class CodeRecordViewModel(
     application: Application,
-    private val repository: RelayRecordRepository,
+    private val repository: MessageRecordRepository,
 ) : AndroidViewModel(application) {
 
     private val _loading = MutableStateFlow(false)
@@ -67,7 +68,7 @@ class CodeRecordViewModel(
         }
     }
 
-    fun removeSmsMsg(smsMsgList: List<SmsMsg>) {
+    fun removeSmsMsg(smsMsgList: List<ReadRecordData>) {
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) {
@@ -79,7 +80,7 @@ class CodeRecordViewModel(
         }
     }
 
-    fun restoreSmsMsgList(smsMsgList: List<SmsMsg>) {
+    fun restoreSmsMsgList(smsMsgList: List<ReadRecordData>) {
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) {
@@ -114,10 +115,10 @@ class CodeRecordViewModel(
                             if (exportAllTabs) {
                                 JsonUtils.toJson(
                                     RecordExportPayload(
-                                        codeRecords = codeRecords,
-                                        plainSmsRecords = plainSmsRecords,
-                                        appNotifyRecords = appNotifyRecords,
-                                        callNotifyRecords = callNotifyRecords,
+                                        codeRecords = codeRecords as List<SmsMsg>,
+                                        plainSmsRecords = plainSmsRecords as List<SmsMsg>,
+                                        appNotifyRecords = appNotifyRecords as List<SmsMsg>,
+                                        callNotifyRecords = callNotifyRecords as List<SmsMsg>,
                                     ),
                                     osw,
                                     true,

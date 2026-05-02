@@ -40,7 +40,7 @@ import androidx.compose.ui.unit.dp
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.data.repository.RemoteAgentRepository
+import io.github.magisk317.relay.contract.repository.RemoteSyncRepository
 import io.github.magisk317.relay.contract.settings.RemoteAgentSnapshot
 import io.github.magisk317.relay.ui.common.DismissibleSnackbarHost
 import kotlinx.coroutines.launch
@@ -51,7 +51,7 @@ import java.util.Date
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RemoteAgentScreen(onBack: () -> Unit) {
-    val repository: RemoteAgentRepository = koinInject()
+    val repository: RemoteSyncRepository = koinInject()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }

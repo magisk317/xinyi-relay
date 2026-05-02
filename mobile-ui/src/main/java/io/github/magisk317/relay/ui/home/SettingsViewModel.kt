@@ -25,9 +25,9 @@ import androidx.appcompat.app.AppCompatDelegate
 import io.github.magisk317.relay.core.R
 import androidx.core.os.LocaleListCompat
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
-import io.github.magisk317.relay.data.repository.ConfigRepository
-import io.github.magisk317.relay.data.repository.RelayRecordRepository
-import io.github.magisk317.relay.data.repository.SettingsRepository
+import io.github.magisk317.relay.engine.service.AppConfigRepository
+import io.github.magisk317.relay.engine.service.MessageRecordRepository
+import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
 import io.github.magisk317.smscode.runtime.common.backup.BackupImportResult
 import io.github.magisk317.relay.data.backup.BackupManager
@@ -78,9 +78,9 @@ fun resolvePreferredUpdateEvent(installedFromPlay: Boolean): SettingsEvent =
 
 class SettingsViewModel(
     application: Application,
-    private val configRepository: ConfigRepository,
-    private val recordRepository: RelayRecordRepository,
-    private val settingsRepository: SettingsRepository,
+    private val configRepository: AppConfigRepository,
+    private val recordRepository: MessageRecordRepository,
+    private val settingsRepository: SettingsPreferencesRepository,
     private val preferenceDataSource: PreferenceDataSource,
 ) : AndroidViewModel(application) {
     data class CoercedRestoreValue(

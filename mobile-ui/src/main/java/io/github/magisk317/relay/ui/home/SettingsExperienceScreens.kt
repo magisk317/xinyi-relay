@@ -74,7 +74,7 @@ import io.github.magisk317.relay.contract.settings.GeneralSettingsUpdate
 import io.github.magisk317.relay.contract.settings.RecordSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.RelaySettingsSnapshot
 import io.github.magisk317.relay.contract.settings.RelaySettingsUpdate
-import io.github.magisk317.relay.data.repository.SettingsRepository
+import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.VerificationSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.VerificationSettingsUpdate
 import io.github.magisk317.relay.data.backup.BackupManager
@@ -92,7 +92,7 @@ fun SettingsHomeScreen(
     onOpenAdvancedRelay: () -> Unit,
     onBack: (() -> Unit)? = null,
 ) {
-    val repository: SettingsRepository = koinInject()
+    val repository: SettingsPreferencesRepository = koinInject()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val activityOwner = context as? ComponentActivity
@@ -625,7 +625,7 @@ fun VerificationSettingsScreen(
     onOpenRules: () -> Unit,
     onOpenRecords: () -> Unit,
 ) {
-    val repository: SettingsRepository = koinInject()
+    val repository: SettingsPreferencesRepository = koinInject()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val activityOwner = context as? ComponentActivity
@@ -1356,7 +1356,7 @@ fun RelayConfigScreen(
     onOpenFilters: () -> Unit,
     onOpenRecords: () -> Unit,
 ) {
-    val repository: SettingsRepository = koinInject()
+    val repository: SettingsPreferencesRepository = koinInject()
     val scope = rememberCoroutineScope()
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
     val snackbarHostState = remember { SnackbarHostState() }
@@ -1483,7 +1483,7 @@ fun RelayConfigScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ForwardKeepAliveScreen(onBack: () -> Unit) {
-    val repository: SettingsRepository = koinInject()
+    val repository: SettingsPreferencesRepository = koinInject()
     val scope = rememberCoroutineScope()
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
     val snackbarHostState = remember { SnackbarHostState() }

@@ -52,7 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.android.data.db.entity.SmsCodeRule
-import io.github.magisk317.relay.data.repository.ConfigRepository
+import io.github.magisk317.relay.engine.service.AppConfigRepository
 import io.github.magisk317.smscode.domain.model.BuiltinSmsCodeRuleSpec
 import io.github.magisk317.smscode.domain.model.BuiltinSmsCodeRules
 import org.koin.compose.koinInject
@@ -85,7 +85,7 @@ fun SmsCodeRuleListScreen(
     onAddClick: () -> Unit,
     onEditClick: (Long) -> Unit,
 ) {
-    val repository: ConfigRepository = koinInject()
+    val repository: AppConfigRepository = koinInject()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val removedLabel = stringResource(id = R.string.removed)
@@ -175,12 +175,12 @@ fun SmsCodeRuleListScreen(
             } else {
                 itemsIndexed(rules, key = { _, rule -> rule.id }) { index, rule ->
                     SmsCodeRuleCard(
-                        rule = rule,
+                        rule = rule as SmsCodeRule,
                         ordinal = index + 1,
                         onEdit = { onEditClick(rule.id) },
                         onDelete = {
                             scope.launch {
-                                repository.deleteSmsCodeRule(rule)
+                                repository.deleteSmsCodeRule(rule as SmsCodeRule)
                                 repository.checkpoint()
                                 snackbarHostState.showSnackbar("$removedLabel: ${rule.codeKeyword}")
                             }
@@ -321,7 +321,7 @@ fun SmsCodeRuleEditorScreen(
 ) {
     val context = LocalContext.current
     val clipboard = LocalClipboard.current
-    val repository: ConfigRepository = koinInject()
+    val repository: AppConfigRepository = koinInject()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val builtinRule = remember(ruleId) { builtinRuleByEditorId(ruleId) }

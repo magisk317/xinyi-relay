@@ -114,10 +114,10 @@ import io.github.magisk317.relay.common.utils.PackageUtils
 import io.github.magisk317.relay.common.utils.Utils
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.android.data.db.dao.SenderDispatchStatRow
-import io.github.magisk317.relay.data.repository.AnalyticsRepository
+import io.github.magisk317.relay.engine.model.SenderDispatchStat
+import io.github.magisk317.relay.engine.service.RuntimeAnalyticsProvider
 import io.github.magisk317.relay.contract.settings.OverviewSettingsUpdate
-import io.github.magisk317.relay.data.repository.SettingsRepository
+import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
@@ -147,7 +147,7 @@ private data class HomeAnalyticsSnapshot(
     val forwardTotal: Long,
     val forwardSuccess: Long,
     val forwardFailed: Long,
-    val senderStats: List<SenderDispatchStatRow>,
+    val senderStats: List<SenderDispatchStat>,
 )
 
 private enum class HomeChartType(val id: String) {
@@ -207,8 +207,8 @@ private data class HomeCardSpec(
 @Composable
 fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
     val context = LocalContext.current
-    val settingsRepository: SettingsRepository = koinInject()
-    val analyticsRepository: AnalyticsRepository = koinInject()
+    val settingsRepository: SettingsPreferencesRepository = koinInject()
+    val analyticsRepository: RuntimeAnalyticsProvider = koinInject()
     val settingsViewModel = rememberSharedSettingsViewModel()
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = LocalSnackbarHostState.current

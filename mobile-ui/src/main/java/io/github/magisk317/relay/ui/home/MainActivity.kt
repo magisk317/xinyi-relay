@@ -68,7 +68,7 @@ import io.github.magisk317.smscode.runtime.common.utils.FrameworkCompatibilityMo
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.common.utils.PackageUtils
 import io.github.magisk317.relay.common.utils.Utils
-import io.github.magisk317.relay.data.repository.SettingsRepository
+import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.data.update.ApkSecurityVerifier
 import io.github.magisk317.relay.data.update.GithubUpdateChecker
 import io.github.magisk317.smscode.runtime.common.update.UpgradeApkAsset
@@ -107,7 +107,7 @@ class MainActivity : AppCompatActivity() {
     private val playUpdateDelegate: PlayUpdateDelegate = FlavorPlayUpdateDelegate()
     private var autoUpdateChecked = false
     private val snackbarMessages = MutableSharedFlow<String>(extraBufferCapacity = 8)
-    private val settingsRepository: SettingsRepository by lazy {
+    private val settingsRepository: SettingsPreferencesRepository by lazy {
         RuntimeGraph.from(applicationContext).settingsRepository
     }
 

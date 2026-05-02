@@ -4,7 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.magisk317.relay.engine.model.ForwardFilterRule
-import io.github.magisk317.relay.engine.model.ForwardCommonConfig
+import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.android.data.db.entity.NotifyRouteRule
 import io.github.magisk317.relay.android.common.utils.DeviceIdentityUtils
@@ -15,8 +15,8 @@ import io.github.magisk317.relay.sender.SenderValidationResult
 import io.github.magisk317.relay.sender.SenderValidator
 import io.github.magisk317.relay.engine.routing.NotifyRouteScope
 import io.github.magisk317.relay.mobileui.BuildConfig
-import io.github.magisk317.relay.data.repository.ConfigRepository
-import io.github.magisk317.relay.data.repository.SettingsRepository
+import io.github.magisk317.relay.engine.service.AppConfigRepository
+import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.SimRemarkSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.SimRemarkSettingsUpdate
 import kotlinx.coroutines.Dispatchers
@@ -33,8 +33,8 @@ import kotlinx.coroutines.withContext
 
 class SenderViewModel(
     application: Application,
-    private val configRepository: ConfigRepository,
-    private val settingsRepository: SettingsRepository,
+    private val configRepository: AppConfigRepository,
+    private val settingsRepository: SettingsPreferencesRepository,
 ) : AndroidViewModel(application) {
 
     private val _forwardCommonConfig = MutableStateFlow(

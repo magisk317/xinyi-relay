@@ -61,7 +61,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.settings.RecordSettingsUpdate
-import io.github.magisk317.relay.data.repository.SettingsRepository
+import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.smscode.rule.utils.CodeRecordSimilarityUtils
 import io.github.magisk317.relay.ui.common.AppIconLoader
@@ -187,7 +187,7 @@ fun CodeRecordScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val settingsRepository: SettingsRepository = koinInject()
+    val settingsRepository: SettingsPreferencesRepository = koinInject()
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
 
     LaunchedEffect(isLoading, shouldShowInitialLoading, initialLoadingStarted) {
@@ -534,7 +534,7 @@ fun CodeRecordScreen(
     val plainSmsList = smsList.filter { it.msgType == SmsMsg.MSG_TYPE_SMS && it.smsCode.isNullOrBlank() }
     val appNotifyList = smsList.filter { it.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY }
     val callNotifyList = smsList.filter { it.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY }
-    val activeSmsList = recordsForTab(smsList, selectedRecordTab)
+    val activeSmsList = recordsForTab(smsList as List<SmsMsg>, selectedRecordTab)
     val rawRecordsForSelectedTab = when (selectedRecordTab) {
         0 -> codeSmsList
         1 -> plainSmsList
@@ -648,7 +648,7 @@ fun CodeRecordScreen(
                             },
                         )
                     } else {
-                        val activeSmsList = recordsForTab(list, selectedRecordTab)
+                        val activeSmsList = recordsForTab(list as List<SmsMsg>, selectedRecordTab)
 
                         RecordSplitColumn(
                             title = activeTitle,

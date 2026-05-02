@@ -36,11 +36,11 @@ import io.github.magisk317.relay.contract.settings.ForwardTypeGateSnapshot
 import io.github.magisk317.relay.contract.settings.ForwardTypeGateUpdate
 import io.github.magisk317.relay.contract.settings.MessageTypeGateSnapshot
 import io.github.magisk317.relay.contract.settings.MessageTypeGateUpdate
-import io.github.magisk317.relay.data.repository.SettingsRepository
+import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.SimRemarkSettingsSnapshot
 import io.github.magisk317.relay.domain.pipeline.ForwardCommonConfigStore
 import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.engine.model.ForwardCommonConfig
+import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.engine.model.Sender
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
@@ -182,7 +182,7 @@ fun SenderListScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val settingsRepository: SettingsRepository = koinInject()
+    val settingsRepository: SettingsPreferencesRepository = koinInject()
     val snackbarHostState = remember { SnackbarHostState() }
     val senders by viewModel.senderList.collectAsStateWithLifecycle()
     val commonConfig by viewModel.forwardCommonConfig.collectAsStateWithLifecycle()

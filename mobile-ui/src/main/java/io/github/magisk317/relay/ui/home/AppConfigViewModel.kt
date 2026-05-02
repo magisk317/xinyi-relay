@@ -14,8 +14,8 @@ import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.db.entity.NotifyRouteRule
 import io.github.magisk317.relay.android.data.db.entity.AppInfo
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
-import io.github.magisk317.relay.data.repository.ConfigRepository
-import io.github.magisk317.relay.data.repository.RelayRecordRepository
+import io.github.magisk317.relay.engine.service.AppConfigRepository
+import io.github.magisk317.relay.engine.service.MessageRecordRepository
 import io.github.magisk317.relay.engine.routing.NotifyRouteScope
 import io.github.magisk317.relay.android.data.store.EntityStoreManager
 import io.github.magisk317.relay.android.data.store.EntityType
@@ -45,8 +45,8 @@ private const val APP_LIST_PAGE_SIZE = 80
 
 class AppConfigViewModel(
     application: Application,
-    private val configRepository: ConfigRepository,
-    private val recordRepository: RelayRecordRepository,
+    private val configRepository: AppConfigRepository,
+    private val recordRepository: MessageRecordRepository,
 ) : AndroidViewModel(application) {
 
     private val _appsFlow = MutableStateFlow<ImmutableList<AppInfo>>(persistentListOf())
@@ -131,7 +131,7 @@ class AppConfigViewModel(
                     val context = getApplication<Application>()
                     val pm = getApplication<Application>().packageManager
                     // Load all app infos from DB (both blocked and forwarding)
-                    var configs = configRepository.getAllAppInfo()
+                    var configs = configRepository.getAllAppInfo() as List<AppInfo>
                     EntityStoreManager.storeEntitiesToFile(
                         context,
                         EntityType.APP_CONFIG,
@@ -310,7 +310,8 @@ class AppConfigViewModel(
     }
 
     fun appNotifyLogsFlow(packageName: String): kotlinx.coroutines.flow.Flow<List<SmsMsg>> {
-        return recordRepository.observeLogsForPackage(packageName, APP_NOTIFY_LOG_LIMIT)
+        @Suppress("UNCHECKED_CAST")
+        return recordRepository.observeLogsForPackage(packageName, APP_NOTIFY_LOG_LIMIT) as kotlinx.coroutines.flow.Flow<List<SmsMsg>>
     }
 
     fun appNotifyBoundSenderIdsFlow(packageName: String): kotlinx.coroutines.flow.Flow<Set<Long>> {

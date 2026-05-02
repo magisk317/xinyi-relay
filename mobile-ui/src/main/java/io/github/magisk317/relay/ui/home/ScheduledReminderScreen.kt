@@ -51,7 +51,7 @@ import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.mobileui.BuildConfig
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.data.repository.SettingsRepository
+import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.SpecialAlertSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.SpecialAlertSettingsUpdate
 import io.github.magisk317.relay.platform.reminder.LowBatteryReminderScheduler
@@ -155,7 +155,7 @@ private fun ChannelDropdown(
 @Composable
 fun ScheduledReminderScreen(onBack: () -> Unit) {
     val context = LocalContext.current
-    val repository: SettingsRepository = koinInject()
+    val repository: SettingsPreferencesRepository = koinInject()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
