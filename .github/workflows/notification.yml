@@ -5,7 +5,7 @@ on:
     types: [published]
   workflow_run:
     types: [completed]
-    workflows: [CI, "Shared Submodule Compat"]
+    workflows: [CI]
   workflow_dispatch:
 
 jobs:
@@ -25,6 +25,7 @@ jobs:
           ASSETS_JSON: ${{ toJson(github.event.release.assets) }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           TG_THREAD_ID: ${{ secrets.TG_THREAD_ID }}
+          TG_CI_THREAD_ID: ${{ secrets.TG_CI_THREAD_ID }}
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           WF_RUN_ID: ${{ github.event.workflow_run.id }}
           WF_RUN_URL: ${{ github.event.workflow_run.html_url }}
@@ -32,6 +33,7 @@ jobs:
           WF_RUN_NAME: ${{ github.event.workflow_run.name }}
           WF_RUN_SHA: ${{ github.event.workflow_run.head_sha }}
           WF_RUN_REPO: ${{ github.repository }}
+          WF_RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
           CI_COMMIT_TITLE: ${{ github.event.workflow_run.display_title }}
         run: |
           if [ -z "$TG_BOT_TOKEN" ]; then
@@ -47,20 +49,22 @@ jobs:
 
           # CI workflow run notification
           if [ -n "$WF_RUN_ID" ]; then
-            if [ "$WF_RUN_CONCLUSION" == "success" ]; then
-              EMOJI="✅"
-            elif [ "$WF_RUN_CONCLUSION" == "failure" ]; then
-              EMOJI="❌"
-            elif [ "$WF_RUN_CONCLUSION" == "cancelled" ]; then
-              EMOJI="🚫"
-            else
-              EMOJI="ℹ️"
+            # Only send for beta branch success
+            if [ "$WF_RUN_BRANCH" != "beta" ]; then
+              exit 0
             fi
-            CI_MSG=$(printf '%s Workflow %s\n\n📋 %s\n🔗 Run: %s' \
-              "$EMOJI" "$WF_RUN_NAME" "$CI_COMMIT_TITLE" "$WF_RUN_URL")
+            if [ "$WF_RUN_CONCLUSION" != "success" ]; then
+              exit 0
+            fi
+            CI_MSG=$(printf '✅ CI Workflow %s\n\n📋 %s\n🔗 Run: %s' \
+              "$WF_RUN_NAME" "$CI_COMMIT_TITLE" "$WF_RUN_URL")
+            CI_THREAD_PARAM=""
+            if [ -n "$TG_CI_THREAD_ID" ]; then
+              CI_THREAD_PARAM="-d message_thread_id=$TG_CI_THREAD_ID"
+            fi
             curl -s -X POST "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage" \
               -d "chat_id=${TG_CHAT_ID}" \
-              $THREAD_PARAM_MSG \
+              $CI_THREAD_PARAM \
               --data-urlencode "text=${CI_MSG}" \
               -d "disable_web_page_preview=true"
             exit 0
