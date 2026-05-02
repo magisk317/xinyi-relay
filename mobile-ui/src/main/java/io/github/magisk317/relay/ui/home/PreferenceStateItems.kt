@@ -3,6 +3,7 @@
 package io.github.magisk317.relay.ui.home
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -167,6 +168,8 @@ fun TextInputDialog(
     maxLines: Int = if (singleLine) 1 else 4,
     resetValue: String? = null,
     validator: ((String) -> String?)? = null,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    inputFilter: ((String) -> String)? = null,
     onFocusLost: ((String) -> Unit)? = null,
     onConfirm: (String) -> Unit,
 ) {
@@ -179,11 +182,20 @@ fun TextInputDialog(
             Column {
                 OutlinedTextField(
                     value = fieldValue,
-                    onValueChange = {
-                        fieldValue = it
+                    onValueChange = { updated ->
+                        val filteredText = inputFilter?.invoke(updated.text) ?: updated.text
+                        fieldValue = if (filteredText == updated.text) {
+                            updated
+                        } else {
+                            updated.copy(
+                                text = filteredText,
+                                selection = TextRange(filteredText.length),
+                            )
+                        }
                     },
                     singleLine = singleLine,
                     maxLines = maxLines,
+                    keyboardOptions = keyboardOptions,
                     modifier = Modifier
                         .fillMaxWidth()
                         .onFocusChanged { focusState ->

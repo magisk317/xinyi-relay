@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -44,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -55,6 +57,8 @@ import io.github.magisk317.relay.contract.repository.SettingsPreferencesReposito
 import io.github.magisk317.relay.contract.settings.SpecialAlertSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.SpecialAlertSettingsUpdate
 import io.github.magisk317.relay.platform.reminder.LowBatteryReminderScheduler
+import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
+import io.github.magisk317.relay.ui.common.parseIntInRangeInput
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import io.github.magisk317.relay.ui.sender.displayName
 import kotlinx.coroutines.launch
@@ -553,15 +557,16 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
             onDismiss = { showThresholdDialog = false },
             supportingText = stringResource(id = R.string.scheduled_reminder_threshold_hint),
             validator = { value ->
-                val parsed = value.trim().toIntOrNull()
-                if (parsed == null || parsed !in 1..100) {
-                    thresholdInvalid
-                } else {
+                if (parseIntInRangeInput(value, 1..100) != null) {
                     null
+                } else {
+                    thresholdInvalid
                 }
             },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            inputFilter = ::filterNonNegativeIntegerInput,
         ) { value ->
-            val bounded = value.trim().toIntOrNull()?.coerceIn(1, 100) ?: PrefConst.LOW_BATTERY_THRESHOLD_DEFAULT
+            val bounded = parseIntInRangeInput(value, 1..100) ?: PrefConst.LOW_BATTERY_THRESHOLD_DEFAULT
             showThresholdDialog = false
             scope.launch {
                 settings = repository.updateSpecialAlertSettings(

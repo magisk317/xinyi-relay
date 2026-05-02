@@ -50,6 +50,7 @@ import io.github.magisk317.relay.domain.pipeline.ForwardCommonConfigStore
 import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.engine.model.Sender
+import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import kotlinx.coroutines.async
@@ -995,7 +996,7 @@ private fun SenderPriorityDialog(
             OutlinedTextField(
                 value = priorityText,
                 onValueChange = { input ->
-                    priorityText = input.filter(Char::isDigit).take(3)
+                    priorityText = filterNonNegativeIntegerInput(input).take(3)
                 },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text(stringResource(R.string.sender_priority_order)) },

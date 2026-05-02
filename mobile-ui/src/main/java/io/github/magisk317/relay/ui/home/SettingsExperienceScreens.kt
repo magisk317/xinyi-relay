@@ -16,6 +16,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -53,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -78,6 +80,11 @@ import io.github.magisk317.relay.contract.repository.SettingsPreferencesReposito
 import io.github.magisk317.relay.contract.settings.VerificationSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.VerificationSettingsUpdate
 import io.github.magisk317.relay.data.backup.BackupManager
+import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
+import io.github.magisk317.relay.ui.common.normalizeIntegerInput
+import io.github.magisk317.relay.ui.common.parseIntAtLeastInput
+import io.github.magisk317.relay.ui.common.parseIntInRangeInput
+import io.github.magisk317.relay.ui.common.parseNonNegativeLongInput
 import io.github.magisk317.relay.ui.common.SingleChoiceOptionDialog
 import io.github.magisk317.smscode.domain.constant.SmsCodeConst
 import kotlinx.coroutines.Dispatchers
@@ -522,15 +529,20 @@ fun SettingsHomeScreen(
             onDismiss = { showRuntimeLogDialog = false },
             supportingText = stringResource(id = R.string.pref_runtime_log_file_size_hint),
             validator = {
-                parseIntAtLeast(it, PrefConst.RUNTIME_LOG_FILE_SIZE_MB_MIN)?.let { null }
-                    ?: runtimeLogFileSizeError
+                if (parseIntAtLeastInput(it, PrefConst.RUNTIME_LOG_FILE_SIZE_MB_MIN) != null) {
+                    null
+                } else {
+                    runtimeLogFileSizeError
+                }
             },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            inputFilter = ::filterNonNegativeIntegerInput,
         ) { updated ->
             showRuntimeLogDialog = false
             scope.launch {
                 diagnostics = repository.updateDiagnosticsSettings(
                     DiagnosticsSettingsUpdate(
-                        runtimeLogFileSizeMb = parseIntAtLeast(
+                        runtimeLogFileSizeMb = parseIntAtLeastInput(
                             updated,
                             PrefConst.RUNTIME_LOG_FILE_SIZE_MB_MIN,
                         ) ?: PrefConst.RUNTIME_LOG_FILE_SIZE_MB_MIN,
@@ -1087,17 +1099,20 @@ fun VerificationSettingsScreen(
         val nonNegativeNumberError = stringResource(id = R.string.pref_number_non_negative_error)
         TextInputDialog(
             title = stringResource(id = R.string.pref_auto_input_code_delay_title),
-            initialValue = normalizeNumericInput(current.autoInputDelay),
+            initialValue = normalizeIntegerInput(current.autoInputDelay),
             onDismiss = { showDelayDialog = false },
+            supportingText = stringResource(id = R.string.pref_number_non_negative_integer_hint),
             validator = {
-                if (parseNonNegativeLong(it) != null) null else nonNegativeNumberError
+                if (parseNonNegativeLongInput(it) != null) null else nonNegativeNumberError
             },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            inputFilter = ::filterNonNegativeIntegerInput,
         ) { updated ->
             showDelayDialog = false
             scope.launch {
                 settings = repository.updateVerificationSettings(
                     VerificationSettingsUpdate(
-                        autoInputDelay = normalizeNumericInput(updated),
+                        autoInputDelay = normalizeIntegerInput(updated),
                     ),
                 )
                 notifySaved()
@@ -1108,17 +1123,20 @@ fun VerificationSettingsScreen(
         val nonNegativeNumberError = stringResource(id = R.string.pref_number_non_negative_error)
         TextInputDialog(
             title = stringResource(id = R.string.pref_auto_input_code_interval_title),
-            initialValue = normalizeNumericInput(current.autoInputInterval),
+            initialValue = normalizeIntegerInput(current.autoInputInterval),
             onDismiss = { showIntervalDialog = false },
+            supportingText = stringResource(id = R.string.pref_number_non_negative_integer_hint),
             validator = {
-                if (parseNonNegativeLong(it) != null) null else nonNegativeNumberError
+                if (parseNonNegativeLongInput(it) != null) null else nonNegativeNumberError
             },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            inputFilter = ::filterNonNegativeIntegerInput,
         ) { updated ->
             showIntervalDialog = false
             scope.launch {
                 settings = repository.updateVerificationSettings(
                     VerificationSettingsUpdate(
-                        autoInputInterval = normalizeNumericInput(updated),
+                        autoInputInterval = normalizeIntegerInput(updated),
                     ),
                 )
                 notifySaved()
@@ -1316,37 +1334,6 @@ private fun isAutoInputAccessibilityServiceListed(context: android.content.Conte
     }
 }
 
-private fun normalizeNumericInput(raw: String): String {
-    val normalized = StringBuilder(raw.length)
-    raw.forEach { ch ->
-        when {
-            ch.isWhitespace() || Character.getType(ch) == Character.FORMAT.toInt() -> Unit
-            ch.digitToIntOrNull() != null -> normalized.append(ch.digitToInt())
-            ch in setOf('-', '－', '﹣', '—', '–') && normalized.isEmpty() -> normalized.append('-')
-            else -> normalized.append(ch)
-        }
-    }
-    return normalized.toString()
-}
-
-private fun parseNonNegativeLong(raw: String): Long? {
-    return normalizeNumericInput(raw)
-        .toLongOrNull()
-        ?.takeIf { it >= 0L }
-}
-
-private fun parseIntAtLeast(raw: String, min: Int): Int? {
-    return normalizeNumericInput(raw)
-        .toIntOrNull()
-        ?.takeIf { it >= min }
-}
-
-private fun parseIntInRange(raw: String, range: IntRange): Int? {
-    return normalizeNumericInput(raw)
-        .toIntOrNull()
-        ?.takeIf { it in range }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RelayConfigScreen(
@@ -1458,17 +1445,23 @@ fun RelayConfigScreen(
             onDismiss = { showDedupWindowDialog = false },
             supportingText = stringResource(id = R.string.pref_sms_forward_dedup_window_hint),
             validator = {
-                parseIntInRange(
+                if (parseIntInRangeInput(
                     it,
                     PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_MIN..PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_MAX,
-                )?.let { null } ?: rangeError
+                ) != null) {
+                    null
+                } else {
+                    rangeError
+                }
             },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            inputFilter = ::filterNonNegativeIntegerInput,
         ) { updated ->
             showDedupWindowDialog = false
             scope.launch {
                 relay = repository.updateRelaySettings(
                     RelaySettingsUpdate(
-                        smsForwardDedupWindowSec = parseIntInRange(
+                        smsForwardDedupWindowSec = parseIntInRangeInput(
                             updated,
                             PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_MIN..PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_MAX,
                         ) ?: PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_DEFAULT,
@@ -1596,18 +1589,23 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
         val rootDbIntervalError = stringResource(id = R.string.pref_root_db_catchup_interval_error)
         TextInputDialog(
             title = stringResource(id = R.string.pref_root_db_catchup_interval_title),
-            initialValue = normalizeNumericInput(current.rootDbCatchupIntervalMin),
+            initialValue = normalizeIntegerInput(current.rootDbCatchupIntervalMin),
             onDismiss = { showRootDbIntervalDialog = false },
             supportingText = stringResource(id = R.string.pref_root_db_catchup_interval_hint),
             validator = {
-                parseIntInRange(it, 1..120)?.let { null }
-                    ?: rootDbIntervalError
+                if (parseIntInRangeInput(it, 1..120) != null) {
+                    null
+                } else {
+                    rootDbIntervalError
+                }
             },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            inputFilter = ::filterNonNegativeIntegerInput,
         ) { updated ->
             showRootDbIntervalDialog = false
             scope.launch {
                 settings = repository.updateDiagnosticsSettings(
-                    DiagnosticsSettingsUpdate(rootDbCatchupIntervalMin = normalizeNumericInput(updated)),
+                    DiagnosticsSettingsUpdate(rootDbCatchupIntervalMin = normalizeIntegerInput(updated)),
                 )
                 notifySaved()
             }
