@@ -5,6 +5,7 @@ import androidx.room.*
 import io.github.magisk317.smscode.runtime.common.backup.BackupConst
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.SerialName
+import io.github.magisk317.relay.engine.model.SmsCodeRuleData
 import kotlinx.serialization.Serializable
 
 @Entity(
@@ -18,16 +19,16 @@ import kotlinx.serialization.Serializable
 data class SmsCodeRule @JvmOverloads constructor(
     @ColumnInfo(name = "company")
     @SerialName(BackupConst.KEY_COMPANY)
-    val company: String? = null,
+    override val company: String? = null,
 
     @ColumnInfo(name = "code_keyword")
     @SerialName(BackupConst.KEY_CODE_KEYWORD)
-    val codeKeyword: String = "",
+    override val codeKeyword: String = "",
 
     @ColumnInfo(name = "code_regex")
     @SerialName(BackupConst.KEY_CODE_REGEX)
-    val codeRegex: String = "",
+    override val codeRegex: String = "",
 
     @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
-) : Parcelable
+    override val id: Long = 0,
+) : Parcelable, SmsCodeRuleData

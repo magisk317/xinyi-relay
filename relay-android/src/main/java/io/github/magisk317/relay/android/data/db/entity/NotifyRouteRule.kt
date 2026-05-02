@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import io.github.magisk317.relay.engine.model.NotifyRouteRuleData
 
 @Entity(
     tableName = "notify_route_rule",
@@ -26,13 +27,13 @@ import androidx.room.PrimaryKey
 data class NotifyRouteRule(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
-    val id: Long = 0L,
+    override val id: Long = 0L,
     @ColumnInfo(name = "scope")
-    val scope: Int,
+    override val scope: Int,
     @ColumnInfo(name = "package_name")
-    val packageName: String,
+    override val packageName: String,
     @ColumnInfo(name = "sender_id")
-    val senderId: Long,
+    override val senderId: Long,
     @ColumnInfo(name = "update_time", defaultValue = "0")
-    val updateTime: Long = 0L,
-)
+    override val updateTime: Long = 0L,
+) : NotifyRouteRuleData

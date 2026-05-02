@@ -8,6 +8,7 @@ import io.github.magisk317.relay.android.data.db.entity.NotifyRouteRule
 import io.github.magisk317.relay.android.data.db.entity.SmsCodeRule
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.android.data.db.entity.SenderDispatchLog
+import io.github.magisk317.relay.engine.model.SenderDispatchStat
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -195,11 +196,11 @@ interface SmsMsgDao {
 }
 
 data class SenderDispatchStatRow(
-    val senderType: Int,
-    val sent: Long,
-    val success: Long,
-    val failed: Long,
-)
+    override val senderType: Int,
+    override val sent: Long,
+    override val success: Long,
+    override val failed: Long,
+) : SenderDispatchStat
 
 @Dao
 interface SenderDispatchLogDao {

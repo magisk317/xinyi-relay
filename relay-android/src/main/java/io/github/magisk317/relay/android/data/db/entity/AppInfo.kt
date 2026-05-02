@@ -6,6 +6,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.SerialName
+import io.github.magisk317.relay.engine.model.AppInfoData
 import kotlinx.serialization.Serializable
 
 @Entity(tableName = "app_info")
@@ -15,27 +16,27 @@ data class AppInfo @JvmOverloads constructor(
     @PrimaryKey
     @ColumnInfo(name = "package_name")
     @SerialName("packageName")
-    val packageName: String = "",
+    override val packageName: String = "",
 
     @ColumnInfo(name = "label")
     @SerialName("label")
-    val label: String? = null,
+    override val label: String? = null,
 
     @ColumnInfo(name = "blocked")
     @SerialName("blocked")
     @get:JvmName("isBlocked")
-    val blocked: Boolean = false,
+    override val blocked: Boolean = false,
 
     @ColumnInfo(name = "forwarding", defaultValue = "0")
     @SerialName("forwarding")
     @get:JvmName("isForwarding")
-    val forwarding: Boolean = false,
+    override val forwarding: Boolean = false,
 
     @ColumnInfo(name = "forwarding_configured", defaultValue = "0")
     @SerialName("forwardingConfigured")
-    val forwardingConfigured: Boolean = false,
+    override val forwardingConfigured: Boolean = false,
 
     @ColumnInfo(name = "notify_template", defaultValue = "")
     @SerialName("notifyTemplate")
-    val notifyTemplate: String = "",
-) : Parcelable
+    override val notifyTemplate: String = "",
+) : Parcelable, AppInfoData

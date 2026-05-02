@@ -6,6 +6,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import io.github.magisk317.smscode.domain.utils.SmsMessageUtils
+import io.github.magisk317.relay.engine.model.ReadRecordData
 import io.github.magisk317.smscode.runtime.common.record.SmsMsgRecord
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.SerialName
@@ -67,19 +68,19 @@ data class SmsMsg(
 
     @ColumnInfo(name = "sim_slot", defaultValue = "-1")
     @SerialName("simSlot")
-    val simSlot: Int = -1,
+    override val simSlot: Int = -1,
 
     @ColumnInfo(name = "sub_id", defaultValue = "0")
     @SerialName("subId")
-    val subId: Int = 0,
+    override val subId: Int = 0,
 
     @ColumnInfo(name = "contact_name", defaultValue = "''")
     @SerialName("contactName")
-    val contactName: String = "",
+    override val contactName: String = "",
 
     @ColumnInfo(name = "phone_area", defaultValue = "''")
     @SerialName("phoneArea")
-    val phoneArea: String = "",
+    override val phoneArea: String = "",
 
     @ColumnInfo(name = "forward_status")
     @SerialName("forwardStatus")
@@ -107,9 +108,9 @@ data class SmsMsg(
 
     @ColumnInfo(name = "session_key", defaultValue = "''")
     @SerialName("sessionKey")
-    val sessionKey: String = "",
+    override val sessionKey: String = "",
 
-) : Parcelable, SmsMsgRecord {
+) : Parcelable, SmsMsgRecord, ReadRecordData {
 
     companion object {
         const val FORWARD_STATUS_NONE = 0
