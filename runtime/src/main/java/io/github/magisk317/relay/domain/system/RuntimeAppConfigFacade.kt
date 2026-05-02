@@ -3,7 +3,7 @@ package io.github.magisk317.relay.domain.system
 import android.content.Context
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.android.data.db.entity.AppInfo
-import io.github.magisk317.relay.data.repository.ConfigRepository
+import io.github.magisk317.relay.engine.service.AppConfigRepository
 import io.github.magisk317.relay.android.data.store.EntityStoreManager
 import io.github.magisk317.relay.android.data.store.EntityType
 import kotlinx.coroutines.Dispatchers
@@ -14,13 +14,13 @@ import kotlinx.coroutines.withContext
  */
 class RuntimeAppConfigFacade(
     context: Context,
-    configRepository: ConfigRepository? = null,
+    configRepository: AppConfigRepository? = null,
     private val appInfoLookup: (suspend (String) -> AppInfo?)? = null,
     private val appConfigFallbackLoader: () -> List<AppInfo> = {
         EntityStoreManager.loadEntitiesFromFile(context, EntityType.APP_CONFIG, AppInfo::class.java)
     },
 ) {
-    private val configRepository: ConfigRepository by lazy {
+    private val configRepository: AppConfigRepository by lazy {
         configRepository ?: RuntimeGraph.from(context).configRepository
     }
 

@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.engine.model
+package io.github.magisk317.relay.contract.model
 
 data class ForwardCommonConfig(
     val deviceName: String = "",

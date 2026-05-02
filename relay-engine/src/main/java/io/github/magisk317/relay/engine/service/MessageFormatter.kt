@@ -2,7 +2,7 @@ package io.github.magisk317.relay.engine.service
 
 import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.engine.event.RelayEvent
-import io.github.magisk317.relay.engine.model.ForwardCommonConfig
+import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.engine.model.SystemEnvironment
 import java.text.SimpleDateFormat
 import java.util.Date

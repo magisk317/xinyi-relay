@@ -8,10 +8,10 @@ import android.net.NetworkCapabilities
 import android.os.BatteryManager
 import android.os.Build
 import io.github.magisk317.relay.contract.constant.MessageType
-import io.github.magisk317.relay.engine.model.ForwardCommonConfig
+import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.android.common.utils.XLog
-import io.github.magisk317.relay.data.repository.SettingsRepository
+import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.SimRemarkSettingsSnapshot
 import java.net.NetworkInterface
 import java.text.SimpleDateFormat
@@ -63,27 +63,27 @@ IP地址列表：{{IP_LIST}}
 网络状态：{{NET_TYPE}}
 """
 
-    suspend fun load(settingsRepository: SettingsRepository): ForwardCommonConfig {
+    suspend fun load(settingsRepository: SettingsPreferencesRepository): ForwardCommonConfig {
         return settingsRepository.loadForwardCommonConfig()
     }
 
-    suspend fun save(settingsRepository: SettingsRepository, config: ForwardCommonConfig) {
+    suspend fun save(settingsRepository: SettingsPreferencesRepository, config: ForwardCommonConfig) {
         settingsRepository.saveForwardCommonConfig(config)
     }
 
-    suspend fun loadAppNotifyTemplate(settingsRepository: SettingsRepository): String {
+    suspend fun loadAppNotifyTemplate(settingsRepository: SettingsPreferencesRepository): String {
         return settingsRepository.loadAppNotifyTemplate()
     }
 
-    suspend fun saveAppNotifyTemplate(settingsRepository: SettingsRepository, template: String) {
+    suspend fun saveAppNotifyTemplate(settingsRepository: SettingsPreferencesRepository, template: String) {
         settingsRepository.saveAppNotifyTemplate(template)
     }
 
-    suspend fun loadCallNotifyTemplate(settingsRepository: SettingsRepository): String {
+    suspend fun loadCallNotifyTemplate(settingsRepository: SettingsPreferencesRepository): String {
         return settingsRepository.loadCallNotifyTemplate()
     }
 
-    suspend fun saveCallNotifyTemplate(settingsRepository: SettingsRepository, template: String) {
+    suspend fun saveCallNotifyTemplate(settingsRepository: SettingsPreferencesRepository, template: String) {
         settingsRepository.saveCallNotifyTemplate(template)
     }
 
