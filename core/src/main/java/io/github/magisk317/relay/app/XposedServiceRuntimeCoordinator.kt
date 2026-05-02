@@ -22,10 +22,11 @@ object XposedServiceRuntimeCoordinator {
         AppPreferencesDataStore.setRemotePrefsProvider(remotePrefsProvider)
         val pending = AppPreferencesDataStore.hasPendingRemoteSync()
         applicationScope.launch {
-            if (pending) {
-                XLog.w("RemotePrefs sync pending detected; attempting sync on service bind")
-            }
             HookPreferenceMirror.publish(application)
+            if (pending) {
+                XLog.w("RemotePrefs sync pending after bind; retrying once")
+                AppPreferencesDataStore.syncToRemotePrefs(application)
+            }
         }
         val verboseLogEnabled = PrefsReader.isVerboseLogMode(application)
         RuntimeActivationState.setRuntimeActivated(true)

@@ -56,6 +56,12 @@ class ForwardReceiverPolicyTest {
                 sdkInt = 33,
             ),
         )
+        assertTrue(
+            ForwardReceiverPolicy.shouldAllowSmsHookTokenBypass(
+                sentFromUid = -1,
+                sdkInt = 34,
+            ),
+        )
         assertFalse(
             ForwardReceiverPolicy.shouldAllowSmsHookTokenBypass(
                 sentFromUid = 20000,

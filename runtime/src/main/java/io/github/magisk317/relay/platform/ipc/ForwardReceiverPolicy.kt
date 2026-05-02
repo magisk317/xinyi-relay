@@ -25,12 +25,15 @@ object ForwardReceiverPolicy {
             msgType == ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY ||
                 msgType == ForwardBroadcastContract.MSG_TYPE_CALL_NOTIFY
             ) && forwardSource == ForwardBroadcastContract.SOURCE_NMS_HOOK -> {
-            sentFromUid == SYSTEM_UID || (sdkInt < API_LEVEL_34 && sentFromUid == null)
+            sentFromUid == SYSTEM_UID ||
+                sentFromUid == -1 ||
+                (sdkInt < API_LEVEL_34 && sentFromUid == null)
         }
         msgType == ForwardBroadcastContract.MSG_TYPE_SMS &&
             forwardSource == ForwardBroadcastContract.SOURCE_SMS_HOOK -> {
             sentFromUid == SYSTEM_UID ||
                 sentFromUid == PHONE_UID ||
+                sentFromUid == -1 ||
                 (sdkInt < API_LEVEL_34 && sentFromUid == null)
         }
         else -> false
@@ -42,6 +45,7 @@ object ForwardReceiverPolicy {
     ): Boolean {
         return sentFromUid == SYSTEM_UID ||
             sentFromUid == PHONE_UID ||
+            sentFromUid == -1 ||
             (sdkInt < API_LEVEL_34 && sentFromUid == null)
     }
 

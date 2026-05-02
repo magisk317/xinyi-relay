@@ -681,6 +681,12 @@ object PrefsReader {
     }
 
     @JvmStatic
+    fun verifyTokenReadable(context: Context): String {
+        val trace = readStringWithTrace(context, PrefConst.KEY_IPC_TOKEN, "")
+        return trace.source
+    }
+
+    @JvmStatic
     fun getSimSlotRemark(context: Context, simSlot: Int): String {
         val key = when (simSlot) {
             0 -> PrefConst.KEY_SIM_SLOT1_REMARK

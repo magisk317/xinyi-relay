@@ -611,6 +611,7 @@ object AppPreferencesDataStore {
             } else {
                 remoteSyncPending = false
                 remoteSyncPendingLogged = false
+                verifyTokenSyncResult(prefs, context)
             }
         } catch (e: Exception) {
             remoteSyncPending = true
@@ -673,6 +674,20 @@ object AppPreferencesDataStore {
             )
             defaultValue
         }
+    }
+
+    private fun verifyTokenSyncResult(prefs: SharedPreferences, context: Context) {
+        val token = prefs.getString(PrefConst.KEY_IPC_TOKEN, null)
+        if (token.isNullOrBlank()) {
+            XLog.w("RemotePrefs token verification: ipc_token is blank after sync")
+            return
+        }
+        val verifyToken = PrefsReader.verifyTokenReadable(context)
+        XLog.w(
+            "RemotePrefs token verification: token=%s verify=%s",
+            token.take(8).padEnd(8, '*'),
+            verifyToken,
+        )
     }
 
 }
