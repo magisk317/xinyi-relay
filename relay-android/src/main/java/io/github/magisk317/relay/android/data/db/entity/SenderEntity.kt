@@ -26,4 +26,5 @@ data class SenderEntity(
     /** 0 = 不转发通话通知，1 = 转发通话通知 */
     @ColumnInfo(name = "receive_call_notify", defaultValue = "0") var receiveCallNotify: Int = 0,
     @ColumnInfo(name = "active_schedule_json", defaultValue = "") var activeScheduleJson: String = "",
+    @ColumnInfo(name = "priority", defaultValue = "0") var priority: Int = 0,
 )

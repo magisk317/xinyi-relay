@@ -916,6 +916,10 @@
     <string name="sender_dialog_sim1_note_label">SIM1 備註</string>
     <string name="sender_dialog_sim2_note_label">SIM2 備註</string>
     <string name="sender_dialog_sim_note_placeholder">用於 {{CARD_SLOT}} 顯示</string>
+    <string name="dispatch_strategy">轉發策略</string>
+    <string name="dispatch_strategy_primary_only">僅主通道</string>
+    <string name="dispatch_strategy_broadcast_all">全部發送</string>
+    <string name="dispatch_strategy_failover">順序容錯</string>
     <string name="sender_gate_ingress_title">入口開關</string>
     <string name="sender_gate_ingress_summary_sms">關閉後，事件不會進入識別、記錄或轉發流程。</string>
     <string name="sender_gate_ingress_summary_event">關閉後，事件不會進入記錄或轉發流程。</string>
@@ -993,6 +997,10 @@
     <string name="sender_form_label_message_card_json_optional">訊息卡片 JSON（選填）</string>
     <string name="sender_form_label_gotify_server">Gotify 服務位址</string>
     <string name="sender_form_label_priority">優先級</string>
+    <string name="sender_priority_order">優先級</string>
+    <string name="sender_priority_value">優先級 %1$d</string>
+    <string name="sender_priority_dialog_title">%1$s 優先級</string>
+    <string name="sender_priority_drag_handle">調整通道順序</string>
     <string name="sender_form_label_server_required">伺服器位址（必填）</string>
     <string name="sender_form_label_server_example">例如 https://ntfy.sh</string>
     <string name="sender_form_label_topic_required">主題（必填）</string>

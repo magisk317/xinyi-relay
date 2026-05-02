@@ -42,25 +42,16 @@ import io.github.magisk317.relay.sender.WebhookUtils
 import io.github.magisk317.relay.sender.WeworkAgentUtils
 import io.github.magisk317.relay.sender.WeworkRobotUtils
 import io.github.magisk317.relay.engine.service.SenderDispatchResult
+import io.github.magisk317.relay.engine.service.SenderDispatcher
 import io.github.magisk317.relay.runtime.BuildConfig
 
-class DispatchExecutor(private val context: Context) {
+class DispatchExecutor(private val context: Context) : SenderDispatcher {
     private val gson = Gson()
 
-    suspend fun dispatchToSenders(
-        senders: List<Sender>,
-        msgInfo: MsgInfo,
-        traceId: String? = null,
-    ): List<SenderDispatchResult> {
-        return senders.map { sender ->
-            dispatchToSender(sender, msgInfo, traceId)
-        }
-    }
-
-    suspend fun dispatchToSender(
+    override suspend fun dispatchToSender(
         sender: Sender,
         msgInfo: MsgInfo,
-        traceId: String? = null,
+        traceId: String?,
     ): SenderDispatchResult {
         val senderName = sender.name.ifBlank { "通道${sender.type}" }
         XLog.d("Dispatching to sender: id=%d, type=%d, name=%s", sender.id, sender.type, sender.name)

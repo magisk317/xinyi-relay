@@ -65,6 +65,7 @@ object ConfigMapper {
         receiveAppNotify = receiveAppNotify,
         receiveCallNotify = receiveCallNotify,
         activeSchedule = parseActiveSchedule(activeScheduleJson),
+        priority = priority,
     )
 
     fun Sender.toEntity(): SenderEntity = SenderEntity(
@@ -78,7 +79,8 @@ object ConfigMapper {
         receiveNonCode = receiveNonCode,
         receiveAppNotify = receiveAppNotify,
         receiveCallNotify = receiveCallNotify,
-        activeScheduleJson = gson.toJson(SenderActiveScheduleEvaluator.sanitize(activeSchedule))
+        activeScheduleJson = gson.toJson(SenderActiveScheduleEvaluator.sanitize(activeSchedule)),
+        priority = priority,
     )
 
     fun ForwardFilterRuleEntity.toDomain(): ForwardFilterRule = ForwardFilterRule(

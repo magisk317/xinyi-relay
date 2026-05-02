@@ -4,31 +4,39 @@ package io.github.magisk317.relay.ui.sender
 
 import android.os.SystemClock
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.magisk317.relay.contract.constant.DispatchStrategy
 import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.mobileui.BuildConfig
 import io.github.magisk317.relay.core.R
@@ -42,6 +50,8 @@ import io.github.magisk317.relay.domain.pipeline.ForwardCommonConfigStore
 import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.engine.model.Sender
+import io.github.magisk317.relay.ui.common.SegmentedOption
+import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -118,6 +128,41 @@ private val callNotifyTemplateVariables = forwardTemplateVariables.map { variabl
 private const val DIALOG_WIDTH_FRACTION = 0.92f
 private const val UNDO_SNACKBAR_DURATION_MS = 5_000L
 private const val UNDO_COUNTDOWN_TICK_MS = 50L
+private const val DRAG_EDGE_SCROLL_THRESHOLD_PX = 96
+private const val DRAG_EDGE_SCROLL_STEP_PX = 36f
+
+private fun List<Sender>.moveItem(fromIndex: Int, toIndex: Int): List<Sender> {
+    if (fromIndex == toIndex || fromIndex !in indices || toIndex !in indices) return this
+    return toMutableList().apply {
+        add(toIndex, removeAt(fromIndex))
+    }
+}
+
+private fun priorityMapForOrder(senders: List<Sender>): Map<Long, Int> {
+    return senders.mapIndexed { index, sender -> sender.id to index }.toMap()
+}
+
+private fun reorderSenderToPriority(
+    senders: List<Sender>,
+    senderId: Long,
+    priority: Int,
+): List<Sender> {
+    if (senders.isEmpty()) return senders
+    val fromIndex = senders.indexOfFirst { it.id == senderId }
+    if (fromIndex < 0) return senders
+    val toIndex = priority.coerceIn(0, senders.lastIndex)
+    return senders.moveItem(fromIndex, toIndex)
+}
+
+private fun normalizeDispatchStrategy(strategy: Int): Int {
+    return when (strategy) {
+        DispatchStrategy.PRIMARY_ONLY,
+        DispatchStrategy.BROADCAST_ALL,
+        DispatchStrategy.FAILOVER,
+        -> strategy
+        else -> DispatchStrategy.BROADCAST_ALL
+    }
+}
 
 private fun senderTypeGroupLabel(context: android.content.Context, key: String): String {
     return when (key) {
@@ -182,9 +227,13 @@ fun SenderListScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
     val settingsRepository: SettingsPreferencesRepository = koinInject()
     val snackbarHostState = remember { SnackbarHostState() }
     val senders by viewModel.senderList.collectAsStateWithLifecycle()
+    var displayedSenders by remember { mutableStateOf<List<Sender>>(emptyList()) }
+    var draggingSenderId by remember { mutableStateOf<Long?>(null) }
+    val latestDisplayedSenders by rememberUpdatedState(displayedSenders)
     val commonConfig by viewModel.forwardCommonConfig.collectAsStateWithLifecycle()
     val appNotifyTemplate by viewModel.appNotifyTemplate.collectAsStateWithLifecycle()
     val callNotifyTemplate by viewModel.callNotifyTemplate.collectAsStateWithLifecycle()
@@ -196,6 +245,7 @@ fun SenderListScreen(
     var showCommonConfigDialog by remember { mutableStateOf(false) }
     var showAppNotifyConfigDialog by remember { mutableStateOf(false) }
     var showCallNotifyConfigDialog by remember { mutableStateOf(false) }
+    var priorityEditingSender by remember { mutableStateOf<Sender?>(null) }
     var simSlot1Remark by remember { mutableStateOf("") }
     var simSlot2Remark by remember { mutableStateOf("") }
     val messageGateSnapshot = messageTypeGates ?: MessageTypeGateSnapshot(
@@ -224,6 +274,11 @@ fun SenderListScreen(
     LaunchedEffect(simRemarkSettings) {
         simSlot1Remark = simRemarkSettings.simSlot1Remark
         simSlot2Remark = simRemarkSettings.simSlot2Remark
+    }
+    LaunchedEffect(senders) {
+        if (draggingSenderId == null) {
+            displayedSenders = senders
+        }
     }
     LaunchedEffect(Unit) {
         messageTypeGates = settingsRepository.getMessageTypeGates()
@@ -345,12 +400,12 @@ fun SenderListScreen(
     }
     if (showGeneralConfigDialog) {
         GeneralConfigDialog(
-            currentDeviceName = commonConfig.deviceName,
+            currentConfig = commonConfig,
             currentSimSlot1Remark = simSlot1Remark,
             currentSimSlot2Remark = simSlot2Remark,
             onDismiss = { showGeneralConfigDialog = false },
-            onSave = { deviceName, sim1Remark, sim2Remark ->
-                viewModel.saveForwardCommonConfig(commonConfig.copy(deviceName = deviceName))
+            onSave = { config, sim1Remark, sim2Remark ->
+                viewModel.saveForwardCommonConfig(config)
                 viewModel.saveSimRemarkSettings(sim1Remark, sim2Remark)
                 showGeneralConfigDialog = false
             },
@@ -400,6 +455,35 @@ fun SenderListScreen(
             },
         )
     }
+    priorityEditingSender?.let { sender ->
+        SenderPriorityDialog(
+            sender = sender,
+            currentPriority = displayedSenders.indexOfFirst { it.id == sender.id }.coerceAtLeast(0),
+            maxPriority = displayedSenders.lastIndex.coerceAtLeast(0),
+            onDismiss = { priorityEditingSender = null },
+            onSave = { priority ->
+                val reordered = reorderSenderToPriority(displayedSenders, sender.id, priority)
+                displayedSenders = reordered
+                viewModel.updateSenderPriorities(priorityMapForOrder(reordered))
+                priorityEditingSender = null
+            },
+        )
+    }
+
+    fun moveDraggedSender(senderId: Long, dragOffset: Float): Boolean {
+        val visibleSenderItems = listState.layoutInfo.visibleItemsInfo.filter { it.key is Long }
+        val draggedInfo = visibleSenderItems.firstOrNull { it.key == senderId } ?: return false
+        val draggedCenter = draggedInfo.offset + draggedInfo.size / 2f + dragOffset
+        val targetId = visibleSenderItems.firstOrNull { item ->
+            item.key != senderId && draggedCenter >= item.offset && draggedCenter <= item.offset + item.size
+        }?.key as? Long ?: return false
+        val current = latestDisplayedSenders
+        val fromIndex = current.indexOfFirst { it.id == senderId }
+        val toIndex = current.indexOfFirst { it.id == targetId }
+        if (fromIndex < 0 || toIndex < 0 || fromIndex == toIndex) return false
+        displayedSenders = current.moveItem(fromIndex, toIndex)
+        return true
+    }
 
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.sender_config_title)) }) },
@@ -421,6 +505,7 @@ fun SenderListScreen(
                 .padding(paddingValues),
         ) {
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = listBottomPadding),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -462,7 +547,7 @@ fun SenderListScreen(
                     }
                 }
 
-                if (senders.isEmpty()) {
+                if (displayedSenders.isEmpty()) {
                     item(key = "no_sender_hint") {
                         Box(
                             modifier = Modifier
@@ -474,10 +559,48 @@ fun SenderListScreen(
                         }
                     }
                 } else {
-                    items(senders, key = { it.id }) { sender ->
+                    items(displayedSenders, key = { it.id }) { sender ->
+                        var dragOffset by remember(sender.id) { mutableFloatStateOf(0f) }
+                        val senderDragModifier = Modifier.pointerInput(sender.id) {
+                            detectVerticalDragGestures(
+                                onDragStart = {
+                                    draggingSenderId = sender.id
+                                    dragOffset = 0f
+                                },
+                                onDragCancel = {
+                                    draggingSenderId = null
+                                    displayedSenders = senders
+                                    dragOffset = 0f
+                                },
+                                onDragEnd = {
+                                    draggingSenderId = null
+                                    dragOffset = 0f
+                                    viewModel.updateSenderPriorities(priorityMapForOrder(latestDisplayedSenders))
+                                },
+                                onVerticalDrag = { change, dragAmount ->
+                                    change.consume()
+                                    dragOffset += dragAmount
+                                    val viewportEnd = listState.layoutInfo.viewportEndOffset
+                                    when {
+                                        change.position.y < DRAG_EDGE_SCROLL_THRESHOLD_PX -> {
+                                            scope.launch { listState.scrollBy(-DRAG_EDGE_SCROLL_STEP_PX) }
+                                        }
+                                        change.position.y > viewportEnd - DRAG_EDGE_SCROLL_THRESHOLD_PX -> {
+                                            scope.launch { listState.scrollBy(DRAG_EDGE_SCROLL_STEP_PX) }
+                                        }
+                                    }
+                                    if (moveDraggedSender(sender.id, dragOffset)) {
+                                        dragOffset = 0f
+                                    }
+                                },
+                            )
+                        }
                         SenderCard(
                             sender = sender,
+                            displayPriority = displayedSenders.indexOfFirst { it.id == sender.id }.coerceAtLeast(0),
+                            dragModifier = senderDragModifier,
                             onEdit = { onEditClick(sender.id) },
+                            onPriorityClick = { priorityEditingSender = sender },
                             onToggle = { enabled ->
                                 if (enabled) {
                                     val result = viewModel.validateSenderForEnable(sender)
@@ -757,13 +880,16 @@ private fun ConfigGateToggle(
 
 @Composable
 private fun GeneralConfigDialog(
-    currentDeviceName: String,
+    currentConfig: ForwardCommonConfig,
     currentSimSlot1Remark: String,
     currentSimSlot2Remark: String,
     onDismiss: () -> Unit,
-    onSave: (String, String, String) -> Unit,
+    onSave: (ForwardCommonConfig, String, String) -> Unit,
 ) {
-    var deviceName by remember(currentDeviceName) { mutableStateOf(currentDeviceName) }
+    var deviceName by remember(currentConfig.deviceName) { mutableStateOf(currentConfig.deviceName) }
+    var dispatchStrategy by remember(currentConfig.dispatchStrategy) {
+        mutableIntStateOf(normalizeDispatchStrategy(currentConfig.dispatchStrategy))
+    }
     var simSlot1Remark by remember(currentSimSlot1Remark) { mutableStateOf(currentSimSlot1Remark) }
     var simSlot2Remark by remember(currentSimSlot2Remark) { mutableStateOf(currentSimSlot2Remark) }
     AlertDialog(
@@ -778,6 +904,28 @@ private fun GeneralConfigDialog(
                     label = { Text(stringResource(R.string.sender_dialog_device_name_label)) },
                     placeholder = { Text(stringResource(R.string.sender_dialog_device_name_placeholder)) },
                     singleLine = true,
+                )
+                Text(
+                    text = stringResource(R.string.dispatch_strategy),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                SingleChoiceSegmentedSelector(
+                    options = listOf(
+                        SegmentedOption(
+                            DispatchStrategy.PRIMARY_ONLY,
+                            stringResource(R.string.dispatch_strategy_primary_only),
+                        ),
+                        SegmentedOption(
+                            DispatchStrategy.BROADCAST_ALL,
+                            stringResource(R.string.dispatch_strategy_broadcast_all),
+                        ),
+                        SegmentedOption(
+                            DispatchStrategy.FAILOVER,
+                            stringResource(R.string.dispatch_strategy_failover),
+                        ),
+                    ),
+                    selected = dispatchStrategy,
+                    onSelect = { dispatchStrategy = it },
                 )
                 OutlinedTextField(
                     value = simSlot1Remark,
@@ -801,10 +949,66 @@ private fun GeneralConfigDialog(
             TextButton(
                 onClick = {
                     onSave(
-                        deviceName.trim(),
+                        currentConfig.copy(
+                            deviceName = deviceName.trim(),
+                            dispatchStrategy = dispatchStrategy,
+                        ),
                         simSlot1Remark.trim(),
                         simSlot2Remark.trim(),
                     )
+                },
+            ) {
+                Text(stringResource(R.string.save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
+    )
+}
+
+@Composable
+private fun SenderPriorityDialog(
+    sender: Sender,
+    currentPriority: Int,
+    maxPriority: Int,
+    onDismiss: () -> Unit,
+    onSave: (Int) -> Unit,
+) {
+    val context = LocalContext.current
+    var priorityText by remember(sender.id, currentPriority) { mutableStateOf(currentPriority.toString()) }
+    val parsedPriority = priorityText.toIntOrNull()
+    val validPriority = parsedPriority != null && parsedPriority >= 0
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                stringResource(
+                    R.string.sender_priority_dialog_title,
+                    sender.name.ifBlank { getSenderTypeName(context, sender.type) },
+                ),
+            )
+        },
+        text = {
+            OutlinedTextField(
+                value = priorityText,
+                onValueChange = { input ->
+                    priorityText = input.filter(Char::isDigit).take(3)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text(stringResource(R.string.sender_priority_order)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                isError = priorityText.isNotBlank() && !validPriority,
+            )
+        },
+        confirmButton = {
+            TextButton(
+                enabled = validPriority,
+                onClick = {
+                    onSave((parsedPriority ?: currentPriority).coerceIn(0, maxPriority))
                 },
             ) {
                 Text(stringResource(R.string.save))
@@ -1480,7 +1684,10 @@ private fun CallNotifyTemplateDialog(
 @Composable
 fun SenderCard(
     sender: Sender,
+    displayPriority: Int,
+    dragModifier: Modifier,
     onEdit: () -> Unit,
+    onPriorityClick: () -> Unit,
     onToggle: (Boolean) -> Unit,
     onDelete: () -> Unit
 ) {
@@ -1502,8 +1709,18 @@ fun SenderCard(
             ) {
                 Text(
                     text = sender.name.ifEmpty { getSenderTypeName(context, sender.type) },
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f),
                 )
+                IconButton(
+                    modifier = dragModifier,
+                    onClick = {},
+                ) {
+                    Icon(
+                        Icons.Filled.DragHandle,
+                        contentDescription = stringResource(R.string.sender_priority_drag_handle),
+                    )
+                }
                 Switch(
                     checked = sender.status == 1,
                     onCheckedChange = { onToggle(it) }
@@ -1521,8 +1738,12 @@ fun SenderCard(
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
+                TextButton(onClick = onPriorityClick) {
+                    Text(stringResource(R.string.sender_priority_value, displayPriority))
+                }
                 TextButton(onClick = onDelete) {
                     Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error)
                 }

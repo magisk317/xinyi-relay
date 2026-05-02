@@ -125,10 +125,12 @@ class EventPipeline(
                     return EventPipelineResult(dispatched = false, blockedReason = reason)
                 }
 
-                val msgForSend = buildDispatchPayload(event)
+                val effectiveConfig = resolveEffectiveConfig(event)
+                val msgForSend = buildDispatchPayload(event, effectiveConfig)
                 val dispatchResults = dispatchExecutor.dispatchToSenders(
                     senderResolution.selectedSenders,
                     msgForSend,
+                    effectiveConfig.dispatchStrategy,
                     traceId,
                 )
                 dispatchResultWriter.persistForwardResult(
@@ -234,8 +236,10 @@ class EventPipeline(
         )
     }
 
-    private suspend fun buildDispatchPayload(event: RelayEvent): MsgInfo {
-        val effectiveConfig = resolveEffectiveConfig(event)
+    private suspend fun buildDispatchPayload(
+        event: RelayEvent,
+        effectiveConfig: ForwardCommonConfig,
+    ): MsgInfo {
         val envSnapshot = systemInfoProvider.getSnapshot(effectiveConfig.deviceName)
         val dispatchContext = DispatchPayloadContext.from(event)
         val renderedContent = messageFormatter.format(event, dispatchContext, effectiveConfig, envSnapshot)

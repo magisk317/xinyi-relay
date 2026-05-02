@@ -18,4 +18,5 @@ data class Sender(
     var receiveAppNotify: Int = 1,
     var receiveCallNotify: Int = 0,
     var activeSchedule: SenderActiveSchedule = SenderActiveSchedule(),
+    var priority: Int = 0,
 ) : Parcelable

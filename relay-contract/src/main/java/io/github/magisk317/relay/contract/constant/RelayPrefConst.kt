@@ -164,6 +164,7 @@ object RelayPrefConst {
     const val KEY_FORWARD_COMMON_INCLUDE_TIME = "pref_forward_common_include_time"
     const val KEY_FORWARD_COMMON_INCLUDE_SENDER = "pref_forward_common_include_sender"
     const val KEY_FORWARD_COMMON_INCLUDE_DEVICE_NAME = "pref_forward_common_include_device_name"
+    const val KEY_FORWARD_COMMON_DISPATCH_STRATEGY = "pref_forward_common_dispatch_strategy"
     const val KEY_SIM_SLOT1_REMARK = "pref_sim_slot1_remark"
     const val KEY_SIM_SLOT2_REMARK = "pref_sim_slot2_remark"
     const val KEY_REMOTE_AGENT_BASE_URL = "pref_remote_agent_base_url"

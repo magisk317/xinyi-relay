@@ -38,7 +38,7 @@ import io.github.magisk317.relay.android.common.utils.XLog
     ForwardFilterRuleEntity::class,
     SenderEntity::class,
     RuleEntity::class
-], version = 27, exportSchema = false)
+], version = 28, exportSchema = false)
 @TypeConverters(ConvertersDate::class, ConvertersSenderList::class)
 abstract class AppDatabase : RoomDatabase() {
 
@@ -819,6 +819,16 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_27_28 = object : androidx.room.migration.Migration(27, 28) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                execSqlSafely(
+                    db = db,
+                    sql = "ALTER TABLE Sender ADD COLUMN priority INTEGER NOT NULL DEFAULT 0",
+                    migration = "27_28",
+                )
+            }
+        }
+
         private fun execSqlSafely(
             db: androidx.sqlite.db.SupportSQLiteDatabase,
             sql: String,
@@ -866,6 +876,7 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_24_25,
                     MIGRATION_25_26,
                     MIGRATION_26_27,
+                    MIGRATION_27_28,
                 )
                 .enableMultiInstanceInvalidation()
                 .build().also { instance = it }

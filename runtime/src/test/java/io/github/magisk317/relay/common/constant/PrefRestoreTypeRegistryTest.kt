@@ -37,6 +37,11 @@ class PrefRestoreTypeRegistryTest {
     }
 
     @Test
+    fun typeOf_dispatchStrategy_isInt() {
+        assertEquals(PrefValueType.INT, PrefRestoreTypeRegistry.typeOf(PrefConst.KEY_FORWARD_COMMON_DISPATCH_STRATEGY))
+    }
+
+    @Test
     fun typeOf_unknownKey_defaultsToString() {
         assertEquals(PrefValueType.STRING, PrefRestoreTypeRegistry.typeOf("unknown_pref_key"))
     }

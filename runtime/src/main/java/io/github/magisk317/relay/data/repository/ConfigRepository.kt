@@ -176,6 +176,12 @@ class ConfigRepository(
         senderDao.updateStatusByIds(ids, status)
         noteMutation("config.sender_status")
     }
+    override suspend fun updateSenderPriorities(priorityById: Map<Long, Int>) {
+        priorityById.forEach { (id, priority) ->
+            senderDao.updatePriorityById(id, priority)
+        }
+        noteMutation("config.sender_priority")
+    }
     override suspend fun deleteSender(sender: Sender) {
         senderDao.delete(sender.toEntity())
         noteMutation("config.sender_delete")

@@ -24,11 +24,13 @@ class ConfigMapperTest {
             jsonSetting = "{}",
             status = 1,
             time = Date(),
+            priority = 4,
             activeScheduleJson =
                 """{"sms":{"enabled":true,"mode":"whitelist","weekdays":[1,2,3,4,5],"ranges":[{"start":"09:00","end":"18:00"}]}}""",
         )
 
         val domain = with(ConfigMapper) { sender.toDomain() }
+        assertEquals(4, domain.priority)
         assertTrue(domain.activeSchedule.sms.enabled)
         assertEquals("09:00", domain.activeSchedule.sms.ranges.first().start)
 
@@ -47,5 +49,6 @@ class ConfigMapperTest {
 
         assertTrue(entity.activeScheduleJson.contains("\"10:00\""))
         assertTrue(entity.activeScheduleJson.contains("\"blacklist\""))
+        assertEquals(4, entity.priority)
     }
 }

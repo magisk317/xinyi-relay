@@ -908,6 +908,10 @@
     <string name="sender_dialog_sim1_note_label">SIM1 note</string>
     <string name="sender_dialog_sim2_note_label">SIM2 note</string>
     <string name="sender_dialog_sim_note_placeholder">Used for {{CARD_SLOT}} display</string>
+    <string name="dispatch_strategy">Dispatch strategy</string>
+    <string name="dispatch_strategy_primary_only">Primary only</string>
+    <string name="dispatch_strategy_broadcast_all">Broadcast all</string>
+    <string name="dispatch_strategy_failover">Failover</string>
     <string name="sender_gate_ingress_title">Ingress gate</string>
     <string name="sender_gate_ingress_summary_sms">When off, events will not enter the pipeline for recognition, records, or forwarding.</string>
     <string name="sender_gate_ingress_summary_event">When off, events will not enter the pipeline for records or forwarding.</string>
@@ -985,6 +989,10 @@
     <string name="sender_form_label_message_card_json_optional">Message card JSON (Optional)</string>
     <string name="sender_form_label_gotify_server">Gotify server</string>
     <string name="sender_form_label_priority">Priority</string>
+    <string name="sender_priority_order">Priority</string>
+    <string name="sender_priority_value">Priority %1$d</string>
+    <string name="sender_priority_dialog_title">%1$s priority</string>
+    <string name="sender_priority_drag_handle">Reorder sender</string>
     <string name="sender_form_label_server_required">Server (Required)</string>
     <string name="sender_form_label_server_example">e.g. https://ntfy.sh</string>
     <string name="sender_form_label_topic_required">Topic (Required)</string>

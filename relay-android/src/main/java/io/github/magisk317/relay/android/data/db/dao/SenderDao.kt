@@ -25,15 +25,18 @@ interface SenderDao {
     @Query("UPDATE Sender SET status=:status WHERE id IN (:ids)")
     suspend fun updateStatusByIds(ids: List<Long>, status: Int)
 
+    @Query("UPDATE Sender SET priority=:priority WHERE id=:id")
+    suspend fun updatePriorityById(id: Long, priority: Int)
+
     @Query("SELECT * FROM Sender where id=:id")
     suspend fun getOne(id: Long): SenderEntity?
 
     @Query("SELECT * FROM Sender WHERE id IN (:ids)")
     suspend fun getByIds(ids: List<Long>): List<SenderEntity>
 
-    @Query("SELECT * FROM Sender ORDER BY id DESC")
+    @Query("SELECT * FROM Sender ORDER BY priority ASC, id DESC")
     suspend fun getAll(): List<SenderEntity>
 
-    @Query("SELECT * FROM Sender ORDER BY id DESC")
+    @Query("SELECT * FROM Sender ORDER BY priority ASC, id DESC")
     fun getAllFlow(): Flow<List<SenderEntity>>
 }

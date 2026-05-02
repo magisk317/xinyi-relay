@@ -162,6 +162,14 @@ class SenderViewModel(
         }
     }
 
+    fun updateSenderPriorities(priorityById: Map<Long, Int>) {
+        if (priorityById.isEmpty()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            configRepository.updateSenderPriorities(priorityById)
+            configRepository.checkpoint()
+        }
+    }
+
     fun validateSenderForEnable(sender: Sender): SenderValidationResult {
         return SenderValidator.validateForEnable(sender)
     }

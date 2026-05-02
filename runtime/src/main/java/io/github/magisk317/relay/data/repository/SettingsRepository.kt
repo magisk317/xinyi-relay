@@ -2,6 +2,7 @@ package io.github.magisk317.relay.data.repository
 
 import android.content.Context
 import io.github.magisk317.relay.contract.constant.CodeNotificationOwner
+import io.github.magisk317.relay.contract.constant.DispatchStrategy
 import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.settings.*
@@ -422,12 +423,17 @@ class SettingsRepository(
             PrefConst.KEY_FORWARD_COMMON_INCLUDE_DEVICE_NAME,
             true,
         )
+        val dispatchStrategy = preferenceDataSource.getInt(
+            PrefConst.KEY_FORWARD_COMMON_DISPATCH_STRATEGY,
+            DispatchStrategy.BROADCAST_ALL,
+        )
         return ForwardCommonConfig(
             deviceName = configuredName.ifBlank { defaultDeviceName },
             messageTemplate = configuredTemplate,
             includeTime = includeTime,
             includeSender = includeSender,
             includeDeviceName = includeDeviceName,
+            dispatchStrategy = normalizeDispatchStrategy(dispatchStrategy),
         )
     }
 
@@ -452,7 +458,21 @@ class SettingsRepository(
             PrefConst.KEY_FORWARD_COMMON_INCLUDE_DEVICE_NAME,
             config.includeDeviceName,
         )
+        preferenceDataSource.setInt(
+            PrefConst.KEY_FORWARD_COMMON_DISPATCH_STRATEGY,
+            normalizeDispatchStrategy(config.dispatchStrategy),
+        )
         syncAndNoteRemoteMutation("settings.forward_common")
+    }
+
+    private fun normalizeDispatchStrategy(strategy: Int): Int {
+        return when (strategy) {
+            DispatchStrategy.PRIMARY_ONLY,
+            DispatchStrategy.BROADCAST_ALL,
+            DispatchStrategy.FAILOVER,
+            -> strategy
+            else -> DispatchStrategy.BROADCAST_ALL
+        }
     }
 
     override suspend fun loadAppNotifyTemplate(): String {

@@ -16,6 +16,7 @@ interface AppConfigRepository {
     suspend fun insertSender(sender: Sender): Long
     suspend fun updateSender(sender: Sender)
     suspend fun updateSenderStatus(ids: List<Long>, status: Int)
+    suspend fun updateSenderPriorities(priorityById: Map<Long, Int>)
     suspend fun deleteSender(sender: Sender)
     suspend fun clearAllSenders()
 
