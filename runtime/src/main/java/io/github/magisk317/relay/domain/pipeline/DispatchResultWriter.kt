@@ -7,11 +7,11 @@ import io.github.magisk317.relay.engine.service.SenderDispatchResult
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.entity.SenderDispatchLog
-import io.github.magisk317.relay.data.repository.RelayRecordRepository
+import io.github.magisk317.relay.engine.service.MessageRecordRepository
 
 class DispatchResultWriter(
     private val db: AppDatabase,
-    private val relayRecordRepository: RelayRecordRepository,
+    private val relayRecordRepository: MessageRecordRepository,
     private val preferenceDataSource: PreferenceDataSource,
 ) {
     suspend fun persistForwardResult(

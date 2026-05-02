@@ -27,6 +27,7 @@ android {
 
 dependencies {
     implementation(project(":relay-contract"))
+    implementation(project(":relay-engine"))
     implementation(project(":relay-android"))
     implementation(project(":runtime"))
     implementation(project(":smscode-core:smscode-runtime-common"))
