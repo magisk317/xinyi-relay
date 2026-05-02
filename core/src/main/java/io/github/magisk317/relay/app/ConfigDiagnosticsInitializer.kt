@@ -6,7 +6,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.android.common.utils.XLog
-import io.github.magisk317.relay.data.repository.ConfigRepository
+import io.github.magisk317.relay.engine.service.AppConfigRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -23,7 +23,7 @@ class ConfigDiagnosticsInitializer : AppInitializer {
     }
 
     private suspend fun logConfigSnapshot(
-        configRepository: ConfigRepository,
+        configRepository: AppConfigRepository,
         runtimeGraph: RuntimeGraph,
     ) {
         val senders = configRepository.getAllSenders()

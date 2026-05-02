@@ -1,11 +1,11 @@
 package io.github.magisk317.relay.di
 
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
-import io.github.magisk317.relay.data.repository.AnalyticsRepository
-import io.github.magisk317.relay.data.repository.ConfigRepository
-import io.github.magisk317.relay.data.repository.RemoteAgentRepository
-import io.github.magisk317.relay.data.repository.RelayRecordRepository
-import io.github.magisk317.relay.data.repository.SettingsRepository
+import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
+import io.github.magisk317.relay.contract.repository.RemoteSyncRepository
+import io.github.magisk317.relay.engine.service.AppConfigRepository
+import io.github.magisk317.relay.engine.service.MessageRecordRepository
+import io.github.magisk317.relay.engine.service.RuntimeAnalyticsProvider
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.pipeline.DispatchResultWriter
 import io.github.magisk317.relay.engine.service.*
@@ -17,11 +17,11 @@ val coreModule = module {
     single { get<RuntimeGraph>().database }
     single<PreferenceDataSource> { get<RuntimeGraph>().preferenceDataSource }
 
-    single<SettingsRepository> { get<RuntimeGraph>().settingsRepository }
-    single<RelayRecordRepository> { get<RuntimeGraph>().relayRecordRepository }
-    single<AnalyticsRepository> { get<RuntimeGraph>().analyticsRepository }
-    single<ConfigRepository> { get<RuntimeGraph>().configRepository }
-    single<RemoteAgentRepository> { get<RuntimeGraph>().remoteAgentRepository }
+    single<SettingsPreferencesRepository> { get<RuntimeGraph>().settingsRepository }
+    single<MessageRecordRepository> { get<RuntimeGraph>().relayRecordRepository }
+    single<RuntimeAnalyticsProvider> { get<RuntimeGraph>().analyticsRepository }
+    single<AppConfigRepository> { get<RuntimeGraph>().configRepository }
+    single<RemoteSyncRepository> { get<RuntimeGraph>().remoteAgentRepository }
 
     single<SystemInfoProvider> { get<RuntimeGraph>().systemInfoProvider }
     single<MessageFormatter> { get<RuntimeGraph>().messageFormatter }
