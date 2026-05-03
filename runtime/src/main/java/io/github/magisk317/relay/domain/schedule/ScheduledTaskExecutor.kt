@@ -32,7 +32,9 @@ object ScheduledTaskExecutor {
                 )
                 val msgInfo = MsgInfo(
                     content = task.content,
-                    from = "ScheduledTask"
+                    from = "ScheduledTask",
+                    date = java.util.Date(),
+                    simInfo = ""
                 )
 
                 try {
