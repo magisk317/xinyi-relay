@@ -40,7 +40,7 @@ import io.github.magisk317.relay.android.data.db.entity.ScheduledTaskEntity
     SenderEntity::class,
     RuleEntity::class,
     ScheduledTaskEntity::class
-], version = 29, exportSchema = false)
+], version = 30, exportSchema = false)
 @TypeConverters(ConvertersDate::class, ConvertersSenderList::class)
 abstract class AppDatabase : RoomDatabase() {
 
@@ -857,6 +857,23 @@ abstract class AppDatabase : RoomDatabase() {
                         "ON scheduled_task(id)",
                     migration = "28_29",
                 )
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE INDEX IF NOT EXISTS index_scheduled_task_status " +
+                        "ON scheduled_task(status)",
+                    migration = "28_29",
+                )
+            }
+        }
+
+        private val MIGRATION_29_30 = object : androidx.room.migration.Migration(29, 30) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE INDEX IF NOT EXISTS index_scheduled_task_status " +
+                        "ON scheduled_task(status)",
+                    migration = "29_30",
+                )
             }
         }
 
@@ -909,6 +926,7 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_26_27,
                     MIGRATION_27_28,
                     MIGRATION_28_29,
+                    MIGRATION_29_30,
                 )
                 .enableMultiInstanceInvalidation()
                 .build().also { instance = it }

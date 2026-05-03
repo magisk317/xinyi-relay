@@ -22,12 +22,15 @@
             </intent-filter>
         </receiver>
 
+        <!-- Scheduled task receiver: handles task execution and system event rescheduling.
+             Security: exported=false because all triggers are internal (AlarmManager PendingIntents
+             and system broadcasts). No external app needs to send broadcasts to this receiver. -->
         <receiver
             android:name="io.github.magisk317.relay.domain.schedule.ScheduledTaskReceiver"
-            android:exported="true">
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIME_CHANGED" />
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
                 <action android:name="io.github.magisk317.relay.action.SCHEDULED_TASK" />
             </intent-filter>

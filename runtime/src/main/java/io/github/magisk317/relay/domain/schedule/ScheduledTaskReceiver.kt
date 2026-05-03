@@ -4,32 +4,36 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import io.github.magisk317.relay.android.common.utils.XLog
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
+import io.github.magisk317.relay.android.data.db.AppDatabase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 class ScheduledTaskReceiver : BroadcastReceiver() {
-    @OptIn(DelicateCoroutinesApi::class)
+    private val receiverScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action
-        XLog.i("ScheduledTaskReceiver onReceive: \$action")
+        XLog.i("ScheduledTaskReceiver onReceive: $action")
 
         val pendingResult = goAsync()
-        GlobalScope.launch {
+        val appContext = context.applicationContext ?: context
+        receiverScope.launch {
             try {
-                if (action == Intent.ACTION_BOOT_COMPLETED ||
-                    action == Intent.ACTION_TIME_CHANGED ||
-                    action == Intent.ACTION_TIMEZONE_CHANGED) {
+                when (action) {
+                    Intent.ACTION_BOOT_COMPLETED,
+                    Intent.ACTION_TIME_CHANGED,
+                    Intent.ACTION_TIMEZONE_CHANGED -> {
+                        val db = AppDatabase.getInstance(appContext)
+                        ScheduledTaskManager(appContext, db).scheduleAllActiveTasks()
+                    }
 
-                    // AppDatabase.getInstance(context) can be used, but since RuntimeGraph handles it,
-                    // we can get the db from there or directly if accessible.
-                    // To keep it simple:
-                    val db = io.github.magisk317.relay.android.data.db.AppDatabase.getInstance(context)
-                    ScheduledTaskManager(context, db).scheduleAllActiveTasks()
-                } else if (action == ScheduledTaskManager.ALARM_ACTION) {
-                    val taskId = intent.getLongExtra(ScheduledTaskManager.EXTRA_TASK_ID, -1L)
-                    if (taskId != -1L) {
-                        ScheduledTaskExecutor.executeTask(context, taskId, "alarm")
+                    ScheduledTaskManager.ALARM_ACTION -> {
+                        val taskId = intent.getLongExtra(ScheduledTaskManager.EXTRA_TASK_ID, -1L)
+                        if (taskId != -1L) {
+                            ScheduledTaskExecutor.executeTask(appContext, taskId, "alarm")
+                        }
                     }
                 }
             } finally {

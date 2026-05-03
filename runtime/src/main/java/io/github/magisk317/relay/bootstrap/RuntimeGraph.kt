@@ -9,10 +9,12 @@ import io.github.magisk317.relay.contract.repository.RemoteSyncRepository
 import io.github.magisk317.relay.engine.service.AppConfigRepository
 import io.github.magisk317.relay.engine.service.MessageRecordRepository
 import io.github.magisk317.relay.engine.service.RuntimeAnalyticsProvider
+import io.github.magisk317.relay.engine.service.ScheduledTaskRepository
 import io.github.magisk317.relay.data.repository.AnalyticsRepository
 import io.github.magisk317.relay.data.repository.ConfigRepository
 import io.github.magisk317.relay.data.repository.RelayRecordRepository
 import io.github.magisk317.relay.data.repository.RemoteAgentRepository
+import io.github.magisk317.relay.data.repository.ScheduledTaskRepositoryImpl
 import io.github.magisk317.relay.data.repository.SettingsRepository
 import io.github.magisk317.relay.domain.pipeline.DispatchExecutor
 import io.github.magisk317.relay.domain.pipeline.DispatchResultWriter
@@ -69,6 +71,10 @@ class RuntimeGraph private constructor(
             ruleDao = database.ruleDao(),
             senderDao = database.senderDao(),
         )
+    }
+
+    val scheduledTaskRepository: ScheduledTaskRepository by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+        ScheduledTaskRepositoryImpl(appContext, database)
     }
 
     val systemInfoProvider: SystemInfoProvider by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {

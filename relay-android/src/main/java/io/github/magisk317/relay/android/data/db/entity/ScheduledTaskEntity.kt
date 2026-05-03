@@ -4,12 +4,12 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import java.util.Date
 
 @Entity(
     tableName = "scheduled_task",
     indices = [
-        Index(value = ["id"], unique = true)
+        Index(value = ["id"], unique = true),
+        Index(value = ["status"]),
     ]
 )
 data class ScheduledTaskEntity(

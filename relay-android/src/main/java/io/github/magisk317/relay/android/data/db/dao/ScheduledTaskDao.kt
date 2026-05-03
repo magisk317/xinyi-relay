@@ -20,8 +20,17 @@ interface ScheduledTaskDao {
     @Query("SELECT * FROM scheduled_task WHERE status = 1")
     suspend fun getActiveTasks(): List<ScheduledTaskEntity>
 
+    @Query("SELECT * FROM scheduled_task WHERE status = 1")
+    fun getActiveTasksFlow(): Flow<List<ScheduledTaskEntity>>
+
     @Query("SELECT * FROM scheduled_task WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): ScheduledTaskEntity?
+
+    @Query(
+        "UPDATE scheduled_task SET last_run_time = :runTime " +
+            "WHERE id = :id AND status = 1 AND last_run_time <= :dedupeBefore"
+    )
+    suspend fun markRunIfDue(id: Long, runTime: Long, dedupeBefore: Long): Int
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(task: ScheduledTaskEntity): Long

@@ -4,27 +4,35 @@ import android.content.Context
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.engine.model.MsgInfo
+import io.github.magisk317.relay.engine.model.ScheduledTask
 import io.github.magisk317.relay.sender.SmsUtils
 import io.github.magisk317.relay.sender.config.SmsSetting
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 object ScheduledTaskExecutor {
+    private const val DEDUPE_WINDOW_MS = 60_000L
+
     suspend fun executeTask(context: Context, taskId: Long, source: String) {
         withContext(Dispatchers.IO) {
             val db = AppDatabase.getInstance(context)
-            val task = db.scheduledTaskDao().getById(taskId) ?: return@withContext
+            val dao = db.scheduledTaskDao()
 
             val now = System.currentTimeMillis()
-            // Deduplication logic: If last run was less than 1 minute ago, skip
-            if (now - task.lastRunTime < 60_000L) {
-                XLog.i("Task \${taskId} skipped (dedup), already ran recently.")
+            val claimed = dao.markRunIfDue(
+                id = taskId,
+                runTime = now,
+                dedupeBefore = now - DEDUPE_WINDOW_MS,
+            )
+            if (claimed == 0) {
+                XLog.i("Task $taskId skipped, disabled or already claimed recently")
                 return@withContext
             }
 
-            XLog.i("Executing ScheduledTask \${taskId} from \$source")
+            val task = dao.getById(taskId) ?: return@withContext
+            XLog.i("Executing ScheduledTask $taskId from $source")
 
-            if (task.taskType == "sms") {
+            if (task.taskType == ScheduledTask.TASK_TYPE_SMS) {
                 val setting = SmsSetting(
                     simSlot = task.simSlot,
                     mobiles = task.mobiles,
@@ -38,19 +46,14 @@ object ScheduledTaskExecutor {
                 )
 
                 try {
-                    // This calls our updated SmsUtils (or current one if it handles it)
-                    SmsUtils.sendMsg(context, setting, msgInfo)
-                    XLog.i("ScheduledTask \${taskId} sent SMS successfully")
+                    SmsUtils.sendMsg(context, setting, msgInfo, waitForSentResult = true)
+                    XLog.i("ScheduledTask $taskId sent SMS successfully")
                 } catch (e: Exception) {
-                    XLog.e("ScheduledTask \${taskId} SMS failed", e)
+                    XLog.e("ScheduledTask $taskId SMS failed", e)
                 }
             }
 
-            // Update last run time and reschedule
-            task.lastRunTime = now
-            db.scheduledTaskDao().update(task)
-
-            ScheduledTaskManager(context, db).scheduleAllActiveTasks()
+            ScheduledTaskManager(context, db).rescheduleTask(task.id)
         }
     }
 }

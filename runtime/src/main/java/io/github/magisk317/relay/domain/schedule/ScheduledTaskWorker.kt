@@ -22,7 +22,7 @@ class ScheduledTaskWorker(
         for (task in activeTasks) {
             // Give 5 minutes window for delayed worker triggers
             if (now >= task.nextRunTime && (now - task.nextRunTime) < 5 * 60 * 1000L) {
-                XLog.i("Worker triggering task \${task.id}")
+                XLog.i("Worker triggering task ${task.id}")
                 ScheduledTaskExecutor.executeTask(applicationContext, task.id, "worker")
             }
         }

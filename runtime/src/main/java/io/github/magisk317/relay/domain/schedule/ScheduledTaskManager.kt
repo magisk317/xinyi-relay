@@ -5,9 +5,9 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import androidx.work.ExistingPeriodicWorkPolicy
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.entity.ScheduledTaskEntity
@@ -31,21 +31,13 @@ class ScheduledTaskManager(
         withContext(Dispatchers.IO) {
             val tasks = appDatabase.scheduledTaskDao().getActiveTasks()
             tasks.forEach { task ->
-                scheduleTask(task)
+                runCatching {
+                    scheduleTask(task)
+                }.onFailure { e ->
+                    XLog.e("Failed to schedule task ${task.id}", e)
+                }
             }
-
-            // Setup fallback worker
-            if (tasks.isNotEmpty()) {
-                val workRequest = PeriodicWorkRequestBuilder<ScheduledTaskWorker>(15, TimeUnit.MINUTES)
-                    .build()
-                WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                    WORK_NAME,
-                    ExistingPeriodicWorkPolicy.KEEP,
-                    workRequest
-                )
-            } else {
-                WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
-            }
+            updateFallbackWorker(tasks.isNotEmpty())
         }
     }
 
@@ -59,6 +51,13 @@ class ScheduledTaskManager(
                     cancelTask(taskId)
                 }
             }
+            refreshFallbackWorkerInternal()
+        }
+    }
+
+    suspend fun refreshFallbackWorker() {
+        withContext(Dispatchers.IO) {
+            refreshFallbackWorkerInternal()
         }
     }
 
@@ -72,25 +71,24 @@ class ScheduledTaskManager(
             putExtra(EXTRA_TASK_ID, task.id)
         }
         val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         } else {
             PendingIntent.FLAG_UPDATE_CURRENT
         }
-        val pendingIntent = PendingIntent.getBroadcast(context, task.id.toInt(), intent, flags)
+        val pendingIntent = PendingIntent.getBroadcast(context, requestCodeFor(task.id), intent, flags)
 
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
                     XLog.w("Cannot schedule exact alarms, lacking permission")
-                    // Fallback to exact or inexact
-                    alarmManager.setExact(AlarmManager.RTC_WAKEUP, nextRun, pendingIntent)
+                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextRun, pendingIntent)
                 } else {
                     alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextRun, pendingIntent)
                 }
             } else {
                 alarmManager.setExact(AlarmManager.RTC_WAKEUP, nextRun, pendingIntent)
             }
-            XLog.i("Scheduled task \${task.id} at \$nextRun")
+            XLog.i("Scheduled task ${task.id} at $nextRun")
         } catch (e: SecurityException) {
             XLog.e("SecurityException scheduling task", e)
         }
@@ -102,11 +100,35 @@ class ScheduledTaskManager(
             putExtra(EXTRA_TASK_ID, taskId)
         }
         val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         } else {
             PendingIntent.FLAG_UPDATE_CURRENT
         }
-        val pendingIntent = PendingIntent.getBroadcast(context, taskId.toInt(), intent, flags)
+        val pendingIntent = PendingIntent.getBroadcast(context, requestCodeFor(taskId), intent, flags)
         alarmManager.cancel(pendingIntent)
+    }
+
+    private suspend fun refreshFallbackWorkerInternal() {
+        val hasActiveTasks = appDatabase.scheduledTaskDao().getActiveTasks().isNotEmpty()
+        updateFallbackWorker(hasActiveTasks)
+    }
+
+    private fun updateFallbackWorker(hasActiveTasks: Boolean) {
+        val workManager = WorkManager.getInstance(context)
+        if (hasActiveTasks) {
+            val workRequest = PeriodicWorkRequestBuilder<ScheduledTaskWorker>(15, TimeUnit.MINUTES)
+                .build()
+            workManager.enqueueUniquePeriodicWork(
+                WORK_NAME,
+                ExistingPeriodicWorkPolicy.KEEP,
+                workRequest
+            )
+        } else {
+            workManager.cancelUniqueWork(WORK_NAME)
+        }
+    }
+
+    private fun requestCodeFor(taskId: Long): Int {
+        return taskId.hashCode()
     }
 }
