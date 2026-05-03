@@ -137,9 +137,11 @@ class MainActivity : AppCompatActivity() {
             val context = LocalContext.current
             val scope = rememberCoroutineScope()
             val appSnackbarHostState = remember { SnackbarHostState() }
+            var privacyAccepted by remember { mutableStateOf<Boolean?>(null) }
             var showPrivacyPolicyDialog by remember { mutableStateOf(false) }
             var showPrivacyPolicyPage by remember { mutableStateOf(false) }
             var blockingStartupDialog by remember { mutableStateOf<BlockingStartupDialog?>(null) }
+            var startupCompatibilityChecked by remember { mutableStateOf(false) }
             var githubUpdateUiState by remember { mutableStateOf<GithubUpdateUiState?>(null) }
             var downloadState by remember { mutableStateOf<UpdateDownloadState>(UpdateDownloadState.Idle) }
             var unknownSourceApk by remember { mutableStateOf<File?>(null) }
@@ -216,24 +218,30 @@ class MainActivity : AppCompatActivity() {
             }
 
             LaunchedEffect(Unit) {
-                if (!settingsRepository.isPrivacyPolicyAccepted()) {
+                val accepted = settingsRepository.isPrivacyPolicyAccepted()
+                privacyAccepted = accepted
+                if (!accepted) {
                     showPrivacyPolicyDialog = true
                 }
             }
             LaunchedEffect(Unit) {
-                if (BuildConfig.ALLOW_CONFLICT_BYPASS) {
-                    XLog.w(
-                        "SmsCode conflict guard bypassed by build flag allowConflictBypass=true",
-                    )
-                } else if (PackageUtils.isPackageInstalled(context, Const.XPOSED_SMSCODE_PACKAGE_NAME)) {
-                    blockingStartupDialog = BlockingStartupDialog.SmsCodeConflict
-                    return@LaunchedEffect
-                }
-                val frameworkIssue = withContext(Dispatchers.IO) {
-                    PackageUtils.inspectFrameworkIssue(context)
-                }
-                if (frameworkIssue != null) {
-                    blockingStartupDialog = BlockingStartupDialog.FrameworkIncompatibility(frameworkIssue)
+                try {
+                    if (BuildConfig.ALLOW_CONFLICT_BYPASS) {
+                        XLog.w(
+                            "SmsCode conflict guard bypassed by build flag allowConflictBypass=true",
+                        )
+                    } else if (PackageUtils.isPackageInstalled(context, Const.XPOSED_SMSCODE_PACKAGE_NAME)) {
+                        blockingStartupDialog = BlockingStartupDialog.SmsCodeConflict
+                        return@LaunchedEffect
+                    }
+                    val frameworkIssue = withContext(Dispatchers.IO) {
+                        PackageUtils.inspectFrameworkIssue(context)
+                    }
+                    if (frameworkIssue != null) {
+                        blockingStartupDialog = BlockingStartupDialog.FrameworkIncompatibility(frameworkIssue)
+                    }
+                } finally {
+                    startupCompatibilityChecked = true
                 }
             }
             LaunchedEffect(Unit) {
@@ -390,15 +398,25 @@ class MainActivity : AppCompatActivity() {
                                 hazeStyle = hazeStyle,
                             )
 
+                        StartupPermissionPrompt(
+                            enabled = startupCompatibilityChecked &&
+                                blockingStartupDialog == null &&
+                                privacyAccepted == true &&
+                                !showPrivacyPolicyDialog &&
+                                !showPrivacyPolicyPage,
+                        )
+
                         if (blockingStartupDialog == null && showPrivacyPolicyDialog) {
                             PrivacyPolicyDialog(
                                 onDismiss = {},
                                 onConfirm = {
                                     scope.launch { settingsRepository.setPrivacyPolicyAccepted(true) }
+                                    privacyAccepted = true
                                     showPrivacyPolicyDialog = false
                                 },
                                 onCancel = {
                                     scope.launch { settingsRepository.setPrivacyPolicyAccepted(false) }
+                                    privacyAccepted = false
                                     showPrivacyPolicyDialog = false
                                     finish()
                                 },
