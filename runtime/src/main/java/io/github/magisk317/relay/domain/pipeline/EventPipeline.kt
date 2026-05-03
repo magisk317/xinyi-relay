@@ -57,7 +57,7 @@ class EventPipeline(
         traceId: String? = null,
     ): EventPipelineResult {
         try {
-            val recordContext = resolveRecordContext(event, preferredRecordId)
+            var recordContext = resolveRecordContext(event, preferredRecordId)
             val gateDecision = eventGatekeeper.check(event, traceId.orEmpty())
             if (!gateDecision.allowed) {
                 ForwardFlowLog.w(traceId, "Event gate blocked type=${event.messageType} reason=${gateDecision.reason}")
@@ -125,6 +125,7 @@ class EventPipeline(
                     return EventPipelineResult(dispatched = false, blockedReason = reason)
                 }
 
+                recordContext = ensureSmsRecordForForwardResult(event, recordContext, traceId)
                 val effectiveConfig = resolveEffectiveConfig(event)
                 val msgForSend = buildDispatchPayload(event, effectiveConfig)
                 val dispatchResults = dispatchExecutor.dispatchToSenders(
@@ -201,6 +202,37 @@ class EventPipeline(
             smsMsgType = smsMsgType,
             recordId = recordId,
         )
+    }
+
+    private suspend fun ensureSmsRecordForForwardResult(
+        event: RelayEvent,
+        recordContext: RecordContext,
+        traceId: String?,
+    ): RecordContext {
+        if (recordContext.recordId != null) return recordContext
+        if (event.messageType != MessageType.SMS_CODE && event.messageType != MessageType.SMS_PLAIN) {
+            return recordContext
+        }
+        val recordId = dispatchResultWriter.insertRecord(
+            sender = event.sender,
+            body = event.body,
+            date = event.timestamp,
+            company = event.companyOrAppName,
+            smsCode = event.smsCode,
+            packageName = event.packageName,
+            notifyChannelId = event.notifyChannelId,
+            simSlot = event.simSlot,
+            subId = event.subId,
+            contactName = event.contactName,
+            phoneArea = event.phoneArea,
+            msgType = recordContext.smsMsgType,
+            isCodeSms = event.messageType == MessageType.SMS_CODE,
+        )
+        ForwardFlowLog.i(
+            traceId,
+            "Created sms record for forward result type=${event.messageType} recordId=${recordId ?: "<none>"}",
+        )
+        return recordContext.copy(recordId = recordId)
     }
 
     private suspend fun resolveSenders(

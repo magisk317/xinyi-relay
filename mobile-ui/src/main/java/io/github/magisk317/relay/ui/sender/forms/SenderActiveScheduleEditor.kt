@@ -177,7 +177,7 @@ private fun SenderActiveScheduleRuleEditor(
             text = stringResource(R.string.sender_active_schedule_weekdays_title),
             style = MaterialTheme.typography.titleSmall,
         )
-        WeekdayRow(
+        ActiveScheduleWeekdayRow(
             weekdays = listOf(1, 2, 3, 4),
             selectedWeekdays = rule.weekdays,
             onWeekdayToggle = { weekday ->
@@ -193,7 +193,7 @@ private fun SenderActiveScheduleRuleEditor(
                 )
             },
         )
-        WeekdayRow(
+        ActiveScheduleWeekdayRow(
             weekdays = SENDER_ACTIVE_SCHEDULE_SECOND_WEEKDAY_ROW,
             selectedWeekdays = rule.weekdays,
             onWeekdayToggle = { weekday ->
@@ -238,14 +238,14 @@ private fun SenderActiveScheduleRuleEditor(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    TimeValueButton(
+                    ActiveScheduleTimeValueButton(
                         modifier = Modifier.weight(1f),
                         value = range.start,
                         onValueChange = { value ->
                             onRuleChange(rule.withRange(index, range.copy(start = value)))
                         },
                     )
-                    TimeValueButton(
+                    ActiveScheduleTimeValueButton(
                         modifier = Modifier.weight(1f),
                         value = range.end,
                         onValueChange = { value ->
@@ -287,7 +287,7 @@ private val SENDER_ACTIVE_SCHEDULE_SECOND_WEEKDAY_ROW = listOf(5, 6, 7)
 private const val SENDER_ACTIVE_SCHEDULE_ACTION_WEIGHT = 0.2f
 
 @Composable
-private fun WeekdayRow(
+fun ActiveScheduleWeekdayRow(
     weekdays: List<Int>,
     selectedWeekdays: List<Int>,
     onWeekdayToggle: (Int) -> Unit,
@@ -315,7 +315,7 @@ private fun WeekdayRow(
 }
 
 @Composable
-private fun TimeValueButton(
+fun ActiveScheduleTimeValueButton(
     modifier: Modifier = Modifier,
     value: String,
     onValueChange: (String) -> Unit,

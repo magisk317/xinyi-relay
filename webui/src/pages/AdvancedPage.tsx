@@ -82,6 +82,13 @@ export function AdvancedPage() {
     <PageShell title={t('advanced.title')} description={t('advanced.remoteDescription')} badge={t('advanced.title')} actions={actions}>
       <ErrorBanner message={error} />
 
+      <SurfaceCard title={t('advanced.scheduledTasksTitle')} subtitle={t('advanced.scheduledTasksSubtitle')}>
+        <div className="flex flex-col sm:flex-row gap-4 mt-2">
+          <ActionButton onClick={() => window.location.href='/scheduled-tasks'}>
+            {t('advanced.scheduledTasksOpen')}
+          </ActionButton>
+        </div>
+      </SurfaceCard>
       <SurfaceCard title={t('advanced.bindTitle')} subtitle={t('advanced.bindSubtitle')}>
         <div className="flex flex-wrap items-center gap-3">
           <ActionButton

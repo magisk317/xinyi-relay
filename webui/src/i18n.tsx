@@ -33,6 +33,7 @@ const zhCnMessages: Messages = {
   'layout.nav.senders': '通道',
   'layout.nav.settings': '设置',
   'layout.nav.advanced': '高级',
+  'layout.nav.scheduled_tasks': '定时任务',
   'app.embeddedConnecting': '正在连接远程控制台...',
   'common.requestFailed': '请求失败：',
   'common.loading': '正在加载',
@@ -389,7 +390,16 @@ const zhCnMessages: Messages = {
   'advanced.webuiTitle': 'WebUI 配置',
   'advanced.webuiSubtitle': '保留 WebUI 自己的配置，不再和拦截规则混在一起。',
   'advanced.webui.allowLan': '允许局域网访问',
-  'advanced.webui.allowLanHint': '开启后可使用当前局域网地址访问 WebUI。'
+  'advanced.webui.allowLanHint': '开启后可使用当前局域网地址访问 WebUI。',
+  'advanced.scheduledTasksTitle': '定时任务管理',
+  'advanced.scheduledTasksSubtitle': '定时发送短信（支持 Cron 表达式）',
+  'advanced.scheduledTasksOpen': '进入定时任务',
+  'scheduledTasks.title': '定时任务',
+  'scheduledTasks.description': '定时发送短信（支持 Cron 表达式）',
+  'scheduledTasks.listTitle': '定时任务列表',
+  'scheduledTasks.emptySubtitle': '暂无定时任务',
+  'scheduledTasks.addAction': '添加任务',
+  'scheduledTasks.mobileOnlyHint': '请在手机端 App 中添加定时任务'
 }
 
 const enMessages: Messages = {
@@ -411,6 +421,7 @@ const enMessages: Messages = {
   'layout.nav.senders': 'Senders',
   'layout.nav.settings': 'Settings',
   'layout.nav.advanced': 'Advanced',
+  'layout.nav.scheduled_tasks': 'Scheduled Tasks',
   'app.embeddedConnecting': 'Connecting remote console...',
   'common.requestFailed': 'Request failed: ',
   'common.loading': 'Loading',
@@ -767,14 +778,32 @@ const enMessages: Messages = {
   'advanced.webuiTitle': 'WebUI',
   'advanced.webuiSubtitle': 'Keep WebUI-specific settings here instead of mixing them with intercept rules.',
   'advanced.webui.allowLan': 'Allow LAN access',
-  'advanced.webui.allowLanHint': 'When enabled, the current LAN address can access the WebUI.'
+  'advanced.webui.allowLanHint': 'When enabled, the current LAN address can access the WebUI.',
+  'advanced.scheduledTasksTitle': 'Scheduled tasks',
+  'advanced.scheduledTasksSubtitle': 'Send SMS on a schedule with Cron expressions.',
+  'advanced.scheduledTasksOpen': 'Open scheduled tasks',
+  'scheduledTasks.title': 'Scheduled tasks',
+  'scheduledTasks.description': 'Send SMS on a schedule with Cron expressions.',
+  'scheduledTasks.listTitle': 'Scheduled task list',
+  'scheduledTasks.emptySubtitle': 'No scheduled tasks yet',
+  'scheduledTasks.addAction': 'Add task',
+  'scheduledTasks.mobileOnlyHint': 'Add scheduled tasks from the Android app.'
 }
 
 const zhTwMessages: Messages = {
   ...zhCnMessages,
   'locale.system': '跟隨主應用/系統',
   'locale.zh-CN': '簡體中文',
-  'locale.zh-TW': '繁體中文'
+  'locale.zh-TW': '繁體中文',
+  'advanced.scheduledTasksTitle': '定時任務管理',
+  'advanced.scheduledTasksSubtitle': '定時發送簡訊（支援 Cron 表達式）',
+  'advanced.scheduledTasksOpen': '進入定時任務',
+  'scheduledTasks.title': '定時任務',
+  'scheduledTasks.description': '定時發送簡訊（支援 Cron 表達式）',
+  'scheduledTasks.listTitle': '定時任務列表',
+  'scheduledTasks.emptySubtitle': '暫無定時任務',
+  'scheduledTasks.addAction': '新增任務',
+  'scheduledTasks.mobileOnlyHint': '請在手機端 App 中新增定時任務'
 }
 
 const messages: Record<SupportedLocale, Messages> = {

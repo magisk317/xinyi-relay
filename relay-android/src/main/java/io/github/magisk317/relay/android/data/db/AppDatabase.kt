@@ -27,6 +27,7 @@ import io.github.magisk317.relay.android.data.db.entity.SmsCodeRule
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.android.data.db.entity.SenderDispatchLog
 import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.relay.android.data.db.entity.ScheduledTaskEntity
 
 @Database(entities = [
     SmsCodeRule::class,
@@ -37,8 +38,9 @@ import io.github.magisk317.relay.android.common.utils.XLog
     NotifyRouteRule::class,
     ForwardFilterRuleEntity::class,
     SenderEntity::class,
-    RuleEntity::class
-], version = 28, exportSchema = false)
+    RuleEntity::class,
+    ScheduledTaskEntity::class
+], version = 30, exportSchema = false)
 @TypeConverters(ConvertersDate::class, ConvertersSenderList::class)
 abstract class AppDatabase : RoomDatabase() {
 
@@ -51,6 +53,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun forwardFilterRuleDao(): ForwardFilterRuleDao
     abstract fun ruleDao(): RuleDao
     abstract fun senderDao(): SenderDao
+    abstract fun scheduledTaskDao(): io.github.magisk317.relay.android.data.db.dao.ScheduledTaskDao
 
     companion object {
         internal const val DATABASE_NAME = "relay_room.db"
@@ -829,6 +832,51 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_28_29 = object : androidx.room.migration.Migration(28, 29) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE TABLE IF NOT EXISTS scheduled_task (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "name TEXT NOT NULL DEFAULT '', " +
+                        "task_type TEXT NOT NULL DEFAULT 'sms', " +
+                        "cron_expression TEXT NOT NULL DEFAULT '', " +
+                        "sim_slot INTEGER NOT NULL DEFAULT 0, " +
+                        "mobiles TEXT NOT NULL DEFAULT '', " +
+                        "content TEXT NOT NULL DEFAULT '', " +
+                        "status INTEGER NOT NULL DEFAULT 1, " +
+                        "last_run_time INTEGER NOT NULL DEFAULT 0, " +
+                        "next_run_time INTEGER NOT NULL DEFAULT 0, " +
+                        "created_at INTEGER NOT NULL" +
+                        ")",
+                    migration = "28_29",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE UNIQUE INDEX IF NOT EXISTS index_scheduled_task_id " +
+                        "ON scheduled_task(id)",
+                    migration = "28_29",
+                )
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE INDEX IF NOT EXISTS index_scheduled_task_status " +
+                        "ON scheduled_task(status)",
+                    migration = "28_29",
+                )
+            }
+        }
+
+        private val MIGRATION_29_30 = object : androidx.room.migration.Migration(29, 30) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                execSqlSafely(
+                    db = db,
+                    sql = "CREATE INDEX IF NOT EXISTS index_scheduled_task_status " +
+                        "ON scheduled_task(status)",
+                    migration = "29_30",
+                )
+            }
+        }
+
         private fun execSqlSafely(
             db: androidx.sqlite.db.SupportSQLiteDatabase,
             sql: String,
@@ -877,6 +925,8 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_25_26,
                     MIGRATION_26_27,
                     MIGRATION_27_28,
+                    MIGRATION_28_29,
+                    MIGRATION_29_30,
                 )
                 .enableMultiInstanceInvalidation()
                 .build().also { instance = it }

@@ -7,11 +7,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -31,6 +34,7 @@ import io.github.magisk317.relay.core.R
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdvancedScreen(
+    onNavigateToScheduledTasks: (() -> Unit)? = null,
     onInterceptClick: () -> Unit,
     onVerificationConfigClick: () -> Unit,
     onRelayConfigClick: () -> Unit,
@@ -49,6 +53,7 @@ fun AdvancedScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -76,6 +81,14 @@ fun AdvancedScreen(
                 icon = { Icon(Icons.Default.DateRange, contentDescription = null) },
                 onClick = onScheduledReminderClick,
             )
+            onNavigateToScheduledTasks?.let {
+                AdvancedEntryCard(
+                    title = stringResource(id = R.string.scheduled_task_entry_title),
+                    subtitle = stringResource(id = R.string.scheduled_task_entry_summary),
+                    icon = { Icon(Icons.Default.Schedule, contentDescription = null) },
+                    onClick = it,
+                )
+            }
             AdvancedEntryCard(
                 title = stringResource(id = R.string.pref_remote_agent_title),
                 subtitle = stringResource(id = R.string.pref_remote_agent_summary),

@@ -22,6 +22,7 @@ val coreModule = module {
     single<RuntimeAnalyticsProvider> { get<RuntimeGraph>().analyticsRepository }
     single<AppConfigRepository> { get<RuntimeGraph>().configRepository }
     single<RemoteSyncRepository> { get<RuntimeGraph>().remoteAgentRepository }
+    single { get<RuntimeGraph>().scheduledTaskRepository }
 
     single<SystemInfoProvider> { get<RuntimeGraph>().systemInfoProvider }
     single<MessageFormatter> { get<RuntimeGraph>().messageFormatter }

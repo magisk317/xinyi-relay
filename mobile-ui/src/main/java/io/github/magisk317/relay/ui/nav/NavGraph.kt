@@ -57,6 +57,12 @@ object AdvancedGraphRoute
 object AdvancedRoute
 
 @Serializable
+object ScheduledTasksRoute
+
+@Serializable
+data class ScheduledTaskConfigRoute(val id: Long = 0L)
+
+@Serializable
 object ScheduledReminderRoute
 
 @Serializable

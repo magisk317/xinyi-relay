@@ -6,7 +6,7 @@ targetSdk = "37"
 ndk = "30.0.14904198"
 
 # JVM versions
-javaBytecode = "25"
+javaBytecode = "17"
 
 # App version
 versionCode = "22"
@@ -53,6 +53,7 @@ paho-mqtt = "1.2.5"
 play-app-update = "2.1.0"
 retrofit = "3.0.0"
 room = "2.8.4"
+work = "2.9.0"
 screenshot-validation = "0.0.1-alpha14"
 test-logger = "4.0.0"
 timber = "5.0.1"
@@ -94,6 +95,8 @@ androidx-navigation-compose = { module = "androidx.navigation:navigation-compose
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
+androidx-work-runtime = { module = "androidx.work:work-runtime", version.ref = "work" }
+androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
 androidx-test-core-ktx = { module = "androidx.test:core-ktx", version.ref = "androidx-test-core" }
 androidx-test-runner = { module = "androidx.test:runner", version.ref = "androidx-test-runner" }
 androidx-test-ext-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-test-ext-junit" }
