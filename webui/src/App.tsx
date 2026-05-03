@@ -6,6 +6,7 @@ import { AdvancedPage } from './pages/AdvancedPage'
 import { AnalyticsPage } from './pages/AnalyticsPage'
 import { AppsPage } from './pages/AppsPage'
 import { LoginPage } from './pages/LoginPage'
+import { ScheduledTasksPage } from './pages/ScheduledTasksPage'
 import { OverviewPage } from './pages/OverviewPage'
 import { RecordsPage } from './pages/RecordsPage'
 import { SendersPage } from './pages/SendersPage'
@@ -55,6 +56,7 @@ function AppRoutes() {
         <Route path="/senders" element={<SendersPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/advanced" element={<AdvancedPage />} />
+        <Route path="/scheduled-tasks" element={<ScheduledTasksPage />} />
         <Route path="/" element={<Navigate to="/overview" replace />} />
       </Route>
       <Route path="*" element={<Navigate to="/overview" replace />} />

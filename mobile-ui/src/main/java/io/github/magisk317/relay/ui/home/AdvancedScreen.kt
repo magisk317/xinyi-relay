@@ -31,6 +31,7 @@ import io.github.magisk317.relay.core.R
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdvancedScreen(
+    onNavigateToScheduledTasks: (() -> Unit)? = null,
     onInterceptClick: () -> Unit,
     onVerificationConfigClick: () -> Unit,
     onRelayConfigClick: () -> Unit,

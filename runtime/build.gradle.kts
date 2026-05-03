@@ -58,6 +58,7 @@ mokkery {
 }
 
 dependencies {
+    implementation(libs.androidx.work.runtime.ktx)
     implementation(project(":relay-contract"))
     implementation(project(":relay-engine"))
     implementation(project(":relay-android"))

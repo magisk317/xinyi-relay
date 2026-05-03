@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.telephony.SmsManager
+import android.telephony.SubscriptionManager
 import androidx.core.content.ContextCompat
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.sender.config.SmsSetting
@@ -31,7 +32,7 @@ object SmsUtils {
             throw IllegalArgumentException("未配置目标手机号")
         }
 
-        val smsManager = getSmsManager(context)
+        val smsManager = getSmsManager(context, setting.simSlot)
         val content = msgInfo.content
         runCatching {
             mobiles.forEach { mobile ->
@@ -44,7 +45,23 @@ object SmsUtils {
         }.getOrElse { throw it }
     }
 
-    private fun getSmsManager(context: Context): SmsManager {
+    private fun getSmsManager(context: Context, simSlot: Int): SmsManager {
+        if (simSlot > 0) {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
+                val subscriptionManager = context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as? SubscriptionManager
+                val activeInfos = subscriptionManager?.activeSubscriptionInfoList
+                val targetInfo = activeInfos?.find { it.simSlotIndex == simSlot - 1 }
+                if (targetInfo != null) {
+                    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        context.getSystemService(SmsManager::class.java)?.createForSubscriptionId(targetInfo.subscriptionId) ?: SmsManager.getSmsManagerForSubscriptionId(targetInfo.subscriptionId)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        SmsManager.getSmsManagerForSubscriptionId(targetInfo.subscriptionId)
+                    }
+                }
+            }
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             context.getSystemService(SmsManager::class.java)?.let { return it }
         }

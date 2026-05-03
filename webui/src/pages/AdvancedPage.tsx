@@ -82,6 +82,13 @@ export function AdvancedPage() {
     <PageShell title={t('advanced.title')} description={t('advanced.remoteDescription')} badge={t('advanced.title')} actions={actions}>
       <ErrorBanner message={error} />
 
+      <SurfaceCard title="定时任务管理" subtitle="定时发送短信（支持 Cron 表达式）">
+        <div className="flex flex-col sm:flex-row gap-4 mt-2">
+          <ActionButton onClick={() => window.location.href='/scheduled-tasks'}>
+            进入定时任务
+          </ActionButton>
+        </div>
+      </SurfaceCard>
       <SurfaceCard title={t('advanced.bindTitle')} subtitle={t('advanced.bindSubtitle')}>
         <div className="flex flex-wrap items-center gap-3">
           <ActionButton
