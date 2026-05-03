@@ -6,7 +6,7 @@ targetSdk = "37"
 ndk = "30.0.14904198"
 
 # JVM versions
-javaBytecode = "25"
+javaBytecode = "17"
 
 # App version
 versionCode = "22"
