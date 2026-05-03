@@ -103,6 +103,8 @@ fun MainScreen(
             destination.hasRoute(RemoteAgentRoute::class) -> NavigationSection.SETTINGS
             destination.hasRoute(InterceptRoute::class) -> NavigationSection.ADVANCED
             destination.hasRoute(ScheduledReminderRoute::class) -> NavigationSection.ADVANCED
+            destination.hasRoute(ScheduledTasksRoute::class) -> NavigationSection.ADVANCED
+            destination.hasRoute(ScheduledTaskConfigRoute::class) -> NavigationSection.ADVANCED
             destination.hasRoute(ForwardKeepAliveRoute::class) -> NavigationSection.ADVANCED
             destination.hasRoute(RelayConfigRoute::class) ->
                 sectionFromOrigin(entry.toRoute<RelayConfigRoute>().origin)
@@ -468,6 +470,22 @@ fun MainScreen(
                                 onForwardKeepAliveClick = { navController.navigate(ForwardKeepAliveRoute) },
                                 onScheduledReminderClick = { navController.navigate(ScheduledReminderRoute) },
                                 onRemoteAgentClick = { navController.navigate(RemoteAgentRoute) },
+                                onNavigateToScheduledTasks = { navController.navigate(ScheduledTasksRoute) },
+                            )
+                        }
+                        composable<ScheduledTasksRoute> {
+                            io.github.magisk317.relay.ui.scheduled.ScheduledTasksScreen(
+                                onBack = { navController.popBackStack() },
+                                onNavigateToConfig = { taskId ->
+                                    navController.navigate(ScheduledTaskConfigRoute(id = taskId))
+                                }
+                            )
+                        }
+                        composable<ScheduledTaskConfigRoute> { backStackEntry ->
+                            val route = backStackEntry.toRoute<ScheduledTaskConfigRoute>()
+                            io.github.magisk317.relay.ui.scheduled.ScheduledTaskConfigScreen(
+                                taskId = route.id,
+                                onBack = { navController.popBackStack() }
                             )
                         }
                         composable<RelayConfigRoute> { backStackEntry ->
