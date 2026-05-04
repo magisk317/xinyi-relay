@@ -81,6 +81,18 @@ The Backend is the self-hosted remote control plane for Xinyi Relay, with a loca
 - [Remote Architecture](docs/REMOTE_ARCHITECTURE.md)
 - [Desktop Guide](desktop/README.md)
 
+### Log Locations
+
+Both Backend and Desktop support log file output for troubleshooting:
+
+- **Backend Docker**: `backend/logs/backend.log` (configure `RELAY_LOG_FILE` in `.env`)
+- **Desktop**:
+  - macOS: `~/Library/Logs/io.github.magisk317.relay.desktop/`
+  - Windows: `%APPDATA%\io.github.magisk317.relay.desktop\logs\`
+  - Linux: `~/.local/share/io.github.magisk317.relay.desktop/logs/`
+
+See each component's README for details.
+
 ## Desktop Release Notes
 
 - Desktop releases currently ship Linux, macOS, and Windows packages.

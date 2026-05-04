@@ -107,6 +107,18 @@ Backend 是信驿 Relay 的自建远程控制面，默认部署模式为“本�
 - [远程架构](docs/REMOTE_ARCHITECTURE.md)
 - [Desktop 使用说明](desktop/README.md)
 
+### 日志位置
+
+Backend 和 Desktop 都支持日志文件输出，便于问题排查：
+
+- **Backend Docker**：`backend/logs/backend.log`（需在 `.env` 中配置 `RELAY_LOG_FILE`）
+- **Desktop**：
+  - macOS：`~/Library/Logs/io.github.magisk317.relay.desktop/`
+  - Windows：`%APPDATA%\io.github.magisk317.relay.desktop\logs\`
+  - Linux：`~/.local/share/io.github.magisk317.relay.desktop/logs/`
+
+详见各组件的 README 文档。
+
 ## Desktop Release 说明
 
 - Desktop Release 默认提供 Linux、macOS 与 Windows 包。

@@ -54,6 +54,57 @@ RELAY_API_IMAGE=ghcr.io/magisk317/xinyi-relay-backend:beta
 RELAY_API_PULL_POLICY=always
 ```
 
+## 日志配置
+
+后端支持将日志输出到文件，便于问题排查和运维监控。
+
+### 环境变量
+
+在 `backend/.env` 中配置以下变量：
+
+```bash
+# 日志文件路径（容器内路径，留空则只输出到 stdout）
+RELAY_LOG_FILE=/var/log/relay/backend.log
+
+# 日志级别：debug, info, warn, error
+RELAY_LOG_LEVEL=info
+
+# 日志目录（宿主机路径，用于持久化日志）
+RELAY_LOG_DIR=./logs
+```
+
+### 日志位置
+
+**Docker 部署**：
+- 容器内路径：`/var/log/relay/backend.log`
+- 宿主机路径：`backend/logs/backend.log`
+
+**直接运行**：
+- 由 `RELAY_LOG_FILE` 环境变量指定
+- 默认输出到 stdout
+
+### 查看日志
+
+```bash
+# 查看实时日志
+tail -f backend/logs/backend.log
+
+# 查看容器日志
+docker logs -f relay-backend-api
+
+# 搜索错误日志
+grep -i "error\|fatal\|panic" backend/logs/backend.log
+```
+
+### 日志格式
+
+日志格式为：`[日期 时间.微秒] 文件:行号: 消息`
+
+示例：
+```
+2026/05/04 12:34:56.789123 main.go:45: relay backend starting on :8080
+```
+
 ## Android Agent 接入本地 HTTPS
 
 如果 Android Agent 需要直连本地 `https://localhost:8443` 风格的自签发入口：

@@ -120,6 +120,60 @@ npm run tauri:dev
 
 CI 会保留 `desktop-ci.yml` 做日常跨平台构建校验，并提供独立 `desktop-release.yml` 做 Release 打包上传。
 
+## 日志
+
+桌面端会自动将日志写入文件，便于问题排查。
+
+### 日志位置
+
+**按平台划分**：
+
+| 平台 | 日志目录 |
+|------|----------|
+| macOS | `~/Library/Logs/io.github.magisk317.relay.desktop/` |
+| Windows | `%APPDATA%\io.github.magisk317.relay.desktop\logs\` |
+| Linux | `~/.local/share/io.github.magisk317.relay.desktop/logs/` |
+
+**日志文件命名**：`xinyi-relay-YYYY-MM-DD.log`（按日期滚动）
+
+### 查看日志
+
+```bash
+# macOS
+tail -f ~/Library/Logs/io.github.magisk317.relay.desktop/xinyi-relay-*.log
+
+# Linux
+tail -f ~/.local/share/io.github.magisk317.relay.desktop/logs/xinyi-relay-*.log
+
+# Windows (PowerShell)
+Get-Content "$env:APPDATA\io.github.magisk317.relay.desktop\logs\xinyi-relay-*.log" -Wait
+```
+
+### 日志格式
+
+```
+[2026-05-04 12:34:56.789] [INFO] 消息内容
+[2026-05-04 12:34:56.789] [ERROR] 错误信息
+```
+
+### 日志级别
+
+- `DEBUG`：调试信息
+- `INFO`：一般信息
+- `WARN`：警告信息
+- `ERROR`：错误信息
+
+### 诊断导出
+
+桌面端提供诊断导出功能，会打包以下信息：
+
+- 应用日志
+- 配置快照
+- 连接状态
+- 系统信息
+
+导出文件可通过菜单 → 高级 → 导出诊断包 生成。
+
 ## Windows 自签名证书
 
 仓库内置了当前 Release 使用的公开 Windows 自签名证书：

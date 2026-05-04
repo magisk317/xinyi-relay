@@ -53,6 +53,13 @@ services:
       RELAY_CORS_ORIGIN: ${RELAY_CORS_ORIGIN}
       # 连接 PostgreSQL 的 DSN
       RELAY_DATABASE_URL: ${RELAY_DATABASE_URL}
+      # 日志文件路径（容器内路径）
+      RELAY_LOG_FILE: ${RELAY_LOG_FILE:-/var/log/relay/backend.log}
+      # 日志级别
+      RELAY_LOG_LEVEL: ${RELAY_LOG_LEVEL:-info}
+    volumes:
+      # 持久化后端日志
+      - ${RELAY_LOG_DIR:-./logs}:/var/log/relay
     depends_on:
       # API 依赖数据库容器先启动
       - postgres

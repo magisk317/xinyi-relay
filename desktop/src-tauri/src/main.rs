@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod desktop_i18n;
+mod logger;
 mod storage;
 mod tray;
 
@@ -719,7 +720,7 @@ async fn desktop_start_browser_login(
         state: flow_state,
         callback_url,
     };
-    println!(
+    log_info!(
         "desktop auth start created for profile={} callback_url={}",
         profile.id, result.callback_url
     );
@@ -733,7 +734,7 @@ async fn desktop_exchange_browser_login(
     code: String,
     state: String,
 ) -> Result<DesktopAuthExchangeResponse, String> {
-    println!("desktop auth exchange requested state={}", state);
+    log_info!("desktop auth exchange requested state={}", state);
     let auth_flow = runtime
         .auth_flow
         .lock()
@@ -792,7 +793,7 @@ async fn desktop_exchange_browser_login(
         },
     )?;
     restart_monitor(&app);
-    println!(
+    log_info!(
         "desktop auth exchange succeeded profile={} username={}",
         profile.id, response.username
     );
@@ -1240,7 +1241,7 @@ fn sync_active_session_from_storage(
                     .map(|item| item.profile_id.as_str())
                     == Some(profile_id.as_str())
                 {
-                    println!(
+                    log_warn!(
                         "desktop session missing from keyring, preserving in-memory session for profile={}",
                         profile_id
                     );
@@ -1255,7 +1256,7 @@ fn sync_active_session_from_storage(
                     .map(|item| item.profile_id.as_str())
                     == Some(profile_id.as_str())
                 {
-                    eprintln!(
+                    log_error!(
                         "desktop session keyring reload failed for profile={}, preserving in-memory session: {}",
                         profile_id, err
                     );
@@ -1448,7 +1449,7 @@ fn open_external_url(url: &str) -> Result<(), String> {
             .status()
         {
             Ok(status) if status.success() => {
-                println!("opened external url via {} -> {}", command, url);
+                log_info!("opened external url via {} -> {}", command, url);
                 return Ok(());
             }
             Ok(status) => {
@@ -1459,7 +1460,7 @@ fn open_external_url(url: &str) -> Result<(), String> {
     }
 
     let error_message = last_error.unwrap_or_else(|| "No system browser launcher is available.".to_string());
-    eprintln!("failed to open external url {}: {}", url, error_message);
+    log_error!("failed to open external url {}: {}", url, error_message);
     Err(error_message)
 }
 
@@ -1890,6 +1891,12 @@ fn main() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_notification::init())
         .setup(|app| {
+            // 初始化日志文件
+            if let Err(e) = logger::init_log_file(&app.handle()) {
+                log_error!("Failed to initialize log file: {}", e);
+            }
+            log_info!("Xinyi Relay Desktop starting up");
+
             let language_tag = system_language_tag();
             let persisted = load_persisted_state(&app.handle())?;
             let active_profile = active_profile(&persisted);

@@ -11,6 +11,8 @@ type Config struct {
 	DatabaseURL   string
 	AdminUsername string
 	AdminPassword string
+	LogFile       string
+	LogLevel      string
 }
 
 func Load() Config {
@@ -23,6 +25,8 @@ func Load() Config {
 		DatabaseURL:   getEnv("RELAY_DATABASE_URL", ""),
 		AdminUsername: getEnv("RELAY_ADMIN_USERNAME", ""),
 		AdminPassword: getEnv("RELAY_ADMIN_PASSWORD", ""),
+		LogFile:       getEnv("RELAY_LOG_FILE", ""),
+		LogLevel:      getEnv("RELAY_LOG_LEVEL", "info"),
 	}
 }
 
