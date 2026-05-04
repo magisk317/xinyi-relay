@@ -103,7 +103,7 @@ class GoogleDriveBackupManager(
                     throw IllegalStateException("Upload failed: ${response.code}")
                 }
 
-                val body = response.body?.string() ?: throw IllegalStateException("Empty response")
+                val body = response.body.string()
                 val fileId = JsonParser.parseString(body).asJsonObject.get("id").asString
                 val fileSize = tempFile.length()
                 val modifiedTime = timestamp
@@ -132,7 +132,7 @@ class GoogleDriveBackupManager(
                 throw IllegalStateException("List failed: ${response.code}")
             }
 
-            val body = response.body?.string() ?: throw IllegalStateException("Empty response")
+            val body = response.body.string()
             val files = JsonParser.parseString(body).asJsonObject.getAsJsonArray("files")
 
             files.map { file ->
@@ -161,7 +161,7 @@ class GoogleDriveBackupManager(
 
             val file = File(context.cacheDir, "backup-$fileId.zip")
             FileOutputStream(file).use { output ->
-                response.body?.byteStream()?.use { input ->
+                response.body.byteStream().use { input ->
                     input.copyTo(output)
                 }
             }

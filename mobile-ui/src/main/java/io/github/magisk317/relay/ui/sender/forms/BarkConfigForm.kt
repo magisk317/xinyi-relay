@@ -4,15 +4,22 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
+import io.github.magisk317.relay.sender.AesUtils
 import io.github.magisk317.relay.sender.config.BarkSetting
 import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.sender.BarkUtils
@@ -69,6 +77,24 @@ fun BarkConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
     var currentSender by remember { mutableStateOf<Sender?>(null) }
     var showExitDialog by remember { mutableStateOf(false) }
 
+    // 加密配置
+    var encryptionType by remember { mutableStateOf("none") }
+    var encryptionKey by remember { mutableStateOf("") }
+    var encryptionIv by remember { mutableStateOf("") }
+    var showEncryptionSettings by remember { mutableStateOf(false) }
+
+    val encryptionNoneLabel = stringResource(R.string.sender_form_label_bark_encryption_none)
+    val encryptionGcmLabel = stringResource(R.string.sender_form_label_bark_encryption_gcm)
+    val encryptionCbcLabel = stringResource(R.string.sender_form_label_bark_encryption_cbc)
+    val encryptionKeyGeneratedLabel = stringResource(R.string.sender_form_label_bark_encryption_key_generated)
+    val encryptionIvGeneratedLabel = stringResource(R.string.sender_form_label_bark_encryption_iv_generated)
+
+    val encryptionOptions = listOf(
+        "none" to encryptionNoneLabel,
+        "AES/GCM/NoPadding" to encryptionGcmLabel,
+        "AES/CBC/PKCS5Padding" to encryptionCbcLabel,
+    )
+
     LaunchedEffect(senderId) {
         if (senderId > 0) {
             viewModel.getSender(senderId)?.let { sender ->
@@ -81,13 +107,23 @@ fun BarkConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
                 runCatching { Gson().fromJson(sender.jsonSetting, BarkSetting::class.java) }.getOrNull()?.let {
                     server = it.server
                     title = it.title
+                    encryptionType = it.transformation
+                    encryptionKey = it.key
+                    encryptionIv = it.iv
+                    showEncryptionSettings = it.transformation != "none"
                 }
             }
         }
     }
 
     fun buildSender(status: Int): Sender {
-        val setting = BarkSetting(server = server, title = title)
+        val setting = BarkSetting(
+            server = server,
+            title = title,
+            transformation = encryptionType,
+            key = encryptionKey,
+            iv = encryptionIv,
+        )
         return currentSender?.copy(
             name = name,
             jsonSetting = Gson().toJson(setting),
@@ -200,6 +236,113 @@ fun BarkConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
                 placeholder = { Text(stringResource(R.string.sender_form_title_template_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
             )
+
+            // 加密设置
+            Text(
+                text = stringResource(R.string.sender_form_label_bark_encryption),
+                style = MaterialTheme.typography.titleMedium,
+            )
+
+            // 加密方式选择
+            var encryptionExpanded by remember { mutableStateOf(false) }
+            ExposedDropdownMenuBox(
+                expanded = encryptionExpanded,
+                onExpandedChange = { encryptionExpanded = it },
+            ) {
+                OutlinedTextField(
+                    value = encryptionOptions.find { it.first == encryptionType }?.second
+                        ?: stringResource(R.string.sender_form_label_bark_encryption_none),
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text(stringResource(R.string.sender_form_label_bark_encryption_type)) },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = encryptionExpanded) },
+                    modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                )
+                ExposedDropdownMenu(
+                    expanded = encryptionExpanded,
+                    onDismissRequest = { encryptionExpanded = false },
+                ) {
+                    encryptionOptions.forEach { (value, label) ->
+                        DropdownMenuItem(
+                            text = { Text(label) },
+                            onClick = {
+                                encryptionType = value
+                                showEncryptionSettings = value != "none"
+                                // 切换到 GCM 模式时清空 IV
+                                if (value == "AES/GCM/NoPadding") {
+                                    encryptionIv = ""
+                                }
+                                encryptionExpanded = false
+                            },
+                        )
+                    }
+                }
+            }
+
+            // 加密密钥和 IV 设置
+            if (showEncryptionSettings) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // 密钥输入
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedTextField(
+                        value = encryptionKey,
+                        onValueChange = { encryptionKey = it },
+                        label = { Text(stringResource(R.string.sender_form_label_bark_encryption_key)) },
+                        placeholder = { Text(stringResource(R.string.sender_form_label_bark_encryption_key_hint)) },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                    )
+                    IconButton(
+                        onClick = {
+                            encryptionKey = AesUtils.generateKey()
+                            showMessage(encryptionKeyGeneratedLabel)
+                        },
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.sender_form_label_bark_encryption_key))
+                    }
+                }
+
+                // IV 输入（仅 CBC 模式）
+                if (encryptionType == "AES/CBC/PKCS5Padding") {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        OutlinedTextField(
+                            value = encryptionIv,
+                            onValueChange = { encryptionIv = it },
+                            label = { Text(stringResource(R.string.sender_form_label_bark_encryption_iv)) },
+                            placeholder = { Text(stringResource(R.string.sender_form_label_bark_encryption_iv_hint)) },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                        )
+                        IconButton(
+                            onClick = {
+                                encryptionIv = AesUtils.generateIv(encryptionType)
+                                showMessage(encryptionIvGeneratedLabel)
+                            },
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.sender_form_label_bark_encryption_iv))
+                        }
+                    }
+                }
+
+                // 加密说明
+                Text(
+                    text = when (encryptionType) {
+                        "AES/GCM/NoPadding" -> stringResource(R.string.sender_form_label_bark_encryption_gcm_desc)
+                        "AES/CBC/PKCS5Padding" -> stringResource(R.string.sender_form_label_bark_encryption_cbc_desc)
+                        else -> ""
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
             ForwardToggleSection(
                 receiveCode = receiveCode,
                 onReceiveCodeChange = { receiveCode = it },
@@ -214,7 +357,13 @@ fun BarkConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
             )
             SenderTestActionRow(channel = "Bark") {
                 BarkUtils.sendMsg(
-                    BarkSetting(server = server, title = title),
+                    BarkSetting(
+                        server = server,
+                        title = title,
+                        transformation = encryptionType,
+                        key = encryptionKey,
+                        iv = encryptionIv,
+                    ),
                     buildSenderTestMsgInfo(context, getSenderTypeName(context, SenderType.BARK)),
                 )
             }

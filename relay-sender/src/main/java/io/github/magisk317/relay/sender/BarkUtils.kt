@@ -39,6 +39,41 @@ object BarkUtils {
         if (!TextUtils.isEmpty(setting.call)) payload["call"] = setting.call
 
         val json = Gson().toJson(payload)
+
+        // 根据加密模式处理消息
+        val requestBody = when (setting.transformation) {
+            "AES/GCM/NoPadding" -> {
+                if (!AesUtils.isValidKey(setting.key, setting.transformation)) {
+                    throw IllegalStateException("Bark GCM 加密密钥无效，需要 Base64 编码的 256 位密钥")
+                }
+                val result = AesUtils.encryptAesGcm(setting.key, json)
+                SLog.i(TAG, "Bark GCM encryption applied, nonce length: ${result.iv.length}")
+                val encryptedPayload = mapOf(
+                    "ciphertext" to result.ciphertext,
+                    "iv" to result.iv,
+                )
+                Gson().toJson(encryptedPayload)
+            }
+            "AES/CBC/PKCS5Padding" -> {
+                if (!AesUtils.isValidKey(setting.key, setting.transformation)) {
+                    throw IllegalStateException("Bark CBC 加密密钥无效，需要 Base64 编码的 256 位密钥")
+                }
+                if (!AesUtils.isValidIv(setting.iv, setting.transformation)) {
+                    throw IllegalStateException("Bark CBC 加密 IV 无效，需要 Base64 编码的 128 位 IV")
+                }
+                val ciphertext = AesUtils.encryptAesCbc(setting.key, setting.iv, json)
+                SLog.i(TAG, "Bark CBC encryption applied")
+                val encryptedPayload = mapOf(
+                    "ciphertext" to ciphertext,
+                    "iv" to setting.iv,
+                )
+                Gson().toJson(encryptedPayload)
+            }
+            else -> {
+                json
+            }
+        }
+
         val request = Request.Builder()
             .url(url)
             .apply {
@@ -46,7 +81,7 @@ object BarkUtils {
                     header("Authorization", basicAuth)
                 }
             }
-            .post(json.toRequestBody("application/json; charset=utf-8".toMediaType()))
+            .post(requestBody.toRequestBody("application/json; charset=utf-8".toMediaType()))
             .build()
 
         client.newCall(request).execute().use { response ->

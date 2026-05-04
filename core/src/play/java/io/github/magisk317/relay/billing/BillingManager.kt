@@ -6,10 +6,12 @@ import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
+import com.android.billingclient.api.PendingPurchasesParams
 import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
+import com.android.billingclient.api.QueryProductDetailsResult
 import com.android.billingclient.api.QueryPurchasesParams
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +26,11 @@ class BillingManager(context: Context) : PurchasesUpdatedListener {
 
     private val billingClient: BillingClient = BillingClient.newBuilder(appContext)
         .setListener(this)
-        .enablePendingPurchases()
+        .enablePendingPurchases(
+            PendingPurchasesParams.newBuilder()
+                .enableOneTimeProducts()
+                .build(),
+        )
         .build()
 
     private val _subscriptionDetails = MutableStateFlow<List<ProductDetails>>(emptyList())
@@ -68,12 +74,13 @@ class BillingManager(context: Context) : PurchasesUpdatedListener {
             .build()
 
         return suspendCancellableCoroutine { cont ->
-            billingClient.queryProductDetailsAsync(params) { result, details ->
-                if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+            billingClient.queryProductDetailsAsync(params) { billingResult: BillingResult, result: QueryProductDetailsResult ->
+                val details = result.productDetailsList
+                if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                     _subscriptionDetails.value = details
                     cont.resume(details)
                 } else {
-                    Timber.w("Query subscriptions failed: ${result.debugMessage}")
+                    Timber.w("Query subscriptions failed: ${billingResult.debugMessage}")
                     cont.resume(emptyList())
                 }
             }
@@ -93,12 +100,13 @@ class BillingManager(context: Context) : PurchasesUpdatedListener {
             .build()
 
         return suspendCancellableCoroutine { cont ->
-            billingClient.queryProductDetailsAsync(params) { result, details ->
-                if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+            billingClient.queryProductDetailsAsync(params) { billingResult: BillingResult, result: QueryProductDetailsResult ->
+                val details = result.productDetailsList
+                if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                     _donationDetails.value = details
                     cont.resume(details)
                 } else {
-                    Timber.w("Query donations failed: ${result.debugMessage}")
+                    Timber.w("Query donations failed: ${billingResult.debugMessage}")
                     cont.resume(emptyList())
                 }
             }
