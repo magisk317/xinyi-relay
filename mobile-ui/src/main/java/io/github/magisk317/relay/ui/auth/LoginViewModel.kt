@@ -4,7 +4,7 @@ import android.app.Application
 import android.content.Intent
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.magisk317.relay.auth.FirebaseAuthManager
+import io.github.magisk317.relay.auth.AuthManager
 import io.github.magisk317.relay.auth.GoogleSignInHelper
 import io.github.magisk317.relay.auth.UserSession
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -18,7 +18,7 @@ import org.koin.core.component.inject
 class LoginViewModel(application: Application) : AndroidViewModel(application), KoinComponent {
 
     private val googleSignInHelper: GoogleSignInHelper by inject()
-    private val authManager: FirebaseAuthManager by inject()
+    private val authManager: AuthManager by inject()
 
     val session: StateFlow<UserSession?> = authManager.session
 

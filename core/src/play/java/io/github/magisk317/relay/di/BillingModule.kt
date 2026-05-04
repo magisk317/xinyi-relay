@@ -1,5 +1,9 @@
 package io.github.magisk317.relay.di
 
+import io.github.magisk317.relay.auth.AuthManager
+import io.github.magisk317.relay.auth.FirebaseAuthManager
+import io.github.magisk317.relay.auth.GoogleSignInHelper
+import io.github.magisk317.relay.auth.GoogleSignInHelperImpl
 import io.github.magisk317.relay.backup.CloudBackupProvider
 import io.github.magisk317.relay.backup.GoogleDriveBackupManager
 import io.github.magisk317.relay.backup.PlayCloudBackupProvider
@@ -16,4 +20,8 @@ val billingModule = module {
 
     single { GoogleDriveBackupManager(get(), get()) }
     single<CloudBackupProvider> { PlayCloudBackupProvider(get(), get(), get()) }
+
+    single<GoogleSignInHelper> { GoogleSignInHelperImpl(get()) }
+    single { FirebaseAuthManager(get(), get()) }
+    single<AuthManager> { get<FirebaseAuthManager>() }
 }

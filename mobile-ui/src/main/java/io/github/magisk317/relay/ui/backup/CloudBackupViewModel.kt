@@ -3,7 +3,7 @@ package io.github.magisk317.relay.ui.backup
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.magisk317.relay.auth.FirebaseAuthManager
+import io.github.magisk317.relay.auth.AuthManager
 import io.github.magisk317.relay.backup.CloudBackupMeta
 import io.github.magisk317.relay.backup.CloudBackupProvider
 import io.github.magisk317.relay.billing.BillingProvider
@@ -21,7 +21,7 @@ import org.koin.core.component.inject
 class CloudBackupViewModel(application: Application) : AndroidViewModel(application), KoinComponent {
 
     private val cloudBackupProvider: CloudBackupProvider by inject()
-    private val authManager: FirebaseAuthManager by inject()
+    private val authManager: AuthManager by inject()
     private val billingProvider: BillingProvider by inject()
 
     private val _backups = MutableStateFlow<List<CloudBackupMeta>>(emptyList())

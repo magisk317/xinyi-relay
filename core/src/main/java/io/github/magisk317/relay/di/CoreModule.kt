@@ -8,8 +8,6 @@ import io.github.magisk317.relay.engine.service.MessageRecordRepository
 import io.github.magisk317.relay.engine.service.RuntimeAnalyticsProvider
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.pipeline.DispatchResultWriter
-import io.github.magisk317.relay.auth.FirebaseAuthManager
-import io.github.magisk317.relay.auth.GoogleSignInHelper
 import io.github.magisk317.relay.engine.service.*
 import org.koin.dsl.module
 
@@ -34,7 +32,4 @@ val coreModule = module {
     single { get<RuntimeGraph>().senderSelector }
     single { get<RuntimeGraph>().dispatchExecutor }
     single { get<RuntimeGraph>().eventPipeline }
-
-    single { GoogleSignInHelper(get()) }
-    single { FirebaseAuthManager(get(), get()) }
 }

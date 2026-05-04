@@ -5,22 +5,20 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import io.github.magisk317.relay.android.data.secret.InternalSecretStore
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import timber.log.Timber
 
 class FirebaseAuthManager(
     private val context: Context,
     private val googleSignInHelper: GoogleSignInHelper,
-) {
+) : AuthManager {
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
     private val _session = MutableStateFlow<UserSession?>(null)
-    val session: StateFlow<UserSession?> = _session.asStateFlow()
+    override val session: StateFlow<UserSession?> = _session.asStateFlow()
 
     init {
         auth.addAuthStateListener { firebaseAuth ->
@@ -48,9 +46,11 @@ class FirebaseAuthManager(
         }
     }
 
-    suspend fun signInWithGoogle(account: GoogleSignInAccount): Result<UserSession> {
+    override suspend fun signInWithGoogle(account: Any?): Result<UserSession> {
+        val gAccount = account as? GoogleSignInAccount
+            ?: return Result.failure(IllegalStateException("Invalid account type"))
         return try {
-            val credential = GoogleAuthProvider.getCredential(account.idToken, null)
+            val credential = GoogleAuthProvider.getCredential(gAccount.idToken, null)
             val result = auth.signInWithCredential(credential).await()
             val user = result.user ?: return Result.failure(IllegalStateException("User is null"))
             val tokenResult = user.getIdToken(true).await()
@@ -70,15 +70,15 @@ class FirebaseAuthManager(
         }
     }
 
-    fun signOut() {
+    override fun signOut() {
         auth.signOut()
         googleSignInHelper.signOut()
         _session.value = null
     }
 
-    fun isLoggedIn(): Boolean = auth.currentUser != null
+    override fun isLoggedIn(): Boolean = auth.currentUser != null
 
-    fun getCurrentUid(): String? = auth.currentUser?.uid
+    override fun getCurrentUid(): String? = auth.currentUser?.uid
 
     fun observeLoginState(): Flow<UserSession?> = session
 
