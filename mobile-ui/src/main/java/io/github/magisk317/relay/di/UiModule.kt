@@ -1,5 +1,8 @@
 package io.github.magisk317.relay.di
 
+import io.github.magisk317.relay.ui.auth.LoginViewModel
+import io.github.magisk317.relay.ui.backup.CloudBackupViewModel
+import io.github.magisk317.relay.ui.billing.DonateViewModel
 import io.github.magisk317.relay.ui.home.AppConfigViewModel
 import io.github.magisk317.relay.ui.home.SettingsViewModel
 import io.github.magisk317.relay.ui.record.CodeRecordViewModel
@@ -16,4 +19,7 @@ val uiModule = module {
     viewModelOf(::RuleViewModel)
     viewModelOf(::SenderViewModel)
     viewModelOf(::ScheduledTaskViewModel)
+    viewModelOf(::LoginViewModel)
+    viewModelOf(::DonateViewModel)
+    viewModelOf(::CloudBackupViewModel)
 }

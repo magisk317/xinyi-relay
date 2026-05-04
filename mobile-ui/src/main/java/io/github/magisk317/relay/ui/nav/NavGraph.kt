@@ -140,6 +140,18 @@ data class SenderForwardFilterRoute(
     val origin: String = ROUTE_ORIGIN_ADVANCED,
 )
 
+@Serializable
+object LoginRoute
+
+@Serializable
+object ProfileRoute
+
+@Serializable
+object DonateRoute
+
+@Serializable
+object CloudBackupRoute
+
 @Composable
 fun SmsCodeNavHost(
     navController: NavHostController,

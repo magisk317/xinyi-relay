@@ -1,0 +1,12 @@
+package io.github.magisk317.relay.di
+
+import io.github.magisk317.relay.backup.CloudBackupProvider
+import io.github.magisk317.relay.backup.NoOpCloudBackupProvider
+import io.github.magisk317.relay.billing.BillingProvider
+import io.github.magisk317.relay.billing.NoOpBillingProvider
+import org.koin.dsl.module
+
+val billingModule = module {
+    single<BillingProvider> { NoOpBillingProvider() }
+    single<CloudBackupProvider> { NoOpCloudBackupProvider() }
+}

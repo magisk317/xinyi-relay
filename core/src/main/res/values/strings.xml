@@ -1179,4 +1179,61 @@
     <string name="runtime_log_filter_webhook">Webhook</string>
     <string name="runtime_log_filter_email">Email</string>
     <!-- translation audit end -->
+
+    <!-- account & auth -->
+    <string name="account_login_title">Login</string>
+    <string name="account_profile_title">Account</string>
+    <string name="account_login_description">Sign in with your Google account to enable cloud backup and other features.</string>
+    <string name="google_sign_in_button">Sign in with Google</string>
+    <string name="account_sign_out">Sign out</string>
+    <string name="account_not_logged_in">Not signed in</string>
+    <string name="settings_account_title">Account</string>
+    <string name="settings_account_summary_signed_in">Signed in as %1$s</string>
+    <string name="settings_account_summary_not_signed_in">Tap to sign in</string>
+    <!-- account & auth end -->
+
+    <!-- donate & subscription -->
+    <string name="settings_donate_title">Support Us</string>
+    <string name="settings_donate_summary">Subscribe or donate to unlock cloud backup</string>
+    <string name="donate_screen_title">Support Us</string>
+    <string name="donate_subscription_title">Subscription</string>
+    <string name="donate_subscription_monthly">Monthly $0.99/month</string>
+    <string name="donate_subscription_yearly">Yearly $9.99/year</string>
+    <string name="donate_subscription_yearly_badge">Save 17%%</string>
+    <string name="donate_one_time_title">One-time Donation</string>
+    <string name="donate_one_time_099">$0.99</string>
+    <string name="donate_one_time_499">$4.99</string>
+    <string name="donate_one_time_999">$9.99</string>
+    <string name="donate_custom_amount">Custom Amount</string>
+    <string name="donate_custom_amount_hint">Enter amount (USD)</string>
+    <string name="donate_current_subscription">Current subscription</string>
+    <string name="donate_subscription_active">Active - %1$s</string>
+    <string name="donate_subscription_expired">Expired</string>
+    <string name="donate_subscription_none">No subscription</string>
+    <string name="donate_thanks">Thank you for your support!</string>
+    <string name="donate_purchase_failed">Purchase failed: %1$s</string>
+    <!-- donate & subscription end -->
+
+    <!-- cloud backup -->
+    <string name="settings_cloud_backup_title">Cloud Backup</string>
+    <string name="settings_cloud_backup_summary">Auto backup to Google Drive</string>
+    <string name="settings_cloud_backup_pro_tag">PRO</string>
+    <string name="cloud_backup_screen_title">Cloud Backup</string>
+    <string name="cloud_backup_login_required">Please sign in first</string>
+    <string name="cloud_backup_subscription_required">Cloud backup requires an active subscription</string>
+    <string name="cloud_backup_manual_backup">Backup Now</string>
+    <string name="cloud_backup_restore">Restore</string>
+    <string name="cloud_backup_auto_enable">Auto Backup</string>
+    <string name="cloud_backup_auto_summary">Automatically backup when settings change</string>
+    <string name="cloud_backup_last_backup">Last backup: %1$s</string>
+    <string name="cloud_backup_no_backups">No backups found</string>
+    <string name="cloud_backup_backup_success">Backup completed</string>
+    <string name="cloud_backup_backup_failed">Backup failed: %1$s</string>
+    <string name="cloud_backup_restore_success">Restore completed</string>
+    <string name="cloud_backup_restore_failed">Restore failed: %1$s</string>
+    <string name="cloud_backup_restore_confirm">This will overwrite current data. Continue?</string>
+    <string name="cloud_backup_delete_confirm">Delete this backup?</string>
+    <string name="cloud_backup_item_size">Size: %1$s</string>
+    <string name="cloud_backup_item_time">%1$s</string>
+    <!-- cloud backup end -->
 </resources>

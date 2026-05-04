@@ -97,6 +97,9 @@ import org.koin.compose.koinInject
 fun SettingsHomeScreen(
     onOpenVerification: () -> Unit,
     onOpenAdvancedRelay: () -> Unit,
+    onOpenAccount: () -> Unit = {},
+    onOpenCloudBackup: () -> Unit = {},
+    onOpenDonate: () -> Unit = {},
     onBack: (() -> Unit)? = null,
 ) {
     val repository: SettingsPreferencesRepository = koinInject()
@@ -134,6 +137,7 @@ fun SettingsHomeScreen(
     var languageDialogSelectedTag by remember { mutableStateOf("") }
     var expandGeneral by rememberSaveable { mutableStateOf(false) }
     var expandFeatures by rememberSaveable { mutableStateOf(false) }
+    var expandSupport by rememberSaveable { mutableStateOf(false) }
     var expandBackupRestore by rememberSaveable { mutableStateOf(false) }
     var expandOthers by rememberSaveable { mutableStateOf(false) }
 
@@ -174,6 +178,7 @@ fun SettingsHomeScreen(
         val expanded = !accordionEnabled
         expandGeneral = expanded
         expandFeatures = expanded
+        expandSupport = expanded
         expandBackupRestore = expanded
         expandOthers = expanded
     }
@@ -336,6 +341,33 @@ fun SettingsHomeScreen(
                     scope.launch {
                         relay = repository.updateRelaySettings(RelaySettingsUpdate(relayFeaturesEnabled = enabled))
                         notifySaved()
+                    }
+                }
+            }
+            if (io.github.magisk317.relay.mobileui.BuildConfig.HAS_BILLING ||
+                io.github.magisk317.relay.mobileui.BuildConfig.HAS_CLOUD_BACKUP
+            ) {
+                SectionCard(
+                    title = stringResource(id = R.string.settings_donate_title),
+                    sectionExpanded = expandSupport,
+                    onExpandedChange = { expandSupport = !expandSupport },
+                    accordionMode = true,
+                ) {
+                    Item(
+                        title = stringResource(id = R.string.settings_account_title),
+                        summary = stringResource(id = R.string.settings_account_summary_not_signed_in),
+                    ) { onOpenAccount() }
+                    if (io.github.magisk317.relay.mobileui.BuildConfig.HAS_CLOUD_BACKUP) {
+                        Item(
+                            title = stringResource(id = R.string.settings_cloud_backup_title),
+                            summary = stringResource(id = R.string.settings_cloud_backup_summary),
+                        ) { onOpenCloudBackup() }
+                    }
+                    if (io.github.magisk317.relay.mobileui.BuildConfig.HAS_BILLING) {
+                        Item(
+                            title = stringResource(id = R.string.settings_donate_title),
+                            summary = stringResource(id = R.string.settings_donate_summary),
+                        ) { onOpenDonate() }
                     }
                 }
             }

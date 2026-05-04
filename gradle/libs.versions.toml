@@ -62,6 +62,8 @@ libxposed-api = "101.0.1"
 libxposed-service = "101.0.0"
 firebase-bom = "34.12.0"
 google-services = "4.4.4"
+play-services-auth = "21.3.0"
+billing = "7.1.1"
 zxing-android-embedded = "4.3.0"
 
 
@@ -119,6 +121,7 @@ koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", ver
 kotlinx-collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "kotlinx-collections-immutable" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlinx-coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "kotlin-ktor" }
 ktor-server-auth = { module = "io.ktor:ktor-server-auth", version.ref = "kotlin-ktor" }
@@ -139,6 +142,9 @@ libxposed-api = { module = "io.github.libxposed:api", version.ref = "libxposed-a
 libxposed-service = { module = "io.github.libxposed:service", version.ref = "libxposed-service" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
+firebase-auth = { module = "com.google.firebase:firebase-auth" }
+play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "play-services-auth" }
+billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = "billing" }
 zxing-android-embedded = { module = "com.journeyapps:zxing-android-embedded", version.ref = "zxing-android-embedded" }
 
 [plugins]

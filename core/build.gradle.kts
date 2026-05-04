@@ -85,6 +85,16 @@ dependencies {
     implementation(libs.timber)
     implementation(libs.kotlinx.collections.immutable)
 
+    add("playImplementation", platform(libs.firebase.bom))
+    add("playImplementation", libs.firebase.auth)
+    add("playImplementation", libs.play.services.auth)
+    add("playImplementation", libs.kotlinx.coroutines.play.services)
+    add("playImplementation", libs.billing.ktx)
+    add("githubImplementation", platform(libs.firebase.bom))
+    add("githubImplementation", libs.firebase.auth)
+    add("githubImplementation", libs.play.services.auth)
+    add("githubImplementation", libs.kotlinx.coroutines.play.services)
+
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
 }
