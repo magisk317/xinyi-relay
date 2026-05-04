@@ -453,6 +453,11 @@
     <string name="low_battery_notification_content">Battery %1$d%% (threshold %2$d%%)</string>
     <string name="full_battery_notification_title">Full battery reminder</string>
     <string name="full_battery_notification_content">Battery %1$d%% (fully charged)</string>
+    <string name="scheduled_reminder_charging_change_title">Charging status change reminder</string>
+    <string name="scheduled_reminder_charging_change_summary">Notify when charging status changes (plugged in / unplugged)</string>
+    <string name="charging_change_notification_title">Charging status change</string>
+    <string name="charging_change_notification_content_plugged">Charger plugged in, battery %1$d%%</string>
+    <string name="charging_change_notification_content_unplugged">Charger unplugged, battery %1$d%%</string>
     <string name="call_alert_section_title">Incoming call alert</string>
     <string name="call_alert_local_title">Local notification</string>
     <string name="call_alert_local_summary">Show a local notification when a call is ringing</string>

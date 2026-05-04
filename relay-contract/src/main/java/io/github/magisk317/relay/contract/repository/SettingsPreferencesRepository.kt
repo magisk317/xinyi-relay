@@ -89,5 +89,6 @@ interface SettingsPreferencesRepository {
     suspend fun clearBatteryReminderRuntimeFlags(
         clearLowBatteryBelow: Boolean = false,
         clearFullBatteryAbove: Boolean = false,
+        clearChargingState: Boolean = false,
     )
 }

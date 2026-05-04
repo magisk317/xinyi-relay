@@ -454,6 +454,11 @@
     <string name="low_battery_notification_content">目前電量 %1$d%%（閾值 %2$d%%）</string>
     <string name="full_battery_notification_title">滿電提醒</string>
     <string name="full_battery_notification_content">目前電量 %1$d%%（已充滿）</string>
+    <string name="scheduled_reminder_charging_change_title">充電狀態變更提醒</string>
+    <string name="scheduled_reminder_charging_change_summary">充電狀態變更時提醒一次（插入/拔出充電器）</string>
+    <string name="charging_change_notification_title">充電狀態變更</string>
+    <string name="charging_change_notification_content_plugged">充電器已插入，目前電量 %1$d%%</string>
+    <string name="charging_change_notification_content_unplugged">充電器已拔出，目前電量 %1$d%%</string>
     <string name="call_alert_section_title">來電即時提醒</string>
     <string name="call_alert_local_title">本機通知</string>
     <string name="call_alert_local_summary">來電響鈴時在本機通知一次</string>

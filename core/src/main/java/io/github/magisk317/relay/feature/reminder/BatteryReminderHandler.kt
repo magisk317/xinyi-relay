@@ -38,7 +38,8 @@ class BatteryReminderHandler(
         )
         val lowEnabled = settings.lowBatteryReminderEnabled
         val fullEnabled = settings.fullBatteryReminderEnabled
-        if (!lowEnabled && !fullEnabled) {
+        val chargingChangeEnabled = settings.chargingChangeReminderEnabled
+        if (!lowEnabled && !fullEnabled && !chargingChangeEnabled) {
             if (scheduleNext) {
                 LowBatteryReminderScheduler.cancel(context, reason = "disabled:$reason")
             }
@@ -87,6 +88,15 @@ class BatteryReminderHandler(
             } else if (wasFull) {
                 prefs.edit().putBoolean(PrefConst.KEY_INTERNAL_FULL_BATTERY_ABOVE, false).apply()
             }
+        }
+
+        if (chargingChangeEnabled) {
+            val plugged = batteryIntent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0)
+            val wasPlugged = prefs.getInt(PrefConst.KEY_INTERNAL_CHARGING_STATE, -1)
+            if (wasPlugged >= 0 && plugged != wasPlugged) {
+                sendChargingChangeReminder(percent, plugged != 0)
+            }
+            prefs.edit().putInt(PrefConst.KEY_INTERNAL_CHARGING_STATE, plugged).apply()
         }
 
         if (scheduleNext) {
@@ -140,6 +150,34 @@ class BatteryReminderHandler(
             traceId = "full_battery_${System.currentTimeMillis()}",
         )
         XLog.i("FullBattery reminder routed through EventPipeline: pct=%d", percent)
+    }
+
+    private suspend fun sendChargingChangeReminder(percent: Int, isPluggedIn: Boolean) {
+        val senderId = RuntimeSettingsCache.getSpecialAlertSettings(
+            RuntimeGraph.from(context).settingsRepository,
+        ).chargingChangeChannelId.trim().toLongOrNull()
+        if (senderId == null) {
+            XLog.w("ChargingChange reminder skipped: sender not set")
+            return
+        }
+        val title = context.getString(R.string.charging_change_notification_title)
+        val content = if (isPluggedIn) {
+            context.getString(R.string.charging_change_notification_content_plugged, percent)
+        } else {
+            context.getString(R.string.charging_change_notification_content_unplugged, percent)
+        }
+        eventPipeline.process(
+            event = RelayEvent.batteryReminder(
+                title = title,
+                content = content,
+                timestamp = System.currentTimeMillis(),
+                packageName = context.packageName,
+                senderId = senderId,
+                sourceType = "charging_change",
+            ),
+            traceId = "charging_change_${System.currentTimeMillis()}",
+        )
+        XLog.i("ChargingChange reminder routed through EventPipeline: pct=%d plugged=%s", percent, isPluggedIn)
     }
 
     companion object {

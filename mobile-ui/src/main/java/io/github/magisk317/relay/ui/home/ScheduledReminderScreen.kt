@@ -174,6 +174,7 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
     var showAppKeywordDialog by remember { mutableStateOf(false) }
     var lowExpanded by remember { mutableStateOf(false) }
     var fullExpanded by remember { mutableStateOf(false) }
+    var chargingExpanded by remember { mutableStateOf(false) }
     var callExpanded by remember { mutableStateOf(false) }
     var expandBatterySection by remember { mutableStateOf(true) }
     var expandCallSection by remember { mutableStateOf(true) }
@@ -217,6 +218,7 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
         val ids = options.map { it.id }.toSet()
         var lowChannelId = current.lowBatteryChannelId
         var fullChannelId = current.fullBatteryChannelId
+        var chargingChannelId = current.chargingChangeChannelId
         var callChannelId = current.callAlertChannelId
         var changed = false
         if (lowChannelId.isBlank() || lowChannelId !in ids) {
@@ -225,6 +227,10 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
         }
         if (fullChannelId.isBlank() || fullChannelId !in ids) {
             fullChannelId = options.first().id
+            changed = true
+        }
+        if (chargingChannelId.isBlank() || chargingChannelId !in ids) {
+            chargingChannelId = options.first().id
             changed = true
         }
         if (callChannelId.isBlank() || callChannelId !in ids) {
@@ -236,6 +242,7 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                 SpecialAlertSettingsUpdate(
                     lowBatteryChannelId = lowChannelId,
                     fullBatteryChannelId = fullChannelId,
+                    chargingChangeChannelId = chargingChannelId,
                     callAlertChannelId = callChannelId,
                 ),
             )
@@ -265,6 +272,8 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
             ?: current.lowBatteryChannelId
         val fullChannelLabel = channelOptions.firstOrNull { it.id == current.fullBatteryChannelId }?.label
             ?: current.fullBatteryChannelId
+        val chargingChannelLabel = channelOptions.firstOrNull { it.id == current.chargingChangeChannelId }?.label
+            ?: current.chargingChangeChannelId
         val callChannelLabel = channelOptions.firstOrNull { it.id == current.callAlertChannelId }?.label
             ?: current.callAlertChannelId
 
@@ -354,6 +363,41 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                         scope.launch {
                             settings = repository.updateSpecialAlertSettings(
                                 SpecialAlertSettingsUpdate(fullBatteryChannelId = option.id),
+                            )
+                        }
+                    }
+                }
+
+                StateSwitchItem(
+                    title = stringResource(id = R.string.scheduled_reminder_charging_change_title),
+                    summary = stringResource(id = R.string.scheduled_reminder_charging_change_summary),
+                    checked = current.chargingChangeReminderEnabled,
+                ) { enabled ->
+                    scope.launch {
+                        settings = repository.updateSpecialAlertSettings(
+                            SpecialAlertSettingsUpdate(chargingChangeReminderEnabled = enabled),
+                        )
+                        if (enabled) {
+                            LowBatteryReminderScheduler.scheduleNext(context, reason = "ui_toggle_charging", immediate = true)
+                        } else {
+                            LowBatteryReminderScheduler.syncFromPrefs(context, reason = "ui_toggle_charging")
+                            repository.clearBatteryReminderRuntimeFlags(clearChargingState = true)
+                        }
+                        notifySaved()
+                    }
+                }
+                if (current.chargingChangeReminderEnabled) {
+                    ChannelDropdown(
+                        title = stringResource(id = R.string.scheduled_reminder_channel_title),
+                        value = chargingChannelLabel,
+                        expanded = chargingExpanded,
+                        onExpandedChange = { chargingExpanded = it },
+                        options = channelOptions,
+                    ) { option ->
+                        chargingExpanded = false
+                        scope.launch {
+                            settings = repository.updateSpecialAlertSettings(
+                                SpecialAlertSettingsUpdate(chargingChangeChannelId = option.id),
                             )
                         }
                     }

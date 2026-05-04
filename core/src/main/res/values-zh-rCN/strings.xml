@@ -455,6 +455,11 @@
     <string name="low_battery_notification_content">当前电量 %1$d%%（阈值 %2$d%%）</string>
     <string name="full_battery_notification_title">满电提醒</string>
     <string name="full_battery_notification_content">当前电量 %1$d%%（已充满）</string>
+    <string name="scheduled_reminder_charging_change_title">充电状态变更提醒</string>
+    <string name="scheduled_reminder_charging_change_summary">充电状态变更时提醒一次（插入/拔出充电器）</string>
+    <string name="charging_change_notification_title">充电状态变更</string>
+    <string name="charging_change_notification_content_plugged">充电器已插入，当前电量 %1$d%%</string>
+    <string name="charging_change_notification_content_unplugged">充电器已拔出，当前电量 %1$d%%</string>
     <string name="call_alert_section_title">来电即时提醒</string>
     <string name="call_alert_local_title">本地通知</string>
     <string name="call_alert_local_summary">来电响铃时在本机通知一次</string>

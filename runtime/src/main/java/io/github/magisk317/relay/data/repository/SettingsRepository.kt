@@ -204,6 +204,8 @@ class SettingsRepository(
             lowBatteryChannelId = preferenceDataSource.getString(PrefConst.KEY_LOW_BATTERY_CHANNEL_ID, ""),
             fullBatteryReminderEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_FULL_BATTERY_REMINDER_ENABLE, false),
             fullBatteryChannelId = preferenceDataSource.getString(PrefConst.KEY_FULL_BATTERY_CHANNEL_ID, ""),
+            chargingChangeReminderEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_CHARGING_CHANGE_REMINDER_ENABLE, false),
+            chargingChangeChannelId = preferenceDataSource.getString(PrefConst.KEY_CHARGING_CHANGE_CHANNEL_ID, ""),
             callAlertLocalEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_CALL_ALERT_LOCAL_ENABLED, false),
             callAlertChannelId = preferenceDataSource.getString(PrefConst.KEY_CALL_ALERT_CHANNEL_ID, ""),
             smsKeywordEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_SMS_KEYWORD_ALERT_ENABLED, false),
@@ -225,6 +227,8 @@ class SettingsRepository(
         update.lowBatteryChannelId?.let { preferenceDataSource.setString(PrefConst.KEY_LOW_BATTERY_CHANNEL_ID, it) }
         update.fullBatteryReminderEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_FULL_BATTERY_REMINDER_ENABLE, it) }
         update.fullBatteryChannelId?.let { preferenceDataSource.setString(PrefConst.KEY_FULL_BATTERY_CHANNEL_ID, it) }
+        update.chargingChangeReminderEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_CHARGING_CHANGE_REMINDER_ENABLE, it) }
+        update.chargingChangeChannelId?.let { preferenceDataSource.setString(PrefConst.KEY_CHARGING_CHANGE_CHANNEL_ID, it) }
         update.callAlertLocalEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_CALL_ALERT_LOCAL_ENABLED, it) }
         update.callAlertChannelId?.let { preferenceDataSource.setString(PrefConst.KEY_CALL_ALERT_CHANNEL_ID, it) }
         update.smsKeywordEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_SMS_KEYWORD_ALERT_ENABLED, it) }
@@ -336,12 +340,16 @@ class SettingsRepository(
     override suspend fun clearBatteryReminderRuntimeFlags(
         clearLowBatteryBelow: Boolean,
         clearFullBatteryAbove: Boolean,
+        clearChargingState: Boolean,
     ) {
         if (clearLowBatteryBelow) {
             preferenceDataSource.setBoolean(PrefConst.KEY_INTERNAL_LOW_BATTERY_BELOW, false)
         }
         if (clearFullBatteryAbove) {
             preferenceDataSource.setBoolean(PrefConst.KEY_INTERNAL_FULL_BATTERY_ABOVE, false)
+        }
+        if (clearChargingState) {
+            preferenceDataSource.setInt(PrefConst.KEY_INTERNAL_CHARGING_STATE, -1)
         }
         syncLocalOnly()
     }
