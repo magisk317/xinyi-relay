@@ -264,6 +264,23 @@
     <string name="pref_root_db_catchup_interval_error">Please enter an integer between 1 and 120.</string>
     <string name="pref_root_db_catchup_writeback_title">Write back read state</string>
     <string name="pref_root_db_catchup_writeback_summary">After catchup dispatch, set SMS read=1 and clear missed-call new flag (type=3 only).</string>
+
+    <!-- Keep-alive hooks -->
+    <string name="settings_group_keepalive_xposed_hooks">Xposed Keep-alive Hooks</string>
+    <string name="settings_group_keepalive_app_layer">App-layer Keep-alive</string>
+    <string name="pref_keepalive_oom_adj_title">OomAdjuster hook</string>
+    <string name="pref_keepalive_oom_adj_summary">Keep process priority at foreground level via Xposed hook in system_server. Requires LSPosed scope: System.</string>
+    <string name="pref_keepalive_anti_kill_title">Anti-kill hook</string>
+    <string name="pref_keepalive_anti_kill_summary">Intercept system process kill for this app via AMS hook. Requires LSPosed scope: System.</string>
+    <string name="pref_keepalive_standby_bypass_title">Standby bucket bypass</string>
+    <string name="pref_keepalive_standby_bypass_summary">Prevent app from being placed in restricted standby buckets. Requires LSPosed scope: System.</string>
+    <string name="pref_keepalive_doze_bypass_title">Doze bypass</string>
+    <string name="pref_keepalive_doze_bypass_summary">Exclude this app from Doze mode restrictions. Requires LSPosed scope: System.</string>
+    <string name="pref_keepalive_accessibility_heartbeat_title">Accessibility heartbeat</string>
+    <string name="pref_keepalive_accessibility_heartbeat_summary">Periodically check if the main app process is alive and wake it up via accessibility service.</string>
+    <string name="pref_keepalive_dedicated_service_title">Dedicated keep-alive service</string>
+    <string name="pref_keepalive_dedicated_service_summary">Enable a minimal accessibility service that Android will automatically restart when the app dies.</string>
+    <string name="keepalive_accessibility_service_description">Keep-alive anchor service for xinyi-relay. This service does not collect any data.</string>
     <!-- preference experimental end -->
 
 

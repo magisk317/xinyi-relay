@@ -121,6 +121,20 @@
                 android:resource="@xml/auto_input_accessibility_service" />
         </service>
 
+        <service
+            android:name="io.github.magisk317.relay.service.KeepAliveAccessibilityService"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/keepalive_accessibility_service" />
+        </service>
+
         <!-- IPC: receives code-notification requests from the SMS hook process and posts the
              actual status-bar notification from the module app process, so the notification is
              owned by this app instead of com.android.phone. Token verification happens in the

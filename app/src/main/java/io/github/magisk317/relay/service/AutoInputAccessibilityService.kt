@@ -1,7 +1,9 @@
 package io.github.magisk317.relay.service
 
 import android.accessibilityservice.AccessibilityService
+import android.app.ActivityManager
 import android.content.BroadcastReceiver
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -9,6 +11,8 @@ import android.content.pm.PackageManager
 import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -20,6 +24,25 @@ import io.github.magisk317.smscode.xposed.utils.XLog
 class AutoInputAccessibilityService : AccessibilityService() {
 
     private var receiverRegistered = false
+    private val heartbeatHandler = Handler(Looper.getMainLooper())
+    private var heartbeatRunning = false
+
+    private val heartbeatRunnable = object : Runnable {
+        override fun run() {
+            if (!heartbeatRunning) return
+            runCatching {
+                if (!isKeepAliveHeartbeatEnabled()) {
+                    stopHeartbeat()
+                    return
+                }
+                if (!isMainProcessAlive()) {
+                    XLog.w("Accessibility heartbeat: main process not alive, waking up")
+                    wakeMainProcess()
+                }
+            }
+            heartbeatHandler.postDelayed(this, HEARTBEAT_INTERVAL_MS)
+        }
+    }
 
     private val autoInputReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -65,10 +88,12 @@ class AutoInputAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         registerAutoInputReceiver()
+        startHeartbeat()
         XLog.w("Accessibility auto input service connected")
     }
 
     override fun onDestroy() {
+        stopHeartbeat()
         unregisterAutoInputReceiver()
         XLog.w("Accessibility auto input service destroyed")
         super.onDestroy()
@@ -397,6 +422,50 @@ class AutoInputAccessibilityService : AccessibilityService() {
         }.getOrDefault(emptySet())
     }
 
+    // ── Keep-alive heartbeat ──────────────────────────────────────────────────
+
+    private fun startHeartbeat() {
+        if (heartbeatRunning) return
+        heartbeatRunning = true
+        heartbeatHandler.postDelayed(heartbeatRunnable, HEARTBEAT_INTERVAL_MS)
+    }
+
+    private fun stopHeartbeat() {
+        heartbeatRunning = false
+        heartbeatHandler.removeCallbacks(heartbeatRunnable)
+    }
+
+    private fun isKeepAliveHeartbeatEnabled(): Boolean {
+        return runCatching {
+            val prefs = getSharedPreferences("xposed_prefs", Context.MODE_PRIVATE)
+            prefs.getBoolean("pref_keepalive_accessibility_heartbeat", false)
+        }.getOrDefault(false)
+    }
+
+    private fun isMainProcessAlive(): Boolean {
+        return runCatching {
+            val am = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            val runningProcesses = am.runningAppProcesses ?: return false
+            runningProcesses.any {
+                it.processName == packageName && it.pid != android.os.Process.myPid()
+            }
+        }.getOrDefault(false)
+    }
+
+    private fun wakeMainProcess() {
+        runCatching {
+            val intent = Intent().apply {
+                component = ComponentName(packageName, "$packageName.ui.home.MainActivity")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            }
+            startActivity(intent)
+            XLog.w("Accessibility heartbeat: launched main activity to wake process")
+        }.onFailure { t ->
+            XLog.w("Accessibility heartbeat: wake failed: %s", t.message)
+        }
+    }
+
     private data class AutoInputResult(
         val success: Boolean,
         val strategy: String,
@@ -408,5 +477,6 @@ class AutoInputAccessibilityService : AccessibilityService() {
         private const val RECEIVER_PRIORITY_ACCESSIBILITY = 1000
         private const val MAX_WINDOW_SETTLE_ATTEMPTS = 6
         private const val WINDOW_SETTLE_RETRY_DELAY_MS = 200L
+        private const val HEARTBEAT_INTERVAL_MS = 60_000L
     }
 }

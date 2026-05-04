@@ -144,6 +144,12 @@ class SettingsRepository(
             autoUpdateOnStart = preferenceDataSource.getBoolean(PrefConst.KEY_AUTO_UPDATE_ON_START, true),
             autoUpdateWifiOnly = preferenceDataSource.getBoolean(PrefConst.KEY_AUTO_UPDATE_WIFI_ONLY, true),
             analyticsEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE_ANALYTICS, true),
+            keepAliveOomAdj = preferenceDataSource.getBoolean(PrefConst.KEY_KEEPALIVE_OOM_ADJ, false),
+            keepAliveAntiKill = preferenceDataSource.getBoolean(PrefConst.KEY_KEEPALIVE_ANTI_KILL, false),
+            keepAliveStandbyBypass = preferenceDataSource.getBoolean(PrefConst.KEY_KEEPALIVE_STANDBY_BYPASS, false),
+            keepAliveDozeBypass = preferenceDataSource.getBoolean(PrefConst.KEY_KEEPALIVE_DOZE_BYPASS, false),
+            keepAliveAccessibilityHeartbeat = preferenceDataSource.getBoolean(PrefConst.KEY_KEEPALIVE_ACCESSIBILITY_HEARTBEAT, false),
+            keepAliveDedicatedService = preferenceDataSource.getBoolean(PrefConst.KEY_KEEPALIVE_DEDICATED_SERVICE, false),
         )
     }
 
@@ -169,6 +175,12 @@ class SettingsRepository(
         update.autoUpdateOnStart?.let { preferenceDataSource.setBoolean(PrefConst.KEY_AUTO_UPDATE_ON_START, it) }
         update.autoUpdateWifiOnly?.let { preferenceDataSource.setBoolean(PrefConst.KEY_AUTO_UPDATE_WIFI_ONLY, it) }
         update.analyticsEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE_ANALYTICS, it) }
+        update.keepAliveOomAdj?.let { preferenceDataSource.setBoolean(PrefConst.KEY_KEEPALIVE_OOM_ADJ, it) }
+        update.keepAliveAntiKill?.let { preferenceDataSource.setBoolean(PrefConst.KEY_KEEPALIVE_ANTI_KILL, it) }
+        update.keepAliveStandbyBypass?.let { preferenceDataSource.setBoolean(PrefConst.KEY_KEEPALIVE_STANDBY_BYPASS, it) }
+        update.keepAliveDozeBypass?.let { preferenceDataSource.setBoolean(PrefConst.KEY_KEEPALIVE_DOZE_BYPASS, it) }
+        update.keepAliveAccessibilityHeartbeat?.let { preferenceDataSource.setBoolean(PrefConst.KEY_KEEPALIVE_ACCESSIBILITY_HEARTBEAT, it) }
+        update.keepAliveDedicatedService?.let { preferenceDataSource.setBoolean(PrefConst.KEY_KEEPALIVE_DEDICATED_SERVICE, it) }
         syncAndNoteRemoteMutation("settings.diagnostics")
         return getDiagnosticsSettings()
     }

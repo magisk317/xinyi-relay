@@ -265,6 +265,23 @@
     <string name="pref_root_db_catchup_interval_error">请输入 1 到 120 的整数。</string>
     <string name="pref_root_db_catchup_writeback_title">补偿后写回系统库</string>
     <string name="pref_root_db_catchup_writeback_summary">补偿入队后可将短信标记已读，并清理未接来电 new 标记（仅 type=3）。</string>
+
+    <!-- Keep-alive hooks -->
+    <string name="settings_group_keepalive_xposed_hooks">Xposed 保活钩子</string>
+    <string name="settings_group_keepalive_app_layer">应用层保活</string>
+    <string name="pref_keepalive_oom_adj_title">OomAdjuster 钩子</string>
+    <string name="pref_keepalive_oom_adj_summary">通过 Xposed 在 system_server 中保持进程优先级为前台级别。需要 LSPosed 作用域：系统。</string>
+    <string name="pref_keepalive_anti_kill_title">防杀钩子</string>
+    <string name="pref_keepalive_anti_kill_summary">通过 AMS 钩子拦截系统对此应用的进程终止。需要 LSPosed 作用域：系统。</string>
+    <string name="pref_keepalive_standby_bypass_title">待机桶绕过</string>
+    <string name="pref_keepalive_standby_bypass_summary">阻止应用被放入受限待机桶。需要 LSPosed 作用域：系统。</string>
+    <string name="pref_keepalive_doze_bypass_title">Doze 绕过</string>
+    <string name="pref_keepalive_doze_bypass_summary">将此应用排除在 Doze 模式限制之外。需要 LSPosed 作用域：系统。</string>
+    <string name="pref_keepalive_accessibility_heartbeat_title">无障碍心跳</string>
+    <string name="pref_keepalive_accessibility_heartbeat_summary">定期检查主应用进程是否存活，如未存活则通过无障碍服务唤醒。</string>
+    <string name="pref_keepalive_dedicated_service_title">专用保活服务</string>
+    <string name="pref_keepalive_dedicated_service_summary">启用一个最小化的无障碍服务，Android 会在应用死亡时自动重启该服务。</string>
+    <string name="keepalive_accessibility_service_description">xinyi-relay 保活锚定服务。此服务不收集任何数据。</string>
     <!-- preference experimental end -->
 
 

@@ -88,6 +88,14 @@ object RelayPrefConst {
     const val KEY_FORCE_STOP_RECOVERY = "pref_force_stop_recovery"
     const val KEY_FORCE_STOP_RECOVERY_RELAUNCH_ONCE = "pref_force_stop_recovery_relaunch_once"
 
+    // Keep-alive hooks
+    const val KEY_KEEPALIVE_OOM_ADJ = "pref_keepalive_oom_adj"
+    const val KEY_KEEPALIVE_ANTI_KILL = "pref_keepalive_anti_kill"
+    const val KEY_KEEPALIVE_STANDBY_BYPASS = "pref_keepalive_standby_bypass"
+    const val KEY_KEEPALIVE_DOZE_BYPASS = "pref_keepalive_doze_bypass"
+    const val KEY_KEEPALIVE_ACCESSIBILITY_HEARTBEAT = "pref_keepalive_accessibility_heartbeat"
+    const val KEY_KEEPALIVE_DEDICATED_SERVICE = "pref_keepalive_dedicated_service"
+
     // Others
     const val KEY_VERBOSE_LOG_MODE = "pref_verbose_log_mode"
     const val KEY_SENSITIVE_DEBUG_LOG_MODE = "pref_sensitive_debug_log_mode"

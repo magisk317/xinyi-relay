@@ -1613,6 +1613,94 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
                     }
                 }
             }
+
+            SectionCard(
+                title = stringResource(id = R.string.settings_group_keepalive_xposed_hooks),
+                accordionMode = false,
+                sectionExpanded = true,
+                onExpandedChange = {},
+            ) {
+                StateSwitchItem(
+                    title = stringResource(id = R.string.pref_keepalive_oom_adj_title),
+                    summary = stringResource(id = R.string.pref_keepalive_oom_adj_summary),
+                    checked = current.keepAliveOomAdj,
+                ) { enabled ->
+                    scope.launch {
+                        settings = repository.updateDiagnosticsSettings(
+                            DiagnosticsSettingsUpdate(keepAliveOomAdj = enabled),
+                        )
+                        notifySaved()
+                    }
+                }
+                StateSwitchItem(
+                    title = stringResource(id = R.string.pref_keepalive_anti_kill_title),
+                    summary = stringResource(id = R.string.pref_keepalive_anti_kill_summary),
+                    checked = current.keepAliveAntiKill,
+                ) { enabled ->
+                    scope.launch {
+                        settings = repository.updateDiagnosticsSettings(
+                            DiagnosticsSettingsUpdate(keepAliveAntiKill = enabled),
+                        )
+                        notifySaved()
+                    }
+                }
+                StateSwitchItem(
+                    title = stringResource(id = R.string.pref_keepalive_standby_bypass_title),
+                    summary = stringResource(id = R.string.pref_keepalive_standby_bypass_summary),
+                    checked = current.keepAliveStandbyBypass,
+                ) { enabled ->
+                    scope.launch {
+                        settings = repository.updateDiagnosticsSettings(
+                            DiagnosticsSettingsUpdate(keepAliveStandbyBypass = enabled),
+                        )
+                        notifySaved()
+                    }
+                }
+                StateSwitchItem(
+                    title = stringResource(id = R.string.pref_keepalive_doze_bypass_title),
+                    summary = stringResource(id = R.string.pref_keepalive_doze_bypass_summary),
+                    checked = current.keepAliveDozeBypass,
+                ) { enabled ->
+                    scope.launch {
+                        settings = repository.updateDiagnosticsSettings(
+                            DiagnosticsSettingsUpdate(keepAliveDozeBypass = enabled),
+                        )
+                        notifySaved()
+                    }
+                }
+            }
+
+            SectionCard(
+                title = stringResource(id = R.string.settings_group_keepalive_app_layer),
+                accordionMode = false,
+                sectionExpanded = true,
+                onExpandedChange = {},
+            ) {
+                StateSwitchItem(
+                    title = stringResource(id = R.string.pref_keepalive_accessibility_heartbeat_title),
+                    summary = stringResource(id = R.string.pref_keepalive_accessibility_heartbeat_summary),
+                    checked = current.keepAliveAccessibilityHeartbeat,
+                ) { enabled ->
+                    scope.launch {
+                        settings = repository.updateDiagnosticsSettings(
+                            DiagnosticsSettingsUpdate(keepAliveAccessibilityHeartbeat = enabled),
+                        )
+                        notifySaved()
+                    }
+                }
+                StateSwitchItem(
+                    title = stringResource(id = R.string.pref_keepalive_dedicated_service_title),
+                    summary = stringResource(id = R.string.pref_keepalive_dedicated_service_summary),
+                    checked = current.keepAliveDedicatedService,
+                ) { enabled ->
+                    scope.launch {
+                        settings = repository.updateDiagnosticsSettings(
+                            DiagnosticsSettingsUpdate(keepAliveDedicatedService = enabled),
+                        )
+                        notifySaved()
+                    }
+                }
+            }
         }
     }
 

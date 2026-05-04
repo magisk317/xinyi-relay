@@ -72,6 +72,12 @@ data class DiagnosticsSettingsSnapshot(
     val autoUpdateOnStart: Boolean,
     val autoUpdateWifiOnly: Boolean,
     val analyticsEnabled: Boolean,
+    val keepAliveOomAdj: Boolean,
+    val keepAliveAntiKill: Boolean,
+    val keepAliveStandbyBypass: Boolean,
+    val keepAliveDozeBypass: Boolean,
+    val keepAliveAccessibilityHeartbeat: Boolean,
+    val keepAliveDedicatedService: Boolean,
 )
 
 data class DiagnosticsSettingsUpdate(
@@ -86,6 +92,12 @@ data class DiagnosticsSettingsUpdate(
     val autoUpdateOnStart: Boolean? = null,
     val autoUpdateWifiOnly: Boolean? = null,
     val analyticsEnabled: Boolean? = null,
+    val keepAliveOomAdj: Boolean? = null,
+    val keepAliveAntiKill: Boolean? = null,
+    val keepAliveStandbyBypass: Boolean? = null,
+    val keepAliveDozeBypass: Boolean? = null,
+    val keepAliveAccessibilityHeartbeat: Boolean? = null,
+    val keepAliveDedicatedService: Boolean? = null,
 )
 
 // ── Advanced ─────────────────────────────────────────────────────────────────
