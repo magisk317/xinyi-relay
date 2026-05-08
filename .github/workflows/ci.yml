@@ -49,7 +49,7 @@ jobs:
         with:
           version: ${{ steps.webui_toolchain.outputs.pnpm_version }}
       - name: WebUI Install
-        run: pnpm -C webui install --frozen-lockfile
+        run: pnpm -C webui install --frozen-lockfile --ignore-scripts
       - name: WebUI Lint + Typecheck + Build
         run: |
           pnpm -C webui lint

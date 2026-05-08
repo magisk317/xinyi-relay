@@ -64,7 +64,7 @@ jobs:
         with:
           version: ${{ steps.webui_toolchain.outputs.pnpm_version }}
       - name: WebUI Install
-        run: pnpm -C webui install --frozen-lockfile
+        run: pnpm -C webui install --frozen-lockfile --ignore-scripts
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
