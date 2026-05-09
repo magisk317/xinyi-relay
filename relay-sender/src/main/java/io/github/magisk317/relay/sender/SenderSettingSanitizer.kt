@@ -24,9 +24,191 @@ import com.google.gson.Gson
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import java.net.Proxy
+import java.util.Locale
 
 object SenderSettingSanitizer {
     private val gson = Gson()
+    private val fieldSpecsByType = mapOf(
+        SenderType.DINGTALK_GROUP_ROBOT to listOf(
+            field("token", "o"),
+            field("secret", "p"),
+            field("atAll", "q"),
+            field("atMobiles", "r"),
+            field("atDingtalkIds", "s"),
+            field("msgtype", "t"),
+            field("titleTemplate", "u"),
+        ),
+        SenderType.EMAIL to listOf(
+            field("mailType", "o"),
+            field("authEmail", "p"),
+            field("fromEmail", "q"),
+            field("pwd", "r"),
+            field("nickname", "s"),
+            field("host", "t"),
+            field("port", "u"),
+            field("ssl", "v"),
+            field("startTls", "w"),
+            field("title", "x"),
+            field("recipients", "y"),
+            field("toEmail", "z"),
+            field("keystore", "A"),
+            field("password", "B"),
+            field("encryptionProtocol", "C"),
+            field("fromEmailAlias", "D"),
+        ),
+        SenderType.BARK to listOf(
+            field("server", "o"),
+            field("group", "p"),
+            field("icon", "q"),
+            field("sound", "r"),
+            field("badge", "s"),
+            field("url", "t"),
+            field("level", "u"),
+            field("title", "v"),
+            field("transformation", "w"),
+            field("key", "x"),
+            field("iv", "y"),
+            field("call", "z"),
+            field("autoCopy", "A"),
+        ),
+        SenderType.WEBHOOK to listOf(
+            field("method", "o"),
+            field("webServer", "p"),
+            field("secret", "q"),
+            field("response", "r"),
+            field("webParams", "s"),
+            field("headers", "t"),
+            field("proxyType", "u"),
+            field("proxyHost", "v"),
+            field("proxyPort", "w"),
+            field("proxyAuthenticator", "x"),
+            field("proxyUsername", "y"),
+            field("proxyPassword", "z"),
+        ),
+        SenderType.WEWORK_ROBOT to listOf(
+            field("webHook", "o"),
+            field("msgType", "p"),
+            field("atAll", "q"),
+            field("atUserIds", "r"),
+            field("atMobiles", "s"),
+        ),
+        SenderType.WEWORK_AGENT to listOf(
+            field("corpID", "o"),
+            field("agentID", "p"),
+            field("secret", "q"),
+            field("atAll", "r"),
+            field("toUser", "s"),
+            field("toParty", "t"),
+            field("toTag", "u"),
+            field("proxyType", "v"),
+            field("proxyHost", "w"),
+            field("proxyPort", "x"),
+            field("proxyAuthenticator", "y"),
+            field("proxyUsername", "z"),
+            field("proxyPassword", "A"),
+            field("customizeAPI", "B"),
+        ),
+        SenderType.SERVERCHAN to listOf(
+            field("sendKey", "o"),
+            field("channel", "p"),
+            field("openid", "q"),
+            field("titleTemplate", "r"),
+        ),
+        SenderType.PUSHPLUS to listOf(
+            field("website", "o"),
+            field("token", "p"),
+            field("topic", "q"),
+            field("template", "r"),
+            field("channel", "s"),
+            field("webhook", "t"),
+            field("callbackUrl", "u"),
+            field("validTime", "v"),
+            field("titleTemplate", "w"),
+        ),
+        SenderType.TELEGRAM to listOf(
+            field("method", "o"),
+            field("apiToken", "p"),
+            field("chatId", "q"),
+            field("messageThreadId", "topicId", "topic_id", "message_thread_id", "r"),
+            field("proxyType", "s"),
+            field("proxyHost", "t"),
+            field("proxyPort", "u"),
+            field("proxyAuthenticator", "v"),
+            field("proxyUsername", "w"),
+            field("proxyPassword", "x"),
+            field("parseMode", "y"),
+        ),
+        SenderType.SMS to listOf(
+            field("simSlot", "o"),
+            field("mobiles", "p"),
+            field("onlyNoNetwork", "q"),
+        ),
+        SenderType.FEISHU to listOf(
+            field("webhook", "o"),
+            field("secret", "p"),
+            field("msgType", "q"),
+            field("titleTemplate", "r"),
+            field("messageCard", "s"),
+        ),
+        SenderType.GOTIFY to listOf(
+            field("webServer", "o"),
+            field("title", "p"),
+            field("priority", "q"),
+        ),
+        SenderType.NTFY to listOf(
+            field("server", "o"),
+            field("topic", "p"),
+            field("token", "q"),
+            field("title", "r"),
+            field("priority", "s"),
+            field("tags", "t"),
+        ),
+        SenderType.DINGTALK_INNER_ROBOT to listOf(
+            field("agentID", "o"),
+            field("appKey", "p"),
+            field("appSecret", "q"),
+            field("userIds", "r"),
+            field("msgKey", "s"),
+            field("titleTemplate", "t"),
+            field("proxyType", "u"),
+            field("proxyHost", "v"),
+            field("proxyPort", "w"),
+            field("proxyAuthenticator", "x"),
+            field("proxyUsername", "y"),
+            field("proxyPassword", "z"),
+        ),
+        SenderType.FEISHU_APP to listOf(
+            field("appId", "o"),
+            field("appSecret", "p"),
+            field("receiveId", "q"),
+            field("msgType", "r"),
+            field("titleTemplate", "s"),
+            field("receiveIdType", "t"),
+            field("messageCard", "u"),
+        ),
+        SenderType.URL_SCHEME to listOf(
+            field("urlScheme", "o"),
+        ),
+        SenderType.SOCKET to listOf(
+            field("method", "o"),
+            field("address", "p"),
+            field("port", "q"),
+            field("msgTemplate", "r"),
+            field("secret", "s"),
+            field("response", "t"),
+            field("username", "u"),
+            field("password", "v"),
+            field("inCharset", "w"),
+            field("outCharset", "x"),
+            field("inMessageTopic", "y"),
+            field("outMessageTopic", "z"),
+            field("uriType", "A"),
+            field("path", "B"),
+            field("clientId", "C"),
+            field("qos", "D"),
+            field("retained", "E"),
+        ),
+    )
 
     fun sanitizeSenderLenient(sender: Sender): Sender {
         val safeJson = sanitizeJsonLenient(sender.type, sender.jsonSetting)
@@ -40,57 +222,65 @@ object SenderSettingSanitizer {
 
     fun sanitizeJsonLenient(type: Int, json: String): String {
         val rawJson = parseSettingJson(json)
+        val canonicalJson = canonicalizeLegacyKeys(type, rawJson)
+        val parseJson = canonicalJson?.toString() ?: json
         return when (type) {
             SenderType.DINGTALK_GROUP_ROBOT -> gson.toJson(
-                sanitizeDingtalkGroupRobotSetting(parseSetting(json, DingtalkGroupRobotSetting::class.java), rawJson),
+                sanitizeDingtalkGroupRobotSetting(
+                    parseSetting(parseJson, DingtalkGroupRobotSetting::class.java),
+                    canonicalJson,
+                ),
             )
             SenderType.EMAIL -> gson.toJson(
-                sanitizeEmailSetting(parseSetting(json, EmailSetting::class.java), rawJson),
+                sanitizeEmailSetting(parseSetting(parseJson, EmailSetting::class.java), canonicalJson),
             )
             SenderType.BARK -> gson.toJson(
-                sanitizeBarkSetting(parseSetting(json, BarkSetting::class.java), rawJson),
+                sanitizeBarkSetting(parseSetting(parseJson, BarkSetting::class.java), canonicalJson),
             )
             SenderType.WEBHOOK -> gson.toJson(
-                sanitizeWebhookSetting(parseSetting(json, WebhookSetting::class.java), rawJson),
+                sanitizeWebhookSetting(parseSetting(parseJson, WebhookSetting::class.java), canonicalJson),
             )
             SenderType.WEWORK_ROBOT -> gson.toJson(
-                sanitizeWeworkRobotSetting(parseSetting(json, WeworkRobotSetting::class.java), rawJson),
+                sanitizeWeworkRobotSetting(parseSetting(parseJson, WeworkRobotSetting::class.java), canonicalJson),
             )
             SenderType.WEWORK_AGENT -> gson.toJson(
-                sanitizeWeworkAgentSetting(parseSetting(json, WeworkAgentSetting::class.java), rawJson),
+                sanitizeWeworkAgentSetting(parseSetting(parseJson, WeworkAgentSetting::class.java), canonicalJson),
             )
             SenderType.SERVERCHAN -> gson.toJson(
-                sanitizeServerchanSetting(parseSetting(json, ServerchanSetting::class.java), rawJson),
+                sanitizeServerchanSetting(parseSetting(parseJson, ServerchanSetting::class.java), canonicalJson),
             )
             SenderType.PUSHPLUS -> gson.toJson(
-                sanitizePushplusSetting(parseSetting(json, PushplusSetting::class.java), rawJson),
+                sanitizePushplusSetting(parseSetting(parseJson, PushplusSetting::class.java), canonicalJson),
             )
             SenderType.TELEGRAM -> gson.toJson(
-                sanitizeTelegramSetting(parseSetting(json, TelegramSetting::class.java), rawJson),
+                sanitizeTelegramSetting(parseSetting(parseJson, TelegramSetting::class.java), canonicalJson),
             )
             SenderType.SMS -> gson.toJson(
-                sanitizeSmsSetting(parseSetting(json, SmsSetting::class.java), rawJson),
+                sanitizeSmsSetting(parseSetting(parseJson, SmsSetting::class.java), canonicalJson),
             )
             SenderType.FEISHU -> gson.toJson(
-                sanitizeFeishuSetting(parseSetting(json, FeishuSetting::class.java), rawJson),
+                sanitizeFeishuSetting(parseSetting(parseJson, FeishuSetting::class.java), canonicalJson),
             )
             SenderType.GOTIFY -> gson.toJson(
-                sanitizeGotifySetting(parseSetting(json, GotifySetting::class.java), rawJson),
+                sanitizeGotifySetting(parseSetting(parseJson, GotifySetting::class.java), canonicalJson),
             )
             SenderType.DINGTALK_INNER_ROBOT -> gson.toJson(
-                sanitizeDingtalkInnerRobotSetting(parseSetting(json, DingtalkInnerRobotSetting::class.java), rawJson),
+                sanitizeDingtalkInnerRobotSetting(
+                    parseSetting(parseJson, DingtalkInnerRobotSetting::class.java),
+                    canonicalJson,
+                ),
             )
             SenderType.FEISHU_APP -> gson.toJson(
-                sanitizeFeishuAppSetting(parseSetting(json, FeishuAppSetting::class.java), rawJson),
+                sanitizeFeishuAppSetting(parseSetting(parseJson, FeishuAppSetting::class.java), canonicalJson),
             )
             SenderType.URL_SCHEME -> gson.toJson(
-                sanitizeUrlSchemeSetting(parseSetting(json, UrlSchemeSetting::class.java), rawJson),
+                sanitizeUrlSchemeSetting(parseSetting(parseJson, UrlSchemeSetting::class.java), canonicalJson),
             )
             SenderType.SOCKET -> gson.toJson(
-                sanitizeSocketSetting(parseSetting(json, SocketSetting::class.java), rawJson),
+                sanitizeSocketSetting(parseSetting(parseJson, SocketSetting::class.java), canonicalJson),
             )
             SenderType.NTFY -> gson.toJson(
-                sanitizeNtfySetting(parseSetting(json, NtfySetting::class.java), rawJson),
+                sanitizeNtfySetting(parseSetting(parseJson, NtfySetting::class.java), canonicalJson),
             )
             else -> if (json.isBlank()) "" else json
         }
@@ -101,7 +291,7 @@ object SenderSettingSanitizer {
         rawJson: JsonObject? = null,
     ): DingtalkGroupRobotSetting {
         val defaults = DingtalkGroupRobotSetting()
-        return DingtalkGroupRobotSetting(
+        val setting = DingtalkGroupRobotSetting(
             token = safeString(resolveValue(raw?.token, rawJson, "token")),
             secret = safeString(resolveValue(raw?.secret, rawJson, "secret")),
             atAll = safeBoolean(resolveValue(raw?.atAll, rawJson, "atAll"), defaults.atAll),
@@ -109,6 +299,16 @@ object SenderSettingSanitizer {
             atDingtalkIds = safeString(resolveValue(raw?.atDingtalkIds, rawJson, "atDingtalkIds")),
             msgtype = safeString(resolveValue(raw?.msgtype, rawJson, "msgtype")).ifBlank { defaults.msgtype },
             titleTemplate = safeString(resolveValue(raw?.titleTemplate, rawJson, "titleTemplate")),
+        )
+        val repaired = repairFields(
+            "token" to setting.token,
+            "secret" to setting.secret,
+            "msgtype" to setting.msgtype,
+        )
+        return setting.copy(
+            token = repaired.string("token"),
+            secret = repaired.string("secret"),
+            msgtype = repaired.enumString("msgtype", defaults.msgtype),
         )
     }
 
@@ -118,7 +318,7 @@ object SenderSettingSanitizer {
         val authEmail = safeString(resolveValue(raw?.authEmail, rawJson, "authEmail")).ifBlank { fromEmail }
         val alias = safeString(resolveValue(raw?.fromEmailAlias, rawJson, "fromEmailAlias"))
             .ifBlank { safeString(resolveValue(raw?.nickname, rawJson, "nickname")) }
-        return EmailSetting(
+        val setting = EmailSetting(
             mailType = safeString(resolveValue(raw?.mailType, rawJson, "mailType")),
             authEmail = authEmail,
             fromEmail = fromEmail,
@@ -137,11 +337,31 @@ object SenderSettingSanitizer {
                 .ifBlank { defaults.encryptionProtocol },
             fromEmailAlias = alias,
         )
+        val repaired = repairFields(
+            "authEmail" to setting.authEmail,
+            "fromEmail" to setting.fromEmail,
+            "host" to setting.host,
+            "port" to setting.port,
+            "ssl" to setting.ssl,
+            "startTls" to setting.startTls,
+            "toEmail" to setting.toEmail,
+            "encryptionProtocol" to setting.encryptionProtocol,
+        )
+        return setting.copy(
+            authEmail = repaired.string("authEmail"),
+            fromEmail = repaired.string("fromEmail"),
+            host = repaired.string("host"),
+            port = repaired.string("port"),
+            ssl = repaired.boolean("ssl", defaults.ssl),
+            startTls = repaired.boolean("startTls", defaults.startTls),
+            toEmail = repaired.string("toEmail"),
+            encryptionProtocol = repaired.enumString("encryptionProtocol", defaults.encryptionProtocol),
+        )
     }
 
     fun sanitizeBarkSetting(raw: BarkSetting?, rawJson: JsonObject? = null): BarkSetting {
         val defaults = BarkSetting()
-        return BarkSetting(
+        val setting = BarkSetting(
             server = safeString(resolveValue(raw?.server, rawJson, "server")),
             group = safeString(resolveValue(raw?.group, rawJson, "group")),
             icon = safeString(resolveValue(raw?.icon, rawJson, "icon")),
@@ -157,11 +377,23 @@ object SenderSettingSanitizer {
             call = safeString(resolveValue(raw?.call, rawJson, "call")),
             autoCopy = safeString(resolveValue(raw?.autoCopy, rawJson, "autoCopy")),
         )
+        val repaired = repairFields(
+            "server" to setting.server,
+            "url" to setting.url,
+            "level" to setting.level,
+            "transformation" to setting.transformation,
+        )
+        return setting.copy(
+            server = repaired.string("server"),
+            url = repaired.string("url"),
+            level = repaired.enumString("level", defaults.level),
+            transformation = repaired.enumString("transformation", defaults.transformation),
+        )
     }
 
     fun sanitizeWebhookSetting(raw: WebhookSetting?, rawJson: JsonObject? = null): WebhookSetting {
         val defaults = WebhookSetting()
-        return WebhookSetting(
+        val setting = WebhookSetting(
             method = safeString(resolveValue(raw?.method, rawJson, "method")).ifBlank { defaults.method },
             webServer = safeString(resolveValue(raw?.webServer, rawJson, "webServer")),
             secret = safeString(resolveValue(raw?.secret, rawJson, "secret")),
@@ -178,22 +410,33 @@ object SenderSettingSanitizer {
             proxyUsername = safeString(resolveValue(raw?.proxyUsername, rawJson, "proxyUsername")),
             proxyPassword = safeString(resolveValue(raw?.proxyPassword, rawJson, "proxyPassword")),
         )
+        return repairWebhookSetting(setting)
     }
 
     fun sanitizeWeworkRobotSetting(raw: WeworkRobotSetting?, rawJson: JsonObject? = null): WeworkRobotSetting {
         val defaults = WeworkRobotSetting()
-        return WeworkRobotSetting(
+        val setting = WeworkRobotSetting(
             webHook = safeString(resolveValue(raw?.webHook, rawJson, "webHook")),
             msgType = safeString(resolveValue(raw?.msgType, rawJson, "msgType")).ifBlank { defaults.msgType },
             atAll = safeBoolean(resolveValue(raw?.atAll, rawJson, "atAll"), defaults.atAll),
             atUserIds = safeString(resolveValue(raw?.atUserIds, rawJson, "atUserIds")),
             atMobiles = safeString(resolveValue(raw?.atMobiles, rawJson, "atMobiles")),
         )
+        val repaired = repairFields(
+            "webHook" to setting.webHook,
+            "msgType" to setting.msgType,
+            "atAll" to setting.atAll,
+        )
+        return setting.copy(
+            webHook = repaired.string("webHook"),
+            msgType = repaired.enumString("msgType", defaults.msgType),
+            atAll = repaired.boolean("atAll", defaults.atAll),
+        )
     }
 
     fun sanitizeWeworkAgentSetting(raw: WeworkAgentSetting?, rawJson: JsonObject? = null): WeworkAgentSetting {
         val defaults = WeworkAgentSetting()
-        return WeworkAgentSetting(
+        val setting = WeworkAgentSetting(
             corpID = safeString(resolveValue(raw?.corpID, rawJson, "corpID")),
             agentID = safeString(resolveValue(raw?.agentID, rawJson, "agentID")),
             secret = safeString(resolveValue(raw?.secret, rawJson, "secret")),
@@ -213,20 +456,52 @@ object SenderSettingSanitizer {
             customizeAPI = safeString(resolveValue(raw?.customizeAPI, rawJson, "customizeAPI"))
                 .ifBlank { defaults.customizeAPI },
         )
+        val repaired = repairFields(
+            "corpID" to setting.corpID,
+            "agentID" to setting.agentID,
+            "secret" to setting.secret,
+            "atAll" to setting.atAll,
+            "proxyType" to setting.proxyType,
+            "proxyHost" to setting.proxyHost,
+            "proxyPort" to setting.proxyPort,
+            "proxyAuthenticator" to setting.proxyAuthenticator,
+            "customizeAPI" to setting.customizeAPI,
+        )
+        return setting.copy(
+            corpID = repaired.string("corpID"),
+            agentID = repaired.string("agentID"),
+            secret = repaired.string("secret"),
+            atAll = repaired.boolean("atAll", defaults.atAll),
+            proxyType = repaired.proxy("proxyType"),
+            proxyHost = repaired.string("proxyHost"),
+            proxyPort = repaired.string("proxyPort"),
+            proxyAuthenticator = repaired.boolean("proxyAuthenticator", defaults.proxyAuthenticator),
+            customizeAPI = repaired.string("customizeAPI").ifBlank { defaults.customizeAPI },
+        )
     }
 
     fun sanitizeServerchanSetting(raw: ServerchanSetting?, rawJson: JsonObject? = null): ServerchanSetting {
-        return ServerchanSetting(
+        val setting = ServerchanSetting(
             sendKey = safeString(resolveValue(raw?.sendKey, rawJson, "sendKey")),
             channel = safeString(resolveValue(raw?.channel, rawJson, "channel")),
             openid = safeString(resolveValue(raw?.openid, rawJson, "openid")),
             titleTemplate = safeString(resolveValue(raw?.titleTemplate, rawJson, "titleTemplate")),
         )
+        val repaired = repairFields(
+            "sendKey" to setting.sendKey,
+            "channel" to setting.channel,
+            "openid" to setting.openid,
+        )
+        return setting.copy(
+            sendKey = repaired.string("sendKey"),
+            channel = repaired.string("channel"),
+            openid = repaired.string("openid"),
+        )
     }
 
     fun sanitizePushplusSetting(raw: PushplusSetting?, rawJson: JsonObject? = null): PushplusSetting {
         val defaults = PushplusSetting()
-        return PushplusSetting(
+        val setting = PushplusSetting(
             website = safeString(resolveValue(raw?.website, rawJson, "website")).ifBlank { defaults.website },
             token = safeString(resolveValue(raw?.token, rawJson, "token")),
             topic = safeString(resolveValue(raw?.topic, rawJson, "topic")),
@@ -237,11 +512,25 @@ object SenderSettingSanitizer {
             validTime = safeString(resolveValue(raw?.validTime, rawJson, "validTime")),
             titleTemplate = safeString(resolveValue(raw?.titleTemplate, rawJson, "titleTemplate")),
         )
+        val repaired = repairFields(
+            "website" to setting.website,
+            "token" to setting.token,
+            "webhook" to setting.webhook,
+            "callbackUrl" to setting.callbackUrl,
+            "validTime" to setting.validTime,
+        )
+        return setting.copy(
+            website = repaired.string("website").ifBlank { defaults.website },
+            token = repaired.string("token"),
+            webhook = repaired.string("webhook"),
+            callbackUrl = repaired.string("callbackUrl"),
+            validTime = repaired.string("validTime"),
+        )
     }
 
     fun sanitizeTelegramSetting(raw: TelegramSetting?, rawJson: JsonObject? = null): TelegramSetting {
         val defaults = TelegramSetting()
-        return TelegramSetting(
+        val setting = TelegramSetting(
             method = safeString(resolveValue(raw?.method, rawJson, "method")).ifBlank { defaults.method },
             apiToken = safeString(resolveValue(raw?.apiToken, rawJson, "apiToken")),
             chatId = safeString(resolveValue(raw?.chatId, rawJson, "chatId")),
@@ -266,11 +555,12 @@ object SenderSettingSanitizer {
             proxyPassword = safeString(resolveValue(raw?.proxyPassword, rawJson, "proxyPassword")),
             parseMode = safeString(resolveValue(raw?.parseMode, rawJson, "parseMode")).ifBlank { defaults.parseMode },
         )
+        return repairTelegramSetting(setting)
     }
 
     fun sanitizeSmsSetting(raw: SmsSetting?, rawJson: JsonObject? = null): SmsSetting {
         val defaults = SmsSetting()
-        return SmsSetting(
+        val setting = SmsSetting(
             simSlot = safeInt(resolveValue(raw?.simSlot, rawJson, "simSlot"), defaults.simSlot),
             mobiles = safeString(resolveValue(raw?.mobiles, rawJson, "mobiles")),
             onlyNoNetwork = safeBoolean(
@@ -278,36 +568,67 @@ object SenderSettingSanitizer {
                 defaults.onlyNoNetwork,
             ),
         )
+        val repaired = repairFields(
+            "simSlot" to setting.simSlot,
+            "mobiles" to setting.mobiles,
+            "onlyNoNetwork" to setting.onlyNoNetwork,
+        )
+        return setting.copy(
+            simSlot = repaired.int("simSlot", defaults.simSlot),
+            mobiles = repaired.string("mobiles"),
+            onlyNoNetwork = repaired.boolean("onlyNoNetwork", defaults.onlyNoNetwork),
+        )
     }
 
     fun sanitizeFeishuSetting(raw: FeishuSetting?, rawJson: JsonObject? = null): FeishuSetting {
         val defaults = FeishuSetting()
-        return FeishuSetting(
+        val setting = FeishuSetting(
             webhook = safeString(resolveValue(raw?.webhook, rawJson, "webhook")),
             secret = safeString(resolveValue(raw?.secret, rawJson, "secret")),
             msgType = safeString(resolveValue(raw?.msgType, rawJson, "msgType")).ifBlank { defaults.msgType },
             titleTemplate = safeString(resolveValue(raw?.titleTemplate, rawJson, "titleTemplate")),
             messageCard = safeString(resolveValue(raw?.messageCard, rawJson, "messageCard")),
         )
+        return repairFeishuSetting(setting)
     }
 
     fun sanitizeGotifySetting(raw: GotifySetting?, rawJson: JsonObject? = null): GotifySetting {
-        return GotifySetting(
+        val setting = GotifySetting(
             webServer = safeString(resolveValue(raw?.webServer, rawJson, "webServer")),
             title = safeString(resolveValue(raw?.title, rawJson, "title")),
             priority = safeString(resolveValue(raw?.priority, rawJson, "priority")),
+        )
+        val repaired = repairFields(
+            "webServer" to setting.webServer,
+            "priority" to setting.priority,
+        )
+        return setting.copy(
+            webServer = repaired.string("webServer"),
+            priority = repaired.string("priority"),
         )
     }
 
     fun sanitizeNtfySetting(raw: NtfySetting?, rawJson: JsonObject? = null): NtfySetting {
         val defaults = NtfySetting()
-        return NtfySetting(
+        val setting = NtfySetting(
             server = safeString(resolveValue(raw?.server, rawJson, "server")),
             topic = safeString(resolveValue(raw?.topic, rawJson, "topic")),
             token = safeString(resolveValue(raw?.token, rawJson, "token")),
             title = safeString(resolveValue(raw?.title, rawJson, "title")),
             priority = safeString(resolveValue(raw?.priority, rawJson, "priority")).ifBlank { defaults.priority },
             tags = safeString(resolveValue(raw?.tags, rawJson, "tags")),
+        )
+        val repaired = repairFields(
+            "server" to setting.server,
+            "topic" to setting.topic,
+            "token" to setting.token,
+            "priority" to setting.priority,
+        )
+        return setting.copy(
+            server = repaired.string("server"),
+            topic = repaired.string("topic"),
+            token = repaired.string("token"),
+            priority = repaired.enumString("priority", defaults.priority),
         )
     }
 
@@ -316,7 +637,7 @@ object SenderSettingSanitizer {
         rawJson: JsonObject? = null,
     ): DingtalkInnerRobotSetting {
         val defaults = DingtalkInnerRobotSetting()
-        return DingtalkInnerRobotSetting(
+        val setting = DingtalkInnerRobotSetting(
             agentID = safeString(resolveValue(raw?.agentID, rawJson, "agentID")),
             appKey = safeString(resolveValue(raw?.appKey, rawJson, "appKey")),
             appSecret = safeString(resolveValue(raw?.appSecret, rawJson, "appSecret")),
@@ -333,11 +654,33 @@ object SenderSettingSanitizer {
             proxyUsername = safeString(resolveValue(raw?.proxyUsername, rawJson, "proxyUsername")),
             proxyPassword = safeString(resolveValue(raw?.proxyPassword, rawJson, "proxyPassword")),
         )
+        val repaired = repairFields(
+            "agentID" to setting.agentID,
+            "appKey" to setting.appKey,
+            "appSecret" to setting.appSecret,
+            "userIds" to setting.userIds,
+            "msgKey" to setting.msgKey,
+            "proxyType" to setting.proxyType,
+            "proxyHost" to setting.proxyHost,
+            "proxyPort" to setting.proxyPort,
+            "proxyAuthenticator" to setting.proxyAuthenticator,
+        )
+        return setting.copy(
+            agentID = repaired.string("agentID"),
+            appKey = repaired.string("appKey"),
+            appSecret = repaired.string("appSecret"),
+            userIds = repaired.string("userIds"),
+            msgKey = repaired.enumString("msgKey", defaults.msgKey),
+            proxyType = repaired.proxy("proxyType"),
+            proxyHost = repaired.string("proxyHost"),
+            proxyPort = repaired.string("proxyPort"),
+            proxyAuthenticator = repaired.boolean("proxyAuthenticator", defaults.proxyAuthenticator),
+        )
     }
 
     fun sanitizeFeishuAppSetting(raw: FeishuAppSetting?, rawJson: JsonObject? = null): FeishuAppSetting {
         val defaults = FeishuAppSetting()
-        return FeishuAppSetting(
+        val setting = FeishuAppSetting(
             appId = safeString(resolveValue(raw?.appId, rawJson, "appId")),
             appSecret = safeString(resolveValue(raw?.appSecret, rawJson, "appSecret")),
             receiveId = safeString(resolveValue(raw?.receiveId, rawJson, "receiveId")),
@@ -346,6 +689,20 @@ object SenderSettingSanitizer {
             receiveIdType = safeString(resolveValue(raw?.receiveIdType, rawJson, "receiveIdType"))
                 .ifBlank { defaults.receiveIdType },
             messageCard = safeString(resolveValue(raw?.messageCard, rawJson, "messageCard")),
+        )
+        val repaired = repairFields(
+            "appId" to setting.appId,
+            "appSecret" to setting.appSecret,
+            "receiveId" to setting.receiveId,
+            "msgType" to setting.msgType,
+            "receiveIdType" to setting.receiveIdType,
+        )
+        return setting.copy(
+            appId = repaired.string("appId"),
+            appSecret = repaired.string("appSecret"),
+            receiveId = repaired.string("receiveId"),
+            msgType = repaired.enumString("msgType", defaults.msgType),
+            receiveIdType = repaired.enumString("receiveIdType", defaults.receiveIdType),
         )
     }
 
@@ -357,7 +714,7 @@ object SenderSettingSanitizer {
 
     fun sanitizeSocketSetting(raw: SocketSetting?, rawJson: JsonObject? = null): SocketSetting {
         val defaults = SocketSetting()
-        return SocketSetting(
+        val setting = SocketSetting(
             method = safeString(resolveValue(raw?.method, rawJson, "method")).ifBlank { defaults.method },
             address = safeString(resolveValue(raw?.address, rawJson, "address")),
             port = safeInt(resolveValue(raw?.port, rawJson, "port"), defaults.port),
@@ -375,6 +732,22 @@ object SenderSettingSanitizer {
             clientId = safeString(resolveValue(raw?.clientId, rawJson, "clientId")),
             qos = safeInt(resolveValue(raw?.qos, rawJson, "qos"), defaults.qos),
             retained = safeBoolean(resolveValue(raw?.retained, rawJson, "retained"), defaults.retained),
+        )
+        val repaired = repairFields(
+            "method" to setting.method,
+            "address" to setting.address,
+            "port" to setting.port,
+            "uriType" to setting.uriType,
+            "qos" to setting.qos,
+            "retained" to setting.retained,
+        )
+        return setting.copy(
+            method = repaired.enumString("method", defaults.method),
+            address = repaired.string("address"),
+            port = repaired.int("port", defaults.port),
+            uriType = repaired.enumString("uriType", defaults.uriType),
+            qos = repaired.int("qos", defaults.qos),
+            retained = repaired.boolean("retained", defaults.retained),
         )
     }
 
@@ -455,6 +828,325 @@ object SenderSettingSanitizer {
         }
     }
 
+    private fun canonicalizeLegacyKeys(type: Int, rawJson: JsonObject?): JsonObject? {
+        if (rawJson == null) return null
+        val specs = fieldSpecsByType[type] ?: return rawJson
+        val result = JsonObject()
+        specs.forEach { spec ->
+            firstFieldElement(rawJson, spec.name, *spec.aliases.toTypedArray())?.let { element ->
+                result.add(spec.name, element.deepCopy())
+            }
+        }
+        return result
+    }
+
+    private fun repairTelegramSetting(setting: TelegramSetting): TelegramSetting {
+        val defaults = TelegramSetting()
+        var method = setting.method
+        var apiToken = setting.apiToken
+        var chatId = setting.chatId
+        var messageThreadId = setting.messageThreadId
+        var movedToken = false
+
+        if (!isHttpMethod(method) && isHttpMethod(apiToken)) {
+            method = apiToken
+            apiToken = ""
+        }
+        if (!isTelegramBotToken(apiToken) && isTelegramBotToken(chatId)) {
+            apiToken = chatId
+            chatId = ""
+            movedToken = true
+        }
+        if (movedToken && !isTelegramChatId(chatId) && isTelegramChatId(messageThreadId)) {
+            chatId = messageThreadId
+            messageThreadId = ""
+        }
+
+        val repaired = repairFields(
+            "method" to method,
+            "apiToken" to apiToken,
+            "chatId" to chatId,
+            "messageThreadId" to messageThreadId,
+            "proxyType" to setting.proxyType,
+            "proxyHost" to setting.proxyHost,
+            "proxyPort" to setting.proxyPort,
+            "proxyAuthenticator" to setting.proxyAuthenticator,
+            "parseMode" to setting.parseMode,
+        )
+        return setting.copy(
+            method = repaired.enumString("method", defaults.method),
+            apiToken = repaired.string("apiToken"),
+            chatId = repaired.string("chatId"),
+            messageThreadId = repaired.string("messageThreadId"),
+            proxyType = repaired.proxy("proxyType"),
+            proxyHost = repaired.string("proxyHost"),
+            proxyPort = repaired.string("proxyPort"),
+            proxyAuthenticator = repaired.boolean("proxyAuthenticator", defaults.proxyAuthenticator),
+            parseMode = repaired.enumString("parseMode", defaults.parseMode),
+        )
+    }
+
+    private fun repairFeishuSetting(setting: FeishuSetting): FeishuSetting {
+        val defaults = FeishuSetting()
+        var webhook = setting.webhook
+        var secret = setting.secret
+        var msgType = setting.msgType
+
+        if (!isUrlLike(webhook) && isUrlLike(secret)) {
+            webhook = secret
+            secret = ""
+            if (isLikelySecret(msgType)) {
+                secret = msgType
+            }
+            msgType = defaults.msgType
+        }
+
+        val repaired = repairFields(
+            "webhook" to webhook,
+            "secret" to secret,
+            "msgType" to msgType,
+        )
+        return setting.copy(
+            webhook = repaired.string("webhook"),
+            secret = repaired.string("secret"),
+            msgType = repaired.enumString("msgType", defaults.msgType),
+        )
+    }
+
+    private fun repairWebhookSetting(setting: WebhookSetting): WebhookSetting {
+        val defaults = WebhookSetting()
+        var method = setting.method
+        var webServer = setting.webServer
+        var secret = setting.secret
+        var response = setting.response
+
+        if (!isHttpMethod(method) && isHttpMethod(webServer)) {
+            method = webServer
+            webServer = ""
+        }
+        if (!isUrlLike(webServer) && isUrlLike(secret)) {
+            webServer = secret
+            secret = ""
+            if (isLikelySecret(response)) {
+                secret = response
+                response = ""
+            }
+        }
+
+        val repaired = repairFields(
+            "method" to method,
+            "webServer" to webServer,
+            "secret" to secret,
+            "response" to response,
+            "proxyType" to setting.proxyType,
+            "proxyHost" to setting.proxyHost,
+            "proxyPort" to setting.proxyPort,
+            "proxyAuthenticator" to setting.proxyAuthenticator,
+        )
+        return setting.copy(
+            method = repaired.enumString("method", defaults.method),
+            webServer = repaired.string("webServer"),
+            secret = repaired.string("secret"),
+            response = repaired.string("response"),
+            proxyType = repaired.proxy("proxyType"),
+            proxyHost = repaired.string("proxyHost"),
+            proxyPort = repaired.string("proxyPort"),
+            proxyAuthenticator = repaired.boolean("proxyAuthenticator", defaults.proxyAuthenticator),
+        )
+    }
+
+    private fun repairFields(vararg values: Pair<String, Any?>): RepairedFields {
+        val names = values.map { it.first }
+        val repaired = LinkedHashMap<String, Any?>()
+        values.forEach { (name, value) -> repaired[name] = value }
+
+        names.forEachIndexed { targetIndex, targetName ->
+            val targetValue = repaired[targetName]
+            if (!needsRepair(targetName, targetValue)) return@forEachIndexed
+            for (sourceIndex in targetIndex + 1 until names.size) {
+                val sourceName = names[sourceIndex]
+                val sourceValue = repaired[sourceName]
+                if (isBlankValue(sourceValue)) continue
+                if (matchesField(targetName, sourceValue) && !matchesField(sourceName, sourceValue)) {
+                    repaired[targetName] = sourceValue
+                    repaired[sourceName] = blankReplacement(sourceValue)
+                    break
+                }
+            }
+        }
+        return RepairedFields(repaired)
+    }
+
+    private fun needsRepair(fieldName: String, value: Any?): Boolean {
+        return hasStrongValidator(fieldName) && !matchesField(fieldName, value)
+    }
+
+    private fun hasStrongValidator(fieldName: String): Boolean {
+        return when (fieldName) {
+            "method", "msgtype", "msgType", "msgKey", "parseMode", "proxyType", "receiveIdType",
+            "encryptionProtocol", "transformation", "level", "uriType", "priority",
+            "server", "webServer", "webhook", "webHook", "customizeAPI", "callbackUrl", "url", "website",
+            "authEmail", "fromEmail", "toEmail", "host", "port", "proxyPort", "simSlot", "qos",
+            "ssl", "startTls", "atAll", "proxyAuthenticator", "retained", "onlyNoNetwork",
+            "apiToken", "chatId", "messageThreadId", "token", "secret", "sendKey",
+            "appSecret", "appKey", "appId", "corpID", "agentID", "receiveId" -> true
+            else -> false
+        }
+    }
+
+    private fun matchesField(fieldName: String, value: Any?): Boolean {
+        return when (fieldName) {
+            "method" -> isHttpMethod(value) || isSocketMethod(value)
+            "msgtype", "msgType", "msgKey" -> isMessageType(value)
+            "parseMode" -> normalized(value) in setOf("html", "markdownv2")
+            "proxyType" -> safeString(value).trim().uppercase(Locale.ROOT) in setOf("DIRECT", "HTTP", "SOCKS") ||
+                value is Proxy.Type
+            "receiveIdType" -> normalized(value) in setOf("user_id", "open_id", "union_id", "email", "chat_id")
+            "encryptionProtocol" -> safeString(value) in setOf("Plain", "S/MIME", "OpenPGP")
+            "transformation" -> safeString(value) in setOf("none", "AES/GCM/NoPadding", "AES/CBC/PKCS5Padding")
+            "level" -> normalized(value) in setOf("active", "time-sensitive", "timesensitive", "passive", "critical")
+            "uriType" -> normalized(value) in setOf("tcp", "ssl", "ws", "wss")
+            "priority" -> safeString(value).trim().toIntOrNull() in 1..5
+            "server", "webServer", "webhook", "webHook", "customizeAPI", "callbackUrl", "url" -> isUrlLike(value)
+            "website" -> isUrlLike(value) || isHostLike(value)
+            "authEmail", "fromEmail", "toEmail" -> isEmailLike(value)
+            "host" -> isHostLike(value)
+            "port", "proxyPort" -> isPortLike(value)
+            "simSlot", "qos" -> safeString(value).trim().toIntOrNull() != null || value is Number
+            "ssl", "startTls", "atAll", "proxyAuthenticator", "retained", "onlyNoNetwork" -> isBooleanLike(value)
+            "apiToken" -> isTelegramBotToken(value)
+            "chatId" -> isTelegramChatId(value)
+            "messageThreadId" -> isTelegramThreadId(value)
+            "token", "sendKey", "appSecret", "appKey", "appId", "receiveId" -> isLikelyToken(value)
+            "secret" -> isLikelySecret(value)
+            "corpID" -> safeString(value).trim().startsWith("ww", ignoreCase = true)
+            "agentID" -> safeString(value).trim().toLongOrNull() != null
+            else -> false
+        }
+    }
+
+    private fun blankReplacement(value: Any?): Any? {
+        return when (value) {
+            is Boolean -> false
+            is Number -> 0
+            is Proxy.Type -> Proxy.Type.DIRECT
+            else -> ""
+        }
+    }
+
+    private fun isBlankValue(value: Any?): Boolean {
+        return when (value) {
+            null -> true
+            is String -> value.isBlank()
+            is Map<*, *> -> value.isEmpty()
+            is Iterable<*> -> !value.iterator().hasNext()
+            is Array<*> -> value.isEmpty()
+            else -> false
+        }
+    }
+
+    private fun isHttpMethod(value: Any?): Boolean {
+        return safeString(value).trim().uppercase(Locale.ROOT) in setOf("GET", "POST", "PUT", "PATCH")
+    }
+
+    private fun isSocketMethod(value: Any?): Boolean {
+        return safeString(value).trim().uppercase(Locale.ROOT) in setOf("TCP", "UDP", "MQTT")
+    }
+
+    private fun isMessageType(value: Any?): Boolean {
+        return safeString(value).trim() in setOf("text", "markdown", "interactive", "sampleText", "sampleMarkdown")
+    }
+
+    private fun isUrlLike(value: Any?): Boolean {
+        val text = safeString(value).trim()
+        return text.startsWith("https://", ignoreCase = true) ||
+            text.startsWith("http://", ignoreCase = true) ||
+            text.startsWith("bark://", ignoreCase = true)
+    }
+
+    private fun isHostLike(value: Any?): Boolean {
+        val text = safeString(value).trim()
+        if (text.isBlank() || text.any { it.isWhitespace() }) return false
+        if (isUrlLike(text)) return true
+        return '.' in text && !text.startsWith(".") && !text.endsWith(".")
+    }
+
+    private fun isEmailLike(value: Any?): Boolean {
+        val text = safeString(value).trim()
+        val atIndex = text.indexOf('@')
+        return atIndex > 0 && atIndex < text.lastIndex && '.' in text.substring(atIndex + 1)
+    }
+
+    private fun isPortLike(value: Any?): Boolean {
+        val port = safeString(value).trim().toIntOrNull() ?: return value is Number
+        return port in 1..65535
+    }
+
+    private fun isBooleanLike(value: Any?): Boolean {
+        return when (value) {
+            is Boolean -> true
+            is Number -> value.toInt() == 0 || value.toInt() == 1
+            is String -> normalized(value) in setOf("1", "0", "true", "false", "yes", "no", "y", "n", "on", "off")
+            else -> false
+        }
+    }
+
+    private fun isTelegramBotToken(value: Any?): Boolean {
+        val text = safeString(value).trim()
+        val split = text.split(':', limit = 2)
+        if (split.size != 2) return false
+        return split[0].all { it.isDigit() } && split[0].length >= 5 && split[1].length >= 20
+    }
+
+    private fun isTelegramChatId(value: Any?): Boolean {
+        val text = safeString(value).trim()
+        return text.startsWith("@") && text.length > 1 ||
+            text.toLongOrNull() != null
+    }
+
+    private fun isTelegramThreadId(value: Any?): Boolean {
+        val text = safeString(value).trim()
+        return text.isBlank() || text.toLongOrNull() != null
+    }
+
+    private fun isLikelyToken(value: Any?): Boolean {
+        val text = safeString(value).trim()
+        if (text.length < 6 || text.any { it.isWhitespace() }) return false
+        return !isUrlLike(text) &&
+            !isHttpMethod(text) &&
+            !isSocketMethod(text) &&
+            !isMessageType(text) &&
+            !text.startsWith("{") &&
+            !text.startsWith("[")
+    }
+
+    private fun isLikelySecret(value: Any?): Boolean {
+        return isLikelyToken(value) && !isTelegramChatId(value)
+    }
+
+    private fun normalized(value: Any?): String = safeString(value).trim().lowercase(Locale.ROOT)
+
+    private data class FieldSpec(val name: String, val aliases: List<String>)
+
+    private class RepairedFields(private val values: Map<String, Any?>) {
+        fun string(name: String): String = safeString(values[name])
+
+        fun enumString(name: String, defaultValue: String): String {
+            val value = values[name]
+            return if (matchesField(name, value)) safeString(value).ifBlank { defaultValue } else defaultValue
+        }
+
+        fun boolean(name: String, defaultValue: Boolean): Boolean = safeBoolean(values[name], defaultValue)
+
+        fun int(name: String, defaultValue: Int): Int = safeInt(values[name], defaultValue)
+
+        fun proxy(name: String): Proxy.Type = safeProxyType(values[name])
+    }
+
+    private fun field(name: String, vararg aliases: String): FieldSpec {
+        return FieldSpec(name, aliases.toList())
+    }
+
     private fun <T> parseSetting(json: String, clazz: Class<T>): T? {
         if (json.isBlank()) return null
         return runCatching { gson.fromJson(json, clazz) }.getOrNull()
@@ -470,11 +1162,16 @@ object SenderSettingSanitizer {
     }
 
     private fun fieldValue(rawJson: JsonObject?, vararg names: String): Any? {
+        val element = firstFieldElement(rawJson, *names) ?: return null
+        return jsonElementToAny(element)
+    }
+
+    private fun firstFieldElement(rawJson: JsonObject?, vararg names: String): JsonElement? {
         if (rawJson == null) return null
         names.forEach { name ->
             val element = rawJson.get(name) ?: return@forEach
-            if (element.isJsonNull) return null
-            return jsonElementToAny(element)
+            if (element.isJsonNull) return@forEach
+            return element
         }
         return null
     }

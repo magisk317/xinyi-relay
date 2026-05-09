@@ -24,6 +24,7 @@ import io.github.magisk317.relay.sender.config.WebhookSetting
 import io.github.magisk317.relay.sender.config.WeworkAgentSetting
 import io.github.magisk317.relay.sender.config.WeworkRobotSetting
 import com.google.gson.Gson
+import com.google.gson.JsonObject
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -213,6 +214,241 @@ class SenderSettingSanitizerTest {
         assertTrue(setting.headers.isEmpty())
     }
 
+    @Test
+    fun sanitizeJsonLenient_r8ObfuscatedJson_preservesAllChannelFields() {
+        val dingtalk = gson.fromJson(
+            SenderSettingSanitizer.sanitizeJsonLenient(
+                SenderType.DINGTALK_GROUP_ROBOT,
+                """{"o":"ding-token","p":"ding-secret","q":true,"r":"13800000000","s":"user-a","t":"markdown","u":"title"}""",
+            ),
+            DingtalkGroupRobotSetting::class.java,
+        )
+        assertEquals("ding-token", dingtalk.token)
+        assertEquals("ding-secret", dingtalk.secret)
+        assertTrue(dingtalk.atAll)
+        assertEquals("markdown", dingtalk.msgtype)
+
+        val barkJson = SenderSettingSanitizer.sanitizeJsonLenient(
+            SenderType.BARK,
+            """{"o":"https://api.day.app/key","p":"group","q":"https://example.com/icon.png","r":"bell","s":"1","t":"https://example.com","u":"active","v":"title","w":"none","x":"bark-secret","y":"bark-iv","z":"1","A":"copy"}""",
+        )
+        val bark = gson.fromJson(barkJson, BarkSetting::class.java)
+        assertEquals("https://api.day.app/key", bark.server)
+        assertEquals("group", bark.group)
+        assertEquals("https://example.com", bark.url)
+        assertEquals("none", bark.transformation)
+        assertEquals("copy", bark.autoCopy)
+        assertNoAliasKeys(barkJson, "o", "p", "A")
+
+        val weworkRobot = gson.fromJson(
+            SenderSettingSanitizer.sanitizeJsonLenient(
+                SenderType.WEWORK_ROBOT,
+                """{"o":"https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=abc","p":"markdown","q":true,"r":"user-a","s":"13800000000"}""",
+            ),
+            WeworkRobotSetting::class.java,
+        )
+        assertEquals("https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=abc", weworkRobot.webHook)
+        assertEquals("markdown", weworkRobot.msgType)
+        assertTrue(weworkRobot.atAll)
+
+        val weworkAgent = gson.fromJson(
+            SenderSettingSanitizer.sanitizeJsonLenient(
+                SenderType.WEWORK_AGENT,
+                """{"o":"ww123456","p":"1000001","q":"corp-secret","r":true,"s":"@all","t":"party","u":"tag","v":"HTTP","w":"127.0.0.1","x":"8080","y":true,"z":"proxy-user","A":"proxy-pass","B":"https://qyapi.weixin.qq.com"}""",
+            ),
+            WeworkAgentSetting::class.java,
+        )
+        assertEquals("ww123456", weworkAgent.corpID)
+        assertEquals("1000001", weworkAgent.agentID)
+        assertEquals("corp-secret", weworkAgent.secret)
+        assertEquals(java.net.Proxy.Type.HTTP, weworkAgent.proxyType)
+        assertEquals("https://qyapi.weixin.qq.com", weworkAgent.customizeAPI)
+
+        val serverchan = gson.fromJson(
+            SenderSettingSanitizer.sanitizeJsonLenient(
+                SenderType.SERVERCHAN,
+                """{"o":"send-key","p":"9","q":"openid","r":"title"}""",
+            ),
+            ServerchanSetting::class.java,
+        )
+        assertEquals("send-key", serverchan.sendKey)
+        assertEquals("9", serverchan.channel)
+        assertEquals("openid", serverchan.openid)
+
+        val pushplus = gson.fromJson(
+            SenderSettingSanitizer.sanitizeJsonLenient(
+                SenderType.PUSHPLUS,
+                """{"o":"www.pushplus.plus","p":"push-token","q":"topic","r":"html","s":"wechat","t":"https://example.com/webhook","u":"https://example.com/callback","v":"10","w":"title"}""",
+            ),
+            PushplusSetting::class.java,
+        )
+        assertEquals("www.pushplus.plus", pushplus.website)
+        assertEquals("push-token", pushplus.token)
+        assertEquals("https://example.com/webhook", pushplus.webhook)
+        assertEquals("10", pushplus.validTime)
+
+        val telegram = gson.fromJson(
+            SenderSettingSanitizer.sanitizeJsonLenient(
+                SenderType.TELEGRAM,
+                """{"o":"POST","p":"123456:abcdefghijklmnopqrstuvwxyz","q":"-100123456","r":"7","s":"SOCKS","t":"127.0.0.1","u":"1080","v":true,"w":"proxy-user","x":"proxy-pass","y":"MarkdownV2"}""",
+            ),
+            TelegramSetting::class.java,
+        )
+        assertEquals("POST", telegram.method)
+        assertEquals("123456:abcdefghijklmnopqrstuvwxyz", telegram.apiToken)
+        assertEquals("-100123456", telegram.chatId)
+        assertEquals("7", telegram.messageThreadId)
+        assertEquals(java.net.Proxy.Type.SOCKS, telegram.proxyType)
+        assertEquals("MarkdownV2", telegram.parseMode)
+
+        val sms = gson.fromJson(
+            SenderSettingSanitizer.sanitizeJsonLenient(
+                SenderType.SMS,
+                """{"o":1,"p":"13800000000","q":true}""",
+            ),
+            SmsSetting::class.java,
+        )
+        assertEquals(1, sms.simSlot)
+        assertEquals("13800000000", sms.mobiles)
+        assertTrue(sms.onlyNoNetwork)
+
+        val feishu = gson.fromJson(
+            SenderSettingSanitizer.sanitizeJsonLenient(
+                SenderType.FEISHU,
+                """{"o":"https://open.feishu.cn/open-apis/bot/v2/hook/abc","p":"feishu-secret","q":"text","r":"title","s":"{}"}""",
+            ),
+            FeishuSetting::class.java,
+        )
+        assertEquals("https://open.feishu.cn/open-apis/bot/v2/hook/abc", feishu.webhook)
+        assertEquals("feishu-secret", feishu.secret)
+        assertEquals("text", feishu.msgType)
+
+        val gotify = gson.fromJson(
+            SenderSettingSanitizer.sanitizeJsonLenient(
+                SenderType.GOTIFY,
+                """{"o":"https://gotify.example.com","p":"title","q":"5"}""",
+            ),
+            GotifySetting::class.java,
+        )
+        assertEquals("https://gotify.example.com", gotify.webServer)
+        assertEquals("5", gotify.priority)
+
+        val ntfy = gson.fromJson(
+            SenderSettingSanitizer.sanitizeJsonLenient(
+                SenderType.NTFY,
+                """{"o":"https://ntfy.sh","p":"topic","q":"bearer-token","r":"title","s":"4","t":"tag1,tag2"}""",
+            ),
+            NtfySetting::class.java,
+        )
+        assertEquals("https://ntfy.sh", ntfy.server)
+        assertEquals("topic", ntfy.topic)
+        assertEquals("bearer-token", ntfy.token)
+        assertEquals("4", ntfy.priority)
+
+        val dingtalkInner = gson.fromJson(
+            SenderSettingSanitizer.sanitizeJsonLenient(
+                SenderType.DINGTALK_INNER_ROBOT,
+                """{"o":"1000001","p":"ding-app-key","q":"ding-app-secret","r":"user-a","s":"sampleMarkdown","t":"title","u":"HTTP","v":"127.0.0.1","w":"8080","x":true,"y":"proxy-user","z":"proxy-pass"}""",
+            ),
+            DingtalkInnerRobotSetting::class.java,
+        )
+        assertEquals("1000001", dingtalkInner.agentID)
+        assertEquals("ding-app-key", dingtalkInner.appKey)
+        assertEquals("ding-app-secret", dingtalkInner.appSecret)
+        assertEquals("sampleMarkdown", dingtalkInner.msgKey)
+        assertEquals(java.net.Proxy.Type.HTTP, dingtalkInner.proxyType)
+
+        val feishuApp = gson.fromJson(
+            SenderSettingSanitizer.sanitizeJsonLenient(
+                SenderType.FEISHU_APP,
+                """{"o":"cli_a123","p":"app-secret","q":"receive-id","r":"text","s":"title","t":"chat_id","u":"{}"}""",
+            ),
+            FeishuAppSetting::class.java,
+        )
+        assertEquals("cli_a123", feishuApp.appId)
+        assertEquals("app-secret", feishuApp.appSecret)
+        assertEquals("receive-id", feishuApp.receiveId)
+        assertEquals("chat_id", feishuApp.receiveIdType)
+
+        val urlScheme = gson.fromJson(
+            SenderSettingSanitizer.sanitizeJsonLenient(
+                SenderType.URL_SCHEME,
+                """{"o":"relay://send?text=[msg]"}""",
+            ),
+            UrlSchemeSetting::class.java,
+        )
+        assertEquals("relay://send?text=[msg]", urlScheme.urlScheme)
+
+        val socket = gson.fromJson(
+            SenderSettingSanitizer.sanitizeJsonLenient(
+                SenderType.SOCKET,
+                """{"o":"MQTT","p":"mqtt.example.com","q":1883,"r":"{\"msg\":\"[msg]\"}","s":"secret","t":"ok","u":"user","v":"pass","w":"UTF-8","x":"UTF-8","y":"in/topic","z":"out/topic","A":"tcp","B":"/mqtt","C":"client","D":1,"E":true}""",
+            ),
+            SocketSetting::class.java,
+        )
+        assertEquals("MQTT", socket.method)
+        assertEquals("mqtt.example.com", socket.address)
+        assertEquals(1883, socket.port)
+        assertEquals("tcp", socket.uriType)
+        assertEquals(1, socket.qos)
+        assertTrue(socket.retained)
+    }
+
+    @Test
+    fun sanitizeJsonLenient_shiftedTelegramCanonicalJson_repairsTokenAndChatId() {
+        val raw = """{"method":"POST","apiToken":"POST","chatId":"123456:abcdefghijklmnopqrstuvwxyz","messageThreadId":"-100123456","parseMode":"MarkdownV2"}"""
+
+        val sanitized = SenderSettingSanitizer.sanitizeJsonLenient(SenderType.TELEGRAM, raw)
+        val setting = gson.fromJson(sanitized, TelegramSetting::class.java)
+
+        assertEquals("POST", setting.method)
+        assertEquals("123456:abcdefghijklmnopqrstuvwxyz", setting.apiToken)
+        assertEquals("-100123456", setting.chatId)
+        assertEquals("", setting.messageThreadId)
+        assertEquals("MarkdownV2", setting.parseMode)
+    }
+
+    @Test
+    fun sanitizeJsonLenient_shiftedFeishuAndWebhookCanonicalJson_repairsUrlFields() {
+        val feishu = gson.fromJson(
+            SenderSettingSanitizer.sanitizeJsonLenient(
+                SenderType.FEISHU,
+                """{"webhook":"","secret":"https://open.feishu.cn/open-apis/bot/v2/hook/abc","msgType":"feishu-secret","titleTemplate":"title"}""",
+            ),
+            FeishuSetting::class.java,
+        )
+        assertEquals("https://open.feishu.cn/open-apis/bot/v2/hook/abc", feishu.webhook)
+        assertEquals("feishu-secret", feishu.secret)
+        assertEquals("interactive", feishu.msgType)
+
+        val webhook = gson.fromJson(
+            SenderSettingSanitizer.sanitizeJsonLenient(
+                SenderType.WEBHOOK,
+                """{"method":"POST","webServer":"","secret":"https://example.com/hook","response":"signing-key","webParams":"a=1"}""",
+            ),
+            WebhookSetting::class.java,
+        )
+        assertEquals("POST", webhook.method)
+        assertEquals("https://example.com/hook", webhook.webServer)
+        assertEquals("signing-key", webhook.secret)
+        assertEquals("", webhook.response)
+    }
+
+    @Test
+    fun sanitizeJsonLenient_plainTextFields_areNotMovedAsSecrets() {
+        val raw = """{"webhook":"","secret":"normal title with spaces","msgType":"text","titleTemplate":"https://example.com/not-a-webhook"}"""
+
+        val setting = gson.fromJson(
+            SenderSettingSanitizer.sanitizeJsonLenient(SenderType.FEISHU, raw),
+            FeishuSetting::class.java,
+        )
+
+        assertEquals("", setting.webhook)
+        assertEquals("normal title with spaces", setting.secret)
+        assertEquals("text", setting.msgType)
+        assertEquals("https://example.com/not-a-webhook", setting.titleTemplate)
+    }
+
     private fun newSender(type: Int, json: String): Sender {
         return Sender(
             id = 1L,
@@ -225,6 +461,13 @@ class SenderSettingSanitizerTest {
             receiveNonCode = 1,
             receiveAppNotify = 1,
         )
+    }
+
+    private fun assertNoAliasKeys(json: String, vararg aliases: String) {
+        val obj = gson.fromJson(json, JsonObject::class.java)
+        aliases.forEach { alias ->
+            assertFalse(obj.has(alias), "Unexpected obfuscated key '$alias' in $json")
+        }
     }
 
     private fun assertNoDangerousNullAccess(type: Int, json: String) {

@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.data.repository
 
 import android.content.Context
+import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.dao.AppInfoDao
@@ -154,13 +155,22 @@ class ConfigRepository(
 
     // Sender
     override fun getAllSendersFlow(): Flow<List<Sender>> = senderDao.getAllFlow().map { list ->
-        list.map { SenderSettingSanitizer.sanitizeSenderLenient(it.toDomain()) }
+        val result = ArrayList<Sender>(list.size)
+        list.forEach { entity ->
+            result += sanitizeAndPersistSenderRepair(entity.toDomain())
+        }
+        result
     }
-    override suspend fun getAllSenders(): List<Sender> = senderDao.getAll().map {
-        SenderSettingSanitizer.sanitizeSenderLenient(it.toDomain())
+    override suspend fun getAllSenders(): List<Sender> {
+        val list = senderDao.getAll()
+        val result = ArrayList<Sender>(list.size)
+        list.forEach { entity ->
+            result += sanitizeAndPersistSenderRepair(entity.toDomain())
+        }
+        return result
     }
     override suspend fun getSenderById(id: Long): Sender? = senderDao.getOne(id)?.toDomain()?.let {
-        SenderSettingSanitizer.sanitizeSenderLenient(it)
+        sanitizeAndPersistSenderRepair(it)
     }
     override suspend fun insertSender(sender: Sender): Long {
         val safeSender = SenderSettingSanitizer.sanitizeSenderLenient(sender)
@@ -205,5 +215,15 @@ class ConfigRepository(
 
     private suspend fun noteMutation(source: String) {
         RuntimeGraph.from(appContext).remoteAgentRepository.noteLocalMutation(source)
+    }
+
+    private suspend fun sanitizeAndPersistSenderRepair(sender: Sender): Sender {
+        val safeSender = SenderSettingSanitizer.sanitizeSenderLenient(sender)
+        if (safeSender != sender) {
+            senderDao.update(safeSender.toEntity())
+            XLog.i("Sender config repaired id=%d type=%d", safeSender.id, safeSender.type)
+            noteMutation("config.sender_repair")
+        }
+        return safeSender
     }
 }
