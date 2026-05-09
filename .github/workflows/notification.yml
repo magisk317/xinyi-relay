@@ -12,12 +12,21 @@ jobs:
   notification:
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
     steps:
       - uses: actions/checkout@v6
         with:
           submodules: recursive
           fetch-depth: 0
+
+      - name: Download artifacts
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'beta'
+        uses: actions/download-artifact@v8
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          path: artifacts
+          github-token: ${{ github.token }}
 
       - name: Send Notification
         env:
@@ -36,47 +45,118 @@ jobs:
           WF_RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
           CI_COMMIT_TITLE: ${{ github.event.workflow_run.display_title }}
         run: |
-          if [ -z "$TG_BOT_TOKEN" ]; then
+          set -euo pipefail
+
+          if [ -z "${TG_BOT_TOKEN:-}" ]; then
             echo "TG_BOT_TOKEN not set, skip."
             exit 0
           fi
-          THREAD_PARAM_MSG=""
-          THREAD_PARAM_DOC=""
-          if [ -n "$TG_THREAD_ID" ]; then
-            THREAD_PARAM_MSG="-d message_thread_id=$TG_THREAD_ID"
-            THREAD_PARAM_DOC="-F message_thread_id=$TG_THREAD_ID"
-          fi
+
+          TG_MAX_FILESIZE=$((50 * 1024 * 1024))
+
+          send_message() {
+            local thread=$1
+            local text=$2
+            local curl_args=(
+              --fail-with-body
+              -sS
+              -X POST
+              "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage"
+              -d "chat_id=${TG_CHAT_ID}"
+              --data-urlencode "text=${text}"
+              -d "disable_web_page_preview=true"
+            )
+            if [ -n "$thread" ]; then
+              curl_args+=(-d "message_thread_id=$thread")
+            fi
+            curl "${curl_args[@]}"
+          }
+
+          send_document() {
+            local file=$1
+            local thread=$2
+            local caption=$3
+            local size
+            size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null)
+            local name
+            name=$(basename "$file")
+
+            if [ "$size" -gt "$TG_MAX_FILESIZE" ]; then
+              echo "$name is $((size / 1024 / 1024))MB, exceeds 50MB limit; sending download link instead."
+              local link
+              if [ -n "${WF_RUN_ID:-}" ]; then
+                link="https://github.com/${WF_RUN_REPO}/actions/runs/${WF_RUN_ID}"
+              elif [ -n "${RELEASE_TAG:-}" ]; then
+                link="https://github.com/${WF_RUN_REPO}/releases/tag/${RELEASE_TAG}"
+              else
+                link="https://github.com/${WF_RUN_REPO}/releases"
+              fi
+              local msg
+              msg=$(printf '📦 %s (%sMB) exceeds Telegram upload limit.\n🔗 Download: %s' \
+                "$name" "$((size / 1024 / 1024))" "$link")
+              send_message "$thread" "$msg"
+              return 0
+            fi
+
+            echo "Sending $file to Telegram..."
+            local curl_args=(
+              --fail-with-body
+              -sS
+              -X POST
+              "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendDocument"
+              -F "chat_id=${TG_CHAT_ID}"
+              -F "document=@${file}"
+            )
+            if [ -n "$thread" ]; then
+              curl_args+=(-F "message_thread_id=$thread")
+            fi
+            if [ -n "$caption" ]; then
+              curl_args+=(-F "caption=$caption")
+            fi
+            curl "${curl_args[@]}"
+          }
 
           # CI workflow run notification
-          if [ -n "$WF_RUN_ID" ]; then
+          if [ -n "${WF_RUN_ID:-}" ]; then
             # Only send for beta branch success
-            if [ "$WF_RUN_BRANCH" != "beta" ]; then
+            if [ "${WF_RUN_BRANCH:-}" != "beta" ]; then
               exit 0
             fi
-            if [ "$WF_RUN_CONCLUSION" != "success" ]; then
+            if [ "${WF_RUN_CONCLUSION:-}" != "success" ]; then
               exit 0
             fi
-            CI_MSG=$(printf '✅ CI Workflow %s\n\n📋 %s\n🔗 Run: %s' \
-              "$WF_RUN_NAME" "$CI_COMMIT_TITLE" "$WF_RUN_URL")
-            CI_THREAD_PARAM=""
-            if [ -n "$TG_CI_THREAD_ID" ]; then
-              CI_THREAD_PARAM="-d message_thread_id=$TG_CI_THREAD_ID"
+            CI_MSG=$(printf '✅ Xinyi Relay Workflow %s\n\n📋 %s\n🔗 Run: %s' \
+              "${WF_RUN_NAME:-CI}" "${CI_COMMIT_TITLE:-}" "${WF_RUN_URL:-}")
+            CI_THREAD=""
+            if [ -n "${TG_CI_THREAD_ID:-}" ]; then
+              CI_THREAD="$TG_CI_THREAD_ID"
             fi
-            curl -s -X POST "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage" \
-              -d "chat_id=${TG_CHAT_ID}" \
-              $CI_THREAD_PARAM \
-              --data-urlencode "text=${CI_MSG}" \
-              -d "disable_web_page_preview=true"
+            send_message "$CI_THREAD" "$CI_MSG"
+
+            if [ -d "artifacts" ]; then
+              mapfile -d '' ci_apks < <(
+                find artifacts -type f -name '*arm64-v8a*.apk' -print0 | sort -z
+              )
+              if [ "${#ci_apks[@]}" -eq 0 ]; then
+                echo "No arm64-v8a APK artifacts found."
+              else
+                for apk in "${ci_apks[@]}"; do
+                  send_document "$apk" "$CI_THREAD" ""
+                done
+              fi
+            else
+              echo "No downloaded artifacts directory found."
+            fi
             exit 0
           fi
 
-          if [ -z "$RELEASE_TAG" ]; then
+          if [ -z "${RELEASE_TAG:-}" ]; then
             RELEASE_TAG="${GITHUB_REF_NAME:-manual}"
           fi
 
           RELEASE_KIND="manual"
           RELEASE_VERSION="$RELEASE_TAG"
-          if [[ -n "$RELEASE_TAG" ]]; then
+          if [[ -n "${RELEASE_TAG:-}" ]]; then
             if release_meta="$(bash scripts/release_ref.sh parse-tag "$RELEASE_TAG" 2>/dev/null)"; then
               eval "$release_meta"
               RELEASE_KIND="$release_kind"
@@ -101,50 +181,21 @@ jobs:
 
           CAPTION=$(printf '📦 信驿 Relay Release: %s\n\n%s' "$RELEASE_TAG" "$WHATSNEW_CONTENT")
 
-          curl -s -X POST "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage" \
-            -d "chat_id=${TG_CHAT_ID}" \
-            $THREAD_PARAM_MSG \
-            --data-urlencode "text=${CAPTION}" \
-            -d "disable_web_page_preview=true"
+          RELEASE_THREAD=""
+          if [ -n "${TG_THREAD_ID:-}" ]; then
+            RELEASE_THREAD="$TG_THREAD_ID"
+          fi
+          send_message "$RELEASE_THREAD" "$CAPTION"
 
-          # APK/AAB media group (disabled for now)
-          # mkdir -p downloads
-          # FILES=()
-          # echo "$ASSETS_JSON" | jq -r '.[] | .browser_download_url' | while read -r url; do
-          #   filename=$(basename "$url")
-          #   if [[ "$filename" == *.apk ]] || [[ "$filename" == *.aab ]]; then
-          #     echo "Downloading $filename..."
-          #     curl -L -s -o "downloads/$filename" "$url"
-          #     FILES+=("$filename")
-          #   fi
-          # done
-          #
-          # if [ "${#FILES[@]}" -eq 0 ]; then
-          #   echo "No APK/AAB assets found."
-          #   exit 0
-          # fi
-          #
-          # MEDIA_JSON=$(jq -n --arg caption "$CAPTION" '[]')
-          # idx=0
-          # for f in "${FILES[@]}"; do
-          #   idx=$((idx + 1))
-          #   if [ "$idx" -eq 1 ]; then
-          #     MEDIA_JSON=$(jq --arg name "file$idx" --arg caption "$CAPTION" '. + [{"type":"document","media":"attach://"+$name,"caption":$caption,"parse_mode":"HTML"}]' <<<"$MEDIA_JSON")
-          #   else
-          #     MEDIA_JSON=$(jq --arg name "file$idx" '. + [{"type":"document","media":"attach://"+$name}]' <<<"$MEDIA_JSON")
-          #   fi
-          # done
-          #
-          # CURL_ARGS=(-s -X POST "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMediaGroup" -F "chat_id=${TG_CHAT_ID}")
-          # if [ -n "$TG_THREAD_ID" ]; then
-          #   CURL_ARGS+=(-F "message_thread_id=${TG_THREAD_ID}")
-          # fi
-          # CURL_ARGS+=(-F "media=${MEDIA_JSON}")
-          #
-          # idx=0
-          # for f in "${FILES[@]}"; do
-          #   idx=$((idx + 1))
-          #   CURL_ARGS+=(-F "file$idx=@downloads/$f")
-          # done
-          #
-          # curl "${CURL_ARGS[@]}"
+          if [ "${ASSETS_JSON:-null}" != "null" ]; then
+            mkdir -p downloads
+            echo "$ASSETS_JSON" | jq -c '.[]' | while read -r asset; do
+              name=$(echo "$asset" | jq -r '.name')
+              url=$(echo "$asset" | jq -r '.browser_download_url')
+              if [[ "$name" == *arm64-v8a*.apk ]]; then
+                echo "Downloading $name..."
+                curl --fail-with-body -L -sS -o "downloads/$name" "$url"
+                send_document "downloads/$name" "$RELEASE_THREAD" ""
+              fi
+            done
+          fi
