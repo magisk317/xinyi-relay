@@ -37,6 +37,28 @@ class ForwardReceiverPolicyTest {
     }
 
     @Test
+    fun shouldAllowCompatTokenBypass_requiresUninitializedExpectedToken() {
+        assertTrue(
+            ForwardReceiverPolicy.shouldAllowCompatTokenBypass(
+                expectedToken = "",
+                msgType = ForwardBroadcastContract.MSG_TYPE_CALL_NOTIFY,
+                forwardSource = ForwardBroadcastContract.SOURCE_NMS_HOOK,
+                sentFromUid = null,
+                sdkInt = 33,
+            ),
+        )
+        assertFalse(
+            ForwardReceiverPolicy.shouldAllowCompatTokenBypass(
+                expectedToken = "initialized",
+                msgType = ForwardBroadcastContract.MSG_TYPE_CALL_NOTIFY,
+                forwardSource = ForwardBroadcastContract.SOURCE_NMS_HOOK,
+                sentFromUid = null,
+                sdkInt = 33,
+            ),
+        )
+    }
+
+    @Test
     fun shouldAllowSmsHookTokenBypass_matchesSmsHookRules() {
         assertTrue(
             ForwardReceiverPolicy.shouldAllowSmsHookTokenBypass(

@@ -89,7 +89,8 @@ class ForwardReceiver : BroadcastReceiver() {
                     }
                 }
                 val tokenMatched = expectedToken.isNotEmpty() && receivedToken == expectedToken
-                val allowSystemBypass = ForwardReceiverPolicy.shouldAllowSystemTokenBypass(
+                val allowSystemBypass = ForwardReceiverPolicy.shouldAllowCompatTokenBypass(
+                    expectedToken = expectedToken,
                     msgType = originalMsgTypeStr,
                     forwardSource = forwardSource,
                     sentFromUid = sentFromUid,

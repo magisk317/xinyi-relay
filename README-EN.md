@@ -97,7 +97,7 @@ See each component's README for details.
 
 - Desktop releases currently ship Linux, macOS, and Windows packages.
 - macOS builds are currently distributed unsigned, so first launch may require a manual allow step in system settings.
-- Windows builds are signed with the repository-managed self-signed certificate. If Windows blocks the installer, import the public certificate [desktop/certs/windows-codesign.cer](/home/lzc/wqk/xinyi-relay/desktop/certs/windows-codesign.cer) first and then retry the installer.
+- Windows builds are signed with the repository-managed self-signed certificate. If Windows blocks the installer, import the public certificate [desktop/certs/windows-codesign.cer](desktop/certs/windows-codesign.cer) first and then retry the installer.
 - This Windows certificate is only intended for niche distribution of this project. It is not a public CA commercial code-signing certificate, so only import it if you trust this project's releases.
 
 Feedback and suggestions are welcome.

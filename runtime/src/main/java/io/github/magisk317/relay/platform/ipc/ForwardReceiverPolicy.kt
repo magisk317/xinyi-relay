@@ -39,6 +39,22 @@ object ForwardReceiverPolicy {
         else -> false
     }
 
+    fun shouldAllowCompatTokenBypass(
+        expectedToken: String,
+        msgType: String,
+        forwardSource: String,
+        sentFromUid: Int?,
+        sdkInt: Int = Build.VERSION.SDK_INT,
+    ): Boolean {
+        return expectedToken.isBlank() &&
+            shouldAllowSystemTokenBypass(
+                msgType = msgType,
+                forwardSource = forwardSource,
+                sentFromUid = sentFromUid,
+                sdkInt = sdkInt,
+            )
+    }
+
     fun shouldAllowSmsHookTokenBypass(
         sentFromUid: Int?,
         sdkInt: Int = Build.VERSION.SDK_INT,

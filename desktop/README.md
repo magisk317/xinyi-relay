@@ -178,7 +178,7 @@ Get-Content "$env:APPDATA\io.github.magisk317.relay.desktop\logs\xinyi-relay-*.l
 
 仓库内置了当前 Release 使用的公开 Windows 自签名证书：
 
-- [desktop/certs/windows-codesign.cer](/home/lzc/wqk/xinyi-relay/desktop/certs/windows-codesign.cer)
+- [desktop/certs/windows-codesign.cer](certs/windows-codesign.cer)
 
 当前 Windows 安装包使用仓库自管的自签名证书，而不是公有 CA 证书。因此首次安装时，Windows 仍可能提示未知发布者或 SmartScreen 警告。对于愿意继续使用的用户，可以先导入上面的 `.cer` 证书，再运行安装包。
 

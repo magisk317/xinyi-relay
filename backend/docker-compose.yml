@@ -24,8 +24,8 @@ services:
       # PostgreSQL 18+ 需要挂到上层目录，数据会落在其版本化子目录中
       - ${RELAY_POSTGRES_DATA_DIR:-./postgres-data}:/var/lib/postgresql
     ports:
-      # 暴露 PostgreSQL 到宿主机，便于本地调试和手工连接
-      - "5432:5432"
+      # 仅暴露 PostgreSQL 到本机，便于本地调试和手工连接
+      - "127.0.0.1:5432:5432"
 
   # Go API：提供认证、设备管理、配置同步、记录查询等后端接口
   api:

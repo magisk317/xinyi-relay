@@ -38,8 +38,10 @@ forbid_pattern "$APP_BUILD" 'implementation\(project\(":smscode-core:core"\)\)' 
   "app must not runtime-package :smscode-core:core directly"
 forbid_pattern "$APP_BUILD" 'api\(project\(":smscode-core:core"\)\)' \
   "app must not expose :smscode-core:core directly"
-require_pattern "$APP_BUILD" 'compileOnly\(project\(":smscode-core:smscode-xposed-core"\)\)' \
-  "app xp entrypoints must compile against :smscode-core:smscode-xposed-core"
+require_pattern "$APP_BUILD" 'implementation\(project\(":hook-entry"\)\)' \
+  "app must package :hook-entry for libxposed entrypoints"
+forbid_pattern "$APP_BUILD" 'implementation\(project\(":smscode-core:smscode-xposed-core"\)\)' \
+  "app must not package :smscode-core:smscode-xposed-core directly"
 
 require_pattern "$CORE_BUILD" 'implementation\(project\(":runtime"\)\)' \
   "core must depend on :runtime as implementation"

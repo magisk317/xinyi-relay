@@ -7,16 +7,43 @@ import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
+import io.github.magisk317.relay.security.IpcTokenGate
+import io.github.magisk317.smscode.xposed.hook.system.SystemInputInjectorHook
 import kotlinx.coroutines.runBlocking
 import kotlin.concurrent.thread
 
 object AutoInputResultHandler {
     val action: String
-        get() = io.github.magisk317.smscode.xposed.hook.system.SystemInputInjectorHook.resolveActionAutoInputResult()
+        get() = SystemInputInjectorHook.resolveActionAutoInputResult()
 
     fun handle(context: Context, intent: Intent) {
         val attemptId = intent.getLongExtra("attemptId", -1L)
         if (attemptId <= 0L) return
+        val runtimeGraph = RuntimeGraph.from(context)
+        val expectedToken = runBlocking {
+            RuntimeSettingsCache.getString(
+                key = PrefConst.KEY_IPC_TOKEN,
+                defaultValue = "",
+            ) { key, defaultValue ->
+                runtimeGraph.preferenceDataSource.getString(key, defaultValue)
+            }
+        }
+        val tokenDecision = IpcTokenGate.evaluate(
+            expectedToken = expectedToken,
+            receivedToken = intent.getStringExtra(SystemInputInjectorHook.EXTRA_IPC_TOKEN),
+        )
+        if (!tokenDecision.accepted) {
+            XLog.w(
+                "Diag AutoInputResultReceiver rejected token: attemptId=%d expectedEmpty=%s receivedEmpty=%s",
+                attemptId,
+                expectedToken.isBlank(),
+                intent.getStringExtra(SystemInputInjectorHook.EXTRA_IPC_TOKEN).isNullOrBlank(),
+            )
+            return
+        }
+        if (tokenDecision.compatBypassUsed) {
+            XLog.w("Diag AutoInputResultReceiver accepted legacy empty-token compat result: attemptId=%d", attemptId)
+        }
         val success = intent.getBooleanExtra("success", false)
         val reason = intent.getStringExtra("reason")
         XLog.w(
@@ -26,7 +53,6 @@ object AutoInputResultHandler {
             reason ?: "<none>",
         )
         val analyticsEnabled = runBlocking {
-            val runtimeGraph = RuntimeGraph.from(context)
             RuntimeSettingsCache.getBoolean(
                 key = PrefConst.KEY_ENABLE_ANALYTICS,
                 defaultValue = true,

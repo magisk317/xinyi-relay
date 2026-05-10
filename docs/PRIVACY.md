@@ -95,7 +95,7 @@ If you have questions about this policy, contact:
 - 我们不会通过自有服务器中转这些数据。
 
 #### 2.3 跨应用迁移导入
-为支持迁移，信驿 Relay 可能通过本地 `ContentProvider`（签名权限保护）读取兼容来源应用导出的数据。
+为支持迁移，信驿 Relay 可能通过本地 `ContentProvider` 读取兼容来源应用导出的数据；该 Provider 由应用内 caller 自检与系统/特权 caller 判断限制访问。
 - 可能支持的来源包名包括：
   - `io.github.magisk317.xinyi.relay`
   - `io.github.magisk317.relay`

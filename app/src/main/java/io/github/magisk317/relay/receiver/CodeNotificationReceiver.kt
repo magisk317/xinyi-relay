@@ -39,7 +39,10 @@ class CodeNotificationReceiver : BroadcastReceiver() {
         val receivedToken = payload.token
         val sentFromUid = resolveSentFromUidCompat()
         val tokenMatched = expectedToken.isNotBlank() && receivedToken == expectedToken
-        val allowSystemBypass = expectedToken.isBlank() && CodeNotificationPayload.shouldAllowSmsHookTokenBypass(sentFromUid)
+        val allowSystemBypass = CodeNotificationPayload.shouldAllowSmsHookTokenBypass(
+            expectedToken = expectedToken,
+            sentFromUid = sentFromUid,
+        )
         if (!tokenMatched && !allowSystemBypass) {
             XLog.w(
                 "CodeNotificationReceiver rejected token. expectedEmpty=%s receivedEmpty=%s sentFromUid=%d",

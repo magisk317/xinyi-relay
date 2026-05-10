@@ -35,6 +35,8 @@
 - 尽量只保留入口、生命周期与装配代码
 - 不直接承载转发主编排
 - 不再承载嵌入式 WebUI 服务启动、TLS 或静态资源打包链路
+- 允许保留 app-process IPC adapter：`CodeNotificationReceiver`、auto-input accessibility/result、force-stop recovery wakeup
+- 新业务逻辑不落在上述 adapter 内；adapter 只做 action/token 校验、Intent 解析与委托
 
 ### `xpbridge-core`
 - Xposed/runtime 之间的桥接 DTO 与 facade
