@@ -80,7 +80,8 @@ object SmsUtils {
                 val targetInfo = activeInfos?.find { it.simSlotIndex == simSlot - 1 }
                 if (targetInfo != null) {
                     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        context.getSystemService(SmsManager::class.java)?.createForSubscriptionId(targetInfo.subscriptionId) ?: SmsManager.getSmsManagerForSubscriptionId(targetInfo.subscriptionId)
+                        context.getSystemService(SmsManager::class.java)!!
+                            .createForSubscriptionId(targetInfo.subscriptionId)
                     } else {
                         @Suppress("DEPRECATION")
                         SmsManager.getSmsManagerForSubscriptionId(targetInfo.subscriptionId)
