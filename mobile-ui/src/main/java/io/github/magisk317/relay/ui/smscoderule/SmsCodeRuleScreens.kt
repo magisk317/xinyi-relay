@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -52,12 +53,17 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.android.data.db.entity.SmsCodeRule
+import io.github.magisk317.relay.android.sms.SmsCodeUtils as RelaySmsCodeUtils
 import io.github.magisk317.relay.engine.service.AppConfigRepository
 import io.github.magisk317.smscode.domain.model.BuiltinSmsCodeRuleSpec
 import io.github.magisk317.smscode.domain.model.BuiltinSmsCodeRules
+import io.github.magisk317.smscode.runtime.common.rules.OfficialSmsCodeRule
+import io.github.magisk317.smscode.runtime.common.rules.SmsCodeRuleCatalogSnapshot
 import org.koin.compose.koinInject
 import java.util.regex.Pattern
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private const val BUILTIN_RULE_EDITOR_ID_ALPHANUMERIC = -101L
 private const val BUILTIN_RULE_EDITOR_ID_DIGITS = -102L
@@ -85,16 +91,54 @@ fun SmsCodeRuleListScreen(
     onAddClick: () -> Unit,
     onEditClick: (Long) -> Unit,
 ) {
+    val context = LocalContext.current
     val repository: AppConfigRepository = koinInject()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val removedLabel = stringResource(id = R.string.removed)
     val emptyPrompt = stringResource(id = R.string.rule_list_empty_prompt)
-    val builtinTitle = stringResource(id = R.string.builtin_code_rules_title)
-    val builtinSummary = stringResource(id = R.string.builtin_code_rules_summary)
+    val officialTitle = stringResource(id = R.string.official_code_rules_title)
+    val officialEmptyPrompt = stringResource(id = R.string.official_code_rules_empty_prompt)
+    val officialRefreshSuccess = stringResource(id = R.string.official_code_rules_refresh_success)
+    val officialRefreshFailed = stringResource(id = R.string.official_code_rules_refresh_failed)
     val userTitle = stringResource(id = R.string.user_code_rules_title)
     val userSummary = stringResource(id = R.string.user_code_rules_summary)
     val rules by repository.observeSmsCodeRulesFlow().collectAsStateWithLifecycle(initialValue = emptyList())
+    var officialSnapshot by remember { mutableStateOf<SmsCodeRuleCatalogSnapshot?>(null) }
+    var officialLoading by remember { mutableStateOf(false) }
+    val officialRules = officialSnapshot?.rules.orEmpty()
+    val officialSummary = stringResource(
+        id = R.string.official_code_rules_summary,
+        officialRules.size,
+        officialSnapshot?.sourceKind?.name?.lowercase().orEmpty().ifBlank { "-" },
+    )
+
+    fun loadOfficialRules(refresh: Boolean) {
+        if (officialLoading) return
+        scope.launch {
+            officialLoading = true
+            val result = withContext(Dispatchers.IO) {
+                if (refresh) {
+                    RelaySmsCodeUtils.refreshOfficialRules(context)
+                } else {
+                    null
+                }
+            }
+            officialSnapshot = withContext(Dispatchers.IO) {
+                result?.snapshot ?: RelaySmsCodeUtils.loadOfficialRuleSnapshot(context)
+            }
+            officialLoading = false
+            if (refresh) {
+                snackbarHostState.showSnackbar(
+                    if (result?.success == true) officialRefreshSuccess else officialRefreshFailed,
+                )
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        loadOfficialRules(refresh = false)
+    }
 
     Scaffold(
         topBar = {
@@ -103,6 +147,14 @@ fun SmsCodeRuleListScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                    }
+                },
+                actions = {
+                    IconButton(
+                        enabled = !officialLoading,
+                        onClick = { loadOfficialRules(refresh = true) },
+                    ) {
+                        Icon(Icons.Filled.Refresh, contentDescription = stringResource(id = R.string.action_refresh))
                     }
                 },
             )
@@ -138,18 +190,32 @@ fun SmsCodeRuleListScreen(
         ) {
             item {
                 RuleSectionHeader(
-                    title = builtinTitle,
-                    summary = builtinSummary,
+                    title = officialTitle,
+                    summary = officialSummary,
                 )
             }
-            itemsIndexed(BuiltinSmsCodeRules.all, key = { _, rule -> rule.id }) { index, rule ->
-                BuiltinSmsCodeRuleCard(
-                    rule = rule,
-                    ordinal = index + 1,
-                    onClick = {
-                        builtinRuleEditorId(rule.id)?.let(onEditClick)
-                    },
-                )
+            if (officialRules.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp, bottom = 12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = officialEmptyPrompt,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            } else {
+                itemsIndexed(officialRules, key = { index, rule -> "${rule.sourcePath}:${rule.id}:$index" }) { index, rule ->
+                    OfficialSmsCodeRuleCard(
+                        rule = rule,
+                        ordinal = index + 1,
+                    )
+                }
             }
             item {
                 RuleSectionHeader(
@@ -214,38 +280,27 @@ private fun RuleSectionHeader(
 }
 
 @Composable
-private fun BuiltinSmsCodeRuleCard(
-    rule: BuiltinSmsCodeRuleSpec,
+private fun OfficialSmsCodeRuleCard(
+    rule: OfficialSmsCodeRule,
     ordinal: Int,
-    onClick: () -> Unit,
 ) {
-    val builtinBadge = stringResource(id = R.string.builtin_rule_badge_format, ordinal)
-    val keywordSetting = stringResource(id = R.string.builtin_rule_keyword_setting)
-    val title = when (rule.id) {
-        BuiltinSmsCodeRules.RULE_ID_ALPHANUMERIC -> stringResource(id = R.string.builtin_rule_alphanumeric_title)
-        BuiltinSmsCodeRules.RULE_ID_DIGITS -> stringResource(id = R.string.builtin_rule_digits_title)
-        else -> builtinBadge
-    }
-    OutlinedCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-    ) {
+    val officialBadge = stringResource(id = R.string.official_rule_badge_format, ordinal)
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
-                text = title,
+                text = rule.company?.takeIf { it.isNotBlank() } ?: rule.setName,
                 style = MaterialTheme.typography.titleMedium,
             )
             Text(
-                text = builtinBadge,
+                text = officialBadge,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,
             )
             Text(
-                text = keywordSetting,
+                text = rule.codeKeyword,
                 style = MaterialTheme.typography.bodyMedium,
             )
             Text(

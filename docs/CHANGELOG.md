@@ -4,6 +4,13 @@
 
 ---
 
+## [Unreleased] - 2026-05-10
+- `[sms-code]` 接入外置 `smscode-rules` 官方规则目录：APK 内置离线快照，运行时支持远程刷新与本地缓存，官方规则只读展示。
+- `[sms-code]` 验证码解析规则改为“用户自定义规则优先、官方规则按优先级、内置通用兜底”的分层合并模型；用户规则导入导出仍只处理本地自定义规则。
+- `[build]` 新增 `smscode-rules` 内容型子模块与 generated assets 同步任务，并将 `verifyEmbeddedSubmodules` 扩展到规则目录结构。
+
+---
+
 ## [v0.1.1] - 2026-05-01
 - 版本：`versionCode 21` / `versionName 0.1.1`。
 - `[desktop]` 新增信驿 Desktop 桌面端初始实现：基于 Tauri + React + Vite 构建，支持 Windows/macOS/Linux，提供配置管理、实时状态刷新、记录查看与发送器编辑能力。

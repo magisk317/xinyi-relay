@@ -721,6 +721,12 @@
     <string name="smscode_conflict_sms_toast">功能冲突，检查状态栏通知</string>
     <!-- smscode conflict dialog end -->
     <string name="rule_list_empty_prompt">暂无规则，点击 + 添加。</string>
+    <string name="official_code_rules_title">官方验证码规则</string>
+    <string name="official_code_rules_summary">已从 smscode-rules 加载 %1$d 条规则（%2$s），可刷新拉取最新规则。</string>
+    <string name="official_code_rules_empty_prompt">暂未加载官方规则，点击刷新拉取规则目录。</string>
+    <string name="official_code_rules_refresh_success">官方规则已刷新。</string>
+    <string name="official_code_rules_refresh_failed">刷新失败，继续使用缓存或内置规则。</string>
+    <string name="official_rule_badge_format">官方规则%1$d</string>
     <string name="builtin_code_rules_title">内置规则（只读）</string>
     <string name="builtin_code_rules_summary">默认解析规则会展示在这里供参考。它们会使用“关键字”设置作为锚点，并继续应用近关键字优先、去空白重试和日期时间排除。</string>
     <string name="builtin_rule_badge">内置</string>

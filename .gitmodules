@@ -7,3 +7,7 @@
 [submodule "build-logic"]
 	path = build-logic
 	url = https://github.com/magisk317/magisk-build-logic.git
+[submodule "smscode-rules"]
+	path = smscode-rules
+	url = https://github.com/magisk317/smscode-rules.git
+	branch = main

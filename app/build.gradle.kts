@@ -20,6 +20,17 @@ val skipGoogleServices = findProperty("skipGoogleServices")
     ?.toString()
     ?.toBooleanStrictOrNull()
     ?: false
+val generatedSmsCodeRulesAssetsDir = layout.buildDirectory.dir("generated/smscodeRulesAssets")
+val syncSmsCodeRulesAssets by tasks.registering(Sync::class) {
+    val rulesRoot = rootProject.layout.projectDirectory.dir("smscode-rules")
+    from(rulesRoot.dir("_meta")) {
+        into("meta")
+    }
+    from(rulesRoot.dir("rules")) {
+        into("rules")
+    }
+    into(generatedSmsCodeRulesAssetsDir.map { it.dir("smscode-rules") })
+}
 
 android {
     namespace = "io.github.magisk317.relay"
@@ -61,6 +72,12 @@ android {
         buildConfig = true
     }
 
+    sourceSets {
+        getByName("main") {
+            assets.srcDir(generatedSmsCodeRulesAssetsDir.get().asFile)
+        }
+    }
+
     packaging {
         resources {
             excludes += "**/*.kotlin_*"
@@ -77,6 +94,10 @@ android {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.fromTarget(javaVersion.toString()))
         }
     }
+}
+
+tasks.named("preBuild") {
+    dependsOn(syncSmsCodeRulesAssets)
 }
 
 tasks.matching { it.name.endsWith("GoogleServices") }.configureEach {

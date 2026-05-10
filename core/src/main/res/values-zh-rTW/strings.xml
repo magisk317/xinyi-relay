@@ -718,6 +718,12 @@
     <string name="smscode_conflict_sms_toast">功能衝突，檢查狀態列通知</string>
     <!-- smscode conflict dialog end -->
     <string name="rule_list_empty_prompt">暫無規則，點擊 + 添加。</string>
+    <string name="official_code_rules_title">官方驗證碼規則</string>
+    <string name="official_code_rules_summary">已從 smscode-rules 載入 %1$d 條規則（%2$s），可刷新拉取最新規則。</string>
+    <string name="official_code_rules_empty_prompt">暫未載入官方規則，點擊刷新拉取規則目錄。</string>
+    <string name="official_code_rules_refresh_success">官方規則已刷新。</string>
+    <string name="official_code_rules_refresh_failed">刷新失敗，繼續使用快取或內建規則。</string>
+    <string name="official_rule_badge_format">官方規則%1$d</string>
     <string name="builtin_code_rules_title">內建規則（唯讀）</string>
     <string name="builtin_code_rules_summary">預設解析規則會展示在這裡供參考。它們會使用「關鍵字」設定作為錨點，並繼續套用近關鍵字優先、去空白重試與日期時間排除。</string>
     <string name="builtin_rule_badge">內建</string>

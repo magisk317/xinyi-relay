@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SUBMODULE_DIR="$ROOT_DIR/smscode-core"
 SUBMODULE_SETTINGS="$SUBMODULE_DIR/settings.gradle.kts"
 SUBMODULE_BUILD="$SUBMODULE_DIR/build.gradle.kts"
+RULES_DIR="$ROOT_DIR/smscode-rules"
 
 violations=()
 
@@ -46,6 +47,16 @@ forbid_pattern "$SUBMODULE_BUILD" 'subprojects\s*\{|allprojects\s*\{' \
 
 if [[ -d "$SUBMODULE_DIR/core" ]]; then
   violations+=("smscode-core/core must be removed after the xposed-core split")
+fi
+
+if [[ ! -f "$RULES_DIR/_meta/rules-index.json" ]]; then
+  violations+=("smscode-rules must provide _meta/rules-index.json")
+fi
+if [[ ! -d "$RULES_DIR/rules" ]]; then
+  violations+=("smscode-rules must provide rules/")
+fi
+if [[ -f "$RULES_DIR/settings.gradle.kts" || -f "$RULES_DIR/build.gradle.kts" ]]; then
+  violations+=("smscode-rules must stay a content-only submodule, not a Gradle module")
 fi
 
 if [[ "${#violations[@]}" -ne 0 ]]; then

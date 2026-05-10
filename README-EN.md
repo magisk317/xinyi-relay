@@ -57,6 +57,7 @@ The Android app is the on-device module for Xposed/LSPosed. It is responsible fo
 - Call-event relay: capture and relay incoming-call metadata
 - Global and app-level filtering: keywords, sources, priorities, and forward filters
 - Verification code parsing, copy, and autofill
+- Verification-code rules: bundled official read-only rules, refreshable cache, and user custom rules are merged in layers
 - Records and backup: export/import config and history
 
 ## Backend
@@ -118,6 +119,7 @@ Feedback and suggestions are welcome.
 # Repository Notes
 - The repository root is the primary build entry for day-to-day development.
 - `smscode-core` is treated as an embedded shared-library submodule, not a parallel primary root project.
+- `smscode-rules` is a content-only submodule for the bundled official verification-code rule snapshot. It is packaged as APK assets and is not a Gradle/Kotlin code module.
 - Runtime layering and module-boundary guidance lives in [docs/REFACTORING.md](docs/REFACTORING.md).
 
 # Documentation

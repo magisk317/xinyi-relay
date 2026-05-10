@@ -36,8 +36,7 @@ import io.github.magisk317.smscode.runtime.common.backup.BackupSmsRecord
 import io.github.magisk317.smscode.runtime.common.backup.ExportResult
 import io.github.magisk317.smscode.domain.model.SmsCodeMatchedRule
 import io.github.magisk317.smscode.domain.model.SmsCodeMatchedRuleSource
-import io.github.magisk317.smscode.domain.model.SmsCodeRuleSpec
-import io.github.magisk317.smscode.domain.utils.SmsCodeUtils as SharedSmsCodeUtils
+import io.github.magisk317.relay.android.sms.SmsCodeUtils as RelaySmsCodeUtils
 import io.github.magisk317.uikit.theme.UiKitStyle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -276,17 +275,10 @@ class SettingsViewModel(
                         null
                     } else {
                         val keywords = settingsRepository.getVerificationSettings().relayKeywords
-                        val rules = configRepository.getAllSmsCodeRules().map {
-                            SmsCodeRuleSpec(
-                                company = it.company,
-                                codeKeyword = it.codeKeyword,
-                                codeRegex = it.codeRegex,
-                            )
-                        }
-                        SharedSmsCodeUtils.parseSmsCodeResultIfExists(
+                        RelaySmsCodeUtils.parseSmsCodeResultIfExists(
+                            context = getApplication(),
                             content = msgBody,
-                            keywordsRegex = keywords,
-                            rules = rules,
+                            keywordsRegexOverride = keywords,
                         )
                     }
                 }

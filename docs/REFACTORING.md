@@ -128,6 +128,12 @@
 | 高级诊断 | `SettingsRepository.get/updateDiagnosticsSettings()` | Native 高级页 | `PrefsReader.analyticsEnabled()` 等 |
 | IPC token | `SecurityInitializer` | 不直接暴露 | `PrefsReader.getIpcToken()` |
 
+### 验证码规则目录
+
+- 用户自定义验证码规则仍由本地 DB、备份、导入导出链路承载。
+- 官方规则来自 `smscode-rules` 内容型子模块、远程 raw GitHub 与应用私有缓存；它们只在运行时映射为 `SmsCodeRuleSpec`，不写入用户规则表。
+- 运行时合并顺序固定为：用户自定义规则优先，官方规则按 `priority` 与索引顺序，其次才走共享内置通用解析。
+
 ### 仍处于兼容期的直接访问
 
 以下位置仍可直接访问底层配置，但不应继续扩散：
