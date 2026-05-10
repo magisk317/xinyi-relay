@@ -291,10 +291,10 @@
     <string name="pref_verbose_log_mode_summary">點擊後分享日誌</string>
     <string name="pref_sensitive_debug_log_mode_title">敏感除錯日誌</string>
     <string name="pref_sensitive_debug_log_mode_summary">僅 Debug 版本提供。開啟後日誌可輸出手機號、簡訊正文與驗證碼明文。</string>
-    <string name="pref_runtime_log_file_size_title">日誌檔案大小</string>
-    <string name="pref_runtime_log_file_size_summary">單個檔案大小上限：%1$dM（超過後循環覆蓋）</string>
-    <string name="pref_runtime_log_file_size_hint">單位 MB，最小值 1。</string>
-    <string name="pref_runtime_log_file_size_error">請輸入大於等於 1 的整數。</string>
+    <string name="pref_runtime_log_retention_days_title">日誌保留天數</string>
+    <string name="pref_runtime_log_retention_days_summary">按天輪轉，保留最近 %1$d 天日誌</string>
+    <string name="pref_runtime_log_retention_days_hint">單位：天，最小值 1，預設 7。</string>
+    <string name="pref_runtime_log_retention_days_error">請輸入大於等於 1 的整數。</string>
     <string name="pref_auto_update_on_start_title">啟動時自動更新</string>
     <string name="pref_auto_update_on_start_summary">應用啟動時執行一次更新策略</string>
     <string name="pref_auto_update_wifi_only_title">僅 Wi-Fi 自動檢查更新</string>

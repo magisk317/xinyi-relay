@@ -397,11 +397,11 @@ object AppPreferencesDataStore {
                 getBoolean(context, PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE, false),
             )
             editor.putInt(
-                PrefConst.KEY_RUNTIME_LOG_FILE_SIZE_MB,
+                PrefConst.KEY_RUNTIME_LOG_RETENTION_DAYS,
                 getInt(
                     context,
-                    PrefConst.KEY_RUNTIME_LOG_FILE_SIZE_MB,
-                    PrefConst.RUNTIME_LOG_FILE_SIZE_MB_DEFAULT,
+                    PrefConst.KEY_RUNTIME_LOG_RETENTION_DAYS,
+                    PrefConst.RUNTIME_LOG_RETENTION_DAYS_DEFAULT,
                 ),
             )
             editor.putBoolean(

@@ -450,10 +450,10 @@ fun SettingsHomeScreen(
                     }
                 }
                 Item(
-                    title = stringResource(id = R.string.pref_runtime_log_file_size_title),
+                    title = stringResource(id = R.string.pref_runtime_log_retention_days_title),
                     summary = stringResource(
-                        id = R.string.pref_runtime_log_file_size_summary,
-                        diagnosticsSnapshot.runtimeLogFileSizeMb,
+                        id = R.string.pref_runtime_log_retention_days_summary,
+                        diagnosticsSnapshot.runtimeLogRetentionDays,
                     ),
                 ) { showRuntimeLogDialog = true }
                 StateSwitchItem(
@@ -554,17 +554,17 @@ fun SettingsHomeScreen(
     }
     val currentDiagnostics = diagnostics
     if (showRuntimeLogDialog && currentDiagnostics != null) {
-        val runtimeLogFileSizeError = stringResource(id = R.string.pref_runtime_log_file_size_error)
+        val runtimeLogRetentionDaysError = stringResource(id = R.string.pref_runtime_log_retention_days_error)
         TextInputDialog(
-            title = stringResource(id = R.string.pref_runtime_log_file_size_title),
-            initialValue = currentDiagnostics.runtimeLogFileSizeMb.toString(),
+            title = stringResource(id = R.string.pref_runtime_log_retention_days_title),
+            initialValue = currentDiagnostics.runtimeLogRetentionDays.toString(),
             onDismiss = { showRuntimeLogDialog = false },
-            supportingText = stringResource(id = R.string.pref_runtime_log_file_size_hint),
+            supportingText = stringResource(id = R.string.pref_runtime_log_retention_days_hint),
             validator = {
-                if (parseIntAtLeastInput(it, PrefConst.RUNTIME_LOG_FILE_SIZE_MB_MIN) != null) {
+                if (parseIntAtLeastInput(it, PrefConst.RUNTIME_LOG_RETENTION_DAYS_MIN) != null) {
                     null
                 } else {
-                    runtimeLogFileSizeError
+                    runtimeLogRetentionDaysError
                 }
             },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -574,10 +574,10 @@ fun SettingsHomeScreen(
             scope.launch {
                 diagnostics = repository.updateDiagnosticsSettings(
                     DiagnosticsSettingsUpdate(
-                        runtimeLogFileSizeMb = parseIntAtLeastInput(
+                        runtimeLogRetentionDays = parseIntAtLeastInput(
                             updated,
-                            PrefConst.RUNTIME_LOG_FILE_SIZE_MB_MIN,
-                        ) ?: PrefConst.RUNTIME_LOG_FILE_SIZE_MB_MIN,
+                            PrefConst.RUNTIME_LOG_RETENTION_DAYS_MIN,
+                        ) ?: PrefConst.RUNTIME_LOG_RETENTION_DAYS_MIN,
                     ),
                 )
                 notifySaved()

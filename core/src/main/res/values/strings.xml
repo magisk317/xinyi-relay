@@ -290,10 +290,10 @@
     <string name="pref_verbose_log_mode_summary">Tap to share logs</string>
     <string name="pref_sensitive_debug_log_mode_title">Sensitive debug log</string>
     <string name="pref_sensitive_debug_log_mode_summary">Debug builds only. Allows plaintext sender, body, and code in logs.</string>
-    <string name="pref_runtime_log_file_size_title">Runtime log file size</string>
-    <string name="pref_runtime_log_file_size_summary">Single file size limit: %1$dM (tail overwrite when exceeded)</string>
-    <string name="pref_runtime_log_file_size_hint">Single file size limit in MB, minimum 1.</string>
-    <string name="pref_runtime_log_file_size_error">Please enter an integer greater than or equal to 1.</string>
+    <string name="pref_runtime_log_retention_days_title">Runtime log retention</string>
+    <string name="pref_runtime_log_retention_days_summary">Daily rotation, keep the last %1$d days</string>
+    <string name="pref_runtime_log_retention_days_hint">Retention in days, minimum 1. Default is 7.</string>
+    <string name="pref_runtime_log_retention_days_error">Please enter an integer greater than or equal to 1.</string>
     <string name="pref_auto_update_on_start_title">Auto update on launch</string>
     <string name="pref_auto_update_on_start_summary">Run update strategy once when app starts</string>
     <string name="pref_auto_update_wifi_only_title">Wi-Fi only for auto update</string>

@@ -32,9 +32,14 @@ object RuntimeLogStore {
         return SharedRuntimeLogStore.isEnabled()
     }
 
-    fun setMaxFileSizeMb(sizeMb: Int) {
+    fun setRetentionDays(days: Int) {
         RuntimeDiagnosticsBridge.ensureInstalled()
-        SharedRuntimeLogStore.setMaxFileSizeMb(sizeMb)
+        SharedRuntimeLogStore.setRetentionDays(days)
+    }
+
+    @Deprecated("Use setRetentionDays; runtime logs now rotate by day.")
+    fun setMaxFileSizeMb(sizeMb: Int) {
+        setRetentionDays(sizeMb)
     }
 
     fun append(

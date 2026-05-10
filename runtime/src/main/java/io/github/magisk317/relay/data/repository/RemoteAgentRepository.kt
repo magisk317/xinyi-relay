@@ -496,7 +496,7 @@ class RemoteAgentRepository(
                     forceStopRecoveryRelaunchOnceEnabled = payload.diagnostics.forceStopRecoveryRelaunchOnceEnabled,
                     verboseLogMode = payload.diagnostics.verboseLogMode,
                     sensitiveDebugLogMode = payload.diagnostics.sensitiveDebugLogMode,
-                    runtimeLogFileSizeMb = payload.diagnostics.runtimeLogFileSizeMb,
+                    runtimeLogRetentionDays = payload.diagnostics.runtimeLogRetentionDays,
                     autoUpdateOnStart = payload.diagnostics.autoUpdateOnStart,
                     autoUpdateWifiOnly = payload.diagnostics.autoUpdateWifiOnly,
                     analyticsEnabled = payload.diagnostics.analyticsEnabled,

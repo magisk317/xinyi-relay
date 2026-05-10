@@ -292,10 +292,10 @@
     <string name="pref_verbose_log_mode_summary">点击后分享日志</string>
     <string name="pref_sensitive_debug_log_mode_title">敏感调试日志</string>
     <string name="pref_sensitive_debug_log_mode_summary">仅 Debug 版本提供。开启后日志可输出手机号、短信正文和验证码明文。</string>
-    <string name="pref_runtime_log_file_size_title">日志文件大小</string>
-    <string name="pref_runtime_log_file_size_summary">单个文件大小上限：%1$dM（超过后循环覆盖）</string>
-    <string name="pref_runtime_log_file_size_hint">单位 MB，最小值 1。</string>
-    <string name="pref_runtime_log_file_size_error">请输入大于等于 1 的整数。</string>
+    <string name="pref_runtime_log_retention_days_title">日志保留天数</string>
+    <string name="pref_runtime_log_retention_days_summary">按天轮转，保留最近 %1$d 天日志</string>
+    <string name="pref_runtime_log_retention_days_hint">单位：天，最小值 1，默认 7。</string>
+    <string name="pref_runtime_log_retention_days_error">请输入大于等于 1 的整数。</string>
     <string name="pref_auto_update_on_start_title">启动时自动更新</string>
     <string name="pref_auto_update_on_start_summary">应用启动时执行一次更新策略</string>
     <string name="pref_auto_update_wifi_only_title">仅 Wi-Fi 自动检查更新</string>

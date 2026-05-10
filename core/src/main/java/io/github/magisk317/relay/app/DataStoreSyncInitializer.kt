@@ -31,18 +31,18 @@ class DataStoreSyncInitializer : AppInitializer {
 
             val verboseLog = preferenceDataSource.getBoolean(PrefConst.KEY_VERBOSE_LOG_MODE, false)
             val sensitiveDebugLog = preferenceDataSource.getBoolean(PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE, false)
-            val logFileSizeMb = preferenceDataSource.getInt(
-                PrefConst.KEY_RUNTIME_LOG_FILE_SIZE_MB,
-                PrefConst.RUNTIME_LOG_FILE_SIZE_MB_DEFAULT,
+            val logRetentionDays = preferenceDataSource.getInt(
+                PrefConst.KEY_RUNTIME_LOG_RETENTION_DAYS,
+                PrefConst.RUNTIME_LOG_RETENTION_DAYS_DEFAULT,
             )
             RuntimeLogStore.setEnabled(verboseLog)
-            RuntimeLogStore.setMaxFileSizeMb(logFileSizeMb)
+            RuntimeLogStore.setRetentionDays(logRetentionDays)
             SensitiveLogPolicy.setEnabled(sensitiveDebugLog)
             XLog.w(
-                "Diag runtime log config: verbose=%s sensitive=%s maxFileSizeMb=%d",
+                "Diag runtime log config: verbose=%s sensitive=%s retentionDays=%d",
                 verboseLog,
                 sensitiveDebugLog,
-                logFileSizeMb,
+                logRetentionDays,
             )
         }
     }

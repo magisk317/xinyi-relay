@@ -137,9 +137,9 @@ class SettingsRepository(
             ),
             verboseLogMode = preferenceDataSource.getBoolean(PrefConst.KEY_VERBOSE_LOG_MODE, false),
             sensitiveDebugLogMode = preferenceDataSource.getBoolean(PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE, false),
-            runtimeLogFileSizeMb = preferenceDataSource.getInt(
-                PrefConst.KEY_RUNTIME_LOG_FILE_SIZE_MB,
-                PrefConst.RUNTIME_LOG_FILE_SIZE_MB_DEFAULT,
+            runtimeLogRetentionDays = preferenceDataSource.getInt(
+                PrefConst.KEY_RUNTIME_LOG_RETENTION_DAYS,
+                PrefConst.RUNTIME_LOG_RETENTION_DAYS_DEFAULT,
             ),
             autoUpdateOnStart = preferenceDataSource.getBoolean(PrefConst.KEY_AUTO_UPDATE_ON_START, true),
             autoUpdateWifiOnly = preferenceDataSource.getBoolean(PrefConst.KEY_AUTO_UPDATE_WIFI_ONLY, true),
@@ -166,10 +166,10 @@ class SettingsRepository(
             preferenceDataSource.setBoolean(PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE, it)
             SensitiveLogPolicy.setEnabled(it)
         }
-        update.runtimeLogFileSizeMb?.let {
+        update.runtimeLogRetentionDays?.let {
             preferenceDataSource.setInt(
-                PrefConst.KEY_RUNTIME_LOG_FILE_SIZE_MB,
-                it.coerceAtLeast(PrefConst.RUNTIME_LOG_FILE_SIZE_MB_MIN),
+                PrefConst.KEY_RUNTIME_LOG_RETENTION_DAYS,
+                it.coerceAtLeast(PrefConst.RUNTIME_LOG_RETENTION_DAYS_MIN),
             )
         }
         update.autoUpdateOnStart?.let { preferenceDataSource.setBoolean(PrefConst.KEY_AUTO_UPDATE_ON_START, it) }

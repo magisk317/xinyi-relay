@@ -8,9 +8,9 @@ import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeDiagnostics
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeDiagnosticsEnvironment
 
 object RuntimeDiagnosticsBridge {
-    private const val KEY_RUNTIME_LOG_FILE_SIZE_MB = "pref_runtime_log_file_size_mb"
-    private const val RUNTIME_LOG_FILE_SIZE_MB_DEFAULT = 1
-    private const val RUNTIME_LOG_FILE_SIZE_MB_MIN = 1
+    private const val KEY_RUNTIME_LOG_RETENTION_DAYS = "pref_runtime_log_retention_days"
+    private const val RUNTIME_LOG_RETENTION_DAYS_DEFAULT = 7
+    private const val RUNTIME_LOG_RETENTION_DAYS_MIN = 1
 
     @Volatile
     private var installed = false
@@ -25,7 +25,7 @@ object RuntimeDiagnosticsBridge {
                     logTag = BuildConfig.LOG_TAG,
                     exportFilePrefix = "relay_logs_",
                     stagingDirPrefix = ".tmp_relay_logs_",
-                    maxLogFileSizeMbProvider = ::readConfiguredMaxFileSizeMb,
+                    logRetentionDaysProvider = ::readConfiguredLogRetentionDays,
                     runtimeConnectedProvider = RuntimeActivationState::isRuntimeActivated,
                     activationStatusResolver = ::resolveActivationStatus,
                     routeResolver = ::routeFromCallerClassName,
@@ -35,18 +35,18 @@ object RuntimeDiagnosticsBridge {
         }
     }
 
-    private fun readConfiguredMaxFileSizeMb(context: Context): Int {
-        val defaultValue = RUNTIME_LOG_FILE_SIZE_MB_DEFAULT
+    private fun readConfiguredLogRetentionDays(context: Context): Int {
+        val defaultValue = RUNTIME_LOG_RETENTION_DAYS_DEFAULT
         val prefs = runCatching { context.getSharedPreferences("xposed_prefs", Context.MODE_PRIVATE) }.getOrNull()
             ?: return defaultValue
-        val raw = prefs.all[KEY_RUNTIME_LOG_FILE_SIZE_MB]
+        val raw = prefs.all[KEY_RUNTIME_LOG_RETENTION_DAYS]
         val value = when (raw) {
             is Int -> raw
             is Long -> raw.toInt()
             is String -> raw.toIntOrNull()
             else -> defaultValue
         } ?: defaultValue
-        return value.coerceAtLeast(RUNTIME_LOG_FILE_SIZE_MB_MIN)
+        return value.coerceAtLeast(RUNTIME_LOG_RETENTION_DAYS_MIN)
     }
 
     private fun resolveActivationStatus(

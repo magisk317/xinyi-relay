@@ -32,7 +32,13 @@ class PrefRestoreTypeRegistryTest {
     }
 
     @Test
-    fun typeOf_runtimeLogSize_isInt() {
+    fun typeOf_runtimeLogRetentionDays_isInt() {
+        assertEquals(PrefValueType.INT, PrefRestoreTypeRegistry.typeOf(PrefConst.KEY_RUNTIME_LOG_RETENTION_DAYS))
+    }
+
+    @Test
+    fun typeOf_legacyRuntimeLogSize_isInt() {
+        @Suppress("DEPRECATION")
         assertEquals(PrefValueType.INT, PrefRestoreTypeRegistry.typeOf(PrefConst.KEY_RUNTIME_LOG_FILE_SIZE_MB))
     }
 
