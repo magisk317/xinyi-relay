@@ -239,11 +239,15 @@ private fun String.isRuntimePermissionSupported(): Boolean {
 
 private fun String.isDangerousPermission(context: Context): Boolean {
     val permissionInfo = runCatching {
-        @Suppress("DEPRECATION")
         context.packageManager.getPermissionInfo(this, 0)
     }.getOrNull() ?: return false
-    return (permissionInfo.protectionLevel and PermissionInfo.PROTECTION_MASK_BASE) ==
-        PermissionInfo.PROTECTION_DANGEROUS
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        permissionInfo.protection == PermissionInfo.PROTECTION_DANGEROUS
+    } else {
+        @Suppress("DEPRECATION")
+        (permissionInfo.protectionLevel and PermissionInfo.PROTECTION_MASK_BASE) ==
+            PermissionInfo.PROTECTION_DANGEROUS
+    }
 }
 
 private fun Context.hasPermission(permission: String): Boolean {
