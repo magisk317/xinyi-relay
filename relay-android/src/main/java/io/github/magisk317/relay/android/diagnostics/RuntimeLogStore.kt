@@ -2,10 +2,16 @@ package io.github.magisk317.relay.android.diagnostics
 
 import android.content.Context
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogEntry as SharedRuntimeLogEntry
+import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogFileContent as SharedRuntimeLogFileContent
+import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogFileInfo as SharedRuntimeLogFileInfo
+import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogFileSummary as SharedRuntimeLogFileSummary
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore as SharedRuntimeLogStore
 import java.io.File
 
 typealias RuntimeLogEntry = SharedRuntimeLogEntry
+typealias RuntimeLogFileContent = SharedRuntimeLogFileContent
+typealias RuntimeLogFileInfo = SharedRuntimeLogFileInfo
+typealias RuntimeLogFileSummary = SharedRuntimeLogFileSummary
 
 object RuntimeLogStore {
     const val ROUTE_SMS_HOOK = SharedRuntimeLogStore.ROUTE_SMS_HOOK
@@ -71,6 +77,21 @@ object RuntimeLogStore {
     fun exportToFile(context: Context, minutes: Int?, keyword: String?, limit: Int = 1200): File? {
         RuntimeDiagnosticsBridge.ensureInstalled()
         return SharedRuntimeLogStore.exportToFile(context, minutes, keyword, limit)
+    }
+
+    fun summarizeFiles(): RuntimeLogFileSummary {
+        RuntimeDiagnosticsBridge.ensureInstalled()
+        return SharedRuntimeLogStore.summarizeFiles()
+    }
+
+    fun readLogFile(name: String, maxLines: Int = 2000): RuntimeLogFileContent? {
+        RuntimeDiagnosticsBridge.ensureInstalled()
+        return SharedRuntimeLogStore.readLogFile(name, maxLines)
+    }
+
+    fun deleteLegacyTextLogFiles(context: Context? = null): Int {
+        RuntimeDiagnosticsBridge.ensureInstalled()
+        return SharedRuntimeLogStore.deleteLegacyTextLogFiles(context)
     }
 
     fun routeFromCallerClassName(className: String?): String {

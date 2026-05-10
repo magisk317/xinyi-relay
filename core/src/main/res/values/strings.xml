@@ -287,7 +287,7 @@
     <!-- preference others -->
     <string name="pref_others_title">Others</string>
     <string name="pref_verbose_log_mode_title">Detailed log</string>
-    <string name="pref_verbose_log_mode_summary">Tap to share logs</string>
+    <string name="pref_verbose_log_mode_summary">Tap to view, share, or clear logs</string>
     <string name="pref_sensitive_debug_log_mode_title">Sensitive debug log</string>
     <string name="pref_sensitive_debug_log_mode_summary">Debug builds only. Allows plaintext sender, body, and code in logs.</string>
     <string name="pref_runtime_log_retention_days_title">Runtime log retention</string>
@@ -910,6 +910,13 @@
     <string name="runtime_log_copied">Logs copied</string>
     <string name="runtime_log_cleared">Logs and crash files cleared</string>
     <string name="runtime_log_clear_partial_failed">Partially cleared: %1$s</string>
+    <string name="runtime_log_info_loading">Loading logs...</string>
+    <string name="runtime_log_info_empty">No runtime logs yet</string>
+    <string name="runtime_log_info_summary">Files: %1$d, size: %2$s, entries: %3$d</string>
+    <string name="runtime_log_info_range">Range: %1$s - %2$s</string>
+    <string name="runtime_log_info_preview_title">Recent logs</string>
+    <string name="runtime_log_action_wrap">Wrap</string>
+    <string name="runtime_log_action_no_wrap">No wrap</string>
     <string name="runtime_log_keyword_search">Keyword search</string>
     <string name="runtime_log_filter_forward_flow">Forward flow</string>
     <string name="runtime_log_filter_clear">Clear filter</string>

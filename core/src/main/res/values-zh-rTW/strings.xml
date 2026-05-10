@@ -288,7 +288,7 @@
     <!-- preference others -->
     <string name="pref_others_title">其他設定</string>
     <string name="pref_verbose_log_mode_title">詳細日誌</string>
-    <string name="pref_verbose_log_mode_summary">點擊後分享日誌</string>
+    <string name="pref_verbose_log_mode_summary">點擊查看、分享或清空日誌</string>
     <string name="pref_sensitive_debug_log_mode_title">敏感除錯日誌</string>
     <string name="pref_sensitive_debug_log_mode_summary">僅 Debug 版本提供。開啟後日誌可輸出手機號、簡訊正文與驗證碼明文。</string>
     <string name="pref_runtime_log_retention_days_title">日誌保留天數</string>
@@ -918,6 +918,13 @@
     <string name="runtime_log_copied">日誌已複製</string>
     <string name="runtime_log_cleared">日誌與崩潰檔案已清空</string>
     <string name="runtime_log_clear_partial_failed">部分清空失敗：%1$s</string>
+    <string name="runtime_log_info_loading">正在載入日誌...</string>
+    <string name="runtime_log_info_empty">暫無執行日誌</string>
+    <string name="runtime_log_info_summary">檔案：%1$d 個，大小：%2$s，條目：%3$d</string>
+    <string name="runtime_log_info_range">範圍：%1$s - %2$s</string>
+    <string name="runtime_log_info_preview_title">最近日誌</string>
+    <string name="runtime_log_action_wrap">換行</string>
+    <string name="runtime_log_action_no_wrap">不換行</string>
     <string name="runtime_log_keyword_search">關鍵字搜尋</string>
     <string name="runtime_log_filter_forward_flow">轉發鏈路</string>
     <string name="runtime_log_filter_clear">清空篩選</string>

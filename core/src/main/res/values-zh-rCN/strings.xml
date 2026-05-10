@@ -289,7 +289,7 @@
     <!-- preference others -->
     <string name="pref_others_title">其他</string>
     <string name="pref_verbose_log_mode_title">详细日志</string>
-    <string name="pref_verbose_log_mode_summary">点击后分享日志</string>
+    <string name="pref_verbose_log_mode_summary">点击查看、分享或清空日志</string>
     <string name="pref_sensitive_debug_log_mode_title">敏感调试日志</string>
     <string name="pref_sensitive_debug_log_mode_summary">仅 Debug 版本提供。开启后日志可输出手机号、短信正文和验证码明文。</string>
     <string name="pref_runtime_log_retention_days_title">日志保留天数</string>
@@ -921,6 +921,13 @@
     <string name="runtime_log_copied">日志已复制</string>
     <string name="runtime_log_cleared">日志与崩溃文件已清空</string>
     <string name="runtime_log_clear_partial_failed">部分清空失败：%1$s</string>
+    <string name="runtime_log_info_loading">正在加载日志...</string>
+    <string name="runtime_log_info_empty">暂无运行日志</string>
+    <string name="runtime_log_info_summary">文件：%1$d 个，大小：%2$s，条目：%3$d</string>
+    <string name="runtime_log_info_range">范围：%1$s - %2$s</string>
+    <string name="runtime_log_info_preview_title">最近日志</string>
+    <string name="runtime_log_action_wrap">换行</string>
+    <string name="runtime_log_action_no_wrap">不换行</string>
     <string name="runtime_log_keyword_search">关键字搜索</string>
     <string name="runtime_log_filter_forward_flow">转发链路</string>
     <string name="runtime_log_filter_clear">清空筛选</string>

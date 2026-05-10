@@ -683,11 +683,11 @@ object AppPreferencesDataStore {
             return
         }
         val verifyToken = PrefsReader.verifyTokenReadable(context)
-        XLog.w(
-            "RemotePrefs token verification: token=%s verify=%s",
-            token.take(8).padEnd(8, '*'),
-            verifyToken,
-        )
+        if (verifyToken == "remote_libxposed") {
+            XLog.d("RemotePrefs token verification: source=%s", verifyToken)
+        } else {
+            XLog.w("RemotePrefs token verification source unexpected: source=%s", verifyToken)
+        }
     }
 
 }
