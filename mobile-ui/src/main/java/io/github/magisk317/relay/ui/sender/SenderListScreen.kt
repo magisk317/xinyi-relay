@@ -396,6 +396,7 @@ fun SenderListScreen(
             onSave = {
                 viewModel.saveForwardCommonConfig(it)
                 showCommonConfigDialog = false
+                scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.pref_sync_snackbar)) }
             },
         )
     }
@@ -409,6 +410,7 @@ fun SenderListScreen(
                 viewModel.saveForwardCommonConfig(config)
                 viewModel.saveSimRemarkSettings(sim1Remark, sim2Remark)
                 showGeneralConfigDialog = false
+                scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.pref_sync_snackbar)) }
             },
         )
     }
@@ -429,6 +431,7 @@ fun SenderListScreen(
             onSave = {
                 viewModel.saveAppNotifyTemplate(it)
                 showAppNotifyConfigDialog = false
+                scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.pref_sync_snackbar)) }
             },
         )
     }
@@ -453,6 +456,7 @@ fun SenderListScreen(
             onSave = {
                 viewModel.saveCallNotifyTemplate(it)
                 showCallNotifyConfigDialog = false
+                scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.pref_sync_snackbar)) }
             },
         )
     }
