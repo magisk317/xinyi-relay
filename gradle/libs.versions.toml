@@ -54,7 +54,6 @@ play-app-update = "2.1.0"
 retrofit = "3.0.0"
 room = "2.8.4"
 work = "2.11.2"
-screenshot-validation = "0.0.1-alpha14"
 test-logger = "4.0.0"
 timber = "5.0.1"
 version-catalog-update = "1.1.0"
@@ -136,7 +135,6 @@ play-app-update = { module = "com.google.android.play:app-update", version.ref =
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 retrofit-converter-kotlinx-serialization = { module = "com.squareup.retrofit2:converter-kotlinx-serialization", version.ref = "retrofit" }
 retrofit-converter-scalars = { module = "com.squareup.retrofit2:converter-scalars", version.ref = "retrofit" }
-screenshot-validation = { module = "com.android.tools.screenshot:screenshot-validation-api", version.ref = "screenshot-validation" }
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 libxposed-api = { module = "io.github.libxposed:api", version.ref = "libxposed-api" }
 libxposed-service = { module = "io.github.libxposed:service", version.ref = "libxposed-service" }
