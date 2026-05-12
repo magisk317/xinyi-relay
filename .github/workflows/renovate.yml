@@ -40,7 +40,8 @@ jobs:
         startsWith(github.event.head_commit.message, 'Merge pull request #') &&
         (
           contains(github.event.head_commit.message, 'from magisk317/renovate/') ||
-          contains(github.event.head_commit.message, 'from magisk317/chore/dependency-force-update')
+          contains(github.event.head_commit.message, 'from magisk317/chore/dependency-force-update') ||
+          contains(github.event.head_commit.message, 'from magisk317/janitor/security-fixes')
         )
       ) ||
       (

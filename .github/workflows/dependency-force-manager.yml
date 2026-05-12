@@ -1,4 +1,4 @@
-name: Dependency Force Manager
+name: Dependency Security Manager
 
 on:
   schedule:
@@ -22,28 +22,29 @@ permissions:
   security-events: read
 
 jobs:
-  dependency-force:
-    name: Attempt dependency remediation
+  dependency-security:
+    name: Attempt dependency security remediation
     runs-on: ubuntu-latest
     continue-on-error: true
     concurrency:
-      group: dependency-force-manager-${{ github.ref }}
+      group: dependency-security-manager-${{ github.ref }}
       cancel-in-progress: false
     if: |
       !(
         github.event_name == 'push' &&
         github.ref == 'refs/heads/beta' &&
+        startsWith(github.event.head_commit.message, 'Merge pull request #') &&
         (
-          (
-            startsWith(github.event.head_commit.message, 'Merge pull request #') &&
-            contains(github.event.head_commit.message, 'from magisk317/chore/dependency-force-update')
-          ) ||
-          startsWith(github.event.head_commit.message, 'build: update forced dependencies')
+          contains(github.event.head_commit.message, 'from magisk317/chore/dependency-force-update') ||
+          contains(github.event.head_commit.message, 'from magisk317/janitor/security-fixes')
         )
       ) &&
       !(
         github.event_name == 'pull_request_target' &&
-        github.event.pull_request.head.ref == 'chore/dependency-force-update'
+        (
+          github.event.pull_request.head.ref == 'chore/dependency-force-update' ||
+          github.event.pull_request.head.ref == 'janitor/security-fixes'
+        )
       )
     env:
       DEPENDENCY_FORCE_CONFIGS: githubDebugRuntimeClasspath,playDebugRuntimeClasspath,githubReleaseRuntimeClasspath,playReleaseRuntimeClasspath
@@ -61,123 +62,56 @@ jobs:
           distribution: "temurin"
           cache: gradle
 
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
         with:
           validate-wrappers: false
           allow-snapshot-wrappers: true
 
-      - name: Read current forced dependencies
-        id: forced
-        run: |
-          python3 scripts/manage_dependency_forces.py read-forces \
-            --build-file build.gradle.kts \
-            --toml-file gradle/libs.versions.toml \
-            --output /tmp/forced.json
-
-      - name: Temporarily remove all force rules
-        run: |
-          python3 scripts/manage_dependency_forces.py strip-force-lines --build-file build.gradle.kts
-
-      - name: Resolve natural versions (multi-variant)
-        run: |
-          args=()
-          IFS=',' read -ra configs <<< "$DEPENDENCY_FORCE_CONFIGS"
-          for config in "${configs[@]}"; do
-            args+=(--config "$config")
-          done
-          python3 scripts/manage_dependency_forces.py resolve-natural \
-            --forced-json /tmp/forced.json \
-            --output /tmp/natural.json \
-            --include-build-environment \
-            "${args[@]}"
-
-      - name: Restore original build file
-        run: git checkout -- build.gradle.kts
-
-      - name: Fetch Dependabot alerts
-        id: alerts
+      - name: Run security janitor
         env:
           GH_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
         run: |
-          # Fetch ALL alerts regardless of state (open, dismissed, auto_dismissed, fixed).
-          # Historical alerts are used by determine-removable as a cooldown signal:
-          # Dependabot may auto-dismiss alerts immediately after a force is added, so checking
-          # only "open" alerts can remove the force too early and reopen the alert on the next run.
-          # We therefore keep recent historical alerts long enough for the dependency graph to settle,
-          # but still allow automatic removal after the cooldown and safety checks pass.
-          # gh api --paginate follows Link headers automatically across all pages.
-          gh api \
-            --paginate \
-            -H "Accept: application/vnd.github+json" \
-            "repos/${GITHUB_REPOSITORY}/dependabot/alerts?state=all&per_page=100" \
-            | jq -s '[.[][]]' \
-            > /tmp/dependabot-alerts.json
+          bash scripts/janitor_security_fixes.sh
 
-      - name: Determine removable forces
-        id: removable
+      - name: Report alert coverage
+        if: always()
         env:
           GH_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
         run: |
-          python3 scripts/manage_dependency_forces.py determine-removable \
-            --forced-json /tmp/forced.json \
-            --natural-json /tmp/natural.json \
-            --alerts-json /tmp/dependabot-alerts.json \
-            --historical-alert-cooldown-hours "$DEPENDENCY_FORCE_HISTORICAL_ALERT_COOLDOWN_HOURS" \
-            --output /tmp/removable.json
-          count=$(python3 - <<'PY'
-          import json
-          from pathlib import Path
-          print(len(json.loads(Path("/tmp/removable.json").read_text())))
-          PY
-          )
-          echo "count=$count" >> "$GITHUB_OUTPUT"
+          bash scripts/reconcile_dependabot_alerts.sh
 
-      - name: Resolve natural versions for security dependencies
-        run: |
-          args=()
-          IFS=',' read -ra configs <<< "$DEPENDENCY_FORCE_CONFIGS"
-          for config in "${configs[@]}"; do
-            args+=(--config "$config")
-          done
-          python3 scripts/manage_dependency_forces.py resolve-alert-natural \
-            --alerts-json /tmp/dependabot-alerts.json \
-            --output /tmp/security-natural.json \
-            "${args[@]}"
-
-      - name: Apply updates (remove + add security forces)
-        id: apply
-        run: |
-          python3 scripts/manage_dependency_forces.py apply-updates \
-            --build-file build.gradle.kts \
-            --toml-file gradle/libs.versions.toml \
-            --removable-json /tmp/removable.json \
-            --alerts-json /tmp/dependabot-alerts.json \
-            --natural-json /tmp/security-natural.json
-
-      - name: Create PR with dependency force updates
+      - name: Create PR with dependency security updates
         id: cpr
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
           base: beta
-          branch: chore/dependency-force-update
+          branch: janitor/security-fixes
           delete-branch: true
-          title: "build: update forced dependencies"
-          commit-message: "build: update forced dependencies"
+          title: "chore(security): apply automated dependency security fixes"
+          commit-message: "chore(security): apply automated dependency security fixes"
           labels: |
             dependencies
             java
+            rust
+            security
           body: |
-            Automated dependency force maintenance:
-            - Removed force rules when natural resolution already matches forced versions.
-            - Added or updated force rules for dependencies with open security alerts (Dependabot).
+            Automated dependency security fix run.
+            - Updates Gradle force rules for open Maven Dependabot alerts.
+            - Updates Cargo lockfiles for open Rust Dependabot alerts when the patched version is selectable.
+            - Reports remaining alerts that require upstream dependency movement.
 
       - name: Write remediation summary
         if: always()
         run: |
           {
-            echo "## Dependency remediation"
+            echo "## Dependency security remediation"
             echo ""
             echo "- Trigger: ${{ github.event_name }}"
             echo "- Base ref: ${{ github.base_ref || github.ref_name }}"

@@ -23,6 +23,10 @@ jobs:
             (
               github.head_ref == 'chore/dependency-force-update' &&
               github.event.pull_request.title == 'build: update forced dependencies'
+            ) ||
+            (
+              github.head_ref == 'janitor/security-fixes' &&
+              github.event.pull_request.title == 'chore(security): apply automated dependency security fixes'
             )
           )
         )
