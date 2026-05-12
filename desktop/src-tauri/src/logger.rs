@@ -1,8 +1,8 @@
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, BufWriter, Write};
-use std::path::PathBuf;
 use std::sync::Mutex;
 use chrono::Local;
+use tauri::Manager;
 
 /// 全局日志写入器
 static LOG_WRITER: Mutex<Option<BufWriter<File>>> = Mutex::new(None);

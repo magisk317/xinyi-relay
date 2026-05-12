@@ -90,6 +90,8 @@ app/signature.properties
 # Python virtual environments
 venv/
 .venv/
+__pycache__/
+*.py[cod]
 
 # Ignore log folder
 log/

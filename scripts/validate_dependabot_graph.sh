@@ -26,6 +26,8 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 1
 fi
 
+export PYTHONDONTWRITEBYTECODE=1
+
 REPO="${GITHUB_REPOSITORY:-}"
 if [[ -z "${REPO}" ]]; then
   REPO="$(gh repo view --json nameWithOwner -q .nameWithOwner)"

@@ -15,6 +15,8 @@ require_tool gh
 require_tool jq
 require_tool python3
 
+export PYTHONDONTWRITEBYTECODE=1
+
 DEPENDENCY_FORCE_CONFIGS="${DEPENDENCY_FORCE_CONFIGS:-githubDebugRuntimeClasspath,playDebugRuntimeClasspath,githubReleaseRuntimeClasspath,playReleaseRuntimeClasspath}"
 DEPENDENCY_FORCE_HISTORICAL_ALERT_COOLDOWN_HOURS="${DEPENDENCY_FORCE_HISTORICAL_ALERT_COOLDOWN_HOURS:-168}"
 
@@ -111,3 +113,4 @@ python3 scripts/manage_dependabot_alerts.py reconcile \
   --output "${RECONCILIATION_JSON}"
 
 echo "Security janitor finished."
+find scripts -type d -name __pycache__ -prune -exec rm -rf {} +
