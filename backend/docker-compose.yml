@@ -69,7 +69,7 @@ services:
     # 固定容器名，方便 docker ps / logs / exec
     container_name: relay-backend-caddy
     # 官方 Caddy Alpine 镜像
-    image: caddy:2.11.2-alpine
+    image: caddy:2.11.3-alpine
     # 容器异常退出后自动拉起；手动 docker stop 不会强制重启
     restart: unless-stopped
     # 从 .env 读取域名等代理配置
