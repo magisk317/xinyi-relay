@@ -474,7 +474,7 @@ class AutoInputAccessibilityService : AccessibilityService() {
     )
 
     private companion object {
-        private const val RECEIVER_PRIORITY_ACCESSIBILITY = 1000
+        private const val RECEIVER_PRIORITY_ACCESSIBILITY = -500
         private const val MAX_WINDOW_SETTLE_ATTEMPTS = 6
         private const val WINDOW_SETTLE_RETRY_DELAY_MS = 200L
         private const val HEARTBEAT_INTERVAL_MS = 60_000L

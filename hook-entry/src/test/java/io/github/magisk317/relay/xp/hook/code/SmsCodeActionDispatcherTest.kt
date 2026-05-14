@@ -56,7 +56,7 @@ class SmsCodeActionDispatcherTest {
             uiDispatcher = { _, _, _, _, uiPlan ->
                 uiDispatched = uiPlan.copyToClipboardEnabled && uiPlan.showToast
             },
-            autoInputScheduler = { _, _, _, _, delayMs, _ ->
+            autoInputScheduler = { _, _, _, _, delayMs, _, _ ->
                 autoInputDelay = delayMs
             },
             notificationScheduler = { _, _, _, _, notificationPlan ->
@@ -98,7 +98,7 @@ class SmsCodeActionDispatcherTest {
             smsMsg = smsMsg,
             eventId = "evt-2",
             plan = plan,
-            autoInputRunner = { _, _, _, deduplicateEnabled ->
+            autoInputRunner = { _, _, _, deduplicateEnabled, _ ->
                 autoInputDedup = deduplicateEnabled
             },
             recordRunner = { _, _, _, _, _ ->

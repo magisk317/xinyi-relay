@@ -23,6 +23,7 @@ class AutoInputAction(
     smsMsg: SmsMsg,
     private val deduplicateEnabled: Boolean? = null,
     private val dispatchDelayMs: Long = 0L,
+    private val attemptId: Long? = null,
 ) :
     CallableAction(pluginContext, phoneContext, smsMsg) {
     private val runtimeAppConfigFacade = XpAppConfigFacade(pluginContext)
