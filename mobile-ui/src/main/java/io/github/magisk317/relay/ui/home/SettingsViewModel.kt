@@ -298,6 +298,9 @@ class SettingsViewModel(
             SmsCodeMatchedRuleSource.BUILTIN ->
                 app.getString(R.string.builtin_rule_badge_format, matchedRule.ordinal)
 
+            SmsCodeMatchedRuleSource.OFFICIAL ->
+                app.getString(R.string.official_rule_badge_format, matchedRule.ordinal)
+
             SmsCodeMatchedRuleSource.CUSTOM ->
                 app.getString(R.string.user_rule_badge_format, matchedRule.ordinal)
         }

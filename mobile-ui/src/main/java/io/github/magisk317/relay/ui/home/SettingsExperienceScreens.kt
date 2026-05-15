@@ -1546,8 +1546,8 @@ fun VerificationSettingsScreen(
             singleLine = false,
             maxLines = 6,
         ) { updated ->
-            smsTestInput = updated
             settingsViewModel.performSmsCodeTest(updated)
+            smsTestInput = ""
             showSmsTestDialog = false
         }
     }
