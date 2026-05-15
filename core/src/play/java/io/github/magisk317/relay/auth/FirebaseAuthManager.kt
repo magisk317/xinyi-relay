@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package io.github.magisk317.relay.auth
 
 import android.content.Context

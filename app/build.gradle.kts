@@ -74,7 +74,7 @@ android {
 
     sourceSets {
         getByName("main") {
-            assets.srcDir(generatedSmsCodeRulesAssetsDir.get().asFile)
+            assets.directories.add(generatedSmsCodeRulesAssetsDir.get().asFile.path)
         }
     }
 
