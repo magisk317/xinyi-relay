@@ -24,6 +24,7 @@ import io.github.magisk317.smscode.xposed.hook.BaseHook
 import io.github.magisk317.smscode.xposed.hookapi.LoadParam
 import io.github.magisk317.smscode.xposed.hookapi.MethodHook
 import io.github.magisk317.smscode.xposed.hookapi.MethodHookParam
+import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 import io.github.magisk317.smscode.xposed.utils.XLog
 import kotlinx.coroutines.runBlocking
 
@@ -50,6 +51,12 @@ class SmsForwardHook : BaseHook() {
     private var suppressionLogged = false
 
     override fun onLoadPackage(lpparam: LoadParam) {
+        XLog.withRoute(LogRoute.FORWARD) {
+            onLoadPackageRouted(lpparam)
+        }
+    }
+
+    private fun onLoadPackageRouted(lpparam: LoadParam) {
         if (ANDROID_PHONE_PACKAGE != lpparam.packageName) return
         XLog.i("SmsForwardHook initializing")
         val classLoader = lpparam.classLoader ?: run {
@@ -86,8 +93,10 @@ class SmsForwardHook : BaseHook() {
 
     private inner class ConstructorHook : MethodHook() {
         override fun afterHookedMethod(param: MethodHookParam) {
-            runCatching { afterConstructorHandler(param) }
-                .onFailure { XLog.e("SmsForwardHook constructor hook failed", it) }
+            XLog.withRoute(LogRoute.FORWARD) {
+                runCatching { afterConstructorHandler(param) }
+                    .onFailure { XLog.e("SmsForwardHook constructor hook failed", it) }
+            }
         }
     }
 
@@ -112,8 +121,10 @@ class SmsForwardHook : BaseHook() {
 
     private inner class DispatchIntentHook : MethodHook() {
         override fun beforeHookedMethod(param: MethodHookParam) {
-            runCatching { beforeDispatchIntentHandler(param) }
-                .onFailure { XLog.e("SmsForwardHook dispatchIntent hook failed", it) }
+            XLog.withRoute(LogRoute.FORWARD) {
+                runCatching { beforeDispatchIntentHandler(param) }
+                    .onFailure { XLog.e("SmsForwardHook dispatchIntent hook failed", it) }
+            }
         }
     }
 

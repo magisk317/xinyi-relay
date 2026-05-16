@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.android.common.utils
 
 import io.github.magisk317.relay.android.BuildConfig
+import io.github.magisk317.smscode.runtime.contract.logging.DefaultLogSanitizer
 import io.github.magisk317.smscode.runtime.common.utils.StringUtils
 import java.util.Locale
 
@@ -39,6 +40,15 @@ object SensitiveLogPolicy {
     }
 
     @JvmStatic
+    fun sanitizeLogMessage(message: String): String {
+        val sanitized = maskSecrets(message)
+        if (isEnabled()) {
+            return truncate(sanitized, ENABLED_LOG_MAX_LENGTH)
+        }
+        return DefaultLogSanitizer.sanitize(sanitized)
+    }
+
+    @JvmStatic
     fun sanitizeSenderLogMessage(message: String): String {
         var sanitized = maskSecrets(message)
         if (isEnabled()) {
@@ -54,7 +64,7 @@ object SensitiveLogPolicy {
         sanitized = summarizeFieldValue(sanitized, "body")
         sanitized = summarizeFieldValue(sanitized, "text")
         sanitized = summarizeKnownMessageFields(sanitized)
-        return truncate(sanitized, SANITIZED_LOG_MAX_LENGTH)
+        return truncate(DefaultLogSanitizer.sanitize(sanitized), SANITIZED_LOG_MAX_LENGTH)
     }
 
     private fun summarizeAfterLabel(message: String, label: String): String {

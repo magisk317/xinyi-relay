@@ -1,6 +1,8 @@
 package io.github.magisk317.relay.xpbridge
 
 import android.content.Context
+import android.util.Log
+import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
 import io.github.magisk317.relay.android.diagnostics.ActivationDiagnosticsStore
 import io.github.magisk317.relay.android.diagnostics.RuntimeLogStore
 import io.github.magisk317.smscode.xposed.runtime.CoreLogSink
@@ -10,13 +12,21 @@ object XpHookDiagnostics {
     fun installXposedRuntimeLogSink() {
         CoreLogSinkHolder.install(
             object : CoreLogSink {
-                override fun append(priority: Int, tag: String, message: String) {
+                override fun append(
+                    priority: Int,
+                    tag: String,
+                    message: String,
+                    force: Boolean,
+                    route: String?,
+                    sensitive: Boolean,
+                ) {
+                    val safeMessage = if (sensitive) SensitiveLogPolicy.sanitizeLogMessage(message) else message
                     RuntimeLogStore.append(
                         priority = priority,
                         tag = tag,
-                        message = message,
-                        force = true,
-                        route = RuntimeLogStore.routeFromCallerClassName(resolveCallerClassName()),
+                        message = safeMessage,
+                        force = force || priority >= Log.WARN,
+                        route = route ?: RuntimeLogStore.routeFromCallerClassName(resolveCallerClassName()),
                     )
                 }
             },

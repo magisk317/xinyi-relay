@@ -15,12 +15,19 @@ import io.github.magisk317.smscode.xposed.hook.BaseHook
 import io.github.magisk317.smscode.xposed.hookapi.LoadParam
 import io.github.magisk317.smscode.xposed.hookapi.MethodHook
 import io.github.magisk317.smscode.xposed.hookapi.MethodHookParam
+import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 import io.github.magisk317.smscode.xposed.utils.XLog
 import java.lang.reflect.Method
 import java.util.concurrent.Executors
 
 class MmsMessagesHook : BaseHook() {
     override fun onLoadPackage(lpparam: LoadParam) {
+        XLog.withRoute(LogRoute.SMS_HOOK) {
+            onLoadPackageRouted(lpparam)
+        }
+    }
+
+    private fun onLoadPackageRouted(lpparam: LoadParam) {
         if (lpparam.packageName != MMS_PACKAGE_NAME) return
         val classLoader = lpparam.classLoader ?: run {
             XLog.w(
@@ -49,9 +56,11 @@ class MmsMessagesHook : BaseHook() {
         }
         val callback = object : MethodHook() {
             override fun beforeHookedMethod(param: MethodHookParam) {
-                val context = param.args.getOrNull(0) as? Context ?: return
-                val intent = param.args.getOrNull(1) as? Intent ?: return
-                maybeBlock(context, intent, receiverClassName, param)
+                XLog.withRoute(LogRoute.SMS_HOOK) {
+                    val context = param.args.getOrNull(0) as? Context ?: return@withRoute
+                    val intent = param.args.getOrNull(1) as? Intent ?: return@withRoute
+                    maybeBlock(context, intent, receiverClassName, param)
+                }
             }
         }
 
@@ -90,9 +99,11 @@ class MmsMessagesHook : BaseHook() {
                     method,
                     object : MethodHook() {
                         override fun beforeHookedMethod(param: MethodHookParam) {
-                            val context = param.thisObject as? Context ?: return
-                            val intent = param.args.firstOrNull { it is Intent } as? Intent ?: return
-                            maybeBlock(context, intent, "${className}.${method.name}", param)
+                            XLog.withRoute(LogRoute.SMS_HOOK) {
+                                val context = param.thisObject as? Context ?: return@withRoute
+                                val intent = param.args.firstOrNull { it is Intent } as? Intent ?: return@withRoute
+                                maybeBlock(context, intent, "${className}.${method.name}", param)
+                            }
                         }
                     },
                 )
@@ -150,15 +161,17 @@ class MmsMessagesHook : BaseHook() {
 
     private fun scheduleBlacklistDelete(pluginContext: Context, hostContext: Context, smsMsg: SmsMsg) {
         SMS_OPERATION_EXECUTOR.execute {
-            runCatching {
-                OperateSmsAction(
-                    pluginContext,
-                    hostContext,
-                    smsMsg,
-                    OperateSmsAction.FORCE_DELETE,
-                ).call()
-            }.onFailure {
-                XLog.w("MmsMessagesHook blacklist delete failed: %s", it.message ?: "unknown")
+            XLog.withRoute(LogRoute.SMS_HOOK) {
+                runCatching {
+                    OperateSmsAction(
+                        pluginContext,
+                        hostContext,
+                        smsMsg,
+                        OperateSmsAction.FORCE_DELETE,
+                    ).call()
+                }.onFailure {
+                    XLog.w("MmsMessagesHook blacklist delete failed: %s", it.message ?: "unknown")
+                }
             }
         }
     }

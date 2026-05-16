@@ -34,6 +34,7 @@ android {
 dependencies {
     implementation(project(":relay-contract"))
     implementation(project(":relay-engine"))
+    implementation(project(":smscode-core:smscode-runtime-contract"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.gson)

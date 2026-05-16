@@ -41,8 +41,16 @@ object AppInfrastructureCoordinator {
             override val actionNamespace: String = "io.github.magisk317.relay"
         })
         CoreLogSinkHolder.install(object : CoreLogSink {
-            override fun append(priority: Int, tag: String, message: String) {
-                RuntimeLogStore.append(priority, tag, message)
+            override fun append(
+                priority: Int,
+                tag: String,
+                message: String,
+                force: Boolean,
+                route: String?,
+                sensitive: Boolean,
+            ) {
+                val safeMessage = if (sensitive) SensitiveLogPolicy.sanitizeLogMessage(message) else message
+                RuntimeLogStore.append(priority, tag, safeMessage, force, route)
             }
         })
         CoreHookPolicyHolder.install(object : CoreHookPolicy {

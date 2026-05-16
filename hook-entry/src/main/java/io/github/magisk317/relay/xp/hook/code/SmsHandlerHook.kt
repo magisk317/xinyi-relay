@@ -25,6 +25,7 @@ import io.github.magisk317.smscode.xposed.hookapi.MethodHook
 import io.github.magisk317.smscode.xposed.hookapi.HookBridge
 import io.github.magisk317.smscode.xposed.hookapi.LoadParam
 import io.github.magisk317.smscode.xposed.hookapi.MethodHookParam
+import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 import java.io.File
 import java.io.RandomAccessFile
 import java.lang.reflect.Method
@@ -62,6 +63,12 @@ class SmsHandlerHook : BaseHook() {
     private var suppressionLogged = false
 
     override fun onLoadPackage(lpparam: LoadParam) {
+        XLog.withRoute(LogRoute.SMS_HOOK) {
+            onLoadPackageRouted(lpparam)
+        }
+    }
+
+    private fun onLoadPackageRouted(lpparam: LoadParam) {
         if (ANDROID_PHONE_PACKAGE == lpparam.packageName) {
             HookTargetDiagnostics.logTargetProcessHitIfVerbose(
                 hookName = "SmsHandlerHook",
@@ -169,22 +176,24 @@ class SmsHandlerHook : BaseHook() {
                     method,
                     object : MethodHook() {
                         override fun beforeHookedMethod(param: MethodHookParam) {
-                            maybeBlockFromDispatchChain(
-                                methodName = name,
-                                param = param,
-                                smsIntent = extractOrBuildSmsIntent(
-                                    param.args,
-                                    Telephony.Sms.Intents.SMS_DELIVER_ACTION,
-                                ),
-                            )
-                            val action = extractIntentAction(param.args)
-                            XLog.w(
-                                "Diag SMS dispatch chain: class=%s method=%s action=%s args=%d",
-                                className,
-                                name,
-                                action ?: "<none>",
-                                param.args.size,
-                            )
+                            XLog.withRoute(LogRoute.SMS_HOOK) {
+                                maybeBlockFromDispatchChain(
+                                    methodName = name,
+                                    param = param,
+                                    smsIntent = extractOrBuildSmsIntent(
+                                        param.args,
+                                        Telephony.Sms.Intents.SMS_DELIVER_ACTION,
+                                    ),
+                                )
+                                val action = extractIntentAction(param.args)
+                                XLog.w(
+                                    "Diag SMS dispatch chain: class=%s method=%s action=%s args=%d",
+                                    className,
+                                    name,
+                                    action ?: "<none>",
+                                    param.args.size,
+                                )
+                            }
                         }
                     },
                 )
@@ -243,11 +252,13 @@ class SmsHandlerHook : BaseHook() {
     private inner class ConstructorHook : MethodHook() {
         @Throws(Throwable::class)
         override fun afterHookedMethod(param: MethodHookParam) {
-            try {
-                afterConstructorHandler(param)
-            } catch (e: Throwable) {
-                XLog.e("Error occurred in constructor hook", e)
-                throw e
+            XLog.withRoute(LogRoute.SMS_HOOK) {
+                try {
+                    afterConstructorHandler(param)
+                } catch (e: Throwable) {
+                    XLog.e("Error occurred in constructor hook", e)
+                    throw e
+                }
             }
         }
     }
@@ -270,10 +281,12 @@ class SmsHandlerHook : BaseHook() {
     private inner class DispatchIntentHook(private val mReceiverIndex: Int) : MethodHook() {
         @Throws(Throwable::class)
         override fun beforeHookedMethod(param: MethodHookParam) {
-            try {
-                beforeDispatchIntentHandler(param, mReceiverIndex)
-            } catch (e: Throwable) {
-                XLog.e("Error occurred in dispatchIntent() hook, ", e)
+            XLog.withRoute(LogRoute.SMS_HOOK) {
+                try {
+                    beforeDispatchIntentHandler(param, mReceiverIndex)
+                } catch (e: Throwable) {
+                    XLog.e("Error occurred in dispatchIntent() hook, ", e)
+                }
             }
         }
     }
@@ -347,15 +360,17 @@ class SmsHandlerHook : BaseHook() {
 
     private fun scheduleBlacklistDelete(pluginContext: Context, phoneContext: Context, smsMsg: SmsMsg) {
         SMS_OPERATION_EXECUTOR.execute {
-            runCatching {
-                OperateSmsAction(
-                    pluginContext,
-                    phoneContext,
-                    smsMsg,
-                    OperateSmsAction.OP_DELETE,
-                ).call()
-            }.onFailure {
-                XLog.w("Diag sms blacklist delete task failed: %s", it.message ?: "unknown")
+            XLog.withRoute(LogRoute.SMS_HOOK) {
+                runCatching {
+                    OperateSmsAction(
+                        pluginContext,
+                        phoneContext,
+                        smsMsg,
+                        OperateSmsAction.OP_DELETE,
+                    ).call()
+                }.onFailure {
+                    XLog.w("Diag sms blacklist delete task failed: %s", it.message ?: "unknown")
+                }
             }
         }
     }
