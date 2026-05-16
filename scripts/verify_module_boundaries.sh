@@ -8,6 +8,7 @@ HOOK_ENTRY_BUILD="$ROOT_DIR/hook/entry/build.gradle.kts"
 MOBILE_UI_BUILD="$ROOT_DIR/mobile/ui/build.gradle.kts"
 RUNTIME_BUILD="$ROOT_DIR/runtime/build.gradle.kts"
 RELAY_ANDROID_BUILD="$ROOT_DIR/relay/android/build.gradle.kts"
+XPBRIDGE_CORE_BUILD="$ROOT_DIR/xpbridge/core/build.gradle.kts"
 
 violations=()
 
@@ -57,6 +58,11 @@ forbid_pattern "$CORE_BUILD" 'project\(":xpbridge:core"\)' \
 
 forbid_pattern "$HOOK_ENTRY_BUILD" 'project\(":core"\)' \
   "hook/entry must not depend on :core directly"
+
+forbid_pattern "$XPBRIDGE_CORE_BUILD" 'project\(":relay:engine"\)' \
+  "xpbridge/core must not depend on :relay:engine implementation directly"
+forbid_pattern "$XPBRIDGE_CORE_BUILD" 'project\(":smscode-core:smscode-domain"\)' \
+  "xpbridge/core must not depend on :smscode-core:smscode-domain directly"
 
 forbid_pattern "$MOBILE_UI_BUILD" 'project\(":xpbridge:core"\)' \
   "mobile/ui must not depend on :xpbridge:core directly"

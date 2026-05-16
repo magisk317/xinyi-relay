@@ -48,6 +48,8 @@
 - Xposed/runtime 之间的桥接 DTO 与 facade
 - 仅承载 `io.github.magisk317.relay.xpbridge.*`
 - 不承载应用 UI 页面或应用生命周期装配
+- 不直接依赖 `relay/engine` 实现模块或 `smscode-core/smscode-domain`
+- 可依赖 `relay/engine/api` 读取跨层共享模型
 
 ### `relay/engine/api`
 - 运行时/Android/UI 共享的 engine 契约层
