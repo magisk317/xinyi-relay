@@ -7,6 +7,26 @@ pluginManagement {
     }
 }
 
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven("https://jitpack.io") {
+            name = "JitPack"
+            content {
+                includeGroupByRegex("com\\.github\\..*")
+            }
+        }
+        maven("https://s01.oss.sonatype.org/content/repositories/snapshots/") {
+            name = "SonatypeSnapshots"
+            mavenContent {
+                snapshotsOnly()
+            }
+        }
+    }
+}
+
 include(
     ":app",
     ":hook-entry",

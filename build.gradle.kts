@@ -2,33 +2,6 @@ import dev.detekt.gradle.extensions.DetektExtension
 import com.adarshr.gradle.testlogger.theme.ThemeType
 import org.gradle.api.tasks.Exec
 
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-        gradlePluginPortal()
-    }
-    configurations.all {
-        resolutionStrategy {
-            // BEGIN AUTO FORCED DEPENDENCIES (managed by workflow)
-            force("com.google.code.gson:gson:2.14.0")
-            force("com.google.guava:guava:33.6.0-jre")
-            force("io.netty:netty-codec:4.1.133.Final")
-            force("io.netty:netty-codec-http:4.1.133.Final")
-            force("io.netty:netty-codec-http2:4.1.133.Final")
-            force("io.netty:netty-common:4.1.118.Final")
-            force("io.netty:netty-handler:4.1.118.Final")
-            force("io.netty:netty-handler-proxy:4.1.133.Final")
-            force("org.apache.commons:commons-lang3:3.20.0")
-            force("org.bitbucket.b_c:jose4j:0.9.6")
-            force("org.bouncycastle:bcpkix-jdk18on:1.84")
-            force("org.bouncycastle:bcprov-jdk18on:1.84")
-            force("org.jdom:jdom2:2.0.6.1")
-            // END AUTO FORCED DEPENDENCIES (managed by workflow)
-        }
-    }
-}
-
 plugins {
     alias(libs.plugins.version.catalog.update)
     alias(libs.plugins.android.application) apply false
@@ -41,6 +14,7 @@ plugins {
     alias(libs.plugins.detekt) apply false
     alias(libs.plugins.kover)
     alias(libs.plugins.test.logger) apply false
+    id("relay.dependency-governance")
     id("magisk.maintenance")
 }
 
@@ -102,34 +76,6 @@ subprojects {
         }
     }
 
-    repositories {
-        google()
-        mavenCentral()
-        gradlePluginPortal()
-        maven("https://jitpack.io")
-        maven("https://s01.oss.sonatype.org/content/repositories/snapshots/")
-    }
-
-    configurations.all {
-        resolutionStrategy {
-            force(catalog.apache.httpclient)
-            // BEGIN AUTO FORCED DEPENDENCIES (managed by workflow)
-            force("com.google.code.gson:gson:2.14.0")
-            force("com.google.guava:guava:33.6.0-jre")
-            force("io.netty:netty-codec:4.1.133.Final")
-            force("io.netty:netty-codec-http:4.1.133.Final")
-            force("io.netty:netty-codec-http2:4.1.133.Final")
-            force("io.netty:netty-common:4.1.118.Final")
-            force("io.netty:netty-handler:4.1.118.Final")
-            force("io.netty:netty-handler-proxy:4.1.133.Final")
-            force("org.apache.commons:commons-lang3:3.20.0")
-            force("org.bitbucket.b_c:jose4j:0.9.6")
-            force("org.bouncycastle:bcpkix-jdk18on:1.84")
-            force("org.bouncycastle:bcprov-jdk18on:1.84")
-            force("org.jdom:jdom2:2.0.6.1")
-            // END AUTO FORCED DEPENDENCIES (managed by workflow)
-        }
-    }
 }
 
 tasks.register<Delete>("clean") {
@@ -157,4 +103,11 @@ tasks.register<Exec>("verifyEmbeddedSubmodules") {
     description = "Ensure embedded submodules stay minimal and do not regrow into parallel root builds."
     workingDir = rootProject.projectDir
     commandLine("bash", "${rootProject.projectDir}/scripts/verify_embedded_submodules.sh")
+}
+
+tasks.register<Exec>("verifyDependencyGovernance") {
+    group = "verification"
+    description = "Ensure dependency repositories and forced dependency governance stay centralized."
+    workingDir = rootProject.projectDir
+    commandLine("bash", "${rootProject.projectDir}/scripts/verify_dependency_governance.sh")
 }
