@@ -124,12 +124,14 @@ type meResponse struct {
 	Authenticated bool   `json:"authenticated"`
 	Username      string `json:"username,omitempty"`
 	CSRFToken     string `json:"csrfToken,omitempty"`
+	LanguageTag   string `json:"languageTag,omitempty"`
 }
 
 type loginResponse struct {
 	Authenticated bool   `json:"authenticated"`
 	Username      string `json:"username"`
 	CSRFToken     string `json:"csrfToken"`
+	LanguageTag   string `json:"languageTag,omitempty"`
 }
 
 type desktopSessionResponse struct {

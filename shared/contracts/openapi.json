@@ -794,7 +794,8 @@
         "properties": {
           "authenticated": { "type": "boolean" },
           "username": { "type": "string" },
-          "csrfToken": { "type": "string" }
+          "csrfToken": { "type": "string" },
+          "languageTag": { "type": "string" }
         }
       },
       "MeResponse": {
@@ -804,7 +805,8 @@
         "properties": {
           "authenticated": { "type": "boolean" },
           "username": { "type": "string" },
-          "csrfToken": { "type": "string" }
+          "csrfToken": { "type": "string" },
+          "languageTag": { "type": "string" }
         }
       },
       "ChangePasswordRequest": {
