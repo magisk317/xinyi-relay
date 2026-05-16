@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.android.common.utils
 
 import io.github.magisk317.relay.android.diagnostics.RuntimeLogStore
+import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -100,6 +101,32 @@ class RelayLoggerTest {
         assertEquals("forward debug", captured?.message)
         assertFalse(captured?.force ?: true)
         assertEquals(RuntimeLogStore.ROUTE_FORWARD, captured?.route)
+    }
+
+    @Test
+    fun xLogAllowsExplicitRoute() {
+        var captured: CapturedRuntimeLog? = null
+        XLog.setLogLevel(2)
+        RelayLogger.setRuntimeSinkForTest(
+            object : RelayLogger.RuntimeSink {
+                override fun append(
+                    priority: Int,
+                    tag: String,
+                    message: String,
+                    force: Boolean,
+                    route: String?,
+                ) {
+                    captured = CapturedRuntimeLog(priority, tag, message, force, route)
+                }
+            },
+        )
+
+        XLog.i(LogRoute.ROOT_DB, "root db event")
+
+        assertEquals(4, captured?.priority)
+        assertEquals("root db event", captured?.message)
+        assertTrue(captured?.force ?: false)
+        assertEquals(RuntimeLogStore.ROUTE_ROOT_DB, captured?.route)
     }
 
     private data class CapturedRuntimeLog(

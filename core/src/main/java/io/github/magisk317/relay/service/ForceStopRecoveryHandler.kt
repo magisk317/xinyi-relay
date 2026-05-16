@@ -10,6 +10,7 @@ import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.domain.recovery.RootDbCatchupScheduler
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.relay.security.IpcTokenGate
+import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 import kotlinx.coroutines.runBlocking
 
 object ForceStopRecoveryHandler {
@@ -24,6 +25,7 @@ object ForceStopRecoveryHandler {
         val eventId = intent.getStringExtra(ForceStopRecoveryContract.EXTRA_EVENT_ID).orEmpty()
         if (!tokenDecision.accepted) {
             XLog.w(
+                LogRoute.ROOT_DB,
                 "ForceStopRecoveryService rejected token. reason=%s event=%s expectedEmpty=%s receivedEmpty=%s",
                 reason.ifBlank { "<none>" },
                 eventId.ifBlank { "<none>" },
@@ -34,12 +36,14 @@ object ForceStopRecoveryHandler {
         }
         if (tokenDecision.compatBypassUsed) {
             XLog.w(
+                LogRoute.ROOT_DB,
                 "ForceStopRecoveryService accepted legacy empty-token compat wakeup. reason=%s event=%s",
                 reason.ifBlank { "<none>" },
                 eventId.ifBlank { "<none>" },
             )
         }
         XLog.w(
+            LogRoute.ROOT_DB,
             "ForceStopRecoveryService started. reason=%s event=%s",
             reason.ifBlank { "<none>" },
             eventId.ifBlank { "<none>" },
