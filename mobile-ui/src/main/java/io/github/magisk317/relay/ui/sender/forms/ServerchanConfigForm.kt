@@ -41,7 +41,7 @@ import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.sender.ServerchanUtils
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
-import com.google.gson.Gson
+import io.github.magisk317.relay.sender.SenderSettingJson
 import kotlinx.coroutines.launch
 import java.util.Date
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
@@ -80,7 +80,7 @@ fun ServerchanConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVi
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                runCatching { Gson().fromJson(sender.jsonSetting, ServerchanSetting::class.java) }.getOrNull()?.let {
+                runCatching { SenderSettingJson.decode<ServerchanSetting>(sender.jsonSetting) }.getOrNull()?.let {
                     sendKey = it.sendKey
                     channel = it.channel
                     openid = it.openid
@@ -94,7 +94,7 @@ fun ServerchanConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVi
         val setting = ServerchanSetting(sendKey = sendKey, channel = channel, openid = openid, titleTemplate = titleTemplate)
         return currentSender?.copy(
             name = name,
-            jsonSetting = Gson().toJson(setting),
+            jsonSetting = SenderSettingJson.encode(setting),
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -106,7 +106,7 @@ fun ServerchanConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVi
             id = 0,
             type = SenderType.SERVERCHAN,
             name = name,
-            jsonSetting = Gson().toJson(setting),
+            jsonSetting = SenderSettingJson.encode(setting),
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,

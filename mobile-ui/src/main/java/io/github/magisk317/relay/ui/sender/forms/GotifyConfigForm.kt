@@ -41,7 +41,7 @@ import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.sender.GotifyUtils
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
-import com.google.gson.Gson
+import io.github.magisk317.relay.sender.SenderSettingJson
 import kotlinx.coroutines.launch
 import java.util.Date
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
@@ -79,7 +79,7 @@ fun GotifyConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMo
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                runCatching { Gson().fromJson(sender.jsonSetting, GotifySetting::class.java) }.getOrNull()?.let {
+                runCatching { SenderSettingJson.decode<GotifySetting>(sender.jsonSetting) }.getOrNull()?.let {
                     webServer = it.webServer
                     title = it.title
                     priority = it.priority
@@ -92,7 +92,7 @@ fun GotifyConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMo
         val setting = GotifySetting(webServer = webServer, title = title, priority = priority)
         return currentSender?.copy(
             name = name,
-            jsonSetting = Gson().toJson(setting),
+            jsonSetting = SenderSettingJson.encode(setting),
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -104,7 +104,7 @@ fun GotifyConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMo
             id = 0,
             type = SenderType.GOTIFY,
             name = name,
-            jsonSetting = Gson().toJson(setting),
+            jsonSetting = SenderSettingJson.encode(setting),
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,

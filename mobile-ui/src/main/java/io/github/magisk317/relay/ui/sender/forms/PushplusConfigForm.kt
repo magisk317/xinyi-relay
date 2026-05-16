@@ -20,7 +20,7 @@ import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.sender.PushplusUtils
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
-import com.google.gson.Gson
+import io.github.magisk317.relay.sender.SenderSettingJson
 import kotlinx.coroutines.launch
 import java.util.Date
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
@@ -63,11 +63,7 @@ fun PushplusConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                val setting = try {
-                    Gson().fromJson(sender.jsonSetting, PushplusSetting::class.java)
-                } catch (@Suppress("SwallowedException") e: com.google.gson.JsonSyntaxException) {
-                    null
-                }
+                val setting = SenderSettingJson.decodeOrNull<PushplusSetting>(sender.jsonSetting)
                 if (setting != null) {
                     token = setting.token
                     topic = setting.topic
@@ -90,7 +86,7 @@ fun PushplusConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
             channel = channel,
             titleTemplate = titleTemplate
         )
-        val json = Gson().toJson(setting)
+        val json = SenderSettingJson.encode(setting)
         return currentSender?.copy(
             name = name,
             jsonSetting = json,

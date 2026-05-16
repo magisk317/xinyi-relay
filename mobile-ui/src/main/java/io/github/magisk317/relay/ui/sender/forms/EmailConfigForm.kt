@@ -41,7 +41,7 @@ import io.github.magisk317.relay.sender.EmailUtils
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
-import com.google.gson.Gson
+import io.github.magisk317.relay.sender.SenderSettingJson
 import kotlinx.coroutines.launch
 import java.util.Date
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
@@ -87,7 +87,7 @@ fun EmailConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMod
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                runCatching { Gson().fromJson(sender.jsonSetting, EmailSetting::class.java) }.getOrNull()?.let {
+                runCatching { SenderSettingJson.decode<EmailSetting>(sender.jsonSetting) }.getOrNull()?.let {
                     mailType = it.mailType
                     authEmail = it.authEmail.ifBlank { it.fromEmail }
                     fromEmail = it.fromEmail
@@ -120,7 +120,7 @@ fun EmailConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMod
         )
         return currentSender?.copy(
             name = name,
-            jsonSetting = Gson().toJson(setting),
+            jsonSetting = SenderSettingJson.encode(setting),
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -132,7 +132,7 @@ fun EmailConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMod
             id = 0,
             type = SenderType.EMAIL,
             name = name,
-            jsonSetting = Gson().toJson(setting),
+            jsonSetting = SenderSettingJson.encode(setting),
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,

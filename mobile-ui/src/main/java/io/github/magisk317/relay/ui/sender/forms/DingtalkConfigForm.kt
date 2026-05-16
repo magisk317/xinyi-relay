@@ -22,7 +22,7 @@ import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
-import com.google.gson.Gson
+import io.github.magisk317.relay.sender.SenderSettingJson
 import kotlinx.coroutines.launch
 import java.util.Date
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
@@ -64,11 +64,7 @@ fun DingtalkConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                val setting = try {
-                    Gson().fromJson(sender.jsonSetting, DingtalkGroupRobotSetting::class.java)
-                } catch (@Suppress("SwallowedException") e: com.google.gson.JsonSyntaxException) {
-                    null
-                }
+                val setting = SenderSettingJson.decodeOrNull<DingtalkGroupRobotSetting>(sender.jsonSetting)
                 if (setting != null) {
                     token = setting.token
                     secret = setting.secret
@@ -89,7 +85,7 @@ fun DingtalkConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
             atAll = atAll,
             titleTemplate = titleTemplate
         )
-        val json = Gson().toJson(setting)
+        val json = SenderSettingJson.encode(setting)
         return currentSender?.copy(
             name = name,
             jsonSetting = json,

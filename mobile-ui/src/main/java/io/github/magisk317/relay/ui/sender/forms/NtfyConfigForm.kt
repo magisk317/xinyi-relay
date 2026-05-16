@@ -31,7 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.google.gson.Gson
+import io.github.magisk317.relay.sender.SenderSettingJson
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
@@ -80,7 +80,7 @@ fun NtfyConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                runCatching { Gson().fromJson(sender.jsonSetting, NtfySetting::class.java) }.getOrNull()?.let {
+                runCatching { SenderSettingJson.decode<NtfySetting>(sender.jsonSetting) }.getOrNull()?.let {
                     server = it.server
                     topic = it.topic
                     token = it.token
@@ -103,7 +103,7 @@ fun NtfyConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
         )
         return currentSender?.copy(
             name = name,
-            jsonSetting = Gson().toJson(setting),
+            jsonSetting = SenderSettingJson.encode(setting),
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -115,7 +115,7 @@ fun NtfyConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
             id = 0L,
             type = SenderType.NTFY,
             name = name,
-            jsonSetting = Gson().toJson(setting),
+            jsonSetting = SenderSettingJson.encode(setting),
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,

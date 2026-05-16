@@ -20,8 +20,6 @@ import io.github.magisk317.relay.sender.config.UrlSchemeSetting
 import io.github.magisk317.relay.sender.config.WebhookSetting
 import io.github.magisk317.relay.sender.config.WeworkAgentSetting
 import io.github.magisk317.relay.sender.config.WeworkRobotSetting
-import com.google.gson.Gson
-
 import io.github.magisk317.relay.engine.sender.SenderType
 
 data class SenderValidationResult(
@@ -30,7 +28,6 @@ data class SenderValidationResult(
 )
 
 object SenderValidator {
-    private val gson = Gson()
 
     @Suppress("CyclomaticComplexMethod")
     fun validateForEnable(
@@ -42,12 +39,12 @@ object SenderValidator {
         return try {
             when (safeSender.type) {
                 SenderType.DINGTALK_GROUP_ROBOT -> {
-                    val setting = gson.fromJson(safeSender.jsonSetting, DingtalkGroupRobotSetting::class.java)
+                    val setting = SenderSettingJson.decode(DingtalkGroupRobotSetting.serializer(), safeSender.jsonSetting)
                     if (setting.token.isBlank()) invalid("钉钉群机器人 Token 不能为空") else ok()
                 }
 
                 SenderType.EMAIL -> {
-                    val setting = gson.fromJson(safeSender.jsonSetting, EmailSetting::class.java)
+                    val setting = SenderSettingJson.decode(EmailSetting.serializer(), safeSender.jsonSetting)
                     val hasRecipient = setting.toEmail.isNotBlank() || setting.recipients.isNotEmpty()
                     if (setting.fromEmail.isBlank() || setting.pwd.isBlank() || !hasRecipient) {
                         invalid("邮件通道信息不完整（发件人/密码/收件人）")
@@ -55,12 +52,12 @@ object SenderValidator {
                 }
 
                 SenderType.BARK -> {
-                    val setting = gson.fromJson(safeSender.jsonSetting, BarkSetting::class.java)
+                    val setting = SenderSettingJson.decode(BarkSetting.serializer(), safeSender.jsonSetting)
                     if (setting.server.isBlank()) invalid("Bark 地址不能为空") else ok()
                 }
 
                 SenderType.WEBHOOK -> {
-                    val setting = gson.fromJson(safeSender.jsonSetting, WebhookSetting::class.java)
+                    val setting = SenderSettingJson.decode(WebhookSetting.serializer(), safeSender.jsonSetting)
                     when {
                         setting.webServer.isBlank() -> invalid("Webhook 地址不能为空")
                         !allowHttpWebhook && isHttpWebhookUrl(setting.webServer) ->
@@ -70,24 +67,24 @@ object SenderValidator {
                 }
 
                 SenderType.WEWORK_ROBOT -> {
-                    val setting = gson.fromJson(safeSender.jsonSetting, WeworkRobotSetting::class.java)
+                    val setting = SenderSettingJson.decode(WeworkRobotSetting.serializer(), safeSender.jsonSetting)
                     if (setting.webHook.isBlank()) invalid("企业微信群机器人 Webhook 不能为空") else ok()
                 }
 
                 SenderType.WEWORK_AGENT -> {
-                    val setting = gson.fromJson(safeSender.jsonSetting, WeworkAgentSetting::class.java)
+                    val setting = SenderSettingJson.decode(WeworkAgentSetting.serializer(), safeSender.jsonSetting)
                     if (setting.corpID.isBlank() || setting.agentID.isBlank() || setting.secret.isBlank()) {
                         invalid("企业微信应用 corpID/agentID/secret 不能为空")
                     } else ok()
                 }
 
                 SenderType.SERVERCHAN -> {
-                    val setting = gson.fromJson(safeSender.jsonSetting, ServerchanSetting::class.java)
+                    val setting = SenderSettingJson.decode(ServerchanSetting.serializer(), safeSender.jsonSetting)
                     if (setting.sendKey.isBlank()) invalid("Server酱 SendKey 不能为空") else ok()
                 }
 
                 SenderType.TELEGRAM -> {
-                    val setting = gson.fromJson(safeSender.jsonSetting, TelegramSetting::class.java)
+                    val setting = SenderSettingJson.decode(TelegramSetting.serializer(), safeSender.jsonSetting)
                     if (setting.apiToken.isBlank() || setting.chatId.isBlank()) {
                         invalid("Telegram API Token 和 Chat ID 不能为空")
                     } else ok()
@@ -97,28 +94,28 @@ object SenderValidator {
                     if (!enableSmsChannel) {
                         invalid("当前构建版本不支持短信通道")
                     } else {
-                        val setting = gson.fromJson(safeSender.jsonSetting, SmsSetting::class.java)
+                        val setting = SenderSettingJson.decode(SmsSetting.serializer(), safeSender.jsonSetting)
                         if (setting.mobiles.isBlank()) invalid("短信通道目标号码不能为空") else ok()
                     }
                 }
 
                 SenderType.FEISHU -> {
-                    val setting = gson.fromJson(safeSender.jsonSetting, FeishuSetting::class.java)
+                    val setting = SenderSettingJson.decode(FeishuSetting.serializer(), safeSender.jsonSetting)
                     if (setting.webhook.isBlank()) invalid("飞书机器人 Webhook 不能为空") else ok()
                 }
 
                 SenderType.PUSHPLUS -> {
-                    val setting = gson.fromJson(safeSender.jsonSetting, PushplusSetting::class.java)
+                    val setting = SenderSettingJson.decode(PushplusSetting.serializer(), safeSender.jsonSetting)
                     if (setting.token.isBlank()) invalid("PushPlus Token 不能为空") else ok()
                 }
 
                 SenderType.GOTIFY -> {
-                    val setting = gson.fromJson(safeSender.jsonSetting, GotifySetting::class.java)
+                    val setting = SenderSettingJson.decode(GotifySetting.serializer(), safeSender.jsonSetting)
                     if (setting.webServer.isBlank()) invalid("Gotify 地址不能为空") else ok()
                 }
 
                 SenderType.NTFY -> {
-                    val setting = gson.fromJson(safeSender.jsonSetting, NtfySetting::class.java)
+                    val setting = SenderSettingJson.decode(NtfySetting.serializer(), safeSender.jsonSetting)
                     when {
                         setting.server.isBlank() -> invalid("ntfy Server 不能为空")
                         setting.topic.isBlank() -> invalid("ntfy Topic 不能为空")
@@ -128,26 +125,26 @@ object SenderValidator {
                 }
 
                 SenderType.DINGTALK_INNER_ROBOT -> {
-                    val setting = gson.fromJson(safeSender.jsonSetting, DingtalkInnerRobotSetting::class.java)
+                    val setting = SenderSettingJson.decode(DingtalkInnerRobotSetting.serializer(), safeSender.jsonSetting)
                     if (setting.agentID.isBlank() || setting.appKey.isBlank() || setting.appSecret.isBlank() || setting.userIds.isBlank()) {
                         invalid("钉钉内部机器人参数不完整")
                     } else ok()
                 }
 
                 SenderType.FEISHU_APP -> {
-                    val setting = gson.fromJson(safeSender.jsonSetting, FeishuAppSetting::class.java)
+                    val setting = SenderSettingJson.decode(FeishuAppSetting.serializer(), safeSender.jsonSetting)
                     if (setting.appId.isBlank() || setting.appSecret.isBlank() || setting.receiveId.isBlank()) {
                         invalid("飞书应用 appId/appSecret/receiveId 不能为空")
                     } else ok()
                 }
 
                 SenderType.URL_SCHEME -> {
-                    val setting = gson.fromJson(safeSender.jsonSetting, UrlSchemeSetting::class.java)
+                    val setting = SenderSettingJson.decode(UrlSchemeSetting.serializer(), safeSender.jsonSetting)
                     if (setting.urlScheme.isBlank()) invalid("Url Scheme 不能为空") else ok()
                 }
 
                 SenderType.SOCKET -> {
-                    val setting = gson.fromJson(safeSender.jsonSetting, SocketSetting::class.java)
+                    val setting = SenderSettingJson.decode(SocketSetting.serializer(), safeSender.jsonSetting)
                     if (setting.address.isBlank() || setting.port <= 0) {
                         invalid("Socket 地址或端口不正确")
                     } else ok()

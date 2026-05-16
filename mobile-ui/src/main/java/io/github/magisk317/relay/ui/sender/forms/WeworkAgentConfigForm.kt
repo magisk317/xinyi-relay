@@ -41,7 +41,7 @@ import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.sender.WeworkAgentUtils
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
-import com.google.gson.Gson
+import io.github.magisk317.relay.sender.SenderSettingJson
 import kotlinx.coroutines.launch
 import java.util.Date
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
@@ -81,7 +81,7 @@ fun WeworkAgentConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderV
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                runCatching { Gson().fromJson(sender.jsonSetting, WeworkAgentSetting::class.java) }.getOrNull()?.let {
+                runCatching { SenderSettingJson.decode<WeworkAgentSetting>(sender.jsonSetting) }.getOrNull()?.let {
                     corpID = it.corpID
                     agentID = it.agentID
                     secret = it.secret
@@ -102,7 +102,7 @@ fun WeworkAgentConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderV
         )
         return currentSender?.copy(
             name = name,
-            jsonSetting = Gson().toJson(setting),
+            jsonSetting = SenderSettingJson.encode(setting),
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -114,7 +114,7 @@ fun WeworkAgentConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderV
             id = 0,
             type = SenderType.WEWORK_AGENT,
             name = name,
-            jsonSetting = Gson().toJson(setting),
+            jsonSetting = SenderSettingJson.encode(setting),
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,

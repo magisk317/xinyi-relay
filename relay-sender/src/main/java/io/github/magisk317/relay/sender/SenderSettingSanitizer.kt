@@ -20,14 +20,22 @@ import io.github.magisk317.relay.sender.config.WeworkAgentSetting
 import io.github.magisk317.relay.sender.config.WeworkRobotSetting
 import io.github.magisk317.relay.engine.sender.SenderActiveScheduleEvaluator
 import io.github.magisk317.relay.engine.sender.SenderType
-import com.google.gson.Gson
-import com.google.gson.JsonElement
-import com.google.gson.JsonObject
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.longOrNull
+import kotlinx.serialization.json.put
 import java.net.Proxy
 import java.util.Locale
 
 object SenderSettingSanitizer {
-    private val gson = Gson()
     private val fieldSpecsByType = mapOf(
         SenderType.DINGTALK_GROUP_ROBOT to listOf(
             field("token", "o"),
@@ -225,65 +233,119 @@ object SenderSettingSanitizer {
         val canonicalJson = canonicalizeLegacyKeys(type, rawJson)
         val parseJson = canonicalJson?.toString() ?: json
         return when (type) {
-            SenderType.DINGTALK_GROUP_ROBOT -> gson.toJson(
-                sanitizeDingtalkGroupRobotSetting(
-                    parseSetting(parseJson, DingtalkGroupRobotSetting::class.java),
-                    canonicalJson,
-                ),
+            SenderType.DINGTALK_GROUP_ROBOT -> sanitizeSettingJson(
+                parseJson,
+                canonicalJson,
+                DingtalkGroupRobotSetting.serializer(),
+                ::sanitizeDingtalkGroupRobotSetting,
             )
-            SenderType.EMAIL -> gson.toJson(
-                sanitizeEmailSetting(parseSetting(parseJson, EmailSetting::class.java), canonicalJson),
+            SenderType.EMAIL -> sanitizeSettingJson(
+                parseJson,
+                canonicalJson,
+                EmailSetting.serializer(),
+                ::sanitizeEmailSetting,
             )
-            SenderType.BARK -> gson.toJson(
-                sanitizeBarkSetting(parseSetting(parseJson, BarkSetting::class.java), canonicalJson),
+            SenderType.BARK -> sanitizeSettingJson(
+                parseJson,
+                canonicalJson,
+                BarkSetting.serializer(),
+                ::sanitizeBarkSetting,
             )
-            SenderType.WEBHOOK -> gson.toJson(
-                sanitizeWebhookSetting(parseSetting(parseJson, WebhookSetting::class.java), canonicalJson),
+            SenderType.WEBHOOK -> sanitizeSettingJson(
+                parseJson,
+                canonicalJson,
+                WebhookSetting.serializer(),
+                ::sanitizeWebhookSetting,
             )
-            SenderType.WEWORK_ROBOT -> gson.toJson(
-                sanitizeWeworkRobotSetting(parseSetting(parseJson, WeworkRobotSetting::class.java), canonicalJson),
+            SenderType.WEWORK_ROBOT -> sanitizeSettingJson(
+                parseJson,
+                canonicalJson,
+                WeworkRobotSetting.serializer(),
+                ::sanitizeWeworkRobotSetting,
             )
-            SenderType.WEWORK_AGENT -> gson.toJson(
-                sanitizeWeworkAgentSetting(parseSetting(parseJson, WeworkAgentSetting::class.java), canonicalJson),
+            SenderType.WEWORK_AGENT -> sanitizeSettingJson(
+                parseJson,
+                canonicalJson,
+                WeworkAgentSetting.serializer(),
+                ::sanitizeWeworkAgentSetting,
             )
-            SenderType.SERVERCHAN -> gson.toJson(
-                sanitizeServerchanSetting(parseSetting(parseJson, ServerchanSetting::class.java), canonicalJson),
+            SenderType.SERVERCHAN -> sanitizeSettingJson(
+                parseJson,
+                canonicalJson,
+                ServerchanSetting.serializer(),
+                ::sanitizeServerchanSetting,
             )
-            SenderType.PUSHPLUS -> gson.toJson(
-                sanitizePushplusSetting(parseSetting(parseJson, PushplusSetting::class.java), canonicalJson),
+            SenderType.PUSHPLUS -> sanitizeSettingJson(
+                parseJson,
+                canonicalJson,
+                PushplusSetting.serializer(),
+                ::sanitizePushplusSetting,
             )
-            SenderType.TELEGRAM -> gson.toJson(
-                sanitizeTelegramSetting(parseSetting(parseJson, TelegramSetting::class.java), canonicalJson),
+            SenderType.TELEGRAM -> sanitizeSettingJson(
+                parseJson,
+                canonicalJson,
+                TelegramSetting.serializer(),
+                ::sanitizeTelegramSetting,
             )
-            SenderType.SMS -> gson.toJson(
-                sanitizeSmsSetting(parseSetting(parseJson, SmsSetting::class.java), canonicalJson),
+            SenderType.SMS -> sanitizeSettingJson(
+                parseJson,
+                canonicalJson,
+                SmsSetting.serializer(),
+                ::sanitizeSmsSetting,
             )
-            SenderType.FEISHU -> gson.toJson(
-                sanitizeFeishuSetting(parseSetting(parseJson, FeishuSetting::class.java), canonicalJson),
+            SenderType.FEISHU -> sanitizeSettingJson(
+                parseJson,
+                canonicalJson,
+                FeishuSetting.serializer(),
+                ::sanitizeFeishuSetting,
             )
-            SenderType.GOTIFY -> gson.toJson(
-                sanitizeGotifySetting(parseSetting(parseJson, GotifySetting::class.java), canonicalJson),
+            SenderType.GOTIFY -> sanitizeSettingJson(
+                parseJson,
+                canonicalJson,
+                GotifySetting.serializer(),
+                ::sanitizeGotifySetting,
             )
-            SenderType.DINGTALK_INNER_ROBOT -> gson.toJson(
-                sanitizeDingtalkInnerRobotSetting(
-                    parseSetting(parseJson, DingtalkInnerRobotSetting::class.java),
-                    canonicalJson,
-                ),
+            SenderType.DINGTALK_INNER_ROBOT -> sanitizeSettingJson(
+                parseJson,
+                canonicalJson,
+                DingtalkInnerRobotSetting.serializer(),
+                ::sanitizeDingtalkInnerRobotSetting,
             )
-            SenderType.FEISHU_APP -> gson.toJson(
-                sanitizeFeishuAppSetting(parseSetting(parseJson, FeishuAppSetting::class.java), canonicalJson),
+            SenderType.FEISHU_APP -> sanitizeSettingJson(
+                parseJson,
+                canonicalJson,
+                FeishuAppSetting.serializer(),
+                ::sanitizeFeishuAppSetting,
             )
-            SenderType.URL_SCHEME -> gson.toJson(
-                sanitizeUrlSchemeSetting(parseSetting(parseJson, UrlSchemeSetting::class.java), canonicalJson),
+            SenderType.URL_SCHEME -> sanitizeSettingJson(
+                parseJson,
+                canonicalJson,
+                UrlSchemeSetting.serializer(),
+                ::sanitizeUrlSchemeSetting,
             )
-            SenderType.SOCKET -> gson.toJson(
-                sanitizeSocketSetting(parseSetting(parseJson, SocketSetting::class.java), canonicalJson),
+            SenderType.SOCKET -> sanitizeSettingJson(
+                parseJson,
+                canonicalJson,
+                SocketSetting.serializer(),
+                ::sanitizeSocketSetting,
             )
-            SenderType.NTFY -> gson.toJson(
-                sanitizeNtfySetting(parseSetting(parseJson, NtfySetting::class.java), canonicalJson),
+            SenderType.NTFY -> sanitizeSettingJson(
+                parseJson,
+                canonicalJson,
+                NtfySetting.serializer(),
+                ::sanitizeNtfySetting,
             )
             else -> if (json.isBlank()) "" else json
         }
+    }
+
+    private fun <T> sanitizeSettingJson(
+        json: String,
+        rawJson: JsonObject?,
+        serializer: KSerializer<T>,
+        sanitizer: (T?, JsonObject?) -> T,
+    ): String {
+        return SenderSettingJson.encode(serializer, sanitizer(parseSetting(json, serializer), rawJson))
     }
 
     fun sanitizeDingtalkGroupRobotSetting(
@@ -831,13 +893,13 @@ object SenderSettingSanitizer {
     private fun canonicalizeLegacyKeys(type: Int, rawJson: JsonObject?): JsonObject? {
         if (rawJson == null) return null
         val specs = fieldSpecsByType[type] ?: return rawJson
-        val result = JsonObject()
-        specs.forEach { spec ->
-            firstFieldElement(rawJson, spec.name, *spec.aliases.toTypedArray())?.let { element ->
-                result.add(spec.name, element.deepCopy())
+        return buildJsonObject {
+            specs.forEach { spec ->
+                firstFieldElement(rawJson, spec.name, *spec.aliases.toTypedArray())?.let { element ->
+                    put(spec.name, element)
+                }
             }
         }
-        return result
     }
 
     private fun repairTelegramSetting(setting: TelegramSetting): TelegramSetting {
@@ -1147,14 +1209,12 @@ object SenderSettingSanitizer {
         return FieldSpec(name, aliases.toList())
     }
 
-    private fun <T> parseSetting(json: String, clazz: Class<T>): T? {
-        if (json.isBlank()) return null
-        return runCatching { gson.fromJson(json, clazz) }.getOrNull()
+    private fun <T> parseSetting(json: String, serializer: KSerializer<T>): T? {
+        return SenderSettingJson.decodeOrNull(serializer, json)
     }
 
     private fun parseSettingJson(json: String): JsonObject? {
-        if (json.isBlank()) return null
-        return runCatching { gson.fromJson(json, JsonObject::class.java) }.getOrNull()
+        return SenderSettingJson.parseObject(json)
     }
 
     private fun resolveValue(primary: Any?, rawJson: JsonObject?, vararg names: String): Any? {
@@ -1169,35 +1229,30 @@ object SenderSettingSanitizer {
     private fun firstFieldElement(rawJson: JsonObject?, vararg names: String): JsonElement? {
         if (rawJson == null) return null
         names.forEach { name ->
-            val element = rawJson.get(name) ?: return@forEach
-            if (element.isJsonNull) return@forEach
+            val element = rawJson[name] ?: return@forEach
+            if (element is JsonNull) return@forEach
             return element
         }
         return null
     }
 
     private fun jsonElementToAny(element: JsonElement): Any? {
-        return when {
-            element.isJsonNull -> null
-            element.isJsonPrimitive -> {
-                val primitive = element.asJsonPrimitive
-                when {
-                    primitive.isBoolean -> primitive.asBoolean
-                    primitive.isNumber -> runCatching { primitive.asInt }
-                        .recoverCatching { primitive.asLong }
-                        .recoverCatching { primitive.asDouble }
-                        .getOrNull()
-                    primitive.isString -> primitive.asString
-                    else -> primitive.toString()
-                }
+        return when (element) {
+            JsonNull -> null
+            is JsonPrimitive -> when {
+                element.isString -> element.content
+                element.booleanOrNull != null -> element.booleanOrNull
+                element.intOrNull != null -> element.intOrNull
+                element.longOrNull != null -> element.longOrNull
+                element.doubleOrNull != null -> element.doubleOrNull
+                else -> element.content
             }
-            element.isJsonArray -> element.asJsonArray.map { child -> jsonElementToAny(child) }
-            element.isJsonObject -> buildMap {
-                element.asJsonObject.entrySet().forEach { (key, value) ->
+            is JsonArray -> element.map { child -> jsonElementToAny(child) }
+            is JsonObject -> buildMap {
+                element.forEach { (key, value) ->
                     put(key, jsonElementToAny(value))
                 }
             }
-            else -> null
         }
     }
 }

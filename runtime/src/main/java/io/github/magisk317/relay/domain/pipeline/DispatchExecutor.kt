@@ -1,7 +1,6 @@
 package io.github.magisk317.relay.domain.pipeline
 
 import android.content.Context
-import com.google.gson.Gson
 import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.engine.model.MsgInfo
@@ -34,6 +33,7 @@ import io.github.magisk317.relay.sender.GotifyUtils
 import io.github.magisk317.relay.sender.NtfyUtils
 import io.github.magisk317.relay.sender.PushplusUtils
 import io.github.magisk317.relay.sender.ServerchanUtils
+import io.github.magisk317.relay.sender.SenderSettingJson
 import io.github.magisk317.relay.sender.SenderSettingSanitizer
 import io.github.magisk317.relay.sender.SocketUtils
 import io.github.magisk317.relay.sender.SmsUtils
@@ -47,7 +47,6 @@ import io.github.magisk317.relay.engine.service.SenderDispatcher
 import io.github.magisk317.relay.runtime.BuildConfig
 
 class DispatchExecutor(private val context: Context) : SenderDispatcher {
-    private val gson = Gson()
 
     override suspend fun dispatchToSender(
         sender: Sender,
@@ -61,38 +60,38 @@ class DispatchExecutor(private val context: Context) : SenderDispatcher {
         try {
             when (safeSender.type) {
                 SenderType.DINGTALK_GROUP_ROBOT -> DingtalkGroupRobotUtils.sendMsg(
-                    gson.fromJson(safeSender.jsonSetting, DingtalkGroupRobotSetting::class.java),
+                    SenderSettingJson.decode(DingtalkGroupRobotSetting.serializer(), safeSender.jsonSetting),
                     msgInfo,
                 )
                 SenderType.EMAIL -> EmailUtils.sendMsg(
-                    gson.fromJson(safeSender.jsonSetting, EmailSetting::class.java),
+                    SenderSettingJson.decode(EmailSetting.serializer(), safeSender.jsonSetting),
                     msgInfo,
                     traceId,
                 )
-                SenderType.BARK -> BarkUtils.sendMsg(gson.fromJson(safeSender.jsonSetting, BarkSetting::class.java), msgInfo)
-                SenderType.WEBHOOK -> WebhookUtils.sendMsg(gson.fromJson(safeSender.jsonSetting, WebhookSetting::class.java), msgInfo, traceId)
-                SenderType.WEWORK_ROBOT -> WeworkRobotUtils.sendMsg(gson.fromJson(safeSender.jsonSetting, WeworkRobotSetting::class.java), msgInfo)
-                SenderType.WEWORK_AGENT -> WeworkAgentUtils.sendMsg(gson.fromJson(safeSender.jsonSetting, WeworkAgentSetting::class.java), msgInfo)
-                SenderType.SERVERCHAN -> ServerchanUtils.sendMsg(gson.fromJson(safeSender.jsonSetting, ServerchanSetting::class.java), msgInfo)
-                SenderType.PUSHPLUS -> PushplusUtils.sendMsg(gson.fromJson(safeSender.jsonSetting, PushplusSetting::class.java), msgInfo)
-                SenderType.TELEGRAM -> TelegramUtils.sendMsg(gson.fromJson(safeSender.jsonSetting, TelegramSetting::class.java), msgInfo)
+                SenderType.BARK -> BarkUtils.sendMsg(SenderSettingJson.decode(BarkSetting.serializer(), safeSender.jsonSetting), msgInfo)
+                SenderType.WEBHOOK -> WebhookUtils.sendMsg(SenderSettingJson.decode(WebhookSetting.serializer(), safeSender.jsonSetting), msgInfo, traceId)
+                SenderType.WEWORK_ROBOT -> WeworkRobotUtils.sendMsg(SenderSettingJson.decode(WeworkRobotSetting.serializer(), safeSender.jsonSetting), msgInfo)
+                SenderType.WEWORK_AGENT -> WeworkAgentUtils.sendMsg(SenderSettingJson.decode(WeworkAgentSetting.serializer(), safeSender.jsonSetting), msgInfo)
+                SenderType.SERVERCHAN -> ServerchanUtils.sendMsg(SenderSettingJson.decode(ServerchanSetting.serializer(), safeSender.jsonSetting), msgInfo)
+                SenderType.PUSHPLUS -> PushplusUtils.sendMsg(SenderSettingJson.decode(PushplusSetting.serializer(), safeSender.jsonSetting), msgInfo)
+                SenderType.TELEGRAM -> TelegramUtils.sendMsg(SenderSettingJson.decode(TelegramSetting.serializer(), safeSender.jsonSetting), msgInfo)
                 SenderType.SMS -> {
                     if (!BuildConfig.ENABLE_SMS_CHANNEL) {
                         XLog.w("SMS sender disabled in current distribution, skipping sender [%s]", safeSender.name)
                     } else {
-                        SmsUtils.sendMsg(context, gson.fromJson(safeSender.jsonSetting, SmsSetting::class.java), msgInfo)
+                        SmsUtils.sendMsg(context, SenderSettingJson.decode(SmsSetting.serializer(), safeSender.jsonSetting), msgInfo)
                     }
                 }
-                SenderType.FEISHU -> FeishuUtils.sendMsg(gson.fromJson(safeSender.jsonSetting, FeishuSetting::class.java), msgInfo)
-                SenderType.GOTIFY -> GotifyUtils.sendMsg(gson.fromJson(safeSender.jsonSetting, GotifySetting::class.java), msgInfo)
-                SenderType.NTFY -> NtfyUtils.sendMsg(gson.fromJson(safeSender.jsonSetting, NtfySetting::class.java), msgInfo)
+                SenderType.FEISHU -> FeishuUtils.sendMsg(SenderSettingJson.decode(FeishuSetting.serializer(), safeSender.jsonSetting), msgInfo)
+                SenderType.GOTIFY -> GotifyUtils.sendMsg(SenderSettingJson.decode(GotifySetting.serializer(), safeSender.jsonSetting), msgInfo)
+                SenderType.NTFY -> NtfyUtils.sendMsg(SenderSettingJson.decode(NtfySetting.serializer(), safeSender.jsonSetting), msgInfo)
                 SenderType.DINGTALK_INNER_ROBOT -> DingtalkInnerRobotUtils.sendMsg(
-                    gson.fromJson(safeSender.jsonSetting, DingtalkInnerRobotSetting::class.java),
+                    SenderSettingJson.decode(DingtalkInnerRobotSetting.serializer(), safeSender.jsonSetting),
                     msgInfo,
                 )
-                SenderType.FEISHU_APP -> FeishuAppUtils.sendMsg(gson.fromJson(safeSender.jsonSetting, FeishuAppSetting::class.java), msgInfo)
-                SenderType.URL_SCHEME -> UrlSchemeUtils.sendMsg(context, gson.fromJson(safeSender.jsonSetting, UrlSchemeSetting::class.java), msgInfo)
-                SenderType.SOCKET -> SocketUtils.sendMsg(gson.fromJson(safeSender.jsonSetting, SocketSetting::class.java), msgInfo)
+                SenderType.FEISHU_APP -> FeishuAppUtils.sendMsg(SenderSettingJson.decode(FeishuAppSetting.serializer(), safeSender.jsonSetting), msgInfo)
+                SenderType.URL_SCHEME -> UrlSchemeUtils.sendMsg(context, SenderSettingJson.decode(UrlSchemeSetting.serializer(), safeSender.jsonSetting), msgInfo)
+                SenderType.SOCKET -> SocketUtils.sendMsg(SenderSettingJson.decode(SocketSetting.serializer(), safeSender.jsonSetting), msgInfo)
                 else -> {
                     val message = "Unsupported sender type: ${safeSender.type}"
                     return SenderDispatchResult(safeSender.id, safeSender.type, senderName, false, message)
@@ -100,13 +99,13 @@ class DispatchExecutor(private val context: Context) : SenderDispatcher {
             }
             ForwardFlowLog.i(traceId, "Dispatch sender success name=$senderName")
             return SenderDispatchResult(safeSender.id, safeSender.type, senderName, true, "OK")
-        } catch (e: com.google.gson.JsonSyntaxException) {
+        } catch (e: kotlinx.serialization.SerializationException) {
             ForwardFlowLog.e(
                 traceId,
                 "Dispatch sender json parse failed name=$senderName cause=${e.javaClass.simpleName}: ${e.message ?: "<empty>"}",
                 e,
             )
-            return SenderDispatchResult(safeSender.id, safeSender.type, senderName, false, "配置解析失败: ${e.message ?: "JsonSyntaxException"}")
+            return SenderDispatchResult(safeSender.id, safeSender.type, senderName, false, "配置解析失败: ${e.message ?: "SerializationException"}")
         } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
             val errorSummary = "${e.javaClass.simpleName}: ${e.message ?: "<empty>"}"
             ForwardFlowLog.e(traceId, "Dispatch sender failed name=$senderName cause=$errorSummary", e)

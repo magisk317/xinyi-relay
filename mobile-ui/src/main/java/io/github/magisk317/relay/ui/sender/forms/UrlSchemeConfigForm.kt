@@ -41,7 +41,7 @@ import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.sender.UrlSchemeUtils
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
-import com.google.gson.Gson
+import io.github.magisk317.relay.sender.SenderSettingJson
 import kotlinx.coroutines.launch
 import java.util.Date
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
@@ -77,7 +77,7 @@ fun UrlSchemeConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVie
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                runCatching { Gson().fromJson(sender.jsonSetting, UrlSchemeSetting::class.java) }.getOrNull()?.let {
+                runCatching { SenderSettingJson.decode<UrlSchemeSetting>(sender.jsonSetting) }.getOrNull()?.let {
                     urlScheme = it.urlScheme
                 }
             }
@@ -88,7 +88,7 @@ fun UrlSchemeConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVie
         val setting = UrlSchemeSetting(urlScheme = urlScheme)
         return currentSender?.copy(
             name = name,
-            jsonSetting = Gson().toJson(setting),
+            jsonSetting = SenderSettingJson.encode(setting),
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -100,7 +100,7 @@ fun UrlSchemeConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVie
             id = 0,
             type = SenderType.URL_SCHEME,
             name = name,
-            jsonSetting = Gson().toJson(setting),
+            jsonSetting = SenderSettingJson.encode(setting),
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,

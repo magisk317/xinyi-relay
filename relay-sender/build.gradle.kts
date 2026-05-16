@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.serialization)
     id(libs.plugins.kotlin.parcelize.get().pluginId)
     id("relay.android.common")
 }
@@ -37,6 +38,7 @@ dependencies {
     implementation(project(":smscode-core:smscode-runtime-contract"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.gson)
     implementation(libs.okhttp)
     implementation(libs.jakarta.mail)

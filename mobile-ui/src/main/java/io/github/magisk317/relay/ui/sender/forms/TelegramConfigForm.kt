@@ -22,7 +22,7 @@ import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
-import com.google.gson.Gson
+import io.github.magisk317.relay.sender.SenderSettingJson
 import kotlinx.coroutines.launch
 import java.net.Proxy
 import java.util.Date
@@ -67,11 +67,7 @@ fun TelegramConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                val setting = try {
-                    Gson().fromJson(sender.jsonSetting, TelegramSetting::class.java)
-                } catch (@Suppress("SwallowedException") e: com.google.gson.JsonSyntaxException) {
-                    null
-                }
+                val setting = SenderSettingJson.decodeOrNull<TelegramSetting>(sender.jsonSetting)
                 if (setting != null) {
                     apiToken = setting.apiToken
                     chatId = setting.chatId
@@ -97,7 +93,7 @@ fun TelegramConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
             proxyPort = proxyPort,
             proxyType = Proxy.Type.DIRECT
         )
-        val json = Gson().toJson(setting)
+        val json = SenderSettingJson.encode(setting)
         return currentSender?.copy(
             name = name,
             jsonSetting = json,

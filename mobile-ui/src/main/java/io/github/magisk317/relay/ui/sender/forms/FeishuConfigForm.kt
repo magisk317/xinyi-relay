@@ -44,7 +44,7 @@ import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
-import com.google.gson.Gson
+import io.github.magisk317.relay.sender.SenderSettingJson
 import kotlinx.coroutines.launch
 import java.util.Date
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
@@ -84,7 +84,7 @@ fun FeishuConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMo
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                runCatching { Gson().fromJson(sender.jsonSetting, FeishuSetting::class.java) }.getOrNull()?.let {
+                runCatching { SenderSettingJson.decode<FeishuSetting>(sender.jsonSetting) }.getOrNull()?.let {
                     webhook = it.webhook
                     secret = it.secret
                     msgType = it.msgType
@@ -105,7 +105,7 @@ fun FeishuConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMo
         )
         return currentSender?.copy(
             name = name,
-            jsonSetting = Gson().toJson(setting),
+            jsonSetting = SenderSettingJson.encode(setting),
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -117,7 +117,7 @@ fun FeishuConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMo
             id = 0,
             type = SenderType.FEISHU,
             name = name,
-            jsonSetting = Gson().toJson(setting),
+            jsonSetting = SenderSettingJson.encode(setting),
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,

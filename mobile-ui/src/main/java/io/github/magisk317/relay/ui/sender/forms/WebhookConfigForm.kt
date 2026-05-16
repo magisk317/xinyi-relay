@@ -23,8 +23,7 @@ import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
+import io.github.magisk317.relay.sender.SenderSettingJson
 import kotlinx.coroutines.launch
 import java.util.Date
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
@@ -70,17 +69,13 @@ fun WebhookConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewM
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                val setting = try {
-                    Gson().fromJson(sender.jsonSetting, WebhookSetting::class.java)
-                } catch (@Suppress("SwallowedException") e: com.google.gson.JsonSyntaxException) {
-                    null
-                }
+                val setting = SenderSettingJson.decodeOrNull<WebhookSetting>(sender.jsonSetting)
                 if (setting != null) {
                     webServer = setting.webServer
                     secret = setting.secret
                     method = setting.method
                     webParams = setting.webParams
-                    headersJson = if (setting.headers.isEmpty()) "" else Gson().toJson(setting.headers)
+                    headersJson = if (setting.headers.isEmpty()) "" else SenderSettingJson.encodeStringMap(setting.headers)
                 }
             }
         }
@@ -89,15 +84,10 @@ fun WebhookConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewM
 
     fun parseHeadersOrThrow(): Map<String, String> {
         if (headersJson.isBlank()) return emptyMap()
-        return try {
-            val type = object : TypeToken<Map<String, Any?>>() {}.type
-            val raw = Gson().fromJson<Map<String, Any?>>(headersJson, type) ?: emptyMap()
-            raw
-                .filterKeys { it.isNotBlank() }
-                .mapValues { it.value?.toString() ?: "" }
-        } catch (_: Exception) {
-            throw IllegalArgumentException("Invalid headers JSON, e.g. {\"Authorization\":\"Bearer xxx\"}")
-        }
+        return SenderSettingJson.decodeStringMapLenientOrNull(headersJson)
+            ?: run {
+                throw IllegalArgumentException("Invalid headers JSON, e.g. {\"Authorization\":\"Bearer xxx\"}")
+            }
     }
 
     fun buildSender(status: Int): Sender {
@@ -108,7 +98,7 @@ fun WebhookConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewM
             webParams = webParams,
             headers = parseHeadersOrThrow()
         )
-        val json = Gson().toJson(setting)
+        val json = SenderSettingJson.encode(setting)
         return currentSender?.copy(
             name = name,
             jsonSetting = json,
