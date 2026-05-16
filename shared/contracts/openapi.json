@@ -1,0 +1,1087 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Xinyi Relay Remote API",
+    "version": "0.1.0",
+    "description": "Contract for the Xinyi Relay backend, Android agent, Web console, and Desktop console."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Same-origin backend"
+    }
+  ],
+  "paths": {
+    "/healthz": {
+      "get": {
+        "operationId": "getHealth",
+        "tags": ["system"],
+        "responses": {
+          "200": {
+            "description": "Backend health",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HealthResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/system/info": {
+      "get": {
+        "operationId": "getSystemInfo",
+        "tags": ["system"],
+        "responses": {
+          "200": {
+            "description": "System metadata",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SystemInfoResponse" }
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/bootstrap/admin": {
+      "post": {
+        "operationId": "bootstrapAdmin",
+        "tags": ["auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/BootstrapAdminRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Admin created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BootstrapAdminResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" },
+          "409": { "$ref": "#/components/responses/Error" },
+          "500": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "login",
+        "tags": ["auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Web session created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/LoginResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "500": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "logout",
+        "tags": ["auth"],
+        "security": [
+          { "cookieSession": [], "csrfHeader": [] }
+        ],
+        "responses": {
+          "200": {
+            "description": "Logged out",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SimpleOKResponse" }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/auth/password": {
+      "post": {
+        "operationId": "changePassword",
+        "tags": ["auth"],
+        "security": [
+          { "cookieSession": [], "csrfHeader": [] }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChangePasswordRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password changed",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SimpleOKResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "403": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "operationId": "getMe",
+        "tags": ["auth"],
+        "responses": {
+          "200": {
+            "description": "Current web session state",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MeResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/desktop/start": {
+      "get": {
+        "operationId": "getDesktopAuthStartPage",
+        "tags": ["desktop-auth"],
+        "parameters": [
+          { "$ref": "#/components/parameters/RedirectURI" },
+          { "$ref": "#/components/parameters/State" },
+          { "$ref": "#/components/parameters/ClientName" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Desktop browser handoff page",
+            "content": {
+              "text/html": {
+                "schema": { "type": "string" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" }
+        }
+      },
+      "post": {
+        "operationId": "approveDesktopAuthStart",
+        "tags": ["desktop-auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": { "$ref": "#/components/schemas/DesktopLoginPageRequest" }
+            }
+          }
+        },
+        "responses": {
+          "303": {
+            "description": "Redirects back to the desktop loopback callback with code and state"
+          },
+          "400": { "$ref": "#/components/responses/Error" },
+          "500": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/auth/desktop/exchange": {
+      "post": {
+        "operationId": "exchangeDesktopAuthCode",
+        "tags": ["desktop-auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DesktopExchangeRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Desktop session tokens",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DesktopSessionResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "500": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/auth/desktop/refresh": {
+      "post": {
+        "operationId": "refreshDesktopSession",
+        "tags": ["desktop-auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DesktopRefreshRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rotated desktop session tokens",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DesktopSessionResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "500": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/auth/desktop/logout": {
+      "post": {
+        "operationId": "logoutDesktopSession",
+        "tags": ["desktop-auth"],
+        "security": [
+          { "desktopBearer": [] },
+          {}
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DesktopLogoutRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Desktop session revoked",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SimpleOKResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/devices/bind-codes": {
+      "post": {
+        "operationId": "createBindCode",
+        "tags": ["devices"],
+        "security": [
+          { "cookieSession": [], "csrfHeader": [] },
+          { "desktopBearer": [] }
+        ],
+        "responses": {
+          "201": {
+            "description": "One-time Android bind code",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BindCodeResponse" }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Error" },
+          "500": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/devices": {
+      "get": {
+        "operationId": "listDevices",
+        "tags": ["devices"],
+        "security": [
+          { "cookieSession": [] },
+          { "desktopBearer": [] }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active devices",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DevicesResponse" }
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/devices/{id}": {
+      "patch": {
+        "operationId": "patchDevice",
+        "tags": ["devices"],
+        "security": [
+          { "cookieSession": [], "csrfHeader": [] },
+          { "desktopBearer": [] }
+        ],
+        "parameters": [
+          { "$ref": "#/components/parameters/PathID" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PatchDeviceRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated device",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DeviceItem" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" },
+          "403": { "$ref": "#/components/responses/Error" },
+          "404": { "$ref": "#/components/responses/Error" },
+          "500": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/devices/{id}/revoke": {
+      "post": {
+        "operationId": "revokeDevice",
+        "tags": ["devices"],
+        "security": [
+          { "cookieSession": [], "csrfHeader": [] },
+          { "desktopBearer": [] }
+        ],
+        "parameters": [
+          { "$ref": "#/components/parameters/PathID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Device revoked",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SimpleOKResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" },
+          "403": { "$ref": "#/components/responses/Error" },
+          "404": { "$ref": "#/components/responses/Error" },
+          "500": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/agent/register": {
+      "post": {
+        "operationId": "registerAgent",
+        "tags": ["agent"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AgentRegisterRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Device token issued",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentRegisterResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "500": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/agent/heartbeat": {
+      "post": {
+        "operationId": "sendAgentHeartbeat",
+        "tags": ["agent"],
+        "security": [
+          { "deviceBearer": [] }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/HeartbeatRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Heartbeat accepted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SimpleOKResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "500": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/agent/records:batch": {
+      "post": {
+        "operationId": "uploadAgentRecordsBatch",
+        "tags": ["agent"],
+        "security": [
+          { "deviceBearer": [] }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RelayRecordsBatchRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Records inserted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RelayRecordsBatchResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "500": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/config/snapshot": {
+      "get": {
+        "operationId": "getConfigSnapshot",
+        "tags": ["config"],
+        "security": [
+          { "cookieSession": [] },
+          { "desktopBearer": [] },
+          { "deviceBearer": [] }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current config snapshot",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ConfigSnapshotResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Error" },
+          "500": { "$ref": "#/components/responses/Error" }
+        }
+      },
+      "put": {
+        "operationId": "putConfigSnapshot",
+        "tags": ["config"],
+        "security": [
+          { "cookieSession": [], "csrfHeader": [] },
+          { "desktopBearer": [] },
+          { "deviceBearer": [] }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ConfigSnapshotRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Config snapshot saved",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ConfigSnapshotResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "403": { "$ref": "#/components/responses/Error" },
+          "409": {
+            "description": "Revision conflict with latest cloud snapshot",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ConfigSnapshotResponse" }
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/config/audit": {
+      "get": {
+        "operationId": "listConfigAuditLogs",
+        "tags": ["config"],
+        "security": [
+          { "cookieSession": [] },
+          { "desktopBearer": [] }
+        ],
+        "parameters": [
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Offset" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Config audit logs",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ConfigAuditLogsResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Error" },
+          "500": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/records": {
+      "get": {
+        "operationId": "listRecords",
+        "tags": ["records"],
+        "security": [
+          { "cookieSession": [] },
+          { "desktopBearer": [] }
+        ],
+        "parameters": [
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Offset" },
+          {
+            "name": "device_id",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "format": "int64" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Uploaded records",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RecordsResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "500": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/records/{id}": {
+      "get": {
+        "operationId": "getRecord",
+        "tags": ["records"],
+        "security": [
+          { "cookieSession": [] },
+          { "desktopBearer": [] }
+        ],
+        "parameters": [
+          { "$ref": "#/components/parameters/PathID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Uploaded record",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RelayRecord" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "404": { "$ref": "#/components/responses/Error" },
+          "500": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/realtime/ws": {
+      "get": {
+        "operationId": "connectRealtime",
+        "tags": ["realtime"],
+        "security": [
+          { "cookieSession": [] },
+          { "desktopBearer": [] }
+        ],
+        "responses": {
+          "101": {
+            "description": "WebSocket upgrade for realtime events"
+          },
+          "401": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "PathID": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer", "format": "int64" }
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "integer", "format": "int32", "minimum": 1, "maximum": 500 }
+      },
+      "Offset": {
+        "name": "offset",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "integer", "format": "int32", "minimum": 0 }
+      },
+      "RedirectURI": {
+        "name": "redirect_uri",
+        "in": "query",
+        "required": true,
+        "schema": { "type": "string", "format": "uri" }
+      },
+      "State": {
+        "name": "state",
+        "in": "query",
+        "required": true,
+        "schema": { "type": "string" }
+      },
+      "ClientName": {
+        "name": "client_name",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "string" }
+      }
+    },
+    "responses": {
+      "Error": {
+        "description": "JSON error response",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "cookieSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "relay_session"
+      },
+      "csrfHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-CSRF-Token"
+      },
+      "desktopBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      },
+      "deviceBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "JsonObject": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["error"],
+        "properties": {
+          "error": { "type": "string" }
+        }
+      },
+      "SimpleOKResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ok"],
+        "properties": {
+          "ok": { "type": "boolean" }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ok", "service"],
+        "properties": {
+          "ok": { "type": "boolean" },
+          "service": { "type": "string" }
+        }
+      },
+      "SystemInfoResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["service", "appEnv", "localBaseUrl", "publicBaseUrl", "databaseReady", "userCount", "time"],
+        "properties": {
+          "service": { "type": "string" },
+          "appEnv": { "type": "string" },
+          "localBaseUrl": { "type": "string" },
+          "publicBaseUrl": { "type": "string" },
+          "databaseReady": { "type": "boolean" },
+          "userCount": { "type": "integer", "format": "int64" },
+          "time": { "type": "string", "format": "date-time" }
+        }
+      },
+      "BootstrapAdminRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["username", "password"],
+        "properties": {
+          "username": { "type": "string" },
+          "password": { "type": "string", "format": "password" }
+        }
+      },
+      "BootstrapAdminResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ok", "userId", "username"],
+        "properties": {
+          "ok": { "type": "boolean" },
+          "userId": { "type": "integer", "format": "int64" },
+          "username": { "type": "string" }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["username", "password"],
+        "properties": {
+          "username": { "type": "string" },
+          "password": { "type": "string", "format": "password" }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["authenticated", "username", "csrfToken"],
+        "properties": {
+          "authenticated": { "type": "boolean" },
+          "username": { "type": "string" },
+          "csrfToken": { "type": "string" }
+        }
+      },
+      "MeResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["authenticated"],
+        "properties": {
+          "authenticated": { "type": "boolean" },
+          "username": { "type": "string" },
+          "csrfToken": { "type": "string" }
+        }
+      },
+      "ChangePasswordRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["currentPassword", "newPassword"],
+        "properties": {
+          "currentPassword": { "type": "string", "format": "password" },
+          "newPassword": { "type": "string", "format": "password" }
+        }
+      },
+      "DesktopLoginPageRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["redirect_uri", "state", "client_name"],
+        "properties": {
+          "username": { "type": "string" },
+          "password": { "type": "string", "format": "password" },
+          "redirect_uri": { "type": "string", "format": "uri" },
+          "state": { "type": "string" },
+          "client_name": { "type": "string" }
+        }
+      },
+      "DesktopExchangeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code"],
+        "properties": {
+          "code": { "type": "string" }
+        }
+      },
+      "DesktopRefreshRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["refreshToken"],
+        "properties": {
+          "refreshToken": { "type": "string" }
+        }
+      },
+      "DesktopLogoutRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["refreshToken"],
+        "properties": {
+          "refreshToken": { "type": "string" }
+        }
+      },
+      "DesktopSessionResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["authenticated", "username", "accessToken", "refreshToken", "expiresAt", "refreshExpiresAt"],
+        "properties": {
+          "authenticated": { "type": "boolean" },
+          "username": { "type": "string" },
+          "accessToken": { "type": "string" },
+          "refreshToken": { "type": "string" },
+          "expiresAt": { "type": "string", "format": "date-time" },
+          "refreshExpiresAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "BindCodeResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "expiresAt"],
+        "properties": {
+          "code": { "type": "string" },
+          "expiresAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "AgentRegisterRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["bindCode", "deviceName"],
+        "properties": {
+          "bindCode": { "type": "string" },
+          "deviceName": { "type": "string" },
+          "deviceModel": { "type": "string" },
+          "platform": { "type": "string", "default": "android" },
+          "appVersion": { "type": "string" }
+        }
+      },
+      "AgentRegisterResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["userId", "deviceId", "deviceToken"],
+        "properties": {
+          "userId": { "type": "integer", "format": "int64" },
+          "deviceId": { "type": "integer", "format": "int64" },
+          "deviceToken": { "type": "string" }
+        }
+      },
+      "HeartbeatRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["appVersion", "localAddresses", "capabilities"],
+        "properties": {
+          "appVersion": { "type": "string" },
+          "localAddresses": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "capabilities": { "$ref": "#/components/schemas/JsonObject" }
+        }
+      },
+      "PatchDeviceRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "displayName": { "type": "string" },
+          "enabled": { "type": "boolean" }
+        }
+      },
+      "DeviceItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "userId", "deviceName", "deviceModel", "platform", "appVersion", "displayName", "enabled", "localAddresses", "capabilities", "createdAt", "updatedAt"],
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "userId": { "type": "integer", "format": "int64" },
+          "deviceName": { "type": "string" },
+          "deviceModel": { "type": "string" },
+          "platform": { "type": "string" },
+          "appVersion": { "type": "string" },
+          "displayName": { "type": "string" },
+          "enabled": { "type": "boolean" },
+          "revokedAt": { "type": ["string", "null"], "format": "date-time" },
+          "lastSeenAt": { "type": ["string", "null"], "format": "date-time" },
+          "localAddresses": { "$ref": "#/components/schemas/JsonObject" },
+          "capabilities": { "$ref": "#/components/schemas/JsonObject" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "DevicesResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["devices"],
+        "properties": {
+          "devices": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/DeviceItem" }
+          }
+        }
+      },
+      "ConfigSnapshotRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["base_revision", "snapshot"],
+        "properties": {
+          "base_revision": { "type": "integer", "format": "int64" },
+          "snapshot": { "$ref": "#/components/schemas/JsonObject" }
+        }
+      },
+      "ConfigSnapshotResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["revision", "snapshot"],
+        "properties": {
+          "revision": { "type": "integer", "format": "int64" },
+          "snapshot": { "$ref": "#/components/schemas/JsonObject" }
+        }
+      },
+      "ConfigAuditLogItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "revision", "actorType", "actorId", "summary", "createdAt"],
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "revision": { "type": "integer", "format": "int64" },
+          "actorType": { "type": "string" },
+          "actorId": { "type": "integer", "format": "int64" },
+          "summary": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ConfigAuditLogsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["logs", "limit", "offset"],
+        "properties": {
+          "logs": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ConfigAuditLogItem" }
+          },
+          "limit": { "type": "integer", "format": "int32" },
+          "offset": { "type": "integer", "format": "int32" }
+        }
+      },
+      "RelayRecordWire": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["eventId", "recordType", "sender", "body", "smsCode", "packageName", "msgType", "callType", "occurredAt", "metadata"],
+        "properties": {
+          "eventId": { "type": "string" },
+          "recordType": { "type": "string" },
+          "sender": { "type": "string" },
+          "body": { "type": "string" },
+          "smsCode": { "type": "string" },
+          "packageName": { "type": "string" },
+          "msgType": { "type": "integer", "format": "int32" },
+          "callType": { "type": "integer", "format": "int32" },
+          "occurredAt": { "type": "string", "format": "date-time" },
+          "metadata": { "$ref": "#/components/schemas/JsonObject" }
+        }
+      },
+      "RelayRecordsBatchRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["records"],
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/RelayRecordWire" }
+          }
+        }
+      },
+      "RelayRecordsBatchResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["inserted"],
+        "properties": {
+          "inserted": { "type": "integer", "format": "int64" }
+        }
+      },
+      "RelayRecord": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "deviceId", "recordType", "sender", "body", "smsCode", "packageName", "msgType", "callType", "occurredAt", "uploadedAt", "metadata"],
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "deviceId": { "type": "integer", "format": "int64" },
+          "eventId": { "type": "string" },
+          "recordType": { "type": "string" },
+          "sender": { "type": "string" },
+          "body": { "type": "string" },
+          "smsCode": { "type": "string" },
+          "packageName": { "type": "string" },
+          "msgType": { "type": "integer", "format": "int32" },
+          "callType": { "type": "integer", "format": "int32" },
+          "occurredAt": { "type": "string", "format": "date-time" },
+          "uploadedAt": { "type": "string", "format": "date-time" },
+          "metadata": { "$ref": "#/components/schemas/JsonObject" }
+        }
+      },
+      "RecordsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["records", "limit", "offset"],
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/RelayRecord" }
+          },
+          "limit": { "type": "integer", "format": "int32" },
+          "offset": { "type": "integer", "format": "int32" }
+        }
+      },
+      "RealtimeEvent": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "time"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "device.registered",
+              "device.updated",
+              "device.revoked",
+              "device.heartbeat",
+              "config.updated",
+              "records.ingested"
+            ]
+          },
+          "time": { "type": "string", "format": "date-time" },
+          "data": true
+        }
+      }
+    }
+  }
+}
