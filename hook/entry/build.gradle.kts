@@ -39,7 +39,6 @@ dependencies {
     implementation(project(":relay:contract"))
     implementation(project(":smscode-core:smscode-domain"))
     implementation(project(":smscode-core:smscode-verification-core"))
-    implementation(project(":core"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.libxposed.service)
     implementation(libs.timber)

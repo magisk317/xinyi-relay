@@ -11,7 +11,7 @@ import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import io.github.magisk317.relay.hookentry.BuildConfig
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.hookentry.R
 import io.github.magisk317.relay.xpbridge.XpNotificationBridge
 import io.github.magisk317.relay.xp.hook.code.helper.InputHelper
 import io.github.magisk317.smscode.xposed.utils.XLog

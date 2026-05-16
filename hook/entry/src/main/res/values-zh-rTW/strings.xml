@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">信驿 Relay</string>
+    <string name="xposed_description">轉發簡訊/應用通知/來電，並支援驗證碼自動填寫</string>
+    <string name="prompt_sms_code_copied">驗證碼已複製: %s</string>
+    <string name="current_sms_code">當前驗證碼為 %s</string>
+    <string name="channel_name_relay_notification">驗證碼通知</string>
+    <string name="code_notification_content">驗證碼：%s</string>
+    <string name="smscode_conflict_dialog_title">檢測到衝突模組</string>
+    <string name="smscode_conflict_other_app_name">XposedSmsCode</string>
+    <string name="channel_name_smscode_conflict_notification">衝突提醒</string>
+    <string name="smscode_conflict_notification_content">檢測到你已安裝 %1$s (%2$s)。請先解除安裝該模組，再安裝並使用 %3$s。</string>
+    <string name="smscode_conflict_sms_toast">功能衝突，檢查狀態列通知</string>
+</resources>

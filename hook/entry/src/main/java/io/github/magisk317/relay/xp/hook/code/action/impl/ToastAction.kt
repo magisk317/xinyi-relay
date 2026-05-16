@@ -3,7 +3,7 @@ package io.github.magisk317.relay.xp.hook.code.action.impl
 import android.content.Context
 import android.os.Bundle
 import android.widget.Toast
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.hookentry.R
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xp.hook.code.action.RunnableAction
 import io.github.magisk317.relay.xp.hook.code.helper.InputHelper

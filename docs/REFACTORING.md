@@ -38,6 +38,12 @@
 - 允许保留 app-process IPC adapter：`CodeNotificationReceiver`、auto-input accessibility/result、force-stop recovery wakeup
 - 新业务逻辑不落在上述 adapter 内；adapter 只做 action/token 校验、Intent 解析与委托
 
+### `hook/entry`
+- Xposed 入口、hook 调度和 hook 进程所需最小资源
+- 不直接依赖 `core`
+- 验证码记录 fallback 通过 `xpbridge/core` facade 进入 runtime 文件存储实现
+- 不承载 UI 页面、应用初始化或 repository 装配
+
 ### `xpbridge/core`
 - Xposed/runtime 之间的桥接 DTO 与 facade
 - 仅承载 `io.github.magisk317.relay.xpbridge.*`

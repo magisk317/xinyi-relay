@@ -3,7 +3,7 @@ package io.github.magisk317.relay.xp.hook.code
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.hookentry.R
 import io.github.magisk317.relay.xpbridge.XpClipboard
 import io.github.magisk317.smscode.xposed.utils.XLog
 
