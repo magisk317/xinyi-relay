@@ -19,7 +19,7 @@
     "desktop:check": "npm run desktop:ci"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "2.11.1",
+    "@tauri-apps/cli": "2.11.2",
     "@testing-library/react": "^16.3.0",
     "@types/node": "^25.5.2",
     "@types/react": "^19.2.2",
