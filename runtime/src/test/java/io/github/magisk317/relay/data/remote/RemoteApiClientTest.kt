@@ -1,6 +1,9 @@
 package io.github.magisk317.relay.data.remote
 
-import com.google.gson.JsonObject
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -28,14 +31,18 @@ class RemoteApiClientTest {
             deviceToken = "token-1",
             request = ConfigSnapshotRequest(
                 baseRevision = 1L,
-                snapshot = JsonObject(),
+                snapshot = buildJsonObject {},
             ),
         )
 
         assertTrue(result is ConfigSnapshotPushResult.Conflict)
         val conflict = result as ConfigSnapshotPushResult.Conflict
         assertEquals(7L, conflict.payload.revision)
-        assertTrue(conflict.payload.snapshot!!.getAsJsonObject("general").get("moduleEnabled").asBoolean)
+        assertTrue(
+            conflict.payload.snapshot!!
+                .getValue("general").jsonObject
+                .getValue("moduleEnabled").jsonPrimitive.boolean,
+        )
     }
 
     @Test
@@ -67,7 +74,7 @@ class RemoteApiClientTest {
                         msgType = 0,
                         callType = 0,
                         occurredAt = "2026-05-16T00:00:00Z",
-                        metadata = JsonObject(),
+                        metadata = buildJsonObject {},
                     ),
                 ),
             ),

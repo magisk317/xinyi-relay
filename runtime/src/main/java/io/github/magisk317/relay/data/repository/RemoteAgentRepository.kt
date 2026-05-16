@@ -5,10 +5,9 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.pm.PackageInfoCompat
-import com.google.gson.JsonElement
-import com.google.gson.JsonObject
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.json.LegacyGsonJson
+import io.github.magisk317.relay.contract.json.RelayJson
 import io.github.magisk317.relay.contract.settings.*
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.entity.AppInfo
@@ -35,6 +34,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -44,7 +48,7 @@ class RemoteAgentRepository(
     private val preferenceDataSource: PreferenceDataSource,
 ) : RemoteSyncRepository {
     private val legacyJson = LegacyGsonJson
-    private val remoteApiClient = RemoteApiClient(json = legacyJson)
+    private val remoteApiClient = RemoteApiClient()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val syncMutex = Mutex()
     private val backgroundSyncInFlight = AtomicBoolean(false)
@@ -168,7 +172,7 @@ class RemoteAgentRepository(
             publishHookPrefs()
             RemoteConfigSnapshot(
                 revision = payload.revision,
-                content = payload.snapshot ?: JsonObject(),
+                content = payload.snapshot ?: buildJsonObject {},
             )
         }.onFailure {
             preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, it.message ?: it.javaClass.simpleName)
@@ -232,18 +236,18 @@ class RemoteAgentRepository(
         require(snapshot.bound) { "device not bound" }
         val token = InternalSecretStore.getString(appContext, PrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, "")
         val records = RuntimeGraph.from(appContext).relayRecordRepository.listRecords(limit).map {
-            val metadata = JsonObject().apply {
-                addProperty("localRecordId", it.id)
-                addProperty("company", it.company)
-                addProperty("notifyChannelId", it.notifyChannelId)
-                addProperty("simSlot", it.simSlot)
-                addProperty("subId", it.subId)
-                addProperty("contactName", it.contactName)
-                addProperty("phoneArea", it.phoneArea)
-                addProperty("forwardStatus", it.forwardStatus)
-                addProperty("forwardTarget", it.forwardTarget)
-                addProperty("forwardMessage", it.forwardMessage)
-                addProperty("forwardTime", it.forwardTime)
+            val metadata = buildJsonObject {
+                put("localRecordId", it.id)
+                put("company", it.company)
+                put("notifyChannelId", it.notifyChannelId)
+                put("simSlot", it.simSlot)
+                put("subId", it.subId)
+                put("contactName", it.contactName)
+                put("phoneArea", it.phoneArea)
+                put("forwardStatus", it.forwardStatus)
+                put("forwardTarget", it.forwardTarget)
+                put("forwardMessage", it.forwardMessage)
+                put("forwardTime", it.forwardTime)
             }
             RelayRecordWire(
                 eventId = "local-record-${it.id}",
@@ -328,7 +332,7 @@ class RemoteAgentRepository(
     }
 
     private suspend fun buildConfigSnapshotPayload(): JsonObject {
-        return legacyJson.toJsonTree(buildConfigSnapshotModel()).asJsonObject
+        return RelayJson.parseElement(legacyJson.toJson(buildConfigSnapshotModel())) as JsonObject
     }
 
     private suspend fun buildConfigSnapshotModel(): RemoteConfigPayload {
@@ -367,7 +371,7 @@ class RemoteAgentRepository(
                 mergeRemoteConfigJson(
                     base = buildConfigSnapshotPayload(),
                     incoming = snapshot,
-                ),
+                ).toString(),
                 RemoteConfigPayload::class.java,
             )
             val runtimeGraph = RuntimeGraph.from(appContext)
@@ -655,23 +659,23 @@ internal fun mergeRemoteConfigJson(
     base: JsonObject,
     incoming: JsonObject,
 ): JsonObject {
-    val merged = base.deepCopy()
-    incoming.entrySet().forEach { (key, incomingValue) ->
-        val baseValue = merged.get(key)
-        merged.add(key, mergeRemoteConfigElement(baseValue, incomingValue))
+    return buildJsonObject {
+        base.forEach { (key, value) -> put(key, value) }
+        incoming.forEach { (key, incomingValue) ->
+            put(key, mergeRemoteConfigElement(base[key], incomingValue))
+        }
     }
-    return merged
 }
 
 private fun mergeRemoteConfigElement(
     base: JsonElement?,
     incoming: JsonElement?,
 ): JsonElement {
-    if (incoming == null || incoming.isJsonNull) {
-        return base?.deepCopy() ?: JsonObject()
+    if (incoming == null || incoming is JsonNull) {
+        return base ?: buildJsonObject {}
     }
-    if (base != null && base.isJsonObject && incoming.isJsonObject) {
-        return mergeRemoteConfigJson(base.asJsonObject, incoming.asJsonObject)
+    if (base is JsonObject && incoming is JsonObject) {
+        return mergeRemoteConfigJson(base, incoming)
     }
-    return incoming.deepCopy()
+    return incoming
 }

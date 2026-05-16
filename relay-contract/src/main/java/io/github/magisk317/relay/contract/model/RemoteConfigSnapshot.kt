@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.contract.model
 
-import com.google.gson.JsonObject
+import kotlinx.serialization.json.JsonObject
 
 data class RemoteConfigSnapshot(
     val revision: Long,

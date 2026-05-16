@@ -1,7 +1,9 @@
 package io.github.magisk317.relay.data.remote
 
-import io.github.magisk317.relay.contract.json.LegacyGsonJson
+import io.github.magisk317.relay.contract.json.RelayJson
 import io.github.magisk317.relay.engine.network.RelayHttpClients
+import kotlinx.serialization.DeserializationStrategy
+import kotlinx.serialization.SerializationStrategy
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -9,7 +11,6 @@ import okhttp3.RequestBody.Companion.toRequestBody
 
 internal class RemoteApiClient(
     private val client: OkHttpClient = RelayHttpClients.default,
-    private val json: LegacyGsonJson = LegacyGsonJson,
 ) {
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
 
@@ -17,9 +18,9 @@ internal class RemoteApiClient(
         return executeJson(
             request = Request.Builder()
                 .url("$baseUrl/api/v1/agent/register")
-                .post(jsonBody(request))
+                .post(jsonBody(AgentRegisterRequest.serializer(), request))
                 .build(),
-            responseClass = AgentRegisterResponse::class.java,
+            deserializer = AgentRegisterResponse.serializer(),
             failureLabel = "bind",
         )
     }
@@ -33,7 +34,7 @@ internal class RemoteApiClient(
             request = Request.Builder()
                 .url("$baseUrl/api/v1/agent/heartbeat")
                 .bearer(deviceToken)
-                .post(jsonBody(request))
+                .post(jsonBody(HeartbeatRequest.serializer(), request))
                 .build(),
             failureLabel = "heartbeat",
         )
@@ -46,7 +47,7 @@ internal class RemoteApiClient(
                 .bearer(deviceToken)
                 .get()
                 .build(),
-            responseClass = ConfigSnapshotResponse::class.java,
+            deserializer = ConfigSnapshotResponse.serializer(),
             failureLabel = "pull",
         )
     }
@@ -59,7 +60,7 @@ internal class RemoteApiClient(
         val httpRequest = Request.Builder()
             .url("$baseUrl/api/v1/config/snapshot")
             .bearer(deviceToken)
-            .put(jsonBody(request))
+            .put(jsonBody(ConfigSnapshotRequest.serializer(), request))
             .build()
 
         client.newCall(httpRequest).execute().use { response ->
@@ -83,24 +84,25 @@ internal class RemoteApiClient(
             request = Request.Builder()
                 .url("$baseUrl/api/v1/agent/records:batch")
                 .bearer(deviceToken)
-                .post(jsonBody(request))
+                .post(jsonBody(RelayRecordsBatchRequest.serializer(), request))
                 .build(),
             failureLabel = "records_upload",
         )
     }
 
-    private fun jsonBody(payload: Any) = json.toJson(payload).toRequestBody(jsonMediaType)
+    private fun <T> jsonBody(serializer: SerializationStrategy<T>, payload: T) =
+        RelayJson.encode(serializer, payload).toRequestBody(jsonMediaType)
 
     private fun <T> executeJson(
         request: Request,
-        responseClass: Class<T>,
+        deserializer: DeserializationStrategy<T>,
         failureLabel: String,
     ): T {
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
                 throw IllegalStateException(errorMessage(response.body.string(), failureLabel, response.code))
             }
-            return json.fromJson(response.body.charStream(), responseClass)
+            return RelayJson.decode(deserializer, response.body.string())
         }
     }
 
@@ -113,7 +115,7 @@ internal class RemoteApiClient(
     }
 
     private fun parseConfigSnapshot(responseText: String): ConfigSnapshotResponse {
-        return json.fromJson(responseText, ConfigSnapshotResponse::class.java)
+        return RelayJson.decode(ConfigSnapshotResponse.serializer(), responseText)
     }
 
     private fun errorMessage(responseText: String, failureLabel: String, responseCode: Int): String {

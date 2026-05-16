@@ -1,13 +1,13 @@
 package io.github.magisk317.relay.data.remote
 
-import com.google.gson.JsonObject
-import com.google.gson.JsonParser
-import com.google.gson.annotations.SerializedName
+import io.github.magisk317.relay.contract.json.RelayJson
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.io.File
-import java.lang.reflect.Modifier
 
 class RemoteApiDtosContractTest {
 
@@ -15,28 +15,28 @@ class RemoteApiDtosContractTest {
     fun androidAgentWireDtos_matchOpenApiSchemaFields() {
         val schemas = loadOpenApiSchemas()
         val cases = listOf(
-            "AgentRegisterRequest" to AgentRegisterRequest::class.java,
-            "AgentRegisterResponse" to AgentRegisterResponse::class.java,
-            "HeartbeatRequest" to HeartbeatRequest::class.java,
-            "ConfigSnapshotRequest" to ConfigSnapshotRequest::class.java,
-            "ConfigSnapshotResponse" to ConfigSnapshotResponse::class.java,
-            "RelayRecordWire" to RelayRecordWire::class.java,
-            "RelayRecordsBatchRequest" to RelayRecordsBatchRequest::class.java,
+            "AgentRegisterRequest" to AgentRegisterRequest.serializer().descriptor,
+            "AgentRegisterResponse" to AgentRegisterResponse.serializer().descriptor,
+            "HeartbeatRequest" to HeartbeatRequest.serializer().descriptor,
+            "ConfigSnapshotRequest" to ConfigSnapshotRequest.serializer().descriptor,
+            "ConfigSnapshotResponse" to ConfigSnapshotResponse.serializer().descriptor,
+            "RelayRecordWire" to RelayRecordWire.serializer().descriptor,
+            "RelayRecordsBatchRequest" to RelayRecordsBatchRequest.serializer().descriptor,
         )
 
-        cases.forEach { (schemaName, dtoClass) ->
+        cases.forEach { (schemaName, descriptor) ->
             val schemaFields = schemaFields(schemas, schemaName)
-            val dtoFields = jsonFieldNames(dtoClass)
+            val dtoFields = jsonFieldNames(descriptor)
             assertEquals(schemaFields, dtoFields, "$schemaName fields drifted")
         }
     }
 
     private fun loadOpenApiSchemas(): JsonObject {
         val file = findOpenApiFile()
-        val root = JsonParser.parseReader(file.reader()).asJsonObject
+        val root = RelayJson.parseElement(file.readText()).jsonObject
         return root
-            .getAsJsonObject("components")
-            .getAsJsonObject("schemas")
+            .getValue("components").jsonObject
+            .getValue("schemas").jsonObject
     }
 
     private fun findOpenApiFile(): File {
@@ -52,20 +52,16 @@ class RemoteApiDtosContractTest {
     }
 
     private fun schemaFields(schemas: JsonObject, schemaName: String): List<String> {
-        assertTrue(schemas.has(schemaName), "schema $schemaName should exist")
+        assertTrue(schemas.containsKey(schemaName), "schema $schemaName should exist")
         return schemas
-            .getAsJsonObject(schemaName)
-            .getAsJsonObject("properties")
-            .keySet()
+            .getValue(schemaName).jsonObject
+            .getValue("properties").jsonObject
+            .keys
             .sorted()
     }
 
-    private fun jsonFieldNames(clazz: Class<*>): List<String> {
-        return clazz.declaredFields
-            .filterNot { it.isSynthetic || Modifier.isStatic(it.modifiers) }
-            .map { field ->
-                field.getAnnotation(SerializedName::class.java)?.value ?: field.name
-            }
+    private fun jsonFieldNames(descriptor: SerialDescriptor): List<String> {
+        return List(descriptor.elementsCount) { index -> descriptor.getElementName(index) }
             .sorted()
     }
 }

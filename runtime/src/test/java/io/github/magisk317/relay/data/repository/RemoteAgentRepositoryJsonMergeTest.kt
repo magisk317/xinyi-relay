@@ -1,6 +1,9 @@
 package io.github.magisk317.relay.data.repository
 
-import com.google.gson.JsonParser
+import io.github.magisk317.relay.contract.json.RelayJson
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -9,7 +12,7 @@ class RemoteAgentRepositoryJsonMergeTest {
 
     @Test
     fun mergeRemoteConfigJson_keepsBaseWhenTopLevelSectionMissing() {
-        val base = JsonParser.parseString(
+        val base = RelayJson.parseElement(
             """
             {
               "general": {
@@ -21,8 +24,8 @@ class RemoteAgentRepositoryJsonMergeTest {
               }
             }
             """.trimIndent(),
-        ).asJsonObject
-        val incoming = JsonParser.parseString(
+        ).jsonObject
+        val incoming = RelayJson.parseElement(
             """
             {
               "verification": {
@@ -30,18 +33,21 @@ class RemoteAgentRepositoryJsonMergeTest {
               }
             }
             """.trimIndent(),
-        ).asJsonObject
+        ).jsonObject
 
         val merged = mergeRemoteConfigJson(base, incoming)
 
-        assertTrue(merged.getAsJsonObject("general").get("moduleEnabled").asBoolean)
-        assertTrue(merged.getAsJsonObject("general").get("accordionMode").asBoolean)
-        assertEquals(false, merged.getAsJsonObject("verification").get("verificationFeaturesEnabled").asBoolean)
+        assertTrue(merged.getValue("general").jsonObject.getValue("moduleEnabled").jsonPrimitive.boolean)
+        assertTrue(merged.getValue("general").jsonObject.getValue("accordionMode").jsonPrimitive.boolean)
+        assertEquals(
+            false,
+            merged.getValue("verification").jsonObject.getValue("verificationFeaturesEnabled").jsonPrimitive.boolean,
+        )
     }
 
     @Test
     fun mergeRemoteConfigJson_mergesNestedObjectsWithoutDroppingSiblingFields() {
-        val base = JsonParser.parseString(
+        val base = RelayJson.parseElement(
             """
             {
               "general": {
@@ -50,8 +56,8 @@ class RemoteAgentRepositoryJsonMergeTest {
               }
             }
             """.trimIndent(),
-        ).asJsonObject
-        val incoming = JsonParser.parseString(
+        ).jsonObject
+        val incoming = RelayJson.parseElement(
             """
             {
               "general": {
@@ -59,12 +65,12 @@ class RemoteAgentRepositoryJsonMergeTest {
               }
             }
             """.trimIndent(),
-        ).asJsonObject
+        ).jsonObject
 
         val merged = mergeRemoteConfigJson(base, incoming)
-        val general = merged.getAsJsonObject("general")
+        val general = merged.getValue("general").jsonObject
 
-        assertEquals(true, general.get("moduleEnabled").asBoolean)
-        assertEquals(false, general.get("accordionMode").asBoolean)
+        assertEquals(true, general.getValue("moduleEnabled").jsonPrimitive.boolean)
+        assertEquals(false, general.getValue("accordionMode").jsonPrimitive.boolean)
     }
 }

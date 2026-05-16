@@ -1,7 +1,5 @@
 package io.github.magisk317.relay.data.remote
 
-import com.google.gson.JsonObject
-import com.google.gson.annotations.SerializedName
 import io.github.magisk317.relay.android.data.db.entity.AppInfo
 import io.github.magisk317.relay.android.data.db.entity.NotifyRouteRule
 import io.github.magisk317.relay.android.data.db.entity.SmsCodeRule
@@ -21,6 +19,9 @@ import io.github.magisk317.relay.contract.settings.VerificationSettingsSnapshot
 import io.github.magisk317.relay.engine.model.ForwardFilterRule
 import io.github.magisk317.relay.engine.model.Rule
 import io.github.magisk317.relay.engine.model.Sender
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 internal data class RemoteConfigPayload(
     val general: GeneralSettingsSnapshot,
@@ -46,6 +47,7 @@ internal data class RemoteConfigPayload(
     val forwardFilters: List<ForwardFilterRule>,
 )
 
+@Serializable
 internal data class AgentRegisterRequest(
     val bindCode: String,
     val deviceName: String,
@@ -54,29 +56,34 @@ internal data class AgentRegisterRequest(
     val appVersion: String,
 )
 
+@Serializable
 internal data class AgentRegisterResponse(
     val userId: Long = 0L,
     val deviceId: Long = 0L,
     val deviceToken: String = "",
 )
 
+@Serializable
 internal data class HeartbeatRequest(
     val appVersion: String,
     val localAddresses: List<String>,
     val capabilities: Map<String, Boolean>,
 )
 
+@Serializable
 internal data class ConfigSnapshotRequest(
-    @SerializedName("base_revision")
+    @SerialName("base_revision")
     val baseRevision: Long,
     val snapshot: JsonObject,
 )
 
+@Serializable
 internal data class ConfigSnapshotResponse(
     val revision: Long = 0L,
     val snapshot: JsonObject? = null,
 )
 
+@Serializable
 internal data class RelayRecordWire(
     val eventId: String,
     val recordType: String,
@@ -90,6 +97,7 @@ internal data class RelayRecordWire(
     val metadata: JsonObject,
 )
 
+@Serializable
 internal data class RelayRecordsBatchRequest(
     val records: List<RelayRecordWire>,
 )
