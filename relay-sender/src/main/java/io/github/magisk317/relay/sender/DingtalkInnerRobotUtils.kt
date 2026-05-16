@@ -2,6 +2,7 @@ package io.github.magisk317.relay.sender
 
 import android.text.TextUtils
 import io.github.magisk317.relay.engine.model.MsgInfo
+import io.github.magisk317.relay.engine.network.RelayHttpClients
 import io.github.magisk317.relay.sender.result.DingtalkInnerRobotResult
 import io.github.magisk317.relay.sender.config.DingtalkInnerRobotSetting
 import com.google.gson.Gson
@@ -119,7 +120,7 @@ object DingtalkInnerRobotUtils {
     }
 
     private fun buildClient(setting: DingtalkInnerRobotSetting): OkHttpClient {
-        val builder = OkHttpClient.Builder()
+        val builder = RelayHttpClients.newBuilder()
         if ((setting.proxyType == Proxy.Type.HTTP || setting.proxyType == Proxy.Type.SOCKS)
             && !TextUtils.isEmpty(setting.proxyHost)
             && !TextUtils.isEmpty(setting.proxyPort)

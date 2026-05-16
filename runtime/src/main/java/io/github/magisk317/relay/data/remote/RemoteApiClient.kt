@@ -1,13 +1,14 @@
 package io.github.magisk317.relay.data.remote
 
 import io.github.magisk317.relay.contract.json.LegacyGsonJson
+import io.github.magisk317.relay.engine.network.RelayHttpClients
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
 internal class RemoteApiClient(
-    private val client: OkHttpClient = OkHttpClient(),
+    private val client: OkHttpClient = RelayHttpClients.default,
     private val json: LegacyGsonJson = LegacyGsonJson,
 ) {
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()

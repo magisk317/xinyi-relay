@@ -4,6 +4,7 @@ import io.github.magisk317.relay.sender.BuildConfig
 import android.text.TextUtils
 import android.util.Base64
 import io.github.magisk317.relay.engine.model.MsgInfo
+import io.github.magisk317.relay.engine.network.RelayHttpClients
 import io.github.magisk317.relay.sender.config.WebhookSetting
 import io.github.magisk317.relay.sender.SenderSettingSanitizer
 
@@ -11,7 +12,6 @@ import okhttp3.Credentials
 import okhttp3.FormBody
 import okhttp3.Headers
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
@@ -29,7 +29,7 @@ object WebhookUtils {
     private const val TAG = "WebhookUtils"
     private const val MAX_ATTEMPTS = 2
     private const val RETRY_DELAY_MS = 400L
-    private val client = OkHttpClient.Builder().build()
+    private val client = RelayHttpClients.default
 
     private val receiveTimeTag = Regex("\\[receive_time(:(.*?))?]")
 

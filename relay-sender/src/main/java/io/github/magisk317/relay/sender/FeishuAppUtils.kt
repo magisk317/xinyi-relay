@@ -1,11 +1,11 @@
 package io.github.magisk317.relay.sender
 
 import io.github.magisk317.relay.engine.model.MsgInfo
+import io.github.magisk317.relay.engine.network.RelayHttpClients
 import io.github.magisk317.relay.sender.result.FeishuAppResult
 import io.github.magisk317.relay.sender.config.FeishuAppSetting
 import com.google.gson.Gson
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.ConcurrentHashMap
@@ -36,7 +36,7 @@ object FeishuAppUtils {
             .build()
 
         return runCatching {
-            OkHttpClient().newCall(request).execute().use { response ->
+            RelayHttpClients.default.newCall(request).execute().use { response ->
                 val body = response.body.string()
                 if (!response.isSuccessful) {
                     SLog.e(TAG, "Fetch token failed: ${response.code} ${response.message} $body")
@@ -92,7 +92,7 @@ object FeishuAppUtils {
             .build()
 
         runCatching {
-            OkHttpClient().newCall(request).execute().use { response ->
+            RelayHttpClients.default.newCall(request).execute().use { response ->
                 val body = response.body.string()
                 if (!response.isSuccessful) {
                     SLog.e(TAG, "Feishu app send failed: ${response.code} ${response.message} $body")

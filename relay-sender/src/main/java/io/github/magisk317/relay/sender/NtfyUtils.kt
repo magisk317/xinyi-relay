@@ -1,20 +1,20 @@
 package io.github.magisk317.relay.sender
 
 import io.github.magisk317.relay.engine.model.MsgInfo
+import io.github.magisk317.relay.engine.network.RelayHttpClients
 import io.github.magisk317.relay.sender.config.NtfySetting
 import io.github.magisk317.relay.sender.SenderSettingSanitizer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
 object NtfyUtils {
     private const val TAG = "NtfyUtils"
     private const val DEFAULT_PRIORITY = "3"
-    private val client = OkHttpClient()
+    private val client = RelayHttpClients.default
     private val textPlain = "text/plain; charset=utf-8".toMediaType()
 
     suspend fun sendMsg(setting: NtfySetting, msgInfo: MsgInfo) = withContext(Dispatchers.IO) {

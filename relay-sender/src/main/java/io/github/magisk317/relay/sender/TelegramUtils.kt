@@ -1,13 +1,13 @@
 package io.github.magisk317.relay.sender
 
 import io.github.magisk317.relay.engine.model.MsgInfo
+import io.github.magisk317.relay.engine.network.RelayHttpClients
 import io.github.magisk317.relay.sender.config.TelegramSetting
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Credentials
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.net.InetSocketAddress
@@ -38,7 +38,7 @@ object TelegramUtils {
             msgMap["message_thread_id"] = setting.messageThreadId
         }
 
-        val clientBuilder = OkHttpClient.Builder()
+        val clientBuilder = RelayHttpClients.newBuilder()
         if (setting.proxyType != Proxy.Type.DIRECT && setting.proxyHost.isNotEmpty() && setting.proxyPort.isNotEmpty()) {
             val port = setting.proxyPort.toIntOrNull() ?: 0
             val proxy = Proxy(setting.proxyType, InetSocketAddress(setting.proxyHost, port))

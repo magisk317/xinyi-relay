@@ -1,16 +1,16 @@
 package io.github.magisk317.relay.sender
 
 import io.github.magisk317.relay.engine.model.MsgInfo
+import io.github.magisk317.relay.engine.network.RelayHttpClients
 import io.github.magisk317.relay.sender.result.ServerchanResult
 import io.github.magisk317.relay.sender.config.ServerchanSetting
 import com.google.gson.Gson
 import okhttp3.FormBody
-import okhttp3.OkHttpClient
 import okhttp3.Request
 
 object ServerchanUtils {
     private const val TAG = "ServerchanUtils"
-    private val client = OkHttpClient()
+    private val client = RelayHttpClients.default
 
     suspend fun sendMsg(setting: ServerchanSetting, msgInfo: MsgInfo) {
         val title = if (setting.titleTemplate.isBlank()) "信息驿站: ${msgInfo.from}" else setting.titleTemplate

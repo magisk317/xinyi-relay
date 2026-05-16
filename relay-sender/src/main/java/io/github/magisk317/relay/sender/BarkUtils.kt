@@ -3,19 +3,19 @@ package io.github.magisk317.relay.sender
 import android.text.TextUtils
 import android.util.Base64
 import io.github.magisk317.relay.engine.model.MsgInfo
+import io.github.magisk317.relay.engine.network.RelayHttpClients
 import io.github.magisk317.relay.sender.result.BarkResult
 import io.github.magisk317.relay.sender.config.BarkSetting
 import com.google.gson.Gson
 import okhttp3.Credentials
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.net.URL
 
 object BarkUtils {
     private const val TAG = "BarkUtils"
-    private val client = OkHttpClient()
+    private val client = RelayHttpClients.default
 
     suspend fun sendMsg(setting: BarkSetting, msgInfo: MsgInfo) {
         val title = if (setting.title.isBlank()) "信息驿站: ${msgInfo.from}" else setting.title

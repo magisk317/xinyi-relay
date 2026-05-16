@@ -1,18 +1,18 @@
 package io.github.magisk317.relay.sender
 
 import io.github.magisk317.relay.engine.model.MsgInfo
+import io.github.magisk317.relay.engine.network.RelayHttpClients
 import io.github.magisk317.relay.sender.result.GotifyResult
 import io.github.magisk317.relay.sender.config.GotifySetting
 import com.google.gson.Gson
 import okhttp3.Credentials
 import okhttp3.FormBody
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.net.URL
 
 object GotifyUtils {
     private const val TAG = "GotifyUtils"
-    private val client = OkHttpClient()
+    private val client = RelayHttpClients.default
 
     suspend fun sendMsg(setting: GotifySetting, msgInfo: MsgInfo) {
         val title = if (setting.title.isBlank()) "信息驿站: ${msgInfo.from}" else setting.title

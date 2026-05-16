@@ -1,20 +1,15 @@
 package io.github.magisk317.relay.engine.sender.utils
 
+import io.github.magisk317.relay.engine.network.RelayHttpClients
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.util.concurrent.TimeUnit
 
 object HttpUtils {
 
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
-        .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
-        .writeTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
-        .build()
+    private val client = RelayHttpClients.default
 
     val JSON = "application/json; charset=utf-8".toMediaType()
 

@@ -1,17 +1,17 @@
 package io.github.magisk317.relay.sender
 
+import io.github.magisk317.relay.engine.network.RelayHttpClients
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.sender.result.WeworkRobotResult
 import io.github.magisk317.relay.sender.config.WeworkRobotSetting
 import com.google.gson.Gson
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
 object WeworkRobotUtils {
     private const val TAG = "WeworkRobotUtils"
-    private val client = OkHttpClient()
+    private val client = RelayHttpClients.default
 
     suspend fun sendMsg(setting: WeworkRobotSetting, msgInfo: MsgInfo) {
         val content = msgInfo.content
