@@ -2,12 +2,10 @@ package io.github.magisk317.relay.xpbridge
 
 import android.content.Intent
 import android.os.Parcelable
-import androidx.compose.runtime.Immutable
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg as RuntimeSmsMsg
 import io.github.magisk317.smscode.verification.SmsMessage
 import kotlinx.parcelize.Parcelize
 
-@Immutable
 @Parcelize
 data class XpSmsMessage(
     val id: Long = 0,

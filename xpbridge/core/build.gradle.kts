@@ -35,6 +35,4 @@ dependencies {
     implementation(project(":smscode-core:smscode-xposed-core"))
 
     implementation(libs.androidx.core.ktx)
-    implementation(platform(libs.androidx.compose.bom))
-    implementation("androidx.compose.runtime:runtime")
 }

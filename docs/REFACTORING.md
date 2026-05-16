@@ -50,6 +50,7 @@
 - 不承载应用 UI 页面或应用生命周期装配
 - 不直接依赖 `relay/engine` 实现模块或 `smscode-core/smscode-domain`
 - 可依赖 `relay/engine/api` 读取跨层共享模型
+- 不依赖 Compose runtime；桥接 DTO 不添加 UI 框架注解
 
 ### `relay/engine/api`
 - 运行时/Android/UI 共享的 engine 契约层
