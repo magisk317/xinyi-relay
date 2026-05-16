@@ -12,20 +12,22 @@ import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.settings.*
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.entity.AppInfo
-import io.github.magisk317.relay.android.data.db.entity.NotifyRouteRule
-import io.github.magisk317.relay.android.data.db.entity.SmsCodeRule
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toEntity
 import io.github.magisk317.relay.android.data.secret.InternalSecretStore
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
-import io.github.magisk317.relay.engine.model.ForwardFilterRule
-import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.contract.model.RemoteConfigSnapshot
 import io.github.magisk317.relay.contract.repository.RemoteSyncRepository
-import io.github.magisk317.relay.engine.model.Rule
-import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.android.common.utils.DeviceIdentityUtils
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
+import io.github.magisk317.relay.data.remote.AgentRegisterRequest
+import io.github.magisk317.relay.data.remote.AgentRegisterResponse
+import io.github.magisk317.relay.data.remote.ConfigSnapshotRequest
+import io.github.magisk317.relay.data.remote.ConfigSnapshotResponse
+import io.github.magisk317.relay.data.remote.HeartbeatRequest
+import io.github.magisk317.relay.data.remote.RelayRecordWire
+import io.github.magisk317.relay.data.remote.RelayRecordsBatchRequest
+import io.github.magisk317.relay.data.remote.RemoteConfigPayload
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -40,54 +42,6 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
-
-private data class RemoteConfigPayload(
-    val general: GeneralSettingsSnapshot,
-    val verification: VerificationSettingsSnapshot,
-    val relay: RelaySettingsSnapshot,
-    val diagnostics: DiagnosticsSettingsSnapshot,
-    val advanced: AdvancedSettingsSnapshot,
-    val specialAlerts: SpecialAlertSettingsSnapshot,
-    val messageTypeGates: MessageTypeGateSnapshot,
-    val forwardTypeGates: ForwardTypeGateSnapshot,
-    val records: RecordSettingsSnapshot,
-    val smsBlacklist: SmsBlacklistSettingsSnapshot,
-    val simRemarks: SimRemarkSettingsSnapshot,
-    val forwardCommon: ForwardCommonConfig,
-    val appNotifyTemplate: String,
-    val callNotifyTemplate: String,
-    val overview: OverviewSettingsSnapshot,
-    val senders: List<Sender>,
-    val rules: List<Rule>,
-    val smsCodeRules: List<SmsCodeRule>,
-    val appInfos: List<AppInfo>,
-    val notifyRoutes: List<NotifyRouteRule>,
-    val forwardFilters: List<ForwardFilterRule>,
-)
-
-private data class AgentRegisterResponse(
-    val userId: Long = 0L,
-    val deviceId: Long = 0L,
-    val deviceToken: String = "",
-)
-
-private data class ConfigSnapshotResponse(
-    val revision: Long = 0L,
-    val snapshot: JsonObject? = null,
-)
-
-private data class RelayRecordWire(
-    val eventId: String,
-    val recordType: String,
-    val sender: String,
-    val body: String,
-    val smsCode: String,
-    val packageName: String,
-    val msgType: Int,
-    val callType: Int,
-    val occurredAt: String,
-    val metadata: JsonObject,
-)
 
 class RemoteAgentRepository(
     private val appContext: Context,
@@ -145,12 +99,12 @@ class RemoteAgentRepository(
         syncMutex.withLock {
         val baseUrl = normalizedBackendBaseUrl()
         val requestBody = gson.toJson(
-            mapOf(
-                "bindCode" to bindCode.trim(),
-                "deviceName" to DeviceIdentityUtils.resolveDefaultDeviceName(),
-                "deviceModel" to Build.MODEL.orEmpty(),
-                "platform" to "android",
-                "appVersion" to resolveAppVersion(),
+            AgentRegisterRequest(
+                bindCode = bindCode.trim(),
+                deviceName = DeviceIdentityUtils.resolveDefaultDeviceName(),
+                deviceModel = Build.MODEL.orEmpty(),
+                platform = "android",
+                appVersion = resolveAppVersion(),
             ),
         ).toRequestBody(jsonMediaType)
         val request = Request.Builder()
@@ -196,10 +150,10 @@ class RemoteAgentRepository(
         require(snapshot.bound) { "device not bound" }
         val token = InternalSecretStore.getString(appContext, PrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, "")
         val requestBody = gson.toJson(
-            mapOf(
-                "appVersion" to resolveAppVersion(),
-                "localAddresses" to emptyList<String>(),
-                "capabilities" to mapOf(
+            HeartbeatRequest(
+                appVersion = resolveAppVersion(),
+                localAddresses = emptyList(),
+                capabilities = mapOf(
                     "androidAgent" to true,
                     "embeddedWebUi" to false,
                     "remoteConfig" to true,
@@ -263,9 +217,9 @@ class RemoteAgentRepository(
             ),
         )
         val body = gson.toJson(
-            mapOf(
-                "base_revision" to snapshot.lastAppliedConfigRevision,
-                "snapshot" to buildConfigSnapshotPayload(),
+            ConfigSnapshotRequest(
+                baseRevision = snapshot.lastAppliedConfigRevision,
+                snapshot = buildConfigSnapshotPayload(),
             ),
         ).toRequestBody(jsonMediaType)
         val request = Request.Builder()
@@ -346,7 +300,7 @@ class RemoteAgentRepository(
                 metadata = metadata,
             )
         }
-        val body = gson.toJson(mapOf("records" to records)).toRequestBody(jsonMediaType)
+        val body = gson.toJson(RelayRecordsBatchRequest(records)).toRequestBody(jsonMediaType)
         val request = Request.Builder()
             .url("${normalizedBackendBaseUrl()}/api/v1/agent/records:batch")
             .header("Authorization", "Bearer $token")
