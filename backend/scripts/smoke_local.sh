@@ -36,6 +36,8 @@ trap cleanup EXIT
 
 cd "$BACKEND_DIR"
 cp -f .env.example .env
+# Caddy 在容器内需要监听所有接口，否则 Docker 端口映射无法到达
+sed -i 's/^RELAY_HTTP_HOST=.*/RELAY_HTTP_HOST=0.0.0.0/' .env
 set -a
 # shellcheck disable=SC1091
 . ./.env
@@ -77,8 +79,14 @@ for attempt in $(seq 1 30); do
 
   if [[ "$attempt" -eq 30 ]]; then
     echo "Backend health check failed after ${attempt} attempts" >&2
+    echo "--- curl error ---" >&2
     cat /tmp/relay_health.err >&2 || true
-    docker compose logs api caddy postgres >&2 || true
+    echo "--- api logs ---" >&2
+    docker compose logs --tail=50 api >&2 || true
+    echo "--- caddy logs ---" >&2
+    docker compose logs --tail=30 caddy >&2 || true
+    echo "--- postgres logs ---" >&2
+    docker compose logs --tail=20 postgres >&2 || true
     exit 1
   fi
 

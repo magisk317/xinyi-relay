@@ -56,6 +56,7 @@ func main() {
 		log.Printf("Logging to file: %s", cfg.LogFile)
 	}
 
+	log.Printf("relay backend connecting to database")
 	server, err := relayhttp.NewServer(context.Background(), cfg)
 	if err != nil {
 		log.Fatalf("relay backend init failed: %v", err)
@@ -69,6 +70,17 @@ func main() {
 	go func() {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("relay backend listen failed: %v", err)
+		}
+	}()
+
+	go func() {
+		time.Sleep(5 * time.Second)
+		resp, err := http.Get("http://localhost" + cfg.HTTPAddr + "/healthz")
+		if err != nil {
+			log.Printf("[liveness] self-check failed: %v", err)
+		} else {
+			resp.Body.Close()
+			log.Printf("[liveness] self-check ok, status=%d", resp.StatusCode)
 		}
 	}()
 
