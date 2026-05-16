@@ -21,12 +21,12 @@ import io.github.magisk317.relay.contract.repository.RemoteSyncRepository
 import io.github.magisk317.relay.android.common.utils.DeviceIdentityUtils
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
 import io.github.magisk317.relay.data.remote.AgentRegisterRequest
-import io.github.magisk317.relay.data.remote.AgentRegisterResponse
 import io.github.magisk317.relay.data.remote.ConfigSnapshotRequest
-import io.github.magisk317.relay.data.remote.ConfigSnapshotResponse
+import io.github.magisk317.relay.data.remote.ConfigSnapshotPushResult
 import io.github.magisk317.relay.data.remote.HeartbeatRequest
 import io.github.magisk317.relay.data.remote.RelayRecordWire
 import io.github.magisk317.relay.data.remote.RelayRecordsBatchRequest
+import io.github.magisk317.relay.data.remote.RemoteApiClient
 import io.github.magisk317.relay.data.remote.RemoteConfigPayload
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,10 +35,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -48,8 +44,7 @@ class RemoteAgentRepository(
     private val preferenceDataSource: PreferenceDataSource,
 ) : RemoteSyncRepository {
     private val gson = Gson()
-    private val client = OkHttpClient()
-    private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
+    private val remoteApiClient = RemoteApiClient(gson = gson)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val syncMutex = Mutex()
     private val backgroundSyncInFlight = AtomicBoolean(false)
@@ -98,41 +93,30 @@ class RemoteAgentRepository(
     override suspend fun bindDevice(bindCode: String): RemoteAgentSnapshot = withContext(Dispatchers.IO) {
         syncMutex.withLock {
         val baseUrl = normalizedBackendBaseUrl()
-        val requestBody = gson.toJson(
-            AgentRegisterRequest(
-                bindCode = bindCode.trim(),
-                deviceName = DeviceIdentityUtils.resolveDefaultDeviceName(),
-                deviceModel = Build.MODEL.orEmpty(),
-                platform = "android",
-                appVersion = resolveAppVersion(),
-            ),
-        ).toRequestBody(jsonMediaType)
-        val request = Request.Builder()
-            .url("$baseUrl/api/v1/agent/register")
-            .post(requestBody)
-            .build()
+        val request = AgentRegisterRequest(
+            bindCode = bindCode.trim(),
+            deviceName = DeviceIdentityUtils.resolveDefaultDeviceName(),
+            deviceModel = Build.MODEL.orEmpty(),
+            platform = "android",
+            appVersion = resolveAppVersion(),
+        )
         runCatching {
             setSyncState("binding")
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    throw IllegalStateException(response.body.string().ifBlank { "bind failed: ${response.code}" })
-                }
-                val payload = gson.fromJson(response.body.charStream(), AgentRegisterResponse::class.java)
-                preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_USER_ID, payload.userId.toString())
-                preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_DEVICE_ID, payload.deviceId.toString())
-                val pendingMutations = preferenceDataSource.getString(
-                    PrefConst.KEY_REMOTE_AGENT_PENDING_MUTATIONS,
-                    "0",
-                ).toIntOrNull() ?: 0
-                preferenceDataSource.setString(
-                    PrefConst.KEY_REMOTE_AGENT_PENDING_MUTATIONS,
-                    pendingMutations.coerceAtLeast(1).toString(),
-                )
-                InternalSecretStore.putString(appContext, PrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, payload.deviceToken)
-                preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, "")
-                setSyncState("bound")
-                publishHookPrefs()
-            }
+            val payload = remoteApiClient.registerDevice(baseUrl, request)
+            preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_USER_ID, payload.userId.toString())
+            preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_DEVICE_ID, payload.deviceId.toString())
+            val pendingMutations = preferenceDataSource.getString(
+                PrefConst.KEY_REMOTE_AGENT_PENDING_MUTATIONS,
+                "0",
+            ).toIntOrNull() ?: 0
+            preferenceDataSource.setString(
+                PrefConst.KEY_REMOTE_AGENT_PENDING_MUTATIONS,
+                pendingMutations.coerceAtLeast(1).toString(),
+            )
+            InternalSecretStore.putString(appContext, PrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, payload.deviceToken)
+            preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, "")
+            setSyncState("bound")
+            publishHookPrefs()
         }.onFailure {
             preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, it.message ?: it.javaClass.simpleName)
             setSyncState("error")
@@ -149,24 +133,20 @@ class RemoteAgentRepository(
         val snapshot = getSnapshot()
         require(snapshot.bound) { "device not bound" }
         val token = InternalSecretStore.getString(appContext, PrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, "")
-        val requestBody = gson.toJson(
-            HeartbeatRequest(
-                appVersion = resolveAppVersion(),
-                localAddresses = emptyList(),
-                capabilities = mapOf(
-                    "androidAgent" to true,
-                    "embeddedWebUi" to false,
-                    "remoteConfig" to true,
-                    "recordUpload" to true,
-                ),
+        val baseUrl = normalizedBackendBaseUrl()
+        val request = HeartbeatRequest(
+            appVersion = resolveAppVersion(),
+            localAddresses = emptyList(),
+            capabilities = mapOf(
+                "androidAgent" to true,
+                "embeddedWebUi" to false,
+                "remoteConfig" to true,
+                "recordUpload" to true,
             ),
-        ).toRequestBody(jsonMediaType)
-        val request = Request.Builder()
-            .url("${normalizedBackendBaseUrl()}/api/v1/agent/heartbeat")
-            .header("Authorization", "Bearer $token")
-            .post(requestBody)
-            .build()
-        executeSimpleAgentWrite(request, PrefConst.KEY_REMOTE_AGENT_LAST_HEARTBEAT_AT, "heartbeat")
+        )
+        executeSimpleAgentWrite(PrefConst.KEY_REMOTE_AGENT_LAST_HEARTBEAT_AT, "heartbeat") {
+            remoteApiClient.sendHeartbeat(baseUrl, token, request)
+        }
         getSnapshot()
         }
     }
@@ -176,29 +156,20 @@ class RemoteAgentRepository(
         val snapshot = getSnapshot()
         require(snapshot.bound) { "device not bound" }
         val token = InternalSecretStore.getString(appContext, PrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, "")
-        val request = Request.Builder()
-            .url("${normalizedBackendBaseUrl()}/api/v1/config/snapshot")
-            .header("Authorization", "Bearer $token")
-            .get()
-            .build()
+        val baseUrl = normalizedBackendBaseUrl()
         setSyncState("pulling")
         return@withContext runCatching {
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    throw IllegalStateException(response.body.string().ifBlank { "pull failed: ${response.code}" })
-                }
-                val payload = gson.fromJson(response.body.charStream(), ConfigSnapshotResponse::class.java)
-                payload.snapshot?.let { applyRemoteConfigPayload(it) }
-                preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_REVISION, payload.revision.toString())
-                preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_PULL_AT, nowEpochMillis().toString())
-                preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, "")
-                setSyncState("idle")
-                publishHookPrefs()
-                RemoteConfigSnapshot(
-                    revision = payload.revision,
-                    content = payload.snapshot ?: JsonObject(),
-                )
-            }
+            val payload = remoteApiClient.pullConfigSnapshot(baseUrl, token)
+            payload.snapshot?.let { applyRemoteConfigPayload(it) }
+            preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_REVISION, payload.revision.toString())
+            preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_PULL_AT, nowEpochMillis().toString())
+            preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, "")
+            setSyncState("idle")
+            publishHookPrefs()
+            RemoteConfigSnapshot(
+                revision = payload.revision,
+                content = payload.snapshot ?: JsonObject(),
+            )
         }.onFailure {
             preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, it.message ?: it.javaClass.simpleName)
             setSyncState("error")
@@ -216,23 +187,16 @@ class RemoteAgentRepository(
                 RuntimeGraph.from(appContext).configRepository.getAllAppInfo().map { it.toEntity() },
             ),
         )
-        val body = gson.toJson(
-            ConfigSnapshotRequest(
-                baseRevision = snapshot.lastAppliedConfigRevision,
-                snapshot = buildConfigSnapshotPayload(),
-            ),
-        ).toRequestBody(jsonMediaType)
-        val request = Request.Builder()
-            .url("${normalizedBackendBaseUrl()}/api/v1/config/snapshot")
-            .header("Authorization", "Bearer $token")
-            .put(body)
-            .build()
+        val request = ConfigSnapshotRequest(
+            baseRevision = snapshot.lastAppliedConfigRevision,
+            snapshot = buildConfigSnapshotPayload(),
+        )
+        val baseUrl = normalizedBackendBaseUrl()
         setSyncState("pushing")
         runCatching {
-            client.newCall(request).execute().use { response ->
-                val responseText = response.body.string()
-                if (response.code == HTTP_CONFLICT) {
-                    val payload = gson.fromJson(responseText, ConfigSnapshotResponse::class.java)
+            when (val result = remoteApiClient.pushConfigSnapshot(baseUrl, token, request)) {
+                is ConfigSnapshotPushResult.Conflict -> {
+                    val payload = result.payload
                     payload.snapshot?.let { applyRemoteConfigPayload(it) }
                     preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_REVISION, payload.revision.toString())
                     preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_PENDING_MUTATIONS, "0")
@@ -242,19 +206,17 @@ class RemoteAgentRepository(
                     )
                     setSyncState("conflict")
                     publishHookPrefs()
-                    return@use
                 }
-                if (!response.isSuccessful) {
-                    throw IllegalStateException(responseText.ifBlank { "push failed: ${response.code}" })
+                is ConfigSnapshotPushResult.Success -> {
+                    val payload = result.payload
+                    preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_REVISION, payload.revision.toString())
+                    preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_PENDING_MUTATIONS, "0")
+                    preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_APP_CATALOG_DIGEST, appCatalogDigest)
+                    preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_PUSH_AT, nowEpochMillis().toString())
+                    preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, "")
+                    setSyncState("idle")
+                    publishHookPrefs()
                 }
-                val payload = gson.fromJson(responseText, ConfigSnapshotResponse::class.java)
-                preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_REVISION, payload.revision.toString())
-                preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_PENDING_MUTATIONS, "0")
-                preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_APP_CATALOG_DIGEST, appCatalogDigest)
-                preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_PUSH_AT, nowEpochMillis().toString())
-                preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, "")
-                setSyncState("idle")
-                publishHookPrefs()
             }
         }.onFailure {
             preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, it.message ?: it.javaClass.simpleName)
@@ -300,13 +262,10 @@ class RemoteAgentRepository(
                 metadata = metadata,
             )
         }
-        val body = gson.toJson(RelayRecordsBatchRequest(records)).toRequestBody(jsonMediaType)
-        val request = Request.Builder()
-            .url("${normalizedBackendBaseUrl()}/api/v1/agent/records:batch")
-            .header("Authorization", "Bearer $token")
-            .post(body)
-            .build()
-        executeSimpleAgentWrite(request, PrefConst.KEY_REMOTE_AGENT_LAST_PUSH_AT, "records_upload")
+        val baseUrl = normalizedBackendBaseUrl()
+        executeSimpleAgentWrite(PrefConst.KEY_REMOTE_AGENT_LAST_PUSH_AT, "records_upload") {
+            remoteApiClient.uploadRelayRecords(baseUrl, token, RelayRecordsBatchRequest(records))
+        }
         getSnapshot()
         }
     }
@@ -350,18 +309,18 @@ class RemoteAgentRepository(
         scheduleBackgroundSync("message:$reason", preferConfigPush = true)
     }
 
-    private suspend fun executeSimpleAgentWrite(request: Request, timestampKey: String, stateLabel: String) {
+    private suspend fun executeSimpleAgentWrite(
+        timestampKey: String,
+        stateLabel: String,
+        block: () -> Unit,
+    ) {
         runCatching {
             setSyncState(stateLabel)
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    throw IllegalStateException(response.body.string().ifBlank { "$stateLabel failed: ${response.code}" })
-                }
-                preferenceDataSource.setString(timestampKey, nowEpochMillis().toString())
-                preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, "")
-                setSyncState("idle")
-                publishHookPrefs()
-            }
+            block()
+            preferenceDataSource.setString(timestampKey, nowEpochMillis().toString())
+            preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, "")
+            setSyncState("idle")
+            publishHookPrefs()
         }.onFailure {
             preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, it.message ?: it.javaClass.simpleName)
             setSyncState("error")
@@ -691,8 +650,6 @@ class RemoteAgentRepository(
         HookPreferenceMirror.publish(appContext)
     }
 }
-
-private const val HTTP_CONFLICT = 409
 
 internal fun mergeRemoteConfigJson(
     base: JsonObject,
