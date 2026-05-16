@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_BUILD="$ROOT_DIR/app/build.gradle.kts"
 CORE_BUILD="$ROOT_DIR/core/build.gradle.kts"
+MOBILE_UI_BUILD="$ROOT_DIR/mobile-ui/build.gradle.kts"
 RUNTIME_BUILD="$ROOT_DIR/runtime/build.gradle.kts"
 
 violations=()
@@ -49,6 +50,11 @@ forbid_pattern "$CORE_BUILD" 'api\(project\(":runtime"\)\)' \
   "core must not expose :runtime transitively"
 require_pattern "$CORE_BUILD" 'implementation\(project\(":smscode-core:smscode-xposed-core"\)\)' \
   "core runtime bridge may depend directly on :smscode-core:smscode-xposed-core during the split"
+
+forbid_pattern "$MOBILE_UI_BUILD" 'project\(":xpbridge-core"\)' \
+  "mobile-ui must not depend on :xpbridge-core directly"
+forbid_pattern "$MOBILE_UI_BUILD" 'project\(":smscode-core:smscode-verification-core"\)' \
+  "mobile-ui must not depend on :smscode-core:smscode-verification-core directly"
 
 require_pattern "$RUNTIME_BUILD" 'implementation\(project\(":smscode-core:smscode-domain"\)\)' \
   "runtime must depend on :smscode-core:smscode-domain"
