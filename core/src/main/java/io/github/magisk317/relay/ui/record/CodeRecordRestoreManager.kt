@@ -2,7 +2,6 @@ package io.github.magisk317.relay.ui.record
 
 import android.annotation.SuppressLint
 import android.content.Context
-import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.smscode.runtime.common.utils.JsonUtils
 import io.github.magisk317.smscode.runtime.common.utils.StorageUtils
 import io.github.magisk317.relay.android.common.utils.XLog
@@ -45,29 +44,42 @@ object CodeRecordRestoreManager {
     }
 
     @JvmStatic
-    fun importToDatabase(context: Context): Boolean = try {
-        val recordFiles = getRecordFiles(context)
+    fun importToDatabase(context: Context): Boolean {
+        return importRecordFiles(
+            recordFiles = getRecordFiles(context),
+            insertRecords = { smsMsgList ->
+                RuntimeGraph.from(context).relayRecordRepository.insertList(smsMsgList)
+            },
+        )
+    }
+
+    internal fun importRecordFiles(
+        recordFiles: Array<File>?,
+        insertRecords: suspend (List<SmsMsg>) -> Unit,
+        logSuccess: (String) -> Unit = XLog::d,
+        logError: (String, Throwable) -> Unit = XLog::e,
+    ): Boolean = try {
+        val files = recordFiles.orEmpty()
         val smsMsgList = mutableListOf<SmsMsg>()
-        recordFiles?.forEach { recordFile ->
-            val smsMsg = loadFromFile(recordFile)
+        val importedFiles = mutableListOf<File>()
+        files.forEach { recordFile ->
+            val smsMsg = loadFromFile(recordFile, logError)
             if (smsMsg != null) {
                 smsMsgList.add(smsMsg)
-                recordFile.delete()
+                importedFiles.add(recordFile)
             }
         }
 
         if (smsMsgList.isNotEmpty()) {
             runBlocking {
-                RuntimeGraph.from(context).relayRecordRepository.insertListAndTrim(
-                    smsMsgList,
-                    PrefConst.MAX_SMS_RECORDS_COUNT_DEFAULT,
-                )
+                insertRecords(smsMsgList)
             }
-            XLog.d("Import code records to database succeed")
+            importedFiles.forEach { it.delete() }
+            logSuccess("Import code records to database succeed")
         }
         true
     } catch (t: Throwable) {
-        XLog.e("Import code records to database failed.", t)
+        logError("Import code records to database failed.", t)
         false
     }
 
@@ -77,13 +89,19 @@ object CodeRecordRestoreManager {
         return filesDir.listFiles { _, name -> name.startsWith(RECORD_FILE_PREFIX) }
     }
 
-    private fun loadFromFile(recordFile: File): SmsMsg? {
+    private fun loadFromFile(
+        recordFile: File,
+        logError: (String, Throwable) -> Unit = XLog::e,
+    ): SmsMsg? {
         var isr: InputStreamReader? = null
         return try {
             isr = InputStreamReader(FileInputStream(recordFile), StandardCharsets.UTF_8)
             JsonUtils.entityFromJson(isr, SmsMsg::class.java, true)
         } catch (e: FileNotFoundException) {
-            XLog.e("", e)
+            logError("Code record file missing: ${recordFile.name}", e)
+            null
+        } catch (e: Exception) {
+            logError("Load code record file failed: ${recordFile.name}", e)
             null
         } finally {
             try {
