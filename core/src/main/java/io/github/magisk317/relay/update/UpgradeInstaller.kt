@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.data.update
+package io.github.magisk317.relay.update
 
 import android.content.Context
 import android.content.Intent

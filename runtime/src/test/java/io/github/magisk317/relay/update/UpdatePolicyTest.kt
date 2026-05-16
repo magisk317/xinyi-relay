@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.data.update
+package io.github.magisk317.relay.update
 
 import io.github.magisk317.smscode.runtime.common.update.UpdatePolicy
 import org.junit.jupiter.api.Assertions.assertEquals

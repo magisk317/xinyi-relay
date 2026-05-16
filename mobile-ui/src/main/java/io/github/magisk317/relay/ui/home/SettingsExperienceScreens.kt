@@ -78,6 +78,7 @@ import io.github.magisk317.relay.android.diagnostics.RuntimeLogFileContent
 import io.github.magisk317.relay.android.diagnostics.RuntimeLogFileInfo
 import io.github.magisk317.relay.android.diagnostics.RuntimeLogFileSummary
 import io.github.magisk317.relay.android.diagnostics.RuntimeLogStore
+import io.github.magisk317.relay.backup.RelayBackupManager
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsUpdate
@@ -89,7 +90,6 @@ import io.github.magisk317.relay.contract.settings.RelaySettingsUpdate
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.VerificationSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.VerificationSettingsUpdate
-import io.github.magisk317.relay.data.backup.BackupManager
 import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
 import io.github.magisk317.relay.ui.common.normalizeIntegerInput
 import io.github.magisk317.relay.ui.common.parseIntAtLeastInput
@@ -148,8 +148,8 @@ fun SettingsHomeScreen(
     var showRestoreDialog by remember { mutableStateOf(false) }
     var pendingBackupSelection by remember { mutableStateOf<BackupSelection?>(null) }
     var pendingRestoreUri by remember { mutableStateOf<Uri?>(null) }
-    var backupInspectionDialog by remember { mutableStateOf<BackupManager.BackupInspection?>(null) }
-    var restoreInspection by remember { mutableStateOf<BackupManager.BackupInspection?>(null) }
+    var backupInspectionDialog by remember { mutableStateOf<RelayBackupManager.BackupInspection?>(null) }
+    var restoreInspection by remember { mutableStateOf<RelayBackupManager.BackupInspection?>(null) }
     var restoreInspectionLoading by remember { mutableStateOf(false) }
     var themeDialogInitialMode by remember { mutableStateOf(0) }
     var themeDialogSelectedMode by remember { mutableStateOf(0) }
@@ -440,7 +440,7 @@ fun SettingsHomeScreen(
                     title = stringResource(id = R.string.pref_restore_title),
                     summary = stringResource(id = R.string.pref_restore_summary),
                 ) {
-                    restoreDocumentLauncher.launch(BackupManager.getImportRuleListSAFIntent(context))
+                    restoreDocumentLauncher.launch(RelayBackupManager.getImportRuleListSAFIntent(context))
                 }
             }
             SectionCard(
@@ -463,7 +463,7 @@ fun SettingsHomeScreen(
                             DiagnosticsSettingsUpdate(verboseLogMode = enabled),
                         )
                         RuntimeLogStore.setEnabled(enabled)
-                        XLog.setLogLevel(if (enabled) Log.VERBOSE else io.github.magisk317.relay.runtime.BuildConfig.LOG_LEVEL)
+                        XLog.setLogLevel(if (enabled) Log.VERBOSE else io.github.magisk317.relay.android.BuildConfig.LOG_LEVEL)
                         notifySaved()
                     }
                 }
@@ -669,7 +669,7 @@ fun SettingsHomeScreen(
             showBackupDialog = false
             pendingBackupSelection = selection
             backupDocumentLauncher.launch(
-                BackupManager.getExportRuleListSAFIntent(
+                RelayBackupManager.getExportRuleListSAFIntent(
                     context = context,
                     includeDatabase = selection.includeDatabase,
                 ),

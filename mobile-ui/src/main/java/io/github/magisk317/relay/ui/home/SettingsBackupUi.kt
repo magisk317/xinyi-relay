@@ -21,8 +21,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.magisk317.relay.backup.RelayBackupManager
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.data.backup.BackupManager
 import io.github.magisk317.smscode.runtime.common.backup.BackupImportResult
 import io.github.magisk317.smscode.runtime.common.backup.ImportResult
 import io.github.magisk317.smscode.runtime.common.backup.ImportWarning
@@ -150,7 +150,7 @@ internal fun backupResultMessage(
 
 internal fun backupInspectionDialogMessage(
     context: Context,
-    inspection: BackupManager.BackupInspection?,
+    inspection: RelayBackupManager.BackupInspection?,
 ): String {
     if (inspection == null) {
         return context.getString(R.string.backup_inspect_unavailable)
@@ -160,7 +160,7 @@ internal fun backupInspectionDialogMessage(
 
 internal fun restoreInspectionMessage(
     context: Context,
-    inspection: BackupManager.BackupInspection?,
+    inspection: RelayBackupManager.BackupInspection?,
     loading: Boolean,
 ): String {
     if (loading) {
@@ -188,7 +188,7 @@ internal fun restoreInspectionMessage(
 
 private fun inspectionSummaryMessage(
     context: Context,
-    inspection: BackupManager.BackupInspection,
+    inspection: RelayBackupManager.BackupInspection,
 ): String {
     val yesNoPayload = context.getString(if (inspection.payloadReadable) R.string.yes else R.string.no)
     val yesNoDatabase = context.getString(if (inspection.databasePresent) R.string.yes else R.string.no)

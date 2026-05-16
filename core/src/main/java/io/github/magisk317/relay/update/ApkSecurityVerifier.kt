@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.data.update
+package io.github.magisk317.relay.update
 
 import android.content.Context
 import io.github.magisk317.smscode.runtime.common.update.ApkSecurityVerifier as SharedApkSecurityVerifier

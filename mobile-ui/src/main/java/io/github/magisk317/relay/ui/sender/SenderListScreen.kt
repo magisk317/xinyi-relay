@@ -46,7 +46,6 @@ import io.github.magisk317.relay.contract.settings.MessageTypeGateSnapshot
 import io.github.magisk317.relay.contract.settings.MessageTypeGateUpdate
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.SimRemarkSettingsSnapshot
-import io.github.magisk317.relay.domain.pipeline.ForwardCommonConfigStore
 import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.engine.model.Sender

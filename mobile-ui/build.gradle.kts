@@ -42,8 +42,7 @@ android {
 
 dependencies {
     implementation(project(":core"))
-    implementation(project(":runtime"))
-    implementation(project(":relay-engine"))
+    implementation(project(":relay-engine:api"))
     implementation(project(":relay-android"))
     implementation(project(":relay-contract"))
     implementation(project(":magisk-ui-kit"))

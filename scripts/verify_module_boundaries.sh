@@ -6,6 +6,7 @@ APP_BUILD="$ROOT_DIR/app/build.gradle.kts"
 CORE_BUILD="$ROOT_DIR/core/build.gradle.kts"
 MOBILE_UI_BUILD="$ROOT_DIR/mobile-ui/build.gradle.kts"
 RUNTIME_BUILD="$ROOT_DIR/runtime/build.gradle.kts"
+RELAY_ANDROID_BUILD="$ROOT_DIR/relay-android/build.gradle.kts"
 
 violations=()
 
@@ -53,8 +54,19 @@ require_pattern "$CORE_BUILD" 'implementation\(project\(":smscode-core:smscode-x
 
 forbid_pattern "$MOBILE_UI_BUILD" 'project\(":xpbridge-core"\)' \
   "mobile-ui must not depend on :xpbridge-core directly"
+forbid_pattern "$MOBILE_UI_BUILD" 'project\(":runtime"\)' \
+  "mobile-ui must not depend on :runtime directly"
+forbid_pattern "$MOBILE_UI_BUILD" 'project\(":relay-engine"\)' \
+  "mobile-ui must depend on :relay-engine:api, not :relay-engine implementation"
+require_pattern "$MOBILE_UI_BUILD" 'implementation\(project\(":relay-engine:api"\)\)' \
+  "mobile-ui must depend on :relay-engine:api for engine contracts"
 forbid_pattern "$MOBILE_UI_BUILD" 'project\(":smscode-core:smscode-verification-core"\)' \
   "mobile-ui must not depend on :smscode-core:smscode-verification-core directly"
+
+forbid_pattern "$RELAY_ANDROID_BUILD" 'project\(":relay-engine"\)' \
+  "relay-android must depend on :relay-engine:api, not :relay-engine implementation"
+require_pattern "$RELAY_ANDROID_BUILD" 'implementation\(project\(":relay-engine:api"\)\)' \
+  "relay-android must depend on :relay-engine:api for engine contracts"
 
 require_pattern "$RUNTIME_BUILD" 'implementation\(project\(":smscode-core:smscode-domain"\)\)' \
   "runtime must depend on :smscode-core:smscode-domain"

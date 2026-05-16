@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "io.github.magisk317.relay.engine"
+    namespace = "io.github.magisk317.relay.engine.api"
 
     defaultConfig {
         minSdk = libs.versions.minSdk.get().toInt()
@@ -25,12 +25,8 @@ android {
 }
 
 dependencies {
-    api(project(":relay-engine:api"))
-    implementation(project(":relay-contract"))
-    implementation(project(":smscode-core:smscode-domain"))
-    implementation(project(":smscode-core:smscode-verification-core"))
+    api(project(":relay-contract"))
+    api(libs.kotlinx.coroutines.core)
+    api(libs.kotlinx.serialization.json)
     implementation(libs.androidx.core.ktx)
-    implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.kotlinx.serialization.json)
-    implementation(libs.okhttp)
 }

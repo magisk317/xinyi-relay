@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.domain.schedule
 
+import io.github.magisk317.relay.engine.schedule.CronUtils
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertNotNull

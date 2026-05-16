@@ -37,6 +37,7 @@ include(
     ":relay-sender",
     ":relay-contract",
     ":relay-engine",
+    ":relay-engine:api",
     ":xpbridge-core",
     ":smscode-core:smscode-xposed-core",
     ":smscode-core:smscode-hook-core",

@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.domain.schedule
+package io.github.magisk317.relay.engine.schedule
 
 import java.util.Calendar
 

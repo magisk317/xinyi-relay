@@ -43,12 +43,29 @@
 - 仅承载 `io.github.magisk317.relay.xpbridge.*`
 - 不承载应用 UI 页面或应用生命周期装配
 
+### `relay-engine/api`
+- 运行时/Android/UI 共享的 engine 契约层
+- 承载事件模型、配置模型、sender 模型、repository/service 接口、调度表达式工具等稳定 API
+- `mobile-ui`、`relay-android` 等上层或平台模块优先依赖 `:relay-engine:api`，不直接依赖 `:relay-engine` 实现
+
+### `relay-engine`
+- 纯领域实现与可复用算法
+- 承载过滤、路由、sender 选择、共享 HTTP 工具等实现逻辑
+- 对外通过 `:relay-engine:api` 暴露稳定类型
+
 ### `core`
 - Compose UI、页面导航、ViewModel、系统能力外观层
 - 通话监听与电量提醒等应用内协调逻辑
 - 设置页优先通过 repository 读写配置
 - `ComposeSettingsScreen` 仅保留为兼容壳；主路径使用新的设置体验页
 - 不再内嵌 `webui/*` 与 `xpbridge/*` 包实现
+- 继续短期承接 runtime 装配与 UI-facing facade，避免 `mobile-ui` 直接触达 runtime 实现包
+
+### `mobile-ui`
+- Compose 页面、导航和 UI ViewModel
+- 不直接依赖 `runtime` / `xpbridge-core`
+- 运行时能力经由 `core` 的 UI-facing facade、`relay-contract` 或 `relay-engine/api` 访问
+- 新增 API 子模块优先收进所属目录，例如 `relay-engine/api`；避免在项目根目录继续增加多词模块目录
 
 ## 运行时主链
 

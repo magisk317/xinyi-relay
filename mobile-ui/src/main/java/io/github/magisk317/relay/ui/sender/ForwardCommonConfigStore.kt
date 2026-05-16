@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.domain.pipeline
+package io.github.magisk317.relay.ui.sender
 
 import android.content.Context
 import android.content.Intent

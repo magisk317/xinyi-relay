@@ -69,11 +69,11 @@ import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.common.utils.PackageUtils
 import io.github.magisk317.relay.common.utils.Utils
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
-import io.github.magisk317.relay.data.update.ApkSecurityVerifier
-import io.github.magisk317.relay.data.update.GithubUpdateChecker
+import io.github.magisk317.relay.update.ApkSecurityVerifier
+import io.github.magisk317.relay.update.GithubUpdateChecker
 import io.github.magisk317.smscode.runtime.common.update.UpgradeApkAsset
-import io.github.magisk317.relay.data.update.UpgradeDownloader
-import io.github.magisk317.relay.data.update.UpgradeInstaller
+import io.github.magisk317.relay.update.UpgradeDownloader
+import io.github.magisk317.relay.update.UpgradeInstaller
 import io.github.magisk317.smscode.runtime.common.update.GithubReleaseInfo
 import io.github.magisk317.smscode.runtime.common.update.UpgradeCheckResult
 import io.github.magisk317.smscode.runtime.common.update.UpgradeInfo
@@ -96,8 +96,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import androidx.lifecycle.lifecycleScope
-import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import kotlinx.coroutines.flow.MutableSharedFlow
+import org.koin.android.ext.android.inject
 import org.koin.androidx.compose.koinViewModel
 import java.io.File
 import kotlin.math.hypot
@@ -107,9 +107,7 @@ class MainActivity : AppCompatActivity() {
     private val playUpdateDelegate: PlayUpdateDelegate = FlavorPlayUpdateDelegate()
     private var autoUpdateChecked = false
     private val snackbarMessages = MutableSharedFlow<String>(extraBufferCapacity = 8)
-    private val settingsRepository: SettingsPreferencesRepository by lazy {
-        RuntimeGraph.from(applicationContext).settingsRepository
-    }
+    private val settingsRepository: SettingsPreferencesRepository by inject()
 
     private fun enqueueSnackbar(message: String) {
         snackbarMessages.tryEmit(message)

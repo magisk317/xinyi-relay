@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.data.update
+package io.github.magisk317.relay.update
 
 import android.os.Build
 import io.github.magisk317.smscode.runtime.common.update.GithubReleaseInfo

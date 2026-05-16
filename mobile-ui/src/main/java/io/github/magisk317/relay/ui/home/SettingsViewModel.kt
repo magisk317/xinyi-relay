@@ -24,13 +24,13 @@ import android.content.Intent
 import androidx.appcompat.app.AppCompatDelegate
 import io.github.magisk317.relay.core.R
 import androidx.core.os.LocaleListCompat
+import io.github.magisk317.relay.backup.RelayBackupManager
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.engine.service.AppConfigRepository
 import io.github.magisk317.relay.engine.service.MessageRecordRepository
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
 import io.github.magisk317.smscode.runtime.common.backup.BackupImportResult
-import io.github.magisk317.relay.data.backup.BackupManager
 import io.github.magisk317.smscode.runtime.common.backup.BackupRule
 import io.github.magisk317.smscode.runtime.common.backup.BackupSmsRecord
 import io.github.magisk317.smscode.runtime.common.backup.ExportResult
@@ -66,7 +66,7 @@ sealed class SettingsEvent {
     data class ShowSnackbar(val message: String) : SettingsEvent()
     data class BackupResultEvent(
         val success: Boolean,
-        val inspection: BackupManager.BackupInspection? = null,
+        val inspection: RelayBackupManager.BackupInspection? = null,
     ) : SettingsEvent()
     data class RestoreResultEvent(val result: BackupImportResult) : SettingsEvent()
     data class ImportDialogConfirm(val uri: android.net.Uri) : SettingsEvent()
@@ -417,7 +417,7 @@ class SettingsViewModel(
                     prefs?.size ?: 0,
                 )
                 val result = withContext(Dispatchers.IO) {
-                    BackupManager.exportBackup(
+                    RelayBackupManager.exportBackup(
                         context = context,
                         uri = uri,
                         ruleList = rules,
@@ -428,10 +428,10 @@ class SettingsViewModel(
                     )
                 }
                 XLog.i("Backup finished: result=%s", result.name)
-                var backupInspection: BackupManager.BackupInspection? = null
+                var backupInspection: RelayBackupManager.BackupInspection? = null
                 if (result == ExportResult.SUCCESS) {
                     runCatching {
-                        BackupManager.inspectBackup(context, uri)
+                        RelayBackupManager.inspectBackup(context, uri)
                     }.onSuccess { inspected ->
                         backupInspection = inspected
                         XLog.i("Backup inspect: %s", inspected.toLogString())
@@ -471,10 +471,10 @@ class SettingsViewModel(
                     restoreDatabase,
                 )
                 val importResult = withContext(Dispatchers.IO) {
-                    BackupManager.importRuleList(context, uri, BuildConfig.VERSION_NAME)
+                    RelayBackupManager.importRuleList(context, uri, BuildConfig.VERSION_NAME)
                 }
                 runCatching {
-                    BackupManager.inspectBackup(context, uri)
+                    RelayBackupManager.inspectBackup(context, uri)
                 }.onSuccess { inspection ->
                     XLog.i("Restore inspect: %s", inspection.toLogString())
                 }.onFailure {
@@ -492,7 +492,7 @@ class SettingsViewModel(
                 if (importResult.result == io.github.magisk317.smscode.runtime.common.backup.ImportResult.SUCCESS) {
                     withContext(Dispatchers.IO) {
                         if (restoreDatabase) {
-                            val restored = BackupManager.restoreDatabaseFromBackup(context, uri)
+                            val restored = RelayBackupManager.restoreDatabaseFromBackup(context, uri)
                             if (!restored) {
                                 throw IllegalStateException("Restore database failed: backup zip has no database files")
                             }
@@ -612,10 +612,10 @@ class SettingsViewModel(
         // Trigger read to ensure in-memory cache if needed; keep no-op for now.
     }
 
-    suspend fun inspectBackup(uri: android.net.Uri): BackupManager.BackupInspection? {
+    suspend fun inspectBackup(uri: android.net.Uri): RelayBackupManager.BackupInspection? {
         val context = getApplication<Application>()
         return withContext(Dispatchers.IO) {
-            runCatching { BackupManager.inspectBackup(context, uri) }
+            runCatching { RelayBackupManager.inspectBackup(context, uri) }
                 .onFailure {
                     XLog.w("Inspect backup failed: %s", it.message ?: it.javaClass.simpleName)
                 }
