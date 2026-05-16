@@ -114,10 +114,10 @@ mokkery {
 
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
-    implementation(project(":hook-entry"))
+    implementation(project(":hook:entry"))
     implementation(project(":core"))
-    implementation(project(":mobile-ui"))
-    implementation(project(":xpbridge-core"))
+    implementation(project(":mobile:ui"))
+    implementation(project(":xpbridge:core"))
     implementation(project(":smscode-core:smscode-verification-core"))
     implementation(project(":smscode-core:smscode-hook-core"))
 

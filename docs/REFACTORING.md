@@ -38,20 +38,20 @@
 - 允许保留 app-process IPC adapter：`CodeNotificationReceiver`、auto-input accessibility/result、force-stop recovery wakeup
 - 新业务逻辑不落在上述 adapter 内；adapter 只做 action/token 校验、Intent 解析与委托
 
-### `xpbridge-core`
+### `xpbridge/core`
 - Xposed/runtime 之间的桥接 DTO 与 facade
 - 仅承载 `io.github.magisk317.relay.xpbridge.*`
 - 不承载应用 UI 页面或应用生命周期装配
 
-### `relay-engine/api`
+### `relay/engine/api`
 - 运行时/Android/UI 共享的 engine 契约层
 - 承载事件模型、配置模型、sender 模型、repository/service 接口、调度表达式工具等稳定 API
-- `mobile-ui`、`relay-android` 等上层或平台模块优先依赖 `:relay-engine:api`，不直接依赖 `:relay-engine` 实现
+- `mobile/ui`、`relay/android` 等上层或平台模块优先依赖 `:relay:engine:api`，不直接依赖 `:relay:engine` 实现
 
-### `relay-engine`
+### `relay/engine`
 - 纯领域实现与可复用算法
 - 承载过滤、路由、sender 选择、共享 HTTP 工具等实现逻辑
-- 对外通过 `:relay-engine:api` 暴露稳定类型
+- 对外通过 `:relay:engine:api` 暴露稳定类型
 
 ### `core`
 - Compose UI、页面导航、ViewModel、系统能力外观层
@@ -59,13 +59,18 @@
 - 设置页优先通过 repository 读写配置
 - `ComposeSettingsScreen` 仅保留为兼容壳；主路径使用新的设置体验页
 - 不再内嵌 `webui/*` 与 `xpbridge/*` 包实现
-- 继续短期承接 runtime 装配与 UI-facing facade，避免 `mobile-ui` 直接触达 runtime 实现包
+- 继续短期承接 runtime 装配与 UI-facing facade，避免 `mobile/ui` 直接触达 runtime 实现包
 
-### `mobile-ui`
+### `mobile/ui`
 - Compose 页面、导航和 UI ViewModel
-- 不直接依赖 `runtime` / `xpbridge-core`
-- 运行时能力经由 `core` 的 UI-facing facade、`relay-contract` 或 `relay-engine/api` 访问
-- 新增 API 子模块优先收进所属目录，例如 `relay-engine/api`；避免在项目根目录继续增加多词模块目录
+- 不直接依赖 `runtime` / `xpbridge/core`
+- 运行时能力经由 `core` 的 UI-facing facade、`relay/contract` 或 `relay/engine/api` 访问
+- 新增 API 子模块优先收进所属目录，例如 `relay/engine/api`；避免在项目根目录继续增加多词模块目录
+
+### 根目录布局
+- 自有模块根目录优先使用单词目录，复合语义使用嵌套目录表达，例如 `mobile/ui`、`relay/engine`、`xpbridge/core`
+- 允许保留多词根目录的仅限外部子模块边界，例如 `build-logic`、`magisk-ui-kit`、`smscode-core`、`smscode-rules`
+- Kotlin package 与 Android namespace 不随物理目录重排自动改名，避免目录治理扩大为 API 迁移
 
 ## 运行时主链
 

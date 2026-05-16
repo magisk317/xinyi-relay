@@ -4,9 +4,47 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_SRC="$ROOT_DIR/app/src/main/java/io/github/magisk317/relay"
 RUNTIME_SRC="$ROOT_DIR/runtime/src/main/java/io/github/magisk317/relay"
-MOBILE_UI_SRC="$ROOT_DIR/mobile-ui/src/main/java/io/github/magisk317/relay"
+MOBILE_UI_SRC="$ROOT_DIR/mobile/ui/src/main/java/io/github/magisk317/relay"
 
 violations=()
+
+verify_root_directory_layout() {
+  local -a allowed_hyphen_roots=(
+    "build-logic"
+    "magisk-ui-kit"
+    "smscode-core"
+    "smscode-rules"
+  )
+
+  local -a allowed_lookup=()
+  local allowed
+  for allowed in "${allowed_hyphen_roots[@]}"; do
+    allowed_lookup+=("|$allowed|")
+  done
+
+  local dir
+  while IFS= read -r dir; do
+    local name
+    name="$(basename "$dir")"
+    [[ "$name" == *-* ]] || continue
+
+    local marker="|$name|"
+    local is_allowed=false
+    local entry
+    for entry in "${allowed_lookup[@]}"; do
+      if [[ "$entry" == "$marker" ]]; then
+        is_allowed=true
+        break
+      fi
+    done
+
+    if [[ "$is_allowed" != true ]]; then
+      violations+=("root directory '$name' must be moved under a single-word parent directory")
+    fi
+  done < <(find "$ROOT_DIR" -mindepth 1 -maxdepth 1 -type d | sort)
+}
+
+verify_root_directory_layout
 
 expect_only_files() {
   local dir="$1"
