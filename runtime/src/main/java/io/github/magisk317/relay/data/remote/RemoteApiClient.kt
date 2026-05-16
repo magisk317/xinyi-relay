@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.data.remote
 
-import com.google.gson.Gson
+import io.github.magisk317.relay.contract.json.LegacyGsonJson
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -8,7 +8,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 
 internal class RemoteApiClient(
     private val client: OkHttpClient = OkHttpClient(),
-    private val gson: Gson = Gson(),
+    private val json: LegacyGsonJson = LegacyGsonJson,
 ) {
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
 
@@ -88,7 +88,7 @@ internal class RemoteApiClient(
         )
     }
 
-    private fun jsonBody(payload: Any) = gson.toJson(payload).toRequestBody(jsonMediaType)
+    private fun jsonBody(payload: Any) = json.toJson(payload).toRequestBody(jsonMediaType)
 
     private fun <T> executeJson(
         request: Request,
@@ -99,7 +99,7 @@ internal class RemoteApiClient(
             if (!response.isSuccessful) {
                 throw IllegalStateException(errorMessage(response.body.string(), failureLabel, response.code))
             }
-            return gson.fromJson(response.body.charStream(), responseClass)
+            return json.fromJson(response.body.charStream(), responseClass)
         }
     }
 
@@ -112,7 +112,7 @@ internal class RemoteApiClient(
     }
 
     private fun parseConfigSnapshot(responseText: String): ConfigSnapshotResponse {
-        return gson.fromJson(responseText, ConfigSnapshotResponse::class.java)
+        return json.fromJson(responseText, ConfigSnapshotResponse::class.java)
     }
 
     private fun errorMessage(responseText: String, failureLabel: String, responseCode: Int): String {

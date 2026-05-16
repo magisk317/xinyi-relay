@@ -5,10 +5,10 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.pm.PackageInfoCompat
-import com.google.gson.Gson
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.contract.json.LegacyGsonJson
 import io.github.magisk317.relay.contract.settings.*
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.entity.AppInfo
@@ -43,8 +43,8 @@ class RemoteAgentRepository(
     private val appContext: Context,
     private val preferenceDataSource: PreferenceDataSource,
 ) : RemoteSyncRepository {
-    private val gson = Gson()
-    private val remoteApiClient = RemoteApiClient(gson = gson)
+    private val legacyJson = LegacyGsonJson
+    private val remoteApiClient = RemoteApiClient(json = legacyJson)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val syncMutex = Mutex()
     private val backgroundSyncInFlight = AtomicBoolean(false)
@@ -328,7 +328,7 @@ class RemoteAgentRepository(
     }
 
     private suspend fun buildConfigSnapshotPayload(): JsonObject {
-        return gson.toJsonTree(buildConfigSnapshotModel()).asJsonObject
+        return legacyJson.toJsonTree(buildConfigSnapshotModel()).asJsonObject
     }
 
     private suspend fun buildConfigSnapshotModel(): RemoteConfigPayload {
@@ -363,7 +363,7 @@ class RemoteAgentRepository(
     private suspend fun applyRemoteConfigPayload(snapshot: JsonObject) {
         applyingRemoteConfigDepth.incrementAndGet()
         try {
-            val payload = gson.fromJson(
+            val payload = legacyJson.fromJson(
                 mergeRemoteConfigJson(
                     base = buildConfigSnapshotPayload(),
                     incoming = snapshot,
@@ -587,7 +587,7 @@ class RemoteAgentRepository(
     }
 
     private fun computeAppCatalogDigest(appInfos: List<AppInfo>): String {
-        return gson.toJson(
+        return legacyJson.toJson(
             appInfos.sortedBy { it.packageName }.map {
                 listOf(
                     it.packageName,
