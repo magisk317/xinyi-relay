@@ -6,7 +6,8 @@ import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.network.RelayHttpClients
 import io.github.magisk317.relay.sender.result.BarkResult
 import io.github.magisk317.relay.sender.config.BarkSetting
-import com.google.gson.Gson
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import okhttp3.Credentials
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
@@ -25,20 +26,20 @@ object BarkUtils {
         val url = parsed.first
         val basicAuth = parsed.second
 
-        val payload = mutableMapOf<String, Any>(
-            "title" to title,
-            "body" to content,
-            "isArchive" to 1,
+        val json = SenderWireJson.encode(
+            buildJsonObject {
+                put("title", title)
+                put("body", content)
+                put("isArchive", 1)
+                if (!TextUtils.isEmpty(setting.group)) put("group", setting.group)
+                if (!TextUtils.isEmpty(setting.icon)) put("icon", setting.icon)
+                if (!TextUtils.isEmpty(setting.sound)) put("sound", setting.sound)
+                if (!TextUtils.isEmpty(setting.badge)) put("badge", setting.badge)
+                if (!TextUtils.isEmpty(setting.url)) put("url", setting.url)
+                if (!TextUtils.isEmpty(setting.level)) put("level", setting.level)
+                if (!TextUtils.isEmpty(setting.call)) put("call", setting.call)
+            },
         )
-        if (!TextUtils.isEmpty(setting.group)) payload["group"] = setting.group
-        if (!TextUtils.isEmpty(setting.icon)) payload["icon"] = setting.icon
-        if (!TextUtils.isEmpty(setting.sound)) payload["sound"] = setting.sound
-        if (!TextUtils.isEmpty(setting.badge)) payload["badge"] = setting.badge
-        if (!TextUtils.isEmpty(setting.url)) payload["url"] = setting.url
-        if (!TextUtils.isEmpty(setting.level)) payload["level"] = setting.level
-        if (!TextUtils.isEmpty(setting.call)) payload["call"] = setting.call
-
-        val json = Gson().toJson(payload)
 
         // 根据加密模式处理消息
         val requestBody = when (setting.transformation) {
@@ -48,11 +49,12 @@ object BarkUtils {
                 }
                 val result = AesUtils.encryptAesGcm(setting.key, json)
                 SLog.i(TAG, "Bark GCM encryption applied, nonce length: ${result.iv.length}")
-                val encryptedPayload = mapOf(
-                    "ciphertext" to result.ciphertext,
-                    "iv" to result.iv,
+                SenderWireJson.encode(
+                    buildJsonObject {
+                        put("ciphertext", result.ciphertext)
+                        put("iv", result.iv)
+                    },
                 )
-                Gson().toJson(encryptedPayload)
             }
             "AES/CBC/PKCS5Padding" -> {
                 if (!AesUtils.isValidKey(setting.key, setting.transformation)) {
@@ -63,11 +65,12 @@ object BarkUtils {
                 }
                 val ciphertext = AesUtils.encryptAesCbc(setting.key, setting.iv, json)
                 SLog.i(TAG, "Bark CBC encryption applied")
-                val encryptedPayload = mapOf(
-                    "ciphertext" to ciphertext,
-                    "iv" to setting.iv,
+                SenderWireJson.encode(
+                    buildJsonObject {
+                        put("ciphertext", ciphertext)
+                        put("iv", setting.iv)
+                    },
                 )
-                Gson().toJson(encryptedPayload)
             }
             else -> {
                 json
@@ -90,7 +93,7 @@ object BarkUtils {
                 SLog.e(TAG, "Bark send failed: ${response.code} ${response.message} $body")
                 throw IllegalStateException("Bark HTTP ${response.code}: ${response.message}")
             }
-            val result = runCatching { Gson().fromJson(body, BarkResult::class.java) }.getOrNull()
+            val result = SenderWireJson.decodeOrNull<BarkResult>(body)
             if (result?.code == 200L) {
                 SLog.i(TAG, "Bark send success")
             } else {

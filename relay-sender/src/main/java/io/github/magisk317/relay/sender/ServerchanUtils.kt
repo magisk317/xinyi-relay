@@ -4,7 +4,6 @@ import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.network.RelayHttpClients
 import io.github.magisk317.relay.sender.result.ServerchanResult
 import io.github.magisk317.relay.sender.config.ServerchanSetting
-import com.google.gson.Gson
 import okhttp3.FormBody
 import okhttp3.Request
 
@@ -41,7 +40,7 @@ object ServerchanUtils {
                 SLog.e(TAG, "Serverchan failed: ${response.code} ${response.message} $body")
                 throw IllegalStateException("Server酱 HTTP ${response.code}: ${response.message}")
             }
-            val result = runCatching { Gson().fromJson(body, ServerchanResult::class.java) }.getOrNull()
+            val result = SenderWireJson.decodeOrNull<ServerchanResult>(body)
             if (result?.code == 0L) {
                 SLog.i(TAG, "Serverchan send success")
             } else {

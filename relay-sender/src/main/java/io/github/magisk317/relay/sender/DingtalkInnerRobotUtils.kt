@@ -5,7 +5,10 @@ import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.network.RelayHttpClients
 import io.github.magisk317.relay.sender.result.DingtalkInnerRobotResult
 import io.github.magisk317.relay.sender.config.DingtalkInnerRobotSetting
-import com.google.gson.Gson
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import okhttp3.Authenticator
 import okhttp3.Credentials
 import okhttp3.MediaType.Companion.toMediaType
@@ -34,13 +37,15 @@ object DingtalkInnerRobotUtils {
 
     private fun fetchToken(setting: DingtalkInnerRobotSetting): String? {
         val client = buildClient(setting)
-        val payload = mapOf(
-            "appKey" to setting.appKey,
-            "appSecret" to setting.appSecret,
+        val payload = SenderWireJson.encode(
+            buildJsonObject {
+                put("appKey", setting.appKey)
+                put("appSecret", setting.appSecret)
+            },
         )
         val request = Request.Builder()
             .url("https://api.dingtalk.com/v1.0/oauth2/accessToken")
-            .post(Gson().toJson(payload).toRequestBody("application/json; charset=utf-8".toMediaType()))
+            .post(payload.toRequestBody("application/json; charset=utf-8".toMediaType()))
             .build()
 
         return runCatching {
@@ -50,7 +55,7 @@ object DingtalkInnerRobotUtils {
                     SLog.e(TAG, "Get token failed: ${response.code} ${response.message} $body")
                     throw IllegalStateException("钉钉内部机器人 token HTTP ${response.code}: ${response.message}")
                 }
-                val result = Gson().fromJson(body, DingtalkInnerRobotResult::class.java)
+                val result = SenderWireJson.decode<DingtalkInnerRobotResult>(body)
                 if (!result.accessToken.isNullOrBlank()) {
                     val expires = (result.expireIn ?: 7200L)
                     tokenCache[setting.agentID] = TokenCache(
@@ -72,12 +77,14 @@ object DingtalkInnerRobotUtils {
         val client = buildClient(setting)
         val title = setting.titleTemplate.ifBlank { "信息驿站: ${msgInfo.from}" }
         val msgParam = if (setting.msgKey == "sampleMarkdown") {
-            mapOf(
-                "title" to title,
-                "text" to msgInfo.content,
-            )
+            buildJsonObject {
+                put("title", title)
+                put("text", msgInfo.content)
+            }
         } else {
-            mapOf("content" to msgInfo.content)
+            buildJsonObject {
+                put("content", msgInfo.content)
+            }
         }
 
         val userIds = setting.userIds.replace("[,，;；|]".toRegex(), "|")
@@ -86,17 +93,19 @@ object DingtalkInnerRobotUtils {
             .map { it.trim() }
             .filter { it.isNotBlank() }
 
-        val payload = mapOf(
-            "robotCode" to setting.appKey,
-            "userIds" to userIds,
-            "msgKey" to setting.msgKey,
-            "msgParam" to Gson().toJson(msgParam),
+        val payload = SenderWireJson.encode(
+            buildJsonObject {
+                put("robotCode", setting.appKey)
+                put("userIds", JsonArray(userIds.map(::JsonPrimitive)))
+                put("msgKey", setting.msgKey)
+                put("msgParam", SenderWireJson.encode(msgParam))
+            },
         )
 
         val request = Request.Builder()
             .url("https://api.dingtalk.com/v1.0/robot/oToMessages/batchSend")
             .header("x-acs-dingtalk-access-token", token)
-            .post(Gson().toJson(payload).toRequestBody("application/json; charset=utf-8".toMediaType()))
+            .post(payload.toRequestBody("application/json; charset=utf-8".toMediaType()))
             .build()
 
         runCatching {
@@ -106,7 +115,7 @@ object DingtalkInnerRobotUtils {
                     SLog.e(TAG, "Dingtalk inner send failed: ${response.code} ${response.message} $body")
                     throw IllegalStateException("钉钉内部机器人发送 HTTP ${response.code}: ${response.message}")
                 }
-                val result = runCatching { Gson().fromJson(body, DingtalkInnerRobotResult::class.java) }.getOrNull()
+                val result = SenderWireJson.decodeOrNull<DingtalkInnerRobotResult>(body)
                 if (!result?.processQueryKey.isNullOrBlank()) {
                     SLog.i(TAG, "Dingtalk inner send success")
                 } else {

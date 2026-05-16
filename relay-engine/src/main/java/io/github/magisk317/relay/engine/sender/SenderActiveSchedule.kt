@@ -1,16 +1,19 @@
 package io.github.magisk317.relay.engine.sender
 
 import io.github.magisk317.relay.contract.constant.MessageType
+import kotlinx.serialization.Serializable as KotlinSerializable
 import java.io.Serializable
 import java.time.DayOfWeek
 import java.time.LocalDateTime
 
+@KotlinSerializable
 data class SenderActiveSchedule(
     val sms: SenderActiveScheduleRule = SenderActiveScheduleRule(),
     val appNotify: SenderActiveScheduleRule = SenderActiveScheduleRule(),
     val callNotify: SenderActiveScheduleRule = SenderActiveScheduleRule(),
 ) : Serializable
 
+@KotlinSerializable
 data class SenderActiveScheduleRule(
     val enabled: Boolean = false,
     val mode: String = SenderActiveScheduleConst.MODE_BLACKLIST,
@@ -18,6 +21,7 @@ data class SenderActiveScheduleRule(
     val ranges: List<SenderActiveScheduleRange> = emptyList(),
 ) : Serializable
 
+@KotlinSerializable
 data class SenderActiveScheduleRange(
     val start: String = "",
     val end: String = "",

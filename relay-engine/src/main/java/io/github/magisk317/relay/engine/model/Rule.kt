@@ -2,9 +2,11 @@ package io.github.magisk317.relay.engine.model
 
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
+import kotlinx.serialization.Serializable
 import java.util.Date
 
 @Parcelize
+@Serializable
 data class Rule(
     var id: Long = 0,
     var type: String = "sms",
@@ -16,6 +18,7 @@ data class Rule(
     var regexReplace: String = "",
     var simSlot: String = "",
     var status: Int = 1,
+    @Serializable(with = DateAsMillisSerializer::class)
     var time: Date = Date(),
     var senderList: List<Sender> = emptyList(),
     var senderLogic: String = "ALL",

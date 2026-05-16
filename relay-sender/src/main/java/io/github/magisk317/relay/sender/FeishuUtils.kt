@@ -5,8 +5,8 @@ import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.network.RelayHttpClients
 import io.github.magisk317.relay.sender.result.FeishuResult
 import io.github.magisk317.relay.sender.config.FeishuSetting
-import com.google.gson.Gson
-import com.google.gson.JsonParser
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -22,20 +22,22 @@ object FeishuUtils {
         val title = if (setting.titleTemplate.isBlank()) "信息驿站: ${msgInfo.from}" else setting.titleTemplate
         val content = msgInfo.content
 
-        val bodyMap = mutableMapOf<String, Any>()
+        var timestamp: Long? = null
+        var sign: String? = null
         if (setting.secret.isNotBlank()) {
-            val timestamp = System.currentTimeMillis() / 1000
+            timestamp = System.currentTimeMillis() / 1000
             val stringToSign = "$timestamp\n${setting.secret}"
             val mac = Mac.getInstance("HmacSHA256")
             mac.init(SecretKeySpec(stringToSign.toByteArray(StandardCharsets.UTF_8), "HmacSHA256"))
             val signData = mac.doFinal(byteArrayOf())
-            val sign = String(Base64.encode(signData, Base64.NO_WRAP))
-            bodyMap["timestamp"] = timestamp
-            bodyMap["sign"] = sign
+            sign = String(Base64.encode(signData, Base64.NO_WRAP))
         }
 
-        if (setting.msgType == "interactive") {
-            bodyMap["msg_type"] = "interactive"
+        val requestJson = buildJsonObject {
+            timestamp?.let { put("timestamp", it) }
+            sign?.let { put("sign", it) }
+            if (setting.msgType == "interactive") {
+                put("msg_type", "interactive")
             val cardJson = if (setting.messageCard.isBlank()) {
                 """
                 {
@@ -54,13 +56,19 @@ object FeishuUtils {
                     .replace("{{MSG_TITLE}}", escapeJson(title))
                     .replace("{{MSG_CONTENT}}", escapeJson(content))
             }
-            bodyMap["card"] = JsonParser.parseString(cardJson)
-        } else {
-            bodyMap["msg_type"] = "text"
-            bodyMap["content"] = mapOf("text" to content)
+                put("card", SenderWireJson.parseElement(cardJson))
+            } else {
+                put("msg_type", "text")
+                put(
+                    "content",
+                    buildJsonObject {
+                        put("text", content)
+                    },
+                )
+            }
         }
 
-        val json = Gson().toJson(bodyMap)
+        val json = SenderWireJson.encode(requestJson)
         val request = Request.Builder()
             .url(setting.webhook)
             .post(json.toRequestBody("application/json; charset=utf-8".toMediaType()))
@@ -72,7 +80,7 @@ object FeishuUtils {
                 SLog.e(TAG, "Feishu failed: ${response.code} ${response.message} $body")
                 throw IllegalStateException("飞书 HTTP ${response.code}: ${response.message}")
             }
-            val result = runCatching { Gson().fromJson(body, FeishuResult::class.java) }.getOrNull()
+            val result = SenderWireJson.decodeOrNull<FeishuResult>(body)
             if (result?.code == 0L) {
                 SLog.i(TAG, "Feishu send success")
             } else {
@@ -83,7 +91,6 @@ object FeishuUtils {
     }
 
     private fun escapeJson(text: String): String {
-        val json = Gson().toJson(text)
-        return if (json.length >= 2) json.substring(1, json.length - 1) else json
+        return SenderWireJson.escapeStringContent(text)
     }
 }

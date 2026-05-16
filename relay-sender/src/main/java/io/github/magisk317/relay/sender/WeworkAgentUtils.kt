@@ -5,7 +5,6 @@ import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.network.RelayHttpClients
 import io.github.magisk317.relay.sender.result.WeworkAgentResult
 import io.github.magisk317.relay.sender.config.WeworkAgentSetting
-import com.google.gson.Gson
 import okhttp3.Authenticator
 import okhttp3.Credentials
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -13,6 +12,8 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.util.concurrent.ConcurrentHashMap
@@ -49,7 +50,7 @@ object WeworkAgentUtils {
                     SLog.e(TAG, "Get token failed: ${response.code} ${response.message} $body")
                     throw IllegalStateException("企业微信应用 token HTTP ${response.code}: ${response.message}")
                 }
-                val result = Gson().fromJson(body, WeworkAgentResult::class.java)
+                val result = SenderWireJson.decode<WeworkAgentResult>(body)
                 if (result.errcode == 0L && !result.access_token.isNullOrBlank()) {
                     val expires = (result.expires_in ?: 7200L)
                     tokenCache["${setting.corpID}:${setting.agentID}"] = TokenCache(
@@ -73,16 +74,21 @@ object WeworkAgentUtils {
         val url = "$base/cgi-bin/message/send?access_token=$token"
 
         val content = msgInfo.content
-        val bodyMap = mutableMapOf<String, Any>(
-            "touser" to setting.toUser,
-            "toparty" to setting.toParty,
-            "totag" to setting.toTag,
-            "msgtype" to "text",
-            "agentid" to setting.agentID,
-            "text" to mapOf("content" to content),
+        val json = SenderWireJson.encode(
+            buildJsonObject {
+                put("touser", setting.toUser)
+                put("toparty", setting.toParty)
+                put("totag", setting.toTag)
+                put("msgtype", "text")
+                put("agentid", setting.agentID)
+                put(
+                    "text",
+                    buildJsonObject {
+                        put("content", content)
+                    },
+                )
+            },
         )
-
-        val json = Gson().toJson(bodyMap)
         val request = Request.Builder()
             .url(url)
             .post(json.toRequestBody("application/json; charset=utf-8".toMediaType()))
@@ -95,7 +101,7 @@ object WeworkAgentUtils {
                     SLog.e(TAG, "Wework agent send failed: ${response.code} ${response.message} $body")
                     throw IllegalStateException("企业微信应用发送 HTTP ${response.code}: ${response.message}")
                 }
-                val result = runCatching { Gson().fromJson(body, WeworkAgentResult::class.java) }.getOrNull()
+                val result = SenderWireJson.decodeOrNull<WeworkAgentResult>(body)
                 if (result?.errcode == 0L) {
                     SLog.i(TAG, "Wework agent send success")
                 } else {

@@ -19,10 +19,11 @@ import io.github.magisk317.relay.contract.settings.VerificationSettingsSnapshot
 import io.github.magisk317.relay.engine.model.ForwardFilterRule
 import io.github.magisk317.relay.engine.model.Rule
 import io.github.magisk317.relay.engine.model.Sender
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.json.JsonObject
 
+@Serializable
 internal data class RemoteConfigPayload(
     val general: GeneralSettingsSnapshot,
     val verification: VerificationSettingsSnapshot,

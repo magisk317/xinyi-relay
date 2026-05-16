@@ -51,7 +51,6 @@ dependencies {
     implementation(project(":smscode-core:smscode-runtime-common"))
     implementation(project(":smscode-core:smscode-rule-core"))
 
-    implementation(libs.gson)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.browser)
 

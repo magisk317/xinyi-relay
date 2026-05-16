@@ -68,7 +68,6 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.datastore.preferences)
-    implementation(libs.gson)
     
     // Networking (RemoteAgentRepository and metadata fetches)
     implementation(libs.okhttp)

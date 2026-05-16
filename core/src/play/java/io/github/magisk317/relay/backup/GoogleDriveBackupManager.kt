@@ -3,13 +3,21 @@ package io.github.magisk317.relay.backup
 import android.content.Context
 import android.net.Uri
 import androidx.core.content.FileProvider
-import com.google.gson.JsonParser
+import io.github.magisk317.relay.contract.json.RelayJson
 import io.github.magisk317.relay.auth.FirebaseAuthManager
 import io.github.magisk317.relay.data.backup.BackupManager
 import io.github.magisk317.smscode.runtime.contract.backup.ExportResult
 import io.github.magisk317.smscode.runtime.contract.backup.ImportResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
+import kotlinx.serialization.json.put
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
@@ -77,7 +85,10 @@ class GoogleDriveBackupManager(
                 }
 
                 // Upload to Drive appDataFolder
-                val metadata = """{"name": "$fileName", "parents": ["appDataFolder"]}"""
+                val metadata = buildJsonObject {
+                    put("name", fileName)
+                    put("parents", JsonArray(listOf(JsonPrimitive("appDataFolder"))))
+                }.toString()
                 val requestBody = MultipartBody.Builder()
                     .setType(MultipartBody.FORM)
                     .addFormDataPart(
@@ -104,7 +115,8 @@ class GoogleDriveBackupManager(
                 }
 
                 val body = response.body.string()
-                val fileId = JsonParser.parseString(body).asJsonObject.get("id").asString
+                val fileId = parseObject(body).string("id")
+                require(fileId.isNotBlank()) { "Upload response missing file id" }
                 val fileSize = tempFile.length()
                 val modifiedTime = timestamp
 
@@ -133,15 +145,15 @@ class GoogleDriveBackupManager(
             }
 
             val body = response.body.string()
-            val files = JsonParser.parseString(body).asJsonObject.getAsJsonArray("files")
+            val files = parseObject(body)["files"] as? JsonArray ?: JsonArray(emptyList())
 
-            files.map { file ->
-                val obj = file.asJsonObject
+            files.mapNotNull { file ->
+                val obj = file as? JsonObject ?: return@mapNotNull null
                 DriveBackupMeta(
-                    id = obj.get("id").asString,
-                    name = obj.get("name").asString,
-                    size = obj.get("size").asLong,
-                    modifiedTime = obj.get("modifiedTime").asString,
+                    id = obj.string("id"),
+                    name = obj.string("name"),
+                    size = obj.long("size"),
+                    modifiedTime = obj.string("modifiedTime"),
                 )
             }
         }
@@ -199,5 +211,18 @@ class GoogleDriveBackupManager(
                 tempFile.delete()
             }
         }
+    }
+
+    private fun parseObject(raw: String): JsonObject {
+        return RelayJson.parseElement(raw) as? JsonObject ?: error("Expected JSON object")
+    }
+
+    private fun JsonObject.string(name: String): String {
+        return this[name]?.jsonPrimitive?.contentOrNull.orEmpty()
+    }
+
+    private fun JsonObject.long(name: String): Long {
+        val primitive = this[name]?.jsonPrimitive ?: return 0L
+        return primitive.longOrNull ?: primitive.contentOrNull?.toLongOrNull() ?: 0L
     }
 }

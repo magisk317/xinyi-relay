@@ -6,8 +6,11 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.ContactsContract
 import androidx.core.content.ContextCompat
-import com.google.gson.JsonParser
 import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.relay.contract.json.RelayJson
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.concurrent.ConcurrentHashMap
@@ -83,11 +86,11 @@ object SourceMetadataResolver {
         if (start < 0 || end <= start) return ""
         val jsonBody = rawBody.substring(start, end + 1)
         return runCatching {
-            val root = JsonParser.parseString(jsonBody).asJsonObject
-            val data = root.getAsJsonObject("data") ?: return@runCatching ""
-            val province = data.get("province")?.asString.orEmpty().trim()
-            val city = data.get("city")?.asString.orEmpty().trim()
-            val carrier = data.get("sp")?.asString.orEmpty().trim()
+            val root = RelayJson.parseElement(jsonBody) as? JsonObject ?: return@runCatching ""
+            val data = root["data"] as? JsonObject ?: return@runCatching ""
+            val province = data["province"]?.jsonPrimitive?.contentOrNull.orEmpty().trim()
+            val city = data["city"]?.jsonPrimitive?.contentOrNull.orEmpty().trim()
+            val carrier = data["sp"]?.jsonPrimitive?.contentOrNull.orEmpty().trim()
             listOf(province, city, carrier)
                 .filter { it.isNotBlank() }
                 .joinToString(" ")

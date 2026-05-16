@@ -6,7 +6,10 @@ import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.sender.result.DingtalkResult
 import io.github.magisk317.relay.sender.config.DingtalkGroupRobotSetting
 import io.github.magisk317.relay.engine.sender.utils.HttpUtils
-import com.google.gson.Gson
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import javax.crypto.Mac
@@ -34,22 +37,19 @@ object DingtalkGroupRobotUtils {
 
         SLog.i(TAG, "requestUrl:$requestUrl")
 
-        val msgMap: MutableMap<String, Any> = mutableMapOf()
-        msgMap["msgtype"] = setting.msgtype
-
         var textContent = content
-
-        val atMap: MutableMap<String, Any> = mutableMapOf()
-        msgMap["at"] = atMap
+        var atMobiles = emptyList<String>()
+        var atDingtalkIds = emptyList<String>()
         if (setting.atAll) {
-            atMap["isAtAll"] = true
+            atMobiles = emptyList()
+            atDingtalkIds = emptyList()
         } else {
-            atMap["isAtAll"] = false
             if (!TextUtils.isEmpty(setting.atMobiles)) {
-                val atMobilesArray = setting.atMobiles.replace("[,，;；]".toRegex(), ",").trim(',').split(',').toTypedArray()
-                if (atMobilesArray.isNotEmpty()) {
-                    atMap["atMobiles"] = atMobilesArray
-                    for (atMobile in atMobilesArray) {
+                atMobiles = setting.atMobiles.replace("[,，;；]".toRegex(), ",").trim(',').split(',')
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
+                if (atMobiles.isNotEmpty()) {
+                    for (atMobile in atMobiles) {
                         if (!textContent.contains("@$atMobile")) {
                             textContent += " @$atMobile"
                         }
@@ -57,10 +57,11 @@ object DingtalkGroupRobotUtils {
                 }
             }
             if (!TextUtils.isEmpty(setting.atDingtalkIds)) {
-                val atDingtalkIdsArray = setting.atDingtalkIds.replace("[,，;；]".toRegex(), ",").trim(',').split(',').toTypedArray()
-                if (atDingtalkIdsArray.isNotEmpty()) {
-                    atMap["atDingtalkIds"] = atDingtalkIdsArray
-                    for (atDingtalkId in atDingtalkIdsArray) {
+                atDingtalkIds = setting.atDingtalkIds.replace("[,，;；]".toRegex(), ",").trim(',').split(',')
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
+                if (atDingtalkIds.isNotEmpty()) {
+                    for (atDingtalkId in atDingtalkIds) {
                         if (!textContent.contains("@$atDingtalkId")) {
                             textContent += " @$atDingtalkId"
                         }
@@ -69,13 +70,39 @@ object DingtalkGroupRobotUtils {
             }
         }
 
-        if ("markdown" == msgMap["msgtype"]) {
-            msgMap["markdown"] = mutableMapOf<String, Any>("title" to title, "text" to textContent)
-        } else {
-            msgMap["text"] = mutableMapOf<String, Any>("content" to textContent)
+        val requestJson = buildJsonObject {
+            put("msgtype", setting.msgtype)
+            put(
+                "at",
+                buildJsonObject {
+                    put("isAtAll", setting.atAll)
+                    if (atMobiles.isNotEmpty()) {
+                        put("atMobiles", JsonArray(atMobiles.map(::JsonPrimitive)))
+                    }
+                    if (atDingtalkIds.isNotEmpty()) {
+                        put("atDingtalkIds", JsonArray(atDingtalkIds.map(::JsonPrimitive)))
+                    }
+                },
+            )
+            if (setting.msgtype == "markdown") {
+                put(
+                    "markdown",
+                    buildJsonObject {
+                        put("title", title)
+                        put("text", textContent)
+                    },
+                )
+            } else {
+                put(
+                    "text",
+                    buildJsonObject {
+                        put("content", textContent)
+                    },
+                )
+            }
         }
 
-        val requestMsg: String = Gson().toJson(msgMap)
+        val requestMsg: String = SenderWireJson.encode(requestJson)
         SLog.i(TAG, "requestMsg:$requestMsg")
 
         val response = HttpUtils.postJson(requestUrl, requestMsg).getOrElse { e ->
@@ -83,11 +110,7 @@ object DingtalkGroupRobotUtils {
             throw IllegalStateException("钉钉群机器人请求失败: ${e.message}", e)
         }
         SLog.i(TAG, "Response: $response")
-        val resp = try {
-            Gson().fromJson(response, DingtalkResult::class.java)
-        } catch (@Suppress("SwallowedException") e: com.google.gson.JsonSyntaxException) {
-            null
-        }
+        val resp = SenderWireJson.decodeOrNull<DingtalkResult>(response)
         if (resp?.errcode == 0L) {
             SLog.i(TAG, "Dingtalk Send Success")
         } else {

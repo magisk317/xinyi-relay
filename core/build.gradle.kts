@@ -67,7 +67,6 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.browser)
-    implementation(libs.gson)
     implementation(libs.androidx.room.runtime)
     
     implementation(libs.kotlinx.serialization.json)

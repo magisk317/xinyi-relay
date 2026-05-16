@@ -1,12 +1,16 @@
 package io.github.magisk317.relay.contract.settings
 
+import kotlinx.serialization.Serializable
+
 // ── General ──────────────────────────────────────────────────────────────────
 
+@Serializable
 data class GeneralSettingsSnapshot(
     val moduleEnabled: Boolean,
     val accordionMode: Boolean,
 )
 
+@Serializable
 data class GeneralSettingsUpdate(
     val moduleEnabled: Boolean? = null,
     val accordionMode: Boolean? = null,
@@ -14,6 +18,7 @@ data class GeneralSettingsUpdate(
 
 // ── Verification ─────────────────────────────────────────────────────────────
 
+@Serializable
 data class VerificationSettingsSnapshot(
     val verificationFeaturesEnabled: Boolean,
     val copyToClipboard: Boolean,
@@ -30,6 +35,7 @@ data class VerificationSettingsSnapshot(
     val blockSmsEnabled: Boolean,
 )
 
+@Serializable
 data class VerificationSettingsUpdate(
     val verificationFeaturesEnabled: Boolean? = null,
     val copyToClipboard: Boolean? = null,
@@ -48,11 +54,13 @@ data class VerificationSettingsUpdate(
 
 // ── Relay ────────────────────────────────────────────────────────────────────
 
+@Serializable
 data class RelaySettingsSnapshot(
     val relayFeaturesEnabled: Boolean,
     val smsForwardDedupWindowSec: Int,
 )
 
+@Serializable
 data class RelaySettingsUpdate(
     val relayFeaturesEnabled: Boolean? = null,
     val smsForwardDedupWindowSec: Int? = null,
@@ -60,6 +68,7 @@ data class RelaySettingsUpdate(
 
 // ── Diagnostics ──────────────────────────────────────────────────────────────
 
+@Serializable
 data class DiagnosticsSettingsSnapshot(
     val rootDbCatchupEnabled: Boolean,
     val rootDbCatchupIntervalMin: String,
@@ -80,6 +89,7 @@ data class DiagnosticsSettingsSnapshot(
     val keepAliveDedicatedService: Boolean,
 )
 
+@Serializable
 data class DiagnosticsSettingsUpdate(
     val rootDbCatchupEnabled: Boolean? = null,
     val rootDbCatchupIntervalMin: String? = null,
@@ -102,16 +112,19 @@ data class DiagnosticsSettingsUpdate(
 
 // ── Advanced ─────────────────────────────────────────────────────────────────
 
+@Serializable
 data class AdvancedSettingsSnapshot(
     val enableSmsBlacklist: Boolean,
 )
 
+@Serializable
 data class AdvancedSettingsUpdate(
     val enableSmsBlacklist: Boolean? = null,
 )
 
 // ── Special Alert ────────────────────────────────────────────────────────────
 
+@Serializable
 data class SpecialAlertSettingsSnapshot(
     val lowBatteryReminderEnabled: Boolean,
     val lowBatteryThreshold: Int,
@@ -134,6 +147,7 @@ data class SpecialAlertSettingsSnapshot(
     val appKeywordVibrateEnabled: Boolean,
 )
 
+@Serializable
 data class SpecialAlertSettingsUpdate(
     val lowBatteryReminderEnabled: Boolean? = null,
     val lowBatteryThreshold: Int? = null,
@@ -158,6 +172,7 @@ data class SpecialAlertSettingsUpdate(
 
 // ── Record ───────────────────────────────────────────────────────────────────
 
+@Serializable
 data class RecordSettingsSnapshot(
     val previousRecordEnabled: Boolean,
     val codeRecordEnabled: Boolean,
@@ -170,6 +185,7 @@ data class RecordSettingsSnapshot(
     val callNotifyHistoryLimit: String,
 )
 
+@Serializable
 data class RecordSettingsUpdate(
     val codeRecordEnabled: Boolean? = null,
     val plainSmsRecordEnabled: Boolean? = null,
@@ -183,6 +199,7 @@ data class RecordSettingsUpdate(
 
 // ── SMS Blacklist ────────────────────────────────────────────────────────────
 
+@Serializable
 data class SmsBlacklistSettingsSnapshot(
     val enabled: Boolean,
     val deleteBlockedSms: Boolean,
@@ -193,6 +210,7 @@ data class SmsBlacklistSettingsSnapshot(
     val contentRules: String,
 )
 
+@Serializable
 data class SmsBlacklistSettingsUpdate(
     val enabled: Boolean? = null,
     val deleteBlockedSms: Boolean? = null,
@@ -205,11 +223,13 @@ data class SmsBlacklistSettingsUpdate(
 
 // ── SIM Remark ───────────────────────────────────────────────────────────────
 
+@Serializable
 data class SimRemarkSettingsSnapshot(
     val simSlot1Remark: String,
     val simSlot2Remark: String,
 )
 
+@Serializable
 data class SimRemarkSettingsUpdate(
     val simSlot1Remark: String? = null,
     val simSlot2Remark: String? = null,
@@ -217,6 +237,7 @@ data class SimRemarkSettingsUpdate(
 
 // ── Message Type Gates ───────────────────────────────────────────────────────
 
+@Serializable
 data class MessageTypeGateSnapshot(
     val smsCodeEnabled: Boolean,
     val smsPlainEnabled: Boolean,
@@ -224,6 +245,7 @@ data class MessageTypeGateSnapshot(
     val callNotifyEnabled: Boolean,
 )
 
+@Serializable
 data class MessageTypeGateUpdate(
     val smsCodeEnabled: Boolean? = null,
     val smsPlainEnabled: Boolean? = null,
@@ -233,6 +255,7 @@ data class MessageTypeGateUpdate(
 
 // ── Forward Type Gates ───────────────────────────────────────────────────────
 
+@Serializable
 data class ForwardTypeGateSnapshot(
     val smsCodeEnabled: Boolean,
     val smsPlainEnabled: Boolean,
@@ -241,6 +264,7 @@ data class ForwardTypeGateSnapshot(
     val callNotifyFinalEnabled: Boolean,
 )
 
+@Serializable
 data class ForwardTypeGateUpdate(
     val smsCodeEnabled: Boolean? = null,
     val smsPlainEnabled: Boolean? = null,
@@ -251,6 +275,7 @@ data class ForwardTypeGateUpdate(
 
 // ── User Settings ────────────────────────────────────────────────────────────
 
+@Serializable
 data class UserSettingsSnapshot(
     val moduleEnabled: Boolean,
     val verificationFeaturesEnabled: Boolean,
@@ -266,6 +291,7 @@ data class UserSettingsSnapshot(
     val forceStopRecoveryEnabled: Boolean,
 )
 
+@Serializable
 data class UserSettingsUpdate(
     val moduleEnabled: Boolean? = null,
     val verificationFeaturesEnabled: Boolean? = null,
@@ -283,6 +309,7 @@ data class UserSettingsUpdate(
 
 // ── Overview ─────────────────────────────────────────────────────────────────
 
+@Serializable
 data class OverviewSettingsSnapshot(
     val cardOrder: String,
     val enabledCardIds: String,
@@ -290,6 +317,7 @@ data class OverviewSettingsSnapshot(
     val chartWindow: String,
 )
 
+@Serializable
 data class OverviewSettingsUpdate(
     val cardOrder: String? = null,
     val enabledCardIds: String? = null,
@@ -299,6 +327,7 @@ data class OverviewSettingsUpdate(
 
 // ── Auto Update ──────────────────────────────────────────────────────────────
 
+@Serializable
 data class AutoUpdateSettingsSnapshot(
     val enabled: Boolean,
     val wifiOnly: Boolean,
@@ -307,6 +336,7 @@ data class AutoUpdateSettingsSnapshot(
 
 // ── Remote Agent ─────────────────────────────────────────────────────────────
 
+@Serializable
 data class RemoteAgentSnapshot(
     val backendBaseUrl: String,
     val bound: Boolean,

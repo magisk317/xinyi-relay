@@ -4,7 +4,6 @@ import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.network.RelayHttpClients
 import io.github.magisk317.relay.sender.result.GotifyResult
 import io.github.magisk317.relay.sender.config.GotifySetting
-import com.google.gson.Gson
 import okhttp3.Credentials
 import okhttp3.FormBody
 import okhttp3.Request
@@ -44,7 +43,7 @@ object GotifyUtils {
                 SLog.e(TAG, "Gotify failed: ${response.code} ${response.message} $body")
                 throw IllegalStateException("Gotify HTTP ${response.code}: ${response.message}")
             }
-            val result = runCatching { Gson().fromJson(body, GotifyResult::class.java) }.getOrNull()
+            val result = SenderWireJson.decodeOrNull<GotifyResult>(body)
             if (result?.id != null) {
                 SLog.i(TAG, "Gotify send success")
             } else {

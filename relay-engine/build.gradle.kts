@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.serialization)
     id(libs.plugins.kotlin.parcelize.get().pluginId)
     id("relay.android.common")
 }

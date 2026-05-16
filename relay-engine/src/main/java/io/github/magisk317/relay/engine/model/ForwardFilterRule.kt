@@ -1,5 +1,8 @@
 package io.github.magisk317.relay.engine.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class ForwardFilterRule(
     val id: Long = 0L,
     val msgType: String,

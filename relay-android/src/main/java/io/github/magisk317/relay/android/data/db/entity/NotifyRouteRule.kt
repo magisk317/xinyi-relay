@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import io.github.magisk317.relay.engine.model.NotifyRouteRuleData
+import kotlinx.serialization.Serializable
 
 @Entity(
     tableName = "notify_route_rule",
@@ -24,6 +25,7 @@ import io.github.magisk317.relay.engine.model.NotifyRouteRuleData
         ),
     ],
 )
+@Serializable
 data class NotifyRouteRule(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")

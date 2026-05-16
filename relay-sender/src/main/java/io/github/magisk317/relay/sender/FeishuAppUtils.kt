@@ -4,7 +4,8 @@ import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.network.RelayHttpClients
 import io.github.magisk317.relay.sender.result.FeishuAppResult
 import io.github.magisk317.relay.sender.config.FeishuAppSetting
-import com.google.gson.Gson
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -26,13 +27,15 @@ object FeishuAppUtils {
     }
 
     private fun fetchToken(setting: FeishuAppSetting): String? {
-        val requestBody = mapOf(
-            "app_id" to setting.appId,
-            "app_secret" to setting.appSecret,
+        val requestBody = SenderWireJson.encode(
+            buildJsonObject {
+                put("app_id", setting.appId)
+                put("app_secret", setting.appSecret)
+            },
         )
         val request = Request.Builder()
             .url("https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal")
-            .post(Gson().toJson(requestBody).toRequestBody("application/json; charset=utf-8".toMediaType()))
+            .post(requestBody.toRequestBody("application/json; charset=utf-8".toMediaType()))
             .build()
 
         return runCatching {
@@ -42,7 +45,7 @@ object FeishuAppUtils {
                     SLog.e(TAG, "Fetch token failed: ${response.code} ${response.message} $body")
                     throw IllegalStateException("飞书应用 token HTTP ${response.code}: ${response.message}")
                 }
-                val result = Gson().fromJson(body, FeishuAppResult::class.java)
+                val result = SenderWireJson.decode<FeishuAppResult>(body)
                 if (result.code == 0L && !result.tenant_access_token.isNullOrBlank()) {
                     val expires = result.expire ?: 7200L
                     tokenCache[setting.appId] = TokenCache(
@@ -79,16 +82,18 @@ object FeishuAppUtils {
             "{\"text\":\"${escapeJson(content)}\"}"
         }
 
-        val payload = mapOf(
-            "receive_id" to setting.receiveId,
-            "msg_type" to setting.msgType,
-            "content" to contentJson,
+        val payload = SenderWireJson.encode(
+            buildJsonObject {
+                put("receive_id", setting.receiveId)
+                put("msg_type", setting.msgType)
+                put("content", contentJson)
+            },
         )
 
         val request = Request.Builder()
             .url("https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=${setting.receiveIdType}")
             .header("Authorization", "Bearer $token")
-            .post(Gson().toJson(payload).toRequestBody("application/json; charset=utf-8".toMediaType()))
+            .post(payload.toRequestBody("application/json; charset=utf-8".toMediaType()))
             .build()
 
         runCatching {
@@ -98,7 +103,7 @@ object FeishuAppUtils {
                     SLog.e(TAG, "Feishu app send failed: ${response.code} ${response.message} $body")
                     throw IllegalStateException("飞书应用发送 HTTP ${response.code}: ${response.message}")
                 }
-                val result = runCatching { Gson().fromJson(body, FeishuAppResult::class.java) }.getOrNull()
+                val result = SenderWireJson.decodeOrNull<FeishuAppResult>(body)
                 if (result?.code == 0L) {
                     SLog.i(TAG, "Feishu app send success")
                 } else {
@@ -112,7 +117,6 @@ object FeishuAppUtils {
     }
 
     private fun escapeJson(text: String): String {
-        val json = Gson().toJson(text)
-        return if (json.length >= 2) json.substring(1, json.length - 1) else json
+        return SenderWireJson.escapeStringContent(text)
     }
 }

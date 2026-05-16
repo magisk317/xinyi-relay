@@ -12,11 +12,9 @@ import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.engine.model.SmsCodeRuleData
 import io.github.magisk317.relay.engine.sender.SenderActiveSchedule
 import io.github.magisk317.relay.engine.sender.SenderActiveScheduleEvaluator
-import com.google.gson.Gson
+import io.github.magisk317.relay.contract.json.RelayJson
 
 object ConfigMapper {
-    private val gson = Gson()
-
     fun RuleEntity.toDomain(): Rule = Rule(
         id = id,
         type = type,
@@ -83,7 +81,10 @@ object ConfigMapper {
         receiveNonCode = receiveNonCode,
         receiveAppNotify = receiveAppNotify,
         receiveCallNotify = receiveCallNotify,
-        activeScheduleJson = gson.toJson(SenderActiveScheduleEvaluator.sanitize(activeSchedule)),
+        activeScheduleJson = RelayJson.encode(
+            SenderActiveSchedule.serializer(),
+            SenderActiveScheduleEvaluator.sanitize(activeSchedule),
+        ),
         priority = priority,
     )
 
@@ -137,7 +138,7 @@ object ConfigMapper {
 
     private fun parseActiveSchedule(json: String): SenderActiveSchedule {
         if (json.isBlank()) return SenderActiveSchedule()
-        val parsed = runCatching { gson.fromJson(json, SenderActiveSchedule::class.java) }.getOrNull()
+        val parsed = runCatching { RelayJson.decode(SenderActiveSchedule.serializer(), json) }.getOrNull()
         return SenderActiveScheduleEvaluator.sanitize(parsed)
     }
 }

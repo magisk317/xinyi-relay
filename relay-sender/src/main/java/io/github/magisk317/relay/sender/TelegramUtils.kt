@@ -3,9 +3,10 @@ package io.github.magisk317.relay.sender
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.network.RelayHttpClients
 import io.github.magisk317.relay.sender.config.TelegramSetting
-import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import okhttp3.Credentials
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
@@ -28,15 +29,6 @@ object TelegramUtils {
             "<b>信息驿站: ${msgInfo.from}</b>\n${msgInfo.content}"
         }
         var requestUrl = "https://api.telegram.org/bot${setting.apiToken}/sendMessage"
-
-        val msgMap: MutableMap<String, Any> = mutableMapOf(
-            "chat_id" to setting.chatId,
-            "text" to content,
-            "parse_mode" to setting.parseMode,
-        )
-        if (setting.messageThreadId.isNotEmpty()) {
-            msgMap["message_thread_id"] = setting.messageThreadId
-        }
 
         val clientBuilder = RelayHttpClients.newBuilder()
         if (setting.proxyType != Proxy.Type.DIRECT && setting.proxyHost.isNotEmpty() && setting.proxyPort.isNotEmpty()) {
@@ -62,7 +54,16 @@ object TelegramUtils {
             }
             Request.Builder().url(requestUrl).get().build()
         } else {
-            val requestMsg = Gson().toJson(msgMap)
+            val requestMsg = SenderWireJson.encode(
+                buildJsonObject {
+                    put("chat_id", setting.chatId)
+                    put("text", content)
+                    put("parse_mode", setting.parseMode)
+                    if (setting.messageThreadId.isNotEmpty()) {
+                        put("message_thread_id", setting.messageThreadId)
+                    }
+                },
+            )
             val mediaType = "application/json; charset=utf-8".toMediaType()
             val body = requestMsg.toRequestBody(mediaType)
             Request.Builder().url(requestUrl).post(body).build()

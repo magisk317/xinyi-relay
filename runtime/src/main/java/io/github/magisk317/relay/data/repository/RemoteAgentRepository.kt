@@ -6,7 +6,6 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.pm.PackageInfoCompat
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
-import io.github.magisk317.relay.contract.json.LegacyGsonJson
 import io.github.magisk317.relay.contract.json.RelayJson
 import io.github.magisk317.relay.contract.settings.*
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
@@ -34,9 +33,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.time.Instant
@@ -47,7 +48,6 @@ class RemoteAgentRepository(
     private val appContext: Context,
     private val preferenceDataSource: PreferenceDataSource,
 ) : RemoteSyncRepository {
-    private val legacyJson = LegacyGsonJson
     private val remoteApiClient = RemoteApiClient()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val syncMutex = Mutex()
@@ -332,7 +332,9 @@ class RemoteAgentRepository(
     }
 
     private suspend fun buildConfigSnapshotPayload(): JsonObject {
-        return RelayJson.parseElement(legacyJson.toJson(buildConfigSnapshotModel())) as JsonObject
+        return RelayJson.parseElement(
+            RelayJson.encode(RemoteConfigPayload.serializer(), buildConfigSnapshotModel()),
+        ) as JsonObject
     }
 
     private suspend fun buildConfigSnapshotModel(): RemoteConfigPayload {
@@ -367,12 +369,12 @@ class RemoteAgentRepository(
     private suspend fun applyRemoteConfigPayload(snapshot: JsonObject) {
         applyingRemoteConfigDepth.incrementAndGet()
         try {
-            val payload = legacyJson.fromJson(
+            val payload = RelayJson.decode(
+                RemoteConfigPayload.serializer(),
                 mergeRemoteConfigJson(
                     base = buildConfigSnapshotPayload(),
                     incoming = snapshot,
                 ).toString(),
-                RemoteConfigPayload::class.java,
             )
             val runtimeGraph = RuntimeGraph.from(appContext)
             val settingsRepository = runtimeGraph.settingsRepository
@@ -591,18 +593,20 @@ class RemoteAgentRepository(
     }
 
     private fun computeAppCatalogDigest(appInfos: List<AppInfo>): String {
-        return legacyJson.toJson(
+        return JsonArray(
             appInfos.sortedBy { it.packageName }.map {
-                listOf(
-                    it.packageName,
-                    it.label ?: "",
-                    it.blocked,
-                    it.forwarding,
-                    it.forwardingConfigured,
-                    it.notifyTemplate,
+                JsonArray(
+                    listOf(
+                        JsonPrimitive(it.packageName),
+                        JsonPrimitive(it.label ?: ""),
+                        JsonPrimitive(it.blocked),
+                        JsonPrimitive(it.forwarding),
+                        JsonPrimitive(it.forwardingConfigured),
+                        JsonPrimitive(it.notifyTemplate),
+                    ),
                 )
             },
-        )
+        ).toString()
     }
 
     private fun scheduleBackgroundSync(

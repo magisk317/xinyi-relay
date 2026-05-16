@@ -4,7 +4,10 @@ import io.github.magisk317.relay.engine.network.RelayHttpClients
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.sender.result.WeworkRobotResult
 import io.github.magisk317.relay.sender.config.WeworkRobotSetting
-import com.google.gson.Gson
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -16,26 +19,52 @@ object WeworkRobotUtils {
     suspend fun sendMsg(setting: WeworkRobotSetting, msgInfo: MsgInfo) {
         val content = msgInfo.content
         val msgType = if (setting.msgType == "markdown") "markdown" else "text"
-        val bodyMap = mutableMapOf<String, Any>("msgtype" to msgType)
-
-        if (msgType == "markdown") {
-            bodyMap["markdown"] = mapOf("content" to content)
-        } else {
-            val textMap = mutableMapOf<String, Any>("content" to content)
-            if (setting.atAll) {
-                textMap["mentioned_list"] = listOf("@all")
-            } else {
-                if (setting.atUserIds.isNotBlank()) {
-                    textMap["mentioned_list"] = setting.atUserIds.split(',').map { it.trim() }.filter { it.isNotBlank() }
+        val json = SenderWireJson.encode(
+            buildJsonObject {
+                put("msgtype", msgType)
+                if (msgType == "markdown") {
+                    put(
+                        "markdown",
+                        buildJsonObject {
+                            put("content", content)
+                        },
+                    )
+                } else {
+                    put(
+                        "text",
+                        buildJsonObject {
+                            put("content", content)
+                            if (setting.atAll) {
+                                put("mentioned_list", JsonArray(listOf(JsonPrimitive("@all"))))
+                            } else {
+                                if (setting.atUserIds.isNotBlank()) {
+                                    put(
+                                        "mentioned_list",
+                                        JsonArray(
+                                            setting.atUserIds.split(',')
+                                                .map { it.trim() }
+                                                .filter { it.isNotBlank() }
+                                                .map(::JsonPrimitive),
+                                        ),
+                                    )
+                                }
+                                if (setting.atMobiles.isNotBlank()) {
+                                    put(
+                                        "mentioned_mobile_list",
+                                        JsonArray(
+                                            setting.atMobiles.split(',')
+                                                .map { it.trim() }
+                                                .filter { it.isNotBlank() }
+                                                .map(::JsonPrimitive),
+                                        ),
+                                    )
+                                }
+                            }
+                        },
+                    )
                 }
-                if (setting.atMobiles.isNotBlank()) {
-                    textMap["mentioned_mobile_list"] = setting.atMobiles.split(',').map { it.trim() }.filter { it.isNotBlank() }
-                }
-            }
-            bodyMap["text"] = textMap
-        }
-
-        val json = Gson().toJson(bodyMap)
+            },
+        )
         val request = Request.Builder()
             .url(setting.webHook)
             .post(json.toRequestBody("application/json; charset=utf-8".toMediaType()))
@@ -47,7 +76,7 @@ object WeworkRobotUtils {
                 SLog.e(TAG, "Wework robot failed: ${response.code} ${response.message} $body")
                 throw IllegalStateException("企业微信机器人 HTTP ${response.code}: ${response.message}")
             }
-            val result = runCatching { Gson().fromJson(body, WeworkRobotResult::class.java) }.getOrNull()
+            val result = SenderWireJson.decodeOrNull<WeworkRobotResult>(body)
             if (result?.errcode == 0L) {
                 SLog.i(TAG, "Wework robot send success")
             } else {
