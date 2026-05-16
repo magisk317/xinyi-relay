@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.data.remote
 
 import io.github.magisk317.relay.contract.json.RelayJson
-import io.github.magisk317.relay.engine.network.RelayHttpClients
+import io.github.magisk317.relay.net.RelayHttpClients
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.SerializationStrategy
 import okhttp3.MediaType.Companion.toMediaType

@@ -4,7 +4,7 @@ import io.github.magisk317.relay.sender.BuildConfig
 import android.text.TextUtils
 import android.util.Base64
 import io.github.magisk317.relay.engine.model.MsgInfo
-import io.github.magisk317.relay.engine.network.RelayHttpClients
+import io.github.magisk317.relay.net.RelayHttpClients
 import io.github.magisk317.relay.sender.config.WebhookSetting
 import io.github.magisk317.relay.sender.SenderSettingSanitizer
 

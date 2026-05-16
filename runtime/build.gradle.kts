@@ -61,6 +61,7 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(project(":relay:contract"))
     implementation(project(":relay:engine"))
+    implementation(project(":relay:net"))
     implementation(project(":relay:android"))
     implementation(project(":smscode-core:smscode-domain"))
     implementation(project(":smscode-core:smscode-runtime-common"))

@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.engine.network
+package io.github.magisk317.relay.net
 
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit

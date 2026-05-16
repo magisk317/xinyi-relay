@@ -36,6 +36,7 @@ include(
     ":relay:android",
     ":relay:sender",
     ":relay:contract",
+    ":relay:net",
     ":relay:engine",
     ":relay:engine:api",
     ":xpbridge:core",

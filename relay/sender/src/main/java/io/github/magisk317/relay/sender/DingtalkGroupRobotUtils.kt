@@ -5,7 +5,7 @@ import android.util.Base64
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.sender.result.DingtalkResult
 import io.github.magisk317.relay.sender.config.DingtalkGroupRobotSetting
-import io.github.magisk317.relay.engine.sender.utils.HttpUtils
+import io.github.magisk317.relay.net.HttpUtils
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject

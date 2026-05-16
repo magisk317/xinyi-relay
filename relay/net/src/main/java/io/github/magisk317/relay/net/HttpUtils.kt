@@ -1,6 +1,5 @@
-package io.github.magisk317.relay.engine.sender.utils
+package io.github.magisk317.relay.net
 
-import io.github.magisk317.relay.engine.network.RelayHttpClients
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType

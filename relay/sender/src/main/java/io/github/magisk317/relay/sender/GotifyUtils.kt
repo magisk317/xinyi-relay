@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.sender
 
 import io.github.magisk317.relay.engine.model.MsgInfo
-import io.github.magisk317.relay.engine.network.RelayHttpClients
+import io.github.magisk317.relay.net.RelayHttpClients
 import io.github.magisk317.relay.sender.result.GotifyResult
 import io.github.magisk317.relay.sender.config.GotifySetting
 import okhttp3.Credentials

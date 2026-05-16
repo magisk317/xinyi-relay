@@ -2,7 +2,7 @@ package io.github.magisk317.relay.sender
 
 import android.text.TextUtils
 import io.github.magisk317.relay.engine.model.MsgInfo
-import io.github.magisk317.relay.engine.network.RelayHttpClients
+import io.github.magisk317.relay.net.RelayHttpClients
 import io.github.magisk317.relay.sender.result.DingtalkInnerRobotResult
 import io.github.magisk317.relay.sender.config.DingtalkInnerRobotSetting
 import kotlinx.serialization.json.JsonArray

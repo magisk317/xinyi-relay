@@ -59,8 +59,13 @@
 
 ### `relay/engine`
 - 纯领域实现与可复用算法
-- 承载过滤、路由、sender 选择、共享 HTTP 工具等实现逻辑
+- 承载过滤、路由、sender 选择等实现逻辑
 - 对外通过 `:relay:engine:api` 暴露稳定类型
+
+### `relay/net`
+- 共享 HTTP client 与轻量网络 helper
+- `relay/sender`、`runtime` 等需要发起网络请求的模块依赖它
+- 不承载 sender 配置、路由、过滤或运行时编排逻辑
 
 ### `core`
 - Compose UI、页面导航、ViewModel、系统能力外观层
