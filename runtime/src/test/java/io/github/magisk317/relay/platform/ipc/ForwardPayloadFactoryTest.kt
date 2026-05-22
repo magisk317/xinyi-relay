@@ -1,10 +1,8 @@
 package io.github.magisk317.relay.platform.ipc
 
 import android.content.Intent
-import dev.mokkery.MockMode.autofill
-import dev.mokkery.every
-import dev.mokkery.mock
-import dev.mokkery.answering.returns
+import io.mockk.every
+import io.mockk.mockk
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -14,7 +12,7 @@ class ForwardPayloadFactoryTest {
 
     @Test
     fun ensureSmsEventId_reusesExistingValue() {
-        val intent = mock<Intent>(autofill)
+        val intent = mockk<Intent>(relaxed = true)
         every { intent.getStringExtra(ForwardBroadcastContract.EXTRA_EVENT_ID) } returns "sms_existing"
 
         val eventId = ForwardPayloadFactory.ensureSmsEventId(intent)
@@ -24,7 +22,7 @@ class ForwardPayloadFactoryTest {
 
     @Test
     fun smsPayload_usesSmsMsgAndSimRouting() {
-        val sourceIntent = mock<Intent>(autofill)
+        val sourceIntent = mockk<Intent>(relaxed = true)
         every { sourceIntent.hasExtra("slot") } returns true
         every { sourceIntent.getIntExtra("slot", Int.MIN_VALUE) } returns 1
         every { sourceIntent.hasExtra("subscription") } returns false

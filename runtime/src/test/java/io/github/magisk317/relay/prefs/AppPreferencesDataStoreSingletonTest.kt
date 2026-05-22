@@ -2,10 +2,8 @@ package io.github.magisk317.relay.prefs
 
 import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
 import android.content.Context
-import dev.mokkery.MockMode.autofill
-import dev.mokkery.every
-import dev.mokkery.mock
-import dev.mokkery.answering.returns
+import io.mockk.every
+import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
@@ -18,7 +16,7 @@ class AppPreferencesDataStoreSingletonTest {
     @Test
     fun `getInstance should return a single DataStore instance under concurrency`() {
         resetInstance()
-        val context = mock<Context>(autofill)
+        val context = mockk<Context>(relaxed = true)
         val tempDir = Files.createTempDirectory("datastore-singleton-test").toFile()
         every { context.applicationContext } returns context
         every { context.dataDir } returns tempDir

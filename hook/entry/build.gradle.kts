@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.mokkery)
     id("relay.android.common")
 }
 
@@ -22,11 +21,6 @@ android {
     }
 }
 
-mokkery {
-    defaultMockMode.set(dev.mokkery.MockMode.autofill)
-    ignoreFinalMembers.set(true)
-}
-
 dependencies {
     compileOnly(libs.libxposed.api)
     compileOnly(project(":smscode-core:smscode-xposed-core"))
@@ -44,5 +38,5 @@ dependencies {
     testImplementation(project(":smscode-core:smscode-xposed-core"))
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
-    testImplementation(libs.mokkery.runtime.jvm)
+    testImplementation(libs.mockk)
 }

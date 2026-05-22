@@ -1,11 +1,8 @@
 package io.github.magisk317.relay.domain.pipeline
 
-import dev.mokkery.MockMode.autofill
-import dev.mokkery.every
-import dev.mokkery.everySuspend
-import dev.mokkery.mock
-import dev.mokkery.answering.returns
-import dev.mokkery.answering.returnsBy
+import io.mockk.every
+import io.mockk.coEvery
+import io.mockk.mockk
 import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.common.utils.XLog
@@ -101,10 +98,10 @@ class EventGatekeeperTest {
     fun appNotify_queryRunsOffCallingThread() = runBlocking {
         val callerThreadId = Thread.currentThread().threadId()
         var queryThreadId: Long? = null
-        val appInfoDao = mock<AppInfoDao>(autofill)
-        everySuspend {
+        val appInfoDao = mockk<AppInfoDao>(relaxed = true)
+        coEvery {
             appInfoDao.getByPackageName("com.tencent.mm")
-        } returnsBy {
+        } coAnswers {
             queryThreadId = Thread.currentThread().threadId()
             AppInfo(
                 packageName = "com.tencent.mm",
@@ -113,12 +110,12 @@ class EventGatekeeperTest {
             )
         }
 
-        val database = mock<AppDatabase>(autofill)
+        val database = mockk<AppDatabase>(relaxed = true)
         every { database.appInfoDao() } returns appInfoDao
 
-        val preferences = mock<PreferenceDataSource>(autofill)
-        everySuspend { preferences.getBoolean(PrefConst.KEY_ENABLE, true) } returns true
-        everySuspend {
+        val preferences = mockk<PreferenceDataSource>(relaxed = true)
+        coEvery { preferences.getBoolean(PrefConst.KEY_ENABLE, true) } returns true
+        coEvery {
             preferences.getBoolean(
                 PrefConst.KEY_MSG_TYPE_APP_NOTIFY_ENABLED,
                 true,
@@ -135,15 +132,15 @@ class EventGatekeeperTest {
     }
 
     private fun createGatekeeper(appInfo: AppInfo?): EventGatekeeper {
-        val appInfoDao = mock<AppInfoDao>(autofill)
-        everySuspend { appInfoDao.getByPackageName("com.tencent.mm") } returns appInfo
+        val appInfoDao = mockk<AppInfoDao>(relaxed = true)
+        coEvery { appInfoDao.getByPackageName("com.tencent.mm") } returns appInfo
 
-        val database = mock<AppDatabase>(autofill)
+        val database = mockk<AppDatabase>(relaxed = true)
         every { database.appInfoDao() } returns appInfoDao
 
-        val preferences = mock<PreferenceDataSource>(autofill)
-        everySuspend { preferences.getBoolean(PrefConst.KEY_ENABLE, true) } returns true
-        everySuspend {
+        val preferences = mockk<PreferenceDataSource>(relaxed = true)
+        coEvery { preferences.getBoolean(PrefConst.KEY_ENABLE, true) } returns true
+        coEvery {
             preferences.getBoolean(
                 PrefConst.KEY_MSG_TYPE_APP_NOTIFY_ENABLED,
                 true,

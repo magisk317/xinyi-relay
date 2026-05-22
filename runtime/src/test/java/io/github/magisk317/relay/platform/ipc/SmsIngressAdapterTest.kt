@@ -4,10 +4,8 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.content.Context
 import android.content.Intent
-import dev.mokkery.MockMode.autofill
-import dev.mokkery.every
-import dev.mokkery.mock
-import dev.mokkery.answering.returns
+import io.mockk.every
+import io.mockk.mockk
 import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import kotlinx.coroutines.runBlocking
@@ -20,9 +18,9 @@ class SmsIngressAdapterTest {
 
     @Test
     fun toPayload_returnsCodeMessageWithResolvedPackage() = runBlocking {
-        val pluginContext = mock<Context>(autofill)
-        val phoneContext = mock<Context>(autofill)
-        val packageManager = mock<PackageManager>(autofill)
+        val pluginContext = mockk<Context>(relaxed = true)
+        val phoneContext = mockk<Context>(relaxed = true)
+        val packageManager = mockk<PackageManager>(relaxed = true)
         val appInfo = ApplicationInfo().apply {
             packageName = "com.bank.app"
         }
@@ -57,8 +55,8 @@ class SmsIngressAdapterTest {
 
     @Test
     fun toPayload_returnsPlainMessageWhenNoCodeMatched() = runBlocking {
-        val pluginContext = mock<Context>(autofill)
-        val phoneContext = mock<Context>(autofill)
+        val pluginContext = mockk<Context>(relaxed = true)
+        val phoneContext = mockk<Context>(relaxed = true)
         val smsMsg = SmsMsg(
             sender = "service",
             body = "hello world",
@@ -84,8 +82,8 @@ class SmsIngressAdapterTest {
 
     @Test
     fun enrichSmsMsg_usesProvidedCodeAndNormalizesDate() {
-        val phoneContext = mock<Context>(autofill)
-        val packageManager = mock<PackageManager>(autofill)
+        val phoneContext = mockk<Context>(relaxed = true)
+        val packageManager = mockk<PackageManager>(relaxed = true)
         val appInfo = ApplicationInfo().apply {
             packageName = "com.bank.app"
         }

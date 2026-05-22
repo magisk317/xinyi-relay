@@ -1,8 +1,7 @@
 package io.github.magisk317.relay.platform.ipc
 
 import android.content.Context
-import dev.mokkery.MockMode.autofill
-import dev.mokkery.mock
+import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -11,7 +10,7 @@ class ForwardBroadcastDispatcherTest {
 
     @Test
     fun dispatchFromSmsHook_usesTokenWhenPresent() {
-        val context = mock<Context>(autofill)
+        val context = mockk<Context>(relaxed = true)
         var dispatchedToken: String? = null
 
         val result = ForwardBroadcastDispatcher.dispatchFromSmsHook(
@@ -31,7 +30,7 @@ class ForwardBroadcastDispatcherTest {
 
     @Test
     fun dispatchFromSmsHook_allowsLegacySystemBypassWithoutToken() {
-        val context = mock<Context>(autofill)
+        val context = mockk<Context>(relaxed = true)
         var dispatchCount = 0
 
         val result = ForwardBroadcastDispatcher.dispatchFromSmsHook(
@@ -51,7 +50,7 @@ class ForwardBroadcastDispatcherTest {
 
     @Test
     fun dispatchFromSmsHook_blocksWhenTokenMissingAndBypassDenied() {
-        val context = mock<Context>(autofill)
+        val context = mockk<Context>(relaxed = true)
         var dispatchCount = 0
 
         val result = ForwardBroadcastDispatcher.dispatchFromSmsHook(

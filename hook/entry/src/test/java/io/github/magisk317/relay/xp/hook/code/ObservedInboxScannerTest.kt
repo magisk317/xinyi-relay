@@ -1,8 +1,7 @@
 package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
-import dev.mokkery.MockMode.autofill
-import dev.mokkery.mock
+import io.mockk.mockk
 import io.github.magisk317.smscode.verification.SmsInboxSeenTracker
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -12,8 +11,8 @@ class ObservedInboxScannerTest {
 
     @Test
     fun scan_filtersDuplicateAndBlankCodeRows() {
-        val pluginContext = mock<Context>(autofill)
-        val phoneContext = mock<Context>(autofill)
+        val pluginContext = mockk<Context>()
+        val phoneContext = mockk<Context>()
         val scanner = ObservedInboxScanner(
             pluginContext = pluginContext,
             phoneContext = phoneContext,
@@ -62,8 +61,8 @@ class ObservedInboxScannerTest {
 
     @Test
     fun scan_keepsExplicitTriggerUri() {
-        val pluginContext = mock<Context>(autofill)
-        val phoneContext = mock<Context>(autofill)
+        val pluginContext = mockk<Context>()
+        val phoneContext = mockk<Context>()
         val scanner = ObservedInboxScanner(
             pluginContext = pluginContext,
             phoneContext = phoneContext,
@@ -91,8 +90,8 @@ class ObservedInboxScannerTest {
 
     @Test
     fun scan_passesTriggeredSmsIdToLoader() {
-        val pluginContext = mock<Context>(autofill)
-        val phoneContext = mock<Context>(autofill)
+        val pluginContext = mockk<Context>()
+        val phoneContext = mockk<Context>()
         var receivedTriggeredSmsId: Long? = null
         val scanner = ObservedInboxScanner(
             pluginContext = pluginContext,

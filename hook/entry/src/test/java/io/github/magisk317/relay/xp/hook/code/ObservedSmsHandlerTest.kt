@@ -1,8 +1,7 @@
 package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
-import dev.mokkery.MockMode.autofill
-import dev.mokkery.mock
+import io.mockk.mockk
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
 import io.github.magisk317.smscode.verification.SmsInboxObserverDecision
@@ -24,8 +23,8 @@ class ObservedSmsHandlerTest {
     @Test
     fun handle_skipsDispatchWhenConflictSuppressed() {
         stubXLog()
-        val pluginContext = mock<Context>(autofill)
-        val phoneContext = mock<Context>(autofill)
+        val pluginContext = mockk<Context>(relaxed = true)
+        val phoneContext = mockk<Context>(relaxed = true)
         var roleLogCount = 0
         var dispatchCount = 0
         val handler = ObservedSmsHandler(
@@ -51,8 +50,8 @@ class ObservedSmsHandlerTest {
     @Test
     fun handle_dispatchesObservedSmsWhenHealthy() {
         stubXLog()
-        val pluginContext = mock<Context>(autofill)
-        val phoneContext = mock<Context>(autofill)
+        val pluginContext = mockk<Context>(relaxed = true)
+        val phoneContext = mockk<Context>(relaxed = true)
         var loggedEventId: String? = null
         var dispatchedEventId: String? = null
         var dispatchedSms: SmsMsg? = null
@@ -106,8 +105,8 @@ class ObservedSmsHandlerTest {
     @Test
     fun handle_skipsDispatchWhenSmsAlreadyRead() {
         stubXLog()
-        val pluginContext = mock<Context>(autofill)
-        val phoneContext = mock<Context>(autofill)
+        val pluginContext = mockk<Context>(relaxed = true)
+        val phoneContext = mockk<Context>(relaxed = true)
         var roleLogCount = 0
         var dispatchCount = 0
         val handler = ObservedSmsHandler(
@@ -132,8 +131,8 @@ class ObservedSmsHandlerTest {
     @Test
     fun handle_skipsDispatchWhenObservedSmsAlreadyClaimed() {
         stubXLog()
-        val pluginContext = mock<Context>(autofill)
-        val phoneContext = mock<Context>(autofill)
+        val pluginContext = mockk<Context>(relaxed = true)
+        val phoneContext = mockk<Context>(relaxed = true)
         var roleLogCount = 0
         var dispatchCount = 0
         val handler = ObservedSmsHandler(
@@ -159,8 +158,8 @@ class ObservedSmsHandlerTest {
     @Test
     fun handle_usesCurrentTimeForMissingSmsDate() {
         stubXLog()
-        val pluginContext = mock<Context>(autofill)
-        val phoneContext = mock<Context>(autofill)
+        val pluginContext = mockk<Context>(relaxed = true)
+        val phoneContext = mockk<Context>(relaxed = true)
         var dispatchedEventId: String? = null
         val handler = ObservedSmsHandler(
             pluginContext = pluginContext,

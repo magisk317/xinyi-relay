@@ -2,8 +2,7 @@ package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
 import android.content.Intent
-import dev.mokkery.MockMode.autofill
-import dev.mokkery.mock
+import io.mockk.mockk
 import io.github.magisk317.relay.xpbridge.PreparedSmsHookDispatch
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
@@ -25,9 +24,9 @@ class ParsedCodeSmsForwarderTest {
     @Test
     fun forwardIfCodeSms_dispatchesAndMarksIntent() {
         stubXLog()
-        val pluginContext = mock<Context>(autofill)
-        val phoneContext = mock<Context>(autofill)
-        val intent = mock<Intent>(autofill)
+        val pluginContext = mockk<Context>(relaxed = true)
+        val phoneContext = mockk<Context>(relaxed = true)
+        val intent = mockk<Intent>(relaxed = true)
         val smsMsg = smsMsg(body = "otp 123456")
         var preparedEventId: String? = null
         var preparedIntent: Intent? = null
@@ -71,9 +70,9 @@ class ParsedCodeSmsForwarderTest {
     @Test
     fun forwardIfCodeSms_skipsWhenPreparedSmsHasNoCode() {
         stubXLog()
-        val pluginContext = mock<Context>(autofill)
-        val phoneContext = mock<Context>(autofill)
-        val intent = mock<Intent>(autofill)
+        val pluginContext = mockk<Context>(relaxed = true)
+        val phoneContext = mockk<Context>(relaxed = true)
+        val intent = mockk<Intent>(relaxed = true)
         val smsMsg = smsMsg(body = "plain body")
         var dispatched = false
         var marked = false
@@ -108,9 +107,9 @@ class ParsedCodeSmsForwarderTest {
     @Test
     fun forwardIfCodeSms_doesNotMarkIntentWhenDispatchFails() {
         stubXLog()
-        val pluginContext = mock<Context>(autofill)
-        val phoneContext = mock<Context>(autofill)
-        val intent = mock<Intent>(autofill)
+        val pluginContext = mockk<Context>(relaxed = true)
+        val phoneContext = mockk<Context>(relaxed = true)
+        val intent = mockk<Intent>(relaxed = true)
         val smsMsg = smsMsg(body = "otp 654321")
         var marked = false
         val forwarder = ParsedCodeSmsForwarder(

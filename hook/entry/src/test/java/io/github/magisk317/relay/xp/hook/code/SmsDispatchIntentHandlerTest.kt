@@ -2,8 +2,7 @@ package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
 import android.content.Intent
-import dev.mokkery.MockMode.autofill
-import dev.mokkery.mock
+import io.mockk.mockk
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
 import io.github.magisk317.smscode.verification.BlacklistMatchResult
@@ -31,7 +30,7 @@ class SmsDispatchIntentHandlerTest {
         )
 
         val outcome = handler.handle(
-            intent = mock<Intent>(autofill),
+            intent = mockk<Intent>(relaxed = true),
             eventId = "evt-1",
             inboundSmsHandler = Any(),
             receiver = Any(),
@@ -60,7 +59,7 @@ class SmsDispatchIntentHandlerTest {
         )
 
         val outcome = handler.handle(
-            intent = mock<Intent>(autofill),
+            intent = mockk<Intent>(relaxed = true),
             eventId = "evt-2",
             inboundSmsHandler = Any(),
             receiver = Any(),
@@ -100,7 +99,7 @@ class SmsDispatchIntentHandlerTest {
         )
 
         val outcome = handler.handle(
-            intent = mock<Intent>(autofill),
+            intent = mockk<Intent>(relaxed = true),
             eventId = "evt-3",
             inboundSmsHandler = Any(),
             receiver = Any(),
@@ -143,7 +142,7 @@ class SmsDispatchIntentHandlerTest {
         )
 
         val outcome = handler.handle(
-            intent = mock<Intent>(autofill),
+            intent = mockk<Intent>(relaxed = true),
             eventId = "evt-4",
             inboundSmsHandler = Any(),
             receiver = Any(),
@@ -184,7 +183,7 @@ class SmsDispatchIntentHandlerTest {
         )
 
         val outcome = handler.handle(
-            intent = mock<Intent>(autofill),
+            intent = mockk<Intent>(relaxed = true),
             eventId = "evt-5",
             inboundSmsHandler = inboundSmsHandler,
             receiver = Any(),
@@ -198,8 +197,8 @@ class SmsDispatchIntentHandlerTest {
 
     private fun runtime(): SmsHookRuntimeContext {
         return SmsHookRuntimeContext(
-            pluginContext = mock<Context>(autofill),
-            phoneContext = mock<Context>(autofill),
+            pluginContext = mockk<Context>(relaxed = true),
+            phoneContext = mockk<Context>(relaxed = true),
         )
     }
 

@@ -2,8 +2,7 @@ package io.github.magisk317.relay.prefs
 
 import io.github.magisk317.relay.android.prefs.PrefsReader
 import android.content.Context
-import dev.mokkery.MockMode.autofill
-import dev.mokkery.mock
+import io.mockk.mockk
 import io.github.magisk317.relay.contract.prefs.PrefReadResult
 import io.github.magisk317.relay.contract.prefs.PrefsSource
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -14,7 +13,7 @@ class PrefsReaderSourceChainTest {
 
     @Test
     fun resolveBoolean_prefersRemoteThenProviderThenSharedThenDefault() {
-        val context = mock<Context>(autofill)
+        val context = mockk<Context>(relaxed = true)
         val remote = fakeSource(
             name = "remote",
             boolResult = PrefReadResult(true, "remote"),
@@ -41,7 +40,7 @@ class PrefsReaderSourceChainTest {
 
     @Test
     fun resolveBoolean_fallbacksWhenEarlierSourceFails() {
-        val context = mock<Context>(autofill)
+        val context = mockk<Context>(relaxed = true)
         val remoteThrows = object : PrefsSource {
             override val sourceName: String = "remote"
 
@@ -71,7 +70,7 @@ class PrefsReaderSourceChainTest {
 
     @Test
     fun resolveString_fallbackToProviderWhenRemoteIsNull() {
-        val context = mock<Context>(autofill)
+        val context = mockk<Context>(relaxed = true)
         val remote = fakeSource(name = "remote", stringResult = null)
         val provider = fakeSource(
             name = "provider",
@@ -91,7 +90,7 @@ class PrefsReaderSourceChainTest {
 
     @Test
     fun resolveInt_returnsDefaultWhenAllSourcesMiss() {
-        val context = mock<Context>(autofill)
+        val context = mockk<Context>(relaxed = true)
         val remote = fakeSource(name = "remote", intResult = null)
         val provider = fakeSource(name = "provider", intResult = null)
         val shared = fakeSource(name = "shared_prefs", intResult = null)

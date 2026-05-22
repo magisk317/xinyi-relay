@@ -2,12 +2,9 @@ package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
 import android.content.Intent
-import dev.mokkery.MockMode.autofill
-import dev.mokkery.answering.returns
-import dev.mokkery.every
-import dev.mokkery.mock
-import dev.mokkery.verify
-import dev.mokkery.verify.VerifyMode.Companion.exactly
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
 import io.github.magisk317.relay.xp.hook.EXTRA_PARSED_SMS_FORWARD_DISPATCHED
 import io.github.magisk317.relay.xpbridge.PreparedSmsHookDispatch
 import io.github.magisk317.relay.xpbridge.SmsMsg
@@ -32,9 +29,9 @@ class SmsDispatchIntentProcessorTest {
     @Test
     fun handle_passesParsedSmsIntoBlacklistAndDecisionPipeline() {
         stubXLog()
-        val pluginContext = mock<Context>(autofill)
-        val phoneContext = mock<Context>(autofill)
-        val intent = mock<Intent>(autofill)
+        val pluginContext = mockk<Context>(relaxed = true)
+        val phoneContext = mockk<Context>(relaxed = true)
+        val intent = mockk<Intent>(relaxed = true)
         var matchedSender: String? = null
         var matchedBody: String? = null
         val parseResult = ParseResult().apply { isBlockSms = true }
@@ -77,9 +74,9 @@ class SmsDispatchIntentProcessorTest {
     @Test
     fun handle_reportsNullParseResultWhenCodeWorkerMisses() {
         stubXLog()
-        val pluginContext = mock<Context>(autofill)
-        val phoneContext = mock<Context>(autofill)
-        val intent = mock<Intent>(autofill)
+        val pluginContext = mockk<Context>(relaxed = true)
+        val phoneContext = mockk<Context>(relaxed = true)
+        val intent = mockk<Intent>(relaxed = true)
         val processor = SmsDispatchIntentProcessor(
             pluginContext = pluginContext,
             phoneContext = phoneContext,
@@ -101,9 +98,9 @@ class SmsDispatchIntentProcessorTest {
     @Test
     fun handle_dispatchesDirectSmsForwardWhenCodeParsed() {
         stubXLog()
-        val pluginContext = mock<Context>(autofill)
-        val phoneContext = mock<Context>(autofill)
-        val intent = mock<Intent>(autofill)
+        val pluginContext = mockk<Context>(relaxed = true)
+        val phoneContext = mockk<Context>(relaxed = true)
+        val intent = mockk<Intent>(relaxed = true)
         every { intent.putExtra(EXTRA_PARSED_SMS_FORWARD_DISPATCHED, true) } returns intent
         val smsMsg = SmsMsg(
             sender = "1068",
@@ -156,9 +153,9 @@ class SmsDispatchIntentProcessorTest {
     @Test
     fun handle_doesNotMarkIntentWhenDirectSmsForwardFails() {
         stubXLog()
-        val pluginContext = mock<Context>(autofill)
-        val phoneContext = mock<Context>(autofill)
-        val intent = mock<Intent>(autofill)
+        val pluginContext = mockk<Context>(relaxed = true)
+        val phoneContext = mockk<Context>(relaxed = true)
+        val intent = mockk<Intent>(relaxed = true)
         val smsMsg = SmsMsg(
             sender = "1068",
             body = "otp 123456",
@@ -183,15 +180,15 @@ class SmsDispatchIntentProcessorTest {
 
         processor.handle(intent, "evt-3b")
 
-        verify(exactly(0)) { intent.putExtra(EXTRA_PARSED_SMS_FORWARD_DISPATCHED, true) }
+        verify(exactly = 0) { intent.putExtra(EXTRA_PARSED_SMS_FORWARD_DISPATCHED, true) }
     }
 
     @Test
     fun handle_skipsDirectSmsForwardWhenPreparedTypeIsNotSmsCode() {
         stubXLog()
-        val pluginContext = mock<Context>(autofill)
-        val phoneContext = mock<Context>(autofill)
-        val intent = mock<Intent>(autofill)
+        val pluginContext = mockk<Context>(relaxed = true)
+        val phoneContext = mockk<Context>(relaxed = true)
+        val intent = mockk<Intent>(relaxed = true)
         val smsMsg = SmsMsg(
             sender = "1068",
             body = "plain body",

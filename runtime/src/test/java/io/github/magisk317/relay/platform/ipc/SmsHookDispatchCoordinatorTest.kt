@@ -2,8 +2,7 @@ package io.github.magisk317.relay.platform.ipc
 
 import android.content.Context
 import android.content.Intent
-import dev.mokkery.MockMode.autofill
-import dev.mokkery.mock
+import io.mockk.mockk
 import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import kotlinx.coroutines.runBlocking
@@ -68,8 +67,8 @@ class SmsHookDispatchCoordinatorTest {
 
     @Test
     fun prepareIngressSms_mapsIngressResultIntoPreparedDispatch() = runBlocking {
-        val pluginContext = mock<Context>(autofill)
-        val phoneContext = mock<Context>(autofill)
+        val pluginContext = mockk<Context>()
+        val phoneContext = mockk<Context>()
         val smsMsg = SmsMsg(sender = "1068", body = "code 123456")
         val enriched = smsMsg.copy(smsCode = "123456", packageName = "com.bank.app")
 
@@ -101,7 +100,7 @@ class SmsHookDispatchCoordinatorTest {
 
     @Test
     fun enrichObservedSms_buildsSmsMsgBeforeDelegatingToEnricher() {
-        val phoneContext = mock<Context>(autofill)
+        val phoneContext = mockk<Context>()
 
         val enriched = SmsHookDispatchCoordinator.enrichObservedSms(
             phoneContext = phoneContext,
@@ -126,7 +125,7 @@ class SmsHookDispatchCoordinatorTest {
 
     @Test
     fun dispatchPreparedSms_delegatesToSmsHookDispatcher() {
-        val context = mock<Context>(autofill)
+        val context = mockk<Context>(relaxed = true)
         val prepared = PreparedSmsHookDispatch(
             smsMsg = SmsMsg(sender = "1068", body = "code 123456", smsCode = "123456"),
             payload = ForwardBroadcastPayload(eventId = "sms_evt"),

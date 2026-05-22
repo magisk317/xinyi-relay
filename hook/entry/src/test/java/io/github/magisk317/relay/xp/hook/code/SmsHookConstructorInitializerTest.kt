@@ -1,8 +1,7 @@
 package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
-import dev.mokkery.MockMode.autofill
-import dev.mokkery.mock
+import io.mockk.mockk
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
 import io.github.magisk317.smscode.xposed.utils.XLog
 import org.junit.jupiter.api.AfterEach
@@ -22,7 +21,7 @@ class SmsHookConstructorInitializerTest {
     @Test
     fun handle_stopsWhenRuntimeUnavailable() {
         stubXLog()
-        val phoneContext = mock<Context>(autofill)
+        val phoneContext = mockk<Context>(relaxed = true)
         var activationCalls = 0
         val initializer = SmsHookConstructorInitializer(
             runtimeInitializer = { null },
@@ -101,8 +100,8 @@ class SmsHookConstructorInitializerTest {
 
     private fun runtime(): SmsHookRuntimeContext {
         return SmsHookRuntimeContext(
-            pluginContext = mock<Context>(autofill),
-            phoneContext = mock<Context>(autofill),
+            pluginContext = mockk<Context>(relaxed = true),
+            phoneContext = mockk<Context>(relaxed = true),
         )
     }
 

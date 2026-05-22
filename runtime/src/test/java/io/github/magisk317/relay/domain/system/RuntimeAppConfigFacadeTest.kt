@@ -1,8 +1,7 @@
 package io.github.magisk317.relay.domain.system
 
 import android.content.Context
-import dev.mokkery.MockMode.autofill
-import dev.mokkery.mock
+import io.mockk.mockk
 import io.github.magisk317.relay.android.data.db.entity.AppInfo
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -13,7 +12,7 @@ class RuntimeAppConfigFacadeTest {
 
     @Test
     fun isPackageBlocked_returnsDatabaseFlagWhenConfigExists() = runBlocking {
-        val context = mock<Context>(autofill)
+        val context = mockk<Context>(relaxed = true)
 
         val facade = RuntimeAppConfigFacade(
             context = context,
@@ -31,7 +30,7 @@ class RuntimeAppConfigFacadeTest {
 
     @Test
     fun isPackageBlocked_returnsFalseWhenPackageMissing() = runBlocking {
-        val context = mock<Context>(autofill)
+        val context = mockk<Context>(relaxed = true)
 
         val facade = RuntimeAppConfigFacade(
             context = context,
@@ -46,7 +45,7 @@ class RuntimeAppConfigFacadeTest {
 
     @Test
     fun isPackageBlocked_fallsBackToFileWhenRepositoryFails() = runBlocking {
-        val context = mock<Context>(autofill)
+        val context = mockk<Context>(relaxed = true)
 
         val facade = RuntimeAppConfigFacade(
             context = context,

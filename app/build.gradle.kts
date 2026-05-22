@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.google.services)
-    alias(libs.plugins.mokkery)
     id("relay.android.common")
     id("relay.app.signing")
     id("relay.app.packaging")
@@ -99,11 +98,6 @@ tasks.matching { it.name.endsWith("GoogleServices") }.configureEach {
     if (skipGoogleServices || shouldDisableForFdroid) {
         enabled = false
     }
-}
-
-mokkery {
-    defaultMockMode.set(dev.mokkery.MockMode.autofill)
-    ignoreFinalMembers.set(true)
 }
 
 dependencies {

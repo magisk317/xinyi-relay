@@ -1,10 +1,8 @@
 package io.github.magisk317.relay.platform.ipc
 
 import android.content.Intent
-import dev.mokkery.MockMode.autofill
-import dev.mokkery.answering.returns
-import dev.mokkery.every
-import dev.mokkery.mock
+import io.mockk.every
+import io.mockk.mockk
 import io.github.magisk317.relay.contract.constant.MessageType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
@@ -14,7 +12,7 @@ class CustomMessageBroadcastPayloadTest {
 
     @Test
     fun fromIntent_readsCustomMessageExtras() {
-        val intent = mock<Intent>(autofill)
+        val intent = mockk<Intent>(relaxed = true)
         every { intent.getStringExtra(CustomMessageBroadcastContract.EXTRA_MESSAGE) } returns "hello"
         every { intent.getStringExtra(CustomMessageBroadcastContract.EXTRA_TITLE) } returns "custom title"
         every { intent.getStringExtra(CustomMessageBroadcastContract.EXTRA_APP_NAME) } returns "ADB"

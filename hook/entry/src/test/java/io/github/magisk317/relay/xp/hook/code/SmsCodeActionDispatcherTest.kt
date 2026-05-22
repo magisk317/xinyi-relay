@@ -2,8 +2,7 @@ package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
 import android.os.Handler
-import dev.mokkery.MockMode.autofill
-import dev.mokkery.mock
+import io.mockk.mockk
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
 import io.github.magisk317.smscode.xposed.utils.XLog
@@ -22,10 +21,10 @@ class SmsCodeActionDispatcherTest {
 
     @Test
     fun dispatchParsedSmsActions_routesEachEnabledActionToScheduler() {
-        val uiHandler = mock<Handler>(autofill)
-        val executor = mock<ScheduledExecutorService>(autofill)
-        val pluginContext = mock<Context>(autofill)
-        val phoneContext = mock<Context>(autofill)
+        val uiHandler = mockk<Handler>(relaxed = true)
+        val executor = mockk<ScheduledExecutorService>(relaxed = true)
+        val pluginContext = mockk<Context>(relaxed = true)
+        val phoneContext = mockk<Context>(relaxed = true)
         val smsMsg = smsMsg()
         val plan = SmsCodePostParseCoordinator.ParsedSmsPlan(
             blockSms = true,
@@ -79,8 +78,8 @@ class SmsCodeActionDispatcherTest {
 
     @Test
     fun dispatchObservedSmsActions_runsOnlyEnabledImmediateActions() {
-        val pluginContext = mock<Context>(autofill)
-        val phoneContext = mock<Context>(autofill)
+        val pluginContext = mockk<Context>(relaxed = true)
+        val phoneContext = mockk<Context>(relaxed = true)
         val smsMsg = smsMsg()
         val plan = SmsCodePostParseCoordinator.ObservedSmsPlan(
             deduplicateSmsEnabled = true,
@@ -119,7 +118,7 @@ class SmsCodeActionDispatcherTest {
     @Test
     fun claimAutoInputDispatch_skipsSecondMessageWhenCodeMatchesWithinWindow() {
         XLog.setTestSink { _, _ -> }
-        val pluginContext = mock<Context>(autofill)
+        val pluginContext = mockk<Context>(relaxed = true)
         val claimedAt = LinkedHashMap<String, Long>()
         var now = 5_000L
         val gateClaimer =
