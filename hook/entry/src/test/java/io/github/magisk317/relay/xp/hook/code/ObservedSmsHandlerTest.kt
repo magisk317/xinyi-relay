@@ -1,11 +1,11 @@
 package io.github.magisk317.relay.xp.hook.code
 
-import android.content.Context
-import io.mockk.mockk
+import io.github.magisk317.relay.testing.clearXpLogSink
+import io.github.magisk317.relay.testing.installSilentXpLogSink
+import io.github.magisk317.relay.testing.relaxedHookContexts
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
 import io.github.magisk317.smscode.verification.SmsInboxObserverDecision
-import io.github.magisk317.smscode.xposed.utils.XLog
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -17,14 +17,13 @@ class ObservedSmsHandlerTest {
 
     @AfterEach
     fun tearDown() {
-        XLog.setTestSink(null)
+        clearXpLogSink()
     }
 
     @Test
     fun handle_skipsDispatchWhenConflictSuppressed() {
-        stubXLog()
-        val pluginContext = mockk<Context>(relaxed = true)
-        val phoneContext = mockk<Context>(relaxed = true)
+        installSilentXpLogSink()
+        val (pluginContext, phoneContext) = relaxedHookContexts()
         var roleLogCount = 0
         var dispatchCount = 0
         val handler = ObservedSmsHandler(
@@ -49,9 +48,8 @@ class ObservedSmsHandlerTest {
 
     @Test
     fun handle_dispatchesObservedSmsWhenHealthy() {
-        stubXLog()
-        val pluginContext = mockk<Context>(relaxed = true)
-        val phoneContext = mockk<Context>(relaxed = true)
+        installSilentXpLogSink()
+        val (pluginContext, phoneContext) = relaxedHookContexts()
         var loggedEventId: String? = null
         var dispatchedEventId: String? = null
         var dispatchedSms: SmsMsg? = null
@@ -104,9 +102,8 @@ class ObservedSmsHandlerTest {
 
     @Test
     fun handle_skipsDispatchWhenSmsAlreadyRead() {
-        stubXLog()
-        val pluginContext = mockk<Context>(relaxed = true)
-        val phoneContext = mockk<Context>(relaxed = true)
+        installSilentXpLogSink()
+        val (pluginContext, phoneContext) = relaxedHookContexts()
         var roleLogCount = 0
         var dispatchCount = 0
         val handler = ObservedSmsHandler(
@@ -130,9 +127,8 @@ class ObservedSmsHandlerTest {
 
     @Test
     fun handle_skipsDispatchWhenObservedSmsAlreadyClaimed() {
-        stubXLog()
-        val pluginContext = mockk<Context>(relaxed = true)
-        val phoneContext = mockk<Context>(relaxed = true)
+        installSilentXpLogSink()
+        val (pluginContext, phoneContext) = relaxedHookContexts()
         var roleLogCount = 0
         var dispatchCount = 0
         val handler = ObservedSmsHandler(
@@ -157,9 +153,8 @@ class ObservedSmsHandlerTest {
 
     @Test
     fun handle_usesCurrentTimeForMissingSmsDate() {
-        stubXLog()
-        val pluginContext = mockk<Context>(relaxed = true)
-        val phoneContext = mockk<Context>(relaxed = true)
+        installSilentXpLogSink()
+        val (pluginContext, phoneContext) = relaxedHookContexts()
         var dispatchedEventId: String? = null
         val handler = ObservedSmsHandler(
             pluginContext = pluginContext,
@@ -232,9 +227,5 @@ class ObservedSmsHandlerTest {
             autoInputDelayMs = 0L,
             shouldRecord = shouldRecord,
         )
-    }
-
-    private fun stubXLog() {
-        XLog.setTestSink { _, _ -> }
     }
 }

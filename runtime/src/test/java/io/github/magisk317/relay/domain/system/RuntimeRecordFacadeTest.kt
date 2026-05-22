@@ -1,12 +1,11 @@
 package io.github.magisk317.relay.domain.system
 
-import android.content.Context
-import io.mockk.every
 import io.mockk.coEvery
-import io.mockk.mockk
-import io.github.magisk317.relay.android.data.db.AppDatabase
-import io.github.magisk317.relay.android.data.db.dao.SmsMsgDao
+import io.mockk.every
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
+import io.github.magisk317.relay.testing.relaxedContext
+import io.github.magisk317.relay.testing.runtimeSmsMsg
+import io.github.magisk317.relay.testing.smsMsgDatabaseFixture
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -16,17 +15,9 @@ class RuntimeRecordFacadeTest {
 
     @Test
     fun insertSmsRecord_delegatesToRelayRecordRepository() = runBlocking {
-        val context = mockk<Context>(relaxed = true)
-        val database = mockk<AppDatabase>(relaxed = true)
-        val smsMsg = SmsMsg(
-            sender = "1068",
-            body = "code 123456",
-            date = 100L,
-            company = "Bank",
-            smsCode = "123456",
-            packageName = "com.bank.app",
-            msgType = SmsMsg.MSG_TYPE_SMS,
-        )
+        val context = relaxedContext()
+        val database = smsMsgDatabaseFixture().database
+        val smsMsg = runtimeSmsMsg()
         var insertedSmsMsg: SmsMsg? = null
         var insertedIsCodeSms: Boolean? = null
 
@@ -48,17 +39,14 @@ class RuntimeRecordFacadeTest {
 
     @Test
     fun persistSmsForwardResult_updatesExistingRecord() = runBlocking {
-        val context = mockk<Context>(relaxed = true)
-        val database = mockk<AppDatabase>(relaxed = true)
-        val smsMsgDao = mockk<SmsMsgDao>(relaxed = true)
-        val existing = SmsMsg(
+        val context = relaxedContext()
+        val (database, smsMsgDao) = smsMsgDatabaseFixture()
+        val existing = runtimeSmsMsg(
             id = 7L,
             sender = "1068",
             body = "code 123456",
             date = 100L,
-            msgType = SmsMsg.MSG_TYPE_SMS,
         )
-        every { database.smsMsgDao() } returns smsMsgDao
         coEvery { smsMsgDao.getByFingerprint("1068", "code 123456", 100L, SmsMsg.MSG_TYPE_SMS) } returns existing
         var updatedArg: SmsMsg? = null
         coEvery { smsMsgDao.update(any()) } coAnswers {
@@ -84,17 +72,14 @@ class RuntimeRecordFacadeTest {
 
     @Test
     fun persistSmsHookDispatchFailure_usesDefaultTargetAndFailedStatus() = runBlocking {
-        val context = mockk<Context>(relaxed = true)
-        val database = mockk<AppDatabase>(relaxed = true)
-        val smsMsgDao = mockk<SmsMsgDao>(relaxed = true)
-        val existing = SmsMsg(
+        val context = relaxedContext()
+        val (database, smsMsgDao) = smsMsgDatabaseFixture()
+        val existing = runtimeSmsMsg(
             id = 9L,
             sender = "1068",
             body = "code 123456",
             date = 100L,
-            msgType = SmsMsg.MSG_TYPE_SMS,
         )
-        every { database.smsMsgDao() } returns smsMsgDao
         coEvery { smsMsgDao.getByFingerprint("1068", "code 123456", 100L, SmsMsg.MSG_TYPE_SMS) } returns existing
         var updatedArg: SmsMsg? = null
         coEvery { smsMsgDao.update(any()) } coAnswers {
@@ -116,19 +101,9 @@ class RuntimeRecordFacadeTest {
 
     @Test
     fun persistSmsForwardResult_insertsWhenRecordMissing() = runBlocking {
-        val context = mockk<Context>(relaxed = true)
-        val database = mockk<AppDatabase>(relaxed = true)
-        val smsMsgDao = mockk<SmsMsgDao>(relaxed = true)
-        val smsMsg = SmsMsg(
-            sender = "1068",
-            body = "code 123456",
-            date = 100L,
-            company = "Bank",
-            smsCode = "123456",
-            packageName = "com.bank.app",
-            msgType = SmsMsg.MSG_TYPE_SMS,
-        )
-        every { database.smsMsgDao() } returns smsMsgDao
+        val context = relaxedContext()
+        val (database, smsMsgDao) = smsMsgDatabaseFixture()
+        val smsMsg = runtimeSmsMsg()
         coEvery { smsMsgDao.getByFingerprint("1068", "code 123456", 100L, SmsMsg.MSG_TYPE_SMS) } returns null
         var insertedArg: SmsMsg? = null
         coEvery { smsMsgDao.insert(any()) } coAnswers {
@@ -153,11 +128,9 @@ class RuntimeRecordFacadeTest {
 
     @Test
     fun duplicateQueries_delegateToSmsMsgDao() = runBlocking {
-        val context = mockk<Context>(relaxed = true)
-        val database = mockk<AppDatabase>(relaxed = true)
-        val smsMsgDao = mockk<SmsMsgDao>(relaxed = true)
-        val hit = SmsMsg(id = 1L, sender = "1068", body = "code 123456", date = 100L)
-        every { database.smsMsgDao() } returns smsMsgDao
+        val context = relaxedContext()
+        val (database, smsMsgDao) = smsMsgDatabaseFixture()
+        val hit = runtimeSmsMsg(id = 1L)
         every { smsMsgDao.getByFingerprintInRange("1068", "code 123456", SmsMsg.MSG_TYPE_SMS, 90L, 110L) } returns hit
         every { smsMsgDao.getByCodeAndPackageInRange("123456", "com.bank.app", SmsMsg.MSG_TYPE_SMS, 90L, 110L) } returns hit
         every { smsMsgDao.getByCodeAndCompanyInRange("123456", "Bank", SmsMsg.MSG_TYPE_SMS, 90L, 110L) } returns hit

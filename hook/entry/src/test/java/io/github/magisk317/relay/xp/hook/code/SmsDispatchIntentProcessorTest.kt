@@ -1,16 +1,17 @@
 package io.github.magisk317.relay.xp.hook.code
 
-import android.content.Context
 import android.content.Intent
 import io.mockk.every
-import io.mockk.mockk
 import io.mockk.verify
 import io.github.magisk317.relay.xp.hook.EXTRA_PARSED_SMS_FORWARD_DISPATCHED
+import io.github.magisk317.relay.testing.clearXpLogSink
+import io.github.magisk317.relay.testing.hookSmsMsg
+import io.github.magisk317.relay.testing.installSilentXpLogSink
+import io.github.magisk317.relay.testing.relaxedHookContexts
+import io.github.magisk317.relay.testing.relaxedIntent
 import io.github.magisk317.relay.xpbridge.PreparedSmsHookDispatch
-import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
 import io.github.magisk317.smscode.verification.BlacklistMatchResult
-import io.github.magisk317.smscode.xposed.utils.XLog
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -23,15 +24,14 @@ class SmsDispatchIntentProcessorTest {
 
     @AfterEach
     fun tearDown() {
-        XLog.setTestSink(null)
+        clearXpLogSink()
     }
 
     @Test
     fun handle_passesParsedSmsIntoBlacklistAndDecisionPipeline() {
-        stubXLog()
-        val pluginContext = mockk<Context>(relaxed = true)
-        val phoneContext = mockk<Context>(relaxed = true)
-        val intent = mockk<Intent>(relaxed = true)
+        installSilentXpLogSink()
+        val (pluginContext, phoneContext) = relaxedHookContexts()
+        val intent = relaxedIntent()
         var matchedSender: String? = null
         var matchedBody: String? = null
         val parseResult = ParseResult().apply { isBlockSms = true }
@@ -39,12 +39,7 @@ class SmsDispatchIntentProcessorTest {
             pluginContext = pluginContext,
             phoneContext = phoneContext,
             incomingSmsParser = {
-                SmsMsg(
-                    sender = "1068",
-                    body = "otp 123456",
-                    date = 100L,
-                    msgType = SmsMsg.MSG_TYPE_SMS,
-                )
+                hookSmsMsg()
             },
             blacklistMatcher = { _, sender, body ->
                 matchedSender = sender
@@ -73,10 +68,9 @@ class SmsDispatchIntentProcessorTest {
 
     @Test
     fun handle_reportsNullParseResultWhenCodeWorkerMisses() {
-        stubXLog()
-        val pluginContext = mockk<Context>(relaxed = true)
-        val phoneContext = mockk<Context>(relaxed = true)
-        val intent = mockk<Intent>(relaxed = true)
+        installSilentXpLogSink()
+        val (pluginContext, phoneContext) = relaxedHookContexts()
+        val intent = relaxedIntent()
         val processor = SmsDispatchIntentProcessor(
             pluginContext = pluginContext,
             phoneContext = phoneContext,
@@ -97,17 +91,11 @@ class SmsDispatchIntentProcessorTest {
 
     @Test
     fun handle_dispatchesDirectSmsForwardWhenCodeParsed() {
-        stubXLog()
-        val pluginContext = mockk<Context>(relaxed = true)
-        val phoneContext = mockk<Context>(relaxed = true)
-        val intent = mockk<Intent>(relaxed = true)
+        installSilentXpLogSink()
+        val (pluginContext, phoneContext) = relaxedHookContexts()
+        val intent = relaxedIntent()
         every { intent.putExtra(EXTRA_PARSED_SMS_FORWARD_DISPATCHED, true) } returns intent
-        val smsMsg = SmsMsg(
-            sender = "1068",
-            body = "otp 123456",
-            date = 100L,
-            msgType = SmsMsg.MSG_TYPE_SMS,
-        )
+        val smsMsg = hookSmsMsg()
         val parseResult = ParseResult().apply { isBlockSms = false }
         val preparedSmsMsg = smsMsg.copy(
             smsCode = "123456",
@@ -152,16 +140,10 @@ class SmsDispatchIntentProcessorTest {
 
     @Test
     fun handle_doesNotMarkIntentWhenDirectSmsForwardFails() {
-        stubXLog()
-        val pluginContext = mockk<Context>(relaxed = true)
-        val phoneContext = mockk<Context>(relaxed = true)
-        val intent = mockk<Intent>(relaxed = true)
-        val smsMsg = SmsMsg(
-            sender = "1068",
-            body = "otp 123456",
-            date = 100L,
-            msgType = SmsMsg.MSG_TYPE_SMS,
-        )
+        installSilentXpLogSink()
+        val (pluginContext, phoneContext) = relaxedHookContexts()
+        val intent = relaxedIntent()
+        val smsMsg = hookSmsMsg()
         val processor = SmsDispatchIntentProcessor(
             pluginContext = pluginContext,
             phoneContext = phoneContext,
@@ -185,16 +167,10 @@ class SmsDispatchIntentProcessorTest {
 
     @Test
     fun handle_skipsDirectSmsForwardWhenPreparedTypeIsNotSmsCode() {
-        stubXLog()
-        val pluginContext = mockk<Context>(relaxed = true)
-        val phoneContext = mockk<Context>(relaxed = true)
-        val intent = mockk<Intent>(relaxed = true)
-        val smsMsg = SmsMsg(
-            sender = "1068",
-            body = "plain body",
-            date = 100L,
-            msgType = SmsMsg.MSG_TYPE_SMS,
-        )
+        installSilentXpLogSink()
+        val (pluginContext, phoneContext) = relaxedHookContexts()
+        val intent = relaxedIntent()
+        val smsMsg = hookSmsMsg(body = "plain body")
         var dispatched = false
         val processor = SmsDispatchIntentProcessor(
             pluginContext = pluginContext,
@@ -218,9 +194,5 @@ class SmsDispatchIntentProcessorTest {
         processor.handle(intent, "evt-4")
 
         assertFalse(dispatched)
-    }
-
-    private fun stubXLog() {
-        XLog.setTestSink { _, _ -> }
     }
 }

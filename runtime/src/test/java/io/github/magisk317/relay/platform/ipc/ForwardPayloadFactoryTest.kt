@@ -1,9 +1,9 @@
 package io.github.magisk317.relay.platform.ipc
 
-import android.content.Intent
-import io.mockk.every
-import io.mockk.mockk
-import io.github.magisk317.relay.android.data.db.entity.SmsMsg
+import io.github.magisk317.relay.testing.relaxedIntent
+import io.github.magisk317.relay.testing.runtimeSmsMsg
+import io.github.magisk317.relay.testing.stubSimRouting
+import io.github.magisk317.relay.testing.stubStringExtra
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -12,8 +12,8 @@ class ForwardPayloadFactoryTest {
 
     @Test
     fun ensureSmsEventId_reusesExistingValue() {
-        val intent = mockk<Intent>(relaxed = true)
-        every { intent.getStringExtra(ForwardBroadcastContract.EXTRA_EVENT_ID) } returns "sms_existing"
+        val intent = relaxedIntent()
+        intent.stubStringExtra(ForwardBroadcastContract.EXTRA_EVENT_ID, "sms_existing")
 
         val eventId = ForwardPayloadFactory.ensureSmsEventId(intent)
 
@@ -22,23 +22,16 @@ class ForwardPayloadFactoryTest {
 
     @Test
     fun smsPayload_usesSmsMsgAndSimRouting() {
-        val sourceIntent = mockk<Intent>(relaxed = true)
-        every { sourceIntent.hasExtra("slot") } returns true
-        every { sourceIntent.getIntExtra("slot", Int.MIN_VALUE) } returns 1
-        every { sourceIntent.hasExtra("subscription") } returns false
-        every { sourceIntent.hasExtra("subscription_id") } returns true
-        every { sourceIntent.getIntExtra("subscription_id", Int.MIN_VALUE) } returns 7
-        every { sourceIntent.hasExtra(ForwardBroadcastContract.EXTRA_SUB_ID) } returns false
-        every { sourceIntent.hasExtra(ForwardBroadcastContract.EXTRA_SIM_SLOT) } returns false
-        every { sourceIntent.hasExtra("simId") } returns false
-        every { sourceIntent.hasExtra("sim_id") } returns false
-        every { sourceIntent.hasExtra("simSlot") } returns false
-        every { sourceIntent.hasExtra("android.telephony.extra.SLOT_INDEX") } returns false
-        every { sourceIntent.hasExtra("android.telephony.extra.SUBSCRIPTION_INDEX") } returns false
-        every { sourceIntent.hasExtra("android.telephony.extra.SUBSCRIPTION_ID") } returns false
+        val sourceIntent = relaxedIntent()
+        sourceIntent.stubSimRouting(
+            simSlotKey = "slot",
+            simSlot = 1,
+            subIdKey = "subscription_id",
+            subId = 7,
+        )
 
         val payload = ForwardPayloadFactory.smsPayload(
-            smsMsg = SmsMsg(
+            smsMsg = runtimeSmsMsg(
                 sender = "Bank",
                 body = "code 123456",
                 date = 1L,

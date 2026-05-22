@@ -1,8 +1,8 @@
 package io.github.magisk317.relay.xp.hook.forward
 
-import android.content.Intent
+import io.github.magisk317.relay.testing.relaxedIntent
+import io.github.magisk317.relay.testing.stubHookSimRouting
 import io.mockk.every
-import io.mockk.mockk
 import io.mockk.verify
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -16,7 +16,7 @@ class SmsForwardSimRoutingResolverTest {
 
     @Test
     fun ensureSimRoutingExtras_readsPhoneFromHandler() {
-        val intent = mockk<Intent>(relaxed = true)
+        val intent = relaxedIntent()
         every { intent.hasExtra(any()) } returns false
 
         val resolved = SmsForwardSimRoutingResolver.ensureSimRoutingExtras(
@@ -34,7 +34,7 @@ class SmsForwardSimRoutingResolverTest {
 
     @Test
     fun ensureSimRoutingExtras_prefersArgsWhenIntentMissing() {
-        val intent = mockk<Intent>(relaxed = true)
+        val intent = relaxedIntent()
         every { intent.hasExtra(any()) } returns false
 
         val resolved = SmsForwardSimRoutingResolver.ensureSimRoutingExtras(
@@ -52,20 +52,8 @@ class SmsForwardSimRoutingResolverTest {
 
     @Test
     fun ensureSimRoutingExtras_keepsExistingIntentExtras() {
-        val intent = mockk<Intent>(relaxed = true)
-        every { intent.hasExtra(EXTRA_SIM_SLOT) } returns true
-        every { intent.hasExtra(EXTRA_SUB_ID) } returns true
-        every { intent.hasExtra("slot") } returns false
-        every { intent.hasExtra("simId") } returns false
-        every { intent.hasExtra("sim_id") } returns false
-        every { intent.hasExtra("simSlot") } returns false
-        every { intent.hasExtra("android.telephony.extra.SLOT_INDEX") } returns false
-        every { intent.hasExtra("subscription") } returns false
-        every { intent.hasExtra("subscription_id") } returns false
-        every { intent.hasExtra("android.telephony.extra.SUBSCRIPTION_INDEX") } returns false
-        every { intent.hasExtra("android.telephony.extra.SUBSCRIPTION_ID") } returns false
-        every { intent.getIntExtra(EXTRA_SIM_SLOT, Int.MIN_VALUE) } returns 0
-        every { intent.getIntExtra(EXTRA_SUB_ID, Int.MIN_VALUE) } returns 11
+        val intent = relaxedIntent()
+        intent.stubHookSimRouting(simSlot = 0, subId = 11)
 
         val resolved = SmsForwardSimRoutingResolver.ensureSimRoutingExtras(
             intent = intent,

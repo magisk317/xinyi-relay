@@ -1,12 +1,13 @@
 package io.github.magisk317.relay.xp.hook.code
 
-import android.content.Context
 import android.content.Intent
-import io.mockk.mockk
+import io.github.magisk317.relay.testing.clearXpLogSink
+import io.github.magisk317.relay.testing.hookSmsMsg
+import io.github.magisk317.relay.testing.installSilentXpLogSink
+import io.github.magisk317.relay.testing.relaxedHookContexts
+import io.github.magisk317.relay.testing.relaxedIntent
 import io.github.magisk317.relay.xpbridge.PreparedSmsHookDispatch
-import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
-import io.github.magisk317.smscode.xposed.utils.XLog
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -18,16 +19,15 @@ class ParsedCodeSmsForwarderTest {
 
     @AfterEach
     fun tearDown() {
-        XLog.setTestSink(null)
+        clearXpLogSink()
     }
 
     @Test
     fun forwardIfCodeSms_dispatchesAndMarksIntent() {
-        stubXLog()
-        val pluginContext = mockk<Context>(relaxed = true)
-        val phoneContext = mockk<Context>(relaxed = true)
-        val intent = mockk<Intent>(relaxed = true)
-        val smsMsg = smsMsg(body = "otp 123456")
+        installSilentXpLogSink()
+        val (pluginContext, phoneContext) = relaxedHookContexts()
+        val intent = relaxedIntent()
+        val smsMsg = hookSmsMsg(body = "otp 123456")
         var preparedEventId: String? = null
         var preparedIntent: Intent? = null
         var dispatchedPrepared: PreparedSmsHookDispatch? = null
@@ -69,11 +69,10 @@ class ParsedCodeSmsForwarderTest {
 
     @Test
     fun forwardIfCodeSms_skipsWhenPreparedSmsHasNoCode() {
-        stubXLog()
-        val pluginContext = mockk<Context>(relaxed = true)
-        val phoneContext = mockk<Context>(relaxed = true)
-        val intent = mockk<Intent>(relaxed = true)
-        val smsMsg = smsMsg(body = "plain body")
+        installSilentXpLogSink()
+        val (pluginContext, phoneContext) = relaxedHookContexts()
+        val intent = relaxedIntent()
+        val smsMsg = hookSmsMsg(body = "plain body")
         var dispatched = false
         var marked = false
         val forwarder = ParsedCodeSmsForwarder(
@@ -106,11 +105,10 @@ class ParsedCodeSmsForwarderTest {
 
     @Test
     fun forwardIfCodeSms_doesNotMarkIntentWhenDispatchFails() {
-        stubXLog()
-        val pluginContext = mockk<Context>(relaxed = true)
-        val phoneContext = mockk<Context>(relaxed = true)
-        val intent = mockk<Intent>(relaxed = true)
-        val smsMsg = smsMsg(body = "otp 654321")
+        installSilentXpLogSink()
+        val (pluginContext, phoneContext) = relaxedHookContexts()
+        val intent = relaxedIntent()
+        val smsMsg = hookSmsMsg(body = "otp 654321")
         var marked = false
         val forwarder = ParsedCodeSmsForwarder(
             smsForwardPreparer = { _, _, _, sourceIntent, eventId ->
@@ -134,18 +132,5 @@ class ParsedCodeSmsForwarderTest {
 
         assertFalse(forwarded)
         assertFalse(marked)
-    }
-
-    private fun smsMsg(body: String): SmsMsg {
-        return SmsMsg(
-            sender = "1068",
-            body = body,
-            date = 100L,
-            msgType = SmsMsg.MSG_TYPE_SMS,
-        )
-    }
-
-    private fun stubXLog() {
-        XLog.setTestSink { _, _ -> }
     }
 }

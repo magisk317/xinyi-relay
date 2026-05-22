@@ -1,9 +1,9 @@
 package io.github.magisk317.relay.platform.ipc
 
-import android.content.Intent
-import io.mockk.every
-import io.mockk.mockk
 import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.relay.testing.relaxedIntent
+import io.github.magisk317.relay.testing.stubLongArrayExtra
+import io.github.magisk317.relay.testing.stubStringExtra
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
@@ -12,14 +12,17 @@ class CustomMessageBroadcastPayloadTest {
 
     @Test
     fun fromIntent_readsCustomMessageExtras() {
-        val intent = mockk<Intent>(relaxed = true)
-        every { intent.getStringExtra(CustomMessageBroadcastContract.EXTRA_MESSAGE) } returns "hello"
-        every { intent.getStringExtra(CustomMessageBroadcastContract.EXTRA_TITLE) } returns "custom title"
-        every { intent.getStringExtra(CustomMessageBroadcastContract.EXTRA_APP_NAME) } returns "ADB"
-        every { intent.getStringExtra(CustomMessageBroadcastContract.EXTRA_PACKAGE_NAME) } returns "com.example.tool"
-        every { intent.getStringExtra(CustomMessageBroadcastContract.EXTRA_NOTIFY_CHANNEL_ID) } returns "manual"
-        every { intent.getStringExtra(CustomMessageBroadcastContract.EXTRA_EVENT_ID) } returns "custom_event"
-        every { intent.getLongArrayExtra(CustomMessageBroadcastContract.EXTRA_TARGET_SENDER_IDS) } returns longArrayOf(7L, 9L, 9L)
+        val intent = relaxedIntent()
+        intent.stubStringExtra(CustomMessageBroadcastContract.EXTRA_MESSAGE, "hello")
+        intent.stubStringExtra(CustomMessageBroadcastContract.EXTRA_TITLE, "custom title")
+        intent.stubStringExtra(CustomMessageBroadcastContract.EXTRA_APP_NAME, "ADB")
+        intent.stubStringExtra(CustomMessageBroadcastContract.EXTRA_PACKAGE_NAME, "com.example.tool")
+        intent.stubStringExtra(CustomMessageBroadcastContract.EXTRA_NOTIFY_CHANNEL_ID, "manual")
+        intent.stubStringExtra(CustomMessageBroadcastContract.EXTRA_EVENT_ID, "custom_event")
+        intent.stubLongArrayExtra(
+            CustomMessageBroadcastContract.EXTRA_TARGET_SENDER_IDS,
+            longArrayOf(7L, 9L, 9L),
+        )
 
         val restored = CustomMessageBroadcastPayload.fromIntent(intent)
 
