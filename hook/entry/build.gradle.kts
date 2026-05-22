@@ -20,10 +20,6 @@ android {
         buildConfigField("int", "MODULE_VERSION", libs.versions.versionCode.get())
         buildConfigField("boolean", "ALLOW_CONFLICT_BYPASS", "false")
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_25
-        targetCompatibility = JavaVersion.VERSION_25
-    }
 }
 
 mokkery {

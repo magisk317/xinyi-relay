@@ -88,16 +88,6 @@ android {
         }
     }
 
-    val javaVersion = JavaVersion.toVersion(libs.versions.javaBytecode.get())
-    kotlin {
-        compilerOptions {
-            jvmTarget.set(
-                runCatching {
-                    org.jetbrains.kotlin.gradle.dsl.JvmTarget.fromTarget(javaVersion.toString())
-                }.getOrElse { org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_25 }
-            )
-        }
-    }
 }
 
 tasks.named("preBuild") {
