@@ -6,6 +6,7 @@ targetSdk = "37"
 ndk = "30.0.14904198"
 
 # JVM versions
+java = "26"
 javaBytecode = "17"
 
 # App version
@@ -48,6 +49,7 @@ kover = "0.9.8"
 ksp = "2.3.9"
 lifecycle = "2.10.0"
 mokkery = "3.3.0"
+mockk = "1.14.9"
 miuix = "0.8.8"
 navigation = "2.9.8"
 netty-codec = "4.1.133.Final"
@@ -130,6 +132,7 @@ ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "kotlin-kt
 ktor-server-auth = { module = "io.ktor:ktor-server-auth", version.ref = "kotlin-ktor" }
 ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "kotlin-ktor" }
 mokkery-runtime-jvm = { module = "dev.mokkery:mokkery-runtime-jvm", version.ref = "mokkery" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 miuix = { module = "top.yukonga.miuix.kmp:miuix", version.ref = "miuix" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 okhttp-tls = { module = "com.squareup.okhttp3:okhttp-tls", version.ref = "okhttp" }
