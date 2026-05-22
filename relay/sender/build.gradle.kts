@@ -24,12 +24,6 @@ android {
         }
     }
 
-    val javaVersion = JavaVersion.toVersion(libs.versions.javaBytecode.get())
-    kotlin {
-        compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.fromTarget(javaVersion.toString()))
-        }
-    }
 }
 
 dependencies {
