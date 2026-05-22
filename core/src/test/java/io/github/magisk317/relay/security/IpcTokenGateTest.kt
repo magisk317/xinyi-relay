@@ -24,8 +24,21 @@ class IpcTokenGateTest {
     }
 
     @Test
-    fun evaluate_acceptsEmptyExpectedTokenAsLegacyCompatBypass() {
+    fun evaluate_rejectsEmptyExpectedTokenByDefault() {
         val decision = IpcTokenGate.evaluate(expectedToken = "", receivedToken = null)
+
+        assertFalse(decision.accepted)
+        assertFalse(decision.tokenMatched)
+        assertFalse(decision.compatBypassUsed)
+    }
+
+    @Test
+    fun evaluate_acceptsEmptyExpectedTokenOnlyWhenCompatBypassExplicitlyAllowed() {
+        val decision = IpcTokenGate.evaluate(
+            expectedToken = "",
+            receivedToken = null,
+            allowEmptyExpectedTokenBypass = true,
+        )
 
         assertTrue(decision.accepted)
         assertFalse(decision.tokenMatched)

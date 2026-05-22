@@ -56,13 +56,14 @@ object DingtalkInnerRobotUtils {
                     throw IllegalStateException("钉钉内部机器人 token HTTP ${response.code}: ${response.message}")
                 }
                 val result = SenderWireJson.decode<DingtalkInnerRobotResult>(body)
-                if (!result.accessToken.isNullOrBlank()) {
+                val accessToken = result.accessToken.orEmpty()
+                if (accessToken.isNotBlank()) {
                     val expires = (result.expireIn ?: 7200L)
                     tokenCache[setting.agentID] = TokenCache(
-                        token = result.accessToken!!,
+                        token = accessToken,
                         expiresAt = System.currentTimeMillis() + (expires - 120) * 1000,
                     )
-                    result.accessToken
+                    accessToken
                 } else {
                     SLog.e(TAG, "Get token response unexpected: $body")
                     throw IllegalStateException("钉钉内部机器人 token 返回失败: $body")

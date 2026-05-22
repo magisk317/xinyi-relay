@@ -7,13 +7,17 @@ data class IpcTokenGateDecision(
 )
 
 object IpcTokenGate {
-    fun evaluate(expectedToken: String?, receivedToken: String?): IpcTokenGateDecision {
+    fun evaluate(
+        expectedToken: String?,
+        receivedToken: String?,
+        allowEmptyExpectedTokenBypass: Boolean = false,
+    ): IpcTokenGateDecision {
         val expected = expectedToken.orEmpty()
         if (expected.isBlank()) {
             return IpcTokenGateDecision(
-                accepted = true,
+                accepted = allowEmptyExpectedTokenBypass,
                 tokenMatched = false,
-                compatBypassUsed = true,
+                compatBypassUsed = allowEmptyExpectedTokenBypass,
             )
         }
         val matched = receivedToken == expected

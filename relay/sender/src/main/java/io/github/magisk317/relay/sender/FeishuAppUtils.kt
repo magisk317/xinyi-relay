@@ -46,13 +46,14 @@ object FeishuAppUtils {
                     throw IllegalStateException("飞书应用 token HTTP ${response.code}: ${response.message}")
                 }
                 val result = SenderWireJson.decode<FeishuAppResult>(body)
-                if (result.code == 0L && !result.tenant_access_token.isNullOrBlank()) {
+                val tenantAccessToken = result.tenant_access_token.orEmpty()
+                if (result.code == 0L && tenantAccessToken.isNotBlank()) {
                     val expires = result.expire ?: 7200L
                     tokenCache[setting.appId] = TokenCache(
-                        token = result.tenant_access_token!!,
+                        token = tenantAccessToken,
                         expiresAt = System.currentTimeMillis() + (expires - 120) * 1000,
                     )
-                    result.tenant_access_token
+                    tenantAccessToken
                 } else {
                     SLog.e(TAG, "Fetch token response unexpected: $body")
                     throw IllegalStateException("飞书应用 token 返回失败: $body")

@@ -18,7 +18,7 @@ class SecurityInitializer : AppInitializer {
         AppInitExecution.runWhenUserUnlocked(application, scope, "SecurityInitializer") {
             val preferenceDataSource = RuntimeGraph.from(application).preferenceDataSource
             val token = preferenceDataSource.getString(PrefConst.KEY_IPC_TOKEN, "")
-            if (token.isEmpty()) {
+            if (token.isBlank()) {
                 val newToken = UUID.randomUUID().toString()
                 preferenceDataSource.setString(PrefConst.KEY_IPC_TOKEN, newToken)
                 Timber.i("Generated new IPC Security Token via DataStore")

@@ -10,13 +10,33 @@ import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.relay.security.IpcTokenGate
 import io.github.magisk317.smscode.xposed.hook.system.SystemInputInjectorHook
 import kotlinx.coroutines.runBlocking
-import kotlin.concurrent.thread
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
 
 object AutoInputResultHandler {
     val action: String
         get() = SystemInputInjectorHook.resolveActionAutoInputResult()
 
-    fun handle(context: Context, intent: Intent) {
+    fun handle(context: Context, intent: Intent, onComplete: () -> Unit = {}) {
+        runCatching {
+            AUTO_INPUT_RESULT_EXECUTOR.execute {
+                try {
+                    handleOnWorker(context, intent)
+                } finally {
+                    onComplete()
+                }
+            }
+        }.onFailure { error ->
+            XLog.w(
+                "AutoInput result worker rejected: %s",
+                error.message ?: error.javaClass.simpleName,
+            )
+            onComplete()
+        }
+    }
+
+    private fun handleOnWorker(context: Context, intent: Intent) {
         val attemptId = intent.getLongExtra("attemptId", -1L)
         if (attemptId <= 0L) return
         val runtimeGraph = RuntimeGraph.from(context)
@@ -28,21 +48,19 @@ object AutoInputResultHandler {
                 runtimeGraph.preferenceDataSource.getString(key, defaultValue)
             }
         }
+        val receivedToken = intent.getStringExtra(SystemInputInjectorHook.EXTRA_IPC_TOKEN)
         val tokenDecision = IpcTokenGate.evaluate(
             expectedToken = expectedToken,
-            receivedToken = intent.getStringExtra(SystemInputInjectorHook.EXTRA_IPC_TOKEN),
+            receivedToken = receivedToken,
         )
         if (!tokenDecision.accepted) {
             XLog.w(
                 "Diag AutoInputResultReceiver rejected token: attemptId=%d expectedEmpty=%s receivedEmpty=%s",
                 attemptId,
                 expectedToken.isBlank(),
-                intent.getStringExtra(SystemInputInjectorHook.EXTRA_IPC_TOKEN).isNullOrBlank(),
+                receivedToken.isNullOrBlank(),
             )
             return
-        }
-        if (tokenDecision.compatBypassUsed) {
-            XLog.w("Diag AutoInputResultReceiver accepted legacy empty-token compat result: attemptId=%d", attemptId)
         }
         val success = intent.getBooleanExtra("success", false)
         val reason = intent.getStringExtra("reason")
@@ -65,35 +83,38 @@ object AutoInputResultHandler {
             return
         }
 
-        thread(name = "auto-input-result") {
-            runCatching {
-                val updatedRows = runBlocking {
-                    RuntimeGraph.from(context).runtimeRecordFacade
-                        .updateAutoInputResult(attemptId, success, reason)
-                }
-                if (updatedRows <= 0) {
-                    XLog.w(
-                        "Diag AutoInputResultReceiver skipped stale result: attemptId=%d success=%s reason=%s",
-                        attemptId,
-                        success,
-                        reason ?: "<none>",
-                    )
-                    return@runCatching
-                }
-                if (success) {
-                    AnalyticsTracker.logEvent("auto_input_success")
-                } else {
-                    AnalyticsTracker.logEvent(
-                        "auto_input_fail",
-                        mapOf("reason" to (reason ?: "unknown")),
-                    )
-                }
-            }.onFailure { error ->
+        runCatching {
+            val updatedRows = runBlocking {
+                RuntimeGraph.from(context).runtimeRecordFacade
+                    .updateAutoInputResult(attemptId, success, reason)
+            }
+            if (updatedRows <= 0) {
                 XLog.w(
-                    "AutoInput result persist failed: %s",
-                    error.message ?: error.javaClass.simpleName,
+                    "Diag AutoInputResultReceiver skipped stale result: attemptId=%d success=%s reason=%s",
+                    attemptId,
+                    success,
+                    reason ?: "<none>",
+                )
+                return@runCatching
+            }
+            if (success) {
+                AnalyticsTracker.logEvent("auto_input_success")
+            } else {
+                AnalyticsTracker.logEvent(
+                    "auto_input_fail",
+                    mapOf("reason" to (reason ?: "unknown")),
                 )
             }
+        }.onFailure { error ->
+            XLog.w(
+                "AutoInput result persist failed: %s",
+                error.message ?: error.javaClass.simpleName,
+            )
         }
+    }
+
+    private val workerIndex = AtomicInteger(1)
+    private val AUTO_INPUT_RESULT_EXECUTOR: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "AutoInputResult-${workerIndex.getAndIncrement()}")
     }
 }

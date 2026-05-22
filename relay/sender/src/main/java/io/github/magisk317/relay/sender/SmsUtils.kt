@@ -37,13 +37,7 @@ object SmsUtils {
             throw SecurityException("缺少 SEND_SMS 权限")
         }
 
-        val mobiles = setting.mobiles
-            .replace("[from]", msgInfo.from)
-            .replace("{{来源号码}}", msgInfo.from)
-            .replace("[,，;；]".toRegex(), ",")
-            .split(',')
-            .map { it.trim() }
-            .filter { it.isNotBlank() }
+        val mobiles = normalizeTargetMobiles(setting.mobiles, msgInfo.from)
 
         if (mobiles.isEmpty()) {
             SLog.e(TAG, "No target mobile configured")
@@ -74,19 +68,21 @@ object SmsUtils {
 
     private fun getSmsManager(context: Context, simSlot: Int): SmsManager {
         if (simSlot > 0) {
-            if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
-                val subscriptionManager = context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as? SubscriptionManager
-                val activeInfos = subscriptionManager?.activeSubscriptionInfoList
-                val targetInfo = activeInfos?.find { it.simSlotIndex == simSlot - 1 }
-                if (targetInfo != null) {
-                    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        context.getSystemService(SmsManager::class.java)!!
-                            .createForSubscriptionId(targetInfo.subscriptionId)
-                    } else {
-                        @Suppress("DEPRECATION")
-                        SmsManager.getSmsManagerForSubscriptionId(targetInfo.subscriptionId)
-                    }
-                }
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+                throw SecurityException("缺少 READ_PHONE_STATE 权限，无法指定 SIM")
+            }
+            val subscriptionManager = context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as? SubscriptionManager
+                ?: throw IllegalStateException("系统 SIM 管理服务不可用")
+            val targetInfo = subscriptionManager.activeSubscriptionInfoList
+                ?.find { it.simSlotIndex == simSlot - 1 }
+                ?: throw IllegalArgumentException("未找到 SIM 卡槽 $simSlot")
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                context.getSystemService(SmsManager::class.java)
+                    ?.createForSubscriptionId(targetInfo.subscriptionId)
+                    ?: throw IllegalStateException("系统短信服务不可用")
+            } else {
+                @Suppress("DEPRECATION")
+                SmsManager.getSmsManagerForSubscriptionId(targetInfo.subscriptionId)
             }
         }
 
@@ -95,6 +91,17 @@ object SmsUtils {
         }
         @Suppress("DEPRECATION")
         return SmsManager.getDefault()
+    }
+
+    internal fun normalizeTargetMobiles(rawMobiles: String, sourceNumber: String?): List<String> {
+        return rawMobiles
+            .replace("[from]", sourceNumber.orEmpty())
+            .replace("{{来源号码}}", sourceNumber.orEmpty())
+            .replace("[,，;；]".toRegex(), ",")
+            .split(',')
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .distinct()
     }
 
     private suspend fun sendAndAwaitSentResult(

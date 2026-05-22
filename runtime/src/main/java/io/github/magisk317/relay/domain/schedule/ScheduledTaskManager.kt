@@ -4,6 +4,7 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
@@ -47,7 +48,13 @@ class ScheduledTaskManager(
             val task = appDatabase.scheduledTaskDao().getById(taskId)
             if (task != null) {
                 if (task.status == 1) {
-                    scheduleTask(task)
+                    runCatching {
+                        scheduleTask(task)
+                    }.onFailure { e ->
+                        XLog.e("Failed to reschedule task ${task.id}", e)
+                        appDatabase.scheduledTaskDao().update(task.apply { nextRunTime = 0L })
+                        cancelTask(taskId)
+                    }
                 } else {
                     cancelTask(taskId)
                 }
@@ -69,6 +76,7 @@ class ScheduledTaskManager(
 
         val intent = Intent(context, ScheduledTaskReceiver::class.java).apply {
             action = ALARM_ACTION
+            data = taskIntentUri(task.id)
             putExtra(EXTRA_TASK_ID, task.id)
         }
         val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -98,6 +106,7 @@ class ScheduledTaskManager(
     fun cancelTask(taskId: Long) {
         val intent = Intent(context, ScheduledTaskReceiver::class.java).apply {
             action = ALARM_ACTION
+            data = taskIntentUri(taskId)
             putExtra(EXTRA_TASK_ID, taskId)
         }
         val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -131,5 +140,9 @@ class ScheduledTaskManager(
 
     private fun requestCodeFor(taskId: Long): Int {
         return taskId.hashCode()
+    }
+
+    private fun taskIntentUri(taskId: Long): Uri {
+        return Uri.parse("xinyi-relay://scheduled-task/$taskId")
     }
 }

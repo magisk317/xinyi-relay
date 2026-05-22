@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import timber.log.Timber
 import java.io.File
+import java.util.concurrent.TimeUnit
 
 class InstallMonitorInitializer : AppInitializer {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -119,8 +120,16 @@ class InstallMonitorInitializer : AppInitializer {
             val process = ProcessBuilder("su", "-c", command)
                 .redirectErrorStream(true)
                 .start()
+            val completed = process.waitFor(SU_COMMAND_TIMEOUT_SEC, TimeUnit.SECONDS)
+            if (!completed) {
+                process.destroy()
+                if (process.isAlive) {
+                    process.destroyForcibly()
+                }
+                return SuCommandResult(exitCode = -2, output = "")
+            }
             val output = process.inputStream.bufferedReader().use { it.readText() }
-            val exitCode = process.waitFor()
+            val exitCode = process.exitValue()
             SuCommandResult(exitCode = exitCode, output = output)
         } catch (_: Throwable) {
             SuCommandResult(exitCode = -1, output = "")
@@ -143,5 +152,6 @@ class InstallMonitorInitializer : AppInitializer {
         private const val KEY_LAST_HANDLED_INSTALL_TOKEN = "last_handled_install_token"
         private const val KEY_LAST_RESTART_ATTEMPT_AT = "last_restart_attempt_at"
         private const val RESTART_ATTEMPT_COOLDOWN_MS = 60_000L
+        private const val SU_COMMAND_TIMEOUT_SEC = 10L
     }
 }

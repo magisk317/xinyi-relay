@@ -7,6 +7,9 @@ import android.content.Intent
 class AutoInputResultReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != AutoInputResultHandler.action) return
-        AutoInputResultHandler.handle(context, intent)
+        val pendingResult = goAsync()
+        AutoInputResultHandler.handle(context.applicationContext ?: context, intent) {
+            pendingResult.finish()
+        }
     }
 }

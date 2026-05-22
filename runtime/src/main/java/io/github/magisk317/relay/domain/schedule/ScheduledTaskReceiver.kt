@@ -21,20 +21,24 @@ class ScheduledTaskReceiver : BroadcastReceiver() {
         val appContext = context.applicationContext ?: context
         receiverScope.launch {
             try {
-                when (action) {
-                    Intent.ACTION_BOOT_COMPLETED,
-                    Intent.ACTION_TIME_CHANGED,
-                    Intent.ACTION_TIMEZONE_CHANGED -> {
-                        val db = AppDatabase.getInstance(appContext)
-                        ScheduledTaskManager(appContext, db).scheduleAllActiveTasks()
-                    }
+                runCatching {
+                    when (action) {
+                        Intent.ACTION_BOOT_COMPLETED,
+                        Intent.ACTION_TIME_CHANGED,
+                        Intent.ACTION_TIMEZONE_CHANGED -> {
+                            val db = AppDatabase.getInstance(appContext)
+                            ScheduledTaskManager(appContext, db).scheduleAllActiveTasks()
+                        }
 
-                    ScheduledTaskManager.ALARM_ACTION -> {
-                        val taskId = intent.getLongExtra(ScheduledTaskManager.EXTRA_TASK_ID, -1L)
-                        if (taskId != -1L) {
-                            ScheduledTaskExecutor.executeTask(appContext, taskId, "alarm")
+                        ScheduledTaskManager.ALARM_ACTION -> {
+                            val taskId = intent.getLongExtra(ScheduledTaskManager.EXTRA_TASK_ID, -1L)
+                            if (taskId != -1L) {
+                                ScheduledTaskExecutor.executeTask(appContext, taskId, "alarm")
+                            }
                         }
                     }
+                }.onFailure { e ->
+                    XLog.e("ScheduledTaskReceiver failed action=$action", e)
                 }
             } finally {
                 pendingResult.finish()

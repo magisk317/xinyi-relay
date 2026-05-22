@@ -51,13 +51,14 @@ object WeworkAgentUtils {
                     throw IllegalStateException("企业微信应用 token HTTP ${response.code}: ${response.message}")
                 }
                 val result = SenderWireJson.decode<WeworkAgentResult>(body)
-                if (result.errcode == 0L && !result.access_token.isNullOrBlank()) {
+                val accessToken = result.access_token.orEmpty()
+                if (result.errcode == 0L && accessToken.isNotBlank()) {
                     val expires = (result.expires_in ?: 7200L)
                     tokenCache["${setting.corpID}:${setting.agentID}"] = TokenCache(
-                        token = result.access_token!!,
+                        token = accessToken,
                         expiresAt = System.currentTimeMillis() + (expires - 120) * 1000,
                     )
-                    result.access_token
+                    accessToken
                 } else {
                     SLog.e(TAG, "Get token response unexpected: $body")
                     throw IllegalStateException("企业微信应用 token 返回失败: $body")

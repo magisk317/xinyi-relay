@@ -27,10 +27,15 @@ interface ScheduledTaskDao {
     suspend fun getById(id: Long): ScheduledTaskEntity?
 
     @Query(
-        "UPDATE scheduled_task SET last_run_time = :runTime " +
-            "WHERE id = :id AND status = 1 AND last_run_time <= :dedupeBefore"
+        "UPDATE scheduled_task SET next_run_time = 0 " +
+            "WHERE id = :id AND status = 1 " +
+            "AND next_run_time > 0 AND next_run_time <= :dueBefore " +
+            "AND last_run_time <= :dedupeBefore"
     )
-    suspend fun markRunIfDue(id: Long, runTime: Long, dedupeBefore: Long): Int
+    suspend fun claimRunIfDue(id: Long, dueBefore: Long, dedupeBefore: Long): Int
+
+    @Query("UPDATE scheduled_task SET last_run_time = :runTime WHERE id = :id")
+    suspend fun markRunSucceeded(id: Long, runTime: Long): Int
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(task: ScheduledTaskEntity): Long

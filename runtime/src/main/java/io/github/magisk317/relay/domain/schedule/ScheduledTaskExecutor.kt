@@ -12,6 +12,7 @@ import kotlinx.coroutines.withContext
 
 object ScheduledTaskExecutor {
     private const val DEDUPE_WINDOW_MS = 60_000L
+    private const val EARLY_TRIGGER_GRACE_MS = 30_000L
 
     suspend fun executeTask(context: Context, taskId: Long, source: String) {
         withContext(Dispatchers.IO) {
@@ -19,41 +20,47 @@ object ScheduledTaskExecutor {
             val dao = db.scheduledTaskDao()
 
             val now = System.currentTimeMillis()
-            val claimed = dao.markRunIfDue(
+            val claimed = dao.claimRunIfDue(
                 id = taskId,
-                runTime = now,
+                dueBefore = now + EARLY_TRIGGER_GRACE_MS,
                 dedupeBefore = now - DEDUPE_WINDOW_MS,
             )
             if (claimed == 0) {
-                XLog.i("Task $taskId skipped, disabled or already claimed recently")
+                XLog.i("Task $taskId skipped, disabled, stale, early, or already claimed recently")
                 return@withContext
             }
 
             val task = dao.getById(taskId) ?: return@withContext
             XLog.i("Executing ScheduledTask $taskId from $source")
 
-            if (task.taskType == ScheduledTask.TASK_TYPE_SMS) {
-                val setting = SmsSetting(
-                    simSlot = task.simSlot,
-                    mobiles = task.mobiles,
-                    onlyNoNetwork = false
-                )
-                val msgInfo = MsgInfo(
-                    content = task.content,
-                    from = "ScheduledTask",
-                    date = java.util.Date(),
-                    simInfo = ""
-                )
+            try {
+                if (task.taskType == ScheduledTask.TASK_TYPE_SMS) {
+                    val setting = SmsSetting(
+                        simSlot = task.simSlot,
+                        mobiles = task.mobiles,
+                        onlyNoNetwork = false,
+                    )
+                    val msgInfo = MsgInfo(
+                        content = task.content,
+                        from = "ScheduledTask",
+                        date = java.util.Date(),
+                        simInfo = "",
+                        simSlot = task.simSlot,
+                    )
 
-                try {
-                    SmsUtils.sendMsg(context, setting, msgInfo, waitForSentResult = true)
-                    XLog.i("ScheduledTask $taskId sent SMS successfully")
-                } catch (e: Exception) {
-                    XLog.e("ScheduledTask $taskId SMS failed", e)
+                    try {
+                        SmsUtils.sendMsg(context, setting, msgInfo, waitForSentResult = true)
+                        dao.markRunSucceeded(taskId, System.currentTimeMillis())
+                        XLog.i("ScheduledTask $taskId sent SMS successfully")
+                    } catch (e: Exception) {
+                        XLog.e("ScheduledTask $taskId SMS failed", e)
+                    }
+                } else {
+                    XLog.w("ScheduledTask $taskId skipped unsupported type=${task.taskType}")
                 }
+            } finally {
+                ScheduledTaskManager(context, db).rescheduleTask(task.id)
             }
-
-            ScheduledTaskManager(context, db).rescheduleTask(task.id)
         }
     }
 }
