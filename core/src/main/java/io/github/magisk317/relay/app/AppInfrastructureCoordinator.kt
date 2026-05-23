@@ -6,6 +6,7 @@ import io.github.magisk317.relay.analytics.AnalyticsTracker
 import io.github.magisk317.relay.android.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
 import io.github.magisk317.relay.android.platform.sender.SenderLogBridge
+import io.github.magisk317.relay.android.platform.sender.SenderRuntimeBridge
 import io.github.magisk317.smscode.xposed.runtime.CoreHookPolicy
 import io.github.magisk317.smscode.xposed.runtime.CoreHookPolicyHolder
 import io.github.magisk317.smscode.xposed.runtime.CoreLogSink
@@ -22,6 +23,7 @@ object AppInfrastructureCoordinator {
         AnalyticsTracker.init(application)
         RuntimeLogStore.initialize(application, enableDetailedLogs = false)
         SensitiveLogPolicy.setEnabled(false)
+        SenderRuntimeBridge.install()
         SenderLogBridge.install()
         installCoreRuntime(shouldSuppressSystemHooks)
         if (io.github.magisk317.relay.runtime.BuildConfig.DEBUG) {

@@ -23,6 +23,7 @@ import io.github.magisk317.relay.domain.pipeline.EventPipeline
 import io.github.magisk317.relay.domain.pipeline.RoutingResolver
 import io.github.magisk317.relay.engine.pipeline.SenderSelector
 import io.github.magisk317.relay.engine.service.MessageFormatter
+import io.github.magisk317.relay.engine.service.SenderRuntimeServiceRegistry
 import io.github.magisk317.relay.engine.service.SystemInfoProvider
 import io.github.magisk317.relay.android.service.SystemInfoProviderImpl
 import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
@@ -103,7 +104,9 @@ class RuntimeGraph private constructor(
     }
 
     val dispatchExecutor: DispatchExecutor by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
-        DispatchExecutor(appContext)
+        DispatchExecutor {
+            SenderRuntimeServiceRegistry.requireInstalled().createDispatcher(appContext)
+        }
     }
 
     val dispatchResultWriter: DispatchResultWriter by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {

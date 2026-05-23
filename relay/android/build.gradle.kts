@@ -34,7 +34,7 @@ android {
 dependencies {
     implementation(project(":relay:contract"))
     implementation(project(":relay:engine:api"))
-    api(project(":relay:sender"))
+    implementation(project(":relay:sender"))
     implementation(project(":smscode-core:smscode-domain"))
     implementation(project(":smscode-core:smscode-runtime-common"))
     implementation(libs.androidx.core.ktx)

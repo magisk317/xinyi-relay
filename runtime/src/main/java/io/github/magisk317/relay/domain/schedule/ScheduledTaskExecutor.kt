@@ -5,8 +5,7 @@ import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.ScheduledTask
-import io.github.magisk317.relay.sender.SmsUtils
-import io.github.magisk317.relay.sender.config.SmsSetting
+import io.github.magisk317.relay.engine.service.SenderRuntimeServiceRegistry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -35,11 +34,6 @@ object ScheduledTaskExecutor {
 
             try {
                 if (task.taskType == ScheduledTask.TASK_TYPE_SMS) {
-                    val setting = SmsSetting(
-                        simSlot = task.simSlot,
-                        mobiles = task.mobiles,
-                        onlyNoNetwork = false,
-                    )
                     val msgInfo = MsgInfo(
                         content = task.content,
                         from = "ScheduledTask",
@@ -49,7 +43,13 @@ object ScheduledTaskExecutor {
                     )
 
                     try {
-                        SmsUtils.sendMsg(context, setting, msgInfo, waitForSentResult = true)
+                        SenderRuntimeServiceRegistry.requireInstalled().scheduledSmsSender.sendSms(
+                            context = context,
+                            simSlot = task.simSlot,
+                            mobiles = task.mobiles,
+                            msgInfo = msgInfo,
+                            waitForSentResult = true,
+                        )
                         dao.markRunSucceeded(taskId, System.currentTimeMillis())
                         XLog.i("ScheduledTask $taskId sent SMS successfully")
                     } catch (e: Exception) {

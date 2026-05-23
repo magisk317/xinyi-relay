@@ -5,8 +5,8 @@ import android.content.Intent
 import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import io.github.magisk317.relay.android.common.utils.XLog
-import io.github.magisk317.relay.sender.SenderSettingSanitizer
 import io.github.magisk317.relay.android.data.db.AppDatabase
+import io.github.magisk317.relay.engine.service.SenderRuntimeServiceRegistry
 import io.github.magisk317.relay.runtime.BuildConfig
 import io.github.magisk317.smscode.runtime.common.backup.BackupDatabaseHooks
 import io.github.magisk317.smscode.runtime.common.backup.BackupImportResult
@@ -214,9 +214,9 @@ object BackupManager {
                         continue
                     }
                     val defaultJson = defaultJsonCache.getOrPut(type) {
-                        SenderSettingSanitizer.sanitizeJsonLenient(type, "")
+                        sanitizeSenderJson(type, "")
                     }
-                    val sanitized = SenderSettingSanitizer.sanitizeJsonLenient(type, jsonSetting)
+                    val sanitized = sanitizeSenderJson(type, jsonSetting)
                     val rawCanonical = canonicalizeJson(jsonSetting)
                     if (sanitized == defaultJson && rawCanonical != defaultJson) {
                         degradedSenderConfigs += 1
@@ -234,7 +234,13 @@ object BackupManager {
     }
 
     private fun canonicalizeJson(raw: String): String {
-        return SenderSettingSanitizer.sanitizeJsonLenient(0, raw).takeIf { raw.trim().isNotBlank() } ?: raw.trim()
+        return sanitizeSenderJson(0, raw).takeIf { raw.trim().isNotBlank() } ?: raw.trim()
+    }
+
+    private fun sanitizeSenderJson(type: Int, raw: String): String {
+        return SenderRuntimeServiceRegistry.requireInstalled()
+            .configSanitizer
+            .sanitizeJsonLenient(type, raw)
     }
 
     private fun resolveAppVersion(context: Context): String {

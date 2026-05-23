@@ -22,7 +22,7 @@ import io.github.magisk317.relay.engine.model.Rule
 import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.engine.model.SmsCodeRuleData
 import io.github.magisk317.relay.engine.service.AppConfigRepository
-import io.github.magisk317.relay.sender.SenderSettingSanitizer
+import io.github.magisk317.relay.engine.service.SenderRuntimeServiceRegistry
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -173,13 +173,13 @@ class ConfigRepository(
         sanitizeAndPersistSenderRepair(it)
     }
     override suspend fun insertSender(sender: Sender): Long {
-        val safeSender = SenderSettingSanitizer.sanitizeSenderLenient(sender)
+        val safeSender = sanitizeSender(sender)
         val id = senderDao.insert(safeSender.toEntity())
         noteMutation("config.sender_insert")
         return id
     }
     override suspend fun updateSender(sender: Sender) {
-        senderDao.update(SenderSettingSanitizer.sanitizeSenderLenient(sender).toEntity())
+        senderDao.update(sanitizeSender(sender).toEntity())
         noteMutation("config.sender_update")
     }
     override suspend fun updateSenderStatus(ids: List<Long>, status: Int) {
@@ -218,12 +218,18 @@ class ConfigRepository(
     }
 
     private suspend fun sanitizeAndPersistSenderRepair(sender: Sender): Sender {
-        val safeSender = SenderSettingSanitizer.sanitizeSenderLenient(sender)
+        val safeSender = sanitizeSender(sender)
         if (safeSender != sender) {
             senderDao.update(safeSender.toEntity())
             XLog.i("Sender config repaired id=%d type=%d", safeSender.id, safeSender.type)
             noteMutation("config.sender_repair")
         }
         return safeSender
+    }
+
+    private fun sanitizeSender(sender: Sender): Sender {
+        return SenderRuntimeServiceRegistry.requireInstalled()
+            .configSanitizer
+            .sanitizeSenderLenient(sender)
     }
 }

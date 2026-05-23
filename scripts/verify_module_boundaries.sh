@@ -7,6 +7,7 @@ CORE_BUILD="$ROOT_DIR/core/build.gradle.kts"
 HOOK_ENTRY_BUILD="$ROOT_DIR/hook/entry/build.gradle.kts"
 MOBILE_UI_BUILD="$ROOT_DIR/mobile/ui/build.gradle.kts"
 RUNTIME_BUILD="$ROOT_DIR/runtime/build.gradle.kts"
+RUNTIME_SRC="$ROOT_DIR/runtime/src"
 RELAY_ANDROID_BUILD="$ROOT_DIR/relay/android/build.gradle.kts"
 RELAY_SENDER_BUILD="$ROOT_DIR/relay/sender/build.gradle.kts"
 XPBRIDGE_CORE_BUILD="$ROOT_DIR/xpbridge/core/build.gradle.kts"
@@ -82,6 +83,10 @@ forbid_pattern "$RELAY_ANDROID_BUILD" 'project\(":relay:engine"\)' \
   "relay/android must depend on :relay:engine:api, not :relay:engine implementation"
 require_pattern "$RELAY_ANDROID_BUILD" 'implementation\(project\(":relay:engine:api"\)\)' \
   "relay/android must depend on :relay:engine:api for engine contracts"
+require_pattern "$RELAY_ANDROID_BUILD" 'implementation\(project\(":relay:sender"\)\)' \
+  "relay/android may bridge relay/sender but must not expose it transitively"
+forbid_pattern "$RELAY_ANDROID_BUILD" 'api\(project\(":relay:sender"\)\)' \
+  "relay/android must not expose relay/sender transitively"
 
 forbid_pattern "$RELAY_SENDER_BUILD" 'project\(":relay:engine"\)' \
   "relay/sender must not depend on :relay:engine implementation directly"
@@ -94,6 +99,10 @@ require_pattern "$RUNTIME_BUILD" 'implementation\(project\(":smscode-core:smscod
   "runtime must depend on :smscode-core:smscode-domain"
 forbid_pattern "$RUNTIME_BUILD" 'project\(":smscode-core:core"\)' \
   "runtime must stop depending on :smscode-core:core"
+forbid_pattern "$RUNTIME_BUILD" 'project\(":relay:sender"\)' \
+  "runtime must not depend on :relay:sender directly"
+forbid_pattern "$RUNTIME_SRC" '^\s*import\s+io\.github\.magisk317\.relay\.sender\.' \
+  "runtime must use relay/engine:api SenderDispatcher services instead of importing relay/sender implementation packages"
 
 if [[ "${#violations[@]}" -ne 0 ]]; then
   printf 'Module boundary verification failed:\n' >&2

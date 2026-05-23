@@ -12,8 +12,8 @@ import io.github.magisk317.relay.contract.repository.SettingsPreferencesReposito
 import io.github.magisk317.relay.engine.event.RelayEvent
 import io.github.magisk317.relay.engine.service.DispatchPayloadContext
 import io.github.magisk317.relay.engine.service.MessageFormatter
+import io.github.magisk317.relay.engine.service.SenderRuntimeServiceRegistry
 import io.github.magisk317.relay.engine.service.SystemInfoProvider
-import io.github.magisk317.relay.sender.SenderSettingSanitizer
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
@@ -239,9 +239,10 @@ class EventPipeline(
         event: RelayEvent,
         traceId: String?,
     ): SenderResolution {
+        val senderConfigSanitizer = SenderRuntimeServiceRegistry.requireInstalled().configSanitizer
         val allSenders = db.senderDao().getAll()
             .map { it.toDomain() }
-            .map(SenderSettingSanitizer::sanitizeSenderLenient)
+            .map(senderConfigSanitizer::sanitizeSenderLenient)
         val enabledSenders = allSenders.filter { it.status == 1 }
         val baseSenders = senderSelector.selectBaseSenders(enabledSenders, event)
         val routing = routingResolver.resolve(baseSenders, event, traceId)

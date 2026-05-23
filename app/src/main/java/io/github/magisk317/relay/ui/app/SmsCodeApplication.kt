@@ -2,6 +2,7 @@ package io.github.magisk317.relay.ui.app
 
 import android.app.Application
 import io.github.magisk317.relay.app.AppInitializer
+import io.github.magisk317.relay.app.InfrastructureInitializer
 import io.github.magisk317.relay.di.appDependencyModule
 import io.github.magisk317.relay.di.billingModule
 import io.github.magisk317.relay.di.coreModule
@@ -28,7 +29,9 @@ class SmsCodeApplication : Application() {
         }
 
         XposedServiceBridge.initialize(this, applicationScope)
-        val initializers = getKoin().getAll<AppInitializer>()
+        val koin = getKoin()
+        koin.get<InfrastructureInitializer>().init(this)
+        val initializers = koin.getAll<AppInitializer>().filterNot { it is InfrastructureInitializer }
         initializers.forEach { it.init(this) }
     }
 }
