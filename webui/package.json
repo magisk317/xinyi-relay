@@ -8,7 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "lint": "eslint src --ext .ts,.tsx",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@radix-ui/react-tabs": "^1.1.13",
@@ -32,7 +33,8 @@
     "postcss": "^8.4.49",
     "tailwindcss": "^4.2.2",
     "typescript": "^6.0.0",
-    "vite": "^8.0.1"
+    "vite": "^8.0.1",
+    "vitest": "^4.0.0"
   },
   "engines": {
     "node": ">=20"

@@ -50,10 +50,11 @@ jobs:
           version: ${{ steps.webui_toolchain.outputs.pnpm_version }}
       - name: WebUI Install
         run: pnpm -C webui install --frozen-lockfile --ignore-scripts
-      - name: WebUI Lint + Typecheck + Build
+      - name: WebUI Lint + Typecheck + Test + Build
         run: |
           pnpm -C webui lint
           pnpm -C webui typecheck
+          pnpm -C webui test
           pnpm -C webui build
       - uses: actions/setup-java@v5
         with:
