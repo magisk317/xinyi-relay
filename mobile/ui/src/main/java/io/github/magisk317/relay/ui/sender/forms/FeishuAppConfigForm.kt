@@ -1,260 +1,58 @@
 package io.github.magisk317.relay.ui.sender.forms
 
-import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.sender.SenderSettingDrafts
-import io.github.magisk317.relay.ui.common.SegmentedOption
-import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
-import io.github.magisk317.relay.ui.sender.getSenderTypeName
+import io.github.magisk317.relay.sender.SenderSettingDraft
 import io.github.magisk317.relay.ui.sender.SenderViewModel
-import kotlinx.coroutines.launch
-import java.util.Date
-import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
 
-@OptIn(ExperimentalMaterial3Api::class)
+private val FeishuAppVisibleFields = listOf(
+    SchemaSenderFormFieldSpec(
+        name = "appId",
+        labelRes = R.string.sender_form_label_app_id,
+    ),
+    SchemaSenderFormFieldSpec(
+        name = "appSecret",
+        labelRes = R.string.sender_form_label_app_secret,
+    ),
+    SchemaSenderFormFieldSpec(
+        name = "receiveId",
+        labelRes = R.string.sender_form_label_receive_id,
+    ),
+    SchemaSenderFormFieldSpec(
+        name = "receiveIdType",
+        labelRes = R.string.sender_form_label_receive_id_type,
+    ),
+    SchemaSenderFormFieldSpec(
+        name = "msgType",
+        labelRes = R.string.sender_form_label_message_type,
+        optionLabelRes = InteractiveMessageTypeOptionLabels,
+    ),
+    SchemaSenderFormFieldSpec(
+        name = "titleTemplate",
+        labelRes = R.string.sender_form_title_template_label,
+        placeholderRes = R.string.sender_form_title_template_placeholder,
+    ),
+    SchemaSenderFormFieldSpec(
+        name = "messageCard",
+        labelRes = R.string.sender_form_label_message_card_json_optional,
+        minLines = 4,
+    ),
+)
+
 @Composable
 fun FeishuAppConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewModel) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val snackbarHostState = LocalSnackbarHostState.current
+    SchemaSenderConfigForm(
+        senderId = senderId,
+        senderType = SenderType.FEISHU_APP,
+        channel = "FeishuApp",
+        fields = FeishuAppVisibleFields,
+        onBack = onBack,
+        viewModel = viewModel,
+        normalizeDraft = ::feishuAppVisibleDraft,
+    )
+}
 
-
-    fun showMessage(message: String) {
-        scope.launch { snackbarHostState.showSnackbar(message) }
-    }
-    val activeScheduleEntry = LocalSenderActiveScheduleEntry.current
-    val activeSchedule = activeScheduleEntry?.schedule ?: io.github.magisk317.relay.engine.sender.SenderActiveSchedule()
-    var name by remember { mutableStateOf("") }
-    var appId by remember { mutableStateOf("") }
-    var appSecret by remember { mutableStateOf("") }
-    var receiveId by remember { mutableStateOf("") }
-    var msgType by remember { mutableStateOf("interactive") }
-    var titleTemplate by remember { mutableStateOf("") }
-    var receiveIdType by remember { mutableStateOf("user_id") }
-    var messageCard by remember { mutableStateOf("") }
-    var receiveCode by remember { mutableStateOf(true) }
-    var receiveNonCode by remember { mutableStateOf(true) }
-    var receiveAppNotify by remember { mutableStateOf(true) }
-    var receiveCallNotify by remember { mutableStateOf(false) }
-    var currentSender by remember { mutableStateOf<Sender?>(null) }
-    var showExitDialog by remember { mutableStateOf(false) }
-
-    LaunchedEffect(senderId) {
-        if (senderId > 0) {
-            viewModel.getSender(senderId)?.let { sender ->
-                currentSender = sender
-                name = sender.name
-                receiveCode = sender.receiveCode == 1
-                receiveNonCode = sender.receiveNonCode == 1
-                receiveAppNotify = sender.receiveAppNotify == 1
-                receiveCallNotify = sender.receiveCallNotify == 1
-                val draft = SenderSettingDrafts.fromSender(sender)
-                appId = draft.string("appId")
-                appSecret = draft.string("appSecret")
-                receiveId = draft.string("receiveId")
-                msgType = draft.string("msgType").ifBlank { "interactive" }
-                titleTemplate = draft.string("titleTemplate")
-                receiveIdType = draft.string("receiveIdType").ifBlank { "user_id" }
-                messageCard = draft.string("messageCard")
-            }
-        }
-    }
-
-    fun buildSender(status: Int): Sender {
-        val json = SenderSettingDrafts.empty(SenderType.FEISHU_APP)
-            .withString("appId", appId)
-            .withString("appSecret", appSecret)
-            .withString("receiveId", receiveId)
-            .withString("msgType", msgType)
-            .withString("titleTemplate", titleTemplate)
-            .withString("receiveIdType", receiveIdType)
-            .withString("messageCard", messageCard)
-            .toJson()
-        return currentSender?.copy(
-            name = name,
-            jsonSetting = json,
-            status = status,
-            receiveCode = if (receiveCode) 1 else 0,
-            receiveNonCode = if (receiveNonCode) 1 else 0,
-            receiveAppNotify = if (receiveAppNotify) 1 else 0,
-            receiveCallNotify = if (receiveCallNotify) 1 else 0,
-            activeSchedule = activeSchedule,
-            time = Date(),
-        ) ?: Sender(
-            id = 0,
-            type = SenderType.FEISHU_APP,
-            name = name,
-            jsonSetting = json,
-            status = status,
-            receiveCode = if (receiveCode) 1 else 0,
-            receiveNonCode = if (receiveNonCode) 1 else 0,
-            receiveAppNotify = if (receiveAppNotify) 1 else 0,
-            receiveCallNotify = if (receiveCallNotify) 1 else 0,
-            activeSchedule = activeSchedule,
-            time = Date(),
-        )
-    }
-
-    BackHandler { showExitDialog = true }
-
-    if (showExitDialog) {
-        DraftExitDialog(
-            onSaveDraft = {
-                scope.launch {
-                    runCatching { viewModel.saveSenderSync(buildSender(status = 0)) }
-                        .onSuccess {
-                            showMessage(context.getString(R.string.sender_form_draft_saved))
-                            showExitDialog = false
-                            onBack()
-                        }
-                        .onFailure { showMessage(context.getString(R.string.sender_form_draft_save_failed, it.message.orEmpty())) }
-                }
-            },
-            onDiscard = {
-                showExitDialog = false
-                onBack()
-            },
-            onCancel = { showExitDialog = false }
-        )
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        context.getString(
-                            if (senderId == 0L) R.string.sender_form_create_title else R.string.sender_form_edit_title,
-                            getSenderTypeName(context, SenderType.FEISHU_APP),
-                        ),
-                    )
-                },
-                navigationIcon = { IconButton(onClick = { showExitDialog = true }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } },
-                actions = {
-                    TextButton(onClick = {
-                        scope.launch {
-                            runCatching { viewModel.saveSenderSync(buildSender(status = 1)) }
-                                .onSuccess {
-                                    showMessage(context.getString(R.string.sender_form_save_success))
-                                    onBack()
-                                }
-                                .onFailure { showMessage(context.getString(R.string.sender_form_save_failed, it.message.orEmpty())) }
-                        }
-                    }) { Text(stringResource(R.string.save)) }
-                },
-            )
-        },
-    ) { padding ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            OutlinedTextField(
-                name,
-                { name = it },
-                label = { Text(stringResource(R.string.sender_form_name_label)) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                appId,
-                { appId = it },
-                label = { Text(stringResource(R.string.sender_form_label_app_id)) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                appSecret,
-                { appSecret = it },
-                label = { Text(stringResource(R.string.sender_form_label_app_secret)) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                receiveId,
-                { receiveId = it },
-                label = { Text(stringResource(R.string.sender_form_label_receive_id)) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                receiveIdType,
-                { receiveIdType = it },
-                label = { Text(stringResource(R.string.sender_form_label_receive_id_type)) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            SingleChoiceSegmentedSelector(
-                options = listOf(
-                    SegmentedOption("interactive", stringResource(R.string.sender_segment_interactive)),
-                    SegmentedOption("text", stringResource(R.string.sender_segment_text)),
-                ),
-                selected = msgType,
-                onSelect = { msgType = it },
-            )
-            OutlinedTextField(
-                titleTemplate,
-                { titleTemplate = it },
-                label = { Text(stringResource(R.string.sender_form_title_template_label)) },
-                placeholder = { Text(stringResource(R.string.sender_form_title_template_placeholder)) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                messageCard,
-                { messageCard = it },
-                label = { Text(stringResource(R.string.sender_form_label_message_card_json_optional)) },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 4,
-            )
-            ForwardToggleSection(
-                receiveCode = receiveCode,
-                onReceiveCodeChange = { receiveCode = it },
-                receiveNonCode = receiveNonCode,
-                onReceiveNonCodeChange = { receiveNonCode = it },
-                receiveAppNotify = receiveAppNotify,
-                onReceiveAppNotifyChange = { receiveAppNotify = it },
-                receiveCallNotify = receiveCallNotify,
-                onReceiveCallNotifyChange = { receiveCallNotify = it },
-                activeSchedule = activeSchedule,
-                onActiveScheduleChange = { activeScheduleEntry?.onChange(it) },
-            )
-            SenderTestActionRow(
-                channel = "FeishuApp",
-                viewModel = viewModel,
-                senderType = SenderType.FEISHU_APP,
-            ) {
-                buildSender(status = 1)
-            }
-        }
-    }
+private fun feishuAppVisibleDraft(draft: SenderSettingDraft): SenderSettingDraft {
+    return draft.keepOnlyFields(FeishuAppVisibleFields.map { it.name })
 }

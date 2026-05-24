@@ -1,272 +1,56 @@
 package io.github.magisk317.relay.ui.sender.forms
 
-import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.sender.SenderSettingDrafts
-import io.github.magisk317.relay.ui.common.SegmentedOption
-import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
-import io.github.magisk317.relay.ui.sender.getSenderTypeName
+import io.github.magisk317.relay.sender.SenderSettingDraft
 import io.github.magisk317.relay.ui.sender.SenderViewModel
-import kotlinx.coroutines.launch
-import java.util.Date
-import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
 
-@OptIn(ExperimentalMaterial3Api::class)
+private val DingtalkInnerVisibleFields = listOf(
+    SchemaSenderFormFieldSpec(
+        name = "agentID",
+        labelRes = R.string.sender_form_label_agent_id,
+    ),
+    SchemaSenderFormFieldSpec(
+        name = "appKey",
+        labelRes = R.string.sender_form_label_app_key,
+    ),
+    SchemaSenderFormFieldSpec(
+        name = "appSecret",
+        labelRes = R.string.sender_form_label_app_secret,
+    ),
+    SchemaSenderFormFieldSpec(
+        name = "userIds",
+        labelRes = R.string.sender_form_label_user_ids_comma,
+    ),
+    SchemaSenderFormFieldSpec(
+        name = "msgKey",
+        labelRes = R.string.sender_form_label_message_type,
+        optionLabelRes = mapOf(
+            "sampleText" to R.string.sender_segment_text,
+            "sampleMarkdown" to R.string.sender_segment_markdown,
+        ),
+    ),
+    SchemaSenderFormFieldSpec(
+        name = "titleTemplate",
+        labelRes = R.string.sender_form_title_template_label,
+        placeholderRes = R.string.sender_form_title_template_placeholder,
+    ),
+)
+
 @Composable
 fun DingtalkInnerConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewModel) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val snackbarHostState = LocalSnackbarHostState.current
+    SchemaSenderConfigForm(
+        senderId = senderId,
+        senderType = SenderType.DINGTALK_INNER_ROBOT,
+        channel = "DingtalkInner",
+        fields = DingtalkInnerVisibleFields,
+        onBack = onBack,
+        viewModel = viewModel,
+        normalizeDraft = ::dingtalkInnerVisibleDraft,
+    )
+}
 
-
-    fun showMessage(message: String) {
-        scope.launch { snackbarHostState.showSnackbar(message) }
-    }
-    val activeScheduleEntry = LocalSenderActiveScheduleEntry.current
-    val activeSchedule = activeScheduleEntry?.schedule ?: io.github.magisk317.relay.engine.sender.SenderActiveSchedule()
-    var name by remember { mutableStateOf("") }
-    var agentID by remember { mutableStateOf("") }
-    var appKey by remember { mutableStateOf("") }
-    var appSecret by remember { mutableStateOf("") }
-    var userIds by remember { mutableStateOf("") }
-    var msgKey by remember { mutableStateOf("sampleText") }
-    var titleTemplate by remember { mutableStateOf("") }
-    var receiveCode by remember { mutableStateOf(true) }
-    var receiveNonCode by remember { mutableStateOf(true) }
-    var receiveAppNotify by remember { mutableStateOf(true) }
-    var receiveCallNotify by remember { mutableStateOf(false) }
-    var currentSender by remember { mutableStateOf<Sender?>(null) }
-    var showExitDialog by remember { mutableStateOf(false) }
-
-    LaunchedEffect(senderId) {
-        if (senderId > 0) {
-            viewModel.getSender(senderId)?.let { sender ->
-                currentSender = sender
-                name = sender.name
-                receiveCode = sender.receiveCode == 1
-                receiveNonCode = sender.receiveNonCode == 1
-                receiveAppNotify = sender.receiveAppNotify == 1
-                receiveCallNotify = sender.receiveCallNotify == 1
-                val draft = SenderSettingDrafts.fromSender(sender)
-                agentID = draft.string("agentID")
-                appKey = draft.string("appKey")
-                appSecret = draft.string("appSecret")
-                userIds = draft.string("userIds")
-                msgKey = draft.string("msgKey").ifBlank { "sampleText" }
-                titleTemplate = draft.string("titleTemplate")
-            }
-        }
-    }
-
-    fun buildSender(status: Int): Sender {
-        val json = SenderSettingDrafts.empty(SenderType.DINGTALK_INNER_ROBOT)
-            .withString("agentID", agentID)
-            .withString("appKey", appKey)
-            .withString("appSecret", appSecret)
-            .withString("userIds", userIds)
-            .withString("msgKey", msgKey)
-            .withString("titleTemplate", titleTemplate)
-            .withString("proxyType", "DIRECT")
-            .toJson()
-        return currentSender?.copy(
-            name = name,
-            jsonSetting = json,
-            status = status,
-            receiveCode = if (receiveCode) 1 else 0,
-            receiveNonCode = if (receiveNonCode) 1 else 0,
-            receiveAppNotify = if (receiveAppNotify) 1 else 0,
-            receiveCallNotify = if (receiveCallNotify) 1 else 0,
-            activeSchedule = activeSchedule,
-            time = Date(),
-        ) ?: Sender(
-            id = 0,
-            type = SenderType.DINGTALK_INNER_ROBOT,
-            name = name,
-            jsonSetting = json,
-            status = status,
-            receiveCode = if (receiveCode) 1 else 0,
-            receiveNonCode = if (receiveNonCode) 1 else 0,
-            receiveAppNotify = if (receiveAppNotify) 1 else 0,
-            receiveCallNotify = if (receiveCallNotify) 1 else 0,
-            activeSchedule = activeSchedule,
-            time = Date(),
-        )
-    }
-
-    BackHandler { showExitDialog = true }
-
-    if (showExitDialog) {
-        DraftExitDialog(
-            onSaveDraft = {
-                scope.launch {
-                    runCatching { viewModel.saveSenderSync(buildSender(status = 0)) }
-                        .onSuccess {
-                            showMessage(context.getString(R.string.sender_form_draft_saved))
-                            showExitDialog = false
-                            onBack()
-                        }
-                        .onFailure {
-                            showMessage(
-                                context.getString(
-                                    R.string.sender_form_draft_save_failed,
-                                    it.message ?: it.javaClass.simpleName,
-                                ),
-                            )
-                        }
-                }
-            },
-            onDiscard = {
-                showExitDialog = false
-                onBack()
-            },
-            onCancel = { showExitDialog = false }
-        )
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        context.getString(
-                            if (senderId == 0L) R.string.sender_form_create_title else R.string.sender_form_edit_title,
-                            getSenderTypeName(context, SenderType.DINGTALK_INNER_ROBOT),
-                        ),
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { showExitDialog = true }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            stringResource(R.string.action_back),
-                        )
-                    }
-                },
-                actions = {
-                    TextButton(onClick = {
-                        scope.launch {
-                            runCatching { viewModel.saveSenderSync(buildSender(status = 1)) }
-                                .onSuccess {
-                                    showMessage(context.getString(R.string.sender_form_save_success))
-                                    onBack()
-                                }
-                                .onFailure {
-                                    showMessage(
-                                        context.getString(
-                                            R.string.sender_form_save_failed,
-                                            it.message ?: it.javaClass.simpleName,
-                                        ),
-                                    )
-                                }
-                        }
-                    }) { Text(stringResource(R.string.save)) }
-                },
-            )
-        },
-    ) { padding ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            OutlinedTextField(
-                name,
-                { name = it },
-                label = { Text(stringResource(R.string.sender_form_name_label)) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                agentID,
-                { agentID = it },
-                label = { Text(stringResource(R.string.sender_form_label_agent_id)) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                appKey,
-                { appKey = it },
-                label = { Text(stringResource(R.string.sender_form_label_app_key)) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                appSecret,
-                { appSecret = it },
-                label = { Text(stringResource(R.string.sender_form_label_app_secret)) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                userIds,
-                { userIds = it },
-                label = { Text(stringResource(R.string.sender_form_label_user_ids_comma)) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            SingleChoiceSegmentedSelector(
-                options = listOf(
-                    SegmentedOption("sampleText", stringResource(R.string.sender_segment_text)),
-                    SegmentedOption("sampleMarkdown", stringResource(R.string.sender_segment_markdown)),
-                ),
-                selected = msgKey,
-                onSelect = { msgKey = it },
-            )
-            OutlinedTextField(
-                titleTemplate,
-                { titleTemplate = it },
-                label = { Text(stringResource(R.string.sender_form_title_template_label)) },
-                placeholder = { Text(stringResource(R.string.sender_form_title_template_placeholder)) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            ForwardToggleSection(
-                receiveCode = receiveCode,
-                onReceiveCodeChange = { receiveCode = it },
-                receiveNonCode = receiveNonCode,
-                onReceiveNonCodeChange = { receiveNonCode = it },
-                receiveAppNotify = receiveAppNotify,
-                onReceiveAppNotifyChange = { receiveAppNotify = it },
-                receiveCallNotify = receiveCallNotify,
-                onReceiveCallNotifyChange = { receiveCallNotify = it },
-                activeSchedule = activeSchedule,
-                onActiveScheduleChange = { activeScheduleEntry?.onChange(it) },
-            )
-            SenderTestActionRow(
-                channel = "DingtalkInner",
-                viewModel = viewModel,
-                senderType = SenderType.DINGTALK_INNER_ROBOT,
-            ) {
-                buildSender(status = 1)
-            }
-        }
-    }
+private fun dingtalkInnerVisibleDraft(draft: SenderSettingDraft): SenderSettingDraft {
+    return draft.keepOnlyFields(DingtalkInnerVisibleFields.map { it.name } + "proxyType")
 }

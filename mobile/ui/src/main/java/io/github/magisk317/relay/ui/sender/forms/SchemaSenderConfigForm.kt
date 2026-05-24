@@ -44,6 +44,7 @@ import io.github.magisk317.relay.sender.SenderSettingDraft
 import io.github.magisk317.relay.sender.SenderSettingDrafts
 import io.github.magisk317.relay.sender.SenderSettingFieldMetadata
 import io.github.magisk317.relay.sender.SenderSettingFieldType
+import io.github.magisk317.relay.sender.SenderSettingJson
 import io.github.magisk317.relay.sender.SenderSettingSchemas
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
 import io.github.magisk317.relay.ui.common.SegmentedOption
@@ -52,6 +53,7 @@ import io.github.magisk317.relay.ui.sender.SenderViewModel
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import java.util.Date
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonObject
 
 internal data class SchemaSenderFormFieldSpec(
     val name: String,
@@ -67,12 +69,51 @@ internal val MessageTypeOptionLabels = mapOf(
     "markdown" to R.string.sender_segment_markdown,
 )
 
+internal val InteractiveMessageTypeOptionLabels = mapOf(
+    "interactive" to R.string.sender_segment_interactive,
+    "text" to R.string.sender_segment_text,
+)
+
 internal fun SenderSettingDraft.keepOnlyFields(names: Collection<String>): SenderSettingDraft {
     val visibleNameSet = names.toSet()
     return SenderSettingDraft(
         senderType = senderType,
         values = values.filterKeys { it in visibleNameSet },
     )
+}
+
+private fun SenderSettingDraft.normalizedStructuredFields(): SenderSettingDraft {
+    var nextDraft = this
+    schema?.fields.orEmpty().forEach { field ->
+        when (field.type) {
+            SenderSettingFieldType.STRING_MAP -> {
+                val element = nextDraft.element(field.name)
+                if (element is JsonObject) return@forEach
+                val rawValue = nextDraft.string(field.name)
+                val mapValue = if (rawValue.isBlank()) {
+                    emptyMap()
+                } else {
+                    SenderSettingJson.decodeStringMapLenientOrNull(rawValue)
+                        ?: throw IllegalArgumentException("Invalid ${field.name} JSON, e.g. {\"Authorization\":\"Bearer xxx\"}")
+                }
+                nextDraft = nextDraft.withStringMap(field.name, mapValue)
+            }
+            SenderSettingFieldType.EMAIL_RECIPIENTS -> {
+                val element = nextDraft.element(field.name)
+                if (element is JsonObject) return@forEach
+                val rawValue = nextDraft.string(field.name)
+                val objectValue = if (rawValue.isBlank()) {
+                    JsonObject(emptyMap())
+                } else {
+                    SenderSettingJson.parseObject(rawValue)
+                        ?: throw IllegalArgumentException("Invalid ${field.name} JSON")
+                }
+                nextDraft = nextDraft.withElement(field.name, objectValue)
+            }
+            else -> Unit
+        }
+    }
+    return nextDraft
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -85,6 +126,8 @@ internal fun SchemaSenderConfigForm(
     onBack: () -> Unit,
     viewModel: SenderViewModel,
     normalizeDraft: (SenderSettingDraft) -> SenderSettingDraft = { it },
+    validateDraft: (SenderSettingDraft, Int) -> String? = { _, _ -> null },
+    extraContent: @Composable (SenderSettingDraft, (SenderSettingDraft) -> Unit) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -133,7 +176,10 @@ internal fun SchemaSenderConfigForm(
     }
 
     fun buildSender(status: Int): Sender {
-        val jsonSetting = draft.toJson()
+        validateDraft(draft, status)?.let { message ->
+            throw IllegalArgumentException(message)
+        }
+        val jsonSetting = draft.normalizedStructuredFields().toJson()
         return currentSender?.copy(
             name = name,
             jsonSetting = jsonSetting,
@@ -161,6 +207,10 @@ internal fun SchemaSenderConfigForm(
 
     fun save(status: Int, onSaved: () -> Unit) {
         coroutineScope.launch {
+            validateDraft(draft, status)?.let { message ->
+                showMessage(message)
+                return@launch
+            }
             runCatching { viewModel.saveSenderSync(buildSender(status)) }
                 .onSuccess { onSaved() }
                 .onFailure { error ->
@@ -250,6 +300,7 @@ internal fun SchemaSenderConfigForm(
                     onDraftChange = { draft = normalizeDraft(it) },
                 )
             }
+            extraContent(draft) { nextDraft -> draft = normalizeDraft(nextDraft) }
             Spacer(modifier = Modifier.height(8.dp))
             ForwardToggleSection(
                 receiveCode = receiveCode,
@@ -282,7 +333,20 @@ private fun SchemaSenderField(
     draft: SenderSettingDraft,
     onDraftChange: (SenderSettingDraft) -> Unit,
 ) {
-    val value = draft.string(spec.name)
+    val value = when (metadata.type) {
+        SenderSettingFieldType.STRING_MAP -> {
+            if (draft.element(spec.name) is JsonObject) {
+                val mapValue = draft.stringMap(spec.name)
+                if (mapValue.isEmpty()) "" else SenderSettingJson.encodeStringMap(mapValue)
+            } else {
+                draft.string(spec.name)
+            }
+        }
+        SenderSettingFieldType.EMAIL_RECIPIENTS -> {
+            (draft.element(spec.name) as? JsonObject)?.toString() ?: draft.string(spec.name)
+        }
+        else -> draft.string(spec.name)
+    }
     if (metadata.options.isNotEmpty()) {
         SingleChoiceSegmentedSelector(
             options = metadata.options.map { option ->
