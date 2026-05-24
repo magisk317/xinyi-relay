@@ -174,6 +174,24 @@ fun SettingsHomeScreen(
         }
     }
 
+    fun clearRuntimeLogFolders() {
+        scope.launch {
+            val result = withContext(Dispatchers.IO) {
+                LogBundleExporter.clearLogFolders(context)
+            }
+            runtimeLogDialogData = withContext(Dispatchers.IO) {
+                loadRuntimeLogDialogData()
+            }
+            snackbarHostState.showSnackbar(
+                if (result.success) {
+                    context.getString(R.string.runtime_log_cleared)
+                } else {
+                    context.getString(R.string.runtime_log_clear_partial_failed, result.details)
+                },
+            )
+        }
+    }
+
     LaunchedEffect(Unit) {
         general = repository.getGeneralSettings()
         verification = repository.getVerificationSettings()
@@ -439,48 +457,20 @@ fun SettingsHomeScreen(
             },
         )
     }
-    if (showRuntimeLogInfoDialog) {
-        LaunchedEffect(showRuntimeLogInfoDialog) {
-            runtimeLogDialogData = withContext(Dispatchers.IO) {
-                loadRuntimeLogDialogData(runtimeLogDialogData?.selectedFileName)
-            }
-        }
-        val dialogData = runtimeLogDialogData
-        RuntimeLogInfoDialog(
-            data = dialogData,
-            onDismiss = { showRuntimeLogInfoDialog = false },
-            onShare = { shareRuntimeLogBundle() },
-            onSelectFile = { fileName -> loadRuntimeLogDialog(fileName) },
-            onOpenPreview = { showRuntimeLogFullScreenPreview = true },
-            onClear = {
-                scope.launch {
-                    val result = withContext(Dispatchers.IO) {
-                        LogBundleExporter.clearLogFolders(context)
-                    }
-                    runtimeLogDialogData = withContext(Dispatchers.IO) {
-                        loadRuntimeLogDialogData()
-                    }
-                    snackbarHostState.showSnackbar(
-                        if (result.success) {
-                            context.getString(R.string.runtime_log_cleared)
-                        } else {
-                            context.getString(R.string.runtime_log_clear_partial_failed, result.details)
-                        },
-                    )
-                }
-            },
-        )
-        val content = dialogData?.content
-        if (showRuntimeLogFullScreenPreview && content != null) {
-            RuntimeLogFullScreenPreviewDialog(
-                fileName = content.name,
-                text = dialogData.formattedPreview,
-                wrapLines = runtimeLogWrapLines,
-                onWrapLinesChange = { runtimeLogWrapLines = it },
-                onDismiss = { showRuntimeLogFullScreenPreview = false },
-            )
-        }
-    }
+    RuntimeLogDialogHost(
+        showInfoDialog = showRuntimeLogInfoDialog,
+        data = runtimeLogDialogData,
+        showFullScreenPreview = showRuntimeLogFullScreenPreview,
+        wrapLines = runtimeLogWrapLines,
+        onLoadData = { selectedFileName -> loadRuntimeLogDialog(selectedFileName) },
+        onDismissInfo = { showRuntimeLogInfoDialog = false },
+        onShare = { shareRuntimeLogBundle() },
+        onSelectFile = { fileName -> loadRuntimeLogDialog(fileName) },
+        onOpenPreview = { showRuntimeLogFullScreenPreview = true },
+        onClear = { clearRuntimeLogFolders() },
+        onWrapLinesChange = { runtimeLogWrapLines = it },
+        onDismissPreview = { showRuntimeLogFullScreenPreview = false },
+    )
     val currentDiagnostics = diagnostics
     if (showRuntimeLogRetentionDialog && currentDiagnostics != null) {
         SettingsRuntimeLogRetentionDialog(
@@ -497,13 +487,14 @@ fun SettingsHomeScreen(
             },
         )
     }
-    if (showBackupDialog) {
-        BackupRestoreOptionsDialog(
-            title = stringResource(id = R.string.dialog_backup_title),
-            message = stringResource(id = R.string.dialog_backup_msg),
-            initialSelection = BackupSelection(),
-            onDismiss = { showBackupDialog = false },
-        ) { selection ->
+    BackupRestoreDialogHost(
+        showBackupDialog = showBackupDialog,
+        showRestoreDialog = showRestoreDialog,
+        pendingRestoreUri = pendingRestoreUri,
+        restoreInspection = restoreInspection,
+        restoreInspectionLoading = restoreInspectionLoading,
+        onDismissBackup = { showBackupDialog = false },
+        onConfirmBackup = { selection ->
             showBackupDialog = false
             pendingBackupSelection = selection
             backupDocumentLauncher.launch(
@@ -512,27 +503,14 @@ fun SettingsHomeScreen(
                     includeDatabase = selection.includeDatabase,
                 ),
             )
-        }
-    }
-    if (showRestoreDialog && pendingRestoreUri != null) {
-        BackupRestoreOptionsDialog(
-            title = stringResource(id = R.string.dialog_restore_title),
-            message = stringResource(id = R.string.dialog_restore_msg),
-            initialSelection = BackupSelection(),
-            warningMessage = restoreInspectionMessage(
-                context = context,
-                inspection = restoreInspection,
-                loading = restoreInspectionLoading,
-            ),
-            confirmEnabled = !restoreInspectionLoading,
-            onDismiss = {
-                showRestoreDialog = false
-                pendingRestoreUri = null
-                restoreInspection = null
-                restoreInspectionLoading = false
-            },
-        ) { selection ->
-            val restoreUri = pendingRestoreUri ?: return@BackupRestoreOptionsDialog
+        },
+        onDismissRestore = {
+            showRestoreDialog = false
+            pendingRestoreUri = null
+            restoreInspection = null
+            restoreInspectionLoading = false
+        },
+        onConfirmRestore = { restoreUri, selection ->
             showRestoreDialog = false
             pendingRestoreUri = null
             restoreInspection = null
@@ -544,8 +522,8 @@ fun SettingsHomeScreen(
                 restoreRecords = selection.includeRecords,
                 restoreDatabase = selection.includeDatabase,
             )
-        }
-    }
+        },
+    )
     val backupInspectionState = backupInspectionDialog
     if (backupInspectionState != null) {
         BackupInspectionResultDialog(

@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -47,6 +48,46 @@ internal data class RuntimeLogDialogData(
     val content: RuntimeLogFileContent?,
     val formattedPreview: String,
 )
+
+@Composable
+internal fun RuntimeLogDialogHost(
+    showInfoDialog: Boolean,
+    data: RuntimeLogDialogData?,
+    showFullScreenPreview: Boolean,
+    wrapLines: Boolean,
+    onLoadData: (String?) -> Unit,
+    onDismissInfo: () -> Unit,
+    onShare: () -> Unit,
+    onSelectFile: (String) -> Unit,
+    onOpenPreview: () -> Unit,
+    onClear: () -> Unit,
+    onWrapLinesChange: (Boolean) -> Unit,
+    onDismissPreview: () -> Unit,
+) {
+    if (!showInfoDialog) return
+
+    LaunchedEffect(showInfoDialog) {
+        onLoadData(data?.selectedFileName)
+    }
+    RuntimeLogInfoDialog(
+        data = data,
+        onDismiss = onDismissInfo,
+        onShare = onShare,
+        onSelectFile = onSelectFile,
+        onOpenPreview = onOpenPreview,
+        onClear = onClear,
+    )
+    val content = data?.content
+    if (showFullScreenPreview && content != null) {
+        RuntimeLogFullScreenPreviewDialog(
+            fileName = content.name,
+            text = data.formattedPreview,
+            wrapLines = wrapLines,
+            onWrapLinesChange = onWrapLinesChange,
+            onDismiss = onDismissPreview,
+        )
+    }
+}
 
 @Composable
 internal fun RuntimeLogInfoDialog(

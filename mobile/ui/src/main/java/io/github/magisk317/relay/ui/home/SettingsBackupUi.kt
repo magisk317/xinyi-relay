@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.ui.home
 
 import android.content.Context
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.backup.RelayBackupManager
@@ -35,6 +37,46 @@ internal data class BackupSelection(
 ) {
     fun hasSelection(): Boolean {
         return includeConfig || includeRules || includeRecords || includeDatabase
+    }
+}
+
+@Composable
+internal fun BackupRestoreDialogHost(
+    showBackupDialog: Boolean,
+    showRestoreDialog: Boolean,
+    pendingRestoreUri: Uri?,
+    restoreInspection: RelayBackupManager.BackupInspection?,
+    restoreInspectionLoading: Boolean,
+    onDismissBackup: () -> Unit,
+    onConfirmBackup: (BackupSelection) -> Unit,
+    onDismissRestore: () -> Unit,
+    onConfirmRestore: (Uri, BackupSelection) -> Unit,
+) {
+    val context = LocalContext.current
+    if (showBackupDialog) {
+        BackupRestoreOptionsDialog(
+            title = stringResource(id = R.string.dialog_backup_title),
+            message = stringResource(id = R.string.dialog_backup_msg),
+            initialSelection = BackupSelection(),
+            onDismiss = onDismissBackup,
+            onConfirm = onConfirmBackup,
+        )
+    }
+    if (showRestoreDialog && pendingRestoreUri != null) {
+        BackupRestoreOptionsDialog(
+            title = stringResource(id = R.string.dialog_restore_title),
+            message = stringResource(id = R.string.dialog_restore_msg),
+            initialSelection = BackupSelection(),
+            warningMessage = restoreInspectionMessage(
+                context = context,
+                inspection = restoreInspection,
+                loading = restoreInspectionLoading,
+            ),
+            confirmEnabled = !restoreInspectionLoading,
+            onDismiss = onDismissRestore,
+        ) { selection ->
+            onConfirmRestore(pendingRestoreUri, selection)
+        }
     }
 }
 
@@ -116,7 +158,7 @@ internal fun BackupInspectionResultDialog(
     inspection: RelayBackupManager.BackupInspection,
     onDismiss: () -> Unit,
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = stringResource(id = R.string.backup_success)) },
