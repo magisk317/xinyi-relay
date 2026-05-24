@@ -6,10 +6,11 @@ import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.ModuleLoadedParam
 import io.github.libxposed.api.XposedModuleInterface.PackageReadyParam
 import io.github.libxposed.api.XposedModuleInterface.SystemServerStartingParam
-import io.github.magisk317.relay.android.platform.xpbridge.AndroidXpDiagnosticsBridge
 import io.github.magisk317.relay.android.platform.clipboard.AndroidClipboardPlatformBridge
 import io.github.magisk317.relay.android.platform.notification.AndroidNotificationPlatformBridge
 import io.github.magisk317.relay.android.platform.sms.AndroidSmsRuntimeBridge
+import io.github.magisk317.relay.android.platform.xpbridge.AndroidXpDiagnosticsBridge
+import io.github.magisk317.relay.android.platform.xpbridge.AndroidXpPrefsBridge
 import io.github.magisk317.relay.hookentry.BuildConfig
 import io.github.magisk317.relay.platform.xpbridge.RuntimeXpAppConfigBridge
 import io.github.magisk317.relay.platform.xpbridge.RuntimeXpRecordBridge
@@ -77,6 +78,7 @@ class LibXposedEntry : XposedModule {
         XpClipboard.installPlatformBridge(AndroidClipboardPlatformBridge)
         XpNotificationBridge.installPlatformBridge(AndroidNotificationPlatformBridge)
         XpSmsRuntimeBridge.installPlatformBridge(AndroidSmsRuntimeBridge)
+        XpPrefs.installPlatformBridge(AndroidXpPrefsBridge)
         HookEnv.init(LibXposedHookApi(this))
         XpPrefs.installRuntimeBridge(RuntimeBridgeFactory.create(this))
         processName = if (param.isSystemServer) "android" else param.processName
