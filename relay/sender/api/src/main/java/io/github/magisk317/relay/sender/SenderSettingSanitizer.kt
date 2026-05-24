@@ -36,188 +36,6 @@ import java.net.Proxy
 import java.util.Locale
 
 object SenderSettingSanitizer {
-    private val fieldSpecsByType = mapOf(
-        SenderType.DINGTALK_GROUP_ROBOT to listOf(
-            field("token", "o"),
-            field("secret", "p"),
-            field("atAll", "q"),
-            field("atMobiles", "r"),
-            field("atDingtalkIds", "s"),
-            field("msgtype", "t"),
-            field("titleTemplate", "u"),
-        ),
-        SenderType.EMAIL to listOf(
-            field("mailType", "o"),
-            field("authEmail", "p"),
-            field("fromEmail", "q"),
-            field("pwd", "r"),
-            field("nickname", "s"),
-            field("host", "t"),
-            field("port", "u"),
-            field("ssl", "v"),
-            field("startTls", "w"),
-            field("title", "x"),
-            field("recipients", "y"),
-            field("toEmail", "z"),
-            field("keystore", "A"),
-            field("password", "B"),
-            field("encryptionProtocol", "C"),
-            field("fromEmailAlias", "D"),
-        ),
-        SenderType.BARK to listOf(
-            field("server", "o"),
-            field("group", "p"),
-            field("icon", "q"),
-            field("sound", "r"),
-            field("badge", "s"),
-            field("url", "t"),
-            field("level", "u"),
-            field("title", "v"),
-            field("transformation", "w"),
-            field("key", "x"),
-            field("iv", "y"),
-            field("call", "z"),
-            field("autoCopy", "A"),
-        ),
-        SenderType.WEBHOOK to listOf(
-            field("method", "o"),
-            field("webServer", "p"),
-            field("secret", "q"),
-            field("response", "r"),
-            field("webParams", "s"),
-            field("headers", "t"),
-            field("proxyType", "u"),
-            field("proxyHost", "v"),
-            field("proxyPort", "w"),
-            field("proxyAuthenticator", "x"),
-            field("proxyUsername", "y"),
-            field("proxyPassword", "z"),
-        ),
-        SenderType.WEWORK_ROBOT to listOf(
-            field("webHook", "o"),
-            field("msgType", "p"),
-            field("atAll", "q"),
-            field("atUserIds", "r"),
-            field("atMobiles", "s"),
-        ),
-        SenderType.WEWORK_AGENT to listOf(
-            field("corpID", "o"),
-            field("agentID", "p"),
-            field("secret", "q"),
-            field("atAll", "r"),
-            field("toUser", "s"),
-            field("toParty", "t"),
-            field("toTag", "u"),
-            field("proxyType", "v"),
-            field("proxyHost", "w"),
-            field("proxyPort", "x"),
-            field("proxyAuthenticator", "y"),
-            field("proxyUsername", "z"),
-            field("proxyPassword", "A"),
-            field("customizeAPI", "B"),
-        ),
-        SenderType.SERVERCHAN to listOf(
-            field("sendKey", "o"),
-            field("channel", "p"),
-            field("openid", "q"),
-            field("titleTemplate", "r"),
-        ),
-        SenderType.PUSHPLUS to listOf(
-            field("website", "o"),
-            field("token", "p"),
-            field("topic", "q"),
-            field("template", "r"),
-            field("channel", "s"),
-            field("webhook", "t"),
-            field("callbackUrl", "u"),
-            field("validTime", "v"),
-            field("titleTemplate", "w"),
-        ),
-        SenderType.TELEGRAM to listOf(
-            field("method", "o"),
-            field("apiToken", "p"),
-            field("chatId", "q"),
-            field("messageThreadId", "topicId", "topic_id", "message_thread_id", "r"),
-            field("proxyType", "s"),
-            field("proxyHost", "t"),
-            field("proxyPort", "u"),
-            field("proxyAuthenticator", "v"),
-            field("proxyUsername", "w"),
-            field("proxyPassword", "x"),
-            field("parseMode", "y"),
-        ),
-        SenderType.SMS to listOf(
-            field("simSlot", "o"),
-            field("mobiles", "p"),
-            field("onlyNoNetwork", "q"),
-        ),
-        SenderType.FEISHU to listOf(
-            field("webhook", "o"),
-            field("secret", "p"),
-            field("msgType", "q"),
-            field("titleTemplate", "r"),
-            field("messageCard", "s"),
-        ),
-        SenderType.GOTIFY to listOf(
-            field("webServer", "o"),
-            field("title", "p"),
-            field("priority", "q"),
-        ),
-        SenderType.NTFY to listOf(
-            field("server", "o"),
-            field("topic", "p"),
-            field("token", "q"),
-            field("title", "r"),
-            field("priority", "s"),
-            field("tags", "t"),
-        ),
-        SenderType.DINGTALK_INNER_ROBOT to listOf(
-            field("agentID", "o"),
-            field("appKey", "p"),
-            field("appSecret", "q"),
-            field("userIds", "r"),
-            field("msgKey", "s"),
-            field("titleTemplate", "t"),
-            field("proxyType", "u"),
-            field("proxyHost", "v"),
-            field("proxyPort", "w"),
-            field("proxyAuthenticator", "x"),
-            field("proxyUsername", "y"),
-            field("proxyPassword", "z"),
-        ),
-        SenderType.FEISHU_APP to listOf(
-            field("appId", "o"),
-            field("appSecret", "p"),
-            field("receiveId", "q"),
-            field("msgType", "r"),
-            field("titleTemplate", "s"),
-            field("receiveIdType", "t"),
-            field("messageCard", "u"),
-        ),
-        SenderType.URL_SCHEME to listOf(
-            field("urlScheme", "o"),
-        ),
-        SenderType.SOCKET to listOf(
-            field("method", "o"),
-            field("address", "p"),
-            field("port", "q"),
-            field("msgTemplate", "r"),
-            field("secret", "s"),
-            field("response", "t"),
-            field("username", "u"),
-            field("password", "v"),
-            field("inCharset", "w"),
-            field("outCharset", "x"),
-            field("inMessageTopic", "y"),
-            field("outMessageTopic", "z"),
-            field("uriType", "A"),
-            field("path", "B"),
-            field("clientId", "C"),
-            field("qos", "D"),
-            field("retained", "E"),
-        ),
-    )
-
     fun sanitizeSenderLenient(sender: Sender): Sender {
         val safeJson = sanitizeJsonLenient(sender.type, sender.jsonSetting)
         val safeSchedule = SenderActiveScheduleEvaluator.sanitize(sender.activeSchedule)
@@ -892,7 +710,8 @@ object SenderSettingSanitizer {
 
     private fun canonicalizeLegacyKeys(type: Int, rawJson: JsonObject?): JsonObject? {
         if (rawJson == null) return null
-        val specs = fieldSpecsByType[type] ?: return rawJson
+        val specs = SenderSettingSchemas.fieldsFor(type)
+        if (specs.isEmpty()) return rawJson
         return buildJsonObject {
             specs.forEach { spec ->
                 firstFieldElement(rawJson, spec.name, *spec.aliases.toTypedArray())?.let { element ->
@@ -1188,8 +1007,6 @@ object SenderSettingSanitizer {
 
     private fun normalized(value: Any?): String = safeString(value).trim().lowercase(Locale.ROOT)
 
-    private data class FieldSpec(val name: String, val aliases: List<String>)
-
     private class RepairedFields(private val values: Map<String, Any?>) {
         fun string(name: String): String = safeString(values[name])
 
@@ -1203,10 +1020,6 @@ object SenderSettingSanitizer {
         fun int(name: String, defaultValue: Int): Int = safeInt(values[name], defaultValue)
 
         fun proxy(name: String): Proxy.Type = safeProxyType(values[name])
-    }
-
-    private fun field(name: String, vararg aliases: String): FieldSpec {
-        return FieldSpec(name, aliases.toList())
     }
 
     private fun <T> parseSetting(json: String, serializer: KSerializer<T>): T? {

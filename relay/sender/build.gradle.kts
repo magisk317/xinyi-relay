@@ -27,6 +27,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":relay:sender:api"))
     implementation(project(":relay:contract"))
     implementation(project(":relay:engine:api"))
     implementation(project(":relay:net"))

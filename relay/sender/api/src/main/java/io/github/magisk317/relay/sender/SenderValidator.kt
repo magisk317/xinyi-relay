@@ -1,7 +1,5 @@
 package io.github.magisk317.relay.sender
 
-import io.github.magisk317.relay.sender.BuildConfig
-
 import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.sender.config.BarkSetting
 import io.github.magisk317.relay.sender.config.DingtalkGroupRobotSetting
@@ -32,8 +30,8 @@ object SenderValidator {
     @Suppress("CyclomaticComplexMethod")
     fun validateForEnable(
         sender: Sender,
-        allowHttpWebhook: Boolean = BuildConfig.ALLOW_HTTP_WEBHOOK,
-        enableSmsChannel: Boolean = BuildConfig.ENABLE_SMS_CHANNEL,
+        allowHttpWebhook: Boolean = true,
+        enableSmsChannel: Boolean = true,
     ): SenderValidationResult {
         val safeSender = SenderSettingSanitizer.sanitizeSenderLenient(sender)
         return try {

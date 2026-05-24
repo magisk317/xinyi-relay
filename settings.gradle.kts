@@ -34,6 +34,7 @@ include(
     ":core",
     ":mobile:ui",
     ":relay:android",
+    ":relay:sender:api",
     ":relay:sender",
     ":relay:contract",
     ":relay:net",
