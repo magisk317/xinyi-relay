@@ -35,6 +35,8 @@ forbid_pattern() {
 
 require_pattern "$APP_BUILD" 'implementation\(project\(":core"\)\)' \
   "app must depend directly on :core"
+require_pattern "$APP_BUILD" 'implementation\(project\(":relay:android"\)\)' \
+  "app must depend directly on :relay:android for platform adapter installation"
 forbid_pattern "$APP_BUILD" 'implementation\(project\(":runtime"\)\)' \
   "app must not runtime-package :runtime directly"
 forbid_pattern "$APP_BUILD" 'api\(project\(":runtime"\)\)' \

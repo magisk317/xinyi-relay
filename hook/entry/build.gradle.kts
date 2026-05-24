@@ -26,6 +26,7 @@ dependencies {
     compileOnly(project(":smscode-core:smscode-xposed-core"))
 
     implementation(project(":xpbridge:core"))
+    implementation(project(":relay:android"))
     implementation(project(":relay:contract"))
     implementation(project(":smscode-core:smscode-domain"))
     implementation(project(":smscode-core:smscode-verification-core"))

@@ -8,23 +8,10 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import io.github.magisk317.relay.contract.notification.NotificationDeliveryDiagnostics
+import io.github.magisk317.relay.contract.notification.NotificationImportanceLabel
 
 object NotificationUtils {
-
-    data class DeliveryDiagnostics(
-        val notificationsEnabled: Boolean,
-        val postNotificationsGranted: Boolean,
-        val channelImportance: Int?,
-    ) {
-        val canPost: Boolean
-            get() = notificationsEnabled &&
-                postNotificationsGranted &&
-                channelImportance != NotificationManager.IMPORTANCE_NONE
-
-        fun summary(): String {
-            return "enabled=$notificationsEnabled permission=$postNotificationsGranted channel=${importanceLabel(channelImportance)}"
-        }
-    }
 
     @JvmStatic
     fun createNotificationChannel(context: Context, channelId: String, channelName: String, importance: Int) {
@@ -34,14 +21,14 @@ object NotificationUtils {
     }
 
     @JvmStatic
-    fun inspectDelivery(context: Context, channelId: String): DeliveryDiagnostics {
+    fun inspectDelivery(context: Context, channelId: String): NotificationDeliveryDiagnostics {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager?
         val channelImportance = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             manager?.getNotificationChannel(channelId)?.importance
         } else {
             null
         }
-        return DeliveryDiagnostics(
+        return NotificationDeliveryDiagnostics(
             notificationsEnabled = NotificationManagerCompat.from(context).areNotificationsEnabled(),
             postNotificationsGranted = hasPostNotificationsPermission(context),
             channelImportance = channelImportance,
@@ -61,15 +48,6 @@ object NotificationUtils {
 
     @JvmStatic
     fun importanceLabel(importance: Int?): String {
-        return when (importance) {
-            null -> "missing"
-            NotificationManager.IMPORTANCE_NONE -> "none"
-            NotificationManager.IMPORTANCE_MIN -> "min"
-            NotificationManager.IMPORTANCE_LOW -> "low"
-            NotificationManager.IMPORTANCE_DEFAULT -> "default"
-            NotificationManager.IMPORTANCE_HIGH -> "high"
-            NotificationManager.IMPORTANCE_MAX -> "max"
-            else -> importance.toString()
-        }
+        return NotificationImportanceLabel.label(importance)
     }
 }

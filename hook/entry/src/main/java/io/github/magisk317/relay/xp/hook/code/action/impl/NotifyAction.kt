@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import io.github.magisk317.relay.hookentry.R
+import io.github.magisk317.relay.contract.notification.NotificationDeliveryDiagnostics
 import io.github.magisk317.relay.xp.hook.code.CodeNotificationBroadcastContract
 import io.github.magisk317.relay.xp.hook.code.CopyCodeReceiver
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
@@ -119,7 +120,7 @@ class NotifyAction(
         )
     }
 
-    private fun XpNotificationBridge.DeliveryDiagnostics.toShared(): NotifyActionHelper.DeliveryDiagnostics {
+    private fun NotificationDeliveryDiagnostics.toShared(): NotifyActionHelper.DeliveryDiagnostics {
         return NotifyActionHelper.DeliveryDiagnostics(
             canPost = canPost,
             summary = summary(),

@@ -1,6 +1,6 @@
 # Relay 架构重整说明
 
-最后更新：2026-05-23
+最后更新：2026-05-25
 
 本文档描述当前代码库的推荐分层、已经固化的边界，以及后续开发应遵循的落点规则。路线图和阶段计划见仓库外层的 `xinyi-relay-refactor-plan.md`。
 
@@ -9,7 +9,8 @@
 ### `app`
 
 - Android 应用壳：manifest、Application、入口 Activity、service、receiver、初始化启动。
-- 负责把 `hook/entry`、`core`、`mobile/ui`、`xpbridge/core` 等模块打包进 APK。
+- 负责把 `hook/entry`、`core`、`mobile/ui`、`relay/android`、`xpbridge/core` 等模块打包进 APK。
+- 安装 app 进程需要的平台桥接实现，例如 `AndroidNotificationPlatformBridge`。
 - 允许保留 app-process adapter：`CodeNotificationReceiver`、auto-input accessibility/result、force-stop recovery wakeup、低电量提醒 receiver。
 - 不直接承载转发主编排、sender 选择、路由、结果落库。
 - 不再承载嵌入式 WebUI 服务启动、TLS 或静态资源打包链路。
@@ -26,6 +27,7 @@
 
 - Xposed/runtime 之间的兼容 facade、DTO、typealias 和桥接接口。
 - 当前仍直接依赖 `runtime` / `relay/android`，这是兼容期债务，不应继续扩大。
+- notification facade 已收敛到 `relay/contract` 的 `NotificationPlatformBridge` 合同，具体 Android 实现由 `relay/android` 提供。
 - 已固化的禁止项：不依赖 `relay/engine` 实现模块、不依赖 `smscode-core/smscode-domain`、不依赖 Compose runtime。
 - 新增桥接模型优先放 `relay/contract` 或 `relay/engine/api`；新增桥接实现优先放 `runtime` / `relay/android`。
 
@@ -64,6 +66,7 @@
 ### `relay/android`
 
 - Android 平台数据源、Room、DataStore、PrefsReader、DBProvider、诊断、日志落地、系统信息 provider。
+- 提供 app/hook 可安装的平台桥接实现，例如 notification channel / delivery diagnostics adapter。
 - `RelayLogger` / `XLog` / `RuntimeLogStore` 的 Android 落地在这里。
 - `PrefsReader` 是 Xposed/runtime 跨进程读取的首选入口，不扩展为 UI 通用配置 facade。
 
@@ -113,7 +116,7 @@
 
 | 边界 | 当前规则 |
 | --- | --- |
-| `app` | 必须依赖 `core` 和 `hook/entry`；不得直接依赖 `runtime` |
+| `app` | 必须依赖 `core` 和 `hook/entry`；可依赖 `relay/android` 安装平台 adapter；不得直接依赖 `runtime` |
 | `hook/entry` | 不得依赖 `core` |
 | `mobile/ui` | 不得依赖 `runtime`、`xpbridge/core`、`relay/engine` 实现模块 |
 | `relay/android` | 依赖 `relay/engine/api`，不得依赖 `relay/engine` 实现模块 |
@@ -123,7 +126,7 @@
 
 仍需补强的边界：
 
-- `xpbridge/core` 直接依赖 `runtime` / `relay/android` 的实现，应逐步拆成纯 facade + 平台实现。
+- `xpbridge/core` 仍直接依赖 `runtime` / `relay/android` 的 prefs、record、SMS 工具和诊断实现，应继续拆成纯 facade + 平台实现；notification bridge 已先完成合同/平台适配拆分。
 - Web / Desktop 共享前端层尚未形成独立包，当前主要共享 `shared/contracts` 类型。
 
 ## 运行时主链

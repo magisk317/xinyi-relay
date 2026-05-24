@@ -20,7 +20,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":relay:contract"))
+    api(project(":relay:contract"))
     implementation(project(":relay:engine:api"))
     implementation(project(":relay:android"))
     implementation(project(":runtime"))

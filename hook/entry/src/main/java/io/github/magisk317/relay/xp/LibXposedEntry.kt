@@ -6,6 +6,7 @@ import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.ModuleLoadedParam
 import io.github.libxposed.api.XposedModuleInterface.PackageReadyParam
 import io.github.libxposed.api.XposedModuleInterface.SystemServerStartingParam
+import io.github.magisk317.relay.android.platform.notification.AndroidNotificationPlatformBridge
 import io.github.magisk317.relay.hookentry.BuildConfig
 import io.github.magisk317.relay.xp.hook.code.SmsHandlerHook
 import io.github.magisk317.relay.xp.hook.forward.SmsForwardHook
@@ -15,6 +16,7 @@ import io.github.magisk317.relay.xp.hook.keepalive.KeepAliveHook
 import io.github.magisk317.relay.xp.hook.telephony.SmsProviderHook
 import io.github.magisk317.relay.xp.runtime.RuntimeBridgeFactory
 import io.github.magisk317.relay.xpbridge.XpHookDiagnostics
+import io.github.magisk317.relay.xpbridge.XpNotificationBridge
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.smscode.xposed.hook.BaseHook
 import io.github.magisk317.smscode.xposed.hook.notification.NotificationManagerHook
@@ -60,6 +62,7 @@ class LibXposedEntry : XposedModule {
         }
         installCoreRuntime()
         XpHookDiagnostics.installXposedRuntimeLogSink()
+        XpNotificationBridge.installPlatformBridge(AndroidNotificationPlatformBridge)
         HookEnv.init(LibXposedHookApi(this))
         XpPrefs.installRuntimeBridge(RuntimeBridgeFactory.create(this))
         processName = if (param.isSystemServer) "android" else param.processName

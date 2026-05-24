@@ -105,6 +105,7 @@ dependencies {
     implementation(project(":hook:entry"))
     implementation(project(":core"))
     implementation(project(":mobile:ui"))
+    implementation(project(":relay:android"))
     implementation(project(":xpbridge:core"))
     implementation(project(":smscode-core:smscode-verification-core"))
     implementation(project(":smscode-core:smscode-hook-core"))
