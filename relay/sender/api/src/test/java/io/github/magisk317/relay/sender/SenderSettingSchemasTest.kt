@@ -91,6 +91,8 @@ class SenderSettingSchemasTest {
         assertFieldDefault(SenderType.PUSHPLUS, "website", "www.pushplus.plus")
         assertFieldDefault(SenderType.PUSHPLUS, "template", "html")
         assertFieldDefault(SenderType.PUSHPLUS, "channel", "wechat")
+        assertFieldDefault(SenderType.GOTIFY, "priority", "0")
+        assertFieldDefault(SenderType.NTFY, "priority", "3")
 
         assertFieldOptions(SenderType.TELEGRAM, "method", "GET", "POST")
         assertFieldOptions(SenderType.TELEGRAM, "parseMode", "HTML", "MarkdownV2")

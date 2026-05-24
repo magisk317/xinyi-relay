@@ -173,7 +173,7 @@ object SenderSettingSchemas {
             SenderType.GOTIFY,
             field("webServer", requiredForEnable = true, aliases = arrayOf("o")),
             field("title", aliases = arrayOf("p")),
-            field("priority", aliases = arrayOf("q")),
+            field("priority", aliases = arrayOf("q"), defaultValue = "0"),
         ),
         schema(
             SenderType.DINGTALK_INNER_ROBOT,
@@ -230,7 +230,7 @@ object SenderSettingSchemas {
             field("topic", requiredForEnable = true, aliases = arrayOf("p")),
             field("token", SenderSettingFieldType.SECRET, "q"),
             field("title", aliases = arrayOf("r")),
-            field("priority", aliases = arrayOf("s")),
+            field("priority", aliases = arrayOf("s"), defaultValue = "3"),
             field("tags", aliases = arrayOf("t")),
         ),
     )

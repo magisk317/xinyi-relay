@@ -56,6 +56,7 @@ internal data class SchemaSenderFormFieldSpec(
     @StringRes val labelRes: Int,
     @StringRes val placeholderRes: Int? = null,
     @StringRes val supportingTextRes: Int? = null,
+    val minLines: Int = 1,
     val optionLabelRes: Map<String, Int> = emptyMap(),
 )
 
@@ -314,6 +315,7 @@ private fun SchemaSenderField(
         supportingText = spec.supportingTextRes?.let { supportingTextRes ->
             { Text(stringResource(supportingTextRes)) }
         },
+        minLines = spec.minLines,
         keyboardOptions = if (metadata.type == SenderSettingFieldType.INTEGER) {
             KeyboardOptions(keyboardType = KeyboardType.Number)
         } else {

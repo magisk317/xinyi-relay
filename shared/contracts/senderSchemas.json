@@ -907,7 +907,8 @@
         "aliases": [
           "q"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "0"
       }
     ]
   },
@@ -1268,7 +1269,8 @@
         "aliases": [
           "s"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "3"
       },
       {
         "name": "tags",
