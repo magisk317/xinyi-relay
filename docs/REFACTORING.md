@@ -103,6 +103,8 @@
 - Compose 页面、导航、UI ViewModel、UI-only helper。
 - 不直接依赖 `runtime` / `xpbridge/core` / `relay/engine` 实现模块。
 - 运行时能力经由 `core` 的 UI-facing facade、`relay/contract` 或 `relay/engine/api` 访问。
+- 首页概览页已拆出 `OverviewChartCard`、`OverviewInfoCards` 与 `OverviewCardEditing`，
+  `OverviewScreen` 继续只保留页面状态装配、卡片路由和顶层交互编排。
 - 新增 API 子模块优先收进所属目录，例如 `relay/engine/api`；避免在项目根目录继续增加多词模块目录。
 
 ### 根目录布局
