@@ -52,7 +52,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import io.github.magisk317.relay.android.common.utils.XLog
-import io.github.magisk317.relay.mobileui.BuildConfig
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
@@ -291,141 +290,81 @@ fun SettingsHomeScreen(
             verticalArrangement = Arrangement.spacedBy(Const.SPACING_SMALL.dp),
         ) {
             Spacer(modifier = Modifier.height(Const.PADDING_SMALL.dp))
-            SectionCard(
-                title = stringResource(id = R.string.settings_group_general),
-                sectionExpanded = expandGeneral,
+            SettingsGeneralSection(
+                general = generalSnapshot,
+                themeSummary = themeModeSummary(themeState.mode),
+                languageSummary = languageSummary(languageState.languageTag),
+                expanded = expandGeneral,
                 onExpandedChange = { expandGeneral = !expandGeneral },
-                accordionMode = true,
-            ) {
-                StateSwitchItem(
-                    title = stringResource(id = R.string.pref_enable_title),
-                    summary = stringResource(id = R.string.pref_enable_summary),
-                    checked = generalSnapshot.moduleEnabled,
-                ) { enabled ->
+                onModuleEnabledChange = { enabled ->
                     scope.launch {
                         general = repository.updateGeneralSettings(GeneralSettingsUpdate(moduleEnabled = enabled))
                         notifySaved()
                     }
-                }
-                StateSwitchItem(
-                    title = stringResource(id = R.string.pref_settings_display_mode_title),
-                    summary = stringResource(id = R.string.pref_settings_display_mode_summary),
-                    checked = generalSnapshot.accordionMode,
-                ) { enabled ->
+                },
+                onAccordionModeChange = { enabled ->
                     scope.launch {
                         general = repository.updateGeneralSettings(GeneralSettingsUpdate(accordionMode = enabled))
                         notifySaved()
                     }
-                }
-                Item(
-                    title = stringResource(id = R.string.pref_choose_theme_title),
-                    summary = themeModeSummary(themeState.mode),
-                ) {
+                },
+                onThemeClick = {
                     themeDialogInitialMode = themeState.mode
                     themeDialogSelectedMode = themeState.mode
                     showThemeDialog = true
-                }
-                Item(
-                    title = stringResource(id = R.string.pref_language_title),
-                    summary = languageSummary(languageState.languageTag),
-                ) {
+                },
+                onLanguageClick = {
                     languageDialogInitialTag = languageState.languageTag
                     languageDialogSelectedTag = languageState.languageTag
                     showLanguageDialog = true
-                }
-            }
-            SectionCard(
-                title = stringResource(id = R.string.settings_group_features),
-                sectionExpanded = expandFeatures,
+                },
+            )
+            SettingsFeaturesSection(
+                verification = verificationSnapshot,
+                relay = relaySnapshot,
+                expanded = expandFeatures,
                 onExpandedChange = { expandFeatures = !expandFeatures },
-                accordionMode = true,
-            ) {
-                ActionSwitchItem(
-                    title = stringResource(id = R.string.pref_verification_settings_title),
-                    summary = stringResource(id = R.string.pref_verification_settings_summary),
-                    checked = verificationSnapshot.verificationFeaturesEnabled,
-                    onClick = onOpenVerification,
-                ) { enabled ->
+                onOpenVerification = onOpenVerification,
+                onVerificationEnabledChange = { enabled ->
                     scope.launch {
                         verification = repository.updateVerificationSettings(
                             VerificationSettingsUpdate(verificationFeaturesEnabled = enabled),
                         )
                         notifySaved()
                     }
-                }
-                ActionSwitchItem(
-                    title = stringResource(id = R.string.pref_relay_features_title),
-                    summary = stringResource(id = R.string.pref_relay_features_summary),
-                    checked = relaySnapshot.relayFeaturesEnabled,
-                    onClick = onOpenAdvancedRelay,
-                ) { enabled ->
+                },
+                onOpenAdvancedRelay = onOpenAdvancedRelay,
+                onRelayEnabledChange = { enabled ->
                     scope.launch {
                         relay = repository.updateRelaySettings(RelaySettingsUpdate(relayFeaturesEnabled = enabled))
                         notifySaved()
                     }
-                }
-            }
-            if (io.github.magisk317.relay.mobileui.BuildConfig.HAS_BILLING ||
-                io.github.magisk317.relay.mobileui.BuildConfig.HAS_CLOUD_BACKUP
-            ) {
-                SectionCard(
-                    title = stringResource(id = R.string.settings_donate_title),
-                    sectionExpanded = expandSupport,
-                    onExpandedChange = { expandSupport = !expandSupport },
-                    accordionMode = true,
-                ) {
-                    Item(
-                        title = stringResource(id = R.string.settings_account_title),
-                        summary = stringResource(id = R.string.settings_account_summary_not_signed_in),
-                    ) { onOpenAccount() }
-                    if (io.github.magisk317.relay.mobileui.BuildConfig.HAS_CLOUD_BACKUP) {
-                        Item(
-                            title = stringResource(id = R.string.settings_cloud_backup_title),
-                            summary = stringResource(id = R.string.settings_cloud_backup_summary),
-                        ) { onOpenCloudBackup() }
-                    }
-                    if (io.github.magisk317.relay.mobileui.BuildConfig.HAS_BILLING) {
-                        Item(
-                            title = stringResource(id = R.string.settings_donate_title),
-                            summary = stringResource(id = R.string.settings_donate_summary),
-                        ) { onOpenDonate() }
-                    }
-                }
-            }
-            SectionCard(
-                title = stringResource(id = R.string.pref_backup_restore_title),
-                sectionExpanded = expandBackupRestore,
+                },
+            )
+            SettingsSupportSection(
+                expanded = expandSupport,
+                onExpandedChange = { expandSupport = !expandSupport },
+                onOpenAccount = onOpenAccount,
+                onOpenCloudBackup = onOpenCloudBackup,
+                onOpenDonate = onOpenDonate,
+            )
+            SettingsBackupRestoreSection(
+                expanded = expandBackupRestore,
                 onExpandedChange = { expandBackupRestore = !expandBackupRestore },
-                accordionMode = true,
-            ) {
-                Item(
-                    title = stringResource(id = R.string.pref_backup_title),
-                    summary = stringResource(id = R.string.pref_backup_summary),
-                ) {
-                    showBackupDialog = true
-                }
-                Item(
-                    title = stringResource(id = R.string.pref_restore_title),
-                    summary = stringResource(id = R.string.pref_restore_summary),
-                ) {
+                onBackupClick = { showBackupDialog = true },
+                onRestoreClick = {
                     restoreDocumentLauncher.launch(RelayBackupManager.getImportRuleListSAFIntent(context))
-                }
-            }
-            SectionCard(
-                title = stringResource(id = R.string.settings_group_others),
-                sectionExpanded = expandOthers,
+                },
+            )
+            SettingsDiagnosticsSection(
+                diagnostics = diagnosticsSnapshot,
+                expanded = expandOthers,
                 onExpandedChange = { expandOthers = !expandOthers },
-                accordionMode = true,
-            ) {
-                StateSwitchItem(
-                    title = stringResource(id = R.string.pref_verbose_log_mode_title),
-                    summary = stringResource(id = R.string.pref_verbose_log_mode_summary),
-                    checked = diagnosticsSnapshot.verboseLogMode,
-                    onTitleClick = {
-                        runtimeLogDialogData = null
-                        showRuntimeLogInfoDialog = true
-                    },
-                ) { enabled ->
+                onRuntimeLogTitleClick = {
+                    runtimeLogDialogData = null
+                    showRuntimeLogInfoDialog = true
+                },
+                onVerboseLogModeChange = { enabled ->
                     scope.launch {
                         diagnostics = repository.updateDiagnosticsSettings(
                             DiagnosticsSettingsUpdate(verboseLogMode = enabled),
@@ -434,68 +373,42 @@ fun SettingsHomeScreen(
                         XLog.setLogLevel(if (enabled) Log.VERBOSE else io.github.magisk317.relay.android.BuildConfig.LOG_LEVEL)
                         notifySaved()
                     }
-                }
-                if (BuildConfig.DEBUG) {
-                    StateSwitchItem(
-                        title = stringResource(id = R.string.pref_sensitive_debug_log_mode_title),
-                        summary = stringResource(id = R.string.pref_sensitive_debug_log_mode_summary),
-                        checked = diagnosticsSnapshot.sensitiveDebugLogMode,
-                    ) { enabled ->
-                        scope.launch {
-                            diagnostics = repository.updateDiagnosticsSettings(
-                                DiagnosticsSettingsUpdate(sensitiveDebugLogMode = enabled),
-                            )
-                            SensitiveLogPolicy.setEnabled(enabled)
-                            notifySaved()
-                        }
+                },
+                onSensitiveDebugLogModeChange = { enabled ->
+                    scope.launch {
+                        diagnostics = repository.updateDiagnosticsSettings(
+                            DiagnosticsSettingsUpdate(sensitiveDebugLogMode = enabled),
+                        )
+                        SensitiveLogPolicy.setEnabled(enabled)
+                        notifySaved()
                     }
-                }
-                Item(
-                    title = stringResource(id = R.string.pref_runtime_log_retention_days_title),
-                    summary = stringResource(
-                        id = R.string.pref_runtime_log_retention_days_summary,
-                        diagnosticsSnapshot.runtimeLogRetentionDays,
-                    ),
-                ) { showRuntimeLogRetentionDialog = true }
-                StateSwitchItem(
-                    title = stringResource(id = R.string.pref_auto_update_on_start_title),
-                    summary = stringResource(id = R.string.pref_auto_update_on_start_summary),
-                    checked = diagnosticsSnapshot.autoUpdateOnStart,
-                ) { enabled ->
+                },
+                onRuntimeLogRetentionClick = { showRuntimeLogRetentionDialog = true },
+                onAutoUpdateOnStartChange = { enabled ->
                     scope.launch {
                         diagnostics = repository.updateDiagnosticsSettings(
                             DiagnosticsSettingsUpdate(autoUpdateOnStart = enabled),
                         )
                         notifySaved()
                     }
-                }
-                if (diagnosticsSnapshot.autoUpdateOnStart) {
-                    StateSwitchItem(
-                        title = stringResource(id = R.string.pref_auto_update_wifi_only_title),
-                        summary = stringResource(id = R.string.pref_auto_update_wifi_only_summary),
-                        checked = diagnosticsSnapshot.autoUpdateWifiOnly,
-                    ) { enabled ->
-                        scope.launch {
-                            diagnostics = repository.updateDiagnosticsSettings(
-                                DiagnosticsSettingsUpdate(autoUpdateWifiOnly = enabled),
-                            )
-                            notifySaved()
-                        }
+                },
+                onAutoUpdateWifiOnlyChange = { enabled ->
+                    scope.launch {
+                        diagnostics = repository.updateDiagnosticsSettings(
+                            DiagnosticsSettingsUpdate(autoUpdateWifiOnly = enabled),
+                        )
+                        notifySaved()
                     }
-                }
-                StateSwitchItem(
-                    title = stringResource(id = R.string.pref_enable_analytics_title),
-                    summary = stringResource(id = R.string.pref_enable_analytics_summary),
-                    checked = diagnosticsSnapshot.analyticsEnabled,
-                ) { enabled ->
+                },
+                onAnalyticsEnabledChange = { enabled ->
                     scope.launch {
                         diagnostics = repository.updateDiagnosticsSettings(
                             DiagnosticsSettingsUpdate(analyticsEnabled = enabled),
                         )
                         notifySaved()
                     }
-                }
-            }
+                },
+            )
             Spacer(modifier = Modifier.height(Const.PADDING_SMALL.dp))
         }
     }
