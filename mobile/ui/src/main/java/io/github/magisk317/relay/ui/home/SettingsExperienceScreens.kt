@@ -1,5 +1,3 @@
-@file:Suppress("LocalContextGetResourceValueCall")
-
 package io.github.magisk317.relay.ui.home
 
 import android.util.Log
@@ -30,14 +28,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
-import io.github.magisk317.relay.android.diagnostics.LogBundleExporter
 import io.github.magisk317.relay.android.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsSnapshot
@@ -49,9 +45,7 @@ import io.github.magisk317.relay.contract.settings.RelaySettingsUpdate
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.VerificationSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.VerificationSettingsUpdate
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,10 +60,9 @@ fun SettingsHomeScreen(
 ) {
     val repository: SettingsPreferencesRepository = koinInject()
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
     val snackbarHostState = remember { SnackbarHostState() }
-    val notifySaved = {
+    val notifySaved: () -> Unit = {
         scope.launch {
             snackbarHostState.showSnackbar(savedSnackbarText)
         }
@@ -85,13 +78,15 @@ fun SettingsHomeScreen(
     var verification by remember { mutableStateOf<VerificationSettingsSnapshot?>(null) }
     var relay by remember { mutableStateOf<RelaySettingsSnapshot?>(null) }
     var diagnostics by remember { mutableStateOf<DiagnosticsSettingsSnapshot?>(null) }
+    val runtimeLogActions = rememberSettingsRuntimeLogActions(
+        diagnostics = diagnostics,
+        repository = repository,
+        snackbarHostState = snackbarHostState,
+        onDiagnosticsChanged = { diagnostics = it },
+        notifySaved = notifySaved,
+    )
     var showThemeDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
-    var showRuntimeLogRetentionDialog by remember { mutableStateOf(false) }
-    var showRuntimeLogInfoDialog by remember { mutableStateOf(false) }
-    var runtimeLogDialogData by remember { mutableStateOf<RuntimeLogDialogData?>(null) }
-    var showRuntimeLogFullScreenPreview by remember { mutableStateOf(false) }
-    var runtimeLogWrapLines by rememberSaveable { mutableStateOf(false) }
     var themeDialogInitialMode by remember { mutableStateOf(0) }
     var themeDialogSelectedMode by remember { mutableStateOf(0) }
     var languageDialogInitialTag by remember { mutableStateOf("") }
@@ -101,57 +96,6 @@ fun SettingsHomeScreen(
     var expandSupport by rememberSaveable { mutableStateOf(false) }
     var expandBackupRestore by rememberSaveable { mutableStateOf(false) }
     var expandOthers by rememberSaveable { mutableStateOf(false) }
-
-    fun shareRuntimeLogBundle() {
-        scope.launch {
-            val result = withContext(Dispatchers.IO) {
-                LogBundleExporter.buildLogBundle(context)
-            }
-            val file = result.file
-            if (file == null) {
-                snackbarHostState.showSnackbar(
-                    context.getString(R.string.runtime_log_export_failed, result.details),
-                )
-                return@launch
-            }
-            runCatching {
-                LogBundleExporter.shareLogBundle(context, file)
-            }.onFailure {
-                snackbarHostState.showSnackbar(
-                    context.getString(
-                        R.string.runtime_log_share_failed,
-                        it.message ?: it.javaClass.simpleName,
-                    ),
-                )
-            }
-        }
-    }
-
-    fun loadRuntimeLogDialog(selectedFileName: String? = null) {
-        scope.launch {
-            runtimeLogDialogData = withContext(Dispatchers.IO) {
-                loadRuntimeLogDialogData(selectedFileName)
-            }
-        }
-    }
-
-    fun clearRuntimeLogFolders() {
-        scope.launch {
-            val result = withContext(Dispatchers.IO) {
-                LogBundleExporter.clearLogFolders(context)
-            }
-            runtimeLogDialogData = withContext(Dispatchers.IO) {
-                loadRuntimeLogDialogData()
-            }
-            snackbarHostState.showSnackbar(
-                if (result.success) {
-                    context.getString(R.string.runtime_log_cleared)
-                } else {
-                    context.getString(R.string.runtime_log_clear_partial_failed, result.details)
-                },
-            )
-        }
-    }
 
     LaunchedEffect(Unit) {
         general = repository.getGeneralSettings()
@@ -272,10 +216,7 @@ fun SettingsHomeScreen(
                 diagnostics = diagnosticsSnapshot,
                 expanded = expandOthers,
                 onExpandedChange = { expandOthers = !expandOthers },
-                onRuntimeLogTitleClick = {
-                    runtimeLogDialogData = null
-                    showRuntimeLogInfoDialog = true
-                },
+                onRuntimeLogTitleClick = runtimeLogActions.onRuntimeLogTitleClick,
                 onVerboseLogModeChange = { enabled ->
                     scope.launch {
                         diagnostics = repository.updateDiagnosticsSettings(
@@ -295,7 +236,7 @@ fun SettingsHomeScreen(
                         notifySaved()
                     }
                 },
-                onRuntimeLogRetentionClick = { showRuntimeLogRetentionDialog = true },
+                onRuntimeLogRetentionClick = runtimeLogActions.onRuntimeLogRetentionClick,
                 onAutoUpdateOnStartChange = { enabled ->
                     scope.launch {
                         diagnostics = repository.updateDiagnosticsSettings(
@@ -360,36 +301,6 @@ fun SettingsHomeScreen(
                 languageDialogSelectedTag = tag
                 settingsViewModel.persistLanguageTag(tag)
                 notifySaved()
-            },
-        )
-    }
-    RuntimeLogDialogHost(
-        showInfoDialog = showRuntimeLogInfoDialog,
-        data = runtimeLogDialogData,
-        showFullScreenPreview = showRuntimeLogFullScreenPreview,
-        wrapLines = runtimeLogWrapLines,
-        onLoadData = { selectedFileName -> loadRuntimeLogDialog(selectedFileName) },
-        onDismissInfo = { showRuntimeLogInfoDialog = false },
-        onShare = { shareRuntimeLogBundle() },
-        onSelectFile = { fileName -> loadRuntimeLogDialog(fileName) },
-        onOpenPreview = { showRuntimeLogFullScreenPreview = true },
-        onClear = { clearRuntimeLogFolders() },
-        onWrapLinesChange = { runtimeLogWrapLines = it },
-        onDismissPreview = { showRuntimeLogFullScreenPreview = false },
-    )
-    val currentDiagnostics = diagnostics
-    if (showRuntimeLogRetentionDialog && currentDiagnostics != null) {
-        SettingsRuntimeLogRetentionDialog(
-            retentionDays = currentDiagnostics.runtimeLogRetentionDays,
-            onDismiss = { showRuntimeLogRetentionDialog = false },
-            onConfirm = { updated ->
-                showRuntimeLogRetentionDialog = false
-                scope.launch {
-                    diagnostics = repository.updateDiagnosticsSettings(
-                        DiagnosticsSettingsUpdate(runtimeLogRetentionDays = updated),
-                    )
-                    notifySaved()
-                }
             },
         )
     }
