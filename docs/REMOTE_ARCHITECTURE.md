@@ -56,7 +56,8 @@
 
 后续重点：
 
-- 继续抽出共享 API client、认证状态模型、配置编辑器和 sender 表单元数据，减少 Web / Desktop 双份实现。
+- 继续抽出共享配置编辑器和 sender 表单布局元数据，减少 Web / Desktop 双份实现；API client、认证状态模型
+  和 sender 字段 schema 已有共享入口。
 
 ### Tauri Desktop
 
@@ -144,8 +145,8 @@
 
 ## 后续演进
 
-1. 继续抽共享前端 API client、认证状态模型、配置编辑器和 sender 表单元数据；React hook 需要先有明确
-   前端 package / workspace 边界，不直接放仓库根 `shared/`。
+1. 继续抽共享配置编辑器和 sender 表单布局元数据；React hook 需要先有明确前端 package / workspace
+   边界，不直接放仓库根 `shared/`。
 2. 继续收敛 Web / Desktop 与手机端的功能 parity。
 3. 逐步把前端静态资源也纳入远端镜像链，减少宿主机对本地 `webui/dist` 的依赖。
 4. 扩展 OpenAPI schema 覆盖新增 endpoint，并把合同测试纳入对应 CI。
