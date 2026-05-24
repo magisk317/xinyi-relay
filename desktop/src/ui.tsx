@@ -13,7 +13,7 @@ import { useDesktop } from './state/DesktopContext'
 
 export function DesktopShell() {
   const navigate = useNavigate()
-  const { bootstrap, activeProfile, connection, error, logout } = useDesktop()
+  const { activeProfile, connection, error, logout, session } = useDesktop()
   const { brandName, t } = useDesktopI18n()
   const [showBackendUrl, setShowBackendUrl] = useState(false)
   const nav = [
@@ -82,7 +82,7 @@ export function DesktopShell() {
         <div className="sidebar-footer">
           <Tag tone={connectionTone(connection.state)}>{translateConnectionState(connection.state, t).toUpperCase()}</Tag>
           <button type="button" className="ghost-button" onClick={() => void logout()}>
-            {bootstrap?.session.authenticated ? t('shell.signOut') : t('shell.refresh')}
+            {session.authenticated ? t('shell.signOut') : t('shell.refresh')}
           </button>
         </div>
       </aside>
@@ -95,7 +95,7 @@ export function DesktopShell() {
           </div>
           <div className="topbar-status">
             <Tag tone={connectionTone(connection.state)}>{connection.message}</Tag>
-            {bootstrap?.session.authenticated ? <Tag tone="success">{bootstrap.session.username}</Tag> : null}
+            {session.authenticated ? <Tag tone="success">{session.username}</Tag> : null}
           </div>
         </header>
 

@@ -9,6 +9,10 @@ import {
 } from 'react'
 import { listen } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
+import {
+  desktopConsoleSessionFromState,
+  type DesktopConsoleSessionState
+} from '../../../shared/consoleSession'
 import { desktopApi, type SaveProfileInput } from '../api/desktopApi'
 import type {
   DesktopAuthCallbackPayload,
@@ -24,6 +28,7 @@ import type {
 
 type DesktopContextValue = {
   bootstrap: DesktopBootstrapState | null
+  session: DesktopConsoleSessionState
   loading: boolean
   error: string
   authBusy: boolean
@@ -83,7 +88,7 @@ export function DesktopProvider({ children }: PropsWithChildren) {
       setError('')
       const payload = await desktopApi.bootstrap()
       syncBootstrap(payload)
-      if (payload.session.authenticated) {
+      if (desktopConsoleSessionFromState(payload.session).authenticated) {
         setPendingAuthStart(null)
       }
     } catch (nextError) {
@@ -295,9 +300,14 @@ export function DesktopProvider({ children }: PropsWithChildren) {
     () => bootstrap?.profiles.find((profile) => profile.active) ?? null,
     [bootstrap?.profiles]
   )
+  const session = useMemo(
+    () => desktopConsoleSessionFromState(bootstrap?.session),
+    [bootstrap?.session]
+  )
 
   const value = useMemo<DesktopContextValue>(() => ({
     bootstrap,
+    session,
     loading,
     error,
     authBusy,
@@ -340,6 +350,7 @@ export function DesktopProvider({ children }: PropsWithChildren) {
     retryPendingBrowserOpen,
     saveProfile,
     sendTestNotification,
+    session,
     setActiveProfile,
     updateNotifications
   ])

@@ -1,10 +1,17 @@
-import type { LoginResponse, MeResponse } from './contracts/console'
+import type { DesktopSessionState, LoginResponse, MeResponse } from './contracts/console'
 
 export type ConsoleSessionState = {
   authenticated: boolean
   username: string
   csrfToken: string
   languageTag: string
+}
+
+export type DesktopConsoleSessionState = {
+  authenticated: boolean
+  username: string
+  expiresAt: string
+  refreshExpiresAt: string
 }
 
 export function consoleSessionFromLogin(response: LoginResponse): ConsoleSessionState {
@@ -23,5 +30,16 @@ export function consoleSessionFromMe(response: MeResponse): ConsoleSessionState 
     username: authenticated ? response.username ?? '' : '',
     csrfToken: authenticated ? response.csrfToken ?? '' : '',
     languageTag: response.languageTag ?? ''
+  }
+}
+
+export function desktopConsoleSessionFromState(
+  session: DesktopSessionState | null | undefined
+): DesktopConsoleSessionState {
+  return {
+    authenticated: session?.authenticated === true,
+    username: session?.username ?? '',
+    expiresAt: session?.expiresAt ?? '',
+    refreshExpiresAt: session?.refreshExpiresAt ?? ''
   }
 }

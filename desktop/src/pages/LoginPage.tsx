@@ -9,7 +9,7 @@ export function LoginPage() {
   const navigate = useNavigate()
   const { t } = useDesktopI18n()
   const {
-    bootstrap,
+    session,
     activeProfile,
     authBusy,
     beginBrowserLogin,
@@ -25,10 +25,10 @@ export function LoginPage() {
   const [autoSubmitting, setAutoSubmitting] = useState(false)
 
   useEffect(() => {
-    if (bootstrap?.session.authenticated) {
+    if (session.authenticated) {
       navigate('/overview', { replace: true })
     }
-  }, [bootstrap?.session.authenticated, navigate])
+  }, [navigate, session.authenticated])
 
   useEffect(() => {
     setManualAuthInput('')
@@ -64,7 +64,7 @@ export function LoginPage() {
       <div className="stack">
         <Panel
           title={t('login.panelTitle')}
-          actions={bootstrap?.session.authenticated ? <Tag tone="success">{t('login.alreadyAuthenticated')}</Tag> : null}
+          actions={session.authenticated ? <Tag tone="success">{t('login.alreadyAuthenticated')}</Tag> : null}
         >
           <div className="stack">
             {error ? <div className="banner banner--danger">{error}</div> : null}

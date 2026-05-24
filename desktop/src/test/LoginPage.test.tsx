@@ -25,6 +25,12 @@ const mockDesktop = vi.hoisted(() => ({
       }
     ]
   },
+  session: {
+    authenticated: false,
+    username: '',
+    expiresAt: '',
+    refreshExpiresAt: ''
+  },
   activeProfile: {
     id: 'profile-a',
     name: 'Primary Backend',

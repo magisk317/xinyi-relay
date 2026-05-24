@@ -24,7 +24,7 @@ type OverviewSnapshot = {
 
 export function OverviewPage() {
   const { t } = useDesktopI18n()
-  const { bootstrap, activeProfile, connection, lastRealtimeEvent } = useDesktop()
+  const { bootstrap, activeProfile, connection, lastRealtimeEvent, session } = useDesktop()
   const [snapshot, setSnapshot] = useState<OverviewSnapshot>({
     systemInfo: null,
     devices: [],
@@ -93,7 +93,7 @@ export function OverviewPage() {
         {error ? <div className="banner banner--danger">{error}</div> : null}
         <div className="metrics-grid metrics-grid--overview">
           <Metric label={t('overview.platform')} value={bootstrap?.platform ?? 'desktop'} />
-          <Metric label={t('overview.session')} value={bootstrap?.session.authenticated ? t('common.authenticated') : t('common.signedOut')} />
+          <Metric label={t('overview.session')} value={session.authenticated ? t('common.authenticated') : t('common.signedOut')} />
           <Metric label={t('overview.backend')} value={activeProfile?.name ?? t('common.noActiveBackend')} />
           <Metric label={t('overview.connection')} value={translateConnectionState(connection.state, t)} />
           <Metric label={t('analytics.cloudRevision')} value={snapshot.config?.revision ?? t('common.none')} />
