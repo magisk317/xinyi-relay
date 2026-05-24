@@ -195,6 +195,8 @@
 - 不直接访问 Android 端 repository、Provider 或 DataStore。
 - 浏览器控制台的 API 方法表统一经由 `shared/consoleApiClient.ts` 维护；Web 侧只实现 fetch / CSRF /
   cookie / timeout transport adapter，Desktop 侧继续由 Tauri runtime 暴露本地 adapter。
+- Desktop 远程 API 页面同样使用 `shared/consoleApiClient.ts` 的方法形状；Tauri runtime adapter 负责把共享
+  endpoint 映射到本地 command，并需要覆盖 OpenAPI 中已声明的 endpoint。
 - 认证会话响应统一经由 `shared/consoleSession.ts` 归一化，避免各端重复解释 login / me 响应。
 - 配置快照 clone / normalize / conflict / load / save 纯逻辑统一经由 `shared/configSnapshot.ts` 维护；
   Web / Desktop 的 React hook 只保留状态 ownership 和 runtime adapter 调用。
