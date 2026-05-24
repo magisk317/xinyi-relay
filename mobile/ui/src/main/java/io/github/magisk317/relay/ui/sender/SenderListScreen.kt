@@ -13,7 +13,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -26,12 +25,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.magisk317.relay.contract.constant.DispatchStrategy
 import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.mobileui.BuildConfig
 import io.github.magisk317.relay.core.R
@@ -44,9 +41,6 @@ import io.github.magisk317.relay.contract.settings.SimRemarkSettingsSnapshot
 import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
-import io.github.magisk317.relay.ui.common.SegmentedOption
-import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -439,150 +433,6 @@ fun SenderListScreen(
             )
         }
     }
-}
-
-@Composable
-private fun GeneralConfigDialog(
-    currentConfig: ForwardCommonConfig,
-    currentSimSlot1Remark: String,
-    currentSimSlot2Remark: String,
-    onDismiss: () -> Unit,
-    onSave: (ForwardCommonConfig, String, String) -> Unit,
-) {
-    var deviceName by remember(currentConfig.deviceName) { mutableStateOf(currentConfig.deviceName) }
-    var dispatchStrategy by remember(currentConfig.dispatchStrategy) {
-        mutableIntStateOf(normalizeDispatchStrategy(currentConfig.dispatchStrategy))
-    }
-    var simSlot1Remark by remember(currentSimSlot1Remark) { mutableStateOf(currentSimSlot1Remark) }
-    var simSlot2Remark by remember(currentSimSlot2Remark) { mutableStateOf(currentSimSlot2Remark) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.sender_general_config_title)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = deviceName,
-                    onValueChange = { deviceName = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.sender_dialog_device_name_label)) },
-                    placeholder = { Text(stringResource(R.string.sender_dialog_device_name_placeholder)) },
-                    singleLine = true,
-                )
-                Text(
-                    text = stringResource(R.string.dispatch_strategy),
-                    style = MaterialTheme.typography.titleSmall,
-                )
-                SingleChoiceSegmentedSelector(
-                    options = listOf(
-                        SegmentedOption(
-                            DispatchStrategy.PRIMARY_ONLY,
-                            stringResource(R.string.dispatch_strategy_primary_only),
-                        ),
-                        SegmentedOption(
-                            DispatchStrategy.BROADCAST_ALL,
-                            stringResource(R.string.dispatch_strategy_broadcast_all),
-                        ),
-                        SegmentedOption(
-                            DispatchStrategy.FAILOVER,
-                            stringResource(R.string.dispatch_strategy_failover),
-                        ),
-                    ),
-                    selected = dispatchStrategy,
-                    onSelect = { dispatchStrategy = it },
-                )
-                OutlinedTextField(
-                    value = simSlot1Remark,
-                    onValueChange = { simSlot1Remark = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.sender_dialog_sim1_note_label)) },
-                    placeholder = { Text(stringResource(R.string.sender_dialog_sim_note_placeholder)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = simSlot2Remark,
-                    onValueChange = { simSlot2Remark = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.sender_dialog_sim2_note_label)) },
-                    placeholder = { Text(stringResource(R.string.sender_dialog_sim_note_placeholder)) },
-                    singleLine = true,
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    onSave(
-                        currentConfig.copy(
-                            deviceName = deviceName.trim(),
-                            dispatchStrategy = dispatchStrategy,
-                        ),
-                        simSlot1Remark.trim(),
-                        simSlot2Remark.trim(),
-                    )
-                },
-            ) {
-                Text(stringResource(R.string.save))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
-            }
-        },
-    )
-}
-
-@Composable
-private fun SenderPriorityDialog(
-    sender: Sender,
-    currentPriority: Int,
-    maxPriority: Int,
-    onDismiss: () -> Unit,
-    onSave: (Int) -> Unit,
-) {
-    val context = LocalContext.current
-    var priorityText by remember(sender.id, currentPriority) { mutableStateOf(currentPriority.toString()) }
-    val parsedPriority = priorityText.toIntOrNull()
-    val validPriority = parsedPriority != null && parsedPriority >= 0
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                stringResource(
-                    R.string.sender_priority_dialog_title,
-                    sender.name.ifBlank { getSenderTypeName(context, sender.type) },
-                ),
-            )
-        },
-        text = {
-            OutlinedTextField(
-                value = priorityText,
-                onValueChange = { input ->
-                    priorityText = filterNonNegativeIntegerInput(input).take(3)
-                },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.sender_priority_order)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                isError = priorityText.isNotBlank() && !validPriority,
-            )
-        },
-        confirmButton = {
-            TextButton(
-                enabled = validPriority,
-                onClick = {
-                    onSave((parsedPriority ?: currentPriority).coerceIn(0, maxPriority))
-                },
-            ) {
-                Text(stringResource(R.string.save))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
-            }
-        },
-    )
 }
 
 @Composable
