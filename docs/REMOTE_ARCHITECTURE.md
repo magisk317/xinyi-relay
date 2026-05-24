@@ -50,11 +50,13 @@
 - 主控制台。
 - 管理发送器、规则、设备、记录、概览和设置。
 - 复用 `shared/contracts/console.ts` 中的远程类型。
+- 复用 `shared/configSnapshot.ts` 中的 config snapshot normalize / clone / conflict helper，减少 Web / Desktop
+  配置编辑基础逻辑漂移。
 - 通过 lint、typecheck、build 与 OpenAPI contract test 保证基础一致性。
 
 后续重点：
 
-- 抽出共享 API client、认证状态模型、配置编辑器和 sender 表单元数据，减少 Web / Desktop 双份实现。
+- 继续抽出共享 API client、认证状态模型、配置编辑器和 sender 表单元数据，减少 Web / Desktop 双份实现。
 
 ### Tauri Desktop
 
@@ -142,7 +144,8 @@
 
 ## 后续演进
 
-1. 抽共享前端 API client、认证状态模型、配置编辑器和 sender 表单元数据。
+1. 继续抽共享前端 API client、认证状态模型、配置编辑器和 sender 表单元数据；React hook 需要先有明确
+   前端 package / workspace 边界，不直接放仓库根 `shared/`。
 2. 继续收敛 Web / Desktop 与手机端的功能 parity。
 3. 逐步把前端静态资源也纳入远端镜像链，减少宿主机对本地 `webui/dist` 的依赖。
 4. 扩展 OpenAPI schema 覆盖新增 endpoint，并把合同测试纳入对应 CI。
