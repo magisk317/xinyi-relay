@@ -2,13 +2,7 @@
 
 package io.github.magisk317.relay.ui.home
 
-import android.app.Activity
-import android.content.Intent
-import android.net.Uri
 import android.util.Log
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -40,14 +34,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.repeatOnLifecycle
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
 import io.github.magisk317.relay.android.diagnostics.LogBundleExporter
 import io.github.magisk317.relay.android.diagnostics.RuntimeLogStore
-import io.github.magisk317.relay.backup.RelayBackupManager
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsUpdate
@@ -76,7 +67,6 @@ fun SettingsHomeScreen(
     val repository: SettingsPreferencesRepository = koinInject()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val activityOwner = context as? ComponentActivity
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
     val snackbarHostState = remember { SnackbarHostState() }
     val notifySaved = {
@@ -85,9 +75,12 @@ fun SettingsHomeScreen(
         }
     }
     val settingsViewModel = rememberSharedSettingsViewModel()
-    val lifecycleOwner = LocalLifecycleOwner.current
     val themeState by settingsViewModel.themeState.collectAsStateWithLifecycle()
     val languageState by settingsViewModel.languageState.collectAsStateWithLifecycle()
+    val backupRestoreActions = rememberSettingsBackupRestoreActions(
+        settingsViewModel = settingsViewModel,
+        snackbarHostState = snackbarHostState,
+    )
     var general by remember { mutableStateOf<GeneralSettingsSnapshot?>(null) }
     var verification by remember { mutableStateOf<VerificationSettingsSnapshot?>(null) }
     var relay by remember { mutableStateOf<RelaySettingsSnapshot?>(null) }
@@ -99,13 +92,6 @@ fun SettingsHomeScreen(
     var runtimeLogDialogData by remember { mutableStateOf<RuntimeLogDialogData?>(null) }
     var showRuntimeLogFullScreenPreview by remember { mutableStateOf(false) }
     var runtimeLogWrapLines by rememberSaveable { mutableStateOf(false) }
-    var showBackupDialog by remember { mutableStateOf(false) }
-    var showRestoreDialog by remember { mutableStateOf(false) }
-    var pendingBackupSelection by remember { mutableStateOf<BackupSelection?>(null) }
-    var pendingRestoreUri by remember { mutableStateOf<Uri?>(null) }
-    var backupInspectionDialog by remember { mutableStateOf<RelayBackupManager.BackupInspection?>(null) }
-    var restoreInspection by remember { mutableStateOf<RelayBackupManager.BackupInspection?>(null) }
-    var restoreInspectionLoading by remember { mutableStateOf(false) }
     var themeDialogInitialMode by remember { mutableStateOf(0) }
     var themeDialogSelectedMode by remember { mutableStateOf(0) }
     var languageDialogInitialTag by remember { mutableStateOf("") }
@@ -115,31 +101,6 @@ fun SettingsHomeScreen(
     var expandSupport by rememberSaveable { mutableStateOf(false) }
     var expandBackupRestore by rememberSaveable { mutableStateOf(false) }
     var expandOthers by rememberSaveable { mutableStateOf(false) }
-
-    val backupDocumentLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult(),
-    ) { result ->
-        val selection = pendingBackupSelection
-        pendingBackupSelection = null
-        val uri = result.data?.data ?: return@rememberLauncherForActivityResult
-        if (result.resultCode != Activity.RESULT_OK || selection == null) return@rememberLauncherForActivityResult
-        settingsViewModel.performBackup(
-            uri = uri,
-            includeConfig = selection.includeConfig,
-            includeRules = selection.includeRules,
-            includeRecords = selection.includeRecords,
-            includeDatabase = selection.includeDatabase,
-        )
-    }
-
-    val restoreDocumentLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult(),
-    ) { result ->
-        if (result.resultCode != Activity.RESULT_OK) return@rememberLauncherForActivityResult
-        val uri = result.data?.data ?: return@rememberLauncherForActivityResult
-        pendingRestoreUri = uri
-        showRestoreDialog = true
-    }
 
     fun shareRuntimeLogBundle() {
         scope.launch {
@@ -207,59 +168,6 @@ fun SettingsHomeScreen(
         expandSupport = expanded
         expandBackupRestore = expanded
         expandOthers = expanded
-    }
-
-    LaunchedEffect(activityOwner?.intent?.data) {
-        val backupUri = activityOwner?.intent?.data ?: return@LaunchedEffect
-        pendingRestoreUri = backupUri
-        restoreInspection = null
-        restoreInspectionLoading = true
-        showRestoreDialog = true
-        activityOwner.intent = Intent(activityOwner.intent).apply {
-            data = null
-        }
-    }
-
-    LaunchedEffect(showRestoreDialog, pendingRestoreUri) {
-        val restoreUri = pendingRestoreUri
-        if (!showRestoreDialog || restoreUri == null) {
-            restoreInspection = null
-            restoreInspectionLoading = false
-            return@LaunchedEffect
-        }
-        restoreInspection = null
-        restoreInspectionLoading = true
-        restoreInspection = settingsViewModel.inspectBackup(restoreUri)
-        restoreInspectionLoading = false
-    }
-
-    LaunchedEffect(lifecycleOwner, settingsViewModel) {
-        lifecycleOwner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
-            settingsViewModel.eventsFlow.collect { event ->
-                when (event) {
-                    is SettingsEvent.BackupResultEvent -> {
-                        if (event.success) {
-                            backupInspectionDialog = event.inspection
-                        } else {
-                            snackbarHostState.showSnackbar(backupResultMessage(context, event.success))
-                        }
-                    }
-
-                    is SettingsEvent.RestoreResultEvent -> {
-                        snackbarHostState.showSnackbar(restoreResultMessage(context, event.result))
-                    }
-
-                    is SettingsEvent.ImportDialogConfirm -> {
-                        pendingRestoreUri = event.uri
-                        restoreInspection = null
-                        restoreInspectionLoading = true
-                        showRestoreDialog = true
-                    }
-
-                    else -> Unit
-                }
-            }
-        }
     }
 
     Scaffold(
@@ -357,10 +265,8 @@ fun SettingsHomeScreen(
             SettingsBackupRestoreSection(
                 expanded = expandBackupRestore,
                 onExpandedChange = { expandBackupRestore = !expandBackupRestore },
-                onBackupClick = { showBackupDialog = true },
-                onRestoreClick = {
-                    restoreDocumentLauncher.launch(RelayBackupManager.getImportRuleListSAFIntent(context))
-                },
+                onBackupClick = backupRestoreActions.onBackupClick,
+                onRestoreClick = backupRestoreActions.onRestoreClick,
             )
             SettingsDiagnosticsSection(
                 diagnostics = diagnosticsSnapshot,
@@ -485,50 +391,6 @@ fun SettingsHomeScreen(
                     notifySaved()
                 }
             },
-        )
-    }
-    BackupRestoreDialogHost(
-        showBackupDialog = showBackupDialog,
-        showRestoreDialog = showRestoreDialog,
-        pendingRestoreUri = pendingRestoreUri,
-        restoreInspection = restoreInspection,
-        restoreInspectionLoading = restoreInspectionLoading,
-        onDismissBackup = { showBackupDialog = false },
-        onConfirmBackup = { selection ->
-            showBackupDialog = false
-            pendingBackupSelection = selection
-            backupDocumentLauncher.launch(
-                RelayBackupManager.getExportRuleListSAFIntent(
-                    context = context,
-                    includeDatabase = selection.includeDatabase,
-                ),
-            )
-        },
-        onDismissRestore = {
-            showRestoreDialog = false
-            pendingRestoreUri = null
-            restoreInspection = null
-            restoreInspectionLoading = false
-        },
-        onConfirmRestore = { restoreUri, selection ->
-            showRestoreDialog = false
-            pendingRestoreUri = null
-            restoreInspection = null
-            restoreInspectionLoading = false
-            settingsViewModel.performRestore(
-                uri = restoreUri,
-                restoreConfig = selection.includeConfig,
-                restoreRules = selection.includeRules,
-                restoreRecords = selection.includeRecords,
-                restoreDatabase = selection.includeDatabase,
-            )
-        },
-    )
-    val backupInspectionState = backupInspectionDialog
-    if (backupInspectionState != null) {
-        BackupInspectionResultDialog(
-            inspection = backupInspectionState,
-            onDismiss = { backupInspectionDialog = null },
         )
     }
 }
