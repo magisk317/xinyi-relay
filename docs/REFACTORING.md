@@ -193,6 +193,9 @@
 
 - 统一通过 Backend API 访问配置、记录与设备状态。
 - 不直接访问 Android 端 repository、Provider 或 DataStore。
+- 浏览器控制台的 API 方法表统一经由 `shared/consoleApiClient.ts` 维护；Web 侧只实现 fetch / CSRF /
+  cookie / timeout transport adapter，Desktop 侧继续由 Tauri runtime 暴露本地 adapter。
+- 认证会话响应统一经由 `shared/consoleSession.ts` 归一化，避免各端重复解释 login / me 响应。
 - sender 结构化配置字段合同来自 `shared/contracts/senderSchemas.json`，由
   `scripts/generate_sender_schema_contract.py` 从 Kotlin `SenderSettingSchemas` 生成；Web / Desktop 只能在该合同上补 UI label、布局和控件类型。
 
