@@ -6,6 +6,7 @@ import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.ModuleLoadedParam
 import io.github.libxposed.api.XposedModuleInterface.PackageReadyParam
 import io.github.libxposed.api.XposedModuleInterface.SystemServerStartingParam
+import io.github.magisk317.relay.android.platform.xpbridge.AndroidXpDiagnosticsBridge
 import io.github.magisk317.relay.android.platform.clipboard.AndroidClipboardPlatformBridge
 import io.github.magisk317.relay.android.platform.notification.AndroidNotificationPlatformBridge
 import io.github.magisk317.relay.android.platform.sms.AndroidSmsRuntimeBridge
@@ -69,6 +70,7 @@ class LibXposedEntry : XposedModule {
             return
         }
         installCoreRuntime()
+        XpHookDiagnostics.installRuntimeBridge(AndroidXpDiagnosticsBridge)
         XpHookDiagnostics.installXposedRuntimeLogSink()
         XpAppConfigFacade.installRuntimeBridge(RuntimeXpAppConfigBridge)
         XpRecordFacade.installRuntimeBridge(RuntimeXpRecordBridge)

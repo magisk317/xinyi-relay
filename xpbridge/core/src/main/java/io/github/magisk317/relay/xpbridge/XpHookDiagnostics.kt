@@ -1,14 +1,19 @@
 package io.github.magisk317.relay.xpbridge
 
 import android.content.Context
-import android.util.Log
-import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
-import io.github.magisk317.relay.android.diagnostics.ActivationDiagnosticsStore
-import io.github.magisk317.relay.android.diagnostics.RuntimeLogStore
+import io.github.magisk317.relay.contract.xpbridge.NoopXpDiagnosticsRuntimeBridge
+import io.github.magisk317.relay.contract.xpbridge.XpDiagnosticsRuntimeBridge
 import io.github.magisk317.smscode.xposed.runtime.CoreLogSink
 import io.github.magisk317.smscode.xposed.runtime.CoreLogSinkHolder
 
 object XpHookDiagnostics {
+    @Volatile
+    private var runtimeBridge: XpDiagnosticsRuntimeBridge = NoopXpDiagnosticsRuntimeBridge
+
+    fun installRuntimeBridge(bridge: XpDiagnosticsRuntimeBridge?) {
+        runtimeBridge = bridge ?: NoopXpDiagnosticsRuntimeBridge
+    }
+
     fun installXposedRuntimeLogSink() {
         CoreLogSinkHolder.install(
             object : CoreLogSink {
@@ -20,13 +25,14 @@ object XpHookDiagnostics {
                     route: String?,
                     sensitive: Boolean,
                 ) {
-                    val safeMessage = if (sensitive) SensitiveLogPolicy.sanitizeLogMessage(message) else message
-                    RuntimeLogStore.append(
+                    runtimeBridge.appendXposedLog(
                         priority = priority,
                         tag = tag,
-                        message = safeMessage,
-                        force = force || priority >= Log.WARN,
-                        route = route ?: RuntimeLogStore.routeFromCallerClassName(resolveCallerClassName()),
+                        message = message,
+                        force = force,
+                        route = route,
+                        sensitive = sensitive,
+                        callerClassName = resolveCallerClassName(),
                     )
                 }
             },
@@ -37,7 +43,7 @@ object XpHookDiagnostics {
         context: Context,
         verboseLogging: Boolean,
     ) {
-        RuntimeLogStore.initialize(context, enableDetailedLogs = verboseLogging)
+        runtimeBridge.bindRuntimeLogContext(context, verboseLogging)
     }
 
     fun recordSmsHookHeartbeat(
@@ -47,13 +53,12 @@ object XpHookDiagnostics {
         source: String,
         verboseLogging: Boolean,
     ) {
-        ActivationDiagnosticsStore.recordHookHeartbeat(
+        runtimeBridge.recordSmsHookHeartbeat(
             context = context,
             packageName = packageName,
             processName = processName,
             source = source,
             verboseLogging = verboseLogging,
-            route = RuntimeLogStore.ROUTE_SMS_HOOK,
         )
     }
 
