@@ -25,7 +25,7 @@ export function ConfigPage() {
   const [rawDraft, setRawDraft] = useState('{}')
 
   const loadAuditLogs = useCallback(async () => {
-    const auditPayload = await desktopApi.fetchConfigAuditLogs(30, 0)
+    const auditPayload = await desktopApi.getConfigAuditLogs(30, 0)
     setLogs(auditPayload.logs)
   }, [])
 

@@ -3,8 +3,8 @@ import { vi } from 'vitest'
 import { DesktopI18nProvider } from '../i18n'
 import { DevicesPage } from '../pages/DevicesPage'
 
-const { fetchDevices, patchDevice } = vi.hoisted(() => ({
-  fetchDevices: vi.fn().mockResolvedValue({
+const { getDevices, patchDevice } = vi.hoisted(() => ({
+  getDevices: vi.fn().mockResolvedValue({
     devices: [
       {
         id: 1,
@@ -29,7 +29,7 @@ const { fetchDevices, patchDevice } = vi.hoisted(() => ({
 
 vi.mock('../api/desktopApi', () => ({
   desktopApi: {
-    fetchDevices,
+    getDevices,
     createBindCode: vi.fn().mockResolvedValue({ code: 'ABCDEF', expiresAt: '2026-04-09T11:00:00Z' }),
     patchDevice,
     revokeDevice: vi.fn().mockResolvedValue({})

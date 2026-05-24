@@ -29,7 +29,7 @@ export function DevicesPage() {
     try {
       setLoading(true)
       setError('')
-      const payload = await desktopApi.fetchDevices()
+      const payload = await desktopApi.getDevices()
       setDevices(payload.devices)
       setDraftNames((previous) => {
         const next: Record<number, string> = {}

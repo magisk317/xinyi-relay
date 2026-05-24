@@ -30,10 +30,10 @@ export function AnalyticsPage() {
       setLoading(true)
       setError('')
       const [recordsResp, devicesResp, auditResp, snapshot] = await Promise.all([
-        desktopApi.fetchRecords(200),
-        desktopApi.fetchDevices(),
-        desktopApi.fetchConfigAuditLogs(30, 0),
-        desktopApi.fetchConfigSnapshot()
+        desktopApi.getRecords(200),
+        desktopApi.getDevices(),
+        desktopApi.getConfigAuditLogs(30, 0),
+        desktopApi.getConfigSnapshot()
       ])
       setRecords(recordsResp.records)
       setDevices(devicesResp.devices)

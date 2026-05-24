@@ -1088,6 +1088,24 @@ async fn desktop_fetch_records(
 }
 
 #[tauri::command]
+async fn desktop_fetch_record(
+    app: AppHandle,
+    state: State<'_, DesktopAppState>,
+    record_id: i64,
+) -> Result<RecordItem, String> {
+    let (profile, session) = ensure_active_session_if_needed(&app, &state).await?;
+    let client = build_client(&profile)?;
+    send_json_request(
+        &client,
+        Method::GET,
+        &format!("{}/api/v1/records/{}", profile.base_url, record_id),
+        Some(&session.access_token),
+        None,
+    )
+    .await
+}
+
+#[tauri::command]
 async fn desktop_export_diagnostics(
     app: AppHandle,
     state: State<'_, DesktopAppState>,
@@ -1935,6 +1953,7 @@ fn main() {
             desktop_put_config_snapshot,
             desktop_fetch_config_audit_logs,
             desktop_fetch_records,
+            desktop_fetch_record,
             desktop_export_diagnostics,
             desktop_update_notifications,
             desktop_send_test_notification

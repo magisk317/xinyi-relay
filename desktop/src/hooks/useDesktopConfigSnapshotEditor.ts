@@ -17,7 +17,7 @@ export function useDesktopConfigSnapshotEditor() {
   const load = useCallback(async () => {
     try {
       setLoading(true)
-      const next = await loadNormalizedConfigSnapshot(desktopApi.fetchConfigSnapshot)
+      const next = await loadNormalizedConfigSnapshot(desktopApi.getConfigSnapshot)
       setConfig(next.config)
       setRoot(next.root)
       setError('')

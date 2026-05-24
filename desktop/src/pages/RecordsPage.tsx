@@ -30,8 +30,8 @@ export function RecordsPage() {
       setLoading(true)
       setError('')
       const [recordsPayload, devicesPayload] = await Promise.all([
-        desktopApi.fetchRecords(80, selectedDeviceId === '' ? undefined : selectedDeviceId),
-        desktopApi.fetchDevices()
+        desktopApi.getRecords(80, selectedDeviceId === '' ? undefined : selectedDeviceId),
+        desktopApi.getDevices()
       ])
       setRecords(recordsPayload.records)
       setDevices(devicesPayload.devices)

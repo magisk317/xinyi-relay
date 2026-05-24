@@ -3,8 +3,8 @@ import { vi } from 'vitest'
 import { DesktopI18nProvider } from '../i18n'
 import { RecordsPage } from '../pages/RecordsPage'
 
-const { fetchRecords, fetchDevices } = vi.hoisted(() => ({
-  fetchRecords: vi.fn().mockResolvedValue({
+const { getRecords, getDevices } = vi.hoisted(() => ({
+  getRecords: vi.fn().mockResolvedValue({
     records: [
       {
         id: 10,
@@ -24,7 +24,7 @@ const { fetchRecords, fetchDevices } = vi.hoisted(() => ({
     limit: 80,
     offset: 0
   }),
-  fetchDevices: vi.fn().mockResolvedValue({
+  getDevices: vi.fn().mockResolvedValue({
     devices: [
       {
         id: 1,
@@ -48,8 +48,8 @@ const { fetchRecords, fetchDevices } = vi.hoisted(() => ({
 
 vi.mock('../api/desktopApi', () => ({
   desktopApi: {
-    fetchRecords,
-    fetchDevices
+    getRecords,
+    getDevices
   }
 }))
 

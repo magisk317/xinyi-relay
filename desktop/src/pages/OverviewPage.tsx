@@ -39,10 +39,10 @@ export function OverviewPage() {
       setLoading(true)
       setError('')
       const [systemInfo, devices, records, config] = await Promise.all([
-        desktopApi.fetchSystemInfo(),
-        desktopApi.fetchDevices(),
-        desktopApi.fetchRecords(12),
-        desktopApi.fetchConfigSnapshot()
+        desktopApi.getSystemInfo(),
+        desktopApi.getDevices(),
+        desktopApi.getRecords(12),
+        desktopApi.getConfigSnapshot()
       ])
       setSnapshot({
         systemInfo,
