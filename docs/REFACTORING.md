@@ -105,6 +105,9 @@
 - 运行时能力经由 `core` 的 UI-facing facade、`relay/contract` 或 `relay/engine/api` 访问。
 - 首页概览页已拆出 `OverviewChartCard`、`OverviewInfoCards` 与 `OverviewCardEditing`，
   `OverviewScreen` 继续只保留页面状态装配、卡片路由和顶层交互编排。
+- 设置首页已拆出 `SettingsHomeSections`、`SettingsDisplayCoordinator`、`SettingsBackupCoordinator`、
+  `SettingsRuntimeLogCoordinator`、`SettingsHomeDialogs` 与 `SettingsBackupUi`；`SettingsExperienceScreens`
+  继续只保留页面状态装配、分组路由和顶层设置写入回调。
 - sender 列表页已拆出 `SenderConfigCards`、`SenderTypeDialog`、`SenderGeneralDialogs` 与
   `SenderTemplateDialogs`，顶部配置入口、添加类型、通用/优先级配置和短信/通知/来电模板编辑
   不再挤在 `SenderListScreen` 主编排文件里。
