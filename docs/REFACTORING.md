@@ -113,6 +113,8 @@
   不再挤在 `SenderListScreen` 主编排文件里。
 - sender 列表项与删除撤销倒计时 Snackbar 已拆到 `SenderCard` 与 `SenderUndoSnackbar`；
   `SenderListScreen` 继续只保留列表状态、拖拽排序、删除恢复动作和顶层对话框编排。
+- Telegram / Pushplus sender 表单已接入 `SchemaSenderConfigForm`，字段默认值和选项来自
+  `SenderSettingSchemas` / `SenderSettingDraft`；表单文件只保留可见字段标签和少量兼容归一化。
 - 新增 API 子模块优先收进所属目录，例如 `relay/engine/api`；避免在项目根目录继续增加多词模块目录。
 
 ### 根目录布局
@@ -203,6 +205,8 @@
   Web / Desktop 的 React hook 只保留状态 ownership 和 runtime adapter 调用。
 - sender 结构化配置字段合同来自 `shared/contracts/senderSchemas.json`，由
   `scripts/generate_sender_schema_contract.py` 从 Kotlin `SenderSettingSchemas` 生成；Web / Desktop 只能在该合同上补 UI label、布局和控件类型。
+- sender 字段默认值和枚举选项优先写入 `SenderSettingSchemas`，并同步生成到
+  `shared/contracts/senderSchemas.json`；Android Compose 表单新增 schema-driven 字段时只补展示标签和运行时 adapter。
 
 ### Xposed / 跨进程运行时
 
