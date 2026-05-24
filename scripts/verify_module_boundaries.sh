@@ -68,6 +68,10 @@ forbid_pattern "$HOOK_ENTRY_BUILD" 'project\(":core"\)' \
 
 forbid_pattern "$XPBRIDGE_CORE_BUILD" 'project\(":relay:engine"\)' \
   "xpbridge/core must not depend on :relay:engine implementation directly"
+forbid_pattern "$XPBRIDGE_CORE_BUILD" 'project\(":runtime"\)' \
+  "xpbridge/core must not depend on :runtime directly"
+forbid_pattern "$XPBRIDGE_CORE_BUILD" 'project\(":relay:android"\)' \
+  "xpbridge/core must not depend on :relay:android directly"
 forbid_pattern "$XPBRIDGE_CORE_BUILD" 'project\(":smscode-core:smscode-domain"\)' \
   "xpbridge/core must not depend on :smscode-core:smscode-domain directly"
 forbid_pattern "$XPBRIDGE_CORE_BUILD" 'androidx\.compose' \

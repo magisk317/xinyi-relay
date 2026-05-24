@@ -2,15 +2,22 @@ package io.github.magisk317.relay.xpbridge
 
 import android.content.Context
 import android.content.Intent
-import io.github.magisk317.relay.contract.constant.MessageType
-import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
-import io.github.magisk317.relay.platform.ipc.PreparedSmsHookDispatch as RuntimePreparedSmsHookDispatch
+import io.github.magisk317.relay.contract.xpbridge.NoopXpSmsDispatchRuntimeBridge
+import io.github.magisk317.relay.contract.xpbridge.XpPreparedSmsHookDispatch
+import io.github.magisk317.relay.contract.xpbridge.XpSmsDispatchRuntimeBridge
 
 object XpDispatchCoordinator {
-    fun ensureIncomingEventId(intent: Intent): String = SmsHookDispatchCoordinator.ensureIncomingEventId(intent)
+    @Volatile
+    private var runtimeBridge: XpSmsDispatchRuntimeBridge = NoopXpSmsDispatchRuntimeBridge
+
+    fun installRuntimeBridge(bridge: XpSmsDispatchRuntimeBridge?) {
+        runtimeBridge = bridge ?: NoopXpSmsDispatchRuntimeBridge
+    }
+
+    fun ensureIncomingEventId(intent: Intent): String = runtimeBridge.ensureIncomingEventId(intent)
 
     fun parseIncomingSms(intent: Intent): SmsMsg? {
-        return SmsHookDispatchCoordinator.parseIncomingSms(intent)?.let(SmsMsg::fromRuntime)
+        return runtimeBridge.parseIncomingSms(intent)?.let(SmsMsg::fromRecord)
     }
 
     fun prepareParsedSms(
@@ -18,12 +25,11 @@ object XpDispatchCoordinator {
         sourceIntent: Intent? = null,
         eventId: String? = null,
     ): PreparedSmsHookDispatch {
-        val prepared = SmsHookDispatchCoordinator.prepareParsedSms(
-            smsMsg = smsMsg.toRuntime(),
+        return runtimeBridge.prepareParsedSms(
+            smsMsg = smsMsg.toRecord(),
             sourceIntent = sourceIntent,
             eventId = eventId,
-        )
-        return prepared.toXpPreparedDispatch()
+        ).toXpPreparedDispatch()
     }
 
     suspend fun prepareIngressSms(
@@ -33,10 +39,10 @@ object XpDispatchCoordinator {
         sourceIntent: Intent? = null,
         eventId: String? = null,
     ): PreparedSmsHookDispatch? {
-        return SmsHookDispatchCoordinator.prepareIngressSms(
+        return runtimeBridge.prepareIngressSms(
             pluginContext = pluginContext,
             phoneContext = phoneContext,
-            smsMsg = smsMsg.toRuntime(),
+            smsMsg = smsMsg.toRecord(),
             sourceIntent = sourceIntent,
             eventId = eventId,
         )?.toXpPreparedDispatch()
@@ -49,13 +55,13 @@ object XpDispatchCoordinator {
         date: Long,
         smsCode: String,
     ): SmsMsg {
-        return SmsHookDispatchCoordinator.enrichObservedSms(
+        return runtimeBridge.enrichObservedSms(
             phoneContext = phoneContext,
             sender = sender,
             body = body,
             date = date,
             smsCode = smsCode,
-        ).let(SmsMsg::fromRuntime)
+        ).let(SmsMsg::fromRecord)
     }
 
     fun dispatchPreparedSms(
@@ -63,32 +69,16 @@ object XpDispatchCoordinator {
         prepared: PreparedSmsHookDispatch,
         sentFromUid: Int?,
     ): XpSmsHookDispatchResult {
-        val result = SmsHookDispatchCoordinator.dispatchPreparedSms(
+        return runtimeBridge.dispatchPreparedSms(
             context = context,
-            prepared = prepared.runtimePrepared,
+            prepared = prepared.prepared,
             sentFromUid = sentFromUid,
         )
-        return XpSmsHookDispatchResult(
-            dispatched = result.dispatched,
-            bypassUsed = result.bypassUsed,
-            tokenPresent = result.tokenPresent,
-        )
     }
 
-    private fun RuntimePreparedSmsHookDispatch.toXpPreparedDispatch(): PreparedSmsHookDispatch {
+    private fun XpPreparedSmsHookDispatch.toXpPreparedDispatch(): PreparedSmsHookDispatch {
         return PreparedSmsHookDispatch(
-            runtimePrepared = this,
-            smsMsg = SmsMsg.fromRuntime(smsMsg),
-            messageType = messageType?.toXpMessageType(),
+            prepared = this,
         )
-    }
-
-    private fun MessageType.toXpMessageType(): XpMessageType {
-        return when (this) {
-            MessageType.SMS_CODE -> XpMessageType.SMS_CODE
-            MessageType.SMS_PLAIN -> XpMessageType.SMS_PLAIN
-            MessageType.APP_NOTIFY -> XpMessageType.APP_NOTIFY
-            MessageType.CALL_NOTIFY -> XpMessageType.CALL_NOTIFY
-        }
     }
 }

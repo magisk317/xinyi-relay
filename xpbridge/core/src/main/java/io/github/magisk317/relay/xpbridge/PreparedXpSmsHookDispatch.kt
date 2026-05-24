@@ -1,11 +1,11 @@
 package io.github.magisk317.relay.xpbridge
 
-import io.github.magisk317.relay.platform.ipc.PreparedSmsHookDispatch as RuntimePreparedSmsHookDispatch
+import io.github.magisk317.relay.contract.xpbridge.XpPreparedSmsHookDispatch
 
 class PreparedXpSmsHookDispatch internal constructor(
-    internal val runtimePrepared: RuntimePreparedSmsHookDispatch,
-    val smsMsg: SmsMsg,
-    val messageType: XpMessageType? = null,
-    val simSlot: Int? = runtimePrepared.payload.simSlot,
-    val subId: Int? = runtimePrepared.payload.subId,
+    internal val prepared: XpPreparedSmsHookDispatch,
+    val smsMsg: SmsMsg = SmsMsg.fromRecord(prepared.smsMsg),
+    val messageType: XpMessageType? = prepared.messageType,
+    val simSlot: Int? = prepared.payload.simSlot,
+    val subId: Int? = prepared.payload.subId,
 )

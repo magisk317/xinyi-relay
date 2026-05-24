@@ -2,7 +2,6 @@ package io.github.magisk317.relay.xpbridge
 
 import android.content.Intent
 import android.os.Parcelable
-import io.github.magisk317.relay.android.data.db.entity.SmsMsg as RuntimeSmsMsg
 import io.github.magisk317.relay.contract.xpbridge.XpSmsRecord
 import io.github.magisk317.smscode.verification.SmsMessage
 import kotlinx.parcelize.Parcelize
@@ -45,26 +44,6 @@ data class XpSmsMessage(
         )
     }
 
-    fun toRuntime(): RuntimeSmsMsg {
-        return RuntimeSmsMsg(
-            id = id,
-            sender = sender,
-            body = body,
-            date = date,
-            processedTime = processedTime,
-            company = company,
-            smsCode = smsCode,
-            packageName = packageName,
-            notifyChannelId = notifyChannelId,
-            forwardStatus = forwardStatus,
-            forwardTarget = forwardTarget,
-            forwardMessage = forwardMessage,
-            forwardTime = forwardTime,
-            msgType = msgType,
-            callType = callType,
-        )
-    }
-
     companion object {
         const val FORWARD_STATUS_NONE = XpSmsRecord.FORWARD_STATUS_NONE
         const val FORWARD_STATUS_SUCCESS = XpSmsRecord.FORWARD_STATUS_SUCCESS
@@ -78,11 +57,11 @@ data class XpSmsMessage(
 
         @JvmStatic
         fun fromIntent(intent: Intent): XpSmsMessage {
-            return fromRuntime(RuntimeSmsMsg.fromIntent(intent))
+            return XpDispatchCoordinator.parseIncomingSms(intent) ?: XpSmsMessage()
         }
 
         @JvmStatic
-        fun fromRuntime(smsMsg: RuntimeSmsMsg): XpSmsMessage {
+        fun fromRecord(smsMsg: XpSmsRecord): XpSmsMessage {
             return XpSmsMessage(
                 id = smsMsg.id,
                 sender = smsMsg.sender,
