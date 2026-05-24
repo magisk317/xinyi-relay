@@ -7,6 +7,7 @@ import {
   useState,
   type PropsWithChildren
 } from 'react'
+import { consoleSessionFromLogin, consoleSessionFromMe } from '../../shared/consoleSession'
 import { apiClient, setCsrfToken } from './api/client'
 import { useI18n } from './i18n'
 
@@ -34,17 +35,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
       try {
         const me = await apiClient.me()
         if (cancelled) return
+        const session = consoleSessionFromMe(me)
         setConnected(true)
-        syncServerLanguageTag(me.languageTag ?? '')
-        if (me.authenticated && me.username && me.csrfToken) {
-            setAuthenticated(true)
-            setUsername(me.username)
-          setCsrfToken(me.csrfToken)
-        } else {
-          setAuthenticated(false)
-          setUsername('')
-          setCsrfToken('')
-        }
+        syncServerLanguageTag(session.languageTag)
+        setAuthenticated(session.authenticated)
+        setUsername(session.username)
+        setCsrfToken(session.csrfToken)
       } catch {
         if (!cancelled) {
           setConnected(false)
@@ -67,11 +63,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const login = useCallback(async (inputUsername: string, password: string) => {
     try {
       const resp = await apiClient.login(inputUsername, password)
+      const session = consoleSessionFromLogin(resp)
       setConnected(true)
-      setAuthenticated(resp.authenticated)
-      setUsername(resp.username)
-      setCsrfToken(resp.csrfToken)
-      syncServerLanguageTag(resp.languageTag ?? '')
+      setAuthenticated(session.authenticated)
+      setUsername(session.username)
+      setCsrfToken(session.csrfToken)
+      syncServerLanguageTag(session.languageTag)
     } catch (error) {
       if (error instanceof Error) {
         const message = error.message
