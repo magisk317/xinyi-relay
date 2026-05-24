@@ -19,62 +19,63 @@ import io.github.magisk317.relay.contract.prefs.XpRuntimeBridge as RuntimeXpRunt
 
 object XpPrefs {
     private const val PREFS_NAME = "xposed_prefs"
+    private val prefsAccess: XpPrefsAccess = PrefsReaderXpPrefsAccess
 
     fun installRuntimeBridge(bridge: CoreXpRuntimeBridge?) {
         val activeBridge = bridge ?: NoopXpRuntimeBridge
-        PrefsReader.installRuntimeBridge(activeBridge.toRuntimeBridge())
+        prefsAccess.installRuntimeBridge(activeBridge.toRuntimeBridge())
         CorePrefs.install(activeBridge.toCorePrefsAccess())
     }
 
-    fun isEnabled(context: Context): Boolean = PrefsReader.isEnabled(context)
+    fun isEnabled(context: Context): Boolean = prefsAccess.isEnabled(context)
 
-    fun isVerboseLogMode(context: Context): Boolean = PrefsReader.isVerboseLogMode(context)
+    fun isVerboseLogMode(context: Context): Boolean = prefsAccess.isVerboseLogMode(context)
 
-    fun isSensitiveDebugLogMode(context: Context): Boolean = PrefsReader.isSensitiveDebugLogMode(context)
+    fun isSensitiveDebugLogMode(context: Context): Boolean = prefsAccess.isSensitiveDebugLogMode(context)
 
-    fun relayFeaturesEnabled(context: Context): Boolean = PrefsReader.relayFeaturesEnabled(context)
+    fun relayFeaturesEnabled(context: Context): Boolean = prefsAccess.relayFeaturesEnabled(context)
 
-    fun autoInputCodeEnabled(context: Context): Boolean = PrefsReader.autoInputCodeEnabled(context)
+    fun autoInputCodeEnabled(context: Context): Boolean = prefsAccess.autoInputCodeEnabled(context)
 
-    fun autoEnterCodeEnabled(context: Context): Boolean = PrefsReader.autoEnterCodeEnabled(context)
+    fun autoEnterCodeEnabled(context: Context): Boolean = prefsAccess.autoEnterCodeEnabled(context)
 
-    fun getAutoInputCodeDelay(context: Context): Long = PrefsReader.getAutoInputCodeDelay(context)
+    fun getAutoInputCodeDelay(context: Context): Long = prefsAccess.getAutoInputCodeDelay(context)
 
-    fun getAutoInputCodeIntervalMs(context: Context): Long = PrefsReader.getAutoInputCodeIntervalMs(context)
+    fun getAutoInputCodeIntervalMs(context: Context): Long = prefsAccess.getAutoInputCodeIntervalMs(context)
 
-    fun shouldShowToast(context: Context): Boolean = PrefsReader.shouldShowToast(context)
+    fun shouldShowToast(context: Context): Boolean = prefsAccess.shouldShowToast(context)
 
-    fun markAsReadEnabled(context: Context): Boolean = PrefsReader.markAsReadEnabled(context)
+    fun markAsReadEnabled(context: Context): Boolean = prefsAccess.markAsReadEnabled(context)
 
-    fun deleteSmsEnabled(context: Context): Boolean = PrefsReader.deleteSmsEnabled(context)
+    fun deleteSmsEnabled(context: Context): Boolean = prefsAccess.deleteSmsEnabled(context)
 
-    fun copyToClipboardEnabled(context: Context): Boolean = PrefsReader.copyToClipboardEnabled(context)
+    fun copyToClipboardEnabled(context: Context): Boolean = prefsAccess.copyToClipboardEnabled(context)
 
     fun isMessageTypeEnabled(context: Context, messageType: XpMessageType): Boolean {
-        return PrefsReader.isMessageTypeEnabled(context, messageType.toRuntimeMessageType())
+        return prefsAccess.isMessageTypeEnabled(context, messageType)
     }
 
-    fun recordSmsCodeEnabled(context: Context): Boolean = PrefsReader.recordSmsCodeEnabled(context)
+    fun recordSmsCodeEnabled(context: Context): Boolean = prefsAccess.recordSmsCodeEnabled(context)
 
-    fun blockSmsEnabled(context: Context): Boolean = PrefsReader.blockSmsEnabled(context)
+    fun blockSmsEnabled(context: Context): Boolean = prefsAccess.blockSmsEnabled(context)
 
-    fun showCodeNotification(context: Context): Boolean = PrefsReader.showCodeNotification(context)
+    fun showCodeNotification(context: Context): Boolean = prefsAccess.showCodeNotification(context)
 
-    fun getCodeNotificationOwner(context: Context): String = PrefsReader.getCodeNotificationOwner(context)
+    fun getCodeNotificationOwner(context: Context): String = prefsAccess.getCodeNotificationOwner(context)
 
-    fun autoCancelCodeNotification(context: Context): Boolean = PrefsReader.autoCancelCodeNotification(context)
+    fun autoCancelCodeNotification(context: Context): Boolean = prefsAccess.autoCancelCodeNotification(context)
 
-    fun getNotificationRetentionTime(context: Context): Int = PrefsReader.getNotificationRetentionTime(context)
+    fun getNotificationRetentionTime(context: Context): Int = prefsAccess.getNotificationRetentionTime(context)
 
-    fun deduplicateSms(context: Context): Boolean = PrefsReader.deduplicateSms(context)
+    fun deduplicateSms(context: Context): Boolean = prefsAccess.deduplicateSms(context)
 
-    fun getIpcToken(context: Context): String = PrefsReader.getIpcToken(context)
+    fun getIpcToken(context: Context): String = prefsAccess.getIpcToken(context)
 
     private fun CoreXpRuntimeBridge.toCorePrefsAccess(): CorePrefsAccess {
         val bridge = this
         return object : CorePrefsAccess {
             override fun getBoolean(key: String, defaultValue: Boolean): Boolean {
-                if (key == PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE && !PrefsReader.isSensitiveDebugLogSupported()) {
+                if (key == PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE && !prefsAccess.isSensitiveDebugLogSupported()) {
                     return false
                 }
                 val context = resolveCompatContext() ?: return defaultValue
@@ -178,12 +179,91 @@ object XpPrefs {
         }.getOrNull()
     }
 
-    private fun XpMessageType.toRuntimeMessageType(): MessageType {
-        return when (this) {
-            XpMessageType.SMS_CODE -> MessageType.SMS_CODE
-            XpMessageType.SMS_PLAIN -> MessageType.SMS_PLAIN
-            XpMessageType.APP_NOTIFY -> MessageType.APP_NOTIFY
-            XpMessageType.CALL_NOTIFY -> MessageType.CALL_NOTIFY
-        }
+}
+
+private interface XpPrefsAccess {
+    fun installRuntimeBridge(bridge: RuntimeXpRuntimeBridge?)
+    fun isEnabled(context: Context): Boolean
+    fun isVerboseLogMode(context: Context): Boolean
+    fun isSensitiveDebugLogSupported(): Boolean
+    fun isSensitiveDebugLogMode(context: Context): Boolean
+    fun relayFeaturesEnabled(context: Context): Boolean
+    fun autoInputCodeEnabled(context: Context): Boolean
+    fun autoEnterCodeEnabled(context: Context): Boolean
+    fun getAutoInputCodeDelay(context: Context): Long
+    fun getAutoInputCodeIntervalMs(context: Context): Long
+    fun shouldShowToast(context: Context): Boolean
+    fun markAsReadEnabled(context: Context): Boolean
+    fun deleteSmsEnabled(context: Context): Boolean
+    fun copyToClipboardEnabled(context: Context): Boolean
+    fun isMessageTypeEnabled(context: Context, messageType: XpMessageType): Boolean
+    fun recordSmsCodeEnabled(context: Context): Boolean
+    fun blockSmsEnabled(context: Context): Boolean
+    fun showCodeNotification(context: Context): Boolean
+    fun getCodeNotificationOwner(context: Context): String
+    fun autoCancelCodeNotification(context: Context): Boolean
+    fun getNotificationRetentionTime(context: Context): Int
+    fun deduplicateSms(context: Context): Boolean
+    fun getIpcToken(context: Context): String
+}
+
+private object PrefsReaderXpPrefsAccess : XpPrefsAccess {
+    override fun installRuntimeBridge(bridge: RuntimeXpRuntimeBridge?) {
+        PrefsReader.installRuntimeBridge(bridge)
+    }
+
+    override fun isEnabled(context: Context): Boolean = PrefsReader.isEnabled(context)
+
+    override fun isVerboseLogMode(context: Context): Boolean = PrefsReader.isVerboseLogMode(context)
+
+    override fun isSensitiveDebugLogSupported(): Boolean = PrefsReader.isSensitiveDebugLogSupported()
+
+    override fun isSensitiveDebugLogMode(context: Context): Boolean = PrefsReader.isSensitiveDebugLogMode(context)
+
+    override fun relayFeaturesEnabled(context: Context): Boolean = PrefsReader.relayFeaturesEnabled(context)
+
+    override fun autoInputCodeEnabled(context: Context): Boolean = PrefsReader.autoInputCodeEnabled(context)
+
+    override fun autoEnterCodeEnabled(context: Context): Boolean = PrefsReader.autoEnterCodeEnabled(context)
+
+    override fun getAutoInputCodeDelay(context: Context): Long = PrefsReader.getAutoInputCodeDelay(context)
+
+    override fun getAutoInputCodeIntervalMs(context: Context): Long = PrefsReader.getAutoInputCodeIntervalMs(context)
+
+    override fun shouldShowToast(context: Context): Boolean = PrefsReader.shouldShowToast(context)
+
+    override fun markAsReadEnabled(context: Context): Boolean = PrefsReader.markAsReadEnabled(context)
+
+    override fun deleteSmsEnabled(context: Context): Boolean = PrefsReader.deleteSmsEnabled(context)
+
+    override fun copyToClipboardEnabled(context: Context): Boolean = PrefsReader.copyToClipboardEnabled(context)
+
+    override fun isMessageTypeEnabled(context: Context, messageType: XpMessageType): Boolean {
+        return PrefsReader.isMessageTypeEnabled(context, messageType.toRuntimeMessageType())
+    }
+
+    override fun recordSmsCodeEnabled(context: Context): Boolean = PrefsReader.recordSmsCodeEnabled(context)
+
+    override fun blockSmsEnabled(context: Context): Boolean = PrefsReader.blockSmsEnabled(context)
+
+    override fun showCodeNotification(context: Context): Boolean = PrefsReader.showCodeNotification(context)
+
+    override fun getCodeNotificationOwner(context: Context): String = PrefsReader.getCodeNotificationOwner(context)
+
+    override fun autoCancelCodeNotification(context: Context): Boolean = PrefsReader.autoCancelCodeNotification(context)
+
+    override fun getNotificationRetentionTime(context: Context): Int = PrefsReader.getNotificationRetentionTime(context)
+
+    override fun deduplicateSms(context: Context): Boolean = PrefsReader.deduplicateSms(context)
+
+    override fun getIpcToken(context: Context): String = PrefsReader.getIpcToken(context)
+}
+
+private fun XpMessageType.toRuntimeMessageType(): MessageType {
+    return when (this) {
+        XpMessageType.SMS_CODE -> MessageType.SMS_CODE
+        XpMessageType.SMS_PLAIN -> MessageType.SMS_PLAIN
+        XpMessageType.APP_NOTIFY -> MessageType.APP_NOTIFY
+        XpMessageType.CALL_NOTIFY -> MessageType.CALL_NOTIFY
     }
 }
