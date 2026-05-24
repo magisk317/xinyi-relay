@@ -10,6 +10,7 @@ import io.github.magisk317.relay.android.platform.clipboard.AndroidClipboardPlat
 import io.github.magisk317.relay.android.platform.notification.AndroidNotificationPlatformBridge
 import io.github.magisk317.relay.android.platform.sms.AndroidSmsRuntimeBridge
 import io.github.magisk317.relay.hookentry.BuildConfig
+import io.github.magisk317.relay.platform.xpbridge.RuntimeXpAppConfigBridge
 import io.github.magisk317.relay.xp.hook.code.SmsHandlerHook
 import io.github.magisk317.relay.xp.hook.forward.SmsForwardHook
 import io.github.magisk317.relay.xp.hook.me.ModuleUtilsHook
@@ -17,6 +18,7 @@ import io.github.magisk317.relay.xp.hook.mms.MmsMessagesHook
 import io.github.magisk317.relay.xp.hook.keepalive.KeepAliveHook
 import io.github.magisk317.relay.xp.hook.telephony.SmsProviderHook
 import io.github.magisk317.relay.xp.runtime.RuntimeBridgeFactory
+import io.github.magisk317.relay.xpbridge.XpAppConfigFacade
 import io.github.magisk317.relay.xpbridge.XpClipboard
 import io.github.magisk317.relay.xpbridge.XpHookDiagnostics
 import io.github.magisk317.relay.xpbridge.XpNotificationBridge
@@ -66,6 +68,7 @@ class LibXposedEntry : XposedModule {
         }
         installCoreRuntime()
         XpHookDiagnostics.installXposedRuntimeLogSink()
+        XpAppConfigFacade.installRuntimeBridge(RuntimeXpAppConfigBridge)
         XpClipboard.installPlatformBridge(AndroidClipboardPlatformBridge)
         XpNotificationBridge.installPlatformBridge(AndroidNotificationPlatformBridge)
         XpSmsRuntimeBridge.installPlatformBridge(AndroidSmsRuntimeBridge)
