@@ -105,10 +105,11 @@
 - 运行时能力经由 `core` 的 UI-facing facade、`relay/contract` 或 `relay/engine/api` 访问。
 - 首页概览页已拆出 `OverviewChartCard`、`OverviewInfoCards` 与 `OverviewCardEditing`，
   `OverviewScreen` 继续只保留页面状态装配、卡片路由和顶层交互编排。
-- sender 列表页已拆出 `SenderConfigCards`，顶部通用/短信/通知/来电配置入口和通用 gate toggle
+- sender 列表页已拆出 `SenderConfigCards`、`SenderTypeDialog`、`SenderGeneralDialogs` 与
+  `SenderTemplateDialogs`，顶部配置入口、添加类型、通用/优先级配置和短信/通知/来电模板编辑
   不再挤在 `SenderListScreen` 主编排文件里。
-- sender 列表项与删除撤销倒计时 Snackbar 已拆到 `SenderCard` 与 `SenderUndoSnackbar`，
-  `SenderListScreen` 继续保留列表状态、拖拽排序和删除恢复动作。
+- sender 列表项与删除撤销倒计时 Snackbar 已拆到 `SenderCard` 与 `SenderUndoSnackbar`；
+  `SenderListScreen` 继续只保留列表状态、拖拽排序、删除恢复动作和顶层对话框编排。
 - 新增 API 子模块优先收进所属目录，例如 `relay/engine/api`；避免在项目根目录继续增加多词模块目录。
 
 ### 根目录布局
