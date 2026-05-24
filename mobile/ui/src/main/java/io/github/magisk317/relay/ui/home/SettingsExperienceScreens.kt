@@ -9,31 +9,23 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,14 +38,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
-import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
 import io.github.magisk317.relay.android.diagnostics.LogBundleExporter
 import io.github.magisk317.relay.android.diagnostics.RuntimeLogStore
@@ -68,8 +58,6 @@ import io.github.magisk317.relay.contract.settings.RelaySettingsUpdate
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.VerificationSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.VerificationSettingsUpdate
-import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
-import io.github.magisk317.relay.ui.common.parseIntAtLeastInput
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -414,16 +402,8 @@ fun SettingsHomeScreen(
     }
 
     if (showThemeDialog) {
-        val themeOptions = listOf(
-            stringResource(id = R.string.theme_follow_system),
-            stringResource(id = R.string.theme_light),
-            stringResource(id = R.string.theme_dark),
-            stringResource(id = R.string.theme_black),
-        )
-        SingleChoiceDialog(
-            title = stringResource(id = R.string.pref_choose_theme_title),
-            options = themeOptions,
-            selectedIndex = themeDialogSelectedMode.coerceIn(themeOptions.indices),
+        SettingsThemeDialog(
+            selectedMode = themeDialogSelectedMode,
             onDismiss = {
                 settingsViewModel.previewThemeMode(themeDialogInitialMode)
                 showThemeDialog = false
@@ -432,39 +412,32 @@ fun SettingsHomeScreen(
                 themeDialogSelectedMode = index
                 settingsViewModel.previewThemeMode(index)
             },
-        ) { index ->
-            showThemeDialog = false
-            themeDialogSelectedMode = index
-            settingsViewModel.persistThemeMode(index)
-            notifySaved()
-        }
+            onConfirm = { index ->
+                showThemeDialog = false
+                themeDialogSelectedMode = index
+                settingsViewModel.persistThemeMode(index)
+                notifySaved()
+            },
+        )
     }
     if (showLanguageDialog) {
-        val languageTags = listOf("", "zh-CN", "zh-TW", "en")
-        val languageOptions = listOf(
-            stringResource(id = R.string.language_follow_system),
-            stringResource(id = R.string.language_zh_cn),
-            stringResource(id = R.string.language_zh_tw),
-            stringResource(id = R.string.language_en),
-        )
-        SingleChoiceDialog(
-            title = stringResource(id = R.string.pref_language_title),
-            options = languageOptions,
-            selectedIndex = languageTags.indexOf(languageDialogSelectedTag).takeIf { it >= 0 } ?: 0,
+        SettingsLanguageDialog(
+            selectedTag = languageDialogSelectedTag,
             onDismiss = {
                 settingsViewModel.previewLanguageTag(languageDialogInitialTag)
                 showLanguageDialog = false
             },
-            onSelectionChange = { index ->
-                languageDialogSelectedTag = languageTags[index]
-                settingsViewModel.previewLanguageTag(languageTags[index])
+            onSelectionChange = { tag ->
+                languageDialogSelectedTag = tag
+                settingsViewModel.previewLanguageTag(tag)
             },
-        ) { index ->
-            showLanguageDialog = false
-            languageDialogSelectedTag = languageTags[index]
-            settingsViewModel.persistLanguageTag(languageTags[index])
-            notifySaved()
-        }
+            onConfirm = { tag ->
+                showLanguageDialog = false
+                languageDialogSelectedTag = tag
+                settingsViewModel.persistLanguageTag(tag)
+                notifySaved()
+            },
+        )
     }
     if (showRuntimeLogInfoDialog) {
         LaunchedEffect(showRuntimeLogInfoDialog) {
@@ -510,35 +483,19 @@ fun SettingsHomeScreen(
     }
     val currentDiagnostics = diagnostics
     if (showRuntimeLogRetentionDialog && currentDiagnostics != null) {
-        val runtimeLogRetentionDaysError = stringResource(id = R.string.pref_runtime_log_retention_days_error)
-        TextInputDialog(
-            title = stringResource(id = R.string.pref_runtime_log_retention_days_title),
-            initialValue = currentDiagnostics.runtimeLogRetentionDays.toString(),
+        SettingsRuntimeLogRetentionDialog(
+            retentionDays = currentDiagnostics.runtimeLogRetentionDays,
             onDismiss = { showRuntimeLogRetentionDialog = false },
-            supportingText = stringResource(id = R.string.pref_runtime_log_retention_days_hint),
-            validator = {
-                if (parseIntAtLeastInput(it, PrefConst.RUNTIME_LOG_RETENTION_DAYS_MIN) != null) {
-                    null
-                } else {
-                    runtimeLogRetentionDaysError
+            onConfirm = { updated ->
+                showRuntimeLogRetentionDialog = false
+                scope.launch {
+                    diagnostics = repository.updateDiagnosticsSettings(
+                        DiagnosticsSettingsUpdate(runtimeLogRetentionDays = updated),
+                    )
+                    notifySaved()
                 }
             },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            inputFilter = ::filterNonNegativeIntegerInput,
-        ) { updated ->
-            showRuntimeLogRetentionDialog = false
-            scope.launch {
-                diagnostics = repository.updateDiagnosticsSettings(
-                    DiagnosticsSettingsUpdate(
-                        runtimeLogRetentionDays = parseIntAtLeastInput(
-                            updated,
-                            PrefConst.RUNTIME_LOG_RETENTION_DAYS_MIN,
-                        ) ?: PrefConst.RUNTIME_LOG_RETENTION_DAYS_MIN,
-                    ),
-                )
-                notifySaved()
-            }
-        }
+        )
     }
     if (showBackupDialog) {
         BackupRestoreOptionsDialog(
@@ -591,48 +548,9 @@ fun SettingsHomeScreen(
     }
     val backupInspectionState = backupInspectionDialog
     if (backupInspectionState != null) {
-        AlertDialog(
-            onDismissRequest = { backupInspectionDialog = null },
-            title = { Text(text = stringResource(id = R.string.backup_success)) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = stringResource(id = R.string.backup_inspect_title),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Text(
-                        text = backupInspectionDialogMessage(
-                            context = context,
-                            inspection = backupInspectionState,
-                        ),
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { backupInspectionDialog = null }) {
-                    Text(text = stringResource(android.R.string.ok))
-                }
-            },
+        BackupInspectionResultDialog(
+            inspection = backupInspectionState,
+            onDismiss = { backupInspectionDialog = null },
         )
-    }
-}
-
-@Composable
-private fun themeModeSummary(mode: Int): String {
-    return when (mode) {
-        1 -> stringResource(id = R.string.theme_light)
-        2 -> stringResource(id = R.string.theme_dark)
-        3 -> stringResource(id = R.string.theme_black)
-        else -> stringResource(id = R.string.theme_follow_system)
-    }
-}
-
-@Composable
-private fun languageSummary(languageTag: String): String {
-    return when (languageTag) {
-        "zh-CN" -> stringResource(id = R.string.language_zh_cn)
-        "zh-TW" -> stringResource(id = R.string.language_zh_tw)
-        "en" -> stringResource(id = R.string.language_en)
-        else -> stringResource(id = R.string.language_follow_system)
     }
 }

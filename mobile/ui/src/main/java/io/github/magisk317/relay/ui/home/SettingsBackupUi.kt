@@ -112,6 +112,37 @@ internal fun BackupRestoreOptionsDialog(
 }
 
 @Composable
+internal fun BackupInspectionResultDialog(
+    inspection: RelayBackupManager.BackupInspection,
+    onDismiss: () -> Unit,
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(id = R.string.backup_success)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = stringResource(id = R.string.backup_inspect_title),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    text = backupInspectionDialogMessage(
+                        context = context,
+                        inspection = inspection,
+                    ),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(android.R.string.ok))
+            }
+        },
+    )
+}
+
+@Composable
 private fun BackupRestoreOptionRow(
     label: String,
     checked: Boolean,
