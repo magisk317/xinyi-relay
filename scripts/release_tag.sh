@@ -38,12 +38,13 @@ run_webui_checks() {
     exit 1
   fi
 
-  echo "Running WebUI checks (install/lint/typecheck/build)..."
+  echo "Running WebUI checks (install/lint/typecheck/test/build)..."
   (
     cd "$ROOT_DIR"
     pnpm -C webui install --frozen-lockfile
     pnpm -C webui lint
     pnpm -C webui typecheck
+    pnpm -C webui test
     pnpm -C webui build
   )
 

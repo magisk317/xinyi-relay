@@ -6,6 +6,7 @@ APP_BUILD="$ROOT_DIR/app/build.gradle.kts"
 CORE_BUILD="$ROOT_DIR/core/build.gradle.kts"
 HOOK_ENTRY_BUILD="$ROOT_DIR/hook/entry/build.gradle.kts"
 MOBILE_UI_BUILD="$ROOT_DIR/mobile/ui/build.gradle.kts"
+MOBILE_UI_SRC="$ROOT_DIR/mobile/ui/src"
 RUNTIME_BUILD="$ROOT_DIR/runtime/build.gradle.kts"
 RUNTIME_SRC="$ROOT_DIR/runtime/src"
 RELAY_ANDROID_BUILD="$ROOT_DIR/relay/android/build.gradle.kts"
@@ -53,6 +54,8 @@ require_pattern "$CORE_BUILD" 'implementation\(project\(":runtime"\)\)' \
   "core must depend on :runtime as implementation"
 forbid_pattern "$CORE_BUILD" 'api\(project\(":runtime"\)\)' \
   "core must not expose :runtime transitively"
+require_pattern "$CORE_BUILD" 'implementation\(project\(":relay:engine:api"\)\)' \
+  "core must depend on :relay:engine:api for engine contracts"
 require_pattern "$CORE_BUILD" 'implementation\(project\(":smscode-core:smscode-xposed-core"\)\)' \
   "core runtime bridge may depend directly on :smscode-core:smscode-xposed-core during the split"
 forbid_pattern "$CORE_BUILD" 'project\(":xpbridge:core"\)' \
@@ -76,8 +79,16 @@ forbid_pattern "$MOBILE_UI_BUILD" 'project\(":relay:engine"\)' \
   "mobile/ui must depend on :relay:engine:api, not :relay:engine implementation"
 require_pattern "$MOBILE_UI_BUILD" 'implementation\(project\(":relay:engine:api"\)\)' \
   "mobile/ui must depend on :relay:engine:api for engine contracts"
+forbid_pattern "$MOBILE_UI_BUILD" 'project\(":relay:sender"\)' \
+  "mobile/ui must depend on :relay:sender:api, not :relay:sender implementation"
+require_pattern "$MOBILE_UI_BUILD" 'implementation\(project\(":relay:sender:api"\)\)' \
+  "mobile/ui must depend on :relay:sender:api for sender configuration contracts"
 forbid_pattern "$MOBILE_UI_BUILD" 'project\(":smscode-core:smscode-verification-core"\)' \
   "mobile/ui must not depend on :smscode-core:smscode-verification-core directly"
+forbid_pattern "$MOBILE_UI_SRC" '^\s*import\s+io\.github\.magisk317\.relay\.sender\.(BarkUtils|DingtalkGroupRobotUtils|DingtalkInnerRobotUtils|EmailUtils|FeishuAppUtils|FeishuUtils|GotifyUtils|NtfyUtils|PushplusUtils|ServerchanUtils|SmsUtils|SocketUtils|TelegramUtils|UrlSchemeUtils|WebhookUtils|WeworkAgentUtils|WeworkRobotUtils|DefaultSenderDispatcher|SenderRuntimeInstaller)' \
+  "mobile/ui must use stable sender APIs/facades instead of importing relay/sender implementation classes"
+forbid_pattern "$MOBILE_UI_SRC" '^\s*import\s+io\.github\.magisk317\.relay\.sender\.config\.' \
+  "mobile/ui sender forms must use SenderSettingDrafts/SenderSettingSchemas instead of importing concrete sender config models"
 
 forbid_pattern "$RELAY_ANDROID_BUILD" 'project\(":relay:engine"\)' \
   "relay/android must depend on :relay:engine:api, not :relay:engine implementation"
