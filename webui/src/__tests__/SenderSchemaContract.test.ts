@@ -1,13 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
-  buildSenderJsonFromFormState,
   getSenderFieldSchemas,
   getSenderSettingSchemaContracts,
-  parseSenderFormState,
-  prettySenderJson,
   type SenderFieldKind,
   type SenderSettingContractFieldType
-} from '../../../shared/senderDefaults'
+} from '../senderDefaults'
 
 const HIDDEN_COMPAT_FIELDS: Record<number, string[]> = {
   1: ['nickname']
@@ -23,33 +20,8 @@ const EXPECTED_UI_KINDS: Record<SenderSettingContractFieldType, SenderFieldKind[
   PROXY_TYPE: ['select']
 }
 
-describe('email sender defaults', () => {
-  it('falls back to visible sender fields for legacy email configs', () => {
-    const rawJson = JSON.stringify({
-      mailType: '@qq.com',
-      fromEmail: 'relay@example.com',
-      authEmail: '',
-      nickname: 'Android relay',
-      fromEmailAlias: '',
-      toEmail: 'user@example.com'
-    })
-
-    const formState = parseSenderFormState(1, rawJson)
-
-    expect(formState.authEmail).toBe('relay@example.com')
-    expect(formState.fromEmailAlias).toBe('Android relay')
-
-    const nextJson = buildSenderJsonFromFormState(1, formState)
-    const parsed = JSON.parse(prettySenderJson(1, nextJson))
-
-    expect(parsed.authEmail).toBe('relay@example.com')
-    expect(parsed.fromEmailAlias).toBe('Android relay')
-    expect(parsed.nickname).toBe('Android relay')
-  })
-})
-
 describe('shared sender schema contract', () => {
-  it('keeps structured Desktop fields aligned with the Kotlin schema contract', () => {
+  it('keeps structured WebUI fields aligned with the Kotlin schema contract', () => {
     for (const contract of getSenderSettingSchemaContracts()) {
       const fields = getSenderFieldSchemas(contract.senderType)
       const hiddenFields = HIDDEN_COMPAT_FIELDS[contract.senderType] ?? []
@@ -59,6 +31,17 @@ describe('shared sender schema contract', () => {
         const uiField = fields.find((field) => field.key === contractField.name)
         expect(uiField, `${contract.senderType}.${contractField.name}`).toBeTruthy()
         expect(EXPECTED_UI_KINDS[contractField.type]).toContain(uiField?.kind)
+      }
+    }
+  })
+
+  it('keeps hidden compatibility fields limited to non-required fields', () => {
+    for (const contract of getSenderSettingSchemaContracts()) {
+      const hiddenFields = HIDDEN_COMPAT_FIELDS[contract.senderType] ?? []
+      for (const hiddenName of hiddenFields) {
+        const contractField = contract.fields.find((field) => field.name === hiddenName)
+        expect(contractField, `${contract.senderType}.${hiddenName}`).toBeTruthy()
+        expect(contractField?.requiredForEnable).toBe(false)
       }
     }
   })

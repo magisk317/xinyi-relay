@@ -1,10 +1,19 @@
 import type { SnapshotSender } from './contracts/console'
+import senderSchemaContract from './contracts/senderSchemas.json'
 import {
   normalizeSenderActiveSchedule
 } from './senderActiveSchedule'
 
 export type SenderUiLocale = 'en' | 'zh-CN' | 'zh-TW'
 export type SenderFieldKind = 'text' | 'textarea' | 'number' | 'boolean' | 'select' | 'json'
+export type SenderSettingContractFieldType =
+  | 'TEXT'
+  | 'SECRET'
+  | 'BOOLEAN'
+  | 'INTEGER'
+  | 'STRING_MAP'
+  | 'EMAIL_RECIPIENTS'
+  | 'PROXY_TYPE'
 
 type JsonRecord = Record<string, unknown>
 type LocalizedText = {
@@ -25,6 +34,23 @@ export type SenderFieldSchema = {
     label: LocalizedText
   }>
 }
+
+export type SenderSettingContractField = {
+  name: string
+  type: SenderSettingContractFieldType
+  aliases: string[]
+  requiredForEnable: boolean
+}
+
+export type SenderSettingSchemaContract = {
+  senderType: number
+  fields: SenderSettingContractField[]
+}
+
+const SENDER_SCHEMA_CONTRACTS = senderSchemaContract as SenderSettingSchemaContract[]
+const SENDER_SCHEMA_CONTRACT_BY_TYPE = new Map(
+  SENDER_SCHEMA_CONTRACTS.map((schema) => [schema.senderType, schema])
+)
 
 const PROXY_DIRECT = 'DIRECT'
 
@@ -297,6 +323,14 @@ export function normalizeSnapshotSender(sender: SnapshotSender): SnapshotSender 
 
 export function getSenderFieldSchemas(type: number): SenderFieldSchema[] {
   return SENDER_FIELD_SCHEMAS[type] ?? []
+}
+
+export function getSenderSettingSchemaContracts(): SenderSettingSchemaContract[] {
+  return SENDER_SCHEMA_CONTRACTS
+}
+
+export function getSenderSettingContractFields(type: number): SenderSettingContractField[] {
+  return SENDER_SCHEMA_CONTRACT_BY_TYPE.get(type)?.fields ?? []
 }
 
 export function parseSenderFormState(type: number, rawJson: string): JsonRecord {

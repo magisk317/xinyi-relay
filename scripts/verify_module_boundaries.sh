@@ -15,6 +15,8 @@ XPBRIDGE_CORE_BUILD="$ROOT_DIR/xpbridge/core/build.gradle.kts"
 
 violations=()
 
+python3 "$ROOT_DIR/scripts/generate_sender_schema_contract.py" --check
+
 require_pattern() {
   local file="$1"
   local pattern="$2"

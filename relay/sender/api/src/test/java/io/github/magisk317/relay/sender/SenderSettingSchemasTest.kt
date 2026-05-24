@@ -1,6 +1,9 @@
 package io.github.magisk317.relay.sender
 
+import io.github.magisk317.relay.contract.json.RelayJson
 import io.github.magisk317.relay.engine.sender.SenderType
+import java.io.File
+import kotlinx.serialization.builtins.ListSerializer
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -80,6 +83,17 @@ class SenderSettingSchemasTest {
         assertFieldType(SenderType.SMS, "onlyNoNetwork", SenderSettingFieldType.BOOLEAN)
     }
 
+    @Test
+    fun sharedSenderSchemaContract_matchesKotlinSchema() {
+        val contractFile = findWorkspaceFile("shared/contracts/senderSchemas.json")
+        val sharedSchemas = RelayJson.decode(
+            ListSerializer(SenderSettingSchema.serializer()),
+            contractFile.readText(),
+        )
+
+        assertEquals(SenderSettingSchemas.all, sharedSchemas)
+    }
+
     private fun assertRequired(type: Int, vararg names: String) {
         val requiredNames = SenderSettingSchemas.fieldsFor(type)
             .filter { it.requiredForEnable }
@@ -94,5 +108,15 @@ class SenderSettingSchemasTest {
             .singleOrNull { it.name == name }
         assertNotNull(field, "Missing $type.$name")
         assertEquals(fieldType, field?.type, "Unexpected type for $type.$name")
+    }
+
+    private fun findWorkspaceFile(relativePath: String): File {
+        var dir = File("").absoluteFile
+        while (true) {
+            val candidate = File(dir, relativePath)
+            if (candidate.isFile) return candidate
+            dir = dir.parentFile ?: break
+        }
+        error("$relativePath not found from ${File("").absolutePath}")
     }
 }

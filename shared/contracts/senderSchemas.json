@@ -1,0 +1,1250 @@
+[
+  {
+    "senderType": 0,
+    "fields": [
+      {
+        "name": "token",
+        "type": "SECRET",
+        "aliases": [
+          "o"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "secret",
+        "type": "SECRET",
+        "aliases": [
+          "p"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "atAll",
+        "type": "BOOLEAN",
+        "aliases": [
+          "q"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "atMobiles",
+        "type": "TEXT",
+        "aliases": [
+          "r"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "atDingtalkIds",
+        "type": "TEXT",
+        "aliases": [
+          "s"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "msgtype",
+        "type": "TEXT",
+        "aliases": [
+          "t"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "titleTemplate",
+        "type": "TEXT",
+        "aliases": [
+          "u"
+        ],
+        "requiredForEnable": false
+      }
+    ]
+  },
+  {
+    "senderType": 1,
+    "fields": [
+      {
+        "name": "mailType",
+        "type": "TEXT",
+        "aliases": [
+          "o"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "authEmail",
+        "type": "TEXT",
+        "aliases": [
+          "p"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "fromEmail",
+        "type": "TEXT",
+        "aliases": [
+          "q"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "pwd",
+        "type": "SECRET",
+        "aliases": [
+          "r"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "nickname",
+        "type": "TEXT",
+        "aliases": [
+          "s"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "host",
+        "type": "TEXT",
+        "aliases": [
+          "t"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "port",
+        "type": "TEXT",
+        "aliases": [
+          "u"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "ssl",
+        "type": "BOOLEAN",
+        "aliases": [
+          "v"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "startTls",
+        "type": "BOOLEAN",
+        "aliases": [
+          "w"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "title",
+        "type": "TEXT",
+        "aliases": [
+          "x"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "recipients",
+        "type": "EMAIL_RECIPIENTS",
+        "aliases": [
+          "y"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "toEmail",
+        "type": "TEXT",
+        "aliases": [
+          "z"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "keystore",
+        "type": "TEXT",
+        "aliases": [
+          "A"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "password",
+        "type": "SECRET",
+        "aliases": [
+          "B"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "encryptionProtocol",
+        "type": "TEXT",
+        "aliases": [
+          "C"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "fromEmailAlias",
+        "type": "TEXT",
+        "aliases": [
+          "D"
+        ],
+        "requiredForEnable": false
+      }
+    ]
+  },
+  {
+    "senderType": 2,
+    "fields": [
+      {
+        "name": "server",
+        "type": "TEXT",
+        "aliases": [
+          "o"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "group",
+        "type": "TEXT",
+        "aliases": [
+          "p"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "icon",
+        "type": "TEXT",
+        "aliases": [
+          "q"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "sound",
+        "type": "TEXT",
+        "aliases": [
+          "r"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "badge",
+        "type": "TEXT",
+        "aliases": [
+          "s"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "url",
+        "type": "TEXT",
+        "aliases": [
+          "t"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "level",
+        "type": "TEXT",
+        "aliases": [
+          "u"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "title",
+        "type": "TEXT",
+        "aliases": [
+          "v"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "transformation",
+        "type": "TEXT",
+        "aliases": [
+          "w"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "key",
+        "type": "SECRET",
+        "aliases": [
+          "x"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "iv",
+        "type": "SECRET",
+        "aliases": [
+          "y"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "call",
+        "type": "TEXT",
+        "aliases": [
+          "z"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "autoCopy",
+        "type": "TEXT",
+        "aliases": [
+          "A"
+        ],
+        "requiredForEnable": false
+      }
+    ]
+  },
+  {
+    "senderType": 3,
+    "fields": [
+      {
+        "name": "method",
+        "type": "TEXT",
+        "aliases": [
+          "o"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "webServer",
+        "type": "TEXT",
+        "aliases": [
+          "p"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "secret",
+        "type": "SECRET",
+        "aliases": [
+          "q"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "response",
+        "type": "TEXT",
+        "aliases": [
+          "r"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "webParams",
+        "type": "TEXT",
+        "aliases": [
+          "s"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "headers",
+        "type": "STRING_MAP",
+        "aliases": [
+          "t"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyType",
+        "type": "PROXY_TYPE",
+        "aliases": [
+          "u"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyHost",
+        "type": "TEXT",
+        "aliases": [
+          "v"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyPort",
+        "type": "TEXT",
+        "aliases": [
+          "w"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyAuthenticator",
+        "type": "BOOLEAN",
+        "aliases": [
+          "x"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyUsername",
+        "type": "TEXT",
+        "aliases": [
+          "y"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyPassword",
+        "type": "SECRET",
+        "aliases": [
+          "z"
+        ],
+        "requiredForEnable": false
+      }
+    ]
+  },
+  {
+    "senderType": 4,
+    "fields": [
+      {
+        "name": "webHook",
+        "type": "TEXT",
+        "aliases": [
+          "o"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "msgType",
+        "type": "TEXT",
+        "aliases": [
+          "p"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "atAll",
+        "type": "BOOLEAN",
+        "aliases": [
+          "q"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "atUserIds",
+        "type": "TEXT",
+        "aliases": [
+          "r"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "atMobiles",
+        "type": "TEXT",
+        "aliases": [
+          "s"
+        ],
+        "requiredForEnable": false
+      }
+    ]
+  },
+  {
+    "senderType": 5,
+    "fields": [
+      {
+        "name": "corpID",
+        "type": "TEXT",
+        "aliases": [
+          "o"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "agentID",
+        "type": "TEXT",
+        "aliases": [
+          "p"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "secret",
+        "type": "SECRET",
+        "aliases": [
+          "q"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "atAll",
+        "type": "BOOLEAN",
+        "aliases": [
+          "r"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "toUser",
+        "type": "TEXT",
+        "aliases": [
+          "s"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "toParty",
+        "type": "TEXT",
+        "aliases": [
+          "t"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "toTag",
+        "type": "TEXT",
+        "aliases": [
+          "u"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyType",
+        "type": "PROXY_TYPE",
+        "aliases": [
+          "v"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyHost",
+        "type": "TEXT",
+        "aliases": [
+          "w"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyPort",
+        "type": "TEXT",
+        "aliases": [
+          "x"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyAuthenticator",
+        "type": "BOOLEAN",
+        "aliases": [
+          "y"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyUsername",
+        "type": "TEXT",
+        "aliases": [
+          "z"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyPassword",
+        "type": "SECRET",
+        "aliases": [
+          "A"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "customizeAPI",
+        "type": "TEXT",
+        "aliases": [
+          "B"
+        ],
+        "requiredForEnable": false
+      }
+    ]
+  },
+  {
+    "senderType": 6,
+    "fields": [
+      {
+        "name": "sendKey",
+        "type": "SECRET",
+        "aliases": [
+          "o"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "channel",
+        "type": "TEXT",
+        "aliases": [
+          "p"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "openid",
+        "type": "TEXT",
+        "aliases": [
+          "q"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "titleTemplate",
+        "type": "TEXT",
+        "aliases": [
+          "r"
+        ],
+        "requiredForEnable": false
+      }
+    ]
+  },
+  {
+    "senderType": 7,
+    "fields": [
+      {
+        "name": "method",
+        "type": "TEXT",
+        "aliases": [
+          "o"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "apiToken",
+        "type": "SECRET",
+        "aliases": [
+          "p"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "chatId",
+        "type": "TEXT",
+        "aliases": [
+          "q"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "messageThreadId",
+        "type": "TEXT",
+        "aliases": [
+          "topicId",
+          "topic_id",
+          "message_thread_id",
+          "r"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyType",
+        "type": "PROXY_TYPE",
+        "aliases": [
+          "s"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyHost",
+        "type": "TEXT",
+        "aliases": [
+          "t"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyPort",
+        "type": "TEXT",
+        "aliases": [
+          "u"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyAuthenticator",
+        "type": "BOOLEAN",
+        "aliases": [
+          "v"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyUsername",
+        "type": "TEXT",
+        "aliases": [
+          "w"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyPassword",
+        "type": "SECRET",
+        "aliases": [
+          "x"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "parseMode",
+        "type": "TEXT",
+        "aliases": [
+          "y"
+        ],
+        "requiredForEnable": false
+      }
+    ]
+  },
+  {
+    "senderType": 8,
+    "fields": [
+      {
+        "name": "simSlot",
+        "type": "INTEGER",
+        "aliases": [
+          "o"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "mobiles",
+        "type": "TEXT",
+        "aliases": [
+          "p"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "onlyNoNetwork",
+        "type": "BOOLEAN",
+        "aliases": [
+          "q"
+        ],
+        "requiredForEnable": false
+      }
+    ]
+  },
+  {
+    "senderType": 9,
+    "fields": [
+      {
+        "name": "webhook",
+        "type": "TEXT",
+        "aliases": [
+          "o"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "secret",
+        "type": "SECRET",
+        "aliases": [
+          "p"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "msgType",
+        "type": "TEXT",
+        "aliases": [
+          "q"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "titleTemplate",
+        "type": "TEXT",
+        "aliases": [
+          "r"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "messageCard",
+        "type": "TEXT",
+        "aliases": [
+          "s"
+        ],
+        "requiredForEnable": false
+      }
+    ]
+  },
+  {
+    "senderType": 10,
+    "fields": [
+      {
+        "name": "website",
+        "type": "TEXT",
+        "aliases": [
+          "o"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "token",
+        "type": "SECRET",
+        "aliases": [
+          "p"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "topic",
+        "type": "TEXT",
+        "aliases": [
+          "q"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "template",
+        "type": "TEXT",
+        "aliases": [
+          "r"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "channel",
+        "type": "TEXT",
+        "aliases": [
+          "s"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "webhook",
+        "type": "TEXT",
+        "aliases": [
+          "t"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "callbackUrl",
+        "type": "TEXT",
+        "aliases": [
+          "u"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "validTime",
+        "type": "TEXT",
+        "aliases": [
+          "v"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "titleTemplate",
+        "type": "TEXT",
+        "aliases": [
+          "w"
+        ],
+        "requiredForEnable": false
+      }
+    ]
+  },
+  {
+    "senderType": 11,
+    "fields": [
+      {
+        "name": "webServer",
+        "type": "TEXT",
+        "aliases": [
+          "o"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "title",
+        "type": "TEXT",
+        "aliases": [
+          "p"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "priority",
+        "type": "TEXT",
+        "aliases": [
+          "q"
+        ],
+        "requiredForEnable": false
+      }
+    ]
+  },
+  {
+    "senderType": 12,
+    "fields": [
+      {
+        "name": "agentID",
+        "type": "TEXT",
+        "aliases": [
+          "o"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "appKey",
+        "type": "SECRET",
+        "aliases": [
+          "p"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "appSecret",
+        "type": "SECRET",
+        "aliases": [
+          "q"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "userIds",
+        "type": "TEXT",
+        "aliases": [
+          "r"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "msgKey",
+        "type": "TEXT",
+        "aliases": [
+          "s"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "titleTemplate",
+        "type": "TEXT",
+        "aliases": [
+          "t"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyType",
+        "type": "PROXY_TYPE",
+        "aliases": [
+          "u"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyHost",
+        "type": "TEXT",
+        "aliases": [
+          "v"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyPort",
+        "type": "TEXT",
+        "aliases": [
+          "w"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyAuthenticator",
+        "type": "BOOLEAN",
+        "aliases": [
+          "x"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyUsername",
+        "type": "TEXT",
+        "aliases": [
+          "y"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyPassword",
+        "type": "SECRET",
+        "aliases": [
+          "z"
+        ],
+        "requiredForEnable": false
+      }
+    ]
+  },
+  {
+    "senderType": 13,
+    "fields": [
+      {
+        "name": "appId",
+        "type": "SECRET",
+        "aliases": [
+          "o"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "appSecret",
+        "type": "SECRET",
+        "aliases": [
+          "p"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "receiveId",
+        "type": "TEXT",
+        "aliases": [
+          "q"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "msgType",
+        "type": "TEXT",
+        "aliases": [
+          "r"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "titleTemplate",
+        "type": "TEXT",
+        "aliases": [
+          "s"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "receiveIdType",
+        "type": "TEXT",
+        "aliases": [
+          "t"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "messageCard",
+        "type": "TEXT",
+        "aliases": [
+          "u"
+        ],
+        "requiredForEnable": false
+      }
+    ]
+  },
+  {
+    "senderType": 14,
+    "fields": [
+      {
+        "name": "urlScheme",
+        "type": "TEXT",
+        "aliases": [
+          "o"
+        ],
+        "requiredForEnable": true
+      }
+    ]
+  },
+  {
+    "senderType": 15,
+    "fields": [
+      {
+        "name": "method",
+        "type": "TEXT",
+        "aliases": [
+          "o"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "address",
+        "type": "TEXT",
+        "aliases": [
+          "p"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "port",
+        "type": "INTEGER",
+        "aliases": [
+          "q"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "msgTemplate",
+        "type": "TEXT",
+        "aliases": [
+          "r"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "secret",
+        "type": "SECRET",
+        "aliases": [
+          "s"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "response",
+        "type": "TEXT",
+        "aliases": [
+          "t"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "username",
+        "type": "TEXT",
+        "aliases": [
+          "u"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "password",
+        "type": "SECRET",
+        "aliases": [
+          "v"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "inCharset",
+        "type": "TEXT",
+        "aliases": [
+          "w"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "outCharset",
+        "type": "TEXT",
+        "aliases": [
+          "x"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "inMessageTopic",
+        "type": "TEXT",
+        "aliases": [
+          "y"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "outMessageTopic",
+        "type": "TEXT",
+        "aliases": [
+          "z"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "uriType",
+        "type": "TEXT",
+        "aliases": [
+          "A"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "path",
+        "type": "TEXT",
+        "aliases": [
+          "B"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "clientId",
+        "type": "TEXT",
+        "aliases": [
+          "C"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "qos",
+        "type": "INTEGER",
+        "aliases": [
+          "D"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "retained",
+        "type": "BOOLEAN",
+        "aliases": [
+          "E"
+        ],
+        "requiredForEnable": false
+      }
+    ]
+  },
+  {
+    "senderType": 16,
+    "fields": [
+      {
+        "name": "server",
+        "type": "TEXT",
+        "aliases": [
+          "o"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "topic",
+        "type": "TEXT",
+        "aliases": [
+          "p"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "token",
+        "type": "SECRET",
+        "aliases": [
+          "q"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "title",
+        "type": "TEXT",
+        "aliases": [
+          "r"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "priority",
+        "type": "TEXT",
+        "aliases": [
+          "s"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "tags",
+        "type": "TEXT",
+        "aliases": [
+          "t"
+        ],
+        "requiredForEnable": false
+      }
+    ]
+  }
+]

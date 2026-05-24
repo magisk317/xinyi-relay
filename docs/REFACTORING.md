@@ -183,6 +183,8 @@
 
 - 统一通过 Backend API 访问配置、记录与设备状态。
 - 不直接访问 Android 端 repository、Provider 或 DataStore。
+- sender 结构化配置字段合同来自 `shared/contracts/senderSchemas.json`，由
+  `scripts/generate_sender_schema_contract.py` 从 Kotlin `SenderSettingSchemas` 生成；Web / Desktop 只能在该合同上补 UI label、布局和控件类型。
 
 ### Xposed / 跨进程运行时
 
@@ -329,3 +331,4 @@
 6. `xpbridge/core` 新增内容优先是 DTO/typealias/facade 签名，实现逻辑放 `runtime` / `relay/android`。
 7. `runtime` 不直接依赖 Koin；若 UI 需要 DI，优先复用 `RuntimeGraph` 已构造的实例。
 8. 新远程 API 必须同步 `shared/contracts/openapi.json`、Backend test、Android DTO test 和 TS contract test。
+9. sender 字段 schema 变更必须重新生成 `shared/contracts/senderSchemas.json`，并保持 Android / Web / Desktop 漂移测试通过。
