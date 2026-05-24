@@ -70,6 +70,12 @@ fun SettingsHomeScreen(
     val settingsViewModel = rememberSharedSettingsViewModel()
     val themeState by settingsViewModel.themeState.collectAsStateWithLifecycle()
     val languageState by settingsViewModel.languageState.collectAsStateWithLifecycle()
+    val displayActions = rememberSettingsDisplayActions(
+        settingsViewModel = settingsViewModel,
+        themeMode = themeState.mode,
+        languageTag = languageState.languageTag,
+        notifySaved = notifySaved,
+    )
     val backupRestoreActions = rememberSettingsBackupRestoreActions(
         settingsViewModel = settingsViewModel,
         snackbarHostState = snackbarHostState,
@@ -85,12 +91,6 @@ fun SettingsHomeScreen(
         onDiagnosticsChanged = { diagnostics = it },
         notifySaved = notifySaved,
     )
-    var showThemeDialog by remember { mutableStateOf(false) }
-    var showLanguageDialog by remember { mutableStateOf(false) }
-    var themeDialogInitialMode by remember { mutableStateOf(0) }
-    var themeDialogSelectedMode by remember { mutableStateOf(0) }
-    var languageDialogInitialTag by remember { mutableStateOf("") }
-    var languageDialogSelectedTag by remember { mutableStateOf("") }
     var expandGeneral by rememberSaveable { mutableStateOf(false) }
     var expandFeatures by rememberSaveable { mutableStateOf(false) }
     var expandSupport by rememberSaveable { mutableStateOf(false) }
@@ -166,16 +166,8 @@ fun SettingsHomeScreen(
                         notifySaved()
                     }
                 },
-                onThemeClick = {
-                    themeDialogInitialMode = themeState.mode
-                    themeDialogSelectedMode = themeState.mode
-                    showThemeDialog = true
-                },
-                onLanguageClick = {
-                    languageDialogInitialTag = languageState.languageTag
-                    languageDialogSelectedTag = languageState.languageTag
-                    showLanguageDialog = true
-                },
+                onThemeClick = displayActions.onThemeClick,
+                onLanguageClick = displayActions.onLanguageClick,
             )
             SettingsFeaturesSection(
                 verification = verificationSnapshot,
@@ -264,44 +256,5 @@ fun SettingsHomeScreen(
             )
             Spacer(modifier = Modifier.height(Const.PADDING_SMALL.dp))
         }
-    }
-
-    if (showThemeDialog) {
-        SettingsThemeDialog(
-            selectedMode = themeDialogSelectedMode,
-            onDismiss = {
-                settingsViewModel.previewThemeMode(themeDialogInitialMode)
-                showThemeDialog = false
-            },
-            onSelectionChange = { index ->
-                themeDialogSelectedMode = index
-                settingsViewModel.previewThemeMode(index)
-            },
-            onConfirm = { index ->
-                showThemeDialog = false
-                themeDialogSelectedMode = index
-                settingsViewModel.persistThemeMode(index)
-                notifySaved()
-            },
-        )
-    }
-    if (showLanguageDialog) {
-        SettingsLanguageDialog(
-            selectedTag = languageDialogSelectedTag,
-            onDismiss = {
-                settingsViewModel.previewLanguageTag(languageDialogInitialTag)
-                showLanguageDialog = false
-            },
-            onSelectionChange = { tag ->
-                languageDialogSelectedTag = tag
-                settingsViewModel.previewLanguageTag(tag)
-            },
-            onConfirm = { tag ->
-                showLanguageDialog = false
-                languageDialogSelectedTag = tag
-                settingsViewModel.persistLanguageTag(tag)
-                notifySaved()
-            },
-        )
     }
 }
