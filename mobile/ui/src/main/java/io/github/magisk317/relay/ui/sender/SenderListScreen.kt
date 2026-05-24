@@ -2,8 +2,6 @@
 
 package io.github.magisk317.relay.ui.sender
 
-import android.os.SystemClock
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -20,7 +18,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -53,17 +50,11 @@ import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Locale
-import kotlin.math.ceil
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.compose.koinInject
 
 private const val DIALOG_WIDTH_FRACTION = 0.92f
-private const val UNDO_SNACKBAR_DURATION_MS = 5_000L
-private const val UNDO_COUNTDOWN_TICK_MS = 50L
 private const val DRAG_EDGE_SCROLL_THRESHOLD_PX = 96
 private const val DRAG_EDGE_SCROLL_STEP_PX = 36f
 
@@ -492,7 +483,7 @@ fun SenderListScreen(
                                             duration = SnackbarDuration.Indefinite,
                                         )
                                     }
-                                    delay(UNDO_SNACKBAR_DURATION_MS)
+                                    delay(SENDER_UNDO_SNACKBAR_DURATION_MS)
                                     snackbarHostState.currentSnackbarData?.dismiss()
                                     val result = runCatching { resultDeferred.await() }.getOrNull()
                                     if (result == SnackbarResult.ActionPerformed) {
@@ -513,83 +504,11 @@ fun SenderListScreen(
                 snackbar = { data ->
                     UndoCountdownSnackbar(
                         data = data,
-                        totalDurationMs = UNDO_SNACKBAR_DURATION_MS,
+                        totalDurationMs = SENDER_UNDO_SNACKBAR_DURATION_MS,
                     )
                 },
             )
         }
-    }
-}
-
-@Composable
-private fun UndoCountdownSnackbar(
-    data: SnackbarData,
-    totalDurationMs: Long,
-) {
-    val startTimeMs = remember(data) { SystemClock.elapsedRealtime() }
-    var nowMs by remember(data) { mutableLongStateOf(startTimeMs) }
-
-    LaunchedEffect(data) {
-        while (isActive) {
-            nowMs = SystemClock.elapsedRealtime()
-            delay(UNDO_COUNTDOWN_TICK_MS)
-        }
-    }
-
-    val elapsedMs = (nowMs - startTimeMs).coerceIn(0L, totalDurationMs)
-    val remainingMs = (totalDurationMs - elapsedMs).coerceAtLeast(0L)
-    val progress = if (totalDurationMs <= 0L) {
-        0f
-    } else {
-        (remainingMs.toFloat() / totalDurationMs.toFloat()).coerceIn(0f, 1f)
-    }
-    val remainingSeconds = ceil(remainingMs / 1000f).toInt().coerceAtLeast(0)
-
-    val hasAction = data.visuals.actionLabel != null
-    Snackbar(
-        action = {
-            data.visuals.actionLabel?.let { label ->
-                TextButton(onClick = { data.performAction() }) {
-                    Text(label)
-                }
-            }
-        },
-        dismissAction = if (hasAction) {
-            {
-                CountdownCircle(
-                    progress = progress,
-                    seconds = remainingSeconds,
-                )
-            }
-        } else {
-            null
-        },
-    ) {
-        Text(data.visuals.message)
-    }
-}
-
-@Composable
-private fun CountdownCircle(
-    progress: Float,
-    seconds: Int,
-) {
-    Box(
-        modifier = Modifier.size(28.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        CircularProgressIndicator(
-            progress = { progress },
-            modifier = Modifier.fillMaxSize(),
-            strokeWidth = 2.dp,
-            color = MaterialTheme.colorScheme.primary,
-            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-        )
-        Text(
-            text = seconds.toString(),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary,
-        )
     }
 }
 
@@ -1394,77 +1313,6 @@ private fun CallNotifyTemplateDialog(
             }
         },
     )
-}
-
-@Composable
-fun SenderCard(
-    sender: Sender,
-    displayPriority: Int,
-    dragModifier: Modifier,
-    onEdit: () -> Unit,
-    onPriorityClick: () -> Unit,
-    onToggle: (Boolean) -> Unit,
-    onDelete: () -> Unit
-) {
-    val context = LocalContext.current
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onEdit),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = sender.name.ifEmpty { getSenderTypeName(context, sender.type) },
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f),
-                )
-                IconButton(
-                    modifier = dragModifier,
-                    onClick = {},
-                ) {
-                    Icon(
-                        Icons.Filled.DragHandle,
-                        contentDescription = stringResource(R.string.sender_priority_drag_handle),
-                    )
-                }
-                Switch(
-                    checked = sender.status == 1,
-                    onCheckedChange = { onToggle(it) }
-                )
-            }
-            val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-            Text(
-                text = stringResource(
-                    R.string.sender_type_line,
-                    getSenderTypeName(context, sender.type),
-                    sdf.format(sender.time),
-                ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                TextButton(onClick = onPriorityClick) {
-                    Text(stringResource(R.string.sender_priority_value, displayPriority))
-                }
-                TextButton(onClick = onDelete) {
-                    Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error)
-                }
-            }
-        }
-    }
 }
 
 fun getSenderTypeName(context: android.content.Context, type: Int): String {
