@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -134,82 +133,12 @@ fun SenderListScreen(
     }
 
     if (showTypeDialog) {
-        val otherChannels = mutableListOf(
-            SenderType.EMAIL to getSenderTypeName(context, SenderType.EMAIL),
-            SenderType.URL_SCHEME to getSenderTypeName(context, SenderType.URL_SCHEME),
-            SenderType.SOCKET to getSenderTypeName(context, SenderType.SOCKET),
-        )
-        if (BuildConfig.ENABLE_SMS_CHANNEL) {
-            otherChannels.add(1, SenderType.SMS to getSenderTypeName(context, SenderType.SMS))
-        }
-        val supportedTypeGroups = listOf(
-            senderTypeGroupLabel(context, "collaboration") to listOf(
-                SenderType.DINGTALK_GROUP_ROBOT to getSenderTypeName(context, SenderType.DINGTALK_GROUP_ROBOT),
-                SenderType.DINGTALK_INNER_ROBOT to getSenderTypeName(context, SenderType.DINGTALK_INNER_ROBOT),
-                SenderType.FEISHU to getSenderTypeName(context, SenderType.FEISHU),
-                SenderType.FEISHU_APP to getSenderTypeName(context, SenderType.FEISHU_APP),
-                SenderType.WEWORK_ROBOT to getSenderTypeName(context, SenderType.WEWORK_ROBOT),
-                SenderType.WEWORK_AGENT to getSenderTypeName(context, SenderType.WEWORK_AGENT),
-            ),
-            senderTypeGroupLabel(context, "push") to listOf(
-                SenderType.TELEGRAM to getSenderTypeName(context, SenderType.TELEGRAM),
-                SenderType.WEBHOOK to getSenderTypeName(context, SenderType.WEBHOOK),
-                SenderType.SERVERCHAN to getSenderTypeName(context, SenderType.SERVERCHAN),
-                SenderType.PUSHPLUS to getSenderTypeName(context, SenderType.PUSHPLUS),
-                SenderType.GOTIFY to getSenderTypeName(context, SenderType.GOTIFY),
-                SenderType.NTFY to getSenderTypeName(context, SenderType.NTFY),
-                SenderType.BARK to getSenderTypeName(context, SenderType.BARK),
-            ),
-            senderTypeGroupLabel(context, "other") to listOf(
-                *otherChannels.toTypedArray(),
-            ),
-        )
-
-        @Suppress("MagicNumber")
-        AlertDialog(
-            modifier = Modifier.fillMaxWidth(0.88f),
-            properties = DialogProperties(usePlatformDefaultWidth = false),
-            onDismissRequest = { showTypeDialog = false },
-            title = { Text(stringResource(R.string.sender_add_type_title)) },
-            text = {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 420.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    supportedTypeGroups.forEach { (groupName, groupItems) ->
-                        item(span = { GridItemSpan(maxLineSpan) }) {
-                            Text(
-                                text = groupName,
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(top = 6.dp, bottom = 2.dp),
-                            )
-                        }
-                        groupItems.forEach { (type, name) ->
-                            item {
-                                Button(
-                                    onClick = {
-                                        showTypeDialog = false
-                                        onAddClick(type)
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(name)
-                                }
-                            }
-                        }
-                    }
-                }
+        SenderTypeDialog(
+            onDismiss = { showTypeDialog = false },
+            onAddClick = { type ->
+                showTypeDialog = false
+                onAddClick(type)
             },
-            confirmButton = {
-                TextButton(onClick = { showTypeDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
         )
     }
 
