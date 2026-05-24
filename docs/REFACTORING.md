@@ -74,7 +74,8 @@
 
 - Android 平台数据源、Room、DataStore、PrefsReader、DBProvider、诊断、日志落地、系统信息 provider。
 - 提供 app/hook 可安装的平台桥接实现，例如 notification channel / delivery diagnostics adapter、SMS parser / blacklist adapter、clipboard adapter、Xposed diagnostics adapter。
-- `RelayLogger` / `XLog` / `RuntimeLogStore` 的 Android 落地在这里。
+- `RelayLogger` / `XLog` / `RuntimeLogStore` 的 Android 落地在这里；新增 app 侧日志优先使用
+  `RelayLogger` 的显式 `LogRoute` API，`XLog` 继续作为旧调用兼容入口。
 - `PrefsReader` 是 Xposed/runtime 跨进程读取的首选入口，不扩展为 UI 通用配置 facade。
 
 ### `runtime`

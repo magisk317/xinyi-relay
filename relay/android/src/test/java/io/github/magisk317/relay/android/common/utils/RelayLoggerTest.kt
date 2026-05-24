@@ -129,6 +129,32 @@ class RelayLoggerTest {
         assertEquals(RuntimeLogStore.ROUTE_ROOT_DB, captured?.route)
     }
 
+    @Test
+    fun relayLoggerRouteHelpersUseExplicitRoute() {
+        var captured: CapturedRuntimeLog? = null
+        XLog.setLogLevel(2)
+        RelayLogger.setRuntimeSinkForTest(
+            object : RelayLogger.RuntimeSink {
+                override fun append(
+                    priority: Int,
+                    tag: String,
+                    message: String,
+                    force: Boolean,
+                    route: String?,
+                ) {
+                    captured = CapturedRuntimeLog(priority, tag, message, force, route)
+                }
+            },
+        )
+
+        RelayLogger.w(LogRoute.APP, "app startup route")
+
+        assertEquals(5, captured?.priority)
+        assertEquals("app startup route", captured?.message)
+        assertTrue(captured?.force ?: false)
+        assertEquals(RuntimeLogStore.ROUTE_APP, captured?.route)
+    }
+
     private data class CapturedRuntimeLog(
         val priority: Int,
         val tag: String,

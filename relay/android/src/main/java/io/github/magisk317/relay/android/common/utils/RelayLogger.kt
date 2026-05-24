@@ -6,6 +6,7 @@ import io.github.magisk317.relay.android.diagnostics.RuntimeLogStore
 import io.github.magisk317.smscode.runtime.contract.logging.LogEvent
 import io.github.magisk317.smscode.runtime.contract.logging.LogFormatter
 import io.github.magisk317.smscode.runtime.contract.logging.LogLevel
+import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 
 object RelayLogger {
 
@@ -46,8 +47,51 @@ object RelayLogger {
         log(Log.ERROR, message, *args)
     }
 
+    @JvmStatic
+    fun v(route: LogRoute, message: String, vararg args: Any?) {
+        logWithRoute(Log.VERBOSE, route, message, *args)
+    }
+
+    @JvmStatic
+    fun d(route: LogRoute, message: String, vararg args: Any?) {
+        logWithRoute(Log.DEBUG, route, message, *args)
+    }
+
+    @JvmStatic
+    fun i(route: LogRoute, message: String, vararg args: Any?) {
+        logWithRoute(Log.INFO, route, message, *args)
+    }
+
+    @JvmStatic
+    fun w(route: LogRoute, message: String, vararg args: Any?) {
+        logWithRoute(Log.WARN, route, message, *args)
+    }
+
+    @JvmStatic
+    fun e(route: LogRoute, message: String, vararg args: Any?) {
+        logWithRoute(Log.ERROR, route, message, *args)
+    }
+
     fun log(priority: Int, message: String, vararg args: Any?) {
         log(priority, null, defaultForceFor(priority), true, message, *args)
+    }
+
+    fun log(
+        priority: Int,
+        route: LogRoute,
+        force: Boolean,
+        sensitive: Boolean,
+        message: String,
+        vararg args: Any?,
+    ) {
+        log(
+            priority = priority,
+            route = route.id,
+            force = force,
+            sensitive = sensitive,
+            message = message,
+            args = args,
+        )
     }
 
     fun log(
@@ -107,6 +151,10 @@ object RelayLogger {
 
     internal fun defaultForceFor(priority: Int): Boolean {
         return priority >= Log.INFO
+    }
+
+    private fun logWithRoute(priority: Int, route: LogRoute, message: String, vararg args: Any?) {
+        log(priority, route, defaultForceFor(priority), true, message, *args)
     }
 
     private fun resolveCallerClassName(): String? {

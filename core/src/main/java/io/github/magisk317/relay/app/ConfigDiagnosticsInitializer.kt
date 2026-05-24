@@ -4,9 +4,10 @@ import android.app.Application
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.os.Build
+import io.github.magisk317.relay.android.common.utils.RelayLogger
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
-import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.engine.service.AppConfigRepository
+import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -35,7 +36,8 @@ class ConfigDiagnosticsInitializer : AppInitializer {
         val enabledSenders = senders.count { it.status == 1 }
         val appNotifyEnabledSenders = senders.count { it.status == 1 && it.receiveAppNotify == 1 }
 
-        XLog.i(
+        RelayLogger.i(
+            LogRoute.APP,
             "Config snapshot: senders=%d enabledSenders=%d " +
                 "appNotifyEnabledSenders=%d legacyRules=%d smsRules=%d " +
                 "notifyRoutes=%d forwardFilters=%d forwardingApps=%d",
@@ -52,7 +54,8 @@ class ConfigDiagnosticsInitializer : AppInitializer {
 
     private fun logInstallSnapshot(application: Application) {
         val packageInfo = runCatching { getSelfPackageInfo(application) }.getOrNull() ?: return
-        XLog.i(
+        RelayLogger.i(
+            LogRoute.APP,
             "Install snapshot: package=%s firstInstall=%d lastUpdate=%d sourceDir=%s",
             application.packageName,
             packageInfo.firstInstallTime,

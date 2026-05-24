@@ -10,6 +10,7 @@
 - `[build]` 新增 `smscode-rules` 内容型子模块与 generated assets 同步任务，并将 `verifyEmbeddedSubmodules` 扩展到规则目录结构。
 - `[sender]` 现有 Compose 发送器表单均收敛到 `SchemaSenderConfigForm`，Bark、Email、Webhook、Feishu、钉钉内部应用、Socket、企业微信应用等通道继续保留必要的专属 UI，同时字段默认值和枚举选项统一从 `SenderSettingSchemas` 生成到共享合同。
 - `[diagnostics]` 运行日志配置从单文件大小限制改为按天轮转，默认保留 7 天、最低 1 天；新日志只使用 JSONL 落盘，启动和导出前会清理旧 `runtime*.log` 文本日志，导出包会对 `token=` / `ipc_token=` 字段脱敏，避免高频日志把当天之前的记录提前截断并减少排障分享时的敏感信息外泄。
+- `[diagnostics]` app 初始化与 Xposed service 连接日志改走显式 `LogRoute.APP` 的 `RelayLogger` API，避免启动诊断依赖调用栈推断 route；`XLog` 保留兼容转调。
 - `[ui]` 设置页“详细日志”点击后改为先弹窗预览日志内容、文件数量和大小，上方文件列表按类似 `ls -l` 的纵向等宽列展示并可横向滑动、点击切换预览，下方 JSONL 内容格式化展示且可全屏查看、切换换行，再选择分享或清空。
 
 ---

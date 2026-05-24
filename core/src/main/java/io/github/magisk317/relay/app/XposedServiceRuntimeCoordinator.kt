@@ -2,12 +2,13 @@ package io.github.magisk317.relay.app
 
 import android.app.Application
 import android.content.SharedPreferences
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.relay.android.common.utils.RelayLogger
 import io.github.magisk317.relay.android.diagnostics.ActivationDiagnosticsStore
 import io.github.magisk317.relay.android.diagnostics.RuntimeActivationState
 import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
 import io.github.magisk317.relay.android.prefs.PrefsReader
+import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -24,7 +25,7 @@ object XposedServiceRuntimeCoordinator {
         applicationScope.launch {
             HookPreferenceMirror.publish(application)
             if (pending) {
-                XLog.w("RemotePrefs sync pending after bind; retrying once")
+                RelayLogger.w(LogRoute.APP, "RemotePrefs sync pending after bind; retrying once")
                 AppPreferencesDataStore.syncToRemotePrefs(application)
             }
         }
@@ -36,7 +37,8 @@ object XposedServiceRuntimeCoordinator {
             frameworkVersion = frameworkVersion ?: "unknown",
             verboseLogging = verboseLogEnabled,
         )
-        XLog.i(
+        RelayLogger.i(
+            LogRoute.APP,
             "Xposed service connected: framework=%s version=%s",
             frameworkName ?: "unknown",
             frameworkVersion ?: "unknown",
@@ -50,10 +52,10 @@ object XposedServiceRuntimeCoordinator {
             context = application,
             verboseLogging = PrefsReader.isVerboseLogMode(application),
         )
-        XLog.w("Xposed service disconnected")
+        RelayLogger.w(LogRoute.APP, "Xposed service disconnected")
     }
 
     fun logRegistrationFailure(throwable: Throwable) {
-        XLog.w("Failed to register Xposed service listener: %s", throwable.message ?: "unknown")
+        RelayLogger.w(LogRoute.APP, "Failed to register Xposed service listener: %s", throwable.message ?: "unknown")
     }
 }
