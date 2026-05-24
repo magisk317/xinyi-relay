@@ -1095,6 +1095,7 @@
     <string name="sender_form_label_bark_encryption_iv_generated">New IV generated</string>
     <string name="sender_form_label_token_required">Token (Required)</string>
     <string name="sender_form_label_secret_signature_key_optional">Secret signature key (Optional)</string>
+    <string name="sender_form_label_message_type">Message type</string>
     <string name="sender_form_label_agent_id">AgentID</string>
     <string name="sender_form_label_app_key">AppKey</string>
     <string name="sender_form_label_app_secret">AppSecret</string>

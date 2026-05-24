@@ -41,10 +41,10 @@ object SenderSettingSchemas {
             SenderType.DINGTALK_GROUP_ROBOT,
             field("token", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("o")),
             field("secret", SenderSettingFieldType.SECRET, "p"),
-            field("atAll", SenderSettingFieldType.BOOLEAN, "q"),
+            field("atAll", SenderSettingFieldType.BOOLEAN, "q", defaultValue = "false"),
             field("atMobiles", aliases = arrayOf("r")),
             field("atDingtalkIds", aliases = arrayOf("s")),
-            field("msgtype", aliases = arrayOf("t")),
+            field("msgtype", aliases = arrayOf("t"), defaultValue = "text", options = arrayOf("text", "markdown")),
             field("titleTemplate", aliases = arrayOf("u")),
         ),
         schema(
@@ -100,8 +100,8 @@ object SenderSettingSchemas {
         schema(
             SenderType.WEWORK_ROBOT,
             field("webHook", requiredForEnable = true, aliases = arrayOf("o")),
-            field("msgType", aliases = arrayOf("p")),
-            field("atAll", SenderSettingFieldType.BOOLEAN, "q"),
+            field("msgType", aliases = arrayOf("p"), defaultValue = "text", options = arrayOf("text", "markdown")),
+            field("atAll", SenderSettingFieldType.BOOLEAN, "q", defaultValue = "false"),
             field("atUserIds", aliases = arrayOf("r")),
             field("atMobiles", aliases = arrayOf("s")),
         ),
@@ -145,9 +145,9 @@ object SenderSettingSchemas {
         ),
         schema(
             SenderType.SMS,
-            field("simSlot", SenderSettingFieldType.INTEGER, "o"),
+            field("simSlot", SenderSettingFieldType.INTEGER, "o", defaultValue = "0"),
             field("mobiles", requiredForEnable = true, aliases = arrayOf("p")),
-            field("onlyNoNetwork", SenderSettingFieldType.BOOLEAN, "q"),
+            field("onlyNoNetwork", SenderSettingFieldType.BOOLEAN, "q", defaultValue = "false"),
         ),
         schema(
             SenderType.FEISHU,

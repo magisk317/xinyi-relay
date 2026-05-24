@@ -1103,6 +1103,7 @@
     <string name="sender_form_label_bark_encryption_iv_generated">已產生新的 IV</string>
     <string name="sender_form_label_token_required">Token（必填）</string>
     <string name="sender_form_label_secret_signature_key_optional">簽名密鑰（選填）</string>
+    <string name="sender_form_label_message_type">訊息類型</string>
     <string name="sender_form_label_agent_id">AgentID</string>
     <string name="sender_form_label_app_key">AppKey</string>
     <string name="sender_form_label_app_secret">AppSecret</string>

@@ -93,10 +93,18 @@ class SenderSettingSchemasTest {
         assertFieldDefault(SenderType.PUSHPLUS, "channel", "wechat")
         assertFieldDefault(SenderType.GOTIFY, "priority", "0")
         assertFieldDefault(SenderType.NTFY, "priority", "3")
+        assertFieldDefault(SenderType.DINGTALK_GROUP_ROBOT, "msgtype", "text")
+        assertFieldDefault(SenderType.DINGTALK_GROUP_ROBOT, "atAll", "false")
+        assertFieldDefault(SenderType.WEWORK_ROBOT, "msgType", "text")
+        assertFieldDefault(SenderType.WEWORK_ROBOT, "atAll", "false")
+        assertFieldDefault(SenderType.SMS, "simSlot", "0")
+        assertFieldDefault(SenderType.SMS, "onlyNoNetwork", "false")
 
         assertFieldOptions(SenderType.TELEGRAM, "method", "GET", "POST")
         assertFieldOptions(SenderType.TELEGRAM, "parseMode", "HTML", "MarkdownV2")
         assertFieldOptions(SenderType.TELEGRAM, "proxyType", "DIRECT", "HTTP", "SOCKS")
+        assertFieldOptions(SenderType.DINGTALK_GROUP_ROBOT, "msgtype", "text", "markdown")
+        assertFieldOptions(SenderType.WEWORK_ROBOT, "msgType", "text", "markdown")
     }
 
     @Test

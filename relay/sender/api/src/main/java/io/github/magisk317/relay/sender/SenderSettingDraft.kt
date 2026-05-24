@@ -107,7 +107,14 @@ data class SenderSettingDraft(
         schema?.fields.orEmpty().forEach { field ->
             val defaultValue = field.defaultValue ?: return@forEach
             if (field.name !in nextDraft.values) {
-                nextDraft = nextDraft.withString(field.name, defaultValue)
+                nextDraft = when (field.type) {
+                    SenderSettingFieldType.BOOLEAN -> nextDraft.withBoolean(
+                        field.name,
+                        defaultValue.toBooleanStrictOrNull() ?: false,
+                    )
+                    SenderSettingFieldType.INTEGER -> nextDraft.withInt(field.name, defaultValue.toIntOrNull() ?: 0)
+                    else -> nextDraft.withString(field.name, defaultValue)
+                }
             }
         }
         return nextDraft

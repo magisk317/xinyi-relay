@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,6 +31,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -58,6 +60,11 @@ internal data class SchemaSenderFormFieldSpec(
     @StringRes val supportingTextRes: Int? = null,
     val minLines: Int = 1,
     val optionLabelRes: Map<String, Int> = emptyMap(),
+)
+
+internal val MessageTypeOptionLabels = mapOf(
+    "text" to R.string.sender_segment_text,
+    "markdown" to R.string.sender_segment_markdown,
 )
 
 internal fun SenderSettingDraft.keepOnlyFields(names: Collection<String>): SenderSettingDraft {
@@ -291,10 +298,17 @@ private fun SchemaSenderField(
     }
 
     if (metadata.type == SenderSettingFieldType.BOOLEAN) {
-        Switch(
-            checked = draft.boolean(spec.name),
-            onCheckedChange = { onDraftChange(draft.withBoolean(spec.name, it)) },
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(stringResource(spec.labelRes))
+            Switch(
+                checked = draft.boolean(spec.name),
+                onCheckedChange = { onDraftChange(draft.withBoolean(spec.name, it)) },
+            )
+        }
         return
     }
 

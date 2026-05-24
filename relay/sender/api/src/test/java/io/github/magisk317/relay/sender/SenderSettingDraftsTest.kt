@@ -67,6 +67,21 @@ class SenderSettingDraftsTest {
         assertEquals("html", pushplus.string("template"))
         assertEquals("wechat", pushplus.string("channel"))
         assertEquals("""{"website":"www.pushplus.plus","template":"html","channel":"wechat"}""", pushplus.toJson())
+
+        val dingtalk = SenderSettingDrafts.emptyWithDefaults(SenderType.DINGTALK_GROUP_ROBOT)
+        assertEquals("text", dingtalk.string("msgtype"))
+        assertEquals(false, dingtalk.boolean("atAll"))
+        assertEquals("""{"atAll":false,"msgtype":"text"}""", dingtalk.toJson())
+
+        val weworkRobot = SenderSettingDrafts.emptyWithDefaults(SenderType.WEWORK_ROBOT)
+        assertEquals("text", weworkRobot.string("msgType"))
+        assertEquals(false, weworkRobot.boolean("atAll"))
+        assertEquals("""{"msgType":"text","atAll":false}""", weworkRobot.toJson())
+
+        val sms = SenderSettingDrafts.emptyWithDefaults(SenderType.SMS)
+        assertEquals(0, sms.int("simSlot"))
+        assertEquals(false, sms.boolean("onlyNoNetwork"))
+        assertEquals("""{"simSlot":0,"onlyNoNetwork":false}""", sms.toJson())
     }
 
     @Test

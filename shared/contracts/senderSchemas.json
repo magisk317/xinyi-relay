@@ -24,7 +24,8 @@
         "aliases": [
           "q"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "false"
       },
       {
         "name": "atMobiles",
@@ -48,7 +49,16 @@
         "aliases": [
           "t"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "text",
+        "options": [
+          {
+            "value": "text"
+          },
+          {
+            "value": "markdown"
+          }
+        ]
       },
       {
         "name": "titleTemplate",
@@ -420,7 +430,16 @@
         "aliases": [
           "p"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "text",
+        "options": [
+          {
+            "value": "text"
+          },
+          {
+            "value": "markdown"
+          }
+        ]
       },
       {
         "name": "atAll",
@@ -428,7 +447,8 @@
         "aliases": [
           "q"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "false"
       },
       {
         "name": "atUserIds",
@@ -737,7 +757,8 @@
         "aliases": [
           "o"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "0"
       },
       {
         "name": "mobiles",
@@ -753,7 +774,8 @@
         "aliases": [
           "q"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "false"
       }
     ]
   },
