@@ -3,6 +3,7 @@ package io.github.magisk317.relay.xpbridge
 import android.content.Intent
 import android.os.Parcelable
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg as RuntimeSmsMsg
+import io.github.magisk317.relay.contract.xpbridge.XpSmsRecord
 import io.github.magisk317.smscode.verification.SmsMessage
 import kotlinx.parcelize.Parcelize
 
@@ -24,6 +25,26 @@ data class XpSmsMessage(
     val msgType: Int = MSG_TYPE_SMS,
     val callType: Int = 0,
 ) : Parcelable, SmsMessage {
+    fun toRecord(): XpSmsRecord {
+        return XpSmsRecord(
+            id = id,
+            sender = sender,
+            body = body,
+            date = date,
+            processedTime = processedTime,
+            company = company,
+            smsCode = smsCode,
+            packageName = packageName,
+            notifyChannelId = notifyChannelId,
+            forwardStatus = forwardStatus,
+            forwardTarget = forwardTarget,
+            forwardMessage = forwardMessage,
+            forwardTime = forwardTime,
+            msgType = msgType,
+            callType = callType,
+        )
+    }
+
     fun toRuntime(): RuntimeSmsMsg {
         return RuntimeSmsMsg(
             id = id,
@@ -45,15 +66,15 @@ data class XpSmsMessage(
     }
 
     companion object {
-        const val FORWARD_STATUS_NONE = RuntimeSmsMsg.FORWARD_STATUS_NONE
-        const val FORWARD_STATUS_SUCCESS = RuntimeSmsMsg.FORWARD_STATUS_SUCCESS
-        const val FORWARD_STATUS_FAILED = RuntimeSmsMsg.FORWARD_STATUS_FAILED
-        const val FORWARD_STATUS_PARTIAL = RuntimeSmsMsg.FORWARD_STATUS_PARTIAL
-        const val FORWARD_STATUS_BLOCKED = RuntimeSmsMsg.FORWARD_STATUS_BLOCKED
+        const val FORWARD_STATUS_NONE = XpSmsRecord.FORWARD_STATUS_NONE
+        const val FORWARD_STATUS_SUCCESS = XpSmsRecord.FORWARD_STATUS_SUCCESS
+        const val FORWARD_STATUS_FAILED = XpSmsRecord.FORWARD_STATUS_FAILED
+        const val FORWARD_STATUS_PARTIAL = XpSmsRecord.FORWARD_STATUS_PARTIAL
+        const val FORWARD_STATUS_BLOCKED = XpSmsRecord.FORWARD_STATUS_BLOCKED
 
-        const val MSG_TYPE_SMS = RuntimeSmsMsg.MSG_TYPE_SMS
-        const val MSG_TYPE_APP_NOTIFY = RuntimeSmsMsg.MSG_TYPE_APP_NOTIFY
-        const val MSG_TYPE_CALL_NOTIFY = RuntimeSmsMsg.MSG_TYPE_CALL_NOTIFY
+        const val MSG_TYPE_SMS = XpSmsRecord.MSG_TYPE_SMS
+        const val MSG_TYPE_APP_NOTIFY = XpSmsRecord.MSG_TYPE_APP_NOTIFY
+        const val MSG_TYPE_CALL_NOTIFY = XpSmsRecord.MSG_TYPE_CALL_NOTIFY
 
         @JvmStatic
         fun fromIntent(intent: Intent): XpSmsMessage {

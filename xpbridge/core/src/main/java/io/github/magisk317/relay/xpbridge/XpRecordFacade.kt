@@ -1,32 +1,48 @@
 package io.github.magisk317.relay.xpbridge
 
 import android.content.Context
-import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
+import io.github.magisk317.relay.contract.xpbridge.NoopXpRecordRuntimeBridge
+import io.github.magisk317.relay.contract.xpbridge.XpRecordRuntimeBridge
 
 class XpRecordFacade(
     context: Context,
-    private val delegate: RuntimeRecordFacade = RuntimeRecordFacade(context),
+    private val bridge: XpRecordRuntimeBridge = runtimeBridge,
 ) {
+    private val appContext = context.applicationContext ?: context
+
     suspend fun isDuplicateSms(
         sender: String?,
         body: String?,
         date: Long,
         msgType: Int = SmsMsg.MSG_TYPE_SMS,
-    ): Boolean = delegate.isDuplicateSms(sender = sender, body = body, date = date, msgType = msgType)
+    ): Boolean = bridge.isDuplicateSms(
+        context = appContext,
+        sender = sender,
+        body = body,
+        date = date,
+        msgType = msgType,
+    )
 
     suspend fun findSmsRecordIdByFingerprint(
         sender: String?,
         body: String?,
         date: Long,
         msgType: Int = SmsMsg.MSG_TYPE_SMS,
-    ): Long? = delegate.findSmsRecordIdByFingerprint(sender = sender, body = body, date = date, msgType = msgType)
+    ): Long? = bridge.findSmsRecordIdByFingerprint(
+        context = appContext,
+        sender = sender,
+        body = body,
+        date = date,
+        msgType = msgType,
+    )
 
     suspend fun insertAutoInputAttempt(
         recordId: Long?,
         packageName: String?,
         codeLength: Int,
         attemptAt: Long = System.currentTimeMillis(),
-    ): Long = delegate.insertAutoInputAttempt(
+    ): Long = bridge.insertAutoInputAttempt(
+        context = appContext,
         recordId = recordId,
         packageName = packageName,
         codeLength = codeLength,
@@ -37,7 +53,12 @@ class XpRecordFacade(
         attemptId: Long,
         success: Boolean,
         reason: String?,
-    ): Int = delegate.updateAutoInputResult(attemptId = attemptId, success = success, reason = reason)
+    ): Int = bridge.updateAutoInputResult(
+        context = appContext,
+        attemptId = attemptId,
+        success = success,
+        reason = reason,
+    )
 
     suspend fun hasSmsDuplicateInRange(
         sender: String?,
@@ -45,7 +66,8 @@ class XpRecordFacade(
         dateFrom: Long,
         dateTo: Long,
         msgType: Int = SmsMsg.MSG_TYPE_SMS,
-    ): Boolean = delegate.hasSmsDuplicateInRange(
+    ): Boolean = bridge.hasSmsDuplicateInRange(
+        context = appContext,
         sender = sender,
         body = body,
         dateFrom = dateFrom,
@@ -59,7 +81,8 @@ class XpRecordFacade(
         dateFrom: Long,
         dateTo: Long,
         msgType: Int = SmsMsg.MSG_TYPE_SMS,
-    ): Boolean = delegate.hasSmsCodeDuplicateByPackageInRange(
+    ): Boolean = bridge.hasSmsCodeDuplicateByPackageInRange(
+        context = appContext,
         smsCode = smsCode,
         packageName = packageName,
         dateFrom = dateFrom,
@@ -73,7 +96,8 @@ class XpRecordFacade(
         dateFrom: Long,
         dateTo: Long,
         msgType: Int = SmsMsg.MSG_TYPE_SMS,
-    ): Boolean = delegate.hasSmsCodeDuplicateByCompanyInRange(
+    ): Boolean = bridge.hasSmsCodeDuplicateByCompanyInRange(
+        context = appContext,
         smsCode = smsCode,
         company = company,
         dateFrom = dateFrom,
@@ -87,8 +111,9 @@ class XpRecordFacade(
         target: String?,
         message: String,
         maxMessageLength: Int = 300,
-    ) = delegate.persistSmsForwardResult(
-        smsMsg = smsMsg.toRuntime(),
+    ) = bridge.persistSmsForwardResult(
+        context = appContext,
+        smsMsg = smsMsg.toRecord(),
         success = success,
         target = target,
         message = message,
@@ -100,8 +125,9 @@ class XpRecordFacade(
         message: String,
         target: String = "SmsCode Engine",
         maxMessageLength: Int = 300,
-    ) = delegate.persistSmsHookDispatchFailure(
-        smsMsg = smsMsg.toRuntime(),
+    ) = bridge.persistSmsHookDispatchFailure(
+        context = appContext,
+        smsMsg = smsMsg.toRecord(),
         message = message,
         target = target,
         maxMessageLength = maxMessageLength,
@@ -110,5 +136,17 @@ class XpRecordFacade(
     suspend fun insertSmsRecord(
         smsMsg: SmsMsg,
         isCodeSms: Boolean,
-    ): Long? = delegate.insertSmsRecord(smsMsg = smsMsg.toRuntime(), isCodeSms = isCodeSms)
+    ): Long? = bridge.insertSmsRecord(context = appContext, smsMsg = smsMsg.toRecord(), isCodeSms = isCodeSms)
+
+    companion object {
+        @Volatile
+        private var runtimeBridge: XpRecordRuntimeBridge = NoopXpRecordRuntimeBridge
+
+        internal val activeRuntimeBridge: XpRecordRuntimeBridge
+            get() = runtimeBridge
+
+        fun installRuntimeBridge(bridge: XpRecordRuntimeBridge?) {
+            runtimeBridge = bridge ?: NoopXpRecordRuntimeBridge
+        }
+    }
 }

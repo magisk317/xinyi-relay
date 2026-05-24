@@ -27,11 +27,12 @@
 ### `xpbridge/core`
 
 - Xposed/runtime 之间的兼容 facade、DTO、typealias 和桥接接口。
-- 当前仍直接依赖 `runtime` / `relay/android`，这是兼容期债务，不应继续扩大。
+- 当前仍直接依赖 `runtime` / `relay/android` 的 prefs、dispatch DTO 和诊断实现，这是兼容期债务，不应继续扩大。
 - notification facade 已收敛到 `relay/contract` 的 `NotificationPlatformBridge` 合同，具体 Android 实现由 `relay/android` 提供。
 - SMS parser / blacklist facade 已收敛到 `relay/contract` 的 `SmsRuntimeBridge` 合同，具体 Android 实现由 `relay/android` 提供。
 - clipboard facade 已收敛到 `relay/contract` 的 `ClipboardPlatformBridge` 合同，具体 Android 实现由 `relay/android` 提供。
 - app config facade 已收敛到 `relay/contract` 的 `XpAppConfigRuntimeBridge` 合同，具体 runtime 实现由 `runtime` 提供。
+- record/export facade 已收敛到 `relay/contract` 的 `XpRecordRuntimeBridge` / `XpSmsRecord` 合同，具体 runtime 实现由 `runtime` 提供。
 - 已固化的禁止项：不依赖 `relay/engine` 实现模块、不依赖 `smscode-core/smscode-domain`、不依赖 Compose runtime。
 - 新增桥接模型优先放 `relay/contract` 或 `relay/engine/api`；新增桥接实现优先放 `runtime` / `relay/android`。
 
@@ -130,7 +131,7 @@
 
 仍需补强的边界：
 
-- `xpbridge/core` 仍直接依赖 `runtime` / `relay/android` 的 prefs、record 和诊断实现，应继续拆成纯 facade + 平台实现；notification、SMS runtime、clipboard 与 app config bridge 已完成合同/平台适配拆分。
+- `xpbridge/core` 仍直接依赖 `runtime` / `relay/android` 的 prefs、dispatch DTO 和诊断实现，应继续拆成纯 facade + 平台实现；notification、SMS runtime、clipboard、app config 与 record bridge 已完成合同/平台适配拆分。
 - Web / Desktop 共享前端层尚未形成独立包，当前主要共享 `shared/contracts` 类型。
 
 ## 运行时主链
