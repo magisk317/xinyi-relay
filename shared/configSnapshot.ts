@@ -19,8 +19,52 @@ export class ConfigConflictError extends Error {
   }
 }
 
+export type NormalizedConfigSnapshot = {
+  config: ConfigSnapshotState
+  root: RemoteConfigRoot
+}
+
+export type ConfigSnapshotLoader = () => Promise<ConfigSnapshotState>
+
+export type ConfigSnapshotSaver = (
+  baseRevision: number,
+  snapshot: RemoteConfigRoot
+) => Promise<ConfigSnapshotState>
+
 export function cloneSnapshot(snapshot: Record<string, unknown>): RemoteConfigRoot {
   return JSON.parse(JSON.stringify(snapshot)) as RemoteConfigRoot
+}
+
+export async function loadNormalizedConfigSnapshot(
+  loadSnapshot: ConfigSnapshotLoader
+): Promise<NormalizedConfigSnapshot> {
+  return normalizeConfigSnapshotState(await loadSnapshot())
+}
+
+export async function saveNormalizedConfigSnapshot(
+  current: ConfigSnapshotState | null,
+  nextRoot: RemoteConfigRoot,
+  saveSnapshot: ConfigSnapshotSaver
+): Promise<NormalizedConfigSnapshot> {
+  if (!current) {
+    throw new Error('Cloud snapshot is not loaded yet.')
+  }
+  return normalizeConfigSnapshotState(await saveSnapshot(current.revision, nextRoot))
+}
+
+export function normalizeConfigSnapshotState(config: ConfigSnapshotState): NormalizedConfigSnapshot {
+  return {
+    config,
+    root: normalizeConfigRoot(config.snapshot)
+  }
+}
+
+export function normalizeConfigSnapshotError(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback
+}
+
+export function latestConfigSnapshotFromError(error: unknown): NormalizedConfigSnapshot | null {
+  return error instanceof ConfigConflictError ? normalizeConfigSnapshotState(error.latest) : null
 }
 
 export function normalizeConfigRoot(snapshot: Record<string, unknown>): RemoteConfigRoot {

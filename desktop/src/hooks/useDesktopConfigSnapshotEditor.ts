@@ -1,6 +1,10 @@
 import { useCallback, useState } from 'react'
 import { desktopApi } from '../api/desktopApi'
-import { normalizeConfigRoot } from '../configSnapshot'
+import {
+  loadNormalizedConfigSnapshot,
+  normalizeConfigSnapshotError,
+  saveNormalizedConfigSnapshot
+} from '../configSnapshot'
 import type { ConfigSnapshotState, RemoteConfigRoot } from '../../../shared/contracts/console'
 
 export function useDesktopConfigSnapshotEditor() {
@@ -13,13 +17,13 @@ export function useDesktopConfigSnapshotEditor() {
   const load = useCallback(async () => {
     try {
       setLoading(true)
-      const next = await desktopApi.fetchConfigSnapshot()
-      setConfig(next)
-      setRoot(normalizeConfigRoot(next.snapshot))
+      const next = await loadNormalizedConfigSnapshot(desktopApi.fetchConfigSnapshot)
+      setConfig(next.config)
+      setRoot(next.root)
       setError('')
-      return next
+      return next.config
     } catch (nextError) {
-      const message = nextError instanceof Error ? nextError.message : 'Failed to load desktop cloud snapshot.'
+      const message = normalizeConfigSnapshotError(nextError, 'Failed to load desktop cloud snapshot.')
       setError(message)
       throw nextError
     } finally {
@@ -33,13 +37,13 @@ export function useDesktopConfigSnapshotEditor() {
     }
     try {
       setSaving(true)
-      const next = await desktopApi.putConfigSnapshot(config.revision, nextRoot)
-      setConfig(next)
-      setRoot(normalizeConfigRoot(next.snapshot))
+      const next = await saveNormalizedConfigSnapshot(config, nextRoot, desktopApi.putConfigSnapshot)
+      setConfig(next.config)
+      setRoot(next.root)
       setError('')
-      return next
+      return next.config
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : 'Failed to save desktop cloud snapshot.')
+      setError(normalizeConfigSnapshotError(nextError, 'Failed to save desktop cloud snapshot.'))
       throw nextError
     } finally {
       setSaving(false)

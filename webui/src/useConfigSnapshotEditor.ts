@@ -1,6 +1,11 @@
 import { useCallback, useState } from 'react'
 import { apiClient } from './api/client'
-import { ConfigConflictError, normalizeConfigRoot } from './configSnapshot'
+import {
+  latestConfigSnapshotFromError,
+  loadNormalizedConfigSnapshot,
+  normalizeConfigSnapshotError,
+  saveNormalizedConfigSnapshot
+} from './configSnapshot'
 import type { ConfigSnapshotState, RemoteConfigRoot } from './types'
 
 export function useConfigSnapshotEditor() {
@@ -13,13 +18,13 @@ export function useConfigSnapshotEditor() {
   const load = useCallback(async () => {
     try {
       setLoading(true)
-      const next = await apiClient.getConfigSnapshot()
-      setConfig(next)
-      setRoot(normalizeConfigRoot(next.snapshot))
+      const next = await loadNormalizedConfigSnapshot(apiClient.getConfigSnapshot)
+      setConfig(next.config)
+      setRoot(next.root)
       setError('')
-      return next
+      return next.config
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load cloud snapshot.'
+      const message = normalizeConfigSnapshotError(err, 'Failed to load cloud snapshot.')
       setError(message)
       throw err
     } finally {
@@ -34,18 +39,19 @@ export function useConfigSnapshotEditor() {
       }
       try {
         setSaving(true)
-        const next = await apiClient.putConfigSnapshot(config.revision, nextRoot)
-        setConfig(next)
-        setRoot(normalizeConfigRoot(next.snapshot))
+        const next = await saveNormalizedConfigSnapshot(config, nextRoot, apiClient.putConfigSnapshot)
+        setConfig(next.config)
+        setRoot(next.root)
         setError('')
-        return next
+        return next.config
       } catch (err) {
-        if (err instanceof ConfigConflictError) {
-          setConfig(err.latest)
-          setRoot(normalizeConfigRoot(err.latest.snapshot))
-          setError(err.message)
+        const latest = latestConfigSnapshotFromError(err)
+        if (latest) {
+          setConfig(latest.config)
+          setRoot(latest.root)
+          setError(normalizeConfigSnapshotError(err, 'Cloud config changed on another client.'))
         } else {
-          setError(err instanceof Error ? err.message : 'Failed to save cloud snapshot.')
+          setError(normalizeConfigSnapshotError(err, 'Failed to save cloud snapshot.'))
         }
         throw err
       } finally {
