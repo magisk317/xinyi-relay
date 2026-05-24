@@ -1,7 +1,6 @@
 package io.github.magisk317.relay.xpbridge
 
 import android.content.Context
-import io.github.magisk317.relay.android.sms.SmsBlacklistUtils
 
 object XpSmsBlacklist {
     data class MatchResult(
@@ -13,7 +12,7 @@ object XpSmsBlacklist {
     )
 
     fun match(context: Context, sender: String?, body: String?): MatchResult {
-        val result = SmsBlacklistUtils.match(context, sender, body)
+        val result = XpSmsRuntimeBridge.matchSmsBlacklist(context, sender, body)
         return MatchResult(
             matched = result.matched,
             matchType = result.matchType,
