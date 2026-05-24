@@ -34,14 +34,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.sender.config.WeworkAgentSetting
 import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.sender.WeworkAgentUtils
+import io.github.magisk317.relay.sender.SenderSettingDrafts
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
-import io.github.magisk317.relay.sender.SenderSettingJson
 import kotlinx.coroutines.launch
 import java.util.Date
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
@@ -81,28 +78,28 @@ fun WeworkAgentConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderV
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                runCatching { SenderSettingJson.decode<WeworkAgentSetting>(sender.jsonSetting) }.getOrNull()?.let {
-                    corpID = it.corpID
-                    agentID = it.agentID
-                    secret = it.secret
-                    toUser = it.toUser
-                    customizeAPI = it.customizeAPI
-                }
+                val draft = SenderSettingDrafts.fromSender(sender)
+                corpID = draft.string("corpID")
+                agentID = draft.string("agentID")
+                secret = draft.string("secret")
+                toUser = draft.string("toUser").ifBlank { "@all" }
+                customizeAPI = draft.string("customizeAPI").ifBlank { "https://qyapi.weixin.qq.com" }
             }
         }
     }
 
     fun buildSender(status: Int): Sender {
-        val setting = WeworkAgentSetting(
-            corpID = corpID,
-            agentID = agentID,
-            secret = secret,
-            toUser = toUser,
-            customizeAPI = customizeAPI,
-        )
+        val json = SenderSettingDrafts.empty(SenderType.WEWORK_AGENT)
+            .withString("corpID", corpID)
+            .withString("agentID", agentID)
+            .withString("secret", secret)
+            .withString("toUser", toUser)
+            .withString("customizeAPI", customizeAPI)
+            .withString("proxyType", "DIRECT")
+            .toJson()
         return currentSender?.copy(
             name = name,
-            jsonSetting = SenderSettingJson.encode(setting),
+            jsonSetting = json,
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -114,7 +111,7 @@ fun WeworkAgentConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderV
             id = 0,
             type = SenderType.WEWORK_AGENT,
             name = name,
-            jsonSetting = SenderSettingJson.encode(setting),
+            jsonSetting = json,
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -227,17 +224,12 @@ fun WeworkAgentConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderV
                 activeSchedule = activeSchedule,
                 onActiveScheduleChange = { activeScheduleEntry?.onChange(it) },
             )
-            SenderTestActionRow(channel = "WeworkAgent") {
-                WeworkAgentUtils.sendMsg(
-                    WeworkAgentSetting(
-                        corpID = corpID,
-                        agentID = agentID,
-                        secret = secret,
-                        toUser = toUser,
-                        customizeAPI = customizeAPI,
-                    ),
-                    buildSenderTestMsgInfo(context, getSenderTypeName(context, SenderType.WEWORK_AGENT)),
-                )
+            SenderTestActionRow(
+                channel = "WeworkAgent",
+                viewModel = viewModel,
+                senderType = SenderType.WEWORK_AGENT,
+            ) {
+                buildSender(status = 1)
             }
         }
     }

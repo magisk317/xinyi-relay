@@ -31,13 +31,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import io.github.magisk317.relay.sender.SenderSettingJson
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.sender.config.NtfySetting
 import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.sender.NtfyUtils
+import io.github.magisk317.relay.sender.SenderSettingDrafts
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import java.util.Date
@@ -80,30 +77,29 @@ fun NtfyConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                runCatching { SenderSettingJson.decode<NtfySetting>(sender.jsonSetting) }.getOrNull()?.let {
-                    server = it.server
-                    topic = it.topic
-                    token = it.token
-                    title = it.title
-                    priority = it.priority
-                    tags = it.tags
-                }
+                val draft = SenderSettingDrafts.fromSender(sender)
+                server = draft.string("server")
+                topic = draft.string("topic")
+                token = draft.string("token")
+                title = draft.string("title")
+                priority = draft.string("priority").ifBlank { "3" }
+                tags = draft.string("tags")
             }
         }
     }
 
     fun buildSender(status: Int): Sender {
-        val setting = NtfySetting(
-            server = server,
-            topic = topic,
-            token = token,
-            title = title,
-            priority = priority,
-            tags = tags,
-        )
+        val json = SenderSettingDrafts.empty(SenderType.NTFY)
+            .withString("server", server)
+            .withString("topic", topic)
+            .withString("token", token)
+            .withString("title", title)
+            .withString("priority", priority)
+            .withString("tags", tags)
+            .toJson()
         return currentSender?.copy(
             name = name,
-            jsonSetting = SenderSettingJson.encode(setting),
+            jsonSetting = json,
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -115,7 +111,7 @@ fun NtfyConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
             id = 0L,
             type = SenderType.NTFY,
             name = name,
-            jsonSetting = SenderSettingJson.encode(setting),
+            jsonSetting = json,
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -246,18 +242,12 @@ fun NtfyConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
                 onActiveScheduleChange = { activeScheduleEntry?.onChange(it) },
             )
             Spacer(modifier = Modifier.height(8.dp))
-            SenderTestActionRow(channel = "Ntfy") {
-                NtfyUtils.sendMsg(
-                    NtfySetting(
-                        server = server,
-                        topic = topic,
-                        token = token,
-                        title = title,
-                        priority = priority,
-                        tags = tags,
-                    ),
-                    buildSenderTestMsgInfo(context, getSenderTypeName(context, SenderType.NTFY)),
-                )
+            SenderTestActionRow(
+                channel = "Ntfy",
+                viewModel = viewModel,
+                senderType = SenderType.NTFY,
+            ) {
+                buildSender(status = 1)
             }
         }
     }

@@ -13,18 +13,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.sender.config.TelegramSetting
 import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.sender.TelegramUtils
+import io.github.magisk317.relay.sender.SenderSettingDrafts
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
-import io.github.magisk317.relay.sender.SenderSettingJson
 import kotlinx.coroutines.launch
-import java.net.Proxy
 import java.util.Date
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
 
@@ -67,33 +63,30 @@ fun TelegramConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                val setting = SenderSettingJson.decodeOrNull<TelegramSetting>(sender.jsonSetting)
-                if (setting != null) {
-                    apiToken = setting.apiToken
-                    chatId = setting.chatId
-                    topicId = setting.messageThreadId
-                    method = setting.method
-                    parseMode = setting.parseMode
-                    proxyHost = setting.proxyHost
-                    proxyPort = setting.proxyPort
-                }
+                val draft = SenderSettingDrafts.fromSender(sender)
+                apiToken = draft.string("apiToken")
+                chatId = draft.string("chatId")
+                topicId = draft.string("messageThreadId")
+                method = draft.string("method").ifBlank { "POST" }
+                parseMode = draft.string("parseMode").ifBlank { "HTML" }
+                proxyHost = draft.string("proxyHost")
+                proxyPort = draft.string("proxyPort")
             }
         }
         isLoaded = true
     }
 
     fun buildSender(status: Int): Sender {
-        val setting = TelegramSetting(
-            apiToken = apiToken,
-            chatId = chatId,
-            messageThreadId = topicId,
-            method = method,
-            parseMode = parseMode,
-            proxyHost = proxyHost,
-            proxyPort = proxyPort,
-            proxyType = Proxy.Type.DIRECT
-        )
-        val json = SenderSettingJson.encode(setting)
+        val json = SenderSettingDrafts.empty(SenderType.TELEGRAM)
+            .withString("method", method)
+            .withString("apiToken", apiToken)
+            .withString("chatId", chatId)
+            .withString("messageThreadId", topicId)
+            .withString("proxyType", "DIRECT")
+            .withString("proxyHost", proxyHost)
+            .withString("proxyPort", proxyPort)
+            .withString("parseMode", parseMode)
+            .toJson()
         return currentSender?.copy(
             name = name,
             jsonSetting = json,
@@ -251,19 +244,12 @@ fun TelegramConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
                 onActiveScheduleChange = { activeScheduleEntry?.onChange(it) },
             )
             Spacer(modifier = Modifier.height(8.dp))
-            SenderTestActionRow(channel = "Telegram") {
-                val setting = TelegramSetting(
-                    apiToken = apiToken,
-                    chatId = chatId,
-                    messageThreadId = topicId,
-                    method = method,
-                    parseMode = parseMode,
-                    proxyHost = proxyHost,
-                    proxyPort = proxyPort,
-                    proxyType = Proxy.Type.DIRECT,
-                )
-                val msg = buildSenderTestMsgInfo(context, getSenderTypeName(context, SenderType.TELEGRAM))
-                TelegramUtils.sendMsg(setting, msg)
+            SenderTestActionRow(
+                channel = "Telegram",
+                viewModel = viewModel,
+                senderType = SenderType.TELEGRAM,
+            ) {
+                buildSender(status = 1)
             }
         }
     }

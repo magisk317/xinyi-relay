@@ -35,16 +35,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.sender.config.WeworkRobotSetting
 import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.sender.WeworkRobotUtils
+import io.github.magisk317.relay.sender.SenderSettingDrafts
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
-import io.github.magisk317.relay.sender.SenderSettingJson
 import kotlinx.coroutines.launch
 import java.util.Date
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
@@ -84,28 +81,27 @@ fun WeworkRobotConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderV
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                runCatching { SenderSettingJson.decode<WeworkRobotSetting>(sender.jsonSetting) }.getOrNull()?.let {
-                    webHook = it.webHook
-                    msgType = it.msgType
-                    atAll = it.atAll
-                    atUserIds = it.atUserIds
-                    atMobiles = it.atMobiles
-                }
+                val draft = SenderSettingDrafts.fromSender(sender)
+                webHook = draft.string("webHook")
+                msgType = draft.string("msgType").ifBlank { "text" }
+                atAll = draft.boolean("atAll")
+                atUserIds = draft.string("atUserIds")
+                atMobiles = draft.string("atMobiles")
             }
         }
     }
 
     fun buildSender(status: Int): Sender {
-        val setting = WeworkRobotSetting(
-            webHook = webHook,
-            msgType = msgType,
-            atAll = atAll,
-            atUserIds = atUserIds,
-            atMobiles = atMobiles,
-        )
+        val json = SenderSettingDrafts.empty(SenderType.WEWORK_ROBOT)
+            .withString("webHook", webHook)
+            .withString("msgType", msgType)
+            .withBoolean("atAll", atAll)
+            .withString("atUserIds", atUserIds)
+            .withString("atMobiles", atMobiles)
+            .toJson()
         return currentSender?.copy(
             name = name,
-            jsonSetting = SenderSettingJson.encode(setting),
+            jsonSetting = json,
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -117,7 +113,7 @@ fun WeworkRobotConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderV
             id = 0,
             type = SenderType.WEWORK_ROBOT,
             name = name,
-            jsonSetting = SenderSettingJson.encode(setting),
+            jsonSetting = json,
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -230,17 +226,12 @@ fun WeworkRobotConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderV
                 activeSchedule = activeSchedule,
                 onActiveScheduleChange = { activeScheduleEntry?.onChange(it) },
             )
-            SenderTestActionRow(channel = "WeworkRobot") {
-                WeworkRobotUtils.sendMsg(
-                    WeworkRobotSetting(
-                        webHook = webHook,
-                        msgType = msgType,
-                        atAll = atAll,
-                        atUserIds = atUserIds,
-                        atMobiles = atMobiles,
-                    ),
-                    buildSenderTestMsgInfo(context, getSenderTypeName(context, SenderType.WEWORK_ROBOT)),
-                )
+            SenderTestActionRow(
+                channel = "WeworkRobot",
+                viewModel = viewModel,
+                senderType = SenderType.WEWORK_ROBOT,
+            ) {
+                buildSender(status = 1)
             }
         }
     }

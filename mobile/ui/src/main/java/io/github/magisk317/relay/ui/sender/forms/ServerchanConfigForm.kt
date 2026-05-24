@@ -34,14 +34,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.sender.config.ServerchanSetting
 import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.sender.ServerchanUtils
+import io.github.magisk317.relay.sender.SenderSettingDrafts
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
-import io.github.magisk317.relay.sender.SenderSettingJson
 import kotlinx.coroutines.launch
 import java.util.Date
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
@@ -80,21 +77,25 @@ fun ServerchanConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVi
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                runCatching { SenderSettingJson.decode<ServerchanSetting>(sender.jsonSetting) }.getOrNull()?.let {
-                    sendKey = it.sendKey
-                    channel = it.channel
-                    openid = it.openid
-                    titleTemplate = it.titleTemplate
-                }
+                val draft = SenderSettingDrafts.fromSender(sender)
+                sendKey = draft.string("sendKey")
+                channel = draft.string("channel")
+                openid = draft.string("openid")
+                titleTemplate = draft.string("titleTemplate")
             }
         }
     }
 
     fun buildSender(status: Int): Sender {
-        val setting = ServerchanSetting(sendKey = sendKey, channel = channel, openid = openid, titleTemplate = titleTemplate)
+        val json = SenderSettingDrafts.empty(SenderType.SERVERCHAN)
+            .withString("sendKey", sendKey)
+            .withString("channel", channel)
+            .withString("openid", openid)
+            .withString("titleTemplate", titleTemplate)
+            .toJson()
         return currentSender?.copy(
             name = name,
-            jsonSetting = SenderSettingJson.encode(setting),
+            jsonSetting = json,
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -106,7 +107,7 @@ fun ServerchanConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVi
             id = 0,
             type = SenderType.SERVERCHAN,
             name = name,
-            jsonSetting = SenderSettingJson.encode(setting),
+            jsonSetting = json,
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -214,16 +215,12 @@ fun ServerchanConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVi
                 activeSchedule = activeSchedule,
                 onActiveScheduleChange = { activeScheduleEntry?.onChange(it) },
             )
-            SenderTestActionRow(channel = "Serverchan") {
-                ServerchanUtils.sendMsg(
-                    ServerchanSetting(
-                        sendKey = sendKey,
-                        channel = channel,
-                        openid = openid,
-                        titleTemplate = titleTemplate,
-                    ),
-                    buildSenderTestMsgInfo(context, getSenderTypeName(context, SenderType.SERVERCHAN)),
-                )
+            SenderTestActionRow(
+                channel = "Serverchan",
+                viewModel = viewModel,
+                senderType = SenderType.SERVERCHAN,
+            ) {
+                buildSender(status = 1)
             }
         }
     }

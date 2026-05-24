@@ -41,15 +41,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.sender.AesUtils
-import io.github.magisk317.relay.sender.config.BarkSetting
 import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.sender.BarkUtils
+import io.github.magisk317.relay.sender.SenderSettingDrafts
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
-import io.github.magisk317.relay.sender.SenderSettingJson
 import kotlinx.coroutines.launch
 import java.util.Date
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
@@ -104,29 +101,28 @@ fun BarkConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                runCatching { SenderSettingJson.decode<BarkSetting>(sender.jsonSetting) }.getOrNull()?.let {
-                    server = it.server
-                    title = it.title
-                    encryptionType = it.transformation
-                    encryptionKey = it.key
-                    encryptionIv = it.iv
-                    showEncryptionSettings = it.transformation != "none"
-                }
+                val draft = SenderSettingDrafts.fromSender(sender)
+                server = draft.string("server")
+                title = draft.string("title")
+                encryptionType = draft.string("transformation").ifBlank { "none" }
+                encryptionKey = draft.string("key")
+                encryptionIv = draft.string("iv")
+                showEncryptionSettings = encryptionType != "none"
             }
         }
     }
 
     fun buildSender(status: Int): Sender {
-        val setting = BarkSetting(
-            server = server,
-            title = title,
-            transformation = encryptionType,
-            key = encryptionKey,
-            iv = encryptionIv,
-        )
+        val json = SenderSettingDrafts.empty(SenderType.BARK)
+            .withString("server", server)
+            .withString("title", title)
+            .withString("transformation", encryptionType)
+            .withString("key", encryptionKey)
+            .withString("iv", encryptionIv)
+            .toJson()
         return currentSender?.copy(
             name = name,
-            jsonSetting = SenderSettingJson.encode(setting),
+            jsonSetting = json,
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -138,7 +134,7 @@ fun BarkConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
             id = 0,
             type = SenderType.BARK,
             name = name,
-            jsonSetting = SenderSettingJson.encode(setting),
+            jsonSetting = json,
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -355,17 +351,12 @@ fun BarkConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMode
                 activeSchedule = activeSchedule,
                 onActiveScheduleChange = { activeScheduleEntry?.onChange(it) },
             )
-            SenderTestActionRow(channel = "Bark") {
-                BarkUtils.sendMsg(
-                    BarkSetting(
-                        server = server,
-                        title = title,
-                        transformation = encryptionType,
-                        key = encryptionKey,
-                        iv = encryptionIv,
-                    ),
-                    buildSenderTestMsgInfo(context, getSenderTypeName(context, SenderType.BARK)),
-                )
+            SenderTestActionRow(
+                channel = "Bark",
+                viewModel = viewModel,
+                senderType = SenderType.BARK,
+            ) {
+                buildSender(status = 1)
             }
         }
     }

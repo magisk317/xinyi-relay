@@ -35,16 +35,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.sender.config.DingtalkInnerRobotSetting
 import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.sender.DingtalkInnerRobotUtils
+import io.github.magisk317.relay.sender.SenderSettingDrafts
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
-import io.github.magisk317.relay.sender.SenderSettingJson
 import kotlinx.coroutines.launch
 import java.util.Date
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
@@ -85,30 +82,30 @@ fun DingtalkInnerConfigForm(senderId: Long, onBack: () -> Unit, viewModel: Sende
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                runCatching { SenderSettingJson.decode<DingtalkInnerRobotSetting>(sender.jsonSetting) }.getOrNull()?.let {
-                    agentID = it.agentID
-                    appKey = it.appKey
-                    appSecret = it.appSecret
-                    userIds = it.userIds
-                    msgKey = it.msgKey
-                    titleTemplate = it.titleTemplate
-                }
+                val draft = SenderSettingDrafts.fromSender(sender)
+                agentID = draft.string("agentID")
+                appKey = draft.string("appKey")
+                appSecret = draft.string("appSecret")
+                userIds = draft.string("userIds")
+                msgKey = draft.string("msgKey").ifBlank { "sampleText" }
+                titleTemplate = draft.string("titleTemplate")
             }
         }
     }
 
     fun buildSender(status: Int): Sender {
-        val setting = DingtalkInnerRobotSetting(
-            agentID = agentID,
-            appKey = appKey,
-            appSecret = appSecret,
-            userIds = userIds,
-            msgKey = msgKey,
-            titleTemplate = titleTemplate,
-        )
+        val json = SenderSettingDrafts.empty(SenderType.DINGTALK_INNER_ROBOT)
+            .withString("agentID", agentID)
+            .withString("appKey", appKey)
+            .withString("appSecret", appSecret)
+            .withString("userIds", userIds)
+            .withString("msgKey", msgKey)
+            .withString("titleTemplate", titleTemplate)
+            .withString("proxyType", "DIRECT")
+            .toJson()
         return currentSender?.copy(
             name = name,
-            jsonSetting = SenderSettingJson.encode(setting),
+            jsonSetting = json,
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -120,7 +117,7 @@ fun DingtalkInnerConfigForm(senderId: Long, onBack: () -> Unit, viewModel: Sende
             id = 0,
             type = SenderType.DINGTALK_INNER_ROBOT,
             name = name,
-            jsonSetting = SenderSettingJson.encode(setting),
+            jsonSetting = json,
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -263,18 +260,12 @@ fun DingtalkInnerConfigForm(senderId: Long, onBack: () -> Unit, viewModel: Sende
                 activeSchedule = activeSchedule,
                 onActiveScheduleChange = { activeScheduleEntry?.onChange(it) },
             )
-            SenderTestActionRow(channel = "DingtalkInner") {
-                DingtalkInnerRobotUtils.sendMsg(
-                    DingtalkInnerRobotSetting(
-                        agentID = agentID,
-                        appKey = appKey,
-                        appSecret = appSecret,
-                        userIds = userIds,
-                        msgKey = msgKey,
-                        titleTemplate = titleTemplate,
-                    ),
-                    buildSenderTestMsgInfo(context, getSenderTypeName(context, SenderType.DINGTALK_INNER_ROBOT)),
-                )
+            SenderTestActionRow(
+                channel = "DingtalkInner",
+                viewModel = viewModel,
+                senderType = SenderType.DINGTALK_INNER_ROBOT,
+            ) {
+                buildSender(status = 1)
             }
         }
     }

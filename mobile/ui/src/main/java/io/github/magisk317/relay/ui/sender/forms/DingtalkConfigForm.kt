@@ -13,16 +13,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.sender.config.DingtalkGroupRobotSetting
 import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.sender.DingtalkGroupRobotUtils
+import io.github.magisk317.relay.sender.SenderSettingDrafts
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
-import io.github.magisk317.relay.sender.SenderSettingJson
 import kotlinx.coroutines.launch
 import java.util.Date
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
@@ -64,28 +61,25 @@ fun DingtalkConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                val setting = SenderSettingJson.decodeOrNull<DingtalkGroupRobotSetting>(sender.jsonSetting)
-                if (setting != null) {
-                    token = setting.token
-                    secret = setting.secret
-                    msgtype = setting.msgtype
-                    atAll = setting.atAll
-                    titleTemplate = setting.titleTemplate
-                }
+                val draft = SenderSettingDrafts.fromSender(sender)
+                token = draft.string("token")
+                secret = draft.string("secret")
+                msgtype = draft.string("msgtype").ifBlank { "text" }
+                atAll = draft.boolean("atAll")
+                titleTemplate = draft.string("titleTemplate")
             }
         }
         isLoaded = true
     }
 
     fun buildSender(status: Int): Sender {
-        val setting = DingtalkGroupRobotSetting(
-            token = token,
-            secret = secret,
-            msgtype = msgtype,
-            atAll = atAll,
-            titleTemplate = titleTemplate
-        )
-        val json = SenderSettingJson.encode(setting)
+        val json = SenderSettingDrafts.empty(SenderType.DINGTALK_GROUP_ROBOT)
+            .withString("token", token)
+            .withString("secret", secret)
+            .withString("msgtype", msgtype)
+            .withBoolean("atAll", atAll)
+            .withString("titleTemplate", titleTemplate)
+            .toJson()
         return currentSender?.copy(
             name = name,
             jsonSetting = json,
@@ -231,16 +225,12 @@ fun DingtalkConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
                 onActiveScheduleChange = { activeScheduleEntry?.onChange(it) },
             )
             Spacer(modifier = Modifier.height(8.dp))
-            SenderTestActionRow(channel = "DingtalkGroup") {
-                val setting = DingtalkGroupRobotSetting(
-                    token = token,
-                    secret = secret,
-                    msgtype = msgtype,
-                    atAll = atAll,
-                    titleTemplate = titleTemplate,
-                )
-                val msg = buildSenderTestMsgInfo(context, getSenderTypeName(context, SenderType.DINGTALK_GROUP_ROBOT))
-                DingtalkGroupRobotUtils.sendMsg(setting, msg)
+            SenderTestActionRow(
+                channel = "DingtalkGroup",
+                viewModel = viewModel,
+                senderType = SenderType.DINGTALK_GROUP_ROBOT,
+            ) {
+                buildSender(status = 1)
             }
         }
     }

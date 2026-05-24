@@ -33,15 +33,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.sender.config.EmailSetting
 import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.sender.EmailUtils
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.sender.SenderSettingDrafts
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
-import io.github.magisk317.relay.sender.SenderSettingJson
 import kotlinx.coroutines.launch
 import java.util.Date
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
@@ -87,40 +84,39 @@ fun EmailConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMod
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                runCatching { SenderSettingJson.decode<EmailSetting>(sender.jsonSetting) }.getOrNull()?.let {
-                    mailType = it.mailType
-                    authEmail = it.authEmail.ifBlank { it.fromEmail }
-                    fromEmail = it.fromEmail
-                    fromEmailAlias = it.fromEmailAlias.ifBlank { it.nickname }
-                    pwd = it.pwd
-                    host = it.host
-                    port = it.port
-                    toEmail = it.toEmail
-                    title = it.title
-                    ssl = it.ssl
-                    startTls = it.startTls
-                }
+                val draft = SenderSettingDrafts.fromSender(sender)
+                mailType = draft.string("mailType")
+                fromEmail = draft.string("fromEmail")
+                authEmail = draft.string("authEmail").ifBlank { fromEmail }
+                fromEmailAlias = draft.string("fromEmailAlias").ifBlank { draft.string("nickname") }
+                pwd = draft.string("pwd")
+                host = draft.string("host")
+                port = draft.string("port").ifBlank { "465" }
+                toEmail = draft.string("toEmail")
+                title = draft.string("title")
+                ssl = draft.boolean("ssl", defaultValue = true)
+                startTls = draft.boolean("startTls")
             }
         }
     }
 
     fun buildSender(status: Int): Sender {
-        val setting = EmailSetting(
-            mailType = mailType,
-            authEmail = authEmail,
-            fromEmail = fromEmail,
-            fromEmailAlias = fromEmailAlias,
-            pwd = pwd,
-            host = host,
-            port = port,
-            ssl = ssl,
-            startTls = startTls,
-            toEmail = toEmail,
-            title = title,
-        )
+        val json = SenderSettingDrafts.empty(SenderType.EMAIL)
+            .withString("mailType", mailType)
+            .withString("authEmail", authEmail)
+            .withString("fromEmail", fromEmail)
+            .withString("fromEmailAlias", fromEmailAlias)
+            .withString("pwd", pwd)
+            .withString("host", host)
+            .withString("port", port)
+            .withBoolean("ssl", ssl)
+            .withBoolean("startTls", startTls)
+            .withString("toEmail", toEmail)
+            .withString("title", title)
+            .toJson()
         return currentSender?.copy(
             name = name,
-            jsonSetting = SenderSettingJson.encode(setting),
+            jsonSetting = json,
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -132,7 +128,7 @@ fun EmailConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMod
             id = 0,
             type = SenderType.EMAIL,
             name = name,
-            jsonSetting = SenderSettingJson.encode(setting),
+            jsonSetting = json,
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -299,23 +295,12 @@ fun EmailConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMod
                 activeSchedule = activeSchedule,
                 onActiveScheduleChange = { activeScheduleEntry?.onChange(it) },
             )
-            SenderTestActionRow(channel = "Email") {
-                EmailUtils.sendMsg(
-                    EmailSetting(
-                        mailType = mailType,
-                        authEmail = authEmail,
-                        fromEmail = fromEmail,
-                        fromEmailAlias = fromEmailAlias,
-                        pwd = pwd,
-                        host = host,
-                        port = port,
-                        ssl = ssl,
-                        startTls = startTls,
-                        toEmail = toEmail,
-                        title = title,
-                    ),
-                    buildSenderTestMsgInfo(context, getSenderTypeName(context, SenderType.EMAIL)),
-                )
+            SenderTestActionRow(
+                channel = "Email",
+                viewModel = viewModel,
+                senderType = SenderType.EMAIL,
+            ) {
+                buildSender(status = 1)
             }
         }
     }

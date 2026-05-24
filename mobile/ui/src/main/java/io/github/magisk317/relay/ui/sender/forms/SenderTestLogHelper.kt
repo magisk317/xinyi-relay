@@ -19,6 +19,9 @@ import io.github.magisk317.smscode.runtime.common.utils.ClipboardUtils
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.android.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.engine.model.MsgInfo
+import io.github.magisk317.relay.engine.model.Sender
+import io.github.magisk317.relay.ui.sender.SenderViewModel
+import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -44,6 +47,17 @@ internal fun buildSenderTestMsgInfo(context: Context, senderName: String): MsgIn
         content = context.getString(R.string.sender_test_message_template, senderName),
         date = Date(),
         simInfo = "SIM1",
+    )
+}
+
+internal suspend fun SenderViewModel.sendConfiguredSenderTest(
+    context: Context,
+    senderType: Int,
+    sender: Sender,
+) {
+    sendTestSender(
+        sender = sender,
+        msgInfo = buildSenderTestMsgInfo(context, getSenderTypeName(context, senderType)),
     )
 }
 
@@ -156,5 +170,22 @@ internal fun SenderTestActionRow(
         ) {
             Text(stringResource(R.string.sender_copy_log))
         }
+    }
+}
+
+@Composable
+internal fun SenderTestActionRow(
+    channel: String,
+    viewModel: SenderViewModel,
+    senderType: Int,
+    buildSender: () -> Sender,
+) {
+    val context = LocalContext.current
+    SenderTestActionRow(channel = channel) {
+        viewModel.sendConfiguredSenderTest(
+            context = context,
+            senderType = senderType,
+            sender = buildSender(),
+        )
     }
 }

@@ -8,7 +8,9 @@ import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.android.data.db.entity.NotifyRouteRule
 import io.github.magisk317.relay.android.common.utils.DeviceIdentityUtils
+import io.github.magisk317.relay.app.sender.SenderTestService
 import io.github.magisk317.relay.engine.filter.ForwardFilterConst
+import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.sender.SenderSettingSanitizer
 import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.sender.SenderValidationResult
@@ -35,6 +37,7 @@ class SenderViewModel(
     application: Application,
     private val configRepository: AppConfigRepository,
     private val settingsRepository: SettingsPreferencesRepository,
+    private val senderTestService: SenderTestService,
 ) : AndroidViewModel(application) {
 
     private val _forwardCommonConfig = MutableStateFlow(
@@ -171,7 +174,20 @@ class SenderViewModel(
     }
 
     fun validateSenderForEnable(sender: Sender): SenderValidationResult {
-        return SenderValidator.validateForEnable(sender)
+        return SenderValidator.validateForEnable(
+            sender = sender,
+            allowHttpWebhook = BuildConfig.ALLOW_HTTP_WEBHOOK,
+            enableSmsChannel = BuildConfig.ENABLE_SMS_CHANNEL,
+        )
+    }
+
+    suspend fun sendTestSender(sender: Sender, msgInfo: MsgInfo) {
+        withContext(Dispatchers.IO) {
+            senderTestService.sendTestSender(
+                sender = SenderSettingSanitizer.sanitizeSenderLenient(sender),
+                msgInfo = msgInfo,
+            )
+        }
     }
 
     suspend fun getSender(id: Long): Sender? {

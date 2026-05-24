@@ -34,14 +34,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.sender.config.SmsSetting
 import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.sender.SmsUtils
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
-import io.github.magisk317.relay.sender.SenderSettingJson
+import io.github.magisk317.relay.sender.SenderSettingDrafts
 import kotlinx.coroutines.launch
 import java.util.Date
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
@@ -79,24 +76,23 @@ fun SmsConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewModel
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                runCatching { SenderSettingJson.decode<SmsSetting>(sender.jsonSetting) }.getOrNull()?.let {
-                    mobiles = it.mobiles
-                    simSlot = it.simSlot.toString()
-                    onlyNoNetwork = it.onlyNoNetwork
-                }
+                val draft = SenderSettingDrafts.fromSender(sender)
+                mobiles = draft.string("mobiles")
+                simSlot = draft.int("simSlot").toString()
+                onlyNoNetwork = draft.boolean("onlyNoNetwork")
             }
         }
     }
 
     fun buildSender(status: Int): Sender {
-        val setting = SmsSetting(
-            simSlot = simSlot.toIntOrNull() ?: 0,
-            mobiles = mobiles,
-            onlyNoNetwork = onlyNoNetwork,
-        )
+        val jsonSetting = SenderSettingDrafts.empty(SenderType.SMS)
+            .withInt("simSlot", simSlot.toIntOrNull() ?: 0)
+            .withString("mobiles", mobiles)
+            .withBoolean("onlyNoNetwork", onlyNoNetwork)
+            .toJson()
         return currentSender?.copy(
             name = name,
-            jsonSetting = SenderSettingJson.encode(setting),
+            jsonSetting = jsonSetting,
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -108,7 +104,7 @@ fun SmsConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewModel
             id = 0,
             type = SenderType.SMS,
             name = name,
-            jsonSetting = SenderSettingJson.encode(setting),
+            jsonSetting = jsonSetting,
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -203,16 +199,12 @@ fun SmsConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewModel
                 activeSchedule = activeSchedule,
                 onActiveScheduleChange = { activeScheduleEntry?.onChange(it) },
             )
-            SenderTestActionRow(channel = "SMS") {
-                SmsUtils.sendMsg(
-                    context,
-                    SmsSetting(
-                        simSlot = simSlot.toIntOrNull() ?: 0,
-                        mobiles = mobiles,
-                        onlyNoNetwork = onlyNoNetwork,
-                    ),
-                    buildSenderTestMsgInfo(context, getSenderTypeName(context, SenderType.SMS)),
-                )
+            SenderTestActionRow(
+                channel = "SMS",
+                viewModel = viewModel,
+                senderType = SenderType.SMS,
+            ) {
+                buildSender(status = 1)
             }
         }
     }

@@ -35,16 +35,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.sender.config.FeishuAppSetting
 import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.sender.FeishuAppUtils
+import io.github.magisk317.relay.sender.SenderSettingDrafts
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
-import io.github.magisk317.relay.sender.SenderSettingJson
 import kotlinx.coroutines.launch
 import java.util.Date
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
@@ -86,32 +83,31 @@ fun FeishuAppConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVie
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                runCatching { SenderSettingJson.decode<FeishuAppSetting>(sender.jsonSetting) }.getOrNull()?.let {
-                    appId = it.appId
-                    appSecret = it.appSecret
-                    receiveId = it.receiveId
-                    msgType = it.msgType
-                    titleTemplate = it.titleTemplate
-                    receiveIdType = it.receiveIdType
-                    messageCard = it.messageCard
-                }
+                val draft = SenderSettingDrafts.fromSender(sender)
+                appId = draft.string("appId")
+                appSecret = draft.string("appSecret")
+                receiveId = draft.string("receiveId")
+                msgType = draft.string("msgType").ifBlank { "interactive" }
+                titleTemplate = draft.string("titleTemplate")
+                receiveIdType = draft.string("receiveIdType").ifBlank { "user_id" }
+                messageCard = draft.string("messageCard")
             }
         }
     }
 
     fun buildSender(status: Int): Sender {
-        val setting = FeishuAppSetting(
-            appId = appId,
-            appSecret = appSecret,
-            receiveId = receiveId,
-            msgType = msgType,
-            titleTemplate = titleTemplate,
-            receiveIdType = receiveIdType,
-            messageCard = messageCard,
-        )
+        val json = SenderSettingDrafts.empty(SenderType.FEISHU_APP)
+            .withString("appId", appId)
+            .withString("appSecret", appSecret)
+            .withString("receiveId", receiveId)
+            .withString("msgType", msgType)
+            .withString("titleTemplate", titleTemplate)
+            .withString("receiveIdType", receiveIdType)
+            .withString("messageCard", messageCard)
+            .toJson()
         return currentSender?.copy(
             name = name,
-            jsonSetting = SenderSettingJson.encode(setting),
+            jsonSetting = json,
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -123,7 +119,7 @@ fun FeishuAppConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVie
             id = 0,
             type = SenderType.FEISHU_APP,
             name = name,
-            jsonSetting = SenderSettingJson.encode(setting),
+            jsonSetting = json,
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -252,19 +248,12 @@ fun FeishuAppConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderVie
                 activeSchedule = activeSchedule,
                 onActiveScheduleChange = { activeScheduleEntry?.onChange(it) },
             )
-            SenderTestActionRow(channel = "FeishuApp") {
-                FeishuAppUtils.sendMsg(
-                    FeishuAppSetting(
-                        appId = appId,
-                        appSecret = appSecret,
-                        receiveId = receiveId,
-                        msgType = msgType,
-                        titleTemplate = titleTemplate,
-                        receiveIdType = receiveIdType,
-                        messageCard = messageCard,
-                    ),
-                    buildSenderTestMsgInfo(context, getSenderTypeName(context, SenderType.FEISHU_APP)),
-                )
+            SenderTestActionRow(
+                channel = "FeishuApp",
+                viewModel = viewModel,
+                senderType = SenderType.FEISHU_APP,
+            ) {
+                buildSender(status = 1)
             }
         }
     }

@@ -13,14 +13,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.sender.config.PushplusSetting
 import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.sender.PushplusUtils
+import io.github.magisk317.relay.sender.SenderSettingDrafts
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
-import io.github.magisk317.relay.sender.SenderSettingJson
 import kotlinx.coroutines.launch
 import java.util.Date
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
@@ -63,30 +60,27 @@ fun PushplusConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                val setting = SenderSettingJson.decodeOrNull<PushplusSetting>(sender.jsonSetting)
-                if (setting != null) {
-                    token = setting.token
-                    topic = setting.topic
-                    template = setting.template
-                    channel = setting.channel
-                    website = setting.website
-                    titleTemplate = setting.titleTemplate
-                }
+                val draft = SenderSettingDrafts.fromSender(sender)
+                token = draft.string("token")
+                topic = draft.string("topic")
+                template = draft.string("template").ifBlank { "html" }
+                channel = draft.string("channel").ifBlank { "wechat" }
+                website = draft.string("website").ifBlank { "www.pushplus.plus" }
+                titleTemplate = draft.string("titleTemplate")
             }
         }
         isLoaded = true
     }
 
     fun buildSender(status: Int): Sender {
-        val setting = PushplusSetting(
-            website = website,
-            token = token,
-            topic = topic,
-            template = template,
-            channel = channel,
-            titleTemplate = titleTemplate
-        )
-        val json = SenderSettingJson.encode(setting)
+        val json = SenderSettingDrafts.empty(SenderType.PUSHPLUS)
+            .withString("website", website)
+            .withString("token", token)
+            .withString("topic", topic)
+            .withString("template", template)
+            .withString("channel", channel)
+            .withString("titleTemplate", titleTemplate)
+            .toJson()
         return currentSender?.copy(
             name = name,
             jsonSetting = json,
@@ -234,17 +228,12 @@ fun PushplusConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
                 onActiveScheduleChange = { activeScheduleEntry?.onChange(it) },
             )
             Spacer(modifier = Modifier.height(8.dp))
-            SenderTestActionRow(channel = "Pushplus") {
-                val setting = PushplusSetting(
-                    website = website,
-                    token = token,
-                    topic = topic,
-                    template = template,
-                    channel = channel,
-                    titleTemplate = titleTemplate,
-                )
-                val msg = buildSenderTestMsgInfo(context, getSenderTypeName(context, SenderType.PUSHPLUS))
-                PushplusUtils.sendMsg(setting, msg)
+            SenderTestActionRow(
+                channel = "Pushplus",
+                viewModel = viewModel,
+                senderType = SenderType.PUSHPLUS,
+            ) {
+                buildSender(status = 1)
             }
         }
     }

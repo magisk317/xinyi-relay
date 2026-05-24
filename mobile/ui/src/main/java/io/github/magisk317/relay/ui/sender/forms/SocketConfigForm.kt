@@ -35,16 +35,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.sender.config.SocketSetting
 import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.sender.SocketUtils
+import io.github.magisk317.relay.sender.SenderSettingDrafts
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
-import io.github.magisk317.relay.sender.SenderSettingJson
 import kotlinx.coroutines.launch
 import java.util.Date
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
@@ -84,28 +81,27 @@ fun SocketConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMo
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                runCatching { SenderSettingJson.decode<SocketSetting>(sender.jsonSetting) }.getOrNull()?.let {
-                    method = it.method
-                    address = it.address
-                    port = it.port.toString()
-                    msgTemplate = it.msgTemplate
-                    outTopic = it.outMessageTopic
-                }
+                val draft = SenderSettingDrafts.fromSender(sender)
+                method = draft.string("method").ifBlank { "MQTT" }
+                address = draft.string("address")
+                port = draft.int("port").toString()
+                msgTemplate = draft.string("msgTemplate").ifBlank { "{\"msg\":\"[msg]\"}" }
+                outTopic = draft.string("outMessageTopic").ifBlank { "relay/default" }
             }
         }
     }
 
     fun buildSender(status: Int): Sender {
-        val setting = SocketSetting(
-            method = method,
-            address = address,
-            port = port.toIntOrNull() ?: 0,
-            msgTemplate = msgTemplate,
-            outMessageTopic = outTopic,
-        )
+        val json = SenderSettingDrafts.empty(SenderType.SOCKET)
+            .withString("method", method)
+            .withString("address", address)
+            .withInt("port", port.toIntOrNull() ?: 0)
+            .withString("msgTemplate", msgTemplate)
+            .withString("outMessageTopic", outTopic)
+            .toJson()
         return currentSender?.copy(
             name = name,
-            jsonSetting = SenderSettingJson.encode(setting),
+            jsonSetting = json,
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -117,7 +113,7 @@ fun SocketConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMo
             id = 0,
             type = SenderType.SOCKET,
             name = name,
-            jsonSetting = SenderSettingJson.encode(setting),
+            jsonSetting = json,
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -234,17 +230,12 @@ fun SocketConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMo
                 activeSchedule = activeSchedule,
                 onActiveScheduleChange = { activeScheduleEntry?.onChange(it) },
             )
-            SenderTestActionRow(channel = "Socket") {
-                SocketUtils.sendMsg(
-                    SocketSetting(
-                        method = method,
-                        address = address,
-                        port = port.toIntOrNull() ?: 0,
-                        msgTemplate = msgTemplate,
-                        outMessageTopic = outTopic,
-                    ),
-                    buildSenderTestMsgInfo(context, getSenderTypeName(context, SenderType.SOCKET)),
-                )
+            SenderTestActionRow(
+                channel = "Socket",
+                viewModel = viewModel,
+                senderType = SenderType.SOCKET,
+            ) {
+                buildSender(status = 1)
             }
         }
     }

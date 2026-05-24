@@ -35,16 +35,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.sender.config.FeishuSetting
 import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.sender.FeishuUtils
+import io.github.magisk317.relay.sender.SenderSettingDrafts
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.sender.SenderViewModel
-import io.github.magisk317.relay.sender.SenderSettingJson
 import kotlinx.coroutines.launch
 import java.util.Date
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
@@ -84,28 +81,27 @@ fun FeishuConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMo
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                runCatching { SenderSettingJson.decode<FeishuSetting>(sender.jsonSetting) }.getOrNull()?.let {
-                    webhook = it.webhook
-                    secret = it.secret
-                    msgType = it.msgType
-                    titleTemplate = it.titleTemplate
-                    messageCard = it.messageCard
-                }
+                val draft = SenderSettingDrafts.fromSender(sender)
+                webhook = draft.string("webhook")
+                secret = draft.string("secret")
+                msgType = draft.string("msgType").ifBlank { "interactive" }
+                titleTemplate = draft.string("titleTemplate")
+                messageCard = draft.string("messageCard")
             }
         }
     }
 
     fun buildSender(status: Int): Sender {
-        val setting = FeishuSetting(
-            webhook = webhook,
-            secret = secret,
-            msgType = msgType,
-            titleTemplate = titleTemplate,
-            messageCard = messageCard,
-        )
+        val json = SenderSettingDrafts.empty(SenderType.FEISHU)
+            .withString("webhook", webhook)
+            .withString("secret", secret)
+            .withString("msgType", msgType)
+            .withString("titleTemplate", titleTemplate)
+            .withString("messageCard", messageCard)
+            .toJson()
         return currentSender?.copy(
             name = name,
-            jsonSetting = SenderSettingJson.encode(setting),
+            jsonSetting = json,
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -117,7 +113,7 @@ fun FeishuConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMo
             id = 0,
             type = SenderType.FEISHU,
             name = name,
-            jsonSetting = SenderSettingJson.encode(setting),
+            jsonSetting = json,
             status = status,
             receiveCode = if (receiveCode) 1 else 0,
             receiveNonCode = if (receiveNonCode) 1 else 0,
@@ -234,17 +230,12 @@ fun FeishuConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMo
                 activeSchedule = activeSchedule,
                 onActiveScheduleChange = { activeScheduleEntry?.onChange(it) },
             )
-            SenderTestActionRow(channel = "Feishu") {
-                FeishuUtils.sendMsg(
-                    FeishuSetting(
-                        webhook = webhook,
-                        secret = secret,
-                        msgType = msgType,
-                        titleTemplate = titleTemplate,
-                        messageCard = messageCard,
-                    ),
-                    buildSenderTestMsgInfo(context, getSenderTypeName(context, SenderType.FEISHU)),
-                )
+            SenderTestActionRow(
+                channel = "Feishu",
+                viewModel = viewModel,
+                senderType = SenderType.FEISHU,
+            ) {
+                buildSender(status = 1)
             }
         }
     }

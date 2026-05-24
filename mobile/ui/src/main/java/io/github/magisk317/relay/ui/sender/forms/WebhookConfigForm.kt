@@ -14,11 +14,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.mobileui.BuildConfig
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.sender.config.WebhookSetting
 import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.sender.WebhookUtils
+import io.github.magisk317.relay.sender.SenderSettingDrafts
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
@@ -69,14 +67,13 @@ fun WebhookConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewM
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
-                val setting = SenderSettingJson.decodeOrNull<WebhookSetting>(sender.jsonSetting)
-                if (setting != null) {
-                    webServer = setting.webServer
-                    secret = setting.secret
-                    method = setting.method
-                    webParams = setting.webParams
-                    headersJson = if (setting.headers.isEmpty()) "" else SenderSettingJson.encodeStringMap(setting.headers)
-                }
+                val draft = SenderSettingDrafts.fromSender(sender)
+                webServer = draft.string("webServer")
+                secret = draft.string("secret")
+                method = draft.string("method").ifBlank { "POST" }
+                webParams = draft.string("webParams")
+                val headers = draft.stringMap("headers")
+                headersJson = if (headers.isEmpty()) "" else SenderSettingJson.encodeStringMap(headers)
             }
         }
         isLoaded = true
@@ -91,14 +88,14 @@ fun WebhookConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewM
     }
 
     fun buildSender(status: Int): Sender {
-        val setting = WebhookSetting(
-            method = method,
-            webServer = webServer,
-            secret = secret,
-            webParams = webParams,
-            headers = parseHeadersOrThrow()
-        )
-        val json = SenderSettingJson.encode(setting)
+        val json = SenderSettingDrafts.empty(SenderType.WEBHOOK)
+            .withString("method", method)
+            .withString("webServer", webServer)
+            .withString("secret", secret)
+            .withString("webParams", webParams)
+            .withStringMap("headers", parseHeadersOrThrow())
+            .withString("proxyType", "DIRECT")
+            .toJson()
         return currentSender?.copy(
             name = name,
             jsonSetting = json,
@@ -262,16 +259,13 @@ fun WebhookConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewM
             )
             Spacer(modifier = Modifier.height(8.dp))
             SenderTestActionRow(channel = "Webhook") {
-                if (!isWebhookUrlPolicyValid(webServer)) return@SenderTestActionRow
-                val setting = WebhookSetting(
-                    method = method,
-                    webServer = webServer,
-                    secret = secret,
-                    webParams = webParams,
-                    headers = parseHeadersOrThrow(),
-                )
-                val msg = buildSenderTestMsgInfo(context, getSenderTypeName(context, SenderType.WEBHOOK))
-                WebhookUtils.sendMsg(setting, msg)
+                if (isWebhookUrlPolicyValid(webServer)) {
+                    viewModel.sendConfiguredSenderTest(
+                        context = context,
+                        senderType = SenderType.WEBHOOK,
+                        sender = buildSender(status = 1),
+                    )
+                }
             }
         }
     }

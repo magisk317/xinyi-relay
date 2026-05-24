@@ -15,11 +15,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.ScheduledTask
 import io.github.magisk317.relay.engine.schedule.CronUtils
-import io.github.magisk317.relay.sender.SmsUtils
-import io.github.magisk317.relay.sender.config.SmsSetting
 import io.github.magisk317.relay.ui.common.DismissibleSnackbarHost
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
@@ -28,7 +25,6 @@ import io.github.magisk317.relay.ui.sender.forms.ActiveScheduleWeekdayRow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.Date
 import java.util.concurrent.TimeUnit
 
 private enum class ScheduledTaskScheduleMode {
@@ -159,22 +155,10 @@ fun ScheduledTaskConfigScreen(
                 snackbarHostState.showSnackbar(smsTestStartedText)
             }
             val result = runCatching {
-                SmsUtils.sendMsg(
-                    context = context.applicationContext,
-                    setting = SmsSetting(
-                        simSlot = simSlotInt,
-                        mobiles = mobiles,
-                        onlyNoNetwork = false,
-                    ),
-                    msgInfo = MsgInfo(
-                        type = "sms",
-                        from = "ScheduledTaskTest",
-                        content = content,
-                        date = Date(),
-                        simInfo = "",
-                        simSlot = simSlotInt,
-                    ),
-                    waitForSentResult = true,
+                viewModel.sendTestSms(
+                    simSlot = simSlotInt,
+                    mobiles = mobiles,
+                    content = content,
                 )
             }
             smsTestRunning = false

@@ -5,10 +5,13 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.relay.app.sender.SenderTestService
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.ScheduledTask
 import io.github.magisk317.relay.engine.schedule.CronUtils
 import io.github.magisk317.relay.engine.service.ScheduledTaskRepository
+import java.util.Date
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,7 +23,8 @@ import kotlinx.coroutines.withContext
 
 class ScheduledTaskViewModel(
     application: Application,
-    private val scheduledTaskRepository: ScheduledTaskRepository
+    private val scheduledTaskRepository: ScheduledTaskRepository,
+    private val senderTestService: SenderTestService,
 ) : AndroidViewModel(application) {
 
     val tasks: StateFlow<List<ScheduledTask>> = scheduledTaskRepository.getAllTasksFlow()
@@ -130,6 +134,24 @@ class ScheduledTaskViewModel(
 
     fun clearError() {
         _errorMessage.value = null
+    }
+
+    suspend fun sendTestSms(simSlot: Int, mobiles: String, content: String) {
+        withContext(Dispatchers.IO) {
+            senderTestService.sendScheduledSms(
+                simSlot = simSlot,
+                mobiles = mobiles,
+                msgInfo = MsgInfo(
+                    type = "sms",
+                    from = "ScheduledTaskTest",
+                    content = content,
+                    date = Date(),
+                    simInfo = "",
+                    simSlot = simSlot,
+                ),
+                waitForSentResult = true,
+            )
+        }
     }
 
     private fun validateTask(task: ScheduledTask): String? {
