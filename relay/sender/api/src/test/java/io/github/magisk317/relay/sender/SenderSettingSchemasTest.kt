@@ -84,6 +84,20 @@ class SenderSettingSchemasTest {
     }
 
     @Test
+    fun fieldDefaultsAndOptions_areExposedForSchemaDrivenForms() {
+        assertFieldDefault(SenderType.TELEGRAM, "method", "POST")
+        assertFieldDefault(SenderType.TELEGRAM, "parseMode", "HTML")
+        assertFieldDefault(SenderType.TELEGRAM, "proxyType", "DIRECT")
+        assertFieldDefault(SenderType.PUSHPLUS, "website", "www.pushplus.plus")
+        assertFieldDefault(SenderType.PUSHPLUS, "template", "html")
+        assertFieldDefault(SenderType.PUSHPLUS, "channel", "wechat")
+
+        assertFieldOptions(SenderType.TELEGRAM, "method", "GET", "POST")
+        assertFieldOptions(SenderType.TELEGRAM, "parseMode", "HTML", "MarkdownV2")
+        assertFieldOptions(SenderType.TELEGRAM, "proxyType", "DIRECT", "HTTP", "SOCKS")
+    }
+
+    @Test
     fun sharedSenderSchemaContract_matchesKotlinSchema() {
         val contractFile = findWorkspaceFile("shared/contracts/senderSchemas.json")
         val sharedSchemas = RelayJson.decode(
@@ -108,6 +122,20 @@ class SenderSettingSchemasTest {
             .singleOrNull { it.name == name }
         assertNotNull(field, "Missing $type.$name")
         assertEquals(fieldType, field?.type, "Unexpected type for $type.$name")
+    }
+
+    private fun assertFieldDefault(type: Int, name: String, defaultValue: String) {
+        val field = SenderSettingSchemas.fieldsFor(type)
+            .singleOrNull { it.name == name }
+        assertNotNull(field, "Missing $type.$name")
+        assertEquals(defaultValue, field?.defaultValue, "Unexpected default for $type.$name")
+    }
+
+    private fun assertFieldOptions(type: Int, name: String, vararg values: String) {
+        val field = SenderSettingSchemas.fieldsFor(type)
+            .singleOrNull { it.name == name }
+        assertNotNull(field, "Missing $type.$name")
+        assertEquals(values.toList(), field?.options?.map { it.value }, "Unexpected options for $type.$name")
     }
 
     private fun findWorkspaceFile(relativePath: String): File {

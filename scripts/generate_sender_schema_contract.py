@@ -61,12 +61,32 @@ def parse_field(body: str) -> dict[str, object]:
     type_match = re.search(r"SenderSettingFieldType\.([A-Z_]+)", body)
     if type_match:
         field_type = type_match.group(1)
-    return {
+    aliases_match = re.search(r"aliases\s*=\s*arrayOf\(([^)]*)\)", body)
+    options_match = re.search(r"options\s*=\s*arrayOf\(([^)]*)\)", body)
+    default_match = re.search(r"defaultValue\s*=\s*\"([^\"]*)\"", body)
+
+    if aliases_match:
+        aliases = re.findall(r'"([^"]*)"', aliases_match.group(1))
+    else:
+        positional_body = re.sub(r"aliases\s*=\s*arrayOf\([^)]*\)", "", body)
+        positional_body = re.sub(r"options\s*=\s*arrayOf\([^)]*\)", "", positional_body)
+        positional_body = re.sub(r"defaultValue\s*=\s*\"[^\"]*\"", "", positional_body)
+        aliases = re.findall(r'"([^"]*)"', positional_body)[1:]
+
+    field: dict[str, object] = {
         "name": strings[0],
         "type": field_type,
-        "aliases": strings[1:],
+        "aliases": aliases,
         "requiredForEnable": bool(re.search(r"requiredForEnable\s*=\s*true", body)),
     }
+    if default_match:
+        field["defaultValue"] = default_match.group(1)
+    if options_match:
+        field["options"] = [
+            {"value": value}
+            for value in re.findall(r'"([^"]*)"', options_match.group(1))
+        ]
+    return field
 
 
 def generate_contract() -> list[dict[str, object]]:

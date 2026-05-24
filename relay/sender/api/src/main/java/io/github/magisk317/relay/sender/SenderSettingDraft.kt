@@ -102,6 +102,17 @@ data class SenderSettingDraft(
         return copy(values = orderValues(values - name))
     }
 
+    fun withSchemaDefaults(): SenderSettingDraft {
+        var nextDraft = this
+        schema?.fields.orEmpty().forEach { field ->
+            val defaultValue = field.defaultValue ?: return@forEach
+            if (field.name !in nextDraft.values) {
+                nextDraft = nextDraft.withString(field.name, defaultValue)
+            }
+        }
+        return nextDraft
+    }
+
     fun toJsonObject(): JsonObject = JsonObject(orderValues(values))
 
     fun toJson(): String = toJsonObject().toString()
@@ -128,8 +139,14 @@ data class SenderSettingDraft(
 object SenderSettingDrafts {
     fun empty(senderType: Int): SenderSettingDraft = SenderSettingDraft(senderType)
 
+    fun emptyWithDefaults(senderType: Int): SenderSettingDraft = empty(senderType).withSchemaDefaults()
+
     fun fromSender(sender: Sender): SenderSettingDraft {
         return fromJson(sender.type, sender.jsonSetting)
+    }
+
+    fun fromSenderWithDefaults(sender: Sender): SenderSettingDraft {
+        return fromSender(sender).withSchemaDefaults()
     }
 
     fun fromJson(senderType: Int, rawJson: String): SenderSettingDraft {
@@ -147,6 +164,10 @@ object SenderSettingDrafts {
             }
         }
         return SenderSettingDraft(senderType, values)
+    }
+
+    fun fromJsonWithDefaults(senderType: Int, rawJson: String): SenderSettingDraft {
+        return fromJson(senderType, rawJson).withSchemaDefaults()
     }
 
     fun toJson(draft: SenderSettingDraft): String = draft.toJson()

@@ -55,6 +55,34 @@ class SenderSettingDraftsTest {
     }
 
     @Test
+    fun withSchemaDefaults_appliesOnlyDeclaredDefaultsInSchemaOrder() {
+        val telegram = SenderSettingDrafts.emptyWithDefaults(SenderType.TELEGRAM)
+        assertEquals("POST", telegram.string("method"))
+        assertEquals("DIRECT", telegram.string("proxyType"))
+        assertEquals("HTML", telegram.string("parseMode"))
+        assertEquals("""{"method":"POST","proxyType":"DIRECT","parseMode":"HTML"}""", telegram.toJson())
+
+        val pushplus = SenderSettingDrafts.emptyWithDefaults(SenderType.PUSHPLUS)
+        assertEquals("www.pushplus.plus", pushplus.string("website"))
+        assertEquals("html", pushplus.string("template"))
+        assertEquals("wechat", pushplus.string("channel"))
+        assertEquals("""{"website":"www.pushplus.plus","template":"html","channel":"wechat"}""", pushplus.toJson())
+    }
+
+    @Test
+    fun fromJsonWithDefaults_preservesExplicitBlankOptionalValues() {
+        val draft = SenderSettingDrafts.fromJsonWithDefaults(
+            SenderType.PUSHPLUS,
+            """{"website":"","token":"push-token","template":"","channel":""}""",
+        )
+
+        assertEquals("www.pushplus.plus", draft.string("website"))
+        assertEquals("", draft.string("template"))
+        assertEquals("", draft.string("channel"))
+        assertEquals("push-token", draft.string("token"))
+    }
+
+    @Test
     fun draftJson_decodesAsExistingConfigModelsForMigratedForms() {
         val sms = SenderSettingJson.decode<SmsSetting>(
             SenderSettingDrafts.empty(SenderType.SMS)

@@ -15,11 +15,18 @@ enum class SenderSettingFieldType {
 }
 
 @Serializable
+data class SenderSettingFieldOption(
+    val value: String,
+)
+
+@Serializable
 data class SenderSettingFieldMetadata(
     val name: String,
     val type: SenderSettingFieldType = SenderSettingFieldType.TEXT,
     val aliases: List<String> = emptyList(),
     val requiredForEnable: Boolean = false,
+    val defaultValue: String? = null,
+    val options: List<SenderSettingFieldOption> = emptyList(),
 )
 
 @Serializable
@@ -124,17 +131,17 @@ object SenderSettingSchemas {
         ),
         schema(
             SenderType.TELEGRAM,
-            field("method", aliases = arrayOf("o")),
+            field("method", aliases = arrayOf("o"), defaultValue = "POST", options = arrayOf("GET", "POST")),
             field("apiToken", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
             field("chatId", requiredForEnable = true, aliases = arrayOf("q")),
             field("messageThreadId", aliases = arrayOf("topicId", "topic_id", "message_thread_id", "r")),
-            field("proxyType", SenderSettingFieldType.PROXY_TYPE, "s"),
+            field("proxyType", SenderSettingFieldType.PROXY_TYPE, "s", defaultValue = "DIRECT", options = arrayOf("DIRECT", "HTTP", "SOCKS")),
             field("proxyHost", aliases = arrayOf("t")),
             field("proxyPort", aliases = arrayOf("u")),
             field("proxyAuthenticator", SenderSettingFieldType.BOOLEAN, "v"),
             field("proxyUsername", aliases = arrayOf("w")),
             field("proxyPassword", SenderSettingFieldType.SECRET, "x"),
-            field("parseMode", aliases = arrayOf("y")),
+            field("parseMode", aliases = arrayOf("y"), defaultValue = "HTML", options = arrayOf("HTML", "MarkdownV2")),
         ),
         schema(
             SenderType.SMS,
@@ -152,11 +159,11 @@ object SenderSettingSchemas {
         ),
         schema(
             SenderType.PUSHPLUS,
-            field("website", aliases = arrayOf("o")),
+            field("website", aliases = arrayOf("o"), defaultValue = "www.pushplus.plus"),
             field("token", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
             field("topic", aliases = arrayOf("q")),
-            field("template", aliases = arrayOf("r")),
-            field("channel", aliases = arrayOf("s")),
+            field("template", aliases = arrayOf("r"), defaultValue = "html"),
+            field("channel", aliases = arrayOf("s"), defaultValue = "wechat"),
             field("webhook", aliases = arrayOf("t")),
             field("callbackUrl", aliases = arrayOf("u")),
             field("validTime", aliases = arrayOf("v")),
@@ -244,12 +251,16 @@ object SenderSettingSchemas {
         type: SenderSettingFieldType = SenderSettingFieldType.TEXT,
         vararg aliases: String,
         requiredForEnable: Boolean = false,
+        defaultValue: String? = null,
+        options: Array<String> = emptyArray(),
     ): SenderSettingFieldMetadata {
         return SenderSettingFieldMetadata(
             name = name,
             type = type,
             aliases = aliases.toList(),
             requiredForEnable = requiredForEnable,
+            defaultValue = defaultValue,
+            options = options.map { SenderSettingFieldOption(it) },
         )
     }
 
@@ -257,6 +268,8 @@ object SenderSettingSchemas {
         name: String,
         type: SenderSettingFieldType = SenderSettingFieldType.TEXT,
         requiredForEnable: Boolean = false,
+        defaultValue: String? = null,
+        options: Array<String> = emptyArray(),
         aliases: Array<String>,
     ): SenderSettingFieldMetadata {
         return SenderSettingFieldMetadata(
@@ -264,6 +277,8 @@ object SenderSettingSchemas {
             type = type,
             aliases = aliases.toList(),
             requiredForEnable = requiredForEnable,
+            defaultValue = defaultValue,
+            options = options.map { SenderSettingFieldOption(it) },
         )
     }
 }

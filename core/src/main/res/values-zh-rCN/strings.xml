@@ -1154,6 +1154,8 @@
     <string name="sender_form_label_chat_id_required">Chat ID（必填）</string>
     <string name="sender_form_label_topic_id_optional">Topic ID（选填）</string>
     <string name="sender_form_label_group_thread_id">群组话题 ID</string>
+    <string name="sender_form_label_method">请求方法</string>
+    <string name="sender_form_label_parse_mode">解析模式</string>
     <string name="sender_form_label_proxy_host">代理主机（例如 127.0.0.1）</string>
     <string name="sender_form_label_proxy_port">代理端口（例如 7890）</string>
     <string name="sender_form_label_url_scheme">URL Scheme</string>

@@ -611,7 +611,16 @@
         "aliases": [
           "o"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "POST",
+        "options": [
+          {
+            "value": "GET"
+          },
+          {
+            "value": "POST"
+          }
+        ]
       },
       {
         "name": "apiToken",
@@ -646,7 +655,19 @@
         "aliases": [
           "s"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "DIRECT",
+        "options": [
+          {
+            "value": "DIRECT"
+          },
+          {
+            "value": "HTTP"
+          },
+          {
+            "value": "SOCKS"
+          }
+        ]
       },
       {
         "name": "proxyHost",
@@ -694,7 +715,16 @@
         "aliases": [
           "y"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "HTML",
+        "options": [
+          {
+            "value": "HTML"
+          },
+          {
+            "value": "MarkdownV2"
+          }
+        ]
       }
     ]
   },
@@ -781,7 +811,8 @@
         "aliases": [
           "o"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "www.pushplus.plus"
       },
       {
         "name": "token",
@@ -805,7 +836,8 @@
         "aliases": [
           "r"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "html"
       },
       {
         "name": "channel",
@@ -813,7 +845,8 @@
         "aliases": [
           "s"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "wechat"
       },
       {
         "name": "webhook",

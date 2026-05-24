@@ -1143,6 +1143,8 @@
     <string name="sender_form_label_chat_id_required">Chat ID (Required)</string>
     <string name="sender_form_label_topic_id_optional">Topic ID (Optional)</string>
     <string name="sender_form_label_group_thread_id">Group thread ID</string>
+    <string name="sender_form_label_method">Method</string>
+    <string name="sender_form_label_parse_mode">Parse mode</string>
     <string name="sender_form_label_proxy_host">Proxy host (e.g. 127.0.0.1)</string>
     <string name="sender_form_label_proxy_port">Proxy port (e.g. 7890)</string>
     <string name="sender_form_label_url_scheme">URL Scheme</string>
