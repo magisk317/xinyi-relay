@@ -57,164 +57,16 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 import kotlin.math.ceil
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.compose.koinInject
 
-private data class TemplateVariable(
-    val labelRes: Int,
-    val token: String,
-)
-
-private val forwardTemplateVariables = listOf(
-    TemplateVariable(R.string.sender_template_var_sender, "{{FROM}}"),
-    TemplateVariable(R.string.sender_template_var_sms_body, "{{SMS}}"),
-    TemplateVariable(R.string.sender_template_var_call_type, "{{CALL_TYPE}}"),
-    TemplateVariable(R.string.sender_template_var_sim_note, "{{CARD_SLOT}}"),
-    TemplateVariable(R.string.sender_template_var_sim_sub_id, "{{CARD_SUBID}}"),
-    TemplateVariable(R.string.sender_template_var_contact_name, "{{CONTACT_NAME}}"),
-    TemplateVariable(R.string.sender_template_var_phone_area, "{{PHONE_AREA}}"),
-    TemplateVariable(R.string.sender_template_var_app_package, "{{PACKAGE_NAME}}"),
-    TemplateVariable(R.string.sender_template_var_app_name, "{{APP_NAME}}"),
-    TemplateVariable(R.string.sender_template_var_notification_body, "{{MSG}}"),
-    TemplateVariable(R.string.sender_template_var_battery_percent, "{{BATTERY_PCT}}"),
-    TemplateVariable(R.string.sender_template_var_battery_status, "{{BATTERY_STATUS}}"),
-    TemplateVariable(R.string.sender_template_var_charging_source, "{{BATTERY_PLUGGED}}"),
-    TemplateVariable(R.string.sender_template_var_battery_info, "{{BATTERY_INFO}}"),
-    TemplateVariable(R.string.sender_template_var_battery_info_brief, "{{BATTERY_INFO_SIMPLE}}"),
-    TemplateVariable(R.string.sender_template_var_public_ipv4, "{{IPV4}}"),
-    TemplateVariable(R.string.sender_template_var_public_ipv6, "{{IPV6}}"),
-    TemplateVariable(R.string.sender_template_var_ip_list, "{{IP_LIST}}"),
-    TemplateVariable(R.string.sender_template_var_network_state, "{{NET_TYPE}}"),
-    TemplateVariable(R.string.sender_template_var_received_at, "{{RECEIVE_TIME}}"),
-    TemplateVariable(R.string.sender_template_var_current_time, "{{CURRENT_TIME}}"),
-    TemplateVariable(R.string.sender_template_var_device_name, "{{DEVICE_NAME}}"),
-    TemplateVariable(R.string.sender_template_var_app_version, "{{APP_VERSION}}"),
-)
-private val templateTokenRegex = Regex("\\{\\{[^{}]+\\}\\}")
-
-private fun toAppNotifyTemplate(template: String): String =
-    ForwardCommonConfigStore.adaptTemplateForMessageType(template, MessageType.APP_NOTIFY)
-
-private fun toCallNotifyTemplate(template: String): String =
-    ForwardCommonConfigStore.adaptTemplateForMessageType(
-        template.replace("{{SMS}}", "{{CALL_TYPE}} {{SMS}}"),
-        MessageType.CALL_NOTIFY,
-    )
-
-private fun appNotifyDefaultTemplate(): String = toAppNotifyTemplate(ForwardCommonConfigStore.defaultTemplate())
-private fun appNotifyFullTemplate(): String = toAppNotifyTemplate(ForwardCommonConfigStore.fullInfoTemplate())
-private fun callNotifyDefaultTemplate(): String = toCallNotifyTemplate(ForwardCommonConfigStore.defaultTemplate())
-private fun callNotifyFullTemplate(): String = toCallNotifyTemplate(ForwardCommonConfigStore.fullInfoTemplate())
-
-private val appNotifyTemplateVariables = forwardTemplateVariables.map { variable ->
-    when (variable.token) {
-        "{{CARD_SLOT}}" -> variable.copy(labelRes = R.string.sender_template_var_app_note)
-        "{{CARD_SUBID}}" -> variable.copy(labelRes = R.string.sender_template_var_app_key)
-        else -> variable
-    }
-}
-
-private val callNotifyTemplateVariables = forwardTemplateVariables.map { variable ->
-    when (variable.token) {
-        "{{SMS}}" -> variable.copy(labelRes = R.string.sender_template_var_call_details)
-        "{{CARD_SLOT}}" -> variable.copy(labelRes = R.string.sender_template_var_call_source)
-        "{{CARD_SUBID}}" -> variable.copy(labelRes = R.string.sender_template_var_call_key)
-        else -> variable
-    }
-}
 private const val DIALOG_WIDTH_FRACTION = 0.92f
 private const val UNDO_SNACKBAR_DURATION_MS = 5_000L
 private const val UNDO_COUNTDOWN_TICK_MS = 50L
 private const val DRAG_EDGE_SCROLL_THRESHOLD_PX = 96
 private const val DRAG_EDGE_SCROLL_STEP_PX = 36f
-
-private fun List<Sender>.moveItem(fromIndex: Int, toIndex: Int): List<Sender> {
-    if (fromIndex == toIndex || fromIndex !in indices || toIndex !in indices) return this
-    return toMutableList().apply {
-        add(toIndex, removeAt(fromIndex))
-    }
-}
-
-private fun priorityMapForOrder(senders: List<Sender>): Map<Long, Int> {
-    return senders.mapIndexed { index, sender -> sender.id to index }.toMap()
-}
-
-private fun reorderSenderToPriority(
-    senders: List<Sender>,
-    senderId: Long,
-    priority: Int,
-): List<Sender> {
-    if (senders.isEmpty()) return senders
-    val fromIndex = senders.indexOfFirst { it.id == senderId }
-    if (fromIndex < 0) return senders
-    val toIndex = priority.coerceIn(0, senders.lastIndex)
-    return senders.moveItem(fromIndex, toIndex)
-}
-
-private fun normalizeDispatchStrategy(strategy: Int): Int {
-    return when (strategy) {
-        DispatchStrategy.PRIMARY_ONLY,
-        DispatchStrategy.BROADCAST_ALL,
-        DispatchStrategy.FAILOVER,
-        -> strategy
-        else -> DispatchStrategy.BROADCAST_ALL
-    }
-}
-
-private fun senderTypeGroupLabel(context: android.content.Context, key: String): String {
-    return when (key) {
-        "collaboration" -> context.getString(R.string.sender_group_collaboration)
-        "push" -> context.getString(R.string.sender_group_push)
-        else -> context.getString(R.string.sender_group_other)
-    }
-}
-
-private fun buildSmsPreviewMessage(context: android.content.Context): io.github.magisk317.relay.engine.model.MsgInfo {
-    return io.github.magisk317.relay.engine.model.MsgInfo(
-        type = "sms",
-        from = context.getString(R.string.sender_preview_sms_from),
-        content = context.getString(R.string.sender_preview_sms_content),
-        date = Date(),
-        simInfo = context.getString(R.string.sender_preview_sms_sim_info),
-        simSlot = 0,
-        subId = 1,
-        contactName = context.getString(R.string.sender_preview_sms_contact_name),
-        phoneArea = context.getString(R.string.sender_preview_sms_phone_area),
-    )
-}
-
-private fun buildAppNotifyPreviewMessage(context: android.content.Context): io.github.magisk317.relay.engine.model.MsgInfo {
-    return io.github.magisk317.relay.engine.model.MsgInfo(
-        type = "app_notify",
-        from = context.getString(R.string.sender_preview_app_from),
-        content = context.getString(R.string.sender_preview_app_content),
-        date = Date(),
-        simInfo = context.getString(R.string.sender_preview_app_sim_info),
-        packageName = "com.tencent.mm",
-        appName = context.getString(R.string.sender_preview_app_name),
-        title = context.getString(R.string.sender_preview_app_title),
-        message = context.getString(R.string.sender_preview_app_message),
-        contactName = context.getString(R.string.sender_preview_app_contact_name),
-    )
-}
-
-private fun buildCallNotifyPreviewMessage(context: android.content.Context): io.github.magisk317.relay.engine.model.MsgInfo {
-    return io.github.magisk317.relay.engine.model.MsgInfo(
-        type = "call_notify",
-        from = "10086",
-        content = context.getString(R.string.sender_preview_call_content),
-        date = Date(),
-        simInfo = context.getString(R.string.sender_preview_call_sim_info),
-        simSlot = 0,
-        subId = 42,
-        callType = 3,
-        contactName = context.getString(R.string.sender_preview_call_contact_name),
-        phoneArea = context.getString(R.string.sender_preview_call_phone_area),
-    )
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
