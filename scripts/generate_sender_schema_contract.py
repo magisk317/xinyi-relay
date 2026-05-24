@@ -20,6 +20,21 @@ SCHEMA_SOURCE = (
     / "relay/sender/api/src/main/java/io/github/magisk317/relay/sender/SenderSettingSchema.kt"
 )
 OUTPUT = ROOT / "shared/contracts/senderSchemas.json"
+KOTLIN_STRING_RE = re.compile(r'"((?:\\.|[^"\\])*)"')
+
+
+def decode_kotlin_string(raw: str) -> str:
+    return (
+        raw.replace(r"\\", "\\")
+        .replace(r"\"", '"')
+        .replace(r"\n", "\n")
+        .replace(r"\t", "\t")
+        .replace(r"\r", "\r")
+    )
+
+
+def kotlin_strings(source: str) -> list[str]:
+    return [decode_kotlin_string(match.group(1)) for match in KOTLIN_STRING_RE.finditer(source)]
 
 
 def read_sender_types() -> dict[str, int]:
@@ -54,7 +69,7 @@ def matching_call_bodies(source: str, function_name: str) -> Iterable[str]:
 
 
 def parse_field(body: str) -> dict[str, object]:
-    strings = re.findall(r'"([^"]*)"', body)
+    strings = kotlin_strings(body)
     if not strings:
         raise ValueError(f"Unable to parse field name from: {body}")
     field_type = "TEXT"
@@ -63,15 +78,15 @@ def parse_field(body: str) -> dict[str, object]:
         field_type = type_match.group(1)
     aliases_match = re.search(r"aliases\s*=\s*arrayOf\(([^)]*)\)", body)
     options_match = re.search(r"options\s*=\s*arrayOf\(([^)]*)\)", body)
-    default_match = re.search(r"defaultValue\s*=\s*\"([^\"]*)\"", body)
+    default_match = re.search(r'defaultValue\s*=\s*"((?:\\.|[^"\\])*)"', body)
 
     if aliases_match:
-        aliases = re.findall(r'"([^"]*)"', aliases_match.group(1))
+        aliases = kotlin_strings(aliases_match.group(1))
     else:
         positional_body = re.sub(r"aliases\s*=\s*arrayOf\([^)]*\)", "", body)
         positional_body = re.sub(r"options\s*=\s*arrayOf\([^)]*\)", "", positional_body)
-        positional_body = re.sub(r"defaultValue\s*=\s*\"[^\"]*\"", "", positional_body)
-        aliases = re.findall(r'"([^"]*)"', positional_body)[1:]
+        positional_body = re.sub(r'defaultValue\s*=\s*"((?:\\.|[^"\\])*)"', "", positional_body)
+        aliases = kotlin_strings(positional_body)[1:]
 
     field: dict[str, object] = {
         "name": strings[0],
@@ -80,11 +95,11 @@ def parse_field(body: str) -> dict[str, object]:
         "requiredForEnable": bool(re.search(r"requiredForEnable\s*=\s*true", body)),
     }
     if default_match:
-        field["defaultValue"] = default_match.group(1)
+        field["defaultValue"] = decode_kotlin_string(default_match.group(1))
     if options_match:
         field["options"] = [
             {"value": value}
-            for value in re.findall(r'"([^"]*)"', options_match.group(1))
+            for value in kotlin_strings(options_match.group(1))
         ]
     return field
 

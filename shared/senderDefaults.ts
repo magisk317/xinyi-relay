@@ -40,6 +40,10 @@ export type SenderSettingContractField = {
   type: SenderSettingContractFieldType
   aliases: string[]
   requiredForEnable: boolean
+  defaultValue?: string
+  options?: ReadonlyArray<{
+    value: string
+  }>
 }
 
 export type SenderSettingSchemaContract = {
@@ -52,27 +56,23 @@ const SENDER_SCHEMA_CONTRACT_BY_TYPE = new Map(
   SENDER_SCHEMA_CONTRACTS.map((schema) => [schema.senderType, schema])
 )
 
-const PROXY_DIRECT = 'DIRECT'
-
-const DEFAULT_SENDER_SETTINGS: Record<number, JsonRecord | null> = {
-  0: { token: '', secret: '', atAll: false, atMobiles: '', atDingtalkIds: '', msgtype: 'text', titleTemplate: '' },
-  1: { mailType: '', authEmail: '', fromEmail: '', pwd: '', nickname: '', host: '', port: '', ssl: false, startTls: false, title: '', recipients: {}, toEmail: '', keystore: '', password: '', encryptionProtocol: 'Plain', fromEmailAlias: '' },
-  2: { server: '', group: '', icon: '', sound: '', badge: '', url: '', level: 'active', title: '', transformation: 'none', key: '', iv: '', call: '', autoCopy: '' },
-  3: { method: 'POST', webServer: '', secret: '', response: '', webParams: '', headers: {}, proxyType: PROXY_DIRECT, proxyHost: '', proxyPort: '', proxyAuthenticator: false, proxyUsername: '', proxyPassword: '' },
-  4: { webHook: '', msgType: 'text', atAll: false, atUserIds: '', atMobiles: '' },
-  5: { corpID: '', agentID: '', secret: '', atAll: false, toUser: '@all', toParty: '', toTag: '', proxyType: PROXY_DIRECT, proxyHost: '', proxyPort: '', proxyAuthenticator: false, proxyUsername: '', proxyPassword: '', customizeAPI: 'https://qyapi.weixin.qq.com' },
-  6: { sendKey: '', channel: '', openid: '', titleTemplate: '' },
-  7: { method: 'POST', apiToken: '', chatId: '', messageThreadId: '', proxyType: PROXY_DIRECT, proxyHost: '', proxyPort: '', proxyAuthenticator: false, proxyUsername: '', proxyPassword: '', parseMode: 'HTML' },
-  8: { simSlot: 0, mobiles: '', onlyNoNetwork: false },
-  9: { webhook: '', secret: '', msgType: 'interactive', titleTemplate: '', messageCard: '' },
-  10: { website: 'www.pushplus.plus', token: '', topic: '', template: '', channel: '', webhook: '', callbackUrl: '', validTime: '', titleTemplate: '' },
-  11: { webServer: '', title: '', priority: '' },
-  12: { agentID: '', appKey: '', appSecret: '', userIds: '', msgKey: 'sampleText', titleTemplate: '', proxyType: PROXY_DIRECT, proxyHost: '', proxyPort: '', proxyAuthenticator: false, proxyUsername: '', proxyPassword: '' },
-  13: { appId: '', appSecret: '', receiveId: '', msgType: 'interactive', titleTemplate: '', receiveIdType: 'user_id', messageCard: '' },
-  14: { urlScheme: '' },
-  15: { method: 'MQTT', address: '', port: 0, msgTemplate: '', secret: '', response: '', username: '', password: '', inCharset: '', outCharset: '', inMessageTopic: '', outMessageTopic: '', uriType: 'tcp', path: '', clientId: '', qos: 0, retained: false },
-  16: { server: '', topic: '', token: '', title: '', priority: '3', tags: '' },
+const DEFAULT_SENDER_SETTING_OVERRIDES: Record<number, JsonRecord> = {
+  1: { encryptionProtocol: 'Plain' },
+  2: { level: 'active' },
+  15: { uriType: 'tcp' },
 }
+
+const DEFAULT_SENDER_SETTINGS: Record<number, JsonRecord> = Object.fromEntries(
+  SENDER_SCHEMA_CONTRACTS.map((schema) => [
+    schema.senderType,
+    {
+      ...Object.fromEntries(
+        schema.fields.map((field) => [field.name, defaultValueForContractField(field)])
+      ),
+      ...(DEFAULT_SENDER_SETTING_OVERRIDES[schema.senderType] ?? {})
+    }
+  ])
+)
 
 const PROXY_OPTIONS = [
   { value: 'DIRECT', label: { en: 'Direct', 'zh-CN': '直连', 'zh-TW': '直連' } },
@@ -322,7 +322,25 @@ export function normalizeSnapshotSender(sender: SnapshotSender): SnapshotSender 
 }
 
 export function getSenderFieldSchemas(type: number): SenderFieldSchema[] {
-  return SENDER_FIELD_SCHEMAS[type] ?? []
+  const contractFields = getSenderSettingContractFields(type)
+  return (SENDER_FIELD_SCHEMAS[type] ?? []).map((field) => {
+    const contractField = contractFields.find((item) => item.name === field.key)
+    if (!contractField?.options?.length) return field
+
+    const existingLabels = new Map((field.options ?? []).map((option) => [option.value, option.label]))
+    return {
+      ...field,
+      kind: 'select',
+      options: contractField.options.map((option) => ({
+        value: option.value,
+        label: existingLabels.get(option.value) ?? {
+          en: option.value,
+          'zh-CN': option.value,
+          'zh-TW': option.value,
+        }
+      }))
+    }
+  })
 }
 
 export function getSenderSettingSchemaContracts(): SenderSettingSchemaContract[] {
@@ -445,9 +463,26 @@ function normalizeFormValue(field: SenderFieldSchema, defaultValue: unknown, can
     }
   }
   if (field.kind === 'select') {
-    return typeof candidate === 'string' ? candidate : defaultValue
+    if (typeof candidate !== 'string') return defaultValue
+    const options = field.options ?? []
+    return options.length === 0 || options.some((option) => option.value === candidate) ? candidate : defaultValue
   }
   return typeof candidate === 'string' ? candidate : `${candidate ?? defaultValue ?? ''}`
+}
+
+function defaultValueForContractField(field: SenderSettingContractField): unknown {
+  const defaultValue = field.defaultValue
+  if (field.type === 'BOOLEAN') {
+    return defaultValue === 'true'
+  }
+  if (field.type === 'INTEGER') {
+    const parsed = Number(defaultValue)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  if (field.type === 'STRING_MAP' || field.type === 'EMAIL_RECIPIENTS') {
+    return {}
+  }
+  return defaultValue ?? ''
 }
 
 function parseJsonObject(rawJson: string): JsonRecord | null {
@@ -487,7 +522,7 @@ function sanitizeBySchema(schema: JsonRecord, raw: JsonRecord | null): JsonRecor
 
 function sanitizeValue(defaultValue: unknown, candidate: unknown): unknown {
   if (typeof defaultValue === 'string') {
-    if (defaultValue === PROXY_DIRECT) {
+    if (defaultValue === 'DIRECT') {
       return sanitizeProxyType(candidate)
     }
     return typeof candidate === 'string' ? candidate : defaultValue
@@ -508,7 +543,7 @@ function sanitizeValue(defaultValue: unknown, candidate: unknown): unknown {
 }
 
 function sanitizeProxyType(candidate: unknown): string {
-  return candidate === 'HTTP' || candidate === 'SOCKS' ? candidate : PROXY_DIRECT
+  return candidate === 'HTTP' || candidate === 'SOCKS' ? candidate : 'DIRECT'
 }
 
 function isPlainObject(value: unknown): value is JsonRecord {

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildSenderDraftJson,
+  buildSenderJsonFromFormState,
   getSenderFieldSchemas,
   getSenderSettingSchemaContracts,
   type SenderFieldKind,
@@ -44,5 +46,28 @@ describe('shared sender schema contract', () => {
         expect(contractField?.requiredForEnable).toBe(false)
       }
     }
+  })
+
+  it('derives WebUI defaults and select options from the Kotlin schema contract', () => {
+    expect(JSON.parse(buildSenderDraftJson(1))).toMatchObject({
+      port: '465',
+      ssl: true
+    })
+    expect(JSON.parse(buildSenderDraftJson(15))).toMatchObject({
+      method: 'MQTT',
+      msgTemplate: '{"msg":"[msg]"}',
+      outMessageTopic: 'relay/default'
+    })
+
+    const socketMethod = getSenderFieldSchemas(15).find((field) => field.key === 'method')
+    expect(socketMethod?.kind).toBe('select')
+    expect(socketMethod?.options?.map((option) => option.value)).toEqual(['TCP', 'UDP', 'MQTT'])
+
+    const sanitized = JSON.parse(buildSenderJsonFromFormState(15, {
+      method: 'INVALID',
+      port: '1883'
+    }))
+    expect(sanitized.method).toBe('MQTT')
+    expect(sanitized.port).toBe(1883)
   })
 })

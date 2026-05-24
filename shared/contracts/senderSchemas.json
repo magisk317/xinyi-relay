@@ -127,7 +127,8 @@
         "aliases": [
           "u"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "465"
       },
       {
         "name": "ssl",
@@ -135,7 +136,8 @@
         "aliases": [
           "v"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "true"
       },
       {
         "name": "startTls",
@@ -276,7 +278,19 @@
         "aliases": [
           "w"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "none",
+        "options": [
+          {
+            "value": "none"
+          },
+          {
+            "value": "AES/GCM/NoPadding"
+          },
+          {
+            "value": "AES/CBC/PKCS5Padding"
+          }
+        ]
       },
       {
         "name": "key",
@@ -321,7 +335,16 @@
         "aliases": [
           "o"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "POST",
+        "options": [
+          {
+            "value": "GET"
+          },
+          {
+            "value": "POST"
+          }
+        ]
       },
       {
         "name": "webServer",
@@ -369,7 +392,19 @@
         "aliases": [
           "u"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "DIRECT",
+        "options": [
+          {
+            "value": "DIRECT"
+          },
+          {
+            "value": "HTTP"
+          },
+          {
+            "value": "SOCKS"
+          }
+        ]
       },
       {
         "name": "proxyHost",
@@ -501,7 +536,8 @@
         "aliases": [
           "r"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "false"
       },
       {
         "name": "toUser",
@@ -509,7 +545,8 @@
         "aliases": [
           "s"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "@all"
       },
       {
         "name": "toParty",
@@ -533,7 +570,19 @@
         "aliases": [
           "v"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "DIRECT",
+        "options": [
+          {
+            "value": "DIRECT"
+          },
+          {
+            "value": "HTTP"
+          },
+          {
+            "value": "SOCKS"
+          }
+        ]
       },
       {
         "name": "proxyHost",
@@ -581,7 +630,8 @@
         "aliases": [
           "B"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "https://qyapi.weixin.qq.com"
       }
     ]
   },
@@ -804,7 +854,16 @@
         "aliases": [
           "q"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "interactive",
+        "options": [
+          {
+            "value": "interactive"
+          },
+          {
+            "value": "text"
+          }
+        ]
       },
       {
         "name": "titleTemplate",
@@ -975,7 +1034,16 @@
         "aliases": [
           "s"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "sampleText",
+        "options": [
+          {
+            "value": "sampleText"
+          },
+          {
+            "value": "sampleMarkdown"
+          }
+        ]
       },
       {
         "name": "titleTemplate",
@@ -991,7 +1059,19 @@
         "aliases": [
           "u"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "DIRECT",
+        "options": [
+          {
+            "value": "DIRECT"
+          },
+          {
+            "value": "HTTP"
+          },
+          {
+            "value": "SOCKS"
+          }
+        ]
       },
       {
         "name": "proxyHost",
@@ -1068,7 +1148,16 @@
         "aliases": [
           "r"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "interactive",
+        "options": [
+          {
+            "value": "interactive"
+          },
+          {
+            "value": "text"
+          }
+        ]
       },
       {
         "name": "titleTemplate",
@@ -1084,7 +1173,25 @@
         "aliases": [
           "t"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "user_id",
+        "options": [
+          {
+            "value": "user_id"
+          },
+          {
+            "value": "open_id"
+          },
+          {
+            "value": "union_id"
+          },
+          {
+            "value": "email"
+          },
+          {
+            "value": "chat_id"
+          }
+        ]
       },
       {
         "name": "messageCard",
@@ -1118,7 +1225,19 @@
         "aliases": [
           "o"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "MQTT",
+        "options": [
+          {
+            "value": "TCP"
+          },
+          {
+            "value": "UDP"
+          },
+          {
+            "value": "MQTT"
+          }
+        ]
       },
       {
         "name": "address",
@@ -1142,7 +1261,8 @@
         "aliases": [
           "r"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "{\"msg\":\"[msg]\"}"
       },
       {
         "name": "secret",
@@ -1206,7 +1326,8 @@
         "aliases": [
           "z"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": false,
+        "defaultValue": "relay/default"
       },
       {
         "name": "uriType",
