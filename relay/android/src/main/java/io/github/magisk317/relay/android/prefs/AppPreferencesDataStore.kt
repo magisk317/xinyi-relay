@@ -449,6 +449,14 @@ object AppPreferencesDataStore {
             )
             editor.putBoolean(PrefConst.KEY_BLOCK_SMS, getBoolean(context, PrefConst.KEY_BLOCK_SMS, false))
             editor.putBoolean(
+                PrefConst.KEY_SHOW_CODE_NOTIFICATION,
+                getBoolean(context, PrefConst.KEY_SHOW_CODE_NOTIFICATION, true),
+            )
+            editor.putString(
+                PrefConst.KEY_CODE_NOTIFICATION_OWNER,
+                getString(context, PrefConst.KEY_CODE_NOTIFICATION_OWNER, ""),
+            )
+            editor.putBoolean(
                 PrefConst.KEY_AUTO_CANCEL_CODE_NOTIFICATION,
                 getBoolean(context, PrefConst.KEY_AUTO_CANCEL_CODE_NOTIFICATION, true),
             )
