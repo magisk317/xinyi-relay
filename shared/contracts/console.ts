@@ -174,7 +174,9 @@ export interface RecordsResponse {
   offset: number
 }
 
-export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'degraded'
+export type RunMode = 'local' | 'remote' | 'hybrid'
+
+export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'degraded' | 'local' | 'hybrid'
 
 export interface DesktopProfile {
   id: string
@@ -252,6 +254,22 @@ export interface DesktopDiagnosticsExport {
   createdAt: string
 }
 
+export type SyncResultType = 'upToDate' | 'pulled' | 'pushed' | 'conflict'
+
+export interface SyncResult {
+  UpToDate?: {}
+  Pulled?: { newRevision: number }
+  Pushed?: { newRevision: number }
+  Conflict?: { localRevision: number; remoteRevision: number }
+}
+
+export interface SyncReport {
+  config: SyncResult
+  devicesSynced: number
+  recordsSynced: number
+  error?: string | null
+}
+
 export type RealtimeEventType =
   | 'device.registered'
   | 'device.updated'
@@ -259,6 +277,7 @@ export type RealtimeEventType =
   | 'device.heartbeat'
   | 'records.ingested'
   | 'config.updated'
+  | 'sync.completed'
 
 export interface RealtimeEvent {
   type: RealtimeEventType
