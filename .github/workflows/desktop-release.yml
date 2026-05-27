@@ -99,6 +99,10 @@ jobs:
             libgtk-3-dev \
             pkg-config
 
+      - name: Sync desktop version from libs.versions.toml
+        shell: bash
+        run: bash scripts/sync_desktop_version.sh
+
       - name: Install desktop npm dependencies
         working-directory: desktop
         run: npm ci
