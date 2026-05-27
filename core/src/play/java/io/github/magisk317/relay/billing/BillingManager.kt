@@ -16,6 +16,7 @@ import com.android.billingclient.api.QueryPurchasesParams
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
 import kotlin.coroutines.resume
@@ -41,6 +42,8 @@ class BillingManager(context: Context) : PurchasesUpdatedListener {
 
     private val _activePurchases = MutableStateFlow<List<Purchase>>(emptyList())
     val activePurchases: StateFlow<List<Purchase>> = _activePurchases.asStateFlow()
+
+
 
     private var purchaseCallback: ((BillingResult, List<Purchase>?) -> Unit)? = null
 

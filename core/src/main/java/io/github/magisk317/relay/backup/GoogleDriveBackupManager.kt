@@ -4,7 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.core.content.FileProvider
 import io.github.magisk317.relay.contract.json.RelayJson
-import io.github.magisk317.relay.auth.FirebaseAuthManager
+import io.github.magisk317.relay.auth.AuthManager
 import io.github.magisk317.relay.data.backup.BackupManager
 import io.github.magisk317.smscode.runtime.contract.backup.ExportResult
 import io.github.magisk317.smscode.runtime.contract.backup.ImportResult
@@ -40,7 +40,7 @@ data class DriveBackupMeta(
 
 class GoogleDriveBackupManager(
     private val context: Context,
-    private val authManager: FirebaseAuthManager,
+    private val authManager: AuthManager,
 ) {
     private val client = OkHttpClient()
 

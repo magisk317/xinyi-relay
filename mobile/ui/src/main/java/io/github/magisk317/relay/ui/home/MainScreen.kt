@@ -656,7 +656,6 @@ fun MainScreen(
                                 },
                                 onOpenAccount = { navController.navigate(ProfileRoute) },
                                 onOpenCloudBackup = { navController.navigate(CloudBackupRoute) },
-                                onOpenDonate = { navController.navigate(DonateRoute) },
                             )
                         }
                         composable<VerificationSettingsRoute> {
@@ -699,12 +698,6 @@ fun MainScreen(
                         composable<CloudBackupRoute> {
                             io.github.magisk317.relay.ui.backup.CloudBackupScreen(
                                 onBack = { navController.popBackStack() },
-                                onNavigateToLogin = {
-                                    navController.navigate(LoginRoute)
-                                },
-                                onNavigateToDonate = {
-                                    navController.navigate(DonateRoute)
-                                },
                             )
                         }
                     }

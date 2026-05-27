@@ -1,13 +1,13 @@
 package io.github.magisk317.relay.backup
 
-import io.github.magisk317.relay.auth.FirebaseAuthManager
+import io.github.magisk317.relay.auth.AuthManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 
-class PlayCloudBackupProvider(
+class GithubCloudBackupProvider(
     private val googleDriveBackupManager: GoogleDriveBackupManager,
-    private val authManager: FirebaseAuthManager,
+    private val authManager: AuthManager,
 ) : CloudBackupProvider {
 
     override fun isAvailable(): Boolean = authManager.isLoggedIn()

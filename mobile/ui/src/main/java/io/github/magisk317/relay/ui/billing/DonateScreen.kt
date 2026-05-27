@@ -100,16 +100,27 @@ fun DonateScreen(
                     Text(stringResource(id = R.string.donate_one_time_099))
                 }
                 Button(
-                    onClick = { viewModel.launchDonation(context as android.app.Activity, "donate_499") },
+                    onClick = { viewModel.launchDonation(context as android.app.Activity, "donate_200") },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text(stringResource(id = R.string.donate_one_time_499))
+                    Text(stringResource(id = R.string.donate_one_time_200))
                 }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 Button(
                     onClick = { viewModel.launchDonation(context as android.app.Activity, "donate_999") },
                     modifier = Modifier.weight(1f),
                 ) {
                     Text(stringResource(id = R.string.donate_one_time_999))
+                }
+                Button(
+                    onClick = { viewModel.launchDonation(context as android.app.Activity, "donate_1999") },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(stringResource(id = R.string.donate_one_time_1999))
                 }
             }
 

@@ -10,7 +10,8 @@ object ProductConfig {
     // In-app product IDs for donations
     val DONATION_IDS = listOf(
         "donate_099",   // $0.99
-        "donate_499",   // $4.99
+        "donate_200",   // $2.00
         "donate_999",   // $9.99
+        "donate_1999",  // $19.99
     )
 }
