@@ -2,7 +2,11 @@
 
 mod desktop_i18n;
 mod logger;
+mod remote_store;
+mod sqlite_store;
 mod storage;
+mod store;
+mod sync;
 mod tray;
 
 use chrono::{DateTime, Utc};
@@ -34,11 +38,14 @@ use desktop_i18n::{
     localized_probe_success_message, localized_record_summary, localized_runtime_message,
     localized_runtime_text, system_language_tag,
 };
+use remote_store::RemoteStore;
+use sqlite_store::SqliteStore;
 use storage::{
     active_profile, current_active_profile, delete_session_for_profile, ensure_directory,
     load_persisted_state, load_session_for_profile, persist_state_to_disk,
     save_session_for_profile,
 };
+use store::Store;
 use tray::{setup_tray, show_main_window};
 
 const SERVICE_NAME: &str = "io.github.magisk317.relay.desktop";
@@ -131,6 +138,60 @@ struct DesktopConnectionSnapshot {
     state: String,
     message: String,
     last_changed_at: Option<String>,
+}
+
+impl From<store::Device> for DeviceItem {
+    fn from(d: store::Device) -> Self {
+        DeviceItem {
+            id: d.id,
+            user_id: d.user_id,
+            device_name: d.device_name,
+            device_model: d.device_model,
+            platform: d.platform,
+            app_version: d.app_version,
+            display_name: d.display_name,
+            enabled: d.enabled,
+            revoked_at: d.revoked_at,
+            last_seen_at: d.last_seen_at,
+            local_addresses: d.local_addresses,
+            capabilities: d.capabilities,
+            created_at: d.created_at,
+            updated_at: d.updated_at,
+        }
+    }
+}
+
+impl From<store::Record> for RecordItem {
+    fn from(r: store::Record) -> Self {
+        RecordItem {
+            id: r.id,
+            device_id: r.device_id,
+            event_id: r.event_id,
+            record_type: r.record_type,
+            sender: r.sender,
+            body: r.body,
+            sms_code: r.sms_code,
+            package_name: r.package_name,
+            metadata: r.metadata,
+            msg_type: r.msg_type,
+            call_type: r.call_type,
+            occurred_at: r.occurred_at,
+            uploaded_at: r.uploaded_at,
+        }
+    }
+}
+
+impl From<store::ConfigAuditLog> for ConfigAuditLogItem {
+    fn from(l: store::ConfigAuditLog) -> Self {
+        ConfigAuditLogItem {
+            id: l.id,
+            revision: l.revision,
+            actor_type: l.actor_type,
+            actor_id: l.actor_id,
+            summary: l.summary,
+            created_at: l.created_at,
+        }
+    }
 }
 
 impl Default for DesktopConnectionSnapshot {
@@ -375,6 +436,14 @@ struct MonitorSnapshot {
     config_revision: Option<i64>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+enum RunMode {
+    Local,
+    Remote,
+    Hybrid,
+}
+
 struct DesktopAppState {
     persisted: Mutex<DesktopPersistedState>,
     session: Mutex<Option<DesktopSessionSecrets>>,
@@ -382,6 +451,8 @@ struct DesktopAppState {
     connection: Mutex<DesktopConnectionSnapshot>,
     last_monitor: Mutex<MonitorSnapshot>,
     monitor_generation: AtomicU64,
+    run_mode: Mutex<RunMode>,
+    local_store: Mutex<Option<SqliteStore>>,
 }
 
 #[tauri::command]
@@ -855,6 +926,28 @@ async fn desktop_fetch_system_info(
     _app: AppHandle,
     state: State<'_, DesktopAppState>,
 ) -> Result<SystemInfoState, String> {
+    let mode = state
+        .run_mode
+        .lock()
+        .map_err(|_| "run_mode state poisoned".to_string())?
+        .clone();
+    if mode == RunMode::Local {
+        let local_store = state
+            .local_store
+            .lock()
+            .map_err(|_| "local_store state poisoned".to_string())?;
+        let store = local_store.as_ref().ok_or("Local store not initialized")?;
+        let info = store.get_system_info().map_err(|e| e.to_string())?;
+        return Ok(SystemInfoState {
+            service: info.service,
+            app_env: info.app_env,
+            local_base_url: info.local_base_url,
+            public_base_url: info.public_base_url,
+            database_ready: info.database_ready,
+            user_count: info.user_count,
+            time: info.time,
+        });
+    }
     let profile =
         current_active_profile(&state)?
             .ok_or_else(|| localized_runtime_message(&system_language_tag(), "no_active_backend").to_string())?;
@@ -874,6 +967,22 @@ async fn desktop_fetch_devices(
     app: AppHandle,
     state: State<'_, DesktopAppState>,
 ) -> Result<DevicesResponse, String> {
+    let mode = state
+        .run_mode
+        .lock()
+        .map_err(|_| "run_mode state poisoned".to_string())?
+        .clone();
+    if mode == RunMode::Local {
+        let local_store = state
+            .local_store
+            .lock()
+            .map_err(|_| "local_store state poisoned".to_string())?;
+        let store = local_store.as_ref().ok_or("Local store not initialized")?;
+        let devices = store.list_devices().map_err(|e| e.to_string())?;
+        return Ok(DevicesResponse {
+            devices: devices.into_iter().map(DeviceItem::from).collect(),
+        });
+    }
     let (profile, session) = ensure_active_session_if_needed(&app, &state).await?;
     let client = build_client(&profile)?;
     send_json_request(
@@ -891,6 +1000,23 @@ async fn desktop_create_bind_code(
     app: AppHandle,
     state: State<'_, DesktopAppState>,
 ) -> Result<BindCodeResponse, String> {
+    let mode = state
+        .run_mode
+        .lock()
+        .map_err(|_| "run_mode state poisoned".to_string())?
+        .clone();
+    if mode == RunMode::Local {
+        let local_store = state
+            .local_store
+            .lock()
+            .map_err(|_| "local_store state poisoned".to_string())?;
+        let store = local_store.as_ref().ok_or("Local store not initialized")?;
+        let bind_code = store.create_bind_code().map_err(|e| e.to_string())?;
+        return Ok(BindCodeResponse {
+            code: bind_code.code,
+            expires_at: bind_code.expires_at,
+        });
+    }
     let (profile, session) = ensure_active_session_if_needed(&app, &state).await?;
     let client = build_client(&profile)?;
     send_json_request(
@@ -910,6 +1036,31 @@ async fn desktop_patch_device(
     device_id: i64,
     payload: PatchDeviceInput,
 ) -> Result<Value, String> {
+    let mode = state
+        .run_mode
+        .lock()
+        .map_err(|_| "run_mode state poisoned".to_string())?
+        .clone();
+    if mode == RunMode::Local {
+        let local_store = state
+            .local_store
+            .lock()
+            .map_err(|_| "local_store state poisoned".to_string())?;
+        let store = local_store.as_ref().ok_or("Local store not initialized")?;
+        let response = store
+            .patch_device(device_id, payload.display_name.as_deref(), payload.enabled)
+            .map_err(|e| e.to_string())?;
+        emit_realtime_event(
+            &app,
+            realtime_event(
+                "device.updated",
+                Some(json!({
+                    "deviceId": device_id
+                })),
+            ),
+        );
+        return Ok(response);
+    }
     let (profile, session) = ensure_active_session_if_needed(&app, &state).await?;
     let client = build_client(&profile)?;
     let response: Value = send_json_request(
@@ -953,6 +1104,29 @@ async fn desktop_revoke_device(
     state: State<'_, DesktopAppState>,
     device_id: i64,
 ) -> Result<Value, String> {
+    let mode = state
+        .run_mode
+        .lock()
+        .map_err(|_| "run_mode state poisoned".to_string())?
+        .clone();
+    if mode == RunMode::Local {
+        let local_store = state
+            .local_store
+            .lock()
+            .map_err(|_| "local_store state poisoned".to_string())?;
+        let store = local_store.as_ref().ok_or("Local store not initialized")?;
+        let response = store.revoke_device(device_id).map_err(|e| e.to_string())?;
+        emit_realtime_event(
+            &app,
+            realtime_event(
+                "device.revoked",
+                Some(json!({
+                    "deviceId": device_id
+                })),
+            ),
+        );
+        return Ok(response);
+    }
     let (profile, session) = ensure_active_session_if_needed(&app, &state).await?;
     let client = build_client(&profile)?;
     let response: Value = send_json_request(
@@ -995,6 +1169,23 @@ async fn desktop_fetch_config_snapshot(
     app: AppHandle,
     state: State<'_, DesktopAppState>,
 ) -> Result<ConfigSnapshotState, String> {
+    let mode = state
+        .run_mode
+        .lock()
+        .map_err(|_| "run_mode state poisoned".to_string())?
+        .clone();
+    if mode == RunMode::Local {
+        let local_store = state
+            .local_store
+            .lock()
+            .map_err(|_| "local_store state poisoned".to_string())?;
+        let store = local_store.as_ref().ok_or("Local store not initialized")?;
+        let snapshot = store.get_config_snapshot().map_err(|e| e.to_string())?;
+        return Ok(ConfigSnapshotState {
+            revision: snapshot.as_ref().map(|s| s.revision).unwrap_or(0),
+            snapshot: snapshot.map(|s| s.snapshot).unwrap_or(serde_json::json!({})),
+        });
+    }
     let (profile, session) = ensure_active_session_if_needed(&app, &state).await?;
     let client = build_client(&profile)?;
     send_json_request(
@@ -1014,6 +1205,35 @@ async fn desktop_put_config_snapshot(
     base_revision: i64,
     snapshot: Value,
 ) -> Result<ConfigSnapshotState, String> {
+    let mode = state
+        .run_mode
+        .lock()
+        .map_err(|_| "run_mode state poisoned".to_string())?
+        .clone();
+    if mode == RunMode::Local {
+        let local_store = state
+            .local_store
+            .lock()
+            .map_err(|_| "local_store state poisoned".to_string())?;
+        let store = local_store.as_ref().ok_or("Local store not initialized")?;
+        let result = store.put_config_snapshot(base_revision, snapshot).map_err(|e| e.to_string())?;
+        update_monitor_snapshot(&state, |monitor| {
+            monitor.config_revision = Some(result.revision);
+        })?;
+        emit_realtime_event(
+            &app,
+            realtime_event(
+                "config.updated",
+                Some(json!({
+                    "revision": result.revision
+                })),
+            ),
+        );
+        return Ok(ConfigSnapshotState {
+            revision: result.revision,
+            snapshot: result.snapshot,
+        });
+    }
     let (profile, session) = ensure_active_session_if_needed(&app, &state).await?;
     let client = build_client(&profile)?;
     let response: ConfigSnapshotState = send_json_request(
@@ -1049,6 +1269,24 @@ async fn desktop_fetch_config_audit_logs(
     limit: i32,
     offset: i32,
 ) -> Result<ConfigAuditLogsResponse, String> {
+    let mode = state
+        .run_mode
+        .lock()
+        .map_err(|_| "run_mode state poisoned".to_string())?
+        .clone();
+    if mode == RunMode::Local {
+        let local_store = state
+            .local_store
+            .lock()
+            .map_err(|_| "local_store state poisoned".to_string())?;
+        let store = local_store.as_ref().ok_or("Local store not initialized")?;
+        let result = store.list_config_audit_logs(limit, offset).map_err(|e| e.to_string())?;
+        return Ok(ConfigAuditLogsResponse {
+            logs: result.items.into_iter().map(ConfigAuditLogItem::from).collect(),
+            limit: result.limit,
+            offset: result.offset,
+        });
+    }
     let (profile, session) = ensure_active_session_if_needed(&app, &state).await?;
     let client = build_client(&profile)?;
     send_json_request(
@@ -1071,6 +1309,24 @@ async fn desktop_fetch_records(
     limit: i32,
     device_id: Option<i64>,
 ) -> Result<RecordsResponse, String> {
+    let mode = state
+        .run_mode
+        .lock()
+        .map_err(|_| "run_mode state poisoned".to_string())?
+        .clone();
+    if mode == RunMode::Local {
+        let local_store = state
+            .local_store
+            .lock()
+            .map_err(|_| "local_store state poisoned".to_string())?;
+        let store = local_store.as_ref().ok_or("Local store not initialized")?;
+        let result = store.list_records(limit, device_id).map_err(|e| e.to_string())?;
+        return Ok(RecordsResponse {
+            records: result.items.into_iter().map(RecordItem::from).collect(),
+            limit: result.limit,
+            offset: result.offset,
+        });
+    }
     let (profile, session) = ensure_active_session_if_needed(&app, &state).await?;
     let mut url = format!("{}/api/v1/records?limit={}", profile.base_url, limit);
     if let Some(device_id) = device_id {
@@ -1093,6 +1349,20 @@ async fn desktop_fetch_record(
     state: State<'_, DesktopAppState>,
     record_id: i64,
 ) -> Result<RecordItem, String> {
+    let mode = state
+        .run_mode
+        .lock()
+        .map_err(|_| "run_mode state poisoned".to_string())?
+        .clone();
+    if mode == RunMode::Local {
+        let local_store = state
+            .local_store
+            .lock()
+            .map_err(|_| "local_store state poisoned".to_string())?;
+        let store = local_store.as_ref().ok_or("Local store not initialized")?;
+        let record = store.get_record(record_id).map_err(|e| e.to_string())?;
+        return Ok(RecordItem::from(record));
+    }
     let (profile, session) = ensure_active_session_if_needed(&app, &state).await?;
     let client = build_client(&profile)?;
     send_json_request(
@@ -1189,6 +1459,161 @@ async fn desktop_send_test_notification(app: AppHandle) -> Result<(), String> {
         })
         .show()
         .map_err(|err| err.to_string())
+}
+
+#[tauri::command]
+async fn desktop_get_run_mode(
+    state: State<'_, DesktopAppState>,
+) -> Result<RunMode, String> {
+    let mode = state
+        .run_mode
+        .lock()
+        .map_err(|_| "run_mode state poisoned".to_string())?
+        .clone();
+    Ok(mode)
+}
+
+#[tauri::command]
+async fn desktop_switch_run_mode(
+    app: AppHandle,
+    state: State<'_, DesktopAppState>,
+    mode: RunMode,
+) -> Result<DesktopBootstrapState, String> {
+    {
+        let mut run_mode = state
+            .run_mode
+            .lock()
+            .map_err(|_| "run_mode state poisoned".to_string())?;
+        *run_mode = mode.clone();
+    }
+
+    if mode == RunMode::Local || mode == RunMode::Hybrid {
+        let mut local_store = state
+            .local_store
+            .lock()
+            .map_err(|_| "local_store state poisoned".to_string())?;
+        if local_store.is_none() {
+            let app_dir = ensure_directory(app.path().app_data_dir().map_err(|err| err.to_string())?)?;
+            let db_path = app_dir.join("local-data.db");
+            let store = SqliteStore::open(&db_path).map_err(|e| e.to_string())?;
+            *local_store = Some(store);
+        }
+    }
+
+    // Auto-pull from remote when switching to Local/Hybrid (if session exists)
+    if mode == RunMode::Local || mode == RunMode::Hybrid {
+        let profile = current_active_profile(&state)?;
+        let session = state
+            .session
+            .lock()
+            .map_err(|_| "session state poisoned".to_string())?
+            .clone();
+
+        if let (Some(profile), Some(session)) = (profile, session) {
+            if let Ok(mut remote) = RemoteStore::new(&profile.base_url, profile.allow_self_signed) {
+                remote.set_access_token(Some(session.access_token));
+                let local_store_guard = state
+                    .local_store
+                    .lock()
+                    .map_err(|_| "local_store state poisoned".to_string())?;
+                if let Some(local_store) = local_store_guard.as_ref() {
+                    match sync::sync_initial_pull(local_store as &dyn Store, &remote) {
+                        Ok(report) => {
+                            log_info!(
+                                "mode switch initial pull: config={:?} devices={} records={}",
+                                report.config, report.devices_synced, report.records_synced
+                            );
+                        }
+                        Err(e) => {
+                            log_warn!("mode switch initial pull failed: {}", e);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let language_tag = system_language_tag();
+    update_connection(
+        &app,
+        &state,
+        DesktopConnectionSnapshot {
+            state: match mode {
+                RunMode::Local => "local".to_string(),
+                RunMode::Remote => "connecting".to_string(),
+                RunMode::Hybrid => "hybrid".to_string(),
+            },
+            message: match mode {
+                RunMode::Local => "Running in local mode (SQLite)".to_string(),
+                RunMode::Remote => localized_runtime_text(&language_tag, "initializing").to_string(),
+                RunMode::Hybrid => "Running in hybrid mode (local + sync)".to_string(),
+            },
+            last_changed_at: Some(now_rfc3339()),
+        },
+    )?;
+    restart_monitor(&app);
+    bootstrap_state(&app, &state)
+}
+
+#[tauri::command]
+async fn desktop_sync(
+    app: AppHandle,
+    state: State<'_, DesktopAppState>,
+    direction: String,
+) -> Result<sync::SyncReport, String> {
+    let mode = state
+        .run_mode
+        .lock()
+        .map_err(|_| "run_mode state poisoned".to_string())?
+        .clone();
+
+    if mode != RunMode::Hybrid {
+        return Err("Sync is only available in hybrid mode".to_string());
+    }
+
+    let local_store_guard = state
+        .local_store
+        .lock()
+        .map_err(|_| "local_store state poisoned".to_string())?;
+    let local_store = local_store_guard.as_ref().ok_or("Local store not initialized")?;
+
+    let profile = current_active_profile(&state)?
+        .ok_or_else(|| "No active backend profile for sync".to_string())?;
+    let session = state
+        .session
+        .lock()
+        .map_err(|_| "session state poisoned".to_string())?
+        .clone();
+    let session = session.ok_or_else(|| "Login required for sync".to_string())?;
+
+    let mut remote = RemoteStore::new(&profile.base_url, profile.allow_self_signed)
+        .map_err(|e| e.to_string())?;
+    remote.set_access_token(Some(session.access_token));
+
+    let report = match direction.as_str() {
+        "pull" => sync::sync_pull(local_store as &dyn Store, &remote),
+        "push" => sync::sync_push(local_store as &dyn Store, &remote),
+        _ => return Err("Invalid sync direction. Use 'pull' or 'push'.".to_string()),
+    };
+
+    match report {
+        Ok(report) => {
+            emit_realtime_event(
+                &app,
+                realtime_event(
+                    "sync.completed",
+                    Some(json!({
+                        "direction": direction,
+                        "config": report.config,
+                        "devicesSynced": report.devices_synced,
+                        "recordsSynced": report.records_synced,
+                    })),
+                ),
+            );
+            Ok(report)
+        }
+        Err(e) => Err(e.to_string()),
+    }
 }
 
 fn bootstrap_state(
@@ -1937,6 +2362,8 @@ fn main() {
                 connection: Mutex::new(DesktopConnectionSnapshot::default()),
                 last_monitor: Mutex::new(MonitorSnapshot::default()),
                 monitor_generation: AtomicU64::new(0),
+                run_mode: Mutex::new(RunMode::Remote),
+                local_store: Mutex::new(None),
             });
             setup_tray(&app.handle(), &language_tag)?;
             restart_monitor(&app.handle());
@@ -1964,7 +2391,10 @@ fn main() {
             desktop_fetch_record,
             desktop_export_diagnostics,
             desktop_update_notifications,
-            desktop_send_test_notification
+            desktop_send_test_notification,
+            desktop_get_run_mode,
+            desktop_switch_run_mode,
+            desktop_sync
         ])
         .on_window_event(|window, event| {
             if window.label() != "main" {
