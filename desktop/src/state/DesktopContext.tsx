@@ -23,7 +23,9 @@ import type {
   DesktopDiagnosticsExport,
   DesktopNotificationPreferences,
   DesktopProfile,
-  RealtimeEvent
+  RealtimeEvent,
+  RunMode,
+  SyncReport
 } from '../../../shared/contracts/console'
 
 type DesktopContextValue = {
@@ -38,6 +40,7 @@ type DesktopContextValue = {
   lastRealtimeEvent: RealtimeEvent | null
   lastDiagnosticsExport: DesktopDiagnosticsExport | null
   lastProbe: DesktopBackendProbe | null
+  runMode: RunMode
   refreshBootstrap: () => Promise<void>
   saveProfile: (profile: SaveProfileInput) => Promise<void>
   deleteProfile: (profileId: string) => Promise<void>
@@ -50,6 +53,8 @@ type DesktopContextValue = {
   exportDiagnostics: () => Promise<void>
   updateNotifications: (preferences: DesktopNotificationPreferences) => Promise<void>
   sendTestNotification: () => Promise<void>
+  switchRunMode: (mode: RunMode) => Promise<void>
+  syncData: (direction: 'pull' | 'push') => Promise<SyncReport>
 }
 
 const DesktopContext = createContext<DesktopContextValue | null>(null)
@@ -69,6 +74,7 @@ export function DesktopProvider({ children }: PropsWithChildren) {
   const [lastRealtimeEvent, setLastRealtimeEvent] = useState<RealtimeEvent | null>(null)
   const [lastDiagnosticsExport, setLastDiagnosticsExport] = useState<DesktopDiagnosticsExport | null>(null)
   const [lastProbe, setLastProbe] = useState<DesktopBackendProbe | null>(null)
+  const [runMode, setRunMode] = useState<RunMode>('remote')
 
   const syncBootstrap = useCallback((nextValue: DesktopBootstrapState) => {
     setBootstrap(nextValue)
@@ -86,8 +92,12 @@ export function DesktopProvider({ children }: PropsWithChildren) {
   const refreshBootstrap = useCallback(async () => {
     try {
       setError('')
-      const payload = await desktopApi.bootstrap()
+      const [payload, currentMode] = await Promise.all([
+        desktopApi.bootstrap(),
+        desktopApi.getRunMode().catch(() => 'remote' as RunMode)
+      ])
       syncBootstrap(payload)
+      setRunMode(currentMode)
       if (desktopConsoleSessionFromState(payload.session).authenticated) {
         setPendingAuthStart(null)
       }
@@ -296,6 +306,29 @@ export function DesktopProvider({ children }: PropsWithChildren) {
     }
   }, [resolveErrorMessage])
 
+  const switchRunMode = useCallback(async (mode: RunMode) => {
+    try {
+      setError('')
+      const payload = await desktopApi.switchRunMode(mode)
+      setRunMode(mode)
+      syncBootstrap(payload)
+    } catch (nextError) {
+      setError(resolveErrorMessage(nextError, 'Failed to switch run mode.'))
+      throw nextError
+    }
+  }, [resolveErrorMessage, syncBootstrap])
+
+  const syncData = useCallback(async (direction: 'pull' | 'push'): Promise<SyncReport> => {
+    try {
+      setError('')
+      const report = await desktopApi.sync(direction)
+      return report
+    } catch (nextError) {
+      setError(resolveErrorMessage(nextError, 'Sync failed.'))
+      throw nextError
+    }
+  }, [resolveErrorMessage])
+
   const activeProfile = useMemo(
     () => bootstrap?.profiles.find((profile) => profile.active) ?? null,
     [bootstrap?.profiles]
@@ -317,6 +350,7 @@ export function DesktopProvider({ children }: PropsWithChildren) {
     lastRealtimeEvent,
     lastDiagnosticsExport,
     lastProbe,
+    runMode,
     refreshBootstrap,
     saveProfile,
     deleteProfile,
@@ -328,7 +362,9 @@ export function DesktopProvider({ children }: PropsWithChildren) {
     logout,
     exportDiagnostics,
     updateNotifications,
-    sendTestNotification
+    sendTestNotification,
+    switchRunMode,
+    syncData
   }), [
     activeProfile,
     authBusy,
@@ -348,10 +384,13 @@ export function DesktopProvider({ children }: PropsWithChildren) {
     probeBackend,
     refreshBootstrap,
     retryPendingBrowserOpen,
+    runMode,
     saveProfile,
     sendTestNotification,
     session,
     setActiveProfile,
+    switchRunMode,
+    syncData,
     updateNotifications
   ])
 

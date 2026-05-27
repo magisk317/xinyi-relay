@@ -6,7 +6,9 @@ import type {
   DesktopBackendProbe,
   DesktopBootstrapState,
   DesktopDiagnosticsExport,
-  DesktopNotificationPreferences
+  DesktopNotificationPreferences,
+  RunMode,
+  SyncReport
 } from '../../../shared/contracts/console'
 
 export type SaveProfileInput = {
@@ -46,7 +48,10 @@ export const desktopApi = {
   exportDiagnostics: () => invoke<DesktopDiagnosticsExport>('desktop_export_diagnostics'),
   updateNotifications: (preferences: DesktopNotificationPreferences) =>
     invoke<DesktopBootstrapState>('desktop_update_notifications', { preferences }),
-  sendTestNotification: () => invoke('desktop_send_test_notification')
+  sendTestNotification: () => invoke('desktop_send_test_notification'),
+  getRunMode: () => invoke<RunMode>('desktop_get_run_mode'),
+  switchRunMode: (mode: RunMode) => invoke<DesktopBootstrapState>('desktop_switch_run_mode', { mode }),
+  sync: (direction: 'pull' | 'push') => invoke<SyncReport>('desktop_sync', { direction })
 }
 
 async function requestDesktopConsoleApi<T>(
