@@ -1,7 +1,7 @@
 # 信驿 Relay
 
 <div align="center">
-    <a href="https://play.google.com/store/apps/details?id=io.github.magisk317.relay">
+    <a href="https://play.google.com/store/apps/details?id=io.github.magisk317.xinyi.relay">
         <img src="https://play.google.com/intl/zh-CN/badges/static/images/badges/zh-cn_badge_web_generic.png" alt="Get it on Google Play" height="80"/>
     </a>
     <a href="https://github.com/magisk317/xinyi-relay/releases">
@@ -13,18 +13,19 @@
 
 [![Commits](https://img.shields.io/github/commit-activity/y/magisk317/xinyi-relay?style=flat-square)](https://github.com/magisk317/xinyi-relay/graphs/commit-activity) [![Last Commit](https://img.shields.io/github/last-commit/magisk317/xinyi-relay?style=flat-square)](https://github.com/magisk317/xinyi-relay/commits) [![Contributors](https://img.shields.io/github/contributors/magisk317/xinyi-relay?style=flat-square)](https://github.com/magisk317/xinyi-relay/graphs/contributors) [![CI](https://img.shields.io/github/actions/workflow/status/magisk317/xinyi-relay/ci.yml?branch=beta&style=flat-square&label=Build&logo=github-actions&logoColor=white)](https://github.com/magisk317/xinyi-relay/actions/workflows/ci.yml) [![Latest Release](https://img.shields.io/github/v/release/magisk317/xinyi-relay?include_prereleases&style=flat-square&logo=github)](https://github.com/magisk317/xinyi-relay/releases) [![Release Date](https://img.shields.io/github/release-date/magisk317/xinyi-relay?style=flat-square)](https://github.com/magisk317/xinyi-relay/releases) [![Downloads](https://img.shields.io/github/downloads/magisk317/xinyi-relay/total?style=flat-square&color=blue)](https://github.com/magisk317/xinyi-relay/releases) [![License](https://img.shields.io/github/license/magisk317/xinyi-relay?style=flat-square)](LICENSE)
 
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.0--RC2-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org) [![Jetpack Compose](https://img.shields.io/badge/Jetpack_Compose-BOM_2026.05.01-4285F4?style=flat-square&logo=android&logoColor=white)](https://developer.android.com/jetpack/compose) [![Gradle](https://img.shields.io/badge/Gradle-9.5.0--nightly-02303A?style=flat-square&logo=gradle&logoColor=white)](https://gradle.org) [![AGP](https://img.shields.io/badge/AGP-9.2.1-3DDC84?style=flat-square&logo=gradle&logoColor=white)](https://developer.android.com/studio/releases/gradle-plugin) [![Min SDK](https://img.shields.io/badge/Min_SDK-26-brightgreen?style=flat-square&logo=android)](https://developer.android.com/about/versions) [![Target SDK](https://img.shields.io/badge/Target_SDK-37-blue?style=flat-square&logo=android)](https://developer.android.com/about/versions) [![Xposed API](https://img.shields.io/badge/Xposed_API-101-orange?style=flat-square)](https://github.com/rovo89/XposedBridge) [![Telegram](https://img.shields.io/badge/Telegram-Group-2CA5E0?style=flat-square&logo=telegram&logoColor=white)](https://t.me/+NR2QaQ4dlEgxYmNl)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.0--RC2-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org) [![Jetpack Compose](https://img.shields.io/badge/Jetpack_Compose-BOM_2026.05.01-4285F4?style=flat-square&logo=android&logoColor=white)](https://developer.android.com/jetpack/compose) [![Gradle](https://img.shields.io/badge/Gradle-9.5.1-02303A?style=flat-square&logo=gradle&logoColor=white)](https://gradle.org) [![AGP](https://img.shields.io/badge/AGP-9.2.1-3DDC84?style=flat-square&logo=gradle&logoColor=white)](https://developer.android.com/studio/releases/gradle-plugin) [![Min SDK](https://img.shields.io/badge/Min_SDK-26-brightgreen?style=flat-square&logo=android)](https://developer.android.com/about/versions) [![Target SDK](https://img.shields.io/badge/Target_SDK-37-blue?style=flat-square&logo=android)](https://developer.android.com/about/versions) [![Xposed API](https://img.shields.io/badge/Xposed_API-101-orange?style=flat-square)](https://github.com/rovo89/XposedBridge) [![Telegram](https://img.shields.io/badge/Telegram-Group-2CA5E0?style=flat-square&logo=telegram&logoColor=white)](https://t.me/+NR2QaQ4dlEgxYmNl)
 
 </div>
 
 信驿 Relay 是一个面向 Xposed/LSPosed 的消息转发与验证码自动填写工具，支持短信、应用通知、来电等来源的统一处理。
 
-项目当前由两部分组成：
+项目当前由三大部分组成：
 
-- 手机端：负责短信、通知、来电、自动输入与 Xposed Hook
-- Backend：负责设备绑定、配置快照、记录上报，以及 Web / Desktop 远程控制台
+- 手机端 (Android)：负责本地事件采集、验证码解析、自动输入与 Xposed Hook
+- 服务端 (Backend)：负责多设备绑定、配置快照、记录上报与云端 Web 控制台
+- 桌面端 (Desktop)：跨平台桌面管理工具，内建本地 SQLite 数据库，支持独立离线运行与云端同步
 
-旧内嵌 WebUI 已退出 Android 主运行链，当前正式架构为 `Android Agent + Backend + Web / Desktop`。
+旧内嵌 WebUI 已退出 Android 主运行链，当前正式架构为 `Android Agent + Backend / Desktop` 协同工作。
 
 [English Version](./README-EN.md)
 
@@ -95,7 +96,6 @@ Backend 是信驿 Relay 的自建远程控制面，默认部署模式为“本�
 - PostgreSQL
 - Caddy
 - Web 控制台
-- Tauri Desktop 桌面壳
 
 ### 默认部署方式
 - Docker Compose 默认直接拉取 GHCR 镜像 `ghcr.io/magisk317/xinyi-relay-backend:beta`
@@ -119,6 +119,14 @@ Backend 和 Desktop 都支持日志文件输出，便于问题排查：
   - Linux：`~/.local/share/io.github.magisk317.relay.desktop/logs/`
 
 详见各组件的 README 文档。
+
+## 桌面端 (Desktop)
+
+桌面端是基于 Tauri + Rust 构建的跨平台管理应用（支持 macOS / Windows / Linux）。它不再仅是 Backend 的外壳，而是升级为**全功能客户端**，支持以下三种运行模式：
+
+- **Local（本地模式）**：完全离线运行，使用自带的内置 SQLite 数据库管理设备、配置与历史记录，最大程度保护隐私。
+- **Remote（远程模式）**：作为传统的控制台端，直接连接并管理你的独立 Backend 云端实例。
+- **Hybrid（混合模式）**：以本地极速响应为主，需要时通过 Sync 协议与 Backend 实例进行双向数据同步。
 
 ## Desktop Release 说明
 
@@ -146,6 +154,7 @@ Backend 和 Desktop 都支持日志文件输出，便于问题排查：
 - 主工程入口始终以仓库根目录为准。
 - `smscode-core` 作为内嵌共享库子模块参与构建，不作为日常开发的主构建根工程。
 - `smscode-rules` 作为内容型子模块提供官方验证码规则快照，打包为 APK assets，不作为 Gradle/Kotlin 代码模块参与编译。
+- `desktop` 目录包含了基于 Tauri 的跨平台桌面端应用，内建 Rust 本地 SQLite 引擎与数据同步协议。
 - 运行时分层与模块边界说明见 [架构与运行时重构说明](docs/REFACTORING.md)。
 
 # 文档

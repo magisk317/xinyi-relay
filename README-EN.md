@@ -1,7 +1,7 @@
 # Xinyi Relay
 
 <div align="center">
-    <a href="https://play.google.com/store/apps/details?id=io.github.magisk317.relay">
+    <a href="https://play.google.com/store/apps/details?id=io.github.magisk317.xinyi.relay">
         <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="80"/>
     </a>
     <a href="https://github.com/magisk317/xinyi-relay/releases">
@@ -13,18 +13,19 @@
 
 [![Commits](https://img.shields.io/github/commit-activity/y/magisk317/xinyi-relay?style=flat-square)](https://github.com/magisk317/xinyi-relay/graphs/commit-activity) [![Last Commit](https://img.shields.io/github/last-commit/magisk317/xinyi-relay?style=flat-square)](https://github.com/magisk317/xinyi-relay/commits) [![Contributors](https://img.shields.io/github/contributors/magisk317/xinyi-relay?style=flat-square)](https://github.com/magisk317/xinyi-relay/graphs/contributors) [![CI](https://img.shields.io/github/actions/workflow/status/magisk317/xinyi-relay/ci.yml?branch=beta&style=flat-square&label=Build&logo=github-actions&logoColor=white)](https://github.com/magisk317/xinyi-relay/actions/workflows/ci.yml) [![Latest Release](https://img.shields.io/github/v/release/magisk317/xinyi-relay?include_prereleases&style=flat-square&logo=github)](https://github.com/magisk317/xinyi-relay/releases) [![Release Date](https://img.shields.io/github/release-date/magisk317/xinyi-relay?style=flat-square)](https://github.com/magisk317/xinyi-relay/releases) [![Downloads](https://img.shields.io/github/downloads/magisk317/xinyi-relay/total?style=flat-square&color=blue)](https://github.com/magisk317/xinyi-relay/releases) [![License](https://img.shields.io/github/license/magisk317/xinyi-relay?style=flat-square)](LICENSE)
 
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.0--RC2-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org) [![Jetpack Compose](https://img.shields.io/badge/Jetpack_Compose-BOM_2026.05.01-4285F4?style=flat-square&logo=android&logoColor=white)](https://developer.android.com/jetpack/compose) [![Gradle](https://img.shields.io/badge/Gradle-9.5.0--nightly-02303A?style=flat-square&logo=gradle&logoColor=white)](https://gradle.org) [![AGP](https://img.shields.io/badge/AGP-9.2.1-3DDC84?style=flat-square&logo=gradle&logoColor=white)](https://developer.android.com/studio/releases/gradle-plugin) [![Min SDK](https://img.shields.io/badge/Min_SDK-26-brightgreen?style=flat-square&logo=android)](https://developer.android.com/about/versions) [![Target SDK](https://img.shields.io/badge/Target_SDK-37-blue?style=flat-square&logo=android)](https://developer.android.com/about/versions) [![Xposed API](https://img.shields.io/badge/Xposed_API-101-orange?style=flat-square)](https://github.com/rovo89/XposedBridge) [![Telegram](https://img.shields.io/badge/Telegram-Group-2CA5E0?style=flat-square&logo=telegram&logoColor=white)](https://t.me/+NR2QaQ4dlEgxYmNl)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.0--RC2-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org) [![Jetpack Compose](https://img.shields.io/badge/Jetpack_Compose-BOM_2026.05.01-4285F4?style=flat-square&logo=android&logoColor=white)](https://developer.android.com/jetpack/compose) [![Gradle](https://img.shields.io/badge/Gradle-9.5.1-02303A?style=flat-square&logo=gradle&logoColor=white)](https://gradle.org) [![AGP](https://img.shields.io/badge/AGP-9.2.1-3DDC84?style=flat-square&logo=gradle&logoColor=white)](https://developer.android.com/studio/releases/gradle-plugin) [![Min SDK](https://img.shields.io/badge/Min_SDK-26-brightgreen?style=flat-square&logo=android)](https://developer.android.com/about/versions) [![Target SDK](https://img.shields.io/badge/Target_SDK-37-blue?style=flat-square&logo=android)](https://developer.android.com/about/versions) [![Xposed API](https://img.shields.io/badge/Xposed_API-101-orange?style=flat-square)](https://github.com/rovo89/XposedBridge) [![Telegram](https://img.shields.io/badge/Telegram-Group-2CA5E0?style=flat-square&logo=telegram&logoColor=white)](https://t.me/+NR2QaQ4dlEgxYmNl)
 
 </div>
 
 Xinyi Relay is a relay and verification-code autofill project for Xposed/LSPosed, with unified handling for SMS, app notifications, and incoming call events.
 
-The project now ships in two parts:
+The project now ships in three major parts:
 
 - Android App: local event capture, verification parsing, autofill, and Xposed hooks
-- Backend: device binding, config snapshots, record upload, and the Web / Desktop remote console
+- Backend: device binding, config snapshots, record upload, and cloud Web console
+- Desktop App: cross-platform management tool with a built-in local SQLite database, supporting standalone offline execution and cloud sync
 
-The old embedded WebUI has been retired from the Android runtime path. The current official architecture is `Android Agent + Backend + Web / Desktop`.
+The old embedded WebUI has been retired from the Android runtime path. The current official architecture is `Android Agent + Backend / Desktop` working collectively.
 
 [中文版本](./README.md)
 
@@ -69,7 +70,6 @@ The Backend is the self-hosted remote control plane for Xinyi Relay, with a loca
 - PostgreSQL
 - Caddy
 - Web console
-- Tauri desktop shell
 
 ### Default Deployment
 - Docker Compose pulls `ghcr.io/magisk317/xinyi-relay-backend:beta` by default
@@ -93,6 +93,14 @@ Both Backend and Desktop support log file output for troubleshooting:
   - Linux: `~/.local/share/io.github.magisk317.relay.desktop/logs/`
 
 See each component's README for details.
+
+## Desktop
+
+The Desktop app is a cross-platform management tool built with Tauri + Rust (available on macOS / Windows / Linux). It has been upgraded to a **fully-featured client**, supporting three distinct modes:
+
+- **Local Mode**: Runs completely offline, using its built-in SQLite database to manage devices, configs, and history records for maximum privacy.
+- **Remote Mode**: Acts as a traditional thin client, connecting directly to your self-hosted Backend instance.
+- **Hybrid Mode**: Prioritizes ultra-fast local response times, seamlessly syncing bidirectionally with the Backend instance when needed.
 
 ## Desktop Release Notes
 
@@ -120,6 +128,7 @@ Feedback and suggestions are welcome.
 - The repository root is the primary build entry for day-to-day development.
 - `smscode-core` is treated as an embedded shared-library submodule, not a parallel primary root project.
 - `smscode-rules` is a content-only submodule for the bundled official verification-code rule snapshot. It is packaged as APK assets and is not a Gradle/Kotlin code module.
+- `desktop` directory contains the Tauri cross-platform app, featuring a built-in Rust SQLite engine and sync protocol.
 - Runtime layering and module-boundary guidance lives in [docs/REFACTORING.md](docs/REFACTORING.md).
 
 # Documentation
