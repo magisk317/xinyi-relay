@@ -1915,6 +1915,14 @@ fn main() {
             }
             log_info!("Xinyi Relay Desktop starting up");
 
+            // 初始化 keyring 后端（使用 secret-service，兼容 KDE Wallet / GNOME Keyring）
+            if let Err(e) = keyring::use_native_store(true) {
+                log_error!("Failed to initialize keyring native store, falling back: {}", e);
+                if let Err(e2) = keyring::use_named_store("sample") {
+                    log_error!("Failed to initialize keyring sample store: {}", e2);
+                }
+            }
+
             let language_tag = system_language_tag();
             let persisted = load_persisted_state(&app.handle())?;
             let active_profile = active_profile(&persisted);

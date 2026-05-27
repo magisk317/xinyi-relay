@@ -1,6 +1,6 @@
 [package]
 name = "xinyi-relay-desktop"
-version = "0.1.0"
+version = "0.1.2"
 edition = "2024"
 
 [build-dependencies]
@@ -8,6 +8,7 @@ tauri-build = { version = "2.1.1", features = [] }
 
 [dependencies]
 chrono = { version = "0.4.42", features = ["serde"] }
+keyring = "4"
 keyring-core = "1"
 reqwest = { version = "0.13.0", default-features = false, features = ["json", "native-tls"] }
 serde = { version = "1.0.228", features = ["derive"] }
