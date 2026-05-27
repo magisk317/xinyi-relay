@@ -8,6 +8,9 @@
         <service
             android:name="io.github.magisk317.relay.service.AutoInputAccessibilityService"
             tools:node="remove" />
+        <service
+            android:name="io.github.magisk317.relay.service.KeepAliveAccessibilityService"
+            tools:node="remove" />
     </application>
 
 </manifest>
