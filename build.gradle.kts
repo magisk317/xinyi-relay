@@ -2,6 +2,15 @@ import dev.detekt.gradle.extensions.DetektExtension
 import com.adarshr.gradle.testlogger.theme.ThemeType
 import org.gradle.api.tasks.Exec
 
+buildscript {
+    configurations.classpath {
+        resolutionStrategy {
+            // BEGIN AUTO FORCED DEPENDENCIES (managed by workflow)
+            // END AUTO FORCED DEPENDENCIES (managed by workflow)
+        }
+    }
+}
+
 plugins {
     alias(libs.plugins.version.catalog.update)
     alias(libs.plugins.android.application) apply false
@@ -32,6 +41,13 @@ kover {
 val catalog = libs
 
 subprojects {
+    configurations.all {
+        resolutionStrategy {
+            // BEGIN AUTO FORCED DEPENDENCIES (managed by workflow)
+            // END AUTO FORCED DEPENDENCIES (managed by workflow)
+        }
+    }
+
     fun Project.configureDetekt() {
         apply(plugin = "dev.detekt")
         extensions.configure<dev.detekt.gradle.extensions.DetektExtension> {
