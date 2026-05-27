@@ -13,7 +13,7 @@ import { useDesktop } from './state/DesktopContext'
 
 export function DesktopShell() {
   const navigate = useNavigate()
-  const { activeProfile, connection, error, logout, session } = useDesktop()
+  const { activeProfile, connection, error, logout, session, runMode } = useDesktop()
   const { brandName, t } = useDesktopI18n()
   const [showBackendUrl, setShowBackendUrl] = useState(false)
   const nav = [
@@ -65,6 +65,11 @@ export function DesktopShell() {
                 : '—'}
             </div>
           </div>
+        </div>
+
+        <div className="sidebar-section">
+          <div className="sidebar-label">Mode</div>
+          <Tag tone={runModeTone(runMode)}>{runMode.toUpperCase()}</Tag>
         </div>
 
         <nav className="nav-rail">
@@ -251,6 +256,17 @@ export function actionButtonLabel(label: string) {
   return <span>{label}</span>
 }
 
+function runModeTone(mode: string): 'neutral' | 'success' | 'warning' | 'danger' {
+  switch (mode) {
+    case 'local':
+      return 'warning'
+    case 'hybrid':
+      return 'success'
+    default:
+      return 'neutral'
+  }
+}
+
 function connectionTone(state: string): 'neutral' | 'success' | 'warning' | 'danger' {
   switch (state) {
     case 'connected':
@@ -259,6 +275,10 @@ function connectionTone(state: string): 'neutral' | 'success' | 'warning' | 'dan
       return 'warning'
     case 'disconnected':
       return 'danger'
+    case 'local':
+      return 'warning'
+    case 'hybrid':
+      return 'success'
     default:
       return 'neutral'
   }
@@ -274,6 +294,10 @@ export function translateConnectionState(state: string, t: (key: string) => stri
       return t('status.disconnected')
     case 'connecting':
       return t('status.connecting')
+    case 'local':
+      return 'Local mode'
+    case 'hybrid':
+      return 'Hybrid mode'
     default:
       return state
   }

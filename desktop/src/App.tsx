@@ -21,14 +21,15 @@ type DesktopWindowBridge = Window & {
 }
 
 function ProtectedRoutes() {
-  const { loading, session } = useDesktop()
+  const { loading, session, runMode } = useDesktop()
   const { t } = useDesktopI18n()
 
   if (loading) {
     return <div className="loading-screen">{t('common.preparing')}</div>
   }
 
-  if (!session.authenticated) {
+  // Local mode doesn't require authentication
+  if (runMode !== 'local' && !session.authenticated) {
     return <Navigate to="/login" replace />
   }
 

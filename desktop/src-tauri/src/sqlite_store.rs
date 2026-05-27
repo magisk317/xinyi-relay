@@ -383,3 +383,193 @@ impl Store for SqliteStore {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_store() -> SqliteStore {
+        SqliteStore::open_in_memory().unwrap()
+    }
+
+    #[test]
+    fn config_snapshot_empty_by_default() {
+        let store = test_store();
+        assert!(store.get_config_snapshot().unwrap().is_none());
+    }
+
+    #[test]
+    fn config_snapshot_put_and_get() {
+        let store = test_store();
+        let snap = store.put_config_snapshot(0, json!({"key": "value"})).unwrap();
+        assert_eq!(snap.revision, 1);
+        assert!(snap.updated_at.is_some());
+
+        let loaded = store.get_config_snapshot().unwrap().unwrap();
+        assert_eq!(loaded.revision, 1);
+        assert_eq!(loaded.snapshot, json!({"key": "value"}));
+    }
+
+    #[test]
+    fn config_snapshot_conflict_on_stale_base() {
+        let store = test_store();
+        store.put_config_snapshot(0, json!({"v": 1})).unwrap();
+        let err = store.put_config_snapshot(0, json!({"v": 2})).unwrap_err();
+        assert!(matches!(err, StoreError::Conflict { local: 1, remote: 0 }));
+    }
+
+    #[test]
+    fn config_snapshot_revision_increments() {
+        let store = test_store();
+        store.put_config_snapshot(0, json!({"v": 1})).unwrap();
+        store.put_config_snapshot(1, json!({"v": 2})).unwrap();
+        let snap = store.put_config_snapshot(2, json!({"v": 3})).unwrap();
+        assert_eq!(snap.revision, 3);
+    }
+
+    #[test]
+    fn devices_empty_by_default() {
+        let store = test_store();
+        assert!(store.list_devices().unwrap().is_empty());
+    }
+
+    #[test]
+    fn devices_upsert_and_list() {
+        let store = test_store();
+        let devices = vec![
+            Device {
+                id: 1, user_id: 0, device_name: "Phone".to_string(),
+                device_model: "Pixel".to_string(), platform: "android".to_string(),
+                app_version: "1.0".to_string(), display_name: "My Phone".to_string(),
+                enabled: true, revoked_at: None, last_seen_at: None,
+                local_addresses: json!([]), capabilities: json!({}),
+                created_at: "2026-01-01T00:00:00Z".to_string(),
+                updated_at: "2026-01-01T00:00:00Z".to_string(),
+            },
+            Device {
+                id: 2, user_id: 0, device_name: "Tablet".to_string(),
+                device_model: "iPad".to_string(), platform: "ios".to_string(),
+                app_version: "1.0".to_string(), display_name: "My Tablet".to_string(),
+                enabled: true, revoked_at: None, last_seen_at: None,
+                local_addresses: json!([]), capabilities: json!({}),
+                created_at: "2026-01-01T00:00:00Z".to_string(),
+                updated_at: "2026-01-01T00:00:00Z".to_string(),
+            },
+        ];
+        store.upsert_devices(devices).unwrap();
+        let listed = store.list_devices().unwrap();
+        assert_eq!(listed.len(), 2);
+        assert_eq!(listed[0].device_name, "Phone");
+        assert_eq!(listed[1].device_name, "Tablet");
+    }
+
+    #[test]
+    fn devices_upsert_updates_existing() {
+        let store = test_store();
+        let device = Device {
+            id: 1, user_id: 0, device_name: "Phone".to_string(),
+            device_model: "Pixel".to_string(), platform: "android".to_string(),
+            app_version: "1.0".to_string(), display_name: "Old Name".to_string(),
+            enabled: true, revoked_at: None, last_seen_at: None,
+            local_addresses: json!([]), capabilities: json!({}),
+            created_at: "2026-01-01T00:00:00Z".to_string(),
+            updated_at: "2026-01-01T00:00:00Z".to_string(),
+        };
+        store.upsert_devices(vec![device]).unwrap();
+
+        let updated = Device {
+            id: 1, user_id: 0, device_name: "Phone".to_string(),
+            device_model: "Pixel".to_string(), platform: "android".to_string(),
+            app_version: "1.0".to_string(), display_name: "New Name".to_string(),
+            enabled: false, revoked_at: None, last_seen_at: None,
+            local_addresses: json!([]), capabilities: json!({}),
+            created_at: "2026-01-01T00:00:00Z".to_string(),
+            updated_at: "2026-01-02T00:00:00Z".to_string(),
+        };
+        store.upsert_devices(vec![updated]).unwrap();
+
+        let listed = store.list_devices().unwrap();
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].display_name, "New Name");
+        assert!(!listed[0].enabled);
+    }
+
+    #[test]
+    fn records_empty_by_default() {
+        let store = test_store();
+        let result = store.list_records(10, None).unwrap();
+        assert!(result.items.is_empty());
+    }
+
+    #[test]
+    fn records_upsert_and_list() {
+        let store = test_store();
+        let records = vec![
+            Record {
+                id: 1, device_id: 1, event_id: Some("evt1".to_string()),
+                record_type: "sms".to_string(), sender: "Bank".to_string(),
+                body: "Code 123456".to_string(), sms_code: "123456".to_string(),
+                package_name: "com.sms".to_string(), metadata: json!({}),
+                msg_type: 0, call_type: 0,
+                occurred_at: "2026-01-01T00:00:00Z".to_string(),
+                uploaded_at: "2026-01-01T00:00:00Z".to_string(),
+            },
+        ];
+        store.upsert_records(records).unwrap();
+        let result = store.list_records(10, None).unwrap();
+        assert_eq!(result.items.len(), 1);
+        assert_eq!(result.items[0].sms_code, "123456");
+    }
+
+    #[test]
+    fn records_upsert_updates_existing() {
+        let store = test_store();
+        let record = Record {
+            id: 1, device_id: 1, event_id: Some("evt1".to_string()),
+            record_type: "sms".to_string(), sender: "Bank".to_string(),
+            body: "Old body".to_string(), sms_code: "111".to_string(),
+            package_name: "com.sms".to_string(), metadata: json!({}),
+            msg_type: 0, call_type: 0,
+            occurred_at: "2026-01-01T00:00:00Z".to_string(),
+            uploaded_at: "2026-01-01T00:00:00Z".to_string(),
+        };
+        store.upsert_records(vec![record]).unwrap();
+
+        let updated = Record {
+            id: 1, device_id: 1, event_id: Some("evt1".to_string()),
+            record_type: "sms".to_string(), sender: "Bank".to_string(),
+            body: "New body".to_string(), sms_code: "222".to_string(),
+            package_name: "com.sms".to_string(), metadata: json!({}),
+            msg_type: 0, call_type: 0,
+            occurred_at: "2026-01-01T00:00:00Z".to_string(),
+            uploaded_at: "2026-01-02T00:00:00Z".to_string(),
+        };
+        store.upsert_records(vec![updated]).unwrap();
+
+        let result = store.list_records(10, None).unwrap();
+        assert_eq!(result.items.len(), 1);
+        assert_eq!(result.items[0].sms_code, "222");
+        assert_eq!(result.items[0].body, "New body");
+    }
+
+    #[test]
+    fn system_info_reports_device_count() {
+        let store = test_store();
+        let info = store.get_system_info().unwrap();
+        assert_eq!(info.user_count, 0);
+
+        let device = Device {
+            id: 1, user_id: 0, device_name: "Phone".to_string(),
+            device_model: "".to_string(), platform: "android".to_string(),
+            app_version: "".to_string(), display_name: "".to_string(),
+            enabled: true, revoked_at: None, last_seen_at: None,
+            local_addresses: json!([]), capabilities: json!({}),
+            created_at: "2026-01-01T00:00:00Z".to_string(),
+            updated_at: "2026-01-01T00:00:00Z".to_string(),
+        };
+        store.upsert_devices(vec![device]).unwrap();
+
+        let info = store.get_system_info().unwrap();
+        assert_eq!(info.user_count, 1);
+    }
+}
