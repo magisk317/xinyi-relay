@@ -169,6 +169,7 @@ const SENDER_FIELD_SCHEMAS: Record<number, SenderFieldSchema[]> = {
   ],
   7: [
     field('method', 'text', '请求方法', 'HTTP method'),
+    field('apiBase', 'text', 'API 地址', 'API base'),
     field('apiToken', 'text', 'Bot Token', 'Bot token'),
     field('chatId', 'text', 'Chat ID', 'Chat ID'),
     field('messageThreadId', 'text', '话题 ID', 'Message thread ID'),
