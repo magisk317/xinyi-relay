@@ -86,6 +86,9 @@ jobs:
         with:
           node-version: "24"
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -112,15 +115,15 @@ jobs:
         shell: bash
         run: bash scripts/sync_desktop_version.sh
 
-      - name: Install desktop npm dependencies
+      - name: Install desktop pnpm dependencies
         run: |
           cd desktop
-          npm ci
+          pnpm install --frozen-lockfile
 
       - name: Build desktop frontend
         run: |
           cd desktop
-          npm run build
+          pnpm build
 
       - name: Build desktop bundles
         env:
@@ -130,7 +133,7 @@ jobs:
           WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         run: |
           cd desktop
-          npm run tauri:build -- ${{ matrix.bundle_args }}
+          pnpm tauri:build -- ${{ matrix.bundle_args }}
 
       - name: Upload AppImage artifact
         if: matrix.os_name == 'linux'

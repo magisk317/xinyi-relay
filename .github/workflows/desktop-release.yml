@@ -77,6 +77,9 @@ jobs:
         with:
           node-version: "24"
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -103,13 +106,13 @@ jobs:
         shell: bash
         run: bash scripts/sync_desktop_version.sh
 
-      - name: Install desktop npm dependencies
+      - name: Install desktop pnpm dependencies
         working-directory: desktop
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Build desktop frontend
         working-directory: desktop
-        run: npm run build
+        run: pnpm build
 
       - name: Build desktop bundles
         working-directory: desktop
@@ -118,7 +121,7 @@ jobs:
           TAURI_LINUX_AYATANA_APPINDICATOR: ${{ matrix.os_name == 'linux' && '1' || '' }}
           WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
           WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-        run: npm run tauri:build -- ${{ matrix.bundle_args }}
+        run: pnpm tauri:build -- ${{ matrix.bundle_args }}
 
       - name: Upload desktop bundles
         uses: actions/upload-artifact@v7

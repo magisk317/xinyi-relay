@@ -3,20 +3,21 @@
   "private": true,
   "version": "0.1.2",
   "type": "module",
+  "packageManager": "pnpm@11.3.0",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 1420",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1 --port 4173",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "icons:generate": "npm exec -- tauri icon src-tauri/icons/icon.png --output src-tauri/icons",
+    "icons:generate": "pnpm exec tauri icon src-tauri/icons/icon.png --output src-tauri/icons",
     "test:rust": "node ./scripts/with-system-pkg-config.mjs cargo test --manifest-path src-tauri/Cargo.toml",
     "tauri:dev": "node ./scripts/with-system-pkg-config.mjs tauri dev",
     "tauri:build": "node ./scripts/with-system-pkg-config.mjs tauri build",
     "tauri:check:linux": "node ./scripts/with-system-pkg-config.mjs cargo check --manifest-path src-tauri/Cargo.toml",
-    "desktop:test": "npm run test && npm run test:rust",
-    "desktop:ci": "npm run build && npm run desktop:test && npm run tauri:check:linux",
-    "desktop:check": "npm run desktop:ci"
+    "desktop:test": "pnpm test && pnpm test:rust",
+    "desktop:ci": "pnpm build && pnpm desktop:test && pnpm tauri:check:linux",
+    "desktop:check": "pnpm desktop:ci"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.11.2",
