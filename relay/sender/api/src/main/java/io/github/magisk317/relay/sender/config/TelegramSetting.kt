@@ -7,6 +7,7 @@ import java.net.Proxy
 
 @KotlinSerializable
 data class TelegramSetting(
+    val apiBase: String = "https://api.telegram.org",
     val method: String = "POST",
     var apiToken: String = "",
     val chatId: String = "",

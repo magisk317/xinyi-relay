@@ -693,6 +693,15 @@
         ]
       },
       {
+        "name": "apiBase",
+        "type": "TEXT",
+        "aliases": [
+          "z"
+        ],
+        "requiredForEnable": false,
+        "defaultValue": "https://api.telegram.org"
+      },
+      {
         "name": "apiToken",
         "type": "SECRET",
         "aliases": [

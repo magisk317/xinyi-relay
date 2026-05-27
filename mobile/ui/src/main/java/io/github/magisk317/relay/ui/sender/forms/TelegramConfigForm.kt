@@ -8,6 +8,10 @@ import io.github.magisk317.relay.ui.sender.SenderViewModel
 
 private val TelegramVisibleFields = listOf(
     SchemaSenderFormFieldSpec(
+        name = "apiBase",
+        labelRes = R.string.sender_form_label_api_base,
+    ),
+    SchemaSenderFormFieldSpec(
         name = "apiToken",
         labelRes = R.string.sender_form_label_bot_api_token_required,
     ),

@@ -28,7 +28,8 @@ object TelegramUtils {
         } else {
             "<b>信息驿站: ${msgInfo.from}</b>\n${msgInfo.content}"
         }
-        var requestUrl = "https://api.telegram.org/bot${setting.apiToken}/sendMessage"
+        val base = setting.apiBase.ifBlank { "https://api.telegram.org" }.trimEnd('/')
+        var requestUrl = "${base}/bot${setting.apiToken}/sendMessage"
 
         val clientBuilder = RelayHttpClients.newBuilder()
         if (setting.proxyType != Proxy.Type.DIRECT && setting.proxyHost.isNotEmpty() && setting.proxyPort.isNotEmpty()) {

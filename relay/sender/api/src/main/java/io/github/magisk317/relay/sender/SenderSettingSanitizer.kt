@@ -411,6 +411,7 @@ object SenderSettingSanitizer {
     fun sanitizeTelegramSetting(raw: TelegramSetting?, rawJson: JsonObject? = null): TelegramSetting {
         val defaults = TelegramSetting()
         val setting = TelegramSetting(
+            apiBase = safeString(resolveValue(raw?.apiBase, rawJson, "apiBase")).ifBlank { defaults.apiBase },
             method = safeString(resolveValue(raw?.method, rawJson, "method")).ifBlank { defaults.method },
             apiToken = safeString(resolveValue(raw?.apiToken, rawJson, "apiToken")),
             chatId = safeString(resolveValue(raw?.chatId, rawJson, "chatId")),
@@ -744,6 +745,7 @@ object SenderSettingSanitizer {
         }
 
         val repaired = repairFields(
+            "apiBase" to setting.apiBase,
             "method" to method,
             "apiToken" to apiToken,
             "chatId" to chatId,
@@ -755,6 +757,7 @@ object SenderSettingSanitizer {
             "parseMode" to setting.parseMode,
         )
         return setting.copy(
+            apiBase = repaired.string("apiBase").ifBlank { defaults.apiBase },
             method = repaired.enumString("method", defaults.method),
             apiToken = repaired.string("apiToken"),
             chatId = repaired.string("chatId"),
@@ -866,7 +869,7 @@ object SenderSettingSanitizer {
         return when (fieldName) {
             "method", "msgtype", "msgType", "msgKey", "parseMode", "proxyType", "receiveIdType",
             "encryptionProtocol", "transformation", "level", "uriType", "priority",
-            "server", "webServer", "webhook", "webHook", "customizeAPI", "callbackUrl", "url", "website",
+            "server", "webServer", "webhook", "webHook", "customizeAPI", "apiBase", "callbackUrl", "url", "website",
             "authEmail", "fromEmail", "toEmail", "host", "port", "proxyPort", "simSlot", "qos",
             "ssl", "startTls", "atAll", "proxyAuthenticator", "retained", "onlyNoNetwork",
             "apiToken", "chatId", "messageThreadId", "token", "secret", "sendKey",
@@ -888,7 +891,7 @@ object SenderSettingSanitizer {
             "level" -> normalized(value) in setOf("active", "time-sensitive", "timesensitive", "passive", "critical")
             "uriType" -> normalized(value) in setOf("tcp", "ssl", "ws", "wss")
             "priority" -> safeString(value).trim().toIntOrNull() in 1..5
-            "server", "webServer", "webhook", "webHook", "customizeAPI", "callbackUrl", "url" -> isUrlLike(value)
+            "server", "webServer", "webhook", "webHook", "customizeAPI", "apiBase", "callbackUrl", "url" -> isUrlLike(value)
             "website" -> isUrlLike(value) || isHostLike(value)
             "authEmail", "fromEmail", "toEmail" -> isEmailLike(value)
             "host" -> isHostLike(value)

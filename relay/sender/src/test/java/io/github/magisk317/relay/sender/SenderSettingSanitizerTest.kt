@@ -43,7 +43,7 @@ class SenderSettingSanitizerTest {
             SenderType.WEWORK_AGENT to """{"corpID":null,"agentID":null,"secret":null,"proxyType":null}""",
             SenderType.SERVERCHAN to """{"sendKey":null}""",
             SenderType.PUSHPLUS to """{"website":null,"token":null}""",
-            SenderType.TELEGRAM to """{"method":null,"apiToken":null,"chatId":null,"parseMode":null,"proxyType":null}""",
+            SenderType.TELEGRAM to """{"method":null,"apiBase":null,"apiToken":null,"chatId":null,"parseMode":null,"proxyType":null}""",
             SenderType.SMS to """{"mobiles":null,"simSlot":null}""",
             SenderType.FEISHU to """{"webhook":null,"msgType":null}""",
             SenderType.GOTIFY to """{"webServer":null,"title":null}""",
@@ -282,10 +282,11 @@ class SenderSettingSanitizerTest {
         val telegram = SenderSettingJson.decode<TelegramSetting>(
             SenderSettingSanitizer.sanitizeJsonLenient(
                 SenderType.TELEGRAM,
-                """{"o":"POST","p":"123456:abcdefghijklmnopqrstuvwxyz","q":"-100123456","r":"7","s":"SOCKS","t":"127.0.0.1","u":"1080","v":true,"w":"proxy-user","x":"proxy-pass","y":"MarkdownV2"}""",
+                """{"o":"POST","p":"123456:abcdefghijklmnopqrstuvwxyz","q":"-100123456","r":"7","s":"SOCKS","t":"127.0.0.1","u":"1080","v":true,"w":"proxy-user","x":"proxy-pass","y":"MarkdownV2","z":"https://telegram.example.com"}""",
             ),
         )
         assertEquals("POST", telegram.method)
+        assertEquals("https://telegram.example.com", telegram.apiBase)
         assertEquals("123456:abcdefghijklmnopqrstuvwxyz", telegram.apiToken)
         assertEquals("-100123456", telegram.chatId)
         assertEquals("7", telegram.messageThreadId)
@@ -385,6 +386,7 @@ class SenderSettingSanitizerTest {
         val setting = SenderSettingJson.decode<TelegramSetting>(sanitized)
 
         assertEquals("POST", setting.method)
+        assertEquals("https://api.telegram.org", setting.apiBase)
         assertEquals("123456:abcdefghijklmnopqrstuvwxyz", setting.apiToken)
         assertEquals("-100123456", setting.chatId)
         assertEquals("", setting.messageThreadId)
@@ -501,6 +503,7 @@ class SenderSettingSanitizerTest {
             SenderType.TELEGRAM -> {
                 val setting = SenderSettingJson.decode<TelegramSetting>(json)
                 setting.method.length
+                setting.apiBase.length
                 setting.apiToken.length
                 setting.chatId.length
                 setting.parseMode.length

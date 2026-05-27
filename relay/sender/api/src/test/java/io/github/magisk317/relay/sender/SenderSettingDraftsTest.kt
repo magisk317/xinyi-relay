@@ -58,9 +58,10 @@ class SenderSettingDraftsTest {
     fun withSchemaDefaults_appliesOnlyDeclaredDefaultsInSchemaOrder() {
         val telegram = SenderSettingDrafts.emptyWithDefaults(SenderType.TELEGRAM)
         assertEquals("POST", telegram.string("method"))
+        assertEquals("https://api.telegram.org", telegram.string("apiBase"))
         assertEquals("DIRECT", telegram.string("proxyType"))
         assertEquals("HTML", telegram.string("parseMode"))
-        assertEquals("""{"method":"POST","proxyType":"DIRECT","parseMode":"HTML"}""", telegram.toJson())
+        assertEquals("""{"method":"POST","apiBase":"https://api.telegram.org","proxyType":"DIRECT","parseMode":"HTML"}""", telegram.toJson())
 
         val pushplus = SenderSettingDrafts.emptyWithDefaults(SenderType.PUSHPLUS)
         assertEquals("www.pushplus.plus", pushplus.string("website"))
@@ -176,6 +177,7 @@ class SenderSettingDraftsTest {
         val telegram = SenderSettingJson.decode<TelegramSetting>(
             SenderSettingDrafts.empty(SenderType.TELEGRAM)
                 .withString("method", "POST")
+                .withString("apiBase", "https://telegram.example.com")
                 .withString("apiToken", "bot-token")
                 .withString("chatId", "123")
                 .withString("messageThreadId", "456")
@@ -186,6 +188,7 @@ class SenderSettingDraftsTest {
                 .toJson(),
         )
         assertEquals("POST", telegram.method)
+        assertEquals("https://telegram.example.com", telegram.apiBase)
         assertEquals("bot-token", telegram.apiToken)
         assertEquals("123", telegram.chatId)
         assertEquals("456", telegram.messageThreadId)
@@ -373,6 +376,10 @@ class SenderSettingDraftsTest {
     fun withField_rejectsUnknownFieldForKnownSenderType() {
         val draft = SenderSettingDrafts.empty(SenderType.TELEGRAM)
 
+        assertEquals(
+            "https://telegram.example.com",
+            draft.withString("apiBase", "https://telegram.example.com").string("apiBase"),
+        )
         assertThrows(IllegalArgumentException::class.java) {
             draft.withString("webServer", "https://example.com")
         }

@@ -137,6 +137,7 @@ object SenderSettingSchemas {
         schema(
             SenderType.TELEGRAM,
             field("method", aliases = arrayOf("o"), defaultValue = "POST", options = arrayOf("GET", "POST")),
+            field("apiBase", aliases = arrayOf("z"), defaultValue = "https://api.telegram.org"),
             field("apiToken", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
             field("chatId", requiredForEnable = true, aliases = arrayOf("q")),
             field("messageThreadId", aliases = arrayOf("topicId", "topic_id", "message_thread_id", "r")),

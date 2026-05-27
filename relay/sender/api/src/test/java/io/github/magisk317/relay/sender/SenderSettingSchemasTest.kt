@@ -86,6 +86,7 @@ class SenderSettingSchemasTest {
     @Test
     fun fieldDefaultsAndOptions_areExposedForSchemaDrivenForms() {
         assertFieldDefault(SenderType.TELEGRAM, "method", "POST")
+        assertFieldDefault(SenderType.TELEGRAM, "apiBase", "https://api.telegram.org")
         assertFieldDefault(SenderType.TELEGRAM, "parseMode", "HTML")
         assertFieldDefault(SenderType.TELEGRAM, "proxyType", "DIRECT")
         assertFieldDefault(SenderType.PUSHPLUS, "website", "www.pushplus.plus")
