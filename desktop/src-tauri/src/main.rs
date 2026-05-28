@@ -91,6 +91,8 @@ impl Default for DesktopNotificationPreferences {
 struct DesktopPersistedState {
     profiles: Vec<DesktopProfile>,
     notifications: DesktopNotificationPreferences,
+    #[serde(default)]
+    run_mode: RunMode,
 }
 
 impl Default for DesktopPersistedState {
@@ -108,6 +110,7 @@ impl Default for DesktopPersistedState {
                 note: Some("Default profile for a local Docker backend.".to_string()),
             }],
             notifications: DesktopNotificationPreferences::default(),
+            run_mode: RunMode::Remote,
         }
     }
 }
@@ -444,6 +447,12 @@ enum RunMode {
     Hybrid,
 }
 
+impl Default for RunMode {
+    fn default() -> Self {
+        RunMode::Remote
+    }
+}
+
 struct DesktopAppState {
     persisted: Mutex<DesktopPersistedState>,
     session: Mutex<Option<DesktopSessionSecrets>>,
@@ -460,8 +469,16 @@ async fn desktop_bootstrap(
     app: AppHandle,
     state: State<'_, DesktopAppState>,
 ) -> Result<DesktopBootstrapState, String> {
-    sync_active_session_from_storage(&app, &state)?;
-    let _ = ensure_active_session_if_needed(&app, &state).await;
+    let mode = state
+        .run_mode
+        .lock()
+        .map_err(|_| "run_mode state poisoned".to_string())?
+        .clone();
+
+    if mode != RunMode::Local {
+        sync_active_session_from_storage(&app, &state)?;
+        let _ = ensure_active_session_if_needed(&app, &state).await;
+    }
     restart_monitor(&app);
     bootstrap_state(&app, &state)
 }
@@ -1487,6 +1504,16 @@ async fn desktop_switch_run_mode(
         *run_mode = mode.clone();
     }
 
+    // Persist run mode to disk
+    {
+        let mut persisted = state
+            .persisted
+            .lock()
+            .map_err(|_| "persisted state poisoned".to_string())?;
+        persisted.run_mode = mode.clone();
+        let _ = persist_state_to_disk(&app, &persisted);
+    }
+
     if mode == RunMode::Local || mode == RunMode::Hybrid {
         let mut local_store = state
             .local_store
@@ -1533,24 +1560,28 @@ async fn desktop_switch_run_mode(
         }
     }
 
-    let language_tag = system_language_tag();
-    update_connection(
-        &app,
-        &state,
-        DesktopConnectionSnapshot {
+    // Set connection state quietly (no notification on mode switch)
+    {
+        let mut connection = state
+            .connection
+            .lock()
+            .map_err(|_| "connection state poisoned".to_string())?;
+        let language_tag = system_language_tag();
+        *connection = DesktopConnectionSnapshot {
             state: match mode {
                 RunMode::Local => "local".to_string(),
                 RunMode::Remote => "connecting".to_string(),
                 RunMode::Hybrid => "hybrid".to_string(),
             },
             message: match mode {
-                RunMode::Local => "Running in local mode (SQLite)".to_string(),
+                RunMode::Local => String::new(),
                 RunMode::Remote => localized_runtime_text(&language_tag, "initializing").to_string(),
-                RunMode::Hybrid => "Running in hybrid mode (local + sync)".to_string(),
+                RunMode::Hybrid => String::new(),
             },
             last_changed_at: Some(now_rfc3339()),
-        },
-    )?;
+        };
+        let _ = app.emit("desktop://connection", connection.clone());
+    }
     restart_monitor(&app);
     bootstrap_state(&app, &state)
 }
@@ -2095,6 +2126,27 @@ pub(crate) fn restart_monitor(app: &AppHandle) {
 }
 
 async fn monitor_tick(app: &AppHandle, state: &DesktopAppState) -> Result<(), String> {
+    let mode = state
+        .run_mode
+        .lock()
+        .map_err(|_| "run_mode state poisoned".to_string())?
+        .clone();
+
+    log_info!("monitor_tick: mode={:?}", mode);
+
+    if mode == RunMode::Local {
+        update_connection(
+            app,
+            state,
+            DesktopConnectionSnapshot {
+                state: "local".to_string(),
+                message: String::new(),
+                last_changed_at: Some(now_rfc3339()),
+            },
+        )?;
+        return Ok(());
+    }
+
     let profile = current_active_profile(state)?;
     let Some(profile) = profile else {
         let language_tag = system_language_tag();
@@ -2355,6 +2407,7 @@ fn main() {
                 Some(profile) => load_session_for_profile(&app.handle(), &profile.id)?,
                 None => None,
             };
+            let initial_run_mode = persisted.run_mode.clone();
             app.manage(DesktopAppState {
                 persisted: Mutex::new(persisted),
                 session: Mutex::new(session),
@@ -2362,9 +2415,28 @@ fn main() {
                 connection: Mutex::new(DesktopConnectionSnapshot::default()),
                 last_monitor: Mutex::new(MonitorSnapshot::default()),
                 monitor_generation: AtomicU64::new(0),
-                run_mode: Mutex::new(RunMode::Remote),
+                run_mode: Mutex::new(initial_run_mode.clone()),
                 local_store: Mutex::new(None),
             });
+
+            // Init local store at startup if persisted mode is Local or Hybrid
+            if initial_run_mode == RunMode::Local || initial_run_mode == RunMode::Hybrid {
+                let app_dir = app.path().app_data_dir().map_err(|err| err.to_string())?;
+                std::fs::create_dir_all(&app_dir).ok();
+                let db_path = app_dir.join("local-data.db");
+                match SqliteStore::open(&db_path) {
+                    Ok(store) => {
+                        let state = app.state::<DesktopAppState>();
+                        if let Ok(mut ls) = state.local_store.lock() {
+                            *ls = Some(store);
+                        }
+                    }
+                    Err(e) => {
+                        log_error!("Failed to init local store at startup: {}", e);
+                    }
+                }
+            }
+
             setup_tray(&app.handle(), &language_tag)?;
             restart_monitor(&app.handle());
             Ok(())
