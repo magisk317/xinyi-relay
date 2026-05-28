@@ -102,7 +102,7 @@ export function DesktopProvider({ children }: PropsWithChildren) {
         setPendingAuthStart(null)
       }
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : 'Failed to bootstrap desktop runtime.')
+      setError(nextError instanceof Error ? nextError.message : 'error.bootstrapFailed')
     } finally {
       setLoading(false)
     }
@@ -119,7 +119,7 @@ export function DesktopProvider({ children }: PropsWithChildren) {
       void getCurrentWindow().setFocus().catch(() => {})
     } catch (nextError) {
       console.error('[desktop-auth] desktop browser login exchange failed', nextError)
-      setError(resolveErrorMessage(nextError, 'Desktop login exchange failed.'))
+      setError(resolveErrorMessage(nextError, 'error.loginExchangeFailed'))
       throw nextError
     } finally {
       setAuthBusy(false)
@@ -141,13 +141,13 @@ export function DesktopProvider({ children }: PropsWithChildren) {
         }
         if (!payload.code) {
           setAuthBusy(false)
-          setError('Desktop login callback did not include an authorization code.')
+          setError('error.loginCallbackMissing')
           return
         }
         try {
           await completeBrowserLogin(payload.code, payload.state)
         } catch (nextError) {
-          setError(nextError instanceof Error ? nextError.message : 'Desktop login exchange failed.')
+          setError(nextError instanceof Error ? nextError.message : 'error.loginExchangeFailed')
         }
       }),
       listen<DesktopConnectionSnapshot>('desktop://connection', ({ payload }) => {
@@ -173,7 +173,7 @@ export function DesktopProvider({ children }: PropsWithChildren) {
       const payload = await desktopApi.saveProfile(profile)
       syncBootstrap(payload)
     } catch (nextError) {
-      setError(resolveErrorMessage(nextError, 'Failed to save desktop backend profile.'))
+      setError(resolveErrorMessage(nextError, 'error.saveProfileFailed'))
       throw nextError
     }
   }, [resolveErrorMessage, syncBootstrap])
@@ -186,7 +186,7 @@ export function DesktopProvider({ children }: PropsWithChildren) {
       const payload = await desktopApi.deleteProfile(profileId)
       syncBootstrap(payload)
     } catch (nextError) {
-      setError(resolveErrorMessage(nextError, 'Failed to delete desktop backend profile.'))
+      setError(resolveErrorMessage(nextError, 'error.deleteProfileFailed'))
       throw nextError
     }
   }, [resolveErrorMessage, syncBootstrap])
@@ -199,7 +199,7 @@ export function DesktopProvider({ children }: PropsWithChildren) {
       const payload = await desktopApi.setActiveProfile(profileId)
       syncBootstrap(payload)
     } catch (nextError) {
-      setError(resolveErrorMessage(nextError, 'Failed to switch desktop backend profile.'))
+      setError(resolveErrorMessage(nextError, 'error.switchProfileFailed'))
       throw nextError
     }
   }, [resolveErrorMessage, syncBootstrap])
@@ -210,7 +210,7 @@ export function DesktopProvider({ children }: PropsWithChildren) {
       const payload = await desktopApi.probeBackend(profileId)
       setLastProbe(payload)
     } catch (nextError) {
-      const message = resolveErrorMessage(nextError, 'Failed to probe desktop backend.')
+      const message = resolveErrorMessage(nextError, 'error.probeFailed')
       setError(message)
       throw nextError
     }
@@ -229,22 +229,19 @@ export function DesktopProvider({ children }: PropsWithChildren) {
       } catch (nextError) {
         console.error('[desktop-auth] opening desktop browser login failed', nextError)
         setAuthBusy(false)
-        setError(resolveErrorMessage(
-          nextError,
-          'Failed to open desktop login in your browser. Copy the login URL below and open it manually.'
-        ))
+        setError(resolveErrorMessage(nextError, 'error.openLoginFailed'))
         throw nextError
       }
     } catch (nextError) {
       setAuthBusy(false)
-      setError(resolveErrorMessage(nextError, 'Failed to start desktop login.'))
+      setError(resolveErrorMessage(nextError, 'error.startLoginFailed'))
       throw nextError
     }
   }, [openExternalUrl, resolveErrorMessage])
 
   const retryPendingBrowserOpen = useCallback(async () => {
     if (!pendingAuthStart) {
-      throw new Error('No pending desktop login URL is available.')
+      throw new Error('error.noLoginUrl')
     }
 
     setError('')
@@ -254,10 +251,7 @@ export function DesktopProvider({ children }: PropsWithChildren) {
       setAuthBusy(false)
     } catch (nextError) {
       setAuthBusy(false)
-      setError(resolveErrorMessage(
-        nextError,
-        'Failed to open desktop login in your browser. Copy the login URL below and open it manually.'
-      ))
+      setError(resolveErrorMessage(nextError, 'error.openLoginFailed'))
       throw nextError
     }
   }, [openExternalUrl, pendingAuthStart, resolveErrorMessage])
@@ -269,7 +263,7 @@ export function DesktopProvider({ children }: PropsWithChildren) {
       const payload = await desktopApi.logout()
       syncBootstrap(payload)
     } catch (nextError) {
-      setError(resolveErrorMessage(nextError, 'Failed to sign out from the desktop backend.'))
+      setError(resolveErrorMessage(nextError, 'error.signOutFailed'))
       throw nextError
     }
   }, [resolveErrorMessage, syncBootstrap])
@@ -280,7 +274,7 @@ export function DesktopProvider({ children }: PropsWithChildren) {
       const payload = await desktopApi.exportDiagnostics()
       setLastDiagnosticsExport(payload)
     } catch (nextError) {
-      setError(resolveErrorMessage(nextError, 'Failed to export desktop diagnostics.'))
+      setError(resolveErrorMessage(nextError, 'error.exportDiagnosticsFailed'))
       throw nextError
     }
   }, [resolveErrorMessage])
@@ -291,7 +285,7 @@ export function DesktopProvider({ children }: PropsWithChildren) {
       const payload = await desktopApi.updateNotifications(preferences)
       syncBootstrap(payload)
     } catch (nextError) {
-      setError(resolveErrorMessage(nextError, 'Failed to update desktop notification preferences.'))
+      setError(resolveErrorMessage(nextError, 'error.updateNotificationsFailed'))
       throw nextError
     }
   }, [resolveErrorMessage, syncBootstrap])
@@ -301,7 +295,7 @@ export function DesktopProvider({ children }: PropsWithChildren) {
       setError('')
       await desktopApi.sendTestNotification()
     } catch (nextError) {
-      setError(resolveErrorMessage(nextError, 'Failed to send desktop test notification.'))
+      setError(resolveErrorMessage(nextError, 'error.sendTestNotificationFailed'))
       throw nextError
     }
   }, [resolveErrorMessage])
@@ -313,7 +307,7 @@ export function DesktopProvider({ children }: PropsWithChildren) {
       setRunMode(mode)
       syncBootstrap(payload)
     } catch (nextError) {
-      setError(resolveErrorMessage(nextError, 'Failed to switch run mode.'))
+      setError(resolveErrorMessage(nextError, 'error.switchRunModeFailed'))
       throw nextError
     }
   }, [resolveErrorMessage, syncBootstrap])
@@ -324,7 +318,7 @@ export function DesktopProvider({ children }: PropsWithChildren) {
       const report = await desktopApi.sync(direction)
       return report
     } catch (nextError) {
-      setError(resolveErrorMessage(nextError, 'Sync failed.'))
+      setError(resolveErrorMessage(nextError, 'error.syncFailed'))
       throw nextError
     }
   }, [resolveErrorMessage])

@@ -18,17 +18,19 @@ export function LoginPage() {
     retryPendingBrowserOpen,
     error,
     lastProbe,
-    probeBackend
+    probeBackend,
+    runMode,
+    switchRunMode
   } = useDesktop()
   const [manualAuthInput, setManualAuthInput] = useState('')
   const [copiedKey, setCopiedKey] = useState<'auth' | 'callback' | null>(null)
   const [autoSubmitting, setAutoSubmitting] = useState(false)
 
   useEffect(() => {
-    if (session.authenticated) {
+    if (session.authenticated || runMode === 'local') {
       navigate('/overview', { replace: true })
     }
-  }, [navigate, session.authenticated])
+  }, [navigate, session.authenticated, runMode])
 
   useEffect(() => {
     setManualAuthInput('')
@@ -67,7 +69,38 @@ export function LoginPage() {
           actions={session.authenticated ? <Tag tone="success">{t('login.alreadyAuthenticated')}</Tag> : null}
         >
           <div className="stack">
-            {error ? <div className="banner banner--danger">{error}</div> : null}
+            {error ? <div className="banner banner--danger">{t(error)}</div> : null}
+
+            <div className="run-mode-switcher">
+              <div className="run-mode-label">{t('login.modeTitle')}</div>
+              <div className="run-mode-options">
+                <button
+                  type="button"
+                  className={`run-mode-button ${runMode === 'local' ? 'run-mode-button--active' : ''}`}
+                  onClick={() => void switchRunMode('local').catch(() => {})}
+                >
+                  <span className="run-mode-button-title">{t('login.modeLocal')}</span>
+                  <span className="run-mode-button-desc">{t('login.modeLocalDesc')}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`run-mode-button ${runMode === 'remote' ? 'run-mode-button--active' : ''}`}
+                  onClick={() => void switchRunMode('remote').catch(() => {})}
+                >
+                  <span className="run-mode-button-title">{t('login.modeRemote')}</span>
+                  <span className="run-mode-button-desc">{t('login.modeRemoteDesc')}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`run-mode-button ${runMode === 'hybrid' ? 'run-mode-button--active' : ''}`}
+                  onClick={() => void switchRunMode('hybrid').catch(() => {})}
+                >
+                  <span className="run-mode-button-title">{t('login.modeHybrid')}</span>
+                  <span className="run-mode-button-desc">{t('login.modeHybridDesc')}</span>
+                </button>
+              </div>
+            </div>
+
             <div className="info-row">
               <span>{t('login.profile')}</span>
               <strong>{activeProfile?.name ?? t('login.noActiveProfile')}</strong>
@@ -172,7 +205,7 @@ export function LoginPage() {
                 <div className="callout-title">{t('login.probeResult')}</div>
                 <div>{lastProbe.message}</div>
                 <div className="callout-meta">
-                  TLS: {lastProbe.certificateStatus} · Self-signed override: {lastProbe.allowSelfSigned ? 'enabled' : 'disabled'}
+                  TLS: {lastProbe.certificateStatus} · {t('profile.field.allowSelfSigned')}: {lastProbe.allowSelfSigned ? t('login.selfSignedEnabled') : t('login.selfSignedDisabled')}
                 </div>
               </div>
             ) : null}

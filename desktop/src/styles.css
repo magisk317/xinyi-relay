@@ -805,3 +805,62 @@ p {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+.run-mode-switcher {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(142, 163, 205, 0.12);
+}
+
+.run-mode-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(142, 163, 205, 0.7);
+}
+
+.run-mode-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.run-mode-button {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(142, 163, 205, 0.15);
+  background: rgba(255, 255, 255, 0.02);
+  color: #eef5ff;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.run-mode-button:hover {
+  border-color: rgba(92, 133, 255, 0.4);
+  background: rgba(92, 133, 255, 0.08);
+}
+
+.run-mode-button--active {
+  border-color: rgba(92, 133, 255, 0.6);
+  background: rgba(92, 133, 255, 0.15);
+  box-shadow: 0 0 0 1px rgba(92, 133, 255, 0.3);
+}
+
+.run-mode-button-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.run-mode-button-desc {
+  font-size: 11px;
+  color: rgba(142, 163, 205, 0.65);
+  line-height: 1.3;
+}

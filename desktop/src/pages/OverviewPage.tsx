@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { desktopApi } from '../api/desktopApi'
 import { useDesktopRealtimeRefresh } from '../hooks/useDesktopRealtimeRefresh'
 import { useDesktopI18n } from '../i18n'
@@ -23,8 +24,15 @@ type OverviewSnapshot = {
 }
 
 export function OverviewPage() {
+  const navigate = useNavigate()
   const { t } = useDesktopI18n()
-  const { bootstrap, activeProfile, connection, lastRealtimeEvent, session } = useDesktop()
+  const { bootstrap, activeProfile, connection, lastRealtimeEvent, session, runMode } = useDesktop()
+
+  useEffect(() => {
+    if (runMode === 'local') {
+      navigate('/devices', { replace: true })
+    }
+  }, [navigate, runMode])
   const [snapshot, setSnapshot] = useState<OverviewSnapshot>({
     systemInfo: null,
     devices: [],
@@ -35,6 +43,7 @@ export function OverviewPage() {
   const [error, setError] = useState('')
 
   const load = useCallback(async () => {
+    if (runMode === 'local') return
     try {
       setLoading(true)
       setError('')
@@ -55,7 +64,7 @@ export function OverviewPage() {
     } finally {
       setLoading(false)
     }
-  }, [t])
+  }, [runMode, t])
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -90,7 +99,7 @@ export function OverviewPage() {
           </div>
         }
       >
-        {error ? <div className="banner banner--danger">{error}</div> : null}
+        {error ? <div className="banner banner--danger">{t(error)}</div> : null}
         <div className="metrics-grid metrics-grid--overview">
           <Metric label={t('overview.platform')} value={bootstrap?.platform ?? 'desktop'} />
           <Metric label={t('overview.session')} value={session.authenticated ? t('common.authenticated') : t('common.signedOut')} />

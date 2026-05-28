@@ -46,16 +46,16 @@ export function AdvancedPage() {
         }
       />
 
-      <Panel title={t('advanced.runModeTitle') ?? 'Run Mode'}>
+      <Panel title={t('advanced.runModeTitle')}>
         <div className="stack">
           <div className="field">
-            <span>{t('advanced.runModeLabel') ?? 'Desktop run mode'}</span>
+            <span>{t('advanced.runModeLabel')}</span>
             <DesktopSelect<RunMode>
               value={runMode}
               options={[
-                { value: 'remote', label: 'Remote (backend only)' },
-                { value: 'local', label: 'Local (SQLite only)' },
-                { value: 'hybrid', label: 'Hybrid (local + sync)' }
+                { value: 'remote', label: t('advanced.modeRemote') },
+                { value: 'local', label: t('advanced.modeLocal') },
+                { value: 'hybrid', label: t('advanced.modeHybrid') }
               ]}
               onChange={(value) => {
                 if (value) void switchRunMode(value).catch(() => {})
@@ -76,7 +76,7 @@ export function AdvancedPage() {
                     .finally(() => setSyncBusy(false))
                 }}
               >
-                {syncBusy ? 'Syncing...' : 'Pull from remote'}
+                {syncBusy ? t('advanced.syncing') : t('advanced.pullFromRemote')}
               </button>
               <button
                 type="button"
@@ -90,16 +90,16 @@ export function AdvancedPage() {
                     .finally(() => setSyncBusy(false))
                 }}
               >
-                {syncBusy ? 'Syncing...' : 'Push to remote'}
+                {syncBusy ? t('advanced.syncing') : t('advanced.pushToRemote')}
               </button>
             </div>
           ) : null}
           {lastSyncReport ? (
             <div className="callout">
-              <div className="callout-title">Sync result</div>
-              <div>Config: {JSON.stringify(lastSyncReport.config)}</div>
+              <div className="callout-title">{t('advanced.syncResult')}</div>
+              <div>{t('advanced.syncConfig')}: {JSON.stringify(lastSyncReport.config)}</div>
               <div className="callout-meta">
-                Devices: {lastSyncReport.devicesSynced} | Records: {lastSyncReport.recordsSynced}
+                {t('advanced.syncDevices')}: {lastSyncReport.devicesSynced} | {t('advanced.syncRecords')}: {lastSyncReport.recordsSynced}
               </div>
             </div>
           ) : null}

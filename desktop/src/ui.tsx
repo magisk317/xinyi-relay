@@ -13,8 +13,10 @@ import { useDesktop } from './state/DesktopContext'
 
 export function DesktopShell() {
   const navigate = useNavigate()
-  const { activeProfile, connection, error, logout, session, runMode } = useDesktop()
+  const { activeProfile, connection, error, logout, refreshBootstrap, session, runMode } = useDesktop()
   const { brandName, t } = useDesktopI18n()
+  const localProfileName = t('shell.localProfileName')
+  const localProfileUrl = t('shell.localProfileUrl')
   const [showBackendUrl, setShowBackendUrl] = useState(false)
   const nav = [
     ['overview', t('app.route.overview')],
@@ -43,8 +45,10 @@ export function DesktopShell() {
           <div className="sidebar-label">{t('shell.activeBackend')}</div>
           <div className="profile-card">
             <div className="profile-card-head">
-              <div className="profile-name">{activeProfile?.name ?? t('shell.noProfile')}</div>
-              {activeProfile?.baseUrl ? (
+              <div className="profile-name">
+                {runMode === 'local' ? localProfileName : (activeProfile?.name ?? t('shell.noProfile'))}
+              </div>
+              {runMode !== 'local' && activeProfile?.baseUrl ? (
                 <button
                   type="button"
                   className="icon-toggle-button"
@@ -60,16 +64,18 @@ export function DesktopShell() {
               ) : null}
             </div>
             <div className={`profile-url${showBackendUrl ? '' : ' profile-url--hidden'}`}>
-              {activeProfile?.baseUrl
-                ? (showBackendUrl ? activeProfile.baseUrl : maskSensitiveText(activeProfile.baseUrl))
-                : '—'}
+              {runMode === 'local'
+                ? localProfileUrl
+                : activeProfile?.baseUrl
+                  ? (showBackendUrl ? activeProfile.baseUrl : maskSensitiveText(activeProfile.baseUrl))
+                  : '—'}
             </div>
           </div>
         </div>
 
         <div className="sidebar-section">
-          <div className="sidebar-label">Mode</div>
-          <Tag tone={runModeTone(runMode)}>{runMode.toUpperCase()}</Tag>
+          <div className="sidebar-label">{t('shell.mode')}</div>
+          <Tag tone={runModeTone(runMode)}>{t(`status.${runMode}`) || runMode.toUpperCase()}</Tag>
         </div>
 
         <nav className="nav-rail">
@@ -86,7 +92,7 @@ export function DesktopShell() {
 
         <div className="sidebar-footer">
           <Tag tone={connectionTone(connection.state)}>{translateConnectionState(connection.state, t).toUpperCase()}</Tag>
-          <button type="button" className="ghost-button" onClick={() => void logout()}>
+          <button type="button" className="ghost-button" onClick={() => void (session.authenticated ? logout() : refreshBootstrap())}>
             {session.authenticated ? t('shell.signOut') : t('shell.refresh')}
           </button>
         </div>
@@ -104,7 +110,7 @@ export function DesktopShell() {
           </div>
         </header>
 
-        {error ? <div className="banner banner--danger">{error}</div> : null}
+        {error ? <div className="banner banner--danger">{t(error)}</div> : null}
         <Outlet />
       </main>
     </div>
@@ -295,9 +301,9 @@ export function translateConnectionState(state: string, t: (key: string) => stri
     case 'connecting':
       return t('status.connecting')
     case 'local':
-      return 'Local mode'
+      return t('status.local')
     case 'hybrid':
-      return 'Hybrid mode'
+      return t('status.hybrid')
     default:
       return state
   }
