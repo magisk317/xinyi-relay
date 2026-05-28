@@ -66,7 +66,7 @@ libxposed-api = "101.0.1"
 libxposed-service = "101.0.0"
 firebase-bom = "34.13.0"
 google-services = "4.4.4"
-play-services-auth = "21.5.1"
+play-services-auth = "21.6.0"
 billing = "9.0.0"
 zxing-android-embedded = "4.3.0"
 
