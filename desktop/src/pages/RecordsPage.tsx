@@ -87,7 +87,7 @@ export function RecordsPage() {
         </div>
       }
     >
-      {error ? <div className="banner banner--danger">{error}</div> : null}
+      {error ? <div className="banner banner--danger">{t(error)}</div> : null}
       <div className="metrics-grid">
         <div className="metric-card">
           <div className="metric-label">{t('common.visibleRecords')}</div>

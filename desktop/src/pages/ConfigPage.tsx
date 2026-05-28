@@ -71,7 +71,7 @@ export function ConfigPage() {
           </div>
         }
       >
-        {error ? <div className="banner banner--danger">{error}</div> : null}
+        {error ? <div className="banner banner--danger">{t(error)}</div> : null}
         <div className="metrics-grid">
           <Metric label={t('analytics.cloudRevision')} value={config?.revision ?? 0} />
           <Metric label={t('app.route.senders')} value={root?.senders?.length ?? 0} />

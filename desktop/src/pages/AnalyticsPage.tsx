@@ -120,7 +120,7 @@ export function AnalyticsPage() {
           </div>
         }
       >
-        {error ? <div className="banner banner--danger">{error}</div> : null}
+        {error ? <div className="banner banner--danger">{t(error)}</div> : null}
         <div className="metrics-grid">
           <Metric label={t('analytics.cloudRevision')} value={currentRevision} />
           <Metric label={t('analytics.verificationSms')} value={stats.smsCode} />

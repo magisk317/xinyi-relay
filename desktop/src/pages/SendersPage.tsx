@@ -72,7 +72,7 @@ export function SendersPage() {
           </div>
         }
       >
-        {error ? <div className="banner banner--danger">{error}</div> : null}
+        {error ? <div className="banner banner--danger">{t(error)}</div> : null}
         <div className="metrics-grid">
           <Metric label={t('senders.total')} value={senders.length} />
           <Metric label={t('devices.enabled')} value={enabledCount} />

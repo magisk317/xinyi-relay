@@ -72,7 +72,7 @@ export function AppsPage() {
           </div>
         }
       >
-        {error ? <div className="banner banner--danger">{error}</div> : null}
+        {error ? <div className="banner banner--danger">{t(error)}</div> : null}
         <div className="metrics-grid">
           <Metric label={t('apps.trackedApps')} value={appInfos.length} />
           <Metric label={t('common.blocked')} value={appInfos.filter((item) => item.blocked).length} />
