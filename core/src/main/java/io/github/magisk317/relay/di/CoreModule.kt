@@ -6,7 +6,6 @@ import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.prefs.PrefsReader
 import io.github.magisk317.relay.android.service.SystemInfoProviderImpl
 import io.github.magisk317.relay.app.sender.SenderTestService
-import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.contract.repository.RemoteSyncRepository
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.data.repository.AnalyticsRepository
@@ -36,13 +35,11 @@ import org.koin.dsl.module
  * Single source of truth for the application object graph.
  *
  * Every runtime singleton is constructed here exactly once. Non-UI code reaches
- * these singletons through [RuntimeGraph], which is a thin typed facade that
+ * these singletons through RuntimeGraph, which is a thin typed facade that
  * resolves each member from this Koin container, so there is no separate
  * hand-maintained construction list to keep in sync.
  */
 val coreModule = module {
-    single { RuntimeGraph.from(androidContext()) }
-
     single { AppDatabase.getInstance(androidContext()) }
     single<PreferenceDataSource> { PreferenceDataSourceImpl(androidContext()) }
 
