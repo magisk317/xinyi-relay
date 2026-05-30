@@ -193,6 +193,7 @@ func TestConfigSnapshotActor(t *testing.T) {
 		{"session", authContext{Kind: authKindSession, User: store.User{ID: 9}}, "web_session", 9},
 		{"desktop", authContext{Kind: authKindDesktop, DesktopSession: store.DesktopSession{ID: 5}}, "desktop_session", 5},
 		{"device", authContext{Kind: authKindDevice, Device: store.Device{ID: 7}}, "device", 7},
+		{"unknown", authContext{Kind: authKind("future"), User: store.User{ID: 9}}, "future", 9},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -208,8 +209,9 @@ func TestHandleConfigSnapshotGetViaDevice(t *testing.T) {
 	// End-to-end through withConfigAuth: a device Bearer reaches the unified
 	// GET handler and serves the snapshot for the device's user.
 	s := &Server{store: authFakeStore{
-		device:   store.Device{ID: 7, UserID: 9},
-		snapshot: store.ConfigSnapshot{Revision: 3, Content: json.RawMessage(`{"a":1}`)},
+		desktopErr: store.ErrNotFound, // force fall-through to the device attempt
+		device:     store.Device{ID: 7, UserID: 9},
+		snapshot:   store.ConfigSnapshot{Revision: 3, Content: json.RawMessage(`{"a":1}`)},
 	}}
 	req := withBearer(httptest.NewRequest(http.MethodGet, "/api/v1/config/snapshot", nil))
 	rec := httptest.NewRecorder()

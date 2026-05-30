@@ -121,7 +121,10 @@ func (s *Server) requireAuth(realm string, attempts ...authAttempt) func(authHan
 		return func(w http.ResponseWriter, r *http.Request) {
 			auth, err := s.resolveAuth(r, attempts...)
 			if err != nil {
-				if errors.Is(err, store.ErrNotFound) || errors.Is(err, errNoCredential) {
+				// resolveAuth collapses "no credential" and "invalid
+				// credential" into store.ErrNotFound; anything else is an
+				// infrastructure failure.
+				if errors.Is(err, store.ErrNotFound) {
 					writeError(w, http.StatusUnauthorized, realm)
 					return
 				}

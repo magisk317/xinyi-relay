@@ -34,8 +34,13 @@ func configSnapshotActor(auth authContext) (string, int64) {
 		return "device", auth.Device.ID
 	case authKindDesktop:
 		return string(auth.Kind), auth.DesktopSession.ID
-	default:
+	case authKindSession:
 		return "web_session", auth.User.ID
+	default:
+		// Surface any future/unknown kind by its raw value rather than
+		// collapsing it into "web_session", so it stays distinguishable in
+		// the audit log.
+		return string(auth.Kind), auth.User.ID
 	}
 }
 
