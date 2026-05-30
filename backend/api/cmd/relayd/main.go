@@ -56,6 +56,14 @@ func main() {
 		log.Printf("Logging to file: %s", cfg.LogFile)
 	}
 
+	issues, err := cfg.Validate()
+	for _, issue := range issues {
+		log.Printf("[security] %s", issue)
+	}
+	if err != nil {
+		log.Fatalf("relay backend refusing to start: %v", err)
+	}
+
 	log.Printf("relay backend connecting to database")
 	server, err := relayhttp.NewServer(context.Background(), cfg)
 	if err != nil {
