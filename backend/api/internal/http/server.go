@@ -70,7 +70,7 @@ func NewServer(ctx context.Context, cfg config.Config) (*Server, error) {
 	mux.HandleFunc("/api/v1/agent/records:batch", s.withDevice(s.handleAgentRecordsBatch))
 	mux.HandleFunc("/api/v1/devices", s.withConsoleAuth(s.handleDevices))
 	mux.HandleFunc("/api/v1/devices/", s.withConsoleAuth(s.handleDeviceByID))
-	mux.HandleFunc("/api/v1/config/snapshot", s.handleConfigSnapshot)
+	mux.HandleFunc("/api/v1/config/snapshot", s.withConfigAuth(s.handleConfigSnapshot))
 	mux.HandleFunc("/api/v1/config/audit", s.withConsoleAuth(s.handleConfigAuditLogs))
 	mux.HandleFunc("/api/v1/records", s.withConsoleAuth(s.handleRecords))
 	mux.HandleFunc("/api/v1/records/", s.withConsoleAuth(s.handleRecordByID))

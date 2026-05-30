@@ -6,55 +6,41 @@ import (
 	"github.com/magisk317/xinyi-relay/backend/api/internal/store"
 )
 
-func (s *Server) handleConfigSnapshot(w http.ResponseWriter, r *http.Request) {
-	if tokenHash := hashBearerToken(r); tokenHash != "" {
-		if auth, err := s.authenticateDesktopSession(r); err == nil {
-			s.handleConfigSnapshotForDesktop(w, r.WithContext(withAuthContext(r.Context(), auth)), auth)
-			return
-		} else if err != nil && err != store.ErrNotFound {
-			writeError(w, http.StatusInternalServerError, "desktop session lookup failed")
-			return
-		}
-		s.withDevice(s.handleConfigSnapshotForDevice)(w, r)
-		return
-	}
-	s.withSession(s.handleConfigSnapshotForSession)(w, r)
-}
-
-func (s *Server) handleConfigSnapshotForSession(w http.ResponseWriter, r *http.Request, auth authContext) {
+// handleConfigSnapshot serves the per-user config snapshot to whichever client
+// authenticated (Web session, desktop session, or device). withConfigAuth has
+// already resolved the credential; here we only branch on the kind to derive
+// the audit actor and to enforce CSRF on the Web session path.
+func (s *Server) handleConfigSnapshot(w http.ResponseWriter, r *http.Request, auth authContext) {
 	switch r.Method {
 	case http.MethodGet:
 		s.respondConfigSnapshot(w, r, auth.User.ID)
 	case http.MethodPut:
-		if !verifyCSRF(r, auth.Session) {
+		if auth.Kind == authKindSession && !verifyCSRF(r, auth.Session) {
 			writeError(w, http.StatusForbidden, "invalid csrf token")
 			return
 		}
-		s.acceptConfigSnapshot(w, r, auth.User.ID, "web_session", auth.User.ID)
+		actorType, actorID := configSnapshotActor(auth)
+		s.acceptConfigSnapshot(w, r, auth.User.ID, actorType, actorID)
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 	}
 }
 
-func (s *Server) handleConfigSnapshotForDevice(w http.ResponseWriter, r *http.Request, auth authContext) {
-	switch r.Method {
-	case http.MethodGet:
-		s.respondConfigSnapshot(w, r, auth.Device.UserID)
-	case http.MethodPut:
-		s.acceptConfigSnapshot(w, r, auth.Device.UserID, "device", auth.Device.ID)
+// configSnapshotActor maps the authenticated principal to the (actorType,
+// actorID) recorded in the config audit log.
+func configSnapshotActor(auth authContext) (string, int64) {
+	switch auth.Kind {
+	case authKindDevice:
+		return "device", auth.Device.ID
+	case authKindDesktop:
+		return string(auth.Kind), auth.DesktopSession.ID
+	case authKindSession:
+		return "web_session", auth.User.ID
 	default:
-		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
-	}
-}
-
-func (s *Server) handleConfigSnapshotForDesktop(w http.ResponseWriter, r *http.Request, auth authContext) {
-	switch r.Method {
-	case http.MethodGet:
-		s.respondConfigSnapshot(w, r, auth.User.ID)
-	case http.MethodPut:
-		s.acceptConfigSnapshot(w, r, auth.User.ID, string(auth.Kind), auth.DesktopSession.ID)
-	default:
-		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		// Surface any future/unknown kind by its raw value rather than
+		// collapsing it into "web_session", so it stays distinguishable in
+		// the audit log.
+		return string(auth.Kind), auth.User.ID
 	}
 }
 
