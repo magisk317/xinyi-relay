@@ -78,8 +78,8 @@ func (s *Server) acceptConfigSnapshot(
 	actorID int64,
 ) {
 	var payload configSnapshotRequest
-	if err := decodeJSON(r, &payload); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid payload")
+	if err := decodeJSON(w, r, &payload, maxConfigBodyBytes); err != nil {
+		writeDecodeError(w, err)
 		return
 	}
 	payload.Snapshot = parseJSONMap(payload.Snapshot)

@@ -13,8 +13,8 @@ func (s *Server) handleAgentRecordsBatch(w http.ResponseWriter, r *http.Request,
 	}
 
 	var payload relayRecordsBatchRequest
-	if err := decodeJSON(r, &payload); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid payload")
+	if err := decodeJSON(w, r, &payload, maxRecordsBodyBytes); err != nil {
+		writeDecodeError(w, err)
 		return
 	}
 

@@ -125,8 +125,8 @@ func (s *Server) handleBootstrapAdmin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var payload bootstrapAdminRequest
-	if err := decodeJSON(r, &payload); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid payload")
+	if err := decodeJSON(w, r, &payload, maxAuthBodyBytes); err != nil {
+		writeDecodeError(w, err)
 		return
 	}
 	payload.Username = strings.TrimSpace(payload.Username)
@@ -170,8 +170,8 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var payload loginRequest
-	if err := decodeJSON(r, &payload); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid payload")
+	if err := decodeJSON(w, r, &payload, maxAuthBodyBytes); err != nil {
+		writeDecodeError(w, err)
 		return
 	}
 	payload.Username = strings.TrimSpace(payload.Username)
@@ -256,8 +256,8 @@ func (s *Server) handleChangePassword(w http.ResponseWriter, r *http.Request, au
 	}
 
 	var payload changePasswordRequest
-	if err := decodeJSON(r, &payload); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid payload")
+	if err := decodeJSON(w, r, &payload, maxAuthBodyBytes); err != nil {
+		writeDecodeError(w, err)
 		return
 	}
 	if payload.CurrentPassword == "" || payload.NewPassword == "" {
@@ -470,7 +470,11 @@ func (s *Server) handleDesktopAuthExchange(w http.ResponseWriter, r *http.Reques
 	}
 
 	var payload desktopExchangeRequest
-	if err := decodeJSON(r, &payload); err != nil || strings.TrimSpace(payload.Code) == "" {
+	if err := decodeJSON(w, r, &payload, maxAuthBodyBytes); err != nil {
+		writeDecodeError(w, err)
+		return
+	}
+	if strings.TrimSpace(payload.Code) == "" {
 		writeError(w, http.StatusBadRequest, "desktop exchange code is required")
 		return
 	}
@@ -535,7 +539,11 @@ func (s *Server) handleDesktopAuthRefresh(w http.ResponseWriter, r *http.Request
 	}
 
 	var payload desktopRefreshRequest
-	if err := decodeJSON(r, &payload); err != nil || strings.TrimSpace(payload.RefreshToken) == "" {
+	if err := decodeJSON(w, r, &payload, maxAuthBodyBytes); err != nil {
+		writeDecodeError(w, err)
+		return
+	}
+	if strings.TrimSpace(payload.RefreshToken) == "" {
 		writeError(w, http.StatusBadRequest, "refresh token is required")
 		return
 	}
@@ -603,7 +611,11 @@ func (s *Server) handleDesktopAuthLogout(w http.ResponseWriter, r *http.Request)
 	}
 
 	var payload desktopLogoutRequest
-	if err := decodeJSON(r, &payload); err != nil || strings.TrimSpace(payload.RefreshToken) == "" {
+	if err := decodeJSON(w, r, &payload, maxAuthBodyBytes); err != nil {
+		writeDecodeError(w, err)
+		return
+	}
+	if strings.TrimSpace(payload.RefreshToken) == "" {
 		writeError(w, http.StatusBadRequest, "desktop access or refresh token is required")
 		return
 	}

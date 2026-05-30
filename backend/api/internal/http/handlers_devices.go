@@ -44,8 +44,8 @@ func (s *Server) handleAgentRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var payload agentRegisterRequest
-	if err := decodeJSON(r, &payload); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid payload")
+	if err := decodeJSON(w, r, &payload, maxDeviceBodyBytes); err != nil {
+		writeDecodeError(w, err)
 		return
 	}
 	payload.BindCode = strings.TrimSpace(payload.BindCode)
@@ -107,8 +107,8 @@ func (s *Server) handleAgentHeartbeat(w http.ResponseWriter, r *http.Request, au
 	}
 
 	var payload heartbeatRequest
-	if err := decodeJSON(r, &payload); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid payload")
+	if err := decodeJSON(w, r, &payload, maxDeviceBodyBytes); err != nil {
+		writeDecodeError(w, err)
 		return
 	}
 
@@ -163,8 +163,8 @@ func (s *Server) handleDeviceByID(w http.ResponseWriter, r *http.Request, auth a
 			return
 		}
 		var payload patchDeviceRequest
-		if err := decodeJSON(r, &payload); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid payload")
+		if err := decodeJSON(w, r, &payload, maxDeviceBodyBytes); err != nil {
+			writeDecodeError(w, err)
 			return
 		}
 		device, err := s.store.PatchDevice(r.Context(), auth.User.ID, deviceID, payload.DisplayName, payload.Enabled)
