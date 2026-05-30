@@ -991,19 +991,25 @@ func (s *Store) PruneRelayRecords(ctx context.Context, userID int64, retention R
 		if limit <= 0 {
 			continue
 		}
+		// Delete everything older than the Nth most recent row for this type.
+		// The cutoff subquery seeks straight to that row via the
+		// (user_id, record_type, occurred_at DESC, id DESC) index, and the
+		// tuple comparison lets the outer DELETE range-scan instead of testing
+		// every row against a large NOT IN set. When fewer than N rows exist the
+		// subquery yields NULL, so nothing is deleted.
 		tag, err := tx.Exec(
 			ctx,
 			`DELETE FROM relay_records
 			  WHERE user_id = $1 AND record_type = $2
-			    AND id NOT IN (
-			        SELECT id FROM relay_records
+			    AND (occurred_at, id) < (
+			        SELECT occurred_at, id FROM relay_records
 			         WHERE user_id = $1 AND record_type = $2
 			         ORDER BY occurred_at DESC, id DESC
-			         LIMIT $3
+			         OFFSET $3 LIMIT 1
 			    )`,
 			userID,
 			recordType,
-			limit,
+			limit-1,
 		)
 		if err != nil {
 			return 0, err
@@ -1016,14 +1022,14 @@ func (s *Store) PruneRelayRecords(ctx context.Context, userID int64, retention R
 			ctx,
 			`DELETE FROM relay_records
 			  WHERE user_id = $1
-			    AND id NOT IN (
-			        SELECT id FROM relay_records
+			    AND (occurred_at, id) < (
+			        SELECT occurred_at, id FROM relay_records
 			         WHERE user_id = $1
 			         ORDER BY occurred_at DESC, id DESC
-			         LIMIT $2
+			         OFFSET $2 LIMIT 1
 			    )`,
 			userID,
-			retention.MaxPerUser,
+			retention.MaxPerUser-1,
 		)
 		if err != nil {
 			return 0, err
