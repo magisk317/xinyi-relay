@@ -68,6 +68,9 @@ dependencies {
     
     implementation(libs.timber)
 
+    // Dependency injection (RuntimeGraph resolves singletons from the Koin container)
+    implementation(libs.koin.core)
+
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.mockk)
