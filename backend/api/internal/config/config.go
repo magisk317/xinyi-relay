@@ -25,6 +25,14 @@ type Config struct {
 	TrustProxyHeaders    bool
 	LogFile              string
 	LogLevel             string
+
+	// Relay record retention. Pruning runs after each ingest batch.
+	// RecordsFollowDeviceLimits applies the per-type history limits the device
+	// already syncs in its config snapshot. RecordsMaxPerUser and
+	// RecordsRetentionDays are optional global caps (0 = disabled).
+	RecordsFollowDeviceLimits bool
+	RecordsMaxPerUser         int
+	RecordsRetentionDays      int
 }
 
 func Load() Config {
@@ -43,6 +51,10 @@ func Load() Config {
 		TrustProxyHeaders:    getEnvBool("RELAY_TRUST_PROXY_HEADERS", true),
 		LogFile:              getEnv("RELAY_LOG_FILE", ""),
 		LogLevel:             getEnv("RELAY_LOG_LEVEL", "info"),
+
+		RecordsFollowDeviceLimits: getEnvBool("RELAY_RECORDS_FOLLOW_DEVICE_LIMITS", true),
+		RecordsMaxPerUser:         getEnvInt("RELAY_RECORDS_MAX_PER_USER", 0),
+		RecordsRetentionDays:      getEnvInt("RELAY_RECORDS_RETENTION_DAYS", 0),
 	}
 }
 

@@ -1,7 +1,13 @@
 package http
 
 import (
+	"context"
+	"encoding/json"
+	"log"
 	"net/http"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/magisk317/xinyi-relay/backend/api/internal/store"
 )
@@ -40,11 +46,74 @@ func (s *Server) handleAgentRecordsBatch(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
+	// Best-effort retention: trim the user's records after ingest. A pruning
+	// failure must not fail the upload, so it is logged and ignored.
+	if _, err := s.store.PruneRelayRecords(r.Context(), auth.Device.UserID, s.recordsRetention(r.Context(), auth.Device.UserID)); err != nil {
+		log.Printf("[records] prune for user %d failed: %v", auth.Device.UserID, err)
+	}
+
 	s.hub.Broadcast(auth.Device.UserID, "records.ingested", map[string]any{
 		"deviceId": auth.Device.ID,
 		"inserted": inserted,
 	})
 	writeJSON(w, http.StatusOK, relayRecordsBatchResponse{Inserted: inserted})
+}
+
+// recordsRetention builds the retention policy for a user from server config,
+// optionally following the per-type history limits the device already syncs in
+// its config snapshot.
+func (s *Server) recordsRetention(ctx context.Context, userID int64) store.RecordsRetention {
+	retention := store.RecordsRetention{
+		MaxPerUser: s.cfg.RecordsMaxPerUser,
+	}
+	if s.cfg.RecordsRetentionDays > 0 {
+		retention.MaxAge = time.Duration(s.cfg.RecordsRetentionDays) * 24 * time.Hour
+	}
+	if s.cfg.RecordsFollowDeviceLimits {
+		retention.PerType = s.deviceHistoryLimits(ctx, userID)
+	}
+	return retention
+}
+
+// deviceHistoryLimits reads the per-type history limits from the user's synced
+// config snapshot and maps them to relay_records.record_type values. A
+// missing/unparseable/non-positive limit is treated as "unlimited" (matching
+// the device's own semantics) and omitted from the result.
+func (s *Server) deviceHistoryLimits(ctx context.Context, userID int64) map[string]int {
+	snapshot, err := s.store.GetConfigSnapshot(ctx, userID)
+	if err != nil || len(snapshot.Content) == 0 {
+		return nil
+	}
+
+	var parsed struct {
+		Records struct {
+			CodeHistoryLimit       string `json:"codeHistoryLimit"`
+			PlainSmsHistoryLimit   string `json:"plainSmsHistoryLimit"`
+			AppNotifyHistoryLimit  string `json:"appNotifyHistoryLimit"`
+			CallNotifyHistoryLimit string `json:"callNotifyHistoryLimit"`
+		} `json:"records"`
+	}
+	if err := json.Unmarshal(snapshot.Content, &parsed); err != nil {
+		return nil
+	}
+
+	limits := make(map[string]int, 4)
+	addHistoryLimit(limits, "sms_code", parsed.Records.CodeHistoryLimit)
+	addHistoryLimit(limits, "sms_plain", parsed.Records.PlainSmsHistoryLimit)
+	addHistoryLimit(limits, "app_notify", parsed.Records.AppNotifyHistoryLimit)
+	addHistoryLimit(limits, "call", parsed.Records.CallNotifyHistoryLimit)
+	if len(limits) == 0 {
+		return nil
+	}
+	return limits
+}
+
+func addHistoryLimit(limits map[string]int, recordType string, raw string) {
+	value, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || value <= 0 {
+		return
+	}
+	limits[recordType] = value
 }
 
 func (s *Server) handleRecords(w http.ResponseWriter, r *http.Request, auth authContext) {
