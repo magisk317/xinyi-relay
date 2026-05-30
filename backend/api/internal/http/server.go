@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gorilla/websocket"
+
 	"github.com/magisk317/xinyi-relay/backend/api/internal/config"
 	"github.com/magisk317/xinyi-relay/backend/api/internal/database"
 	"github.com/magisk317/xinyi-relay/backend/api/internal/realtime"
@@ -15,11 +17,13 @@ import (
 )
 
 type Server struct {
-	cfg    config.Config
-	db     *database.Database
-	store  *store.Store
-	hub    *realtime.Hub
-	server *http.Server
+	cfg          config.Config
+	db           *database.Database
+	store        *store.Store
+	hub          *realtime.Hub
+	server       *http.Server
+	loginLimiter *rateLimiter
+	wsUpgrader   websocket.Upgrader
 }
 
 type systemInfoResponse struct {
@@ -39,11 +43,13 @@ func NewServer(ctx context.Context, cfg config.Config) (*Server, error) {
 	}
 
 	s := &Server{
-		cfg:   cfg,
-		db:    db,
-		store: store.New(db),
-		hub:   realtime.NewHub(),
+		cfg:          cfg,
+		db:           db,
+		store:        store.New(db),
+		hub:          realtime.NewHub(),
+		loginLimiter: newRateLimiter(cfg.LoginRateLimitMax, cfg.LoginRateLimitWindow),
 	}
+	s.wsUpgrader = websocket.Upgrader{CheckOrigin: s.checkWSOrigin}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", s.handleHealth)

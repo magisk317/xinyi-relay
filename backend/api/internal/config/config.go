@@ -4,36 +4,42 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type Config struct {
-	AppEnv        string
-	HTTPAddr      string
-	LocalBaseURL  string
-	PublicBaseURL string
-	CORSOrigin    string
-	DatabaseURL   string
-	AdminUsername string
-	AdminPassword string
-	AllowInsecure bool
-	LogFile       string
-	LogLevel      string
+	AppEnv               string
+	HTTPAddr             string
+	LocalBaseURL         string
+	PublicBaseURL        string
+	CORSOrigin           string
+	DatabaseURL          string
+	AdminUsername        string
+	AdminPassword        string
+	AllowInsecure        bool
+	LoginRateLimitMax    int
+	LoginRateLimitWindow time.Duration
+	LogFile              string
+	LogLevel             string
 }
 
 func Load() Config {
 	return Config{
-		AppEnv:        getEnv("RELAY_APP_ENV", "development"),
-		HTTPAddr:      getEnv("RELAY_HTTP_ADDR", ":8080"),
-		LocalBaseURL:  getEnv("RELAY_LOCAL_BASE_URL", "http://localhost:8080"),
-		PublicBaseURL: getEnv("RELAY_PUBLIC_BASE_URL", ""),
-		CORSOrigin:    getEnv("RELAY_CORS_ORIGIN", "http://localhost:8080"),
-		DatabaseURL:   getEnv("RELAY_DATABASE_URL", ""),
-		AdminUsername: getEnv("RELAY_ADMIN_USERNAME", ""),
-		AdminPassword: getEnv("RELAY_ADMIN_PASSWORD", ""),
-		AllowInsecure: getEnvBool("RELAY_ALLOW_INSECURE", false),
-		LogFile:       getEnv("RELAY_LOG_FILE", ""),
-		LogLevel:      getEnv("RELAY_LOG_LEVEL", "info"),
+		AppEnv:               getEnv("RELAY_APP_ENV", "development"),
+		HTTPAddr:             getEnv("RELAY_HTTP_ADDR", ":8080"),
+		LocalBaseURL:         getEnv("RELAY_LOCAL_BASE_URL", "http://localhost:8080"),
+		PublicBaseURL:        getEnv("RELAY_PUBLIC_BASE_URL", ""),
+		CORSOrigin:           getEnv("RELAY_CORS_ORIGIN", "http://localhost:8080"),
+		DatabaseURL:          getEnv("RELAY_DATABASE_URL", ""),
+		AdminUsername:        getEnv("RELAY_ADMIN_USERNAME", ""),
+		AdminPassword:        getEnv("RELAY_ADMIN_PASSWORD", ""),
+		AllowInsecure:        getEnvBool("RELAY_ALLOW_INSECURE", false),
+		LoginRateLimitMax:    getEnvInt("RELAY_LOGIN_RATE_LIMIT", 10),
+		LoginRateLimitWindow: getEnvDuration("RELAY_LOGIN_RATE_WINDOW", 5*time.Minute),
+		LogFile:              getEnv("RELAY_LOG_FILE", ""),
+		LogLevel:             getEnv("RELAY_LOG_LEVEL", "info"),
 	}
 }
 
@@ -112,6 +118,24 @@ func sslModeFromDSN(dsn string) string {
 func getEnv(key, fallback string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
+	}
+	return fallback
+}
+
+func getEnvInt(key string, fallback int) int {
+	if value := strings.TrimSpace(os.Getenv(key)); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil {
+			return parsed
+		}
+	}
+	return fallback
+}
+
+func getEnvDuration(key string, fallback time.Duration) time.Duration {
+	if value := strings.TrimSpace(os.Getenv(key)); value != "" {
+		if parsed, err := time.ParseDuration(value); err == nil && parsed > 0 {
+			return parsed
+		}
 	}
 	return fallback
 }
