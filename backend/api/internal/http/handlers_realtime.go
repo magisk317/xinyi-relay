@@ -1,6 +1,7 @@
 package http
 
 import (
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -32,6 +33,18 @@ func (s *Server) allowedOrigins() []string {
 		}
 	}
 	return out
+}
+
+// warnInvalidAllowedOrigins logs configured origins that cannot be normalized so
+// a misconfigured RELAY_CORS_ORIGIN/RELAY_LOCAL_BASE_URL/RELAY_PUBLIC_BASE_URL
+// (e.g. missing scheme) is visible instead of silently rejecting browser WS
+// clients at upgrade time.
+func (s *Server) warnInvalidAllowedOrigins() {
+	for _, o := range s.allowedOrigins() {
+		if _, err := normalizeOrigin(o); err != nil {
+			log.Printf("[security] configured WS allowed origin %q is not a valid scheme://host URL and will be ignored; browser WebSocket clients using it will be rejected: %v", o, err)
+		}
+	}
 }
 
 func (s *Server) handleRealtimeWS(w http.ResponseWriter, r *http.Request, auth authContext) {

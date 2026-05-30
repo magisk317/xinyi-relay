@@ -50,6 +50,7 @@ func NewServer(ctx context.Context, cfg config.Config) (*Server, error) {
 		loginLimiter: newRateLimiter(cfg.LoginRateLimitMax, cfg.LoginRateLimitWindow),
 	}
 	s.wsUpgrader = websocket.Upgrader{CheckOrigin: s.checkWSOrigin}
+	s.warnInvalidAllowedOrigins()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", s.handleHealth)

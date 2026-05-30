@@ -83,7 +83,7 @@ type desktopAuthPageData struct {
 // limiting attempts per client IP and per username. It returns false when
 // either limit has been exceeded.
 func (s *Server) loginAttemptAllowed(r *http.Request, username string) bool {
-	ipOK := s.loginLimiter.Allow("ip:" + clientIP(r))
+	ipOK := s.loginLimiter.Allow("ip:" + clientIP(r, s.cfg.TrustProxyHeaders))
 	userOK := s.loginLimiter.Allow("user:" + strings.ToLower(strings.TrimSpace(username)))
 	return ipOK && userOK
 }
@@ -91,7 +91,7 @@ func (s *Server) loginAttemptAllowed(r *http.Request, username string) bool {
 // loginAttemptSucceeded clears the limiter counters after a successful login so
 // a legitimate user is not penalised for earlier mistyped passwords.
 func (s *Server) loginAttemptSucceeded(r *http.Request, username string) {
-	s.loginLimiter.Reset("ip:" + clientIP(r))
+	s.loginLimiter.Reset("ip:" + clientIP(r, s.cfg.TrustProxyHeaders))
 	s.loginLimiter.Reset("user:" + strings.ToLower(strings.TrimSpace(username)))
 }
 

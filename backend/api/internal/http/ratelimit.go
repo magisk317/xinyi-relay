@@ -82,17 +82,21 @@ func (l *rateLimiter) pruneLocked(now time.Time) {
 	}
 }
 
-// clientIP extracts the best-effort client IP from a request. The backend runs
-// behind a trusted reverse proxy (Caddy) which sets X-Forwarded-For/X-Real-IP,
-// so those are preferred; otherwise the transport remote address is used.
-func clientIP(r *http.Request) string {
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		if first := strings.TrimSpace(strings.Split(xff, ",")[0]); first != "" {
-			return first
+// clientIP extracts the best-effort client IP from a request. When
+// trustProxyHeaders is true (the default, for deployments behind a trusted
+// reverse proxy such as Caddy), X-Forwarded-For/X-Real-IP are preferred. When
+// the backend is exposed directly those headers are spoofable, so callers can
+// set trustProxyHeaders=false to rely solely on the transport remote address.
+func clientIP(r *http.Request, trustProxyHeaders bool) string {
+	if trustProxyHeaders {
+		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+			if first := strings.TrimSpace(strings.Split(xff, ",")[0]); first != "" {
+				return first
+			}
 		}
-	}
-	if xrip := strings.TrimSpace(r.Header.Get("X-Real-IP")); xrip != "" {
-		return xrip
+		if xrip := strings.TrimSpace(r.Header.Get("X-Real-IP")); xrip != "" {
+			return xrip
+		}
 	}
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {

@@ -95,13 +95,15 @@ func TestClientIP(t *testing.T) {
 		remoteAddr string
 		xff        string
 		xRealIP    string
+		trustProxy bool
 		want       string
 	}{
-		{"remote addr only", "203.0.113.5:54321", "", "", "203.0.113.5"},
-		{"x-forwarded-for first", "10.0.0.1:1", "198.51.100.7, 10.0.0.1", "", "198.51.100.7"},
-		{"x-real-ip", "10.0.0.1:1", "", "198.51.100.9", "198.51.100.9"},
-		{"xff precedence over real-ip", "10.0.0.1:1", "198.51.100.7", "198.51.100.9", "198.51.100.7"},
-		{"malformed remote addr falls back to raw value", "unix-socket-no-port", "", "", "unix-socket-no-port"},
+		{"remote addr only", "203.0.113.5:54321", "", "", true, "203.0.113.5"},
+		{"x-forwarded-for first", "10.0.0.1:1", "198.51.100.7, 10.0.0.1", "", true, "198.51.100.7"},
+		{"x-real-ip", "10.0.0.1:1", "", "198.51.100.9", true, "198.51.100.9"},
+		{"xff precedence over real-ip", "10.0.0.1:1", "198.51.100.7", "198.51.100.9", true, "198.51.100.7"},
+		{"malformed remote addr falls back to raw value", "unix-socket-no-port", "", "", true, "unix-socket-no-port"},
+		{"untrusted proxy headers ignored", "203.0.113.5:1", "198.51.100.7", "198.51.100.9", false, "203.0.113.5"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -113,7 +115,7 @@ func TestClientIP(t *testing.T) {
 			if tc.xRealIP != "" {
 				r.Header.Set("X-Real-IP", tc.xRealIP)
 			}
-			if got := clientIP(r); got != tc.want {
+			if got := clientIP(r, tc.trustProxy); got != tc.want {
 				t.Fatalf("clientIP = %q, want %q", got, tc.want)
 			}
 		})

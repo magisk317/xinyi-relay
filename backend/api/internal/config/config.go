@@ -22,6 +22,7 @@ type Config struct {
 	AllowInsecure        bool
 	LoginRateLimitMax    int
 	LoginRateLimitWindow time.Duration
+	TrustProxyHeaders    bool
 	LogFile              string
 	LogLevel             string
 }
@@ -39,6 +40,7 @@ func Load() Config {
 		AllowInsecure:        getEnvBool("RELAY_ALLOW_INSECURE", false),
 		LoginRateLimitMax:    getEnvInt("RELAY_LOGIN_RATE_LIMIT", 10),
 		LoginRateLimitWindow: getEnvDuration("RELAY_LOGIN_RATE_WINDOW", 5*time.Minute),
+		TrustProxyHeaders:    getEnvBool("RELAY_TRUST_PROXY_HEADERS", true),
 		LogFile:              getEnv("RELAY_LOG_FILE", ""),
 		LogLevel:             getEnv("RELAY_LOG_LEVEL", "info"),
 	}
