@@ -37,8 +37,26 @@ func TestCORSWildcardOriginOmitsCredentials(t *testing.T) {
 	if got := hdr.Get("Access-Control-Allow-Origin"); got != "*" {
 		t.Fatalf("Allow-Origin = %q, want *", got)
 	}
-	// A wildcard origin must never advertise credential support.
+	// A wildcard origin must never advertise credential support or vary on Origin.
 	if got := hdr.Get("Access-Control-Allow-Credentials"); got != "" {
 		t.Fatalf("Allow-Credentials = %q, want empty for wildcard origin", got)
+	}
+	if got := hdr.Get("Vary"); got != "" {
+		t.Fatalf("Vary = %q, want empty for wildcard origin", got)
+	}
+}
+
+func TestCORSEmptyOriginSendsNoCORSHeaders(t *testing.T) {
+	hdr := corsHeaders(t, "")
+	for _, h := range []string{
+		"Access-Control-Allow-Origin",
+		"Access-Control-Allow-Credentials",
+		"Access-Control-Allow-Headers",
+		"Access-Control-Allow-Methods",
+		"Vary",
+	} {
+		if got := hdr.Get(h); got != "" {
+			t.Fatalf("%s = %q, want empty when CORS origin is unset", h, got)
+		}
 	}
 }

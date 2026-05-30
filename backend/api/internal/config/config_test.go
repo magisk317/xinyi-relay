@@ -98,6 +98,31 @@ func TestValidateEmptyAdminPasswordIsNotFlagged(t *testing.T) {
 	}
 }
 
+func TestDSNHasInsecureSSL(t *testing.T) {
+	cases := []struct {
+		name string
+		dsn  string
+		want bool
+	}{
+		{"url disable", "postgres://relay:relay@db:5432/relay?sslmode=disable", true},
+		{"url disable uppercase", "postgres://relay:relay@db:5432/relay?sslmode=DISABLE", true},
+		{"url require", "postgres://relay:relay@db:5432/relay?sslmode=require", false},
+		{"url no sslmode", "postgres://relay:relay@db:5432/relay", false},
+		{"keyword disable", "host=db port=5432 user=relay sslmode=disable", true},
+		{"keyword require", "host=db port=5432 user=relay sslmode=require", false},
+		{"empty", "", false},
+		// "sslmode=disable" embedded in a password must not be a false positive.
+		{"false positive in password", "postgres://relay:sslmode=disable@db:5432/relay?sslmode=require", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := dsnHasInsecureSSL(tc.dsn); got != tc.want {
+				t.Fatalf("dsnHasInsecureSSL(%q) = %v, want %v", tc.dsn, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestIsProductionCaseInsensitive(t *testing.T) {
 	for _, env := range []string{"production", "Production", "PRODUCTION", " production "} {
 		if !(Config{AppEnv: env}).IsProduction() {

@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -81,8 +82,31 @@ func (c Config) Validate() (issues []string, err error) {
 }
 
 // dsnHasInsecureSSL reports whether a PostgreSQL DSN explicitly disables TLS.
+// It parses the DSN rather than doing a raw substring match so that an
+// "sslmode=disable" appearing outside of an actual parameter (e.g. inside a
+// password or path) does not produce a false positive.
 func dsnHasInsecureSSL(dsn string) bool {
-	return strings.Contains(strings.ToLower(dsn), "sslmode=disable")
+	return strings.EqualFold(sslModeFromDSN(dsn), "disable")
+}
+
+// sslModeFromDSN extracts the sslmode parameter from a PostgreSQL DSN given in
+// either URL form (postgres://user:pass@host/db?sslmode=...) or keyword/value
+// form (host=... sslmode=...). It returns an empty string when sslmode is not
+// specified.
+func sslModeFromDSN(dsn string) string {
+	dsn = strings.TrimSpace(dsn)
+	if dsn == "" {
+		return ""
+	}
+	if u, err := url.Parse(dsn); err == nil && u.Scheme != "" {
+		return u.Query().Get("sslmode")
+	}
+	for _, field := range strings.Fields(dsn) {
+		if k, v, ok := strings.Cut(field, "="); ok && strings.EqualFold(strings.TrimSpace(k), "sslmode") {
+			return strings.TrimSpace(v)
+		}
+	}
+	return ""
 }
 
 func getEnv(key, fallback string) string {
