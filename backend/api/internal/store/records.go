@@ -263,10 +263,3 @@ func (s *Store) PruneRelayRecords(ctx context.Context, userID int64, retention R
 	}
 	return deleted, nil
 }
-
-func nullableString(value string) any {
-	if value == "" {
-		return nil
-	}
-	return value
-}
