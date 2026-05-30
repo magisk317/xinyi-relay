@@ -79,6 +79,22 @@ type desktopAuthPageData struct {
 	Error            string
 }
 
+// loginAttemptAllowed enforces brute-force protection on password endpoints,
+// limiting attempts per client IP and per username. It returns false when
+// either limit has been exceeded.
+func (s *Server) loginAttemptAllowed(r *http.Request, username string) bool {
+	ipOK := s.loginLimiter.Allow("ip:" + clientIP(r, s.cfg.TrustProxyHeaders))
+	userOK := s.loginLimiter.Allow("user:" + strings.ToLower(strings.TrimSpace(username)))
+	return ipOK && userOK
+}
+
+// loginAttemptSucceeded clears the limiter counters after a successful login so
+// a legitimate user is not penalised for earlier mistyped passwords.
+func (s *Server) loginAttemptSucceeded(r *http.Request, username string) {
+	s.loginLimiter.Reset("ip:" + clientIP(r, s.cfg.TrustProxyHeaders))
+	s.loginLimiter.Reset("user:" + strings.ToLower(strings.TrimSpace(username)))
+}
+
 func (s *Server) bootstrapAdminIfNeeded(ctx context.Context) error {
 	username := strings.TrimSpace(s.cfg.AdminUsername)
 	password := s.cfg.AdminPassword
@@ -164,6 +180,11 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !s.loginAttemptAllowed(r, payload.Username) {
+		writeError(w, http.StatusTooManyRequests, "too many login attempts, please try again later")
+		return
+	}
+
 	user, err := s.store.GetUserByUsername(r.Context(), payload.Username)
 	if err != nil {
 		if err == store.ErrNotFound {
@@ -179,6 +200,8 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "invalid credentials")
 		return
 	}
+
+	s.loginAttemptSucceeded(r, payload.Username)
 
 	sessionToken, sessionTokenHash, err := security.NewOpaqueToken()
 	if err != nil {
@@ -406,6 +429,10 @@ func (s *Server) resolveDesktopStartUser(r *http.Request, payload desktopLoginPa
 		return store.User{}, nil, fmt.Errorf("username and password are required")
 	}
 
+	if !s.loginAttemptAllowed(r, payload.Username) {
+		return store.User{}, nil, fmt.Errorf("too many login attempts, please try again later")
+	}
+
 	user, err := s.store.GetUserByUsername(r.Context(), payload.Username)
 	if err != nil {
 		if err == store.ErrNotFound {
@@ -417,6 +444,8 @@ func (s *Server) resolveDesktopStartUser(r *http.Request, payload desktopLoginPa
 	if err != nil || !valid {
 		return store.User{}, nil, fmt.Errorf("invalid credentials")
 	}
+
+	s.loginAttemptSucceeded(r, payload.Username)
 
 	sessionToken, sessionTokenHash, err := security.NewOpaqueToken()
 	if err != nil {

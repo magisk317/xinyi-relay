@@ -12,8 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gorilla/websocket"
-
 	"github.com/magisk317/xinyi-relay/backend/api/internal/security"
 	"github.com/magisk317/xinyi-relay/backend/api/internal/store"
 )
@@ -181,8 +179,30 @@ func validateLoopbackRedirectURL(raw string) (*url.URL, error) {
 	return parsed, nil
 }
 
-var websocketUpgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
+// originAllowed reports whether origin matches any entry in allowed, comparing
+// only scheme + host (including port) and ignoring path/case differences.
+func originAllowed(origin string, allowed []string) bool {
+	want, err := normalizeOrigin(origin)
+	if err != nil {
+		return false
+	}
+	for _, a := range allowed {
+		if got, err := normalizeOrigin(a); err == nil && got == want {
+			return true
+		}
+	}
+	return false
+}
+
+// normalizeOrigin reduces a URL or Origin header value to a canonical
+// "scheme://host[:port]" form for comparison.
+func normalizeOrigin(raw string) (string, error) {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil {
+		return "", err
+	}
+	if u.Scheme == "" || u.Host == "" {
+		return "", fmt.Errorf("invalid origin %q", raw)
+	}
+	return strings.ToLower(u.Scheme + "://" + u.Host), nil
 }

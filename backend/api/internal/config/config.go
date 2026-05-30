@@ -2,38 +2,47 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type Config struct {
-	AppEnv        string
-	HTTPAddr      string
-	LocalBaseURL  string
-	PublicBaseURL string
-	CORSOrigin    string
-	DatabaseURL   string
-	AdminUsername string
-	AdminPassword string
-	AllowInsecure bool
-	LogFile       string
-	LogLevel      string
+	AppEnv               string
+	HTTPAddr             string
+	LocalBaseURL         string
+	PublicBaseURL        string
+	CORSOrigin           string
+	DatabaseURL          string
+	AdminUsername        string
+	AdminPassword        string
+	AllowInsecure        bool
+	LoginRateLimitMax    int
+	LoginRateLimitWindow time.Duration
+	TrustProxyHeaders    bool
+	LogFile              string
+	LogLevel             string
 }
 
 func Load() Config {
 	return Config{
-		AppEnv:        getEnv("RELAY_APP_ENV", "development"),
-		HTTPAddr:      getEnv("RELAY_HTTP_ADDR", ":8080"),
-		LocalBaseURL:  getEnv("RELAY_LOCAL_BASE_URL", "http://localhost:8080"),
-		PublicBaseURL: getEnv("RELAY_PUBLIC_BASE_URL", ""),
-		CORSOrigin:    getEnv("RELAY_CORS_ORIGIN", "http://localhost:8080"),
-		DatabaseURL:   getEnv("RELAY_DATABASE_URL", ""),
-		AdminUsername: getEnv("RELAY_ADMIN_USERNAME", ""),
-		AdminPassword: getEnv("RELAY_ADMIN_PASSWORD", ""),
-		AllowInsecure: getEnvBool("RELAY_ALLOW_INSECURE", false),
-		LogFile:       getEnv("RELAY_LOG_FILE", ""),
-		LogLevel:      getEnv("RELAY_LOG_LEVEL", "info"),
+		AppEnv:               getEnv("RELAY_APP_ENV", "development"),
+		HTTPAddr:             getEnv("RELAY_HTTP_ADDR", ":8080"),
+		LocalBaseURL:         getEnv("RELAY_LOCAL_BASE_URL", "http://localhost:8080"),
+		PublicBaseURL:        getEnv("RELAY_PUBLIC_BASE_URL", ""),
+		CORSOrigin:           getEnv("RELAY_CORS_ORIGIN", "http://localhost:8080"),
+		DatabaseURL:          getEnv("RELAY_DATABASE_URL", ""),
+		AdminUsername:        getEnv("RELAY_ADMIN_USERNAME", ""),
+		AdminPassword:        getEnv("RELAY_ADMIN_PASSWORD", ""),
+		AllowInsecure:        getEnvBool("RELAY_ALLOW_INSECURE", false),
+		LoginRateLimitMax:    getEnvInt("RELAY_LOGIN_RATE_LIMIT", 10),
+		LoginRateLimitWindow: getEnvDuration("RELAY_LOGIN_RATE_WINDOW", 5*time.Minute),
+		TrustProxyHeaders:    getEnvBool("RELAY_TRUST_PROXY_HEADERS", true),
+		LogFile:              getEnv("RELAY_LOG_FILE", ""),
+		LogLevel:             getEnv("RELAY_LOG_LEVEL", "info"),
 	}
 }
 
@@ -114,6 +123,41 @@ func getEnv(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+// getEnvInt parses an integer env var. A non-positive value is returned as-is
+// (callers may treat e.g. 0 as "disabled"); only an unparseable value falls
+// back, and that is logged so a typo in security-sensitive config is visible.
+func getEnvInt(key string, fallback int) int {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		log.Printf("[config] invalid integer for %s=%q, using fallback %d: %v", key, value, fallback, err)
+		return fallback
+	}
+	return parsed
+}
+
+// getEnvDuration parses a Go duration env var, logging and falling back when the
+// value is unparseable or non-positive so misconfiguration is not silent.
+func getEnvDuration(key string, fallback time.Duration) time.Duration {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	parsed, err := time.ParseDuration(value)
+	if err != nil {
+		log.Printf("[config] invalid duration for %s=%q, using fallback %s: %v", key, value, fallback, err)
+		return fallback
+	}
+	if parsed <= 0 {
+		log.Printf("[config] non-positive duration for %s=%s, using fallback %s", key, parsed, fallback)
+		return fallback
+	}
+	return parsed
 }
 
 func getEnvBool(key string, fallback bool) bool {
