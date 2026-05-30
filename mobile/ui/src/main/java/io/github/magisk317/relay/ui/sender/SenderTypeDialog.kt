@@ -54,6 +54,7 @@ internal fun SenderTypeDialog(
             SenderType.GOTIFY to getSenderTypeName(context, SenderType.GOTIFY),
             SenderType.NTFY to getSenderTypeName(context, SenderType.NTFY),
             SenderType.BARK to getSenderTypeName(context, SenderType.BARK),
+            SenderType.YUNHU to getSenderTypeName(context, SenderType.YUNHU),
         ),
         senderTypeGroupLabel(context, "other") to listOf(
             *otherChannels.toTypedArray(),

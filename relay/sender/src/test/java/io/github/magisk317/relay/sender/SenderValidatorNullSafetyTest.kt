@@ -29,6 +29,7 @@ class SenderValidatorNullSafetyTest {
             SenderType.FEISHU_APP to """{"appId":null,"appSecret":null,"receiveId":null}""",
             SenderType.URL_SCHEME to """{"urlScheme":null}""",
             SenderType.SOCKET to """{"address":null,"port":null,"method":null}""",
+            SenderType.YUNHU to """{"token":null,"recvId":null}""",
         )
 
         dirtyCases.forEach { (type, dirtyJson) ->

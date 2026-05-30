@@ -32,6 +32,7 @@ class SenderSettingSchemasTest {
             SenderType.URL_SCHEME,
             SenderType.SOCKET,
             SenderType.NTFY,
+            SenderType.YUNHU,
         )
 
         assertEquals(expectedTypes, SenderSettingSchemas.all.map { it.senderType })
@@ -106,6 +107,11 @@ class SenderSettingSchemasTest {
         assertFieldOptions(SenderType.TELEGRAM, "proxyType", "DIRECT", "HTTP", "SOCKS")
         assertFieldOptions(SenderType.DINGTALK_GROUP_ROBOT, "msgtype", "text", "markdown")
         assertFieldOptions(SenderType.WEWORK_ROBOT, "msgType", "text", "markdown")
+        assertRequired(SenderType.YUNHU, "token", "recvId")
+        assertFieldDefault(SenderType.YUNHU, "recvType", "user")
+        assertFieldDefault(SenderType.YUNHU, "contentType", "text")
+        assertFieldOptions(SenderType.YUNHU, "recvType", "user", "group")
+        assertFieldOptions(SenderType.YUNHU, "contentType", "text", "markdown")
     }
 
     @Test

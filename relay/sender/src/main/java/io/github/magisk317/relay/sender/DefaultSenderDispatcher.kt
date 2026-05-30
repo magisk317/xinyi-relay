@@ -23,6 +23,7 @@ import io.github.magisk317.relay.sender.config.UrlSchemeSetting
 import io.github.magisk317.relay.sender.config.WebhookSetting
 import io.github.magisk317.relay.sender.config.WeworkAgentSetting
 import io.github.magisk317.relay.sender.config.WeworkRobotSetting
+import io.github.magisk317.relay.sender.config.YunhuSetting
 import kotlinx.serialization.SerializationException
 
 class DefaultSenderDispatcher(private val context: Context) : SenderDispatcher {
@@ -69,6 +70,7 @@ class DefaultSenderDispatcher(private val context: Context) : SenderDispatcher {
                 SenderType.FEISHU_APP -> FeishuAppUtils.sendMsg(SenderSettingJson.decode(FeishuAppSetting.serializer(), safeSender.jsonSetting), msgInfo)
                 SenderType.URL_SCHEME -> UrlSchemeUtils.sendMsg(context, SenderSettingJson.decode(UrlSchemeSetting.serializer(), safeSender.jsonSetting), msgInfo)
                 SenderType.SOCKET -> SocketUtils.sendMsg(SenderSettingJson.decode(SocketSetting.serializer(), safeSender.jsonSetting), msgInfo)
+                SenderType.YUNHU -> YunhuUtils.sendMsg(SenderSettingJson.decode(YunhuSetting.serializer(), safeSender.jsonSetting), msgInfo)
                 else -> {
                     val message = "Unsupported sender type: ${safeSender.type}"
                     return SenderDispatchResult(safeSender.id, safeSender.type, senderName, false, message)

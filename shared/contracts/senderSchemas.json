@@ -1433,5 +1433,68 @@
         "requiredForEnable": false
       }
     ]
+  },
+  {
+    "senderType": 17,
+    "fields": [
+      {
+        "name": "token",
+        "type": "SECRET",
+        "aliases": [
+          "o"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "recvId",
+        "type": "TEXT",
+        "aliases": [
+          "p"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "recvType",
+        "type": "TEXT",
+        "aliases": [
+          "q"
+        ],
+        "requiredForEnable": false,
+        "defaultValue": "user",
+        "options": [
+          {
+            "value": "user"
+          },
+          {
+            "value": "group"
+          }
+        ]
+      },
+      {
+        "name": "contentType",
+        "type": "TEXT",
+        "aliases": [
+          "r"
+        ],
+        "requiredForEnable": false,
+        "defaultValue": "text",
+        "options": [
+          {
+            "value": "text"
+          },
+          {
+            "value": "markdown"
+          }
+        ]
+      },
+      {
+        "name": "titleTemplate",
+        "type": "TEXT",
+        "aliases": [
+          "s"
+        ],
+        "requiredForEnable": false
+      }
+    ]
   }
 ]

@@ -18,6 +18,7 @@ import io.github.magisk317.relay.sender.config.UrlSchemeSetting
 import io.github.magisk317.relay.sender.config.WebhookSetting
 import io.github.magisk317.relay.sender.config.WeworkAgentSetting
 import io.github.magisk317.relay.sender.config.WeworkRobotSetting
+import io.github.magisk317.relay.sender.config.YunhuSetting
 import io.github.magisk317.relay.engine.sender.SenderActiveScheduleEvaluator
 import io.github.magisk317.relay.engine.sender.SenderType
 import kotlinx.serialization.KSerializer
@@ -152,6 +153,12 @@ object SenderSettingSanitizer {
                 canonicalJson,
                 NtfySetting.serializer(),
                 ::sanitizeNtfySetting,
+            )
+            SenderType.YUNHU -> sanitizeSettingJson(
+                parseJson,
+                canonicalJson,
+                YunhuSetting.serializer(),
+                ::sanitizeYunhuSetting,
             )
             else -> if (json.isBlank()) "" else json
         }
@@ -405,6 +412,25 @@ object SenderSettingSanitizer {
             webhook = repaired.string("webhook"),
             callbackUrl = repaired.string("callbackUrl"),
             validTime = repaired.string("validTime"),
+        )
+    }
+
+    fun sanitizeYunhuSetting(raw: YunhuSetting?, rawJson: JsonObject? = null): YunhuSetting {
+        val defaults = YunhuSetting()
+        val setting = YunhuSetting(
+            token = safeString(resolveValue(raw?.token, rawJson, "token")),
+            recvId = safeString(resolveValue(raw?.recvId, rawJson, "recvId")),
+            recvType = safeString(resolveValue(raw?.recvType, rawJson, "recvType")).ifBlank { defaults.recvType },
+            contentType = safeString(resolveValue(raw?.contentType, rawJson, "contentType")).ifBlank { defaults.contentType },
+            titleTemplate = safeString(resolveValue(raw?.titleTemplate, rawJson, "titleTemplate")),
+        )
+        val repaired = repairFields(
+            "token" to setting.token,
+            "recvId" to setting.recvId,
+        )
+        return setting.copy(
+            token = repaired.string("token"),
+            recvId = repaired.string("recvId"),
         )
     }
 
