@@ -25,6 +25,25 @@ func TestDecodeJSONWithinLimit(t *testing.T) {
 	}
 }
 
+func TestDecodeJSONExactlyAtLimit(t *testing.T) {
+	// http.MaxBytesReader permits up to n bytes and only errors when exceeded,
+	// so a body whose length is exactly maxBytes must still decode successfully.
+	const wrapper = `{"value":""}` // 12 bytes around the inner string
+	const limit = 64
+	body := `{"value":"` + strings.Repeat("a", limit-len(wrapper)) + `"}`
+	if len(body) != limit {
+		t.Fatalf("test setup: body length = %d, want exactly %d", len(body), limit)
+	}
+
+	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+	rr := httptest.NewRecorder()
+
+	var target decodeTarget
+	if err := decodeJSON(rr, r, &target, limit); err != nil {
+		t.Fatalf("decodeJSON returned error for body exactly at limit: %v", err)
+	}
+}
+
 func TestDecodeJSONExceedsLimitYields413(t *testing.T) {
 	// Body is well-formed JSON but larger than the configured limit.
 	large := `{"value":"` + strings.Repeat("a", 4096) + `"}`
