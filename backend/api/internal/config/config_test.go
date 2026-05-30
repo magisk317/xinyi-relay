@@ -123,6 +123,38 @@ func TestDSNHasInsecureSSL(t *testing.T) {
 	}
 }
 
+func TestLoadRecordRetentionDefaults(t *testing.T) {
+	for _, key := range []string{"RELAY_RECORDS_FOLLOW_DEVICE_LIMITS", "RELAY_RECORDS_MAX_PER_USER", "RELAY_RECORDS_RETENTION_DAYS"} {
+		t.Setenv(key, "")
+	}
+	cfg := Load()
+	if !cfg.RecordsFollowDeviceLimits {
+		t.Error("expected RecordsFollowDeviceLimits to default to true")
+	}
+	if cfg.RecordsMaxPerUser != 0 {
+		t.Errorf("expected RecordsMaxPerUser default 0, got %d", cfg.RecordsMaxPerUser)
+	}
+	if cfg.RecordsRetentionDays != 0 {
+		t.Errorf("expected RecordsRetentionDays default 0, got %d", cfg.RecordsRetentionDays)
+	}
+}
+
+func TestLoadRecordRetentionOverrides(t *testing.T) {
+	t.Setenv("RELAY_RECORDS_FOLLOW_DEVICE_LIMITS", "false")
+	t.Setenv("RELAY_RECORDS_MAX_PER_USER", "2000")
+	t.Setenv("RELAY_RECORDS_RETENTION_DAYS", "30")
+	cfg := Load()
+	if cfg.RecordsFollowDeviceLimits {
+		t.Error("expected RecordsFollowDeviceLimits=false from env")
+	}
+	if cfg.RecordsMaxPerUser != 2000 {
+		t.Errorf("expected RecordsMaxPerUser 2000, got %d", cfg.RecordsMaxPerUser)
+	}
+	if cfg.RecordsRetentionDays != 30 {
+		t.Errorf("expected RecordsRetentionDays 30, got %d", cfg.RecordsRetentionDays)
+	}
+}
+
 func TestIsProductionCaseInsensitive(t *testing.T) {
 	for _, env := range []string{"production", "Production", "PRODUCTION", " production "} {
 		if !(Config{AppEnv: env}).IsProduction() {

@@ -91,7 +91,20 @@ RELAY_API_PULL_POLICY=always
 cd backend/api
 RELAY_TEST_DATABASE_URL="postgres://relay:relay@localhost:5432/relay?sslmode=disable" \
   go test ./internal/database/ -run TestMigrate -v
+# 记录保留清理的集成测试（store 包）：
+RELAY_TEST_DATABASE_URL="postgres://relay:relay@localhost:5432/relay?sslmode=disable" \
+  go test ./internal/store/ -run TestPrune -v
 ```
+
+## 记录保留（relay_records 清理）
+
+设备每次上报记录入库后，后端会按用户裁剪 `relay_records`，避免短信正文 / 验证码明文无限堆积。清理为尽力而为：失败只记日志，不影响上报本身。三条规则相互独立、都会生效（取各自更严的约束）：
+
+- `RELAY_RECORDS_FOLLOW_DEVICE_LIMITS`（默认 `true`）：跟随手机端的分类历史条数。手机端在 config 快照里同步的 `records.{code,plainSms,appNotify,callNotify}HistoryLimit` 分别对应 `record_type` 的 `sms_code / sms_plain / app_notify / call`，各类型仅保留最新 N 条；某类为 `0`/负数表示该类不限（与手机端语义一致）。无 config 快照时此项不生效。
+- `RELAY_RECORDS_MAX_PER_USER`（默认 `0`=关）：每用户记录总条数上限（跨所有类型），仅保留最新 N 条。
+- `RELAY_RECORDS_RETENTION_DAYS`（默认 `0`=关）：删除 `occurred_at` 早于 N 天前的记录。
+
+保留以「最新优先」按 `(occurred_at DESC, id DESC)` 排序，与读取顺序一致。不做正文/验证码掩码，Web 控制台与 App 历史仍可查看完整内容。
 
 ## 日志配置
 

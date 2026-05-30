@@ -943,6 +943,121 @@ func (s *Store) GetRelayRecord(ctx context.Context, userID int64, recordID int64
 	return record, err
 }
 
+// RecordsRetention describes how relay_records should be trimmed for a single
+// user. All limits are independent and each is skipped when non-positive.
+type RecordsRetention struct {
+	// PerType maps a record_type ("sms_code", "sms_plain", "app_notify",
+	// "call") to the maximum number of rows to keep for that type. A
+	// non-positive value means "unlimited" for that type.
+	PerType map[string]int
+	// MaxPerUser caps the total number of rows kept for the user across all
+	// record types. Non-positive means disabled.
+	MaxPerUser int
+	// MaxAge deletes rows whose occurred_at is older than this duration before
+	// now. Non-positive means disabled.
+	MaxAge time.Duration
+}
+
+func (r RecordsRetention) isNoop() bool {
+	if r.MaxPerUser > 0 || r.MaxAge > 0 {
+		return false
+	}
+	for _, limit := range r.PerType {
+		if limit > 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// PruneRelayRecords enforces the given retention policy for a single user,
+// deleting the oldest rows that fall outside the configured limits. It returns
+// the number of rows deleted. The per-type and global count rules keep the most
+// recent rows ordered by (occurred_at DESC, id DESC), matching the read order.
+func (s *Store) PruneRelayRecords(ctx context.Context, userID int64, retention RecordsRetention) (int64, error) {
+	if retention.isNoop() {
+		return 0, nil
+	}
+
+	tx, err := s.db.Pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback(ctx)
+
+	var deleted int64
+
+	for recordType, limit := range retention.PerType {
+		if limit <= 0 {
+			continue
+		}
+		// Delete everything older than the Nth most recent row for this type.
+		// The cutoff subquery seeks straight to that row via the
+		// (user_id, record_type, occurred_at DESC, id DESC) index, and the
+		// tuple comparison lets the outer DELETE range-scan instead of testing
+		// every row against a large NOT IN set. When fewer than N rows exist the
+		// subquery yields NULL, so nothing is deleted.
+		tag, err := tx.Exec(
+			ctx,
+			`DELETE FROM relay_records
+			  WHERE user_id = $1 AND record_type = $2
+			    AND (occurred_at, id) < (
+			        SELECT occurred_at, id FROM relay_records
+			         WHERE user_id = $1 AND record_type = $2
+			         ORDER BY occurred_at DESC, id DESC
+			         OFFSET $3 LIMIT 1
+			    )`,
+			userID,
+			recordType,
+			limit-1,
+		)
+		if err != nil {
+			return 0, err
+		}
+		deleted += tag.RowsAffected()
+	}
+
+	if retention.MaxPerUser > 0 {
+		tag, err := tx.Exec(
+			ctx,
+			`DELETE FROM relay_records
+			  WHERE user_id = $1
+			    AND (occurred_at, id) < (
+			        SELECT occurred_at, id FROM relay_records
+			         WHERE user_id = $1
+			         ORDER BY occurred_at DESC, id DESC
+			         OFFSET $2 LIMIT 1
+			    )`,
+			userID,
+			retention.MaxPerUser-1,
+		)
+		if err != nil {
+			return 0, err
+		}
+		deleted += tag.RowsAffected()
+	}
+
+	if retention.MaxAge > 0 {
+		// Evaluate the cutoff against the database clock (NOW()) rather than the
+		// app's wall clock so age-based pruning is consistent across instances.
+		tag, err := tx.Exec(
+			ctx,
+			`DELETE FROM relay_records WHERE user_id = $1 AND occurred_at < NOW() - make_interval(secs => $2)`,
+			userID,
+			retention.MaxAge.Seconds(),
+		)
+		if err != nil {
+			return 0, err
+		}
+		deleted += tag.RowsAffected()
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return 0, err
+	}
+	return deleted, nil
+}
+
 func nullableString(value string) any {
 	if value == "" {
 		return nil
