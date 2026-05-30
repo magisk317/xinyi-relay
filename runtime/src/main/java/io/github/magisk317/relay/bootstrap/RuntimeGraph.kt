@@ -33,7 +33,7 @@ import org.koin.core.context.GlobalContext
  * started first in `SmsCodeApplication.onCreate`, and no ContentProvider or
  * pre-onCreate code touches this facade).
  */
-class RuntimeGraph private constructor() {
+object RuntimeGraph {
 
     private val koin get() = GlobalContext.get()
 
@@ -55,17 +55,12 @@ class RuntimeGraph private constructor() {
     val dispatchResultWriter: DispatchResultWriter get() = koin.get()
     val eventPipeline: EventPipeline get() = koin.get()
 
-    companion object {
-        @Volatile
-        private var instance: RuntimeGraph? = null
-
-        @Suppress("UNUSED_PARAMETER")
-        fun from(context: Context): RuntimeGraph {
-            val existing = instance
-            if (existing != null) return existing
-            return synchronized(this) {
-                instance ?: RuntimeGraph().also { instance = it }
-            }
-        }
-    }
+    /**
+     * Static entry point for lifecycle-less, non-UI code (services, receivers,
+     * initializers) that has no Koin scope to inject into. The [context] is no
+     * longer needed (the graph lives in the global Koin container) but is kept
+     * so the ~38 existing call sites compile unchanged.
+     */
+    @Suppress("UNUSED_PARAMETER")
+    fun from(context: Context): RuntimeGraph = this
 }
