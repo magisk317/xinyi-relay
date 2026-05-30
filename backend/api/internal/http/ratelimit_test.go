@@ -67,6 +67,28 @@ func TestRateLimiterDisabled(t *testing.T) {
 	}
 }
 
+func TestLoginAttemptAllowedAndReset(t *testing.T) {
+	s := &Server{loginLimiter: newRateLimiter(2, time.Minute)}
+	r := httptest.NewRequest("POST", "/api/v1/auth/login", nil)
+	r.RemoteAddr = "203.0.113.5:1111"
+
+	if !s.loginAttemptAllowed(r, "alice") {
+		t.Fatal("1st attempt should be allowed")
+	}
+	if !s.loginAttemptAllowed(r, "alice") {
+		t.Fatal("2nd attempt should be allowed")
+	}
+	if s.loginAttemptAllowed(r, "alice") {
+		t.Fatal("3rd attempt should be blocked")
+	}
+
+	// A successful login clears the counters for this IP/username.
+	s.loginAttemptSucceeded(r, "alice")
+	if !s.loginAttemptAllowed(r, "alice") {
+		t.Fatal("attempt after successful login should be allowed again")
+	}
+}
+
 func TestClientIP(t *testing.T) {
 	cases := []struct {
 		name       string
@@ -79,6 +101,7 @@ func TestClientIP(t *testing.T) {
 		{"x-forwarded-for first", "10.0.0.1:1", "198.51.100.7, 10.0.0.1", "", "198.51.100.7"},
 		{"x-real-ip", "10.0.0.1:1", "", "198.51.100.9", "198.51.100.9"},
 		{"xff precedence over real-ip", "10.0.0.1:1", "198.51.100.7", "198.51.100.9", "198.51.100.7"},
+		{"malformed remote addr falls back to raw value", "unix-socket-no-port", "", "", "unix-socket-no-port"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

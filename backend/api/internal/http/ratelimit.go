@@ -11,11 +11,12 @@ import (
 // rateLimiter is a small in-process fixed-window limiter keyed by an arbitrary
 // string (e.g. client IP or username). It is safe for concurrent use.
 type rateLimiter struct {
-	mu      sync.Mutex
-	entries map[string]*rlEntry
-	max     int
-	window  time.Duration
-	now     func() time.Time
+	mu        sync.Mutex
+	entries   map[string]*rlEntry
+	max       int
+	window    time.Duration
+	now       func() time.Time
+	lastPrune time.Time
 }
 
 type rlEntry struct {
@@ -42,7 +43,12 @@ func (l *rateLimiter) Allow(key string) bool {
 	now := l.now()
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.pruneLocked(now)
+	// Prune at most once per window so the common path stays O(1) rather than
+	// scanning every entry on every attempt.
+	if now.Sub(l.lastPrune) >= l.window {
+		l.pruneLocked(now)
+		l.lastPrune = now
+	}
 
 	e := l.entries[key]
 	if e == nil || now.Sub(e.windowStart) >= l.window {

@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"net/url"
 	"os"
 	"strconv"
@@ -122,22 +123,39 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
+// getEnvInt parses an integer env var. A non-positive value is returned as-is
+// (callers may treat e.g. 0 as "disabled"); only an unparseable value falls
+// back, and that is logged so a typo in security-sensitive config is visible.
 func getEnvInt(key string, fallback int) int {
-	if value := strings.TrimSpace(os.Getenv(key)); value != "" {
-		if parsed, err := strconv.Atoi(value); err == nil {
-			return parsed
-		}
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
 	}
-	return fallback
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		log.Printf("[config] invalid integer for %s=%q, using fallback %d: %v", key, value, fallback, err)
+		return fallback
+	}
+	return parsed
 }
 
+// getEnvDuration parses a Go duration env var, logging and falling back when the
+// value is unparseable or non-positive so misconfiguration is not silent.
 func getEnvDuration(key string, fallback time.Duration) time.Duration {
-	if value := strings.TrimSpace(os.Getenv(key)); value != "" {
-		if parsed, err := time.ParseDuration(value); err == nil && parsed > 0 {
-			return parsed
-		}
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
 	}
-	return fallback
+	parsed, err := time.ParseDuration(value)
+	if err != nil {
+		log.Printf("[config] invalid duration for %s=%q, using fallback %s: %v", key, value, fallback, err)
+		return fallback
+	}
+	if parsed <= 0 {
+		log.Printf("[config] non-positive duration for %s=%s, using fallback %s", key, parsed, fallback)
+		return fallback
+	}
+	return parsed
 }
 
 func getEnvBool(key string, fallback bool) bool {

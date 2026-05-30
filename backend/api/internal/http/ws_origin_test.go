@@ -27,6 +27,9 @@ func TestCheckWSOrigin(t *testing.T) {
 		{"disallowed origin", "https://evil.example.com", false},
 		{"scheme mismatch", "http://app.example.com", false},
 		{"port mismatch", "https://localhost:9999", false},
+		{"malformed origin without scheme", "not-a-url", false},
+		{"scheme only without host", "https://", false},
+		{"unparseable origin", "http://[::1", false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
