@@ -94,6 +94,10 @@ func (s *Server) deviceHistoryLimits(ctx context.Context, userID int64) map[stri
 		} `json:"records"`
 	}
 	if err := json.Unmarshal(snapshot.Content, &parsed); err != nil {
+		// Non-empty content that fails to parse is a likely upstream
+		// misconfiguration; log it (per-type limits are skipped for this user
+		// only) so it can be found without affecting others.
+		log.Printf("[records] config snapshot parse failed for user %d; per-type limits skipped: %v", userID, err)
 		return nil
 	}
 

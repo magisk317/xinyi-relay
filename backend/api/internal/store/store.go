@@ -1038,12 +1038,13 @@ func (s *Store) PruneRelayRecords(ctx context.Context, userID int64, retention R
 	}
 
 	if retention.MaxAge > 0 {
-		cutoff := time.Now().Add(-retention.MaxAge)
+		// Evaluate the cutoff against the database clock (NOW()) rather than the
+		// app's wall clock so age-based pruning is consistent across instances.
 		tag, err := tx.Exec(
 			ctx,
-			`DELETE FROM relay_records WHERE user_id = $1 AND occurred_at < $2`,
+			`DELETE FROM relay_records WHERE user_id = $1 AND occurred_at < NOW() - make_interval(secs => $2)`,
 			userID,
-			cutoff,
+			retention.MaxAge.Seconds(),
 		)
 		if err != nil {
 			return 0, err
