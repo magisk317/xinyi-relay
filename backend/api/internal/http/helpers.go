@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -46,7 +47,18 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, target any, maxBytes int
 	r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
-	return decoder.Decode(target)
+	if err := decoder.Decode(target); err != nil {
+		return err
+	}
+	// Reject trailing data after the first JSON value (e.g. `{...}garbage`)
+	// so partially-valid bodies are not silently accepted.
+	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+		if err == nil {
+			return errors.New("unexpected trailing data after JSON body")
+		}
+		return err
+	}
+	return nil
 }
 
 // writeDecodeError maps a decodeJSON failure to a response: 413 when the body

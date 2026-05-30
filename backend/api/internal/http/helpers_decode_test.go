@@ -78,6 +78,39 @@ func TestDecodeJSONMalformedYields400(t *testing.T) {
 	}
 }
 
+func TestDecodeJSONTrailingDataYields400(t *testing.T) {
+	// A valid JSON value followed by extra bytes must be rejected, not
+	// silently accepted.
+	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"value":"ok"}garbage`))
+	rr := httptest.NewRecorder()
+
+	var target decodeTarget
+	err := decodeJSON(rr, r, &target, 1024)
+	if err == nil {
+		t.Fatal("decodeJSON returned nil error for body with trailing data, want an error")
+	}
+
+	writeDecodeError(rr, err)
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d for trailing data", rr.Code, http.StatusBadRequest)
+	}
+}
+
+func TestDecodeJSONTrailingWhitespaceAccepted(t *testing.T) {
+	// Trailing whitespace/newline after the JSON value is valid and must
+	// still decode successfully.
+	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("{\"value\":\"ok\"}\n  "))
+	rr := httptest.NewRecorder()
+
+	var target decodeTarget
+	if err := decodeJSON(rr, r, &target, 1024); err != nil {
+		t.Fatalf("decodeJSON returned error for trailing whitespace: %v", err)
+	}
+	if target.Value != "ok" {
+		t.Fatalf("decoded value = %q, want %q", target.Value, "ok")
+	}
+}
+
 func TestDecodeJSONUnknownFieldYields400(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"unexpected":1}`))
 	rr := httptest.NewRecorder()
