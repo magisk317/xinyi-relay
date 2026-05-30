@@ -427,10 +427,14 @@ object SenderSettingSanitizer {
         val repaired = repairFields(
             "token" to setting.token,
             "recvId" to setting.recvId,
+            "recvType" to setting.recvType,
+            "contentType" to setting.contentType,
         )
         return setting.copy(
             token = repaired.string("token"),
             recvId = repaired.string("recvId"),
+            recvType = repaired.enumString("recvType", defaults.recvType),
+            contentType = repaired.enumString("contentType", defaults.contentType),
         )
     }
 
@@ -893,7 +897,7 @@ object SenderSettingSanitizer {
 
     private fun hasStrongValidator(fieldName: String): Boolean {
         return when (fieldName) {
-            "method", "msgtype", "msgType", "msgKey", "parseMode", "proxyType", "receiveIdType",
+            "method", "msgtype", "msgType", "msgKey", "contentType", "recvType", "parseMode", "proxyType", "receiveIdType",
             "encryptionProtocol", "transformation", "level", "uriType", "priority",
             "server", "webServer", "webhook", "webHook", "customizeAPI", "apiBase", "callbackUrl", "url", "website",
             "authEmail", "fromEmail", "toEmail", "host", "port", "proxyPort", "simSlot", "qos",
@@ -908,6 +912,8 @@ object SenderSettingSanitizer {
         return when (fieldName) {
             "method" -> isHttpMethod(value) || isSocketMethod(value)
             "msgtype", "msgType", "msgKey" -> isMessageType(value)
+            "contentType" -> safeString(value).trim() in setOf("text", "markdown")
+            "recvType" -> normalized(value) in setOf("user", "group")
             "parseMode" -> normalized(value) in setOf("html", "markdownv2")
             "proxyType" -> safeString(value).trim().uppercase(Locale.ROOT) in setOf("DIRECT", "HTTP", "SOCKS") ||
                 value is Proxy.Type

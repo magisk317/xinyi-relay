@@ -7,6 +7,7 @@ import io.github.magisk317.relay.sender.result.YunhuResult
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
+import java.net.URLEncoder
 
 object YunhuUtils {
 
@@ -15,7 +16,7 @@ object YunhuUtils {
 
     suspend fun sendMsg(setting: YunhuSetting, msgInfo: MsgInfo) {
         val title = setting.titleTemplate.ifBlank { "信息驿站: ${msgInfo.from}" }
-        val text = if (title.isBlank()) msgInfo.content else "$title\n${msgInfo.content}"
+        val text = "$title\n${msgInfo.content}"
         val contentType = setting.contentType.ifBlank { "text" }
         val recvType = setting.recvType.ifBlank { "user" }
 
@@ -28,7 +29,7 @@ object YunhuUtils {
             }
         }
 
-        val requestUrl = "$BASE_URL?token=${setting.token}"
+        val requestUrl = "$BASE_URL?token=${URLEncoder.encode(setting.token, "UTF-8")}"
         val requestMsg = SenderWireJson.encode(requestJson)
         SLog.i(TAG, "requestMsg:$requestMsg")
 
