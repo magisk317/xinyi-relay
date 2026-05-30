@@ -23,6 +23,11 @@ const migrationsDir = "migrations"
 // only one process applies pending migrations at a time.
 const migrationAdvisoryLockKey int64 = 472407101
 
+// migrationLockTimeout bounds how long we wait to acquire the advisory lock so a
+// crashed or stuck holder cannot block startup indefinitely. It only affects the
+// lock-acquisition wait; it is reset before the migrations themselves run.
+const migrationLockTimeout = "30s"
+
 const schemaMigrationsDDL = `
 CREATE TABLE IF NOT EXISTS schema_migrations (
 	version BIGINT PRIMARY KEY,
@@ -120,12 +125,22 @@ func (db *Database) migrate(ctx context.Context) error {
 	}
 	defer conn.Release()
 
+	// Bound the wait for the advisory lock; lock_timeout also covers
+	// pg_advisory_lock, so a stuck holder fails fast instead of hanging forever.
+	if _, err := conn.Exec(ctx, fmt.Sprintf(`SET lock_timeout = '%s'`, migrationLockTimeout)); err != nil {
+		return fmt.Errorf("set migration lock_timeout: %w", err)
+	}
 	if _, err := conn.Exec(ctx, `SELECT pg_advisory_lock($1)`, migrationAdvisoryLockKey); err != nil {
-		return fmt.Errorf("acquire migration lock: %w", err)
+		return fmt.Errorf("acquire migration lock (waited up to %s): %w", migrationLockTimeout, err)
 	}
 	defer func() {
 		_, _ = conn.Exec(ctx, `SELECT pg_advisory_unlock($1)`, migrationAdvisoryLockKey)
 	}()
+	// Restore the default so migrations themselves are not subject to the
+	// short acquisition timeout.
+	if _, err := conn.Exec(ctx, `SET lock_timeout = DEFAULT`); err != nil {
+		return fmt.Errorf("reset lock_timeout: %w", err)
+	}
 
 	if _, err := conn.Exec(ctx, schemaMigrationsDDL); err != nil {
 		return fmt.Errorf("ensure schema_migrations: %w", err)

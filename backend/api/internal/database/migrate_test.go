@@ -42,6 +42,9 @@ func TestLoadMigrationsIncludesBaseline(t *testing.T) {
 	if migrations[0].version != 1 {
 		t.Fatalf("expected first migration version 1, got %d (%s)", migrations[0].version, migrations[0].name)
 	}
+	if migrations[0].name != "0001_init.sql" {
+		t.Fatalf("expected first migration to be 0001_init.sql, got %s", migrations[0].name)
+	}
 }
 
 func TestParseMigrationVersion(t *testing.T) {
