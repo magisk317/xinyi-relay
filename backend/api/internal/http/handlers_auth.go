@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -293,30 +294,19 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
-	cookie, err := r.Cookie("relay_session")
-	if err != nil || cookie.Value == "" {
-		writeJSON(w, http.StatusOK, meResponse{Authenticated: false})
-		return
-	}
-	session, err := s.store.GetSessionByTokenHash(r.Context(), security.HashToken(cookie.Value))
+	auth, err := s.attemptSession(r)
 	if err != nil {
-		if err == store.ErrNotFound {
+		if errors.Is(err, errNoCredential) || errors.Is(err, store.ErrNotFound) {
 			writeJSON(w, http.StatusOK, meResponse{Authenticated: false})
 			return
 		}
 		writeError(w, http.StatusInternalServerError, "session lookup failed")
 		return
 	}
-	user, err := s.store.GetUserByUsername(r.Context(), session.Username)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "user lookup failed")
-		return
-	}
-	_ = s.store.TouchSession(r.Context(), session.ID)
 	writeJSON(w, http.StatusOK, meResponse{
 		Authenticated: true,
-		Username:      user.Username,
-		CSRFToken:     session.CSRFToken,
+		Username:      auth.User.Username,
+		CSRFToken:     auth.Session.CSRFToken,
 	})
 }
 
@@ -343,7 +333,7 @@ func (s *Server) handleDesktopAuthStart(w http.ResponseWriter, r *http.Request) 
 			RedirectURI: redirectURI,
 			State:       state,
 		}
-		if auth, err := s.authenticateSession(r); err == nil {
+		if auth, err := s.attemptSession(r); err == nil {
 			data.ExistingUsername = auth.User.Username
 		}
 
@@ -422,7 +412,7 @@ func (s *Server) handleDesktopAuthStart(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) resolveDesktopStartUser(r *http.Request, payload desktopLoginPageRequest) (store.User, *http.Cookie, error) {
-	if auth, err := s.authenticateSession(r); err == nil {
+	if auth, err := s.attemptSession(r); err == nil {
 		return auth.User, nil, nil
 	}
 	if payload.Username == "" || payload.Password == "" {
