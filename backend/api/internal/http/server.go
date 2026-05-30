@@ -19,7 +19,7 @@ import (
 type Server struct {
 	cfg          config.Config
 	db           *database.Database
-	store        *store.Store
+	store        dataStore
 	hub          *realtime.Hub
 	server       *http.Server
 	loginLimiter *rateLimiter
