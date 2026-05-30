@@ -54,6 +54,45 @@ RELAY_API_IMAGE=ghcr.io/magisk317/xinyi-relay-backend:beta
 RELAY_API_PULL_POLICY=always
 ```
 
+## 数据库迁移
+
+后端在启动时（`database.Open` -> `migrate`）自动执行版本化迁移，无需手动操作。
+
+- 迁移文件位于 `backend/api/internal/database/migrations/`，通过 `embed.FS` 打包进二进制。
+- 文件命名为 `NNNN_描述.sql`（如 `0001_init.sql`），按前缀数字升序执行。
+- 已执行的迁移记录在 `schema_migrations` 表（version / name / checksum / applied_at）。
+- 每个迁移在单个事务中执行 DDL 并写入版本记录；失败会整体回滚，下次启动重试。
+- 多实例并发启动时通过 `pg_advisory_lock` 串行化，避免重复执行。
+- 已执行的迁移是**不可变**的：再次启动时会校验 checksum，改动历史迁移会导致启动报错。
+
+### 新增一条迁移
+
+1. 在 `migrations/` 下新建递增编号的文件，例如：
+
+   ```text
+   backend/api/internal/database/migrations/0002_add_login_attempts.sql
+   ```
+
+2. 写入向前变更（新增表 / 加列 / 加索引等），例如：
+
+   ```sql
+   ALTER TABLE users ADD COLUMN failed_login_count INTEGER NOT NULL DEFAULT 0;
+   ```
+
+   > 基线 `0001_init.sql` 为兼容历史库使用了 `IF NOT EXISTS`；后续迁移应表达明确的向前变更，不要依赖 `IF NOT EXISTS`。
+
+3. 重新部署即可，启动时自动应用。`0001_init.sql` 与旧的启动建表逻辑等价，旧库升级时会被识别为已就绪并记录为已执行，不会重复建表。
+
+### 针对真实数据库运行迁移测试（可选）
+
+默认 `go test ./...` 不需要数据库；集成测试仅在设置 `RELAY_TEST_DATABASE_URL` 时运行：
+
+```bash
+cd backend/api
+RELAY_TEST_DATABASE_URL="postgres://relay:relay@localhost:5432/relay?sslmode=disable" \
+  go test ./internal/database/ -run TestMigrate -v
+```
+
 ## 日志配置
 
 后端支持将日志输出到文件，便于问题排查和运维监控。
