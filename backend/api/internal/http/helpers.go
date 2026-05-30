@@ -32,10 +32,32 @@ func writeHTML(w http.ResponseWriter, status int, html string) {
 	_, _ = w.Write([]byte(html))
 }
 
-func decodeJSON(r *http.Request, target any) error {
+// Maximum accepted request body sizes per endpoint class. They bound how much
+// memory a single request can force the server to read, mitigating trivial DoS
+// via oversized payloads.
+const (
+	maxAuthBodyBytes    int64 = 64 << 10 // 64 KiB: login, bootstrap, change password, desktop token exchanges
+	maxDeviceBodyBytes  int64 = 64 << 10 // 64 KiB: device register / heartbeat / patch
+	maxConfigBodyBytes  int64 = 1 << 20  // 1 MiB: config snapshot
+	maxRecordsBodyBytes int64 = 8 << 20  // 8 MiB: relay records batch upload
+)
+
+func decodeJSON(w http.ResponseWriter, r *http.Request, target any, maxBytes int64) error {
+	r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 	return decoder.Decode(target)
+}
+
+// writeDecodeError maps a decodeJSON failure to a response: 413 when the body
+// exceeds the configured limit, 400 otherwise.
+func writeDecodeError(w http.ResponseWriter, err error) {
+	var maxErr *http.MaxBytesError
+	if errors.As(err, &maxErr) {
+		writeError(w, http.StatusRequestEntityTooLarge, "request body too large")
+		return
+	}
+	writeError(w, http.StatusBadRequest, "invalid payload")
 }
 
 func readLimitQuery(r *http.Request, fallback int32) int32 {
