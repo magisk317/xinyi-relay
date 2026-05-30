@@ -262,6 +262,23 @@ const SENDER_FIELD_SCHEMAS: Record<number, SenderFieldSchema[]> = {
     field('priority', 'text', '优先级', 'Priority'),
     field('tags', 'text', '标签', 'Tags'),
   ],
+  17: [
+    field('token', 'text', 'Token', 'Token'),
+    field('recvId', 'text', '接收者 ID', 'Recipient ID'),
+    field('recvType', 'select', '接收者类型', 'Recipient type', {
+      options: [
+        { value: 'user', label: { en: 'User', 'zh-CN': '用户', 'zh-TW': '用戶' } },
+        { value: 'group', label: { en: 'Group', 'zh-CN': '群组', 'zh-TW': '群組' } },
+      ],
+    }),
+    field('contentType', 'select', '消息类型', 'Message type', {
+      options: [
+        { value: 'text', label: { en: 'Text', 'zh-CN': '文本', 'zh-TW': '文字' } },
+        { value: 'markdown', label: { en: 'Markdown', 'zh-CN': 'Markdown', 'zh-TW': 'Markdown' } },
+      ],
+    }),
+    field('titleTemplate', 'text', '标题模板', 'Title template'),
+  ],
 }
 
 export function buildSenderDraftJson(type: number): string {

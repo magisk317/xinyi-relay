@@ -303,6 +303,7 @@ const zhCnMessages: Messages = {
   'senders.type.urlScheme': 'URL Scheme',
   'senders.type.socket': 'Socket / MQTT',
   'senders.type.ntfy': 'ntfy',
+  'senders.type.yunhu': '云湖',
   'advanced.backendProfilesTitle': '后端配置',
   'advanced.backendProfilesSubtitle': '桌面端会在本地保存多个后端地址，并可在不打开浏览器的情况下切换。',
   'advanced.probeActiveBackend': '探测当前后端',
@@ -618,6 +619,7 @@ const enMessages: Messages = {
   'senders.type.urlScheme': 'URL Scheme',
   'senders.type.socket': 'Socket / MQTT',
   'senders.type.ntfy': 'ntfy',
+  'senders.type.yunhu': 'YunHu',
   'advanced.backendProfilesTitle': 'Backend profiles',
   'advanced.backendProfilesSubtitle': 'Desktop keeps multiple backend endpoints locally and can switch them without touching the browser.',
   'advanced.probeActiveBackend': 'Probe Active Backend',
@@ -719,7 +721,8 @@ export function translateSenderType(
     13: 'senders.type.feishuApp',
     14: 'senders.type.urlScheme',
     15: 'senders.type.socket',
-    16: 'senders.type.ntfy'
+    16: 'senders.type.ntfy',
+    17: 'senders.type.yunhu'
   }
   const key = map[type]
   return key ? t(key) : `Type ${type}`

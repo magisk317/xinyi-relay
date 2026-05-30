@@ -241,6 +241,7 @@ const zhCnMessages: Messages = {
   'senders.type.feishuApp': '飞书应用',
   'senders.type.urlScheme': 'URL Scheme',
   'senders.type.socket': 'Socket',
+  'senders.type.yunhu': '云湖',
   'settings.title': '设置',
   'settings.description': '直接编辑云端主配置快照，Android Agent 会按 revision 拉取并应用。',
   'settings.loadingTitle': '正在加载设置',
@@ -629,6 +630,7 @@ const enMessages: Messages = {
   'senders.type.feishuApp': 'Feishu App',
   'senders.type.urlScheme': 'URL Scheme',
   'senders.type.socket': 'Socket',
+  'senders.type.yunhu': 'YunHu',
   'settings.title': 'Settings',
   'settings.description': 'Edit the canonical cloud config snapshot. Android agents will pull and apply revisions from this backend.',
   'settings.loadingTitle': 'Loading settings',
@@ -927,7 +929,8 @@ export function translateSenderType(
     13: 'senders.type.feishuApp',
     14: 'senders.type.urlScheme',
     15: 'senders.type.socket',
-    16: 'senders.type.ntfy'
+    16: 'senders.type.ntfy',
+    17: 'senders.type.yunhu'
   }
   const key = map[type]
   return key ? t(key) : `Type ${type}`

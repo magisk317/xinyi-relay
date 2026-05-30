@@ -1067,6 +1067,8 @@
     <string name="sender_segment_text">Text</string>
     <string name="sender_segment_markdown">Markdown</string>
     <string name="sender_segment_interactive">Interactive</string>
+    <string name="sender_segment_yunhu_user">User</string>
+    <string name="sender_segment_yunhu_group">Group</string>
     <string name="sender_segment_get">GET</string>
     <string name="sender_segment_post">POST</string>
     <string name="sender_segment_html">HTML</string>
@@ -1096,6 +1098,9 @@
     <string name="sender_form_label_token_required">Token (Required)</string>
     <string name="sender_form_label_secret_signature_key_optional">Secret signature key (Optional)</string>
     <string name="sender_form_label_message_type">Message type</string>
+    <string name="sender_form_label_yunhu_recv_id_required">Recipient ID (Required)</string>
+    <string name="sender_form_label_yunhu_recv_id_hint">User ID or group ID from the YunHu console</string>
+    <string name="sender_form_label_yunhu_recv_type">Recipient type</string>
     <string name="sender_form_label_agent_id">AgentID</string>
     <string name="sender_form_label_app_key">AppKey</string>
     <string name="sender_form_label_app_secret">AppSecret</string>
@@ -1215,6 +1220,7 @@
     <string name="sender_type_feishu_app">Feishu App</string>
     <string name="sender_type_url_scheme">URL Scheme</string>
     <string name="sender_type_socket">Socket</string>
+    <string name="sender_type_yunhu">YunHu</string>
     <string name="sender_type_unknown">Unknown channel</string>
     <string name="overview_runtime_diagnostics_shown">Runtime diagnostics shown</string>
     <string name="overview_runtime_diagnostics_hidden">Runtime diagnostics hidden</string>

@@ -1077,6 +1077,8 @@
     <string name="sender_template_var_call_key">通话键</string>
     <string name="sender_segment_text">文本</string>
     <string name="sender_segment_markdown">Markdown</string>
+    <string name="sender_segment_yunhu_user">用户</string>
+    <string name="sender_segment_yunhu_group">群组</string>
     <string name="sender_segment_interactive">卡片</string>
     <string name="sender_segment_get">GET</string>
     <string name="sender_segment_post">POST</string>
@@ -1107,6 +1109,9 @@
     <string name="sender_form_label_token_required">Token（必填）</string>
     <string name="sender_form_label_secret_signature_key_optional">签名密钥（选填）</string>
     <string name="sender_form_label_message_type">消息类型</string>
+    <string name="sender_form_label_yunhu_recv_id_required">接收者 ID（必填）</string>
+    <string name="sender_form_label_yunhu_recv_id_hint">云湖控制台中的用户 ID 或群组 ID</string>
+    <string name="sender_form_label_yunhu_recv_type">接收者类型</string>
     <string name="sender_form_label_agent_id">AgentID</string>
     <string name="sender_form_label_app_key">AppKey</string>
     <string name="sender_form_label_app_secret">AppSecret</string>
@@ -1226,6 +1231,7 @@
     <string name="sender_type_feishu_app">飞书应用</string>
     <string name="sender_type_url_scheme">URL Scheme</string>
     <string name="sender_type_socket">Socket</string>
+    <string name="sender_type_yunhu">云湖</string>
     <string name="sender_type_unknown">未知通道</string>
     <string name="overview_runtime_diagnostics_shown">已显示运行时诊断</string>
     <string name="overview_runtime_diagnostics_hidden">已隐藏运行时诊断</string>

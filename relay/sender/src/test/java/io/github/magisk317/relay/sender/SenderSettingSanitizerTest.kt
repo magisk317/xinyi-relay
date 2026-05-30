@@ -23,6 +23,7 @@ import io.github.magisk317.relay.sender.config.UrlSchemeSetting
 import io.github.magisk317.relay.sender.config.WebhookSetting
 import io.github.magisk317.relay.sender.config.WeworkAgentSetting
 import io.github.magisk317.relay.sender.config.WeworkRobotSetting
+import io.github.magisk317.relay.sender.config.YunhuSetting
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -52,6 +53,7 @@ class SenderSettingSanitizerTest {
             SenderType.FEISHU_APP to """{"appId":null,"appSecret":null,"receiveId":null,"msgType":null}""",
             SenderType.URL_SCHEME to """{"urlScheme":null}""",
             SenderType.SOCKET to """{"method":null,"address":null,"port":null,"uriType":null,"outCharset":null}""",
+            SenderType.YUNHU to """{"token":null,"recvId":null,"recvType":null,"contentType":null}""",
         )
 
         dirtyCases.forEach { (type, dirtyJson) ->
@@ -60,6 +62,30 @@ class SenderSettingSanitizerTest {
             assertFalse(sanitized.jsonSetting.isBlank())
             assertNoDangerousNullAccess(type, sanitized.jsonSetting)
         }
+    }
+
+    @Test
+    fun sanitizeSenderLenient_yunhuInvalidEnums_clampedToDefaults() {
+        val sender = newSender(
+            SenderType.YUNHU,
+            """{"token":"t","recvId":"u","recvType":"bogus","contentType":"html"}""",
+        )
+        val sanitized = SenderSettingSanitizer.sanitizeSenderLenient(sender)
+        val setting = SenderSettingJson.decode<YunhuSetting>(sanitized.jsonSetting)
+        assertEquals("user", setting.recvType)
+        assertEquals("text", setting.contentType)
+    }
+
+    @Test
+    fun sanitizeSenderLenient_yunhuValidEnums_preserved() {
+        val sender = newSender(
+            SenderType.YUNHU,
+            """{"token":"t","recvId":"g","recvType":"group","contentType":"markdown"}""",
+        )
+        val sanitized = SenderSettingSanitizer.sanitizeSenderLenient(sender)
+        val setting = SenderSettingJson.decode<YunhuSetting>(sanitized.jsonSetting)
+        assertEquals("group", setting.recvType)
+        assertEquals("markdown", setting.contentType)
     }
 
     @Test

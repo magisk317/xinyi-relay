@@ -18,4 +18,5 @@ object SenderType {
     const val URL_SCHEME = 14
     const val SOCKET = 15
     const val NTFY = 16
+    const val YUNHU = 17
 }

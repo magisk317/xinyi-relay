@@ -244,6 +244,14 @@ object SenderSettingSchemas {
             field("priority", aliases = arrayOf("s"), defaultValue = "3"),
             field("tags", aliases = arrayOf("t")),
         ),
+        schema(
+            SenderType.YUNHU,
+            field("token", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("o")),
+            field("recvId", requiredForEnable = true, aliases = arrayOf("p")),
+            field("recvType", aliases = arrayOf("q"), defaultValue = "user", options = arrayOf("user", "group")),
+            field("contentType", aliases = arrayOf("r"), defaultValue = "text", options = arrayOf("text", "markdown")),
+            field("titleTemplate", aliases = arrayOf("s")),
+        ),
     )
 
     val byType: Map<Int, SenderSettingSchema> = all.associateBy { it.senderType }
