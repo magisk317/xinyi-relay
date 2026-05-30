@@ -1,9 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
+    <!-- 动态后端（用户在 App 内输入任意 http(s):// 主机，本地优先：可能是局域网明文 http，
+         或 Caddy `tls internal` 自签 HTTPS 经用户证书接入）与自建 Sender（Webhook / 自建
+         Bark、Gotify、Ntfy 等）需要明文与用户证书，故默认仍放开 system + user。 -->
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />
             <certificates src="user" />
         </trust-anchors>
     </base-config>
+
+    <!-- 验证码/通知外发的固定公网 IM/推送服务：始终使用正规公网 TLS。
+         在此收紧为「禁明文 + 仅信任系统 CA」，避免被用户安装的 CA 中间人窃取验证码。
+         用户自填的代理/自建主机不在此列，按 base-config 处理，不受影响。 -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="false">api.telegram.org</domain>
+        <domain includeSubdomains="false">qyapi.weixin.qq.com</domain>
+        <domain includeSubdomains="false">sctapi.ftqq.com</domain>
+        <domain includeSubdomains="false">open.feishu.cn</domain>
+        <domain includeSubdomains="false">oapi.dingtalk.com</domain>
+        <domain includeSubdomains="false">api.dingtalk.com</domain>
+        <domain includeSubdomains="false">api.day.app</domain>
+        <domain includeSubdomains="false">ntfy.sh</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
 </network-security-config>
