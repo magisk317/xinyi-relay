@@ -6,6 +6,9 @@
     "forkProcessing": "enabled",
     "pruneStaleBranches": true,
     "pruneBranchAfterAutomerge": true,
+    "minimumReleaseAge": "24 hours",
+    "internalChecksFilter": "strict",
+    "prCreation": "not-pending",
     "baseBranchPatterns": [
         "beta"
     ],
