@@ -421,6 +421,8 @@ jobs:
             exit 0
           fi
 
+          PROJECT_TAG="📌 #xinyirelay"
+
           dockerhub_enabled=0
           dockerhub_image=""
           if [[ -n "$DOCKERHUB_USERNAME" && -n "$DOCKERHUB_TOKEN" ]]; then
@@ -447,18 +449,20 @@ jobs:
           fi
 
           message="$(cat <<EOF
-          ✅ Docker Publish Success
+          ✅ 信驿 Relay：backend-publish-ghcr
+          ${PROJECT_TAG}
 
-          Repo: ${{ github.repository }}
-          Ref: ${RELEASE_VERSION:-${{ github.ref_name }}} @ ${{ github.sha }}
-          Workflow: backend-publish-ghcr
-          Results:
+          📦 Release: ${RELEASE_VERSION:-${{ github.ref_name }}}
+          📚 Repo: ${{ github.repository }}
+          🧩 Commit: ${{ github.sha }}
+          ⚙️ Workflow: backend-publish-ghcr
+          📊 Results:
             - amd64: ${AMD64_RESULT}
             - arm64: ${ARM64_RESULT}
             - manifests: ${MANIFEST_RESULT}
-          Images:
+          🐳 Images:
           ${images_block}
-          Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          🔗 Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           EOF
           )"
 

@@ -53,6 +53,7 @@ jobs:
           fi
 
           TG_MAX_FILESIZE=$((50 * 1024 * 1024))
+          PROJECT_TAG="📌 #xinyirelay"
 
           send_message() {
             local thread=$1
@@ -92,8 +93,8 @@ jobs:
                 link="https://github.com/${WF_RUN_REPO}/releases"
               fi
               local msg
-              msg=$(printf '📦 %s (%sMB) exceeds Telegram upload limit.\n🔗 Download: %s' \
-                "$name" "$((size / 1024 / 1024))" "$link")
+              msg=$(printf '📦 %s (%sMB) exceeds Telegram upload limit.\n%s\n🔗 Download: %s' \
+                "$name" "$((size / 1024 / 1024))" "$PROJECT_TAG" "$link")
               send_message "$thread" "$msg"
               return 0
             fi
@@ -125,8 +126,8 @@ jobs:
             if [ "${WF_RUN_CONCLUSION:-}" != "success" ]; then
               exit 0
             fi
-            CI_MSG=$(printf '✅ Xinyi Relay Workflow %s\n\n📋 %s\n🔗 Run: %s' \
-              "${WF_RUN_NAME:-CI}" "${CI_COMMIT_TITLE:-}" "${WF_RUN_URL:-}")
+            CI_MSG=$(printf '✅ 信驿 Relay：%s\n%s\n📋 %s\n🔗 Run: %s' \
+              "${WF_RUN_NAME:-CI}" "$PROJECT_TAG" "${CI_COMMIT_TITLE:-}" "${WF_RUN_URL:-}")
             CI_THREAD=""
             if [ -n "${TG_CI_THREAD_ID:-}" ]; then
               CI_THREAD="$TG_CI_THREAD_ID"
@@ -141,7 +142,8 @@ jobs:
                 echo "No arm64-v8a APK artifacts found."
               else
                 for apk in "${ci_apks[@]}"; do
-                  send_document "$apk" "$CI_THREAD" ""
+                  apk_caption=$(printf '📦 %s\n%s' "$(basename "$apk")" "$PROJECT_TAG")
+                  send_document "$apk" "$CI_THREAD" "$apk_caption"
                 done
               fi
             else
@@ -179,7 +181,7 @@ jobs:
             WHATSNEW_CONTENT="Release ${RELEASE_TAG} is published."
           fi
 
-          CAPTION=$(printf '📦 信驿 Relay Release: %s\n\n%s' "$RELEASE_TAG" "$WHATSNEW_CONTENT")
+          CAPTION=$(printf '📦 信驿 Relay：Release %s\n%s\n\n%s' "$RELEASE_TAG" "$PROJECT_TAG" "$WHATSNEW_CONTENT")
 
           RELEASE_THREAD=""
           if [ -n "${TG_THREAD_ID:-}" ]; then
@@ -195,7 +197,8 @@ jobs:
               if [[ "$name" == *arm64-v8a*.apk ]]; then
                 echo "Downloading $name..."
                 curl --fail-with-body -L -sS -o "downloads/$name" "$url"
-                send_document "downloads/$name" "$RELEASE_THREAD" ""
+                asset_caption=$(printf '📦 %s\n%s' "$name" "$PROJECT_TAG")
+                send_document "downloads/$name" "$RELEASE_THREAD" "$asset_caption"
               fi
             done
           fi
