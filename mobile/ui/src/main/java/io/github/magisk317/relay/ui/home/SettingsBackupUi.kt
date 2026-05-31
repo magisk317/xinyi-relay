@@ -8,7 +8,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -38,6 +43,54 @@ internal data class BackupSelection(
     fun hasSelection(): Boolean {
         return includeConfig || includeRules || includeRecords || includeDatabase
     }
+}
+
+enum class BackupSourceType {
+    LOCAL,
+    GOOGLE_DRIVE,
+    WEBDAV
+}
+
+@Composable
+internal fun BackupSourceDialog(
+    title: String,
+    onDismiss: () -> Unit,
+    onSourceSelected: (BackupSourceType) -> Unit,
+) {
+    val options = buildList {
+        add(BackupSourceType.LOCAL to stringResource(id = R.string.backup_source_local))
+        if (io.github.magisk317.relay.mobileui.BuildConfig.HAS_CLOUD_BACKUP) {
+            add(BackupSourceType.GOOGLE_DRIVE to stringResource(id = R.string.backup_source_google))
+        }
+        add(BackupSourceType.WEBDAV to stringResource(id = R.string.backup_source_webdav))
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = title) },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                options.forEach { (type, name) ->
+                    Button(
+                        onClick = { onSourceSelected(type) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(name)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(android.R.string.cancel))
+            }
+        },
+    )
 }
 
 @Composable

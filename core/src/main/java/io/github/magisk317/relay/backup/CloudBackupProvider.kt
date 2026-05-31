@@ -1,5 +1,7 @@
 package io.github.magisk317.relay.backup
 
+import io.github.magisk317.relay.backup.drive.GoogleDriveBackupConfig
+
 /**
  * Interface for cloud backup operations.
  * Both play and github flavors support Google Drive and WebDAV backup.
@@ -15,6 +17,10 @@ interface CloudBackupProvider {
     fun isAutoBackupEnabled(): Boolean
 }
 
+interface GoogleDriveConfigurableBackupProvider {
+    fun updateGoogleDriveConfig(config: GoogleDriveBackupConfig)
+}
+
 enum class BackupSource {
     GOOGLE_DRIVE,
     WEBDAV,
@@ -25,6 +31,7 @@ data class CloudBackupMeta(
     val name: String,
     val size: Long,
     val modifiedTime: String,
+    val source: BackupSource,
 )
 
 class NoOpCloudBackupProvider : CloudBackupProvider {

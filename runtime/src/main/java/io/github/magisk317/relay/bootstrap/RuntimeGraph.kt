@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.bootstrap
 
 import android.content.Context
+import io.github.magisk317.relay.contract.backup.AutoBackupTrigger
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.contract.repository.RemoteSyncRepository
@@ -46,6 +47,7 @@ object RuntimeGraph {
     val runtimeRecordFacade: RuntimeRecordFacade get() = koin.get()
     val configRepository: AppConfigRepository get() = koin.get()
     val scheduledTaskRepository: ScheduledTaskRepository get() = koin.get()
+    val autoBackupTrigger: AutoBackupTrigger get() = koin.get()
     val systemInfoProvider: SystemInfoProvider get() = koin.get()
     val messageFormatter: MessageFormatter get() = koin.get()
     val eventGatekeeper: EventGatekeeper get() = koin.get()

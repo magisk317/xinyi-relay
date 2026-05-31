@@ -141,16 +141,10 @@ data class SenderForwardFilterRoute(
 )
 
 @Serializable
-object LoginRoute
-
-@Serializable
-object ProfileRoute
-
-@Serializable
-object DonateRoute
-
-@Serializable
-object CloudBackupRoute
+data class CloudBackupRoute(
+    val initialSource: String? = null,
+    val backupNow: Boolean = false,
+)
 
 @Composable
 fun SmsCodeNavHost(

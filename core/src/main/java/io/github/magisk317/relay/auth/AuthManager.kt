@@ -8,4 +8,5 @@ interface AuthManager {
     fun signOut()
     fun isLoggedIn(): Boolean
     fun getCurrentUid(): String?
+    suspend fun getGoogleDriveAccessToken(): String?
 }

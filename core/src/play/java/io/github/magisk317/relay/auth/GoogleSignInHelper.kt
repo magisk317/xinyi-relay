@@ -14,6 +14,7 @@ import com.google.android.gms.tasks.Task
 class GoogleSignInHelperImpl(context: Context) : GoogleSignInHelper {
 
     private val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+        .requestScopes(com.google.android.gms.common.api.Scope(com.google.android.gms.common.Scopes.DRIVE_APPFOLDER))
         .requestIdToken(WEB_CLIENT_ID)
         .requestEmail()
         .build()
@@ -36,8 +37,6 @@ class GoogleSignInHelperImpl(context: Context) : GoogleSignInHelper {
     }
 
     companion object {
-        // TODO: Replace with your actual web client ID from Firebase Console
-        // Firebase Console -> Authentication -> Sign-in method -> Google -> Web client ID
-        private const val WEB_CLIENT_ID = "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com"
+        private const val WEB_CLIENT_ID = "1018461105061-h9ap7k5uof9tl9tdguoqt2d4hkq1efvo.apps.googleusercontent.com"
     }
 }

@@ -3,8 +3,10 @@ package io.github.magisk317.relay.backup
 import android.content.Context
 import android.net.Uri
 import androidx.core.content.FileProvider
-import io.github.magisk317.relay.contract.json.RelayJson
 import io.github.magisk317.relay.auth.AuthManager
+import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.relay.backup.drive.GoogleDriveBackupConfig
+import io.github.magisk317.relay.contract.json.RelayJson
 import io.github.magisk317.relay.data.backup.BackupManager
 import io.github.magisk317.smscode.runtime.contract.backup.ExportResult
 import io.github.magisk317.smscode.runtime.contract.backup.ImportResult
@@ -24,9 +26,9 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
-import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
+import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -43,11 +45,18 @@ class GoogleDriveBackupManager(
     private val authManager: AuthManager,
 ) {
     private val client = OkHttpClient()
+    private var config: GoogleDriveBackupConfig = GoogleDriveBackupConfig()
 
-    private fun getAccessToken(): String? = authManager.session.value?.idToken
+    fun updateConfig(newConfig: GoogleDriveBackupConfig) {
+        config = newConfig
+    }
 
-    private fun authHeader(): String {
-        val token = getAccessToken() ?: throw IllegalStateException("Not logged in")
+    private suspend fun getAccessToken(): String? {
+        return authManager.getGoogleDriveAccessToken()
+    }
+
+    private suspend fun authHeader(): String {
+        val token = getAccessToken() ?: throw IllegalStateException("Not logged in or missing access token")
         return "Bearer $token"
     }
 
@@ -83,24 +92,23 @@ class GoogleDriveBackupManager(
                 if (exportResult != ExportResult.SUCCESS) {
                     throw IllegalStateException("Local backup export failed: $exportResult")
                 }
+                val fileSize = tempFile.length()
+                if (!tempFile.isFile || fileSize <= 0L) {
+                    throw IllegalStateException("Local backup file missing or empty")
+                }
+                XLog.i("Google Drive backup export ready: name=%s size=%d", fileName, fileSize)
 
-                // Upload to Drive appDataFolder
+                val folderId = ensureFolderPath(config.folderPath)
+
+                // Upload to a user-visible Drive folder.
                 val metadata = buildJsonObject {
                     put("name", fileName)
-                    put("parents", JsonArray(listOf(JsonPrimitive("appDataFolder"))))
+                    put("parents", JsonArray(listOf(JsonPrimitive(folderId))))
                 }.toString()
                 val requestBody = MultipartBody.Builder()
-                    .setType(MultipartBody.FORM)
-                    .addFormDataPart(
-                        "metadata",
-                        "metadata",
-                        metadata.toRequestBody("application/json; charset=utf-8".toMediaType()),
-                    )
-                    .addFormDataPart(
-                        "file",
-                        fileName,
-                        tempFile.asRequestBody("application/zip".toMediaType()),
-                    )
+                    .setType("multipart/related".toMediaType())
+                    .addPart(metadata.toRequestBody("application/json; charset=utf-8".toMediaType()))
+                    .addPart(tempFile.asRequestBody("application/zip".toMediaType()))
                     .build()
 
                 val request = Request.Builder()
@@ -109,52 +117,80 @@ class GoogleDriveBackupManager(
                     .post(requestBody)
                     .build()
 
-                val response = client.newCall(request).execute()
-                if (!response.isSuccessful) {
-                    throw IllegalStateException("Upload failed: ${response.code}")
+                client.newCall(request).execute().use { response ->
+                    val body = response.body.string()
+                    if (!response.isSuccessful) {
+                        XLog.e(
+                            "Google Drive backup upload failed: code=%d body=%s",
+                            response.code,
+                            body.take(MAX_LOG_BODY_LENGTH),
+                        )
+                        if (body.isDriveApiDisabledError()) {
+                            throw IllegalStateException("Google Drive API disabled")
+                        }
+                        throw IllegalStateException("Upload failed: ${response.code}")
+                    }
+                    val fileId = parseObject(body).string("id")
+                    require(fileId.isNotBlank()) { "Upload response missing file id" }
+                    XLog.i("Google Drive backup upload success: name=%s size=%d", fileName, fileSize)
+                    val modifiedTime = timestamp
+
+                    DriveBackupMeta(
+                        id = fileId,
+                        name = fileName,
+                        size = fileSize,
+                        modifiedTime = modifiedTime,
+                    )
                 }
-
-                val body = response.body.string()
-                val fileId = parseObject(body).string("id")
-                require(fileId.isNotBlank()) { "Upload response missing file id" }
-                val fileSize = tempFile.length()
-                val modifiedTime = timestamp
-
-                DriveBackupMeta(
-                    id = fileId,
-                    name = fileName,
-                    size = fileSize,
-                    modifiedTime = modifiedTime,
-                )
             } finally {
-                tempFile.delete()
+                if (tempFile.exists()) {
+                    val deleted = tempFile.delete()
+                    XLog.i("Google Drive backup temp cleanup: name=%s deleted=%s", fileName, deleted)
+                }
             }
         }
     }
 
     suspend fun listBackups(): Result<List<DriveBackupMeta>> = withContext(Dispatchers.IO) {
         runCatching {
+            val folderId = findFolderPath(config.folderPath) ?: return@runCatching emptyList()
+            val query = "'$folderId' in parents and trashed = false and name contains '.zip'"
+            val url = "https://www.googleapis.com/drive/v3/files" +
+                "?spaces=drive&pageSize=100" +
+                "&q=${query.urlEncoded()}" +
+                "&fields=files(id,name,size,modifiedTime)"
             val request = Request.Builder()
-                .url("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&pageSize=100&fields=files(id,name,size,modifiedTime)")
+                .url(url)
                 .header("Authorization", authHeader())
                 .build()
 
-            val response = client.newCall(request).execute()
-            if (!response.isSuccessful) {
-                throw IllegalStateException("List failed: ${response.code}")
-            }
+            client.newCall(request).execute().use { response ->
+                val body = response.body.string()
+                if (!response.isSuccessful) {
+                    XLog.e(
+                        "Google Drive backup list failed: code=%d body=%s",
+                        response.code,
+                        body.take(MAX_LOG_BODY_LENGTH),
+                    )
+                    if (body.isDriveApiDisabledError()) {
+                        throw IllegalStateException("Google Drive API disabled")
+                    }
+                    throw IllegalStateException("List failed: ${response.code}")
+                }
 
-            val body = response.body.string()
-            val files = parseObject(body)["files"] as? JsonArray ?: JsonArray(emptyList())
+                val files = parseObject(body)["files"] as? JsonArray ?: JsonArray(emptyList())
 
-            files.mapNotNull { file ->
-                val obj = file as? JsonObject ?: return@mapNotNull null
-                DriveBackupMeta(
-                    id = obj.string("id"),
-                    name = obj.string("name"),
-                    size = obj.long("size"),
-                    modifiedTime = obj.string("modifiedTime"),
-                )
+                files.mapNotNull { file ->
+                    val obj = file as? JsonObject ?: return@mapNotNull null
+                    val name = obj.string("name")
+                    if (!name.endsWith(".zip", ignoreCase = true)) return@mapNotNull null
+                    DriveBackupMeta(
+                        id = obj.string("id"),
+                        name = name,
+                        size = obj.long("size"),
+                        modifiedTime = obj.string("modifiedTime"),
+                    )
+                }
             }
         }
     }
@@ -217,6 +253,89 @@ class GoogleDriveBackupManager(
         return RelayJson.parseElement(raw) as? JsonObject ?: error("Expected JSON object")
     }
 
+    private suspend fun ensureFolderPath(folderPath: String): String {
+        var parentId = ROOT_FOLDER_ID
+        normalizeFolderSegments(folderPath).forEach { segment ->
+            parentId = findFolder(segment, parentId) ?: createFolder(segment, parentId)
+        }
+        return parentId
+    }
+
+    private suspend fun findFolderPath(folderPath: String): String? {
+        var parentId = ROOT_FOLDER_ID
+        normalizeFolderSegments(folderPath).forEach { segment ->
+            parentId = findFolder(segment, parentId) ?: return null
+        }
+        return parentId
+    }
+
+    private fun normalizeFolderSegments(folderPath: String): List<String> {
+        return folderPath
+            .split('/')
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+    }
+
+    private suspend fun findFolder(name: String, parentId: String): String? {
+        val query = "mimeType = '$DRIVE_FOLDER_MIME_TYPE' and name = '${name.driveQueryEscaped()}' and '$parentId' in parents and trashed = false"
+        val url = "https://www.googleapis.com/drive/v3/files" +
+            "?spaces=drive&pageSize=1" +
+            "&q=${query.urlEncoded()}" +
+            "&fields=files(id,name)"
+        val request = Request.Builder()
+            .url(url)
+            .header("Authorization", authHeader())
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            val body = response.body.string()
+            if (!response.isSuccessful) {
+                logDriveFailure("folder lookup", response.code, body)
+                throw IllegalStateException("List failed: ${response.code}")
+            }
+            val files = parseObject(body)["files"] as? JsonArray ?: JsonArray(emptyList())
+            return files.firstOrNull()
+                ?.let { it as? JsonObject }
+                ?.string("id")
+                ?.takeIf { it.isNotBlank() }
+        }
+    }
+
+    private suspend fun createFolder(name: String, parentId: String): String {
+        val metadata = buildJsonObject {
+            put("name", name)
+            put("mimeType", DRIVE_FOLDER_MIME_TYPE)
+            put("parents", JsonArray(listOf(JsonPrimitive(parentId))))
+        }.toString()
+        val request = Request.Builder()
+            .url("https://www.googleapis.com/drive/v3/files?fields=id,name")
+            .header("Authorization", authHeader())
+            .post(metadata.toRequestBody("application/json; charset=utf-8".toMediaType()))
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            val body = response.body.string()
+            if (!response.isSuccessful) {
+                logDriveFailure("folder create", response.code, body)
+                throw IllegalStateException("Upload failed: ${response.code}")
+            }
+            return parseObject(body).string("id").takeIf { it.isNotBlank() }
+                ?: error("Create folder response missing id")
+        }
+    }
+
+    private fun logDriveFailure(operation: String, code: Int, body: String) {
+        XLog.e(
+            "Google Drive backup %s failed: code=%d body=%s",
+            operation,
+            code,
+            body.take(MAX_LOG_BODY_LENGTH),
+        )
+        if (body.isDriveApiDisabledError()) {
+            throw IllegalStateException("Google Drive API disabled")
+        }
+    }
+
     private fun JsonObject.string(name: String): String {
         return this[name]?.jsonPrimitive?.contentOrNull.orEmpty()
     }
@@ -224,5 +343,24 @@ class GoogleDriveBackupManager(
     private fun JsonObject.long(name: String): Long {
         val primitive = this[name]?.jsonPrimitive ?: return 0L
         return primitive.longOrNull ?: primitive.contentOrNull?.toLongOrNull() ?: 0L
+    }
+
+    private fun String.isDriveApiDisabledError(): Boolean {
+        return contains("Google Drive API has not been used", ignoreCase = true) ||
+            contains("it is disabled", ignoreCase = true)
+    }
+
+    private fun String.driveQueryEscaped(): String {
+        return replace("\\", "\\\\").replace("'", "\\'")
+    }
+
+    private fun String.urlEncoded(): String {
+        return URLEncoder.encode(this, "UTF-8").replace("+", "%20")
+    }
+
+    private companion object {
+        const val MAX_LOG_BODY_LENGTH = 512
+        const val DRIVE_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder"
+        const val ROOT_FOLDER_ID = "root"
     }
 }

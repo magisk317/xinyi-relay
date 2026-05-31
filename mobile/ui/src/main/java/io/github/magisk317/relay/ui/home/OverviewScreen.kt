@@ -1,8 +1,12 @@
 package io.github.magisk317.relay.ui.home
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.os.SystemClock
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
-import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -11,7 +15,6 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,12 +28,10 @@ import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -40,7 +41,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,6 +66,8 @@ import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.service.RuntimeAnalyticsProvider
 import io.github.magisk317.relay.contract.settings.OverviewSettingsUpdate
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
+import io.github.magisk317.relay.billing.BillingProvider
+import io.github.magisk317.relay.mobileui.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -93,11 +95,12 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
     val context = LocalContext.current
     val settingsRepository: SettingsPreferencesRepository = koinInject()
     val analyticsRepository: RuntimeAnalyticsProvider = koinInject()
+    val billingProvider: BillingProvider = koinInject()
     val settingsViewModel = rememberSharedSettingsViewModel()
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = LocalSnackbarHostState.current
     fun showMessage(message: String) {
-        coroutineScope.launch { snackbarHostState.showSnackbar(message) }
+        coroutineScope.launch { snackbarHostState.showLatestSnackbar(message) }
     }
     var showDonateDialog by remember { mutableStateOf(false) }
     var showQRCodeDialog by remember { mutableStateOf<Pair<Int, String>?>(null) }
@@ -417,6 +420,11 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
         onAddCard = ::addCard,
         onToggleDonateDialog = { showDonateDialog = it },
         onShowQrCodeDialog = { showQRCodeDialog = it },
+        onPlayDonation = { productId ->
+            context.findActivity()?.let { activity ->
+                billingProvider.launchDonation(activity, productId)
+            }
+        },
         onShowMessage = ::showMessage,
     )
 }
@@ -466,7 +474,7 @@ private fun OverviewContent(
     val scope = rememberCoroutineScope()
     val snackbarHostState = LocalSnackbarHostState.current
     val showMessage: (String) -> Unit = { message ->
-        scope.launch { snackbarHostState.showSnackbar(message) }
+        scope.launch { snackbarHostState.showLatestSnackbar(message) }
     }
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -708,6 +716,7 @@ private fun OverviewDialogs(
     onAddCard: (String) -> Unit,
     onToggleDonateDialog: (Boolean) -> Unit,
     onShowQrCodeDialog: (Pair<Int, String>?) -> Unit,
+    onPlayDonation: (String) -> Unit,
     onShowMessage: (String) -> Unit,
 ) {
     if (showAddCardSheet) {
@@ -729,6 +738,11 @@ private fun OverviewDialogs(
                 onToggleDonateDialog(false)
                 onShowQrCodeDialog(Pair(R.drawable.wx, "wechat"))
             },
+            showPlayDonations = BuildConfig.HAS_BILLING,
+            onDonate099 = { onPlayDonation("donate_099") },
+            onDonate200 = { onPlayDonation("donate_200") },
+            onDonate999 = { onPlayDonation("donate_999") },
+            onDonate1999 = { onPlayDonation("donate_1999") },
         )
     }
 
@@ -760,6 +774,12 @@ private fun normalizeCardOrder(order: List<String>, fallback: List<String>): Lis
 private fun normalizeCardEnabled(enabled: Set<String>, fallback: Set<String>): Set<String> {
     val normalized = enabled.filter { fallback.contains(it) }.toSet()
     return if (normalized.isEmpty()) fallback else normalized
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 private fun moveCardByVisible(order: List<String>, visible: List<String>, cardId: String, direction: Int): List<String> {

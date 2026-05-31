@@ -134,9 +134,6 @@ fun MainScreen(
                 sectionFromOrigin(entry.toRoute<SmsCodeRulesRoute>().origin)
             destination.hasRoute(SmsCodeRuleEditorRoute::class) ->
                 sectionFromOrigin(entry.toRoute<SmsCodeRuleEditorRoute>().origin)
-            destination.hasRoute(LoginRoute::class) -> NavigationSection.SETTINGS
-            destination.hasRoute(ProfileRoute::class) -> NavigationSection.SETTINGS
-            destination.hasRoute(DonateRoute::class) -> NavigationSection.SETTINGS
             destination.hasRoute(CloudBackupRoute::class) -> NavigationSection.SETTINGS
             else -> NavigationSection.OVERVIEW
         }
@@ -654,8 +651,14 @@ fun MainScreen(
                                 onOpenAdvancedRelay = {
                                     navController.navigate(RelayConfigRoute(origin = ROUTE_ORIGIN_SETTINGS))
                                 },
-                                onOpenAccount = { navController.navigate(ProfileRoute) },
-                                onOpenCloudBackup = { navController.navigate(CloudBackupRoute) },
+                                onOpenCloudBackup = { source, backupNow ->
+                                    navController.navigate(
+                                        CloudBackupRoute(
+                                            initialSource = source?.name,
+                                            backupNow = backupNow,
+                                        )
+                                    )
+                                },
                             )
                         }
                         composable<VerificationSettingsRoute> {
@@ -672,32 +675,15 @@ fun MainScreen(
                         composable<RemoteAgentRoute> {
                             RemoteAgentScreen(onBack = { navController.popBackStack() })
                         }
-                        composable<LoginRoute> {
-                            io.github.magisk317.relay.ui.auth.LoginScreen(
-                                onBack = { navController.popBackStack() },
-                                onLoginSuccess = {
-                                    navController.popBackStack()
-                                    navController.navigate(ProfileRoute)
-                                },
-                            )
-                        }
-                        composable<ProfileRoute> {
-                            io.github.magisk317.relay.ui.auth.ProfileScreen(
-                                onBack = { navController.popBackStack() },
-                                onLoggedOut = {
-                                    navController.popBackStack()
-                                    navController.navigate(LoginRoute)
-                                },
-                            )
-                        }
-                        composable<DonateRoute> {
-                            io.github.magisk317.relay.ui.billing.DonateScreen(
-                                onBack = { navController.popBackStack() },
-                            )
-                        }
-                        composable<CloudBackupRoute> {
+                        composable<CloudBackupRoute> { backStackEntry ->
+                            val route = backStackEntry.toRoute<CloudBackupRoute>()
+                            val initialSource = route.initialSource?.let {
+                                try { io.github.magisk317.relay.backup.BackupSource.valueOf(it) } catch (e: Exception) { null }
+                            }
                             io.github.magisk317.relay.ui.backup.CloudBackupScreen(
                                 onBack = { navController.popBackStack() },
+                                initialSource = initialSource,
+                                backupNow = route.backupNow,
                             )
                         }
                     }

@@ -1,11 +1,13 @@
 package io.github.magisk317.relay.backup
 
+import android.content.Context
+import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.backup.webdav.WebDavConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import timber.log.Timber
 
 class WebDavCloudBackupProvider(
+    private val context: Context,
     private val webDavBackupManager: WebDavBackupManager,
 ) : CloudBackupProvider {
 
@@ -18,7 +20,7 @@ class WebDavCloudBackupProvider(
             val result = webDavBackupManager.uploadBackup()
             result.map { it.id }
         } catch (e: Exception) {
-            Timber.e(e, "WebDAV upload backup failed")
+            XLog.e("WebDAV upload backup failed: %s", e.message ?: e.javaClass.simpleName)
             Result.failure(e)
         }
     }
@@ -27,7 +29,7 @@ class WebDavCloudBackupProvider(
         try {
             webDavBackupManager.listBackups()
         } catch (e: Exception) {
-            Timber.e(e, "WebDAV list backups failed")
+            XLog.e("WebDAV list backups failed: %s", e.message ?: e.javaClass.simpleName)
             Result.failure(e)
         }
     }
@@ -36,7 +38,7 @@ class WebDavCloudBackupProvider(
         try {
             webDavBackupManager.restoreFromBackup(backupId)
         } catch (e: Exception) {
-            Timber.e(e, "WebDAV restore backup failed")
+            XLog.e("WebDAV restore backup failed: %s", e.message ?: e.javaClass.simpleName)
             Result.failure(e)
         }
     }
@@ -45,18 +47,18 @@ class WebDavCloudBackupProvider(
         try {
             webDavBackupManager.deleteBackup(backupId)
         } catch (e: Exception) {
-            Timber.e(e, "WebDAV delete backup failed")
+            XLog.e("WebDAV delete backup failed: %s", e.message ?: e.javaClass.simpleName)
             Result.failure(e)
         }
     }
 
     override suspend fun enableAutoBackup(enabled: Boolean) {
-        // TODO: Implement auto backup scheduling with WorkManager
+        CloudBackupSettingsStore.setAutoBackup(context, BackupSource.WEBDAV, enabled)
+        XLog.i("WebDAV auto backup setting changed: enabled=%s", enabled)
     }
 
     override fun isAutoBackupEnabled(): Boolean {
-        // TODO: Check auto backup setting
-        return false
+        return CloudBackupSettingsStore.isAutoBackupEnabled(context, BackupSource.WEBDAV)
     }
 
     suspend fun testConnection(): Result<Unit> {

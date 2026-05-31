@@ -1,7 +1,15 @@
 package io.github.magisk317.relay.ui.home
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.GeneralSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.RelaySettingsSnapshot
@@ -87,44 +95,6 @@ internal fun SettingsFeaturesSection(
 }
 
 @Composable
-internal fun SettingsSupportSection(
-    expanded: Boolean,
-    onExpandedChange: () -> Unit,
-    onOpenAccount: () -> Unit,
-    onOpenCloudBackup: () -> Unit,
-    onOpenDonate: () -> Unit,
-) {
-    if (!BuildConfig.HAS_BILLING && !BuildConfig.HAS_CLOUD_BACKUP) return
-
-    SectionCard(
-        title = stringResource(id = R.string.settings_donate_title),
-        sectionExpanded = expanded,
-        onExpandedChange = onExpandedChange,
-        accordionMode = true,
-    ) {
-        Item(
-            title = stringResource(id = R.string.settings_account_title),
-            summary = stringResource(id = R.string.settings_account_summary_not_signed_in),
-            onClick = onOpenAccount,
-        )
-        if (BuildConfig.HAS_CLOUD_BACKUP) {
-            Item(
-                title = stringResource(id = R.string.settings_cloud_backup_title),
-                summary = stringResource(id = R.string.settings_cloud_backup_summary),
-                onClick = onOpenCloudBackup,
-            )
-        }
-        if (BuildConfig.HAS_BILLING) {
-            Item(
-                title = stringResource(id = R.string.settings_donate_title),
-                summary = stringResource(id = R.string.settings_donate_summary),
-                onClick = onOpenDonate,
-            )
-        }
-    }
-}
-
-@Composable
 internal fun SettingsBackupRestoreSection(
     expanded: Boolean,
     onExpandedChange: () -> Unit,
@@ -137,16 +107,25 @@ internal fun SettingsBackupRestoreSection(
         onExpandedChange = onExpandedChange,
         accordionMode = true,
     ) {
-        Item(
-            title = stringResource(id = R.string.pref_backup_title),
-            summary = stringResource(id = R.string.pref_backup_summary),
-            onClick = onBackupClick,
-        )
-        Item(
-            title = stringResource(id = R.string.pref_restore_title),
-            summary = stringResource(id = R.string.pref_restore_summary),
-            onClick = onRestoreClick,
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Button(
+                onClick = onBackupClick,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(stringResource(id = R.string.pref_backup_title))
+            }
+            Button(
+                onClick = onRestoreClick,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(stringResource(id = R.string.pref_restore_title))
+            }
+        }
     }
 }
 

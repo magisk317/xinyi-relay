@@ -1,17 +1,17 @@
 package io.github.magisk317.relay.backup.webdav
 
+import io.github.magisk317.relay.android.common.utils.XLog
 import okhttp3.Credentials
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
-import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.io.StringReader
+import javax.xml.parsers.DocumentBuilderFactory
+import org.xml.sax.InputSource
 
 class WebDavClient(private val config: WebDavConfig) {
 
@@ -26,17 +26,34 @@ class WebDavClient(private val config: WebDavConfig) {
     )
 
     suspend fun ensureDirectory(): Result<Unit> = runCatching {
-        val url = config.getDirectoryUrl()
-        val request = Request.Builder()
-            .url(url)
-            .method("MKCOL", null)
-            .header("Authorization", credentials)
-            .build()
+        val segments = config.remotePath
+            .split('/')
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
 
-        val response = client.newCall(request).execute()
-        // 405 means directory already exists
-        if (!response.isSuccessful && response.code != 405) {
-            throw IllegalStateException("Failed to create directory: ${response.code}")
+        var currentPath = ""
+        for (segment in segments) {
+            currentPath = if (currentPath.isEmpty()) segment else "$currentPath/$segment"
+            val url = config.getDirectoryUrl(currentPath)
+            val request = Request.Builder()
+                .url(url)
+                .method("MKCOL", null)
+                .header("Authorization", credentials)
+                .build()
+
+            client.newCall(request).execute().use { response ->
+                // 405 means directory already exists
+                if (!response.isSuccessful && response.code != 405) {
+                    val body = response.body.string()
+                    XLog.e(
+                        "WebDAV MKCOL failed: code=%d path=%s body=%s",
+                        response.code,
+                        currentPath,
+                        body.take(MAX_LOG_BODY_LENGTH),
+                    )
+                    throw IllegalStateException("Failed to create directory: ${response.code}")
+                }
+            }
         }
     }
 
@@ -52,9 +69,17 @@ class WebDavClient(private val config: WebDavConfig) {
             .put(requestBody)
             .build()
 
-        val response = client.newCall(request).execute()
-        if (!response.isSuccessful) {
-            throw IllegalStateException("Upload failed: ${response.code}")
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                val body = response.body.string()
+                XLog.e(
+                    "WebDAV upload failed: code=%d name=%s body=%s",
+                    response.code,
+                    fileName,
+                    body.take(MAX_LOG_BODY_LENGTH),
+                )
+                throw IllegalStateException("Upload failed: ${response.code}")
+            }
         }
     }
 
@@ -123,15 +148,46 @@ class WebDavClient(private val config: WebDavConfig) {
     }
 
     private fun parseMultiStatusResponse(xml: String): List<WebDavFile> {
-        val files = mutableListOf<WebDavFile>()
+        return parseMultiStatusResponseWithDom(xml).ifEmpty {
+            parseMultiStatusResponseWithRegex(xml)
+        }
+    }
 
-        // Simple XML parsing for DAV response
-        val responsePattern = Regex("<D:response>(.*?)</D:response>", RegexOption.DOT_MATCHES_ALL)
-        val hrefPattern = Regex("<D:href>(.*?)</D:href>")
-        val displayNamePattern = Regex("<D:displayname>(.*?)</D:displayname>")
-        val contentLengthPattern = Regex("<D:getcontentlength>(.*?)</D:getcontentlength>")
-        val lastModifiedPattern = Regex("<D:getlastmodified>(.*?)</D:getlastmodified>")
-        val resourceTypePattern = Regex("<D:resourcetype>(.*?)</D:resourcetype>", RegexOption.DOT_MATCHES_ALL)
+    private fun parseMultiStatusResponseWithDom(xml: String): List<WebDavFile> {
+        val files = mutableListOf<WebDavFile>()
+        return runCatching {
+            val factory = DocumentBuilderFactory.newInstance().apply {
+                isNamespaceAware = true
+            }
+            val document = factory.newDocumentBuilder().parse(InputSource(StringReader(xml)))
+            val responses = document.getElementsByTagNameNS("*", "response")
+            for (index in 0 until responses.length) {
+                val response = responses.item(index)
+                val href = response.childText("href") ?: continue
+                val displayName = response.childText("displayname")
+                val contentLength = response.childText("getcontentlength")?.toLongOrNull() ?: 0L
+                val lastModified = response.childText("getlastmodified").orEmpty()
+                val isDirectory = response.hasChild("collection")
+                val name = (displayName ?: href.substringAfterLast('/').trimEnd('/')).trim()
+                if (shouldKeepEntry(name, href, isDirectory)) {
+                    files.add(WebDavFile(name, contentLength, lastModified, isDirectory))
+                }
+            }
+            files
+        }.getOrElse {
+            XLog.w("WebDAV PROPFIND DOM parse failed: %s", it.message ?: it.javaClass.simpleName)
+            emptyList()
+        }
+    }
+
+    private fun parseMultiStatusResponseWithRegex(xml: String): List<WebDavFile> {
+        val files = mutableListOf<WebDavFile>()
+        val responsePattern = Regex("<(?:\\w+:)?response\\b[^>]*>(.*?)</(?:\\w+:)?response>", RegexOption.DOT_MATCHES_ALL)
+        val hrefPattern = Regex("<(?:\\w+:)?href\\b[^>]*>(.*?)</(?:\\w+:)?href>", RegexOption.DOT_MATCHES_ALL)
+        val displayNamePattern = Regex("<(?:\\w+:)?displayname\\b[^>]*>(.*?)</(?:\\w+:)?displayname>", RegexOption.DOT_MATCHES_ALL)
+        val contentLengthPattern = Regex("<(?:\\w+:)?getcontentlength\\b[^>]*>(.*?)</(?:\\w+:)?getcontentlength>", RegexOption.DOT_MATCHES_ALL)
+        val lastModifiedPattern = Regex("<(?:\\w+:)?getlastmodified\\b[^>]*>(.*?)</(?:\\w+:)?getlastmodified>", RegexOption.DOT_MATCHES_ALL)
+        val resourceTypePattern = Regex("<(?:\\w+:)?resourcetype\\b[^>]*>(.*?)</(?:\\w+:)?resourcetype>", RegexOption.DOT_MATCHES_ALL)
 
         responsePattern.findAll(xml).forEach { match ->
             val response = match.value
@@ -142,13 +198,8 @@ class WebDavClient(private val config: WebDavConfig) {
             val resourceType = resourceTypePattern.find(response)?.groupValues?.get(1) ?: ""
             val isDirectory = resourceType.contains("collection")
 
-            // Skip the directory itself
-            if (isDirectory && href.endsWith(config.remotePath.trimStart('/'))) {
-                return@forEach
-            }
-
-            val name = displayName ?: href.substringAfterLast('/').trimEnd('/')
-            if (name.isNotBlank()) {
+            val name = (displayName ?: href.substringAfterLast('/').trimEnd('/')).trim()
+            if (shouldKeepEntry(name, href, isDirectory)) {
                 files.add(
                     WebDavFile(
                         name = name,
@@ -161,5 +212,40 @@ class WebDavClient(private val config: WebDavConfig) {
         }
 
         return files
+    }
+
+    private fun shouldKeepEntry(name: String, href: String, isDirectory: Boolean): Boolean {
+        if (name.isBlank()) return false
+        val normalizedHref = href.trimEnd('/')
+        val normalizedPath = config.remotePath.trim('/').takeIf { it.isNotBlank() } ?: return true
+        if (isDirectory && normalizedHref.endsWith(normalizedPath)) return false
+        return true
+    }
+
+    private fun org.w3c.dom.Node.childText(localName: String): String? {
+        val children = childNodes
+        for (index in 0 until children.length) {
+            val child = children.item(index)
+            if (child.localName == localName) {
+                return child.textContent?.trim()
+            }
+            val nested = child.childText(localName)
+            if (nested != null) return nested
+        }
+        return null
+    }
+
+    private fun org.w3c.dom.Node.hasChild(localName: String): Boolean {
+        val children = childNodes
+        for (index in 0 until children.length) {
+            val child = children.item(index)
+            if (child.localName == localName) return true
+            if (child.hasChild(localName)) return true
+        }
+        return false
+    }
+
+    private companion object {
+        const val MAX_LOG_BODY_LENGTH = 512
     }
 }

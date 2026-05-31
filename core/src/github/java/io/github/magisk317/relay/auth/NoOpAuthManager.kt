@@ -10,4 +10,5 @@ class NoOpAuthManager : AuthManager {
     override fun signOut() {}
     override fun isLoggedIn(): Boolean = false
     override fun getCurrentUid(): String? = null
+    override suspend fun getGoogleDriveAccessToken(): String? = null
 }

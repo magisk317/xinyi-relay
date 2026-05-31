@@ -3,6 +3,7 @@ package io.github.magisk317.relay.backup
 import android.content.Context
 import android.net.Uri
 import androidx.core.content.FileProvider
+import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.backup.webdav.WebDavClient
 import io.github.magisk317.relay.backup.webdav.WebDavConfig
 import io.github.magisk317.relay.data.backup.BackupManager
@@ -10,7 +11,6 @@ import io.github.magisk317.smscode.runtime.contract.backup.ExportResult
 import io.github.magisk317.smscode.runtime.contract.backup.ImportResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import timber.log.Timber
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -51,17 +51,27 @@ class WebDavBackupManager(
                 if (exportResult != ExportResult.SUCCESS) {
                     throw IllegalStateException("Local backup export failed: $exportResult")
                 }
+                val fileSize = tempFile.length()
+                if (!tempFile.isFile || fileSize <= 0L) {
+                    throw IllegalStateException("Local backup file missing or empty")
+                }
+                XLog.i("WebDAV backup export ready: name=%s size=%d", fileName, fileSize)
 
                 currentClient.uploadFile(tempFile, fileName).getOrThrow()
+                XLog.i("WebDAV backup upload success: name=%s size=%d", fileName, fileSize)
 
                 CloudBackupMeta(
                     id = fileName,
                     name = fileName,
-                    size = tempFile.length(),
+                    size = fileSize,
                     modifiedTime = timestamp,
+                    source = BackupSource.WEBDAV,
                 )
             } finally {
-                tempFile.delete()
+                if (tempFile.exists()) {
+                    val deleted = tempFile.delete()
+                    XLog.i("WebDAV backup temp cleanup: name=%s deleted=%s", fileName, deleted)
+                }
             }
         }
     }
@@ -77,6 +87,7 @@ class WebDavBackupManager(
                         name = file.name,
                         size = file.size,
                         modifiedTime = file.lastModified,
+                        source = BackupSource.WEBDAV,
                     )
                 }
         }

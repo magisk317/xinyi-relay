@@ -2,17 +2,20 @@
 
 package io.github.magisk317.relay.auth
 
+import android.accounts.Account
 import android.content.Context
+import com.google.android.gms.auth.GoogleAuthUtil
+import com.google.android.gms.auth.UserRecoverableAuthException
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.secret.InternalSecretStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.tasks.await
-import timber.log.Timber
 
 class FirebaseAuthManager(
     private val context: Context,
@@ -67,7 +70,7 @@ class FirebaseAuthManager(
             _session.value = session
             Result.success(session)
         } catch (e: Exception) {
-            Timber.e(e, "Google sign-in failed")
+            XLog.e("Google sign-in failed: %s", e.message ?: e.javaClass.simpleName)
             Result.failure(e)
         }
     }
@@ -81,6 +84,34 @@ class FirebaseAuthManager(
     override fun isLoggedIn(): Boolean = auth.currentUser != null
 
     override fun getCurrentUid(): String? = auth.currentUser?.uid
+
+    override suspend fun getGoogleDriveAccessToken(): String? {
+        val email = session.value?.email?.takeIf { it.isNotBlank() } ?: auth.currentUser?.email
+        if (email.isNullOrBlank()) {
+            XLog.w("Google Drive access token skipped: no signed-in account")
+            return null
+        }
+        return try {
+            val token = GoogleAuthUtil.getToken(
+                context,
+                Account(email, "com.google"),
+                "oauth2:https://www.googleapis.com/auth/drive.file",
+            )
+            XLog.i("Google Drive access token acquired")
+            token
+        } catch (e: UserRecoverableAuthException) {
+            val authorizationIntent = e.intent
+            if (authorizationIntent != null) {
+                XLog.w("Google Drive authorization required")
+                throw GoogleDriveAuthorizationRequiredException(authorizationIntent)
+            }
+            XLog.e("Google Drive authorization required without intent")
+            null
+        } catch (e: Exception) {
+            XLog.e("Google Drive access token failed: %s", e.message ?: e.javaClass.simpleName)
+            null
+        }
+    }
 
     fun observeLoginState(): Flow<UserSession?> = session
 

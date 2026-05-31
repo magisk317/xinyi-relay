@@ -215,6 +215,7 @@ class ConfigRepository(
 
     private suspend fun noteMutation(source: String) {
         RuntimeGraph.from(appContext).remoteAgentRepository.noteLocalMutation(source)
+        RuntimeGraph.from(appContext).autoBackupTrigger.scheduleAutoBackup(source)
     }
 
     private suspend fun sanitizeAndPersistSenderRepair(sender: Sender): Sender {

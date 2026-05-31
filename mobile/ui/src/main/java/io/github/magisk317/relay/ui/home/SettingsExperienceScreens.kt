@@ -1,5 +1,7 @@
 package io.github.magisk317.relay.ui.home
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -53,21 +55,19 @@ import org.koin.compose.koinInject
 fun SettingsHomeScreen(
     onOpenVerification: () -> Unit,
     onOpenAdvancedRelay: () -> Unit,
-    onOpenAccount: () -> Unit = {},
-    onOpenCloudBackup: () -> Unit = {},
-    onOpenDonate: () -> Unit = {},
+    onOpenCloudBackup: (io.github.magisk317.relay.backup.BackupSource?, Boolean) -> Unit = { _, _ -> },
     onBack: (() -> Unit)? = null,
 ) {
     val repository: SettingsPreferencesRepository = koinInject()
     val scope = rememberCoroutineScope()
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
     val snackbarHostState = remember { SnackbarHostState() }
+    val settingsViewModel = rememberSharedSettingsViewModel()
     val notifySaved: () -> Unit = {
         scope.launch {
-            snackbarHostState.showSnackbar(savedSnackbarText)
+            snackbarHostState.showLatestSnackbar(savedSnackbarText)
         }
     }
-    val settingsViewModel = rememberSharedSettingsViewModel()
     val themeState by settingsViewModel.themeState.collectAsStateWithLifecycle()
     val languageState by settingsViewModel.languageState.collectAsStateWithLifecycle()
     val displayActions = rememberSettingsDisplayActions(
@@ -79,6 +79,14 @@ fun SettingsHomeScreen(
     val backupRestoreActions = rememberSettingsBackupRestoreActions(
         settingsViewModel = settingsViewModel,
         snackbarHostState = snackbarHostState,
+        onNavigateToCloudBackup = { source, backupNow ->
+            val typedSource = when (source) {
+                BackupSourceType.GOOGLE_DRIVE -> io.github.magisk317.relay.backup.BackupSource.GOOGLE_DRIVE
+                BackupSourceType.WEBDAV -> io.github.magisk317.relay.backup.BackupSource.WEBDAV
+                else -> null
+            }
+            onOpenCloudBackup(typedSource, backupNow)
+        },
     )
     var general by remember { mutableStateOf<GeneralSettingsSnapshot?>(null) }
     var verification by remember { mutableStateOf<VerificationSettingsSnapshot?>(null) }
@@ -93,7 +101,6 @@ fun SettingsHomeScreen(
     )
     var expandGeneral by rememberSaveable { mutableStateOf(false) }
     var expandFeatures by rememberSaveable { mutableStateOf(false) }
-    var expandSupport by rememberSaveable { mutableStateOf(false) }
     var expandBackupRestore by rememberSaveable { mutableStateOf(false) }
     var expandOthers by rememberSaveable { mutableStateOf(false) }
 
@@ -109,7 +116,6 @@ fun SettingsHomeScreen(
         val expanded = !accordionEnabled
         expandGeneral = expanded
         expandFeatures = expanded
-        expandSupport = expanded
         expandBackupRestore = expanded
         expandOthers = expanded
     }
@@ -190,13 +196,6 @@ fun SettingsHomeScreen(
                         notifySaved()
                     }
                 },
-            )
-            SettingsSupportSection(
-                expanded = expandSupport,
-                onExpandedChange = { expandSupport = !expandSupport },
-                onOpenAccount = onOpenAccount,
-                onOpenCloudBackup = onOpenCloudBackup,
-                onOpenDonate = onOpenDonate,
             )
             SettingsBackupRestoreSection(
                 expanded = expandBackupRestore,

@@ -7,7 +7,7 @@ data class WebDavConfig(
     val serverUrl: String,
     val username: String,
     val password: String,
-    val remotePath: String = "/xinyi-relay/backups/",
+    val remotePath: String = DEFAULT_REMOTE_PATH,
 ) {
     val baseUrl: String
         get() = serverUrl.trimEnd('/')
@@ -20,5 +20,15 @@ data class WebDavConfig(
     fun getDirectoryUrl(): String {
         val path = remotePath.trimStart('/').trimEnd('/')
         return "$baseUrl/$path/"
+    }
+
+    fun getDirectoryUrl(path: String): String {
+        val normalizedPath = path.trimStart('/').trimEnd('/')
+        return "$baseUrl/$normalizedPath/"
+    }
+
+    companion object {
+        const val DEFAULT_SERVER_URL = "https://dav.jianguoyun.com/dav/"
+        const val DEFAULT_REMOTE_PATH = "/xinyi-relay/backups/"
     }
 }

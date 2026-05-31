@@ -3,6 +3,7 @@ package io.github.magisk317.relay.data.repository
 import android.content.Context
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.entity.ScheduledTaskEntity
+import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.schedule.ScheduledTaskManager
 import io.github.magisk317.relay.engine.model.ScheduledTask
 import io.github.magisk317.relay.engine.service.ScheduledTaskRepository
@@ -42,18 +43,21 @@ class ScheduledTaskRepositoryImpl(
         if (task.status == ScheduledTask.STATUS_ENABLED) {
             taskManager.rescheduleTask(id)
         }
+        noteMutation("config.scheduled_task_insert")
         return id
     }
 
     override suspend fun updateTask(task: ScheduledTask) {
         scheduledTaskDao.update(task.toEntity())
         taskManager.rescheduleTask(task.id)
+        noteMutation("config.scheduled_task_update")
     }
 
     override suspend fun deleteTask(task: ScheduledTask) {
         taskManager.cancelTask(task.id)
         scheduledTaskDao.delete(task.toEntity())
         taskManager.refreshFallbackWorker()
+        noteMutation("config.scheduled_task_delete")
     }
 
     override suspend fun scheduleTask(taskId: Long) {
@@ -98,5 +102,9 @@ class ScheduledTaskRepositoryImpl(
             nextRunTime = nextRunTime,
             createdAt = createdAt,
         )
+    }
+
+    private fun noteMutation(source: String) {
+        RuntimeGraph.from(context).autoBackupTrigger.scheduleAutoBackup(source)
     }
 }

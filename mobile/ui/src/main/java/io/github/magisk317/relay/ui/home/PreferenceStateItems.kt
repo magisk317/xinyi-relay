@@ -2,14 +2,18 @@
 
 package io.github.magisk317.relay.ui.home
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -140,7 +144,7 @@ fun SwitchItem(
             if (onSaved != null) {
                 onSaved()
             } else {
-                snackbarHostState.showSnackbar(defaultSavedSnackbar)
+                snackbarHostState.showLatestSnackbar(defaultSavedSnackbar)
             }
         }
     }
@@ -274,11 +278,48 @@ fun DonateDialog(
     onDismiss: () -> Unit,
     onAlipay: () -> Unit,
     onWechat: () -> Unit,
+    showPlayDonations: Boolean = false,
+    onDonate099: () -> Unit = {},
+    onDonate200: () -> Unit = {},
+    onDonate999: () -> Unit = {},
+    onDonate1999: () -> Unit = {},
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = stringResource(id = R.string.dialog_donate_title)) },
-        text = { Text(text = stringResource(id = R.string.dialog_donate_summary)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(text = stringResource(id = R.string.dialog_donate_summary))
+                if (showPlayDonations) {
+                    Text(
+                        text = stringResource(id = R.string.donate_one_time_title),
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Button(onClick = onDonate099, modifier = Modifier.weight(1f)) {
+                            Text(text = stringResource(id = R.string.donate_one_time_099))
+                        }
+                        Button(onClick = onDonate200, modifier = Modifier.weight(1f)) {
+                            Text(text = stringResource(id = R.string.donate_one_time_200))
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Button(onClick = onDonate999, modifier = Modifier.weight(1f)) {
+                            Text(text = stringResource(id = R.string.donate_one_time_999))
+                        }
+                        Button(onClick = onDonate1999, modifier = Modifier.weight(1f)) {
+                            Text(text = stringResource(id = R.string.donate_one_time_1999))
+                        }
+                    }
+                }
+            }
+        },
         confirmButton = {
             TextButton(onClick = onAlipay) {
                 Text(text = stringResource(id = R.string.dialog_donate_alipay))

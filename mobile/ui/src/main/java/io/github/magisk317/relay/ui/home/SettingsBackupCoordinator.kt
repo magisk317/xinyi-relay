@@ -1,5 +1,7 @@
 package io.github.magisk317.relay.ui.home
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
@@ -28,12 +30,15 @@ internal data class SettingsBackupRestoreActions(
 internal fun rememberSettingsBackupRestoreActions(
     settingsViewModel: SettingsViewModel,
     snackbarHostState: SnackbarHostState,
+    onNavigateToCloudBackup: (BackupSourceType, Boolean) -> Unit,
 ): SettingsBackupRestoreActions {
     val context = LocalContext.current
     val activityOwner = context as? ComponentActivity
     val lifecycleOwner = LocalLifecycleOwner.current
     var showBackupDialog by remember { mutableStateOf(false) }
     var showRestoreDialog by remember { mutableStateOf(false) }
+    var showBackupSourceDialog by remember { mutableStateOf(false) }
+    var showRestoreSourceDialog by remember { mutableStateOf(false) }
     var pendingBackupSelection by remember { mutableStateOf<BackupSelection?>(null) }
     var pendingRestoreUri by remember { mutableStateOf<Uri?>(null) }
     var backupInspectionDialog by remember { mutableStateOf<RelayBackupManager.BackupInspection?>(null) }
@@ -97,12 +102,12 @@ internal fun rememberSettingsBackupRestoreActions(
                         if (event.success) {
                             backupInspectionDialog = event.inspection
                         } else {
-                            snackbarHostState.showSnackbar(backupResultMessage(context, event.success))
+                            snackbarHostState.showLatestSnackbar(backupResultMessage(context, event.success))
                         }
                     }
 
                     is SettingsEvent.RestoreResultEvent -> {
-                        snackbarHostState.showSnackbar(restoreResultMessage(context, event.result))
+                        snackbarHostState.showLatestSnackbar(restoreResultMessage(context, event.result))
                     }
 
                     is SettingsEvent.ImportDialogConfirm -> {
@@ -164,12 +169,38 @@ internal fun rememberSettingsBackupRestoreActions(
         )
     }
 
+    if (showBackupSourceDialog) {
+        BackupSourceDialog(
+            title = androidx.compose.ui.res.stringResource(id = io.github.magisk317.relay.core.R.string.dialog_backup_source_title),
+            onDismiss = { showBackupSourceDialog = false },
+            onSourceSelected = { source ->
+                showBackupSourceDialog = false
+                when (source) {
+                    BackupSourceType.LOCAL -> showBackupDialog = true
+                    BackupSourceType.GOOGLE_DRIVE, BackupSourceType.WEBDAV -> onNavigateToCloudBackup(source, false)
+                }
+            }
+        )
+    }
+
+    if (showRestoreSourceDialog) {
+        BackupSourceDialog(
+            title = androidx.compose.ui.res.stringResource(id = io.github.magisk317.relay.core.R.string.dialog_restore_source_title),
+            onDismiss = { showRestoreSourceDialog = false },
+            onSourceSelected = { source ->
+                showRestoreSourceDialog = false
+                when (source) {
+                    BackupSourceType.LOCAL -> restoreDocumentLauncher.launch(RelayBackupManager.getImportRuleListSAFIntent(context))
+                    BackupSourceType.GOOGLE_DRIVE, BackupSourceType.WEBDAV -> onNavigateToCloudBackup(source, false)
+                }
+            }
+        )
+    }
+
     return remember(context, restoreDocumentLauncher) {
         SettingsBackupRestoreActions(
-            onBackupClick = { showBackupDialog = true },
-            onRestoreClick = {
-                restoreDocumentLauncher.launch(RelayBackupManager.getImportRuleListSAFIntent(context))
-            },
+            onBackupClick = { showBackupSourceDialog = true },
+            onRestoreClick = { showRestoreSourceDialog = true },
         )
     }
 }

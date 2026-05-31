@@ -605,7 +605,7 @@ class SettingsRepository(
 
     override suspend fun setThemeMode(mode: Int) {
         preferenceDataSource.setInt(PrefConst.KEY_CHOOSE_THEME, mode)
-        syncLocalOnly()
+        syncAndScheduleAutoBackup("settings.theme")
     }
 
     override suspend fun getUiKitStyle(): Int {
@@ -614,7 +614,7 @@ class SettingsRepository(
 
     override suspend fun setUiKitStyle(style: Int) {
         preferenceDataSource.setInt(PrefConst.KEY_UI_KIT_STYLE, UI_KIT_STYLE_EXPRESSIVE)
-        syncLocalOnly()
+        syncAndScheduleAutoBackup("settings.ui_kit_style")
     }
 
     override suspend fun getLanguageTag(): String {
@@ -623,7 +623,7 @@ class SettingsRepository(
 
     override suspend fun setLanguageTag(languageTag: String) {
         preferenceDataSource.setString(PrefConst.KEY_LANGUAGE, languageTag)
-        syncLocalOnly()
+        syncAndScheduleAutoBackup("settings.language")
     }
 
     override suspend fun isPrivacyPolicyAccepted(): Boolean {
@@ -638,6 +638,12 @@ class SettingsRepository(
     private suspend fun syncAndNoteRemoteMutation(source: String) {
         HookPreferenceMirror.publish(appContext)
         RuntimeGraph.from(appContext).remoteAgentRepository.noteLocalMutation(source)
+        RuntimeGraph.from(appContext).autoBackupTrigger.scheduleAutoBackup(source)
+    }
+
+    private suspend fun syncAndScheduleAutoBackup(source: String) {
+        HookPreferenceMirror.publish(appContext)
+        RuntimeGraph.from(appContext).autoBackupTrigger.scheduleAutoBackup(source)
     }
 
     private suspend fun syncLocalOnly() {

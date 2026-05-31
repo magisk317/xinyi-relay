@@ -1,18 +1,25 @@
 package io.github.magisk317.relay.backup
 
+import android.content.Context
 import io.github.magisk317.relay.auth.AuthManager
+import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.relay.backup.drive.GoogleDriveBackupConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import timber.log.Timber
 
 class GithubCloudBackupProvider(
+    private val context: Context,
     private val googleDriveBackupManager: GoogleDriveBackupManager,
     private val authManager: AuthManager,
-) : CloudBackupProvider {
+) : CloudBackupProvider, GoogleDriveConfigurableBackupProvider {
 
     override fun isAvailable(): Boolean = authManager.isLoggedIn()
 
     override fun getBackupSource(): BackupSource = BackupSource.GOOGLE_DRIVE
+
+    override fun updateGoogleDriveConfig(config: GoogleDriveBackupConfig) {
+        googleDriveBackupManager.updateConfig(config)
+    }
 
     override suspend fun uploadBackup(): Result<String> = withContext(Dispatchers.IO) {
         if (!authManager.isLoggedIn()) {
@@ -23,7 +30,7 @@ class GithubCloudBackupProvider(
             val result = googleDriveBackupManager.uploadBackup()
             result.map { it.id }
         } catch (e: Exception) {
-            Timber.e(e, "Upload backup failed")
+            XLog.e("Google Drive upload backup failed: %s", e.message ?: e.javaClass.simpleName)
             Result.failure(e)
         }
     }
@@ -35,9 +42,9 @@ class GithubCloudBackupProvider(
 
         try {
             val result = googleDriveBackupManager.listBackups().getOrThrow()
-            Result.success(result.map { CloudBackupMeta(it.id, it.name, it.size, it.modifiedTime) })
+            Result.success(result.map { CloudBackupMeta(it.id, it.name, it.size, it.modifiedTime, BackupSource.GOOGLE_DRIVE) })
         } catch (e: Exception) {
-            Timber.e(e, "List backups failed")
+            XLog.e("Google Drive list backups failed: %s", e.message ?: e.javaClass.simpleName)
             Result.failure(e)
         }
     }
@@ -50,7 +57,7 @@ class GithubCloudBackupProvider(
         try {
             googleDriveBackupManager.restoreFromBackup(backupId)
         } catch (e: Exception) {
-            Timber.e(e, "Restore backup failed")
+            XLog.e("Google Drive restore backup failed: %s", e.message ?: e.javaClass.simpleName)
             Result.failure(e)
         }
     }
@@ -63,17 +70,17 @@ class GithubCloudBackupProvider(
         try {
             googleDriveBackupManager.deleteBackup(backupId)
         } catch (e: Exception) {
-            Timber.e(e, "Delete backup failed")
+            XLog.e("Google Drive delete backup failed: %s", e.message ?: e.javaClass.simpleName)
             Result.failure(e)
         }
     }
 
     override suspend fun enableAutoBackup(enabled: Boolean) {
-        // TODO: Implement auto backup scheduling with WorkManager
+        CloudBackupSettingsStore.setAutoBackup(context, BackupSource.GOOGLE_DRIVE, enabled)
+        XLog.i("Google Drive auto backup setting changed: enabled=%s", enabled)
     }
 
     override fun isAutoBackupEnabled(): Boolean {
-        // TODO: Check auto backup setting
-        return false
+        return CloudBackupSettingsStore.isAutoBackupEnabled(context, BackupSource.GOOGLE_DRIVE)
     }
 }
