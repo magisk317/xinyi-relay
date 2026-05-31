@@ -7,7 +7,7 @@ ndk = "30.0.14904198"
 
 # JVM versions
 java = "26"
-javaBytecode = "25"
+javaBytecode = "26"
 
 # App version
 versionCode = "33"
