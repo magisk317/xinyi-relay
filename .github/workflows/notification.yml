@@ -53,7 +53,7 @@ jobs:
           fi
 
           TG_MAX_FILESIZE=$((50 * 1024 * 1024))
-          PROJECT_TAG="📌 #xinyirelay"
+          PROJECT_TAG="📌 #XinyiRelay"
 
           send_message() {
             local thread=$1
@@ -126,7 +126,7 @@ jobs:
             if [ "${WF_RUN_CONCLUSION:-}" != "success" ]; then
               exit 0
             fi
-            CI_MSG=$(printf '✅ 信驿 Relay：%s\n%s\n📋 %s\n🔗 Run: %s' \
+            CI_MSG=$(printf '✅ XinyiRelay：%s\n%s\n📋 %s\n🔗 Run: %s' \
               "${WF_RUN_NAME:-CI}" "$PROJECT_TAG" "${CI_COMMIT_TITLE:-}" "${WF_RUN_URL:-}")
             CI_THREAD=""
             if [ -n "${TG_CI_THREAD_ID:-}" ]; then
@@ -181,7 +181,7 @@ jobs:
             WHATSNEW_CONTENT="Release ${RELEASE_TAG} is published."
           fi
 
-          CAPTION=$(printf '📦 信驿 Relay：Release %s\n%s\n\n%s' "$RELEASE_TAG" "$PROJECT_TAG" "$WHATSNEW_CONTENT")
+          CAPTION=$(printf '📦 XinyiRelay：Release %s\n%s\n\n%s' "$RELEASE_TAG" "$PROJECT_TAG" "$WHATSNEW_CONTENT")
 
           RELEASE_THREAD=""
           if [ -n "${TG_THREAD_ID:-}" ]; then

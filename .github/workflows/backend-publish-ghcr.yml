@@ -421,7 +421,7 @@ jobs:
             exit 0
           fi
 
-          PROJECT_TAG="📌 #xinyirelay"
+          PROJECT_TAG="📌 #XinyiRelay"
 
           dockerhub_enabled=0
           dockerhub_image=""
@@ -449,7 +449,7 @@ jobs:
           fi
 
           message="$(cat <<EOF
-          ✅ 信驿 Relay：backend-publish-ghcr
+          ✅ XinyiRelay：backend-publish-ghcr
           ${PROJECT_TAG}
 
           📦 Release: ${RELEASE_VERSION:-${{ github.ref_name }}}
