@@ -1,5 +1,7 @@
 package io.github.magisk317.relay.ui.sender.forms
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -128,7 +130,7 @@ fun ForwardToggleSection(
             onConfirm = { nextSchedule ->
                 onActiveScheduleChange(nextSchedule)
                 scope.launch {
-                    snackbarHostState.showSnackbar(context.getString(R.string.pref_sync_snackbar))
+                    snackbarHostState.showLatestSnackbar(context.getString(R.string.pref_sync_snackbar))
                 }
                 showActiveScheduleDialog = false
             },

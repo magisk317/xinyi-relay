@@ -1,5 +1,7 @@
 package io.github.magisk317.relay.ui.home
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import android.Manifest
 import android.app.AlarmManager
 import android.app.AppOpsManager
@@ -43,7 +45,7 @@ internal fun StartupPermissionPrompt(enabled: Boolean) {
         val stillMissing = context.collectMissingStartupPermissionLabels()
         if (stillMissing.isNotEmpty()) {
             scope.launch {
-                snackbarHostState.showSnackbar(
+                snackbarHostState.showLatestSnackbar(
                     context.getString(
                         R.string.startup_permission_missing_warning,
                         stillMissing.joinToString(context.getString(R.string.scheduled_task_permission_separator)),

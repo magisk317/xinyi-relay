@@ -1,5 +1,7 @@
 package io.github.magisk317.relay.ui.home
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -94,7 +96,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
             baseUrl = resolvedBaseUrl
         }
         scope.launch {
-            snackbarHostState.showSnackbar(scanUpdatedText)
+            snackbarHostState.showLatestSnackbar(scanUpdatedText)
             if (resolvedBaseUrl.isBlank() || resolvedCode.isBlank()) return@launch
             runCatching {
                 repository.updateBackendBaseUrl(resolvedBaseUrl)
@@ -102,12 +104,12 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
             }.onSuccess {
                 refresh()
                 bindCode = ""
-                snackbarHostState.showSnackbar(
+                snackbarHostState.showLatestSnackbar(
                     context.getString(R.string.pref_remote_agent_bind_done, it.deviceId),
                 )
             }.onFailure {
                 refresh()
-                snackbarHostState.showSnackbar(it.message ?: it.javaClass.simpleName)
+                snackbarHostState.showLatestSnackbar(it.message ?: it.javaClass.simpleName)
             }
         }
     }
@@ -170,12 +172,12 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                                 repository.bindDevice(bindCode)
                             }.onSuccess {
                                 refresh()
-                                snackbarHostState.showSnackbar(
+                                snackbarHostState.showLatestSnackbar(
                                     context.getString(R.string.pref_remote_agent_bind_done, it.deviceId),
                                 )
                             }.onFailure {
                                 refresh()
-                                snackbarHostState.showSnackbar(it.message ?: it.javaClass.simpleName)
+                                snackbarHostState.showLatestSnackbar(it.message ?: it.javaClass.simpleName)
                             }
                         }
                     },
@@ -201,9 +203,9 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                                 repository.updateBackendBaseUrl(baseUrl)
                             }.onSuccess {
                                 refresh()
-                                snackbarHostState.showSnackbar(backendSavedText)
+                                snackbarHostState.showLatestSnackbar(backendSavedText)
                             }.onFailure {
-                                snackbarHostState.showSnackbar(it.message ?: it.javaClass.simpleName)
+                                snackbarHostState.showLatestSnackbar(it.message ?: it.javaClass.simpleName)
                             }
                         }
                     },
@@ -222,11 +224,11 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                             runCatching { repository.sendHeartbeat() }
                                 .onSuccess {
                                     refresh()
-                                    snackbarHostState.showSnackbar(heartbeatDoneText)
+                                    snackbarHostState.showLatestSnackbar(heartbeatDoneText)
                                 }
                                 .onFailure {
                                     refresh()
-                                    snackbarHostState.showSnackbar(it.message ?: it.javaClass.simpleName)
+                                    snackbarHostState.showLatestSnackbar(it.message ?: it.javaClass.simpleName)
                                 }
                         }
                     },
@@ -240,13 +242,13 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                             runCatching { repository.pullConfigSnapshot() }
                                 .onSuccess {
                                     refresh()
-                                    snackbarHostState.showSnackbar(
+                                    snackbarHostState.showLatestSnackbar(
                                         context.getString(R.string.pref_remote_agent_pull_done, it.revision),
                                     )
                                 }
                                 .onFailure {
                                     refresh()
-                                    snackbarHostState.showSnackbar(it.message ?: it.javaClass.simpleName)
+                                    snackbarHostState.showLatestSnackbar(it.message ?: it.javaClass.simpleName)
                                 }
                         }
                     },
@@ -266,11 +268,11 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                             runCatching { repository.pushConfigSnapshot() }
                                 .onSuccess {
                                     refresh()
-                                    snackbarHostState.showSnackbar(pushDoneText)
+                                    snackbarHostState.showLatestSnackbar(pushDoneText)
                                 }
                                 .onFailure {
                                     refresh()
-                                    snackbarHostState.showSnackbar(it.message ?: it.javaClass.simpleName)
+                                    snackbarHostState.showLatestSnackbar(it.message ?: it.javaClass.simpleName)
                                 }
                         }
                     },
@@ -284,11 +286,11 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                             runCatching { repository.uploadRecentRecords() }
                                 .onSuccess {
                                     refresh()
-                                    snackbarHostState.showSnackbar(recordsDoneText)
+                                    snackbarHostState.showLatestSnackbar(recordsDoneText)
                                 }
                                 .onFailure {
                                     refresh()
-                                    snackbarHostState.showSnackbar(it.message ?: it.javaClass.simpleName)
+                                    snackbarHostState.showLatestSnackbar(it.message ?: it.javaClass.simpleName)
                                 }
                         }
                     },
@@ -308,7 +310,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                             repository.clearBinding()
                             bindCode = ""
                             refresh()
-                            snackbarHostState.showSnackbar(unboundText)
+                            snackbarHostState.showLatestSnackbar(unboundText)
                         }
                     },
                     enabled = current?.bound == true,

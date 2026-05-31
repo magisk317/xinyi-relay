@@ -2,6 +2,8 @@
 
 package io.github.magisk317.relay.ui.home
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -104,7 +106,7 @@ fun InterceptScreen(
     val savedSnackbarText = context.getString(R.string.pref_sync_snackbar)
     val notifySaved = {
         scope.launch {
-            snackbarHostState.showSnackbar(savedSnackbarText)
+            snackbarHostState.showLatestSnackbar(savedSnackbarText)
         }
     }
     fun saveSettingsIfChanged(

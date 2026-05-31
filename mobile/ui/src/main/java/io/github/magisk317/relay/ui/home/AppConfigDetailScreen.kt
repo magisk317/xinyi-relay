@@ -2,6 +2,8 @@
 
 package io.github.magisk317.relay.ui.home
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -118,7 +120,7 @@ fun AppConfigDetailScreen(
                         onCheckedChange = {
                             viewModel.setBlocked(app.packageName, it)
                             scope.launch {
-                                snackbarHostState.showSnackbar(context.getString(R.string.pref_sync_snackbar))
+                                snackbarHostState.showLatestSnackbar(context.getString(R.string.pref_sync_snackbar))
                             }
                         },
                     )
@@ -129,7 +131,7 @@ fun AppConfigDetailScreen(
                         onCheckedChange = {
                             viewModel.setForwarding(app.packageName, it)
                             scope.launch {
-                                snackbarHostState.showSnackbar(context.getString(R.string.pref_sync_snackbar))
+                                snackbarHostState.showLatestSnackbar(context.getString(R.string.pref_sync_snackbar))
                             }
                         },
                     )

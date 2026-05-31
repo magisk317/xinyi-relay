@@ -2,6 +2,8 @@
 
 package io.github.magisk317.relay.ui.home
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -115,7 +117,7 @@ fun GlobalForwardFilterScreen(
                 onToggleEnabled = { id, enabled ->
                     viewModel.setForwardFilterRuleEnabled(id, enabled)
                     scope.launch {
-                        snackbarHostState.showSnackbar(savedSnackbarText)
+                        snackbarHostState.showLatestSnackbar(savedSnackbarText)
                     }
                 },
                 onEdit = { rule ->
@@ -248,7 +250,7 @@ fun AppForwardFilterScreen(
                             onToggleEnabled = { id, enabled ->
                                 viewModel.setForwardFilterRuleEnabled(id, enabled)
                                 scope.launch {
-                                    snackbarHostState.showSnackbar(savedSnackbarText)
+                                    snackbarHostState.showLatestSnackbar(savedSnackbarText)
                                 }
                             },
                             onEdit = { rule ->
@@ -284,7 +286,7 @@ fun AppForwardFilterScreen(
                             onToggleEnabled = { id, enabled ->
                                 viewModel.setForwardFilterRuleEnabled(id, enabled)
                                 scope.launch {
-                                    snackbarHostState.showSnackbar(savedSnackbarText)
+                                    snackbarHostState.showLatestSnackbar(savedSnackbarText)
                                 }
                             },
                             onEdit = { rule ->

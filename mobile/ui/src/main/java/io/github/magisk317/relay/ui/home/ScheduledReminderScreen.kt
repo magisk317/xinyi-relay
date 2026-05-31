@@ -1,5 +1,7 @@
 package io.github.magisk317.relay.ui.home
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -165,7 +167,7 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
     val notifySaved = {
         scope.launch {
-            snackbarHostState.showSnackbar(savedSnackbarText)
+            snackbarHostState.showLatestSnackbar(savedSnackbarText)
         }
     }
     var settings by remember { mutableStateOf<SpecialAlertSettingsSnapshot?>(null) }

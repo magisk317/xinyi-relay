@@ -1,5 +1,7 @@
 package io.github.magisk317.relay.ui.home
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -65,7 +67,7 @@ internal fun AppInfoCard(
     val snackbarHostState = LocalSnackbarHostState.current
     val rootHint = stringResource(id = R.string.root_permission_hint)
     val showRootHint: () -> Unit = {
-        scope.launch { snackbarHostState.showSnackbar(rootHint) }
+        scope.launch { snackbarHostState.showLatestSnackbar(rootHint) }
     }
 
     Card(
@@ -131,7 +133,7 @@ internal fun LinksCard(
     val scope = rememberCoroutineScope()
     val snackbarHostState = LocalSnackbarHostState.current
     fun showMessage(message: String) {
-        scope.launch { snackbarHostState.showSnackbar(message) }
+        scope.launch { snackbarHostState.showLatestSnackbar(message) }
     }
     Card(
         modifier = Modifier.fillMaxWidth(),

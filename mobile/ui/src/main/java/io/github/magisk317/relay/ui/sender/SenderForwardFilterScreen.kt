@@ -2,6 +2,8 @@
 
 package io.github.magisk317.relay.ui.sender
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -119,7 +121,7 @@ fun SenderForwardFilterScreen(
                 onToggleEnabled = { id, enabled ->
                     viewModel.setForwardFilterRuleEnabled(id, enabled)
                     scope.launch {
-                        snackbarHostState.showSnackbar(savedSnackbarText)
+                        snackbarHostState.showLatestSnackbar(savedSnackbarText)
                     }
                 },
                 onEdit = { rule ->

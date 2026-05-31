@@ -1,5 +1,7 @@
 package io.github.magisk317.relay.ui.home
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -61,7 +63,7 @@ fun RuntimeLogViewerSheet(onDismiss: () -> Unit) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = LocalSnackbarHostState.current
     fun showMessage(message: String) {
-        scope.launch { snackbarHostState.showSnackbar(message) }
+        scope.launch { snackbarHostState.showLatestSnackbar(message) }
     }
     var keyword by remember { mutableStateOf("") }
     var selectedMinutes by remember { mutableIntStateOf(5) }

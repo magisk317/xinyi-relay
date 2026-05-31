@@ -1,5 +1,7 @@
 package io.github.magisk317.relay.ui.sender.forms
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -102,7 +104,7 @@ private fun BarkEncryptionFields(
         IconButton(
             onClick = {
                 onDraftChange(draft.withString("key", AesUtils.generateKey()))
-                coroutineScope.launch { snackbarHostState.showSnackbar(keyGeneratedLabel) }
+                coroutineScope.launch { snackbarHostState.showLatestSnackbar(keyGeneratedLabel) }
             },
         ) {
             Icon(
@@ -128,7 +130,7 @@ private fun BarkEncryptionFields(
             IconButton(
                 onClick = {
                     onDraftChange(draft.withString("iv", AesUtils.generateIv(transformation)))
-                    coroutineScope.launch { snackbarHostState.showSnackbar(ivGeneratedLabel) }
+                    coroutineScope.launch { snackbarHostState.showLatestSnackbar(ivGeneratedLabel) }
                 },
             ) {
                 Icon(

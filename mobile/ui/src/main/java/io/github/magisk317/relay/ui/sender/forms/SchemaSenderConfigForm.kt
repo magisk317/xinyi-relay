@@ -1,5 +1,7 @@
 package io.github.magisk317.relay.ui.sender.forms
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
@@ -148,7 +150,7 @@ internal fun SchemaSenderConfigForm(
     var showExitDialog by remember { mutableStateOf(false) }
 
     fun showMessage(message: String) {
-        coroutineScope.launch { snackbarHostState.showSnackbar(message) }
+        coroutineScope.launch { snackbarHostState.showLatestSnackbar(message) }
     }
 
     LaunchedEffect(senderId, senderType) {

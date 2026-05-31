@@ -2,6 +2,8 @@
 
 package io.github.magisk317.relay.ui.home
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Build
@@ -247,7 +249,7 @@ class MainActivity : AppCompatActivity() {
             }
             LaunchedEffect(Unit) {
                 snackbarMessages.collect { message ->
-                    appSnackbarHostState.showSnackbar(message)
+                    appSnackbarHostState.showLatestSnackbar(message)
                 }
             }
 
@@ -344,7 +346,7 @@ class MainActivity : AppCompatActivity() {
                                     context.getString(R.string.sms_code_test_result_with_rule, base, hitRule)
                                 }
                             }
-                            scope.launch { appSnackbarHostState.showSnackbar(message) }
+                            scope.launch { appSnackbarHostState.showLatestSnackbar(message) }
                         }
                         is SettingsEvent.NavigateToRules -> {
                             requestedTab = io.github.magisk317.relay.ui.nav.SmsCodeRulesRoute()
@@ -357,7 +359,7 @@ class MainActivity : AppCompatActivity() {
                             }
                         }
                         is SettingsEvent.ShowSnackbar -> {
-                            scope.launch { appSnackbarHostState.showSnackbar(event.message) }
+                            scope.launch { appSnackbarHostState.showLatestSnackbar(event.message) }
                         }
                         else -> {}
                     }

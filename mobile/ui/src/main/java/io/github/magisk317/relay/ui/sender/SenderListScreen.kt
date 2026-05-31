@@ -2,6 +2,8 @@
 
 package io.github.magisk317.relay.ui.sender
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
@@ -146,7 +148,7 @@ fun SenderListScreen(
             onSave = {
                 viewModel.saveForwardCommonConfig(it)
                 showCommonConfigDialog = false
-                scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.pref_sync_snackbar)) }
+                scope.launch { snackbarHostState.showLatestSnackbar(context.getString(R.string.pref_sync_snackbar)) }
             },
         )
     }
@@ -160,7 +162,7 @@ fun SenderListScreen(
                 viewModel.saveForwardCommonConfig(config)
                 viewModel.saveSimRemarkSettings(sim1Remark, sim2Remark)
                 showGeneralConfigDialog = false
-                scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.pref_sync_snackbar)) }
+                scope.launch { snackbarHostState.showLatestSnackbar(context.getString(R.string.pref_sync_snackbar)) }
             },
         )
     }
@@ -181,7 +183,7 @@ fun SenderListScreen(
             onSave = {
                 viewModel.saveAppNotifyTemplate(it)
                 showAppNotifyConfigDialog = false
-                scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.pref_sync_snackbar)) }
+                scope.launch { snackbarHostState.showLatestSnackbar(context.getString(R.string.pref_sync_snackbar)) }
             },
         )
     }
@@ -206,7 +208,7 @@ fun SenderListScreen(
             onSave = {
                 viewModel.saveCallNotifyTemplate(it)
                 showCallNotifyConfigDialog = false
-                scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.pref_sync_snackbar)) }
+                scope.launch { snackbarHostState.showLatestSnackbar(context.getString(R.string.pref_sync_snackbar)) }
             },
         )
     }
@@ -361,20 +363,20 @@ fun SenderListScreen(
                                     val result = viewModel.validateSenderForEnable(sender)
                                     if (!result.valid) {
                                         scope.launch {
-                                            snackbarHostState.showSnackbar(
+                                            snackbarHostState.showLatestSnackbar(
                                                 context.getString(R.string.sender_enable_failed, result.message),
                                             )
                                         }
                                     } else {
                                         viewModel.toggleSenderStatus(sender, enabled)
                                         scope.launch {
-                                            snackbarHostState.showSnackbar(context.getString(R.string.pref_sync_snackbar))
+                                            snackbarHostState.showLatestSnackbar(context.getString(R.string.pref_sync_snackbar))
                                         }
                                     }
                                 } else {
                                     viewModel.toggleSenderStatus(sender, enabled)
                                     scope.launch {
-                                        snackbarHostState.showSnackbar(context.getString(R.string.pref_sync_snackbar))
+                                        snackbarHostState.showLatestSnackbar(context.getString(R.string.pref_sync_snackbar))
                                     }
                                 }
                             },
@@ -383,7 +385,7 @@ fun SenderListScreen(
                                 viewModel.deleteSender(removedSender)
                                 scope.launch {
                                     val resultDeferred = async {
-                                        snackbarHostState.showSnackbar(
+                                        snackbarHostState.showLatestSnackbar(
                                             message = context.getString(
                                                 R.string.sender_removed_with_undo,
                                                 removedSender.name.ifBlank { getSenderTypeName(context, removedSender.type) },

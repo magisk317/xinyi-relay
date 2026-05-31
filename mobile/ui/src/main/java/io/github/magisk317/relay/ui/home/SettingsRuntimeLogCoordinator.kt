@@ -1,5 +1,7 @@
 package io.github.magisk317.relay.ui.home
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -46,7 +48,7 @@ internal fun rememberSettingsRuntimeLogActions(
             }
             val file = result.file
             if (file == null) {
-                snackbarHostState.showSnackbar(
+                snackbarHostState.showLatestSnackbar(
                     context.getString(R.string.runtime_log_export_failed, result.details),
                 )
                 return@launch
@@ -54,7 +56,7 @@ internal fun rememberSettingsRuntimeLogActions(
             runCatching {
                 LogBundleExporter.shareLogBundle(context, file)
             }.onFailure {
-                snackbarHostState.showSnackbar(
+                snackbarHostState.showLatestSnackbar(
                     context.getString(
                         R.string.runtime_log_share_failed,
                         it.message ?: it.javaClass.simpleName,
@@ -80,7 +82,7 @@ internal fun rememberSettingsRuntimeLogActions(
             runtimeLogDialogData = withContext(Dispatchers.IO) {
                 loadRuntimeLogDialogData()
             }
-            snackbarHostState.showSnackbar(
+            snackbarHostState.showLatestSnackbar(
                 if (result.success) {
                     context.getString(R.string.runtime_log_cleared)
                 } else {

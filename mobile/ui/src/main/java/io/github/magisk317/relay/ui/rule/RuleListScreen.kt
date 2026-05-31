@@ -2,6 +2,8 @@
 
 package io.github.magisk317.relay.ui.rule
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -113,7 +115,7 @@ fun RuleListScreen(
                         onToggle = {
                             viewModel.toggleRuleStatus(rule, it)
                             scope.launch {
-                                snackbarHostState.showSnackbar(context.getString(R.string.pref_sync_snackbar))
+                                snackbarHostState.showLatestSnackbar(context.getString(R.string.pref_sync_snackbar))
                             }
                         },
                         onDelete = { viewModel.deleteRule(rule) }

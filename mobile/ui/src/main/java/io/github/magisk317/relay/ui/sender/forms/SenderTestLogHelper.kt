@@ -1,5 +1,7 @@
 package io.github.magisk317.relay.ui.sender.forms
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import android.content.Context
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
@@ -118,7 +120,7 @@ internal fun SenderTestActionRow(
     val snackbarHostState = LocalSnackbarHostState.current
 
     fun showMessage(message: String) {
-        scope.launch { snackbarHostState.showSnackbar(message) }
+        scope.launch { snackbarHostState.showLatestSnackbar(message) }
     }
 
     Row(

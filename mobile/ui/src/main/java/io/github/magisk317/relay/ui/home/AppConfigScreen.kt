@@ -2,6 +2,8 @@
 
 package io.github.magisk317.relay.ui.home
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import android.os.SystemClock
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -143,7 +145,7 @@ fun AppConfigScreen(
         viewModel.events.collect { event ->
             when (event) {
                 is AppConfigViewModel.AppConfigEvent.Error -> {
-                    snackbarHostState.showSnackbar(event.throwable.message ?: context.getString(R.string.save_failed))
+                    snackbarHostState.showLatestSnackbar(event.throwable.message ?: context.getString(R.string.save_failed))
                 }
 
                 is AppConfigViewModel.AppConfigEvent.ShowUsageStatsPermission -> {

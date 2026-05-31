@@ -2,6 +2,8 @@
 
 package io.github.magisk317.relay.ui.record
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import android.graphics.Color as AndroidColor
 import android.content.ClipData
 import android.os.SystemClock
@@ -226,7 +228,7 @@ fun CodeRecordScreen(
     fun copyWithFeedback(label: String, text: String, snackbarText: String) {
         scope.launch {
             clipboard.setClipEntry(ClipData.newPlainText(label, text).toClipEntry())
-            snackbarHostState.showSnackbar(snackbarText)
+            snackbarHostState.showLatestSnackbar(snackbarText)
         }
     }
 
@@ -298,7 +300,7 @@ fun CodeRecordScreen(
         { target: SmsMsg ->
             viewModel.removeSmsMsg(listOf(target))
             scope.launch {
-                val result = snackbarHostState.showSnackbar(
+                val result = snackbarHostState.showLatestSnackbar(
                     message = context.getString(R.string.some_items_removed, 1),
                     actionLabel = context.getString(R.string.revoke),
                     duration = SnackbarDuration.Long,
@@ -319,7 +321,7 @@ fun CodeRecordScreen(
         selectedIds = emptySet()
 
         scope.launch {
-            val result = snackbarHostState.showSnackbar(
+            val result = snackbarHostState.showLatestSnackbar(
                 message = context.getString(R.string.some_items_removed, deleteList.size),
                 actionLabel = context.getString(R.string.revoke),
                 duration = SnackbarDuration.Long,
@@ -391,7 +393,7 @@ fun CodeRecordScreen(
                                 else -> RecordSettingsUpdate(callNotifyRecordEnabled = enabled)
                             },
                         )
-                        snackbarHostState.showSnackbar(savedSnackbarText)
+                        snackbarHostState.showLatestSnackbar(savedSnackbarText)
                     }
                 }
 
@@ -562,7 +564,7 @@ fun CodeRecordScreen(
                         if (deleteList.isNotEmpty()) {
                             viewModel.removeSmsMsg(deleteList)
                             scope.launch {
-                                val result = snackbarHostState.showSnackbar(
+                                val result = snackbarHostState.showLatestSnackbar(
                                     message = context.getString(R.string.some_items_removed, deleteList.size),
                                     actionLabel = context.getString(R.string.revoke),
                                     duration = SnackbarDuration.Long,

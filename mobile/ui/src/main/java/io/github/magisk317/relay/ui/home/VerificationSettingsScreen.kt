@@ -2,6 +2,8 @@
 
 package io.github.magisk317.relay.ui.home
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import android.Manifest
 import android.content.ComponentName
 import android.content.Intent
@@ -80,12 +82,12 @@ fun VerificationSettingsScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
     val snackbarHostState = remember { SnackbarHostState() }
+    val settingsViewModel = rememberSharedSettingsViewModel()
     val notifySaved = {
         scope.launch {
-            snackbarHostState.showSnackbar(savedSnackbarText)
+            snackbarHostState.showLatestSnackbar(savedSnackbarText)
         }
     }
-    val settingsViewModel = rememberSharedSettingsViewModel()
     val accordionMode = rememberPrefBoolean(PrefConst.KEY_SETTINGS_ACCORDION_MODE, true)
     var settings by remember { mutableStateOf<VerificationSettingsSnapshot?>(null) }
     var recordSettings by remember { mutableStateOf<RecordSettingsSnapshot?>(null) }
@@ -143,7 +145,7 @@ fun VerificationSettingsScreen(
             } else if (pendingNotificationOwnerPermissionSelection == CodeNotificationOwner.APP) {
                 pendingNotificationOwnerPermissionSelection = null
                 pendingNotificationPermissionEnable = false
-                snackbarHostState.showSnackbar(
+                snackbarHostState.showLatestSnackbar(
                     context.getString(R.string.pref_code_notification_owner_permission_denied),
                 )
             }
@@ -167,7 +169,7 @@ fun VerificationSettingsScreen(
                 pendingNotificationOwnerPermissionSelection = null
                 pendingNotificationPermissionEnable = false
                 scope.launch {
-                    snackbarHostState.showSnackbar(
+                    snackbarHostState.showLatestSnackbar(
                         context.getString(R.string.pref_code_notification_owner_permission_denied),
                     )
                 }
@@ -182,7 +184,7 @@ fun VerificationSettingsScreen(
             pendingNotificationOwnerPermissionSelection = null
             pendingNotificationPermissionEnable = false
             scope.launch {
-                snackbarHostState.showSnackbar(
+                snackbarHostState.showLatestSnackbar(
                     context.getString(R.string.pref_code_notification_owner_permission_denied),
                 )
             }
@@ -204,7 +206,7 @@ fun VerificationSettingsScreen(
             }
         } else {
             scope.launch {
-                snackbarHostState.showSnackbar(
+                snackbarHostState.showLatestSnackbar(
                     context.getString(R.string.pref_code_notification_owner_permission_settings_hint),
                 )
             }
@@ -245,7 +247,7 @@ fun VerificationSettingsScreen(
             !isAutoInputAccessibilityServiceListed(context)
         ) {
             scope.launch {
-                snackbarHostState.showSnackbar(
+                snackbarHostState.showLatestSnackbar(
                     context.getString(R.string.pref_auto_input_accessibility_service_restricted_hint),
                 )
             }
@@ -258,7 +260,7 @@ fun VerificationSettingsScreen(
                 accessibilitySettingsLauncher.launch(targetIntent)
             }.onFailure {
                 scope.launch {
-                    snackbarHostState.showSnackbar(
+                    snackbarHostState.showLatestSnackbar(
                         context.getString(R.string.pref_auto_input_accessibility_service_open_failed),
                     )
                 }
@@ -269,7 +271,7 @@ fun VerificationSettingsScreen(
             context.startActivity(targetIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }.onFailure {
             scope.launch {
-                snackbarHostState.showSnackbar(
+                snackbarHostState.showLatestSnackbar(
                     context.getString(R.string.pref_auto_input_accessibility_service_open_failed),
                 )
             }

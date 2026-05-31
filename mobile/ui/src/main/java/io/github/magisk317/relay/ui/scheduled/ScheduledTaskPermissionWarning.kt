@@ -1,5 +1,7 @@
 package io.github.magisk317.relay.ui.scheduled
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import android.Manifest
 import android.app.AlarmManager
 import android.content.Context
@@ -56,7 +58,7 @@ internal fun rememberScheduledTaskPermissionPrompter(): (ScheduledTask, () -> Un
 
     fun showWarningIfStillMissing(task: ScheduledTask) {
         task.permissionWarningMessage(context)?.let { warning ->
-            coroutineScope.launch { snackbarHostState.showSnackbar(warning) }
+            coroutineScope.launch { snackbarHostState.showLatestSnackbar(warning) }
         }
     }
 

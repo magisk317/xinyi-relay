@@ -2,6 +2,8 @@
 
 package io.github.magisk317.relay.ui.smscoderule
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import android.content.ClipData
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -129,7 +131,7 @@ fun SmsCodeRuleListScreen(
             }
             officialLoading = false
             if (refresh) {
-                snackbarHostState.showSnackbar(
+                snackbarHostState.showLatestSnackbar(
                     if (result?.success == true) officialRefreshSuccess else officialRefreshFailed,
                 )
             }
@@ -248,7 +250,7 @@ fun SmsCodeRuleListScreen(
                             scope.launch {
                                 repository.deleteSmsCodeRule(rule)
                                 repository.checkpoint()
-                                snackbarHostState.showSnackbar("$removedLabel: ${rule.codeKeyword}")
+                                snackbarHostState.showLatestSnackbar("$removedLabel: ${rule.codeKeyword}")
                             }
                         },
                     )
@@ -422,7 +424,7 @@ fun SmsCodeRuleEditorScreen(
         }
         val rule = repository.getSmsCodeRuleById(ruleId)
         if (rule == null) {
-            snackbarHostState.showSnackbar(loadFailedText)
+            snackbarHostState.showLatestSnackbar(loadFailedText)
             onBack()
             return@LaunchedEffect
         }
@@ -440,18 +442,18 @@ fun SmsCodeRuleEditorScreen(
             val normalizedRegex = regex.trim()
             when {
                 normalizedKeyword.isEmpty() -> {
-                    snackbarHostState.showSnackbar(keywordEmptyText)
+                    snackbarHostState.showLatestSnackbar(keywordEmptyText)
                     return@launch
                 }
                 normalizedRegex.isEmpty() -> {
-                    snackbarHostState.showSnackbar(regexEmptyText)
+                    snackbarHostState.showLatestSnackbar(regexEmptyText)
                     return@launch
                 }
             }
             runCatching {
                 Pattern.compile(normalizedRegex)
             }.onFailure {
-                snackbarHostState.showSnackbar(it.message ?: saveFailedText)
+                snackbarHostState.showLatestSnackbar(it.message ?: saveFailedText)
                 return@launch
             }
             val duplicated = repository.getAllSmsCodeRules().firstOrNull { existing ->
@@ -461,7 +463,7 @@ fun SmsCodeRuleEditorScreen(
                     existing.codeRegex.trim() == normalizedRegex
             }
             if (duplicated != null) {
-                snackbarHostState.showSnackbar(duplicateText)
+                snackbarHostState.showLatestSnackbar(duplicateText)
                 return@launch
             }
             repository.upsertSmsCodeRule(
@@ -481,7 +483,7 @@ fun SmsCodeRuleEditorScreen(
         if (value.isBlank()) return
         scope.launch {
             clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(label, value)))
-            snackbarHostState.showSnackbar(context.getString(R.string.prompt_field_copied, label))
+            snackbarHostState.showLatestSnackbar(context.getString(R.string.prompt_field_copied, label))
         }
     }
 

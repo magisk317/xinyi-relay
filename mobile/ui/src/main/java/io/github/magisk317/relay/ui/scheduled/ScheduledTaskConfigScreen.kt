@@ -1,5 +1,7 @@
 package io.github.magisk317.relay.ui.scheduled
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import android.provider.Settings
 import androidx.annotation.StringRes
 import androidx.compose.foundation.rememberScrollState
@@ -152,7 +154,7 @@ fun ScheduledTaskConfigScreen(
             smsTestRunning = true
             snackbarHostState.currentSnackbarData?.dismiss()
             scope.launch {
-                snackbarHostState.showSnackbar(smsTestStartedText)
+                snackbarHostState.showLatestSnackbar(smsTestStartedText)
             }
             val result = runCatching {
                 viewModel.sendTestSms(
@@ -164,9 +166,9 @@ fun ScheduledTaskConfigScreen(
             smsTestRunning = false
             snackbarHostState.currentSnackbarData?.dismiss()
             result.onSuccess {
-                snackbarHostState.showSnackbar(smsTestSucceededText)
+                snackbarHostState.showLatestSnackbar(smsTestSucceededText)
             }.onFailure { throwable ->
-                snackbarHostState.showSnackbar(
+                snackbarHostState.showLatestSnackbar(
                     smsTestFailedFormat.format(throwable.message ?: throwable.javaClass.simpleName),
                 )
             }
@@ -181,7 +183,7 @@ fun ScheduledTaskConfigScreen(
             shortCodeConfirmationUpdating = false
             result.onSuccess {
                 shortCodeConfirmationBypassed = enabled
-                snackbarHostState.showSnackbar(
+                snackbarHostState.showLatestSnackbar(
                     if (enabled) {
                         shortCodeBypassEnabledText
                     } else {
@@ -189,7 +191,7 @@ fun ScheduledTaskConfigScreen(
                     },
                 )
             }.onFailure { throwable ->
-                snackbarHostState.showSnackbar(
+                snackbarHostState.showLatestSnackbar(
                     shortCodeBypassFailedFormat.format(throwable.message ?: throwable.javaClass.simpleName),
                 )
             }

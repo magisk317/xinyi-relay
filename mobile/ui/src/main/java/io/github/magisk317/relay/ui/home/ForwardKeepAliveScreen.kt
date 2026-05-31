@@ -1,5 +1,7 @@
 package io.github.magisk317.relay.ui.home
 
+import io.github.magisk317.relay.ui.common.showLatestSnackbar
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -50,7 +52,7 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
     val snackbarHostState = remember { SnackbarHostState() }
     val notifySaved = {
         scope.launch {
-            snackbarHostState.showSnackbar(savedSnackbarText)
+            snackbarHostState.showLatestSnackbar(savedSnackbarText)
         }
     }
     var settings by remember { mutableStateOf<DiagnosticsSettingsSnapshot?>(null) }
