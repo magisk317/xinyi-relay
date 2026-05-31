@@ -14,6 +14,7 @@ if [[ "${ALLOW_INCOMPATIBLE_DEBUG_SIGNING:-false}" == "true" ]]; then
 fi
 
 bash scripts/with_workspace_gradle_lock.sh \
+  --ignore-submodule-lockfiles \
   "${gradle_args[@]}" \
   :smscode-core:smscode-domain:testDebugUnitTest \
   :magisk-ui-kit:compileDebugKotlin \
