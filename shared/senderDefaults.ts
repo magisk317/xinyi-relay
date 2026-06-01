@@ -233,10 +233,23 @@ const SENDER_FIELD_SCHEMAS: Record<number, SenderFieldSchema[]> = {
     field('messageCard', 'textarea', '消息卡片 JSON', 'Message card JSON', { rows: 5, fullWidth: true }),
   ],
   18: [
-    field('token', 'text', 'Token', 'Token'),
+    field('token', 'secret', 'Token', 'Token'),
     field('receiveId', 'text', '接收 ID', 'Receive ID'),
-    field('receiveIdType', 'text', '接收 ID 类型', 'Receive ID type'),
-    field('msgType', 'text', '消息类型', 'Message type'),
+    field('receiveIdType', 'select', '接收 ID 类型', 'Receive ID type', {
+      options: [
+        { label: 'User ID / 用户 ID', value: 'user_id' },
+        { label: 'Open ID / 开放 ID', value: 'open_id' },
+        { label: 'Union ID / 统一 ID', value: 'union_id' },
+        { label: 'Email / 邮箱', value: 'email' },
+        { label: 'Chat ID / 会话 ID', value: 'chat_id' },
+      ],
+    }),
+    field('msgType', 'select', '消息类型', 'Message type', {
+      options: [
+        { label: 'Interactive / 交互卡片', value: 'interactive' },
+        { label: 'Text / 文本', value: 'text' },
+      ],
+    }),
     field('titleTemplate', 'text', '标题模板', 'Title template'),
     field('messageCard', 'textarea', '消息卡片 JSON', 'Message card JSON', { rows: 5, fullWidth: true }),
   ],

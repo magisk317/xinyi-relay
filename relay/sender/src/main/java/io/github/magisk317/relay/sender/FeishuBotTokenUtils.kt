@@ -4,6 +4,8 @@ import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.net.RelayHttpClients
 import io.github.magisk317.relay.sender.result.FeishuBotTokenResult
 import io.github.magisk317.relay.sender.config.FeishuBotTokenSetting
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import okhttp3.MediaType.Companion.toMediaType
@@ -13,7 +15,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 object FeishuBotTokenUtils {
     private const val TAG = "FeishuBotTokenUtils"
 
-    suspend fun sendMsg(setting: FeishuBotTokenSetting, msgInfo: MsgInfo) {
+    suspend fun sendMsg(setting: FeishuBotTokenSetting, msgInfo: MsgInfo) = withContext(Dispatchers.IO) {
         sendMessage(setting, msgInfo)
     }
 
