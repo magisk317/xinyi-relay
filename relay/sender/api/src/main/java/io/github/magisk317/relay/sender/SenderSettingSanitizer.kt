@@ -611,14 +611,18 @@ object SenderSettingSanitizer {
         val repaired = repairFields(
             "authType" to setting.authType,
             "appId" to setting.appId,
+            "appSecret" to setting.appSecret,
             "botToken" to setting.botToken,
+            "receiveId" to setting.receiveId,
             "msgType" to setting.msgType,
             "receiveIdType" to setting.receiveIdType,
         )
         return setting.copy(
             authType = repaired.enumString("authType", defaults.authType),
             appId = repaired.string("appId"),
+            appSecret = repaired.string("appSecret"),
             botToken = repaired.string("botToken"),
+            receiveId = repaired.string("receiveId"),
             msgType = repaired.enumString("msgType", defaults.msgType),
             receiveIdType = repaired.enumString("receiveIdType", defaults.receiveIdType),
         )
