@@ -14,6 +14,7 @@ import io.github.magisk317.relay.sender.config.FeishuAppSetting
 import io.github.magisk317.relay.sender.config.FeishuSetting
 import io.github.magisk317.relay.sender.config.GotifySetting
 import io.github.magisk317.relay.sender.config.NtfySetting
+import io.github.magisk317.relay.sender.config.PushdeerSetting
 import io.github.magisk317.relay.sender.config.PushplusSetting
 import io.github.magisk317.relay.sender.config.ServerchanSetting
 import io.github.magisk317.relay.sender.config.SmsSetting
@@ -100,6 +101,49 @@ class SenderSettingSanitizerTest {
         val setting = SenderSettingJson.decode<YunhuSetting>(sanitized.jsonSetting)
         assertEquals("group", setting.recvType)
         assertEquals("markdown", setting.contentType)
+    }
+
+    @Test
+    fun sanitizeSenderLenient_pushdeerInvalidType_clampedToDefault() {
+        val sender = newSender(
+            SenderType.PUSHDEER,
+            """{"server":"https://api2.pushdeer.com","pushkey":"PDU123","type":"image"}""",
+        )
+
+        val sanitized = SenderSettingSanitizer.sanitizeSenderLenient(sender)
+        val setting = SenderSettingJson.decode<PushdeerSetting>(sanitized.jsonSetting)
+
+        assertEquals("markdown", setting.type)
+    }
+
+    @Test
+    fun sanitizeSenderLenient_pushdeerValidType_preserved() {
+        val sender = newSender(
+            SenderType.PUSHDEER,
+            """{"server":"https://api2.pushdeer.com","pushkey":"PDU123","type":"text"}""",
+        )
+
+        val sanitized = SenderSettingSanitizer.sanitizeSenderLenient(sender)
+        val setting = SenderSettingJson.decode<PushdeerSetting>(sanitized.jsonSetting)
+
+        assertEquals("text", setting.type)
+    }
+
+    @Test
+    fun sanitizeSenderLenient_feishuApp_dropsLegacyTokenAuthFields() {
+        val sender = newSender(
+            SenderType.FEISHU_APP,
+            """{"authType":"app_id","appId":"cli_a123","appSecret":"app-secret","botToken":"bot-token","receiveId":"receive-id"}""",
+        )
+
+        val sanitized = SenderSettingSanitizer.sanitizeSenderLenient(sender)
+        val setting = SenderSettingJson.decode<FeishuAppSetting>(sanitized.jsonSetting)
+
+        assertFalse(sanitized.jsonSetting.contains("authType"))
+        assertFalse(sanitized.jsonSetting.contains("botToken"))
+        assertEquals("cli_a123", setting.appId)
+        assertEquals("app-secret", setting.appSecret)
+        assertEquals("receive-id", setting.receiveId)
     }
 
     @Test

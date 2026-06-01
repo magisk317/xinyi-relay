@@ -142,6 +142,7 @@ fun SenderConfigScreen(
             SenderType.SOCKET -> SocketConfigForm(senderId, handleBack, viewModel)
             SenderType.PUSHDEER -> PushdeerConfigForm(senderId, handleBack, viewModel)
             SenderType.YUNHU -> YunhuConfigForm(senderId, handleBack, viewModel)
+
             else -> DingtalkConfigForm(senderId, handleBack, viewModel)
         }
     }

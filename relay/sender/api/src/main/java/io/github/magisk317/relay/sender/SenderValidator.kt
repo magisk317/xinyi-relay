@@ -9,9 +9,9 @@ import io.github.magisk317.relay.sender.config.FeishuAppSetting
 import io.github.magisk317.relay.sender.config.FeishuSetting
 import io.github.magisk317.relay.sender.config.GotifySetting
 import io.github.magisk317.relay.sender.config.NtfySetting
+import io.github.magisk317.relay.sender.config.PushdeerSetting
 import io.github.magisk317.relay.sender.config.PushplusSetting
 import io.github.magisk317.relay.sender.config.ServerchanSetting
-import io.github.magisk317.relay.sender.config.PushdeerSetting
 import io.github.magisk317.relay.sender.config.SmsSetting
 import io.github.magisk317.relay.sender.config.SocketSetting
 import io.github.magisk317.relay.sender.config.TelegramSetting
@@ -133,8 +133,10 @@ object SenderValidator {
 
                 SenderType.FEISHU_APP -> {
                     val setting = SenderSettingJson.decode(FeishuAppSetting.serializer(), safeSender.jsonSetting)
-                    if (setting.appId.isBlank() || setting.appSecret.isBlank() || setting.receiveId.isBlank()) {
-                        invalid("飞书应用 appId/appSecret/receiveId 不能为空")
+                    if (setting.receiveId.isBlank()) {
+                        invalid("飞书应用 receiveId 不能为空")
+                    } else if (setting.appId.isBlank() || setting.appSecret.isBlank()) {
+                        invalid("飞书应用 appId/appSecret 不能为空")
                     } else ok()
                 }
 
@@ -163,7 +165,6 @@ object SenderValidator {
                         else -> ok()
                     }
                 }
-
                 else -> invalid("未知通道类型，无法启用")
             }
         } catch (_: Exception) {

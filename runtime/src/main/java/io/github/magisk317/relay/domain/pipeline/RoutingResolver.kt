@@ -10,6 +10,7 @@ import io.github.magisk317.relay.engine.filter.ForwardFilterEngine
 import io.github.magisk317.relay.engine.routing.NotifyRouteRuleReader
 import io.github.magisk317.relay.engine.routing.NotifyRoutingResolver
 import io.github.magisk317.relay.engine.routing.NotifyRoutingResult
+import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
 
 data class SenderRoutingResolution(
@@ -79,7 +80,8 @@ class RoutingResolver(private val db: AppDatabase) {
                 senderId = sender.id,
             )
             if (decision.blocked) {
-                senderFilteredReasonParts += "${sender.name.ifBlank { "通道${sender.type}" }}:${decision.reason ?: "blocked"}"
+                val senderName = SenderType.displayName(sender.type, sender.name)
+                senderFilteredReasonParts += "$senderName:${decision.reason ?: "blocked"}"
                 false
             } else {
                 true

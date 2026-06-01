@@ -9,9 +9,9 @@ import io.github.magisk317.relay.sender.config.FeishuAppSetting
 import io.github.magisk317.relay.sender.config.FeishuSetting
 import io.github.magisk317.relay.sender.config.GotifySetting
 import io.github.magisk317.relay.sender.config.NtfySetting
+import io.github.magisk317.relay.sender.config.PushdeerSetting
 import io.github.magisk317.relay.sender.config.PushplusSetting
 import io.github.magisk317.relay.sender.config.ServerchanSetting
-import io.github.magisk317.relay.sender.config.PushdeerSetting
 import io.github.magisk317.relay.sender.config.SmsSetting
 import io.github.magisk317.relay.sender.config.SocketSetting
 import io.github.magisk317.relay.sender.config.TelegramSetting
@@ -170,6 +170,7 @@ object SenderSettingSanitizer {
                 YunhuSetting.serializer(),
                 ::sanitizeYunhuSetting,
             )
+
             else -> if (json.isBlank()) "" else json
         }
     }
@@ -442,7 +443,7 @@ object SenderSettingSanitizer {
         return PushdeerSetting(
             server = repaired.string("server").ifBlank { defaults.server },
             pushkey = repaired.string("pushkey"),
-            type = repaired.string("type").ifBlank { defaults.type },
+            type = repaired.enumString("type", defaults.type),
             titleTemplate = repaired.string("titleTemplate"),
         )
     }
@@ -929,7 +930,7 @@ object SenderSettingSanitizer {
 
     private fun hasStrongValidator(fieldName: String): Boolean {
         return when (fieldName) {
-            "method", "msgtype", "msgType", "msgKey", "contentType", "recvType", "parseMode", "proxyType", "receiveIdType",
+            "method", "msgtype", "msgType", "msgKey", "type", "contentType", "recvType", "parseMode", "proxyType", "receiveIdType",
             "encryptionProtocol", "transformation", "level", "uriType", "priority",
             "server", "webServer", "webhook", "webHook", "customizeAPI", "apiBase", "callbackUrl", "url", "website",
             "authEmail", "fromEmail", "toEmail", "host", "port", "proxyPort", "simSlot", "qos",
@@ -944,6 +945,7 @@ object SenderSettingSanitizer {
         return when (fieldName) {
             "method" -> isHttpMethod(value) || isSocketMethod(value)
             "msgtype", "msgType", "msgKey" -> isMessageType(value)
+            "type" -> isPushdeerType(value)
             "contentType" -> safeString(value).trim() in setOf("text", "markdown")
             "recvType" -> normalized(value) in setOf("user", "group")
             "parseMode" -> normalized(value) in setOf("html", "markdownv2")
@@ -1003,6 +1005,10 @@ object SenderSettingSanitizer {
 
     private fun isMessageType(value: Any?): Boolean {
         return safeString(value).trim() in setOf("text", "markdown", "interactive", "sampleText", "sampleMarkdown")
+    }
+
+    private fun isPushdeerType(value: Any?): Boolean {
+        return safeString(value).trim() in setOf("text", "markdown")
     }
 
     private fun isUrlLike(value: Any?): Boolean {
