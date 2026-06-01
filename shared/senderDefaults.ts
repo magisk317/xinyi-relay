@@ -224,30 +224,29 @@ const SENDER_FIELD_SCHEMAS: Record<number, SenderFieldSchema[]> = {
     field('proxyPassword', 'text', '代理密码', 'Proxy password'),
   ],
   13: [
+    field('authType', 'select', '鉴权方式', 'Auth type', {
+      options: [
+        { value: 'app_id', label: { en: 'App ID / Secret', 'zh-CN': 'App ID / Secret' } },
+        { value: 'token', label: { en: 'Bot Token', 'zh-CN': 'Bot Token' } },
+      ],
+    }),
     field('appId', 'text', 'App ID', 'App ID'),
     field('appSecret', 'text', 'App Secret', 'App secret'),
-    field('receiveId', 'text', '接收 ID', 'Receive ID'),
-    field('receiveIdType', 'text', '接收 ID 类型', 'Receive ID type'),
-    field('msgType', 'text', '消息类型', 'Message type'),
-    field('titleTemplate', 'text', '标题模板', 'Title template'),
-    field('messageCard', 'textarea', '消息卡片 JSON', 'Message card JSON', { rows: 5, fullWidth: true }),
-  ],
-  18: [
-    field('token', 'secret', 'Token', 'Token'),
+    field('botToken', 'text', 'Bot Token', 'Bot token'),
     field('receiveId', 'text', '接收 ID', 'Receive ID'),
     field('receiveIdType', 'select', '接收 ID 类型', 'Receive ID type', {
       options: [
-        { label: 'User ID / 用户 ID', value: 'user_id' },
-        { label: 'Open ID / 开放 ID', value: 'open_id' },
-        { label: 'Union ID / 统一 ID', value: 'union_id' },
-        { label: 'Email / 邮箱', value: 'email' },
-        { label: 'Chat ID / 会话 ID', value: 'chat_id' },
+        { value: 'user_id', label: { en: 'User ID', 'zh-CN': '用户 ID' } },
+        { value: 'open_id', label: { en: 'Open ID', 'zh-CN': '开放 ID' } },
+        { value: 'union_id', label: { en: 'Union ID', 'zh-CN': '统一 ID' } },
+        { value: 'email', label: { en: 'Email', 'zh-CN': '邮箱' } },
+        { value: 'chat_id', label: { en: 'Chat ID', 'zh-CN': '会话 ID' } },
       ],
     }),
     field('msgType', 'select', '消息类型', 'Message type', {
       options: [
-        { label: 'Interactive / 交互卡片', value: 'interactive' },
-        { label: 'Text / 文本', value: 'text' },
+        { value: 'interactive', label: { en: 'Interactive', 'zh-CN': '交互卡片' } },
+        { value: 'text', label: { en: 'Text', 'zh-CN': '文本' } },
       ],
     }),
     field('titleTemplate', 'text', '标题模板', 'Title template'),
