@@ -349,7 +349,7 @@ export function normalizeSnapshotSender(sender: SnapshotSender): SnapshotSender 
     id: Number.isFinite(sender.id) && sender.id > 0 ? Math.trunc(sender.id) : 0,
     type: Number.isFinite(sender.type) ? Math.trunc(sender.type) : 0,
     name: sender.name.trim(),
-    jsonSetting: sender.jsonSetting.trim(),
+    jsonSetting: normalizePersistedSenderJson(sender.type, sender.jsonSetting),
     activeSchedule: normalizeSenderActiveSchedule(sender.activeSchedule),
   }
 
@@ -358,6 +358,24 @@ export function normalizeSnapshotSender(sender: SnapshotSender): SnapshotSender 
   }
 
   return normalized
+}
+
+function normalizePersistedSenderJson(type: number, rawJson: string): string {
+  if (type !== 13) {
+    return rawJson.trim()
+  }
+
+  const normalizedJson = normalizeSenderJson(type, rawJson)
+  const parsed = parseJsonObject(normalizedJson) ?? {}
+  const authType = parsed.authType === 'token' ? 'token' : 'app_id'
+  parsed.authType = authType
+  if (authType === 'token') {
+    parsed.appId = ''
+    parsed.appSecret = ''
+  } else {
+    parsed.botToken = ''
+  }
+  return JSON.stringify(parsed)
 }
 
 export function getSenderFieldSchemas(type: number): SenderFieldSchema[] {

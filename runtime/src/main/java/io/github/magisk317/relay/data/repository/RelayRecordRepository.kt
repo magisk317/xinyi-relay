@@ -10,6 +10,7 @@ import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.android.data.db.mergeSmsMsgForInsert
 import io.github.magisk317.smscode.domain.utils.CodeRecordSimilarityUtils
 import io.github.magisk317.relay.engine.model.ReadRecordData
+import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.engine.service.MessageRecordRepository
 import io.github.magisk317.relay.engine.service.SenderDispatchResult
 import kotlinx.coroutines.flow.Flow
@@ -323,11 +324,15 @@ class RelayRecordRepository(
             successResults.isNotEmpty() -> SmsMsg.FORWARD_STATUS_SUCCESS
             else -> SmsMsg.FORWARD_STATUS_NONE
         }
-        val target = results.joinToString(", ") { it.senderName }.ifBlank { null }
+        val normalizedResults = results.map { result ->
+            result.copy(senderName = SenderType.displayName(result.senderType, result.senderName))
+        }
+        val target = normalizedResults.joinToString(", ") { it.senderName }.ifBlank { null }
         val message = when {
             forceFailed -> defaultMessage
-            results.isNotEmpty() -> results.joinToString("\n") { result ->
-                if (result.success) "${result.senderName}通道转发成功" else "${result.senderName}通道转发失败，原因：${result.message}"
+            normalizedResults.isNotEmpty() -> normalizedResults.joinToString("\n") { result ->
+                val channelName = result.senderName.withChannelSuffix()
+                if (result.success) "${channelName}转发成功" else "${channelName}转发失败，原因：${result.message}"
             }
             else -> defaultMessage
         }.take(MAX_FORWARD_MESSAGE_LEN)
@@ -340,6 +345,10 @@ class RelayRecordRepository(
             ),
         )
         scheduleRecordUpload("persist_forward_result")
+    }
+
+    private fun String.withChannelSuffix(): String {
+        return if (contains("通道")) this else "${this}通道"
     }
 
     private suspend fun trimOldRecordsIfNeeded(

@@ -4,6 +4,7 @@ import {
   buildSenderJsonFromFormState,
   getSenderFieldSchemas,
   getSenderSettingSchemaContracts,
+  normalizeSnapshotSender,
   parseSenderFormState,
   prettySenderJson,
   type SenderFieldKind,
@@ -85,5 +86,39 @@ describe('shared sender schema contract', () => {
     }))
     expect(sanitized.method).toBe('MQTT')
     expect(sanitized.port).toBe(1883)
+  })
+
+  it('clears inactive Feishu App credentials only when snapshot senders are normalized', () => {
+    const editingJson = buildSenderJsonFromFormState(13, {
+      authType: 'app_id',
+      appId: 'cli_a123',
+      appSecret: 'app-secret',
+      botToken: 'bot-token',
+      receiveId: 'receive-id'
+    })
+    expect(JSON.parse(editingJson)).toMatchObject({
+      authType: 'app_id',
+      appId: 'cli_a123',
+      appSecret: 'app-secret',
+      botToken: 'bot-token'
+    })
+
+    const normalized = normalizeSnapshotSender({
+      id: 1,
+      type: 13,
+      name: ' Feishu ',
+      jsonSetting: editingJson,
+      status: 1,
+      receiveCode: 1,
+      receiveNonCode: 1,
+      receiveAppNotify: 1,
+      receiveCallNotify: 0
+    })
+    expect(JSON.parse(normalized.jsonSetting)).toMatchObject({
+      authType: 'app_id',
+      appId: 'cli_a123',
+      appSecret: 'app-secret',
+      botToken: ''
+    })
   })
 })

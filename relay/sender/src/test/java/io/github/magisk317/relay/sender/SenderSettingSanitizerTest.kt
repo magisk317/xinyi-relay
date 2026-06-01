@@ -102,6 +102,40 @@ class SenderSettingSanitizerTest {
     }
 
     @Test
+    fun sanitizeSenderLenient_feishuAppAuthTypeToken_preservedAndAppCredentialsCleared() {
+        val sender = newSender(
+            SenderType.FEISHU_APP,
+            """{"authType":"token","appId":"cli_a123","appSecret":"app-secret","botToken":"bot-token","receiveId":"receive-id"}""",
+        )
+
+        val sanitized = SenderSettingSanitizer.sanitizeSenderLenient(sender)
+        val setting = SenderSettingJson.decode<FeishuAppSetting>(sanitized.jsonSetting)
+
+        assertEquals("token", setting.authType)
+        assertEquals("", setting.appId)
+        assertEquals("", setting.appSecret)
+        assertEquals("bot-token", setting.botToken)
+        assertEquals("receive-id", setting.receiveId)
+    }
+
+    @Test
+    fun sanitizeSenderLenient_feishuAppAuthTypeAppId_clearsBotToken() {
+        val sender = newSender(
+            SenderType.FEISHU_APP,
+            """{"authType":"app_id","appId":"cli_a123","appSecret":"app-secret","botToken":"bot-token","receiveId":"receive-id"}""",
+        )
+
+        val sanitized = SenderSettingSanitizer.sanitizeSenderLenient(sender)
+        val setting = SenderSettingJson.decode<FeishuAppSetting>(sanitized.jsonSetting)
+
+        assertEquals("app_id", setting.authType)
+        assertEquals("cli_a123", setting.appId)
+        assertEquals("app-secret", setting.appSecret)
+        assertEquals("", setting.botToken)
+        assertEquals("receive-id", setting.receiveId)
+    }
+
+    @Test
     fun sanitizeSenderLenient_webhookHeadersNull_becomesEmptyMap() {
         val sender = newSender(
             SenderType.WEBHOOK,
