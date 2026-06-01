@@ -1435,6 +1435,53 @@
     ]
   },
   {
+    "senderType": 18,
+    "fields": [
+      {
+        "name": "server",
+        "type": "TEXT",
+        "aliases": [
+          "o"
+        ],
+        "requiredForEnable": false,
+        "defaultValue": "https://api2.pushdeer.com"
+      },
+      {
+        "name": "pushkey",
+        "type": "SECRET",
+        "aliases": [
+          "p"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "type",
+        "type": "TEXT",
+        "aliases": [
+          "q"
+        ],
+        "requiredForEnable": false,
+        "defaultValue": "markdown",
+        "options": [
+          {
+            "value": "markdown"
+          },
+          {
+            "value": "text"
+          }
+        ]
+      },
+      {
+        "name": "titleTemplate",
+        "type": "TEXT",
+        "aliases": [
+          "r"
+        ],
+        "requiredForEnable": false
+      }
+    ]
+  },
+  {
     "senderType": 17,
     "fields": [
       {

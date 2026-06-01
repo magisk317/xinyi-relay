@@ -1232,6 +1232,7 @@
     <string name="sender_type_feishu_app">飛書應用</string>
     <string name="sender_type_url_scheme">URL Scheme</string>
     <string name="sender_type_socket">Socket</string>
+    <string name="sender_type_pushdeer">PushDeer</string>
     <string name="sender_type_yunhu">雲湖</string>
     <string name="sender_type_unknown">未知通道</string>
     <string name="overview_runtime_diagnostics_shown">已顯示執行時診斷</string>

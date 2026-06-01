@@ -9,6 +9,7 @@ import io.github.magisk317.relay.sender.config.FeishuAppSetting
 import io.github.magisk317.relay.sender.config.FeishuSetting
 import io.github.magisk317.relay.sender.config.GotifySetting
 import io.github.magisk317.relay.sender.config.NtfySetting
+import io.github.magisk317.relay.sender.config.PushdeerSetting
 import io.github.magisk317.relay.sender.config.PushplusSetting
 import io.github.magisk317.relay.sender.config.ServerchanSetting
 import io.github.magisk317.relay.sender.config.SmsSetting
@@ -19,7 +20,6 @@ import io.github.magisk317.relay.sender.config.WebhookSetting
 import io.github.magisk317.relay.sender.config.WeworkAgentSetting
 import io.github.magisk317.relay.sender.config.WeworkRobotSetting
 import io.github.magisk317.relay.sender.config.YunhuSetting
-
 import io.github.magisk317.relay.engine.sender.SenderActiveScheduleEvaluator
 import io.github.magisk317.relay.engine.sender.SenderType
 import kotlinx.serialization.KSerializer
@@ -157,6 +157,12 @@ object SenderSettingSanitizer {
                 canonicalJson,
                 NtfySetting.serializer(),
                 ::sanitizeNtfySetting,
+            )
+            SenderType.PUSHDEER -> sanitizeSettingJson(
+                parseJson,
+                canonicalJson,
+                PushdeerSetting.serializer(),
+                ::sanitizePushdeerSetting,
             )
             SenderType.YUNHU -> sanitizeSettingJson(
                 parseJson,
@@ -420,6 +426,28 @@ object SenderSettingSanitizer {
         )
     }
 
+    fun sanitizePushdeerSetting(raw: PushdeerSetting?, rawJson: kotlinx.serialization.json.JsonObject? = null): PushdeerSetting {
+        val defaults = PushdeerSetting()
+        val setting = PushdeerSetting(
+            server = safeString(resolveValue(raw?.server, rawJson, "server")),
+            pushkey = safeString(resolveValue(raw?.pushkey, rawJson, "pushkey")),
+            type = safeString(resolveValue(raw?.type, rawJson, "type")),
+            titleTemplate = safeString(resolveValue(raw?.titleTemplate, rawJson, "titleTemplate")),
+        )
+        val repaired = repairFields(
+            "server" to setting.server,
+            "pushkey" to setting.pushkey,
+            "type" to setting.type,
+            "titleTemplate" to setting.titleTemplate,
+        )
+        return PushdeerSetting(
+            server = repaired.string("server").ifBlank { defaults.server },
+            pushkey = repaired.string("pushkey"),
+            type = repaired.enumString("type", defaults.type),
+            titleTemplate = repaired.string("titleTemplate"),
+        )
+    }
+
     fun sanitizeYunhuSetting(raw: YunhuSetting?, rawJson: JsonObject? = null): YunhuSetting {
         val defaults = YunhuSetting()
         val setting = YunhuSetting(
@@ -621,8 +649,6 @@ object SenderSettingSanitizer {
             receiveIdType = repaired.enumString("receiveIdType", defaults.receiveIdType),
         )
     }
-
-
 
     fun sanitizeUrlSchemeSetting(raw: UrlSchemeSetting?, rawJson: JsonObject? = null): UrlSchemeSetting {
         return UrlSchemeSetting(
@@ -904,7 +930,7 @@ object SenderSettingSanitizer {
 
     private fun hasStrongValidator(fieldName: String): Boolean {
         return when (fieldName) {
-            "method", "msgtype", "msgType", "msgKey", "contentType", "recvType", "parseMode", "proxyType", "receiveIdType",
+            "method", "msgtype", "msgType", "msgKey", "type", "contentType", "recvType", "parseMode", "proxyType", "receiveIdType",
             "encryptionProtocol", "transformation", "level", "uriType", "priority",
             "server", "webServer", "webhook", "webHook", "customizeAPI", "apiBase", "callbackUrl", "url", "website",
             "authEmail", "fromEmail", "toEmail", "host", "port", "proxyPort", "simSlot", "qos",
@@ -919,6 +945,7 @@ object SenderSettingSanitizer {
         return when (fieldName) {
             "method" -> isHttpMethod(value) || isSocketMethod(value)
             "msgtype", "msgType", "msgKey" -> isMessageType(value)
+            "type" -> isPushdeerType(value)
             "contentType" -> safeString(value).trim() in setOf("text", "markdown")
             "recvType" -> normalized(value) in setOf("user", "group")
             "parseMode" -> normalized(value) in setOf("html", "markdownv2")
@@ -978,6 +1005,10 @@ object SenderSettingSanitizer {
 
     private fun isMessageType(value: Any?): Boolean {
         return safeString(value).trim() in setOf("text", "markdown", "interactive", "sampleText", "sampleMarkdown")
+    }
+
+    private fun isPushdeerType(value: Any?): Boolean {
+        return safeString(value).trim() in setOf("text", "markdown")
     }
 
     private fun isUrlLike(value: Any?): Boolean {

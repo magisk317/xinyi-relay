@@ -245,6 +245,13 @@ object SenderSettingSchemas {
             field("tags", aliases = arrayOf("t")),
         ),
         schema(
+            SenderType.PUSHDEER,
+            field("server", aliases = arrayOf("o"), defaultValue = "https://api2.pushdeer.com"),
+            field("pushkey", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
+            field("type", aliases = arrayOf("q"), defaultValue = "markdown", options = arrayOf("markdown", "text")),
+            field("titleTemplate", aliases = arrayOf("r")),
+        ),
+        schema(
             SenderType.YUNHU,
             field("token", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("o")),
             field("recvId", requiredForEnable = true, aliases = arrayOf("p")),
@@ -252,7 +259,6 @@ object SenderSettingSchemas {
             field("contentType", aliases = arrayOf("r"), defaultValue = "text", options = arrayOf("text", "markdown")),
             field("titleTemplate", aliases = arrayOf("s")),
         ),
-
     )
 
     val byType: Map<Int, SenderSettingSchema> = all.associateBy { it.senderType }

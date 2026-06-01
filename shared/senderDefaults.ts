@@ -293,6 +293,17 @@ const SENDER_FIELD_SCHEMAS: Record<number, SenderFieldSchema[]> = {
     }),
     field('titleTemplate', 'text', '标题模板', 'Title template'),
   ],
+  18: [
+    field('server', 'text', 'Server', 'Server'),
+    field('pushkey', 'text', 'PushKey', 'PushKey'),
+    field('type', 'select', '消息类型', 'Message type', {
+      options: [
+        { value: 'markdown', label: { en: 'Markdown', 'zh-CN': 'Markdown', 'zh-TW': 'Markdown' } },
+        { value: 'text', label: { en: 'Text', 'zh-CN': '文本', 'zh-TW': '文字' } },
+      ],
+    }),
+    field('titleTemplate', 'text', '标题模板', 'Title template'),
+  ],
 }
 
 export function buildSenderDraftJson(type: number): string {

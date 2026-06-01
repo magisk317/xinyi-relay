@@ -9,6 +9,7 @@ import io.github.magisk317.relay.sender.config.FeishuAppSetting
 import io.github.magisk317.relay.sender.config.FeishuSetting
 import io.github.magisk317.relay.sender.config.GotifySetting
 import io.github.magisk317.relay.sender.config.NtfySetting
+import io.github.magisk317.relay.sender.config.PushdeerSetting
 import io.github.magisk317.relay.sender.config.PushplusSetting
 import io.github.magisk317.relay.sender.config.ServerchanSetting
 import io.github.magisk317.relay.sender.config.SmsSetting
@@ -19,7 +20,6 @@ import io.github.magisk317.relay.sender.config.WebhookSetting
 import io.github.magisk317.relay.sender.config.WeworkAgentSetting
 import io.github.magisk317.relay.sender.config.WeworkRobotSetting
 import io.github.magisk317.relay.sender.config.YunhuSetting
-
 import io.github.magisk317.relay.engine.sender.SenderType
 
 data class SenderValidationResult(
@@ -152,6 +152,11 @@ object SenderValidator {
                     } else ok()
                 }
 
+                SenderType.PUSHDEER -> {
+                    val setting = SenderSettingJson.decode(PushdeerSetting.serializer(), safeSender.jsonSetting)
+                    if (setting.pushkey.isBlank()) invalid("PushDeer PushKey 不能为空") else ok()
+                }
+
                 SenderType.YUNHU -> {
                     val setting = SenderSettingJson.decode(YunhuSetting.serializer(), safeSender.jsonSetting)
                     when {
@@ -160,9 +165,6 @@ object SenderValidator {
                         else -> ok()
                     }
                 }
-
-
-
                 else -> invalid("未知通道类型，无法启用")
             }
         } catch (_: Exception) {

@@ -19,6 +19,7 @@ object SenderType {
     const val SOCKET = 15
     const val NTFY = 16
     const val YUNHU = 17
+    const val PUSHDEER = 18
 
     fun defaultName(type: Int): String = when (type) {
         DINGTALK_GROUP_ROBOT -> "钉钉群机器人"
@@ -39,6 +40,7 @@ object SenderType {
         URL_SCHEME -> "URL Scheme"
         SOCKET -> "Socket"
         YUNHU -> "云湖"
+        PUSHDEER -> "PushDeer"
         else -> "未知通道$type"
     }
 
