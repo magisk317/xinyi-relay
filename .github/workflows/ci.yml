@@ -83,6 +83,7 @@ jobs:
           :app:koverHtmlReportGithubDebug
           -PallowIncompatibleDebugSigning=true
           -PbuildSplits
+          -PskipGoogleServices=${{ env.HAS_GOOGLE_SERVICES_JSON == 'false' }}
         env:
           KEYSTORE_FILE: release.jks
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
