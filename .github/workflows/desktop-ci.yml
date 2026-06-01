@@ -86,8 +86,25 @@ jobs:
         with:
           node-version: "24"
 
+      - name: Resolve desktop package manager
+        id: desktop_toolchain
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+
+          package_json = json.loads(Path("desktop/package.json").read_text())
+          package_manager = package_json.get("packageManager", "")
+          if not package_manager.startswith("pnpm@"):
+              raise SystemExit("desktop/package.json must declare packageManager as pnpm@<version>")
+          print(f"pnpm_version={package_manager.split('@', 1)[1]}")
+          PY
+
       - name: Set up pnpm
         uses: pnpm/action-setup@v6
+        with:
+          version: ${{ steps.desktop_toolchain.outputs.pnpm_version }}
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable

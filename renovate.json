@@ -8,7 +8,7 @@
     "pruneBranchAfterAutomerge": true,
     "minimumReleaseAge": "24 hours",
     "internalChecksFilter": "strict",
-    "prCreation": "not-pending",
+    "prCreation": "immediate",
     "baseBranchPatterns": [
         "beta"
     ],

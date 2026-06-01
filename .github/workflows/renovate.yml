@@ -66,6 +66,10 @@ jobs:
           (
             contains(github.event.issue.body, '- [x] <!-- rebase-branch=') &&
             !contains(github.event.changes.body.from, '- [x] <!-- rebase-branch=')
+          ) ||
+          (
+            contains(github.event.issue.body, '- [x] <!-- approvePr-branch=') &&
+            !contains(github.event.changes.body.from, '- [x] <!-- approvePr-branch=')
           )
         )
       )

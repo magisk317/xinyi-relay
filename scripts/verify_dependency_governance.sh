@@ -26,8 +26,12 @@ rg -q 'includeGroupByRegex\("com\\\\\.github\\\\\.\.\*"\)' "$ROOT_SETTINGS" \
 rg -q 'snapshotsOnly\(\)' "$ROOT_SETTINGS" \
   || fail "Sonatype snapshot repository must be snapshots-only"
 
-if rg -n 'BEGIN AUTO FORCED DEPENDENCIES|resolutionStrategy\s*\{|maven\("https://jitpack\.io"\)|maven\("https://s01\.oss\.sonatype\.org' "$ROOT_BUILD"; then
-  fail "root build must not carry inline force rules or project repositories"
+if rg -n 'maven\("https://jitpack\.io"\)|maven\("https://s01\.oss\.sonatype\.org' "$ROOT_BUILD"; then
+  fail "root build must not carry project repositories"
+fi
+
+if rg -n 'force\(' "$ROOT_BUILD"; then
+  fail "root build must not carry non-empty inline force rules; keep persistent forces in relay.dependency-governance"
 fi
 
 for alias in gson guava netty-codec netty-runtime commons-lang3 httpclient jose4j bouncycastle jdom2; do

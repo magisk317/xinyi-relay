@@ -36,15 +36,29 @@ RECONCILIATION_JSON="${TMP_DIR}/reconciliation.json"
 echo "Fetching Dependabot alert history..."
 REPO="${GITHUB_REPOSITORY:-$(gh repo view --json nameWithOwner -q .nameWithOwner)}"
 : > "${ALERTS_NDJSON}"
+ALERTS_DISABLED=0
 for state in open fixed dismissed auto_dismissed; do
-  gh api \
+  if ! gh api \
     --paginate \
     -H "Accept: application/vnd.github+json" \
     "repos/${REPO}/dependabot/alerts?state=${state}&per_page=100" \
-    | jq -c '.[]' \
-    >> "${ALERTS_NDJSON}"
+    > "${TMP_DIR}/dependabot-alerts-${state}.json" \
+    2> "${TMP_DIR}/dependabot-alerts-${state}.err"; then
+    if grep -qi "Dependabot alerts are disabled" "${TMP_DIR}/dependabot-alerts-${state}.err"; then
+      echo "Dependabot alerts are disabled for this repository; continuing with an empty alert set."
+      ALERTS_DISABLED=1
+      break
+    fi
+    cat "${TMP_DIR}/dependabot-alerts-${state}.err" >&2
+    exit 1
+  fi
+  jq -c '.[]' "${TMP_DIR}/dependabot-alerts-${state}.json" >> "${ALERTS_NDJSON}"
 done
-jq -s 'unique_by(.number) | sort_by(.number)' "${ALERTS_NDJSON}" > "${ALERTS_JSON}"
+if [[ "${ALERTS_DISABLED}" == "1" ]]; then
+  echo "[]" > "${ALERTS_JSON}"
+else
+  jq -s 'unique_by(.number) | sort_by(.number)' "${ALERTS_NDJSON}" > "${ALERTS_JSON}"
+fi
 
 echo "Reading current Gradle force rules..."
 python3 scripts/manage_dependency_forces.py read-forces \

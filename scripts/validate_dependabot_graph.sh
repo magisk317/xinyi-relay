@@ -38,12 +38,22 @@ trap 'rm -rf "${TMP_DIR}"' EXIT
 
 ALERTS_JSON="${TMP_DIR}/dependabot-alerts.json"
 
-gh api \
+if ! gh api \
   --paginate \
   -H "Accept: application/vnd.github+json" \
   "/repos/${REPO}/dependabot/alerts?state=open&per_page=100" \
-  | jq -s '[.[][]]' \
-  > "${ALERTS_JSON}"
+  > "${TMP_DIR}/dependabot-alerts-open.json" \
+  2> "${TMP_DIR}/dependabot-alerts-open.err"; then
+  if grep -qi "Dependabot alerts are disabled" "${TMP_DIR}/dependabot-alerts-open.err"; then
+    echo "Dependabot alerts are disabled for this repository; continuing with an empty alert set."
+    echo "[]" > "${ALERTS_JSON}"
+  else
+    cat "${TMP_DIR}/dependabot-alerts-open.err" >&2
+    exit 1
+  fi
+else
+  jq -s '[.[][]]' "${TMP_DIR}/dependabot-alerts-open.json" > "${ALERTS_JSON}"
+fi
 
 python3 scripts/manage_dependabot_alerts.py validate-graph \
   --alerts-json "${ALERTS_JSON}" \
