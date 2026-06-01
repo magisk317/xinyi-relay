@@ -46,14 +46,41 @@ class RelayRecordRepository(
     /** 批量插入（用于 undo/restore 场景）。 */
     override suspend fun insertList(list: List<ReadRecordData>) {
         if (list.isEmpty()) return
-        db.smsMsgDao().insertAll(list.map { it as SmsMsg })
+        val dao = db.smsMsgDao()
+        list.forEach { data ->
+            val smsMsg = data as SmsMsg
+            val existing = dao.getByFingerprint(
+                sender = smsMsg.sender,
+                body = smsMsg.body,
+                date = smsMsg.date,
+                msgType = smsMsg.msgType,
+            )
+            if (existing != null) {
+                dao.update(mergeSmsMsgForInsert(existing, smsMsg))
+            } else {
+                dao.insert(smsMsg)
+            }
+        }
         scheduleRecordUpload("insert_list")
     }
 
     override suspend fun insertListAndTrim(list: List<ReadRecordData>, maxCount: Int) {
         if (list.isEmpty()) return
         val dao = db.smsMsgDao()
-        dao.insertAll(list.map { it as SmsMsg })
+        list.forEach { data ->
+            val smsMsg = data as SmsMsg
+            val existing = dao.getByFingerprint(
+                sender = smsMsg.sender,
+                body = smsMsg.body,
+                date = smsMsg.date,
+                msgType = smsMsg.msgType,
+            )
+            if (existing != null) {
+                dao.update(mergeSmsMsgForInsert(existing, smsMsg))
+            } else {
+                dao.insert(smsMsg)
+            }
+        }
         if (maxCount <= 0) return
         val allMsgList = dao.getAll()
         if (allMsgList.size > maxCount) {
