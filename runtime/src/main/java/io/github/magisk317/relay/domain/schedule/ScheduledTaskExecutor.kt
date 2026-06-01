@@ -8,6 +8,8 @@ import io.github.magisk317.relay.engine.model.ScheduledTask
 import io.github.magisk317.relay.engine.service.SenderRuntimeServiceRegistry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerializationException
+import java.io.IOException
 
 object ScheduledTaskExecutor {
     private const val DEDUPE_WINDOW_MS = 60_000L
@@ -42,7 +44,7 @@ object ScheduledTaskExecutor {
                         simSlot = task.simSlot,
                     )
 
-                    try {
+                    sendScheduledSms {
                         SenderRuntimeServiceRegistry.requireInstalled().scheduledSmsSender.sendSms(
                             context = context,
                             simSlot = task.simSlot,
@@ -52,8 +54,8 @@ object ScheduledTaskExecutor {
                         )
                         dao.markRunSucceeded(taskId, System.currentTimeMillis())
                         XLog.i("ScheduledTask $taskId sent SMS successfully")
-                    } catch (e: Exception) {
-                        XLog.e("ScheduledTask $taskId SMS failed", e)
+                    }.onFailure {
+                        XLog.e("ScheduledTask $taskId SMS failed", it)
                     }
                 } else {
                     XLog.w("ScheduledTask $taskId skipped unsupported type=${task.taskType}")
@@ -61,6 +63,23 @@ object ScheduledTaskExecutor {
             } finally {
                 ScheduledTaskManager(context, db).rescheduleTask(task.id)
             }
+        }
+    }
+
+    private suspend inline fun sendScheduledSms(block: suspend () -> Unit): Result<Unit> {
+        return try {
+            block()
+            Result.success(Unit)
+        } catch (e: IllegalArgumentException) {
+            Result.failure(e)
+        } catch (e: IllegalStateException) {
+            Result.failure(e)
+        } catch (e: IOException) {
+            Result.failure(e)
+        } catch (e: SecurityException) {
+            Result.failure(e)
+        } catch (e: SerializationException) {
+            Result.failure(e)
         }
     }
 }
