@@ -29,6 +29,7 @@ export type SenderFieldSchema = {
   placeholder?: LocalizedText
   rows?: number
   fullWidth?: boolean
+  showIf?: { field: string; equals: string }
   options?: ReadonlyArray<{
     value: string
     label: LocalizedText
@@ -230,9 +231,9 @@ const SENDER_FIELD_SCHEMAS: Record<number, SenderFieldSchema[]> = {
         { value: 'token', label: { en: 'Bot Token', 'zh-CN': 'Bot Token' } },
       ],
     }),
-    field('appId', 'text', 'App ID', 'App ID'),
-    field('appSecret', 'text', 'App Secret', 'App secret'),
-    field('botToken', 'text', 'Bot Token', 'Bot token'),
+    field('appId', 'text', 'App ID', 'App ID', { showIf: { field: 'authType', equals: 'app_id' } }),
+    field('appSecret', 'text', 'App Secret', 'App secret', { showIf: { field: 'authType', equals: 'app_id' } }),
+    field('botToken', 'text', 'Bot Token', 'Bot token', { showIf: { field: 'authType', equals: 'token' } }),
     field('receiveId', 'text', '接收 ID', 'Receive ID'),
     field('receiveIdType', 'select', '接收 ID 类型', 'Receive ID type', {
       options: [
