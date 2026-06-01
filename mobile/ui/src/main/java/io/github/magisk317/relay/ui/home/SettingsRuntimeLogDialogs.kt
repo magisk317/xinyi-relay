@@ -324,13 +324,15 @@ private fun formatLogTimestamp(timestamp: Long): String {
 }
 
 private fun formatLogSize(bytes: Long): String {
-    if (bytes < 1024L) return "$bytes B"
+    if (bytes < BYTES_PER_KIB) return "$bytes B"
     val units = listOf("KB", "MB", "GB")
-    var value = bytes.toDouble() / 1024.0
+    var value = bytes.toDouble() / BYTES_PER_KIB
     var unitIndex = 0
-    while (value >= 1024.0 && unitIndex < units.lastIndex) {
-        value /= 1024.0
+    while (value >= BYTES_PER_KIB && unitIndex < units.lastIndex) {
+        value /= BYTES_PER_KIB
         unitIndex += 1
     }
     return String.format(Locale.getDefault(), "%.1f %s", value, units[unitIndex])
 }
+
+private const val BYTES_PER_KIB = 1024.0

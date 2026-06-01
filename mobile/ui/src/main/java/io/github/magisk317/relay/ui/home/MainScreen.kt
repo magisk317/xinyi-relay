@@ -45,6 +45,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.hazeEffect
 import android.os.SystemClock
+import io.github.magisk317.relay.backup.BackupSource
 import org.koin.compose.viewmodel.koinViewModel
 
 @Immutable
@@ -677,9 +678,7 @@ fun MainScreen(
                         }
                         composable<CloudBackupRoute> { backStackEntry ->
                             val route = backStackEntry.toRoute<CloudBackupRoute>()
-                            val initialSource = route.initialSource?.let {
-                                try { io.github.magisk317.relay.backup.BackupSource.valueOf(it) } catch (e: Exception) { null }
-                            }
+                            val initialSource = route.initialSource?.let(::parseBackupSource)
                             io.github.magisk317.relay.ui.backup.CloudBackupScreen(
                                 onBack = { navController.popBackStack() },
                                 initialSource = initialSource,
@@ -714,4 +713,8 @@ fun MainScreen(
             }
         }
     }
+}
+
+private fun parseBackupSource(rawSource: String): BackupSource? {
+    return BackupSource.entries.firstOrNull { it.name == rawSource }
 }

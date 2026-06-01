@@ -27,6 +27,7 @@ import io.github.magisk317.relay.ui.sender.forms.ActiveScheduleWeekdayRow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 private enum class ScheduledTaskScheduleMode {
@@ -774,7 +775,10 @@ private object ScheduledTaskRootDebugTools {
             }
             val output = process.inputStream.bufferedReader().use { it.readText() }
             ShellCommandResult(exitCode = process.exitValue(), output = output)
-        } catch (e: Exception) {
+        } catch (e: IOException) {
+            ShellCommandResult(exitCode = -1, output = e.message.orEmpty())
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
             ShellCommandResult(exitCode = -1, output = e.message.orEmpty())
         }
     }
