@@ -232,6 +232,14 @@ const SENDER_FIELD_SCHEMAS: Record<number, SenderFieldSchema[]> = {
     field('titleTemplate', 'text', '标题模板', 'Title template'),
     field('messageCard', 'textarea', '消息卡片 JSON', 'Message card JSON', { rows: 5, fullWidth: true }),
   ],
+  18: [
+    field('token', 'text', 'Token', 'Token'),
+    field('receiveId', 'text', '接收 ID', 'Receive ID'),
+    field('receiveIdType', 'text', '接收 ID 类型', 'Receive ID type'),
+    field('msgType', 'text', '消息类型', 'Message type'),
+    field('titleTemplate', 'text', '标题模板', 'Title template'),
+    field('messageCard', 'textarea', '消息卡片 JSON', 'Message card JSON', { rows: 5, fullWidth: true }),
+  ],
   14: [
     field('urlScheme', 'textarea', 'URL Scheme', 'URL scheme', { rows: 4, fullWidth: true }),
   ],

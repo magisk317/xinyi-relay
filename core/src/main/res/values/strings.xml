@@ -1227,6 +1227,7 @@
     <string name="sender_type_url_scheme">URL Scheme</string>
     <string name="sender_type_socket">Socket</string>
     <string name="sender_type_yunhu">YunHu</string>
+    <string name="sender_type_feishu_bot_token">Feishu Bot (Token)</string>
     <string name="sender_type_unknown">Unknown channel</string>
     <string name="overview_runtime_diagnostics_shown">Runtime diagnostics shown</string>
     <string name="overview_runtime_diagnostics_hidden">Runtime diagnostics hidden</string>

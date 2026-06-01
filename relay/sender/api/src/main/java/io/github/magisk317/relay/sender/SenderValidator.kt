@@ -19,6 +19,7 @@ import io.github.magisk317.relay.sender.config.WebhookSetting
 import io.github.magisk317.relay.sender.config.WeworkAgentSetting
 import io.github.magisk317.relay.sender.config.WeworkRobotSetting
 import io.github.magisk317.relay.sender.config.YunhuSetting
+import io.github.magisk317.relay.sender.config.FeishuBotTokenSetting
 import io.github.magisk317.relay.engine.sender.SenderType
 
 data class SenderValidationResult(
@@ -154,6 +155,15 @@ object SenderValidator {
                     when {
                         setting.token.isBlank() -> invalid("云湖机器人 Token 不能为空")
                         setting.recvId.isBlank() -> invalid("云湖接收者 ID 不能为空")
+                        else -> ok()
+                    }
+                }
+
+                SenderType.FEISHU_BOT_TOKEN -> {
+                    val setting = SenderSettingJson.decode(FeishuBotTokenSetting.serializer(), safeSender.jsonSetting)
+                    when {
+                        setting.token.isBlank() -> invalid("飞书新版机器人 Token 不能为空")
+                        setting.receiveId.isBlank() -> invalid("飞书新版机器人接收者 ID 不能为空")
                         else -> ok()
                     }
                 }

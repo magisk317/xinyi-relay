@@ -19,4 +19,5 @@ object SenderType {
     const val SOCKET = 15
     const val NTFY = 16
     const val YUNHU = 17
+    const val FEISHU_BOT_TOKEN = 18
 }

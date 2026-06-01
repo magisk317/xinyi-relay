@@ -19,6 +19,7 @@ import io.github.magisk317.relay.sender.config.WebhookSetting
 import io.github.magisk317.relay.sender.config.WeworkAgentSetting
 import io.github.magisk317.relay.sender.config.WeworkRobotSetting
 import io.github.magisk317.relay.sender.config.YunhuSetting
+import io.github.magisk317.relay.sender.config.FeishuBotTokenSetting
 import io.github.magisk317.relay.engine.sender.SenderActiveScheduleEvaluator
 import io.github.magisk317.relay.engine.sender.SenderType
 import kotlinx.serialization.KSerializer
@@ -162,6 +163,12 @@ object SenderSettingSanitizer {
                 canonicalJson,
                 YunhuSetting.serializer(),
                 ::sanitizeYunhuSetting,
+            )
+            SenderType.FEISHU_BOT_TOKEN -> sanitizeSettingJson(
+                parseJson,
+                canonicalJson,
+                FeishuBotTokenSetting.serializer(),
+                ::sanitizeFeishuBotTokenSetting,
             )
             else -> if (json.isBlank()) "" else json
         }
@@ -614,6 +621,31 @@ object SenderSettingSanitizer {
         return setting.copy(
             appId = repaired.string("appId"),
             appSecret = repaired.string("appSecret"),
+            receiveId = repaired.string("receiveId"),
+            msgType = repaired.enumString("msgType", defaults.msgType),
+            receiveIdType = repaired.enumString("receiveIdType", defaults.receiveIdType),
+        )
+    }
+
+    fun sanitizeFeishuBotTokenSetting(raw: FeishuBotTokenSetting?, rawJson: JsonObject? = null): FeishuBotTokenSetting {
+        val defaults = FeishuBotTokenSetting()
+        val setting = FeishuBotTokenSetting(
+            token = safeString(resolveValue(raw?.token, rawJson, "token")),
+            receiveId = safeString(resolveValue(raw?.receiveId, rawJson, "receiveId")),
+            msgType = safeString(resolveValue(raw?.msgType, rawJson, "msgType")).ifBlank { defaults.msgType },
+            titleTemplate = safeString(resolveValue(raw?.titleTemplate, rawJson, "titleTemplate")),
+            receiveIdType = safeString(resolveValue(raw?.receiveIdType, rawJson, "receiveIdType"))
+                .ifBlank { defaults.receiveIdType },
+            messageCard = safeString(resolveValue(raw?.messageCard, rawJson, "messageCard")),
+        )
+        val repaired = repairFields(
+            "token" to setting.token,
+            "receiveId" to setting.receiveId,
+            "msgType" to setting.msgType,
+            "receiveIdType" to setting.receiveIdType,
+        )
+        return setting.copy(
+            token = repaired.string("token"),
             receiveId = repaired.string("receiveId"),
             msgType = repaired.enumString("msgType", defaults.msgType),
             receiveIdType = repaired.enumString("receiveIdType", defaults.receiveIdType),
