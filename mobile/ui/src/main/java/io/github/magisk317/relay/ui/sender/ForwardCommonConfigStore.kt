@@ -26,7 +26,6 @@ object ForwardCommonConfigStore {
 来自：{{FROM}}
 内容：{{SMS}}
 卡槽：{{CARD_SLOT}}
-SubId：{{CARD_SUBID}}
 接收时间：{{RECEIVE_TIME}}
 设备：{{DEVICE_NAME}}
 """
@@ -41,7 +40,6 @@ SubId：{{CARD_SUBID}}
 
 【卡槽与来源】
 卡槽：{{CARD_SLOT}}
-SubId：{{CARD_SUBID}}
 来源姓名：{{CONTACT_NAME}}
 来源归属：{{PHONE_AREA}}
 

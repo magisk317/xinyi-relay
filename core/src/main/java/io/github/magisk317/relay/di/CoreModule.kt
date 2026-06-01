@@ -3,9 +3,9 @@ package io.github.magisk317.relay.di
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSourceImpl
 import io.github.magisk317.relay.android.data.db.AppDatabase
-import io.github.magisk317.relay.android.prefs.PrefsReader
 import io.github.magisk317.relay.android.service.SystemInfoProviderImpl
 import io.github.magisk317.relay.app.sender.SenderTestService
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.repository.RemoteSyncRepository
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.data.repository.AnalyticsRepository
@@ -65,9 +65,16 @@ val coreModule = module {
 
     single<SystemInfoProvider> { SystemInfoProviderImpl(androidContext()) }
     single {
+        val preferenceDataSource = get<PreferenceDataSource>()
         MessageFormatter(
             systemInfoProvider = get(),
-            simSlotRemarkResolver = { simSlot -> PrefsReader.getSimSlotRemark(androidContext(), simSlot) },
+            simSlotRemarkResolver = { simSlot ->
+                when (simSlot) {
+                    0 -> preferenceDataSource.getString(PrefConst.KEY_SIM_SLOT1_REMARK, "")
+                    1 -> preferenceDataSource.getString(PrefConst.KEY_SIM_SLOT2_REMARK, "")
+                    else -> ""
+                }
+            },
         )
     }
     single { EventGatekeeper(get(), get()) }

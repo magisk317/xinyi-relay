@@ -10,7 +10,7 @@ import java.util.Locale
 
 class MessageFormatter(
     private val systemInfoProvider: SystemInfoProvider,
-    private val simSlotRemarkResolver: (Int) -> String = { "" },
+    private val simSlotRemarkResolver: suspend (Int) -> String = { "" },
 ) {
     private companion object {
         private const val CALL_TYPE_ANSWERED_EXTERNALLY = 7
@@ -20,13 +20,12 @@ class MessageFormatter(
             来自：{{FROM}}
             内容：{{SMS}}
             卡槽：{{CARD_SLOT}}
-            SubId：{{CARD_SUBID}}
             接收时间：{{RECEIVE_TIME}}
             设备：{{DEVICE_NAME}}
         """.trimIndent()
     }
 
-    fun format(
+    suspend fun format(
         event: RelayEvent,
         payloadContext: DispatchPayloadContext,
         config: ForwardCommonConfig,
@@ -97,7 +96,7 @@ class MessageFormatter(
         return removeEmptyValueLines(rendered)
     }
 
-    private fun resolveCardSlot(
+    private suspend fun resolveCardSlot(
         event: RelayEvent,
         payloadContext: DispatchPayloadContext,
     ): String {

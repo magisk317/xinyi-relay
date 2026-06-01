@@ -6,6 +6,7 @@ import io.github.magisk317.relay.engine.model.BatterySnapshot
 import io.github.magisk317.relay.engine.model.NetworkSnapshot
 import io.github.magisk317.relay.engine.model.SystemEnvironment
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -41,7 +42,7 @@ class MessageFormatterTest {
     )
 
     @Test
-    fun `app notify formatting uses app wording`() {
+    fun `app notify formatting uses app wording`() = runBlocking {
         val result = formatter().format(
             event = baseEvent.copy(
                 messageType = MessageType.APP_NOTIFY,
@@ -64,7 +65,7 @@ class MessageFormatterTest {
     }
 
     @Test
-    fun `call notify formatting uses call wording`() {
+    fun `call notify formatting uses call wording`() = runBlocking {
         val result = formatter().format(
             event = baseEvent.copy(
                 messageType = MessageType.CALL_NOTIFY,
@@ -80,7 +81,7 @@ class MessageFormatterTest {
     }
 
     @Test
-    fun `sms formatting keeps card slot wording`() {
+    fun `sms formatting keeps card slot wording`() = runBlocking {
         val result = formatter().format(
             event = baseEvent.copy(messageType = MessageType.SMS_PLAIN),
             payloadContext = DispatchPayloadContext.from(baseEvent.copy(messageType = MessageType.SMS_PLAIN)),
@@ -94,7 +95,7 @@ class MessageFormatterTest {
     }
 
     @Test
-    fun `sms formatting prefers configured sim remark`() {
+    fun `sms formatting prefers configured sim remark`() = runBlocking {
         val result = formatter { simSlot ->
             if (simSlot == 0) "联通主卡" else ""
         }.format(
@@ -106,6 +107,20 @@ class MessageFormatterTest {
 
         assertTrue(result.contains("卡槽：联通主卡"))
         assertFalse(result.contains("卡槽：SIM1"))
+    }
+
+    @Test
+    fun `default template omits sub id line`() = runBlocking {
+        val result = formatter().format(
+            event = baseEvent.copy(messageType = MessageType.SMS_CODE),
+            payloadContext = DispatchPayloadContext.from(baseEvent),
+            config = ForwardCommonConfig(),
+            env = snapshot,
+        )
+
+        assertTrue(result.contains("卡槽：SIM1"))
+        assertFalse(result.contains("SubId"))
+        assertFalse(result.contains("CARD_SUBID"))
     }
 
     private companion object {
