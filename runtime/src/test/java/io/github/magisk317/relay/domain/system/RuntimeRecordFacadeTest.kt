@@ -51,7 +51,6 @@ class RuntimeRecordFacadeTest {
         var updatedArg: SmsMsg? = null
         coEvery { smsMsgDao.update(any()) } coAnswers {
             updatedArg = firstArg<SmsMsg>()
-            Unit
         }
 
         val facade = RuntimeRecordFacade(context = context, db = database)
@@ -84,7 +83,6 @@ class RuntimeRecordFacadeTest {
         var updatedArg: SmsMsg? = null
         coEvery { smsMsgDao.update(any()) } coAnswers {
             updatedArg = firstArg<SmsMsg>()
-            Unit
         }
 
         val facade = RuntimeRecordFacade(context = context, db = database)

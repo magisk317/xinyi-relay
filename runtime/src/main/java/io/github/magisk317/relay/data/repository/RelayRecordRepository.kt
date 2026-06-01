@@ -19,6 +19,7 @@ class RelayRecordRepository(
     context: Context,
     private val db: AppDatabase = AppDatabase.getInstance(context),
     private val preferenceDataSource: PreferenceDataSource,
+    private val recordUploadScheduler: ((String) -> Unit)? = null,
 ) : MessageRecordRepository {
     private val appContext = context.applicationContext ?: context
 
@@ -380,7 +381,8 @@ class RelayRecordRepository(
     }
 
     private fun scheduleRecordUpload(reason: String) {
-        RuntimeGraph.from(appContext).remoteAgentRepository.scheduleRecordUpload(reason)
+        recordUploadScheduler?.invoke(reason)
+            ?: RuntimeGraph.from(appContext).remoteAgentRepository.scheduleRecordUpload(reason)
     }
 
     private companion object {
