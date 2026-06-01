@@ -4,6 +4,7 @@ import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.engine.event.RelayEvent
 import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.engine.sender.SenderActiveScheduleEvaluator
+import io.github.magisk317.relay.engine.sender.SenderType
 import java.time.LocalDateTime
 
 class SenderSelector(
@@ -38,7 +39,7 @@ class SenderSelector(
         val now = nowProvider()
         if (allSenders.isEmpty()) return "未配置任何转发通道"
         if (enabledSenders.isEmpty()) {
-            val allNames = allSenders.joinToString(",") { it.name.ifBlank { fallbackSenderTypeName(it.type) } }
+            val allNames = allSenders.joinToString(",") { SenderType.displayName(it.type, it.name) }
             return "所有转发通道均未启用（$allNames）"
         }
         val scopedSenders = event.targetSenderIds
@@ -70,7 +71,7 @@ class SenderSelector(
                 val allowed = enabledSenders.filter { it.receiveAppNotify == 1 }
                 val blockedNames = enabledSenders
                     .filter { it.receiveAppNotify != 1 }
-                    .joinToString(",") { it.name.ifBlank { fallbackSenderTypeName(it.type) } }
+                    .joinToString(",") { SenderType.displayName(it.type, it.name) }
                 "已启用通道均关闭了“转发应用通知”开关（enabled=${enabledSenders.size}, matched=${allowed.size}, blocked=$blockedNames）"
             }
 
@@ -78,7 +79,7 @@ class SenderSelector(
                 val allowed = enabledSenders.filter { it.receiveCallNotify == 1 }
                 val blockedNames = enabledSenders
                     .filter { it.receiveCallNotify != 1 }
-                    .joinToString(",") { it.name.ifBlank { fallbackSenderTypeName(it.type) } }
+                    .joinToString(",") { SenderType.displayName(it.type, it.name) }
                 "已启用通道均关闭了“转发通话通知”开关（enabled=${enabledSenders.size}, matched=${allowed.size}, blocked=$blockedNames）"
             }
 
@@ -86,7 +87,7 @@ class SenderSelector(
                 val allowed = enabledSenders.filter { it.receiveCode == 1 }
                 val blockedNames = enabledSenders
                     .filter { it.receiveCode != 1 }
-                    .joinToString(",") { it.name.ifBlank { fallbackSenderTypeName(it.type) } }
+                    .joinToString(",") { SenderType.displayName(it.type, it.name) }
                 "已启用通道均关闭了“转发验证码短信”开关（enabled=${enabledSenders.size}, matched=${allowed.size}, blocked=$blockedNames）"
             }
 
@@ -94,11 +95,9 @@ class SenderSelector(
                 val allowed = enabledSenders.filter { it.receiveNonCode == 1 }
                 val blockedNames = enabledSenders
                     .filter { it.receiveNonCode != 1 }
-                    .joinToString(",") { it.name.ifBlank { fallbackSenderTypeName(it.type) } }
+                    .joinToString(",") { SenderType.displayName(it.type, it.name) }
                 "已启用通道均关闭了“转发非验证码短信”开关（enabled=${enabledSenders.size}, matched=${allowed.size}, blocked=$blockedNames）"
             }
         }
     }
-
-    private fun fallbackSenderTypeName(type: Int): String = "通道$type"
 }

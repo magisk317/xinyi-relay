@@ -4,6 +4,7 @@ import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
+import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.engine.service.SenderDispatchResult
 import io.github.magisk317.relay.engine.service.SenderDispatcher
 
@@ -15,7 +16,7 @@ class DispatchExecutor(
         msgInfo: MsgInfo,
         traceId: String?,
     ): SenderDispatchResult {
-        val senderName = sender.name.ifBlank { "通道${sender.type}" }
+        val senderName = SenderType.displayName(sender.type, sender.name)
         XLog.d("Dispatching to sender: id=%d, type=%d, name=%s", sender.id, sender.type, sender.name)
         ForwardFlowLog.d(traceId, "Dispatch sender start name=$senderName type=${sender.type}")
         return runCatching {
