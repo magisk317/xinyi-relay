@@ -38,16 +38,26 @@ badge_escape() {
   printf '%s' "$raw"
 }
 
+xposed_api_level() {
+  local version="$1"
+  if [[ "$version" =~ ^([0-9]+)([.+-].*)?$ ]]; then
+    printf '%s' "${BASH_REMATCH[1]}"
+    return 0
+  fi
+  printf '%s' "$version"
+}
+
 KOTLIN_VERSION=$(read_version "kotlin")
 COMPOSE_BOM_VERSION=$(read_version "compose-bom")
 AGP_VERSION=$(read_version "agp")
 MIN_SDK_VERSION=$(read_version "minSdk")
 TARGET_SDK_VERSION=$(read_version "targetSdk")
-XPOSED_API_VERSION=$(read_version_fallback "xposed" "libxposed")
+XPOSED_API_VERSION=$(read_version_fallback "xposed" "libxposed" "libxposed-api")
 if [[ -z "$XPOSED_API_VERSION" ]]; then
   XPOSED_API_VERSION="101"
-  echo "WARN: missing xposed/libxposed version in $TOML_FILE; defaulting to $XPOSED_API_VERSION" >&2
+  echo "WARN: missing xposed/libxposed/libxposed-api version in $TOML_FILE; defaulting to $XPOSED_API_VERSION" >&2
 fi
+XPOSED_API_VERSION=$(xposed_api_level "$XPOSED_API_VERSION")
 
 GRADLE_VERSION=$(sed -nE 's/^distributionUrl=.*gradle-([0-9a-zA-Z.-]+)-(bin|all)\.zip/\1/p' gradle/wrapper/gradle-wrapper.properties)
 if [[ -z "$GRADLE_VERSION" ]]; then
