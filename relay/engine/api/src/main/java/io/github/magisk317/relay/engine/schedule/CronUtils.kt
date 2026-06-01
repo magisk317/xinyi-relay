@@ -110,12 +110,12 @@ object CronUtils {
         }
 
         return CronExpression(
-            minutes = parseField(parts[0], 0, 59, "minute") ?: MINUTES,
-            hours = parseField(parts[1], 0, 23, "hour") ?: HOURS,
-            daysOfMonth = parseField(parts[2], 1, 31, "day-of-month", allowQuestion = true),
-            months = parseField(parts[3], 1, 12, "month"),
-            weekdays = parseField(parts[4], 0, 7, "day-of-week", allowQuestion = true)
-                ?.map { if (it == 0) 7 else it }
+            minutes = parseField(parts[0], MIN_MINUTE, MAX_MINUTE, "minute") ?: MINUTES,
+            hours = parseField(parts[1], MIN_HOUR, MAX_HOUR, "hour") ?: HOURS,
+            daysOfMonth = parseField(parts[2], MIN_DAY_OF_MONTH, MAX_DAY_OF_MONTH, "day-of-month", allowQuestion = true),
+            months = parseField(parts[3], MIN_MONTH, MAX_MONTH, "month"),
+            weekdays = parseField(parts[4], MIN_CRON_WEEKDAY, MAX_CRON_WEEKDAY, "day-of-week", allowQuestion = true)
+                ?.map(::normalizeWeekday)
                 ?.distinct()
                 ?.sorted(),
         )
@@ -204,10 +204,14 @@ object CronUtils {
 
     private fun normalizeWeekdays(weekdays: List<Int>): List<Int> {
         return weekdays
-            .map { if (it == 0) 7 else it }
+            .map(::normalizeWeekday)
             .filter { it in ALL_WEEKDAYS }
             .distinct()
             .sorted()
+    }
+
+    private fun normalizeWeekday(weekday: Int): Int {
+        return if (weekday == MIN_CRON_WEEKDAY) SUNDAY_WEEKDAY else weekday
     }
 
     private data class CronExpression(
@@ -220,7 +224,19 @@ object CronUtils {
 
     private const val CRON_FIELD_COUNT = 5
     private const val MAX_LOOKAHEAD_MINUTES = 5 * 366 * 24 * 60
-    private val MINUTES = (0..59).toList()
-    private val HOURS = (0..23).toList()
-    private val ALL_WEEKDAYS = (1..7).toList()
+    private const val MIN_MINUTE = 0
+    private const val MAX_MINUTE = 59
+    private const val MIN_HOUR = 0
+    private const val MAX_HOUR = 23
+    private const val MIN_DAY_OF_MONTH = 1
+    private const val MAX_DAY_OF_MONTH = 31
+    private const val MIN_MONTH = 1
+    private const val MAX_MONTH = 12
+    private const val MIN_CRON_WEEKDAY = 0
+    private const val MIN_WEEKDAY = 1
+    private const val SUNDAY_WEEKDAY = 7
+    private const val MAX_CRON_WEEKDAY = SUNDAY_WEEKDAY
+    private val MINUTES = (MIN_MINUTE..MAX_MINUTE).toList()
+    private val HOURS = (MIN_HOUR..MAX_HOUR).toList()
+    private val ALL_WEEKDAYS = (MIN_WEEKDAY..SUNDAY_WEEKDAY).toList()
 }
