@@ -107,7 +107,7 @@ class SenderSettingSanitizerTest {
     fun sanitizeSenderLenient_pushdeerInvalidType_clampedToDefault() {
         val sender = newSender(
             SenderType.PUSHDEER,
-            """{"server":"https://api2.pushdeer.com","pushkey":"PDU123","type":"image"}""",
+            """{"server":"https://api2.pushdeer.com","pushkey":"PDU123","type":"html"}""",
         )
 
         val sanitized = SenderSettingSanitizer.sanitizeSenderLenient(sender)
