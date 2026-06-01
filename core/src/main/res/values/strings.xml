@@ -1308,4 +1308,8 @@
     <string name="cloud_backup_delete_failed">Delete failed</string>
     <string name="cloud_backup_drive_authorization_canceled">Google Drive authorization canceled</string>
     <!-- cloud backup end -->
+    <string name="sender_form_label_auth_type">Authentication Mode</string>
+    <string name="sender_form_auth_type_app_id">App ID &amp; Secret</string>
+    <string name="sender_form_auth_type_token">Bot Token</string>
+    <string name="sender_form_label_bot_token">Bot Token</string>
 </resources>

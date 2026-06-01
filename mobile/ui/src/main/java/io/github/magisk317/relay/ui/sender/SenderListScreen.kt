@@ -447,6 +447,7 @@ fun getSenderTypeName(context: android.content.Context, type: Int): String {
         SenderType.URL_SCHEME -> context.getString(R.string.sender_type_url_scheme)
         SenderType.SOCKET -> context.getString(R.string.sender_type_socket)
         SenderType.YUNHU -> context.getString(R.string.sender_type_yunhu)
+
         else -> context.getString(R.string.sender_type_unknown)
     }
 }

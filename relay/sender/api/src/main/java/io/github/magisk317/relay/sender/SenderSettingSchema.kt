@@ -198,8 +198,10 @@ object SenderSettingSchemas {
         ),
         schema(
             SenderType.FEISHU_APP,
-            field("appId", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("o")),
-            field("appSecret", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
+            field("authType", aliases = arrayOf("v"), defaultValue = "app_id", options = arrayOf("app_id", "token")),
+            field("appId", SenderSettingFieldType.SECRET, aliases = arrayOf("o")),
+            field("appSecret", SenderSettingFieldType.SECRET, aliases = arrayOf("p")),
+            field("botToken", SenderSettingFieldType.SECRET, aliases = arrayOf("w")),
             field("receiveId", requiredForEnable = true, aliases = arrayOf("q")),
             field("msgType", aliases = arrayOf("r"), defaultValue = "interactive", options = arrayOf("interactive", "text")),
             field("titleTemplate", aliases = arrayOf("s")),
@@ -252,6 +254,7 @@ object SenderSettingSchemas {
             field("contentType", aliases = arrayOf("r"), defaultValue = "text", options = arrayOf("text", "markdown")),
             field("titleTemplate", aliases = arrayOf("s")),
         ),
+
     )
 
     val byType: Map<Int, SenderSettingSchema> = all.associateBy { it.senderType }

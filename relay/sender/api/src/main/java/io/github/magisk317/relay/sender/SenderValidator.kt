@@ -19,6 +19,7 @@ import io.github.magisk317.relay.sender.config.WebhookSetting
 import io.github.magisk317.relay.sender.config.WeworkAgentSetting
 import io.github.magisk317.relay.sender.config.WeworkRobotSetting
 import io.github.magisk317.relay.sender.config.YunhuSetting
+
 import io.github.magisk317.relay.engine.sender.SenderType
 
 data class SenderValidationResult(
@@ -132,8 +133,12 @@ object SenderValidator {
 
                 SenderType.FEISHU_APP -> {
                     val setting = SenderSettingJson.decode(FeishuAppSetting.serializer(), safeSender.jsonSetting)
-                    if (setting.appId.isBlank() || setting.appSecret.isBlank() || setting.receiveId.isBlank()) {
-                        invalid("飞书应用 appId/appSecret/receiveId 不能为空")
+                    if (setting.receiveId.isBlank()) {
+                        invalid("飞书应用 receiveId 不能为空")
+                    } else if (setting.authType == "app_id" && (setting.appId.isBlank() || setting.appSecret.isBlank())) {
+                        invalid("飞书应用 appId/appSecret 不能为空")
+                    } else if (setting.authType == "token" && setting.botToken.isBlank()) {
+                        invalid("飞书应用 Bot Token 不能为空")
                     } else ok()
                 }
 
@@ -157,6 +162,8 @@ object SenderValidator {
                         else -> ok()
                     }
                 }
+
+
 
                 else -> invalid("未知通道类型，无法启用")
             }

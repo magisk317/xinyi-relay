@@ -19,6 +19,7 @@ import io.github.magisk317.relay.sender.config.WebhookSetting
 import io.github.magisk317.relay.sender.config.WeworkAgentSetting
 import io.github.magisk317.relay.sender.config.WeworkRobotSetting
 import io.github.magisk317.relay.sender.config.YunhuSetting
+
 import io.github.magisk317.relay.engine.sender.SenderActiveScheduleEvaluator
 import io.github.magisk317.relay.engine.sender.SenderType
 import kotlinx.serialization.KSerializer
@@ -163,6 +164,7 @@ object SenderSettingSanitizer {
                 YunhuSetting.serializer(),
                 ::sanitizeYunhuSetting,
             )
+
             else -> if (json.isBlank()) "" else json
         }
     }
@@ -595,8 +597,10 @@ object SenderSettingSanitizer {
     fun sanitizeFeishuAppSetting(raw: FeishuAppSetting?, rawJson: JsonObject? = null): FeishuAppSetting {
         val defaults = FeishuAppSetting()
         val setting = FeishuAppSetting(
+            authType = safeString(resolveValue(raw?.authType, rawJson, "authType")).ifBlank { defaults.authType },
             appId = safeString(resolveValue(raw?.appId, rawJson, "appId")),
             appSecret = safeString(resolveValue(raw?.appSecret, rawJson, "appSecret")),
+            botToken = safeString(resolveValue(raw?.botToken, rawJson, "botToken")),
             receiveId = safeString(resolveValue(raw?.receiveId, rawJson, "receiveId")),
             msgType = safeString(resolveValue(raw?.msgType, rawJson, "msgType")).ifBlank { defaults.msgType },
             titleTemplate = safeString(resolveValue(raw?.titleTemplate, rawJson, "titleTemplate")),
@@ -605,20 +609,26 @@ object SenderSettingSanitizer {
             messageCard = safeString(resolveValue(raw?.messageCard, rawJson, "messageCard")),
         )
         val repaired = repairFields(
+            "authType" to setting.authType,
             "appId" to setting.appId,
             "appSecret" to setting.appSecret,
+            "botToken" to setting.botToken,
             "receiveId" to setting.receiveId,
             "msgType" to setting.msgType,
             "receiveIdType" to setting.receiveIdType,
         )
         return setting.copy(
+            authType = repaired.enumString("authType", defaults.authType),
             appId = repaired.string("appId"),
             appSecret = repaired.string("appSecret"),
+            botToken = repaired.string("botToken"),
             receiveId = repaired.string("receiveId"),
             msgType = repaired.enumString("msgType", defaults.msgType),
             receiveIdType = repaired.enumString("receiveIdType", defaults.receiveIdType),
         )
     }
+
+
 
     fun sanitizeUrlSchemeSetting(raw: UrlSchemeSetting?, rawJson: JsonObject? = null): UrlSchemeSetting {
         return UrlSchemeSetting(

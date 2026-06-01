@@ -1308,4 +1308,8 @@
     <string name="cloud_backup_delete_failed">删除失败</string>
     <string name="cloud_backup_drive_authorization_canceled">已取消 Google Drive 授权</string>
     <!-- translation audit end -->
+    <string name="sender_form_label_auth_type">鉴权方式</string>
+    <string name="sender_form_auth_type_app_id">App ID 与密钥</string>
+    <string name="sender_form_auth_type_token">Bot Token</string>
+    <string name="sender_form_label_bot_token">机器人 Token</string>
 </resources>
