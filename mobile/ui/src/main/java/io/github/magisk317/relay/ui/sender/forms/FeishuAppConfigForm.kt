@@ -8,12 +8,27 @@ import io.github.magisk317.relay.ui.sender.SenderViewModel
 
 private val FeishuAppVisibleFields = listOf(
     SchemaSenderFormFieldSpec(
+        name = "authType",
+        labelRes = R.string.sender_form_label_auth_type,
+        optionLabelRes = mapOf(
+            "app_id" to R.string.sender_form_auth_type_app_id,
+            "token" to R.string.sender_form_auth_type_token,
+        ),
+    ),
+    SchemaSenderFormFieldSpec(
         name = "appId",
         labelRes = R.string.sender_form_label_app_id,
+        visible = { it.string("authType").ifBlank { "app_id" } == "app_id" },
     ),
     SchemaSenderFormFieldSpec(
         name = "appSecret",
         labelRes = R.string.sender_form_label_app_secret,
+        visible = { it.string("authType").ifBlank { "app_id" } == "app_id" },
+    ),
+    SchemaSenderFormFieldSpec(
+        name = "botToken",
+        labelRes = R.string.sender_form_label_bot_token,
+        visible = { it.string("authType").ifBlank { "app_id" } == "token" },
     ),
     SchemaSenderFormFieldSpec(
         name = "receiveId",

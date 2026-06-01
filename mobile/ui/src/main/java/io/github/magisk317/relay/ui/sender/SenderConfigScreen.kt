@@ -141,7 +141,7 @@ fun SenderConfigScreen(
             SenderType.URL_SCHEME -> UrlSchemeConfigForm(senderId, handleBack, viewModel)
             SenderType.SOCKET -> SocketConfigForm(senderId, handleBack, viewModel)
             SenderType.YUNHU -> YunhuConfigForm(senderId, handleBack, viewModel)
-            SenderType.FEISHU_BOT_TOKEN -> FeishuBotTokenConfigForm(senderId, handleBack, viewModel)
+
             else -> DingtalkConfigForm(senderId, handleBack, viewModel)
         }
     }

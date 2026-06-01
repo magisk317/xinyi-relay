@@ -64,6 +64,7 @@ internal data class SchemaSenderFormFieldSpec(
     @StringRes val supportingTextRes: Int? = null,
     val minLines: Int = 1,
     val optionLabelRes: Map<String, Int> = emptyMap(),
+    val visible: (SenderSettingDraft) -> Boolean = { true },
 )
 
 internal val MessageTypeOptionLabels = mapOf(
@@ -295,12 +296,14 @@ internal fun SchemaSenderConfigForm(
                 modifier = Modifier.fillMaxWidth(),
             )
             fields.forEach { spec ->
-                SchemaSenderField(
-                    spec = spec,
-                    metadata = SenderSettingSchemas.fieldsFor(senderType).single { it.name == spec.name },
-                    draft = draft,
-                    onDraftChange = { draft = normalizeDraft(it) },
-                )
+                if (spec.visible(draft)) {
+                    SchemaSenderField(
+                        spec = spec,
+                        metadata = SenderSettingSchemas.fieldsFor(senderType).single { it.name == spec.name },
+                        draft = draft,
+                        onDraftChange = { draft = normalizeDraft(it) },
+                    )
+                }
             }
             extraContent(draft) { nextDraft -> draft = normalizeDraft(nextDraft) }
             Spacer(modifier = Modifier.height(8.dp))

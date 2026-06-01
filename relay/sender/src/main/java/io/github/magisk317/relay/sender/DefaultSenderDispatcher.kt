@@ -24,7 +24,6 @@ import io.github.magisk317.relay.sender.config.WebhookSetting
 import io.github.magisk317.relay.sender.config.WeworkAgentSetting
 import io.github.magisk317.relay.sender.config.WeworkRobotSetting
 import io.github.magisk317.relay.sender.config.YunhuSetting
-import io.github.magisk317.relay.sender.config.FeishuBotTokenSetting
 import kotlinx.serialization.SerializationException
 
 class DefaultSenderDispatcher(private val context: Context) : SenderDispatcher {
@@ -124,10 +123,6 @@ class DefaultSenderDispatcher(private val context: Context) : SenderDispatcher {
                 )
                 SenderType.YUNHU -> YunhuUtils.sendMsg(
                     SenderSettingJson.decode(YunhuSetting.serializer(), safeSender.jsonSetting),
-                    msgInfo,
-                )
-                SenderType.FEISHU_BOT_TOKEN -> FeishuBotTokenUtils.sendMsg(
-                    SenderSettingJson.decode(FeishuBotTokenSetting.serializer(), safeSender.jsonSetting),
                     msgInfo,
                 )
                 else -> {

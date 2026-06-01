@@ -18,10 +18,16 @@ object FeishuAppUtils {
     private val tokenCache = ConcurrentHashMap<String, TokenCache>()
 
     suspend fun sendMsg(setting: FeishuAppSetting, msgInfo: MsgInfo) {
-        val now = System.currentTimeMillis()
-        var token = tokenCache[setting.appId]?.takeIf { it.expiresAt > now }?.token
-        if (token.isNullOrBlank()) {
-            token = fetchToken(setting) ?: throw IllegalStateException("飞书应用获取 token 失败")
+        val token: String
+        if (setting.authType == "token") {
+            token = setting.botToken
+        } else {
+            val now = System.currentTimeMillis()
+            var cached = tokenCache[setting.appId]?.takeIf { it.expiresAt > now }?.token
+            if (cached.isNullOrBlank()) {
+                cached = fetchToken(setting) ?: throw IllegalStateException("飞书应用获取 token 失败")
+            }
+            token = cached
         }
         sendMessage(setting, token, msgInfo)
     }

@@ -1227,7 +1227,6 @@
     <string name="sender_type_url_scheme">URL Scheme</string>
     <string name="sender_type_socket">Socket</string>
     <string name="sender_type_yunhu">YunHu</string>
-    <string name="sender_type_feishu_bot_token">Feishu Bot (Token)</string>
     <string name="sender_type_unknown">Unknown channel</string>
     <string name="overview_runtime_diagnostics_shown">Runtime diagnostics shown</string>
     <string name="overview_runtime_diagnostics_hidden">Runtime diagnostics hidden</string>
@@ -1309,4 +1308,8 @@
     <string name="cloud_backup_delete_failed">Delete failed</string>
     <string name="cloud_backup_drive_authorization_canceled">Google Drive authorization canceled</string>
     <!-- cloud backup end -->
+    <string name="sender_form_label_auth_type">Authentication Mode</string>
+    <string name="sender_form_auth_type_app_id">App ID &amp; Secret</string>
+    <string name="sender_form_auth_type_token">Bot Token</string>
+    <string name="sender_form_label_bot_token">Bot Token</string>
 </resources>
