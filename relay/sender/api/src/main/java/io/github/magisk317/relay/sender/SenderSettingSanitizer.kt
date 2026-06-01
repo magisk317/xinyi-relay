@@ -433,7 +433,7 @@ object SenderSettingSanitizer {
             type = safeString(resolveValue(raw?.type, rawJson, "type")),
             titleTemplate = safeString(resolveValue(raw?.titleTemplate, rawJson, "titleTemplate")),
         )
-        val repaired = repairJson(
+        val repaired = repairFields(
             "server" to setting.server,
             "pushkey" to setting.pushkey,
             "type" to setting.type,
