@@ -16,40 +16,21 @@ class WebDavCloudBackupProvider(
     override fun getBackupSource(): BackupSource = BackupSource.WEBDAV
 
     override suspend fun uploadBackup(): Result<String> = withContext(Dispatchers.IO) {
-        try {
-            val result = webDavBackupManager.uploadBackup()
-            result.map { it.id }
-        } catch (e: Exception) {
-            XLog.e("WebDAV upload backup failed: %s", e.message ?: e.javaClass.simpleName)
-            Result.failure(e)
-        }
+        webDavBackupManager.uploadBackup()
+            .map { it.id }
+            .logFailure("upload")
     }
 
     override suspend fun listBackups(): Result<List<CloudBackupMeta>> = withContext(Dispatchers.IO) {
-        try {
-            webDavBackupManager.listBackups()
-        } catch (e: Exception) {
-            XLog.e("WebDAV list backups failed: %s", e.message ?: e.javaClass.simpleName)
-            Result.failure(e)
-        }
+        webDavBackupManager.listBackups().logFailure("list")
     }
 
     override suspend fun restoreFromBackup(backupId: String): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
-            webDavBackupManager.restoreFromBackup(backupId)
-        } catch (e: Exception) {
-            XLog.e("WebDAV restore backup failed: %s", e.message ?: e.javaClass.simpleName)
-            Result.failure(e)
-        }
+        webDavBackupManager.restoreFromBackup(backupId).logFailure("restore")
     }
 
     override suspend fun deleteBackup(backupId: String): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
-            webDavBackupManager.deleteBackup(backupId)
-        } catch (e: Exception) {
-            XLog.e("WebDAV delete backup failed: %s", e.message ?: e.javaClass.simpleName)
-            Result.failure(e)
-        }
+        webDavBackupManager.deleteBackup(backupId).logFailure("delete")
     }
 
     override suspend fun enableAutoBackup(enabled: Boolean) {
@@ -67,5 +48,15 @@ class WebDavCloudBackupProvider(
 
     fun updateConfig(config: WebDavConfig) {
         webDavBackupManager.updateConfig(config)
+    }
+
+    private fun <T> Result<T>.logFailure(operation: String): Result<T> {
+        return onFailure { throwable ->
+            XLog.e(
+                "WebDAV %s backup failed: %s",
+                operation,
+                throwable.message ?: throwable.javaClass.simpleName,
+            )
+        }
     }
 }

@@ -2,10 +2,12 @@ package io.github.magisk317.relay.backup.webdav
 
 import android.content.Context
 import android.content.SharedPreferences
+import io.github.magisk317.relay.android.common.utils.XLog
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -20,7 +22,11 @@ object WebDavConfigStore {
         return try {
             val decrypted = SimpleCrypto.decrypt(encrypted)
             json.decodeFromString<WebDavConfig>(decrypted)
-        } catch (e: Exception) {
+        } catch (e: IllegalArgumentException) {
+            XLog.w("WebDAV config decode failed: %s", e.message ?: e.javaClass.simpleName)
+            null
+        } catch (e: SerializationException) {
+            XLog.w("WebDAV config parse failed: %s", e.message ?: e.javaClass.simpleName)
             null
         }
     }

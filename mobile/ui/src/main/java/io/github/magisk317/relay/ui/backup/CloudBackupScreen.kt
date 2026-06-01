@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.magisk317.relay.backup.BackupSource
+import io.github.magisk317.relay.backup.CloudBackupMeta
 import io.github.magisk317.relay.backup.drive.GoogleDriveBackupConfig
 import io.github.magisk317.relay.backup.webdav.WebDavConfig
 import io.github.magisk317.relay.core.R
@@ -219,356 +220,525 @@ fun CloudBackupScreen(
                 .padding(padding)
                 .padding(16.dp),
         ) {
-            // Backup source selection
-            Text(
-                text = stringResource(id = R.string.cloud_backup_source_title),
-                style = MaterialTheme.typography.titleMedium,
+            BackupSourceSelector(
+                selectedSource = selectedSource,
+                hasGoogleDriveBackup = hasGoogleDriveBackup,
+                canUseGoogleDrive = selectedSource == BackupSource.GOOGLE_DRIVE && viewModel.canUseCloudBackup(),
+                onLoadBackups = viewModel::loadBackups,
+                onSwitchSource = viewModel::switchBackupSource,
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                val isGoogleDriveUsable = selectedSource == BackupSource.GOOGLE_DRIVE && viewModel.canUseCloudBackup()
-                if (hasGoogleDriveBackup) {
-                    if (selectedSource == BackupSource.GOOGLE_DRIVE) {
-                        Button(
-                            onClick = {
-                                if (isGoogleDriveUsable) {
-                                    viewModel.loadBackups()
-                                }
-                            },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text(stringResource(id = R.string.backup_source_google))
-                        }
-                    } else {
-                        OutlinedButton(
-                            onClick = { viewModel.switchBackupSource(BackupSource.GOOGLE_DRIVE) },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text(stringResource(id = R.string.backup_source_google))
-                        }
-                    }
-                }
-
-                if (selectedSource == BackupSource.WEBDAV) {
-                    Button(
-                        onClick = { },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(stringResource(id = R.string.backup_source_webdav))
-                    }
-                } else {
-                    OutlinedButton(
-                        onClick = { viewModel.switchBackupSource(BackupSource.WEBDAV) },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(stringResource(id = R.string.backup_source_webdav))
-                    }
-                }
-            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             if (selectedSource == BackupSource.GOOGLE_DRIVE && hasGoogleDriveBackup) {
-                if (showGoogleDriveConfig) {
-                    Text(
-                        text = stringResource(id = R.string.cloud_backup_google_drive_config_title),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = googleDrivePath,
-                        onValueChange = { googleDrivePath = it },
-                        label = { Text(stringResource(id = R.string.cloud_backup_google_drive_folder_path)) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Button(
-                            onClick = {
-                                if (saveGoogleDriveConfig()) {
-                                    showGoogleDriveConfig = false
-                                    viewModel.loadBackups()
-                                }
-                            },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text(stringResource(id = R.string.cloud_backup_save))
+                GoogleDriveConfigSection(
+                    showConfig = showGoogleDriveConfig,
+                    folderPath = googleDrivePath,
+                    savedFolderPath = googleDriveConfig.folderPath,
+                    onFolderPathChange = { googleDrivePath = it },
+                    onEdit = { showGoogleDriveConfig = true },
+                    onSave = {
+                        if (saveGoogleDriveConfig()) {
+                            showGoogleDriveConfig = false
+                            viewModel.loadBackups()
                         }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                } else {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(id = R.string.cloud_backup_google_drive_location, googleDriveConfig.folderPath),
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                            Text(
-                                text = stringResource(id = R.string.cloud_backup_google_drive_visible_hint),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        OutlinedButton(onClick = { showGoogleDriveConfig = true }) {
-                            Text(stringResource(id = R.string.cloud_backup_edit_config))
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
+                    },
+                )
             }
 
-            // WebDAV configuration
             if (selectedSource == BackupSource.WEBDAV) {
-                if (showWebDavConfig || webDavConfig == null) {
-                    Text(
-                        text = stringResource(id = R.string.cloud_backup_webdav_config_title),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = webDavServer,
-                        onValueChange = { webDavServer = it },
-                        label = { Text(stringResource(id = R.string.cloud_backup_webdav_server_url)) },
-                        isError = isWebDavServerMissing,
-                        supportingText = {
-                            if (isWebDavServerMissing) {
-                                Text(stringResource(id = R.string.cloud_backup_field_required))
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = webDavUsername,
-                        onValueChange = { webDavUsername = it },
-                        label = { Text(stringResource(id = R.string.cloud_backup_webdav_username)) },
-                        isError = isWebDavUsernameMissing,
-                        supportingText = {
-                            if (isWebDavUsernameMissing) {
-                                Text(stringResource(id = R.string.cloud_backup_field_required))
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = webDavPassword,
-                        onValueChange = { webDavPassword = it },
-                        label = { Text(stringResource(id = R.string.cloud_backup_webdav_password)) },
-                        visualTransformation = if (webDavPasswordVisible) {
-                            VisualTransformation.None
-                        } else {
-                            PasswordVisualTransformation()
-                        },
-                        trailingIcon = {
-                            IconButton(onClick = { webDavPasswordVisible = !webDavPasswordVisible }) {
-                                Icon(
-                                    imageVector = if (webDavPasswordVisible) {
-                                        Icons.Filled.VisibilityOff
-                                    } else {
-                                        Icons.Filled.Visibility
-                                    },
-                                    contentDescription = stringResource(
-                                        id = if (webDavPasswordVisible) {
-                                            R.string.cloud_backup_password_hide
-                                        } else {
-                                            R.string.cloud_backup_password_show
-                                        },
-                                    ),
-                                )
-                            }
-                        },
-                        isError = isWebDavPasswordMissing,
-                        supportingText = {
-                            if (isWebDavPasswordMissing) {
-                                Text(stringResource(id = R.string.cloud_backup_field_required))
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = webDavPath,
-                        onValueChange = { webDavPath = it },
-                        label = { Text(stringResource(id = R.string.cloud_backup_webdav_remote_path)) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Button(
-                            onClick = {
-                                if (saveWebDavConfig(testConnection = false)) {
-                                    showWebDavConfig = false
-                                }
-                            },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text(stringResource(id = R.string.cloud_backup_save))
+                WebDavConfigSection(
+                    showConfig = showWebDavConfig || webDavConfig == null,
+                    server = webDavServer,
+                    username = webDavUsername,
+                    password = webDavPassword,
+                    passwordVisible = webDavPasswordVisible,
+                    remotePath = webDavPath,
+                    isServerMissing = isWebDavServerMissing,
+                    isUsernameMissing = isWebDavUsernameMissing,
+                    isPasswordMissing = isWebDavPasswordMissing,
+                    isLoading = isLoading,
+                    onServerChange = { webDavServer = it },
+                    onUsernameChange = { webDavUsername = it },
+                    onPasswordChange = { webDavPassword = it },
+                    onTogglePasswordVisibility = { webDavPasswordVisible = !webDavPasswordVisible },
+                    onRemotePathChange = { webDavPath = it },
+                    onEdit = { showWebDavConfig = true },
+                    onRemove = viewModel::removeWebDavConfig,
+                    onSave = {
+                        if (saveWebDavConfig(testConnection = false)) {
+                            showWebDavConfig = false
                         }
-                        Button(
-                            onClick = {
-                                saveWebDavConfig(testConnection = true)
-                            },
-                            enabled = !isLoading,
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.padding(end = 8.dp),
-                                )
-                            }
-                            Text(stringResource(id = R.string.cloud_backup_test_connection))
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                } else {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Button(
-                            onClick = { showWebDavConfig = true },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text(stringResource(id = R.string.cloud_backup_edit_config))
-                        }
-                        Button(
-                            onClick = { viewModel.removeWebDavConfig() },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text(stringResource(id = R.string.cloud_backup_remove_config))
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
+                    },
+                    onTestConnection = { saveWebDavConfig(testConnection = true) },
+                )
             }
 
-            // Controls
             val canUseSelectedBackup = viewModel.canUseCloudBackup()
-            if ((selectedSource == BackupSource.GOOGLE_DRIVE && hasGoogleDriveBackup) || canUseSelectedBackup) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Button(
-                        onClick = ::requestBackupNow,
-                        enabled = !isLoading,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.padding(end = 8.dp),
-                            )
-                        }
-                        Text(stringResource(id = R.string.cloud_backup_manual_backup))
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
-            if (canUseSelectedBackup) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Checkbox(
-                        checked = autoBackupEnabled,
-                        onCheckedChange = { viewModel.setAutoBackup(it) },
-                    )
-                    Column {
-                        Text(stringResource(id = R.string.cloud_backup_auto_enable))
-                        Text(
-                            text = stringResource(id = R.string.cloud_backup_auto_summary),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
-            Text(
-                text = backupsTitle,
-                style = MaterialTheme.typography.titleMedium,
+            CloudBackupControls(
+                selectedSource = selectedSource,
+                hasGoogleDriveBackup = hasGoogleDriveBackup,
+                canUseSelectedBackup = canUseSelectedBackup,
+                isLoading = isLoading,
+                autoBackupEnabled = autoBackupEnabled,
+                onBackupNow = ::requestBackupNow,
+                onAutoBackupChange = viewModel::setAutoBackup,
             )
-            Spacer(modifier = Modifier.height(8.dp))
 
-            if (isLoading && backups.isEmpty()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    CircularProgressIndicator()
-                    Text(loadingBackupsMessage)
+            BackupListSection(
+                title = backupsTitle,
+                loadingMessage = loadingBackupsMessage,
+                isLoading = isLoading,
+                backups = backups,
+                message = backupListMessage,
+                onRestore = viewModel::restoreBackup,
+                onDelete = viewModel::deleteBackup,
+            )
+        }
+    }
+}
+
+@Composable
+private fun BackupSourceSelector(
+    selectedSource: BackupSource,
+    hasGoogleDriveBackup: Boolean,
+    canUseGoogleDrive: Boolean,
+    onLoadBackups: () -> Unit,
+    onSwitchSource: (BackupSource) -> Unit,
+) {
+    Text(
+        text = stringResource(id = R.string.cloud_backup_source_title),
+        style = MaterialTheme.typography.titleMedium,
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (hasGoogleDriveBackup) {
+            BackupSourceButton(
+                selected = selectedSource == BackupSource.GOOGLE_DRIVE,
+                text = stringResource(id = R.string.backup_source_google),
+                onClick = {
+                    if (selectedSource == BackupSource.GOOGLE_DRIVE) {
+                        if (canUseGoogleDrive) onLoadBackups()
+                    } else {
+                        onSwitchSource(BackupSource.GOOGLE_DRIVE)
+                    }
+                },
+                modifier = Modifier.weight(1f),
+            )
+        }
+        BackupSourceButton(
+            selected = selectedSource == BackupSource.WEBDAV,
+            text = stringResource(id = R.string.backup_source_webdav),
+            onClick = {
+                if (selectedSource != BackupSource.WEBDAV) {
+                    onSwitchSource(BackupSource.WEBDAV)
                 }
-            } else if (backups.isEmpty()) {
+            },
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun BackupSourceButton(
+    selected: Boolean,
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (selected) {
+        Button(onClick = onClick, modifier = modifier) {
+            Text(text)
+        }
+    } else {
+        OutlinedButton(onClick = onClick, modifier = modifier) {
+            Text(text)
+        }
+    }
+}
+
+@Composable
+private fun GoogleDriveConfigSection(
+    showConfig: Boolean,
+    folderPath: String,
+    savedFolderPath: String,
+    onFolderPathChange: (String) -> Unit,
+    onEdit: () -> Unit,
+    onSave: () -> Unit,
+) {
+    if (showConfig) {
+        Text(
+            text = stringResource(id = R.string.cloud_backup_google_drive_config_title),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = folderPath,
+            onValueChange = onFolderPathChange,
+            label = { Text(stringResource(id = R.string.cloud_backup_google_drive_folder_path)) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(onClick = onSave, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(id = R.string.cloud_backup_save))
+        }
+    } else {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = backupListMessage ?: stringResource(id = R.string.cloud_backup_no_backups),
+                    text = stringResource(id = R.string.cloud_backup_google_drive_location, savedFolderPath),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Text(
+                    text = stringResource(id = R.string.cloud_backup_google_drive_visible_hint),
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            } else {
-                backupListMessage?.let { message ->
-                    Text(
-                        text = message,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(backups) { backup ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = backup.source.displayName(),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.primary,
-                                )
-                                Text(backup.name)
-                                Text(
-                                    text = stringResource(id = R.string.cloud_backup_item_size, backup.size.readableSize()),
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                            }
-                            Row {
-                                Button(onClick = { viewModel.restoreBackup(backup.id) }) {
-                                    Text(stringResource(id = R.string.cloud_backup_restore))
-                                }
-                                Button(onClick = { viewModel.deleteBackup(backup.id) }) {
-                                    Text(stringResource(id = R.string.cloud_backup_delete))
-                                }
-                            }
-                        }
-                    }
-                }
+            }
+            OutlinedButton(onClick = onEdit) {
+                Text(stringResource(id = R.string.cloud_backup_edit_config))
+            }
+        }
+    }
+    Spacer(modifier = Modifier.height(16.dp))
+}
+
+@Composable
+private fun WebDavConfigSection(
+    showConfig: Boolean,
+    server: String,
+    username: String,
+    password: String,
+    passwordVisible: Boolean,
+    remotePath: String,
+    isServerMissing: Boolean,
+    isUsernameMissing: Boolean,
+    isPasswordMissing: Boolean,
+    isLoading: Boolean,
+    onServerChange: (String) -> Unit,
+    onUsernameChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onTogglePasswordVisibility: () -> Unit,
+    onRemotePathChange: (String) -> Unit,
+    onEdit: () -> Unit,
+    onRemove: () -> Unit,
+    onSave: () -> Unit,
+    onTestConnection: () -> Unit,
+) {
+    if (showConfig) {
+        WebDavConfigForm(
+            server = server,
+            username = username,
+            password = password,
+            passwordVisible = passwordVisible,
+            remotePath = remotePath,
+            isServerMissing = isServerMissing,
+            isUsernameMissing = isUsernameMissing,
+            isPasswordMissing = isPasswordMissing,
+            isLoading = isLoading,
+            onServerChange = onServerChange,
+            onUsernameChange = onUsernameChange,
+            onPasswordChange = onPasswordChange,
+            onTogglePasswordVisibility = onTogglePasswordVisibility,
+            onRemotePathChange = onRemotePathChange,
+            onSave = onSave,
+            onTestConnection = onTestConnection,
+        )
+    } else {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Button(onClick = onEdit, modifier = Modifier.weight(1f)) {
+                Text(stringResource(id = R.string.cloud_backup_edit_config))
+            }
+            Button(onClick = onRemove, modifier = Modifier.weight(1f)) {
+                Text(stringResource(id = R.string.cloud_backup_remove_config))
+            }
+        }
+    }
+    Spacer(modifier = Modifier.height(16.dp))
+}
+
+@Composable
+private fun WebDavConfigForm(
+    server: String,
+    username: String,
+    password: String,
+    passwordVisible: Boolean,
+    remotePath: String,
+    isServerMissing: Boolean,
+    isUsernameMissing: Boolean,
+    isPasswordMissing: Boolean,
+    isLoading: Boolean,
+    onServerChange: (String) -> Unit,
+    onUsernameChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onTogglePasswordVisibility: () -> Unit,
+    onRemotePathChange: (String) -> Unit,
+    onSave: () -> Unit,
+    onTestConnection: () -> Unit,
+) {
+    Text(
+        text = stringResource(id = R.string.cloud_backup_webdav_config_title),
+        style = MaterialTheme.typography.titleMedium,
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+    RequiredTextField(
+        value = server,
+        onValueChange = onServerChange,
+        label = stringResource(id = R.string.cloud_backup_webdav_server_url),
+        isError = isServerMissing,
+    )
+    RequiredTextField(
+        value = username,
+        onValueChange = onUsernameChange,
+        label = stringResource(id = R.string.cloud_backup_webdav_username),
+        isError = isUsernameMissing,
+    )
+    PasswordTextField(
+        value = password,
+        onValueChange = onPasswordChange,
+        visible = passwordVisible,
+        isError = isPasswordMissing,
+        onToggleVisibility = onTogglePasswordVisibility,
+    )
+    OutlinedTextField(
+        value = remotePath,
+        onValueChange = onRemotePathChange,
+        label = { Text(stringResource(id = R.string.cloud_backup_webdav_remote_path)) },
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Button(onClick = onSave, modifier = Modifier.weight(1f)) {
+            Text(stringResource(id = R.string.cloud_backup_save))
+        }
+        Button(
+            onClick = onTestConnection,
+            enabled = !isLoading,
+            modifier = Modifier.weight(1f),
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
+            }
+            Text(stringResource(id = R.string.cloud_backup_test_connection))
+        }
+    }
+}
+
+@Composable
+private fun RequiredTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    isError: Boolean,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        isError = isError,
+        supportingText = {
+            if (isError) {
+                Text(stringResource(id = R.string.cloud_backup_field_required))
+            }
+        },
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+}
+
+@Composable
+private fun PasswordTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    visible: Boolean,
+    isError: Boolean,
+    onToggleVisibility: () -> Unit,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(stringResource(id = R.string.cloud_backup_webdav_password)) },
+        visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
+        trailingIcon = {
+            IconButton(onClick = onToggleVisibility) {
+                Icon(
+                    imageVector = if (visible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                    contentDescription = stringResource(
+                        id = if (visible) {
+                            R.string.cloud_backup_password_hide
+                        } else {
+                            R.string.cloud_backup_password_show
+                        },
+                    ),
+                )
+            }
+        },
+        isError = isError,
+        supportingText = {
+            if (isError) {
+                Text(stringResource(id = R.string.cloud_backup_field_required))
+            }
+        },
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+}
+
+@Composable
+private fun CloudBackupControls(
+    selectedSource: BackupSource,
+    hasGoogleDriveBackup: Boolean,
+    canUseSelectedBackup: Boolean,
+    isLoading: Boolean,
+    autoBackupEnabled: Boolean,
+    onBackupNow: () -> Unit,
+    onAutoBackupChange: (Boolean) -> Unit,
+) {
+    if ((selectedSource == BackupSource.GOOGLE_DRIVE && hasGoogleDriveBackup) || canUseSelectedBackup) {
+        Button(
+            onClick = onBackupNow,
+            enabled = !isLoading,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
+            }
+            Text(stringResource(id = R.string.cloud_backup_manual_backup))
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+
+    if (canUseSelectedBackup) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Checkbox(
+                checked = autoBackupEnabled,
+                onCheckedChange = onAutoBackupChange,
+            )
+            Column {
+                Text(stringResource(id = R.string.cloud_backup_auto_enable))
+                Text(
+                    text = stringResource(id = R.string.cloud_backup_auto_summary),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun BackupListSection(
+    title: String,
+    loadingMessage: String,
+    isLoading: Boolean,
+    backups: List<CloudBackupMeta>,
+    message: String?,
+    onRestore: (String) -> Unit,
+    onDelete: (String) -> Unit,
+) {
+    Text(text = title, style = MaterialTheme.typography.titleMedium)
+    Spacer(modifier = Modifier.height(8.dp))
+
+    when {
+        isLoading && backups.isEmpty() -> LoadingBackupList(loadingMessage)
+        backups.isEmpty() -> Text(
+            text = message ?: stringResource(id = R.string.cloud_backup_no_backups),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        else -> BackupList(backups, message, onRestore, onDelete)
+    }
+}
+
+@Composable
+private fun LoadingBackupList(message: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        CircularProgressIndicator()
+        Text(message)
+    }
+}
+
+@Composable
+private fun BackupList(
+    backups: List<CloudBackupMeta>,
+    message: String?,
+    onRestore: (String) -> Unit,
+    onDelete: (String) -> Unit,
+) {
+    message?.let {
+        Text(
+            text = it,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+    }
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(backups) { backup ->
+            BackupListItem(
+                backup = backup,
+                onRestore = { onRestore(backup.id) },
+                onDelete = { onDelete(backup.id) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun BackupListItem(
+    backup: CloudBackupMeta,
+    onRestore: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = backup.source.displayName(),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Text(backup.name)
+            Text(
+                text = stringResource(id = R.string.cloud_backup_item_size, backup.size.readableSize()),
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        Row {
+            Button(onClick = onRestore) {
+                Text(stringResource(id = R.string.cloud_backup_restore))
+            }
+            Button(onClick = onDelete) {
+                Text(stringResource(id = R.string.cloud_backup_delete))
             }
         }
     }
@@ -585,8 +755,8 @@ private fun Long.readableSize(): String {
     val units = listOf("B", "KB", "MB", "GB")
     var scaled = value
     var index = 0
-    while (scaled >= 1024.0 && index < units.lastIndex) {
-        scaled /= 1024.0
+    while (scaled >= BYTES_PER_KIB && index < units.lastIndex) {
+        scaled /= BYTES_PER_KIB
         index += 1
     }
     return if (index == 0) {
@@ -595,3 +765,5 @@ private fun Long.readableSize(): String {
         String.format(java.util.Locale.US, "%.1f %s", scaled, units[index])
     }
 }
+
+private const val BYTES_PER_KIB = 1024.0

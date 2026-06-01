@@ -42,8 +42,7 @@ class WebDavClient(private val config: WebDavConfig) {
                 .build()
 
             client.newCall(request).execute().use { response ->
-                // 405 means directory already exists
-                if (!response.isSuccessful && response.code != 405) {
+                if (!response.isSuccessful && response.code != HTTP_METHOD_NOT_ALLOWED) {
                     val body = response.body.string()
                     XLog.e(
                         "WebDAV MKCOL failed: code=%d path=%s body=%s",
@@ -246,6 +245,7 @@ class WebDavClient(private val config: WebDavConfig) {
     }
 
     private companion object {
+        const val HTTP_METHOD_NOT_ALLOWED = 405
         const val MAX_LOG_BODY_LENGTH = 512
     }
 }
