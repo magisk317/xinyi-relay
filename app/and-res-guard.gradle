@@ -13,8 +13,7 @@ andResGuard {
             "R.mipmap.ic_launcher_round",
             "R.mipmap.ic_launcher_foreground",
             
-            // Xposed module config
-            "R.array.xposed_scope",
+            // Application metadata
             "R.string.xposed_description",
             
             // App shortcuts

@@ -122,6 +122,9 @@ dependencies {
     add("playImplementation", libs.firebase.analytics)
     add("githubImplementation", platform(libs.firebase.bom))
     add("githubImplementation", libs.firebase.analytics)
+
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 val verifyNoRuntimePipelineLeak by tasks.registering {
