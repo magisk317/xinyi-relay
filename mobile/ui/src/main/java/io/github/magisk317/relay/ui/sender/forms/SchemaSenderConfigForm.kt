@@ -17,7 +17,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -331,6 +335,7 @@ internal fun SchemaSenderConfigForm(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SchemaSenderField(
     spec: SchemaSenderFormFieldSpec,
@@ -353,16 +358,49 @@ private fun SchemaSenderField(
         else -> draft.string(spec.name)
     }
     if (metadata.options.isNotEmpty()) {
-        SingleChoiceSegmentedSelector(
-            options = metadata.options.map { option ->
-                SegmentedOption(
-                    value = option.value,
-                    label = spec.optionLabelRes[option.value]?.let { stringResource(it) } ?: option.value,
+        if (metadata.options.size > 3) {
+            var expanded by remember { mutableStateOf(false) }
+            val selectedOptionLabel = spec.optionLabelRes[value]?.let { stringResource(it) } ?: value
+
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = it }
+            ) {
+                OutlinedTextField(
+                    value = selectedOptionLabel,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text(stringResource(spec.labelRes)) },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                 )
-            },
-            selected = value,
-            onSelect = { onDraftChange(draft.withString(spec.name, it)) },
-        )
+                ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    metadata.options.forEach { option ->
+                        val optionLabel = spec.optionLabelRes[option.value]?.let { stringResource(it) } ?: option.value
+                        DropdownMenuItem(
+                            text = { Text(optionLabel) },
+                            onClick = {
+                                onDraftChange(draft.withString(spec.name, option.value))
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
+        } else {
+            SingleChoiceSegmentedSelector(
+                options = metadata.options.map { option ->
+                    SegmentedOption(
+                        value = option.value,
+                        label = spec.optionLabelRes[option.value]?.let { stringResource(it) } ?: option.value,
+                    )
+                },
+                selected = value,
+                onSelect = { onDraftChange(draft.withString(spec.name, it)) },
+            )
+        }
         return
     }
 
