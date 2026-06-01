@@ -4,6 +4,11 @@
 
 ---
 
+## [Unreleased]
+- 版本：`versionCode 34` / `versionName 0.1.3`。
+
+---
+
 ## [v0.1.2] - 2026-06-01
 - 版本：`versionCode 33` / `versionName 0.1.2`。
 - `[core]` 修复通过容灾或文件重新导入短信时，会错误覆盖并清除已有“已转发”状态的问题。
