@@ -597,10 +597,8 @@ object SenderSettingSanitizer {
     fun sanitizeFeishuAppSetting(raw: FeishuAppSetting?, rawJson: JsonObject? = null): FeishuAppSetting {
         val defaults = FeishuAppSetting()
         val setting = FeishuAppSetting(
-            authType = safeString(resolveValue(raw?.authType, rawJson, "authType")).ifBlank { defaults.authType },
             appId = safeString(resolveValue(raw?.appId, rawJson, "appId")),
             appSecret = safeString(resolveValue(raw?.appSecret, rawJson, "appSecret")),
-            botToken = safeString(resolveValue(raw?.botToken, rawJson, "botToken")),
             receiveId = safeString(resolveValue(raw?.receiveId, rawJson, "receiveId")),
             msgType = safeString(resolveValue(raw?.msgType, rawJson, "msgType")).ifBlank { defaults.msgType },
             titleTemplate = safeString(resolveValue(raw?.titleTemplate, rawJson, "titleTemplate")),
@@ -609,20 +607,15 @@ object SenderSettingSanitizer {
             messageCard = safeString(resolveValue(raw?.messageCard, rawJson, "messageCard")),
         )
         val repaired = repairFields(
-            "authType" to setting.authType,
             "appId" to setting.appId,
             "appSecret" to setting.appSecret,
-            "botToken" to setting.botToken,
             "receiveId" to setting.receiveId,
             "msgType" to setting.msgType,
             "receiveIdType" to setting.receiveIdType,
         )
-        val authType = repaired.enumString("authType", defaults.authType)
         return setting.copy(
-            authType = authType,
-            appId = if (authType == "app_id") repaired.string("appId") else "",
-            appSecret = if (authType == "app_id") repaired.string("appSecret") else "",
-            botToken = if (authType == "token") repaired.string("botToken") else "",
+            appId = repaired.string("appId"),
+            appSecret = repaired.string("appSecret"),
             receiveId = repaired.string("receiveId"),
             msgType = repaired.enumString("msgType", defaults.msgType),
             receiveIdType = repaired.enumString("receiveIdType", defaults.receiveIdType),
@@ -911,12 +904,12 @@ object SenderSettingSanitizer {
 
     private fun hasStrongValidator(fieldName: String): Boolean {
         return when (fieldName) {
-            "method", "msgtype", "msgType", "msgKey", "contentType", "recvType", "parseMode", "proxyType", "authType", "receiveIdType",
+            "method", "msgtype", "msgType", "msgKey", "contentType", "recvType", "parseMode", "proxyType", "receiveIdType",
             "encryptionProtocol", "transformation", "level", "uriType", "priority",
             "server", "webServer", "webhook", "webHook", "customizeAPI", "apiBase", "callbackUrl", "url", "website",
             "authEmail", "fromEmail", "toEmail", "host", "port", "proxyPort", "simSlot", "qos",
             "ssl", "startTls", "atAll", "proxyAuthenticator", "retained", "onlyNoNetwork",
-            "apiToken", "chatId", "messageThreadId", "token", "botToken", "secret", "sendKey",
+            "apiToken", "chatId", "messageThreadId", "token", "secret", "sendKey",
             "appSecret", "appKey", "appId", "corpID", "agentID", "receiveId" -> true
             else -> false
         }
@@ -931,7 +924,6 @@ object SenderSettingSanitizer {
             "parseMode" -> normalized(value) in setOf("html", "markdownv2")
             "proxyType" -> safeString(value).trim().uppercase(Locale.ROOT) in setOf("DIRECT", "HTTP", "SOCKS") ||
                 value is Proxy.Type
-            "authType" -> normalized(value) in setOf("app_id", "token")
             "receiveIdType" -> normalized(value) in setOf("user_id", "open_id", "union_id", "email", "chat_id")
             "encryptionProtocol" -> safeString(value) in setOf("Plain", "S/MIME", "OpenPGP")
             "transformation" -> safeString(value) in setOf("none", "AES/GCM/NoPadding", "AES/CBC/PKCS5Padding")
@@ -948,7 +940,7 @@ object SenderSettingSanitizer {
             "apiToken" -> isTelegramBotToken(value)
             "chatId" -> isTelegramChatId(value)
             "messageThreadId" -> isTelegramThreadId(value)
-            "token", "botToken", "sendKey", "appSecret", "appKey", "appId", "receiveId" -> isLikelyToken(value)
+            "token", "sendKey", "appSecret", "appKey", "appId", "receiveId" -> isLikelyToken(value)
             "secret" -> isLikelySecret(value)
             "corpID" -> safeString(value).trim().startsWith("ww", ignoreCase = true)
             "agentID" -> safeString(value).trim().toLongOrNull() != null

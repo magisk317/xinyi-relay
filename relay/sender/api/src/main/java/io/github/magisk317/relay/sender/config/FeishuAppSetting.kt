@@ -7,10 +7,8 @@ import java.io.Serializable
 
 @KotlinSerializable
 data class FeishuAppSetting(
-    var authType: String = "app_id",
     var appId: String = "",
     val appSecret: String = "",
-    val botToken: String = "",
     val receiveId: String = "",
     val msgType: String = "interactive",
     val titleTemplate: String = "",

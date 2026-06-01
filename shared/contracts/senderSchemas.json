@@ -1128,29 +1128,12 @@
     "senderType": 13,
     "fields": [
       {
-        "name": "authType",
-        "type": "TEXT",
-        "aliases": [
-          "v"
-        ],
-        "requiredForEnable": false,
-        "defaultValue": "app_id",
-        "options": [
-          {
-            "value": "app_id"
-          },
-          {
-            "value": "token"
-          }
-        ]
-      },
-      {
         "name": "appId",
         "type": "SECRET",
         "aliases": [
           "o"
         ],
-        "requiredForEnable": false
+        "requiredForEnable": true
       },
       {
         "name": "appSecret",
@@ -1158,15 +1141,7 @@
         "aliases": [
           "p"
         ],
-        "requiredForEnable": false
-      },
-      {
-        "name": "botToken",
-        "type": "SECRET",
-        "aliases": [
-          "w"
-        ],
-        "requiredForEnable": false
+        "requiredForEnable": true
       },
       {
         "name": "receiveId",

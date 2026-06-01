@@ -225,15 +225,8 @@ const SENDER_FIELD_SCHEMAS: Record<number, SenderFieldSchema[]> = {
     field('proxyPassword', 'text', '代理密码', 'Proxy password'),
   ],
   13: [
-    field('authType', 'select', '鉴权方式', 'Auth type', {
-      options: [
-        { value: 'app_id', label: { en: 'App ID / Secret', 'zh-CN': 'App ID / Secret' } },
-        { value: 'token', label: { en: 'Bot Token', 'zh-CN': 'Bot Token' } },
-      ],
-    }),
-    field('appId', 'text', 'App ID', 'App ID', { showIf: { field: 'authType', equals: 'app_id' } }),
-    field('appSecret', 'text', 'App Secret', 'App secret', { showIf: { field: 'authType', equals: 'app_id' } }),
-    field('botToken', 'text', 'Bot Token', 'Bot token', { showIf: { field: 'authType', equals: 'token' } }),
+    field('appId', 'text', 'App ID', 'App ID'),
+    field('appSecret', 'text', 'App Secret', 'App secret'),
     field('receiveId', 'text', '接收 ID', 'Receive ID'),
     field('receiveIdType', 'select', '接收 ID 类型', 'Receive ID type', {
       options: [
@@ -365,17 +358,7 @@ function normalizePersistedSenderJson(type: number, rawJson: string): string {
     return rawJson.trim()
   }
 
-  const normalizedJson = normalizeSenderJson(type, rawJson)
-  const parsed = parseJsonObject(normalizedJson) ?? {}
-  const authType = parsed.authType === 'token' ? 'token' : 'app_id'
-  parsed.authType = authType
-  if (authType === 'token') {
-    parsed.appId = ''
-    parsed.appSecret = ''
-  } else {
-    parsed.botToken = ''
-  }
-  return JSON.stringify(parsed)
+  return normalizeSenderJson(type, rawJson)
 }
 
 export function getSenderFieldSchemas(type: number): SenderFieldSchema[] {
