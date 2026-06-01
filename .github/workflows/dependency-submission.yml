@@ -54,7 +54,23 @@ jobs:
         run: |
           snapshot="${{ steps.dependency-graph.outputs.dependency-graph-file }}"
           test -n "${snapshot}"
-          gh api \
+          response="$(mktemp)"
+          if gh api \
             --method POST \
             "/repos/${GITHUB_REPOSITORY}/dependency-graph/snapshots" \
-            --input "${snapshot}"
+            --input "${snapshot}" >"${response}" 2>&1; then
+            cat "${response}"
+            rm -f "${response}"
+            exit 0
+          else
+            status=$?
+          fi
+
+          cat "${response}" >&2
+          if grep -qi "Dependency graph is disabled" "${response}"; then
+            echo "Dependency graph is disabled for this repository; skipping snapshot submission."
+            rm -f "${response}"
+            exit 0
+          fi
+          rm -f "${response}"
+          exit "${status}"

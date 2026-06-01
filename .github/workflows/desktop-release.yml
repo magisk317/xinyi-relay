@@ -138,7 +138,7 @@ jobs:
           TAURI_LINUX_AYATANA_APPINDICATOR: ${{ matrix.os_name == 'linux' && '1' || '' }}
           WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
           WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-        run: pnpm tauri:build -- ${{ matrix.bundle_args }}
+        run: pnpm exec node ./scripts/with-system-pkg-config.mjs tauri build ${{ matrix.bundle_args }}
 
       - name: Upload desktop bundles
         uses: actions/upload-artifact@v7

@@ -150,7 +150,7 @@ jobs:
           WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         run: |
           cd desktop
-          pnpm tauri:build -- ${{ matrix.bundle_args }}
+          pnpm exec node ./scripts/with-system-pkg-config.mjs tauri build ${{ matrix.bundle_args }}
 
       - name: Upload AppImage artifact
         if: matrix.os_name == 'linux'
