@@ -3,6 +3,8 @@ package io.github.magisk317.relay.sender
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.net.RelayHttpClients
 import io.github.magisk317.relay.sender.config.PushdeerSetting
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import okhttp3.FormBody
 import okhttp3.Request
@@ -17,7 +19,7 @@ object PushdeerUtils {
         val error: String? = null,
     )
 
-    suspend fun sendMsg(setting: PushdeerSetting, msgInfo: MsgInfo) {
+    suspend fun sendMsg(setting: PushdeerSetting, msgInfo: MsgInfo) = withContext(Dispatchers.IO) {
         val title = if (setting.titleTemplate.isBlank()) "信息驿站: ${msgInfo.from}" else setting.titleTemplate
         val content = msgInfo.content
 

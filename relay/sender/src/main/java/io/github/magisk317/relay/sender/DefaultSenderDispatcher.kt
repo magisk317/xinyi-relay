@@ -14,9 +14,9 @@ import io.github.magisk317.relay.sender.config.FeishuAppSetting
 import io.github.magisk317.relay.sender.config.FeishuSetting
 import io.github.magisk317.relay.sender.config.GotifySetting
 import io.github.magisk317.relay.sender.config.NtfySetting
+import io.github.magisk317.relay.sender.config.PushdeerSetting
 import io.github.magisk317.relay.sender.config.PushplusSetting
 import io.github.magisk317.relay.sender.config.ServerchanSetting
-import io.github.magisk317.relay.sender.config.PushdeerSetting
 import io.github.magisk317.relay.sender.config.SmsSetting
 import io.github.magisk317.relay.sender.config.SocketSetting
 import io.github.magisk317.relay.sender.config.TelegramSetting
@@ -34,7 +34,7 @@ class DefaultSenderDispatcher(private val context: Context) : SenderDispatcher {
         traceId: String?,
     ): SenderDispatchResult {
         val safeSender = SenderSettingSanitizer.sanitizeSenderLenient(sender)
-        val senderName = safeSender.name.ifBlank { "通道${safeSender.type}" }
+        val senderName = SenderType.displayName(safeSender.type, safeSender.name)
         SLog.d(
             "DefaultSenderDispatcher",
             "Dispatching to sender: id=${safeSender.id}, type=${safeSender.type}, name=${safeSender.name}",

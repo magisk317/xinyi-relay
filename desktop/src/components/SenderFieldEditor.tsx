@@ -96,20 +96,28 @@ export function SenderFieldEditor({
   return (
     <div className="sender-editor">
       <div className="sender-editor-grid">
-        {fields.map((field) => (
-          <div key={field.key} className={field.fullWidth ? 'sender-editor-field sender-editor-field--full' : 'sender-editor-field'}>
-            <label className="field">
-              <span>{resolveSenderText(locale, field.label)}</span>
-              {renderField(
-                field,
-                formState[field.key],
-                locale,
-                (value, commit) => updateField(field, value, commit),
-                commitCurrentForm
-              )}
-            </label>
-          </div>
-        ))}
+        {fields.map((field) => {
+          if (field.showIf) {
+            const depValue = formState[field.showIf.field]
+            if (String(depValue ?? '') !== field.showIf.equals) {
+              return null
+            }
+          }
+          return (
+            <div key={field.key} className={field.fullWidth ? 'sender-editor-field sender-editor-field--full' : 'sender-editor-field'}>
+              <label className="field">
+                <span>{resolveSenderText(locale, field.label)}</span>
+                {renderField(
+                  field,
+                  formState[field.key],
+                  locale,
+                  (value, commit) => updateField(field, value, commit),
+                  commitCurrentForm
+                )}
+              </label>
+            </div>
+          )
+        })}
       </div>
 
       <details className="sender-editor-advanced">

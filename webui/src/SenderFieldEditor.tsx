@@ -141,14 +141,22 @@ function SenderFieldEditorInner({
         <div className="mb-3 text-sm font-medium text-[#435722]">{resolveEditorText(locale, EDITOR_TEXT.structured)}</div>
         <p className="mb-4 text-xs leading-6 text-[#6b775b]">{resolveEditorText(locale, EDITOR_TEXT.syncHint)}</p>
         <div className="grid gap-3 md:grid-cols-2">
-          {fields.map((field) => (
-            <div key={field.key} className={field.fullWidth ? 'md:col-span-2' : undefined}>
-              <label className="mb-2 block text-sm font-medium text-[#31411c]">
-                {resolveSenderText(locale, field.label)}
-              </label>
-              {renderField(field, formState[field.key], locale, (value, commit) => updateField(field, value, commit), commitCurrentForm)}
-            </div>
-          ))}
+          {fields.map((field) => {
+            if (field.showIf) {
+              const depValue = formState[field.showIf.field]
+              if (String(depValue ?? '') !== field.showIf.equals) {
+                return null
+              }
+            }
+            return (
+              <div key={field.key} className={field.fullWidth ? 'md:col-span-2' : undefined}>
+                <label className="mb-2 block text-sm font-medium text-[#31411c]">
+                  {resolveSenderText(locale, field.label)}
+                </label>
+                {renderField(field, formState[field.key], locale, (value, commit) => updateField(field, value, commit), commitCurrentForm)}
+              </div>
+            )
+          })}
         </div>
       </div>
 

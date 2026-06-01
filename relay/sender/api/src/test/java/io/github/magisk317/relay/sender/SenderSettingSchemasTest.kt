@@ -113,6 +113,8 @@ class SenderSettingSchemasTest {
         assertFieldDefault(SenderType.YUNHU, "contentType", "text")
         assertFieldOptions(SenderType.YUNHU, "recvType", "user", "group")
         assertFieldOptions(SenderType.YUNHU, "contentType", "text", "markdown")
+        assertFieldDefault(SenderType.PUSHDEER, "type", "markdown")
+        assertFieldOptions(SenderType.PUSHDEER, "type", "markdown", "text")
     }
 
     @Test

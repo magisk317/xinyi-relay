@@ -9,6 +9,7 @@ import io.github.magisk317.relay.sender.config.FeishuAppSetting
 import io.github.magisk317.relay.sender.config.FeishuSetting
 import io.github.magisk317.relay.sender.config.GotifySetting
 import io.github.magisk317.relay.sender.config.NtfySetting
+import io.github.magisk317.relay.sender.config.PushdeerSetting
 import io.github.magisk317.relay.sender.config.PushplusSetting
 import io.github.magisk317.relay.sender.config.ServerchanSetting
 import io.github.magisk317.relay.sender.config.SmsSetting
@@ -83,6 +84,11 @@ class SenderSettingDraftsTest {
         assertEquals(0, sms.int("simSlot"))
         assertEquals(false, sms.boolean("onlyNoNetwork"))
         assertEquals("""{"simSlot":0,"onlyNoNetwork":false}""", sms.toJson())
+
+        val pushdeer = SenderSettingDrafts.emptyWithDefaults(SenderType.PUSHDEER)
+        assertEquals("https://api2.pushdeer.com", pushdeer.string("server"))
+        assertEquals("markdown", pushdeer.string("type"))
+        assertEquals("""{"server":"https://api2.pushdeer.com","type":"markdown"}""", pushdeer.toJson())
     }
 
     @Test
@@ -173,6 +179,19 @@ class SenderSettingDraftsTest {
         assertEquals("9", serverchan.channel)
         assertEquals("openid", serverchan.openid)
         assertEquals("Relay", serverchan.titleTemplate)
+
+        val pushdeer = SenderSettingJson.decode<PushdeerSetting>(
+            SenderSettingDrafts.empty(SenderType.PUSHDEER)
+                .withString("server", "https://api2.pushdeer.com")
+                .withString("pushkey", "PDU123")
+                .withString("type", "markdown")
+                .withString("titleTemplate", "Relay")
+                .toJson(),
+        )
+        assertEquals("https://api2.pushdeer.com", pushdeer.server)
+        assertEquals("PDU123", pushdeer.pushkey)
+        assertEquals("markdown", pushdeer.type)
+        assertEquals("Relay", pushdeer.titleTemplate)
 
         val telegram = SenderSettingJson.decode<TelegramSetting>(
             SenderSettingDrafts.empty(SenderType.TELEGRAM)

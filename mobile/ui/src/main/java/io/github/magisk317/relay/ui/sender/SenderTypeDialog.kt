@@ -43,6 +43,7 @@ internal fun SenderTypeDialog(
             SenderType.DINGTALK_INNER_ROBOT to getSenderTypeName(context, SenderType.DINGTALK_INNER_ROBOT),
             SenderType.FEISHU to getSenderTypeName(context, SenderType.FEISHU),
             SenderType.FEISHU_APP to getSenderTypeName(context, SenderType.FEISHU_APP),
+
             SenderType.WEWORK_ROBOT to getSenderTypeName(context, SenderType.WEWORK_ROBOT),
             SenderType.WEWORK_AGENT to getSenderTypeName(context, SenderType.WEWORK_AGENT),
         ),

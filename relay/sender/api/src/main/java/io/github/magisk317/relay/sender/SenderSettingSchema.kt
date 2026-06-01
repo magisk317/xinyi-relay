@@ -37,10 +37,6 @@ data class SenderSettingSchema(
 
 object SenderSettingSchemas {
     val all: List<SenderSettingSchema> = listOf(
-            field("pushkey", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
-            field("type", aliases = arrayOf("q"), defaultValue = "markdown", options = arrayOf("markdown", "text", "image")),
-            field("titleTemplate", aliases = arrayOf("r")),
-        ),
         schema(
             SenderType.DINGTALK_GROUP_ROBOT,
             field("token", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("o")),
@@ -50,10 +46,6 @@ object SenderSettingSchemas {
             field("atDingtalkIds", aliases = arrayOf("s")),
             field("msgtype", aliases = arrayOf("t"), defaultValue = "text", options = arrayOf("text", "markdown")),
             field("titleTemplate", aliases = arrayOf("u")),
-        ),
-            field("pushkey", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
-            field("type", aliases = arrayOf("q"), defaultValue = "markdown", options = arrayOf("markdown", "text", "image")),
-            field("titleTemplate", aliases = arrayOf("r")),
         ),
         schema(
             SenderType.EMAIL,
@@ -73,10 +65,6 @@ object SenderSettingSchemas {
             field("password", SenderSettingFieldType.SECRET, "B"),
             field("encryptionProtocol", aliases = arrayOf("C")),
             field("fromEmailAlias", aliases = arrayOf("D")),
-        ),
-            field("pushkey", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
-            field("type", aliases = arrayOf("q"), defaultValue = "markdown", options = arrayOf("markdown", "text", "image")),
-            field("titleTemplate", aliases = arrayOf("r")),
         ),
         schema(
             SenderType.BARK,
@@ -99,10 +87,6 @@ object SenderSettingSchemas {
             field("call", aliases = arrayOf("z")),
             field("autoCopy", aliases = arrayOf("A")),
         ),
-            field("pushkey", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
-            field("type", aliases = arrayOf("q"), defaultValue = "markdown", options = arrayOf("markdown", "text", "image")),
-            field("titleTemplate", aliases = arrayOf("r")),
-        ),
         schema(
             SenderType.WEBHOOK,
             field("method", aliases = arrayOf("o"), defaultValue = "POST", options = arrayOf("GET", "POST")),
@@ -118,10 +102,6 @@ object SenderSettingSchemas {
             field("proxyUsername", aliases = arrayOf("y")),
             field("proxyPassword", SenderSettingFieldType.SECRET, "z"),
         ),
-            field("pushkey", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
-            field("type", aliases = arrayOf("q"), defaultValue = "markdown", options = arrayOf("markdown", "text", "image")),
-            field("titleTemplate", aliases = arrayOf("r")),
-        ),
         schema(
             SenderType.WEWORK_ROBOT,
             field("webHook", requiredForEnable = true, aliases = arrayOf("o")),
@@ -129,10 +109,6 @@ object SenderSettingSchemas {
             field("atAll", SenderSettingFieldType.BOOLEAN, "q", defaultValue = "false"),
             field("atUserIds", aliases = arrayOf("r")),
             field("atMobiles", aliases = arrayOf("s")),
-        ),
-            field("pushkey", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
-            field("type", aliases = arrayOf("q"), defaultValue = "markdown", options = arrayOf("markdown", "text", "image")),
-            field("titleTemplate", aliases = arrayOf("r")),
         ),
         schema(
             SenderType.WEWORK_AGENT,
@@ -151,19 +127,11 @@ object SenderSettingSchemas {
             field("proxyPassword", SenderSettingFieldType.SECRET, "A"),
             field("customizeAPI", aliases = arrayOf("B"), defaultValue = "https://qyapi.weixin.qq.com"),
         ),
-            field("pushkey", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
-            field("type", aliases = arrayOf("q"), defaultValue = "markdown", options = arrayOf("markdown", "text", "image")),
-            field("titleTemplate", aliases = arrayOf("r")),
-        ),
         schema(
             SenderType.SERVERCHAN,
             field("sendKey", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("o")),
             field("channel", aliases = arrayOf("p")),
             field("openid", aliases = arrayOf("q")),
-            field("titleTemplate", aliases = arrayOf("r")),
-        ),
-            field("pushkey", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
-            field("type", aliases = arrayOf("q"), defaultValue = "markdown", options = arrayOf("markdown", "text", "image")),
             field("titleTemplate", aliases = arrayOf("r")),
         ),
         schema(
@@ -181,19 +149,11 @@ object SenderSettingSchemas {
             field("proxyPassword", SenderSettingFieldType.SECRET, "x"),
             field("parseMode", aliases = arrayOf("y"), defaultValue = "HTML", options = arrayOf("HTML", "MarkdownV2")),
         ),
-            field("pushkey", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
-            field("type", aliases = arrayOf("q"), defaultValue = "markdown", options = arrayOf("markdown", "text", "image")),
-            field("titleTemplate", aliases = arrayOf("r")),
-        ),
         schema(
             SenderType.SMS,
             field("simSlot", SenderSettingFieldType.INTEGER, "o", defaultValue = "0"),
             field("mobiles", requiredForEnable = true, aliases = arrayOf("p")),
             field("onlyNoNetwork", SenderSettingFieldType.BOOLEAN, "q", defaultValue = "false"),
-        ),
-            field("pushkey", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
-            field("type", aliases = arrayOf("q"), defaultValue = "markdown", options = arrayOf("markdown", "text", "image")),
-            field("titleTemplate", aliases = arrayOf("r")),
         ),
         schema(
             SenderType.FEISHU,
@@ -202,10 +162,6 @@ object SenderSettingSchemas {
             field("msgType", aliases = arrayOf("q"), defaultValue = "interactive", options = arrayOf("interactive", "text")),
             field("titleTemplate", aliases = arrayOf("r")),
             field("messageCard", aliases = arrayOf("s")),
-        ),
-            field("pushkey", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
-            field("type", aliases = arrayOf("q"), defaultValue = "markdown", options = arrayOf("markdown", "text", "image")),
-            field("titleTemplate", aliases = arrayOf("r")),
         ),
         schema(
             SenderType.PUSHPLUS,
@@ -219,19 +175,11 @@ object SenderSettingSchemas {
             field("validTime", aliases = arrayOf("v")),
             field("titleTemplate", aliases = arrayOf("w")),
         ),
-            field("pushkey", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
-            field("type", aliases = arrayOf("q"), defaultValue = "markdown", options = arrayOf("markdown", "text", "image")),
-            field("titleTemplate", aliases = arrayOf("r")),
-        ),
         schema(
             SenderType.GOTIFY,
             field("webServer", requiredForEnable = true, aliases = arrayOf("o")),
             field("title", aliases = arrayOf("p")),
             field("priority", aliases = arrayOf("q"), defaultValue = "0"),
-        ),
-            field("pushkey", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
-            field("type", aliases = arrayOf("q"), defaultValue = "markdown", options = arrayOf("markdown", "text", "image")),
-            field("titleTemplate", aliases = arrayOf("r")),
         ),
         schema(
             SenderType.DINGTALK_INNER_ROBOT,
@@ -248,10 +196,6 @@ object SenderSettingSchemas {
             field("proxyUsername", aliases = arrayOf("y")),
             field("proxyPassword", SenderSettingFieldType.SECRET, "z"),
         ),
-            field("pushkey", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
-            field("type", aliases = arrayOf("q"), defaultValue = "markdown", options = arrayOf("markdown", "text", "image")),
-            field("titleTemplate", aliases = arrayOf("r")),
-        ),
         schema(
             SenderType.FEISHU_APP,
             field("appId", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("o")),
@@ -267,17 +211,9 @@ object SenderSettingSchemas {
             ),
             field("messageCard", aliases = arrayOf("u")),
         ),
-            field("pushkey", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
-            field("type", aliases = arrayOf("q"), defaultValue = "markdown", options = arrayOf("markdown", "text", "image")),
-            field("titleTemplate", aliases = arrayOf("r")),
-        ),
         schema(
             SenderType.URL_SCHEME,
             field("urlScheme", requiredForEnable = true, aliases = arrayOf("o")),
-        ),
-            field("pushkey", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
-            field("type", aliases = arrayOf("q"), defaultValue = "markdown", options = arrayOf("markdown", "text", "image")),
-            field("titleTemplate", aliases = arrayOf("r")),
         ),
         schema(
             SenderType.SOCKET,
@@ -299,10 +235,6 @@ object SenderSettingSchemas {
             field("qos", SenderSettingFieldType.INTEGER, "D"),
             field("retained", SenderSettingFieldType.BOOLEAN, "E"),
         ),
-            field("pushkey", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
-            field("type", aliases = arrayOf("q"), defaultValue = "markdown", options = arrayOf("markdown", "text", "image")),
-            field("titleTemplate", aliases = arrayOf("r")),
-        ),
         schema(
             SenderType.NTFY,
             field("server", requiredForEnable = true, aliases = arrayOf("o")),
@@ -312,19 +244,11 @@ object SenderSettingSchemas {
             field("priority", aliases = arrayOf("s"), defaultValue = "3"),
             field("tags", aliases = arrayOf("t")),
         ),
-            field("pushkey", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
-            field("type", aliases = arrayOf("q"), defaultValue = "markdown", options = arrayOf("markdown", "text", "image")),
-            field("titleTemplate", aliases = arrayOf("r")),
-        ),
-            field("pushkey", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
-            field("type", aliases = arrayOf("q"), defaultValue = "markdown", options = arrayOf("markdown", "text", "image")),
-            field("titleTemplate", aliases = arrayOf("r")),
-        ),
         schema(
             SenderType.PUSHDEER,
             field("server", aliases = arrayOf("o"), defaultValue = "https://api2.pushdeer.com"),
             field("pushkey", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
-            field("type", aliases = arrayOf("q"), defaultValue = "markdown", options = arrayOf("markdown", "text", "image")),
+            field("type", aliases = arrayOf("q"), defaultValue = "markdown", options = arrayOf("markdown", "text")),
             field("titleTemplate", aliases = arrayOf("r")),
         ),
         schema(
@@ -343,10 +267,6 @@ object SenderSettingSchemas {
 
     fun fieldsFor(type: Int): List<SenderSettingFieldMetadata> = schemaFor(type)?.fields.orEmpty()
 
-            field("pushkey", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
-            field("type", aliases = arrayOf("q"), defaultValue = "markdown", options = arrayOf("markdown", "text", "image")),
-            field("titleTemplate", aliases = arrayOf("r")),
-        ),
     private fun schema(
         senderType: Int,
         vararg fields: SenderSettingFieldMetadata,

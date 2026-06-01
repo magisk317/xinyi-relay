@@ -29,6 +29,7 @@ export type SenderFieldSchema = {
   placeholder?: LocalizedText
   rows?: number
   fullWidth?: boolean
+  showIf?: { field: string; equals: string }
   options?: ReadonlyArray<{
     value: string
     label: LocalizedText
@@ -227,8 +228,21 @@ const SENDER_FIELD_SCHEMAS: Record<number, SenderFieldSchema[]> = {
     field('appId', 'text', 'App ID', 'App ID'),
     field('appSecret', 'text', 'App Secret', 'App secret'),
     field('receiveId', 'text', '接收 ID', 'Receive ID'),
-    field('receiveIdType', 'text', '接收 ID 类型', 'Receive ID type'),
-    field('msgType', 'text', '消息类型', 'Message type'),
+    field('receiveIdType', 'select', '接收 ID 类型', 'Receive ID type', {
+      options: [
+        { value: 'user_id', label: { en: 'User ID', 'zh-CN': '用户 ID' } },
+        { value: 'open_id', label: { en: 'Open ID', 'zh-CN': '开放 ID' } },
+        { value: 'union_id', label: { en: 'Union ID', 'zh-CN': '统一 ID' } },
+        { value: 'email', label: { en: 'Email', 'zh-CN': '邮箱' } },
+        { value: 'chat_id', label: { en: 'Chat ID', 'zh-CN': '会话 ID' } },
+      ],
+    }),
+    field('msgType', 'select', '消息类型', 'Message type', {
+      options: [
+        { value: 'interactive', label: { en: 'Interactive', 'zh-CN': '交互卡片' } },
+        { value: 'text', label: { en: 'Text', 'zh-CN': '文本' } },
+      ],
+    }),
     field('titleTemplate', 'text', '标题模板', 'Title template'),
     field('messageCard', 'textarea', '消息卡片 JSON', 'Message card JSON', { rows: 5, fullWidth: true }),
   ],
@@ -286,7 +300,6 @@ const SENDER_FIELD_SCHEMAS: Record<number, SenderFieldSchema[]> = {
       options: [
         { value: 'markdown', label: { en: 'Markdown', 'zh-CN': 'Markdown', 'zh-TW': 'Markdown' } },
         { value: 'text', label: { en: 'Text', 'zh-CN': '文本', 'zh-TW': '文字' } },
-        { value: 'image', label: { en: 'Image', 'zh-CN': '图片', 'zh-TW': '圖片' } },
       ],
     }),
     field('titleTemplate', 'text', '标题模板', 'Title template'),
@@ -340,7 +353,7 @@ export function normalizeSnapshotSender(sender: SnapshotSender): SnapshotSender 
     id: Number.isFinite(sender.id) && sender.id > 0 ? Math.trunc(sender.id) : 0,
     type: Number.isFinite(sender.type) ? Math.trunc(sender.type) : 0,
     name: sender.name.trim(),
-    jsonSetting: sender.jsonSetting.trim(),
+    jsonSetting: normalizePersistedSenderJson(sender.type, sender.jsonSetting),
     activeSchedule: normalizeSenderActiveSchedule(sender.activeSchedule),
   }
 
@@ -349,6 +362,14 @@ export function normalizeSnapshotSender(sender: SnapshotSender): SnapshotSender 
   }
 
   return normalized
+}
+
+function normalizePersistedSenderJson(type: number, rawJson: string): string {
+  if (type !== 13) {
+    return rawJson.trim()
+  }
+
+  return normalizeSenderJson(type, rawJson)
 }
 
 export function getSenderFieldSchemas(type: number): SenderFieldSchema[] {
