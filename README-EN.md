@@ -118,10 +118,10 @@ Feedback and suggestions are welcome.
 - Fastlane changelog files `changelogs/{versionCode}.txt` are synchronized from `distribution/whatsnew`.
 - Tagging helper: `scripts/release_tag.sh [all|mobile|desktop|backend]`
 - Tag conventions:
-  - `v0.1.1`: full release (mobile + desktop + backend)
-  - `mobile-v0.1.1`: mobile only
-  - `desktop-v0.1.1`: desktop only
-  - `backend-v0.1.1`: backend only
+  - `v0.1.2`: full release (mobile + desktop + backend)
+  - `mobile-v0.1.2`: mobile only
+  - `desktop-v0.1.2`: desktop only
+  - `backend-v0.1.2`: backend only
 - `distribution/whatsnew` and Fastlane metadata are only required for full/mobile releases; desktop/backend component tags skip Android metadata validation.
 
 # Repository Notes

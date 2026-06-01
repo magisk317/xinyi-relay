@@ -4,14 +4,19 @@
 
 ---
 
-## [Unreleased] - 2026-05-10
-- `[sms-code]` 接入外置 `smscode-rules` 官方规则目录：APK 内置离线快照，运行时支持远程刷新与本地缓存，官方规则只读展示。
-- `[sms-code]` 验证码解析规则改为“用户自定义规则优先、官方规则按优先级、内置通用兜底”的分层合并模型；用户规则导入导出仍只处理本地自定义规则。
-- `[build]` 新增 `smscode-rules` 内容型子模块与 generated assets 同步任务，并将 `verifyEmbeddedSubmodules` 扩展到规则目录结构。
-- `[sender]` 现有 Compose 发送器表单均收敛到 `SchemaSenderConfigForm`，Bark、Email、Webhook、Feishu、钉钉内部应用、Socket、企业微信应用等通道继续保留必要的专属 UI，同时字段默认值和枚举选项统一从 `SenderSettingSchemas` 生成到共享合同。
-- `[diagnostics]` 运行日志配置从单文件大小限制改为按天轮转，默认保留 7 天、最低 1 天；新日志只使用 JSONL 落盘，启动和导出前会清理旧 `runtime*.log` 文本日志，导出包会对 `token=` / `ipc_token=` 字段脱敏，避免高频日志把当天之前的记录提前截断并减少排障分享时的敏感信息外泄。
-- `[diagnostics]` app 初始化与 Xposed service 连接日志改走显式 `LogRoute.APP` 的 `RelayLogger` API，避免启动诊断依赖调用栈推断 route；`XLog` 保留兼容转调。
-- `[ui]` 设置页“详细日志”点击后改为先弹窗预览日志内容、文件数量和大小，上方文件列表按类似 `ls -l` 的纵向等宽列展示并可横向滑动、点击切换预览，下方 JSONL 内容格式化展示且可全屏查看、切换换行，再选择分享或清空。
+## [v0.1.2] - 2026-06-01
+- 版本：`versionCode 33` / `versionName 0.1.2`。
+- `[core]` 修复通过容灾或文件重新导入短信时，会错误覆盖并清除已有“已转发”状态的问题。
+- `[backup]` 完善 WebDAV 与 Google Drive 云备份。支持自定义备份路径、密码显示，补充网络探测，并支持配置变更后真实触发自动备份。
+- `[sms-code]` 接入官方验证码规则快照。支持运行时远程刷新，解析遵循“用户优先、官方次之、内置兜底”策略。
+- `[scheduled]` 补齐定时短信核心执行链路，新增相关 UI 与 WebUI 配置页，完善启动期权限提示。
+- `[sender]` 新增云湖 Bot 通道。Telegram 支持自定义 API Base，Bark 支持 AES 加密。所有发送器表单收敛至统一视图。
+- `[desktop]` 桌面端支持本地、远程和混合模式，本地模式接入 SQLite。WebUI 与桌面端共用 API 客户端。
+- `[backend]` 增强服务端安全：支持版本化迁移、登录限流、Origin 校验和请求防爆，并增加记录保留期清理逻辑。
+- `[diagnostics]` 运行日志按天轮转并统一 JSONL 格式，导出时自动脱敏敏感 Token。App 全局提示 (Snackbar) 改为即时替换。
+- `[architecture]` 重构多处核心模块，移除无障碍保活废弃路径，DI 收敛到 Koin。升级 Java 26，补齐发布冲突恢复 CI 工作流。
+
+> Full Changelog: https://github.com/magisk317/xinyi-relay/compare/v0.1.1...v0.1.2
 
 ---
 

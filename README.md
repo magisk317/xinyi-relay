@@ -144,10 +144,10 @@ Backend 和 Desktop 都支持日志文件输出，便于问题排查：
 - Fastlane 的 `changelogs/{versionCode}.txt` 由 `distribution/whatsnew` 自动同步生成。
 - 打 tag 脚本：`scripts/release_tag.sh [all|mobile|desktop|backend]`
 - Tag 约定：
-  - `v0.1.1`：完整发布（移动端 + 桌面端 + 后端）
-  - `mobile-v0.1.1`：仅移动端
-  - `desktop-v0.1.1`：仅桌面端
-  - `backend-v0.1.1`：仅后端
+  - `v0.1.2`：完整发布（移动端 + 桌面端 + 后端）
+  - `mobile-v0.1.2`：仅移动端
+  - `desktop-v0.1.2`：仅桌面端
+  - `backend-v0.1.2`：仅后端
 - `distribution/whatsnew` / Fastlane metadata 仅对完整发布和移动端发布生效；桌面端与后端组件 tag 会跳过 Android 发布元数据校验。
 
 # 代码库说明
