@@ -167,6 +167,18 @@ const SENDER_FIELD_SCHEMAS: Record<number, SenderFieldSchema[]> = {
     field('openid', 'text', 'OpenID', 'OpenID'),
     field('titleTemplate', 'text', '标题模板', 'Title template'),
   ],
+  18: [
+    field('server', 'text', 'Server', 'Server'),
+    field('pushkey', 'text', 'PushKey', 'PushKey'),
+    field('type', 'select', '消息类型', 'Message type', {
+      options: [
+        { value: 'markdown', label: { en: 'Markdown', 'zh-CN': 'Markdown', 'zh-TW': 'Markdown' } },
+        { value: 'text', label: { en: 'Text', 'zh-CN': '文本', 'zh-TW': '文字' } },
+        { value: 'image', label: { en: 'Image', 'zh-CN': '图片', 'zh-TW': '圖片' } },
+      ],
+    }),
+    field('titleTemplate', 'text', '标题模板', 'Title template'),
+  ],
   7: [
     field('method', 'text', '请求方法', 'HTTP method'),
     field('apiBase', 'text', 'API 地址', 'API base'),
@@ -202,6 +214,18 @@ const SENDER_FIELD_SCHEMAS: Record<number, SenderFieldSchema[]> = {
     field('webhook', 'text', 'Webhook', 'Webhook'),
     field('callbackUrl', 'text', '回调地址', 'Callback URL'),
     field('validTime', 'text', '有效期', 'Valid time'),
+    field('titleTemplate', 'text', '标题模板', 'Title template'),
+  ],
+  18: [
+    field('server', 'text', 'Server', 'Server'),
+    field('pushkey', 'text', 'PushKey', 'PushKey'),
+    field('type', 'select', '消息类型', 'Message type', {
+      options: [
+        { value: 'markdown', label: { en: 'Markdown', 'zh-CN': 'Markdown', 'zh-TW': 'Markdown' } },
+        { value: 'text', label: { en: 'Text', 'zh-CN': '文本', 'zh-TW': '文字' } },
+        { value: 'image', label: { en: 'Image', 'zh-CN': '图片', 'zh-TW': '圖片' } },
+      ],
+    }),
     field('titleTemplate', 'text', '标题模板', 'Title template'),
   ],
   11: [
@@ -275,6 +299,18 @@ const SENDER_FIELD_SCHEMAS: Record<number, SenderFieldSchema[]> = {
       options: [
         { value: 'text', label: { en: 'Text', 'zh-CN': '文本', 'zh-TW': '文字' } },
         { value: 'markdown', label: { en: 'Markdown', 'zh-CN': 'Markdown', 'zh-TW': 'Markdown' } },
+      ],
+    }),
+    field('titleTemplate', 'text', '标题模板', 'Title template'),
+  ],
+  18: [
+    field('server', 'text', 'Server', 'Server'),
+    field('pushkey', 'text', 'PushKey', 'PushKey'),
+    field('type', 'select', '消息类型', 'Message type', {
+      options: [
+        { value: 'markdown', label: { en: 'Markdown', 'zh-CN': 'Markdown', 'zh-TW': 'Markdown' } },
+        { value: 'text', label: { en: 'Text', 'zh-CN': '文本', 'zh-TW': '文字' } },
+        { value: 'image', label: { en: 'Image', 'zh-CN': '图片', 'zh-TW': '圖片' } },
       ],
     }),
     field('titleTemplate', 'text', '标题模板', 'Title template'),
