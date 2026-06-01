@@ -135,10 +135,8 @@ object SenderValidator {
                     val setting = SenderSettingJson.decode(FeishuAppSetting.serializer(), safeSender.jsonSetting)
                     if (setting.receiveId.isBlank()) {
                         invalid("飞书应用 receiveId 不能为空")
-                    } else if (setting.authType == "app_id" && (setting.appId.isBlank() || setting.appSecret.isBlank())) {
+                    } else if (setting.appId.isBlank() || setting.appSecret.isBlank()) {
                         invalid("飞书应用 appId/appSecret 不能为空")
-                    } else if (setting.authType == "token" && setting.botToken.isBlank()) {
-                        invalid("飞书应用 Bot Token 不能为空")
                     } else ok()
                 }
 

@@ -42,7 +42,7 @@ class SenderValidatorNullSafetyTest {
     }
 
     @Test
-    fun validateForEnable_feishuAppTokenAuth_doesNotRequireAppCredentials() {
+    fun validateForEnable_feishuAppRequiresAppCredentials() {
         val sender = newSender(
             SenderType.FEISHU_APP,
             """{"authType":"token","botToken":"bot-token","receiveId":"receive-id"}""",
@@ -50,7 +50,8 @@ class SenderValidatorNullSafetyTest {
 
         val result = SenderValidator.validateForEnable(sender)
 
-        assertTrue(result.valid, result.message)
+        assertFalse(result.valid)
+        assertTrue(result.message.contains("appId/appSecret"))
     }
 
     private fun newSender(type: Int, json: String): Sender {

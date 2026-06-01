@@ -88,20 +88,21 @@ describe('shared sender schema contract', () => {
     expect(sanitized.port).toBe(1883)
   })
 
-  it('clears inactive Feishu App credentials only when snapshot senders are normalized', () => {
+  it('drops legacy Feishu App token auth fields when snapshot senders are normalized', () => {
     const editingJson = buildSenderJsonFromFormState(13, {
-      authType: 'app_id',
       appId: 'cli_a123',
       appSecret: 'app-secret',
-      botToken: 'bot-token',
-      receiveId: 'receive-id'
-    })
-    expect(JSON.parse(editingJson)).toMatchObject({
+      receiveId: 'receive-id',
       authType: 'app_id',
-      appId: 'cli_a123',
-      appSecret: 'app-secret',
       botToken: 'bot-token'
     })
+    expect(JSON.parse(editingJson)).toMatchObject({
+      appId: 'cli_a123',
+      appSecret: 'app-secret',
+      receiveId: 'receive-id'
+    })
+    expect(editingJson).not.toContain('authType')
+    expect(editingJson).not.toContain('botToken')
 
     const normalized = normalizeSnapshotSender({
       id: 1,
@@ -115,10 +116,11 @@ describe('shared sender schema contract', () => {
       receiveCallNotify: 0
     })
     expect(JSON.parse(normalized.jsonSetting)).toMatchObject({
-      authType: 'app_id',
       appId: 'cli_a123',
       appSecret: 'app-secret',
-      botToken: ''
+      receiveId: 'receive-id'
     })
+    expect(normalized.jsonSetting).not.toContain('authType')
+    expect(normalized.jsonSetting).not.toContain('botToken')
   })
 })
