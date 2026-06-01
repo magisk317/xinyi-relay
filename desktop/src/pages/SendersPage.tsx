@@ -15,7 +15,7 @@ import { buildDefaultSenderActiveSchedule } from '../../../shared/senderActiveSc
 import type { SnapshotSender } from '../../../shared/contracts/console'
 import { DesktopSelect, EmptyState, Metric, Panel, Tag } from '../ui'
 
-const SENDER_TYPE_OPTIONS = [3, 4, 5, 9, 13, 7, 16, 11, 10, 0, 12, 1, 2, 6, 8, 14, 15]
+const SENDER_TYPE_OPTIONS = [3, 4, 5, 9, 13, 7, 16, 18, 11, 10, 0, 12, 1, 2, 6, 8, 14, 15]
 const SENDER_REFRESH_EVENTS = ['config.updated'] as const
 
 export function SendersPage() {

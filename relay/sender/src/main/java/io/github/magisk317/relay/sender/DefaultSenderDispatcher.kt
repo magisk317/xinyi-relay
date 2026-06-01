@@ -14,6 +14,7 @@ import io.github.magisk317.relay.sender.config.FeishuAppSetting
 import io.github.magisk317.relay.sender.config.FeishuSetting
 import io.github.magisk317.relay.sender.config.GotifySetting
 import io.github.magisk317.relay.sender.config.NtfySetting
+import io.github.magisk317.relay.sender.config.PushdeerSetting
 import io.github.magisk317.relay.sender.config.PushplusSetting
 import io.github.magisk317.relay.sender.config.ServerchanSetting
 import io.github.magisk317.relay.sender.config.SmsSetting
@@ -119,6 +120,10 @@ class DefaultSenderDispatcher(private val context: Context) : SenderDispatcher {
                 )
                 SenderType.SOCKET -> SocketUtils.sendMsg(
                     SenderSettingJson.decode(SocketSetting.serializer(), safeSender.jsonSetting),
+                    msgInfo,
+                )
+                SenderType.PUSHDEER -> PushdeerUtils.sendMsg(
+                    SenderSettingJson.decode(PushdeerSetting.serializer(), safeSender.jsonSetting),
                     msgInfo,
                 )
                 SenderType.YUNHU -> YunhuUtils.sendMsg(

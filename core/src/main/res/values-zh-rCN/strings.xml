@@ -1237,6 +1237,7 @@
     <string name="sender_type_feishu_app">飞书应用</string>
     <string name="sender_type_url_scheme">URL Scheme</string>
     <string name="sender_type_socket">Socket</string>
+    <string name="sender_type_pushdeer">PushDeer</string>
     <string name="sender_type_yunhu">云湖</string>
     <string name="sender_type_unknown">未知通道</string>
     <string name="overview_runtime_diagnostics_shown">已显示运行时诊断</string>
