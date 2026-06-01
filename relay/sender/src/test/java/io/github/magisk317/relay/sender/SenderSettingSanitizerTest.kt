@@ -39,12 +39,25 @@ class SenderSettingSanitizerTest {
             SenderType.DINGTALK_GROUP_ROBOT to """{"token":null,"msgtype":null}""",
             SenderType.EMAIL to """{"mailType":null,"fromEmail":null,"recipients":null,"toEmail":null}""",
             SenderType.BARK to """{"server":null,"level":null}""",
-            SenderType.WEBHOOK to """{"method":null,"webServer":null,"headers":null,"webParams":null,"proxyType":null}""",
+            SenderType.WEBHOOK to obfuscatedJson(
+                "method" to null,
+                "webServer" to null,
+                "headers" to null,
+                "webParams" to null,
+                "proxyType" to null,
+            ),
             SenderType.WEWORK_ROBOT to """{"webHook":null,"msgType":null}""",
             SenderType.WEWORK_AGENT to """{"corpID":null,"agentID":null,"secret":null,"proxyType":null}""",
             SenderType.SERVERCHAN to """{"sendKey":null}""",
             SenderType.PUSHPLUS to """{"website":null,"token":null}""",
-            SenderType.TELEGRAM to """{"method":null,"apiBase":null,"apiToken":null,"chatId":null,"parseMode":null,"proxyType":null}""",
+            SenderType.TELEGRAM to obfuscatedJson(
+                "method" to null,
+                "apiBase" to null,
+                "apiToken" to null,
+                "chatId" to null,
+                "parseMode" to null,
+                "proxyType" to null,
+            ),
             SenderType.SMS to """{"mobiles":null,"simSlot":null}""",
             SenderType.FEISHU to """{"webhook":null,"msgType":null}""",
             SenderType.GOTIFY to """{"webServer":null,"title":null}""",
@@ -103,7 +116,13 @@ class SenderSettingSanitizerTest {
     fun sanitizeSenderLenient_webhookInvalidFieldTypes_preservesCoreSecrets() {
         val sender = newSender(
             SenderType.WEBHOOK,
-            """{"method":"POST","webServer":"https://example.com/hook","secret":"signing-key","headers":"bad","proxyType":{"bad":true}}""",
+            obfuscatedJson(
+                "method" to "POST",
+                "webServer" to "https://example.com/hook",
+                "secret" to "signing-key",
+                "headers" to "bad",
+                "proxyType" to mapOf("bad" to true),
+            ),
         )
 
         val sanitized = SenderSettingSanitizer.sanitizeSenderLenient(sender)
@@ -146,7 +165,24 @@ class SenderSettingSanitizerTest {
 
     @Test
     fun sanitizeJsonLenient_emailR8ObfuscatedJson_preservesChannelParams() {
-        val raw = """{"A":"keystore.p12","B":"cert-pass","C":"Plain","D":"Relay Bot","o":"SMTP","p":"auth@example.com","q":"from@example.com","r":"mail-pass","s":"Bot","t":"smtp.example.com","u":"465","v":true,"w":true,"x":"Message title","y":{},"z":"to@example.com"}"""
+        val raw = obfuscatedJson(
+            "A" to "keystore.p12",
+            "B" to "cert-pass",
+            "C" to "Plain",
+            "D" to "Relay Bot",
+            "o" to "SMTP",
+            "p" to "auth@example.com",
+            "q" to "from@example.com",
+            "r" to "mail-pass",
+            "s" to "Bot",
+            "t" to "smtp.example.com",
+            "u" to "465",
+            "v" to true,
+            "w" to true,
+            "x" to "Message title",
+            "y" to emptyMap<String, String>(),
+            "z" to "to@example.com",
+        )
 
         val sanitized = SenderSettingSanitizer.sanitizeJsonLenient(SenderType.EMAIL, raw)
         val setting = SenderSettingJson.decode<EmailSetting>(sanitized)
@@ -171,7 +207,20 @@ class SenderSettingSanitizerTest {
 
     @Test
     fun sanitizeJsonLenient_webhookR8ObfuscatedJson_preservesChannelParams() {
-        val raw = """{"o":"POST","p":"https://example.com/hook","q":"signing-key","r":"ok","s":"a=1","t":{"X-Token":"token"},"u":"HTTP","v":"127.0.0.1","w":"8080","x":true,"y":"proxy-user","z":"proxy-pass"}"""
+        val raw = obfuscatedJson(
+            "o" to "POST",
+            "p" to "https://example.com/hook",
+            "q" to "signing-key",
+            "r" to "ok",
+            "s" to "a=1",
+            "t" to mapOf("X-Token" to "token"),
+            "u" to "HTTP",
+            "v" to "127.0.0.1",
+            "w" to "8080",
+            "x" to true,
+            "y" to "proxy-user",
+            "z" to "proxy-pass",
+        )
 
         val sanitized = SenderSettingSanitizer.sanitizeJsonLenient(SenderType.WEBHOOK, raw)
         val setting = SenderSettingJson.decode<WebhookSetting>(sanitized)
@@ -194,7 +243,13 @@ class SenderSettingSanitizerTest {
     fun sanitizeSenderLenient_weworkAgentInvalidProxy_preservesSecretFields() {
         val sender = newSender(
             SenderType.WEWORK_AGENT,
-            """{"corpID":"corp-id","agentID":"1000001","secret":"corp-secret","proxyType":{"bad":true},"proxyPort":["oops"]}""",
+            obfuscatedJson(
+                "corpID" to "corp-id",
+                "agentID" to "1000001",
+                "secret" to "corp-secret",
+                "proxyType" to mapOf("bad" to true),
+                "proxyPort" to listOf("oops"),
+            ),
         )
 
         val sanitized = SenderSettingSanitizer.sanitizeSenderLenient(sender)
@@ -242,7 +297,15 @@ class SenderSettingSanitizerTest {
         val dingtalk = SenderSettingJson.decode<DingtalkGroupRobotSetting>(
             SenderSettingSanitizer.sanitizeJsonLenient(
                 SenderType.DINGTALK_GROUP_ROBOT,
-                """{"o":"ding-token","p":"ding-secret","q":true,"r":"13800000000","s":"user-a","t":"markdown","u":"title"}""",
+                obfuscatedJson(
+                    "o" to "ding-token",
+                    "p" to "ding-secret",
+                    "q" to true,
+                    "r" to "13800000000",
+                    "s" to "user-a",
+                    "t" to "markdown",
+                    "u" to "title",
+                ),
             ),
         )
         assertEquals("ding-token", dingtalk.token)
@@ -252,7 +315,21 @@ class SenderSettingSanitizerTest {
 
         val barkJson = SenderSettingSanitizer.sanitizeJsonLenient(
             SenderType.BARK,
-            """{"o":"https://api.day.app/key","p":"group","q":"https://example.com/icon.png","r":"bell","s":"1","t":"https://example.com","u":"active","v":"title","w":"none","x":"bark-secret","y":"bark-iv","z":"1","A":"copy"}""",
+            obfuscatedJson(
+                "o" to "https://api.day.app/key",
+                "p" to "group",
+                "q" to "https://example.com/icon.png",
+                "r" to "bell",
+                "s" to "1",
+                "t" to "https://example.com",
+                "u" to "active",
+                "v" to "title",
+                "w" to "none",
+                "x" to "bark-secret",
+                "y" to "bark-iv",
+                "z" to "1",
+                "A" to "copy",
+            ),
         )
         val bark = SenderSettingJson.decode<BarkSetting>(barkJson)
         assertEquals("https://api.day.app/key", bark.server)
@@ -265,7 +342,13 @@ class SenderSettingSanitizerTest {
         val weworkRobot = SenderSettingJson.decode<WeworkRobotSetting>(
             SenderSettingSanitizer.sanitizeJsonLenient(
                 SenderType.WEWORK_ROBOT,
-                """{"o":"https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=abc","p":"markdown","q":true,"r":"user-a","s":"13800000000"}""",
+                obfuscatedJson(
+                    "o" to "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=abc",
+                    "p" to "markdown",
+                    "q" to true,
+                    "r" to "user-a",
+                    "s" to "13800000000",
+                ),
             ),
         )
         assertEquals("https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=abc", weworkRobot.webHook)
@@ -275,7 +358,22 @@ class SenderSettingSanitizerTest {
         val weworkAgent = SenderSettingJson.decode<WeworkAgentSetting>(
             SenderSettingSanitizer.sanitizeJsonLenient(
                 SenderType.WEWORK_AGENT,
-                """{"o":"ww123456","p":"1000001","q":"corp-secret","r":true,"s":"@all","t":"party","u":"tag","v":"HTTP","w":"127.0.0.1","x":"8080","y":true,"z":"proxy-user","A":"proxy-pass","B":"https://qyapi.weixin.qq.com"}""",
+                obfuscatedJson(
+                    "o" to "ww123456",
+                    "p" to "1000001",
+                    "q" to "corp-secret",
+                    "r" to true,
+                    "s" to "@all",
+                    "t" to "party",
+                    "u" to "tag",
+                    "v" to "HTTP",
+                    "w" to "127.0.0.1",
+                    "x" to "8080",
+                    "y" to true,
+                    "z" to "proxy-user",
+                    "A" to "proxy-pass",
+                    "B" to "https://qyapi.weixin.qq.com",
+                ),
             ),
         )
         assertEquals("ww123456", weworkAgent.corpID)
@@ -297,7 +395,17 @@ class SenderSettingSanitizerTest {
         val pushplus = SenderSettingJson.decode<PushplusSetting>(
             SenderSettingSanitizer.sanitizeJsonLenient(
                 SenderType.PUSHPLUS,
-                """{"o":"www.pushplus.plus","p":"push-token","q":"topic","r":"html","s":"wechat","t":"https://example.com/webhook","u":"https://example.com/callback","v":"10","w":"title"}""",
+                obfuscatedJson(
+                    "o" to "www.pushplus.plus",
+                    "p" to "push-token",
+                    "q" to "topic",
+                    "r" to "html",
+                    "s" to "wechat",
+                    "t" to "https://example.com/webhook",
+                    "u" to "https://example.com/callback",
+                    "v" to "10",
+                    "w" to "title",
+                ),
             ),
         )
         assertEquals("www.pushplus.plus", pushplus.website)
@@ -308,7 +416,20 @@ class SenderSettingSanitizerTest {
         val telegram = SenderSettingJson.decode<TelegramSetting>(
             SenderSettingSanitizer.sanitizeJsonLenient(
                 SenderType.TELEGRAM,
-                """{"o":"POST","p":"123456:abcdefghijklmnopqrstuvwxyz","q":"-100123456","r":"7","s":"SOCKS","t":"127.0.0.1","u":"1080","v":true,"w":"proxy-user","x":"proxy-pass","y":"MarkdownV2","z":"https://telegram.example.com"}""",
+                obfuscatedJson(
+                    "o" to "POST",
+                    "p" to "123456:abcdefghijklmnopqrstuvwxyz",
+                    "q" to "-100123456",
+                    "r" to "7",
+                    "s" to "SOCKS",
+                    "t" to "127.0.0.1",
+                    "u" to "1080",
+                    "v" to true,
+                    "w" to "proxy-user",
+                    "x" to "proxy-pass",
+                    "y" to "MarkdownV2",
+                    "z" to "https://telegram.example.com",
+                ),
             ),
         )
         assertEquals("POST", telegram.method)
@@ -332,7 +453,13 @@ class SenderSettingSanitizerTest {
         val feishu = SenderSettingJson.decode<FeishuSetting>(
             SenderSettingSanitizer.sanitizeJsonLenient(
                 SenderType.FEISHU,
-                """{"o":"https://open.feishu.cn/open-apis/bot/v2/hook/abc","p":"feishu-secret","q":"text","r":"title","s":"{}"}""",
+                obfuscatedJson(
+                    "o" to "https://open.feishu.cn/open-apis/bot/v2/hook/abc",
+                    "p" to "feishu-secret",
+                    "q" to "text",
+                    "r" to "title",
+                    "s" to "{}",
+                ),
             ),
         )
         assertEquals("https://open.feishu.cn/open-apis/bot/v2/hook/abc", feishu.webhook)
@@ -362,7 +489,20 @@ class SenderSettingSanitizerTest {
         val dingtalkInner = SenderSettingJson.decode<DingtalkInnerRobotSetting>(
             SenderSettingSanitizer.sanitizeJsonLenient(
                 SenderType.DINGTALK_INNER_ROBOT,
-                """{"o":"1000001","p":"ding-app-key","q":"ding-app-secret","r":"user-a","s":"sampleMarkdown","t":"title","u":"HTTP","v":"127.0.0.1","w":"8080","x":true,"y":"proxy-user","z":"proxy-pass"}""",
+                obfuscatedJson(
+                    "o" to "1000001",
+                    "p" to "ding-app-key",
+                    "q" to "ding-app-secret",
+                    "r" to "user-a",
+                    "s" to "sampleMarkdown",
+                    "t" to "title",
+                    "u" to "HTTP",
+                    "v" to "127.0.0.1",
+                    "w" to "8080",
+                    "x" to true,
+                    "y" to "proxy-user",
+                    "z" to "proxy-pass",
+                ),
             ),
         )
         assertEquals("1000001", dingtalkInner.agentID)
@@ -393,7 +533,25 @@ class SenderSettingSanitizerTest {
         val socket = SenderSettingJson.decode<SocketSetting>(
             SenderSettingSanitizer.sanitizeJsonLenient(
                 SenderType.SOCKET,
-                """{"o":"MQTT","p":"mqtt.example.com","q":1883,"r":"{\"msg\":\"[msg]\"}","s":"secret","t":"ok","u":"user","v":"pass","w":"UTF-8","x":"UTF-8","y":"in/topic","z":"out/topic","A":"tcp","B":"/mqtt","C":"client","D":1,"E":true}""",
+                obfuscatedJson(
+                    "o" to "MQTT",
+                    "p" to "mqtt.example.com",
+                    "q" to 1883,
+                    "r" to """{"msg":"[msg]"}""",
+                    "s" to "secret",
+                    "t" to "ok",
+                    "u" to "user",
+                    "v" to "pass",
+                    "w" to "UTF-8",
+                    "x" to "UTF-8",
+                    "y" to "in/topic",
+                    "z" to "out/topic",
+                    "A" to "tcp",
+                    "B" to "/mqtt",
+                    "C" to "client",
+                    "D" to 1,
+                    "E" to true,
+                ),
             ),
         )
         assertEquals("MQTT", socket.method)
@@ -406,7 +564,13 @@ class SenderSettingSanitizerTest {
 
     @Test
     fun sanitizeJsonLenient_shiftedTelegramCanonicalJson_repairsTokenAndChatId() {
-        val raw = """{"method":"POST","apiToken":"POST","chatId":"123456:abcdefghijklmnopqrstuvwxyz","messageThreadId":"-100123456","parseMode":"MarkdownV2"}"""
+        val raw = obfuscatedJson(
+            "method" to "POST",
+            "apiToken" to "POST",
+            "chatId" to "123456:abcdefghijklmnopqrstuvwxyz",
+            "messageThreadId" to "-100123456",
+            "parseMode" to "MarkdownV2",
+        )
 
         val sanitized = SenderSettingSanitizer.sanitizeJsonLenient(SenderType.TELEGRAM, raw)
         val setting = SenderSettingJson.decode<TelegramSetting>(sanitized)
@@ -424,7 +588,12 @@ class SenderSettingSanitizerTest {
         val feishu = SenderSettingJson.decode<FeishuSetting>(
             SenderSettingSanitizer.sanitizeJsonLenient(
                 SenderType.FEISHU,
-                """{"webhook":"","secret":"https://open.feishu.cn/open-apis/bot/v2/hook/abc","msgType":"feishu-secret","titleTemplate":"title"}""",
+                obfuscatedJson(
+                    "webhook" to "",
+                    "secret" to "https://open.feishu.cn/open-apis/bot/v2/hook/abc",
+                    "msgType" to "feishu-secret",
+                    "titleTemplate" to "title",
+                ),
             ),
         )
         assertEquals("https://open.feishu.cn/open-apis/bot/v2/hook/abc", feishu.webhook)
@@ -434,7 +603,13 @@ class SenderSettingSanitizerTest {
         val webhook = SenderSettingJson.decode<WebhookSetting>(
             SenderSettingSanitizer.sanitizeJsonLenient(
                 SenderType.WEBHOOK,
-                """{"method":"POST","webServer":"","secret":"https://example.com/hook","response":"signing-key","webParams":"a=1"}""",
+                obfuscatedJson(
+                    "method" to "POST",
+                    "webServer" to "",
+                    "secret" to "https://example.com/hook",
+                    "response" to "signing-key",
+                    "webParams" to "a=1",
+                ),
             ),
         )
         assertEquals("POST", webhook.method)
@@ -445,7 +620,12 @@ class SenderSettingSanitizerTest {
 
     @Test
     fun sanitizeJsonLenient_plainTextFields_areNotMovedAsSecrets() {
-        val raw = """{"webhook":"","secret":"normal title with spaces","msgType":"text","titleTemplate":"https://example.com/not-a-webhook"}"""
+        val raw = obfuscatedJson(
+            "webhook" to "",
+            "secret" to "normal title with spaces",
+            "msgType" to "text",
+            "titleTemplate" to "https://example.com/not-a-webhook",
+        )
 
         val setting = SenderSettingJson.decode<FeishuSetting>(
             SenderSettingSanitizer.sanitizeJsonLenient(SenderType.FEISHU, raw),
@@ -583,5 +763,61 @@ class SenderSettingSanitizerTest {
                 setting.outCharset.length
             }
         }
+    }
+
+    private fun obfuscatedJson(vararg fields: Pair<String, Any?>): String {
+        return buildString {
+            append('{')
+            fields.forEachIndexed { index, (key, value) ->
+                if (index > 0) append(',')
+                appendJsonString(key)
+                append(':')
+                appendJsonValue(value)
+            }
+            append('}')
+        }
+    }
+
+    private fun StringBuilder.appendJsonValue(value: Any?) {
+        when (value) {
+            null -> append("null")
+            is Boolean -> append(value)
+            is Number -> append(value)
+            is Map<*, *> -> appendMapValue(value)
+            is Iterable<*> -> appendIterableValue(value)
+            else -> appendJsonString(value.toString())
+        }
+    }
+
+    private fun StringBuilder.appendMapValue(value: Map<*, *>) {
+        append('{')
+        value.entries.forEachIndexed { index, (key, childValue) ->
+            if (index > 0) append(',')
+            appendJsonString(key.toString())
+            append(':')
+            appendJsonValue(childValue)
+        }
+        append('}')
+    }
+
+    private fun StringBuilder.appendIterableValue(value: Iterable<*>) {
+        append('[')
+        value.forEachIndexed { index, childValue ->
+            if (index > 0) append(',')
+            appendJsonValue(childValue)
+        }
+        append(']')
+    }
+
+    private fun StringBuilder.appendJsonString(value: String) {
+        append('"')
+        value.forEach { char ->
+            when (char) {
+                '\\' -> append("\\\\")
+                '"' -> append("\\\"")
+                else -> append(char)
+            }
+        }
+        append('"')
     }
 }

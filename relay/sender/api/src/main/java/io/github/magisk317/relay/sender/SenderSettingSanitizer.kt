@@ -37,6 +37,9 @@ import java.net.Proxy
 import java.util.Locale
 
 object SenderSettingSanitizer {
+    private const val TELEGRAM_BOT_ID_MIN_LENGTH = 5
+    private const val TELEGRAM_BOT_SECRET_MIN_LENGTH = 20
+
     fun sanitizeSenderLenient(sender: Sender): Sender {
         val safeJson = sanitizeJsonLenient(sender.type, sender.jsonSetting)
         val safeSchedule = SenderActiveScheduleEvaluator.sanitize(sender.activeSchedule)
@@ -1011,7 +1014,9 @@ object SenderSettingSanitizer {
         val text = safeString(value).trim()
         val split = text.split(':', limit = 2)
         if (split.size != 2) return false
-        return split[0].all { it.isDigit() } && split[0].length >= 5 && split[1].length >= 20
+        return split[0].all { it.isDigit() } &&
+            split[0].length >= TELEGRAM_BOT_ID_MIN_LENGTH &&
+            split[1].length >= TELEGRAM_BOT_SECRET_MIN_LENGTH
     }
 
     private fun isTelegramChatId(value: Any?): Boolean {

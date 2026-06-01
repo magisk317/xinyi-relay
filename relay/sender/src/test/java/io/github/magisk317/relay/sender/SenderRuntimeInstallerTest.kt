@@ -5,6 +5,7 @@ import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.engine.service.ScheduledSmsSender
 import io.github.magisk317.relay.engine.service.SenderConfigSanitizer
+import io.github.magisk317.relay.engine.service.SenderDispatchResult
 import io.github.magisk317.relay.engine.service.SenderDispatcher
 import io.github.magisk317.relay.engine.service.SenderRuntimeServiceRegistry
 import io.github.magisk317.relay.engine.service.SenderRuntimeServices
@@ -50,8 +51,12 @@ class SenderRuntimeInstallerTest {
     }
 
     private fun fakeDispatcher(name: String): SenderDispatcher = object : SenderDispatcher {
-        override suspend fun dispatchToSender(sender: Sender, msgInfo: MsgInfo, traceId: String?): io.github.magisk317.relay.engine.service.SenderDispatchResult {
-            return io.github.magisk317.relay.engine.service.SenderDispatchResult(
+        override suspend fun dispatchToSender(
+            sender: Sender,
+            msgInfo: MsgInfo,
+            traceId: String?,
+        ): SenderDispatchResult {
+            return SenderDispatchResult(
                 senderId = sender.id,
                 senderType = sender.type,
                 senderName = "$name-${sender.name}",
