@@ -11,6 +11,7 @@ import io.github.magisk317.relay.sender.config.GotifySetting
 import io.github.magisk317.relay.sender.config.NtfySetting
 import io.github.magisk317.relay.sender.config.PushplusSetting
 import io.github.magisk317.relay.sender.config.ServerchanSetting
+import io.github.magisk317.relay.sender.config.PushdeerSetting
 import io.github.magisk317.relay.sender.config.SmsSetting
 import io.github.magisk317.relay.sender.config.SocketSetting
 import io.github.magisk317.relay.sender.config.TelegramSetting
@@ -156,6 +157,12 @@ object SenderSettingSanitizer {
                 canonicalJson,
                 NtfySetting.serializer(),
                 ::sanitizeNtfySetting,
+            )
+            SenderType.PUSHDEER -> sanitizeSettingJson(
+                parseJson,
+                canonicalJson,
+                PushdeerSetting.serializer(),
+                ::sanitizePushdeerSetting,
             )
             SenderType.YUNHU -> sanitizeSettingJson(
                 parseJson,
@@ -415,6 +422,28 @@ object SenderSettingSanitizer {
             webhook = repaired.string("webhook"),
             callbackUrl = repaired.string("callbackUrl"),
             validTime = repaired.string("validTime"),
+        )
+    }
+
+    fun sanitizePushdeerSetting(raw: PushdeerSetting?, rawJson: kotlinx.serialization.json.JsonObject? = null): PushdeerSetting {
+        val defaults = PushdeerSetting()
+        val setting = PushdeerSetting(
+            server = safeString(resolveValue(raw?.server, rawJson, "server")),
+            pushkey = safeString(resolveValue(raw?.pushkey, rawJson, "pushkey")),
+            type = safeString(resolveValue(raw?.type, rawJson, "type")),
+            titleTemplate = safeString(resolveValue(raw?.titleTemplate, rawJson, "titleTemplate")),
+        )
+        val repaired = repairJson(
+            "server" to setting.server,
+            "pushkey" to setting.pushkey,
+            "type" to setting.type,
+            "titleTemplate" to setting.titleTemplate,
+        )
+        return PushdeerSetting(
+            server = repaired.string("server").ifBlank { defaults.server },
+            pushkey = repaired.string("pushkey"),
+            type = repaired.string("type").ifBlank { defaults.type },
+            titleTemplate = repaired.string("titleTemplate"),
         )
     }
 

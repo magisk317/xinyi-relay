@@ -11,6 +11,7 @@ import io.github.magisk317.relay.sender.config.GotifySetting
 import io.github.magisk317.relay.sender.config.NtfySetting
 import io.github.magisk317.relay.sender.config.PushplusSetting
 import io.github.magisk317.relay.sender.config.ServerchanSetting
+import io.github.magisk317.relay.sender.config.PushdeerSetting
 import io.github.magisk317.relay.sender.config.SmsSetting
 import io.github.magisk317.relay.sender.config.SocketSetting
 import io.github.magisk317.relay.sender.config.TelegramSetting
@@ -147,6 +148,11 @@ object SenderValidator {
                     if (setting.address.isBlank() || setting.port <= 0) {
                         invalid("Socket 地址或端口不正确")
                     } else ok()
+                }
+
+                SenderType.PUSHDEER -> {
+                    val setting = SenderSettingJson.decode(PushdeerSetting.serializer(), safeSender.jsonSetting)
+                    if (setting.pushkey.isBlank()) invalid("PushDeer PushKey 不能为空") else ok()
                 }
 
                 SenderType.YUNHU -> {

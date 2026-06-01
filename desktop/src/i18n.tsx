@@ -303,6 +303,7 @@ const zhCnMessages: Messages = {
   'senders.type.urlScheme': 'URL Scheme',
   'senders.type.socket': 'Socket / MQTT',
   'senders.type.ntfy': 'ntfy',
+  'senders.type.pushdeer': 'PushDeer',
   'senders.type.yunhu': '云湖',
   'advanced.backendProfilesTitle': '后端配置',
   'advanced.backendProfilesSubtitle': '桌面端会在本地保存多个后端地址，并可在不打开浏览器的情况下切换。',
@@ -663,6 +664,7 @@ const enMessages: Messages = {
   'senders.type.urlScheme': 'URL Scheme',
   'senders.type.socket': 'Socket / MQTT',
   'senders.type.ntfy': 'ntfy',
+  'senders.type.pushdeer': 'PushDeer',
   'senders.type.yunhu': 'YunHu',
   'advanced.backendProfilesTitle': 'Backend profiles',
   'advanced.backendProfilesSubtitle': 'Desktop keeps multiple backend endpoints locally and can switch them without touching the browser.',
@@ -810,6 +812,7 @@ export function translateSenderType(
     14: 'senders.type.urlScheme',
     15: 'senders.type.socket',
     16: 'senders.type.ntfy',
+    18: 'senders.type.pushdeer',
     17: 'senders.type.yunhu'
   }
   const key = map[type]

@@ -32,6 +32,7 @@ class SenderSettingSchemasTest {
             SenderType.URL_SCHEME,
             SenderType.SOCKET,
             SenderType.NTFY,
+            SenderType.PUSHDEER,
             SenderType.YUNHU,
         )
 

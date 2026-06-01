@@ -66,6 +66,7 @@ class SenderSettingSanitizerTest {
             SenderType.FEISHU_APP to """{"appId":null,"appSecret":null,"receiveId":null,"msgType":null}""",
             SenderType.URL_SCHEME to """{"urlScheme":null}""",
             SenderType.SOCKET to """{"method":null,"address":null,"port":null,"uriType":null,"outCharset":null}""",
+            SenderType.PUSHDEER to """{"pushkey":null}""",
             SenderType.YUNHU to """{"token":null,"recvId":null,"recvType":null,"contentType":null}""",
         )
 
