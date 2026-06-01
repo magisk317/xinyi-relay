@@ -110,31 +110,31 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: XinyiRelay-debug-github-arm64-v8a
-          path: app/build/outputs/apk/github/debug/arm64-v8a_*.apk
+          path: app/build/outputs/apk/github/debug/*arm64-v8a*.apk
       - name: Upload Debug APK - GitHub armeabi-v7a
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: XinyiRelay-debug-github-armeabi-v7a
-          path: app/build/outputs/apk/github/debug/armeabi-v7a_*.apk
+          path: app/build/outputs/apk/github/debug/*armeabi-v7a*.apk
       - name: Upload Debug APK - GitHub x86
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: XinyiRelay-debug-github-x86
-          path: app/build/outputs/apk/github/debug/x86_*.apk
+          path: app/build/outputs/apk/github/debug/*x86*.apk
       - name: Upload Debug APK - GitHub x86_64
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: XinyiRelay-debug-github-x86_64
-          path: app/build/outputs/apk/github/debug/x86_64_*.apk
+          path: app/build/outputs/apk/github/debug/*x86_64*.apk
       - name: Upload Debug APK - GitHub universal
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: XinyiRelay-debug-github-universal
-          path: app/build/outputs/apk/github/debug/universal_*.apk
+          path: app/build/outputs/apk/github/debug/*universal*.apk
       - name: Upload Kover Report
         if: always()
         uses: actions/upload-artifact@v7
