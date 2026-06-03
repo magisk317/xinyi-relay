@@ -75,7 +75,7 @@ export function ConfigPage() {
         <div className="metrics-grid">
           <Metric label={t('analytics.cloudRevision')} value={config?.revision ?? 0} />
           <Metric label={t('app.route.senders')} value={root?.senders?.length ?? 0} />
-          <Metric label={t('app.route.apps')} value={root?.appInfos?.length ?? 0} />
+          <Metric label={t('app.route.apps')} value={Object.values(root?.deviceAppInfos ?? {}).reduce((acc, apps) => acc + apps.length, 0)} />
           <Metric label={t('config.routingAssets')} value={routingAssets} />
         </div>
       </Panel>

@@ -196,6 +196,7 @@ object RelayPrefConst {
     const val KEY_REMOTE_AGENT_PENDING_MUTATIONS = "pref_remote_agent_pending_mutations"
     const val KEY_REMOTE_AGENT_DEVICE_TOKEN = "pref_remote_agent_device_token"
     const val KEY_REMOTE_AGENT_LAST_APP_CATALOG_DIGEST = "pref_remote_agent_last_app_catalog_digest"
+    const val KEY_REMOTE_AGENT_DEVICE_APP_INFOS = "pref_remote_agent_device_app_infos"
     private const val ACTION_NAMESPACE = "io.github.magisk317.relay"
     const val ACTION_FORWARD_SMS = "$ACTION_NAMESPACE.ACTION_FORWARD_SMS"
     const val ACTION_INGEST_CUSTOM_MESSAGE = "$ACTION_NAMESPACE.ACTION_INGEST_CUSTOM_MESSAGE"

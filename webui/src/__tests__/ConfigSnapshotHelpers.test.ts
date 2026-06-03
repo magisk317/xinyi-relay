@@ -17,13 +17,13 @@ describe('shared config snapshot helpers', () => {
     const next = await loadNormalizedConfigSnapshot(async () =>
       snapshotState(3, {
         senders: [{ id: 1 }],
-        appInfos: 'legacy-bad-value'
+        deviceAppInfos: { 1: [{ packageName: 'com.example' }] }
       })
     )
 
     expect(next.config.revision).toBe(3)
     expect(next.root.senders).toEqual([{ id: 1 }])
-    expect(next.root.appInfos).toEqual([])
+    expect(next.root.deviceAppInfos).toEqual({ 1: [{ packageName: 'com.example' }] })
     expect(next.root.rules).toEqual([])
   })
 
@@ -62,7 +62,7 @@ describe('shared config snapshot helpers', () => {
         smsCodeRules: [{ id: 7 }],
         senders: [],
         rules: [],
-        appInfos: [],
+        deviceAppInfos: {},
         notifyRoutes: [],
         forwardFilters: []
       }

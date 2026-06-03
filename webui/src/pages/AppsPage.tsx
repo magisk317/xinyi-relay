@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { apiClient } from '../api/client'
 import { cloneSnapshot } from '../configSnapshot'
 import { useRealtimeFeed } from '../realtime'
 import { trackEvent } from '../analytics'
@@ -18,7 +19,8 @@ import type {
   SnapshotAppInfo,
   SnapshotForwardFilterRule,
   SnapshotNotifyRouteRule,
-  SnapshotSmsCodeRule
+  SnapshotSmsCodeRule,
+  DeviceItem
 } from '../types'
 import { useConfigSnapshotEditor } from '../useConfigSnapshotEditor'
 
@@ -34,10 +36,18 @@ export function AppsPage() {
   const [search, setSearch] = useState('')
   const [draftPackageName, setDraftPackageName] = useState('')
   const [draftLabel, setDraftLabel] = useState('')
+  const [devices, setDevices] = useState<DeviceItem[]>([])
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null)
 
   useEffect(() => {
     queueMicrotask(() => {
       void load().catch(() => {})
+      void apiClient.getDevices().then((res) => {
+        setDevices(res.devices)
+        if (res.devices.length > 0) {
+          setSelectedDeviceId(String(res.devices[0].id))
+        }
+      }).catch(() => {})
     })
   }, [load])
 
@@ -45,9 +55,15 @@ export function AppsPage() {
     if (lastEvent?.type === 'config.updated') {
       void load().catch(() => {})
     }
+    if (lastEvent?.type === 'device.registered' || lastEvent?.type === 'device.updated') {
+      void apiClient.getDevices().then((res) => setDevices(res.devices)).catch(() => {})
+    }
   }, [lastEvent, load])
 
-  const appInfos = useMemo(() => root?.appInfos ?? EMPTY_APP_INFOS, [root?.appInfos])
+  const appInfos = useMemo(() => {
+    if (!root || !selectedDeviceId) return EMPTY_APP_INFOS
+    return root.deviceAppInfos?.[selectedDeviceId] ?? EMPTY_APP_INFOS
+  }, [root?.deviceAppInfos, selectedDeviceId])
   const notifyRoutes = useMemo(() => root?.notifyRoutes ?? EMPTY_NOTIFY_ROUTES, [root?.notifyRoutes])
   const smsCodeRules = useMemo(() => root?.smsCodeRules ?? EMPTY_SMS_CODE_RULES, [root?.smsCodeRules])
   const forwardFilters = useMemo(() => root?.forwardFilters ?? EMPTY_FORWARD_FILTERS, [root?.forwardFilters])
@@ -78,9 +94,10 @@ export function AppsPage() {
   )
 
   async function persistApps(nextApps: SnapshotAppInfo[]) {
-    if (!root) return
+    if (!root || !selectedDeviceId) return
     const nextRoot = cloneSnapshot(root)
-    nextRoot.appInfos = nextApps
+    if (!nextRoot.deviceAppInfos) nextRoot.deviceAppInfos = {}
+    nextRoot.deviceAppInfos[selectedDeviceId] = nextApps
     try {
       await saveRoot(nextRoot)
     } catch {
@@ -99,6 +116,22 @@ export function AppsPage() {
   return (
     <PageShell title={t('apps.title')} description={t('apps.remoteDescription')} badge={t('apps.title')} actions={actions}>
       <ErrorBanner message={error} />
+
+      {devices.length > 0 && (
+        <div className="mb-4">
+          <select
+            className="relay-input"
+            value={selectedDeviceId ?? ''}
+            onChange={(e) => setSelectedDeviceId(e.target.value)}
+          >
+            {devices.map((device) => (
+              <option key={device.id} value={String(device.id)}>
+                {device.deviceName} {device.deviceModel} (ID: {device.id})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-4">
         <MetricCard title={t('apps.metric.tracked')} value={appInfos.length} helper={t('apps.metric.trackedHelper')} />

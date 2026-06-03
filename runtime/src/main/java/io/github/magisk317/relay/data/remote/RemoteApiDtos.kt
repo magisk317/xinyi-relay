@@ -43,7 +43,7 @@ internal data class RemoteConfigPayload(
     val senders: List<Sender>,
     val rules: List<Rule>,
     val smsCodeRules: List<SmsCodeRule>,
-    val appInfos: List<AppInfo>,
+    val deviceAppInfos: Map<String, List<AppInfo>>? = null,
     val notifyRoutes: List<NotifyRouteRule>,
     val forwardFilters: List<ForwardFilterRule>,
 )

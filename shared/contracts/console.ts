@@ -145,7 +145,7 @@ export interface SnapshotOverviewSettings {
 export interface RemoteConfigRoot extends Record<string, unknown> {
   senders?: SnapshotSender[]
   rules?: SnapshotRule[]
-  appInfos?: SnapshotAppInfo[]
+  deviceAppInfos?: Record<string, SnapshotAppInfo[]>
   smsCodeRules?: SnapshotSmsCodeRule[]
   notifyRoutes?: SnapshotNotifyRouteRule[]
   forwardFilters?: SnapshotForwardFilterRule[]
