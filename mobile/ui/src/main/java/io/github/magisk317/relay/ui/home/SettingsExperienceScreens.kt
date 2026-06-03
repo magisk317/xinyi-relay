@@ -30,10 +30,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
+import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
 import io.github.magisk317.relay.android.diagnostics.RuntimeLogStore
@@ -59,8 +63,11 @@ fun SettingsHomeScreen(
     onBack: (() -> Unit)? = null,
 ) {
     val repository: SettingsPreferencesRepository = koinInject()
+    val preferenceDataSource: PreferenceDataSource = koinInject()
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
+    val launcherIconFailedText = stringResource(id = R.string.pref_show_launcher_icon_failed)
     val snackbarHostState = remember { SnackbarHostState() }
     val settingsViewModel = rememberSharedSettingsViewModel()
     val notifySaved: () -> Unit = {
@@ -92,6 +99,7 @@ fun SettingsHomeScreen(
     var verification by remember { mutableStateOf<VerificationSettingsSnapshot?>(null) }
     var relay by remember { mutableStateOf<RelaySettingsSnapshot?>(null) }
     var diagnostics by remember { mutableStateOf<DiagnosticsSettingsSnapshot?>(null) }
+    var launcherIconVisible by remember { mutableStateOf(settingsViewModel.isLauncherIconVisible()) }
     val runtimeLogActions = rememberSettingsRuntimeLogActions(
         diagnostics = diagnostics,
         repository = repository,
@@ -104,11 +112,17 @@ fun SettingsHomeScreen(
     var expandBackupRestore by rememberSaveable { mutableStateOf(false) }
     var expandOthers by rememberSaveable { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(context) {
         general = repository.getGeneralSettings()
         verification = repository.getVerificationSettings()
         relay = repository.getRelaySettings()
         diagnostics = repository.getDiagnosticsSettings()
+        val visible = settingsViewModel.isLauncherIconVisible()
+        launcherIconVisible = visible
+        if (preferenceDataSource.getBoolean(PrefConst.KEY_SHOW_LAUNCHER_ICON, true) != visible) {
+            preferenceDataSource.setBoolean(PrefConst.KEY_SHOW_LAUNCHER_ICON, visible)
+            HookPreferenceMirror.publish(context)
+        }
     }
 
     LaunchedEffect(general?.accordionMode) {
@@ -170,6 +184,22 @@ fun SettingsHomeScreen(
                     scope.launch {
                         general = repository.updateGeneralSettings(GeneralSettingsUpdate(accordionMode = enabled))
                         notifySaved()
+                    }
+                },
+                launcherIconVisible = launcherIconVisible,
+                onLauncherIconVisibleChange = { visible ->
+                    launcherIconVisible = visible
+                    scope.launch {
+                        if (settingsViewModel.setLauncherIconVisible(visible)) {
+                            preferenceDataSource.setBoolean(PrefConst.KEY_SHOW_LAUNCHER_ICON, visible)
+                            HookPreferenceMirror.publish(context)
+                            notifySaved()
+                        } else {
+                            launcherIconVisible = !visible
+                            preferenceDataSource.setBoolean(PrefConst.KEY_SHOW_LAUNCHER_ICON, !visible)
+                            HookPreferenceMirror.publish(context)
+                            snackbarHostState.showLatestSnackbar(launcherIconFailedText)
+                        }
                     }
                 },
                 onThemeClick = displayActions.onThemeClick,

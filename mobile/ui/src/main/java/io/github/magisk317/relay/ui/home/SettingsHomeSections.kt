@@ -26,6 +26,8 @@ internal fun SettingsGeneralSection(
     onExpandedChange: () -> Unit,
     onModuleEnabledChange: (Boolean) -> Unit,
     onAccordionModeChange: (Boolean) -> Unit,
+    launcherIconVisible: Boolean,
+    onLauncherIconVisibleChange: (Boolean) -> Unit,
     onThemeClick: () -> Unit,
     onLanguageClick: () -> Unit,
 ) {
@@ -46,6 +48,12 @@ internal fun SettingsGeneralSection(
             summary = stringResource(id = R.string.pref_settings_display_mode_summary),
             checked = general.accordionMode,
             onCheckedChange = onAccordionModeChange,
+        )
+        StateSwitchItem(
+            title = stringResource(id = R.string.pref_show_launcher_icon_title),
+            summary = stringResource(id = R.string.pref_show_launcher_icon_summary),
+            checked = launcherIconVisible,
+            onCheckedChange = onLauncherIconVisibleChange,
         )
         Item(
             title = stringResource(id = R.string.pref_choose_theme_title),

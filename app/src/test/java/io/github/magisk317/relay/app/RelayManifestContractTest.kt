@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
+import org.w3c.dom.Element
 
 class RelayManifestContractTest {
 
@@ -50,6 +51,49 @@ class RelayManifestContractTest {
     }
 
     @Test
+    fun `launcher activity remains visible and owns static shortcuts`() {
+        val document = parseManifest("app/src/main/AndroidManifest.xml")
+        val launcherActivity = document.getElementsByTagName("activity")
+            .asElements()
+            .single {
+                it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue ==
+                    "io.github.magisk317.relay.ui.home.LauncherActivity"
+            }
+
+        assertEquals("true", launcherActivity.attributes.getNamedItemNS(ANDROID_NS, "enabled")?.nodeValue)
+
+        val metaData = launcherActivity.getElementsByTagName("meta-data")
+            .asElements()
+            .single {
+                it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue == "android.app.shortcuts"
+            }
+        assertEquals("@xml/shortcuts", metaData.attributes.getNamedItemNS(ANDROID_NS, "resource")?.nodeValue)
+
+        val actions = launcherActivity.getElementsByTagName("action")
+            .asElements()
+            .mapNotNull { it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue }
+            .toSet()
+        val categories = launcherActivity.getElementsByTagName("category")
+            .asElements()
+            .mapNotNull { it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue }
+            .toSet()
+
+        assertTrue("android.intent.action.MAIN" in actions)
+        assertTrue("android.intent.category.LAUNCHER" in categories)
+    }
+
+    @Test
+    fun `static shortcuts route through launcher activity`() {
+        val document = parseManifest("core/src/main/res/xml/shortcuts.xml")
+        val targetClasses = document.getElementsByTagName("intent")
+            .asElements()
+            .mapNotNull { it.attributes.getNamedItemNS(ANDROID_NS, "targetClass")?.nodeValue }
+            .toSet()
+
+        assertEquals(setOf("io.github.magisk317.relay.ui.home.LauncherActivity"), targetClasses)
+    }
+
+    @Test
     fun `libxposed entrypoint and scope metadata remain declared`() {
         assertEquals(
             "io.github.magisk317.relay.xp.LibXposedEntry",
@@ -86,6 +130,10 @@ class RelayManifestContractTest {
         val fromRoot = File(relativePath)
         if (fromRoot.exists()) return fromRoot
         return File("../$relativePath")
+    }
+
+    private fun org.w3c.dom.NodeList.asElements(): List<Element> {
+        return List(length) { index -> item(index) }.filterIsInstance<Element>()
     }
 
     private companion object {
