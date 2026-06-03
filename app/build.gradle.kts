@@ -20,7 +20,7 @@ val skipGoogleServices = findProperty("skipGoogleServices")
     ?.toBooleanStrictOrNull()
     ?: false
 val generatedSmsCodeRulesAssetsDir = layout.buildDirectory.dir("generated/smscodeRulesAssets")
-val syncSmsCodeRulesAssets by tasks.registering(Sync::class) {
+val syncSmsCodeRulesAssets = tasks.register<Sync>("syncSmsCodeRulesAssets") {
     val rulesRoot = rootProject.layout.projectDirectory.dir("smscode-rules")
     from(rulesRoot.dir("_meta")) {
         into("meta")
@@ -127,7 +127,7 @@ dependencies {
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 
-val verifyNoRuntimePipelineLeak by tasks.registering {
+val verifyNoRuntimePipelineLeak = tasks.register("verifyNoRuntimePipelineLeak") {
     group = "verification"
     description = "Ensure the app shell does not directly depend on runtime/bootstrap/domain/platform implementation packages."
 

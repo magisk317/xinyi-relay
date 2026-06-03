@@ -76,7 +76,7 @@ dependencies {
     testImplementation(libs.mockk)
 }
 
-val verifyNoComposeUiLeak by tasks.registering {
+val verifyNoComposeUiLeak = tasks.register("verifyNoComposeUiLeak") {
     group = "verification"
     description = "Ensure the runtime module does not pick up Compose UI dependencies."
 

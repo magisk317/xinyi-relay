@@ -88,7 +88,7 @@ dependencies {
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 
-val verifyNoWebUiLeak by tasks.registering {
+val verifyNoWebUiLeak = tasks.register("verifyNoWebUiLeak") {
     group = "verification"
     description = "Ensure the core module does not directly retain embedded WebUI implementation packages."
 
