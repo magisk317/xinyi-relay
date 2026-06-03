@@ -80,7 +80,8 @@ import io.github.magisk317.relay.ui.home.StateSwitchItem
 import io.github.magisk317.relay.ui.home.TextInputDialog
 import io.github.magisk317.uikit.surface.WorkspaceEmptyState
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.delay
@@ -170,7 +171,7 @@ private fun compactSenderTitle(sender: String?, fallback: String): String {
 @Composable
 fun CodeRecordScreen(
     hazeState: HazeState,
-    hazeStyle: HazeStyle,
+    hazeStyle: HazeBlurStyle,
     onBack: (() -> Unit)? = null,
     refreshTrigger: Int = 0,
     viewModel: CodeRecordViewModel = koinViewModel(),
@@ -690,7 +691,8 @@ fun CodeRecordScreen(
                 .fillMaxWidth()
                 .align(Alignment.TopCenter)
                 .onSizeChanged { fixedTopHeightPx = it.height }
-                .hazeEffect(hazeState, hazeStyle) {
+                .hazeEffect(hazeState) {
+                    blurEffect { style = hazeStyle }
                     forceInvalidateOnPreDraw = true
                 },
         ) {
@@ -865,7 +867,7 @@ fun CodeRecordScreen(
 @Composable
 private fun RecordDetailOverlay(
     hazeState: HazeState,
-    hazeStyle: HazeStyle,
+    hazeStyle: HazeBlurStyle,
     sms: SmsMsg,
     onDismiss: () -> Unit,
     onCopy: (label: String, value: String, message: String) -> Unit,
@@ -909,7 +911,10 @@ private fun RecordDetailOverlay(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .hazeEffect(hazeState, hazeStyle) { forceInvalidateOnPreDraw = true }
+            .hazeEffect(hazeState) {
+                blurEffect { style = hazeStyle }
+                forceInvalidateOnPreDraw = true
+            }
             .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.28f))
             .clickable(
                 interactionSource = dismissInteraction,

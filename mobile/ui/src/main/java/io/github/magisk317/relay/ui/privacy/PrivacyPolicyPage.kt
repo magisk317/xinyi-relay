@@ -25,6 +25,7 @@ import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.ui.app.base.SystemBarsScrim
 import io.github.magisk317.relay.ui.app.base.rememberHazeStyle
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 
@@ -100,7 +101,8 @@ fun PrivacyPolicyPage(onDismiss: () -> Unit) {
                 scrolledContainerColor = Color.Transparent,
             ),
             windowInsets = WindowInsets.statusBars,
-            modifier = Modifier.hazeEffect(hazeState, hazeStyle) {
+            modifier = Modifier.hazeEffect(hazeState) {
+                blurEffect { style = hazeStyle }
                 forceInvalidateOnPreDraw = true
             },
         )

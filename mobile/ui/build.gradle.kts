@@ -64,6 +64,7 @@ dependencies {
     implementation(libs.koin.androidx.compose)
     implementation(libs.koin.compose.viewmodel)
     implementation(libs.haze.android)
+    implementation(libs.haze.blur.android)
     implementation(libs.timber)
     implementation(libs.kotlinx.collections.immutable)
     implementation(libs.zxing.android.embedded)

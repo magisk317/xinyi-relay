@@ -2,7 +2,7 @@ package io.github.magisk317.relay.ui.home
 
 import androidx.compose.runtime.Composable
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.blur.HazeBlurStyle
 
 /**
  * Legacy compatibility shell. The main settings experience now lives in [SettingsHomeScreen].
@@ -11,7 +11,7 @@ import dev.chrisbanes.haze.HazeStyle
 @Composable
 fun ComposeSettingsScreen(
     hazeState: HazeState,
-    hazeStyle: HazeStyle,
+    hazeStyle: HazeBlurStyle,
     viewModel: SettingsViewModel? = null,
     refreshTrigger: Int = 0,
     onExit: () -> Unit = {},

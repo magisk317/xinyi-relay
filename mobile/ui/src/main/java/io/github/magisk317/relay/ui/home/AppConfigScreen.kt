@@ -65,7 +65,8 @@ import io.github.magisk317.uikit.surface.WorkspaceListItem
 import io.github.magisk317.uikit.surface.WorkspaceTopBarSearchOverlay
 import io.github.magisk317.uikit.surface.WorkspaceTrailingIcon
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.delay
@@ -78,7 +79,7 @@ private const val APP_LIST_PREFETCH_DISTANCE = 12
 @Composable
 fun AppConfigScreen(
     hazeState: HazeState,
-    hazeStyle: HazeStyle,
+    hazeStyle: HazeBlurStyle,
     onBack: (() -> Unit)? = null,
     onAppClick: ((AppInfo) -> Unit)? = null,
     refreshTrigger: Int = 0,
@@ -180,7 +181,8 @@ fun AppConfigScreen(
             overlayModifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .hazeEffect(hazeState, hazeStyle) {
+                .hazeEffect(hazeState) {
+                    blurEffect { style = hazeStyle }
                     forceInvalidateOnPreDraw = true
                 },
             overlay = {
