@@ -40,6 +40,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -360,7 +362,19 @@ class RemoteAgentRepository(
             senders = configRepository.getAllSenders(),
             rules = configRepository.getAllRules(),
             smsCodeRules = configRepository.getAllSmsCodeRules().map { it.toEntity() },
-            appInfos = resolveInstalledAppCatalog(configRepository.getAllAppInfo().map { it.toEntity() }),
+            deviceAppInfos = run {
+                val deviceIdStr = preferenceDataSource.getString(PrefConst.KEY_REMOTE_AGENT_DEVICE_ID, "0")
+                val savedDeviceAppInfosRaw = preferenceDataSource.getString(PrefConst.KEY_REMOTE_AGENT_DEVICE_APP_INFOS, "")
+                val deviceAppInfos = if (savedDeviceAppInfosRaw.isNotBlank()) {
+                    runCatching {
+                        RelayJson.format.decodeFromString<Map<String, List<AppInfo>>>(savedDeviceAppInfosRaw).toMutableMap()
+                    }.getOrDefault(mutableMapOf())
+                } else {
+                    mutableMapOf()
+                }
+                deviceAppInfos[deviceIdStr] = resolveInstalledAppCatalog(configRepository.getAllAppInfo().map { it.toEntity() })
+                deviceAppInfos
+            },
             notifyRoutes = runtimeGraph.database.notifyRouteRuleDao().getAll(),
             forwardFilters = runtimeGraph.database.forwardFilterRuleDao().getAll().map { it.toDomain() },
         )
@@ -509,8 +523,18 @@ class RemoteAgentRepository(
             payload.rules.forEach { configRepository.insertRule(it) }
             configRepository.clearAllSmsCodeRules()
             configRepository.insertSmsCodeRules(payload.smsCodeRules)
+
+            val deviceIdStr = preferenceDataSource.getString(PrefConst.KEY_REMOTE_AGENT_DEVICE_ID, "0")
+            payload.deviceAppInfos?.let { map ->
+                preferenceDataSource.setString(
+                    PrefConst.KEY_REMOTE_AGENT_DEVICE_APP_INFOS,
+                    RelayJson.format.encodeToString(map)
+                )
+            }
             configRepository.clearAllAppInfo()
-            payload.appInfos.forEach { configRepository.upsertAppInfo(it) }
+            val myAppInfos = payload.deviceAppInfos?.get(deviceIdStr) ?: emptyList()
+            myAppInfos.forEach { configRepository.upsertAppInfo(it) }
+
             configRepository.clearAllNotifyRouteRules()
             configRepository.insertNotifyRouteRules(payload.notifyRoutes)
             configRepository.clearAllForwardFilterRules()
