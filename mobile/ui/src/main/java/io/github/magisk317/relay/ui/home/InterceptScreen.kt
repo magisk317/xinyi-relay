@@ -43,7 +43,8 @@ import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.SmsBlacklistSettingsUpdate
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
@@ -53,7 +54,7 @@ import org.koin.compose.koinInject
 @Composable
 fun InterceptScreen(
     hazeState: HazeState,
-    hazeStyle: HazeStyle,
+    hazeStyle: HazeBlurStyle,
     refreshTrigger: Int = 0,
 ) {
     val context = LocalContext.current
@@ -140,7 +141,10 @@ fun InterceptScreen(
                     scrolledContainerColor = Color.Transparent,
                 ),
                 windowInsets = WindowInsets.statusBars,
-                modifier = Modifier.hazeEffect(hazeState, hazeStyle) { forceInvalidateOnPreDraw = true },
+                modifier = Modifier.hazeEffect(hazeState) {
+                    blurEffect { style = hazeStyle }
+                    forceInvalidateOnPreDraw = true
+                },
             )
         },
         snackbarHost = {

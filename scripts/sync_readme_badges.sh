@@ -48,7 +48,7 @@ xposed_api_level() {
 }
 
 KOTLIN_VERSION=$(read_version "kotlin")
-COMPOSE_BOM_VERSION=$(read_version "compose-bom")
+COMPOSE_BOM_VERSION=$(read_version "compose-bom-alpha")
 AGP_VERSION=$(read_version "agp")
 MIN_SDK_VERSION=$(read_version "minSdk")
 TARGET_SDK_VERSION=$(read_version "targetSdk")

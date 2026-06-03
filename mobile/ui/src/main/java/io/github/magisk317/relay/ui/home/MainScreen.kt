@@ -42,7 +42,8 @@ import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.ui.nav.*
 import io.github.magisk317.relay.ui.record.CodeRecordScreen
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.hazeEffect
 import android.os.SystemClock
 import io.github.magisk317.relay.backup.BackupSource
@@ -68,7 +69,7 @@ fun MainScreen(
     initialTab: Any? = null,
     onInitialTabConsumed: (() -> Unit)? = null,
     hazeState: HazeState,
-    hazeStyle: HazeStyle,
+    hazeStyle: HazeBlurStyle,
 ) {
     val navController = rememberNavController()
     val appConfigViewModel: AppConfigViewModel = koinViewModel()
@@ -694,7 +695,8 @@ fun MainScreen(
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .hazeEffect(hazeState, hazeStyle) {
+                    .hazeEffect(hazeState) {
+                        blurEffect { style = hazeStyle }
                         forceInvalidateOnPreDraw = true
                     },
             ) {

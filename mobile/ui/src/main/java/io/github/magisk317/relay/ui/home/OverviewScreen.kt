@@ -53,7 +53,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
@@ -91,7 +92,7 @@ internal data class HomeCardSpec(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
+fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeBlurStyle) {
     val context = LocalContext.current
     val settingsRepository: SettingsPreferencesRepository = koinInject()
     val analyticsRepository: RuntimeAnalyticsProvider = koinInject()
@@ -433,7 +434,7 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeStyle) {
 @Composable
 private fun OverviewContent(
     hazeState: HazeState,
-    hazeStyle: HazeStyle,
+    hazeStyle: HazeBlurStyle,
     listState: androidx.compose.foundation.lazy.LazyListState,
     scrollBehavior: androidx.compose.material3.TopAppBarScrollBehavior,
     visibleCardSpecs: List<HomeCardSpec>,
@@ -535,7 +536,8 @@ private fun OverviewContent(
             windowInsets = WindowInsets.statusBars,
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .hazeEffect(hazeState, hazeStyle) {
+                .hazeEffect(hazeState) {
+                    blurEffect { style = hazeStyle }
                     forceInvalidateOnPreDraw = true
                 },
             colors = TopAppBarDefaults.topAppBarColors(

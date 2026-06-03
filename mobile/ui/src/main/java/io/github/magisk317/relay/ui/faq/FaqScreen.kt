@@ -31,7 +31,8 @@ import io.github.magisk317.relay.ui.common.PolygonMorphLoadingIndicator
 import io.github.magisk317.relay.ui.common.SessionLoadingRegistry
 import io.github.magisk317.relay.ui.common.rememberMinDurationLoading
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.delay
@@ -39,7 +40,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun FaqScreen(hazeState: HazeState, hazeStyle: HazeStyle, refreshTrigger: Int = 0) {
+fun FaqScreen(hazeState: HazeState, hazeStyle: HazeBlurStyle, refreshTrigger: Int = 0) {
     val questions = stringArrayResource(id = R.array.question_list)
     val answers = stringArrayResource(id = R.array.answer_list)
     val shouldShowInitialLoading = remember { SessionLoadingRegistry.shouldShowInitial("faq") }
@@ -170,7 +171,8 @@ fun FaqScreen(hazeState: HazeState, hazeStyle: HazeStyle, refreshTrigger: Int = 
                 scrollBehavior = scrollBehavior,
                 windowInsets = WindowInsets.statusBars,
                 modifier = Modifier
-                    .hazeEffect(hazeState, hazeStyle) {
+                    .hazeEffect(hazeState) {
+                        blurEffect { style = hazeStyle }
                         forceInvalidateOnPreDraw = true
                     },
                 colors = TopAppBarDefaults.topAppBarColors(

@@ -7,7 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import io.github.magisk317.relay.ui.home.MainScreen
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.blur.HazeBlurStyle
 import kotlinx.serialization.Serializable
 
 const val ROUTE_ORIGIN_ADVANCED = "advanced"
@@ -154,7 +154,7 @@ fun SmsCodeNavHost(
     onInitialTabConsumed: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     hazeState: HazeState,
-    hazeStyle: HazeStyle,
+    hazeStyle: HazeBlurStyle,
 ) {
     NavHost(
         navController = navController,
