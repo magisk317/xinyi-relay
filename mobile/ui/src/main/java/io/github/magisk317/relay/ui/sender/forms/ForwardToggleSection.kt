@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.sender.SenderActiveSchedule
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
+import io.github.magisk317.relay.ui.sender.SenderCustomTemplateDialog
 import kotlinx.coroutines.launch
 
 data class SenderNotifyScopeEntry(
@@ -63,6 +64,8 @@ fun ForwardToggleSection(
     onReceiveAppNotifyChange: (Boolean) -> Unit,
     receiveCallNotify: Boolean,
     onReceiveCallNotifyChange: (Boolean) -> Unit,
+    customTemplate: String,
+    onCustomTemplateChange: (String) -> Unit,
     activeSchedule: SenderActiveSchedule,
     onActiveScheduleChange: (SenderActiveSchedule) -> Unit,
 ) {
@@ -72,6 +75,7 @@ fun ForwardToggleSection(
     val snackbarHostState = LocalSnackbarHostState.current
     val scope = rememberCoroutineScope()
     var showActiveScheduleDialog by remember { mutableStateOf(false) }
+    var showCustomTemplateDialog by remember { mutableStateOf(false) }
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -107,6 +111,11 @@ fun ForwardToggleSection(
                 summary = buildSenderActiveScheduleSummary(activeSchedule, context),
                 onClick = { showActiveScheduleDialog = true },
             )
+            ForwardConfigActionItem(
+                title = stringResource(R.string.sender_custom_template_title),
+                summary = if (customTemplate.isBlank()) stringResource(R.string.sender_custom_template_summary_default) else stringResource(R.string.sender_custom_template_summary_configured),
+                onClick = { showCustomTemplateDialog = true },
+            )
             if (notifyScopeEntry != null && notifyScopeEntry.senderId > 0L) {
                 ForwardConfigActionItem(
                     title = stringResource(R.string.title_notification_rules),
@@ -133,6 +142,16 @@ fun ForwardToggleSection(
                     snackbarHostState.showLatestSnackbar(context.getString(R.string.pref_sync_snackbar))
                 }
                 showActiveScheduleDialog = false
+            },
+        )
+    }
+    if (showCustomTemplateDialog) {
+        SenderCustomTemplateDialog(
+            template = customTemplate,
+            onDismiss = { showCustomTemplateDialog = false },
+            onSave = { nextTemplate ->
+                onCustomTemplateChange(nextTemplate)
+                showCustomTemplateDialog = false
             },
         )
     }

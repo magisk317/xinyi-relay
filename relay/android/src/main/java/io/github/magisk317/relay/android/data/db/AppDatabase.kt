@@ -40,7 +40,7 @@ import io.github.magisk317.relay.android.data.db.entity.ScheduledTaskEntity
     SenderEntity::class,
     RuleEntity::class,
     ScheduledTaskEntity::class
-], version = 30, exportSchema = false)
+], version = 31, exportSchema = false)
 @TypeConverters(ConvertersDate::class, ConvertersSenderList::class)
 abstract class AppDatabase : RoomDatabase() {
 
@@ -877,6 +877,16 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_30_31 = object : androidx.room.migration.Migration(30, 31) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                execSqlSafely(
+                    db = db,
+                    sql = "ALTER TABLE Sender ADD COLUMN custom_template TEXT NOT NULL DEFAULT ''",
+                    migration = "30_31",
+                )
+            }
+        }
+
         private fun execSqlSafely(
             db: androidx.sqlite.db.SupportSQLiteDatabase,
             sql: String,
@@ -927,6 +937,7 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_27_28,
                     MIGRATION_28_29,
                     MIGRATION_29_30,
+                    MIGRATION_30_31,
                 )
                 .enableMultiInstanceInvalidation()
                 .build().also { instance = it }

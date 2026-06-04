@@ -20,39 +20,39 @@ interface SenderDispatcher {
 
     suspend fun dispatchToSenders(
         senders: List<Sender>,
-        msgInfo: MsgInfo,
+        payloadProvider: suspend (Sender) -> MsgInfo,
         strategy: Int = DispatchStrategy.BROADCAST_ALL,
         traceId: String? = null,
     ): List<SenderDispatchResult> {
         val sorted = senders.sortedWith(compareBy<Sender> { it.priority }.thenByDescending { it.id })
         return when (strategy) {
             DispatchStrategy.PRIMARY_ONLY -> sorted.firstOrNull()?.let { sender ->
-                listOf(dispatchToSender(sender, msgInfo, traceId))
+                listOf(dispatchToSender(sender, payloadProvider(sender), traceId))
             } ?: emptyList()
 
             DispatchStrategy.FAILOVER -> {
                 val results = mutableListOf<SenderDispatchResult>()
                 for (sender in sorted) {
-                    val result = dispatchToSender(sender, msgInfo, traceId)
+                    val result = dispatchToSender(sender, payloadProvider(sender), traceId)
                     results += result
                     if (result.success) break
                 }
                 results
             }
 
-            DispatchStrategy.BROADCAST_ALL -> dispatchToAll(sorted, msgInfo, traceId)
+            DispatchStrategy.BROADCAST_ALL -> dispatchToAll(sorted, payloadProvider, traceId)
 
-            else -> dispatchToAll(sorted, msgInfo, traceId)
+            else -> dispatchToAll(sorted, payloadProvider, traceId)
         }
     }
 
     private suspend fun dispatchToAll(
         senders: List<Sender>,
-        msgInfo: MsgInfo,
+        payloadProvider: suspend (Sender) -> MsgInfo,
         traceId: String?,
     ): List<SenderDispatchResult> = coroutineScope {
         senders.map { sender ->
-            async { dispatchToSender(sender, msgInfo, traceId) }
+            async { dispatchToSender(sender, payloadProvider(sender), traceId) }
         }.awaitAll()
     }
 }

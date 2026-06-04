@@ -15,9 +15,18 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.contract.constant.DispatchStrategy
@@ -167,6 +176,80 @@ internal fun SenderPriorityDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.cancel))
+            }
+        },
+    )
+}
+
+@Composable
+fun SenderCustomTemplateDialog(
+    template: String,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit,
+) {
+    var templateValue by remember { mutableStateOf(TextFieldValue(template)) }
+
+    fun insertToken(token: String) {
+        val start = templateValue.selection.start.coerceIn(0, templateValue.text.length)
+        val end = templateValue.selection.end.coerceIn(0, templateValue.text.length)
+        val newText = buildString {
+            append(templateValue.text.substring(0, start))
+            append(token)
+            append(templateValue.text.substring(end))
+        }
+        val cursor = start + token.length
+        templateValue = templateValue.copy(text = newText, selection = TextRange(cursor))
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(io.github.magisk317.relay.core.R.string.sender_custom_template_dialog_title)) },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedTextField(
+                    value = templateValue,
+                    onValueChange = { templateValue = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 140.dp),
+                    label = { Text(stringResource(io.github.magisk317.relay.core.R.string.sender_custom_template_label)) },
+                    placeholder = { Text(stringResource(io.github.magisk317.relay.core.R.string.sender_custom_template_placeholder)) },
+                )
+                
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(4),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 300.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(forwardTemplateVariables.size) { index ->
+                        val variable = forwardTemplateVariables[index]
+                        OutlinedButton(
+                            onClick = { insertToken(variable.token) },
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                        ) {
+                            Text(stringResource(variable.labelRes), style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onSave(templateValue.text) }) {
+                Text(stringResource(io.github.magisk317.relay.core.R.string.save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(io.github.magisk317.relay.core.R.string.cancel))
             }
         },
     )

@@ -1310,4 +1310,13 @@
     <string name="cloud_backup_drive_authorization_canceled">已取消 Google Drive 授权</string>
     <!-- translation audit end -->
     <string name="sender_form_label_auth_type">鉴权方式</string>
+    <string name="sender_custom_template_title">自定义通知模板</string>
+    <string name="sender_custom_template_summary_default">使用全局默认模板</string>
+    <string name="sender_custom_template_summary_configured">已配置通道专属模板</string>
+    <string name="sender_custom_template_dialog_title">配置通道模板</string>
+    <string name="sender_custom_template_label">模板内容</string>
+    <string name="sender_custom_template_placeholder">输入自定义通知模板</string>
+
+    <string name="sender_custom_template_render_error">通道自定义模板渲染失败: %1$s</string>
+
 </resources>

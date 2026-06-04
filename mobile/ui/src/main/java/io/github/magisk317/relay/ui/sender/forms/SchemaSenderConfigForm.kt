@@ -150,6 +150,7 @@ internal fun SchemaSenderConfigForm(
     var receiveNonCode by remember { mutableStateOf(true) }
     var receiveAppNotify by remember { mutableStateOf(true) }
     var receiveCallNotify by remember { mutableStateOf(false) }
+    var customTemplate by remember { mutableStateOf("") }
     var isLoaded by remember { mutableStateOf(false) }
     var currentSender by remember { mutableStateOf<Sender?>(null) }
     var showExitDialog by remember { mutableStateOf(false) }
@@ -168,6 +169,7 @@ internal fun SchemaSenderConfigForm(
                 receiveNonCode = sender.receiveNonCode == 1
                 receiveAppNotify = sender.receiveAppNotify == 1
                 receiveCallNotify = sender.receiveCallNotify == 1
+                customTemplate = sender.customTemplate
                 draft = normalizeDraft(SenderSettingDrafts.fromSenderWithDefaults(sender))
             }
         } else {
@@ -178,6 +180,7 @@ internal fun SchemaSenderConfigForm(
             receiveNonCode = true
             receiveAppNotify = true
             receiveCallNotify = false
+            customTemplate = ""
         }
         isLoaded = true
     }
@@ -195,6 +198,7 @@ internal fun SchemaSenderConfigForm(
             receiveNonCode = if (receiveNonCode) 1 else 0,
             receiveAppNotify = if (receiveAppNotify) 1 else 0,
             receiveCallNotify = if (receiveCallNotify) 1 else 0,
+            customTemplate = customTemplate,
             activeSchedule = activeSchedule,
             time = Date(),
         ) ?: Sender(
@@ -207,6 +211,7 @@ internal fun SchemaSenderConfigForm(
             receiveNonCode = if (receiveNonCode) 1 else 0,
             receiveAppNotify = if (receiveAppNotify) 1 else 0,
             receiveCallNotify = if (receiveCallNotify) 1 else 0,
+            customTemplate = customTemplate,
             activeSchedule = activeSchedule,
             time = Date(),
         )
@@ -320,6 +325,8 @@ internal fun SchemaSenderConfigForm(
                 onReceiveAppNotifyChange = { receiveAppNotify = it },
                 receiveCallNotify = receiveCallNotify,
                 onReceiveCallNotifyChange = { receiveCallNotify = it },
+                customTemplate = customTemplate,
+                onCustomTemplateChange = { customTemplate = it },
                 activeSchedule = activeSchedule,
                 onActiveScheduleChange = { activeScheduleEntry?.onChange(it) },
             )
