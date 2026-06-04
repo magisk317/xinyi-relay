@@ -127,7 +127,7 @@ BASE_REVISION="$(jq -r '.revision' /tmp/relay_snapshot.json)"
 curl -kfsS -b "$COOKIE_JAR" -H "X-CSRF-Token: $CSRF_TOKEN" -X PUT \
   "$BASE_URL/api/v1/config/snapshot" \
   -H 'Content-Type: application/json' \
-  -d "{\"base_revision\":$BASE_REVISION,\"snapshot\":{\"senders\":[],\"appInfos\":[],\"rules\":[],\"smsCodeRules\":[],\"notifyRoutes\":[],\"forwardFilters\":[]}}" | jq .
+  -d "{\"base_revision\":$BASE_REVISION,\"snapshot\":{\"senders\":[],\"deviceAppInfos\":{},\"rules\":[],\"smsCodeRules\":[],\"notifyRoutes\":[],\"forwardFilters\":[]}}" | jq .
 
 echo "[smoke] config audit"
 curl -kfsS -b "$COOKIE_JAR" "$BASE_URL/api/v1/config/audit" | jq .
