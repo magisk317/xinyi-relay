@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Process
 import android.provider.Telephony
+import android.util.Log
 import androidx.core.os.BundleCompat
 import io.github.magisk317.relay.hookentry.BuildConfig
 import io.github.magisk317.relay.xp.HookTargetDiagnostics
@@ -57,7 +58,7 @@ class SmsForwardHook : BaseHook() {
     }
 
     private fun onLoadPackageRouted(lpparam: LoadParam) {
-        if (ANDROID_PHONE_PACKAGE != lpparam.packageName) return
+        if (ANDROID_PHONE_PACKAGE != lpparam.packageName && "com.xiaomi.phone" != lpparam.packageName) return
         XLog.i("SmsForwardHook initializing")
         val classLoader = lpparam.classLoader ?: run {
             XLog.w("SmsForwardHook skipped: classLoader is null for %s", lpparam.packageName)
@@ -121,6 +122,7 @@ class SmsForwardHook : BaseHook() {
 
     private inner class DispatchIntentHook : MethodHook() {
         override fun beforeHookedMethod(param: MethodHookParam) {
+            Log.w("relay", "SmsForwardHook: dispatchIntent hook ENTERED")
             XLog.withRoute(LogRoute.FORWARD) {
                 runCatching { beforeDispatchIntentHandler(param) }
                     .onFailure { XLog.e("SmsForwardHook dispatchIntent hook failed", it) }
@@ -129,11 +131,34 @@ class SmsForwardHook : BaseHook() {
     }
 
     private fun beforeDispatchIntentHandler(param: MethodHookParam) {
+        maybeInitRuntimeFromHandler(param)
         val dispatch = resolveIncomingSmsDispatch(param) ?: return
         if (shouldSkipDispatch(dispatch)) return
         val preparedDispatch = prepareForwardDispatch(dispatch) ?: return
         if (shouldSuppressDuplicateDispatch(preparedDispatch)) return
         dispatchPreparedForward(preparedDispatch)
+    }
+
+    /**
+     * Lazily initialize [runtimeSession] from InboundSmsHandler.mContext if the constructor
+     * hook never fired (common on Xiaomi HyperOS where the handler is already constructed
+     * before our module loads).
+     */
+    private fun maybeInitRuntimeFromHandler(param: MethodHookParam) {
+        if (runtimeSession.currentOrResolve() != null) return
+        try {
+            val handler = param.thisObject ?: return
+            val contextField = handler.javaClass.getDeclaredField("mContext")
+            contextField.isAccessible = true
+            val context = contextField.get(handler) as? Context ?: return
+            runtimeSession.initialize(context)
+            XLog.w(
+                "SmsForwardHook: lazy-initialized runtimeSession from InboundSmsHandler.mContext pkg=%s",
+                context.packageName,
+            )
+        } catch (t: Throwable) {
+            XLog.e("SmsForwardHook: failed to lazy-init runtimeSession from handler", t)
+        }
     }
 
     private fun resolveIncomingSmsDispatch(param: MethodHookParam): IncomingSmsDispatch? {
