@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"io/fs"
 	"log"
 	"net/http"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
+	"github.com/magisk317/xinyi-relay/backend/api"
 	"github.com/magisk317/xinyi-relay/backend/api/internal/config"
 	"github.com/magisk317/xinyi-relay/backend/api/internal/database"
 	"github.com/magisk317/xinyi-relay/backend/api/internal/realtime"
@@ -75,6 +77,7 @@ func NewServer(ctx context.Context, cfg config.Config) (*Server, error) {
 	mux.HandleFunc("/api/v1/records", s.withConsoleAuth(s.handleRecords))
 	mux.HandleFunc("/api/v1/records/", s.withConsoleAuth(s.handleRecordByID))
 	mux.HandleFunc("/api/v1/realtime/ws", s.withConsoleAuth(s.handleRealtimeWS))
+	mux.HandleFunc("/", s.handleWebUI)
 
 	s.server = &http.Server{
 		Addr:              cfg.HTTPAddr,
@@ -165,3 +168,30 @@ func parseJSONMap(data json.RawMessage) json.RawMessage {
 	}
 	return data
 }
+
+func (s *Server) handleWebUI(w http.ResponseWriter, r *http.Request) {
+	if strings.HasPrefix(r.URL.Path, "/api/") {
+		http.NotFound(w, r)
+		return
+	}
+
+	fSys, err := fs.Sub(api.WebUIDist, "webui_dist")
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	p := strings.TrimPrefix(r.URL.Path, "/")
+	if p == "" {
+		p = "index.html"
+	}
+
+	// Use fs.Stat to check existence
+	if stat, err := fs.Stat(fSys, p); err != nil || stat.IsDir() {
+		p = "index.html"
+	}
+
+	r.URL.Path = "/" + p
+	http.FileServer(http.FS(fSys)).ServeHTTP(w, r)
+}
+
