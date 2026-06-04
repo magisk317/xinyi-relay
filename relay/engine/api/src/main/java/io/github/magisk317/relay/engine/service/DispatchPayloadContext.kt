@@ -30,6 +30,7 @@ data class DispatchPayloadContext(
             message = message,
             contactName = event.contactName,
             phoneArea = event.phoneArea,
+            appIcon = event.appIcon,
         )
     }
 

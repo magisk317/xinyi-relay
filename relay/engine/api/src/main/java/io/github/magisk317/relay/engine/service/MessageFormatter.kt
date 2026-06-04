@@ -76,6 +76,7 @@ class MessageFormatter(
             "CURRENT_TIME" to currentTimeStr,
             "DEVICE_NAME" to env.deviceName,
             "APP_VERSION" to env.appVersion,
+            "APP_ICON" to event.appIcon,
         )
 
         var rendered = template

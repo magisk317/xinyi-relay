@@ -43,6 +43,7 @@ jose4j = "0.9.6"
 junit-platform = "6.1.0"
 junit5 = "6.1.0"
 koin = "4.2.1"
+kotest = "5.9.1"
 kotlin = "2.4.0"
 kotlinx-collections-immutable = "0.5.0-beta01"
 kotlinx-serialization = "1.11.0"
@@ -123,6 +124,8 @@ jdom2 = { module = "org.jdom:jdom2", version.ref = "jdom2" }
 jose4j = { module = "org.bitbucket.b_c:jose4j", version.ref = "jose4j" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit5" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform" }
+kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
+kotest-property = { module = "io.kotest:kotest-property", version.ref = "kotest" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koin" }

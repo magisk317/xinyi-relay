@@ -20,6 +20,7 @@ data class ForwardBroadcastPayload(
     val callStage: String = "",
     val simSlot: Int? = null,
     val subId: Int? = null,
+    val appIcon: String = "",
 ) {
     fun toIntent(
         context: Context,
@@ -41,6 +42,7 @@ data class ForwardBroadcastPayload(
             callStage = callStage.ifBlank { null },
             simSlot = simSlot,
             subId = subId,
+            appIcon = appIcon,
         )
         ForwardBroadcastContract.putIpcToken(this, token)
     }
@@ -88,6 +90,7 @@ data class ForwardBroadcastPayload(
             subId = subId ?: 0,
             contactName = contactName,
             phoneArea = phoneArea,
+            appIcon = appIcon,
         )
     }
 
@@ -134,6 +137,7 @@ data class ForwardBroadcastPayload(
                     "android.telephony.extra.SUBSCRIPTION_INDEX",
                     "android.telephony.extra.SUBSCRIPTION_ID",
                 ),
+                appIcon = intent.getStringExtra(ForwardBroadcastContract.EXTRA_APP_ICON).orEmpty(),
             )
         }
     }
