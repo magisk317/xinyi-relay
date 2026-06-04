@@ -18,6 +18,7 @@ data class RelayEvent(
     val subId: Int,
     val contactName: String = "",
     val phoneArea: String = "",
+    val appIcon: String = "",
     val targetSenderIds: List<Long>? = null,
 ) {
     fun isCallAlertStart(): Boolean {

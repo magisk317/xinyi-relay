@@ -7,6 +7,7 @@ import io.github.magisk317.relay.engine.model.NetworkSnapshot
 import io.github.magisk317.relay.engine.model.SystemEnvironment
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -121,6 +122,39 @@ class MessageFormatterTest {
         assertTrue(result.contains("卡槽：SIM1"))
         assertFalse(result.contains("SubId"))
         assertFalse(result.contains("CARD_SUBID"))
+    }
+
+    @Test
+    fun `APP_ICON is replaced with valid base64 appIcon value`() = runBlocking {
+        val fakeBase64Icon = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+        val template = "图标：{{APP_ICON}}\n内容：{{SMS}}"
+
+        val result = formatter().format(
+            event = baseEvent.copy(appIcon = fakeBase64Icon),
+            payloadContext = DispatchPayloadContext.from(baseEvent),
+            config = ForwardCommonConfig(messageTemplate = template),
+            env = snapshot,
+        )
+
+        assertTrue(result.contains(fakeBase64Icon), "Expected base64 icon in output")
+        assertFalse(result.contains("{{APP_ICON}}"), "Placeholder should be replaced")
+        assertTrue(result.contains("图标：$fakeBase64Icon"), "Icon should appear after label")
+    }
+
+    @Test
+    fun `empty appIcon causes APP_ICON line to be removed by removeEmptyValueLines`() = runBlocking {
+        val template = "图标：{{APP_ICON}}\n内容：{{SMS}}"
+
+        val result = formatter().format(
+            event = baseEvent.copy(appIcon = ""),
+            payloadContext = DispatchPayloadContext.from(baseEvent),
+            config = ForwardCommonConfig(messageTemplate = template),
+            env = snapshot,
+        )
+
+        assertFalse(result.contains("{{APP_ICON}}"), "Placeholder should be replaced")
+        assertFalse(result.contains("图标："), "Empty-value line '图标：' should be removed")
+        assertTrue(result.contains("内容：验证码 123456"), "Other lines should remain intact")
     }
 
     private companion object {

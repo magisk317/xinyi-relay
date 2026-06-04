@@ -21,4 +21,5 @@ data class MsgInfo(
     val message: String = "",
     val contactName: String = "",
     val phoneArea: String = "",
+    val appIcon: String = "",
 ) : Serializable

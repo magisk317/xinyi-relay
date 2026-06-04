@@ -53,6 +53,7 @@ dependencies {
     implementation(project(":relay:android"))
     implementation(project(":smscode-core:smscode-domain"))
     implementation(project(":smscode-core:smscode-runtime-common"))
+    implementation(project(":smscode-core:smscode-runtime-contract"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.serialization.json)
@@ -74,6 +75,8 @@ dependencies {
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.mockk)
+    testImplementation(libs.kotest.runner.junit5)
+    testImplementation(libs.kotest.property)
 }
 
 val verifyNoComposeUiLeak = tasks.register("verifyNoComposeUiLeak") {
