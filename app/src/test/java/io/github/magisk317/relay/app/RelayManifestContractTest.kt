@@ -94,6 +94,38 @@ class RelayManifestContractTest {
     }
 
     @Test
+    fun `base manifest does not declare outgoing sms permissions`() {
+        val permissions = permissionNames("app/src/main/AndroidManifest.xml")
+        val features = featureNames("app/src/main/AndroidManifest.xml")
+
+        assertFalse("android.permission.SEND_SMS" in permissions)
+        assertFalse("android.permission.READ_PHONE_STATE" in permissions)
+        assertFalse("android.hardware.telephony" in features)
+    }
+
+    @Test
+    fun `play manifest does not declare outgoing sms permissions`() {
+        val permissions = permissionNames("app/src/play/AndroidManifest.xml")
+        val features = featureNames("app/src/play/AndroidManifest.xml")
+
+        assertFalse("android.permission.SEND_SMS" in permissions)
+        assertFalse("android.permission.READ_PHONE_STATE" in permissions)
+        assertFalse("android.hardware.telephony" in features)
+    }
+
+    @Test
+    fun `non play manifests keep outgoing sms permissions`() {
+        listOf("app/src/github/AndroidManifest.xml", "app/src/fdroid/AndroidManifest.xml").forEach { manifest ->
+            val permissions = permissionNames(manifest)
+            val features = featureNames(manifest)
+
+            assertTrue("android.permission.SEND_SMS" in permissions)
+            assertTrue("android.permission.READ_PHONE_STATE" in permissions)
+            assertTrue("android.hardware.telephony" in features)
+        }
+    }
+
+    @Test
     fun `libxposed entrypoint and scope metadata remain declared`() {
         assertEquals(
             "io.github.magisk317.relay.xp.LibXposedEntry",
@@ -130,6 +162,22 @@ class RelayManifestContractTest {
         val fromRoot = File(relativePath)
         if (fromRoot.exists()) return fromRoot
         return File("../$relativePath")
+    }
+
+    private fun permissionNames(relativePath: String): Set<String> {
+        return parseManifest(relativePath)
+            .getElementsByTagName("uses-permission")
+            .asElements()
+            .mapNotNull { it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue }
+            .toSet()
+    }
+
+    private fun featureNames(relativePath: String): Set<String> {
+        return parseManifest(relativePath)
+            .getElementsByTagName("uses-feature")
+            .asElements()
+            .mapNotNull { it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue }
+            .toSet()
     }
 
     private fun org.w3c.dom.NodeList.asElements(): List<Element> {
