@@ -91,6 +91,8 @@ class RemoteAgentRepository(
         preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_PULL_AT, "0")
         preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_PUSH_AT, "0")
         preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_PENDING_MUTATIONS, "0")
+        preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_DEVICE_APP_INFOS, "")
+        preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_APP_CATALOG_DIGEST, "")
         InternalSecretStore.putString(appContext, PrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, "")
         publishHookPrefs()
         getSnapshot()
