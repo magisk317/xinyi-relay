@@ -11,6 +11,7 @@ import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.ScheduledTask
 import io.github.magisk317.relay.engine.schedule.CronUtils
 import io.github.magisk317.relay.engine.service.ScheduledTaskRepository
+import io.github.magisk317.relay.mobileui.BuildConfig
 import java.util.Date
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -137,6 +138,9 @@ class ScheduledTaskViewModel(
     }
 
     suspend fun sendTestSms(simSlot: Int, mobiles: String, content: String) {
+        if (!BuildConfig.ENABLE_SMS_CHANNEL) {
+            throw IllegalStateException(string(R.string.sender_channel_disabled_summary))
+        }
         withContext(Dispatchers.IO) {
             senderTestService.sendScheduledSms(
                 simSlot = simSlot,
@@ -155,6 +159,9 @@ class ScheduledTaskViewModel(
     }
 
     private fun validateTask(task: ScheduledTask): String? {
+        if (task.taskType == ScheduledTask.TASK_TYPE_SMS && !BuildConfig.ENABLE_SMS_CHANNEL) {
+            return string(R.string.sender_channel_disabled_summary)
+        }
         CronUtils.validateCronExpression(task.cronExpression)?.let {
             return string(R.string.scheduled_task_error_cron_invalid)
         }

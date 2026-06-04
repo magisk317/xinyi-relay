@@ -13,6 +13,7 @@ import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.entity.ScheduledTaskEntity
 import io.github.magisk317.relay.engine.schedule.CronUtils
+import io.github.magisk317.relay.runtime.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
@@ -32,6 +33,12 @@ class ScheduledTaskManager(
     suspend fun scheduleAllActiveTasks() {
         withContext(Dispatchers.IO) {
             val tasks = appDatabase.scheduledTaskDao().getActiveTasks()
+            if (!BuildConfig.ENABLE_SMS_CHANNEL) {
+                tasks.forEach { task -> cancelTask(task.id) }
+                updateFallbackWorker(false)
+                XLog.w("Scheduled SMS tasks disabled in current distribution, active task alarms cancelled")
+                return@withContext
+            }
             tasks.forEach { task ->
                 runCatching {
                     scheduleTask(task)
@@ -45,6 +52,12 @@ class ScheduledTaskManager(
 
     suspend fun rescheduleTask(taskId: Long) {
         withContext(Dispatchers.IO) {
+            if (!BuildConfig.ENABLE_SMS_CHANNEL) {
+                cancelTask(taskId)
+                updateFallbackWorker(false)
+                XLog.w("ScheduledTask $taskId not rescheduled: SMS channel disabled in current distribution")
+                return@withContext
+            }
             val task = appDatabase.scheduledTaskDao().getById(taskId)
             if (task != null) {
                 if (task.status == 1) {
@@ -119,6 +132,10 @@ class ScheduledTaskManager(
     }
 
     private suspend fun refreshFallbackWorkerInternal() {
+        if (!BuildConfig.ENABLE_SMS_CHANNEL) {
+            updateFallbackWorker(false)
+            return
+        }
         val hasActiveTasks = appDatabase.scheduledTaskDao().getActiveTasks().isNotEmpty()
         updateFallbackWorker(hasActiveTasks)
     }
