@@ -79,7 +79,7 @@ export function OverviewPage() {
   const latestRecord = snapshot.records[0] ?? null
   const routingAssets = [
     snapshot.config?.snapshot.senders,
-    snapshot.config?.snapshot.appInfos,
+    snapshot.config?.snapshot.deviceAppInfos && Object.keys(snapshot.config.snapshot.deviceAppInfos).length > 0 ? snapshot.config.snapshot.deviceAppInfos : null,
     snapshot.config?.snapshot.notifyRoutes,
     snapshot.config?.snapshot.forwardFilters
   ]

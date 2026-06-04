@@ -6,16 +6,18 @@ import { AppsPage } from '../pages/AppsPage'
 const mockUseDesktopConfigSnapshotEditor = vi.hoisted(() => ({
   config: { revision: 3 },
   root: {
-    appInfos: [
-      {
-        packageName: 'com.example.bank',
-        label: 'Bank',
-        blocked: false,
-        forwarding: true,
-        forwardingConfigured: true,
-        notifyTemplate: 'template-body'
-      }
-    ],
+    deviceAppInfos: {
+      '1': [
+        {
+          packageName: 'com.example.bank',
+          label: 'Bank',
+          blocked: false,
+          forwarding: true,
+          forwardingConfigured: true,
+          notifyTemplate: 'template-body'
+        }
+      ]
+    },
     notifyRoutes: [{ id: 1, scope: 1, packageName: 'com.example.bank', senderId: 1, updateTime: 1 }],
     smsCodeRules: [{ id: 1, company: 'Bank', codeKeyword: 'code', codeRegex: '\\d+' }],
     forwardFilters: [{ id: 1, msgType: 'sms', scopeType: 'package', scopeKey: 'com.example.bank', senderId: 1, policy: 'allow', matchMode: 'contains', pattern: 'code', enabled: 1, updateTime: 1 }]
@@ -25,6 +27,12 @@ const mockUseDesktopConfigSnapshotEditor = vi.hoisted(() => ({
   setError: vi.fn(),
   load: vi.fn().mockResolvedValue(undefined),
   saveRoot: vi.fn().mockResolvedValue(undefined)
+}))
+
+vi.mock('../api/desktopApi', () => ({
+  desktopApi: {
+    getDevices: vi.fn().mockResolvedValue({ devices: [{ id: 1, deviceName: 'Test Device', deviceModel: 'Model' }] })
+  }
 }))
 
 vi.mock('../hooks/useDesktopRealtimeRefresh', () => ({
@@ -42,14 +50,14 @@ vi.mock('../hooks/useDesktopConfigSnapshotEditor', () => ({
 }))
 
 describe('AppsPage', () => {
-  it('shows template status instead of per-app SMS rule counts', () => {
+  it('shows template status instead of per-app SMS rule counts', async () => {
     render(
       <DesktopI18nProvider>
         <AppsPage />
       </DesktopI18nProvider>
     )
 
-    expect(screen.getByText('Template')).toBeTruthy()
+    expect(await screen.findByText('Template')).toBeTruthy()
     expect(screen.queryByText('SMS code rules')).toBeNull()
     expect(screen.getByText('Routing assets')).toBeTruthy()
   })
