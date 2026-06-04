@@ -68,9 +68,12 @@ class LibXposedEntry : XposedModule {
 
     override fun onModuleLoaded(param: ModuleLoadedParam) {
         val api = apiVersion
-        if (api != LIBXPOSED_API_VERSION) {
-            Log.w(BuildConfig.LOG_TAG, "LibXposedEntry skipped: apiVersion=$api")
+        if (api < LIBXPOSED_API_VERSION) {
+            Log.w(BuildConfig.LOG_TAG, "LibXposedEntry skipped: apiVersion=$api < $LIBXPOSED_API_VERSION")
             return
+        }
+        if (api > LIBXPOSED_API_VERSION) {
+            Log.i(BuildConfig.LOG_TAG, "LibXposedEntry: apiVersion=$api > expected $LIBXPOSED_API_VERSION, proceeding (forward-compatible)")
         }
         installCoreRuntime()
         XpHookDiagnostics.installRuntimeBridge(AndroidXpDiagnosticsBridge)
@@ -137,6 +140,7 @@ class LibXposedEntry : XposedModule {
         return packageName == "android" ||
             packageName == "system" ||
             packageName == "com.android.phone" ||
+            packageName == "com.xiaomi.phone" ||
             packageName == "com.android.providers.telephony"
     }
 
