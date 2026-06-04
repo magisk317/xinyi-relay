@@ -1311,4 +1311,13 @@
     <string name="cloud_backup_drive_authorization_canceled">Google Drive authorization canceled</string>
     <!-- cloud backup end -->
     <string name="sender_form_label_auth_type">Authentication Mode</string>
+    <string name="sender_custom_template_title">Custom Notification Template</string>
+    <string name="sender_custom_template_summary_default">Use global default template</string>
+    <string name="sender_custom_template_summary_configured">Custom template configured</string>
+    <string name="sender_custom_template_dialog_title">Configure Custom Template</string>
+    <string name="sender_custom_template_label">Template Content</string>
+    <string name="sender_custom_template_placeholder">Enter custom notification template</string>
+
+    <string name="sender_custom_template_render_error">Failed to render custom template: %1$s</string>
+
 </resources>

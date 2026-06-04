@@ -18,6 +18,7 @@ import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.engine.pipeline.SenderSelector
+import android.content.Context
 
 data class EventPipelineResult(
     val dispatched: Boolean,
@@ -39,6 +40,7 @@ private data class SenderResolution(
 )
 
 class EventPipeline(
+    private val context: Context,
     private val db: AppDatabase,
     private val eventGatekeeper: EventGatekeeper,
     private val routingResolver: RoutingResolver,
@@ -127,10 +129,37 @@ class EventPipeline(
 
                 recordContext = ensureSmsRecordForForwardResult(event, recordContext, traceId)
                 val effectiveConfig = resolveEffectiveConfig(event)
-                val msgForSend = buildDispatchPayload(event, effectiveConfig)
+                val defaultMsgInfo = buildDispatchPayload(event, effectiveConfig)
+                val msgCache = java.util.concurrent.ConcurrentHashMap<String, MsgInfo>()
+
+                val payloadProvider: suspend (Sender) -> MsgInfo = { sender ->
+                    if (sender.customTemplate.isBlank()) {
+                        defaultMsgInfo
+                    } else {
+                        try {
+                            val template = sender.customTemplate
+                            var cached = msgCache[template]
+                            if (cached == null) {
+                                cached = buildDispatchPayload(event, effectiveConfig.copy(messageTemplate = template))
+                                msgCache[template] = cached
+                            }
+                            cached!!
+                        } catch (e: Exception) {
+                            XLog.e("Failed to render custom template for sender: %s", sender.name, e)
+                            val resId = context.resources.getIdentifier("sender_custom_template_render_error", "string", context.packageName)
+                            val errorMsg = if (resId != 0) {
+                                context.getString(resId, e.message ?: e.javaClass.simpleName)
+                            } else {
+                                "通道自定义模板渲染失败: ${e.message ?: e.javaClass.simpleName}"
+                            }
+                            defaultMsgInfo.copy(content = errorMsg)
+                        }
+                    }
+                }
+
                 val dispatchResults = dispatchExecutor.dispatchToSenders(
                     senderResolution.selectedSenders,
-                    msgForSend,
+                    payloadProvider,
                     effectiveConfig.dispatchStrategy,
                     traceId,
                 )

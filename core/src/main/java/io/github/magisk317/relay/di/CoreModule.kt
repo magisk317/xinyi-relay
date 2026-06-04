@@ -88,6 +88,7 @@ val coreModule = module {
     single { DispatchResultWriter(get(), get(), get()) }
     single {
         EventPipeline(
+            context = androidContext(),
             db = get(),
             eventGatekeeper = get(),
             routingResolver = get(),

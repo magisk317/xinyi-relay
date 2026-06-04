@@ -18,7 +18,7 @@ class SenderDispatcherTest {
 
         val results = dispatcher.dispatchToSenders(
             senders = senders(),
-            msgInfo = msgInfo(),
+            payloadProvider = { msgInfo() },
             strategy = DispatchStrategy.PRIMARY_ONLY,
         )
 
@@ -32,7 +32,7 @@ class SenderDispatcherTest {
 
         val results = dispatcher.dispatchToSenders(
             senders = senders(),
-            msgInfo = msgInfo(),
+            payloadProvider = { msgInfo() },
             strategy = DispatchStrategy.BROADCAST_ALL,
         )
 
@@ -45,7 +45,7 @@ class SenderDispatcherTest {
 
         val results = dispatcher.dispatchToSenders(
             senders = senders(),
-            msgInfo = msgInfo(),
+            payloadProvider = { msgInfo() },
             strategy = DispatchStrategy.FAILOVER,
         )
 
@@ -60,7 +60,7 @@ class SenderDispatcherTest {
 
         val results = dispatcher.dispatchToSenders(
             senders = senders(),
-            msgInfo = msgInfo(),
+            payloadProvider = { msgInfo() },
             strategy = 99,
         )
 

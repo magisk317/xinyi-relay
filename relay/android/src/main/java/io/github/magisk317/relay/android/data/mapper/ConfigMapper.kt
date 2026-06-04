@@ -68,6 +68,7 @@ object ConfigMapper {
         receiveCallNotify = receiveCallNotify,
         activeSchedule = parseActiveSchedule(activeScheduleJson),
         priority = priority,
+        customTemplate = customTemplate,
     )
 
     fun Sender.toEntity(): SenderEntity = SenderEntity(
@@ -86,6 +87,7 @@ object ConfigMapper {
             SenderActiveScheduleEvaluator.sanitize(activeSchedule),
         ),
         priority = priority,
+        customTemplate = customTemplate,
     )
 
     fun AppInfoData.toEntity(): AppInfo = when (this) {

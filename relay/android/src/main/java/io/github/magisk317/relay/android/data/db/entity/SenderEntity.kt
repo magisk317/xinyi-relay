@@ -27,4 +27,5 @@ data class SenderEntity(
     @ColumnInfo(name = "receive_call_notify", defaultValue = "0") var receiveCallNotify: Int = 0,
     @ColumnInfo(name = "active_schedule_json", defaultValue = "") var activeScheduleJson: String = "",
     @ColumnInfo(name = "priority", defaultValue = "0") var priority: Int = 0,
+    @ColumnInfo(name = "custom_template", defaultValue = "") var customTemplate: String = "",
 )
