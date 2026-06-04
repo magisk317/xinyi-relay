@@ -47,6 +47,7 @@ import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.hazeEffect
 import android.os.SystemClock
 import io.github.magisk317.relay.backup.BackupSource
+import io.github.magisk317.relay.mobileui.BuildConfig
 import org.koin.compose.viewmodel.koinViewModel
 
 @Immutable
@@ -473,7 +474,11 @@ fun MainScreen(
                                 onForwardKeepAliveClick = { navController.navigate(ForwardKeepAliveRoute) },
                                 onScheduledReminderClick = { navController.navigate(ScheduledReminderRoute) },
                                 onRemoteAgentClick = { navController.navigate(RemoteAgentRoute) },
-                                onNavigateToScheduledTasks = { navController.navigate(ScheduledTasksRoute) },
+                                onNavigateToScheduledTasks = if (BuildConfig.ENABLE_SMS_CHANNEL) {
+                                    { navController.navigate(ScheduledTasksRoute) }
+                                } else {
+                                    null
+                                },
                             )
                         }
                         composable<ScheduledTasksRoute> {

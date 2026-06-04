@@ -6,6 +6,7 @@ import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.ScheduledTask
 import io.github.magisk317.relay.engine.service.SenderRuntimeServiceRegistry
+import io.github.magisk317.relay.runtime.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
@@ -17,6 +18,11 @@ object ScheduledTaskExecutor {
 
     suspend fun executeTask(context: Context, taskId: Long, source: String) {
         withContext(Dispatchers.IO) {
+            if (!BuildConfig.ENABLE_SMS_CHANNEL) {
+                XLog.w("ScheduledTask $taskId skipped: SMS channel disabled in current distribution")
+                return@withContext
+            }
+
             val db = AppDatabase.getInstance(context)
             val dao = db.scheduledTaskDao()
 
