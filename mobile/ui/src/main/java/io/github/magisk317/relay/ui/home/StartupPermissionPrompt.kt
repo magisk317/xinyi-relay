@@ -261,7 +261,6 @@ private fun String.startupPermissionLabel(context: Context): String {
         Manifest.permission.SEND_SMS -> context.getString(R.string.startup_permission_send_sms)
         Manifest.permission.READ_PHONE_STATE -> context.getString(R.string.startup_permission_read_phone_state)
         Manifest.permission.POST_NOTIFICATIONS -> context.getString(R.string.startup_permission_post_notifications)
-        Manifest.permission.CAMERA -> context.getString(R.string.startup_permission_camera)
         Manifest.permission.READ_CONTACTS -> context.getString(R.string.startup_permission_read_contacts)
         else -> loadPermissionLabel(context)
     }

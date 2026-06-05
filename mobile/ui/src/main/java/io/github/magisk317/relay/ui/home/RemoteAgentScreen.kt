@@ -39,8 +39,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.journeyapps.barcodescanner.ScanContract
-import com.journeyapps.barcodescanner.ScanOptions
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+import com.google.mlkit.vision.barcode.common.Barcode
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.contract.repository.RemoteSyncRepository
 import io.github.magisk317.relay.contract.settings.RemoteAgentSnapshot
@@ -85,34 +86,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
         baseUrl = next.backendBaseUrl
     }
 
-    val scanLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
-        val contents = result.contents?.trim().orEmpty()
-        if (contents.isBlank()) return@rememberLauncherForActivityResult
-        val parsed = parseBindPayload(contents)
-        val resolvedCode = parsed.code.ifBlank { contents }
-        val resolvedBaseUrl = parsed.baseUrl.ifBlank { baseUrl }.trim()
-        bindCode = resolvedCode
-        if (resolvedBaseUrl.isNotBlank()) {
-            baseUrl = resolvedBaseUrl
-        }
-        scope.launch {
-            snackbarHostState.showLatestSnackbar(scanUpdatedText)
-            if (resolvedBaseUrl.isBlank() || resolvedCode.isBlank()) return@launch
-            runCatching {
-                repository.updateBackendBaseUrl(resolvedBaseUrl)
-                repository.bindDevice(resolvedCode)
-            }.onSuccess {
-                refresh()
-                bindCode = ""
-                snackbarHostState.showLatestSnackbar(
-                    context.getString(R.string.pref_remote_agent_bind_done, it.deviceId),
-                )
-            }.onFailure {
-                refresh()
-                snackbarHostState.showLatestSnackbar(it.message ?: it.javaClass.simpleName)
-            }
-        }
-    }
+
 
     LaunchedEffect(Unit) {
         refresh()
@@ -186,12 +160,44 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                 }
                 Button(
                     onClick = {
-                        val options = ScanOptions()
-                            .setDesiredBarcodeFormats(ScanOptions.QR_CODE)
-                            .setBeepEnabled(false)
-                            .setOrientationLocked(false)
-                            .setPrompt(scanActionText)
-                        scanLauncher.launch(options)
+                        val options = GmsBarcodeScannerOptions.Builder()
+                            .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+                            .build()
+                        val scanner = GmsBarcodeScanning.getClient(context, options)
+                        scanner.startScan()
+                            .addOnSuccessListener { barcode ->
+                                val contents = barcode.rawValue?.trim().orEmpty()
+                                if (contents.isBlank()) return@addOnSuccessListener
+                                val parsed = parseBindPayload(contents)
+                                val resolvedCode = parsed.code.ifBlank { contents }
+                                val resolvedBaseUrl = parsed.baseUrl.ifBlank { baseUrl }.trim()
+                                bindCode = resolvedCode
+                                if (resolvedBaseUrl.isNotBlank()) {
+                                    baseUrl = resolvedBaseUrl
+                                }
+                                scope.launch {
+                                    snackbarHostState.showLatestSnackbar(scanUpdatedText)
+                                    if (resolvedBaseUrl.isBlank() || resolvedCode.isBlank()) return@launch
+                                    runCatching {
+                                        repository.updateBackendBaseUrl(resolvedBaseUrl)
+                                        repository.bindDevice(resolvedCode)
+                                    }.onSuccess {
+                                        refresh()
+                                        bindCode = ""
+                                        snackbarHostState.showLatestSnackbar(
+                                            context.getString(R.string.pref_remote_agent_bind_done, it.deviceId),
+                                        )
+                                    }.onFailure {
+                                        refresh()
+                                        snackbarHostState.showLatestSnackbar(it.message ?: it.javaClass.simpleName)
+                                    }
+                                }
+                            }
+                            .addOnFailureListener { e ->
+                                scope.launch {
+                                    snackbarHostState.showLatestSnackbar(e.message ?: "Scan failed")
+                                }
+                            }
                     },
                 ) {
                     Text(scanActionText)
