@@ -351,6 +351,12 @@ jobs:
             echo "has_symbols=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Set up Ruby
+        if: startsWith(github.ref, 'refs/tags/') && env.HAS_GOOGLE_PLAY_CREDENTIALS == 'true' && (steps.release_meta.outputs.release_kind == 'full' || steps.release_meta.outputs.release_kind == 'mobile')
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 'ruby'
+
       - name: Install fastlane
         if: startsWith(github.ref, 'refs/tags/') && env.HAS_GOOGLE_PLAY_CREDENTIALS == 'true' && (steps.release_meta.outputs.release_kind == 'full' || steps.release_meta.outputs.release_kind == 'mobile')
         shell: bash
@@ -366,6 +372,8 @@ jobs:
       - name: Publish to Google Play
         if: startsWith(github.ref, 'refs/tags/') && env.HAS_GOOGLE_PLAY_CREDENTIALS == 'true' && (steps.release_meta.outputs.release_kind == 'full' || steps.release_meta.outputs.release_kind == 'mobile')
         shell: bash
+        env:
+          FASTLANE_OPT_OUT_USAGE: "1"
         run: |
           set -euo pipefail
 
