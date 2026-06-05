@@ -21,9 +21,7 @@ import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
 import android.content.Intent
-import androidx.appcompat.app.AppCompatDelegate
 import io.github.magisk317.relay.core.R
-import androidx.core.os.LocaleListCompat
 import io.github.magisk317.relay.backup.RelayBackupManager
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.engine.service.AppConfigRepository
@@ -167,13 +165,14 @@ class SettingsViewModel(
     }
 
     fun previewLanguageTag(languageTag: String) {
-        AppCompatDelegate.setApplicationLocales(
-            if (languageTag.isBlank()) {
-                LocaleListCompat.getEmptyLocaleList()
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            val localeManager = getApplication<Application>().getSystemService(android.app.LocaleManager::class.java)
+            localeManager?.applicationLocales = if (languageTag.isBlank()) {
+                android.os.LocaleList.getEmptyLocaleList()
             } else {
-                LocaleListCompat.forLanguageTags(languageTag)
-            },
-        )
+                android.os.LocaleList.forLanguageTags(languageTag)
+            }
+        }
         sharedLanguageState.value = LanguageState(languageTag)
     }
 
