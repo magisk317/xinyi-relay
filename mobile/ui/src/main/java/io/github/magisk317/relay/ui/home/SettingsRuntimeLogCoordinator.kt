@@ -2,6 +2,9 @@ package io.github.magisk317.relay.ui.home
 
 import io.github.magisk317.relay.ui.common.showLatestSnackbar
 
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -9,8 +12,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import io.github.magisk317.relay.android.diagnostics.LogBundleExporter
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsSnapshot
@@ -23,6 +26,7 @@ import kotlinx.coroutines.withContext
 internal data class SettingsRuntimeLogActions(
     val onRuntimeLogTitleClick: () -> Unit,
     val onRuntimeLogRetentionClick: () -> Unit,
+    val onClearLog: () -> Unit,
 )
 
 @Composable
@@ -35,13 +39,10 @@ internal fun rememberSettingsRuntimeLogActions(
 ): SettingsRuntimeLogActions {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var showRuntimeLogRetentionDialog by remember { mutableStateOf(false) }
-    var showRuntimeLogInfoDialog by remember { mutableStateOf(false) }
-    var runtimeLogDialogData by remember { mutableStateOf<RuntimeLogDialogData?>(null) }
-    var showRuntimeLogFullScreenPreview by remember { mutableStateOf(false) }
-    var runtimeLogWrapLines by rememberSaveable { mutableStateOf(false) }
+    var showRetentionDialog by remember { mutableStateOf(false) }
+    var showClearConfirmDialog by remember { mutableStateOf(false) }
 
-    fun shareRuntimeLogBundle() {
+    fun shareLog() {
         scope.launch {
             val result = withContext(Dispatchers.IO) {
                 LogBundleExporter.buildLogBundle(context)
@@ -66,21 +67,10 @@ internal fun rememberSettingsRuntimeLogActions(
         }
     }
 
-    fun loadRuntimeLogDialog(selectedFileName: String? = null) {
-        scope.launch {
-            runtimeLogDialogData = withContext(Dispatchers.IO) {
-                loadRuntimeLogDialogData(selectedFileName)
-            }
-        }
-    }
-
-    fun clearRuntimeLogFolders() {
+    fun clearLog() {
         scope.launch {
             val result = withContext(Dispatchers.IO) {
                 LogBundleExporter.clearLogFolders(context)
-            }
-            runtimeLogDialogData = withContext(Dispatchers.IO) {
-                loadRuntimeLogDialogData()
             }
             snackbarHostState.showLatestSnackbar(
                 if (result.success) {
@@ -92,28 +82,33 @@ internal fun rememberSettingsRuntimeLogActions(
         }
     }
 
-    RuntimeLogDialogHost(
-        showInfoDialog = showRuntimeLogInfoDialog,
-        data = runtimeLogDialogData,
-        showFullScreenPreview = showRuntimeLogFullScreenPreview,
-        wrapLines = runtimeLogWrapLines,
-        onLoadData = { selectedFileName -> loadRuntimeLogDialog(selectedFileName) },
-        onDismissInfo = { showRuntimeLogInfoDialog = false },
-        onShare = { shareRuntimeLogBundle() },
-        onSelectFile = { fileName -> loadRuntimeLogDialog(fileName) },
-        onOpenPreview = { showRuntimeLogFullScreenPreview = true },
-        onClear = { clearRuntimeLogFolders() },
-        onWrapLinesChange = { runtimeLogWrapLines = it },
-        onDismissPreview = { showRuntimeLogFullScreenPreview = false },
-    )
+    if (showClearConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearConfirmDialog = false },
+            title = { Text(stringResource(R.string.runtime_log_clear_confirm_title)) },
+            text = { Text(stringResource(R.string.runtime_log_clear_confirm_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showClearConfirmDialog = false
+                    clearLog()
+                }) {
+                    Text(stringResource(R.string.action_clear))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearConfirmDialog = false }) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            },
+        )
+    }
 
-    val currentDiagnostics = diagnostics
-    if (showRuntimeLogRetentionDialog && currentDiagnostics != null) {
+    if (showRetentionDialog && diagnostics != null) {
         SettingsRuntimeLogRetentionDialog(
-            retentionDays = currentDiagnostics.runtimeLogRetentionDays,
-            onDismiss = { showRuntimeLogRetentionDialog = false },
+            retentionDays = diagnostics.runtimeLogRetentionDays,
+            onDismiss = { showRetentionDialog = false },
             onConfirm = { updated ->
-                showRuntimeLogRetentionDialog = false
+                showRetentionDialog = false
                 scope.launch {
                     onDiagnosticsChanged(
                         repository.updateDiagnosticsSettings(
@@ -128,11 +123,9 @@ internal fun rememberSettingsRuntimeLogActions(
 
     return remember {
         SettingsRuntimeLogActions(
-            onRuntimeLogTitleClick = {
-                runtimeLogDialogData = null
-                showRuntimeLogInfoDialog = true
-            },
-            onRuntimeLogRetentionClick = { showRuntimeLogRetentionDialog = true },
+            onRuntimeLogTitleClick = { shareLog() },
+            onRuntimeLogRetentionClick = { showRetentionDialog = true },
+            onClearLog = { showClearConfirmDialog = true },
         )
     }
 }

@@ -258,6 +258,7 @@ fun SettingsHomeScreen(
                     }
                 },
                 onRuntimeLogRetentionClick = runtimeLogActions.onRuntimeLogRetentionClick,
+                onClearLog = runtimeLogActions.onClearLog,
                 onAutoUpdateOnStartChange = { enabled ->
                     scope.launch {
                         diagnostics = repository.updateDiagnosticsSettings(

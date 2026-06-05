@@ -146,6 +146,7 @@ internal fun SettingsDiagnosticsSection(
     onVerboseLogModeChange: (Boolean) -> Unit,
     onSensitiveDebugLogModeChange: (Boolean) -> Unit,
     onRuntimeLogRetentionClick: () -> Unit,
+    onClearLog: () -> Unit,
     onAutoUpdateOnStartChange: (Boolean) -> Unit,
     onAutoUpdateWifiOnlyChange: (Boolean) -> Unit,
     onAnalyticsEnabledChange: (Boolean) -> Unit,
@@ -178,6 +179,11 @@ internal fun SettingsDiagnosticsSection(
                 diagnostics.runtimeLogRetentionDays,
             ),
             onClick = onRuntimeLogRetentionClick,
+        )
+        Item(
+            title = stringResource(id = R.string.runtime_log_clear_confirm_title),
+            summary = stringResource(id = R.string.runtime_log_clear_summary),
+            onClick = onClearLog,
         )
         StateSwitchItem(
             title = stringResource(id = R.string.pref_auto_update_on_start_title),
