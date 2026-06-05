@@ -2,11 +2,13 @@ package io.github.magisk317.relay.ui.record
 
 import android.app.Application
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.smscode.runtime.common.utils.JsonUtils
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
@@ -114,6 +116,36 @@ class CodeRecordViewModel(
                 }
             } catch (ignored: Throwable) {
                 XLog.e("Error occurs when restore SMS records", ignored)
+            }
+        }
+    }
+
+    fun refund(context: Context, smsMsg: SmsMsg) {
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    val intent = Intent(PrefConst.ACTION_FORWARD_SMS).apply {
+                        setClassName(context.packageName, "io.github.magisk317.relay.platform.ipc.ForwardReceiver")
+                        putExtra("sender", smsMsg.sender ?: "")
+                        putExtra("body", smsMsg.body ?: "")
+                        putExtra("date", smsMsg.date)
+                        putExtra("company", smsMsg.company ?: "")
+                        putExtra("smsCode", smsMsg.smsCode ?: "")
+                        putExtra("packageName", smsMsg.packageName ?: "")
+                        putExtra("notify_channel_id", smsMsg.notifyChannelId)
+                        putExtra("msgType", when (smsMsg.msgType) {
+                            SmsMsg.MSG_TYPE_APP_NOTIFY -> "app_notify"
+                            SmsMsg.MSG_TYPE_CALL_NOTIFY -> "call_notify"
+                            else -> "sms"
+                        })
+                        putExtra("forward_source", "manual_refund")
+                        putExtra("call_type", smsMsg.callType)
+                    }
+                    context.sendBroadcast(intent)
+                }
+                XLog.i("Re-forward triggered for record id=${smsMsg.id}")
+            } catch (e: Throwable) {
+                XLog.e("Re-forward failed", e)
             }
         }
     }

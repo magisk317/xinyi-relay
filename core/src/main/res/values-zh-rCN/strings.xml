@@ -167,6 +167,10 @@
     <string name="copy_relay_code">复制验证码</string>
     <string name="copy_sms">复制短信</string>
     <string name="copy_notification">复制通知</string>
+    <string name="refund_sms">重新转发</string>
+    <string name="refund_notification">重新转发</string>
+    <string name="prompt_sms_refunded">短信已重新转发</string>
+    <string name="prompt_notification_refunded">通知已重新转发</string>
     <string name="delete_sms_action">删除短信</string>
     <string name="delete_notification_action">删除通知</string>
     <string name="prompt_sms_copied">短信已复制</string>
