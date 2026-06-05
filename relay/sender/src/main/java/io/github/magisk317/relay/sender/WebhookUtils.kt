@@ -99,6 +99,7 @@ object WebhookUtils {
                 .replace("[org_content]", jsonIfNeeded(encodeIfNeeded(orgContent)))
                 .replace("[title]", jsonIfNeeded(encodeIfNeeded(simInfo)))
                 .replace("[card_slot]", jsonIfNeeded(encodeIfNeeded(simInfo)))
+                .replace("[app_icon]", jsonIfNeeded(encodeIfNeeded(msgInfo.appIcon)))
                 .replace("[timestamp]", encodeIfNeeded(timestamp.toString()))
                 .replace("[sign]", encodeIfNeeded(sign))
                 .replace(receiveTimeTag) {
