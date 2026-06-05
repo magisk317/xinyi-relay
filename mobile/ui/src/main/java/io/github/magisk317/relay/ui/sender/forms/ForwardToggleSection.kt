@@ -113,7 +113,11 @@ fun ForwardToggleSection(
             )
             ForwardConfigActionItem(
                 title = stringResource(R.string.sender_custom_template_title),
-                summary = if (customTemplate.isBlank()) stringResource(R.string.sender_custom_template_summary_default) else stringResource(R.string.sender_custom_template_summary_configured),
+                summary = if (customTemplate.isBlank()) {
+                    stringResource(R.string.sender_custom_template_summary_default)
+                } else {
+                    stringResource(R.string.sender_custom_template_summary_configured)
+                },
                 onClick = { showCustomTemplateDialog = true },
             )
             if (notifyScopeEntry != null && notifyScopeEntry.senderId > 0L) {

@@ -144,8 +144,8 @@ class EventPipeline(
                                 cached = buildDispatchPayload(event, effectiveConfig.copy(messageTemplate = template))
                                 msgCache[template] = cached
                             }
-                            cached!!
-                        } catch (e: Exception) {
+                            cached
+                        } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
                             XLog.e("Failed to render custom template for sender: %s", sender.name, e)
                             val resId = context.resources.getIdentifier("sender_custom_template_render_error", "string", context.packageName)
                             val errorMsg = if (resId != 0) {
