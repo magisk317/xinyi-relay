@@ -372,8 +372,7 @@ jobs:
       - name: Publish to Google Play
         if: startsWith(github.ref, 'refs/tags/') && env.HAS_GOOGLE_PLAY_CREDENTIALS == 'true' && (steps.release_meta.outputs.release_kind == 'full' || steps.release_meta.outputs.release_kind == 'mobile')
         shell: bash
-        env:
-          FASTLANE_OPT_OUT_USAGE: "1"
+
         run: |
           set -euo pipefail
 
@@ -400,6 +399,7 @@ jobs:
 
           "${cmd[@]}"
         env:
+          FASTLANE_OPT_OUT_USAGE: "1"
           ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS }}
           FASTLANE_SKIP_UPDATE_CHECK: '1'
           FASTLANE_DISABLE_COLORS: '1'
