@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -22,9 +23,9 @@ fun ScheduledTasksScreen(
     onNavigateToConfig: (Long) -> Unit,
     viewModel: ScheduledTaskViewModel = org.koin.compose.viewmodel.koinViewModel()
 ) {
-    val tasks by viewModel.tasks.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val errorMessage by viewModel.errorMessage.collectAsState()
+    val tasks by viewModel.tasks.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
 
     var taskToDelete by remember { mutableStateOf<Long?>(null) }
     val promptPermissionsForTask = rememberScheduledTaskPermissionPrompter()

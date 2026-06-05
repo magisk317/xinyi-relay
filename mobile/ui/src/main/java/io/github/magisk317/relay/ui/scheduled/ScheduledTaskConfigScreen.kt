@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -78,7 +79,7 @@ fun ScheduledTaskConfigScreen(
     var saveError by remember(taskId) { mutableStateOf<String?>(null) }
 
     val promptPermissionsForTask = rememberScheduledTaskPermissionPrompter()
-    val tasks by viewModel.tasks.collectAsState()
+    val tasks by viewModel.tasks.collectAsStateWithLifecycle()
     val defaultName = stringResource(id = R.string.scheduled_task_default_name)
     val cronBlankError = stringResource(id = R.string.scheduled_task_error_cron_blank)
     val simpleWeekdaysBlankError = stringResource(id = R.string.scheduled_task_error_weekdays_blank)
