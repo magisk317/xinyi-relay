@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.sender
 
+import android.util.Base64
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.net.RelayHttpClients
 import io.github.magisk317.relay.sender.config.TelegramSetting
@@ -9,6 +10,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import okhttp3.Credentials
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.net.InetSocketAddress
@@ -17,6 +19,7 @@ import java.net.URLEncoder
 
 object TelegramUtils {
     private const val TAG = "TelegramUtils"
+    private const val CAPTION_MAX_LENGTH = 1024
 
     private fun String.escapeMarkdownV2(): String {
         return this.replace(Regex("""([_*\[\]()~`>#+\-=|{}.!\\])""")) { "\\${it.value}" }
@@ -28,9 +31,26 @@ object TelegramUtils {
         } else {
             "<b>信息驿站: ${msgInfo.from}</b>\n${msgInfo.content}"
         }
-        val base = setting.apiBase.ifBlank { "https://api.telegram.org" }.trimEnd('/')
-        var requestUrl = "${base}/bot${setting.apiToken}/sendMessage"
 
+        val base = setting.apiBase.ifBlank { "https://api.telegram.org" }.trimEnd('/')
+        val client = buildClient(setting)
+
+        val iconBytes = decodeIconBytes(msgInfo.appIcon)
+        if (iconBytes != null && content.length <= CAPTION_MAX_LENGTH) {
+            sendPhoto(client, base, setting, content, iconBytes)
+        } else {
+            sendMessage(client, base, setting, content)
+        }
+    }
+
+    private fun decodeIconBytes(appIcon: String): ByteArray? {
+        if (appIcon.isBlank()) return null
+        return runCatching {
+            Base64.decode(appIcon, Base64.NO_WRAP)
+        }.getOrNull()
+    }
+
+    private fun buildClient(setting: TelegramSetting): okhttp3.OkHttpClient {
         val clientBuilder = RelayHttpClients.newBuilder()
         if (setting.proxyType != Proxy.Type.DIRECT && setting.proxyHost.isNotEmpty() && setting.proxyPort.isNotEmpty()) {
             val port = setting.proxyPort.toIntOrNull() ?: 0
@@ -46,7 +66,61 @@ object TelegramUtils {
                 }
             }
         }
-        val client = clientBuilder.build()
+        return clientBuilder.build()
+    }
+
+    private fun sendPhoto(
+        client: okhttp3.OkHttpClient,
+        base: String,
+        setting: TelegramSetting,
+        caption: String,
+        photoBytes: ByteArray,
+    ) {
+        val requestUrl = "${base}/bot${setting.apiToken}/sendPhoto"
+
+        val body = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart("chat_id", setting.chatId)
+            .addFormDataPart(
+                "photo",
+                "icon.png",
+                photoBytes.toRequestBody("image/png".toMediaType()),
+            )
+            .addFormDataPart("caption", caption)
+            .addFormDataPart("parse_mode", setting.parseMode)
+            .apply {
+                if (setting.messageThreadId.isNotEmpty()) {
+                    addFormDataPart("message_thread_id", setting.messageThreadId)
+                }
+            }
+            .build()
+
+        val request = Request.Builder()
+            .url(requestUrl)
+            .post(body)
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            val respBody = response.body.string()
+            if (!response.isSuccessful) {
+                SLog.e(TAG, "Telegram sendPhoto failed: ${response.code} ${response.message} $respBody")
+                throw IllegalStateException("Telegram HTTP ${response.code}: ${response.message}")
+            }
+            if (!respBody.contains("\"ok\":true")) {
+                SLog.e(TAG, "Telegram API failed: $respBody")
+                throw IllegalStateException("Telegram API 返回失败: $respBody")
+            }
+            SLog.i(TAG, "Telegram sendPhoto success")
+        }
+    }
+
+    private fun sendMessage(
+        client: okhttp3.OkHttpClient,
+        base: String,
+        setting: TelegramSetting,
+        content: String,
+    ) {
+        var requestUrl = "${base}/bot${setting.apiToken}/sendMessage"
 
         val request = if (setting.method == "GET") {
             requestUrl += "?chat_id=${setting.chatId}&text=${URLEncoder.encode(content, "UTF-8")}&parse_mode=${setting.parseMode}"
