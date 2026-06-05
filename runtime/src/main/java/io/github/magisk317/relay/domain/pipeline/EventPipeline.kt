@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.domain.pipeline
 
 import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.relay.contract.util.AppIconEncoder
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
 import io.github.magisk317.relay.android.common.utils.XLog
@@ -305,7 +306,17 @@ class EventPipeline(
         val envSnapshot = systemInfoProvider.getSnapshot(effectiveConfig.deviceName)
         val dispatchContext = DispatchPayloadContext.from(event)
         val renderedContent = messageFormatter.format(event, dispatchContext, effectiveConfig, envSnapshot)
-        return dispatchContext.toMsgInfo(event, renderedContent)
+        val msgInfo = dispatchContext.toMsgInfo(event, renderedContent)
+        return ensureAppIcon(msgInfo)
+    }
+
+    private fun ensureAppIcon(msgInfo: MsgInfo): MsgInfo {
+        if (msgInfo.appIcon.isNotBlank()) return msgInfo
+        val pkg = AppIconEncoder.resolveIconPackageName(context, msgInfo.packageName, msgInfo.type)
+            ?: return msgInfo
+        val iconBase64 = AppIconEncoder.encodeFromPackage(context, pkg)
+        if (iconBase64.isBlank()) return msgInfo
+        return msgInfo.copy(appIcon = iconBase64)
     }
 
     private suspend fun resolveEffectiveConfig(event: RelayEvent): ForwardCommonConfig {

@@ -66,7 +66,7 @@ import io.github.magisk317.relay.contract.settings.RecordSettingsUpdate
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.smscode.rule.utils.CodeRecordSimilarityUtils
-import io.github.magisk317.relay.ui.common.AppIconLoader
+import io.github.magisk317.relay.contract.util.AppIconEncoder
 import io.github.magisk317.relay.ui.common.AppIconImage
 import io.github.magisk317.relay.ui.common.LoadingIndicatorTokens
 import io.github.magisk317.relay.ui.common.PolygonMorphLoadingIndicator
@@ -1617,8 +1617,8 @@ fun CodeRecordItem(
         val iconPackageName = remember(smsMsg.packageName, smsMsg.msgType, showAppIcon) {
             when {
                 showAppIcon && !smsMsg.packageName.isNullOrBlank() -> smsMsg.packageName
-                smsMsg.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY -> AppIconLoader.resolveDefaultDialerPackage(context)
-                smsMsg.msgType == SmsMsg.MSG_TYPE_SMS -> AppIconLoader.resolveDefaultSmsPackage(context)
+                smsMsg.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY -> AppIconEncoder.resolveDefaultDialerPackage(context)
+                smsMsg.msgType == SmsMsg.MSG_TYPE_SMS -> AppIconEncoder.resolveDefaultSmsPackage(context)
                 else -> null
             }
         }
