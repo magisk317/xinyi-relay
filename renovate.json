@@ -23,9 +23,6 @@
             "groupName": "other non-major dependencies",
             "groupSlug": "all-minor-patch",
             "commitMessageExtra": "",
-            "matchPackageNames": [
-                "*"
-            ],
             "excludePackagePatterns": [
                 "^androidx\\.",
                 "^org\\.jetbrains\\.kotlin",
