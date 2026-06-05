@@ -20,10 +20,24 @@
             ],
             "automerge": true,
             "automergeType": "pr",
-            "groupName": "all non-major dependencies",
+            "groupName": "other non-major dependencies",
             "groupSlug": "all-minor-patch",
+            "commitMessageExtra": "",
             "matchPackageNames": [
                 "*"
+            ],
+            "excludePackagePatterns": [
+                "^androidx\\.",
+                "^org\\.jetbrains\\.kotlin",
+                "^io\\.insert-koin\\.",
+                "^org\\.junit\\.",
+                "^dev\\.chrisbanes\\.haze",
+                "^com\\.squareup\\.okhttp3",
+                "^com\\.squareup\\.retrofit2",
+                "^io\\.ktor\\.",
+                "^io\\.coil-kt",
+                "^io\\.kotest",
+                "^com\\.google\\.firebase"
             ]
         },
         {
