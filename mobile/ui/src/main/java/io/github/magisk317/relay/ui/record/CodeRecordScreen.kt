@@ -858,6 +858,15 @@ fun CodeRecordScreen(
                 onDelete = {
                     deleteAndUndo(sms)
                 },
+                onRefund = {
+                    viewModel.refund(context, sms)
+                    val message = if (sms.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY) {
+                        context.getString(R.string.prompt_notification_refunded)
+                    } else {
+                        context.getString(R.string.prompt_sms_refunded)
+                    }
+                    scope.launch { snackbarHostState.showLatestSnackbar(message) }
+                },
             )
         }
     }
@@ -872,6 +881,7 @@ private fun RecordDetailOverlay(
     onDismiss: () -> Unit,
     onCopy: (label: String, value: String, message: String) -> Unit,
     onDelete: () -> Unit,
+    onRefund: () -> Unit,
 ) {
     val context = LocalContext.current
     val isAppNotification = sms.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY
@@ -1136,6 +1146,29 @@ private fun RecordDetailOverlay(
                         ButtonGroupDefaults.OverflowIndicator(menuState = menuState)
                     },
                 ) {
+                    customItem(
+                        buttonGroupContent = {
+                            OutlinedButton(
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    onRefund()
+                                    onDismiss()
+                                },
+                            ) {
+                                Text(stringResource(if (isAppNotification) R.string.refund_notification else R.string.refund_sms))
+                            }
+                        },
+                        menuContent = { menuState ->
+                            DropdownMenuItem(
+                                text = { Text(stringResource(if (isAppNotification) R.string.refund_notification else R.string.refund_sms)) },
+                                onClick = {
+                                    onRefund()
+                                    menuState.dismiss()
+                                    onDismiss()
+                                },
+                            )
+                        },
+                    )
                     customItem(
                         buttonGroupContent = {
                             OutlinedButton(

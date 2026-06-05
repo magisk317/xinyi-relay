@@ -166,6 +166,10 @@
     <string name="copy_relay_code">Copy Code</string>
     <string name="copy_sms">Copy Message</string>
     <string name="copy_notification">Copy Notification</string>
+    <string name="refund_sms">Re-forward</string>
+    <string name="refund_notification">Re-forward</string>
+    <string name="prompt_sms_refunded">SMS re-forward triggered</string>
+    <string name="prompt_notification_refunded">Notification re-forward triggered</string>
     <string name="delete_sms_action">Delete SMS</string>
     <string name="delete_notification_action">Delete Notification</string>
     <string name="prompt_sms_copied">SMS copied</string>
