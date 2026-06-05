@@ -1,0 +1,5 @@
+- 0.1.3 (35): Adds "Manual Re-forward" for SMS and notifications.
+- Senders: Telegram now supports app icon photo messages; added Pushdeer sender support.
+- Core: Webhook supports [app_icon] variable; app notification configs are now isolated by device.
+- Fixes: Full Xiaomi HyperOS hook compatibility; clears device app cache on unbind; migrated UI to Haze 2 and ComponentActivity.
+- Details: https://github.com/magisk317/xinyi-relay/releases

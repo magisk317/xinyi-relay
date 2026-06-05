@@ -1,4 +1,5 @@
-- 0.1.2 (33)：修复导入/恢复短信记录时“已转发”状态被覆盖重置的严重 Bug。
-- 新增 Google Drive / WebDAV 云备份、真实自动备份、定时短信、云湖发送器、Telegram API Base 与 Bark AES。
-- 接入官方验证码规则快照。Desktop 支持本地/远程模式与 SQLite。Backend 增加版本化迁移与登录限流防爆。
-- 详情与下载：https://github.com/magisk317/xinyi-relay/releases
+- 0.1.3(35)：修复恢复短信时“已转发”状态被覆盖的 Bug；完美适配小米 HyperOS 拦截。
+- 新增：短信与通知“手动重新转发”；云备份(WebDAV/GDrive)；定时短信；应用过滤按设备隔离。
+- 发送通道：新增云湖、Pushdeer；Telegram 支持发应用图标与自定义 API Base；Bark 支持 AES。
+- 核心：验证码规则快照；Webhook 透传 [app_icon]；Desktop 本地模式；Backend 限流防爆；升级 Haze 2 与 ComponentActivity。
+- https://github.com/magisk317/xinyi-relay/releases
