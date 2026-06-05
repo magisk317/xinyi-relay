@@ -1,4 +1,5 @@
-- 0.1.2 (33) fixes a critical bug where the "forwarded" status of SMS records was erased upon fallback import/restore.
-- Adds Google Drive/WebDAV cloud backup, real auto backup, scheduled SMS tasks, YunHu sender, Telegram API Base, and Bark AES.
-- Built-in official sms-code rule snapshots. Desktop adds local/remote modes with SQLite. Backend adds migrations and rate limits.
+- 0.1.3(35): Fixes bug erasing SMS "forwarded" status; full Xiaomi HyperOS hook compatibility.
+- New: "Manual Re-forward"; Cloud Backup(GDrive/WebDAV); scheduled SMS; device-isolated app filters.
+- Senders: Added YunHu & Pushdeer; Telegram app icons & custom API Base; Bark AES.
+- Core: Webhook [app_icon]; official sms-code snapshot; Desktop local mode; Backend rate limits; migrated to Haze 2 & ComponentActivity.
 - https://github.com/magisk317/xinyi-relay/releases

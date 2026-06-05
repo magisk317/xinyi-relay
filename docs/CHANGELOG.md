@@ -5,7 +5,32 @@
 ---
 
 ## [Unreleased]
-- 版本：`versionCode 34` / `versionName 0.1.3`。
+
+---
+
+## [v0.1.3] - 2026-06-05
+- 版本：`versionCode 35` / `versionName 0.1.3`。
+- **🌟 新特性 (Features)**
+  - `[ui]` 新增短信与通知消息记录的“手动重新转发”功能。
+  - `[sender]` Telegram 发送通道支持将应用图标作为图片发送；新增 Pushdeer 发送通道。
+  - `[webhook]` 新增 `[app_icon]` 模板变量透传应用图标。
+  - `[core]` 核心事件管道支持应用图标 Base64 提取并注入。
+  - `[notification]` 通知配置现已支持按设备进行完全隔离。
+  - `[mobile]` 改进移动端定时任务UI及领域逻辑；新增隐藏桌面图标开关。
+  - `[backend]` 服务端二进制文件直接内嵌 WebUI，移除 Caddy 依赖。
+- **🐛 修复与优化 (Fixes & Perf)**
+  - `[hook]` 适配小米 HyperOS 短信转发，向前兼容较新 LibXposed API。
+  - `[forward]` 修复旧设备 `ConcurrentHashMap.putIfAbsent` 兼容性及自定义模板渲染报错。
+  - `[runtime]` 解绑时正确清理 `deviceAppInfos` 缓存。
+  - `[diagnostics]` 简化诊断日志分享流程，精简导出日志包体积（限制 500 行）。
+  - `[sender]` 收紧飞书应用的配置要求和校验逻辑。
+  - `[desktop]` 修复桌面端概览和 App 测试的数据模型适配问题。
+- **📦 依赖与底层构建 (Chores)**
+  - `[ui]` 底层迁移至 Haze 2 组件体系，全面采用 `ComponentActivity`。
+  - `[deps]` 自动化更新近期所有 Non-major Androidx/Kotlin 第三方依赖库。
+  - `[submodule]` 各个子模块 (`smscode-core`, `build-logic`, `magisk-ui-kit`) 同步更新至最新状态。
+
+> Full Changelog: https://github.com/magisk317/xinyi-relay/compare/v0.1.2...v0.1.3
 
 ---
 
