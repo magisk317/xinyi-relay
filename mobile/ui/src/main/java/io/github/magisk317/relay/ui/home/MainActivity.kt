@@ -9,8 +9,9 @@ import android.graphics.Bitmap
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
-import androidx.appcompat.app.AppCompatDelegate
-import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.ComponentActivity
+import android.content.res.Configuration
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -57,7 +58,6 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -104,7 +104,7 @@ import org.koin.androidx.compose.koinViewModel
 import java.io.File
 import kotlin.math.hypot
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : ComponentActivity() {
 
     private val playUpdateDelegate: PlayUpdateDelegate = FlavorPlayUpdateDelegate()
     private var autoUpdateChecked = false
@@ -122,7 +122,6 @@ class MainActivity : AppCompatActivity() {
 
     @Suppress("CyclomaticComplexMethod")
     override fun onCreate(savedInstanceState: Bundle?) {
-        applyStoredLanguage()
         super.onCreate(savedInstanceState)
         applyEdgeToEdge(this)
         playUpdateDelegate.onCreate(this) {
@@ -133,8 +132,23 @@ class MainActivity : AppCompatActivity() {
         setContent {
             val viewModel: SettingsViewModel = koinViewModel()
             val themeState by viewModel.themeState.collectAsStateWithLifecycle()
-            val navController = rememberNavController()
+            val languageState by viewModel.languageState.collectAsStateWithLifecycle()
+            
             val context = LocalContext.current
+            val locale = if (languageState.languageTag.isBlank()) {
+                java.util.Locale.getDefault()
+            } else {
+                java.util.Locale.forLanguageTag(languageState.languageTag)
+            }
+            val configuration = Configuration(context.resources.configuration).apply {
+                setLocale(locale)
+            }
+            val localizedContext = context.createConfigurationContext(configuration)
+            
+            fun getString(resId: Int): String = localizedContext.getString(resId)
+            fun getString(resId: Int, vararg formatArgs: Any): String = localizedContext.getString(resId, *formatArgs)
+            
+            val navController = rememberNavController()
             val scope = rememberCoroutineScope()
             val appSnackbarHostState = remember { SnackbarHostState() }
             var privacyAccepted by remember { mutableStateOf<Boolean?>(null) }
@@ -366,7 +380,14 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            CompositionLocalProvider(LocalSnackbarHostState provides appSnackbarHostState) {
+            val activity = context as ComponentActivity
+            CompositionLocalProvider(
+                LocalSnackbarHostState provides appSnackbarHostState,
+                LocalContext provides localizedContext,
+                LocalConfiguration provides configuration,
+                androidx.activity.compose.LocalActivityResultRegistryOwner provides activity,
+                androidx.activity.compose.LocalOnBackPressedDispatcherOwner provides activity,
+            ) {
                 AppTheme(themeMode = currentThemeMode, uiKitStyle = currentUiKitStyle) {
                     Surface(color = MaterialTheme.colorScheme.background) {
                         LaunchedEffect(Unit) {
@@ -715,16 +736,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun applyStoredLanguage() {
-        val languageTag = runBlocking { settingsRepository.getLanguageTag() }
-        AppCompatDelegate.setApplicationLocales(
-            if (languageTag.isBlank()) {
-                LocaleListCompat.getEmptyLocaleList()
-            } else {
-                LocaleListCompat.forLanguageTags(languageTag)
-            },
-        )
-    }
+
 
     override fun onResume() {
         super.onResume()

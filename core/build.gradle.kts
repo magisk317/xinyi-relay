@@ -57,12 +57,9 @@ dependencies {
     implementation(project(":smscode-core:smscode-runtime-common"))
     implementation(project(":smscode-core:smscode-verification-core"))
     implementation(project(":smscode-core:smscode-xposed-core"))
-
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.browser)
     implementation(libs.androidx.room.runtime)
-    
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.kotlinx.serialization)
@@ -72,12 +69,10 @@ dependencies {
     implementation(libs.okhttp.tls)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
-
     implementation(libs.koin.android)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.timber)
     implementation(libs.kotlinx.collections.immutable)
-
     add("playImplementation", platform(libs.firebase.bom))
     add("playImplementation", libs.firebase.auth)
     add("playImplementation", libs.play.services.auth)
