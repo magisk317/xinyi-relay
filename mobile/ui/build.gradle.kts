@@ -44,10 +44,7 @@ dependencies {
     implementation(project(":smscode-core:smscode-domain"))
     implementation(project(":smscode-core:smscode-runtime-common"))
     implementation(project(":smscode-core:smscode-rule-core"))
-
-    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.browser)
-
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
@@ -59,7 +56,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.coil3.core)
     implementation(libs.coil3.compose)
-
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
     implementation(libs.koin.compose.viewmodel)
@@ -67,7 +63,7 @@ dependencies {
     implementation(libs.haze.blur.android)
     implementation(libs.timber)
     implementation(libs.kotlinx.collections.immutable)
-    implementation(libs.zxing.android.embedded)
+    implementation(libs.play.services.code.scanner)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
     add("playImplementation", libs.play.app.update)
