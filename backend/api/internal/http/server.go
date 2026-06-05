@@ -194,4 +194,3 @@ func (s *Server) handleWebUI(w http.ResponseWriter, r *http.Request) {
 	r.URL.Path = "/" + p
 	http.FileServer(http.FS(fSys)).ServeHTTP(w, r)
 }
-
