@@ -440,7 +440,12 @@ jobs:
             find artifacts/apks-modules -maxdepth 6 -type f | sort >&2 || true
             exit 1
           fi
-          gh release create "${{ steps.release_meta.outputs.release_tag }}" \
+          
+          VERSION_CODE=$(grep 'versionCode = ' gradle/libs.versions.toml | cut -d'"' -f2)
+          VERSION_NAME=$(grep 'versionName = ' gradle/libs.versions.toml | cut -d'"' -f2)
+          MODULES_TAG="${VERSION_CODE}-${VERSION_NAME}"
+
+          gh release create "${MODULES_TAG}" \
             "${apk_files[@]}" \
             --repo "${{ env.MODULES_REPO }}" \
             --title "${{ steps.release_meta.outputs.release_title }}" \
@@ -451,9 +456,7 @@ jobs:
             <a href=\"https://github.com/${{ github.repository }}/releases/tag/${{ steps.release_meta.outputs.release_tag }}\">
               <img src=\"https://raw.githubusercontent.com/machiav3lli/oandbackupx/master/badge_github.png\" alt=\"Get it on GitHub\" height=\"80\"/>
             </a>
-            </div>
-
-            Source: https://github.com/${{ github.repository }}/releases/tag/${{ steps.release_meta.outputs.release_tag }}" \
+            </div>" \
             --draft
         env:
           GH_TOKEN: ${{ secrets.XPOSED_MODULES_REPO_TOKEN }}
