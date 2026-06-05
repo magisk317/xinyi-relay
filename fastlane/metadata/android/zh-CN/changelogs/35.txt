@@ -1,5 +1,5 @@
-- 0.1.3 (35)：新增短信与通知“手动重新转发”功能，增强消息补发体验。
-- 发送通道：Telegram 支持“应用图标”图片消息发送；新增 Pushdeer 消息推送通道。
-- 核心增强：Webhook 支持 [app_icon] 变量透传；按设备进行独立的通知应用过滤配置。
-- 修复优化：完美适配小米 HyperOS 拦截；解绑正确清理应用缓存；底层全线迁移至 Haze 2 组件及 ComponentActivity。
-- 详情与下载：https://github.com/magisk317/xinyi-relay/releases
+- 0.1.3(35)：修复恢复短信时“已转发”状态被覆盖的 Bug；完美适配小米 HyperOS 拦截。
+- 新增：短信与通知“手动重新转发”；云备份(WebDAV/GDrive)；定时短信；应用过滤按设备隔离。
+- 发送通道：新增云湖、Pushdeer；Telegram 支持发应用图标与自定义 API Base；Bark 支持 AES。
+- 核心：验证码规则快照；Webhook 透传 [app_icon]；Desktop 本地模式；Backend 限流防爆；升级 Haze 2 与 ComponentActivity。
+- https://github.com/magisk317/xinyi-relay/releases
