@@ -16,29 +16,36 @@ internal data class TemplateVariable(
 )
 
 internal val forwardTemplateVariables = listOf(
+    // 核心消息信息
     TemplateVariable(R.string.sender_template_var_sender, "{{FROM}}"),
     TemplateVariable(R.string.sender_template_var_sms_body, "{{SMS}}"),
+    TemplateVariable(R.string.sender_template_var_notification_body, "{{MSG}}"),
+    TemplateVariable(R.string.sender_template_var_app_name, "{{APP_NAME}}"),
+    TemplateVariable(R.string.sender_template_var_app_icon, "{{APP_ICON}}"),
+    TemplateVariable(R.string.sender_template_var_received_at, "{{RECEIVE_TIME}}"),
+    // 通话相关
     TemplateVariable(R.string.sender_template_var_call_type, "{{CALL_TYPE}}"),
-    TemplateVariable(R.string.sender_template_var_sim_note, "{{CARD_SLOT}}"),
-    TemplateVariable(R.string.sender_template_var_sim_sub_id, "{{CARD_SUBID}}"),
     TemplateVariable(R.string.sender_template_var_contact_name, "{{CONTACT_NAME}}"),
     TemplateVariable(R.string.sender_template_var_phone_area, "{{PHONE_AREA}}"),
+    // 来源信息
     TemplateVariable(R.string.sender_template_var_app_package, "{{PACKAGE_NAME}}"),
-    TemplateVariable(R.string.sender_template_var_app_name, "{{APP_NAME}}"),
-    TemplateVariable(R.string.sender_template_var_notification_body, "{{MSG}}"),
+    TemplateVariable(R.string.sender_template_var_sim_note, "{{CARD_SLOT}}"),
+    TemplateVariable(R.string.sender_template_var_sim_sub_id, "{{CARD_SUBID}}"),
+    // 设备信息
+    TemplateVariable(R.string.sender_template_var_device_name, "{{DEVICE_NAME}}"),
+    TemplateVariable(R.string.sender_template_var_current_time, "{{CURRENT_TIME}}"),
+    TemplateVariable(R.string.sender_template_var_app_version, "{{APP_VERSION}}"),
+    // 电池信息
     TemplateVariable(R.string.sender_template_var_battery_percent, "{{BATTERY_PCT}}"),
     TemplateVariable(R.string.sender_template_var_battery_status, "{{BATTERY_STATUS}}"),
     TemplateVariable(R.string.sender_template_var_charging_source, "{{BATTERY_PLUGGED}}"),
     TemplateVariable(R.string.sender_template_var_battery_info, "{{BATTERY_INFO}}"),
     TemplateVariable(R.string.sender_template_var_battery_info_brief, "{{BATTERY_INFO_SIMPLE}}"),
+    // 网络信息
     TemplateVariable(R.string.sender_template_var_public_ipv4, "{{IPV4}}"),
     TemplateVariable(R.string.sender_template_var_public_ipv6, "{{IPV6}}"),
     TemplateVariable(R.string.sender_template_var_ip_list, "{{IP_LIST}}"),
     TemplateVariable(R.string.sender_template_var_network_state, "{{NET_TYPE}}"),
-    TemplateVariable(R.string.sender_template_var_received_at, "{{RECEIVE_TIME}}"),
-    TemplateVariable(R.string.sender_template_var_current_time, "{{CURRENT_TIME}}"),
-    TemplateVariable(R.string.sender_template_var_device_name, "{{DEVICE_NAME}}"),
-    TemplateVariable(R.string.sender_template_var_app_version, "{{APP_VERSION}}"),
 )
 
 internal val appNotifyTemplateVariables = forwardTemplateVariables.map { variable ->

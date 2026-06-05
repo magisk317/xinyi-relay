@@ -1065,6 +1065,7 @@
     <string name="sender_template_var_current_time">Current time</string>
     <string name="sender_template_var_device_name">Device name</string>
     <string name="sender_template_var_app_version">App version</string>
+    <string name="sender_template_var_app_icon">App icon</string>
     <string name="sender_template_var_app_note">App note</string>
     <string name="sender_template_var_app_key">App key</string>
     <string name="sender_template_var_call_details">Call details</string>

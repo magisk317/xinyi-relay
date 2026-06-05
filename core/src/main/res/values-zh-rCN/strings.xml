@@ -1076,6 +1076,7 @@
     <string name="sender_template_var_current_time">当前时间</string>
     <string name="sender_template_var_device_name">设备名称</string>
     <string name="sender_template_var_app_version">应用版本</string>
+    <string name="sender_template_var_app_icon">应用图标</string>
     <string name="sender_template_var_app_note">应用备注</string>
     <string name="sender_template_var_app_key">应用键</string>
     <string name="sender_template_var_call_details">通话详情</string>
