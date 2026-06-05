@@ -44,7 +44,10 @@ jobs:
 
       - name: Go test
         working-directory: backend/api
-        run: go test ./...
+        run: |
+          mkdir -p webui_dist
+          touch webui_dist/.gitkeep
+          go test ./...
 
       - name: Derive publish targets
         id: vars

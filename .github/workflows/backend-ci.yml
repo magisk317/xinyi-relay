@@ -39,6 +39,11 @@ jobs:
           cd backend/api
           test -z "$(gofmt -l .)"
 
+      - name: Prepare webui embed
+        run: |
+          mkdir -p backend/api/webui_dist
+          touch backend/api/webui_dist/.gitkeep
+
       - name: Go test
         run: |
           cd backend/api
