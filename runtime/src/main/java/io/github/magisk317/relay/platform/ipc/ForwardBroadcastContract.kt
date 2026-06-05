@@ -1,7 +1,6 @@
 package io.github.magisk317.relay.platform.ipc
 
 import android.content.Intent
-import io.github.magisk317.smscode.runtime.contract.ipc.ForwardPayloadKeys
 import kotlin.math.abs
 
 object ForwardBroadcastContract {
@@ -20,7 +19,7 @@ object ForwardBroadcastContract {
     const val EXTRA_IPC_TOKEN = "ipc_token"
     const val EXTRA_SIM_SLOT = "sim_slot"
     const val EXTRA_SUB_ID = "sub_id"
-    const val EXTRA_APP_ICON = ForwardPayloadKeys.EXTRA_APP_ICON
+    const val EXTRA_APP_ICON = "app_icon"
 
     const val MSG_TYPE_SMS = "sms"
     const val MSG_TYPE_APP_NOTIFY = "app_notify"

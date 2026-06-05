@@ -63,7 +63,7 @@ export function AppsPage() {
   const appInfos = useMemo(() => {
     if (!root || !selectedDeviceId) return EMPTY_APP_INFOS
     return root.deviceAppInfos?.[selectedDeviceId] ?? EMPTY_APP_INFOS
-  }, [root?.deviceAppInfos, selectedDeviceId])
+  }, [root, selectedDeviceId])
   const notifyRoutes = useMemo(() => root?.notifyRoutes ?? EMPTY_NOTIFY_ROUTES, [root?.notifyRoutes])
   const smsCodeRules = useMemo(() => root?.smsCodeRules ?? EMPTY_SMS_CODE_RULES, [root?.smsCodeRules])
   const forwardFilters = useMemo(() => root?.forwardFilters ?? EMPTY_FORWARD_FILTERS, [root?.forwardFilters])
