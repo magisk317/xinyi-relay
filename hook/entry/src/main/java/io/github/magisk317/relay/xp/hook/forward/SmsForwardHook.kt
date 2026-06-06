@@ -13,6 +13,7 @@ import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
 import io.github.magisk317.relay.xp.hook.SmsHookDispatchGate
+import io.github.magisk317.relay.xp.hook.PhoneHookTargetPackages
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
@@ -47,7 +48,7 @@ class SmsForwardHook : BaseHook() {
         val prepared: io.github.magisk317.relay.xpbridge.PreparedSmsHookDispatch,
     )
 
-    private val runtimeSession = SmsHookRuntimeSession(SMSCODE_PACKAGE, ANDROID_PHONE_PACKAGE)
+    private val runtimeSession = SmsHookRuntimeSession(SMSCODE_PACKAGE)
     @Volatile
     private var suppressionLogged = false
 
@@ -58,7 +59,7 @@ class SmsForwardHook : BaseHook() {
     }
 
     private fun onLoadPackageRouted(lpparam: LoadParam) {
-        if (ANDROID_PHONE_PACKAGE != lpparam.packageName && "com.xiaomi.phone" != lpparam.packageName) return
+        if (!PhoneHookTargetPackages.contains(lpparam.packageName)) return
         XLog.i("SmsForwardHook initializing")
         val classLoader = lpparam.classLoader ?: run {
             XLog.w("SmsForwardHook skipped: classLoader is null for %s", lpparam.packageName)
@@ -434,7 +435,6 @@ class SmsForwardHook : BaseHook() {
     }
 
     companion object {
-        private const val ANDROID_PHONE_PACKAGE = "com.android.phone"
         private const val TELEPHONY_PACKAGE = "com.android.internal.telephony"
         private const val SMS_HANDLER_CLASS = "$TELEPHONY_PACKAGE.InboundSmsHandler"
         private const val DISPATCH_HANDLER_KEY = "sms_forward"

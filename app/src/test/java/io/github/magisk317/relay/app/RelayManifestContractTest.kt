@@ -144,7 +144,16 @@ class RelayManifestContractTest {
         assertTrue("android" in scope)
         assertTrue("system" in scope)
         assertTrue("com.android.phone" in scope)
+        assertTrue("com.xiaomi.phone" in scope)
         assertTrue("com.android.providers.telephony" in scope)
+    }
+
+    @Test
+    fun `install monitor restarts aosp and miui phone processes`() {
+        val command = InstallMonitorInitializer().buildRestartPhoneProcessCommand()
+
+        assertTrue("com.android.phone" in command)
+        assertTrue("com.xiaomi.phone" in command)
     }
 
     private fun parseManifest(relativePath: String) = DocumentBuilderFactory.newInstance()

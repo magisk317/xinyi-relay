@@ -10,7 +10,7 @@ internal data class SmsHookRuntimeContext(
 
 internal class SmsHookRuntimeSession(
     private val applicationId: String,
-    private val packageName: String,
+    private val fallbackPackageName: String? = null,
     private val pluginContextResolver: (Context, String) -> Context? = { phoneContext, applicationId ->
         SmsHookBridgeHelper.resolvePluginContext(
             phoneContext = phoneContext,
@@ -46,6 +46,7 @@ internal class SmsHookRuntimeSession(
 
     fun recordHeartbeat(source: String): SmsHookRuntimeContext? {
         val runtime = currentOrResolve() ?: return null
+        val packageName = runtime.phoneContext.packageName.ifBlank { fallbackPackageName.orEmpty() }
         heartbeatRecorder(runtime.pluginContext, runtime.phoneContext, packageName, source)
         return runtime
     }

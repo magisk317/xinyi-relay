@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.xp.hook
 
 import android.content.Context
+import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -16,7 +17,6 @@ class SmsHookRuntimeSessionTest {
         var resolveCalls = 0
         val session = SmsHookRuntimeSession(
             applicationId = "io.github.magisk317.test",
-            packageName = "com.android.phone",
             pluginContextResolver = { context, applicationId ->
                 resolveCalls += 1
                 assertEquals(phoneContext, context)
@@ -39,7 +39,6 @@ class SmsHookRuntimeSessionTest {
     fun currentOrResolve_returnsNullBeforeInitialize() {
         val session = SmsHookRuntimeSession(
             applicationId = "io.github.magisk317.test",
-            packageName = "com.android.phone",
         )
 
         assertNull(session.currentOrResolve())
@@ -49,11 +48,11 @@ class SmsHookRuntimeSessionTest {
     fun recordHeartbeat_usesResolvedRuntimeContexts() {
         val phoneContext = mockk<Context>(relaxed = true)
         val pluginContext = mockk<Context>(relaxed = true)
+        every { phoneContext.packageName } returns "com.xiaomi.phone"
         var recordedSource: String? = null
         var recordedPackageName: String? = null
         val session = SmsHookRuntimeSession(
             applicationId = "io.github.magisk317.test",
-            packageName = "com.android.phone",
             pluginContextResolver = { _, _ -> pluginContext },
             heartbeatRecorder = { recordedPluginContext, recordedPhoneContext, packageName, source ->
                 assertEquals(pluginContext, recordedPluginContext)
@@ -67,7 +66,7 @@ class SmsHookRuntimeSessionTest {
         val heartbeatRuntime = session.recordHeartbeat("sms_forward_dispatch")
 
         assertEquals(runtime, heartbeatRuntime)
-        assertEquals("com.android.phone", recordedPackageName)
+        assertEquals("com.xiaomi.phone", recordedPackageName)
         assertEquals("sms_forward_dispatch", recordedSource)
     }
 }
