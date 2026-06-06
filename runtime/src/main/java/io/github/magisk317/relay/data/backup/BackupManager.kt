@@ -43,7 +43,6 @@ object BackupManager {
         backupDirectoryName = "Relay",
         backupFileNamePrefix = "Relay-",
         databaseFileName = "relay_room.db",
-        legacyDatabaseFileNames = listOf("xrelay_room.db", "xsmscode_room.db"),
         fileProviderAuthority = "${BuildConfig.APPLICATION_ID}.files",
     )
 
@@ -187,9 +186,6 @@ object BackupManager {
         baseName == config.databaseFileName -> config.databaseFileName
         baseName == "${config.databaseFileName}-wal" -> "${config.databaseFileName}-wal"
         baseName == "${config.databaseFileName}-shm" -> "${config.databaseFileName}-shm"
-        config.legacyDatabaseFileNames.any { it == baseName } -> config.databaseFileName
-        config.legacyDatabaseFileNames.any { "$it-wal" == baseName } -> "${config.databaseFileName}-wal"
-        config.legacyDatabaseFileNames.any { "$it-shm" == baseName } -> "${config.databaseFileName}-shm"
         else -> null
     }
 
