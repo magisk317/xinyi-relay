@@ -20,6 +20,18 @@ class HookTargetDiagnosticsTest {
     }
 
     @Test
+    fun describePackageProbe_marksMiuiPhoneTarget() {
+        val result = HookTargetDiagnostics.describePackageProbe(
+            packageName = "com.xiaomi.phone",
+            processName = "com.xiaomi.phone",
+        )
+
+        assertEquals(listOf("sms_handler,sms_forward"), result.matchedTargets)
+        assertTrue(result.candidateReasons.contains("phone_token"))
+        assertEquals(null, result.missReason)
+    }
+
+    @Test
     fun describePackageProbe_marksTelephonyProviderTarget() {
         val result = HookTargetDiagnostics.describePackageProbe(
             packageName = "com.android.providers.telephony",
@@ -60,6 +72,7 @@ class HookTargetDiagnosticsTest {
         assertTrue(HookTargetDiagnostics.shouldLogInboundSmsClassProbe("android", "android"))
         assertTrue(HookTargetDiagnostics.shouldLogInboundSmsClassProbe("system", "system_server"))
         assertTrue(HookTargetDiagnostics.shouldLogInboundSmsClassProbe("com.android.phone", "com.android.phone"))
+        assertTrue(HookTargetDiagnostics.shouldLogInboundSmsClassProbe("com.xiaomi.phone", "com.xiaomi.phone"))
         assertFalse(HookTargetDiagnostics.shouldLogInboundSmsClassProbe("com.example.app", "com.example.app"))
     }
 

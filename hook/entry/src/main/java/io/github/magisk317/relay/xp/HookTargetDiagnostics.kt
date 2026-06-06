@@ -3,6 +3,7 @@ package io.github.magisk317.relay.xp
 import android.content.Context
 import android.util.Log
 import io.github.magisk317.relay.hookentry.BuildConfig
+import io.github.magisk317.relay.xp.hook.PhoneHookTargetPackages
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.smscode.xposed.hookapi.LoadParam
 import io.github.magisk317.smscode.xposed.utils.XLog
@@ -37,9 +38,9 @@ internal object HookTargetDiagnostics {
         val candidateReasons = linkedSetOf<String>()
         val matchedTargets = linkedSetOf<String>()
 
-        when (packageName) {
-            ANDROID_PHONE_PACKAGE -> matchedTargets += "sms_handler,sms_forward"
-            TELEPHONY_PROVIDER_PACKAGE -> matchedTargets += "sms_provider"
+        when {
+            PhoneHookTargetPackages.contains(packageName) -> matchedTargets += "sms_handler,sms_forward"
+            packageName == TELEPHONY_PROVIDER_PACKAGE -> matchedTargets += "sms_provider"
         }
 
         if (packageLower == "android" || processLower == "android" || processLower == "system") {
@@ -92,7 +93,7 @@ internal object HookTargetDiagnostics {
 
         val classProbe = probeInboundSmsClasses(loadParam.classLoader)
         val packageProbe = describePackageProbe(loadParam.packageName, processName)
-        val mismatch = classProbe.handlerClassFound && loadParam.packageName != ANDROID_PHONE_PACKAGE
+        val mismatch = classProbe.handlerClassFound && !PhoneHookTargetPackages.contains(loadParam.packageName)
         XLog.i(
             "Diag inbound probe: pkg=%s process=%s matchedTargets=%s candidateReasons=%s " +
                 "handlerClass=%s handlerDispatch=%s controllerClass=%s controllerDispatch=%s " +
@@ -105,7 +106,7 @@ internal object HookTargetDiagnostics {
             classProbe.handlerDispatchIntentFound,
             classProbe.dispatchersControllerClassFound,
             classProbe.dispatchersControllerDispatchFound,
-            ANDROID_PHONE_PACKAGE,
+            PhoneHookTargetPackages.describe(),
             mismatch,
         )
     }
@@ -207,7 +208,7 @@ internal object HookTargetDiagnostics {
         packageName: String,
         processName: String,
     ): Boolean {
-        if (packageName == ANDROID_PHONE_PACKAGE || packageName == "android" || packageName == "system") {
+        if (PhoneHookTargetPackages.contains(packageName) || packageName == "android" || packageName == "system") {
             return true
         }
         val probe = describePackageProbe(packageName, processName)
@@ -237,7 +238,6 @@ internal object HookTargetDiagnostics {
         return runCatching { Class.forName(name, false, classLoader) }.getOrNull()
     }
 
-    private const val ANDROID_PHONE_PACKAGE = "com.android.phone"
     private const val TELEPHONY_PROVIDER_PACKAGE = "com.android.providers.telephony"
     private const val INBOUND_SMS_HANDLER_CLASS = "com.android.internal.telephony.InboundSmsHandler"
     private const val SMS_DISPATCHERS_CONTROLLER_CLASS = "com.android.internal.telephony.SmsDispatchersController"

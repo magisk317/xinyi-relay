@@ -101,11 +101,7 @@ class InstallMonitorInitializer : AppInitializer {
     }
 
     private fun restartPhoneProcessViaRoot() {
-        val command =
-            "PIDS=\$(pidof com.android.phone 2>/dev/null); " +
-                "if [ -n \"${'$'}PIDS\" ]; then kill -9 ${'$'}PIDS; exit 0; fi; " +
-                "pkill -f com.android.phone >/dev/null 2>&1 && exit 0; " +
-                "exit 1"
+        val command = buildRestartPhoneProcessCommand()
         val result = runSuCommand(command)
         if (result.exitCode == 0) {
             logInfo("Install monitor: phone process restart requested after install/update change")
@@ -138,6 +134,17 @@ class InstallMonitorInitializer : AppInitializer {
 
     private data class SuCommandResult(val exitCode: Int, val output: String)
 
+    internal fun buildRestartPhoneProcessCommand(): String {
+        val packages = PHONE_PROCESS_PACKAGES.joinToString(separator = " ")
+        return "for PKG in $packages; do " +
+            "PIDS=\$(pidof \"${'$'}PKG\" 2>/dev/null); " +
+            "if [ -n \"${'$'}PIDS\" ]; then kill -9 ${'$'}PIDS; FOUND=1; fi; " +
+            "pkill -f \"${'$'}PKG\" >/dev/null 2>&1 && FOUND=1; " +
+            "done; " +
+            "if [ \"${'$'}FOUND\" = 1 ]; then exit 0; fi; " +
+            "exit 1"
+    }
+
     private fun logInfo(message: String) {
         Log.i(LOG_TAG, message)
     }
@@ -153,5 +160,9 @@ class InstallMonitorInitializer : AppInitializer {
         private const val KEY_LAST_RESTART_ATTEMPT_AT = "last_restart_attempt_at"
         private const val RESTART_ATTEMPT_COOLDOWN_MS = 60_000L
         private const val SU_COMMAND_TIMEOUT_SEC = 10L
+        private val PHONE_PROCESS_PACKAGES = listOf(
+            "com.android.phone",
+            "com.xiaomi.phone",
+        )
     }
 }

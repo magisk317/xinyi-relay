@@ -12,6 +12,7 @@ import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
 import io.github.magisk317.smscode.verification.SmsIntentHookSupport
 import io.github.magisk317.smscode.xposed.hook.telephony.InboundSmsBlocker
+import io.github.magisk317.relay.xp.hook.PhoneHookTargetPackages
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
 import io.github.magisk317.smscode.xposed.utils.XLog
@@ -36,7 +37,7 @@ import java.util.concurrent.Executors
  * Hook class com.android.internal.telephony.InboundSmsHandler
  */
 class SmsHandlerHook : BaseHook() {
-    private val runtimeSession = SmsHookRuntimeSession(SMSCODE_PACKAGE, ANDROID_PHONE_PACKAGE)
+    private val runtimeSession = SmsHookRuntimeSession(SMSCODE_PACKAGE)
     private val inboundSmsBlocker = InboundSmsBlocker(SMS_HANDLER_CLASS)
     private val parsedCodeSmsForwarder = ParsedCodeSmsForwarder()
     private val constructorInitializer = SmsHookConstructorInitializer(
@@ -69,11 +70,11 @@ class SmsHandlerHook : BaseHook() {
     }
 
     private fun onLoadPackageRouted(lpparam: LoadParam) {
-        if (ANDROID_PHONE_PACKAGE == lpparam.packageName) {
+        if (PhoneHookTargetPackages.contains(lpparam.packageName)) {
             HookTargetDiagnostics.logTargetProcessHitIfVerbose(
                 hookName = "SmsHandlerHook",
                 loadParam = lpparam,
-                targetPackage = ANDROID_PHONE_PACKAGE,
+                targetPackage = lpparam.packageName,
             )
             XLog.i("SmsCode initializing")
             printDeviceInfo()
@@ -82,7 +83,7 @@ class SmsHandlerHook : BaseHook() {
                 return
             }
             try {
-                hookSmsHandler(classLoader)
+                hookSmsHandler(lpparam)
             } catch (e: Throwable) {
                 XLog.e("Failed to hook SmsHandler", e)
             }
@@ -107,19 +108,20 @@ class SmsHandlerHook : BaseHook() {
         return HookEnv.api.getXposedBridgeVersion() ?: HookEnv.api.getApiVersion()
     }
 
-    private fun hookSmsHandler(classloader: ClassLoader) {
-        hookConstructor(classloader)
-        hookDispatchIntent(classloader)
-        hookSmsDispatcherChain(classloader)
+    private fun hookSmsHandler(lpparam: LoadParam) {
+        val classLoader = lpparam.classLoader ?: return
+        hookConstructor(lpparam, classLoader)
+        hookDispatchIntent(lpparam, classLoader)
+        hookSmsDispatcherChain(classLoader)
     }
 
-    private fun hookConstructor(classloader: ClassLoader) {
+    private fun hookConstructor(lpparam: LoadParam, classLoader: ClassLoader) {
         // minSdkVersion 35: Only hook for Android 14+ / 15+
-        hookConstructor34(classloader)
+        hookConstructor34(lpparam, classLoader)
     }
 
     // Android 14+
-    private fun hookConstructor34(classLoader: ClassLoader) {
+    private fun hookConstructor34(lpparam: LoadParam, classLoader: ClassLoader) {
         XLog.i("Hooking InboundSmsHandler constructor for android v34+")
         val smsHandlerClazz = XposedWrapper.findClass(SMS_HANDLER_CLASS, classLoader)
         if (smsHandlerClazz != null) {
@@ -127,16 +129,16 @@ class SmsHandlerHook : BaseHook() {
         } else {
             HookTargetDiagnostics.logTargetMissIfVerbose(
                 hookName = "SmsHandlerHook",
-                loadParam = LoadParam(ANDROID_PHONE_PACKAGE, ANDROID_PHONE_PACKAGE, classLoader),
+                loadParam = lpparam,
                 reason = "class_not_found",
                 detail = SMS_HANDLER_CLASS,
             )
         }
     }
 
-    private fun hookDispatchIntent(classloader: ClassLoader) {
+    private fun hookDispatchIntent(lpparam: LoadParam, classLoader: ClassLoader) {
         // minSdkVersion 35: Only hook for Android 10+ / 15+
-        hookDispatchIntent29(classloader)
+        hookDispatchIntent29(lpparam, classLoader)
     }
 
     private fun hookSmsDispatcherChain(classLoader: ClassLoader) {
@@ -212,7 +214,7 @@ class SmsHandlerHook : BaseHook() {
     }
 
     // Android 10+
-    private fun hookDispatchIntent29(classLoader: ClassLoader) {
+    private fun hookDispatchIntent29(lpparam: LoadParam, classLoader: ClassLoader) {
         XLog.d("Hooking dispatchIntent() for Android v29+")
         val inboundSmsHandlerClass = XposedWrapper.findClass(SMS_HANDLER_CLASS, classLoader) ?: run {
             XLog.e("Class: %s cannot found", SMS_HANDLER_CLASS)
@@ -242,7 +244,7 @@ class SmsHandlerHook : BaseHook() {
             XLog.e("Method %s for Class %s cannot found", dispatchIntentMethodName, SMS_HANDLER_CLASS)
             HookTargetDiagnostics.logTargetMissIfVerbose(
                 hookName = "SmsHandlerHook",
-                loadParam = LoadParam(ANDROID_PHONE_PACKAGE, ANDROID_PHONE_PACKAGE, classLoader),
+                loadParam = lpparam,
                 reason = "method_not_found",
                 detail = "$SMS_HANDLER_CLASS#$dispatchIntentMethodName",
             )
@@ -684,7 +686,6 @@ class SmsHandlerHook : BaseHook() {
     }
 
     companion object {
-        const val ANDROID_PHONE_PACKAGE = "com.android.phone"
         private const val TELEPHONY_PACKAGE = "com.android.internal.telephony"
         private const val SMS_HANDLER_CLASS = "$TELEPHONY_PACKAGE.InboundSmsHandler"
         private const val DISPATCH_HANDLER_KEY = "sms_handler"
