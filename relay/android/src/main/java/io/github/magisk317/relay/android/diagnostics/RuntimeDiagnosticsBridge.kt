@@ -54,7 +54,7 @@ object RuntimeDiagnosticsBridge {
         snapshot: ActivationDiagnosticsSnapshot,
         inputs: ActivationStatusInputs,
     ): Boolean {
-        return inputs.runtimeConnected || inputs.hasHookHeartbeat || inputs.hasLegacyActivationMarker
+        return inputs.runtimeConnected || inputs.hasHookHeartbeat
     }
 
     private fun routeFromCallerClassName(className: String?): String {

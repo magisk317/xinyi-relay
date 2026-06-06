@@ -96,11 +96,6 @@ object RuntimeLogStore {
         return SharedRuntimeLogStore.readLogFile(name, maxLines)
     }
 
-    fun deleteLegacyTextLogFiles(context: Context? = null): Int {
-        RuntimeDiagnosticsBridge.ensureInstalled()
-        return SharedRuntimeLogStore.deleteLegacyTextLogFiles(context)
-    }
-
     fun routeFromCallerClassName(className: String?): String {
         RuntimeDiagnosticsBridge.ensureInstalled()
         return SharedRuntimeLogStore.routeFromCallerClassName(className)
