@@ -170,6 +170,16 @@ fun MainScreen(
         return if (targetIndex >= initialIndex) 1 else -1
     }
 
+    fun resolvePredictivePopDirection(initial: NavBackStackEntry?, target: NavBackStackEntry?): Int {
+        val initialIndex = resolveTabIndex(initial)
+        val targetIndex = resolveTabIndex(target)
+        return when {
+            targetIndex > initialIndex -> 1
+            targetIndex < initialIndex -> -1
+            else -> -1
+        }
+    }
+
     fun shouldShowCompactBottomBar(destination: NavDestination?): Boolean {
         if (destination == null) return true
         return destination.hasRoute(OverviewRoute::class) ||
@@ -349,6 +359,44 @@ fun MainScreen(
                             slideOutHorizontally(
                                 animationSpec = tween(300),
                                 targetOffsetX = { fullWidth -> direction * fullWidth },
+                            ) + fadeOut(animationSpec = tween(300))
+                        } else {
+                            slideOutHorizontally(
+                                animationSpec = tween(300),
+                                targetOffsetX = { fullWidth -> fullWidth },
+                            ) + fadeOut(animationSpec = tween(300))
+                        }
+                    },
+                    predictivePopEnterTransition = { _ ->
+                        val initialTopLevelIndex = resolveExactTopLevelIndex(initialState.destination)
+                        val targetTopLevelIndex = resolveExactTopLevelIndex(targetState.destination)
+                        if (initialTopLevelIndex != null && targetTopLevelIndex != null) {
+                            val direction = resolvePredictivePopDirection(
+                                initial = initialState,
+                                target = targetState,
+                            )
+                            slideInHorizontally(
+                                animationSpec = tween(300),
+                                initialOffsetX = { fullWidth -> direction * fullWidth },
+                            ) + fadeIn(animationSpec = tween(300))
+                        } else {
+                            slideInHorizontally(
+                                animationSpec = tween(300),
+                                initialOffsetX = { fullWidth -> -fullWidth },
+                            ) + fadeIn(animationSpec = tween(300))
+                        }
+                    },
+                    predictivePopExitTransition = { _ ->
+                        val initialTopLevelIndex = resolveExactTopLevelIndex(initialState.destination)
+                        val targetTopLevelIndex = resolveExactTopLevelIndex(targetState.destination)
+                        if (initialTopLevelIndex != null && targetTopLevelIndex != null) {
+                            val direction = resolvePredictivePopDirection(
+                                initial = initialState,
+                                target = targetState,
+                            )
+                            slideOutHorizontally(
+                                animationSpec = tween(300),
+                                targetOffsetX = { fullWidth -> -direction * fullWidth },
                             ) + fadeOut(animationSpec = tween(300))
                         } else {
                             slideOutHorizontally(
