@@ -8,6 +8,7 @@ import io.github.magisk317.relay.xp.hook.code.CodeWorker
 import io.github.magisk317.relay.xp.hook.code.SmsBlockEvaluator
 import io.github.magisk317.relay.xp.hook.code.action.impl.OperateSmsAction
 import io.github.magisk317.relay.xpbridge.SmsMsg
+import io.github.magisk317.relay.xpbridge.XpHookDiagnostics
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.smscode.verification.SmsIntentHookSupport
 import io.github.magisk317.smscode.xposed.helper.XposedWrapper
@@ -149,6 +150,18 @@ class MmsMessagesHook : BaseHook() {
             return
         }
         val resolvedPluginContext = pluginContext ?: return
+        val verboseLogging = XpPrefs.isVerboseLogMode(resolvedPluginContext)
+        XpHookDiagnostics.bindRuntimeLogContext(
+            context = resolvedPluginContext,
+            verboseLogging = verboseLogging,
+        )
+        XpHookDiagnostics.recordSmsHookHeartbeat(
+            context = resolvedPluginContext,
+            packageName = MMS_PACKAGE_NAME,
+            processName = context.applicationInfo?.processName ?: MMS_PACKAGE_NAME,
+            source = "mms_${source.substringAfterLast('.')}",
+            verboseLogging = verboseLogging,
+        )
         val evaluation = SmsBlockEvaluator.evaluate(resolvedPluginContext, intent, eventId, "mms") ?: return
         if (evaluation.blacklistDeleteOnly && evaluation.smsMsg != null) {
             scheduleBlacklistDelete(resolvedPluginContext, context, evaluation.smsMsg)

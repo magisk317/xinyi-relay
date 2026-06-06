@@ -146,6 +146,7 @@ class RelayManifestContractTest {
         assertTrue("com.android.phone" in scope)
         assertTrue("com.xiaomi.phone" in scope)
         assertTrue("com.android.providers.telephony" in scope)
+        assertTrue("com.android.mms" in scope)
     }
 
     @Test
