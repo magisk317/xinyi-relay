@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test
 class FrameworkCompatibilityMonitorTest {
 
     @Test
-    fun detectIssue_returnsKnownIncompatibleFrameworkIssueForVector() {
+    fun detectIssue_allowsPreviouslyKnownIncompatibleFramework() {
         val frameworkInfo = FrameworkInfo(
             name = "Vector",
             version = "2.0 (3021)",
@@ -26,12 +26,7 @@ class FrameworkCompatibilityMonitorTest {
             detectedAt = 123L,
         )
 
-        assertNotNull(issue)
-        assertEquals(
-            FrameworkCompatibilityMonitor.FrameworkIssueType.KNOWN_INCOMPATIBLE_FRAMEWORK,
-            issue?.issueType,
-        )
-        assertEquals("Vector 2.0 (3021)", issue?.frameworkInfo?.displayLabel)
+        assertNull(issue)
     }
 
     @Test
@@ -73,14 +68,31 @@ class FrameworkCompatibilityMonitorTest {
     fun detectIssue_returnsNullWhenNothingMatches() {
         val issue = FrameworkCompatibilityMonitor.detectIssue(
             frameworkInfo = FrameworkInfo(
-                name = "LSPosed",
-                version = "1.9.3 (7000)",
+                name = "LSPosed IT (GitHub@magisk317)",
+                version = "2.0.1-it (7649)",
                 moduleId = "zygisk_lsposed",
-                author = "LSPosed",
+                author = "LSPosed Developers",
                 source = FrameworkInfo.Source.MODULE_PROP,
             ),
             latestLogMessage = null,
             detectedAt = 789L,
+        )
+
+        assertNull(issue)
+    }
+
+    @Test
+    fun detectIssue_allowsJingMatrixFrameworkWhenNoRuntimeErrorAppears() {
+        val issue = FrameworkCompatibilityMonitor.detectIssue(
+            frameworkInfo = FrameworkInfo(
+                name = "DreamLand",
+                version = "2.0",
+                moduleId = "dreamland_jingmatrix",
+                author = "JingMatrix",
+                source = FrameworkInfo.Source.MODULE_PROP,
+            ),
+            latestLogMessage = null,
+            detectedAt = 101L,
         )
 
         assertNull(issue)
