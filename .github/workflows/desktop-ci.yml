@@ -78,6 +78,8 @@ jobs:
             bundle_dir: desktop/src-tauri/target/aarch64-apple-darwin/release/bundle
 
     runs-on: ${{ matrix.runner }}
+    env:
+      RUSTUP_MAX_RETRIES: '10'
     steps:
       - uses: actions/checkout@v6
         with:
