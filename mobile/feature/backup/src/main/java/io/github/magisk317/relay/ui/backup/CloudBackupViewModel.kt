@@ -18,7 +18,7 @@ import io.github.magisk317.relay.backup.drive.GoogleDriveBackupConfigStore
 import io.github.magisk317.relay.backup.webdav.WebDavConfig
 import io.github.magisk317.relay.backup.webdav.WebDavConfigStore
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.mobileui.BuildConfig
+import io.github.magisk317.relay.mobilefeature.backup.BuildConfig
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
