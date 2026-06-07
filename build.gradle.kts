@@ -1,6 +1,7 @@
 import dev.detekt.gradle.extensions.DetektExtension
 import com.adarshr.gradle.testlogger.theme.ThemeType
 import org.gradle.api.tasks.Exec
+import kotlinx.kover.gradle.plugin.dsl.KoverProjectExtension
 
 buildscript {
     configurations.classpath {
@@ -21,13 +22,21 @@ plugins {
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.detekt) apply false
-    alias(libs.plugins.kover)
+    alias(libs.plugins.kover) apply false
     alias(libs.plugins.test.logger) apply false
     id("relay.dependency-governance")
     id("magisk.maintenance")
 }
 
-kover {
+val catalog = libs
+val enableKover = providers.gradleProperty("enableKover")
+    .map { it.toBooleanStrictOrNull() ?: false }
+    .getOrElse(false) ||
+    gradle.startParameter.taskNames.any { taskName ->
+        taskName.contains("kover", ignoreCase = true)
+    }
+
+fun KoverProjectExtension.configureProjectKoverVerification() {
     reports {
         verify {
             rule {
@@ -37,8 +46,6 @@ kover {
         }
     }
 }
-
-val catalog = libs
 
 subprojects {
     configurations.all {
@@ -61,8 +68,12 @@ subprojects {
         }
     }
 
-    // Apply kover to all projects
-    apply(plugin = "org.jetbrains.kotlinx.kover")
+    if (enableKover) {
+        apply(plugin = "org.jetbrains.kotlinx.kover")
+        extensions.configure<KoverProjectExtension>("kover") {
+            configureProjectKoverVerification()
+        }
+    }
 
     pluginManager.withPlugin("com.android.application") {
         configureDetekt()
