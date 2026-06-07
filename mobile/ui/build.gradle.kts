@@ -42,6 +42,7 @@ dependencies {
     implementation(project(":mobile:feature:verification"))
     implementation(project(":mobile:feature:appconfig"))
     implementation(project(":mobile:feature:relayconfig"))
+    implementation(project(":mobile:feature:sender"))
     implementation(project(":relay:engine:api"))
     implementation(project(":relay:android"))
     implementation(project(":relay:sender:api"))
