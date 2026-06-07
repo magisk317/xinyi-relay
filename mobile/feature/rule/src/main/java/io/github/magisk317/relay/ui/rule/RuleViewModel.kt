@@ -7,7 +7,7 @@ import io.github.magisk317.relay.engine.model.Rule
 import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
-import io.github.magisk317.relay.mobileui.BuildConfig
+import io.github.magisk317.relay.mobilefeature.rule.BuildConfig
 import io.github.magisk317.relay.engine.service.AppConfigRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
