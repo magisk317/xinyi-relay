@@ -16,7 +16,7 @@ fi
 bash scripts/with_workspace_gradle_lock.sh \
   --ignore-submodule-lockfiles \
   "${gradle_args[@]}" \
-  :smscode-core:smscode-domain:testDebugUnitTest \
+  :smscode-core:domain:testDebugUnitTest \
   :magisk-ui-kit:compileDebugKotlin \
   :xpbridge:core:compileGithubDebugKotlin \
   :core:testGithubDebugUnitTest \

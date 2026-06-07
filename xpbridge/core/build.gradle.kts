@@ -21,9 +21,9 @@ android {
 
 dependencies {
     api(project(":relay:contract"))
-    implementation(project(":smscode-core:smscode-runtime-common"))
-    implementation(project(":smscode-core:smscode-verification-core"))
-    implementation(project(":smscode-core:smscode-xposed-core"))
+    implementation(project(":smscode-core:runtime"))
+    implementation(project(":smscode-core:verification"))
+    implementation(project(":smscode-core:xposed"))
 
     implementation(libs.androidx.core.ktx)
 }
