@@ -32,6 +32,7 @@ class CodeNotificationReceiver : BroadcastReceiver() {
         val smsCode = payload.smsCode.orEmpty()
         if (smsCode.isBlank()) {
             XLog.w("CodeNotificationReceiver ignored blank smsCode")
+            finishOrderedResult(CodeNotificationPayload.RESULT_DATA_BLANK_CODE)
             return
         }
 
@@ -50,6 +51,7 @@ class CodeNotificationReceiver : BroadcastReceiver() {
                 receivedToken.isNullOrBlank(),
                 sentFromUid ?: -1,
             )
+            finishOrderedResult(CodeNotificationPayload.RESULT_DATA_REJECTED_TOKEN)
             return
         }
 
@@ -101,6 +103,7 @@ class CodeNotificationReceiver : BroadcastReceiver() {
         val manager = appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager?
         if (manager == null) {
             XLog.w("CodeNotificationReceiver missing NotificationManager")
+            finishOrderedResult(CodeNotificationPayload.RESULT_DATA_MISSING_NOTIFICATION_MANAGER)
             return
         }
 
@@ -116,8 +119,19 @@ class CodeNotificationReceiver : BroadcastReceiver() {
             )
         }
 
-        showNotification(manager, notificationId, notification)
+        runCatching {
+            showNotification(manager, notificationId, notification)
+        }.onFailure { throwable ->
+            XLog.w(
+                "CodeNotificationReceiver notify failed: id=%d err=%s",
+                notificationId,
+                throwable.message ?: throwable.javaClass.simpleName,
+            )
+            finishOrderedResult(CodeNotificationPayload.RESULT_DATA_NOTIFY_FAILED)
+            return
+        }
         XLog.i("CodeNotificationReceiver posted app-owned notification id=%d", notificationId)
+        finishOrderedResult(CodeNotificationPayload.RESULT_DATA_POSTED, success = true)
 
         if (autoCancelEnabled && retentionTimeMs > 0L) {
             scheduleAutoCancelSafely(appContext, notificationId, retentionTimeMs)
@@ -178,6 +192,19 @@ class CodeNotificationReceiver : BroadcastReceiver() {
     private fun resolveSentFromUidCompat(): Int? {
         if (Build.VERSION.SDK_INT < API_LEVEL_34) return null
         return runCatching { getSentFromUid() }.getOrNull()
+    }
+
+    private fun finishOrderedResult(reason: String, success: Boolean = false) {
+        if (!isOrderedBroadcast) return
+        setResult(
+            if (success) {
+                CodeNotificationPayload.RESULT_CODE_APP_NOTIFICATION_POSTED
+            } else {
+                CodeNotificationPayload.RESULT_CODE_APP_NOTIFICATION_FAILED
+            },
+            reason,
+            null,
+        )
     }
 
     private companion object {
