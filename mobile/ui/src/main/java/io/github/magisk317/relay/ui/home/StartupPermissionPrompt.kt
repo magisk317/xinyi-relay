@@ -206,7 +206,11 @@ private fun StartupSpecialPermission.buildIntent(context: Context): Intent? {
 
         StartupSpecialPermission.ACCESSIBILITY_SERVICE -> {
             if (context.isAccessibilityServiceListed()) {
-                Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                val componentName = ComponentName(context, AUTO_INPUT_ACCESSIBILITY_SERVICE_CLASS_NAME).flattenToString()
+                intent.putExtra(":settings:fragment_args_key", componentName)
+                intent.putExtra(":settings:show_fragment_args", android.os.Bundle())
+                intent
             } else {
                 Intent(
                     Settings.ACTION_APPLICATION_DETAILS_SETTINGS,

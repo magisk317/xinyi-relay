@@ -235,8 +235,39 @@ fun VerificationSettingsScreen(
             supportsAccessibilityAutoInput && isAutoInputAccessibilityServiceListed(context)
     }
 
+    suspend fun toggleAccessibilityServiceViaRoot(context: android.content.Context, enable: Boolean): Boolean {
+        return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val component = ComponentName(context, AUTO_INPUT_ACCESSIBILITY_SERVICE_CLASS_NAME).flattenToString()
+                val currentServices = android.provider.Settings.Secure.getString(context.contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
+                val newServices = if (enable) {
+                    if (currentServices.contains(component)) return@withContext true
+                    if (currentServices.isEmpty()) component else "$currentServices:$component"
+                } else {
+                    if (!currentServices.contains(component)) return@withContext true
+                    currentServices.split(":").filter { it.isNotEmpty() && it != component }.joinToString(":")
+                }
+
+                val process = Runtime.getRuntime().exec("su")
+                val os = java.io.DataOutputStream(process.outputStream)
+                os.writeBytes("settings put secure enabled_accessibility_services $newServices\n")
+                if (enable) {
+                    os.writeBytes("settings put secure accessibility_enabled 1\n")
+                }
+                os.writeBytes("exit\n")
+                os.flush()
+                process.waitFor() == 0
+            } catch (e: Exception) {
+                false
+            }
+        }
+    }
+
     fun openAccessibilitySettings() {
         val accessibilityIntent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+        val componentName = ComponentName(context, AUTO_INPUT_ACCESSIBILITY_SERVICE_CLASS_NAME).flattenToString()
+        accessibilityIntent.putExtra(":settings:fragment_args_key", componentName)
+        accessibilityIntent.putExtra(":settings:show_fragment_args", android.os.Bundle())
         val appDetailsIntent = Intent(
             Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
             Uri.fromParts("package", context.packageName, null),
@@ -408,9 +439,25 @@ fun VerificationSettingsScreen(
                         title = stringResource(id = R.string.pref_auto_input_accessibility_service_title),
                         summary = stringResource(id = R.string.pref_auto_input_accessibility_service_summary),
                         checked = autoInputAccessibilityEnabled,
-                        onTitleClick = ::openAccessibilitySettings,
-                    ) {
-                        openAccessibilitySettings()
+                        onTitleClick = {
+                            scope.launch {
+                                val success = toggleAccessibilityServiceViaRoot(context, !autoInputAccessibilityEnabled)
+                                if (success) {
+                                    autoInputAccessibilityEnabled = !autoInputAccessibilityEnabled
+                                } else {
+                                    openAccessibilitySettings()
+                                }
+                            }
+                        },
+                    ) { isChecked ->
+                        scope.launch {
+                            val success = toggleAccessibilityServiceViaRoot(context, isChecked)
+                            if (success) {
+                                autoInputAccessibilityEnabled = isChecked
+                            } else {
+                                openAccessibilitySettings()
+                            }
+                        }
                     }
                 }
                 StateSwitchItem(
