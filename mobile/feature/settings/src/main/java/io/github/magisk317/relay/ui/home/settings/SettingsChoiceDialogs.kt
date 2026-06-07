@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import io.github.magisk317.relay.ui.common.SingleChoiceOptionDialog
 
 @Composable
-internal fun SingleChoiceDialog(
+fun SingleChoiceDialog(
     title: String,
     options: List<String>,
     selectedIndex: Int,

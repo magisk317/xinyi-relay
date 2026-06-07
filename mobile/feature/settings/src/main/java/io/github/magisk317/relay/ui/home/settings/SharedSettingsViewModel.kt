@@ -6,7 +6,7 @@ import androidx.compose.ui.platform.LocalContext
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-internal fun rememberSharedSettingsViewModel(): SettingsViewModel {
+fun rememberSharedSettingsViewModel(): SettingsViewModel {
     val context = LocalContext.current
     val activityOwner = context as? ComponentActivity
     return if (activityOwner != null) {
