@@ -43,6 +43,7 @@ include(
     ":mobile:feature:forward",
     ":mobile:feature:scheduled",
     ":mobile:feature:record",
+    ":mobile:feature:rule",
     ":relay:android",
     ":relay:sender:api",
     ":relay:sender",
