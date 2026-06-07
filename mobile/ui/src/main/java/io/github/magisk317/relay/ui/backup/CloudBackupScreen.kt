@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.ui.backup
 
-import io.github.magisk317.relay.ui.common.showLatestSnackbar
+import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult

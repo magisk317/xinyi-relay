@@ -2,7 +2,7 @@
 
 package io.github.magisk317.relay.ui.home
 
-import io.github.magisk317.relay.ui.common.showLatestSnackbar
+import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import android.Manifest
 import android.content.ComponentName
@@ -351,7 +351,7 @@ fun VerificationSettingsScreen(
             )
         },
         snackbarHost = {
-            io.github.magisk317.relay.ui.common.DismissibleSnackbarHost(
+            io.github.magisk317.uikit.common.DismissibleSnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier.navigationBarsPadding(),
             )

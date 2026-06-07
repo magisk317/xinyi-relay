@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.ui.sender.forms
 
-import io.github.magisk317.relay.ui.common.showLatestSnackbar
+import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement

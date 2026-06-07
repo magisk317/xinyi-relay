@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.ui.home
 
-import io.github.magisk317.relay.ui.common.showLatestSnackbar
+import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
@@ -45,7 +45,7 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.contract.repository.RemoteSyncRepository
 import io.github.magisk317.relay.contract.settings.RemoteAgentSnapshot
-import io.github.magisk317.relay.ui.common.DismissibleSnackbarHost
+import io.github.magisk317.uikit.common.DismissibleSnackbarHost
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import java.text.DateFormat

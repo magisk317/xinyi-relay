@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.ui.scheduled
 
-import io.github.magisk317.relay.ui.common.showLatestSnackbar
+import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import android.provider.Settings
 import androidx.annotation.StringRes
@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.model.ScheduledTask
 import io.github.magisk317.relay.engine.schedule.CronUtils
-import io.github.magisk317.relay.ui.common.DismissibleSnackbarHost
+import io.github.magisk317.uikit.common.DismissibleSnackbarHost
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.forms.ActiveScheduleTimeValueButton

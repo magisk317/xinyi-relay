@@ -2,7 +2,7 @@
 
 package io.github.magisk317.relay.ui.smscoderule
 
-import io.github.magisk317.relay.ui.common.showLatestSnackbar
+import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import android.content.ClipData
 import androidx.compose.foundation.clickable
@@ -162,7 +162,7 @@ fun SmsCodeRuleListScreen(
             )
         },
         snackbarHost = {
-            io.github.magisk317.relay.ui.common.DismissibleSnackbarHost(
+            io.github.magisk317.uikit.common.DismissibleSnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier.navigationBarsPadding(),
             )
@@ -517,7 +517,7 @@ fun SmsCodeRuleEditorScreen(
             )
         },
         snackbarHost = {
-            io.github.magisk317.relay.ui.common.DismissibleSnackbarHost(
+            io.github.magisk317.uikit.common.DismissibleSnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier.navigationBarsPadding(),
             )

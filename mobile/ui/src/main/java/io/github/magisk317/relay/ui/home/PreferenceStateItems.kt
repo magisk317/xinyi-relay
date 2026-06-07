@@ -2,7 +2,7 @@
 
 package io.github.magisk317.relay.ui.home
 
-import io.github.magisk317.relay.ui.common.showLatestSnackbar
+import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.text.KeyboardOptions
