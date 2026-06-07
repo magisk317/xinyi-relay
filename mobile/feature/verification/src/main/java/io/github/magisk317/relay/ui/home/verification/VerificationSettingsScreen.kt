@@ -2,9 +2,8 @@
 
 package io.github.magisk317.relay.ui.home.verification
 
-import io.github.magisk317.relay.ui.home.settings.rememberSharedSettingsViewModel
 import io.github.magisk317.relay.ui.common.SectionCard
-import io.github.magisk317.relay.ui.home.settings.SingleChoiceDialog
+import io.github.magisk317.relay.ui.common.SingleChoiceOptionDialog
 import io.github.magisk317.relay.ui.common.rememberPrefBoolean
 import io.github.magisk317.relay.ui.common.StateSwitchItem
 import io.github.magisk317.relay.ui.common.Item
@@ -12,6 +11,7 @@ import io.github.magisk317.relay.ui.common.TextInputDialog
 import io.github.magisk317.uikit.common.showLatestSnackbar
 import android.Manifest
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -69,8 +69,13 @@ import io.github.magisk317.relay.mobilefeature.verification.BuildConfig
 import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
 import io.github.magisk317.relay.ui.common.normalizeIntegerInput
 import io.github.magisk317.relay.ui.common.parseNonNegativeLongInput
+import io.github.magisk317.relay.android.sms.SmsCodeUtils as RelaySmsCodeUtils
 import io.github.magisk317.smscode.domain.constant.SmsCodeConst
+import io.github.magisk317.smscode.domain.model.SmsCodeMatchedRule
+import io.github.magisk317.smscode.domain.model.SmsCodeMatchedRuleSource
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -88,7 +93,6 @@ fun VerificationSettingsScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
     val snackbarHostState = remember { SnackbarHostState() }
-    val settingsViewModel = rememberSharedSettingsViewModel()
     val notifySaved = {
         scope.launch {
             snackbarHostState.showLatestSnackbar(savedSnackbarText)
@@ -131,6 +135,41 @@ fun VerificationSettingsScreen(
             ),
         )
         notifySaved()
+    }
+
+    fun performSmsCodeTest(msgBody: String) {
+        scope.launch {
+            val result = runCatching {
+                withContext(Dispatchers.IO) {
+                    if (msgBody.isBlank()) {
+                        null
+                    } else {
+                        val keywords = repository.getVerificationSettings().relayKeywords
+                        RelaySmsCodeUtils.parseSmsCodeResultIfExists(
+                            context = context,
+                            content = msgBody,
+                            keywordsRegexOverride = keywords,
+                        )
+                    }
+                }
+            }.getOrNull()
+            val code = result?.code.orEmpty()
+            val message = if (code.isBlank()) {
+                context.getString(R.string.cannot_parse_relay_code)
+            } else {
+                val base = context.getString(R.string.current_sms_code, code)
+                val hitRule = result?.matchedRule
+                    ?.let { formatMatchedRuleLabel(context, it) }
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { context.getString(R.string.hit_rule_label, it) }
+                if (hitRule == null) {
+                    base
+                } else {
+                    context.getString(R.string.sms_code_test_result_with_rule, base, hitRule)
+                }
+            }
+            snackbarHostState.showLatestSnackbar(message)
+        }
     }
 
     val notificationSettingsLauncher = rememberLauncherForActivityResult(
@@ -637,7 +676,7 @@ fun VerificationSettingsScreen(
     if (showRetentionDialog && current != null) {
         val entries = stringArrayResource(id = R.array.notification_retention_time_entry_list)
         val values = stringArrayResource(id = R.array.notification_retention_time_list)
-        SingleChoiceDialog(
+        SingleChoiceOptionDialog(
             title = stringResource(id = R.string.pref_notification_retention_time_title),
             options = entries.toList(),
             selectedIndex = values.indexOf(current.notificationRetentionTime).coerceAtLeast(0),
@@ -677,7 +716,7 @@ fun VerificationSettingsScreen(
             singleLine = false,
             maxLines = 6,
         ) { updated ->
-            settingsViewModel.performSmsCodeTest(updated)
+            performSmsCodeTest(updated)
             smsTestInput = ""
             showSmsTestDialog = false
         }
@@ -692,7 +731,7 @@ fun VerificationSettingsScreen(
             CodeNotificationOwner.APP -> 0
             else -> 0
         }
-        SingleChoiceDialog(
+        SingleChoiceOptionDialog(
             title = stringResource(id = R.string.pref_code_notification_owner_title),
             options = options,
             selectedIndex = selectedIndex,
@@ -712,12 +751,25 @@ fun VerificationSettingsScreen(
             if (owner == CodeNotificationOwner.APP &&
                 requestNotificationPermissionIfNeeded(enableNotification)
             ) {
-                return@SingleChoiceDialog
+                return@SingleChoiceOptionDialog
             }
             scope.launch {
                 persistNotificationOwnerSelection(owner, enableNotification)
             }
         }
+    }
+}
+
+private fun formatMatchedRuleLabel(context: Context, matchedRule: SmsCodeMatchedRule): String {
+    return when (matchedRule.source) {
+        SmsCodeMatchedRuleSource.BUILTIN ->
+            context.getString(R.string.builtin_rule_badge_format, matchedRule.ordinal)
+
+        SmsCodeMatchedRuleSource.OFFICIAL ->
+            context.getString(R.string.official_rule_badge_format, matchedRule.ordinal)
+
+        SmsCodeMatchedRuleSource.CUSTOM ->
+            context.getString(R.string.user_rule_badge_format, matchedRule.ordinal)
     }
 }
 
