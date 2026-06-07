@@ -1,5 +1,8 @@
 package io.github.magisk317.relay.ui.home
 
+import io.github.magisk317.relay.ui.home.forward.AppForwardFilterScreen
+import io.github.magisk317.relay.ui.home.forward.GlobalForwardFilterScreen
+
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -49,6 +52,19 @@ import android.os.SystemClock
 import io.github.magisk317.relay.backup.BackupSource
 import io.github.magisk317.relay.mobileui.BuildConfig
 import org.koin.compose.viewmodel.koinViewModel
+import io.github.magisk317.relay.ui.home.overview.OverviewScreen
+import io.github.magisk317.relay.ui.home.appconfig.AppConfigDetailScreen
+import io.github.magisk317.relay.ui.home.verification.VerificationSettingsScreen
+import io.github.magisk317.relay.ui.home.settings.SettingsHomeScreen
+import io.github.magisk317.relay.ui.home.appconfig.AppConfigViewModel
+import io.github.magisk317.relay.ui.home.forward.ForwardKeepAliveScreen
+import io.github.magisk317.relay.ui.home.relayconfig.RemoteAgentScreen
+import io.github.magisk317.relay.ui.home.relayconfig.InterceptScreen
+import io.github.magisk317.relay.ui.home.scheduled.ScheduledReminderScreen
+import io.github.magisk317.relay.ui.home.appconfig.AppNotifySenderBindingScreen
+import io.github.magisk317.relay.ui.home.settings.AdvancedScreen
+import io.github.magisk317.relay.ui.home.appconfig.AppConfigScreen
+import io.github.magisk317.relay.ui.home.relayconfig.RelayConfigScreen
 
 @Immutable
 data class TabItem<T : Any>(val label: String, val icon: ImageVector, val route: T)
@@ -407,7 +423,12 @@ fun MainScreen(
                     },
                 ) {
                     composable<OverviewRoute> {
-                        OverviewScreen(hazeState = hazeState, hazeStyle = hazeStyle)
+                        val settingsViewModel = io.github.magisk317.relay.ui.home.settings.rememberSharedSettingsViewModel()
+                        OverviewScreen(
+                            hazeState = hazeState,
+                            hazeStyle = hazeStyle,
+                            onCheckUpdate = { settingsViewModel.requestPreferredUpdate() }
+                        )
                     }
                     navigation<AppGraphRoute>(startDestination = AppsRoute) {
                         composable<AppsRoute> {

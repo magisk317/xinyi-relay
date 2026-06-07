@@ -104,6 +104,9 @@ import org.koin.android.ext.android.inject
 import org.koin.androidx.compose.koinViewModel
 import java.io.File
 import kotlin.math.hypot
+import io.github.magisk317.relay.ui.home.settings.StartupPermissionPrompt
+import io.github.magisk317.relay.ui.home.settings.SettingsViewModel
+import io.github.magisk317.relay.ui.home.settings.SettingsEvent
 
 class MainActivity : ComponentActivity() {
 

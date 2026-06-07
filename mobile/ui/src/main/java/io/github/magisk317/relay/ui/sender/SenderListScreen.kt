@@ -420,35 +420,6 @@ fun SenderListScreen(
                 },
             )
         }
-    }
-}
 
-fun getSenderTypeName(context: android.content.Context, type: Int): String {
-    return when (type) {
-        SenderType.DINGTALK_GROUP_ROBOT -> context.getString(R.string.sender_type_dingtalk_group_robot)
-        SenderType.EMAIL -> context.getString(R.string.sender_type_email)
-        SenderType.BARK -> context.getString(R.string.sender_type_bark)
-        SenderType.WEBHOOK -> context.getString(R.string.sender_type_webhook)
-        SenderType.WEWORK_ROBOT -> context.getString(R.string.sender_type_wework_robot)
-        SenderType.WEWORK_AGENT -> context.getString(R.string.sender_type_wework_agent)
-        SenderType.SERVERCHAN -> context.getString(R.string.sender_type_serverchan)
-        SenderType.TELEGRAM -> context.getString(R.string.sender_type_telegram)
-        SenderType.SMS -> if (BuildConfig.ENABLE_SMS_CHANNEL) {
-            context.getString(R.string.sender_type_sms)
-        } else {
-            context.getString(R.string.sender_type_sms_unavailable)
-        }
-        SenderType.FEISHU -> context.getString(R.string.sender_type_feishu)
-        SenderType.PUSHPLUS -> context.getString(R.string.sender_type_pushplus)
-        SenderType.GOTIFY -> context.getString(R.string.sender_type_gotify)
-        SenderType.NTFY -> context.getString(R.string.sender_type_ntfy)
-        SenderType.DINGTALK_INNER_ROBOT -> context.getString(R.string.sender_type_dingtalk_inner_robot)
-        SenderType.FEISHU_APP -> context.getString(R.string.sender_type_feishu_app)
-        SenderType.URL_SCHEME -> context.getString(R.string.sender_type_url_scheme)
-        SenderType.SOCKET -> context.getString(R.string.sender_type_socket)
-        SenderType.PUSHDEER -> context.getString(R.string.sender_type_pushdeer)
-        SenderType.YUNHU -> context.getString(R.string.sender_type_yunhu)
-
-        else -> context.getString(R.string.sender_type_unknown)
     }
 }
