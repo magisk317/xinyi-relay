@@ -44,6 +44,7 @@ dependencies {
     implementation(project(":mobile:feature:relayconfig"))
     implementation(project(":mobile:feature:sender"))
     implementation(project(":mobile:feature:forward"))
+    implementation(project(":mobile:feature:scheduled"))
     implementation(project(":relay:engine:api"))
     implementation(project(":relay:android"))
     implementation(project(":relay:sender:api"))
