@@ -1,8 +1,5 @@
 package io.github.magisk317.relay.ui.home.settings
 
-import io.github.magisk317.relay.ui.home.MainActivity
-import io.github.magisk317.relay.ui.home.LauncherActivity
-
 import android.app.Application
 import android.content.ComponentName
 import android.content.Context
@@ -11,7 +8,7 @@ import android.os.Bundle
 import android.text.TextUtils
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.magisk317.relay.mobileui.BuildConfig
+import io.github.magisk317.relay.mobilefeature.settings.BuildConfig
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.constant.PrefRestoreTypeRegistry
@@ -212,11 +209,12 @@ class SettingsViewModel(
     fun pinShortcutToDesktop() {
         val context = getApplication<Application>()
         if (ShortcutManagerCompat.isRequestPinShortcutSupported(context)) {
-            val intent = Intent(context, MainActivity::class.java).apply {
+            val intent = Intent().apply {
+                setClassName(context.packageName, "io.github.magisk317.relay.ui.home.MainActivity")
                 action = Intent.ACTION_MAIN
             }
             // 使用挂载了 CATEGORY_INFO 的主入口强行注册
-            val mainActivity = android.content.ComponentName(context, MainActivity::class.java)
+            val mainActivity = android.content.ComponentName(context.packageName, "io.github.magisk317.relay.ui.home.MainActivity")
             val shortcut = ShortcutInfoCompat.Builder(context, "shortcut_main")
                 .setShortLabel(context.getString(R.string.app_name))
                 .setIcon(IconCompat.createWithResource(context, R.mipmap.ic_launcher))
@@ -231,7 +229,7 @@ class SettingsViewModel(
 
     fun isLauncherIconVisible(): Boolean {
         val context = getApplication<Application>()
-        val component = ComponentName(context, LauncherActivity::class.java)
+        val component = ComponentName(context.packageName, "io.github.magisk317.relay.ui.home.LauncherActivity")
         val pm = context.packageManager
         return when (pm.getComponentEnabledSetting(component)) {
             PackageManager.COMPONENT_ENABLED_STATE_ENABLED -> true
@@ -250,7 +248,7 @@ class SettingsViewModel(
 
     fun setLauncherIconVisible(visible: Boolean): Boolean {
         val context = getApplication<Application>()
-        val component = ComponentName(context, LauncherActivity::class.java)
+        val component = ComponentName(context.packageName, "io.github.magisk317.relay.ui.home.LauncherActivity")
         val pm = context.packageManager
         val newState = if (visible) {
             PackageManager.COMPONENT_ENABLED_STATE_ENABLED

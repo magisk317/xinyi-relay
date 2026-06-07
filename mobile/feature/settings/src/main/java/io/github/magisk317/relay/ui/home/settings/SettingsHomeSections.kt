@@ -1,14 +1,14 @@
 package io.github.magisk317.relay.ui.home.settings
 
-import io.github.magisk317.relay.ui.home.scheduled.SectionCard
 import io.github.magisk317.relay.ui.common.StateSwitchItem
 import io.github.magisk317.relay.ui.common.ActionSwitchItem
 import io.github.magisk317.relay.ui.common.Item
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,7 +20,7 @@ import io.github.magisk317.relay.contract.settings.GeneralSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.RelaySettingsSnapshot
 import io.github.magisk317.relay.contract.settings.VerificationSettingsSnapshot
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.mobileui.BuildConfig
+import io.github.magisk317.relay.mobilefeature.settings.BuildConfig
 
 @Composable
 internal fun SettingsGeneralSection(
@@ -209,6 +209,29 @@ internal fun SettingsDiagnosticsSection(
             summary = stringResource(id = R.string.pref_enable_analytics_summary),
             checked = diagnostics.analyticsEnabled,
             onCheckedChange = onAnalyticsEnabledChange,
+        )
+    }
+}
+
+@Composable
+internal fun SectionCard(
+    title: String,
+    accordionMode: Boolean,
+    sectionExpanded: Boolean,
+    onExpandedChange: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = io.github.magisk317.relay.contract.constant.RelayAppConst.PADDING_SMALL.dp),
+    ) {
+        io.github.magisk317.uikit.preference.SectionCard(
+            title = title,
+            accordionMode = accordionMode,
+            sectionExpanded = sectionExpanded,
+            onExpandedChange = onExpandedChange,
+            content = content,
         )
     }
 }

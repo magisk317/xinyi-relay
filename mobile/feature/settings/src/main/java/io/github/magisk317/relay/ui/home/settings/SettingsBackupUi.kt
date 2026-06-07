@@ -59,7 +59,7 @@ internal fun BackupSourceDialog(
 ) {
     val options = buildList {
         add(BackupSourceType.LOCAL to stringResource(id = R.string.backup_source_local))
-        if (io.github.magisk317.relay.mobileui.BuildConfig.HAS_CLOUD_BACKUP) {
+        if (io.github.magisk317.relay.mobilefeature.settings.BuildConfig.HAS_CLOUD_BACKUP) {
             add(BackupSourceType.GOOGLE_DRIVE to stringResource(id = R.string.backup_source_google))
         }
         add(BackupSourceType.WEBDAV to stringResource(id = R.string.backup_source_webdav))

@@ -27,12 +27,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.mobileui.BuildConfig
+import io.github.magisk317.relay.mobilefeature.settings.BuildConfig
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
 import kotlinx.coroutines.launch
 
 @Composable
-internal fun StartupPermissionPrompt(enabled: Boolean) {
+fun StartupPermissionPrompt(enabled: Boolean) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val snackbarHostState = LocalSnackbarHostState.current
     val scope = rememberCoroutineScope()
