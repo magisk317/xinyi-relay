@@ -28,7 +28,6 @@ dependencies {
     implementation(project(":relay:contract"))
     implementation(project(":relay:engine:api"))
     implementation(project(":relay:sender:api"))
-    implementation(project(":relay:sender"))
     implementation(project(":mobile:feature:common"))
     implementation(project(":magisk-ui-kit"))
     implementation(platform(libs.androidx.compose.bom))

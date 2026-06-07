@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.ui.home
+package io.github.magisk317.relay.ui.home.settings
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
