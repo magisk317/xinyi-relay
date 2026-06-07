@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.ui.home
 
-import io.github.magisk317.relay.ui.common.showLatestSnackbar
+import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
