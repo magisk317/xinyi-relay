@@ -5,7 +5,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.text.TextUtils
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.magisk317.relay.mobilefeature.settings.BuildConfig
@@ -32,9 +31,6 @@ import io.github.magisk317.smscode.runtime.common.backup.BackupImportResult
 import io.github.magisk317.smscode.runtime.common.backup.BackupRule
 import io.github.magisk317.smscode.runtime.common.backup.BackupSmsRecord
 import io.github.magisk317.smscode.runtime.common.backup.ExportResult
-import io.github.magisk317.smscode.domain.model.SmsCodeMatchedRule
-import io.github.magisk317.smscode.domain.model.SmsCodeMatchedRuleSource
-import io.github.magisk317.relay.android.sms.SmsCodeUtils as RelaySmsCodeUtils
 import io.github.magisk317.uikit.theme.UiKitStyle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,10 +49,6 @@ import java.util.Locale
 
 sealed class SettingsEvent {
     data object ShowPrivacyPolicy : SettingsEvent()
-    data class SmsCodeTestResult(
-        val code: String,
-        val matchedRuleLabel: String? = null,
-    ) : SettingsEvent()
     data object NavigateToRules : SettingsEvent()
     data object NavigateToRecords : SettingsEvent()
     data object StartPlayUpdate : SettingsEvent()
@@ -265,45 +257,6 @@ class SettingsViewModel(
         }.onFailure {
             XLog.e("Failed to set launcher icon visible=$visible", it)
         }.getOrElse { false }
-    }
-
-    fun performSmsCodeTest(msgBody: String) {
-        viewModelScope.launch {
-            val result = try {
-                withContext(Dispatchers.IO) {
-                    if (TextUtils.isEmpty(msgBody)) {
-                        null
-                    } else {
-                        val keywords = settingsRepository.getVerificationSettings().relayKeywords
-                        RelaySmsCodeUtils.parseSmsCodeResultIfExists(
-                            context = getApplication(),
-                            content = msgBody,
-                            keywordsRegexOverride = keywords,
-                        )
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                null
-            }
-            val code = result?.code.orEmpty()
-            val matchedRuleLabel = result?.matchedRule?.let(::formatMatchedRuleLabel)
-            _eventsFlow.tryEmit(SettingsEvent.SmsCodeTestResult(code, matchedRuleLabel))
-        }
-    }
-
-    private fun formatMatchedRuleLabel(matchedRule: SmsCodeMatchedRule): String {
-        val app = getApplication<Application>()
-        return when (matchedRule.source) {
-            SmsCodeMatchedRuleSource.BUILTIN ->
-                app.getString(R.string.builtin_rule_badge_format, matchedRule.ordinal)
-
-            SmsCodeMatchedRuleSource.OFFICIAL ->
-                app.getString(R.string.official_rule_badge_format, matchedRule.ordinal)
-
-            SmsCodeMatchedRuleSource.CUSTOM ->
-                app.getString(R.string.user_rule_badge_format, matchedRule.ordinal)
-        }
     }
 
     fun joinQQGroup() {
