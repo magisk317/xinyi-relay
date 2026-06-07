@@ -42,13 +42,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.haze.android)
     implementation(libs.haze.blur.android)
-    implementation(libs.coil3.core)
-    implementation(libs.coil3.compose)
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
     implementation(libs.koin.compose.viewmodel)
-    implementation(libs.timber)
-    implementation(libs.kotlinx.collections.immutable)
     implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(libs.junit.jupiter)
