@@ -16,7 +16,7 @@ import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.sender.SenderValidationResult
 import io.github.magisk317.relay.sender.SenderValidator
 import io.github.magisk317.relay.engine.routing.NotifyRouteScope
-import io.github.magisk317.relay.mobileui.BuildConfig
+import io.github.magisk317.relay.mobilefeature.sender.BuildConfig
 import io.github.magisk317.relay.engine.service.AppConfigRepository
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.SimRemarkSettingsSnapshot

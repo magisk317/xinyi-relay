@@ -39,6 +39,7 @@ include(
     ":mobile:feature:verification",
     ":mobile:feature:appconfig",
     ":mobile:feature:relayconfig",
+    ":mobile:feature:sender",
     ":relay:android",
     ":relay:sender:api",
     ":relay:sender",

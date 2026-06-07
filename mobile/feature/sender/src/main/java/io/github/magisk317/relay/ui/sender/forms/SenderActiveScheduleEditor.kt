@@ -11,9 +11,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -21,8 +18,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,12 +34,11 @@ import io.github.magisk317.relay.engine.sender.SenderActiveScheduleConst
 import io.github.magisk317.relay.engine.sender.SenderActiveScheduleEvaluator
 import io.github.magisk317.relay.engine.sender.SenderActiveScheduleRange
 import io.github.magisk317.relay.engine.sender.SenderActiveScheduleRule
+import io.github.magisk317.relay.ui.common.ActiveScheduleTimeValueButton
+import io.github.magisk317.relay.ui.common.ActiveScheduleWeekdayRow
 import io.github.magisk317.relay.ui.common.CenteredChipText
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
-import java.time.DayOfWeek
-import java.time.format.TextStyle
-import java.util.Locale
 
 enum class SenderScheduleSection {
     SMS,
@@ -286,64 +280,6 @@ private fun SenderActiveScheduleRuleEditor(
 private val SENDER_ACTIVE_SCHEDULE_SECOND_WEEKDAY_ROW = listOf(5, 6, 7)
 private const val SENDER_ACTIVE_SCHEDULE_ACTION_WEIGHT = 0.2f
 
-@Composable
-fun ActiveScheduleWeekdayRow(
-    weekdays: List<Int>,
-    selectedWeekdays: List<Int>,
-    onWeekdayToggle: (Int) -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        weekdays.forEach { weekday ->
-            FilterChip(
-                selected = weekday in selectedWeekdays,
-                onClick = { onWeekdayToggle(weekday) },
-                label = {
-                    CenteredChipText(
-                        text = DayOfWeek.of(weekday).getDisplayName(
-                            TextStyle.SHORT,
-                            Locale.getDefault(),
-                        ),
-                    )
-                },
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
-}
-
-@Composable
-fun ActiveScheduleTimeValueButton(
-    modifier: Modifier = Modifier,
-    value: String,
-    onValueChange: (String) -> Unit,
-) {
-    var showPicker by remember { mutableStateOf(false) }
-    FilledTonalButton(
-        onClick = { showPicker = true },
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            maxLines = 1,
-            softWrap = false,
-        )
-    }
-    if (showPicker) {
-        TimeRangePickerDialog(
-            initialValue = value,
-            onDismiss = { showPicker = false },
-            onConfirm = { selected ->
-                onValueChange(selected)
-                showPicker = false
-            },
-        )
-    }
-}
-
 private fun SenderActiveSchedule.ruleFor(section: SenderScheduleSection): SenderActiveScheduleRule {
     return when (section) {
         SenderScheduleSection.SMS -> sms
@@ -388,50 +324,4 @@ private fun buildRuleSummary(rule: SenderActiveScheduleRule): String {
         else -> stringResource(R.string.sender_active_schedule_mode_blacklist_explanation)
     }
     return "$modeLabel · $modeExplanation"
-}
-
-@Composable
-@OptIn(ExperimentalMaterial3Api::class)
-private fun TimeRangePickerDialog(
-    initialValue: String,
-    onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit,
-) {
-    val totalMinutes = SenderActiveScheduleConst.parseMinutes(initialValue) ?: (9 * 60)
-    val initialHour = totalMinutes / 60
-    val initialMinute = totalMinutes % 60
-    val pickerState = rememberTimePickerState(
-        initialHour = initialHour,
-        initialMinute = initialMinute,
-        is24Hour = true,
-    )
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.sender_active_schedule_pick_time)) },
-        text = {
-            TimePicker(state = pickerState)
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    onConfirm(
-                        String.format(
-                            Locale.US,
-                            "%02d:%02d",
-                            pickerState.hour,
-                            pickerState.minute,
-                        ),
-                    )
-                },
-            ) {
-                Text(stringResource(R.string.confirm))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
-            }
-        },
-    )
 }

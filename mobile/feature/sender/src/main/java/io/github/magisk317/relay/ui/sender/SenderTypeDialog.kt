@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.mobileui.BuildConfig
+import io.github.magisk317.relay.mobilefeature.sender.BuildConfig
 
 @Suppress("MagicNumber")
 @Composable

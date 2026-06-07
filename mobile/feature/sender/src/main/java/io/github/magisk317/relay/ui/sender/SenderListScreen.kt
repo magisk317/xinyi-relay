@@ -21,7 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.magisk317.relay.mobileui.BuildConfig
+import io.github.magisk317.relay.mobilefeature.sender.BuildConfig
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.contract.settings.ForwardTypeGateSnapshot
 import io.github.magisk317.relay.contract.settings.ForwardTypeGateUpdate
