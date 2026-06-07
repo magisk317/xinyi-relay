@@ -1,4 +1,7 @@
 package io.github.magisk317.relay.ui.home
+import io.github.magisk317.relay.ui.common.rememberPrefBoolean
+import io.github.magisk317.relay.ui.common.DonateDialog
+import io.github.magisk317.relay.ui.common.QRCodeDialog
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
 

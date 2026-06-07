@@ -33,6 +33,7 @@ include(
     ":runtime",
     ":core",
     ":mobile:ui",
+    ":mobile:feature:common",
     ":relay:android",
     ":relay:sender:api",
     ":relay:sender",

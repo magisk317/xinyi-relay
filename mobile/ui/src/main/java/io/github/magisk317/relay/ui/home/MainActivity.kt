@@ -1,6 +1,7 @@
 @file:Suppress("LocalContextGetResourceValueCall")
 
 package io.github.magisk317.relay.ui.home
+import io.github.magisk317.relay.ui.common.PrivacyPolicyDialog
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
 

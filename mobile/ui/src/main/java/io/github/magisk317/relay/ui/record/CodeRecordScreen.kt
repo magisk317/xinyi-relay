@@ -73,11 +73,11 @@ import io.github.magisk317.relay.ui.common.PolygonMorphLoadingIndicator
 import io.github.magisk317.relay.ui.common.SessionLoadingRegistry
 import io.github.magisk317.relay.ui.common.SingleChoiceOptionDialog
 import io.github.magisk317.relay.ui.common.rememberMinDurationLoading
-import io.github.magisk317.relay.ui.home.Item
-import io.github.magisk317.relay.ui.home.RetentionDialog
-import io.github.magisk317.relay.ui.home.SectionHeader
-import io.github.magisk317.relay.ui.home.StateSwitchItem
-import io.github.magisk317.relay.ui.home.TextInputDialog
+import io.github.magisk317.relay.ui.common.Item
+import io.github.magisk317.relay.ui.common.RetentionDialog
+import io.github.magisk317.relay.ui.common.SectionHeader
+import io.github.magisk317.relay.ui.common.StateSwitchItem
+import io.github.magisk317.relay.ui.common.TextInputDialog
 import io.github.magisk317.uikit.surface.WorkspaceEmptyState
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
