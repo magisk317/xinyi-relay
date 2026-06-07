@@ -40,6 +40,7 @@ include(
     ":mobile:feature:appconfig",
     ":mobile:feature:relayconfig",
     ":mobile:feature:sender",
+    ":mobile:feature:forward",
     ":relay:android",
     ":relay:sender:api",
     ":relay:sender",

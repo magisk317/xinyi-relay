@@ -27,7 +27,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,7 +46,6 @@ import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterRuleEditorDialog
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterRuleList
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
-import io.github.magisk317.relay.ui.home.appconfig.AppConfigViewModel
 
 private data class EditingRule(
     val id: Long,
@@ -62,7 +60,7 @@ private data class EditingRule(
 @Composable
 fun GlobalForwardFilterScreen(
     onBack: () -> Unit,
-    viewModel: AppConfigViewModel = koinViewModel(),
+    viewModel: ForwardFilterViewModel = koinViewModel(),
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -170,14 +168,22 @@ fun GlobalForwardFilterScreen(
 fun AppForwardFilterScreen(
     packageName: String,
     onBack: () -> Unit,
-    viewModel: AppConfigViewModel = koinViewModel(),
+    viewModel: ForwardFilterViewModel = koinViewModel(),
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val savedSnackbarText = context.getString(R.string.pref_sync_snackbar)
-    val apps by viewModel.appsFlow.collectAsStateWithLifecycle()
-    val app = apps.firstOrNull { it.packageName == packageName } ?: viewModel.getAppByPackageName(packageName)
+    val appLabel = remember(packageName) {
+        runCatching {
+            val packageManager = context.packageManager
+            val appInfo = packageManager.getApplicationInfo(
+                packageName,
+                android.content.pm.PackageManager.MATCH_ALL,
+            )
+            packageManager.getApplicationLabel(appInfo).toString()
+        }.getOrDefault(packageName)
+    }
 
     val packageRulesFlow = remember(packageName) { viewModel.appPackageForwardRulesFlow(packageName) }
     val packageRules by packageRulesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -193,16 +199,12 @@ fun AppForwardFilterScreen(
     var showPackageEditor by remember { mutableStateOf(false) }
     var showChannelEditor by remember { mutableStateOf(false) }
 
-    LaunchedEffect(packageName) {
-        viewModel.refreshData(force = false)
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = app?.label ?: packageName,
+                        text = appLabel,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
