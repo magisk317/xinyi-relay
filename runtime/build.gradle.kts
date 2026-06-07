@@ -51,9 +51,9 @@ dependencies {
     implementation(project(":relay:engine"))
     implementation(project(":relay:net"))
     implementation(project(":relay:android"))
-    implementation(project(":smscode-core:smscode-domain"))
-    implementation(project(":smscode-core:smscode-runtime-common"))
-    implementation(project(":smscode-core:smscode-runtime-contract"))
+    implementation(project(":smscode-core:domain"))
+    implementation(project(":smscode-core:runtime"))
+    implementation(project(":smscode-core:contract"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.serialization.json)

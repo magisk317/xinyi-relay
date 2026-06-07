@@ -107,8 +107,8 @@ dependencies {
     implementation(project(":mobile:ui"))
     implementation(project(":relay:android"))
     implementation(project(":xpbridge:core"))
-    implementation(project(":smscode-core:smscode-verification-core"))
-    implementation(project(":smscode-core:smscode-hook-core"))
+    implementation(project(":smscode-core:verification"))
+    implementation(project(":smscode-core:hook"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.libxposed.service)

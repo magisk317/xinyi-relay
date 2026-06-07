@@ -23,21 +23,21 @@ android {
 
 dependencies {
     compileOnly(libs.libxposed.api)
-    compileOnly(project(":smscode-core:smscode-xposed-core"))
+    compileOnly(project(":smscode-core:xposed"))
 
     implementation(project(":xpbridge:core"))
     implementation(project(":runtime"))
     implementation(project(":relay:android"))
     implementation(project(":relay:contract"))
-    implementation(project(":smscode-core:smscode-domain"))
-    implementation(project(":smscode-core:smscode-verification-core"))
+    implementation(project(":smscode-core:domain"))
+    implementation(project(":smscode-core:verification"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.libxposed.service)
     implementation(libs.timber)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
 
-    testImplementation(project(":smscode-core:smscode-xposed-core"))
+    testImplementation(project(":smscode-core:xposed"))
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.mockk)

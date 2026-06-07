@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.kotlin.serialization)
     id("relay.android.common")
 }
 
@@ -22,12 +21,11 @@ android {
 
 dependencies {
     implementation(project(":relay:contract"))
-    implementation(project(":relay:engine:api"))
     implementation(project(":magisk-ui-kit"))
     implementation(project(":mobile:feature:common"))
     implementation(project(":relay:android"))
     implementation(project(":core"))
-    implementation(project(":smscode-core:smscode-domain"))
+    implementation(project(":smscode-core:domain"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)

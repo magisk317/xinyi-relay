@@ -35,7 +35,7 @@
 - diagnostics facade 已收敛到 `relay/contract` 的 `XpDiagnosticsRuntimeBridge` 合同，具体 Android 实现由 `relay/android` 提供。
 - prefs facade 已收敛到 `relay/contract` 的 `XpPrefsRuntimeBridge` 合同，具体 Android 实现由 `relay/android` 提供。
 - SMS dispatch facade 已收敛到 `relay/contract` 的 `XpSmsDispatchRuntimeBridge` / `XpPreparedSmsHookDispatch` / `XpForwardPayload` 合同，具体 runtime 实现由 `runtime` 提供。
-- 已固化的禁止项：不依赖 `runtime`、`relay/android`、`relay/engine` 实现模块、`smscode-core/smscode-domain` 或 Compose runtime。
+- 已固化的禁止项：不依赖 `runtime`、`relay/android`、`relay/engine` 实现模块、`smscode-core/domain` 或 Compose runtime。
 - 新增桥接模型优先放 `relay/contract` 或 `relay/engine/api`；新增桥接实现优先放 `runtime` / `relay/android`。
 
 ### `relay/contract`
@@ -142,7 +142,7 @@
 | `mobile/ui` | 不得依赖 `runtime`、`xpbridge/core`、`relay/engine` 实现模块 |
 | `relay/android` | 依赖 `relay/engine/api`，不得依赖 `relay/engine` 实现模块 |
 | `relay/sender` | 依赖 `relay/engine/api` 和 `relay/net`，不得依赖 `relay/engine` 实现模块 |
-| `xpbridge/core` | 不得依赖 `runtime`、`relay/android`、`relay/engine` 实现模块、`smscode-core/smscode-domain` 或 Compose |
+| `xpbridge/core` | 不得依赖 `runtime`、`relay/android`、`relay/engine` 实现模块、`smscode-core/domain` 或 Compose |
 | `runtime` | 不直接依赖 Koin、Compose UI 或 `relay/sender` 实现包；sender 发送能力只通过 `relay/engine/api` service 接口访问 |
 
 仍需补强的边界：
