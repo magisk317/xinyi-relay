@@ -44,6 +44,7 @@ include(
     ":mobile:feature:scheduled",
     ":mobile:feature:record",
     ":mobile:feature:rule",
+    ":mobile:feature:backup",
     ":relay:android",
     ":relay:sender:api",
     ":relay:sender",
