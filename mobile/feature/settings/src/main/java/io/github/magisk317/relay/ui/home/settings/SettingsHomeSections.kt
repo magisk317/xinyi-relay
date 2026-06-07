@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.magisk317.relay.ui.common.SectionCard
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.GeneralSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.RelaySettingsSnapshot
@@ -209,29 +210,6 @@ internal fun SettingsDiagnosticsSection(
             summary = stringResource(id = R.string.pref_enable_analytics_summary),
             checked = diagnostics.analyticsEnabled,
             onCheckedChange = onAnalyticsEnabledChange,
-        )
-    }
-}
-
-@Composable
-internal fun SectionCard(
-    title: String,
-    accordionMode: Boolean,
-    sectionExpanded: Boolean,
-    onExpandedChange: () -> Unit,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = io.github.magisk317.relay.contract.constant.RelayAppConst.PADDING_SMALL.dp),
-    ) {
-        io.github.magisk317.uikit.preference.SectionCard(
-            title = title,
-            accordionMode = accordionMode,
-            sectionExpanded = sectionExpanded,
-            onExpandedChange = onExpandedChange,
-            content = content,
         )
     }
 }

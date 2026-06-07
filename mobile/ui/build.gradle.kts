@@ -39,6 +39,7 @@ dependencies {
     implementation(project(":mobile:feature:common"))
     implementation(project(":mobile:feature:overview"))
     implementation(project(":mobile:feature:settings"))
+    implementation(project(":mobile:feature:verification"))
     implementation(project(":relay:engine:api"))
     implementation(project(":relay:android"))
     implementation(project(":relay:sender:api"))
@@ -72,7 +73,6 @@ dependencies {
     add("playImplementation", libs.play.app.update)
     add("playImplementation", libs.play.services.auth)
     add("githubImplementation", libs.play.services.auth)
-
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
 }

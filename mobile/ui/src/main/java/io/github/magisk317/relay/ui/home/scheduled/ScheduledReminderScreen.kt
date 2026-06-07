@@ -2,9 +2,8 @@ package io.github.magisk317.relay.ui.home.scheduled
 import io.github.magisk317.relay.ui.common.StateSwitchItem
 import io.github.magisk317.relay.ui.common.Item
 import io.github.magisk317.relay.ui.common.TextInputDialog
-
+import io.github.magisk317.relay.ui.common.SectionCard
 import io.github.magisk317.uikit.common.showLatestSnackbar
-
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -84,28 +83,7 @@ private fun countKeywords(raw: String): Int {
         .size
 }
 
-@Composable
-fun SectionCard(
-    title: String,
-    accordionMode: Boolean,
-    sectionExpanded: Boolean,
-    onExpandedChange: () -> Unit,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Const.PADDING_SMALL.dp),
-    ) {
-        io.github.magisk317.uikit.preference.SectionCard(
-            title = title,
-            accordionMode = accordionMode,
-            sectionExpanded = sectionExpanded,
-            onExpandedChange = onExpandedChange,
-            content = content,
-        )
-    }
-}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

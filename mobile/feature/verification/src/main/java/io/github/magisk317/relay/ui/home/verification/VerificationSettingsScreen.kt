@@ -3,15 +3,13 @@
 package io.github.magisk317.relay.ui.home.verification
 
 import io.github.magisk317.relay.ui.home.settings.rememberSharedSettingsViewModel
-import io.github.magisk317.relay.ui.home.scheduled.SectionCard
+import io.github.magisk317.relay.ui.common.SectionCard
 import io.github.magisk317.relay.ui.home.settings.SingleChoiceDialog
 import io.github.magisk317.relay.ui.common.rememberPrefBoolean
 import io.github.magisk317.relay.ui.common.StateSwitchItem
 import io.github.magisk317.relay.ui.common.Item
 import io.github.magisk317.relay.ui.common.TextInputDialog
-
 import io.github.magisk317.uikit.common.showLatestSnackbar
-
 import android.Manifest
 import android.content.ComponentName
 import android.content.Intent
@@ -67,7 +65,7 @@ import io.github.magisk317.relay.contract.settings.RecordSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.VerificationSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.VerificationSettingsUpdate
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.mobileui.BuildConfig
+import io.github.magisk317.relay.mobilefeature.verification.BuildConfig
 import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
 import io.github.magisk317.relay.ui.common.normalizeIntegerInput
 import io.github.magisk317.relay.ui.common.parseNonNegativeLongInput
