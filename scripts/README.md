@@ -13,10 +13,12 @@ workflows stay focused on triggers, permissions, and job wiring.
   `janitor_security_fixes.sh`, `reconcile_dependabot_alerts.sh`,
   `validate_dependabot_graph.sh`: dependency security automation.
 - `verify_*.sh`, `generate_sender_schema_contract.py`: repository boundary and
-  generated contract checks.
+  generated contract checks. Prefer extending an existing `verify_*.sh` entry
+  over adding another one-off gate.
 - `sync_*.sh`: metadata and generated documentation synchronization.
 - `with_workspace_gradle_lock.sh`: serializes Gradle invocations that share the
   workspace.
 
-When adding new automation, prefer a small script here over large inline shell or
-Python blocks in workflow YAML.
+When adding new automation, first reuse an existing script or Gradle task. Add a
+new top-level script only when it owns a distinct workflow that cannot fit the
+current release, dependency, sync, or verification buckets.

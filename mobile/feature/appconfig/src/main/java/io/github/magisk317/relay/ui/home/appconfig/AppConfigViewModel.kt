@@ -39,10 +39,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import java.util.Comparator
 
 private const val APP_NOTIFY_LOG_LIMIT = 20
-private const val APP_LIST_PAGE_SIZE = 80
 
 class AppConfigViewModel(
     application: Application,
@@ -136,7 +134,7 @@ class AppConfigViewModel(
                     EntityStoreManager.storeEntitiesToFile(
                         context,
                         EntityType.APP_CONFIG,
-                        configs.filter(::hasEffectiveConfig),
+                        configs.filter(::appInfoHasEffectiveConfig),
                         AppInfo::class.java,
                     )
 
@@ -247,35 +245,32 @@ class AppConfigViewModel(
 
     fun loadMoreApps() {
         if (_loadingFlow.value || !_hasMoreAppsFlow.value) return
-        visibleAppCount = minOf(visibleAppCount + APP_LIST_PAGE_SIZE, filteredApps.size)
+        visibleAppCount = visibleAppCountAfterLoadMore(
+            totalSize = filteredApps.size,
+            currentVisibleCount = visibleAppCount,
+        )
         publishVisibleApps()
     }
 
     private fun applyFilterAndSort(resetVisibleWindow: Boolean) {
         viewModelScope.launch {
             val filteredList = withContext(Dispatchers.Default) {
-                apps.asSequence()
-                    .filter { appInfo ->
-                        if (_hideSystemAppsFlow.value && systemApps.contains(appInfo.packageName)) {
-                            return@filter false
-                        }
-                        if (filter.isEmpty()) {
-                            true
-                        } else {
-                            val lowerLabel = appInfo.label?.lowercase() ?: ""
-                            val lowerPkg = appInfo.packageName.lowercase()
-                            lowerLabel.contains(filter) || lowerPkg.contains(filter)
-                        }
-                    }
-                    .sortedWith(mComparator)
-                    .toImmutableList()
+                filterAndSortAppConfigs(
+                    apps = apps,
+                    filterText = filter,
+                    hideSystemApps = _hideSystemAppsFlow.value,
+                    systemPackages = systemApps,
+                    sortOption = currentSortOption,
+                    isAscending = isAscending,
+                    usageStatsByPackage = usageStatsMap,
+                ).toImmutableList()
             }
             filteredApps = filteredList
-            if (resetVisibleWindow || visibleAppCount <= 0) {
-                visibleAppCount = minOf(APP_LIST_PAGE_SIZE, filteredApps.size)
-            } else {
-                visibleAppCount = minOf(visibleAppCount, filteredApps.size)
-            }
+            visibleAppCount = visibleAppCountAfterFilter(
+                totalSize = filteredApps.size,
+                previousVisibleCount = visibleAppCount,
+                resetVisibleWindow = resetVisibleWindow,
+            )
             publishVisibleApps()
         }
     }
@@ -437,13 +432,13 @@ class AppConfigViewModel(
     private fun persistAppConfig(packageName: String) {
         val latestApps = apps
         val target = latestApps.firstOrNull { it.packageName == packageName }
-        val changedConfigs = latestApps.filter(::hasEffectiveConfig)
+        val changedConfigs = latestApps.filter(::appInfoHasEffectiveConfig)
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) {
                     persistMutex.withLock {
                         if (target != null) {
-                            if (hasEffectiveConfig(target)) {
+                            if (appInfoHasEffectiveConfig(target)) {
                                 configRepository.upsertAppInfo(target)
                             } else {
                                 configRepository.removeAppInfosByPackage(listOf(target.packageName))
@@ -462,60 +457,5 @@ class AppConfigViewModel(
                 _events.emit(AppConfigEvent.Error(t))
             }
         }
-    }
-
-    private fun hasEffectiveConfig(appInfo: AppInfo): Boolean {
-        return appInfo.blocked || appInfo.forwardingConfigured || appInfo.notifyTemplate.isNotBlank()
-    }
-
-    private val mComparator = Comparator<AppInfo> { o1, o2 ->
-        // Keep configured apps pinned on top regardless of selected sort mode.
-        val configCompare = compareConfigPriority(o1, o2)
-        if (configCompare != 0) {
-            return@Comparator configCompare
-        }
-
-        val result = when (currentSortOption) {
-            SortOption.LABEL -> compareString(o1.label, o2.label)
-            SortOption.PACKAGE -> compareString(o1.packageName, o2.packageName)
-            SortOption.USAGE -> {
-                val u1 = usageStatsMap[o1.packageName] ?: 0L
-                val u2 = usageStatsMap[o2.packageName] ?: 0L
-                u1.compareTo(u2)
-            }
-            SortOption.SELECTION -> compareString(o1.label, o2.label) // Fallback for equal priority
-        }
-
-        if (isAscending) result else -result
-    }
-
-    private fun compareConfigPriority(o1: AppInfo, o2: AppInfo): Int {
-        val hasConfig1 = hasEffectiveConfig(o1)
-        val hasConfig2 = hasEffectiveConfig(o2)
-        if (hasConfig1 != hasConfig2) {
-            return if (hasConfig1) -1 else 1
-        }
-
-        // Tie-break when both are configured:
-        // blocked > forwarding > template-only > none.
-        if (o1.blocked != o2.blocked) {
-            return if (o1.blocked) -1 else 1
-        }
-        if (o1.forwarding != o2.forwarding) {
-            return if (o1.forwarding) -1 else 1
-        }
-        val hasTemplate1 = o1.notifyTemplate.isNotBlank()
-        val hasTemplate2 = o2.notifyTemplate.isNotBlank()
-        if (hasTemplate1 != hasTemplate2) {
-            return if (hasTemplate1) -1 else 1
-        }
-        return 0
-    }
-
-    private fun compareString(s1: String?, s2: String?): Int {
-        if (s1 == null && s2 == null) return 0
-        if (s1 == null) return -1
-        if (s2 == null) return 1
-        return s1.compareTo(s2, ignoreCase = true)
     }
 }

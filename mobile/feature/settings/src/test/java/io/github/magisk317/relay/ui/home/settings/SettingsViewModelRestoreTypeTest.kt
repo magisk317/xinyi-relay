@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.ui.home
+package io.github.magisk317.relay.ui.home.settings
 
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.constant.PrefValueType
