@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.ui.home.forward
 
-import io.github.magisk317.relay.ui.home.scheduled.SectionCard
+import io.github.magisk317.relay.ui.common.SectionCard
 import io.github.magisk317.relay.ui.common.StateSwitchItem
 import io.github.magisk317.relay.ui.common.Item
 import io.github.magisk317.relay.ui.common.TextInputDialog
