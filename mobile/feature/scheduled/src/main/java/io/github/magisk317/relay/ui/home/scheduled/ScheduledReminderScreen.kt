@@ -55,7 +55,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
-import io.github.magisk317.relay.mobileui.BuildConfig
+import io.github.magisk317.relay.mobilefeature.scheduled.BuildConfig
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.SpecialAlertSettingsSnapshot
@@ -63,7 +63,6 @@ import io.github.magisk317.relay.contract.settings.SpecialAlertSettingsUpdate
 import io.github.magisk317.relay.feature.reminder.BatteryReminderSchedulerFacade
 import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
 import io.github.magisk317.relay.ui.common.parseIntInRangeInput
-import io.github.magisk317.relay.ui.sender.SenderViewModel
 import io.github.magisk317.relay.ui.sender.displayName
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -180,8 +179,8 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
         }
     }
 
-    val senderViewModel: SenderViewModel = koinViewModel()
-    val senderList by senderViewModel.senderList.collectAsStateWithLifecycle()
+    val reminderViewModel: ScheduledReminderViewModel = koinViewModel()
+    val senderList by reminderViewModel.senderList.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         settings = repository.getSpecialAlertSettings()

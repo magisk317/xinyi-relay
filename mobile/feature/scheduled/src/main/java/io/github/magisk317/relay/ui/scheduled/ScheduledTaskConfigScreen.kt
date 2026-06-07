@@ -23,8 +23,8 @@ import io.github.magisk317.relay.engine.schedule.CronUtils
 import io.github.magisk317.uikit.common.DismissibleSnackbarHost
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
-import io.github.magisk317.relay.ui.sender.forms.ActiveScheduleTimeValueButton
-import io.github.magisk317.relay.ui.sender.forms.ActiveScheduleWeekdayRow
+import io.github.magisk317.relay.ui.common.ActiveScheduleTimeValueButton
+import io.github.magisk317.relay.ui.common.ActiveScheduleWeekdayRow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

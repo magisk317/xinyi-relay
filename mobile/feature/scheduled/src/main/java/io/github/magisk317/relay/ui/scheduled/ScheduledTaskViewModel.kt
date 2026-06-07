@@ -11,7 +11,7 @@ import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.ScheduledTask
 import io.github.magisk317.relay.engine.schedule.CronUtils
 import io.github.magisk317.relay.engine.service.ScheduledTaskRepository
-import io.github.magisk317.relay.mobileui.BuildConfig
+import io.github.magisk317.relay.mobilefeature.scheduled.BuildConfig
 import java.util.Date
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow

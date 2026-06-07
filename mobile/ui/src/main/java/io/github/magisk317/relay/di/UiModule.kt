@@ -4,6 +4,7 @@ import io.github.magisk317.relay.ui.backup.CloudBackupViewModel
 import io.github.magisk317.relay.ui.record.CodeRecordViewModel
 import io.github.magisk317.relay.ui.rule.RuleViewModel
 import io.github.magisk317.relay.ui.home.forward.ForwardFilterViewModel
+import io.github.magisk317.relay.ui.home.scheduled.ScheduledReminderViewModel
 import io.github.magisk317.relay.ui.scheduled.ScheduledTaskViewModel
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import org.koin.core.module.dsl.viewModelOf
@@ -18,6 +19,7 @@ val uiModule = module {
     viewModelOf(::RuleViewModel)
     viewModelOf(::SenderViewModel)
     viewModelOf(::ForwardFilterViewModel)
+    viewModelOf(::ScheduledReminderViewModel)
     viewModelOf(::ScheduledTaskViewModel)
     viewModelOf(::CloudBackupViewModel)
 }
