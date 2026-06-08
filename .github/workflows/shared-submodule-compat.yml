@@ -12,11 +12,8 @@ on:
       - "xpbridge/**"
       - "magisk-ui-kit/**"
       - "smscode-core/**"
-      - "scripts/ci/resolve_package_toolchain.py"
-      - "scripts/regex_helpers.sh"
-      - "scripts/verify_*.sh"
-      - "scripts/verify_shared_submodule_compat.sh"
-      - "scripts/with_workspace_gradle_lock.sh"
+      - ".github/workflows/shared-submodule-compat.yml"
+      - "scripts/**"
   push:
     branches:
       - beta
@@ -28,11 +25,8 @@ on:
       - "xpbridge/**"
       - "magisk-ui-kit/**"
       - "smscode-core/**"
-      - "scripts/ci/resolve_package_toolchain.py"
-      - "scripts/regex_helpers.sh"
-      - "scripts/verify_*.sh"
-      - "scripts/verify_shared_submodule_compat.sh"
-      - "scripts/with_workspace_gradle_lock.sh"
+      - ".github/workflows/shared-submodule-compat.yml"
+      - "scripts/**"
   workflow_dispatch:
 
 jobs:
