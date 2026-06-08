@@ -61,8 +61,8 @@ XPOSED_API_VERSION=$(xposed_api_level "$XPOSED_API_VERSION")
 
 GRADLE_VERSION=$(sed -nE 's/^distributionUrl=.*gradle-([0-9a-zA-Z.-]+)-(bin|all)\.zip/\1/p' gradle/wrapper/gradle-wrapper.properties)
 if [[ -z "$GRADLE_VERSION" ]]; then
-  echo "WARN: missing gradle version in gradle-wrapper.properties; defaulting to 9.5.1" >&2
-  GRADLE_VERSION="9.5.1"
+  echo "Missing Gradle version in gradle-wrapper.properties" >&2
+  exit 1
 fi
 
 KOTLIN_BADGE=$(badge_escape "$KOTLIN_VERSION")
