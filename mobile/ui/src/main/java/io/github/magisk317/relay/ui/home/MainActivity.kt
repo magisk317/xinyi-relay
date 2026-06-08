@@ -144,7 +144,8 @@ class MainActivity : ComponentActivity() {
             } else {
                 java.util.Locale.forLanguageTag(languageState.languageTag)
             }
-            val configuration = Configuration(context.resources.configuration).apply {
+            val currentConfiguration = LocalConfiguration.current
+            val configuration = Configuration(currentConfiguration).apply {
                 setLocale(locale)
             }
             val localizedContext = context.createConfigurationContext(configuration)
