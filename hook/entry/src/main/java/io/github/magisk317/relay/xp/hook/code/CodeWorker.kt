@@ -8,7 +8,6 @@ import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xp.hook.code.action.impl.SmsParseAction
 import io.github.magisk317.smscode.verification.CodeWorker as SharedCodeWorker
-import io.github.magisk317.smscode.verification.SmsCodePostParseCoordinator as SharedSmsCodePostParseCoordinator
 import io.github.magisk317.smscode.xposed.utils.XLog
 import java.util.concurrent.TimeUnit
 
@@ -24,7 +23,7 @@ class CodeWorker(
             phoneContext = mPhoneContext,
             smsIntent = mSmsIntent,
             eventId = eventId,
-            settingsLoader = { context -> SmsCodePostParseCoordinator.loadSettings(context).toShared() },
+            settingsLoader = SmsCodePlanFactory::loadSettings,
             moduleEnabledReader = XpPrefs::isEnabled,
             verboseLogReader = XpPrefs::isVerboseLogMode,
             logLevelSetter = XLog::setLogLevel,
@@ -32,14 +31,14 @@ class CodeWorker(
             defaultLogLevel = BuildConfig.LOG_LEVEL,
             parseRunner = ::runSmsParseAction,
             parsedSmsDispatcher = { uiHandler, executor, pluginContext, phoneContext, smsMsg, eventId, plan ->
-                SmsCodePostParseCoordinator.dispatchParsedSmsActions(
+                SmsCodeActionDispatcher.dispatchParsedSmsActions(
                     uiHandler = uiHandler,
                     executor = executor,
                     pluginContext = pluginContext,
                     phoneContext = phoneContext,
                     smsMsg = smsMsg,
                     eventId = eventId,
-                    plan = plan.toLocal(),
+                    plan = plan,
                 )
             },
             parseResultFactory = ::buildParseResult,
@@ -82,40 +81,6 @@ class CodeWorker(
 
     private fun buildParseResult(blockSms: Boolean): ParseResult {
         return ParseResult().apply { isBlockSms = blockSms }
-    }
-
-    private fun SmsCodePostParseCoordinator.Settings.toShared(): SharedSmsCodePostParseCoordinator.Settings {
-        return SharedSmsCodePostParseCoordinator.Settings(
-            showNotification = showNotification,
-            autoCancelNotification = autoCancelNotification,
-            notificationRetentionMs = notificationRetentionMs,
-            autoInputEnabled = autoInputEnabled,
-            autoInputDelayMs = autoInputDelayMs,
-            copyToClipboardEnabled = copyToClipboardEnabled,
-            showToast = showToast,
-            recordSmsEnabled = recordSmsEnabled,
-            blockSmsEnabled = blockSmsEnabled,
-            markAsReadEnabled = markAsReadEnabled,
-            deleteSmsEnabled = deleteSmsEnabled,
-            deduplicateSmsEnabled = deduplicateSmsEnabled,
-        )
-    }
-
-    private fun SharedSmsCodePostParseCoordinator.ParsedSmsPlan.toLocal(): SmsCodePostParseCoordinator.ParsedSmsPlan {
-        return SmsCodePostParseCoordinator.ParsedSmsPlan(
-            blockSms = blockSms,
-            deduplicateSmsEnabled = deduplicateSmsEnabled,
-            uiPlan = SmsCodePostParseCoordinator.UiPlan(
-                copyToClipboardEnabled = uiPlan.copyToClipboardEnabled,
-                showToast = uiPlan.showToast,
-            ),
-            autoInputDelayMs = autoInputDelayMs,
-            notificationPlan = notificationPlan?.let {
-                SmsCodePostParseCoordinator.NotificationPlan(autoCancelDelayMs = it.autoCancelDelayMs)
-            },
-            shouldRecord = shouldRecord,
-            operateSmsDelays = operateSmsDelays,
-        )
     }
 
     companion object {

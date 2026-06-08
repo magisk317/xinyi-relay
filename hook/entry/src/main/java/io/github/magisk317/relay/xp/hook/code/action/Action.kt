@@ -1,5 +1,5 @@
 package io.github.magisk317.relay.xp.hook.code.action
 
-interface Action<T> {
-    fun action(): T
-}
+import io.github.magisk317.smscode.verification.SmsCodeAction
+
+interface Action<T> : SmsCodeAction<T>

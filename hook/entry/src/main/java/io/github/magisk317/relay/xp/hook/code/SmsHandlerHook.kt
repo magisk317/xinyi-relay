@@ -10,6 +10,8 @@ import io.github.magisk317.relay.xp.HookTargetDiagnostics
 import io.github.magisk317.smscode.xposed.utils.ModuleActivationStore
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
+import io.github.magisk317.smscode.verification.SmsDispatchChainBlockDeduplicator
+import io.github.magisk317.smscode.verification.SmsDispatchIntentDeduplicator
 import io.github.magisk317.smscode.verification.SmsIntentHookSupport
 import io.github.magisk317.smscode.xposed.hook.telephony.InboundSmsBlocker
 import io.github.magisk317.relay.xp.hook.PhoneHookTargetPackages
@@ -28,10 +30,8 @@ import io.github.magisk317.smscode.xposed.hookapi.LoadParam
 import io.github.magisk317.smscode.xposed.hookapi.MethodHookParam
 import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 import java.io.File
-import java.io.RandomAccessFile
 import java.lang.reflect.Method
 import java.util.Collections
-import java.util.LinkedHashMap
 import java.util.concurrent.Executors
 /**
  * Hook class com.android.internal.telephony.InboundSmsHandler
@@ -182,12 +182,12 @@ class SmsHandlerHook : BaseHook() {
                                 maybeBlockFromDispatchChain(
                                     methodName = name,
                                     param = param,
-                                    smsIntent = extractOrBuildSmsIntent(
+                                    smsIntent = SmsIntentHookSupport.extractOrBuildSmsIntent(
                                         param.args,
                                         Telephony.Sms.Intents.SMS_DELIVER_ACTION,
                                     ),
                                 )
-                                val action = extractIntentAction(param.args)
+                                val action = SmsIntentHookSupport.extractIntentAction(param.args)
                                 XLog.w(
                                     "Diag SMS dispatch chain: class=%s method=%s action=%s args=%d",
                                     className,
@@ -201,16 +201,6 @@ class SmsHandlerHook : BaseHook() {
                 )
             }
         }
-    }
-
-    private fun extractIntentAction(args: Array<Any?>?): String? {
-        if (args == null) return null
-        for (arg in args) {
-            if (arg is Intent) {
-                return arg.action
-            }
-        }
-        return null
     }
 
     // Android 10+
@@ -328,7 +318,9 @@ class SmsHandlerHook : BaseHook() {
         if (pluginContext != null && shouldSkipDispatchBySharedDedup(pluginContext, eventId, action)) {
             return
         }
-        val pduCount = getPduCount(intent)
+        val pduCount = SmsIntentHookSupport.getPduCount(intent) {
+            XLog.w("Diag getPduCount failed: %s", it.message ?: "unknown")
+        }
         XLog.w(
             "Diag SMS intent intercepted: event_id=%s action=%s, pduCount=%d, extras=%s",
             eventId,
@@ -348,15 +340,6 @@ class SmsHandlerHook : BaseHook() {
         }
         if (outcome.shouldStopDispatch) {
             return
-        }
-    }
-
-    private fun getPduCount(intent: Intent): Int {
-        return try {
-            Telephony.Sms.Intents.getMessagesFromIntent(intent)?.size ?: -1
-        } catch (t: Throwable) {
-            XLog.w("Diag getPduCount failed: %s", t.message ?: "unknown")
-            -1
         }
     }
 
@@ -415,7 +398,7 @@ class SmsHandlerHook : BaseHook() {
         )
         CodeWorker(pluginContext, phoneContext, intent, eventId).parse()
         val inbound = param.thisObject ?: return
-        val smsReceiver = findRawTableReceiver(param.args)
+        val smsReceiver = SmsIntentHookSupport.findRawTableReceiver(param.args)
         if (smsReceiver != null) {
             val blocked = inboundSmsBlocker.blockInboundSms(
                 inboundSmsHandler = inbound,
@@ -450,55 +433,7 @@ class SmsHandlerHook : BaseHook() {
             )
             return
         }
-        param.result = defaultResultForType((param.method as? Method)?.returnType)
-    }
-
-    private fun extractOrBuildSmsIntent(args: Array<Any?>?, fallbackAction: String): Intent? {
-        if (args == null) return null
-        args.forEach { arg ->
-            if (arg is Intent) {
-                return arg
-            }
-        }
-        val pduList = args.firstNotNullOfOrNull { arg ->
-            val array = arg as? Array<*> ?: return@firstNotNullOfOrNull null
-            val pdus = array.mapNotNull { it as? ByteArray }
-            if (pdus.isEmpty() || pdus.size != array.size) null else pdus
-        } ?: return null
-        val format = args.firstNotNullOfOrNull { arg ->
-            val text = arg as? String ?: return@firstNotNullOfOrNull null
-            if (text.equals("3gpp", ignoreCase = true) || text.equals("3gpp2", ignoreCase = true)) {
-                text
-            } else {
-                null
-            }
-        }
-        return Intent(fallbackAction).apply {
-            putExtra("pdus", pduList.toTypedArray())
-            if (!format.isNullOrBlank()) {
-                putExtra("format", format)
-            }
-        }
-    }
-
-    private fun findRawTableReceiver(args: Array<Any?>?): Any? {
-        if (args == null) return null
-        return args.firstOrNull { candidate ->
-            candidate != null &&
-                hasField(candidate, "mDeleteWhere") &&
-                hasField(candidate, "mDeleteWhereArgs")
-        }
-    }
-
-    private fun hasField(instance: Any, fieldName: String): Boolean {
-        var current: Class<*>? = instance.javaClass
-        while (current != null) {
-            if (current.declaredFields.any { it.name == fieldName }) {
-                return true
-            }
-            current = current.superclass
-        }
-        return false
+        param.result = SmsIntentHookSupport.defaultResultForType((param.method as? Method)?.returnType)
     }
 
     private fun shouldSkipDispatchChainBlock(
@@ -506,61 +441,21 @@ class SmsHandlerHook : BaseHook() {
         action: String?,
         reason: String,
     ): Boolean {
-        if (smsMsg == null || action.isNullOrBlank()) return false
-        val now = System.currentTimeMillis()
-        val key = buildString {
-            append(senderHash(smsMsg.sender))
-            append('|')
-            append(smsMsg.body.orEmpty().hashCode())
-            append('|')
-            append(smsMsg.date)
-            append('|')
-            append(action)
-            append('|')
-            append(reason)
+        val result = dispatchChainBlockDeduplicator.shouldSkip(
+            smsMsg = smsMsg,
+            action = action,
+            reason = reason,
+        )
+        if (result.shouldSkip) {
+            XLog.w(
+                "Diag dispatch chain block duplicate skip: action=%s reason=%s ageMs=%d",
+                action,
+                reason,
+                result.ageMs ?: 0L,
+            )
+            return true
         }
-        synchronized(DISPATCH_CHAIN_BLOCK_LOCK) {
-            val iterator = dispatchChainBlockHistory.entries.iterator()
-            while (iterator.hasNext()) {
-                val entry = iterator.next()
-                if (now - entry.value > DISPATCH_CHAIN_BLOCK_WINDOW_MS) {
-                    iterator.remove()
-                }
-            }
-            val last = dispatchChainBlockHistory[key]
-            if (last != null && now - last <= DISPATCH_CHAIN_BLOCK_WINDOW_MS) {
-                XLog.w(
-                    "Diag dispatch chain block duplicate skip: action=%s reason=%s ageMs=%d",
-                    action,
-                    reason,
-                    now - last,
-                )
-                return true
-            }
-            dispatchChainBlockHistory[key] = now
-            return false
-        }
-    }
-
-    private fun senderHash(sender: String?): String {
-        val value = sender.orEmpty()
-        if (value.isBlank()) return "none"
-        return Integer.toHexString(value.hashCode())
-    }
-
-    private fun defaultResultForType(type: Class<*>?): Any? {
-        return when (type) {
-            null, Void.TYPE, Void::class.java -> null
-            Boolean::class.javaPrimitiveType, Boolean::class.javaObjectType -> false
-            Int::class.javaPrimitiveType, Int::class.javaObjectType -> 0
-            Long::class.javaPrimitiveType, Long::class.javaObjectType -> 0L
-            Float::class.javaPrimitiveType, Float::class.javaObjectType -> 0f
-            Double::class.javaPrimitiveType, Double::class.javaObjectType -> 0.0
-            Short::class.javaPrimitiveType, Short::class.javaObjectType -> 0.toShort()
-            Byte::class.javaPrimitiveType, Byte::class.javaObjectType -> 0.toByte()
-            Char::class.javaPrimitiveType, Char::class.javaObjectType -> 0.toChar()
-            else -> null
-        }
+        return false
     }
 
     private fun shouldSkipDispatchBySharedDedup(
@@ -568,107 +463,39 @@ class SmsHandlerHook : BaseHook() {
         eventId: String,
         action: String?,
     ): Boolean {
-        if (eventId.isBlank() || action.isNullOrBlank()) return false
-        val now = System.currentTimeMillis()
-        val key = "$eventId|$action"
-
-        // 1. Quick in-memory check (process-local)
-        synchronized(SHARED_DEDUP_MEMORY_LOCK) {
-            val last = sharedDedupMemoryCache[key]
-            if (last != null && now - last <= DISPATCH_DEDUP_WINDOW_MS) {
-                XLog.d("Diag SMS dispatch duplicate skip (memory): event_id=%s action=%s", eventId, action)
-                return true
-            }
-            sharedDedupMemoryCache[key] = now
-            // Trim memory cache
-            if (sharedDedupMemoryCache.size > MAX_DISPATCH_DEDUP_ENTRIES) {
-                val iterator = sharedDedupMemoryCache.entries.iterator()
-                if (iterator.hasNext()) {
-                    iterator.next()
-                    iterator.remove()
-                }
-            }
+        val result = dispatchIntentDeduplicator.shouldSkipInMemory(eventId, action)
+        if (result.shouldSkip) {
+            XLog.d(
+                "Diag SMS dispatch duplicate skip (memory): event_id=%s action=%s ageMs=%d",
+                eventId,
+                action,
+                result.ageMs ?: 0L,
+            )
+            return true
         }
 
-        // 2. Offload file-based cross-process sync to background
+        val key = result.key ?: return false
+        val timestampMs = result.timestampMs ?: return false
         SMS_OPERATION_EXECUTOR.execute {
-            syncSharedDedupToFile(pluginContext, key, now)
+            syncSharedDedupToFile(pluginContext, key, timestampMs)
         }
 
         return false
     }
 
-    private fun syncSharedDedupToFile(pluginContext: Context, key: String, now: Long) {
+    private fun syncSharedDedupToFile(pluginContext: Context, key: String, timestampMs: Long) {
         runCatching {
-            val file = File(pluginContext.getExternalFilesDir(null) ?: pluginContext.filesDir, DISPATCH_DEDUP_FILE_NAME)
-            file.parentFile?.mkdirs()
-            RandomAccessFile(file, "rw").use { raf ->
-                raf.channel.use { channel ->
-                    // Use a short timeout for the lock to avoid hanging the background thread indefinitely
-                    val lock = channel.tryLock() ?: return@runCatching 
-                    try {
-                        val entries = readDispatchDedupEntries(raf)
-                        val iterator = entries.entries.iterator()
-                        var changed = false
-                        while (iterator.hasNext()) {
-                            val entry = iterator.next()
-                            if (now - entry.value > DISPATCH_DEDUP_WINDOW_MS) {
-                                iterator.remove()
-                                changed = true
-                            }
-                        }
-                        if (!entries.containsKey(key)) {
-                            entries[key] = now
-                            changed = true
-                        }
-                        if (changed) {
-                            while (entries.size > MAX_DISPATCH_DEDUP_ENTRIES) {
-                                val firstKey = entries.entries.firstOrNull()?.key ?: break
-                                entries.remove(firstKey)
-                            }
-                            writeDispatchDedupEntries(raf, entries)
-                        }
-                    } finally {
-                        lock.release()
-                    }
-                }
-            }
+            val file = File(
+                pluginContext.getExternalFilesDir(null) ?: pluginContext.filesDir,
+                SmsDispatchIntentDeduplicator.DEFAULT_FILE_NAME,
+            )
+            dispatchIntentDeduplicator.syncFileIfLockAvailable(file, key, timestampMs)
         }.onFailure {
-            // Silently ignore background sync failures
+            XLog.d(
+                "Diag SMS dispatch dedup background sync failed: %s",
+                it.message ?: it.javaClass.simpleName,
+            )
         }
-    }
-
-    private fun readDispatchDedupEntries(raf: RandomAccessFile): LinkedHashMap<String, Long> {
-        val entries = LinkedHashMap<String, Long>()
-        raf.seek(0L)
-        while (true) {
-            val rawLine = raf.readLine() ?: break
-            val line = rawLine.trim()
-            if (line.isBlank()) continue
-            val split = line.indexOf('=')
-            if (split <= 0) continue
-            val key = line.substring(0, split)
-            val value = line.substring(split + 1).toLongOrNull() ?: continue
-            entries[key] = value
-        }
-        return entries
-    }
-
-    private fun writeDispatchDedupEntries(
-        raf: RandomAccessFile,
-        entries: LinkedHashMap<String, Long>,
-    ) {
-        raf.setLength(0L)
-        raf.seek(0L)
-        val content = buildString {
-            entries.forEach { (key, value) ->
-                append(key)
-                append('=')
-                append(value)
-                append('\n')
-            }
-        }
-        raf.write(content.toByteArray())
     }
 
     private fun logSuppressedOnce(stage: String) {
@@ -689,15 +516,9 @@ class SmsHandlerHook : BaseHook() {
         private const val TELEPHONY_PACKAGE = "com.android.internal.telephony"
         private const val SMS_HANDLER_CLASS = "$TELEPHONY_PACKAGE.InboundSmsHandler"
         private const val DISPATCH_HANDLER_KEY = "sms_handler"
-        private const val DISPATCH_DEDUP_FILE_NAME = "dispatch_dedup"
-        private const val DISPATCH_DEDUP_WINDOW_MS = 8_000L
-        private const val MAX_DISPATCH_DEDUP_ENTRIES = 256
-        private const val DISPATCH_CHAIN_BLOCK_WINDOW_MS = 8_000L
         private val SMSCODE_PACKAGE = BuildConfig.APPLICATION_ID
         private val SMS_OPERATION_EXECUTOR = Executors.newSingleThreadExecutor()
-        private val dispatchChainBlockHistory = LinkedHashMap<String, Long>()
-        private val DISPATCH_CHAIN_BLOCK_LOCK = Any()
-        private val sharedDedupMemoryCache = LinkedHashMap<String, Long>()
-        private val SHARED_DEDUP_MEMORY_LOCK = Any()
+        private val dispatchIntentDeduplicator = SmsDispatchIntentDeduplicator()
+        private val dispatchChainBlockDeduplicator = SmsDispatchChainBlockDeduplicator()
     }
 }

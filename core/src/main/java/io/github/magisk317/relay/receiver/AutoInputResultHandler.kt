@@ -8,6 +8,8 @@ import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.relay.security.IpcTokenGate
+import io.github.magisk317.smscode.runtime.contract.autoinput.AutoInputBroadcastContract
+import io.github.magisk317.smscode.runtime.contract.autoinput.AutoInputResultBroadcastContract
 import io.github.magisk317.smscode.xposed.hook.system.SystemInputInjectorHook
 import kotlinx.coroutines.runBlocking
 import java.util.concurrent.ExecutorService
@@ -37,8 +39,17 @@ object AutoInputResultHandler {
     }
 
     private fun handleOnWorker(context: Context, intent: Intent) {
-        val attemptId = intent.getLongExtra("attemptId", -1L)
-        if (attemptId <= 0L) return
+        val result = when (
+            val receiverResult = AutoInputResultBroadcastContract.readResult(
+                intent = intent,
+                expectedAction = action,
+            )
+        ) {
+            AutoInputResultBroadcastContract.ReceiverResult.Ignored -> return
+            AutoInputResultBroadcastContract.ReceiverResult.MissingAttemptId -> return
+            is AutoInputResultBroadcastContract.ReceiverResult.Accepted -> receiverResult.result
+        }
+        val attemptId = result.attemptId
         val runtimeGraph = RuntimeGraph.from(context)
         val expectedToken = runBlocking {
             RuntimeSettingsCache.getString(
@@ -48,7 +59,7 @@ object AutoInputResultHandler {
                 runtimeGraph.preferenceDataSource.getString(key, defaultValue)
             }
         }
-        val receivedToken = intent.getStringExtra(SystemInputInjectorHook.EXTRA_IPC_TOKEN)
+        val receivedToken = intent.getStringExtra(AutoInputBroadcastContract.EXTRA_IPC_TOKEN)
         val tokenDecision = IpcTokenGate.evaluate(
             expectedToken = expectedToken,
             receivedToken = receivedToken,
@@ -62,8 +73,8 @@ object AutoInputResultHandler {
             )
             return
         }
-        val success = intent.getBooleanExtra("success", false)
-        val reason = intent.getStringExtra("reason")
+        val success = result.success
+        val reason = result.reason
         XLog.w(
             "Diag AutoInputResultReceiver onReceive: attemptId=%d success=%s reason=%s",
             attemptId,
