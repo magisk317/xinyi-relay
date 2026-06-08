@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/scripts/regex_helpers.sh"
 APP_BUILD="$ROOT_DIR/app/build.gradle.kts"
 CORE_BUILD="$ROOT_DIR/core/build.gradle.kts"
 HOOK_ENTRY_BUILD="$ROOT_DIR/hook/entry/build.gradle.kts"
@@ -22,7 +23,7 @@ require_pattern() {
   local file="$1"
   local pattern="$2"
   local message="$3"
-  if ! rg -q "$pattern" "$file"; then
+  if ! regex_quiet "$pattern" "$file"; then
     violations+=("$message")
   fi
 }
@@ -31,7 +32,7 @@ forbid_pattern() {
   local file="$1"
   local pattern="$2"
   local message="$3"
-  if rg -q "$pattern" "$file"; then
+  if regex_quiet "$pattern" "$file"; then
     violations+=("$message")
   fi
 }
@@ -44,16 +45,16 @@ check_mobile_feature_dependencies() {
     feature_name="$(basename "$(dirname "$feature_build")")"
     feature_path=":mobile:feature:$feature_name"
 
-    if rg -q 'project\(":mobile:ui"\)' "$feature_build"; then
+    if regex_quiet 'project\(":mobile:ui"\)' "$feature_build"; then
       violations+=("$feature_path must not depend on :mobile:ui; navigation contracts stay in the shell module")
     fi
 
-    if rg -q 'project\(":relay:sender"\)' "$feature_build"; then
+    if regex_quiet 'project\(":relay:sender"\)' "$feature_build"; then
       violations+=("$feature_path must depend on :relay:sender:api instead of the :relay:sender implementation module")
     fi
 
     local feature_deps
-    mapfile -t feature_deps < <(rg -o 'project\(":mobile:feature:[^"]+"\)' "$feature_build" || true)
+    mapfile -t feature_deps < <(regex_matches 'project\(":mobile:feature:[^"]+"\)' "$feature_build" || true)
     local dependency
     for dependency in "${feature_deps[@]}"; do
       local dependency_path
