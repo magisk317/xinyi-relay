@@ -41,12 +41,14 @@ done
 
 rg -q 'catalogVersionOrNull\(forcedDependency\.versionAlias\)' "$GOVERNANCE_PLUGIN" \
   || fail "governance plugin must resolve forced versions through the catalog alias"
+rg -q 'fun forcedDependency\(group: String, name: String, versionAlias: String\)' "$BUILD_LOGIC_BUILD" \
+  || fail "build-logic forcedDependency helper must name its third argument versionAlias"
 
 if rg -n '"3\.18\.0"|"4\.5\.13"' "$BUILD_LOGIC_BUILD" "$GOVERNANCE_PLUGIN" "$ROOT_BUILD"; then
   fail "stale forced dependency versions must not reappear"
 fi
 
-rg -q 'forcedDependency\("org\.apache\.commons", "commons-lang3", "commons-lang3", "3\.20\.0"\)' "$BUILD_LOGIC_BUILD" \
+rg -q 'forcedDependency\("org\.apache\.commons", "commons-lang3", "commons-lang3"\)' "$BUILD_LOGIC_BUILD" \
   || fail "build-logic commons-lang3 force must be catalog-backed"
-rg -q 'forcedDependency\("org\.apache\.httpcomponents", "httpclient", "httpclient", "4\.5\.14"\)' "$BUILD_LOGIC_BUILD" \
+rg -q 'forcedDependency\("org\.apache\.httpcomponents", "httpclient", "httpclient"\)' "$BUILD_LOGIC_BUILD" \
   || fail "build-logic httpclient force must be catalog-backed"
