@@ -9,8 +9,8 @@ import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.smscode.verification.ObservedInboxScanRecord
 import io.github.magisk317.smscode.verification.ObservedSmsHandler as SharedObservedSmsHandler
+import io.github.magisk317.smscode.verification.SmsCodePostParseCoordinator
 import io.github.magisk317.smscode.verification.SmsInboxObserverDecision
-import io.github.magisk317.smscode.verification.SmsCodePostParseCoordinator as SharedSmsCodePostParseCoordinator
 import kotlinx.coroutines.runBlocking
 import java.util.concurrent.ScheduledExecutorService
 
@@ -19,9 +19,10 @@ internal class ObservedSmsHandler(
     private val phoneContext: Context,
     private val actionExecutor: ScheduledExecutorService? = null,
     private val runtimeRecordFacadeProvider: (() -> XpRecordFacade)? = null,
-    private val settingsLoader: (Context) -> SmsCodePostParseCoordinator.Settings = SmsCodePostParseCoordinator::loadSettings,
-    private val planFactory: (SmsCodePostParseCoordinator.Settings) -> SmsCodePostParseCoordinator.ObservedSmsPlan =
-        SmsCodePostParseCoordinator::createObservedSmsPlan,
+    private val settingsLoader: (Context) -> SmsCodePostParseCoordinator.Settings = SmsCodePlanFactory::loadSettings,
+    private val planFactory: (
+        SmsCodePostParseCoordinator.Settings,
+    ) -> SmsCodePostParseCoordinator.ObservedSmsPlan = SmsCodePostParseCoordinator::createObservedSmsPlan,
     private val moduleEnabledReader: (Context) -> Boolean = XpPrefs::isEnabled,
     private val conflictSuppressor: (Context, String) -> Boolean = { context, source ->
         ModuleConflictArbiter.shouldSuppressByRelay(context, source)
@@ -56,7 +57,7 @@ internal class ObservedSmsHandler(
         String,
         SmsCodePostParseCoordinator.ObservedSmsPlan,
     ) -> Unit = { pluginContext, phoneContext, smsMsg, eventId, plan ->
-        SmsCodePostParseCoordinator.dispatchObservedSmsActions(
+        SmsCodeActionDispatcher.dispatchObservedSmsActions(
             executor = actionExecutor,
             pluginContext = pluginContext,
             phoneContext = phoneContext,
@@ -76,8 +77,8 @@ internal class ObservedSmsHandler(
     private val delegate = SharedObservedSmsHandler(
         pluginContext = pluginContext,
         phoneContext = phoneContext,
-        settingsLoader = { context -> settingsLoader(context).toShared() },
-        planFactory = SharedSmsCodePostParseCoordinator::createObservedSmsPlan,
+        settingsLoader = settingsLoader,
+        planFactory = planFactory,
         moduleEnabledReader = moduleEnabledReader,
         conflictSuppressor = conflictSuppressor,
         sharedGateClaimer = { context, fileName, key, windowMs, maxEntries ->
@@ -85,11 +86,11 @@ internal class ObservedSmsHandler(
         },
         roleStateLogger = roleStateLogger,
         duplicateChecker = { settings, sender, body, date ->
-            (duplicateChecker ?: ::defaultDuplicateCheck)(settings.toLocal(), sender, body, date)
+            (duplicateChecker ?: ::defaultDuplicateCheck)(settings, sender, body, date)
         },
         smsEnricher = smsEnricher,
         dispatcher = { pluginContext, phoneContext, smsMsg, eventId, plan ->
-            dispatcher(pluginContext, phoneContext, smsMsg, eventId, plan.toLocal())
+            dispatcher(pluginContext, phoneContext, smsMsg, eventId, plan)
         },
         currentTimeMillis = currentTimeMillis,
     )
@@ -151,49 +152,6 @@ internal class ObservedSmsHandler(
         return SharedObservedSmsHandler.ClaimResult(
             claimed = claimed,
             ageMs = ageMs,
-        )
-    }
-
-    private fun SmsCodePostParseCoordinator.Settings.toShared(): SharedSmsCodePostParseCoordinator.Settings {
-        return SharedSmsCodePostParseCoordinator.Settings(
-            showNotification = showNotification,
-            autoCancelNotification = autoCancelNotification,
-            notificationRetentionMs = notificationRetentionMs,
-            autoInputEnabled = autoInputEnabled,
-            autoInputDelayMs = autoInputDelayMs,
-            copyToClipboardEnabled = copyToClipboardEnabled,
-            showToast = showToast,
-            recordSmsEnabled = recordSmsEnabled,
-            blockSmsEnabled = blockSmsEnabled,
-            markAsReadEnabled = markAsReadEnabled,
-            deleteSmsEnabled = deleteSmsEnabled,
-            deduplicateSmsEnabled = deduplicateSmsEnabled,
-        )
-    }
-
-    private fun SharedSmsCodePostParseCoordinator.Settings.toLocal(): SmsCodePostParseCoordinator.Settings {
-        return SmsCodePostParseCoordinator.Settings(
-            showNotification = showNotification,
-            autoCancelNotification = autoCancelNotification,
-            notificationRetentionMs = notificationRetentionMs,
-            autoInputEnabled = autoInputEnabled,
-            autoInputDelayMs = autoInputDelayMs,
-            copyToClipboardEnabled = copyToClipboardEnabled,
-            showToast = showToast,
-            recordSmsEnabled = recordSmsEnabled,
-            blockSmsEnabled = blockSmsEnabled,
-            markAsReadEnabled = markAsReadEnabled,
-            deleteSmsEnabled = deleteSmsEnabled,
-            deduplicateSmsEnabled = deduplicateSmsEnabled,
-        )
-    }
-
-    private fun SharedSmsCodePostParseCoordinator.ObservedSmsPlan.toLocal(): SmsCodePostParseCoordinator.ObservedSmsPlan {
-        return SmsCodePostParseCoordinator.ObservedSmsPlan(
-            deduplicateSmsEnabled = deduplicateSmsEnabled,
-            autoInputEnabled = autoInputEnabled,
-            autoInputDelayMs = autoInputDelayMs,
-            shouldRecord = shouldRecord,
         )
     }
 }

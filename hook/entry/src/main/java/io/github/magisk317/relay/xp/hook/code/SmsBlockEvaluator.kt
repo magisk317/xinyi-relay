@@ -6,9 +6,8 @@ import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.XpSmsCodeParser
 import io.github.magisk317.relay.xpbridge.XpSmsBlacklist
-import io.github.magisk317.smscode.verification.SmsIntentHookSupport
-import io.github.magisk317.smscode.xposed.utils.XLog
-import kotlinx.coroutines.runBlocking
+import io.github.magisk317.smscode.verification.BlacklistMatchResult
+import io.github.magisk317.smscode.verification.SmsBlockEvaluator as SharedSmsBlockEvaluator
 
 internal object SmsBlockEvaluator {
     const val BLOCK_REASON_BLACKLIST = "blacklist_block"
@@ -20,75 +19,41 @@ internal object SmsBlockEvaluator {
         val blacklistDeleteOnly: Boolean,
     )
 
+    private val delegate = SharedSmsBlockEvaluator(
+        incomingSmsParser = SmsMsg::fromIntent,
+        blacklistMatcher = { context, sender, body ->
+            XpSmsBlacklist.match(context, sender, body).toVerificationResult()
+        },
+        blockSmsEnabledReader = XpPrefs::blockSmsEnabled,
+        smsCodeParser = { context, body -> XpSmsCodeParser.parseSmsCodeIfExists(context, body) },
+    )
+
     fun evaluate(
         pluginContext: Context,
         intent: Intent,
         eventId: String,
         source: String,
     ): Result? {
-        val action = intent.action
-        if (!SmsIntentHookSupport.isSmsAction(action)) {
-            return null
-        }
-
-        val smsMsg = runCatching { SmsMsg.fromIntent(intent) }.getOrNull()
-        val blacklistResult = XpSmsBlacklist.match(pluginContext, smsMsg?.sender, smsMsg?.body)
-        if (blacklistResult.matched) {
-            XLog.w(
-                "Diag %s blacklist matched: event_id=%s type=%s pattern=%s delete=%s block=%s",
-                source,
-                eventId,
-                blacklistResult.matchType,
-                blacklistResult.pattern,
-                blacklistResult.actionDelete,
-                blacklistResult.actionBlock,
-            )
-        }
-        if (blacklistResult.actionBlock) {
-            return Result(
-                smsMsg = smsMsg,
-                blockReason = BLOCK_REASON_BLACKLIST,
-                blacklistDeleteOnly = false,
-            )
-        }
-
-        val deleteOnlyBlacklist = blacklistResult.matched && blacklistResult.actionDelete
-        if (!XpPrefs.blockSmsEnabled(pluginContext)) {
-            return Result(
-                smsMsg = smsMsg,
-                blockReason = null,
-                blacklistDeleteOnly = deleteOnlyBlacklist,
-            )
-        }
-
-        val body = smsMsg?.body.orEmpty()
-        if (body.isBlank()) {
-            return Result(
-                smsMsg = smsMsg,
-                blockReason = null,
-                blacklistDeleteOnly = deleteOnlyBlacklist,
-            )
-        }
-
-        val smsCode = runBlocking { XpSmsCodeParser.parseSmsCodeIfExists(pluginContext, body) }.orEmpty()
-        if (smsCode.isBlank()) {
-            return Result(
-                smsMsg = smsMsg,
-                blockReason = null,
-                blacklistDeleteOnly = deleteOnlyBlacklist,
-            )
-        }
-
-        XLog.w(
-            "Diag %s early block candidate: event_id=%s codeLength=%d",
-            source,
-            eventId,
-            smsCode.length,
-        )
+        val result = delegate.evaluate(
+            pluginContext = pluginContext,
+            intent = intent,
+            eventId = eventId,
+            source = source,
+        ) ?: return null
         return Result(
-            smsMsg = smsMsg,
-            blockReason = BLOCK_REASON_PREF_BLOCK,
-            blacklistDeleteOnly = deleteOnlyBlacklist,
+            smsMsg = result.smsMsg,
+            blockReason = result.blockReasonWireValue,
+            blacklistDeleteOnly = result.blacklistDeleteOnly,
+        )
+    }
+
+    private fun XpSmsBlacklist.MatchResult.toVerificationResult(): BlacklistMatchResult {
+        return BlacklistMatchResult(
+            matched = matched,
+            matchType = matchType,
+            pattern = pattern,
+            actionDelete = actionDelete,
+            actionBlock = actionBlock,
         )
     }
 }

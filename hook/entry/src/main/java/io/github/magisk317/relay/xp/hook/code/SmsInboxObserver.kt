@@ -7,10 +7,12 @@ import android.os.Looper
 import android.provider.Telephony
 import android.util.Log
 import io.github.magisk317.relay.xpbridge.XpPrefs
+import io.github.magisk317.relay.xpbridge.XpSmsCodeParser
 import io.github.magisk317.relay.xpbridge.XpStringEscaper
+import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
+import io.github.magisk317.smscode.verification.ObservedInboxScanner
 import io.github.magisk317.smscode.verification.SmsInboxSeenTracker
 import io.github.magisk317.smscode.verification.SmsRoleStateResolver
-import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 import io.github.magisk317.smscode.xposed.utils.XLog
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
@@ -124,6 +126,7 @@ internal class SmsInboxObserver(
             pluginContext = pluginContext,
             phoneContext = phoneContext,
             smsIdTracker = SmsInboxSeenTracker(MAX_TRACKED_SMS_IDS),
+            smsCodeParser = XpSmsCodeParser::parseSmsCodeIfExists,
         )
     }
 

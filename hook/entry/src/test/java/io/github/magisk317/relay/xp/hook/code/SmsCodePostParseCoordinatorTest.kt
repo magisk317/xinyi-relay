@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.xp.hook.code
 
+import io.github.magisk317.smscode.verification.SmsCodePostParseCoordinator
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
