@@ -20,6 +20,7 @@ android {
 
 dependencies {
     api(project(":relay:contract"))
+    api(project(":smscode-core:contract"))
     api(libs.kotlinx.coroutines.core)
     api(libs.kotlinx.serialization.json)
     implementation(libs.androidx.core.ktx)

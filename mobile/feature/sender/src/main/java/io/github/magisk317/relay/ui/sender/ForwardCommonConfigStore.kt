@@ -8,6 +8,7 @@ import android.net.NetworkCapabilities
 import android.os.BatteryManager
 import android.os.Build
 import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.smscode.runtime.contract.sim.SimSlotLabelFormatter
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.android.common.utils.XLog
@@ -173,13 +174,13 @@ IP地址列表：{{IP_LIST}}
         simRemarkSnapshot: SimRemarkSettingsSnapshot?,
     ): String {
         if (msgInfo.simSlot >= 0) {
-            val remark = when (msgInfo.simSlot) {
-                0 -> simRemarkSnapshot?.simSlot1Remark.orEmpty()
-                1 -> simRemarkSnapshot?.simSlot2Remark.orEmpty()
-                else -> ""
+            return SimSlotLabelFormatter.format(msgInfo.simSlot) { slot ->
+                when (slot) {
+                    0 -> simRemarkSnapshot?.simSlot1Remark.orEmpty()
+                    1 -> simRemarkSnapshot?.simSlot2Remark.orEmpty()
+                    else -> ""
+                }
             }
-            if (remark.isNotBlank()) return remark
-            return "SIM${msgInfo.simSlot + 1}"
         }
         if (messageType == MessageType.APP_NOTIFY && msgInfo.simInfo.isNotBlank()) return msgInfo.simInfo
         return ""

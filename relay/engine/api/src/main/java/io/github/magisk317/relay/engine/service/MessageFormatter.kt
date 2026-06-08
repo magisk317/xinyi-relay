@@ -4,6 +4,7 @@ import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.engine.event.RelayEvent
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.engine.model.SystemEnvironment
+import io.github.magisk317.smscode.runtime.contract.sim.SimSlotLabelFormatter
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -102,9 +103,8 @@ class MessageFormatter(
         payloadContext: DispatchPayloadContext,
     ): String {
         if (event.simSlot >= 0) {
-            val remark = simSlotRemarkResolver(event.simSlot).trim()
-            if (remark.isNotBlank()) return remark
-            return "SIM${event.simSlot + 1}"
+            val remark = simSlotRemarkResolver(event.simSlot)
+            return SimSlotLabelFormatter.format(event.simSlot) { remark }
         }
         if (payloadContext.appName.isNotBlank() && event.companyOrAppName.isNotBlank()) return event.companyOrAppName
         return ""
