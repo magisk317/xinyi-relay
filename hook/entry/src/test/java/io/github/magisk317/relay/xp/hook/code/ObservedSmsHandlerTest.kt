@@ -64,12 +64,14 @@ class ObservedSmsHandlerTest {
             sharedGateClaimer = { _, _, _, _, _ -> XpSharedRuntimeGate.ClaimResult(claimed = true) },
             roleStateLogger = { eventId -> loggedEventId = eventId },
             duplicateChecker = { _, _, _, _ -> false },
-            smsEnricher = { _, sender, body, date, code ->
+            smsEnricher = { _, record ->
                 SmsMsg(
-                    sender = sender,
-                    body = "$body#$code",
-                    date = date,
+                    sender = record.sender,
+                    body = "${record.body}#${record.code}",
+                    date = record.date,
                     msgType = SmsMsg.MSG_TYPE_SMS,
+                    simSlot = record.simSlot,
+                    subId = record.subId,
                 )
             },
             dispatcher = { _, _, smsMsg, eventId, plan ->

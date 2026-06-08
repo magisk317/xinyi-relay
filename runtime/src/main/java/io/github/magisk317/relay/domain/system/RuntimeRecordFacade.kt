@@ -1,6 +1,8 @@
 package io.github.magisk317.relay.domain.system
 
 import android.content.Context
+import android.os.Build
+import android.telephony.SubscriptionManager
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.entity.AutoInputEvent
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
@@ -9,6 +11,7 @@ import io.github.magisk317.relay.data.repository.RelayRecordRepository
 import io.github.magisk317.relay.engine.service.MessageRecordRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlin.math.abs
 
 /**
  * Runtime-only persistence facade for lightweight hook / receiver writebacks.
@@ -154,8 +157,74 @@ class RuntimeRecordFacade(
         )
     }
 
+    suspend fun backfillSmsRouting(
+        sender: String?,
+        body: String?,
+        date: Long,
+        simSlot: Int,
+        subId: Int,
+        msgType: Int = SmsMsg.MSG_TYPE_SMS,
+        windowMs: Long = ROUTING_BACKFILL_WINDOW_MS,
+    ): Boolean = withContext(Dispatchers.IO) {
+        val resolvedSimSlot = resolveBackfillSimSlot(simSlot, subId)
+        val resolvedSubId = subId.takeIf { it > 0 } ?: 0
+        if (resolvedSimSlot < 0 && resolvedSubId <= 0) {
+            return@withContext false
+        }
+
+        val timestamp = date.takeIf { it > 0L } ?: System.currentTimeMillis()
+        val candidates = db.smsMsgDao()
+            .getAll()
+            .asSequence()
+            .filter { it.msgType == msgType }
+            .map { it to abs(it.date - timestamp) }
+            .filter { (_, deltaMs) -> deltaMs <= windowMs }
+            .toList()
+        val exactMatch = candidates
+            .filter { (record, _) -> record.sender == sender && record.body == body }
+            .minByOrNull { (_, deltaMs) -> deltaMs }
+            ?.first
+        val fallbackMatches = candidates
+            .map { (record, _) -> record }
+            .filter { it.simSlot < 0 || it.subId <= 0 }
+        val existing = exactMatch ?: fallbackMatches.singleOrNull() ?: return@withContext false
+
+        val newSimSlot = if (existing.simSlot < 0 && resolvedSimSlot >= 0) {
+            resolvedSimSlot
+        } else {
+            existing.simSlot
+        }
+        val newSubId = if (existing.subId <= 0 && resolvedSubId > 0) {
+            resolvedSubId
+        } else {
+            existing.subId
+        }
+        if (newSimSlot == existing.simSlot && newSubId == existing.subId) {
+            return@withContext false
+        }
+        db.smsMsgDao().update(existing.copy(simSlot = newSimSlot, subId = newSubId))
+        true
+    }
+
+    private fun resolveBackfillSimSlot(simSlot: Int, subId: Int): Int {
+        if (simSlot >= 0) return simSlot
+        if (subId <= 0) return -1
+        val platformSlot = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            runCatching { SubscriptionManager.getSlotIndex(subId) }.getOrDefault(-1)
+        } else {
+            -1
+        }
+        if (platformSlot >= 0) return platformSlot
+        return when (subId) {
+            1 -> 0
+            2 -> 1
+            else -> -1
+        }
+    }
+
     private companion object {
         private const val SMS_HOOK_TARGET = "SmsCode Engine"
         private const val SMS_HOOK_MAX_MESSAGE_LENGTH = 300
+        private const val ROUTING_BACKFILL_WINDOW_MS = 30 * 60 * 1000L
     }
 }

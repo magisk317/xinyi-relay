@@ -132,6 +132,27 @@ object RuntimeXpRecordBridge : XpRecordRuntimeBridge {
         return RuntimeRecordFacade(context).insertSmsRecord(smsMsg.toRuntimeSmsMsg(), isCodeSms)
     }
 
+    override suspend fun backfillSmsRouting(
+        context: Context,
+        sender: String?,
+        body: String?,
+        date: Long,
+        simSlot: Int,
+        subId: Int,
+        msgType: Int,
+        windowMs: Long,
+    ): Boolean {
+        return RuntimeRecordFacade(context).backfillSmsRouting(
+            sender = sender,
+            body = body,
+            date = date,
+            simSlot = simSlot,
+            subId = subId,
+            msgType = msgType,
+            windowMs = windowMs,
+        )
+    }
+
     override fun exportCodeRecordToFile(context: Context, smsMsg: XpSmsRecord): Boolean {
         return RuntimeCodeRecordFileStore.exportToFile(context, smsMsg.toRuntimeSmsMsg())
     }

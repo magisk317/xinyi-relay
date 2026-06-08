@@ -58,6 +58,8 @@ object RuntimeXpSmsDispatchBridge : XpSmsDispatchRuntimeBridge {
         body: String,
         date: Long,
         smsCode: String,
+        simSlot: Int,
+        subId: Int,
     ): XpSmsRecord {
         return SmsHookDispatchCoordinator.enrichObservedSms(
             phoneContext = phoneContext,
@@ -65,6 +67,8 @@ object RuntimeXpSmsDispatchBridge : XpSmsDispatchRuntimeBridge {
             body = body,
             date = date,
             smsCode = smsCode,
+            simSlot = simSlot,
+            subId = subId,
         ).toXpSmsRecord()
     }
 

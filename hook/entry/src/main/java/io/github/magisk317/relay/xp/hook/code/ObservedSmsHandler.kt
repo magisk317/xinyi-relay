@@ -7,6 +7,7 @@ import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.XpRecordFacade
 import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
+import io.github.magisk317.smscode.verification.ObservedInboxScanRecord
 import io.github.magisk317.smscode.verification.ObservedSmsHandler as SharedObservedSmsHandler
 import io.github.magisk317.smscode.verification.SmsInboxObserverDecision
 import io.github.magisk317.smscode.verification.SmsCodePostParseCoordinator as SharedSmsCodePostParseCoordinator
@@ -34,16 +35,18 @@ internal class ObservedSmsHandler(
                 windowMs = windowMs,
                 maxEntries = maxEntries,
             )
-        },
+    },
     private val roleStateLogger: (String) -> Unit = {},
     private val duplicateChecker: ((SmsCodePostParseCoordinator.Settings, String, String, Long) -> Boolean)? = null,
-    private val smsEnricher: (Context, String, String, Long, String) -> SmsMsg = { context, sender, body, date, code ->
+    private val smsEnricher: (Context, ObservedInboxScanRecord) -> SmsMsg = { context, record ->
         XpDispatchCoordinator.enrichObservedSms(
             phoneContext = context,
-            sender = sender,
-            body = body,
-            date = date,
-            smsCode = code,
+            sender = record.sender,
+            body = record.body,
+            date = record.date,
+            smsCode = record.code,
+            simSlot = record.simSlot,
+            subId = record.subId,
         )
     },
     private val dispatcher: (
@@ -92,12 +95,33 @@ internal class ObservedSmsHandler(
     )
 
     fun handle(record: ObservedInboxScanRecord): Outcome {
+        repairRouting(record)
         val outcome = delegate.handle(record)
         return Outcome(
             eventId = outcome.eventId,
             decision = outcome.decision,
             dispatched = outcome.dispatched,
         )
+    }
+
+    fun repairRouting(record: ObservedInboxScanRecord): Boolean {
+        if (record.simSlot < 0 && record.subId <= 0) {
+            return false
+        }
+        val runtimeRecordFacade = runtimeRecordFacadeProvider?.invoke() ?: XpRecordFacade(pluginContext)
+        val timestamp = if (record.date > 0) record.date else currentTimeMillis()
+        return runBlocking {
+            runCatching {
+                runtimeRecordFacade.backfillSmsRouting(
+                    sender = record.sender,
+                    body = record.body,
+                    date = timestamp,
+                    simSlot = record.simSlot,
+                    subId = record.subId,
+                    msgType = SmsMsg.MSG_TYPE_SMS,
+                )
+            }.getOrDefault(false)
+        }
     }
 
     private fun defaultDuplicateCheck(

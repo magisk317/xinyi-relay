@@ -84,7 +84,22 @@ interface XpRecordRuntimeBridge {
         isCodeSms: Boolean,
     ): Long?
 
+    suspend fun backfillSmsRouting(
+        context: Context,
+        sender: String?,
+        body: String?,
+        date: Long,
+        simSlot: Int,
+        subId: Int,
+        msgType: Int = XpSmsRecord.MSG_TYPE_SMS,
+        windowMs: Long = DEFAULT_ROUTING_BACKFILL_WINDOW_MS,
+    ): Boolean
+
     fun exportCodeRecordToFile(context: Context, smsMsg: XpSmsRecord): Boolean
+
+    companion object {
+        const val DEFAULT_ROUTING_BACKFILL_WINDOW_MS = 30 * 60 * 1000L
+    }
 }
 
 object NoopXpRecordRuntimeBridge : XpRecordRuntimeBridge {
@@ -168,6 +183,17 @@ object NoopXpRecordRuntimeBridge : XpRecordRuntimeBridge {
         smsMsg: XpSmsRecord,
         isCodeSms: Boolean,
     ): Long? = null
+
+    override suspend fun backfillSmsRouting(
+        context: Context,
+        sender: String?,
+        body: String?,
+        date: Long,
+        simSlot: Int,
+        subId: Int,
+        msgType: Int,
+        windowMs: Long,
+    ): Boolean = false
 
     override fun exportCodeRecordToFile(context: Context, smsMsg: XpSmsRecord): Boolean = false
 }
