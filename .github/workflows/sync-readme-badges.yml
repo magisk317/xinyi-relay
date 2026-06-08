@@ -6,6 +6,7 @@ on:
       - beta
     paths:
       - gradle/libs.versions.toml
+      - gradle/wrapper/gradle-wrapper.properties
       - scripts/sync_readme_badges.sh
       - .github/workflows/sync-readme-badges.yml
   workflow_dispatch:
