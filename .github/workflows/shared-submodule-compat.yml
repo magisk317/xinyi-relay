@@ -13,7 +13,10 @@ on:
       - "magisk-ui-kit/**"
       - "smscode-core/**"
       - "scripts/ci/resolve_package_toolchain.py"
+      - "scripts/regex_helpers.sh"
+      - "scripts/verify_*.sh"
       - "scripts/verify_shared_submodule_compat.sh"
+      - "scripts/with_workspace_gradle_lock.sh"
   push:
     branches:
       - beta
@@ -26,7 +29,10 @@ on:
       - "magisk-ui-kit/**"
       - "smscode-core/**"
       - "scripts/ci/resolve_package_toolchain.py"
+      - "scripts/regex_helpers.sh"
+      - "scripts/verify_*.sh"
       - "scripts/verify_shared_submodule_compat.sh"
+      - "scripts/with_workspace_gradle_lock.sh"
   workflow_dispatch:
 
 jobs:
