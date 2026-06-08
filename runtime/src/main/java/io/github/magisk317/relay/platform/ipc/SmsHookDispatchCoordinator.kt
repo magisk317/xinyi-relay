@@ -60,6 +60,8 @@ object SmsHookDispatchCoordinator {
         body: String,
         date: Long,
         smsCode: String,
+        simSlot: Int = -1,
+        subId: Int = 0,
         enricher: (Context, SmsMsg, String?) -> SmsMsg = SmsIngressAdapter::enrichSmsMsg,
     ): SmsMsg {
         return enricher(
@@ -68,6 +70,8 @@ object SmsHookDispatchCoordinator {
                 sender = sender,
                 body = body,
                 date = date,
+                simSlot = simSlot,
+                subId = subId,
                 msgType = SmsMsg.MSG_TYPE_SMS,
             ),
             smsCode,

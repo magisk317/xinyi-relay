@@ -54,6 +54,8 @@ object XpDispatchCoordinator {
         body: String,
         date: Long,
         smsCode: String,
+        simSlot: Int = -1,
+        subId: Int = 0,
     ): SmsMsg {
         return runtimeBridge.enrichObservedSms(
             phoneContext = phoneContext,
@@ -61,6 +63,8 @@ object XpDispatchCoordinator {
             body = body,
             date = date,
             smsCode = smsCode,
+            simSlot = simSlot,
+            subId = subId,
         ).let(SmsMsg::fromRecord)
     }
 

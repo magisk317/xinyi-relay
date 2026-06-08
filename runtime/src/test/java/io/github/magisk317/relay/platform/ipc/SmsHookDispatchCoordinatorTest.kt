@@ -113,6 +113,8 @@ class SmsHookDispatchCoordinatorTest {
             assertEquals("1068", smsMsg.sender)
             assertEquals("code 123456", smsMsg.body)
             assertEquals(100L, smsMsg.date)
+            assertEquals(-1, smsMsg.simSlot)
+            assertEquals(0, smsMsg.subId)
             assertEquals(SmsMsg.MSG_TYPE_SMS, smsMsg.msgType)
             assertEquals("123456", smsCode)
             smsMsg.copy(company = "Bank", packageName = "com.bank.app", smsCode = smsCode)

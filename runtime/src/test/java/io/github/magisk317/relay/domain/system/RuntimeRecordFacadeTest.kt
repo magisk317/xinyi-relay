@@ -8,6 +8,8 @@ import io.github.magisk317.relay.testing.runtimeSmsMsg
 import io.github.magisk317.relay.testing.smsMsgDatabaseFixture
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -138,5 +140,69 @@ class RuntimeRecordFacadeTest {
         assertTrue(facade.hasSmsDuplicateInRange("1068", "code 123456", 90L, 110L))
         assertTrue(facade.hasSmsCodeDuplicateByPackageInRange("123456", "com.bank.app", 90L, 110L))
         assertTrue(facade.hasSmsCodeDuplicateByCompanyInRange("123456", "Bank", 90L, 110L))
+    }
+
+    @Test
+    fun backfillSmsRouting_updatesExactMissingRoutingRecord() = runBlocking {
+        val context = relaxedContext()
+        val (database, smsMsgDao) = smsMsgDatabaseFixture()
+        val existing = runtimeSmsMsg(
+            id = 11L,
+            sender = "1068",
+            body = "code 123456",
+            date = 100L,
+        ).copy(simSlot = -1, subId = 0)
+        coEvery { smsMsgDao.getAll() } returns listOf(existing)
+        var updatedArg: SmsMsg? = null
+        coEvery { smsMsgDao.update(any()) } coAnswers {
+            updatedArg = firstArg<SmsMsg>()
+        }
+
+        val facade = RuntimeRecordFacade(context = context, db = database)
+        val updated = facade.backfillSmsRouting(
+            sender = "1068",
+            body = "code 123456",
+            date = 105L,
+            simSlot = 1,
+            subId = 12,
+            msgType = SmsMsg.MSG_TYPE_SMS,
+            windowMs = 30_000L,
+        )
+
+        assertTrue(updated)
+        val record = requireNotNull(updatedArg)
+        assertEquals(11L, record.id)
+        assertEquals(1, record.simSlot)
+        assertEquals(12, record.subId)
+    }
+
+    @Test
+    fun backfillSmsRouting_skipsAmbiguousTimeFallback() = runBlocking {
+        val context = relaxedContext()
+        val (database, smsMsgDao) = smsMsgDatabaseFixture()
+        coEvery { smsMsgDao.getAll() } returns listOf(
+            runtimeSmsMsg(id = 21L, sender = "10010", body = "code 111111", date = 100L)
+                .copy(simSlot = -1, subId = 0),
+            runtimeSmsMsg(id = 22L, sender = "10086", body = "code 222222", date = 101L)
+                .copy(simSlot = -1, subId = 0),
+        )
+        var updatedArg: SmsMsg? = null
+        coEvery { smsMsgDao.update(any()) } coAnswers {
+            updatedArg = firstArg<SmsMsg>()
+        }
+
+        val facade = RuntimeRecordFacade(context = context, db = database)
+        val updated = facade.backfillSmsRouting(
+            sender = "1068",
+            body = "code 123456",
+            date = 100L,
+            simSlot = 0,
+            subId = 1,
+            msgType = SmsMsg.MSG_TYPE_SMS,
+            windowMs = 30_000L,
+        )
+
+        assertFalse(updated)
+        assertNull(updatedArg)
     }
 }

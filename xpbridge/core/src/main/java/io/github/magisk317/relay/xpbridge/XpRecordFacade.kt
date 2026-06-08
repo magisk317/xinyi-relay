@@ -138,6 +138,25 @@ class XpRecordFacade(
         isCodeSms: Boolean,
     ): Long? = bridge.insertSmsRecord(context = appContext, smsMsg = smsMsg.toRecord(), isCodeSms = isCodeSms)
 
+    suspend fun backfillSmsRouting(
+        sender: String?,
+        body: String?,
+        date: Long,
+        simSlot: Int,
+        subId: Int,
+        msgType: Int = SmsMsg.MSG_TYPE_SMS,
+        windowMs: Long = XpRecordRuntimeBridge.DEFAULT_ROUTING_BACKFILL_WINDOW_MS,
+    ): Boolean = bridge.backfillSmsRouting(
+        context = appContext,
+        sender = sender,
+        body = body,
+        date = date,
+        simSlot = simSlot,
+        subId = subId,
+        msgType = msgType,
+        windowMs = windowMs,
+    )
+
     companion object {
         @Volatile
         private var runtimeBridge: XpRecordRuntimeBridge = NoopXpRecordRuntimeBridge

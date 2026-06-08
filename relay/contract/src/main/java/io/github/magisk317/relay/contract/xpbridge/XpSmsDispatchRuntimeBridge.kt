@@ -29,6 +29,8 @@ interface XpSmsDispatchRuntimeBridge {
         body: String,
         date: Long,
         smsCode: String,
+        simSlot: Int = -1,
+        subId: Int = 0,
     ): XpSmsRecord
 
     fun dispatchPreparedSms(
@@ -104,12 +106,16 @@ object NoopXpSmsDispatchRuntimeBridge : XpSmsDispatchRuntimeBridge {
         body: String,
         date: Long,
         smsCode: String,
+        simSlot: Int,
+        subId: Int,
     ): XpSmsRecord {
         return XpSmsRecord(
             sender = sender,
             body = body,
             date = date,
             smsCode = smsCode,
+            simSlot = simSlot,
+            subId = subId,
             msgType = XpSmsRecord.MSG_TYPE_SMS,
         )
     }
