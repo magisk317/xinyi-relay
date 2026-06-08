@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/scripts/regex_helpers.sh"
 APP_SRC="$ROOT_DIR/app/src/main/java/io/github/magisk317/relay"
 RUNTIME_SRC="$ROOT_DIR/runtime/src/main/java/io/github/magisk317/relay"
 MOBILE_UI_SRC="$ROOT_DIR/mobile/ui/src/main/java/io/github/magisk317/relay"
@@ -89,7 +90,7 @@ forbid_imports_in_dir() {
   while IFS= read -r file; do
     local pattern
     for pattern in "${patterns[@]}"; do
-      if rg -n "$pattern" "$file" >/dev/null; then
+      if regex_quiet "$pattern" "$file"; then
         violations+=("$(realpath --relative-to="$ROOT_DIR" "$file") imports forbidden lower-layer symbols")
         break
       fi

@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/scripts/regex_helpers.sh"
 SUBMODULE_DIR="$ROOT_DIR/smscode-core"
 SUBMODULE_SETTINGS="$SUBMODULE_DIR/settings.gradle.kts"
 SUBMODULE_BUILD="$SUBMODULE_DIR/build.gradle.kts"
@@ -13,7 +14,7 @@ require_pattern() {
   local file="$1"
   local pattern="$2"
   local message="$3"
-  if ! rg -q "$pattern" "$file"; then
+  if ! regex_quiet "$pattern" "$file"; then
     violations+=("$message")
   fi
 }
@@ -22,7 +23,7 @@ forbid_pattern() {
   local file="$1"
   local pattern="$2"
   local message="$3"
-  if rg -q "$pattern" "$file"; then
+  if regex_quiet "$pattern" "$file"; then
     violations+=("$message")
   fi
 }
