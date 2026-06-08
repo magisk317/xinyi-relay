@@ -130,8 +130,18 @@
 已落地的守护入口：
 
 ```bash
+./gradlew check
 ./gradlew verifyModuleBoundaries verifyStructureBoundaries verifyDependencyGovernance
+./gradlew verifyEmbeddedSubmodules
+SKIP_GOOGLE_SERVICES=true ALLOW_INCOMPATIBLE_DEBUG_SIGNING=true bash scripts/verify_shared_submodule_compat.sh
 ```
+
+根项目 `check` 已聚合 `verifyModuleBoundaries`、`verifyStructureBoundaries`、
+`verifyEmbeddedSubmodules` 和 `verifyDependencyGovernance`，常规检查会覆盖模块边界、结构边界、
+嵌入子模块和依赖治理。
+
+`verify_shared_submodule_compat.sh` 额外固定共享子模块兼容面：嵌入子模块结构、模块边界、
+`smscode-core` domain 单测、verification detekt、hook/runtime/xposed lint，以及 app/core 的常规检查。
 
 当前守护重点：
 
