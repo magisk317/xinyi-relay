@@ -16,7 +16,13 @@ fi
 bash scripts/with_workspace_gradle_lock.sh \
   --ignore-submodule-lockfiles \
   "${gradle_args[@]}" \
+  verifyEmbeddedSubmodules \
+  verifyModuleBoundaries \
   :smscode-core:domain:testDebugUnitTest \
+  :smscode-core:verification:detekt \
+  :smscode-core:hook:lintDebug \
+  :smscode-core:runtime:lintDebug \
+  :smscode-core:xposed:lintDebug \
   :magisk-ui-kit:compileDebugKotlin \
   :xpbridge:core:compileGithubDebugKotlin \
   :core:testGithubDebugUnitTest \

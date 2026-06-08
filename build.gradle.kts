@@ -138,3 +138,14 @@ tasks.register<Exec>("verifyDependencyGovernance") {
     workingDir = rootProject.projectDir
     commandLine("bash", "${rootProject.projectDir}/scripts/verify_dependency_governance.sh")
 }
+
+tasks.register("check") {
+    group = "verification"
+    description = "Run root project architecture and dependency governance checks."
+    dependsOn(
+        "verifyModuleBoundaries",
+        "verifyStructureBoundaries",
+        "verifyEmbeddedSubmodules",
+        "verifyDependencyGovernance",
+    )
+}
