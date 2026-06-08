@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.engine.event.RelayEvent
+import io.github.magisk317.smscode.runtime.common.sim.SmsRoutingIntentExtras
 
 data class ForwardBroadcastPayload(
     val sender: String? = null,
@@ -49,24 +50,10 @@ data class ForwardBroadcastPayload(
 
     fun withSimRoutingFrom(intent: Intent?): ForwardBroadcastPayload {
         if (intent == null) return this
+        val routing = SmsRoutingIntentExtras.readFrom(intent)
         return copy(
-            simSlot = ForwardBroadcastContract.readIntExtra(
-                intent,
-                "slot",
-                "simId",
-                "sim_id",
-                "simSlot",
-                ForwardBroadcastContract.EXTRA_SIM_SLOT,
-                "android.telephony.extra.SLOT_INDEX",
-            ),
-            subId = ForwardBroadcastContract.readIntExtra(
-                intent,
-                "subscription",
-                "subscription_id",
-                ForwardBroadcastContract.EXTRA_SUB_ID,
-                "android.telephony.extra.SUBSCRIPTION_INDEX",
-                "android.telephony.extra.SUBSCRIPTION_ID",
-            ),
+            simSlot = routing.simSlot,
+            subId = routing.subId,
         )
     }
 
@@ -103,6 +90,7 @@ data class ForwardBroadcastPayload(
 
     companion object {
         fun fromIntent(intent: Intent): ForwardBroadcastPayload {
+            val routing = SmsRoutingIntentExtras.readFrom(intent)
             return ForwardBroadcastPayload(
                 sender = intent.getStringExtra(ForwardBroadcastContract.EXTRA_SENDER),
                 body = intent.getStringExtra(ForwardBroadcastContract.EXTRA_BODY),
@@ -120,23 +108,8 @@ data class ForwardBroadcastPayload(
                     ForwardBroadcastContract.EXTRA_CALL_TYPE,
                 ) ?: 0,
                 callStage = intent.getStringExtra(ForwardBroadcastContract.EXTRA_CALL_STAGE).orEmpty(),
-                simSlot = ForwardBroadcastContract.readIntExtra(
-                    intent,
-                    ForwardBroadcastContract.EXTRA_SIM_SLOT,
-                    "slot",
-                    "simId",
-                    "sim_id",
-                    "simSlot",
-                    "android.telephony.extra.SLOT_INDEX",
-                ),
-                subId = ForwardBroadcastContract.readIntExtra(
-                    intent,
-                    ForwardBroadcastContract.EXTRA_SUB_ID,
-                    "subscription",
-                    "subscription_id",
-                    "android.telephony.extra.SUBSCRIPTION_INDEX",
-                    "android.telephony.extra.SUBSCRIPTION_ID",
-                ),
+                simSlot = routing.simSlot,
+                subId = routing.subId,
                 appIcon = intent.getStringExtra(ForwardBroadcastContract.EXTRA_APP_ICON).orEmpty(),
             )
         }

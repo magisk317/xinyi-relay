@@ -97,7 +97,7 @@ class ForwardBroadcastPayloadTest {
 
         val payload = ForwardBroadcastPayload(eventId = "sms_test").withSimRoutingFrom(source)
 
-        assertEquals(2, payload.simSlot)
+        assertEquals(1, payload.simSlot)
         assertEquals(9, payload.subId)
         assertNull(ForwardBroadcastPayload(eventId = "sms_test").withSimRoutingFrom(null).simSlot)
     }
