@@ -1,19 +1,14 @@
 package io.github.magisk317.relay.xp.hook.forward
 
 import android.content.Intent
+import io.github.magisk317.smscode.runtime.common.sim.SmsRoutingIntentExtras
+import io.github.magisk317.smscode.runtime.contract.sim.SmsRoutingMetadata
 import java.util.Collections
 import java.util.IdentityHashMap
 
-internal data class SmsForwardSimRouting(
-    val simSlot: Int? = null,
-    val subId: Int? = null,
-) {
-    fun hasValue(): Boolean = simSlot != null || subId != null
-}
+internal typealias SmsForwardSimRouting = SmsRoutingMetadata
 
 internal object SmsForwardSimRoutingResolver {
-    private const val EXTRA_SIM_SLOT = "sim_slot"
-    private const val EXTRA_SUB_ID = "sub_id"
     private const val MAX_TEXT_SNAPSHOT_LENGTH = 120
 
     private val slotTextRegex = Regex(
@@ -90,24 +85,7 @@ internal object SmsForwardSimRoutingResolver {
     )
 
     fun readFromIntent(intent: Intent): SmsForwardSimRouting {
-        val simSlot = readIntExtra(
-            intent,
-            EXTRA_SIM_SLOT,
-            "slot",
-            "simId",
-            "sim_id",
-            "simSlot",
-            "android.telephony.extra.SLOT_INDEX",
-        )?.takeIf { it >= 0 }
-        val subId = readIntExtra(
-            intent,
-            EXTRA_SUB_ID,
-            "subscription",
-            "subscription_id",
-            "android.telephony.extra.SUBSCRIPTION_INDEX",
-            "android.telephony.extra.SUBSCRIPTION_ID",
-        )?.takeIf { it > 0 }
-        return SmsForwardSimRouting(simSlot = simSlot, subId = subId)
+        return SmsRoutingIntentExtras.readFrom(intent)
     }
 
     fun ensureSimRoutingExtras(
@@ -119,8 +97,7 @@ internal object SmsForwardSimRoutingResolver {
         if (existing.hasValue()) return existing
 
         val resolved = resolve(handler = handler, args = args) ?: return null
-        resolved.simSlot?.let { intent.putExtra(EXTRA_SIM_SLOT, it) }
-        resolved.subId?.let { intent.putExtra(EXTRA_SUB_ID, it) }
+        SmsRoutingIntentExtras.writeTo(intent, resolved)
         return resolved
     }
 
@@ -300,17 +277,5 @@ internal object SmsForwardSimRoutingResolver {
             .replace('\n', ' ')
             .replace('\r', ' ')
             .take(MAX_TEXT_SNAPSHOT_LENGTH)
-    }
-
-    private fun readIntExtra(intent: Intent, vararg keys: String): Int? {
-        for (key in keys) {
-            if (!intent.hasExtra(key)) continue
-            val intValue = intent.getIntExtra(key, Int.MIN_VALUE)
-            if (intValue != Int.MIN_VALUE) return intValue
-            val longValue = intent.getLongExtra(key, Long.MIN_VALUE)
-            if (longValue != Long.MIN_VALUE) return longValue.toInt()
-            intent.getStringExtra(key)?.trim()?.toIntOrNull()?.let { return it }
-        }
-        return null
     }
 }

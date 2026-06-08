@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.platform.ipc
 
 import android.content.Intent
+import io.github.magisk317.smscode.runtime.common.sim.SmsRoutingIntentExtras
 import kotlin.math.abs
 
 object ForwardBroadcastContract {
@@ -17,8 +18,8 @@ object ForwardBroadcastContract {
     const val EXTRA_CALL_STAGE = "call_stage"
     const val EXTRA_CALL_TYPE = "call_type"
     const val EXTRA_IPC_TOKEN = "ipc_token"
-    const val EXTRA_SIM_SLOT = "sim_slot"
-    const val EXTRA_SUB_ID = "sub_id"
+    const val EXTRA_SIM_SLOT = SmsRoutingIntentExtras.EXTRA_SIM_SLOT
+    const val EXTRA_SUB_ID = SmsRoutingIntentExtras.EXTRA_SUB_ID
     const val EXTRA_APP_ICON = "app_icon"
 
     const val MSG_TYPE_SMS = "sms"
@@ -72,37 +73,11 @@ object ForwardBroadcastContract {
     }
 
     fun copySimRoutingExtras(source: Intent, target: Intent) {
-        val simSlot = readIntExtra(
-            source,
-            "slot",
-            "simId",
-            "sim_id",
-            "simSlot",
-            EXTRA_SIM_SLOT,
-            "android.telephony.extra.SLOT_INDEX",
-        )
-        val subId = readIntExtra(
-            source,
-            "subscription",
-            "subscription_id",
-            EXTRA_SUB_ID,
-            "android.telephony.extra.SUBSCRIPTION_INDEX",
-            "android.telephony.extra.SUBSCRIPTION_ID",
-        )
-        simSlot?.let { target.putExtra(EXTRA_SIM_SLOT, it) }
-        subId?.let { target.putExtra(EXTRA_SUB_ID, it) }
+        SmsRoutingIntentExtras.copyFrom(source, target)
     }
 
     fun readIntExtra(intent: Intent, vararg keys: String): Int? {
-        for (key in keys) {
-            if (!intent.hasExtra(key)) continue
-            val intValue = intent.getIntExtra(key, Int.MIN_VALUE)
-            if (intValue != Int.MIN_VALUE) return intValue
-            val longValue = intent.getLongExtra(key, Long.MIN_VALUE)
-            if (longValue != Long.MIN_VALUE) return longValue.toInt()
-            intent.getStringExtra(key)?.toIntOrNull()?.let { return it }
-        }
-        return null
+        return SmsRoutingIntentExtras.readIntExtra(intent, *keys)
     }
 
     fun buildEventId(prefix: String, seed: String): String {

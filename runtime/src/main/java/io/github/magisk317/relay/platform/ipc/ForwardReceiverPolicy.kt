@@ -3,6 +3,7 @@ package io.github.magisk317.relay.platform.ipc
 import android.os.Build
 import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.smscode.domain.utils.CodeRecordSimilarityUtils
+import io.github.magisk317.smscode.runtime.contract.sim.SmsRoutingMetadata
 
 object ForwardReceiverPolicy {
     const val API_LEVEL_34 = 34
@@ -70,16 +71,10 @@ object ForwardReceiverPolicy {
         subId: Int,
         slotIndexResolver: (Int) -> Int,
     ): Int {
-        if (subId > 0) {
-            val slotFromSubId = slotIndexResolver(subId)
-            if (slotFromSubId >= 0) return slotFromSubId
-        }
-        val slot = rawSlot ?: return -1
-        return when {
-            slot in 0..1 -> slot
-            slot == 2 -> 1
-            else -> -1
-        }
+        return SmsRoutingMetadata(
+            simSlot = rawSlot,
+            subId = subId,
+        ).normalized(slotIndexResolver).simSlot ?: SmsRoutingMetadata.UNKNOWN_SIM_SLOT
     }
 
     fun resolveRelayMessageType(
