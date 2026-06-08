@@ -1,8 +1,11 @@
 package io.github.magisk317.relay.ui.sender
 
+import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.BatteryManager
@@ -284,10 +287,19 @@ IP地址列表：{{IP_LIST}}
         val ipList: String = "",
     )
 
+    @SuppressLint("MissingPermission")
     private fun readNetworkSnapshot(context: Context): NetworkSnapshot {
         val netType = runCatching {
-            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
-            val capabilities = cm?.getNetworkCapabilities(cm.activeNetwork)
+            if (context.checkSelfPermission(Manifest.permission.ACCESS_NETWORK_STATE) != PackageManager.PERMISSION_GRANTED) {
+                return@runCatching ""
+            }
+            val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            val activeNetwork = connectivityManager?.activeNetwork
+            val capabilities = if (activeNetwork != null) {
+                connectivityManager.getNetworkCapabilities(activeNetwork)
+            } else {
+                null
+            }
             when {
                 capabilities == null -> ""
                 capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "WIFI"

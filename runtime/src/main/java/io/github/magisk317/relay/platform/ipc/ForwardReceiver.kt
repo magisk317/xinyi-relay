@@ -405,7 +405,7 @@ class ForwardReceiver : BroadcastReceiver() {
                 XLog.i("IPC verified and received message from: %s", normalizedSender ?: "")
                 val resolvedSubId = normalizedSubId ?: 0
                 val resolvedSimSlot = ForwardReceiverPolicy.resolveSimSlot(normalizedRawSlot, resolvedSubId) { id ->
-                    runCatching { android.telephony.SubscriptionManager.getSlotIndex(id) }.getOrDefault(-1)
+                    resolvePlatformSlotIndex(id)
                 }
                 val contactName = SourceMetadataResolver.resolveContactName(context, normalizedSender ?: "")
                 val phoneArea = SourceMetadataResolver.resolvePhoneArea(normalizedSender ?: "")
@@ -640,6 +640,13 @@ class ForwardReceiver : BroadcastReceiver() {
             smsCode = smsCode,
             company = company.ifBlank { payload.company.orEmpty() }.takeIf { it.isNotBlank() },
         )
+    }
+
+    private fun resolvePlatformSlotIndex(subId: Int): Int {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return -1
+        return runCatching {
+            android.telephony.SubscriptionManager.getSlotIndex(subId)
+        }.getOrDefault(-1)
     }
 
     private fun buildNmsNotificationContent(payload: ForwardBroadcastPayload): String {

@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.sender
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
@@ -49,6 +50,7 @@ internal object SmsSendBackend {
         }
     }
 
+    @SuppressLint("MissingPermission")
     private fun getSmsManager(context: Context, simSlot: Int): SmsManager {
         if (simSlot > 0) {
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {

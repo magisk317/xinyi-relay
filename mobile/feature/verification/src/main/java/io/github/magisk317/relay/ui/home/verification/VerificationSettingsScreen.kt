@@ -56,6 +56,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
+import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.common.utils.NotificationUtils
 import io.github.magisk317.relay.contract.constant.CodeNotificationOwner
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
@@ -77,6 +78,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
+import java.io.DataOutputStream
+import java.io.IOException
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Suppress("CyclomaticComplexMethod")
@@ -280,11 +283,14 @@ fun VerificationSettingsScreen(
             supportsAccessibilityAutoInput && isAutoInputAccessibilityServiceListed(context)
     }
 
-    suspend fun toggleAccessibilityServiceViaRoot(context: android.content.Context, enable: Boolean): Boolean {
-        return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+    suspend fun toggleAccessibilityServiceViaRoot(context: Context, enable: Boolean): Boolean {
+        return withContext(Dispatchers.IO) {
             try {
                 val component = ComponentName(context, AUTO_INPUT_ACCESSIBILITY_SERVICE_CLASS_NAME).flattenToString()
-                val currentServices = android.provider.Settings.Secure.getString(context.contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
+                val currentServices = Settings.Secure.getString(
+                    context.contentResolver,
+                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+                ) ?: ""
                 val newServices = if (enable) {
                     if (currentServices.contains(component)) return@withContext true
                     if (currentServices.isEmpty()) component else "$currentServices:$component"
@@ -294,7 +300,7 @@ fun VerificationSettingsScreen(
                 }
 
                 val process = Runtime.getRuntime().exec("su")
-                val os = java.io.DataOutputStream(process.outputStream)
+                val os = DataOutputStream(process.outputStream)
                 os.writeBytes("settings put secure enabled_accessibility_services $newServices\n")
                 if (enable) {
                     os.writeBytes("settings put secure accessibility_enabled 1\n")
@@ -302,7 +308,15 @@ fun VerificationSettingsScreen(
                 os.writeBytes("exit\n")
                 os.flush()
                 process.waitFor() == 0
-            } catch (e: Exception) {
+            } catch (error: SecurityException) {
+                XLog.w("Toggle accessibility service via root failed: %s", error.message ?: error.javaClass.simpleName)
+                false
+            } catch (error: IOException) {
+                XLog.w("Toggle accessibility service via root failed: %s", error.message ?: error.javaClass.simpleName)
+                false
+            } catch (error: InterruptedException) {
+                Thread.currentThread().interrupt()
+                XLog.w("Toggle accessibility service via root interrupted: %s", error.message ?: error.javaClass.simpleName)
                 false
             }
         }

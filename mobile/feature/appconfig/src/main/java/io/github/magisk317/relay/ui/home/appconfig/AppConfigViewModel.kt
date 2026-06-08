@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.ui.home.appconfig
 
+import android.annotation.SuppressLint
 import android.app.Application
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
@@ -179,8 +180,13 @@ class AppConfigViewModel(
         }
     }
 
+    @SuppressLint("MissingPermission")
     private fun refreshUsageStats() {
         try {
+            if (!hasUsageStatsPermission()) {
+                usageStatsMap.clear()
+                return
+            }
             val context = getApplication<Application>()
             val usageStatsManager = context.getSystemService(android.app.usage.UsageStatsManager::class.java)
             val endTime = System.currentTimeMillis()
