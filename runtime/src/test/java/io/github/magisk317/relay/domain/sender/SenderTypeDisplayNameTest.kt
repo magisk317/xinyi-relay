@@ -16,5 +16,6 @@ class SenderTypeDisplayNameTest {
         assertEquals("飞书应用", SenderType.displayName(SenderType.FEISHU_APP, ""))
         assertEquals("飞书应用", SenderType.displayName(SenderType.FEISHU_APP, "13"))
         assertEquals("飞书应用", SenderType.displayName(SenderType.FEISHU_APP, "通道13"))
+        assertEquals("Matrix", SenderType.displayName(SenderType.MATRIX, "19"))
     }
 }

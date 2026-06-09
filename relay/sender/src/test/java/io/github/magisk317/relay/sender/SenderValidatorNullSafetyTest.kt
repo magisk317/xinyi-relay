@@ -32,6 +32,7 @@ class SenderValidatorNullSafetyTest {
             SenderType.SOCKET to """{"address":null,"port":null,"method":null}""",
             SenderType.PUSHDEER to """{"pushkey":null}""",
             SenderType.YUNHU to """{"token":null,"recvId":null}""",
+            SenderType.MATRIX to """{"homeserver":null,"accessToken":null,"roomId":null,"messageType":null,"proxyType":null}""",
         )
 
         dirtyCases.forEach { (type, dirtyJson) ->

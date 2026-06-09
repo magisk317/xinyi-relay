@@ -56,6 +56,7 @@ internal fun SenderTypeDialog(
             SenderType.NTFY to getSenderTypeName(context, SenderType.NTFY),
             SenderType.BARK to getSenderTypeName(context, SenderType.BARK),
             SenderType.PUSHDEER to getSenderTypeName(context, SenderType.PUSHDEER),
+            SenderType.MATRIX to getSenderTypeName(context, SenderType.MATRIX),
             SenderType.YUNHU to getSenderTypeName(context, SenderType.YUNHU),
         ),
         senderTypeGroupLabel(context, "other") to listOf(
