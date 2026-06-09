@@ -42,13 +42,20 @@ fi
 
 echo "WARNING: desktop version mismatch (expected $VERSION, got pkg=$pkg_ver cargo=$cargo_ver tauri=$tauri_ver), auto-syncing..." >&2
 
-# package.json: "version": "x.y.z"
-sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" "$PACKAGE_JSON"
-
-# Cargo.toml: version = "x.y.z"  (under [package])
-sed -i "0,/^version = \"[^\"]*\"/s//version = \"$VERSION\"/" "$CARGO_TOML"
-
-# tauri.conf.json: "version": "x.y.z"
-sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" "$TAURI_CONF"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  # package.json: "version": "x.y.z"
+  sed -i '' -e "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" "$PACKAGE_JSON"
+  # Cargo.toml: version = "x.y.z"  (under [package])
+  sed -i '' -e "1,/^version = \"[^\"]*\"/s//version = \"$VERSION\"/" "$CARGO_TOML"
+  # tauri.conf.json: "version": "x.y.z"
+  sed -i '' -e "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" "$TAURI_CONF"
+else
+  # package.json: "version": "x.y.z"
+  sed -i -e "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" "$PACKAGE_JSON"
+  # Cargo.toml: version = "x.y.z"  (under [package])
+  sed -i -e "0,/^version = \"[^\"]*\"/s//version = \"$VERSION\"/" "$CARGO_TOML"
+  # tauri.conf.json: "version": "x.y.z"
+  sed -i -e "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" "$TAURI_CONF"
+fi
 
 echo "Desktop version synced to $VERSION" >&2
