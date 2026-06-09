@@ -8,6 +8,7 @@ import io.github.magisk317.relay.sender.config.EmailSetting
 import io.github.magisk317.relay.sender.config.FeishuAppSetting
 import io.github.magisk317.relay.sender.config.FeishuSetting
 import io.github.magisk317.relay.sender.config.GotifySetting
+import io.github.magisk317.relay.sender.config.MatrixSetting
 import io.github.magisk317.relay.sender.config.NtfySetting
 import io.github.magisk317.relay.sender.config.PushdeerSetting
 import io.github.magisk317.relay.sender.config.PushplusSetting
@@ -162,6 +163,15 @@ object SenderValidator {
                     when {
                         setting.token.isBlank() -> invalid("云湖机器人 Token 不能为空")
                         setting.recvId.isBlank() -> invalid("云湖接收者 ID 不能为空")
+                        else -> ok()
+                    }
+                }
+                SenderType.MATRIX -> {
+                    val setting = SenderSettingJson.decode(MatrixSetting.serializer(), safeSender.jsonSetting)
+                    when {
+                        setting.homeserver.isBlank() -> invalid("Matrix Homeserver 不能为空")
+                        setting.accessToken.isBlank() -> invalid("Matrix Access Token 不能为空")
+                        setting.roomId.isBlank() -> invalid("Matrix Room ID 不能为空")
                         else -> ok()
                     }
                 }

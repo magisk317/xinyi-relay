@@ -304,6 +304,24 @@ const SENDER_FIELD_SCHEMAS: Record<number, SenderFieldSchema[]> = {
     }),
     field('titleTemplate', 'text', '标题模板', 'Title template'),
   ],
+  19: [
+    field('homeserver', 'text', 'Homeserver', 'Homeserver'),
+    field('accessToken', 'text', 'Access Token', 'Access token'),
+    field('roomId', 'text', 'Room ID', 'Room ID'),
+    field('messageType', 'select', '消息类型', 'Message type', {
+      options: [
+        { value: 'text', label: { en: 'Text', 'zh-CN': '文本', 'zh-TW': '文字' } },
+        { value: 'markdown', label: { en: 'Markdown', 'zh-CN': 'Markdown', 'zh-TW': 'Markdown' } },
+      ],
+    }),
+    field('titleTemplate', 'text', '标题模板', 'Title template'),
+    field('proxyType', 'select', '代理类型', 'Proxy type', { options: PROXY_OPTIONS }),
+    field('proxyHost', 'text', '代理主机', 'Proxy host'),
+    field('proxyPort', 'text', '代理端口', 'Proxy port'),
+    field('proxyAuthenticator', 'boolean', '代理鉴权', 'Proxy auth'),
+    field('proxyUsername', 'text', '代理用户名', 'Proxy username'),
+    field('proxyPassword', 'text', '代理密码', 'Proxy password'),
+  ],
 }
 
 export function buildSenderDraftJson(type: number): string {

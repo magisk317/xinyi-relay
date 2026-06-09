@@ -20,6 +20,7 @@ object SenderType {
     const val NTFY = 16
     const val YUNHU = 17
     const val PUSHDEER = 18
+    const val MATRIX = 19
 
     fun defaultName(type: Int): String = when (type) {
         DINGTALK_GROUP_ROBOT -> "钉钉群机器人"
@@ -41,6 +42,7 @@ object SenderType {
         SOCKET -> "Socket"
         YUNHU -> "云湖"
         PUSHDEER -> "PushDeer"
+        MATRIX -> "Matrix"
         else -> "未知通道$type"
     }
 

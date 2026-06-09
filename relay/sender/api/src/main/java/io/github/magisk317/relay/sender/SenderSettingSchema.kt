@@ -259,6 +259,20 @@ object SenderSettingSchemas {
             field("contentType", aliases = arrayOf("r"), defaultValue = "text", options = arrayOf("text", "markdown")),
             field("titleTemplate", aliases = arrayOf("s")),
         ),
+        schema(
+            SenderType.MATRIX,
+            field("homeserver", requiredForEnable = true, aliases = arrayOf("o"), defaultValue = "https://matrix.org"),
+            field("accessToken", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
+            field("roomId", requiredForEnable = true, aliases = arrayOf("q")),
+            field("messageType", aliases = arrayOf("r"), defaultValue = "text", options = arrayOf("text", "markdown")),
+            field("titleTemplate", aliases = arrayOf("s")),
+            field("proxyType", SenderSettingFieldType.PROXY_TYPE, "t", defaultValue = "DIRECT", options = arrayOf("DIRECT", "HTTP", "SOCKS")),
+            field("proxyHost", aliases = arrayOf("u")),
+            field("proxyPort", aliases = arrayOf("v")),
+            field("proxyAuthenticator", SenderSettingFieldType.BOOLEAN, "w"),
+            field("proxyUsername", aliases = arrayOf("x")),
+            field("proxyPassword", SenderSettingFieldType.SECRET, "y"),
+        ),
     )
 
     val byType: Map<Int, SenderSettingSchema> = all.associateBy { it.senderType }
