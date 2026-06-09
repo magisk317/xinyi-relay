@@ -51,11 +51,11 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   sed -i '' -e "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" "$TAURI_CONF"
 else
   # package.json: "version": "x.y.z"
-  sed -i -e "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" "$PACKAGE_JSON"
+  sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" "$PACKAGE_JSON"
   # Cargo.toml: version = "x.y.z"  (under [package])
-  sed -i -e "0,/^version = \"[^\"]*\"/s//version = \"$VERSION\"/" "$CARGO_TOML"
+  sed -i "0,/^version = \"[^\"]*\"/s//version = \"$VERSION\"/" "$CARGO_TOML"
   # tauri.conf.json: "version": "x.y.z"
-  sed -i -e "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" "$TAURI_CONF"
+  sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" "$TAURI_CONF"
 fi
 
 echo "Desktop version synced to $VERSION" >&2

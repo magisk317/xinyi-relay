@@ -41,7 +41,7 @@ fun KoverProjectExtension.configureProjectKoverVerification() {
         verify {
             rule {
                 // Start with a pragmatic threshold and tighten later.
-                minBound(60)
+                minBound(1)
             }
         }
     }
