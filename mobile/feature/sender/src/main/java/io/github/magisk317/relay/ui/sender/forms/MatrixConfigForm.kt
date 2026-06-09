@@ -6,39 +6,29 @@ import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.sender.SenderSettingDraft
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 
-private val TelegramVisibleFields = listOf(
+private val MatrixVisibleFields = listOf(
     SchemaSenderFormFieldSpec(
-        name = "apiBase",
-        labelRes = R.string.sender_form_label_api_base,
+        name = "homeserver",
+        labelRes = R.string.sender_form_label_matrix_homeserver_required,
+        supportingTextRes = R.string.sender_form_label_matrix_homeserver_example,
     ),
     SchemaSenderFormFieldSpec(
-        name = "apiToken",
-        labelRes = R.string.sender_form_label_bot_api_token_required,
+        name = "accessToken",
+        labelRes = R.string.sender_form_label_matrix_access_token_required,
     ),
     SchemaSenderFormFieldSpec(
-        name = "chatId",
-        labelRes = R.string.sender_form_label_chat_id_required,
+        name = "roomId",
+        labelRes = R.string.sender_form_label_matrix_room_id_required,
     ),
     SchemaSenderFormFieldSpec(
-        name = "messageThreadId",
-        labelRes = R.string.sender_form_label_topic_id_optional,
-        supportingTextRes = R.string.sender_form_label_group_thread_id,
+        name = "messageType",
+        labelRes = R.string.sender_form_label_message_type,
+        optionLabelRes = MessageTypeOptionLabels,
     ),
     SchemaSenderFormFieldSpec(
-        name = "method",
-        labelRes = R.string.sender_form_label_method,
-        optionLabelRes = mapOf(
-            "GET" to R.string.sender_segment_get,
-            "POST" to R.string.sender_segment_post,
-        ),
-    ),
-    SchemaSenderFormFieldSpec(
-        name = "parseMode",
-        labelRes = R.string.sender_form_label_parse_mode,
-        optionLabelRes = mapOf(
-            "HTML" to R.string.sender_segment_html,
-            "MarkdownV2" to R.string.sender_segment_markdown_v2,
-        ),
+        name = "titleTemplate",
+        labelRes = R.string.sender_form_title_template_label,
+        placeholderRes = R.string.sender_form_title_template_placeholder,
     ),
     SchemaSenderFormFieldSpec(
         name = "proxyType",
@@ -67,18 +57,18 @@ private val TelegramVisibleFields = listOf(
 )
 
 @Composable
-fun TelegramConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewModel) {
+fun MatrixConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewModel) {
     SchemaSenderConfigForm(
         senderId = senderId,
-        senderType = SenderType.TELEGRAM,
-        channel = "Telegram",
-        fields = TelegramVisibleFields,
+        senderType = SenderType.MATRIX,
+        channel = "Matrix",
+        fields = MatrixVisibleFields,
         onBack = onBack,
         viewModel = viewModel,
-        normalizeDraft = ::telegramVisibleDraft,
+        normalizeDraft = ::matrixVisibleDraft,
     )
 }
 
-private fun telegramVisibleDraft(draft: SenderSettingDraft): SenderSettingDraft {
-    return draft.keepOnlyFields(TelegramVisibleFields.map { it.name })
+private fun matrixVisibleDraft(draft: SenderSettingDraft): SenderSettingDraft {
+    return draft.keepOnlyFields(MatrixVisibleFields.map { it.name })
 }

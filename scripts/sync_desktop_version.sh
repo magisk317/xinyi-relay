@@ -26,6 +26,28 @@ current_cargo_version() {
   sed -nE 's/^version[[:space:]]*=[[:space:]]*"([^"]+)"/\1/p' "$CARGO_TOML" | head -n1
 }
 
+replace_once() {
+  local file="$1"
+  local pattern="$2"
+  local replacement="$3"
+
+  python3 - "$file" "$pattern" "$replacement" <<'PY'
+import pathlib
+import re
+import sys
+
+path = pathlib.Path(sys.argv[1])
+pattern = sys.argv[2]
+replacement = sys.argv[3]
+text = path.read_text()
+next_text, count = re.subn(pattern, replacement, text, count=1, flags=re.MULTILINE)
+if count != 1:
+    print(f"ERROR: failed to update version in {path}", file=sys.stderr)
+    sys.exit(1)
+path.write_text(next_text)
+PY
+}
+
 VERSION="$(extract_toml_value "versionName" "$VERSION_FILE")"
 if [[ -z "$VERSION" ]]; then
   echo "ERROR: failed to parse versionName from $VERSION_FILE" >&2
@@ -43,12 +65,12 @@ fi
 echo "WARNING: desktop version mismatch (expected $VERSION, got pkg=$pkg_ver cargo=$cargo_ver tauri=$tauri_ver), auto-syncing..." >&2
 
 # package.json: "version": "x.y.z"
-sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" "$PACKAGE_JSON"
+replace_once "$PACKAGE_JSON" '"version"\s*:\s*"[^"]*"' "\"version\": \"$VERSION\""
 
 # Cargo.toml: version = "x.y.z"  (under [package])
-sed -i "0,/^version = \"[^\"]*\"/s//version = \"$VERSION\"/" "$CARGO_TOML"
+replace_once "$CARGO_TOML" '^version\s*=\s*"[^"]*"' "version = \"$VERSION\""
 
 # tauri.conf.json: "version": "x.y.z"
-sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" "$TAURI_CONF"
+replace_once "$TAURI_CONF" '"version"\s*:\s*"[^"]*"' "\"version\": \"$VERSION\""
 
 echo "Desktop version synced to $VERSION" >&2

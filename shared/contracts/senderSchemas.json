@@ -1543,5 +1543,120 @@
         "requiredForEnable": false
       }
     ]
+  },
+  {
+    "senderType": 19,
+    "fields": [
+      {
+        "name": "homeserver",
+        "type": "TEXT",
+        "aliases": [
+          "o"
+        ],
+        "requiredForEnable": true,
+        "defaultValue": "https://matrix.org"
+      },
+      {
+        "name": "accessToken",
+        "type": "SECRET",
+        "aliases": [
+          "p"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "roomId",
+        "type": "TEXT",
+        "aliases": [
+          "q"
+        ],
+        "requiredForEnable": true
+      },
+      {
+        "name": "messageType",
+        "type": "TEXT",
+        "aliases": [
+          "r"
+        ],
+        "requiredForEnable": false,
+        "defaultValue": "text",
+        "options": [
+          {
+            "value": "text"
+          },
+          {
+            "value": "markdown"
+          }
+        ]
+      },
+      {
+        "name": "titleTemplate",
+        "type": "TEXT",
+        "aliases": [
+          "s"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyType",
+        "type": "PROXY_TYPE",
+        "aliases": [
+          "t"
+        ],
+        "requiredForEnable": false,
+        "defaultValue": "DIRECT",
+        "options": [
+          {
+            "value": "DIRECT"
+          },
+          {
+            "value": "HTTP"
+          },
+          {
+            "value": "SOCKS"
+          }
+        ]
+      },
+      {
+        "name": "proxyHost",
+        "type": "TEXT",
+        "aliases": [
+          "u"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyPort",
+        "type": "TEXT",
+        "aliases": [
+          "v"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyAuthenticator",
+        "type": "BOOLEAN",
+        "aliases": [
+          "w"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyUsername",
+        "type": "TEXT",
+        "aliases": [
+          "x"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "proxyPassword",
+        "type": "SECRET",
+        "aliases": [
+          "y"
+        ],
+        "requiredForEnable": false
+      }
+    ]
   }
 ]

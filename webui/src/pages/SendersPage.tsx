@@ -27,7 +27,7 @@ import {
 import type { SnapshotSender } from '../types'
 import { useConfigSnapshotEditor } from '../useConfigSnapshotEditor'
 
-const SENDER_TYPE_OPTIONS = [3, 4, 5, 9, 13, 7, 16, 18, 11, 10, 0, 12, 1, 2, 6, 8, 14, 15]
+const SENDER_TYPE_OPTIONS = [3, 4, 5, 9, 13, 7, 16, 18, 19, 11, 10, 0, 12, 1, 2, 6, 8, 14, 15]
 
 export function SendersPage() {
   const { t, locale } = useI18n()
