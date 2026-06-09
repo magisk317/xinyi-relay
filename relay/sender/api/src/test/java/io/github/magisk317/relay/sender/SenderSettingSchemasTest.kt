@@ -34,6 +34,7 @@ class SenderSettingSchemasTest {
             SenderType.NTFY,
             SenderType.PUSHDEER,
             SenderType.YUNHU,
+            SenderType.MATRIX,
         )
 
         assertEquals(expectedTypes, SenderSettingSchemas.all.map { it.senderType })
@@ -115,6 +116,12 @@ class SenderSettingSchemasTest {
         assertFieldOptions(SenderType.YUNHU, "contentType", "text", "markdown")
         assertFieldDefault(SenderType.PUSHDEER, "type", "markdown")
         assertFieldOptions(SenderType.PUSHDEER, "type", "markdown", "text")
+        assertRequired(SenderType.MATRIX, "homeserver", "accessToken", "roomId")
+        assertFieldDefault(SenderType.MATRIX, "homeserver", "https://matrix.org")
+        assertFieldDefault(SenderType.MATRIX, "messageType", "text")
+        assertFieldDefault(SenderType.MATRIX, "proxyType", "DIRECT")
+        assertFieldOptions(SenderType.MATRIX, "messageType", "text", "markdown")
+        assertFieldOptions(SenderType.MATRIX, "proxyType", "DIRECT", "HTTP", "SOCKS")
     }
 
     @Test

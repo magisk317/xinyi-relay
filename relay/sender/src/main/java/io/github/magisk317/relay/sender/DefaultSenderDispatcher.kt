@@ -13,6 +13,7 @@ import io.github.magisk317.relay.sender.config.EmailSetting
 import io.github.magisk317.relay.sender.config.FeishuAppSetting
 import io.github.magisk317.relay.sender.config.FeishuSetting
 import io.github.magisk317.relay.sender.config.GotifySetting
+import io.github.magisk317.relay.sender.config.MatrixSetting
 import io.github.magisk317.relay.sender.config.NtfySetting
 import io.github.magisk317.relay.sender.config.PushdeerSetting
 import io.github.magisk317.relay.sender.config.PushplusSetting
@@ -128,6 +129,10 @@ class DefaultSenderDispatcher(private val context: Context) : SenderDispatcher {
                 )
                 SenderType.YUNHU -> YunhuUtils.sendMsg(
                     SenderSettingJson.decode(YunhuSetting.serializer(), safeSender.jsonSetting),
+                    msgInfo,
+                )
+                SenderType.MATRIX -> MatrixUtils.sendMsg(
+                    SenderSettingJson.decode(MatrixSetting.serializer(), safeSender.jsonSetting),
                     msgInfo,
                 )
                 else -> {

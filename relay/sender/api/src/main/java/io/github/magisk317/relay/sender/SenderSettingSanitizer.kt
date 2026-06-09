@@ -8,6 +8,7 @@ import io.github.magisk317.relay.sender.config.EmailSetting
 import io.github.magisk317.relay.sender.config.FeishuAppSetting
 import io.github.magisk317.relay.sender.config.FeishuSetting
 import io.github.magisk317.relay.sender.config.GotifySetting
+import io.github.magisk317.relay.sender.config.MatrixSetting
 import io.github.magisk317.relay.sender.config.NtfySetting
 import io.github.magisk317.relay.sender.config.PushdeerSetting
 import io.github.magisk317.relay.sender.config.PushplusSetting
@@ -169,6 +170,12 @@ object SenderSettingSanitizer {
                 canonicalJson,
                 YunhuSetting.serializer(),
                 ::sanitizeYunhuSetting,
+            )
+            SenderType.MATRIX -> sanitizeSettingJson(
+                parseJson,
+                canonicalJson,
+                MatrixSetting.serializer(),
+                ::sanitizeMatrixSetting,
             )
 
             else -> if (json.isBlank()) "" else json
@@ -468,6 +475,52 @@ object SenderSettingSanitizer {
             recvId = repaired.string("recvId"),
             recvType = repaired.enumString("recvType", defaults.recvType),
             contentType = repaired.enumString("contentType", defaults.contentType),
+        )
+    }
+
+    fun sanitizeMatrixSetting(raw: MatrixSetting?, rawJson: JsonObject? = null): MatrixSetting {
+        val defaults = MatrixSetting()
+        val setting = MatrixSetting(
+            homeserver = safeString(resolveValue(raw?.homeserver, rawJson, "homeserver")).ifBlank { defaults.homeserver },
+            accessToken = safeString(resolveValue(raw?.accessToken, rawJson, "accessToken")),
+            roomId = safeString(resolveValue(raw?.roomId, rawJson, "roomId")),
+            messageType = safeString(resolveValue(raw?.messageType, rawJson, "messageType")).ifBlank { defaults.messageType },
+            titleTemplate = safeString(resolveValue(raw?.titleTemplate, rawJson, "titleTemplate")),
+            proxyType = safeProxyType(resolveValue(raw?.proxyType, rawJson, "proxyType")),
+            proxyHost = safeString(resolveValue(raw?.proxyHost, rawJson, "proxyHost")),
+            proxyPort = safeString(resolveValue(raw?.proxyPort, rawJson, "proxyPort")),
+            proxyAuthenticator = safeBoolean(
+                resolveValue(raw?.proxyAuthenticator, rawJson, "proxyAuthenticator"),
+                defaults.proxyAuthenticator,
+            ),
+            proxyUsername = safeString(resolveValue(raw?.proxyUsername, rawJson, "proxyUsername")),
+            proxyPassword = safeString(resolveValue(raw?.proxyPassword, rawJson, "proxyPassword")),
+        )
+        val repaired = repairFields(
+            "homeserver" to setting.homeserver,
+            "accessToken" to setting.accessToken,
+            "roomId" to setting.roomId,
+            "messageType" to setting.messageType,
+            "titleTemplate" to setting.titleTemplate,
+            "proxyType" to setting.proxyType,
+            "proxyHost" to setting.proxyHost,
+            "proxyPort" to setting.proxyPort,
+            "proxyAuthenticator" to setting.proxyAuthenticator,
+            "proxyUsername" to setting.proxyUsername,
+            "proxyPassword" to setting.proxyPassword,
+        )
+        return setting.copy(
+            homeserver = repaired.string("homeserver").ifBlank { defaults.homeserver },
+            accessToken = repaired.string("accessToken"),
+            roomId = repaired.string("roomId"),
+            messageType = repaired.enumString("messageType", defaults.messageType),
+            titleTemplate = repaired.string("titleTemplate"),
+            proxyType = repaired.proxy("proxyType"),
+            proxyHost = repaired.string("proxyHost"),
+            proxyPort = repaired.string("proxyPort"),
+            proxyAuthenticator = repaired.boolean("proxyAuthenticator", defaults.proxyAuthenticator),
+            proxyUsername = repaired.string("proxyUsername"),
+            proxyPassword = repaired.string("proxyPassword"),
         )
     }
 
@@ -930,12 +983,12 @@ object SenderSettingSanitizer {
 
     private fun hasStrongValidator(fieldName: String): Boolean {
         return when (fieldName) {
-            "method", "msgtype", "msgType", "msgKey", "type", "contentType", "recvType", "parseMode", "proxyType", "receiveIdType",
+            "method", "msgtype", "msgType", "msgKey", "type", "contentType", "recvType", "messageType", "parseMode", "proxyType", "receiveIdType",
             "encryptionProtocol", "transformation", "level", "uriType", "priority",
-            "server", "webServer", "webhook", "webHook", "customizeAPI", "apiBase", "callbackUrl", "url", "website",
+            "server", "webServer", "webhook", "webHook", "customizeAPI", "apiBase", "callbackUrl", "url", "website", "homeserver",
             "authEmail", "fromEmail", "toEmail", "host", "port", "proxyPort", "simSlot", "qos",
             "ssl", "startTls", "atAll", "proxyAuthenticator", "retained", "onlyNoNetwork",
-            "apiToken", "chatId", "messageThreadId", "token", "secret", "sendKey",
+            "apiToken", "chatId", "messageThreadId", "token", "secret", "sendKey", "accessToken", "roomId",
             "appSecret", "appKey", "appId", "corpID", "agentID", "receiveId" -> true
             else -> false
         }
@@ -948,6 +1001,7 @@ object SenderSettingSanitizer {
             "type" -> isPushdeerType(value)
             "contentType" -> safeString(value).trim() in setOf("text", "markdown")
             "recvType" -> normalized(value) in setOf("user", "group")
+            "messageType" -> safeString(value).trim() in setOf("text", "markdown")
             "parseMode" -> normalized(value) in setOf("html", "markdownv2")
             "proxyType" -> safeString(value).trim().uppercase(Locale.ROOT) in setOf("DIRECT", "HTTP", "SOCKS") ||
                 value is Proxy.Type
@@ -957,7 +1011,7 @@ object SenderSettingSanitizer {
             "level" -> normalized(value) in setOf("active", "time-sensitive", "timesensitive", "passive", "critical")
             "uriType" -> normalized(value) in setOf("tcp", "ssl", "ws", "wss")
             "priority" -> safeString(value).trim().toIntOrNull() in 1..5
-            "server", "webServer", "webhook", "webHook", "customizeAPI", "apiBase", "callbackUrl", "url" -> isUrlLike(value)
+            "server", "webServer", "webhook", "webHook", "customizeAPI", "apiBase", "callbackUrl", "url", "homeserver" -> isUrlLike(value)
             "website" -> isUrlLike(value) || isHostLike(value)
             "authEmail", "fromEmail", "toEmail" -> isEmailLike(value)
             "host" -> isHostLike(value)
@@ -967,7 +1021,8 @@ object SenderSettingSanitizer {
             "apiToken" -> isTelegramBotToken(value)
             "chatId" -> isTelegramChatId(value)
             "messageThreadId" -> isTelegramThreadId(value)
-            "token", "sendKey", "appSecret", "appKey", "appId", "receiveId" -> isLikelyToken(value)
+            "roomId" -> isMatrixRoomId(value)
+            "token", "sendKey", "appSecret", "appKey", "appId", "receiveId", "accessToken" -> isLikelyToken(value)
             "secret" -> isLikelySecret(value)
             "corpID" -> safeString(value).trim().startsWith("ww", ignoreCase = true)
             "agentID" -> safeString(value).trim().toLongOrNull() != null
@@ -1009,6 +1064,12 @@ object SenderSettingSanitizer {
 
     private fun isPushdeerType(value: Any?): Boolean {
         return safeString(value).trim() in setOf("text", "markdown")
+    }
+
+    private fun isMatrixRoomId(value: Any?): Boolean {
+        val text = safeString(value).trim()
+        if (text.length < 3 || text.any { it.isWhitespace() }) return false
+        return text.startsWith("!") || text.startsWith("#")
     }
 
     private fun isUrlLike(value: Any?): Boolean {

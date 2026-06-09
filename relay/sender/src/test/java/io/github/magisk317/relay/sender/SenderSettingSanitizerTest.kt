@@ -13,6 +13,7 @@ import io.github.magisk317.relay.sender.config.EmailSetting
 import io.github.magisk317.relay.sender.config.FeishuAppSetting
 import io.github.magisk317.relay.sender.config.FeishuSetting
 import io.github.magisk317.relay.sender.config.GotifySetting
+import io.github.magisk317.relay.sender.config.MatrixSetting
 import io.github.magisk317.relay.sender.config.NtfySetting
 import io.github.magisk317.relay.sender.config.PushdeerSetting
 import io.github.magisk317.relay.sender.config.PushplusSetting
@@ -69,6 +70,7 @@ class SenderSettingSanitizerTest {
             SenderType.SOCKET to """{"method":null,"address":null,"port":null,"uriType":null,"outCharset":null}""",
             SenderType.PUSHDEER to """{"pushkey":null}""",
             SenderType.YUNHU to """{"token":null,"recvId":null,"recvType":null,"contentType":null}""",
+            SenderType.MATRIX to """{"homeserver":null,"accessToken":null,"roomId":null,"messageType":null,"proxyType":null}""",
         )
 
         dirtyCases.forEach { (type, dirtyJson) ->
@@ -127,6 +129,52 @@ class SenderSettingSanitizerTest {
         val setting = SenderSettingJson.decode<PushdeerSetting>(sanitized.jsonSetting)
 
         assertEquals("text", setting.type)
+    }
+
+    @Test
+    fun sanitizeSenderLenient_matrixInvalidMessageType_clampedToDefault() {
+        val sender = newSender(
+            SenderType.MATRIX,
+            """{"homeserver":"https://matrix.example.com","accessToken":"matrix-token","roomId":"!room:matrix.example.com","messageType":"m.image"}""",
+        )
+
+        val sanitized = SenderSettingSanitizer.sanitizeSenderLenient(sender)
+        val setting = SenderSettingJson.decode<MatrixSetting>(sanitized.jsonSetting)
+
+        assertEquals("text", setting.messageType)
+        assertEquals("!room:matrix.example.com", setting.roomId)
+    }
+
+    @Test
+    fun sanitizeSenderLenient_matrixValidMessageType_preserved() {
+        val sender = newSender(
+            SenderType.MATRIX,
+            obfuscatedJson(
+                "homeserver" to "https://matrix.example.com",
+                "accessToken" to "matrix-token",
+                "roomId" to "!room:matrix.example.com",
+                "messageType" to "markdown",
+                "titleTemplate" to "Relay",
+                "proxyType" to "SOCKS",
+                "proxyHost" to "127.0.0.1",
+                "proxyPort" to "7890",
+                "proxyAuthenticator" to true,
+                "proxyUsername" to "proxy-user",
+                "proxyPassword" to "proxy-pass",
+            ),
+        )
+
+        val sanitized = SenderSettingSanitizer.sanitizeSenderLenient(sender)
+        val setting = SenderSettingJson.decode<MatrixSetting>(sanitized.jsonSetting)
+
+        assertEquals("markdown", setting.messageType)
+        assertEquals("Relay", setting.titleTemplate)
+        assertEquals(java.net.Proxy.Type.SOCKS, setting.proxyType)
+        assertEquals("127.0.0.1", setting.proxyHost)
+        assertEquals("7890", setting.proxyPort)
+        assertEquals(true, setting.proxyAuthenticator)
+        assertEquals("proxy-user", setting.proxyUsername)
+        assertEquals("proxy-pass", setting.proxyPassword)
     }
 
     @Test

@@ -15,6 +15,7 @@ fun getSenderTypeName(context: Context, type: Int): String {
         SenderType.WEWORK_AGENT -> context.getString(R.string.sender_type_wework_agent)
         SenderType.SERVERCHAN -> context.getString(R.string.sender_type_serverchan)
         SenderType.TELEGRAM -> context.getString(R.string.sender_type_telegram)
+        SenderType.MATRIX -> context.getString(R.string.sender_type_matrix)
         SenderType.SMS -> if (BuildConfig.ENABLE_SMS_CHANNEL) {
             context.getString(R.string.sender_type_sms)
         } else {

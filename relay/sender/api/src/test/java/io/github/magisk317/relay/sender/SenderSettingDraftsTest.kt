@@ -8,6 +8,7 @@ import io.github.magisk317.relay.sender.config.EmailSetting
 import io.github.magisk317.relay.sender.config.FeishuAppSetting
 import io.github.magisk317.relay.sender.config.FeishuSetting
 import io.github.magisk317.relay.sender.config.GotifySetting
+import io.github.magisk317.relay.sender.config.MatrixSetting
 import io.github.magisk317.relay.sender.config.NtfySetting
 import io.github.magisk317.relay.sender.config.PushdeerSetting
 import io.github.magisk317.relay.sender.config.PushplusSetting
@@ -89,6 +90,12 @@ class SenderSettingDraftsTest {
         assertEquals("https://api2.pushdeer.com", pushdeer.string("server"))
         assertEquals("markdown", pushdeer.string("type"))
         assertEquals("""{"server":"https://api2.pushdeer.com","type":"markdown"}""", pushdeer.toJson())
+
+        val matrix = SenderSettingDrafts.emptyWithDefaults(SenderType.MATRIX)
+        assertEquals("https://matrix.org", matrix.string("homeserver"))
+        assertEquals("text", matrix.string("messageType"))
+        assertEquals("DIRECT", matrix.string("proxyType"))
+        assertEquals("""{"homeserver":"https://matrix.org","messageType":"text","proxyType":"DIRECT"}""", matrix.toJson())
     }
 
     @Test
@@ -192,6 +199,33 @@ class SenderSettingDraftsTest {
         assertEquals("PDU123", pushdeer.pushkey)
         assertEquals("markdown", pushdeer.type)
         assertEquals("Relay", pushdeer.titleTemplate)
+
+        val matrix = SenderSettingJson.decode<MatrixSetting>(
+            SenderSettingDrafts.empty(SenderType.MATRIX)
+                .withString("homeserver", "https://matrix.example.com")
+                .withString("accessToken", "matrix-token")
+                .withString("roomId", "!room:matrix.example.com")
+                .withString("messageType", "markdown")
+                .withString("titleTemplate", "Relay")
+                .withString("proxyType", "HTTP")
+                .withString("proxyHost", "127.0.0.1")
+                .withString("proxyPort", "7890")
+                .withBoolean("proxyAuthenticator", true)
+                .withString("proxyUsername", "user")
+                .withString("proxyPassword", "password")
+                .toJson(),
+        )
+        assertEquals("https://matrix.example.com", matrix.homeserver)
+        assertEquals("matrix-token", matrix.accessToken)
+        assertEquals("!room:matrix.example.com", matrix.roomId)
+        assertEquals("markdown", matrix.messageType)
+        assertEquals("Relay", matrix.titleTemplate)
+        assertEquals(Proxy.Type.HTTP, matrix.proxyType)
+        assertEquals("127.0.0.1", matrix.proxyHost)
+        assertEquals("7890", matrix.proxyPort)
+        assertEquals(true, matrix.proxyAuthenticator)
+        assertEquals("user", matrix.proxyUsername)
+        assertEquals("password", matrix.proxyPassword)
 
         val telegram = SenderSettingJson.decode<TelegramSetting>(
             SenderSettingDrafts.empty(SenderType.TELEGRAM)

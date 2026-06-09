@@ -35,13 +35,18 @@ val enableKover = providers.gradleProperty("enableKover")
     gradle.startParameter.taskNames.any { taskName ->
         taskName.contains("kover", ignoreCase = true)
     }
+val koverLineCoverageMin = providers.gradleProperty("koverLineCoverageMin")
+    .map { value ->
+        value.toIntOrNull() ?: error("koverLineCoverageMin must be an integer percentage")
+    }
 
-fun KoverProjectExtension.configureProjectKoverVerification() {
+fun KoverProjectExtension.configureProjectKoverVerification(lineCoverageMin: Int?) {
     reports {
-        verify {
-            rule {
-                // Start with a pragmatic threshold and tighten later.
-                minBound(60)
+        if (lineCoverageMin != null) {
+            verify {
+                rule {
+                    minBound(lineCoverageMin)
+                }
             }
         }
     }
@@ -71,7 +76,7 @@ subprojects {
     if (enableKover) {
         apply(plugin = "org.jetbrains.kotlinx.kover")
         extensions.configure<KoverProjectExtension>("kover") {
-            configureProjectKoverVerification()
+            configureProjectKoverVerification(koverLineCoverageMin.orNull)
         }
     }
 

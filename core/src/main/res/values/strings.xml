@@ -1116,6 +1116,10 @@
     <string name="sender_form_label_yunhu_recv_id_required">Recipient ID (Required)</string>
     <string name="sender_form_label_yunhu_recv_id_hint">User ID or group ID from the YunHu console</string>
     <string name="sender_form_label_yunhu_recv_type">Recipient type</string>
+    <string name="sender_form_label_matrix_homeserver_required">Homeserver (Required)</string>
+    <string name="sender_form_label_matrix_homeserver_example">e.g. https://matrix.org</string>
+    <string name="sender_form_label_matrix_access_token_required">Access Token (Required)</string>
+    <string name="sender_form_label_matrix_room_id_required">Room ID (Required)</string>
     <string name="sender_form_label_agent_id">AgentID</string>
     <string name="sender_form_label_app_key">AppKey</string>
     <string name="sender_form_label_app_secret">AppSecret</string>
@@ -1166,8 +1170,12 @@
     <string name="sender_form_label_group_thread_id">Group thread ID</string>
     <string name="sender_form_label_method">Method</string>
     <string name="sender_form_label_parse_mode">Parse mode</string>
+    <string name="sender_form_label_proxy_type">Proxy type</string>
     <string name="sender_form_label_proxy_host">Proxy host (e.g. 127.0.0.1)</string>
     <string name="sender_form_label_proxy_port">Proxy port (e.g. 7890)</string>
+    <string name="sender_form_label_proxy_authenticator">Proxy authentication</string>
+    <string name="sender_form_label_proxy_username">Proxy username</string>
+    <string name="sender_form_label_proxy_password">Proxy password</string>
     <string name="sender_form_label_url_scheme">URL Scheme</string>
     <string name="sender_form_label_full_webhook_url_required">Full webhook URL (Required)</string>
     <string name="sender_form_label_signature_secret_optional">Signature secret (Optional)</string>
@@ -1236,6 +1244,7 @@
     <string name="sender_type_url_scheme">URL Scheme</string>
     <string name="sender_type_socket">Socket</string>
     <string name="sender_type_pushdeer">PushDeer</string>
+    <string name="sender_type_matrix">Matrix</string>
     <string name="sender_type_yunhu">YunHu</string>
     <string name="sender_type_unknown">Unknown channel</string>
     <string name="overview_runtime_diagnostics_shown">Runtime diagnostics shown</string>
