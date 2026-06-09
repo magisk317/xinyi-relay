@@ -3,11 +3,11 @@ package io.github.magisk317.relay.xp.hook.code
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.widget.Toast
 import io.github.magisk317.relay.hookentry.R
 import io.github.magisk317.relay.xpbridge.XpClipboard
 import io.github.magisk317.smscode.verification.CodeNotificationActionHandler
 import io.github.magisk317.smscode.verification.CodeNotificationActionPayload
-import io.github.magisk317.smscode.xposed.utils.XLog
 
 /**
  * Receiver for copy code when notification clicked
@@ -21,14 +21,14 @@ class CopyCodeReceiver : BroadcastReceiver() {
             expectedAction = ACTION_COPY_CODE,
             copyCode = { smsCode ->
                 XpClipboard.copyToClipboard(context, smsCode)
-                logCopy(context, smsCode)
+                showToast(context, smsCode)
             },
         )
     }
 
-    private fun logCopy(context: Context, smsCode: String) {
+    private fun showToast(context: Context, smsCode: String) {
         val message = context.getString(R.string.prompt_sms_code_copied, smsCode)
-        XLog.i(message)
+        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
     }
 
     companion object {

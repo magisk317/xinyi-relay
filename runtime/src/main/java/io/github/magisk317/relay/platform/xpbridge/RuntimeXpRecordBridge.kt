@@ -92,6 +92,21 @@ object RuntimeXpRecordBridge : XpRecordRuntimeBridge {
         )
     }
 
+    override suspend fun querySmsRecordsByCodeInRange(
+        context: Context,
+        smsCode: String?,
+        dateFrom: Long,
+        dateTo: Long,
+        msgType: Int,
+    ): List<XpSmsRecord> {
+        return RuntimeRecordFacade(context).querySmsRecordsByCodeInRange(
+            smsCode = smsCode,
+            dateFrom = dateFrom,
+            dateTo = dateTo,
+            msgType = msgType,
+        ).map(::toXpSmsRecord)
+    }
+
     override suspend fun persistSmsForwardResult(
         context: Context,
         smsMsg: XpSmsRecord,
@@ -155,6 +170,31 @@ object RuntimeXpRecordBridge : XpRecordRuntimeBridge {
 
     override fun exportCodeRecordToFile(context: Context, smsMsg: XpSmsRecord): Boolean {
         return RuntimeCodeRecordFileStore.exportToFile(context, smsMsg.toRuntimeSmsMsg())
+    }
+
+    private fun toXpSmsRecord(smsMsg: SmsMsg): XpSmsRecord {
+        return XpSmsRecord(
+            id = smsMsg.id,
+            sender = smsMsg.sender,
+            body = smsMsg.body,
+            date = smsMsg.date,
+            processedTime = smsMsg.processedTime,
+            company = smsMsg.company,
+            smsCode = smsMsg.smsCode,
+            packageName = smsMsg.packageName,
+            notifyChannelId = smsMsg.notifyChannelId,
+            simSlot = smsMsg.simSlot,
+            subId = smsMsg.subId,
+            contactName = smsMsg.contactName,
+            phoneArea = smsMsg.phoneArea,
+            sessionKey = smsMsg.sessionKey,
+            forwardStatus = smsMsg.forwardStatus,
+            forwardTarget = smsMsg.forwardTarget,
+            forwardMessage = smsMsg.forwardMessage,
+            forwardTime = smsMsg.forwardTime,
+            msgType = smsMsg.msgType,
+            callType = smsMsg.callType,
+        )
     }
 
     private fun XpSmsRecord.toRuntimeSmsMsg(): SmsMsg {

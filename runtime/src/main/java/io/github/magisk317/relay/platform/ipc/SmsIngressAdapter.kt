@@ -5,6 +5,7 @@ import android.content.Intent
 import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.android.sms.SmsCodeUtils
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
+import io.github.magisk317.smscode.domain.utils.SmsCodeParsedMetadataResolver
 
 object SmsIngressAdapter {
     data class Result(
@@ -71,26 +72,14 @@ object SmsIngressAdapter {
         smsCode: String?,
     ): Pair<String?, String?> {
         if (smsCode.isNullOrBlank()) return "" to null
-        val candidates = SmsCodeUtils.parseCompanyCandidates(body)
-            .map { normalizeCompanyLabel(it) }
-            .filter { it.isNotBlank() }
-        var company = normalizeCompanyLabel(SmsCodeUtils.parseCompany(body))
-        var resolvedPackage: String? = null
-        for (candidate in candidates) {
-            val pkg = SmsCodeUtils.findPackageNameByLabel(context, candidate)
-            if (!pkg.isNullOrBlank()) {
-                company = candidate
-                resolvedPackage = pkg
-                break
-            }
-        }
-        if (resolvedPackage.isNullOrBlank()) {
-            resolvedPackage = SmsCodeUtils.findPackageNameByLabel(context, company)
-        }
-        return company to resolvedPackage
-    }
-
-    private fun normalizeCompanyLabel(value: String): String {
-        return value.trim().trim('【', '】', '[', ']')
+        val metadata = SmsCodeParsedMetadataResolver.resolve(
+            body = body,
+            parseCompanyCandidates = SmsCodeUtils::parseCompanyCandidates,
+            parseCompany = SmsCodeUtils::parseCompany,
+            findPackageNameByLabel = { label ->
+                SmsCodeUtils.findPackageNameByLabel(context, label)
+            },
+        )
+        return metadata.company to metadata.packageName
     }
 }
