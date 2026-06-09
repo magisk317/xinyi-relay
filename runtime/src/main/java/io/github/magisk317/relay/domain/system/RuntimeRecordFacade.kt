@@ -103,6 +103,15 @@ class RuntimeRecordFacade(
         db.smsMsgDao().getByCodeAndCompanyInRange(smsCode, company, msgType, dateFrom, dateTo) != null
     }
 
+    suspend fun querySmsRecordsByCodeInRange(
+        smsCode: String?,
+        dateFrom: Long,
+        dateTo: Long,
+        msgType: Int = SmsMsg.MSG_TYPE_SMS,
+    ): List<SmsMsg> = withContext(Dispatchers.IO) {
+        db.smsMsgDao().getByCodeInRange(smsCode, msgType, dateFrom, dateTo)
+    }
+
     suspend fun persistSmsForwardResult(
         smsMsg: SmsMsg,
         success: Boolean,

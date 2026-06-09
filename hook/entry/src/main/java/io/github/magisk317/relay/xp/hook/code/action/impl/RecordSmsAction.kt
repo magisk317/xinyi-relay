@@ -7,6 +7,7 @@ import io.github.magisk317.relay.xpbridge.XpCodeRecordExporter
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
+import io.github.magisk317.smscode.domain.utils.CodeRecordSimilarityUtils
 import io.github.magisk317.smscode.verification.RecordSmsDedupHelper
 import io.github.magisk317.smscode.verification.RecordSmsActionHelper
 import io.github.magisk317.smscode.verification.RecordSmsInsertResultHelper
@@ -74,6 +75,29 @@ class RecordSmsAction(
                             dateFrom = from,
                             dateTo = to,
                             msgType = SmsMsg.MSG_TYPE_SMS,
+                        )
+                    }.getOrDefault(false)
+                }
+            },
+            hasCodeDuplicateInWindow = { code, from, to ->
+                runBlocking {
+                    runCatching {
+                        val candidates = runtimeRecordFacade.querySmsRecordsByCodeInRange(code, from, to)
+                        RecordSmsDedupHelper.hasCrossSourceCodeDuplicate(
+                            incoming = smsMsg,
+                            candidates = candidates,
+                            scorer = { existing, incoming ->
+                                CodeRecordSimilarityUtils.crossSourceMatchScore(
+                                    existingCode = existing.smsCode,
+                                    existingBody = existing.body,
+                                    existingCompany = existing.company,
+                                    existingSender = existing.sender,
+                                    incomingCode = incoming.smsCode,
+                                    incomingBody = incoming.body,
+                                    incomingCompany = incoming.company,
+                                    incomingSender = incoming.sender,
+                                )
+                            }
                         )
                     }.getOrDefault(false)
                 }

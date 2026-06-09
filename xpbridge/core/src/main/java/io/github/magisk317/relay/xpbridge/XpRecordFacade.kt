@@ -105,6 +105,19 @@ class XpRecordFacade(
         msgType = msgType,
     )
 
+    suspend fun querySmsRecordsByCodeInRange(
+        smsCode: String?,
+        dateFrom: Long,
+        dateTo: Long,
+        msgType: Int = SmsMsg.MSG_TYPE_SMS,
+    ): List<SmsMsg> = bridge.querySmsRecordsByCodeInRange(
+        context = appContext,
+        smsCode = smsCode,
+        dateFrom = dateFrom,
+        dateTo = dateTo,
+        msgType = msgType,
+    ).map(SmsMsg::fromRecord)
+
     suspend fun persistSmsForwardResult(
         smsMsg: SmsMsg,
         success: Boolean,

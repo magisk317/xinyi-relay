@@ -8,8 +8,8 @@ import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xp.hook.code.action.impl.SmsParseAction
 import io.github.magisk317.smscode.verification.CodeWorker as SharedCodeWorker
+import io.github.magisk317.smscode.verification.SmsParseActionRunner
 import io.github.magisk317.smscode.xposed.utils.XLog
-import java.util.concurrent.TimeUnit
 
 class CodeWorker(
     private val mPluginContext: Context,
@@ -56,34 +56,17 @@ class CodeWorker(
         smsParseAction.setSmsIntent(smsIntent)
         smsParseAction.setDeduplicateEnabled(deduplicateEnabled)
 
-        // Submit to executor but wait with a strict timeout to avoid hanging the hook thread.
-        val future = executor.submit(java.util.concurrent.Callable {
-            smsParseAction.action()
-        })
-        val parseBundle = try {
-            future.get(PARSE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-        } catch (e: Exception) {
-            XLog.w("SmsParseAction timed out or failed: %s", e.message ?: e.javaClass.simpleName)
-            future.cancel(true)
-            null
-        } ?: return null
-
-        if (parseBundle.getBoolean(SmsParseAction.SMS_DUPLICATED, false)) {
-            return SharedCodeWorker.ParseOutcome(duplicated = true)
-        }
-        val smsMsg = BundleCompat.getParcelable(parseBundle, SmsParseAction.SMS_MSG, SmsMsg::class.java)
-            ?: return null
-        return SharedCodeWorker.ParseOutcome(
-            smsMsg = smsMsg,
-            duplicated = false,
+        return SmsParseActionRunner.runWithTimeout(
+            executor = executor,
+            runAction = smsParseAction::action,
+            duplicatedReader = { parseBundle -> parseBundle.getBoolean(SmsParseAction.SMS_DUPLICATED, false) },
+            messageReader = { parseBundle ->
+                BundleCompat.getParcelable(parseBundle, SmsParseAction.SMS_MSG, SmsMsg::class.java)
+            },
         )
     }
 
     private fun buildParseResult(blockSms: Boolean): ParseResult {
         return ParseResult().apply { isBlockSms = blockSms }
-    }
-
-    companion object {
-        private const val PARSE_TIMEOUT_MS = 2000L
     }
 }

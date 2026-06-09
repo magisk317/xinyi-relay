@@ -61,6 +61,14 @@ interface XpRecordRuntimeBridge {
         msgType: Int = XpSmsRecord.MSG_TYPE_SMS,
     ): Boolean
 
+    suspend fun querySmsRecordsByCodeInRange(
+        context: Context,
+        smsCode: String?,
+        dateFrom: Long,
+        dateTo: Long,
+        msgType: Int = XpSmsRecord.MSG_TYPE_SMS,
+    ): List<XpSmsRecord>
+
     suspend fun persistSmsForwardResult(
         context: Context,
         smsMsg: XpSmsRecord,
@@ -160,6 +168,14 @@ object NoopXpRecordRuntimeBridge : XpRecordRuntimeBridge {
         dateTo: Long,
         msgType: Int,
     ): Boolean = false
+
+    override suspend fun querySmsRecordsByCodeInRange(
+        context: Context,
+        smsCode: String?,
+        dateFrom: Long,
+        dateTo: Long,
+        msgType: Int,
+    ): List<XpSmsRecord> = emptyList()
 
     override suspend fun persistSmsForwardResult(
         context: Context,

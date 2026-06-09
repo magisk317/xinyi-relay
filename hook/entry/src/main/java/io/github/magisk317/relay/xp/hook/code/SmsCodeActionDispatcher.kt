@@ -15,7 +15,6 @@ import io.github.magisk317.smscode.verification.SmsCodeActionScheduler
 import io.github.magisk317.smscode.verification.SmsCodeActionDispatcher as SharedSmsCodeActionDispatcher
 import io.github.magisk317.smscode.verification.SmsCodePostParseCoordinator
 import java.util.concurrent.ScheduledExecutorService
-import java.util.concurrent.TimeUnit
 
 internal object SmsCodeActionDispatcher {
     fun dispatchParsedSmsActions(
@@ -35,12 +34,10 @@ internal object SmsCodeActionDispatcher {
         ) -> Unit = { handler, plugin, phone, message, uiPlan ->
             dispatchUiActions(
                 uiHandler = handler,
-                executor = executor,
                 pluginContext = plugin,
                 phoneContext = phone,
                 smsMsg = message,
                 uiPlan = uiPlan,
-                autoInputDelayMs = plan.autoInputDelayMs,
             )
         },
         autoInputScheduler: (
@@ -117,12 +114,10 @@ internal object SmsCodeActionDispatcher {
 
     private fun dispatchUiActions(
         uiHandler: Handler,
-        executor: ScheduledExecutorService,
         pluginContext: Context,
         phoneContext: Context,
         smsMsg: SmsMsg,
         uiPlan: SmsCodePostParseCoordinator.UiPlan,
-        autoInputDelayMs: Long?,
     ) {
         uiHandler.post(
             CopyToClipboardAction(
@@ -140,20 +135,7 @@ internal object SmsCodeActionDispatcher {
             smsMsg = smsMsg,
             enabled = true,
         )
-        val toastDelayMs = resolveToastDelayMs(autoInputDelayMs)
-        if (toastDelayMs <= 0L) {
-            uiHandler.post(toastAction)
-        } else {
-            executor.schedule(
-                { uiHandler.post(toastAction) },
-                toastDelayMs,
-                TimeUnit.MILLISECONDS,
-            )
-        }
-    }
-
-    internal fun resolveToastDelayMs(autoInputDelayMs: Long?): Long {
-        return SmsCodeActionScheduler.resolveToastDelayAfterAutoInput(autoInputDelayMs)
+        uiHandler.post(toastAction)
     }
 
     fun runAutoInputNow(
