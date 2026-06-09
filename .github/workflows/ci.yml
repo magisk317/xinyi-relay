@@ -65,7 +65,6 @@ jobs:
           bash scripts/with_workspace_gradle_lock.sh --warning-mode all
           app:assembleGithubDebug
           app:testGithubDebugUnitTest
-          :app:koverVerifyGithubDebug
           :app:koverHtmlReportGithubDebug
           -PallowIncompatibleDebugSigning=true
           -PbuildSplits

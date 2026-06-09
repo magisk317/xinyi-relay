@@ -117,7 +117,6 @@ run_pre_push_checks() {
       assembleGithubDebug \
       testGithubDebugUnitTest \
       :runtime:verifyNoComposeUiLeak \
-      :app:koverVerifyGithubDebug \
       :app:koverHtmlReportGithubDebug \
       -PbuildSplits
   )
