@@ -238,6 +238,7 @@ const zhCnMessages: Messages = {
   'senders.type.gotify': 'Gotify',
   'senders.type.ntfy': 'ntfy',
   'senders.type.pushdeer': 'PushDeer',
+  'senders.type.matrix': 'Matrix',
   'senders.type.dingtalkInner': '钉钉内部机器人',
   'senders.type.feishuApp': '飞书应用',
   'senders.type.urlScheme': 'URL Scheme',
@@ -628,6 +629,7 @@ const enMessages: Messages = {
   'senders.type.gotify': 'Gotify',
   'senders.type.ntfy': 'ntfy',
   'senders.type.pushdeer': 'PushDeer',
+  'senders.type.matrix': 'Matrix',
   'senders.type.dingtalkInner': 'DingTalk Internal Bot',
   'senders.type.feishuApp': 'Feishu App',
   'senders.type.urlScheme': 'URL Scheme',
@@ -933,7 +935,8 @@ export function translateSenderType(
     15: 'senders.type.socket',
     16: 'senders.type.ntfy',
     18: 'senders.type.pushdeer',
-    17: 'senders.type.yunhu'
+    17: 'senders.type.yunhu',
+    19: 'senders.type.matrix'
   }
   const key = map[type]
   return key ? t(key) : `Type ${type}`
