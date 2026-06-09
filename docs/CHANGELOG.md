@@ -5,6 +5,8 @@
 ---
 
 ## [Unreleased]
+- `[ci/release]` 移动端发布工作流对齐为 `.github/workflows/release.yml` / `Release`；本仓库 Release 统一读取当前版本 `CHANGELOG` 块并发布移动端 APK/AAB，桌面端继续由 `desktop-release.yml` 向本仓库 Release 补传桌面资产。
+- `[ci/release]` Xposed-Modules-Repo 同步保留下载徽章并复用同一版本 `CHANGELOG` 块，但只上传移动端 APK。
 
 ---
 

@@ -5,7 +5,7 @@ on:
     types: [published]
   workflow_run:
     types: [completed]
-    workflows: [CI]
+    workflows: [CI, Release]
   workflow_dispatch:
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
           fetch-depth: 0
 
       - name: Download artifacts
-        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'beta'
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'CI' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'beta'
         uses: actions/download-artifact@v8
         with:
           run-id: ${{ github.event.workflow_run.id }}
@@ -36,6 +36,7 @@ jobs:
           TG_THREAD_ID: ${{ secrets.TG_THREAD_ID }}
           TG_CI_THREAD_ID: ${{ secrets.TG_CI_THREAD_ID }}
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
           WF_RUN_ID: ${{ github.event.workflow_run.id }}
           WF_RUN_URL: ${{ github.event.workflow_run.html_url }}
           WF_RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
@@ -44,6 +45,7 @@ jobs:
           WF_RUN_REPO: ${{ github.repository }}
           WF_RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
           CI_COMMIT_TITLE: ${{ github.event.workflow_run.display_title }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
@@ -93,8 +95,8 @@ jobs:
                 link="https://github.com/${WF_RUN_REPO}/releases"
               fi
               local msg
-              msg=$(printf '📦 %s (%sMB) exceeds Telegram upload limit.\n%s\n🔗 Download: %s' \
-                "$name" "$((size / 1024 / 1024))" "$PROJECT_TAG" "$link")
+              msg=$(printf '📦 %s (%sMB) exceeds Telegram upload limit.\n🔗 Download: %s' \
+                "$name" "$((size / 1024 / 1024))" "$link")
               send_message "$thread" "$msg"
               return 0
             fi
@@ -117,39 +119,59 @@ jobs:
             curl "${curl_args[@]}"
           }
 
-          # CI workflow run notification
           if [ -n "${WF_RUN_ID:-}" ]; then
-            # Only send for beta branch success
-            if [ "${WF_RUN_BRANCH:-}" != "beta" ]; then
-              exit 0
-            fi
             if [ "${WF_RUN_CONCLUSION:-}" != "success" ]; then
               exit 0
             fi
-            CI_MSG=$(printf '✅ XinyiRelay：%s\n%s\n📋 %s\n🔗 Run: %s' \
-              "${WF_RUN_NAME:-CI}" "$PROJECT_TAG" "${CI_COMMIT_TITLE:-}" "${WF_RUN_URL:-}")
-            CI_THREAD=""
-            if [ -n "${TG_CI_THREAD_ID:-}" ]; then
-              CI_THREAD="$TG_CI_THREAD_ID"
-            fi
-            send_message "$CI_THREAD" "$CI_MSG"
 
-            if [ -d "artifacts" ]; then
-              mapfile -d '' ci_apks < <(
-                find artifacts -type f -name '*arm64-v8a*.apk' -print0 | sort -z
-              )
-              if [ "${#ci_apks[@]}" -eq 0 ]; then
-                echo "No arm64-v8a APK artifacts found."
-              else
-                for apk in "${ci_apks[@]}"; do
-                  apk_caption=$(printf '📦 %s\n%s' "$(basename "$apk")" "$PROJECT_TAG")
-                  send_document "$apk" "$CI_THREAD" "$apk_caption"
-                done
+            if [ "${WF_RUN_NAME:-}" = "Release" ]; then
+              if [[ "${WF_RUN_BRANCH:-}" != v* && "${WF_RUN_BRANCH:-}" != mobile-v* ]]; then
+                exit 0
               fi
+
+              RELEASE_TAG="${WF_RUN_BRANCH}"
+              if ! ASSETS_JSON="$(gh release view "$RELEASE_TAG" --repo "$WF_RUN_REPO" --json assets --jq '.assets')"; then
+                echo "Release $RELEASE_TAG not found, skip Telegram release notification."
+                exit 0
+              fi
+            elif [ "${WF_RUN_NAME:-}" = "CI" ]; then
+              # Only send for beta branch success
+              if [ "${WF_RUN_BRANCH:-}" != "beta" ]; then
+                exit 0
+              fi
+
+              if [ -n "${WF_RUN_SHA:-}" ] && git tag --points-at "$WF_RUN_SHA" 2>/dev/null | grep -q .; then
+                echo "Commit $WF_RUN_SHA has tags, skipping CI notification (Release will notify)."
+                exit 0
+              fi
+
+              CI_MSG=$(printf '✅ XinyiRelay：%s\n%s\n📋 %s\n🔗 Run: %s' \
+                "${WF_RUN_NAME:-CI}" "$PROJECT_TAG" "${CI_COMMIT_TITLE:-}" "${WF_RUN_URL:-}")
+              CI_THREAD=""
+              if [ -n "${TG_CI_THREAD_ID:-}" ]; then
+                CI_THREAD="$TG_CI_THREAD_ID"
+              fi
+              send_message "$CI_THREAD" "$CI_MSG"
+
+              if [ -d "artifacts" ]; then
+                mapfile -d '' ci_apks < <(
+                  find artifacts -type f -name '*arm64-v8a*.apk' -print0 | sort -z
+                )
+                if [ "${#ci_apks[@]}" -eq 0 ]; then
+                  echo "No arm64-v8a APK artifacts found."
+                else
+                  for apk in "${ci_apks[@]}"; do
+                    apk_caption=$(printf '📦 %s' "$(basename "$apk")")
+                    send_document "$apk" "$CI_THREAD" "$apk_caption"
+                  done
+                fi
+              else
+                echo "No downloaded artifacts directory found."
+              fi
+              exit 0
             else
-              echo "No downloaded artifacts directory found."
+              exit 0
             fi
-            exit 0
           fi
 
           if [ -z "${RELEASE_TAG:-}" ]; then
@@ -166,12 +188,22 @@ jobs:
             fi
           fi
 
+          if [[ "${EVENT_NAME:-}" == "release" && ( "$RELEASE_KIND" == "full" || "$RELEASE_KIND" == "mobile" ) ]]; then
+            echo "Full/mobile release notification is handled by Release workflow_run; skip release event."
+            exit 0
+          fi
+
           if [[ "$RELEASE_KIND" == "full" || "$RELEASE_KIND" == "mobile" ]]; then
-            WHATSNEW_FILE="distribution/whatsnew/whatsnew-zh-CN"
-            if [ -f "$WHATSNEW_FILE" ]; then
-              WHATSNEW_CONTENT="$(cat "$WHATSNEW_FILE")"
+            RELEASE_NOTES_FILE="release-notes.md"
+            if awk -v version="$RELEASE_VERSION" '
+              $0 == "---" && found { exit }
+              found { print; next }
+              index($0, "## [" version "]") == 1 { found = 1; print; next }
+              END { if (!found) exit 1 }
+            ' docs/CHANGELOG.md > "$RELEASE_NOTES_FILE"; then
+              WHATSNEW_CONTENT="$(cat "$RELEASE_NOTES_FILE")"
             else
-              WHATSNEW_CONTENT="Release notes file not found: $WHATSNEW_FILE"
+              WHATSNEW_CONTENT="Release notes not found in docs/CHANGELOG.md for $RELEASE_VERSION"
             fi
           elif [[ "$RELEASE_KIND" == "desktop" ]]; then
             WHATSNEW_CONTENT="Desktop release ${RELEASE_VERSION} is published. See GitHub Release assets for platform bundles."
@@ -193,11 +225,11 @@ jobs:
             mkdir -p downloads
             echo "$ASSETS_JSON" | jq -c '.[]' | while read -r asset; do
               name=$(echo "$asset" | jq -r '.name')
-              url=$(echo "$asset" | jq -r '.browser_download_url')
+              url=$(echo "$asset" | jq -r '.browser_download_url // .url')
               if [[ "$name" == *arm64-v8a*.apk ]]; then
                 echo "Downloading $name..."
                 curl --fail-with-body -L -sS -o "downloads/$name" "$url"
-                asset_caption=$(printf '📦 %s\n%s' "$name" "$PROJECT_TAG")
+                asset_caption=$(printf '📦 %s' "$name")
                 send_document "downloads/$name" "$RELEASE_THREAD" "$asset_caption"
               fi
             done

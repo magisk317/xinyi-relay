@@ -3,7 +3,7 @@ name: Release VersionCode Recovery
 on:
   workflow_run:
     workflows:
-      - Build APK/AAB
+      - Release
     types:
       - completed
 

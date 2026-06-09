@@ -1,4 +1,4 @@
-name: Build APK/AAB
+name: Release
 
 on:
   push:
@@ -265,7 +265,40 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Create Draft Release
+      - name: Extract Release Notes from CHANGELOG
+        id: release_notes
+        if: startsWith(github.ref, 'refs/tags/') && (steps.release_meta.outputs.release_kind == 'full' || steps.release_meta.outputs.release_kind == 'mobile')
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_name="${{ steps.release_meta.outputs.release_version }}"
+          notes_file="release-notes.md"
+          changelog_file="release-changelog.md"
+          cat > "$notes_file" <<'EOF'
+          <div align="center">
+            <a href="https://play.google.com/store/apps/details?id=io.github.magisk317.xinyi.relay">
+              <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="80"/>
+            </a>
+            <a href="https://github.com/magisk317/xinyi-relay/releases/tag/${{ steps.release_meta.outputs.release_tag }}">
+              <img src="https://raw.githubusercontent.com/machiav3lli/oandbackupx/master/badge_github.png" alt="Get it on GitHub" height="80"/>
+            </a>
+          </div>
+          EOF
+          printf '\n' >> "$notes_file"
+          awk -v version="$release_name" '
+            $0 == "---" && found { exit }
+            found { print; next }
+            index($0, "## [" version "]") == 1 { found = 1; print; next }
+            END { if (!found) exit 1 }
+          ' docs/CHANGELOG.md > "$changelog_file"
+          cat "$changelog_file" >> "$notes_file"
+          if [[ ! -s "$notes_file" ]]; then
+            echo "ERROR: empty release notes for $release_name" >&2
+            exit 1
+          fi
+          echo "notes_file=$notes_file" >> "$GITHUB_OUTPUT"
+
+      - name: Publish Release
         if: startsWith(github.ref, 'refs/tags/') && env.HAS_RELEASE_KEYSTORE == 'true' && (steps.release_meta.outputs.release_kind == 'full' || steps.release_meta.outputs.release_kind == 'mobile')
         shell: bash
         run: |
@@ -273,17 +306,7 @@ jobs:
 
           tag_name="${{ steps.release_meta.outputs.release_tag }}"
           release_name="${{ steps.release_meta.outputs.release_title }}"
-          release_notes=$(cat <<'EOF'
-            <div align="center">
-              <a href="https://play.google.com/store/apps/details?id=io.github.magisk317.xinyi.relay">
-                <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="80"/>
-              </a>
-              <a href="https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}">
-                <img src="https://raw.githubusercontent.com/machiav3lli/oandbackupx/master/badge_github.png" alt="Get it on GitHub" height="80"/>
-              </a>
-            </div>
-          EOF
-          )
+          notes_file="${{ steps.release_notes.outputs.notes_file }}"
 
           mapfile -d '' release_assets < <(
             find artifacts/apks artifacts/bundle -type f \( -name '*.apk' -o -name '*.aab' \) -print0 | sort -z
@@ -296,14 +319,15 @@ jobs:
 
           if gh release view "$tag_name" >/dev/null 2>&1; then
             gh release upload "$tag_name" "${release_assets[@]}" --clobber
-            gh release edit "$tag_name" --title "$release_name"
+            gh release edit "$tag_name" \
+              --title "$release_name" \
+              --draft=false \
+              --notes-file "$notes_file"
           else
             gh release create "$tag_name" "${release_assets[@]}" \
-              --draft \
               --title "$release_name" \
               --verify-tag \
-              --generate-notes \
-              --notes "$release_notes"
+              --notes-file "$notes_file"
           fi
         env:
           GH_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
@@ -413,7 +437,7 @@ jobs:
     name: Publish to Xposed-Modules-Repo
     needs: [release]
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
+    if: startsWith(github.ref, 'refs/tags/')
     env:
       HAS_MODULES_REPO_TOKEN: ${{ secrets.XPOSED_MODULES_REPO_TOKEN != '' }}
       HAS_RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE != '' }}
@@ -428,7 +452,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: apks-github
-          path: artifacts/apks-modules
+          path: artifacts/apks
 
       - name: Parse release tag
         id: release_meta
@@ -438,37 +462,74 @@ jobs:
           {
             echo "release_kind=$release_kind"
             echo "release_tag=$release_tag"
+            echo "release_version=$release_version"
             echo "release_title<<EOF"
             echo "$release_title"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Create Draft Release in Xposed-Modules-Repo
-        if: env.HAS_MODULES_REPO_TOKEN == 'true' && env.HAS_RELEASE_KEYSTORE == 'true' && (steps.release_meta.outputs.release_kind == 'full' || steps.release_meta.outputs.release_kind == 'mobile')
+      - name: Extract Release Notes from CHANGELOG
+        id: release_notes
+        shell: bash
         run: |
-          mapfile -d '' apk_files < <(find artifacts/apks-modules -type f -name '*.apk' -print0 | sort -z)
-          if [[ ${#apk_files[@]} -eq 0 ]]; then
-            echo "ERROR: no APK files found under artifacts/apks-modules" >&2
-            find artifacts/apks-modules -maxdepth 6 -type f | sort >&2 || true
+          set -euo pipefail
+          release_name="${{ steps.release_meta.outputs.release_version }}"
+          notes_file="release-notes.md"
+          changelog_file="release-changelog.md"
+          cat > "$notes_file" <<'EOF'
+          <div align="center">
+            <a href="https://play.google.com/store/apps/details?id=io.github.magisk317.xinyi.relay">
+              <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="80"/>
+            </a>
+            <a href="https://github.com/magisk317/xinyi-relay/releases/tag/${{ steps.release_meta.outputs.release_tag }}">
+              <img src="https://raw.githubusercontent.com/machiav3lli/oandbackupx/master/badge_github.png" alt="Get it on GitHub" height="80"/>
+            </a>
+          </div>
+          EOF
+          printf '\n' >> "$notes_file"
+          awk -v version="$release_name" '
+            $0 == "---" && found { exit }
+            found { print; next }
+            index($0, "## [" version "]") == 1 { found = 1; print; next }
+            END { if (!found) exit 1 }
+          ' docs/CHANGELOG.md > "$changelog_file"
+          cat "$changelog_file" >> "$notes_file"
+          if [[ ! -s "$notes_file" ]]; then
+            echo "ERROR: empty release notes for $release_name" >&2
             exit 1
           fi
-          
-          VERSION_CODE=$(grep 'versionCode = ' gradle/libs.versions.toml | cut -d'"' -f2)
-          VERSION_NAME=$(grep 'versionName = ' gradle/libs.versions.toml | cut -d'"' -f2)
-          MODULES_TAG="${VERSION_CODE}-${VERSION_NAME}"
+          echo "notes_file=$notes_file" >> "$GITHUB_OUTPUT"
 
-          gh release create "${MODULES_TAG}" \
-            "${apk_files[@]}" \
-            --repo "${{ env.MODULES_REPO }}" \
-            --title "${{ steps.release_meta.outputs.release_title }}" \
-            --notes "<div align=\"center\">
-            <a href=\"https://play.google.com/store/apps/details?id=io.github.magisk317.xinyi.relay\">
-              <img src=\"https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png\" alt=\"Get it on Google Play\" height=\"80\"/>
-            </a>
-            <a href=\"https://github.com/${{ github.repository }}/releases/tag/${{ steps.release_meta.outputs.release_tag }}\">
-              <img src=\"https://raw.githubusercontent.com/machiav3lli/oandbackupx/master/badge_github.png\" alt=\"Get it on GitHub\" height=\"80\"/>
-            </a>
-            </div>" \
-            --draft
+      - name: Publish Release in Xposed-Modules-Repo
+        if: env.HAS_MODULES_REPO_TOKEN == 'true' && env.HAS_RELEASE_KEYSTORE == 'true' && (steps.release_meta.outputs.release_kind == 'full' || steps.release_meta.outputs.release_kind == 'mobile')
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag_name="${{ steps.release_meta.outputs.release_version }}"
+          release_name="${{ steps.release_meta.outputs.release_title }}"
+          notes_file="${{ steps.release_notes.outputs.notes_file }}"
+
+          mapfile -d '' apk_files < <(find artifacts/apks -type f -name '*.apk' -print0 | sort -z)
+          if [[ ${#apk_files[@]} -eq 0 ]]; then
+            echo "ERROR: no APK files found under artifacts/apks" >&2
+            find artifacts/apks -maxdepth 6 -type f | sort >&2 || true
+            exit 1
+          fi
+          if gh release view "$tag_name" --repo "${{ env.MODULES_REPO }}" >/dev/null 2>&1; then
+            gh release upload "$tag_name" "${apk_files[@]}" \
+              --repo "${{ env.MODULES_REPO }}" \
+              --clobber
+            gh release edit "$tag_name" \
+              --repo "${{ env.MODULES_REPO }}" \
+              --title "$release_name" \
+              --draft=false \
+              --notes-file "$notes_file"
+          else
+            gh release create "$tag_name" \
+              "${apk_files[@]}" \
+              --repo "${{ env.MODULES_REPO }}" \
+              --title "$release_name" \
+              --notes-file "$notes_file"
+          fi
         env:
           GH_TOKEN: ${{ secrets.XPOSED_MODULES_REPO_TOKEN }}
