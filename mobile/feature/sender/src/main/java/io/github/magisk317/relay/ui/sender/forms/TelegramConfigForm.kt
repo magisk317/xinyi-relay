@@ -41,12 +41,28 @@ private val TelegramVisibleFields = listOf(
         ),
     ),
     SchemaSenderFormFieldSpec(
+        name = "proxyType",
+        labelRes = R.string.sender_form_label_proxy_type,
+    ),
+    SchemaSenderFormFieldSpec(
         name = "proxyHost",
         labelRes = R.string.sender_form_label_proxy_host,
     ),
     SchemaSenderFormFieldSpec(
         name = "proxyPort",
         labelRes = R.string.sender_form_label_proxy_port,
+    ),
+    SchemaSenderFormFieldSpec(
+        name = "proxyAuthenticator",
+        labelRes = R.string.sender_form_label_proxy_authenticator,
+    ),
+    SchemaSenderFormFieldSpec(
+        name = "proxyUsername",
+        labelRes = R.string.sender_form_label_proxy_username,
+    ),
+    SchemaSenderFormFieldSpec(
+        name = "proxyPassword",
+        labelRes = R.string.sender_form_label_proxy_password,
     ),
 )
 
@@ -64,7 +80,5 @@ fun TelegramConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderView
 }
 
 private fun telegramVisibleDraft(draft: SenderSettingDraft): SenderSettingDraft {
-    return draft
-        .withString("proxyType", "DIRECT")
-        .keepOnlyFields(TelegramVisibleFields.map { it.name } + "proxyType")
+    return draft.keepOnlyFields(TelegramVisibleFields.map { it.name })
 }
