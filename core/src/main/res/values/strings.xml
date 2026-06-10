@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">信驿 Relay</string>
+    <string name="accessibility_service_merged_title">XinyiRelay-KeepAlive&amp;AutoInput</string>
     <string name="xposed_description">Forward SMS/app notifications/calls and auto-fill verification codes</string>
 
     <!-- general -->
@@ -1120,6 +1121,7 @@
     <string name="sender_form_label_matrix_homeserver_example">e.g. https://matrix.org</string>
     <string name="sender_form_label_matrix_access_token_required">Access Token (Required)</string>
     <string name="sender_form_label_matrix_room_id_required">Room ID (Required)</string>
+    <string name="sender_form_label_matrix_room_id_placeholder">e.g. !xxx:matrix.org</string>
     <string name="sender_form_label_agent_id">AgentID</string>
     <string name="sender_form_label_app_key">AppKey</string>
     <string name="sender_form_label_app_secret">AppSecret</string>
@@ -1245,6 +1247,14 @@
     <string name="sender_type_socket">Socket</string>
     <string name="sender_type_pushdeer">PushDeer</string>
     <string name="sender_type_matrix">Matrix</string>
+    <string name="matrix_e2ee_banner_title">HTTPS Encrypted Transport</string>
+    <string name="matrix_e2ee_banner_message">Messages are protected by HTTPS during transport but not end-to-end encrypted. It is recommended to use a Matrix room without E2EE enabled. If you need end-to-end encryption, download the E2EE variant.</string>
+    <string name="matrix_e2ee_feature_title">Matrix End-to-End Encryption</string>
+    <string name="matrix_e2ee_status_enabled">E2EE Enabled</string>
+    <string name="matrix_e2ee_status_enabled_desc">Messages to encrypted rooms are protected by end-to-end encryption.</string>
+    <string name="matrix_e2ee_install_button">Install E2EE Module</string>
+    <string name="matrix_e2ee_downloading">Downloading E2EE module… %d%%</string>
+    <string name="matrix_e2ee_install_failed">Installation failed: %s</string>
     <string name="sender_type_yunhu">YunHu</string>
     <string name="sender_type_unknown">Unknown channel</string>
     <string name="overview_runtime_diagnostics_shown">Runtime diagnostics shown</string>

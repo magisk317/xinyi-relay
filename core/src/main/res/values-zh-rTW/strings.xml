@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">信驿 Relay</string>
+    <string name="accessibility_service_merged_title">信驿Relay-无障碍保活</string>
     <string name="xposed_description">轉發簡訊/應用通知/來電，並支援驗證碼自動填寫</string>
 
     <!-- general -->
@@ -1119,6 +1120,7 @@
     <string name="sender_form_label_matrix_homeserver_example">例如 https://matrix.org</string>
     <string name="sender_form_label_matrix_access_token_required">Access Token（必填）</string>
     <string name="sender_form_label_matrix_room_id_required">Room ID（必填）</string>
+    <string name="sender_form_label_matrix_room_id_placeholder">例如：!xxx:matrix.org</string>
     <string name="sender_form_label_agent_id">AgentID</string>
     <string name="sender_form_label_app_key">AppKey</string>
     <string name="sender_form_label_app_secret">AppSecret</string>
@@ -1244,6 +1246,9 @@
     <string name="sender_type_socket">Socket</string>
     <string name="sender_type_pushdeer">PushDeer</string>
     <string name="sender_type_matrix">Matrix</string>
+    <string name="matrix_e2ee_banner_title">HTTPS 加密傳輸</string>
+    <string name="matrix_e2ee_banner_message">訊息透過 HTTPS 加密傳輸，但未端對端加密。建議使用未開啟端對端加密的 Matrix 房間。如需端對端加密，請下載 E2EE 版本。</string>
+    <string name="matrix_e2ee_feature_title">Matrix 端對端加密</string>
     <string name="sender_type_yunhu">雲湖</string>
     <string name="sender_type_unknown">未知通道</string>
     <string name="overview_runtime_diagnostics_shown">已顯示執行時診斷</string>
