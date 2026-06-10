@@ -63,5 +63,33 @@ include(
     ":smscode-core:runtime",
     ":smscode-core:verification",
     ":magisk-ui-kit",
-    ":feature:matrix-e2ee",
+    ":features:matrix-e2ee",
 )
+
+// Explicitly remap moved smscode-core physical paths
+project(":smscode-core:xposed").projectDir = file("smscode/core/xposed")
+project(":smscode-core:hook").projectDir = file("smscode/core/hook")
+project(":smscode-core:rule").projectDir = file("smscode/core/rule")
+project(":smscode-core:domain").projectDir = file("smscode/core/domain")
+project(":smscode-core:contract").projectDir = file("smscode/core/contract")
+project(":smscode-core:runtime").projectDir = file("smscode/core/runtime")
+project(":smscode-core:verification").projectDir = file("smscode/core/verification")
+project(":smscode-core").projectDir = file("smscode/core")
+
+// Explicitly remap moved android libraries physical paths to 'modules/'
+project(":core").projectDir = file("modules/core")
+project(":hook:entry").projectDir = file("modules/hook/entry")
+project(":relay:android").projectDir = file("modules/relay/android")
+project(":relay:sender:api").projectDir = file("modules/relay/sender/api")
+project(":relay:sender").projectDir = file("modules/relay/sender")
+project(":relay:contract").projectDir = file("modules/relay/contract")
+project(":relay:net").projectDir = file("modules/relay/net")
+project(":relay:engine").projectDir = file("modules/relay/engine")
+project(":relay:engine:api").projectDir = file("modules/relay/engine/api")
+project(":runtime").projectDir = file("modules/runtime")
+project(":xpbridge:core").projectDir = file("modules/xpbridge/core")
+
+// Map intermediate projects so Gradle knows their directories
+project(":hook").projectDir = file("modules/hook")
+project(":relay").projectDir = file("modules/relay")
+project(":xpbridge").projectDir = file("modules/xpbridge")

@@ -21,14 +21,14 @@ val skipGoogleServices = findProperty("skipGoogleServices")
     ?: false
 val generatedSmsCodeRulesAssetsDir = layout.buildDirectory.dir("generated/smscodeRulesAssets")
 val syncSmsCodeRulesAssets = tasks.register<Sync>("syncSmsCodeRulesAssets") {
-    val rulesRoot = rootProject.layout.projectDirectory.dir("smscode-rules")
+    val rulesRoot = rootProject.layout.projectDirectory.dir("smscode/rules")
     from(rulesRoot.dir("_meta")) {
         into("meta")
     }
     from(rulesRoot.dir("rules")) {
         into("rules")
     }
-    into(generatedSmsCodeRulesAssetsDir.map { it.dir("smscode-rules") })
+    into(generatedSmsCodeRulesAssetsDir.map { it.dir("smscode/rules") })
 }
 
 android {
@@ -42,7 +42,7 @@ android {
         it.contains("Play", ignoreCase = true) || it.contains("bundle", ignoreCase = true)
     }
     if (isPlayBuild) {
-        dynamicFeatures += ":feature:matrix-e2ee"
+        dynamicFeatures += ":features:matrix-e2ee"
     }
 
     androidResources {
@@ -130,7 +130,7 @@ dependencies {
 
     add("playImplementation", platform(libs.firebase.bom))
     add("playImplementation", libs.firebase.analytics)
-    add("playImplementation", project(":feature:matrix-e2ee"))
+    add("playImplementation", project(":features:matrix-e2ee"))
     add("githubImplementation", platform(libs.firebase.bom))
     add("githubImplementation", libs.firebase.analytics)
 
