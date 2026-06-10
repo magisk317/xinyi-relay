@@ -4,7 +4,6 @@
 # Ignore all hidden directories (e.g. .idea/, .gradle/, .vscode/, .kotlin/, etc.)
 .*/
 !/.github/
-!/.kiro/
 
 # -------------------------------------------------------------------------
 # Build & Compiled Files
@@ -76,3 +75,4 @@ fastlane/readme.md
 venv/
 __pycache__/
 *.py[cod]
+.kiro/

@@ -30,7 +30,7 @@
 [English Version](./README-EN.md)
 
 # 应用截图
-<img src="./art/common/01.png" width="720"/>
+<img src="./docs/assets/common/01.png" width="720"/>
 
 # 交流与反馈
 - [Telegram Group](https://t.me/+NR2QaQ4dlEgxYmNl)
@@ -189,7 +189,7 @@ Backend 和 Desktop 都支持日志文件输出，便于问题排查：
 
 | 支付宝收款码 | 微信赞赏码 | 微信收款码 |
 | :---: | :---: | :---: |
-| ![Alipay](./art/sponsorship/alipay.png) | ![WeChat Appreciation](./art/sponsorship/wx.png) | ![WeChat Collect](./art/sponsorship/wx_collect.png) |
+| ![Alipay](./docs/assets/sponsorship/alipay.png) | ![WeChat Appreciation](./docs/assets/sponsorship/wx.png) | ![WeChat Collect](./docs/assets/sponsorship/wx_collect.png) |
 
 # Star History
 ![Star History Chart](https://api.star-history.com/svg?repos=magisk317/xinyi-relay&type=Date)
