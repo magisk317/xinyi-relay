@@ -44,7 +44,8 @@ object MatrixUtils {
             if (!response.isSuccessful) {
                 val bodyPreview = responseBody.take(400)
                 SLog.e(TAG, "Matrix failed: ${response.code} ${response.message} $bodyPreview")
-                throw IllegalStateException("Matrix HTTP ${response.code}: ${response.message}")
+                val errorMsg = if (response.message.isNotBlank()) response.message else "Forbidden/Error"
+                throw IllegalStateException("Matrix HTTP ${response.code} $errorMsg: $bodyPreview")
             }
             SLog.i(TAG, "Matrix send success: ${response.code}")
         }

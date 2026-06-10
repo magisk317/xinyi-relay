@@ -131,7 +131,8 @@ class DefaultSenderDispatcher(private val context: Context) : SenderDispatcher {
                     SenderSettingJson.decode(YunhuSetting.serializer(), safeSender.jsonSetting),
                     msgInfo,
                 )
-                SenderType.MATRIX -> MatrixUtils.sendMsg(
+                SenderType.MATRIX -> MatrixE2eeUtils.sendMsg(
+                    context,
                     SenderSettingJson.decode(MatrixSetting.serializer(), safeSender.jsonSetting),
                     msgInfo,
                 )

@@ -24,6 +24,8 @@ dependencyResolutionManagement {
                 snapshotsOnly()
             }
         }
+        // matrix-rust-sdk FFI is published to Maven Central
+        // (org.matrix.rustcomponents:sdk-android)
     }
 }
 
@@ -61,4 +63,5 @@ include(
     ":smscode-core:runtime",
     ":smscode-core:verification",
     ":magisk-ui-kit",
+    ":feature:matrix-e2ee",
 )
