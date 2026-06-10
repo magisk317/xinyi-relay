@@ -43,10 +43,8 @@ private const val DRAG_EDGE_SCROLL_STEP_PX = 36f
 @Composable
 fun SenderListScreen(
     viewModel: SenderViewModel = koinViewModel(),
-    onAddClick: (Int) -> Unit,
-    onEditClick: (Long) -> Unit,
-    forceShowTypeDialog: Boolean = false,
-    onForceShowHandled: () -> Unit = {}
+    onAddClick: () -> Unit,
+    onEditClick: (Long) -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -63,7 +61,6 @@ fun SenderListScreen(
     val simRemarkSettings by viewModel.simRemarkSettings.collectAsStateWithLifecycle()
     var messageTypeGates by remember { mutableStateOf<MessageTypeGateSnapshot?>(null) }
     var forwardTypeGates by remember { mutableStateOf<ForwardTypeGateSnapshot?>(null) }
-    var showTypeDialog by remember { mutableStateOf(false) }
     var showGeneralConfigDialog by remember { mutableStateOf(false) }
     var showCommonConfigDialog by remember { mutableStateOf(false) }
     var showAppNotifyConfigDialog by remember { mutableStateOf(false) }
@@ -106,22 +103,6 @@ fun SenderListScreen(
     LaunchedEffect(Unit) {
         messageTypeGates = settingsRepository.getMessageTypeGates()
         forwardTypeGates = settingsRepository.getForwardTypeGates()
-    }
-    LaunchedEffect(forceShowTypeDialog) {
-        if (forceShowTypeDialog) {
-            showTypeDialog = true
-            onForceShowHandled()
-        }
-    }
-
-    if (showTypeDialog) {
-        SenderTypeDialog(
-            onDismiss = { showTypeDialog = false },
-            onAddClick = { type ->
-                showTypeDialog = false
-                onAddClick(type)
-            },
-        )
     }
 
     if (showCommonConfigDialog) {
@@ -249,7 +230,7 @@ fun SenderListScreen(
                 modifier = Modifier
                     .navigationBarsPadding()
                     .padding(bottom = 56.dp),
-                onClick = { showTypeDialog = true },
+                onClick = onAddClick,
             ) {
                 Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.sender_add_sender_content_description))
             }

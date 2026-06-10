@@ -51,6 +51,9 @@ object AppGraphRoute
 data class SendersRoute(val origin: String = ROUTE_ORIGIN_ADVANCED)
 
 @Serializable
+data class SenderTypeRoute(val origin: String = ROUTE_ORIGIN_ADVANCED)
+
+@Serializable
 object AdvancedGraphRoute
 
 @Serializable

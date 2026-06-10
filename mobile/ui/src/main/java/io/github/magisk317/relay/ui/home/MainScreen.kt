@@ -595,18 +595,9 @@ fun MainScreen(
                     }
                     composable<SendersRoute> { backStackEntry ->
                         val route = backStackEntry.toRoute<SendersRoute>()
-                        val reopenTypeDialog by backStackEntry.savedStateHandle
-                            .getStateFlow("reopen_type_dialog", false)
-                            .collectAsStateWithLifecycle()
                         io.github.magisk317.relay.ui.sender.SenderListScreen(
-                            onAddClick = { type ->
-                                navController.navigate(
-                                    SenderConfigRoute(
-                                        id = 0L,
-                                        type = type,
-                                        origin = route.origin,
-                                    ),
-                                )
+                            onAddClick = {
+                                navController.navigate(SenderTypeRoute(origin = route.origin))
                             },
                             onEditClick = { id ->
                                 navController.navigate(
@@ -616,10 +607,21 @@ fun MainScreen(
                                         origin = route.origin,
                                     ),
                                 )
-                            },
-                            forceShowTypeDialog = reopenTypeDialog,
-                            onForceShowHandled = {
-                                backStackEntry.savedStateHandle["reopen_type_dialog"] = false
+                            }
+                        )
+                    }
+                    composable<SenderTypeRoute> { backStackEntry ->
+                        val route = backStackEntry.toRoute<SenderTypeRoute>()
+                        io.github.magisk317.relay.ui.sender.SenderTypeScreen(
+                            onBack = { navController.popBackStack() },
+                            onAddClick = { type ->
+                                navController.navigate(
+                                    SenderConfigRoute(
+                                        id = 0L,
+                                        type = type,
+                                        origin = route.origin,
+                                    ),
+                                )
                             }
                         )
                     }
@@ -659,11 +661,10 @@ fun MainScreen(
                             },
                             onBack = { reopenTypeDialog ->
                                 if (reopenTypeDialog) {
-                                    navController.previousBackStackEntry
-                                        ?.savedStateHandle
-                                        ?.set("reopen_type_dialog", true)
+                                    navController.popBackStack()
+                                } else {
+                                    navController.popBackStack(SendersRoute::class, inclusive = false)
                                 }
-                                navController.popBackStack()
                             }
                         )
                     }
