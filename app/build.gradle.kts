@@ -35,6 +35,16 @@ android {
     namespace = "io.github.magisk317.relay"
     ndkVersion = ndkVersionStr
 
+    // Dynamic Feature Module for E2EE is only used by Play variants.
+    // Only include it when Play tasks are requested to avoid variant
+    // resolution conflicts with GitHub builds.
+    val isPlayBuild = gradle.startParameter.taskNames.any {
+        it.contains("Play", ignoreCase = true) || it.contains("bundle", ignoreCase = true)
+    }
+    if (isPlayBuild) {
+        dynamicFeatures += ":feature:matrix-e2ee"
+    }
+
     androidResources {
         localeFilters.addAll(listOf("en", "zh-rCN", "zh-rTW"))
     }
@@ -120,6 +130,7 @@ dependencies {
 
     add("playImplementation", platform(libs.firebase.bom))
     add("playImplementation", libs.firebase.analytics)
+    add("playImplementation", project(":feature:matrix-e2ee"))
     add("githubImplementation", platform(libs.firebase.bom))
     add("githubImplementation", libs.firebase.analytics)
 

@@ -19,6 +19,14 @@ object SenderRuntimeInstaller {
             ),
         )
     }
+
+    /**
+     * Initialize E2EE availability provider. Should be called early during app startup
+     * so that the UI can query E2EE module status.
+     */
+    fun initE2eeAvailability(context: Context) {
+        MatrixE2eeSetup.init(context)
+    }
 }
 
 private object DefaultSenderConfigSanitizer : SenderConfigSanitizer {
