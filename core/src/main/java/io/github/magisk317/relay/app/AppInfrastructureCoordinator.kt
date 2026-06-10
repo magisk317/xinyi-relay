@@ -23,7 +23,7 @@ object AppInfrastructureCoordinator {
         AnalyticsTracker.init(application)
         RuntimeLogStore.initialize(application, enableDetailedLogs = false)
         SensitiveLogPolicy.setEnabled(false)
-        SenderRuntimeBridge.install()
+        SenderRuntimeBridge.install(application)
         SenderLogBridge.install()
         installCoreRuntime(shouldSuppressSystemHooks)
         if (io.github.magisk317.relay.runtime.BuildConfig.DEBUG) {
