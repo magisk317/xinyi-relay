@@ -6,9 +6,9 @@ on:
   pull_request:
     paths:
       - "build-logic/**"
-      - "core/**"
+      - "modules/core/**"
       - "app/**"
-      - "runtime/**"
+      - "modules/runtime/**"
       - "xpbridge/**"
       - "magisk-ui-kit/**"
       - "smscode-core/**"
@@ -19,9 +19,9 @@ on:
       - beta
     paths:
       - "build-logic/**"
-      - "core/**"
+      - "modules/core/**"
       - "app/**"
-      - "runtime/**"
+      - "modules/runtime/**"
       - "xpbridge/**"
       - "magisk-ui-kit/**"
       - "smscode-core/**"

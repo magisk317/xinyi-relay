@@ -13,13 +13,13 @@ from typing import Iterable
 ROOT = Path(__file__).resolve().parents[1]
 SENDER_TYPE_SOURCE = (
     ROOT
-    / "relay/engine/api/src/main/java/io/github/magisk317/relay/engine/sender/SenderType.kt"
+    / "modules/relay/engine/api/src/main/java/io/github/magisk317/relay/engine/sender/SenderType.kt"
 )
 SCHEMA_SOURCE = (
     ROOT
-    / "relay/sender/api/src/main/java/io/github/magisk317/relay/sender/SenderSettingSchema.kt"
+    / "modules/relay/sender/api/src/main/java/io/github/magisk317/relay/sender/SenderSettingSchema.kt"
 )
-OUTPUT = ROOT / "shared/contracts/senderSchemas.json"
+OUTPUT = ROOT / "frontend/shared/contracts/senderSchemas.json"
 KOTLIN_STRING_RE = re.compile(r'"((?:\\.|[^"\\])*)"')
 
 
