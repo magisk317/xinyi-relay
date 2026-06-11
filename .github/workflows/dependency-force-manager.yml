@@ -47,7 +47,7 @@ jobs:
         )
       )
     env:
-      DEPENDENCY_FORCE_CONFIGS: githubDebugRuntimeClasspath,playDebugRuntimeClasspath,githubReleaseRuntimeClasspath,playReleaseRuntimeClasspath
+      DEPENDENCY_FORCE_CONFIGS: githubNoE2eeDebugRuntimeClasspath,githubWithE2eeDebugRuntimeClasspath,playNoE2eeDebugRuntimeClasspath,playWithE2eeDebugRuntimeClasspath,githubNoE2eeReleaseRuntimeClasspath,githubWithE2eeReleaseRuntimeClasspath,playNoE2eeReleaseRuntimeClasspath,playWithE2eeReleaseRuntimeClasspath
       DEPENDENCY_FORCE_HISTORICAL_ALERT_COOLDOWN_HOURS: 168
     steps:
       - name: Checkout

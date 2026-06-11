@@ -27,7 +27,7 @@ jobs:
       - name: Resolve WebUI toolchain
         id: webui_toolchain
         shell: bash
-        run: python scripts/ci/resolve_package_toolchain.py webui/package.json --require-node >> "$GITHUB_OUTPUT"
+        run: python scripts/ci/resolve_package_toolchain.py frontend/webui/package.json --require-node >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ steps.webui_toolchain.outputs.node_version }}
@@ -35,13 +35,13 @@ jobs:
         with:
           version: ${{ steps.webui_toolchain.outputs.pnpm_version }}
       - name: WebUI Install
-        run: pnpm -C webui install --frozen-lockfile --ignore-scripts
+        run: pnpm -C frontend/webui install --frozen-lockfile --ignore-scripts
       - name: WebUI Lint + Typecheck + Test + Build
         run: |
-          pnpm -C webui lint
-          pnpm -C webui typecheck
-          pnpm -C webui test
-          pnpm -C webui build
+          pnpm -C frontend/webui lint
+          pnpm -C frontend/webui typecheck
+          pnpm -C frontend/webui test
+          pnpm -C frontend/webui build
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -63,9 +63,9 @@ jobs:
       - name: Build & Test
         run: >
           bash scripts/with_workspace_gradle_lock.sh --warning-mode all
-          app:assembleGithubDebug
-          app:testGithubDebugUnitTest
-          :app:koverHtmlReportGithubDebug
+          app:assembleGithubNoE2eeDebug app:assembleGithubWithE2eeDebug
+          app:testGithubNoE2eeDebugUnitTest app:testGithubWithE2eeDebugUnitTest
+          :app:koverHtmlReportGithubNoE2eeDebug :app:koverHtmlReportGithubWithE2eeDebug
           -PallowIncompatibleDebugSigning=true
           -PbuildSplits
           -PskipGoogleServices=${{ env.HAS_GOOGLE_SERVICES_JSON == 'false' }}
@@ -96,34 +96,36 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: XinyiRelay-debug-github-arm64-v8a
-          path: app/build/outputs/apk/github/debug/*arm64-v8a*.apk
+          path: app/build/outputs/apk/github*/debug/*arm64-v8a*.apk
       - name: Upload Debug APK - GitHub armeabi-v7a
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: XinyiRelay-debug-github-armeabi-v7a
-          path: app/build/outputs/apk/github/debug/*armeabi-v7a*.apk
+          path: app/build/outputs/apk/github*/debug/*armeabi-v7a*.apk
       - name: Upload Debug APK - GitHub x86
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: XinyiRelay-debug-github-x86
-          path: app/build/outputs/apk/github/debug/*x86*.apk
+          path: app/build/outputs/apk/github*/debug/*x86*.apk
       - name: Upload Debug APK - GitHub x86_64
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: XinyiRelay-debug-github-x86_64
-          path: app/build/outputs/apk/github/debug/*x86_64*.apk
+          path: app/build/outputs/apk/github*/debug/*x86_64*.apk
       - name: Upload Debug APK - GitHub universal
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: XinyiRelay-debug-github-universal
-          path: app/build/outputs/apk/github/debug/*universal*.apk
+          path: app/build/outputs/apk/github*/debug/*universal*.apk
       - name: Upload Kover Report
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: kover-report
-          path: app/build/reports/kover/htmlGithubDebug
+          path: |
+            app/build/reports/kover/htmlGithubNoE2eeDebug
+            app/build/reports/kover/htmlGithubWithE2eeDebug

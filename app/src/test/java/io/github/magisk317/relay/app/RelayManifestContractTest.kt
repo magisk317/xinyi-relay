@@ -12,7 +12,7 @@ class RelayManifestContractTest {
 
     @Test
     fun `legacy xposed manifest metadata is removed`() {
-        val document = parseManifest("hook/entry/src/main/AndroidManifest.xml")
+        val document = parseManifest("modules/hook/entry/src/main/AndroidManifest.xml")
         val application = document.getElementsByTagName("application").item(0)
         val metaDataNames = buildSet {
             val children = application.childNodes
@@ -30,7 +30,7 @@ class RelayManifestContractTest {
         assertFalse("xposedscope" in metaDataNames)
         assertFalse("xposedsharedprefs" in metaDataNames)
         assertFalse(projectFile("app/src/main/assets/xposed_init").exists())
-        assertFalse(projectFile("hook/entry/src/main/assets/xposed_init").exists())
+        assertFalse(projectFile("modules/hook/entry/src/main/assets/xposed_init").exists())
     }
 
     @Test
@@ -84,7 +84,7 @@ class RelayManifestContractTest {
 
     @Test
     fun `static shortcuts route through launcher activity`() {
-        val document = parseManifest("core/src/main/res/xml/shortcuts.xml")
+        val document = parseManifest("modules/core/src/main/res/xml/shortcuts.xml")
         val targetClasses = document.getElementsByTagName("intent")
             .asElements()
             .mapNotNull { it.attributes.getNamedItemNS(ANDROID_NS, "targetClass")?.nodeValue }
@@ -129,15 +129,15 @@ class RelayManifestContractTest {
     fun `libxposed entrypoint and scope metadata remain declared`() {
         assertEquals(
             "io.github.magisk317.relay.xp.LibXposedEntry",
-            resolveProjectFile("hook/entry/src/main/resources/META-INF/xposed/java_init.list").readText().trim(),
+            resolveProjectFile("modules/hook/entry/src/main/resources/META-INF/xposed/java_init.list").readText().trim(),
         )
 
-        val moduleProps = resolveProjectFile("hook/entry/src/main/resources/META-INF/xposed/module.prop").readText()
+        val moduleProps = resolveProjectFile("modules/hook/entry/src/main/resources/META-INF/xposed/module.prop").readText()
         assertTrue("minApiVersion=101" in moduleProps)
         assertTrue("targetApiVersion=101" in moduleProps)
         assertTrue("staticScope=true" in moduleProps)
 
-        val scope = resolveProjectFile("hook/entry/src/main/resources/META-INF/xposed/scope.list")
+        val scope = resolveProjectFile("modules/hook/entry/src/main/resources/META-INF/xposed/scope.list")
             .readLines()
             .filter { it.isNotBlank() }
             .toSet()
