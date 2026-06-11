@@ -29,7 +29,11 @@ class CodeNotificationReceiver : BroadcastReceiver() {
             expectedAction = CodeNotificationBroadcastContract.ACTION_SHOW_CODE_NOTIFICATION,
             expectedTokenProvider = XpPrefs::getIpcToken,
             sentFromUidProvider = {
-                getSentFromUid()
+                if (android.os.Build.VERSION.SDK_INT >= 34) {
+                    getSentFromUid()
+                } else {
+                    -1
+                }
             },
             channelName = context.getString(R.string.channel_name_relay_notification),
             visualConfig = CodeNotificationDeliveryHelper.VisualConfig(
