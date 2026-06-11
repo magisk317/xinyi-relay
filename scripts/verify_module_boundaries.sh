@@ -4,16 +4,16 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/scripts/regex_helpers.sh"
 APP_BUILD="$ROOT_DIR/app/build.gradle.kts"
-CORE_BUILD="$ROOT_DIR/core/build.gradle.kts"
-HOOK_ENTRY_BUILD="$ROOT_DIR/hook/entry/build.gradle.kts"
+CORE_BUILD="$ROOT_DIR/modules/core/build.gradle.kts"
+HOOK_ENTRY_BUILD="$ROOT_DIR/modules/hook/entry/build.gradle.kts"
 MOBILE_UI_BUILD="$ROOT_DIR/mobile/ui/build.gradle.kts"
 MOBILE_UI_SRC="$ROOT_DIR/mobile/ui/src"
 MOBILE_FEATURE_DIR="$ROOT_DIR/mobile/feature"
-RUNTIME_BUILD="$ROOT_DIR/runtime/build.gradle.kts"
-RUNTIME_SRC="$ROOT_DIR/runtime/src"
-RELAY_ANDROID_BUILD="$ROOT_DIR/relay/android/build.gradle.kts"
-RELAY_SENDER_BUILD="$ROOT_DIR/relay/sender/build.gradle.kts"
-XPBRIDGE_CORE_BUILD="$ROOT_DIR/xpbridge/core/build.gradle.kts"
+RUNTIME_BUILD="$ROOT_DIR/modules/runtime/build.gradle.kts"
+RUNTIME_SRC="$ROOT_DIR/modules/runtime/src"
+RELAY_ANDROID_BUILD="$ROOT_DIR/modules/relay/android/build.gradle.kts"
+RELAY_SENDER_BUILD="$ROOT_DIR/modules/relay/sender/build.gradle.kts"
+XPBRIDGE_CORE_BUILD="$ROOT_DIR/modules/xpbridge/core/build.gradle.kts"
 
 violations=()
 
