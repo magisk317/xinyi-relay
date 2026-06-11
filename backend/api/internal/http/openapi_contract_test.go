@@ -119,7 +119,7 @@ func TestOpenAPIContractSchemaFieldsMatchBackendDTOs(t *testing.T) {
 
 func loadOpenAPIContract(t *testing.T) openAPIDocument {
 	t.Helper()
-	path := filepath.Clean("../../../../shared/contracts/openapi.json")
+	path := filepath.Clean("../../../../frontend/shared/contracts/openapi.json")
 	body, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("read OpenAPI contract %s: %v", path, err)

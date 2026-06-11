@@ -2,9 +2,9 @@
 FROM --platform=$BUILDPLATFORM node:24-alpine AS webui-build
 RUN corepack enable pnpm
 WORKDIR /src
-COPY shared ./shared
-COPY webui ./webui
-WORKDIR /src/webui
+COPY frontend/shared ./frontend/shared
+COPY frontend/webui ./frontend/webui
+WORKDIR /src/frontend/webui
 RUN CI=true pnpm install
 RUN pnpm run build
 
@@ -18,7 +18,7 @@ ENV GOPROXY=${GOPROXY}
 COPY backend/api/go.mod backend/api/go.sum ./
 RUN go mod download
 COPY backend/api ./
-COPY --from=webui-build /src/webui/dist ./webui_dist
+COPY --from=webui-build /src/frontend/webui/dist ./webui_dist
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -o /out/relayd ./cmd/relayd
 
 # Stage 3: Final image

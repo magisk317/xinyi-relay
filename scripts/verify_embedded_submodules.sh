@@ -3,10 +3,10 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/scripts/regex_helpers.sh"
-SUBMODULE_DIR="$ROOT_DIR/smscode-core"
+SUBMODULE_DIR="$ROOT_DIR/smscode/core"
 SUBMODULE_SETTINGS="$SUBMODULE_DIR/settings.gradle.kts"
 SUBMODULE_BUILD="$SUBMODULE_DIR/build.gradle.kts"
-RULES_DIR="$ROOT_DIR/smscode-rules"
+RULES_DIR="$ROOT_DIR/smscode/rules"
 
 violations=()
 
