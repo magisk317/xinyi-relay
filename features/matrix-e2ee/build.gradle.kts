@@ -20,7 +20,7 @@ dependencies {
     implementation(project(":relay:net"))
     // matrix-rust-sdk FFI for E2EE support
     // Published as "sdk-android" on Maven Central by element-hq
-    implementation("org.matrix.rustcomponents:sdk-android:26.06.3")
+    implementation("org.matrix.rustcomponents:sdk-android:26.06.11")
 }
 
 // AGP 9.x dynamic-feature has a bug where extractDeepLinks fails when

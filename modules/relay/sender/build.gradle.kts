@@ -52,7 +52,7 @@ dependencies {
     implementation(libs.paho.mqtt)
     // matrix-rust-sdk FFI for E2EE support
     // Published as "sdk-android" on Maven Central by element-hq
-    add("withE2eeImplementation", "org.matrix.rustcomponents:sdk-android:26.06.3")
+    add("withE2eeImplementation", "org.matrix.rustcomponents:sdk-android:26.06.11")
     // Play Feature Delivery for on-demand E2EE module installation
     add("playImplementation", libs.play.feature.delivery)
     testImplementation(libs.junit.jupiter)
