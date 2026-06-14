@@ -22,10 +22,10 @@ android {
         // The "main" source set contains the shared logic; the flavor
         // source sets provide the E2EE-aware or plain-text fallback.
         getByName("noE2ee") {
-            java.srcDir("src/noE2ee/java")
+            java.directories += "src/noE2ee/java"
         }
         getByName("withE2ee") {
-            java.srcDir("src/withE2ee/java")
+            java.directories += "src/withE2ee/java"
         }
     }
 
