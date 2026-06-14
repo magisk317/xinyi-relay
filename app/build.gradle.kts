@@ -36,11 +36,10 @@ android {
     ndkVersion = ndkVersionStr
 
     // Dynamic Feature Module for E2EE is only used by Play variants.
-    // Only include it when Play tasks are requested to avoid variant
+    // GitHub withE2ee bundles the native lib directly via withE2eeImplementation dependency.
+    // Only include the DFM when Play tasks are requested to avoid variant
     // resolution conflicts with GitHub builds.
-    val isPlayBuild = gradle.startParameter.taskNames.any {
-        it.contains("Play", ignoreCase = true) || it.contains("bundle", ignoreCase = true)
-    }
+    val isPlayBuild = gradle.startParameter.taskRequests.toString().contains("Play", ignoreCase = true)
     if (isPlayBuild) {
         dynamicFeatures += ":features:matrix-e2ee"
     }

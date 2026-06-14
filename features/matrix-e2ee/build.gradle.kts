@@ -20,7 +20,7 @@ dependencies {
     implementation(project(":relay:net"))
     // matrix-rust-sdk FFI for E2EE support
     // Published as "sdk-android" on Maven Central by element-hq
-    implementation("org.matrix.rustcomponents:sdk-android:26.06.11")
+    implementation(libs.matrix.sdk.android)
 }
 
 // AGP 9.x dynamic-feature has a bug where extractDeepLinks fails when
@@ -29,12 +29,3 @@ dependencies {
 // The task's applicationId property is evaluated during execution and
 // fails before our disable callbacks can take effect.
 // TODO: Revisit when AGP fixes the multi-flavor DFM applicationId bug.
-// For now, we disable the failing tasks using configureEach which runs
-// during task registration, before the task is executed.
-tasks.configureEach {
-    if (name.contains("DeepLinks") || name.contains("NavigationResources")) {
-        if (name.contains("matrix-e2ee") || name.contains("MatrixE2ee")) {
-            enabled = false
-        }
-    }
-}
