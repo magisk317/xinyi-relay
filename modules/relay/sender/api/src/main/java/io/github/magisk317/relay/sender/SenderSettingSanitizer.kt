@@ -480,9 +480,10 @@ object SenderSettingSanitizer {
 
     fun sanitizeMatrixSetting(raw: MatrixSetting?, rawJson: JsonObject? = null): MatrixSetting {
         val defaults = MatrixSetting()
+        val accessToken = resolveMatrixAccessToken(raw, rawJson)
         val setting = MatrixSetting(
             homeserver = safeString(resolveValue(raw?.homeserver, rawJson, "homeserver")).ifBlank { defaults.homeserver },
-            accessToken = safeString(resolveValue(raw?.accessToken, rawJson, "accessToken")),
+            accessToken = accessToken,
             roomId = safeString(resolveValue(raw?.roomId, rawJson, "roomId")),
             messageType = safeString(resolveValue(raw?.messageType, rawJson, "messageType")).ifBlank { defaults.messageType },
             titleTemplate = safeString(resolveValue(raw?.titleTemplate, rawJson, "titleTemplate")),
@@ -512,7 +513,7 @@ object SenderSettingSanitizer {
         )
         return setting.copy(
             homeserver = repaired.string("homeserver").ifBlank { defaults.homeserver },
-            accessToken = setting.accessToken,
+            accessToken = accessToken,
             roomId = repaired.string("roomId"),
             messageType = repaired.enumString("messageType", defaults.messageType),
             titleTemplate = repaired.string("titleTemplate"),
@@ -1173,6 +1174,12 @@ object SenderSettingSanitizer {
         return primary ?: fieldValue(rawJson, *names)
     }
 
+    private fun resolveMatrixAccessToken(raw: MatrixSetting?, rawJson: JsonObject?): String {
+        val accessToken = raw?.legacyAccessToken()
+        if (accessToken != null) return accessToken
+        return safeString(fieldValue(rawJson, "accessToken"))
+    }
+
     private fun fieldValue(rawJson: JsonObject?, vararg names: String): Any? {
         val element = firstFieldElement(rawJson, *names) ?: return null
         return jsonElementToAny(element)
@@ -1207,4 +1214,7 @@ object SenderSettingSanitizer {
             }
         }
     }
+
+    @Suppress("DEPRECATION")
+    private fun MatrixSetting.legacyAccessToken(): String = accessToken
 }
