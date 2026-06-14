@@ -843,7 +843,7 @@
     <string name="backup_source_local">Local</string>
     <string name="backup_source_google">Google Drive</string>
     <string name="backup_source_webdav">WebDAV</string>
-    <string name="backup_source_webdav_display">Jianguoyun/WebDAV</string>
+    <string name="backup_source_webdav_display">WebDAV</string>
     <string name="dialog_backup_title">Backup Selection</string>
     <string name="dialog_restore_title">Confirm Restore</string>
     <string name="dialog_backup_msg">Select data to backup:</string>
