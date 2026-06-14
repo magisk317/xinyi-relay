@@ -42,13 +42,20 @@ class RemoteApiDtosContractTest {
     private fun findOpenApiFile(): File {
         var dir = File("").absoluteFile
         while (true) {
-            val candidate = File(dir, "shared/contracts/openapi.json")
-            if (candidate.isFile) {
-                return candidate
-            }
+            val candidates = listOf(
+                File(dir, "frontend/shared/contracts/openapi.json"),
+                File(dir, "shared/contracts/openapi.json"),
+            )
+            candidates.firstOrNull { it.isFile }?.let { return it }
             dir = dir.parentFile ?: break
         }
-        error("shared/contracts/openapi.json not found from ${File("").absolutePath}")
+        error(
+            buildString {
+                append("openapi.json not found from ")
+                append(File("").absolutePath)
+                append(" (looked for frontend/shared/contracts/openapi.json and shared/contracts/openapi.json)")
+            }
+        )
     }
 
     private fun schemaFields(schemas: JsonObject, schemaName: String): List<String> {
