@@ -28,7 +28,7 @@ class AppIconDataFlowPropertyTest : FunSpec({
         String(CharArray(length) { base64Chars[rs.random.nextInt(base64Chars.size)] })
     }
 
-    test("Property 7: appIcon preserved through ForwardBroadcastPayload → RelayEvent → MsgInfo pipeline") {
+    test("Property 7: appIcon preserved through ForwardBroadcastPayload to RelayEvent to MsgInfo pipeline") {
         /**
          * **Validates: Requirements 3.2, 3.3, 4.3**
          *
