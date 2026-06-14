@@ -306,6 +306,8 @@ const SENDER_FIELD_SCHEMAS: Record<number, SenderFieldSchema[]> = {
   ],
   19: [
     field('homeserver', 'text', 'Homeserver', 'Homeserver'),
+    field('username', 'text', '用户名', 'Username'),
+    field('password', 'text', '密码', 'Password'),
     field('accessToken', 'text', 'Access Token', 'Access token'),
     field('roomId', 'text', 'Room ID', 'Room ID'),
     field('messageType', 'select', '消息类型', 'Message type', {
