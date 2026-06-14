@@ -20,7 +20,7 @@ object PushdeerUtils {
     )
 
     suspend fun sendMsg(setting: PushdeerSetting, msgInfo: MsgInfo) = withContext(Dispatchers.IO) {
-        val title = if (setting.titleTemplate.isBlank()) "信息驿站: ${msgInfo.from}" else setting.titleTemplate
+        val title = SenderTemplateRenderer.renderTitle(setting.titleTemplate, msgInfo)
         val content = msgInfo.content
 
         val serverUrl = if (setting.server.isBlank()) {

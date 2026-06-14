@@ -32,7 +32,7 @@ class SenderValidatorNullSafetyTest {
             SenderType.SOCKET to """{"address":null,"port":null,"method":null}""",
             SenderType.PUSHDEER to """{"pushkey":null}""",
             SenderType.YUNHU to """{"token":null,"recvId":null}""",
-            SenderType.MATRIX to """{"homeserver":null,"accessToken":null,"roomId":null,"messageType":null,"proxyType":null}""",
+            SenderType.MATRIX to """{"homeserver":null,"username":null,"password":null,"accessToken":null,"roomId":null,"messageType":null,"proxyType":null}""",
         )
 
         dirtyCases.forEach { (type, dirtyJson) ->
@@ -41,6 +41,30 @@ class SenderValidatorNullSafetyTest {
             assertNotNull(result)
             assertFalse(result.valid, "type=$type should be invalid for dirty json")
         }
+    }
+
+    @Test
+    fun validateForEnable_matrixAcceptsUsernamePasswordWithoutAccessToken() {
+        val sender = newSender(
+            SenderType.MATRIX,
+            """{"homeserver":"https://matrix.example.com","username":"@relay:matrix.example.com","password":"matrix-password","roomId":"!room:matrix.example.com","messageType":"text"}""",
+        )
+
+        val result = SenderValidator.validateForEnable(sender)
+
+        assertTrue(result.valid)
+    }
+
+    @Test
+    fun validateForEnable_matrixRequiresTokenOrUsernamePassword() {
+        val sender = newSender(
+            SenderType.MATRIX,
+            """{"homeserver":"https://matrix.example.com","roomId":"!room:matrix.example.com","messageType":"text"}""",
+        )
+
+        val result = SenderValidator.validateForEnable(sender)
+
+        assertFalse(result.valid)
     }
 
     @Test

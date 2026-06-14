@@ -19,6 +19,7 @@ data class MsgInfo(
     val appName: String = "",
     val title: String = "",
     val message: String = "",
+    val smsCode: String = "",
     val contactName: String = "",
     val phoneArea: String = "",
     val appIcon: String = "",

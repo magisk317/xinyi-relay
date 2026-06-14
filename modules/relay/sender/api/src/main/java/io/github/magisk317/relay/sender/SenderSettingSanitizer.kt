@@ -486,6 +486,8 @@ object SenderSettingSanitizer {
             roomId = safeString(resolveValue(raw?.roomId, rawJson, "roomId")),
             messageType = safeString(resolveValue(raw?.messageType, rawJson, "messageType")).ifBlank { defaults.messageType },
             titleTemplate = safeString(resolveValue(raw?.titleTemplate, rawJson, "titleTemplate")),
+            username = safeString(resolveValue(raw?.username, rawJson, "username")),
+            password = safeString(resolveValue(raw?.password, rawJson, "password")),
             proxyType = safeProxyType(resolveValue(raw?.proxyType, rawJson, "proxyType")),
             proxyHost = safeString(resolveValue(raw?.proxyHost, rawJson, "proxyHost")),
             proxyPort = safeString(resolveValue(raw?.proxyPort, rawJson, "proxyPort")),
@@ -498,7 +500,6 @@ object SenderSettingSanitizer {
         )
         val repaired = repairFields(
             "homeserver" to setting.homeserver,
-            "accessToken" to setting.accessToken,
             "roomId" to setting.roomId,
             "messageType" to setting.messageType,
             "titleTemplate" to setting.titleTemplate,
@@ -511,10 +512,12 @@ object SenderSettingSanitizer {
         )
         return setting.copy(
             homeserver = repaired.string("homeserver").ifBlank { defaults.homeserver },
-            accessToken = repaired.string("accessToken"),
+            accessToken = setting.accessToken,
             roomId = repaired.string("roomId"),
             messageType = repaired.enumString("messageType", defaults.messageType),
             titleTemplate = repaired.string("titleTemplate"),
+            username = setting.username, // Keep original
+            password = setting.password, // Keep original
             proxyType = repaired.proxy("proxyType"),
             proxyHost = repaired.string("proxyHost"),
             proxyPort = repaired.string("proxyPort"),

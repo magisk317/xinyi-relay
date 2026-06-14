@@ -21,7 +21,7 @@ object DingtalkGroupRobotUtils {
 
     suspend fun sendMsg(setting: DingtalkGroupRobotSetting, msgInfo: MsgInfo) {
         val content = msgInfo.content
-        val title = setting.titleTemplate.ifBlank { "信息驿站: ${msgInfo.from}" }
+        val title = SenderTemplateRenderer.renderTitle(setting.titleTemplate, msgInfo)
 
         var requestUrl = if (setting.token.startsWith("http")) setting.token else "https://oapi.dingtalk.com/robot/send?access_token=" + setting.token
 

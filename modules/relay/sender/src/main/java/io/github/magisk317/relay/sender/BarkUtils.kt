@@ -19,7 +19,7 @@ object BarkUtils {
     private val client = RelayHttpClients.default
 
     suspend fun sendMsg(setting: BarkSetting, msgInfo: MsgInfo) {
-        val title = if (setting.title.isBlank()) "信息驿站: ${msgInfo.from}" else setting.title
+        val title = SenderTemplateRenderer.renderTitle(setting.title, msgInfo)
         val content = msgInfo.content
 
         val parsed = parseBasicAuthUrl(setting.server)

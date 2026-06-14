@@ -21,6 +21,7 @@ dependencies {
     api(project(":relay:contract"))
     api(project(":relay:engine:api"))
     api(libs.kotlinx.serialization.json)
+    api(libs.kotlinx.coroutines.core)
     implementation(libs.androidx.core.ktx)
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)

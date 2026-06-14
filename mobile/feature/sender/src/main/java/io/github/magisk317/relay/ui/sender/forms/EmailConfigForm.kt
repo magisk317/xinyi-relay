@@ -42,7 +42,8 @@ private val EmailVisibleFields = listOf(
     SchemaSenderFormFieldSpec(
         name = "title",
         labelRes = R.string.sender_form_label_title,
-        placeholderRes = R.string.sender_form_title_template_placeholder,
+        placeholderRes = R.string.sender_form_email_title_template_placeholder,
+        supportingTextRes = R.string.sender_form_email_title_template_summary,
     ),
     SchemaSenderFormFieldSpec(
         name = "ssl",

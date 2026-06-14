@@ -38,8 +38,6 @@ object WebhookUtils {
         var requestUrl: String = safeSetting.webServer
         val from: String = msgInfo.from
         val content: String = msgInfo.content
-        val orgContent: String = msgInfo.content
-        val simInfo: String = msgInfo.simInfo
         val timestamp = System.currentTimeMillis()
         val method = safeSetting.method.ifBlank { "POST" }.uppercase(Locale.ROOT)
         fun t(message: String): String = if (traceId.isNullOrBlank()) message else "[trace=$traceId] $message"
@@ -92,15 +90,13 @@ object WebhookUtils {
             }
 
             val receiveTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(msgInfo.date)
-            val replaced = raw
-                .replace("[from]", jsonIfNeeded(encodeIfNeeded(from)))
-                .replace("[content]", jsonIfNeeded(encodeIfNeeded(content)))
-                .replace("[msg]", jsonIfNeeded(encodeIfNeeded(content)))
-                .replace("[org_content]", jsonIfNeeded(encodeIfNeeded(orgContent)))
-                .replace("[title]", jsonIfNeeded(encodeIfNeeded(simInfo)))
-                .replace("[card_slot]", jsonIfNeeded(encodeIfNeeded(simInfo)))
-                .replace("[app_icon]", jsonIfNeeded(encodeIfNeeded(msgInfo.appIcon)))
-                .replace("[timestamp]", encodeIfNeeded(timestamp.toString()))
+            val replaced = SenderTemplateRenderer.render(
+                raw = raw,
+                msgInfo = msgInfo,
+                timestamp = timestamp,
+                receiveTime = receiveTime,
+                valueTransform = { value -> jsonIfNeeded(encodeIfNeeded(value)) },
+            )
                 .replace("[sign]", encodeIfNeeded(sign))
                 .replace(receiveTimeTag) {
                     val format = it.groups[2]?.value?.removePrefix(":") ?: "yyyy-MM-dd HH:mm:ss"

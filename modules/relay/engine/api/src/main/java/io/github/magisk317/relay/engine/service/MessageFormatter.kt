@@ -55,6 +55,8 @@ class MessageFormatter(
         val variables = mapOf(
             "FROM" to event.sender,
             "SMS" to event.body,
+            "SMS_CODE" to event.smsCode.orEmpty(),
+            "CODE" to event.smsCode.orEmpty(),
             "CARD_SLOT" to resolveCardSlot(event, payloadContext),
             "CARD_SUBID" to if (event.subId > 0) event.subId.toString() else "",
             "CALL_TYPE" to resolveCallTypeLabel(event.callType),

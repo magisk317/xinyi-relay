@@ -63,7 +63,7 @@ object EmailUtils {
                 ),
             )
             message.setRecipients(Message.RecipientType.TO, recipients.map { InternetAddress(it) }.toTypedArray())
-            message.subject = if (safeSetting.title.isBlank()) "信息驿站: ${msgInfo.from}" else safeSetting.title
+            message.subject = SenderTemplateRenderer.renderTitle(safeSetting.title, msgInfo)
             message.setText(msgInfo.content)
 
             sendByTransport(session, message, host, portInt, authEmail, password)

@@ -9,5 +9,6 @@ import android.content.Context
 object MatrixE2eeSetup {
     fun init(context: Context) {
         MatrixE2eeAvailabilityProvider.install(PlayFeatureLoader(context))
+        MatrixE2eeVerificationProvider.install(MatrixE2eeVerificationManager)
     }
 }

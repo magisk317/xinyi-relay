@@ -19,7 +19,7 @@ object FeishuUtils {
     private val client = RelayHttpClients.default
 
     suspend fun sendMsg(setting: FeishuSetting, msgInfo: MsgInfo) {
-        val title = if (setting.titleTemplate.isBlank()) "信息驿站: ${msgInfo.from}" else setting.titleTemplate
+        val title = SenderTemplateRenderer.renderTitle(setting.titleTemplate, msgInfo)
         val content = msgInfo.content
 
         var timestamp: Long? = null

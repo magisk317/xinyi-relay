@@ -14,7 +14,7 @@ object GotifyUtils {
     private val client = RelayHttpClients.default
 
     suspend fun sendMsg(setting: GotifySetting, msgInfo: MsgInfo) {
-        val title = if (setting.title.isBlank()) "信息驿站: ${msgInfo.from}" else setting.title
+        val title = SenderTemplateRenderer.renderTitle(setting.title, msgInfo)
         val content = msgInfo.content
 
         val parsed = parseBasicAuthUrl(setting.webServer)

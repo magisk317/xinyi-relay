@@ -96,14 +96,7 @@ object SocketUtils {
 
     private fun buildMessage(setting: SocketSetting, msgInfo: MsgInfo): String {
         val template = if (TextUtils.isEmpty(setting.msgTemplate)) "{\"msg\":\"[msg]\"}" else setting.msgTemplate
-        return template
-            .replace("[from]", msgInfo.from)
-            .replace("[content]", msgInfo.content)
-            .replace("[msg]", msgInfo.content)
-            .replace("[org_content]", msgInfo.content)
-            .replace("[title]", msgInfo.simInfo)
-            .replace("[card_slot]", msgInfo.simInfo)
-            .replace("[timestamp]", System.currentTimeMillis().toString())
+        return SenderTemplateRenderer.render(template, msgInfo)
     }
 
     private fun outputCharset(setting: SocketSetting): String = if (setting.outCharset.isBlank()) "UTF-8" else setting.outCharset

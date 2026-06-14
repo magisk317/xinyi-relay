@@ -66,7 +66,7 @@ object FeishuAppUtils {
 
     private fun sendMessage(setting: FeishuAppSetting, token: String, msgInfo: MsgInfo) {
         val content = msgInfo.content
-        val title = setting.titleTemplate.ifBlank { "信息驿站: ${msgInfo.from}" }
+        val title = SenderTemplateRenderer.renderTitle(setting.titleTemplate, msgInfo)
         val contentJson = if (setting.msgType == "interactive") {
             if (setting.messageCard.isBlank()) {
                 "{" +

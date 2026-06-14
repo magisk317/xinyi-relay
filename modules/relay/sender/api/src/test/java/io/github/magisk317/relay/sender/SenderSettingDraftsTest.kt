@@ -112,6 +112,7 @@ class SenderSettingDraftsTest {
     }
 
     @Test
+    @Suppress("DEPRECATION")
     fun draftJson_decodesAsExistingConfigModelsForMigratedForms() {
         val sms = SenderSettingJson.decode<SmsSetting>(
             SenderSettingDrafts.empty(SenderType.SMS)
@@ -203,6 +204,8 @@ class SenderSettingDraftsTest {
         val matrix = SenderSettingJson.decode<MatrixSetting>(
             SenderSettingDrafts.empty(SenderType.MATRIX)
                 .withString("homeserver", "https://matrix.example.com")
+                .withString("username", "@relay:matrix.example.com")
+                .withString("password", "matrix-password")
                 .withString("accessToken", "matrix-token")
                 .withString("roomId", "!room:matrix.example.com")
                 .withString("messageType", "markdown")
@@ -216,6 +219,8 @@ class SenderSettingDraftsTest {
                 .toJson(),
         )
         assertEquals("https://matrix.example.com", matrix.homeserver)
+        assertEquals("@relay:matrix.example.com", matrix.username)
+        assertEquals("matrix-password", matrix.password)
         assertEquals("matrix-token", matrix.accessToken)
         assertEquals("!room:matrix.example.com", matrix.roomId)
         assertEquals("markdown", matrix.messageType)
