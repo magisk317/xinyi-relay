@@ -70,7 +70,7 @@ class RoomCryptoStateCacheTtlPropertyTest : FunSpec({
 
     // --- Property Tests ---
 
-    test("Property 2: entry within TTL window → isExpired returns false (cache hit)") {
+    test("Property 2: entry within TTL window returns isExpired false cache hit") {
         /**
          * **Validates: Requirements 1.6**
          *
@@ -90,7 +90,7 @@ class RoomCryptoStateCacheTtlPropertyTest : FunSpec({
         }
     }
 
-    test("Property 2: entry older than TTL → isExpired returns true (cache miss)") {
+    test("Property 2: entry older than TTL returns isExpired true cache miss") {
         /**
          * **Validates: Requirements 1.7**
          *
@@ -110,7 +110,7 @@ class RoomCryptoStateCacheTtlPropertyTest : FunSpec({
         }
     }
 
-    test("Property 2: boundary behavior — exactly at TTL → isExpired returns true") {
+    test("Property 2: boundary behavior exactly at TTL returns isExpired true") {
         /**
          * **Validates: Requirements 1.7**
          *

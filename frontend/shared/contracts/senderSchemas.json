@@ -1557,12 +1557,28 @@
         "defaultValue": "https://matrix.org"
       },
       {
+        "name": "username",
+        "type": "TEXT",
+        "aliases": [
+          "z"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "password",
+        "type": "SECRET",
+        "aliases": [
+          "A"
+        ],
+        "requiredForEnable": false
+      },
+      {
         "name": "accessToken",
         "type": "SECRET",
         "aliases": [
           "p"
         ],
-        "requiredForEnable": true
+        "requiredForEnable": false
       },
       {
         "name": "roomId",

@@ -15,7 +15,7 @@ object YunhuUtils {
     private const val BASE_URL = "https://chat-go.jwzhd.com/open-apis/v1/bot/send"
 
     suspend fun sendMsg(setting: YunhuSetting, msgInfo: MsgInfo) {
-        val title = setting.titleTemplate.ifBlank { "信息驿站: ${msgInfo.from}" }
+        val title = SenderTemplateRenderer.renderTitle(setting.titleTemplate, msgInfo)
         val text = "$title\n${msgInfo.content}"
         val contentType = setting.contentType.ifBlank { "text" }
         val recvType = setting.recvType.ifBlank { "user" }

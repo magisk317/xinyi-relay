@@ -19,6 +19,7 @@ internal val forwardTemplateVariables = listOf(
     // 核心消息信息
     TemplateVariable(R.string.sender_template_var_sender, "{{FROM}}"),
     TemplateVariable(R.string.sender_template_var_sms_body, "{{SMS}}"),
+    TemplateVariable(R.string.sender_template_var_sms_code, "{{SMS_CODE}}"),
     TemplateVariable(R.string.sender_template_var_notification_body, "{{MSG}}"),
     TemplateVariable(R.string.sender_template_var_app_name, "{{APP_NAME}}"),
     TemplateVariable(R.string.sender_template_var_app_icon, "{{APP_ICON}}"),
@@ -134,6 +135,7 @@ internal fun buildSmsPreviewMessage(context: Context): MsgInfo {
         type = "sms",
         from = context.getString(R.string.sender_preview_sms_from),
         content = context.getString(R.string.sender_preview_sms_content),
+        smsCode = "123456",
         date = Date(),
         simInfo = context.getString(R.string.sender_preview_sms_sim_info),
         simSlot = 0,

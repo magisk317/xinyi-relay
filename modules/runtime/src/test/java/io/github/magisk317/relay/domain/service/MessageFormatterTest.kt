@@ -125,6 +125,18 @@ class MessageFormatterTest {
     }
 
     @Test
+    fun `sms code variable is rendered in message templates`() = runBlocking {
+        val result = formatter().format(
+            event = baseEvent.copy(messageType = MessageType.SMS_CODE, smsCode = "654321"),
+            payloadContext = DispatchPayloadContext.from(baseEvent.copy(messageType = MessageType.SMS_CODE)),
+            config = ForwardCommonConfig(messageTemplate = "验证码 {{SMS_CODE}} / {{CODE}}"),
+            env = snapshot,
+        )
+
+        assertEquals("验证码 654321 / 654321", result)
+    }
+
+    @Test
     fun `APP_ICON is replaced with valid base64 appIcon value`() = runBlocking {
         val fakeBase64Icon = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
         val template = "图标：{{APP_ICON}}\n内容：{{SMS}}"

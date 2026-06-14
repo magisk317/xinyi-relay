@@ -19,15 +19,13 @@ object UrlSchemeUtils {
         val timestamp = System.currentTimeMillis()
         val receiveTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
 
-        var url = setting.urlScheme
-            .replace("[from]", urlEncode(msgInfo.from))
-            .replace("[content]", urlEncode(msgInfo.content))
-            .replace("[msg]", urlEncode(msgInfo.content))
-            .replace("[org_content]", urlEncode(msgInfo.content))
-            .replace("[title]", urlEncode(msgInfo.simInfo))
-            .replace("[card_slot]", urlEncode(msgInfo.simInfo))
-            .replace("[receive_time]", urlEncode(receiveTime))
-            .replace("[timestamp]", timestamp.toString())
+        val url = SenderTemplateRenderer.render(
+            raw = setting.urlScheme,
+            msgInfo = msgInfo,
+            timestamp = timestamp,
+            receiveTime = receiveTime,
+            valueTransform = ::urlEncode,
+        )
             .replace("\n", "%0A")
 
         withContext(Dispatchers.Main.immediate) {

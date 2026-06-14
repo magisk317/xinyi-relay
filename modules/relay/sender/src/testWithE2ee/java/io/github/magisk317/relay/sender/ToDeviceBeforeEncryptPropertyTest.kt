@@ -149,4 +149,29 @@ class ToDeviceBeforeEncryptPropertyTest : FunSpec({
             MatrixE2eeUtils.verifySendOperationOrder(operations) shouldBe false
         }
     }
+
+    test("Matrix E2EE serialized send order keeps sync, encrypt, and post-send sync inside the lock") {
+        checkAll(PropTestConfig(iterations = 100), Arb.int(0..100)) {
+            val order = MatrixE2eeUtils.getCanonicalSerializedSendOperationOrder()
+            MatrixE2eeUtils.verifySerializedSendOperationOrder(order) shouldBe true
+            order.indexOf("acquire_send_lock") shouldBe 0
+            order.indexOf("release_send_lock") shouldBe order.lastIndex
+            order.indexOf("sync_to_device") shouldBe 1
+            order.indexOf("encrypt_and_send") shouldBe 2
+            order.indexOf("post_send_sync") shouldBe 3
+        }
+    }
+
+    test("Matrix E2EE serialized send order rejects encrypting before the lock is acquired") {
+        checkAll(PropTestConfig(iterations = 100), Arb.int(0..100)) {
+            val badOrder = listOf(
+                "encrypt_and_send",
+                "acquire_send_lock",
+                "sync_to_device",
+                "post_send_sync",
+                "release_send_lock",
+            )
+            MatrixE2eeUtils.verifySerializedSendOperationOrder(badOrder) shouldBe false
+        }
+    }
 })

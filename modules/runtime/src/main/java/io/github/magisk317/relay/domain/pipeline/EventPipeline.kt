@@ -303,20 +303,35 @@ class EventPipeline(
         event: RelayEvent,
         effectiveConfig: ForwardCommonConfig,
     ): MsgInfo {
+        val template = resolveTemplate(effectiveConfig)
+        val dispatchEvent = event.copy(
+            appIcon = AppIconEncoder.resolveAppIcon(
+                context = context,
+                packageName = event.packageName,
+                msgType = event.messageType.runtimeType,
+                template = template,
+                currentAppIcon = event.appIcon,
+            ),
+        )
         val envSnapshot = systemInfoProvider.getSnapshot(effectiveConfig.deviceName)
-        val dispatchContext = DispatchPayloadContext.from(event)
-        val renderedContent = messageFormatter.format(event, dispatchContext, effectiveConfig, envSnapshot)
-        val msgInfo = dispatchContext.toMsgInfo(event, renderedContent)
-        return ensureAppIcon(msgInfo)
+        val dispatchContext = DispatchPayloadContext.from(dispatchEvent)
+        val renderedContent = messageFormatter.format(dispatchEvent, dispatchContext, effectiveConfig, envSnapshot)
+        return dispatchContext.toMsgInfo(dispatchEvent, renderedContent)
     }
 
-    private fun ensureAppIcon(msgInfo: MsgInfo): MsgInfo {
-        if (msgInfo.appIcon.isNotBlank()) return msgInfo
-        val pkg = AppIconEncoder.resolveIconPackageName(context, msgInfo.packageName, msgInfo.type)
-            ?: return msgInfo
-        val iconBase64 = AppIconEncoder.encodeFromPackage(context, pkg)
-        if (iconBase64.isBlank()) return msgInfo
-        return msgInfo.copy(appIcon = iconBase64)
+    private fun resolveTemplate(config: ForwardCommonConfig): String {
+        return when {
+            config.messageTemplate.isNotBlank() -> config.messageTemplate
+            config.includeSender || config.includeTime || !config.includeDeviceName -> {
+                buildString {
+                    append("{{SMS}}")
+                    if (config.includeSender) append("\n发件人: {{FROM}}")
+                    if (config.includeTime) append("\n时间: {{RECEIVE_TIME}}")
+                    if (config.includeDeviceName) append("\n来自{{DEVICE_NAME}}设备")
+                }
+            }
+            else -> ""
+        }
     }
 
     private suspend fun resolveEffectiveConfig(event: RelayEvent): ForwardCommonConfig {

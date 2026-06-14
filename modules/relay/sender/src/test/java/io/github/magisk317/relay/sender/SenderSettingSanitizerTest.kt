@@ -70,7 +70,7 @@ class SenderSettingSanitizerTest {
             SenderType.SOCKET to """{"method":null,"address":null,"port":null,"uriType":null,"outCharset":null}""",
             SenderType.PUSHDEER to """{"pushkey":null}""",
             SenderType.YUNHU to """{"token":null,"recvId":null,"recvType":null,"contentType":null}""",
-            SenderType.MATRIX to """{"homeserver":null,"accessToken":null,"roomId":null,"messageType":null,"proxyType":null}""",
+            SenderType.MATRIX to """{"homeserver":null,"username":null,"password":null,"accessToken":null,"roomId":null,"messageType":null,"proxyType":null}""",
         )
 
         dirtyCases.forEach { (type, dirtyJson) ->
@@ -151,6 +151,8 @@ class SenderSettingSanitizerTest {
             SenderType.MATRIX,
             obfuscatedJson(
                 "homeserver" to "https://matrix.example.com",
+                "username" to "@relay:matrix.example.com",
+                "password" to "matrix-password",
                 "accessToken" to "matrix-token",
                 "roomId" to "!room:matrix.example.com",
                 "messageType" to "markdown",
@@ -168,6 +170,8 @@ class SenderSettingSanitizerTest {
         val setting = SenderSettingJson.decode<MatrixSetting>(sanitized.jsonSetting)
 
         assertEquals("markdown", setting.messageType)
+        assertEquals("@relay:matrix.example.com", setting.username)
+        assertEquals("matrix-password", setting.password)
         assertEquals("Relay", setting.titleTemplate)
         assertEquals(java.net.Proxy.Type.SOCKS, setting.proxyType)
         assertEquals("127.0.0.1", setting.proxyHost)

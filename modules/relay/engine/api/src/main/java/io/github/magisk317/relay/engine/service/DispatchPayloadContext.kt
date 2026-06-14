@@ -28,6 +28,7 @@ data class DispatchPayloadContext(
             appName = appName,
             title = title,
             message = message,
+            smsCode = event.smsCode.orEmpty(),
             contactName = event.contactName,
             phoneArea = event.phoneArea,
             appIcon = event.appIcon,

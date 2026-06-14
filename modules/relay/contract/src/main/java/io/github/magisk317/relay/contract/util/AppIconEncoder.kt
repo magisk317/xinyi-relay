@@ -19,6 +19,7 @@ import java.io.ByteArrayOutputStream
  */
 object AppIconEncoder {
     private const val ICON_SIZE = 128
+    private val APP_ICON_PLACEHOLDER_REGEX = Regex("\\{\\{\\s*APP_ICON\\s*}}", RegexOption.IGNORE_CASE)
 
     private val SMS_FALLBACK_PACKAGES = listOf(
         "com.android.mms",
@@ -62,6 +63,23 @@ object AppIconEncoder {
             val drawable = pm.getApplicationIcon(info)
             encodeDrawableToBase64Png(drawable, ICON_SIZE)
         }.getOrDefault("")
+    }
+
+    fun templateUsesAppIcon(template: String): Boolean {
+        return APP_ICON_PLACEHOLDER_REGEX.containsMatchIn(template)
+    }
+
+    fun resolveAppIcon(
+        context: Context,
+        packageName: String?,
+        msgType: String?,
+        template: String,
+        currentAppIcon: String,
+    ): String {
+        if (!templateUsesAppIcon(template)) return ""
+        if (currentAppIcon.isNotBlank()) return currentAppIcon
+        val resolvedPackage = resolveIconPackageName(context, packageName, msgType) ?: return ""
+        return encodeFromPackage(context, resolvedPackage)
     }
 
     fun resolveDefaultSmsPackage(context: Context): String? {

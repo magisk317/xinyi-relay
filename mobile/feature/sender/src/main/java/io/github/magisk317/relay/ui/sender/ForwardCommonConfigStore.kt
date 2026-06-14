@@ -11,6 +11,7 @@ import android.net.NetworkCapabilities
 import android.os.BatteryManager
 import android.os.Build
 import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.relay.contract.util.AppIconEncoder
 import io.github.magisk317.smscode.runtime.contract.sim.SimSlotLabelFormatter
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.engine.model.MsgInfo
@@ -126,27 +127,38 @@ IP地址列表：{{IP_LIST}}
             }
             else -> defaultTemplate()
         }
+        val renderedMsgInfo = msgInfo.copy(
+            appIcon = AppIconEncoder.resolveAppIcon(
+                context = context,
+                packageName = msgInfo.packageName,
+                msgType = messageType.runtimeType,
+                template = template,
+                currentAppIcon = msgInfo.appIcon,
+            ),
+        )
 
         val batterySnapshot = readBatterySnapshot(context)
         val networkSnapshot = readNetworkSnapshot(context)
-        val packageName = msgInfo.packageName.ifBlank { context.packageName }
-        val appName = if (msgInfo.appName.isNotBlank()) msgInfo.appName else resolveAppName(context, packageName)
-        val receiveTime = SimpleDateFormat(TIME_PATTERN, Locale.getDefault()).format(msgInfo.date)
+        val packageName = renderedMsgInfo.packageName.ifBlank { context.packageName }
+        val appName = if (renderedMsgInfo.appName.isNotBlank()) renderedMsgInfo.appName else resolveAppName(context, packageName)
+        val receiveTime = SimpleDateFormat(TIME_PATTERN, Locale.getDefault()).format(renderedMsgInfo.date)
         val currentTime = SimpleDateFormat(TIME_PATTERN, Locale.getDefault()).format(Date())
-        val cardSlot = resolveCardSlot(msgInfo, messageType, simRemarkSnapshot)
+        val cardSlot = resolveCardSlot(renderedMsgInfo, messageType, simRemarkSnapshot)
         val variables = mapOf(
-            "FROM" to msgInfo.from,
-            "SMS" to msgInfo.content,
+            "FROM" to renderedMsgInfo.from,
+            "SMS" to renderedMsgInfo.content,
+            "SMS_CODE" to renderedMsgInfo.smsCode,
+            "CODE" to renderedMsgInfo.smsCode,
             "CARD_SLOT" to cardSlot,
-            "CARD_SUBID" to if (msgInfo.subId > 0) msgInfo.subId.toString() else "",
-            "CALL_TYPE" to resolveCallTypeLabel(msgInfo.callType),
-            "CONTACT_NAME" to msgInfo.contactName,
-            "PHONE_AREA" to msgInfo.phoneArea,
+            "CARD_SUBID" to if (renderedMsgInfo.subId > 0) renderedMsgInfo.subId.toString() else "",
+            "CALL_TYPE" to resolveCallTypeLabel(renderedMsgInfo.callType),
+            "CONTACT_NAME" to renderedMsgInfo.contactName,
+            "PHONE_AREA" to renderedMsgInfo.phoneArea,
             "UID" to "",
             "PACKAGE_NAME" to packageName,
             "APP_NAME" to appName,
-            "TITLE" to msgInfo.title.ifBlank { msgInfo.simInfo.ifBlank { msgInfo.from } },
-            "MSG" to msgInfo.message.ifBlank { msgInfo.content },
+            "TITLE" to renderedMsgInfo.title.ifBlank { renderedMsgInfo.simInfo.ifBlank { renderedMsgInfo.from } },
+            "MSG" to renderedMsgInfo.message.ifBlank { renderedMsgInfo.content },
             "BATTERY_PCT" to batterySnapshot.percent,
             "BATTERY_STATUS" to batterySnapshot.status,
             "BATTERY_PLUGGED" to batterySnapshot.plugged,
@@ -160,6 +172,7 @@ IP地址列表：{{IP_LIST}}
             "CURRENT_TIME" to currentTime,
             "DEVICE_NAME" to config.deviceName,
             "APP_VERSION" to resolveAppVersion(context),
+            "APP_ICON" to renderedMsgInfo.appIcon,
         )
 
         var rendered = template
@@ -168,7 +181,7 @@ IP地址列表：{{IP_LIST}}
         }
         rendered = adaptTemplateForMessageType(rendered, messageType)
         val cleaned = removeEmptyValueLines(rendered)
-        return msgInfo.copy(content = cleaned)
+        return renderedMsgInfo.copy(content = cleaned)
     }
 
     private fun resolveCardSlot(

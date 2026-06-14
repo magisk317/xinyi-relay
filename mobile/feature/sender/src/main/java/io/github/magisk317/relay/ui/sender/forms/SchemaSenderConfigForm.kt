@@ -17,6 +17,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -42,6 +44,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.model.Sender
@@ -69,6 +73,7 @@ internal data class SchemaSenderFormFieldSpec(
     val minLines: Int = 1,
     val optionLabelRes: Map<String, Int> = emptyMap(),
     val visible: (SenderSettingDraft) -> Boolean = { true },
+    val isSecret: Boolean = false,
 )
 
 internal val MessageTypeOptionLabels = mapOf(
@@ -426,6 +431,8 @@ private fun SchemaSenderField(
         return
     }
 
+    var passwordVisible by remember { mutableStateOf(false) }
+
     OutlinedTextField(
         value = value,
         onValueChange = { next ->
@@ -444,6 +451,23 @@ private fun SchemaSenderField(
             { Text(stringResource(supportingTextRes)) }
         },
         minLines = spec.minLines,
+        visualTransformation = if (spec.isSecret && !passwordVisible) {
+            PasswordVisualTransformation()
+        } else {
+            VisualTransformation.None
+        },
+        trailingIcon = if (spec.isSecret) {
+            {
+                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    Icon(
+                        imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                        contentDescription = null,
+                    )
+                }
+            }
+        } else {
+            null
+        },
         keyboardOptions = if (metadata.type == SenderSettingFieldType.INTEGER) {
             KeyboardOptions(keyboardType = KeyboardType.Number)
         } else {

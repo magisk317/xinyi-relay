@@ -262,7 +262,9 @@ object SenderSettingSchemas {
         schema(
             SenderType.MATRIX,
             field("homeserver", requiredForEnable = true, aliases = arrayOf("o"), defaultValue = "https://matrix.org"),
-            field("accessToken", SenderSettingFieldType.SECRET, requiredForEnable = true, aliases = arrayOf("p")),
+            field("username", aliases = arrayOf("z")),
+            field("password", SenderSettingFieldType.SECRET, aliases = arrayOf("A")),
+            field("accessToken", SenderSettingFieldType.SECRET, aliases = arrayOf("p")),
             field("roomId", requiredForEnable = true, aliases = arrayOf("q")),
             field("messageType", aliases = arrayOf("r"), defaultValue = "text", options = arrayOf("text", "markdown")),
             field("titleTemplate", aliases = arrayOf("s")),

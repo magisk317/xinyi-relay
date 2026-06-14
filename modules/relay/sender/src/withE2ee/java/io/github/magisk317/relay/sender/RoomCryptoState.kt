@@ -26,6 +26,9 @@ internal object RoomCryptoState {
     private const val SUPPORTED_ALGORITHM = "m.megolm.v1.aes-sha2"
     internal const val CACHE_TTL_MS = 60 * 60 * 1000L // 60 minutes
     private const val QUERY_TIMEOUT_MS = 10_000L
+    private const val HTTP_OK = 200
+    private const val HTTP_UNAUTHORIZED = 401
+    private const val HTTP_FORBIDDEN = 403
 
     data class EncryptionInfo(
         val encrypted: Boolean,
@@ -64,6 +67,7 @@ internal object RoomCryptoState {
         return info.encrypted
     }
 
+    @Suppress("TooGenericExceptionCaught")
     private suspend fun queryRoomEncryption(
         homeserver: String,
         accessToken: String,
@@ -81,7 +85,14 @@ internal object RoomCryptoState {
             client.newCall(request).execute().use { response ->
                 val bodyString = response.body.string()
 
-                if (response.code != 200) {
+                if (response.code == HTTP_UNAUTHORIZED || response.code == HTTP_FORBIDDEN) {
+                    // Auth failure — don't cache this result and don't treat as "unencrypted".
+                    // Throw so the caller knows the token is invalid.
+                    SLog.w(TAG, "Room state query returned HTTP ${response.code} for room=$roomId (auth error, not caching)")
+                    throw IllegalStateException("Room encryption query failed: HTTP ${response.code} (token may be expired)")
+                }
+
+                if (response.code != HTTP_OK) {
                     SLog.d(TAG, "Room state query returned HTTP ${response.code} for room=$roomId")
                     return@withContext EncryptionInfo(
                         encrypted = false,

@@ -76,7 +76,7 @@ object DingtalkInnerRobotUtils {
 
     private fun sendInternal(setting: DingtalkInnerRobotSetting, token: String, msgInfo: MsgInfo) {
         val client = buildClient(setting)
-        val title = setting.titleTemplate.ifBlank { "信息驿站: ${msgInfo.from}" }
+        val title = SenderTemplateRenderer.renderTitle(setting.titleTemplate, msgInfo)
         val msgParam = if (setting.msgKey == "sampleMarkdown") {
             buildJsonObject {
                 put("title", title)

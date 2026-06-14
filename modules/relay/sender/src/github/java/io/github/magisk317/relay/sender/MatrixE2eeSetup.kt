@@ -11,5 +11,6 @@ object MatrixE2eeSetup {
     @Suppress("UNUSED_PARAMETER")
     fun init(context: Context) {
         MatrixE2eeAvailabilityProvider.install(GithubFeatureLoader)
+        MatrixE2eeVerificationProvider.install(MatrixE2eeVerificationManager)
     }
 }

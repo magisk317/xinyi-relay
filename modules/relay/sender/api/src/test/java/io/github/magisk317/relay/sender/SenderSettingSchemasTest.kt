@@ -116,7 +116,10 @@ class SenderSettingSchemasTest {
         assertFieldOptions(SenderType.YUNHU, "contentType", "text", "markdown")
         assertFieldDefault(SenderType.PUSHDEER, "type", "markdown")
         assertFieldOptions(SenderType.PUSHDEER, "type", "markdown", "text")
-        assertRequired(SenderType.MATRIX, "homeserver", "accessToken", "roomId")
+        assertRequired(SenderType.MATRIX, "homeserver", "roomId")
+        assertNotRequired(SenderType.MATRIX, "accessToken", "username", "password")
+        assertFieldType(SenderType.MATRIX, "accessToken", SenderSettingFieldType.SECRET)
+        assertFieldType(SenderType.MATRIX, "password", SenderSettingFieldType.SECRET)
         assertFieldDefault(SenderType.MATRIX, "homeserver", "https://matrix.org")
         assertFieldDefault(SenderType.MATRIX, "messageType", "text")
         assertFieldDefault(SenderType.MATRIX, "proxyType", "DIRECT")
@@ -126,7 +129,7 @@ class SenderSettingSchemasTest {
 
     @Test
     fun sharedSenderSchemaContract_matchesKotlinSchema() {
-        val contractFile = findWorkspaceFile("shared/contracts/senderSchemas.json")
+        val contractFile = findWorkspaceFile("frontend/shared/contracts/senderSchemas.json")
         val sharedSchemas = RelayJson.decode(
             ListSerializer(SenderSettingSchema.serializer()),
             contractFile.readText(),
@@ -141,6 +144,15 @@ class SenderSettingSchemasTest {
             .map { it.name }
         names.forEach { name ->
             assertTrue(name in requiredNames, "Expected $type.$name to be required")
+        }
+    }
+
+    private fun assertNotRequired(type: Int, vararg names: String) {
+        val requiredNames = SenderSettingSchemas.fieldsFor(type)
+            .filter { it.requiredForEnable }
+            .map { it.name }
+        names.forEach { name ->
+            assertFalse(name in requiredNames, "Expected $type.$name to be optional")
         }
     }
 
