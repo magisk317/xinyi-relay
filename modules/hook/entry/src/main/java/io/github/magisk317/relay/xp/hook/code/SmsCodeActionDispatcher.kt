@@ -112,6 +112,10 @@ internal object SmsCodeActionDispatcher {
         )
     }
 
+    fun resolveToastDelayMs(autoInputDelayMs: Long?): Long {
+        return SmsCodeActionScheduler.resolveToastDelayAfterAutoInput(autoInputDelayMs)
+    }
+
     private fun dispatchUiActions(
         uiHandler: Handler,
         pluginContext: Context,
