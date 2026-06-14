@@ -35,7 +35,7 @@ import io.github.magisk317.smscode.xposed.hook.notification.NotificationManagerH
 import io.github.magisk317.smscode.xposed.hook.permission.PermissionGranterHook
 import io.github.magisk317.smscode.xposed.hook.system.SystemInputInjectorHook
 import io.github.magisk317.smscode.xposed.hookapi.HookEnv
-import io.github.magisk317.smscode.xposed.hookapi.LibXposedHookApi
+import io.github.magisk317.smscode.xposed.hookapi.LibXposedHookApiFactory
 import io.github.magisk317.smscode.xposed.hookapi.LoadParam
 import io.github.magisk317.smscode.xposed.hookapi.ZygoteParam
 import io.github.magisk317.smscode.xposed.runtime.CoreRuntime
@@ -44,7 +44,8 @@ import io.github.magisk317.smscode.xposed.utils.XLog
 
 class LibXposedEntry : XposedModule {
     private companion object {
-        private const val LIBXPOSED_API_VERSION = 101
+        private const val MIN_LIBXPOSED_API_VERSION = 101
+        private const val PREFERRED_LIBXPOSED_API_VERSION = 102
     }
 
     @Suppress("unused", "UnusedParameter")
@@ -68,12 +69,14 @@ class LibXposedEntry : XposedModule {
 
     override fun onModuleLoaded(param: ModuleLoadedParam) {
         val api = apiVersion
-        if (api < LIBXPOSED_API_VERSION) {
-            Log.w(BuildConfig.LOG_TAG, "LibXposedEntry skipped: apiVersion=$api < $LIBXPOSED_API_VERSION")
+        if (api < MIN_LIBXPOSED_API_VERSION) {
+            Log.w(BuildConfig.LOG_TAG, "LibXposedEntry skipped: apiVersion=$api < $MIN_LIBXPOSED_API_VERSION")
             return
         }
-        if (api > LIBXPOSED_API_VERSION) {
-            Log.i(BuildConfig.LOG_TAG, "LibXposedEntry: apiVersion=$api > expected $LIBXPOSED_API_VERSION, proceeding (forward-compatible)")
+        if (api < PREFERRED_LIBXPOSED_API_VERSION) {
+            Log.w(BuildConfig.LOG_TAG, "LibXposedEntry running API 101 fallback: apiVersion=$api")
+        } else {
+            Log.i(BuildConfig.LOG_TAG, "LibXposedEntry running API 102 path: apiVersion=$api")
         }
         installCoreRuntime()
         XpHookDiagnostics.installRuntimeBridge(AndroidXpDiagnosticsBridge)
@@ -85,7 +88,7 @@ class LibXposedEntry : XposedModule {
         XpNotificationBridge.installPlatformBridge(AndroidNotificationPlatformBridge)
         XpSmsRuntimeBridge.installPlatformBridge(AndroidSmsRuntimeBridge)
         XpPrefs.installPlatformBridge(AndroidXpPrefsBridge)
-        HookEnv.init(LibXposedHookApi(this))
+        HookEnv.init(LibXposedHookApiFactory.create(this, apiVersion = api))
         XpPrefs.installRuntimeBridge(RuntimeBridgeFactory.create(this))
         processName = if (param.isSystemServer) "android" else param.processName
 
