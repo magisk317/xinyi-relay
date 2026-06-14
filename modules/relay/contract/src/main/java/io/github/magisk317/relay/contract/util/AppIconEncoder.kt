@@ -19,7 +19,7 @@ import java.io.ByteArrayOutputStream
  */
 object AppIconEncoder {
     private const val ICON_SIZE = 128
-    private val APP_ICON_PLACEHOLDER_REGEX = Regex("\\{\\{\\s*APP_ICON\\s*}}", RegexOption.IGNORE_CASE)
+    private val APP_ICON_PLACEHOLDER_REGEX = Regex("\\{\\{\\s*APP_ICON\\s*\\}\\}", RegexOption.IGNORE_CASE)
 
     private val SMS_FALLBACK_PACKAGES = listOf(
         "com.android.mms",

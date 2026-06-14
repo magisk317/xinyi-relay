@@ -1,9 +1,8 @@
 package io.github.magisk317.relay.ui.common
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -30,10 +29,6 @@ fun <T> SingleChoiceSegmentedSelector(
     ) {
         options.forEachIndexed { index, option ->
             val isSelected = option.value == selected
-            val weight by animateFloatAsState(
-                targetValue = if (isSelected) 3f else 1f,
-                label = "weightAnim",
-            )
             SegmentedButton(
                 selected = isSelected,
                 onClick = { onSelect(option.value) },
@@ -41,9 +36,11 @@ fun <T> SingleChoiceSegmentedSelector(
                     index = index,
                     count = options.size,
                 ),
-                modifier = Modifier
-                    .weight(weight)
-                    .heightIn(min = 40.dp),
+                modifier = if (isSelected) {
+                    Modifier.widthIn(min = 0.dp)
+                } else {
+                    Modifier.weight(1f)
+                }.heightIn(min = 40.dp),
                 icon = {},
                 label = {
                     CenteredChipText(text = option.label)
