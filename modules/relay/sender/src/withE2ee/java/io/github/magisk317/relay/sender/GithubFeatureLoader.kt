@@ -3,16 +3,15 @@ package io.github.magisk317.relay.sender
 /**
  * GitHub variant (withE2ee) implementation of [MatrixE2eeAvailability].
  *
- * Detects bundled native crypto library availability at runtime using
- * [Class.forName] to load the DFM marker class [MatrixE2eeFeature].
- * If the class is loadable, the native library is bundled and E2EE is available.
- * If loading fails (ClassNotFoundException or linkage error), reports [E2eeModuleStatus.LOAD_FAILED].
+ * In the withE2ee source set, the matrix-rust-sdk native library (libmatrix_sdk_ffi.so)
+ * is statically bundled into the APK at compile time. We verify availability by
+ * attempting to load the native library via JNA (which the SDK uses internally).
+ * If the .so is present and loadable, E2EE is available.
  */
 internal object GithubFeatureLoader : MatrixE2eeAvailability {
 
     private const val TAG = "GithubFeatureLoader"
-    private const val FEATURE_CLASS_NAME =
-        "io.github.magisk317.relay.feature.matrix.e2ee.MatrixE2eeFeature"
+    private const val NATIVE_LIB_NAME = "matrix_sdk_ffi"
 
     private val detectedStatus: E2eeModuleStatus by lazy { detectModule() }
 
@@ -22,16 +21,19 @@ internal object GithubFeatureLoader : MatrixE2eeAvailability {
     override val status: E2eeModuleStatus
         get() = detectedStatus
 
+    @Suppress("TooGenericExceptionCaught")
     private fun detectModule(): E2eeModuleStatus {
         return try {
-            Class.forName(FEATURE_CLASS_NAME)
-            SLog.i(TAG, "E2EE module detected: $FEATURE_CLASS_NAME loaded successfully")
+            // The withE2ee variant bundles libmatrix_sdk_ffi.so at compile time.
+            // Verify the native library is loadable on this device.
+            System.loadLibrary(NATIVE_LIB_NAME)
+            SLog.i(TAG, "E2EE native library loaded successfully: lib$NATIVE_LIB_NAME.so")
             E2eeModuleStatus.AVAILABLE
-        } catch (e: ClassNotFoundException) {
-            SLog.e(TAG, "E2EE module not found: ${e.message}")
+        } catch (e: UnsatisfiedLinkError) {
+            SLog.e(TAG, "E2EE native library not found or incompatible: ${e.message}")
             E2eeModuleStatus.LOAD_FAILED
-        } catch (e: LinkageError) {
-            SLog.e(TAG, "E2EE module linkage error: ${e.message}")
+        } catch (e: SecurityException) {
+            SLog.e(TAG, "E2EE native library load denied: ${e.message}")
             E2eeModuleStatus.LOAD_FAILED
         } catch (e: Exception) {
             SLog.e(TAG, "E2EE module detection failed: ${e.message}")

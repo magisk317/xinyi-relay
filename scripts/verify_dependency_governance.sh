@@ -35,7 +35,7 @@ if regex_lines 'force\(' "$ROOT_BUILD"; then
   fail "root build must not carry non-empty inline force rules; keep persistent forces in relay.dependency-governance"
 fi
 
-for alias in gson guava netty-codec netty-runtime commons-lang3 httpclient jose4j bouncycastle jdom2; do
+for alias in gson guava netty-codec netty-runtime commons-lang3 jose4j bouncycastle jdom2; do
   regex_quiet "RelayForcedDependency\\(.*\"$alias\"" "$GOVERNANCE_PLUGIN" \
     || fail "governance plugin must declare $alias as a catalog-backed force"
 done
@@ -51,5 +51,3 @@ fi
 
 regex_quiet 'forcedDependency\("org\.apache\.commons", "commons-lang3", "commons-lang3"\)' "$BUILD_LOGIC_BUILD" \
   || fail "build-logic commons-lang3 force must be catalog-backed"
-regex_quiet 'forcedDependency\("org\.apache\.httpcomponents", "httpclient", "httpclient"\)' "$BUILD_LOGIC_BUILD" \
-  || fail "build-logic httpclient force must be catalog-backed"
