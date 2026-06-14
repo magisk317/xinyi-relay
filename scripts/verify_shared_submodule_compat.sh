@@ -13,9 +13,8 @@ if [[ "${ALLOW_INCOMPATIBLE_DEBUG_SIGNING:-false}" == "true" ]]; then
   gradle_args+=("-PallowIncompatibleDebugSigning=true")
 fi
 
-bash scripts/with_workspace_gradle_lock.sh \
+./gradlew \
   --no-configuration-cache \
-  --ignore-submodule-lockfiles \
   "${gradle_args[@]}" \
   verifyEmbeddedSubmodules \
   verifyModuleBoundaries \
