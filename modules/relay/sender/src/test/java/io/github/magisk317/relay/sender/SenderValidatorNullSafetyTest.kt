@@ -47,7 +47,13 @@ class SenderValidatorNullSafetyTest {
     fun validateForEnable_matrixAcceptsUsernamePasswordWithoutAccessToken() {
         val sender = newSender(
             SenderType.MATRIX,
-            """{"homeserver":"https://matrix.example.com","username":"@relay:matrix.example.com","password":"matrix-password","roomId":"!room:matrix.example.com","messageType":"text"}""",
+            (
+                "{\"homeserver\":\"https://matrix.example.com\"," +
+                    "\"username\":\"@relay:matrix.example.com\"," +
+                    "\"password\":\"matrix-password\"," +
+                    "\"roomId\":\"!room:matrix.example.com\"," +
+                    "\"messageType\":\"text\"}"
+            ),
         )
 
         val result = SenderValidator.validateForEnable(sender)
