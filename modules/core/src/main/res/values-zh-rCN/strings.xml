@@ -853,7 +853,7 @@
     <string name="backup_source_local">本地</string>
     <string name="backup_source_google">Google Drive</string>
     <string name="backup_source_webdav">WebDAV</string>
-    <string name="backup_source_webdav_display">坚果云/WebDAV</string>
+    <string name="backup_source_webdav_display">WebDAV</string>
     <string name="dialog_backup_title">备份选择</string>
     <string name="dialog_restore_title">恢复确认</string>
     <string name="dialog_backup_msg">选择要备份的数据：</string>
