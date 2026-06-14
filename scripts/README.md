@@ -16,8 +16,8 @@ workflows stay focused on triggers, permissions, and job wiring.
   generated contract checks. Prefer extending an existing `verify_*.sh` entry
   over adding another one-off gate.
 - `sync_*.sh`: metadata and generated documentation synchronization.
-- `with_workspace_gradle_lock.sh`: serializes Gradle invocations that share the
-  workspace.
+- Gradle invocations stay direct (`./gradlew`) in callers; keep orchestration
+  there instead of adding workspace-lock wrappers.
 
 When adding new automation, first reuse an existing script or Gradle task. Add a
 new top-level script only when it owns a distinct workflow that cannot fit the

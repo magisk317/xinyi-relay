@@ -87,7 +87,7 @@ jobs:
 
       - name: Build GitHub APK with Splits
         run: >
-          bash scripts/with_workspace_gradle_lock.sh
+          ./gradlew
           assembleGithubNoE2eeRelease assembleGithubWithE2eeRelease
           -PbuildSplits
         env:
@@ -184,7 +184,7 @@ jobs:
           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/play/google-services.json
 
       - name: Build App Bundle
-        run: bash scripts/with_workspace_gradle_lock.sh bundlePlayNoE2eeRelease bundlePlayWithE2eeRelease
+        run: ./gradlew bundlePlayNoE2eeRelease bundlePlayWithE2eeRelease
         env:
           KEYSTORE_FILE: release.jks
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
