@@ -133,16 +133,16 @@ class RelayManifestContractTest {
         )
 
         val moduleProps = resolveProjectFile("modules/hook/entry/src/main/resources/META-INF/xposed/module.prop").readText()
-        assertTrue("minApiVersion=101" in moduleProps)
+        assertTrue("minApiVersion=102" in moduleProps)
         assertTrue("targetApiVersion=102" in moduleProps)
         assertTrue("staticScope=true" in moduleProps)
-        assertFalse("autoHotReload=" in moduleProps)
+        assertTrue("autoHotReload=true" in moduleProps)
 
         val entrySource = resolveProjectFile(
             "modules/hook/entry/src/main/java/io/github/magisk317/relay/xp/LibXposedEntry.kt",
         ).readText()
-        assertFalse("HotReloadingParam" in entrySource)
-        assertFalse("HotReloadedParam" in entrySource)
+        assertTrue("HotReloadingParam" in entrySource)
+        assertTrue("HotReloadedParam" in entrySource)
 
         val scope = resolveProjectFile("modules/hook/entry/src/main/resources/META-INF/xposed/scope.list")
             .readLines()
