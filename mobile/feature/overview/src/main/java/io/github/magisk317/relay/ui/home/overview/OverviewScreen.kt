@@ -2,8 +2,9 @@ package io.github.magisk317.relay.ui.home.overview
 
 import io.github.magisk317.relay.mobilefeature.overview.BuildConfig
 import io.github.magisk317.relay.ui.common.rememberPrefBoolean
-import io.github.magisk317.relay.ui.common.DonateDialog
-import io.github.magisk317.relay.ui.common.QRCodeDialog
+import io.github.magisk317.uikit.surface.DonateDialog
+import io.github.magisk317.uikit.surface.QRCodeDialog
+import io.github.magisk317.uikit.R as UiKitR
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
 
@@ -606,6 +607,8 @@ private fun OverviewCardItem(
     onShowDonate: () -> Unit,
     onStatusCardTap: () -> Unit,
 ) {
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val snackbarHostState = io.github.magisk317.relay.ui.common.LocalSnackbarHostState.current
     val dragEnabled = editMode
     HomeCardContainer(
         editMode = editMode,
@@ -681,18 +684,18 @@ private fun OverviewCardItem(
                 )
             }
             CARD_APP_INFO -> {
-                AppInfoCard(
+                io.github.magisk317.uikit.surface.OverviewAppInfoCard(
                     appVersionName = appVersionName,
                     appVersionCode = appVersionCode,
                     frameworkType = frameworkType,
                     frameworkVersion = frameworkVersion,
-                    hasRootAccess = hasRootAccess,
                     interactive = !editMode,
+                    onRootHint = if (hasRootAccess) null else { { scope.launch { snackbarHostState.showLatestSnackbar(context.getString(R.string.root_permission_hint)) } } },
                 )
             }
-            CARD_DEVICE_INFO -> DeviceInfoCard()
+            CARD_DEVICE_INFO -> io.github.magisk317.uikit.surface.OverviewDeviceInfoCard()
             CARD_LINKS -> {
-                LinksCard(
+                io.github.magisk317.uikit.surface.OverviewLinksCard(
                     onCheckUpdate = if (editMode) {
                         {}
                     } else {
@@ -704,6 +707,9 @@ private fun OverviewCardItem(
                         onShowDonate
                     },
                     interactive = !editMode,
+                    onJoinQQ = { io.github.magisk317.relay.common.utils.PackageUtils.joinQQGroup(context)?.let { scope.launch { snackbarHostState.showLatestSnackbar(it) } } },
+                    onJoinTelegram = { io.github.magisk317.relay.common.utils.Utils.showWebPage(context, io.github.magisk317.relay.contract.constant.RelayAppConst.TELEGRAM_GROUP_URL)?.let { scope.launch { snackbarHostState.showLatestSnackbar(it) } } },
+                    onSourceCode = { io.github.magisk317.relay.common.utils.Utils.showWebPage(context, io.github.magisk317.relay.contract.constant.RelayAppConst.PROJECT_SOURCE_CODE_URL)?.let { scope.launch { snackbarHostState.showLatestSnackbar(it) } } },
                 )
             }
         }
@@ -737,11 +743,11 @@ private fun OverviewDialogs(
             onDismiss = { onToggleDonateDialog(false) },
             onAlipay = {
                 onToggleDonateDialog(false)
-                onShowQrCodeDialog(Pair(R.drawable.alipay, "alipay"))
+                onShowQrCodeDialog(Pair(UiKitR.drawable.alipay, "alipay"))
             },
             onWechat = {
                 onToggleDonateDialog(false)
-                onShowQrCodeDialog(Pair(R.drawable.wx, "wechat"))
+                onShowQrCodeDialog(Pair(UiKitR.drawable.wx, "wechat"))
             },
             showPlayDonations = BuildConfig.HAS_BILLING,
             onDonate099 = { onPlayDonation("donate_099") },
