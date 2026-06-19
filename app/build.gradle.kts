@@ -1,7 +1,7 @@
 plugins {
     id("magisk.android.application")
+    id("relay.android.common")
     alias(libs.plugins.google.services)
-    id("magisk.android.common")
     id("magisk.app.signing")
     id("magisk.app.packaging")
 }
@@ -36,12 +36,19 @@ android {
     ndkVersion = ndkVersionStr
 
     // Dynamic Feature Module for E2EE is only used by Play variants.
-    // GitHub withE2ee bundles the native lib directly via withE2eeImplementation dependency.
-    // Only include the DFM when Play tasks are requested to avoid variant
-    // resolution conflicts with GitHub builds.
-    val isPlayBuild = gradle.startParameter.taskRequests.toString().contains("Play", ignoreCase = true)
+    // GitHubWithE2ee bundles the native lib directly in the sender module.
+    // Keep the DFM attached only for explicit Play bundle/build entrypoints so
+    // GitHub tasks do not resolve Play-only feature variants.
+    val requestedTasks = gradle.startParameter.taskNames
+    val isPlayBuild = requestedTasks.any { taskName ->
+        val normalized = taskName.substringAfterLast(':')
+        normalized.contains("bundlePlay", ignoreCase = true) ||
+            normalized.contains("packagePlay", ignoreCase = true) ||
+            normalized.contains("assemblePlay", ignoreCase = true) ||
+            normalized == "bundleRelease"
+    }
     if (isPlayBuild) {
-        dynamicFeatures += ":features:matrix-e2ee"
+        dynamicFeatures += ":features:matrix_e2ee"
     }
 
     androidResources {
@@ -83,6 +90,12 @@ android {
     sourceSets {
         getByName("main") {
             assets.directories.add(generatedSmsCodeRulesAssetsDir.get().asFile.path)
+        }
+        getByName("githubNoE2ee") {
+            setRoot("src/github")
+        }
+        getByName("githubWithE2ee") {
+            setRoot("src/github")
         }
     }
 
@@ -129,9 +142,10 @@ dependencies {
 
     add("playImplementation", platform(libs.firebase.bom))
     add("playImplementation", libs.firebase.analytics)
-    add("playImplementation", project(":features:matrix-e2ee"))
-    add("githubImplementation", platform(libs.firebase.bom))
-    add("githubImplementation", libs.firebase.analytics)
+    add("githubNoE2eeImplementation", platform(libs.firebase.bom))
+    add("githubNoE2eeImplementation", libs.firebase.analytics)
+    add("githubWithE2eeImplementation", platform(libs.firebase.bom))
+    add("githubWithE2eeImplementation", libs.firebase.analytics)
 
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)

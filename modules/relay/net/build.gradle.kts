@@ -1,6 +1,6 @@
 plugins {
     id("magisk.android.library")
-    id("magisk.android.common")
+    id("relay.android.common")
 }
 
 android {

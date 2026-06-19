@@ -85,7 +85,7 @@ object MatrixUtils {
         }
     }
 
-    internal fun buildSendUrl(homeserver: String, roomId: String, transactionId: String): String {
+    fun buildSendUrl(homeserver: String, roomId: String, transactionId: String): String {
         val baseUrl = normalizeHomeserver(homeserver).toHttpUrlOrNull()
             ?: throw IllegalStateException("Matrix homeserver 地址无效")
         val normalizedRoomId = roomId.trim()
@@ -102,7 +102,7 @@ object MatrixUtils {
             .toString()
     }
 
-    internal fun buildMessageJson(setting: MatrixSetting, msgInfo: MsgInfo): String {
+    fun buildMessageJson(setting: MatrixSetting, msgInfo: MsgInfo): String {
         val title = SenderTemplateRenderer.renderTitle(setting.titleTemplate, msgInfo)
         val body = "$title\n${msgInfo.content}"
         val messageType = setting.messageType.ifBlank { MatrixSetting().messageType }
@@ -118,7 +118,7 @@ object MatrixUtils {
         )
     }
 
-    internal fun buildClient(setting: MatrixSetting): OkHttpClient {
+    fun buildClient(setting: MatrixSetting): OkHttpClient {
         val builder = RelayHttpClients.newBuilder()
         if (setting.proxyType != Proxy.Type.DIRECT && setting.proxyHost.isNotBlank() && setting.proxyPort.isNotBlank()) {
             val port = setting.proxyPort.toIntOrNull() ?: 0
@@ -137,11 +137,11 @@ object MatrixUtils {
         return builder.build()
     }
 
-    internal fun buildFormattedBody(title: String, content: String): String {
+    fun buildFormattedBody(title: String, content: String): String {
         return "<strong>${escapeHtml(title)}</strong><br />${markdownInlineToHtml(content).replace("\n", "<br />")}"
     }
 
-    internal fun normalizeHomeserver(homeserver: String): String {
+    fun normalizeHomeserver(homeserver: String): String {
         return homeserver.trim().trimEnd('/')
     }
 

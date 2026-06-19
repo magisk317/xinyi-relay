@@ -5,7 +5,7 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 
-internal object SenderWireJson {
+object SenderWireJson {
     inline fun <reified T> decode(raw: String): T {
         return RelayJson.format.decodeFromString(raw)
     }

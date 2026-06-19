@@ -184,7 +184,7 @@ jobs:
           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/play/google-services.json
 
       - name: Build App Bundle
-        run: ./gradlew bundlePlayNoE2eeRelease bundlePlayWithE2eeRelease
+        run: ./gradlew bundlePlayRelease
         env:
           KEYSTORE_FILE: release.jks
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
@@ -196,14 +196,14 @@ jobs:
         with:
           name: bundle-assets
           path: |
-            app/build/outputs/bundle/play*Release/*.aab
-            app/build/outputs/mapping/play*Release/mapping.txt
+            app/build/outputs/bundle/playRelease/*.aab
+            app/build/outputs/mapping/playRelease/mapping.txt
 
       - name: Detect Play Native Symbols
         id: play_symbols
         shell: bash
         run: |
-          file="app/build/outputs/native-debug-symbols/play*Release/native-debug-symbols.zip"
+          file="app/build/outputs/native-debug-symbols/playRelease/native-debug-symbols.zip"
           if [[ -f "$file" ]]; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
             echo "path=$file" >> "$GITHUB_OUTPUT"

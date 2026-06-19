@@ -1,14 +1,18 @@
 package io.github.magisk317.relay.di
 
+import android.util.Log
 import io.github.magisk317.relay.app.AppInitializer
 import io.github.magisk317.relay.auth.AuthManager
 import io.github.magisk317.relay.auth.FirebaseAuthManager
 import io.github.magisk317.relay.auth.GoogleSignInHelper
 import io.github.magisk317.relay.auth.GoogleSignInHelperImpl
+import io.github.magisk317.relay.auth.NoOpAuthManager
+import io.github.magisk317.relay.auth.NoOpGoogleSignInHelper
 import io.github.magisk317.relay.backup.AutoCloudBackupCoordinator
 import io.github.magisk317.relay.backup.CloudAutoBackupTrigger
 import io.github.magisk317.relay.backup.CloudBackupProvider
 import io.github.magisk317.relay.backup.GoogleDriveBackupManager
+import io.github.magisk317.relay.backup.NoOpCloudBackupProvider
 import io.github.magisk317.relay.backup.PlayCloudBackupProvider
 import io.github.magisk317.relay.backup.WebDavBackupManager
 import io.github.magisk317.relay.backup.WebDavCloudBackupProvider
@@ -21,23 +25,46 @@ import io.github.magisk317.relay.contract.backup.AutoBackupTrigger
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
+private const val TAG = "BillingModule"
+
 val billingModule = module {
     single { BillingManager(get()) }
     single { SubscriptionManager(get(), get(), get()) }
     single<BillingProvider> { PlayBillingProvider(get(), get()) }
     single { BillingInitializer(get()) } bind AppInitializer::class
 
-    // Google Drive backup
+    // Auth — Firebase 构造失败时降级为 NoOp
+    single<GoogleSignInHelper> {
+        try {
+            GoogleSignInHelperImpl(get())
+        } catch (e: Exception) {
+            Log.e(TAG, "GoogleSignInHelper init failed, degrading to NoOp", e)
+            NoOpGoogleSignInHelper(get())
+        }
+    }
+    single<AuthManager> {
+        try {
+            FirebaseAuthManager(get(), get())
+        } catch (e: Exception) {
+            Log.e(TAG, "FirebaseAuthManager init failed, degrading to NoOp", e)
+            NoOpAuthManager()
+        }
+    }
+
+    // Google Drive backup — 构造失败时降级为 NoOp
     single { GoogleDriveBackupManager(get(), get()) }
-    single<CloudBackupProvider> { PlayCloudBackupProvider(get(), get(), get()) }
+    single<CloudBackupProvider> {
+        try {
+            PlayCloudBackupProvider(get(), get(), get())
+        } catch (e: Exception) {
+            Log.e(TAG, "PlayCloudBackupProvider init failed, degrading to NoOp", e)
+            NoOpCloudBackupProvider()
+        }
+    }
 
     // WebDAV backup
     single { WebDavBackupManager(get()) }
     single { WebDavCloudBackupProvider(get(), get()) }
     single { AutoCloudBackupCoordinator(get(), get<CloudBackupProvider>(), get()) }
     single<AutoBackupTrigger> { CloudAutoBackupTrigger(get()) }
-
-    single<GoogleSignInHelper> { GoogleSignInHelperImpl(get()) }
-    single { FirebaseAuthManager(get(), get()) }
-    single<AuthManager> { get<FirebaseAuthManager>() }
 }

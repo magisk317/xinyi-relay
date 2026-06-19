@@ -114,10 +114,13 @@ run_pre_push_checks() {
       verifyModuleBoundaries \
       verifyStructureBoundaries \
       verifyEmbeddedSubmodules \
-      assembleGithubDebug \
-      testGithubDebugUnitTest \
+      assembleGithubNoE2eeDebug \
+      assembleGithubWithE2eeDebug \
+      testGithubNoE2eeDebugUnitTest \
+      testGithubWithE2eeDebugUnitTest \
       :runtime:verifyNoComposeUiLeak \
-      :app:koverHtmlReportGithubDebug \
+      :app:koverHtmlReportGithubNoE2eeDebug \
+      :app:koverHtmlReportGithubWithE2eeDebug \
       -PbuildSplits
   )
 

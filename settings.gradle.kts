@@ -26,6 +26,16 @@ dependencyResolutionManagement {
         }
         // matrix-rust-sdk FFI is published to Maven Central
         // (org.matrix.rustcomponents:sdk-android)
+
+        // rustls-platform-verifier Android bindings hosted on GitHub Packages
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/magisk317/xinyi-relay")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR") ?: providers.gradleProperty("gpr.user").orNull
+                password = System.getenv("GITHUB_TOKEN") ?: providers.gradleProperty("gpr.key").orNull
+            }
+        }
     }
 }
 
@@ -63,7 +73,7 @@ include(
     ":smscode-core:runtime",
     ":smscode-core:verification",
     ":magisk-ui-kit",
-    ":features:matrix-e2ee",
+    ":features:matrix_e2ee",
 )
 
 // Explicitly remap moved smscode-core physical paths
@@ -88,6 +98,7 @@ project(":relay:engine").projectDir = file("modules/relay/engine")
 project(":relay:engine:api").projectDir = file("modules/relay/engine/api")
 project(":runtime").projectDir = file("modules/runtime")
 project(":xpbridge:core").projectDir = file("modules/xpbridge/core")
+project(":features:matrix_e2ee").projectDir = file("features/matrix-e2ee")
 
 // Map intermediate projects so Gradle knows their directories
 project(":hook").projectDir = file("modules/hook")

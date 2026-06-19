@@ -1,8 +1,8 @@
 plugins {
     id("magisk.android.library")
+    id("relay.android.common")
     id("magisk.android.compose")
     alias(libs.plugins.kotlin.serialization)
-    id("magisk.android.common")
 }
 
 val minSdkInt = libs.versions.minSdk.get().toInt()
@@ -30,6 +30,15 @@ android {
         disable.add("MissingTranslation")
         disable.add("LocalContextGetResourceValueCall")
         disable.add("NonObservableLocale")
+    }
+
+    sourceSets {
+        getByName("githubNoE2ee") {
+            setRoot("src/github")
+        }
+        getByName("githubWithE2ee") {
+            setRoot("src/github")
+        }
     }
 
 }
@@ -80,5 +89,6 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     add("playImplementation", libs.play.app.update)
     add("playImplementation", libs.play.services.auth)
-    add("githubImplementation", libs.play.services.auth)
+    add("githubNoE2eeImplementation", libs.play.services.auth)
+    add("githubWithE2eeImplementation", libs.play.services.auth)
 }

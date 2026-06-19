@@ -21,6 +21,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -116,6 +117,8 @@ private val MatrixVisibleFields = listOf(
 
 @Composable
 fun MatrixConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewModel) {
+    var e2eeInstallGeneration by remember { mutableIntStateOf(0) }
+
     SchemaSenderConfigForm(
         senderId = senderId,
         senderType = SenderType.MATRIX,
@@ -127,7 +130,11 @@ fun MatrixConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMo
         extraContent = { draft, _ ->
             MatrixE2eeStatusSection(
                 availability = MatrixE2eeAvailabilityProvider.get(),
+                onInstalled = {
+                    e2eeInstallGeneration++
+                },
             )
+            e2eeInstallGeneration
             MatrixE2eeVerificationSection(
                 availability = MatrixE2eeAvailabilityProvider.get(),
                 draft = draft,
@@ -148,6 +155,7 @@ fun MatrixConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMo
 @Composable
 internal fun MatrixE2eeStatusSection(
     availability: MatrixE2eeAvailability = MatrixE2eeAvailabilityProvider.get(),
+    onInstalled: (() -> Unit)? = null,
 ) {
     var currentStatus by remember { mutableStateOf(availability.status) }
     var downloadProgress by remember { mutableIntStateOf(0) }
@@ -168,6 +176,7 @@ internal fun MatrixE2eeStatusSection(
                     },
                     onSuccess = {
                         currentStatus = E2eeModuleStatus.AVAILABLE
+                        onInstalled?.invoke()
                     },
                     onFailure = { msg ->
                         errorMessage = msg
@@ -192,6 +201,7 @@ internal fun MatrixE2eeStatusSection(
                     },
                     onSuccess = {
                         currentStatus = E2eeModuleStatus.AVAILABLE
+                        onInstalled?.invoke()
                     },
                     onFailure = { msg ->
                         errorMessage = msg
@@ -406,17 +416,23 @@ private fun MatrixE2eeVerificationSection(
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val verification = remember { MatrixE2eeVerificationProvider.get() }
+    val verification = MatrixE2eeVerificationProvider.get()
     val state by verification.state.collectAsState()
-    DisposableEffect(verification) {
-        onDispose { verification.reset() }
-    }
     val setting = remember(draft) {
         runCatching {
             SenderSettingJson.decode(MatrixSetting.serializer(), draft.toJson())
         }.getOrNull()
     }
     val credentialsReady = setting?.username?.isNotBlank() == true && setting.password.isNotBlank()
+    DisposableEffect(verification) {
+        // Refresh verification state when entering the page
+        if (credentialsReady && setting != null) {
+            scope.launch {
+                runCatching { verification.prepare(context, setting) }
+            }
+        }
+        onDispose { verification.reset() }
+    }
 
     fun launchVerification(block: suspend () -> Unit) {
         scope.launch { block() }
@@ -491,6 +507,10 @@ private fun MatrixE2eeVerificationSection(
                 },
                 onReset = {
                     verification.reset()
+                },
+                onRevokeDevice = {
+                    val currentSetting = setting ?: return@MatrixVerificationActions
+                    launchVerification { verification.revokeDevice(context.applicationContext, currentSetting) }
                 },
             )
         }
@@ -636,6 +656,7 @@ private fun MatrixVerificationActions(
     onDecline: () -> Unit,
     onCancel: () -> Unit,
     onReset: () -> Unit,
+    onRevokeDevice: () -> Unit,
 ) {
     val enabled = credentialsReady && !state.isBusy
     when (state.status) {
@@ -667,7 +688,7 @@ private fun MatrixVerificationActions(
                 text = stringResource(R.string.matrix_e2ee_verification_stop_listening),
                 icon = Icons.Filled.Close,
                 enabled = enabled,
-                outlined = true,
+                secondary = true,
                 onClick = onReset,
             )
         }
@@ -682,7 +703,7 @@ private fun MatrixVerificationActions(
                 text = stringResource(R.string.matrix_e2ee_verification_cancel),
                 icon = Icons.Filled.Close,
                 enabled = enabled,
-                outlined = true,
+                secondary = true,
                 onClick = onCancel,
             )
         }
@@ -692,7 +713,7 @@ private fun MatrixVerificationActions(
                 text = stringResource(R.string.matrix_e2ee_verification_cancel),
                 icon = Icons.Filled.Close,
                 enabled = enabled,
-                outlined = true,
+                secondary = true,
                 onClick = onCancel,
             )
         }
@@ -709,7 +730,7 @@ private fun MatrixVerificationActions(
                 text = stringResource(R.string.matrix_e2ee_verification_cancel),
                 icon = Icons.Filled.Close,
                 enabled = enabled,
-                outlined = true,
+                secondary = true,
                 onClick = onCancel,
             )
         }
@@ -724,7 +745,7 @@ private fun MatrixVerificationActions(
                 text = stringResource(R.string.matrix_e2ee_verification_decline),
                 icon = Icons.Filled.Close,
                 enabled = enabled,
-                outlined = true,
+                secondary = true,
                 onClick = onDecline,
             )
         }
@@ -733,6 +754,16 @@ private fun MatrixVerificationActions(
         MatrixE2eeVerificationStatus.VERIFIED,
         MatrixE2eeVerificationStatus.UNAVAILABLE -> Unit
     }
+
+    if (state.deviceId.isNotBlank() && !state.isBusy && state.verificationState == "VERIFIED") {
+        MatrixVerificationButton(
+            text = stringResource(R.string.matrix_e2ee_verification_revoke_device),
+            icon = Icons.Filled.Close,
+            enabled = enabled,
+            isError = true,
+            onClick = onRevokeDevice,
+        )
+    }
 }
 
 @Composable
@@ -740,14 +771,22 @@ private fun MatrixVerificationButton(
     text: String,
     icon: ImageVector,
     enabled: Boolean,
-    outlined: Boolean = false,
+    secondary: Boolean = false,
+    isError: Boolean = false,
     onClick: () -> Unit,
 ) {
-    if (outlined) {
-        OutlinedButton(
+    if (secondary) {
+        FilledTonalButton(
             onClick = onClick,
             enabled = enabled,
             modifier = Modifier.fillMaxWidth(),
+            colors = if (isError) {
+                ButtonDefaults.filledTonalButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error,
+                )
+            } else {
+                ButtonDefaults.filledTonalButtonColors()
+            },
         ) {
             MatrixVerificationButtonContent(text = text, icon = icon)
         }
@@ -756,6 +795,14 @@ private fun MatrixVerificationButton(
             onClick = onClick,
             enabled = enabled,
             modifier = Modifier.fillMaxWidth(),
+            colors = if (isError) {
+                ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                )
+            } else {
+                ButtonDefaults.buttonColors()
+            },
         ) {
             MatrixVerificationButtonContent(text = text, icon = icon)
         }

@@ -27,6 +27,8 @@ interface MatrixE2eeVerification {
 
     suspend fun cancel()
 
+    suspend fun revokeDevice(context: android.content.Context, setting: io.github.magisk317.relay.sender.config.MatrixSetting)
+
     fun reset()
 }
 
@@ -97,6 +99,7 @@ object MatrixE2eeVerificationProvider {
         override suspend fun approve() = Unit
         override suspend fun decline() = Unit
         override suspend fun cancel() = Unit
+        override suspend fun revokeDevice(context: android.content.Context, setting: io.github.magisk317.relay.sender.config.MatrixSetting) = Unit
         override fun reset() = Unit
     }
 }

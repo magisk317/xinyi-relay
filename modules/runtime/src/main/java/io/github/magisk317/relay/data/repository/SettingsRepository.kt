@@ -7,6 +7,7 @@ import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.settings.*
 import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
+import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
@@ -637,13 +638,16 @@ class SettingsRepository(
 
     private suspend fun syncAndNoteRemoteMutation(source: String) {
         HookPreferenceMirror.publish(appContext)
-        RuntimeGraph.from(appContext).remoteAgentRepository.noteLocalMutation(source)
-        RuntimeGraph.from(appContext).autoBackupTrigger.scheduleAutoBackup(source)
+        runCatching { RuntimeGraph.from(appContext).remoteAgentRepository.noteLocalMutation(source) }
+            .onFailure { XLog.e("noteLocalMutation failed: %s", it.message ?: it.javaClass.simpleName) }
+        runCatching { RuntimeGraph.from(appContext).autoBackupTrigger.scheduleAutoBackup(source) }
+            .onFailure { XLog.e("scheduleAutoBackup failed: %s", it.message ?: it.javaClass.simpleName) }
     }
 
     private suspend fun syncAndScheduleAutoBackup(source: String) {
         HookPreferenceMirror.publish(appContext)
-        RuntimeGraph.from(appContext).autoBackupTrigger.scheduleAutoBackup(source)
+        runCatching { RuntimeGraph.from(appContext).autoBackupTrigger.scheduleAutoBackup(source) }
+            .onFailure { XLog.e("scheduleAutoBackup failed: %s", it.message ?: it.javaClass.simpleName) }
     }
 
     private suspend fun syncLocalOnly() {

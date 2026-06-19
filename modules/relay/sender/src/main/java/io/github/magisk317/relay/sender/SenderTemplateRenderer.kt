@@ -4,7 +4,7 @@ import io.github.magisk317.relay.engine.model.MsgInfo
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-internal object SenderTemplateRenderer {
+object SenderTemplateRenderer {
     private const val TIME_PATTERN = "yyyy-MM-dd HH:mm:ss"
 
     fun renderTitle(template: String, msgInfo: MsgInfo): String {
