@@ -177,70 +177,19 @@ fun TextInputDialog(
     onFocusLost: ((String) -> Unit)? = null,
     onConfirm: (String) -> Unit,
 ) {
-    var fieldValue by remember(title, initialValue) { mutableStateOf(TextFieldValue(initialValue)) }
-    val errorText = validator?.invoke(fieldValue.text)
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = title) },
-        text = {
-            Column {
-                OutlinedTextField(
-                    value = fieldValue,
-                    onValueChange = { updated ->
-                        val filteredText = inputFilter?.invoke(updated.text) ?: updated.text
-                        fieldValue = if (filteredText == updated.text) {
-                            updated
-                        } else {
-                            updated.copy(
-                                text = filteredText,
-                                selection = TextRange(filteredText.length),
-                            )
-                        }
-                    },
-                    singleLine = singleLine,
-                    maxLines = maxLines,
-                    keyboardOptions = keyboardOptions,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .onFocusChanged { focusState ->
-                            if (!focusState.isFocused && errorText == null) {
-                                onFocusLost?.invoke(fieldValue.text)
-                            }
-                        },
-                    supportingText = {
-                        when {
-                            errorText != null -> Text(errorText)
-                            !supportingText.isNullOrBlank() -> Text(supportingText)
-                        }
-                    },
-                    isError = errorText != null,
-                )
-                if (resetValue != null) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    TextButton(onClick = {
-                        fieldValue = TextFieldValue(
-                            text = resetValue,
-                            selection = TextRange(resetValue.length),
-                        )
-                    }) {
-                        Text(text = stringResource(id = R.string.action_restore_default))
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(fieldValue.text) },
-                enabled = errorText == null,
-            ) {
-                Text(text = stringResource(android.R.string.ok))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = stringResource(android.R.string.cancel))
-            }
-        },
+    io.github.magisk317.uikit.surface.AppInputDialog(
+        title = title,
+        initialValue = initialValue,
+        onDismiss = onDismiss,
+        onConfirm = onConfirm,
+        supportingText = supportingText,
+        singleLine = singleLine,
+        maxLines = maxLines,
+        keyboardOptions = keyboardOptions,
+        inputFilter = inputFilter,
+        validator = validator,
+        resetValue = resetValue,
+        onFocusLost = onFocusLost,
     )
 }
 

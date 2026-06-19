@@ -1,6 +1,6 @@
 plugins {
     id("com.android.dynamic-feature")
-    id("relay.android.common")
+    id("magisk.android.common")
 }
 
 android {

@@ -5,17 +5,23 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/scripts/regex_helpers.sh"
 ROOT_BUILD="$ROOT_DIR/build.gradle.kts"
 ROOT_SETTINGS="$ROOT_DIR/settings.gradle.kts"
-BUILD_LOGIC_BUILD="$ROOT_DIR/build-logic/build.gradle.kts"
 BUILD_LOGIC_SETTINGS="$ROOT_DIR/build-logic/settings.gradle.kts"
-GOVERNANCE_PLUGIN="$ROOT_DIR/build-logic/src/main/kotlin/RelayDependencyGovernance.kt"
+LEGACY_GOVERNANCE_SCRIPT="$ROOT_DIR/build-logic/src/main/kotlin/relay.dependency-governance.gradle.kts"
+LEGACY_GOVERNANCE_SOURCE="$ROOT_DIR/build-logic/src/main/kotlin/RelayDependencyGovernance.kt"
 
 fail() {
   echo "dependency governance violation: $*" >&2
   exit 1
 }
 
-regex_quiet 'id\("relay\.dependency-governance"\)' "$ROOT_BUILD" \
-  || fail "root build must apply relay.dependency-governance"
+for legacy_file in "$LEGACY_GOVERNANCE_SCRIPT" "$LEGACY_GOVERNANCE_SOURCE"; do
+  [[ ! -e "$legacy_file" ]] \
+    || fail "$(realpath --relative-to="$ROOT_DIR" "$legacy_file") must be removed after localizing dependency governance"
+done
+
+if regex_quiet 'id\("relay\.dependency-governance"\)' "$ROOT_BUILD"; then
+  fail "root build must not apply relay.dependency-governance"
+fi
 
 for file in "$ROOT_SETTINGS" "$BUILD_LOGIC_SETTINGS"; do
   regex_quiet 'RepositoriesMode\.FAIL_ON_PROJECT_REPOS' "$file" \
@@ -31,23 +37,37 @@ if regex_lines 'maven\("https://jitpack\.io"\)|maven\("https://s01\.oss\.sonatyp
   fail "root build must not carry project repositories"
 fi
 
-if regex_lines 'force\(' "$ROOT_BUILD"; then
-  fail "root build must not carry non-empty inline force rules; keep persistent forces in relay.dependency-governance"
-fi
+managed_begin_count="$(regex_matches 'BEGIN AUTO FORCED DEPENDENCIES \(managed by workflow\)' "$ROOT_BUILD" | wc -l | tr -d ' ')"
+[[ "$managed_begin_count" == "2" ]] \
+  || fail "root build must keep managed force blocks in both buildscript and allprojects"
 
-for alias in gson guava netty-codec netty-runtime commons-lang3 jose4j bouncycastle jdom2; do
-  regex_quiet "RelayForcedDependency\\(.*\"$alias\"" "$GOVERNANCE_PLUGIN" \
-    || fail "governance plugin must declare $alias as a catalog-backed force"
+managed_end_count="$(regex_matches 'END AUTO FORCED DEPENDENCIES \(managed by workflow\)' "$ROOT_BUILD" | wc -l | tr -d ' ')"
+[[ "$managed_end_count" == "2" ]] \
+  || fail "root build must keep matching managed force block endings"
+
+for entry in \
+  'gson:::force\("com\.google\.code\.gson:gson:[^"]+"\)' \
+  'guava:::force\("com\.google\.guava:guava:[^"]+"\)' \
+  'netty-codec:::force\("io\.netty:netty-codec:[^"]+"\)' \
+  'commons-lang3:::force\("org\.apache\.commons:commons-lang3:[^"]+"\)' \
+  'jose4j:::force\("org\.bitbucket\.b_c:jose4j:[^"]+"\)' \
+  'bouncycastle:::force\("org\.bouncycastle:bcpkix-jdk18on:[^"]+"\)' \
+  'jdom2:::force\("org\.jdom:jdom2:[^"]+"\)'
+do
+  name="${entry%%:::*}"
+  pattern="${entry#*:::}"
+  regex_quiet "$pattern" "$ROOT_BUILD" \
+    || fail "root build must keep localized force rule for $name"
 done
 
-regex_quiet 'catalogVersionOrNull\(forcedDependency\.versionAlias\)' "$GOVERNANCE_PLUGIN" \
-  || fail "governance plugin must resolve forced versions through the catalog alias"
-regex_quiet 'fun forcedDependency\(group: String, name: String, versionAlias: String\)' "$BUILD_LOGIC_BUILD" \
-  || fail "build-logic forcedDependency helper must name its third argument versionAlias"
+for asm_artifact in asm asm-commons asm-tree asm-analysis asm-util; do
+  regex_quiet "force\\(\"org\\.ow2\\.asm:${asm_artifact}:[^\"]+\"\\)" "$ROOT_BUILD" \
+    || fail "root build must keep custom migration override for ${asm_artifact}"
+done
 
-if regex_lines '"3\.18\.0"|"4\.5\.13"' "$BUILD_LOGIC_BUILD" "$GOVERNANCE_PLUGIN" "$ROOT_BUILD"; then
+regex_quiet 'force\("org\.jetbrains\.kotlin:kotlin-metadata-jvm:\$forcedKotlinVersion"\)' "$ROOT_BUILD" \
+  || fail "root build must keep custom migration override for kotlin-metadata-jvm"
+
+if regex_lines '"3\.18\.0"|"4\.5\.13"' "$ROOT_BUILD"; then
   fail "stale forced dependency versions must not reappear"
 fi
-
-regex_quiet 'forcedDependency\("org\.apache\.commons", "commons-lang3", "commons-lang3"\)' "$BUILD_LOGIC_BUILD" \
-  || fail "build-logic commons-lang3 force must be catalog-backed"

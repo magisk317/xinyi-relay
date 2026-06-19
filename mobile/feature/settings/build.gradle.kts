@@ -1,7 +1,7 @@
 plugins {
-    alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.compose)
-    id("relay.android.common")
+    id("magisk.android.library")
+    id("magisk.android.compose")
+    id("magisk.android.common")
 }
 
 val minSdkInt = libs.versions.minSdk.get().toInt()

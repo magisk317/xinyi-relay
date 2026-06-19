@@ -1,6 +1,6 @@
 plugins {
-    alias(libs.plugins.android.library)
-    id("relay.android.common")
+    id("magisk.android.library")
+    id("magisk.android.common")
 }
 
 android {

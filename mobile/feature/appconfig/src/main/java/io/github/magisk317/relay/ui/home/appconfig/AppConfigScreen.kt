@@ -56,10 +56,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.android.data.db.entity.AppInfo
 import io.github.magisk317.relay.ui.common.AppIconImage
-import io.github.magisk317.relay.ui.common.LoadingIndicatorTokens
-import io.github.magisk317.relay.ui.common.PolygonMorphLoadingIndicator
-import io.github.magisk317.relay.ui.common.SessionLoadingRegistry
-import io.github.magisk317.relay.ui.common.rememberMinDurationLoading
+import io.github.magisk317.uikit.foundation.LoadingIndicatorTokens
+import io.github.magisk317.uikit.foundation.PolygonMorphLoadingIndicator
+import io.github.magisk317.uikit.foundation.SessionLoadingRegistry
+import io.github.magisk317.uikit.foundation.rememberMinDurationLoading
 import io.github.magisk317.uikit.surface.OverlayHeaderScaffold
 import io.github.magisk317.uikit.surface.WorkspaceListItem
 import io.github.magisk317.uikit.surface.WorkspaceTopBarSearchOverlay

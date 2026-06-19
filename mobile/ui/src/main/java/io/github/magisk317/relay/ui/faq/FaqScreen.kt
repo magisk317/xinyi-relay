@@ -26,10 +26,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.ui.common.LoadingIndicatorTokens
-import io.github.magisk317.relay.ui.common.PolygonMorphLoadingIndicator
-import io.github.magisk317.relay.ui.common.SessionLoadingRegistry
-import io.github.magisk317.relay.ui.common.rememberMinDurationLoading
+import io.github.magisk317.uikit.foundation.LoadingIndicatorTokens
+import io.github.magisk317.uikit.foundation.PolygonMorphLoadingIndicator
+import io.github.magisk317.uikit.foundation.SessionLoadingRegistry
+import io.github.magisk317.uikit.foundation.rememberMinDurationLoading
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.blurEffect
