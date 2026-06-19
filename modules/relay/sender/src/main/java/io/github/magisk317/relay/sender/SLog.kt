@@ -4,7 +4,7 @@ package io.github.magisk317.relay.sender
  * Internal logging facade for sender implementations.
  * Delegates to [SenderLogger] which is wired by relay/android at init time.
  */
-internal object SLog {
+object SLog {
     fun d(tag: String, message: String) = SenderLogger.d(tag, message)
     fun i(tag: String, message: String) = SenderLogger.i(tag, message)
     fun w(tag: String, message: String) = SenderLogger.w(tag, message)

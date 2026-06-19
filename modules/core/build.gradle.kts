@@ -1,8 +1,8 @@
 plugins {
     id("magisk.android.library")
+    id("relay.android.common")
     alias(libs.plugins.kotlin.serialization)
     id(libs.plugins.kotlin.parcelize.get().pluginId)
-    id("magisk.android.common")
 }
 
 val minSdkInt = libs.versions.minSdk.get().toInt()
@@ -29,6 +29,15 @@ android {
         disable.add("MissingTranslation")
         disable.add("LocalContextGetResourceValueCall")
         disable.add("NonObservableLocale")
+    }
+
+    sourceSets {
+        getByName("githubNoE2ee") {
+            setRoot("src/github")
+        }
+        getByName("githubWithE2ee") {
+            setRoot("src/github")
+        }
     }
 
 }

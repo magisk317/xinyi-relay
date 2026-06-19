@@ -8,7 +8,10 @@ import android.content.Context
  */
 object MatrixE2eeSetup {
     fun init(context: Context) {
-        MatrixE2eeAvailabilityProvider.install(PlayFeatureLoader(context))
-        MatrixE2eeVerificationProvider.install(MatrixE2eeVerificationManager)
+        val loader = PlayFeatureLoader(context)
+        MatrixE2eeAvailabilityProvider.install(loader)
+        if (!MatrixE2eeVerificationProvider.isInstalled) {
+            MatrixE2eeVerificationProvider.install(MatrixE2eeVerificationManager)
+        }
     }
 }

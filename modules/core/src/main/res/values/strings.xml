@@ -1276,6 +1276,7 @@
     <string name="matrix_e2ee_verification_start_sas">Start SAS</string>
     <string name="matrix_e2ee_verification_confirm">Confirm match</string>
     <string name="matrix_e2ee_verification_decline">Decline</string>
+    <string name="matrix_e2ee_verification_revoke_device">Revoke Device</string>
     <string name="matrix_e2ee_verification_cancel">Cancel</string>
     <string name="matrix_e2ee_verification_trust_verified">Verified</string>
     <string name="matrix_e2ee_verification_trust_unverified">Unverified</string>

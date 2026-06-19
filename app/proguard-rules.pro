@@ -74,3 +74,9 @@
 -dontwarn java.lang.management.RuntimeMXBean
 # Ktor debug detector end
 # ==========================
+
+# ==========================
+# rustls-platform-verifier start
+-keep, includedescriptorclasses class org.rustls.platformverifier.** { *; }
+# rustls-platform-verifier end
+# ==========================

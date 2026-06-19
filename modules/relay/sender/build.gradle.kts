@@ -1,8 +1,8 @@
 plugins {
     id("magisk.android.library")
+    id("relay.android.common")
     alias(libs.plugins.kotlin.serialization)
     id(libs.plugins.kotlin.parcelize.get().pluginId)
-    id("magisk.android.common")
 }
 
 android {
@@ -17,18 +17,6 @@ android {
         buildConfig = true
     }
 
-    sourceSets {
-        // Each e2ee flavor gets its own MatrixE2eeUtils implementation.
-        // The "main" source set contains the shared logic; the flavor
-        // source sets provide the E2EE-aware or plain-text fallback.
-        getByName("noE2ee") {
-            java.directories += "src/noE2ee/java"
-        }
-        getByName("withE2ee") {
-            java.directories += "src/withE2ee/java"
-        }
-    }
-
     packaging {
         resources {
             excludes += "META-INF/NOTICE.md"
@@ -37,7 +25,6 @@ android {
     }
 
 }
-
 dependencies {
     implementation(project(":relay:sender:api"))
     implementation(project(":relay:contract"))
@@ -52,7 +39,9 @@ dependencies {
     implementation(libs.paho.mqtt)
     // matrix-rust-sdk FFI for E2EE support
     // Published as "sdk-android" on Maven Central by element-hq
-    add("withE2eeImplementation", libs.matrix.sdk.android)
+    add("githubWithE2eeImplementation", libs.matrix.sdk.android)
+    // rustls-platform-verifier Android bindings (required by matrix-rust-sdk for TLS on Android)
+    add("githubWithE2eeImplementation", "rustls:rustls-platform-verifier:0.1.1")
     // Play Feature Delivery for on-demand E2EE module installation
     add("playImplementation", libs.play.feature.delivery)
     testImplementation(libs.junit.jupiter)

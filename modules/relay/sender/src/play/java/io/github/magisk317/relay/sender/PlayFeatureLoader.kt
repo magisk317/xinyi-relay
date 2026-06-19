@@ -13,7 +13,7 @@ import com.google.android.play.core.splitinstall.model.SplitInstallSessionStatus
  * Play variant implementation of [MatrixE2eeAvailability].
  *
  * Uses Google Play Feature Delivery ([SplitInstallManager]) to detect whether
- * the `matrix-e2ee` dynamic feature module is installed, trigger on-demand
+ * the `matrix_e2ee` dynamic feature module is installed, trigger on-demand
  * installation, and load it via [SplitCompat] after install completes.
  */
 internal class PlayFeatureLoader(private val context: Context) : MatrixE2eeAvailability {
@@ -45,7 +45,7 @@ internal class PlayFeatureLoader(private val context: Context) : MatrixE2eeAvail
         get() = lastErrorMessage
 
     /**
-     * Trigger installation of the `matrix-e2ee` dynamic feature module.
+     * Trigger installation of the `matrix_e2ee` dynamic feature module.
      *
      * @param onProgress called with progress percentage (0–100) during download
      * @param onSuccess called when module installation completes successfully
@@ -171,21 +171,28 @@ internal class PlayFeatureLoader(private val context: Context) : MatrixE2eeAvail
             SplitCompat.install(context)
             // Verify the module is loadable by probing a known class
             Class.forName(PROBE_CLASS_NAME)
+            installFeatureBridge()
             currentStatus = E2eeModuleStatus.AVAILABLE
-            SLog.i(TAG, "matrix-e2ee module loaded successfully via SplitCompat")
+            SLog.i(TAG, "matrix_e2ee module loaded successfully via SplitCompat")
         } catch (e: Exception) {
-            val msg = "Failed to load matrix-e2ee module after install: ${e.message}"
+            val msg = "Failed to load matrix_e2ee module after install: ${e.message}"
             lastErrorMessage = msg
             currentStatus = E2eeModuleStatus.LOAD_FAILED
             SLog.e(TAG, msg)
         }
     }
 
+    private fun installFeatureBridge() {
+        val bridgeClass = Class.forName(BRIDGE_CLASS_NAME)
+        bridgeClass.getMethod("install", Context::class.java)
+            .invoke(null, context.applicationContext)
+    }
+
     companion object {
         private const val TAG = "PlayFeatureLoader"
 
         /** Name of the dynamic feature module as declared in the DFM's AndroidManifest. */
-        private const val MODULE_NAME = "matrix-e2ee"
+        private const val MODULE_NAME = "matrix_e2ee"
 
         /**
          * A class from the DFM used to verify the module loaded correctly.
@@ -193,5 +200,13 @@ internal class PlayFeatureLoader(private val context: Context) : MatrixE2eeAvail
          */
         private const val PROBE_CLASS_NAME =
             "io.github.magisk317.relay.feature.matrix.e2ee.MatrixE2eeFeature"
+
+        /**
+         * Runtime bridge exported by the DFM. The base APK reaches it through
+         * reflection so the Play noE2ee shell does not statically link the
+         * matrix-rust-sdk implementation.
+         */
+        private const val BRIDGE_CLASS_NAME =
+            "io.github.magisk317.relay.feature.matrix.e2ee.MatrixE2eeBridge"
     }
 }

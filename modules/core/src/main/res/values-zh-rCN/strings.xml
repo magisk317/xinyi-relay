@@ -1286,6 +1286,7 @@
     <string name="matrix_e2ee_verification_start_sas">开始 SAS</string>
     <string name="matrix_e2ee_verification_confirm">确认匹配</string>
     <string name="matrix_e2ee_verification_decline">拒绝</string>
+    <string name="matrix_e2ee_verification_revoke_device">吊销设备</string>
     <string name="matrix_e2ee_verification_cancel">取消</string>
     <string name="matrix_e2ee_verification_trust_verified">已验证</string>
     <string name="matrix_e2ee_verification_trust_unverified">未验证</string>
