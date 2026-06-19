@@ -1,12 +1,26 @@
 import dev.detekt.gradle.extensions.DetektExtension
 import com.adarshr.gradle.testlogger.theme.ThemeType
+import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.api.tasks.Exec
 import kotlinx.kover.gradle.plugin.dsl.KoverProjectExtension
 
 buildscript {
-    configurations.classpath {
+    configurations.all {
         resolutionStrategy {
             // BEGIN AUTO FORCED DEPENDENCIES (managed by workflow)
+            force("com.google.code.gson:gson:2.14.0")
+            force("com.google.guava:guava:33.6.0-jre")
+            force("io.netty:netty-codec:5.0.0.Alpha2")
+            force("io.netty:netty-codec-http:5.0.0.Alpha2")
+            force("io.netty:netty-codec-http2:5.0.0.Alpha2")
+            force("io.netty:netty-common:5.0.0.Alpha2")
+            force("io.netty:netty-handler:5.0.0.Alpha2")
+            force("io.netty:netty-handler-proxy:5.0.0.Alpha2")
+            force("org.apache.commons:commons-lang3:3.20.0")
+            force("org.bitbucket.b_c:jose4j:0.9.6")
+            force("org.bouncycastle:bcpkix-jdk18on:1.84")
+            force("org.bouncycastle:bcprov-jdk18on:1.84")
+            force("org.jdom:jdom2:2.0.6.1")
             // END AUTO FORCED DEPENDENCIES (managed by workflow)
         }
     }
@@ -14,17 +28,16 @@ buildscript {
 
 plugins {
     alias(libs.plugins.version.catalog.update)
-    alias(libs.plugins.android.application) apply false
-    alias(libs.plugins.android.library) apply false
+    id("magisk.android.application") apply false
+    id("magisk.android.library") apply false
     alias(libs.plugins.kotlin.android) apply false
     alias(libs.plugins.kotlin.parcelize) apply false
-    alias(libs.plugins.kotlin.compose) apply false
+    id("magisk.android.compose") apply false
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.detekt) apply false
     alias(libs.plugins.kover) apply false
     alias(libs.plugins.test.logger) apply false
-    id("relay.dependency-governance")
     id("magisk.maintenance")
 }
 
@@ -52,13 +65,44 @@ fun KoverProjectExtension.configureProjectKoverVerification(lineCoverageMin: Int
     }
 }
 
-subprojects {
-    configurations.all {
+val forcedKotlinVersion = extensions
+    .getByType<VersionCatalogsExtension>()
+    .named("libs")
+    .findVersion("kotlin")
+    .get()
+    .requiredVersion
+
+allprojects {
+    configurations.configureEach {
         resolutionStrategy {
             // BEGIN AUTO FORCED DEPENDENCIES (managed by workflow)
+            force("com.google.code.gson:gson:2.14.0")
+            force("com.google.guava:guava:33.6.0-jre")
+            force("io.netty:netty-codec:5.0.0.Alpha2")
+            force("io.netty:netty-codec-http:5.0.0.Alpha2")
+            force("io.netty:netty-codec-http2:5.0.0.Alpha2")
+            force("io.netty:netty-common:5.0.0.Alpha2")
+            force("io.netty:netty-handler:5.0.0.Alpha2")
+            force("io.netty:netty-handler-proxy:5.0.0.Alpha2")
+            force("org.apache.commons:commons-lang3:3.20.0")
+            force("org.bitbucket.b_c:jose4j:0.9.6")
+            force("org.bouncycastle:bcpkix-jdk18on:1.84")
+            force("org.bouncycastle:bcprov-jdk18on:1.84")
+            force("org.jdom:jdom2:2.0.6.1")
             // END AUTO FORCED DEPENDENCIES (managed by workflow)
+
+            // Custom migration overrides for Java 26 compatibility
+            force("org.jetbrains.kotlin:kotlin-metadata-jvm:$forcedKotlinVersion")
+            force("org.ow2.asm:asm:9.10")
+            force("org.ow2.asm:asm-commons:9.10")
+            force("org.ow2.asm:asm-tree:9.10")
+            force("org.ow2.asm:asm-analysis:9.10")
+            force("org.ow2.asm:asm-util:9.10")
         }
     }
+}
+
+subprojects {
 
     fun Project.configureDetekt() {
         apply(plugin = "dev.detekt")
@@ -69,17 +113,7 @@ subprojects {
             config.setFrom(files("${rootProject.projectDir}/config/detekt/detekt.yml"))
         }
         dependencies {
-            "detektPlugins"(catalog.detekt.rules.ktlint) {
-                exclude(group = "dev.detekt", module = "ktlint-repackage")
-            }
-        }
-        tasks.withType<dev.detekt.gradle.Detekt>().configureEach {
-            ignoreFailures = true
-            reports {
-                html.required.set(true)
-                checkstyle.required.set(true)
-                sarif.required.set(true)
-            }
+            "detektPlugins"(catalog.detekt.rules.ktlint)
         }
     }
 
@@ -149,14 +183,14 @@ tasks.register<Exec>("verifyEmbeddedSubmodules") {
 
 tasks.register<Exec>("verifyDependencyGovernance") {
     group = "verification"
-    description = "Ensure dependency repositories and forced dependency governance stay centralized."
+    description = "Ensure dependency repositories stay centralized and force rules stay localized in the root build."
     workingDir = rootProject.projectDir
     commandLine("bash", "${rootProject.projectDir}/scripts/verify_dependency_governance.sh")
 }
 
 tasks.register("check") {
     group = "verification"
-    description = "Run root project architecture and dependency governance checks."
+    description = "Run root project architecture and localized dependency governance checks."
     dependsOn(
         "verifyModuleBoundaries",
         "verifyStructureBoundaries",

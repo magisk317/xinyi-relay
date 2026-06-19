@@ -68,11 +68,11 @@ import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.smscode.rule.utils.CodeRecordSimilarityUtils
 import io.github.magisk317.relay.contract.util.AppIconEncoder
 import io.github.magisk317.relay.ui.common.AppIconImage
-import io.github.magisk317.relay.ui.common.LoadingIndicatorTokens
-import io.github.magisk317.relay.ui.common.PolygonMorphLoadingIndicator
-import io.github.magisk317.relay.ui.common.SessionLoadingRegistry
+import io.github.magisk317.uikit.foundation.LoadingIndicatorTokens
+import io.github.magisk317.uikit.foundation.PolygonMorphLoadingIndicator
+import io.github.magisk317.uikit.foundation.SessionLoadingRegistry
 import io.github.magisk317.relay.ui.common.SingleChoiceOptionDialog
-import io.github.magisk317.relay.ui.common.rememberMinDurationLoading
+import io.github.magisk317.uikit.foundation.rememberMinDurationLoading
 import io.github.magisk317.relay.ui.common.Item
 import io.github.magisk317.relay.ui.common.RetentionDialog
 import io.github.magisk317.relay.ui.common.SectionHeader

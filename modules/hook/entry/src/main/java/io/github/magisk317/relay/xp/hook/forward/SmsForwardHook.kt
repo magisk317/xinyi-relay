@@ -165,6 +165,12 @@ class SmsForwardHook : BaseHook() {
     private fun resolveIncomingSmsDispatch(param: MethodHookParam): IncomingSmsDispatch? {
         val intent = param.args.getOrNull(0) as? Intent ?: return null
         val action = intent.action
+
+        // Android 17 (API 37) Impact:
+        // - OTP messages (WebOTP format) are delayed by 3 hours for non-expected receivers
+        // - This affects SMS_RECEIVED_ACTION broadcasts
+        // - Xposed hooks may still receive the delayed broadcast
+        // - Test on Android 17 to verify hook behavior
         if (action != Telephony.Sms.Intents.SMS_DELIVER_ACTION &&
             action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION
         ) {

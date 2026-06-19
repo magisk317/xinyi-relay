@@ -1,9 +1,9 @@
 plugins {
-    alias(libs.plugins.android.application)
+    id("magisk.android.application")
     alias(libs.plugins.google.services)
-    id("relay.android.common")
-    id("relay.app.signing")
-    id("relay.app.packaging")
+    id("magisk.android.common")
+    id("magisk.app.signing")
+    id("magisk.app.packaging")
 }
 
 val versionNameStr = libs.versions.versionName.get()

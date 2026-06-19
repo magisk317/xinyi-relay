@@ -1,11 +1,7 @@
 name: Dependency Submission
 
-# Replace "Automatic Dependency Submission" to control triggers (e.g. skip Dependabot branches)
 on:
   push:
-    branches:
-      - beta
-  pull_request:
     branches:
       - beta
   workflow_dispatch:
@@ -17,36 +13,35 @@ jobs:
       contents: write
       security-events: read
 
-    if: github.actor != 'dependabot[bot]' && github.repository == 'magisk317/xinyi-relay' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-
     steps:
       - uses: actions/checkout@v6
         with:
           submodules: recursive
-          fetch-depth: 0
-      
+
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 26
-          
+
       - name: Generate Dependency Graph
         id: dependency-graph
         uses: gradle/actions/dependency-submission@v6
         with:
           dependency-graph: generate-and-upload
-          dependency-graph-continue-on-failure: true
           dependency-graph-exclude-configurations: "^classpath$"
+          additional-arguments: "--no-configuration-cache --stacktrace"
+          cache-disabled: true
 
       - name: Validate generated dependency graph
         env:
           GH_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
           GITHUB_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
         run: |
+          chmod +x scripts/validate_dependabot_graph.sh
           snapshot="${{ steps.dependency-graph.outputs.dependency-graph-file }}"
           test -n "${snapshot}"
-          bash scripts/validate_dependabot_graph.sh --snapshot "${snapshot}"
+          scripts/validate_dependabot_graph.sh --snapshot "${snapshot}"
 
       - name: Submit Dependency Graph
         env:
@@ -54,23 +49,7 @@ jobs:
         run: |
           snapshot="${{ steps.dependency-graph.outputs.dependency-graph-file }}"
           test -n "${snapshot}"
-          response="$(mktemp)"
-          if gh api \
+          gh api \
             --method POST \
             "/repos/${GITHUB_REPOSITORY}/dependency-graph/snapshots" \
-            --input "${snapshot}" >"${response}" 2>&1; then
-            cat "${response}"
-            rm -f "${response}"
-            exit 0
-          else
-            status=$?
-          fi
-
-          cat "${response}" >&2
-          if grep -qi "Dependency graph is disabled" "${response}"; then
-            echo "Dependency graph is disabled for this repository; skipping snapshot submission."
-            rm -f "${response}"
-            exit 0
-          fi
-          rm -f "${response}"
-          exit "${status}"
+            --input "${snapshot}"

@@ -170,7 +170,9 @@ object SenderValidator {
                     val setting = SenderSettingJson.decode(MatrixSetting.serializer(), safeSender.jsonSetting)
                     when {
                         setting.homeserver.isBlank() -> invalid("Matrix Homeserver 不能为空")
-                        setting.legacyAccessToken().isBlank() && (setting.username.isBlank() || setting.password.isBlank()) -> invalid("Matrix 必须提供 Access Token 或账号密码")
+                        setting.legacyAccessToken().isBlank() &&
+                            (setting.username.isBlank() || setting.password.isBlank()) ->
+                            invalid("Matrix 必须提供 Access Token 或账号密码")
                         setting.roomId.isBlank() -> invalid("Matrix Room ID 不能为空")
                         else -> ok()
                     }
