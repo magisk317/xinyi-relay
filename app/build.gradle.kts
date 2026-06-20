@@ -192,3 +192,8 @@ val verifyNoRuntimePipelineLeak = tasks.register("verifyNoRuntimePipelineLeak") 
 tasks.named("check").configure {
     dependsOn(verifyNoRuntimePipelineLeak)
 }
+
+// Fix JUnit 5 test discovery
+tasks.withType<Test> {
+    useJUnitPlatform()
+}

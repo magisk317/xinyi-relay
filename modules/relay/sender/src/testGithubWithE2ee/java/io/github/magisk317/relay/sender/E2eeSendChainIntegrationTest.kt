@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package io.github.magisk317.relay.sender
 
 import io.github.magisk317.relay.engine.model.MsgInfo

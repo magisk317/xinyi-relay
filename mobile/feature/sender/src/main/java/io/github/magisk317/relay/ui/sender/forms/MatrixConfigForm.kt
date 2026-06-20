@@ -426,7 +426,7 @@ private fun MatrixE2eeVerificationSection(
     val credentialsReady = setting?.username?.isNotBlank() == true && setting.password.isNotBlank()
     DisposableEffect(verification) {
         // Refresh verification state when entering the page
-        if (credentialsReady && setting != null) {
+        if (credentialsReady) {
             scope.launch {
                 runCatching { verification.prepare(context, setting) }
             }
