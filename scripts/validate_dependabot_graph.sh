@@ -43,7 +43,19 @@ trap 'rm -rf "${TMP_DIR}"' EXIT
 ALERTS_FILE="${TMP_DIR}/alerts.ndjson"
 PACKAGES_FILE="${TMP_DIR}/packages.tsv"
 
-gh api --paginate "/repos/${REPO}/dependabot/alerts?state=open&per_page=100" --jq '.[]' > "${ALERTS_FILE}"
+ALERTS_ERR="${TMP_DIR}/alerts.err"
+if gh api --paginate "/repos/${REPO}/dependabot/alerts?state=open&per_page=100" --jq '.[]' > "${ALERTS_FILE}" 2> "${ALERTS_ERR}"; then
+  :
+else
+  if grep -qi 'Dependabot alerts are disabled' "${ALERTS_ERR}"; then
+    echo "Dependabot alerts are disabled for ${REPO}; skipping alert cross-check." >&2
+    : > "${ALERTS_FILE}"
+  else
+    cat "${ALERTS_ERR}" >&2
+    echo "Failed to list Dependabot alerts for ${REPO}." >&2
+    exit 1
+  fi
+fi
 
 if [[ -n "${SNAPSHOT_FILE}" ]]; then
   if [[ ! -f "${SNAPSHOT_FILE}" ]]; then
