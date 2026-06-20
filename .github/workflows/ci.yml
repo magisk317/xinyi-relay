@@ -1,5 +1,6 @@
 name: CI
 permissions:
+  packages: read
   contents: read
 
 concurrency:
@@ -14,6 +15,9 @@ on:
     branches:
       - beta
   workflow_dispatch:
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || secrets.GITHUB_TOKEN }}
 
 jobs:
   build:
@@ -61,8 +65,10 @@ jobs:
       - name: Decode Google Services
         if: env.HAS_GOOGLE_SERVICES_JSON == 'true'
         run: |
-          mkdir -p app/src/github app/src/play
+          mkdir -p app/src/github app/src/githubNoE2ee app/src/githubWithE2ee app/src/play
           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/github/google-services.json
+          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/githubNoE2ee/google-services.json
+          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/githubWithE2ee/google-services.json
           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/play/google-services.json
       - name: Build & Test
         run: >

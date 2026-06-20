@@ -12,6 +12,9 @@ jobs:
     permissions:
       contents: write
       security-events: read
+      packages: read
+    env:
+      GITHUB_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || secrets.GITHUB_TOKEN }}
 
     steps:
       - uses: actions/checkout@v6
