@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - 'v*.*.*'  # Semantic version tag, e.g. v3.1.4
-      - 'mobile-v*.*.*'
   workflow_dispatch:
 
 permissions:
@@ -267,7 +266,7 @@ jobs:
 
       - name: Extract Release Notes from CHANGELOG
         id: release_notes
-        if: startsWith(github.ref, 'refs/tags/') && (steps.release_meta.outputs.release_kind == 'full' || steps.release_meta.outputs.release_kind == 'mobile')
+        if: startsWith(github.ref, 'refs/tags/')
         shell: bash
         run: |
           set -euo pipefail
@@ -299,7 +298,7 @@ jobs:
           echo "notes_file=$notes_file" >> "$GITHUB_OUTPUT"
 
       - name: Publish Release
-        if: startsWith(github.ref, 'refs/tags/') && env.HAS_RELEASE_KEYSTORE == 'true' && (steps.release_meta.outputs.release_kind == 'full' || steps.release_meta.outputs.release_kind == 'mobile')
+        if: startsWith(github.ref, 'refs/tags/') && env.HAS_RELEASE_KEYSTORE == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -334,7 +333,7 @@ jobs:
 
       - name: Determine Release Track
         id: determine_track
-        if: startsWith(github.ref, 'refs/tags/') && (steps.release_meta.outputs.release_kind == 'full' || steps.release_meta.outputs.release_kind == 'mobile')
+        if: startsWith(github.ref, 'refs/tags/')
         run: |
           TAG_NAME="${{ steps.release_meta.outputs.release_tag }}"
           if [[ "$TAG_NAME" == *"-beta"* ]]; then
@@ -380,13 +379,13 @@ jobs:
           fi
 
       - name: Set up Ruby
-        if: startsWith(github.ref, 'refs/tags/') && env.HAS_GOOGLE_PLAY_CREDENTIALS == 'true' && (steps.release_meta.outputs.release_kind == 'full' || steps.release_meta.outputs.release_kind == 'mobile')
+        if: startsWith(github.ref, 'refs/tags/') && env.HAS_GOOGLE_PLAY_CREDENTIALS == 'true'
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: 'ruby'
 
       - name: Install fastlane
-        if: startsWith(github.ref, 'refs/tags/') && env.HAS_GOOGLE_PLAY_CREDENTIALS == 'true' && (steps.release_meta.outputs.release_kind == 'full' || steps.release_meta.outputs.release_kind == 'mobile')
+        if: startsWith(github.ref, 'refs/tags/') && env.HAS_GOOGLE_PLAY_CREDENTIALS == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -398,7 +397,7 @@ jobs:
           gem install --user-install fastlane --no-document
 
       - name: Publish to Google Play
-        if: startsWith(github.ref, 'refs/tags/') && env.HAS_GOOGLE_PLAY_CREDENTIALS == 'true' && (steps.release_meta.outputs.release_kind == 'full' || steps.release_meta.outputs.release_kind == 'mobile')
+        if: startsWith(github.ref, 'refs/tags/') && env.HAS_GOOGLE_PLAY_CREDENTIALS == 'true'
         shell: bash
 
         run: |
@@ -501,7 +500,7 @@ jobs:
           echo "notes_file=$notes_file" >> "$GITHUB_OUTPUT"
 
       - name: Publish Release in Xposed-Modules-Repo
-        if: env.HAS_MODULES_REPO_TOKEN == 'true' && env.HAS_RELEASE_KEYSTORE == 'true' && (steps.release_meta.outputs.release_kind == 'full' || steps.release_meta.outputs.release_kind == 'mobile')
+        if: env.HAS_MODULES_REPO_TOKEN == 'true' && env.HAS_RELEASE_KEYSTORE == 'true'
         shell: bash
         run: |
           set -euo pipefail
