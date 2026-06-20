@@ -2,9 +2,9 @@
 
 本日志记录了项目近期的主要变更。
 
----
 
-## [Unreleased]
+## [v0.2.1] - Unreleased
+- 版本：`versionCode 41` / `versionName 0.2.1`。
 
 ---
 
