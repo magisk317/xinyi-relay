@@ -97,7 +97,7 @@ jobs:
       - name: Resolve desktop package manager
         id: desktop_toolchain
         shell: bash
-        run: python scripts/ci/resolve_package_toolchain.py desktop/package.json >> "$GITHUB_OUTPUT"
+        run: python scripts/ci/resolve_package_toolchain.py frontend/desktop/package.json >> "$GITHUB_OUTPUT"
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v6
