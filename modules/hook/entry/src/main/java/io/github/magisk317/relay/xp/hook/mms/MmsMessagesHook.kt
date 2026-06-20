@@ -23,6 +23,8 @@ import java.lang.reflect.Method
 import java.util.concurrent.Executors
 
 class MmsMessagesHook : BaseHook() {
+    private val smsOperationExecutor = Executors.newSingleThreadExecutor()
+
     override fun onLoadPackage(lpparam: LoadParam) {
         XLog.withRoute(LogRoute.SMS_HOOK) {
             onLoadPackageRouted(lpparam)
@@ -56,7 +58,7 @@ class MmsMessagesHook : BaseHook() {
             XLog.w("MmsMessagesHook receiver class missing: %s", receiverClassName)
             return 0
         }
-        val callback = object : MethodHook() {
+        val callback = object : MethodHook("relay.mms.receiver.$receiverClassName") {
             override fun beforeHookedMethod(param: MethodHookParam) {
                 XLog.withRoute(LogRoute.SMS_HOOK) {
                     val context = param.args.getOrNull(0) as? Context ?: return@withRoute
@@ -99,7 +101,7 @@ class MmsMessagesHook : BaseHook() {
             .forEach { method ->
                 XposedWrapper.hookMethod(
                     method,
-                    object : MethodHook() {
+                    object : MethodHook("relay.mms.service.$className.${method.name}") {
                         override fun beforeHookedMethod(param: MethodHookParam) {
                             XLog.withRoute(LogRoute.SMS_HOOK) {
                                 val context = param.thisObject as? Context ?: return@withRoute
@@ -182,7 +184,7 @@ class MmsMessagesHook : BaseHook() {
     }
 
     private fun scheduleBlacklistDelete(pluginContext: Context, hostContext: Context, smsMsg: SmsMsg) {
-        SMS_OPERATION_EXECUTOR.execute {
+        smsOperationExecutor.execute {
             XLog.withRoute(LogRoute.SMS_HOOK) {
                 runCatching {
                     OperateSmsAction(
@@ -213,6 +215,10 @@ class MmsMessagesHook : BaseHook() {
         }
     }
 
+    override fun onHotReloading() {
+        smsOperationExecutor.shutdownNow()
+    }
+
     companion object {
         private const val MMS_PACKAGE_NAME = "com.android.mms"
         private val RECEIVER_CLASS_NAMES = listOf(
@@ -222,6 +228,5 @@ class MmsMessagesHook : BaseHook() {
         private val SERVICE_CLASS_NAMES = listOf(
             "com.android.mms.transaction.SmsReceiverService",
         )
-        private val SMS_OPERATION_EXECUTOR = Executors.newSingleThreadExecutor()
     }
 }

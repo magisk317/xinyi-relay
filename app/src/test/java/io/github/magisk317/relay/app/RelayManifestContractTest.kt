@@ -143,6 +143,11 @@ class RelayManifestContractTest {
         ).readText()
         assertTrue("HotReloadingParam" in entrySource)
         assertTrue("HotReloadedParam" in entrySource)
+        assertTrue("beginHotReload(param.oldHookHandles)" in entrySource)
+        assertTrue("finishHotReload()" in entrySource)
+        assertFalse("setSavedInstanceState(Pair(" in entrySource)
+        assertFalse("HashMap(loadedPackages)" in entrySource)
+        assertFalse("ClassLoader)" in entrySource.substringAfter("fun createHotReloadState"))
 
         val scope = resolveProjectFile("modules/hook/entry/src/main/resources/META-INF/xposed/scope.list")
             .readLines()

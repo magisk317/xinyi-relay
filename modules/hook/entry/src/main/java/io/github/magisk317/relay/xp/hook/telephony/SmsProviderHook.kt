@@ -66,7 +66,7 @@ class SmsProviderHook : BaseHook() {
         methods.forEach { method ->
             XposedWrapper.hookMethod(
                 method,
-                object : MethodHook() {
+                object : MethodHook("relay.sms_provider.$methodName") {
                     override fun beforeHookedMethod(param: MethodHookParam) {
                         XLog.withRoute(LogRoute.SMS_HOOK) {
                             val uri = param.args.getOrNull(0) as? Uri ?: return@withRoute

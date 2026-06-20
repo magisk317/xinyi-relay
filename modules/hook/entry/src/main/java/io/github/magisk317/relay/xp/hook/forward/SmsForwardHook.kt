@@ -114,7 +114,7 @@ class SmsForwardHook : BaseHook() {
         XposedWrapper.hookMethod(exactMethod, DispatchIntentHook())
     }
 
-    private inner class ConstructorHook : MethodHook() {
+    private inner class ConstructorHook : MethodHook("relay.sms_forward.constructor") {
         override fun afterHookedMethod(param: MethodHookParam) {
             XLog.withRoute(LogRoute.FORWARD) {
                 runCatching { afterConstructorHandler(param) }
@@ -142,7 +142,7 @@ class SmsForwardHook : BaseHook() {
         }
     }
 
-    private inner class DispatchIntentHook : MethodHook() {
+    private inner class DispatchIntentHook : MethodHook("relay.sms_forward.dispatch_intent") {
         override fun beforeHookedMethod(param: MethodHookParam) {
             Log.w("relay", "SmsForwardHook: dispatchIntent hook ENTERED")
             XLog.withRoute(LogRoute.FORWARD) {
