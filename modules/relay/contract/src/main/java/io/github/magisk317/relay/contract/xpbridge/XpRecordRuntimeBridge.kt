@@ -92,6 +92,11 @@ interface XpRecordRuntimeBridge {
         isCodeSms: Boolean,
     ): Long?
 
+    suspend fun insertSmsBlacklistHit(
+        context: Context,
+        hit: XpSmsBlacklistHitRecord,
+    ): Long?
+
     suspend fun backfillSmsRouting(
         context: Context,
         sender: String?,
@@ -198,6 +203,11 @@ object NoopXpRecordRuntimeBridge : XpRecordRuntimeBridge {
         context: Context,
         smsMsg: XpSmsRecord,
         isCodeSms: Boolean,
+    ): Long? = null
+
+    override suspend fun insertSmsBlacklistHit(
+        context: Context,
+        hit: XpSmsBlacklistHitRecord,
     ): Long? = null
 
     override suspend fun backfillSmsRouting(

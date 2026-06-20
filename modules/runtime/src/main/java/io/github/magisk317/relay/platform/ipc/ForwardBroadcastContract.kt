@@ -21,10 +21,17 @@ object ForwardBroadcastContract {
     const val EXTRA_SIM_SLOT = SmsRoutingIntentExtras.EXTRA_SIM_SLOT
     const val EXTRA_SUB_ID = SmsRoutingIntentExtras.EXTRA_SUB_ID
     const val EXTRA_APP_ICON = "app_icon"
+    const val EXTRA_MATCH_TYPE = "blacklist_match_type"
+    const val EXTRA_PATTERN = "blacklist_pattern"
+    const val EXTRA_ACTION_DELETE = "blacklist_action_delete"
+    const val EXTRA_ACTION_BLOCK = "blacklist_action_block"
+    const val EXTRA_BLOCK_REASON = "blacklist_block_reason"
+    const val EXTRA_CREATED_AT = "blacklist_created_at"
 
     const val MSG_TYPE_SMS = "sms"
     const val MSG_TYPE_APP_NOTIFY = "app_notify"
     const val MSG_TYPE_CALL_NOTIFY = "call_notify"
+    const val MSG_TYPE_BLACKLIST_HIT = "blacklist_hit"
 
     const val SOURCE_SMS_HOOK = "sms_hook"
     const val SOURCE_NOTIFICATION_LISTENER = "nls"

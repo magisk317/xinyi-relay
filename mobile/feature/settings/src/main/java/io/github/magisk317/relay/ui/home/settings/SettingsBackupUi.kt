@@ -87,7 +87,7 @@ internal fun BackupSourceDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = stringResource(android.R.string.cancel))
+                Text(text = stringResource(R.string.cancel))
             }
         },
     )
@@ -195,12 +195,12 @@ internal fun BackupRestoreOptionsDialog(
                 onClick = { onConfirm(selection) },
                 enabled = selection.hasSelection() && confirmEnabled,
             ) {
-                Text(text = stringResource(android.R.string.ok))
+                Text(text = stringResource(R.string.okay))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = stringResource(android.R.string.cancel))
+                Text(text = stringResource(R.string.cancel))
             }
         },
     )
@@ -231,7 +231,7 @@ internal fun BackupInspectionResultDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = stringResource(android.R.string.ok))
+                Text(text = stringResource(R.string.okay))
             }
         },
     )

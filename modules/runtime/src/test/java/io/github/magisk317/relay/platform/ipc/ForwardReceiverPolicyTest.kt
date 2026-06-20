@@ -37,6 +37,34 @@ class ForwardReceiverPolicyTest {
     }
 
     @Test
+    fun shouldAllowSystemTokenBypass_allowsBlacklistHitFromPhoneProcess() {
+        assertTrue(
+            ForwardReceiverPolicy.shouldAllowSystemTokenBypass(
+                msgType = ForwardBroadcastContract.MSG_TYPE_BLACKLIST_HIT,
+                forwardSource = ForwardBroadcastContract.SOURCE_SMS_HOOK,
+                sentFromUid = ForwardReceiverPolicy.PHONE_UID,
+                sdkInt = 34,
+            ),
+        )
+        assertTrue(
+            ForwardReceiverPolicy.shouldAllowSystemTokenBypass(
+                msgType = ForwardBroadcastContract.MSG_TYPE_BLACKLIST_HIT,
+                forwardSource = ForwardBroadcastContract.SOURCE_SMS_HOOK,
+                sentFromUid = ForwardReceiverPolicy.SYSTEM_UID,
+                sdkInt = 34,
+            ),
+        )
+        assertFalse(
+            ForwardReceiverPolicy.shouldAllowSystemTokenBypass(
+                msgType = ForwardBroadcastContract.MSG_TYPE_BLACKLIST_HIT,
+                forwardSource = ForwardBroadcastContract.SOURCE_SMS_HOOK,
+                sentFromUid = 20000,
+                sdkInt = 34,
+            ),
+        )
+    }
+
+    @Test
     fun shouldAllowCompatTokenBypass_requiresUninitializedExpectedToken() {
         assertTrue(
             ForwardReceiverPolicy.shouldAllowCompatTokenBypass(

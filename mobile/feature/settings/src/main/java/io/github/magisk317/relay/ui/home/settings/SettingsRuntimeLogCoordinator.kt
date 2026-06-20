@@ -97,7 +97,7 @@ internal fun rememberSettingsRuntimeLogActions(
             },
             dismissButton = {
                 TextButton(onClick = { showClearConfirmDialog = false }) {
-                    Text(stringResource(android.R.string.cancel))
+                    Text(stringResource(R.string.cancel))
                 }
             },
         )

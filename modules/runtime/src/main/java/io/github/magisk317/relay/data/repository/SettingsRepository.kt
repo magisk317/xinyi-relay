@@ -368,6 +368,14 @@ class SettingsRepository(
             plainSmsHistoryLimit = preferenceDataSource.getString(PrefConst.KEY_HISTORY_LIMIT_PLAIN_SMS, previousLimit),
             appNotifyHistoryLimit = preferenceDataSource.getString(PrefConst.KEY_HISTORY_LIMIT_APP_NOTIFY, previousLimit),
             callNotifyHistoryLimit = preferenceDataSource.getString(PrefConst.KEY_HISTORY_LIMIT_CALL_NOTIFY, "20"),
+            smsBlacklistHitRecordEnabled = preferenceDataSource.getBoolean(
+                PrefConst.KEY_ENABLE_SMS_BLACKLIST_HIT_RECORDS,
+                true,
+            ),
+            smsBlacklistHitHistoryLimit = preferenceDataSource.getString(
+                PrefConst.KEY_HISTORY_LIMIT_SMS_BLACKLIST_HIT,
+                PrefConst.SMS_BLACKLIST_HIT_HISTORY_LIMIT_DEFAULT,
+            ),
         )
     }
 
@@ -380,6 +388,12 @@ class SettingsRepository(
         update.plainSmsHistoryLimit?.let { preferenceDataSource.setString(PrefConst.KEY_HISTORY_LIMIT_PLAIN_SMS, it) }
         update.appNotifyHistoryLimit?.let { preferenceDataSource.setString(PrefConst.KEY_HISTORY_LIMIT_APP_NOTIFY, it) }
         update.callNotifyHistoryLimit?.let { preferenceDataSource.setString(PrefConst.KEY_HISTORY_LIMIT_CALL_NOTIFY, it) }
+        update.smsBlacklistHitRecordEnabled?.let {
+            preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE_SMS_BLACKLIST_HIT_RECORDS, it)
+        }
+        update.smsBlacklistHitHistoryLimit?.let {
+            preferenceDataSource.setString(PrefConst.KEY_HISTORY_LIMIT_SMS_BLACKLIST_HIT, it)
+        }
         syncAndNoteRemoteMutation("settings.records")
         return getRecordSettings()
     }

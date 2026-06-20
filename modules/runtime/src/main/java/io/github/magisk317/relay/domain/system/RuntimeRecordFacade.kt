@@ -3,8 +3,10 @@ package io.github.magisk317.relay.domain.system
 import android.content.Context
 import android.os.Build
 import android.telephony.SubscriptionManager
+import io.github.magisk317.relay.contract.xpbridge.XpSmsBlacklistHitRecord
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.entity.AutoInputEvent
+import io.github.magisk317.relay.android.data.db.entity.SmsBlacklistHit
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSourceImpl
 import io.github.magisk317.relay.data.repository.RelayRecordRepository
@@ -21,6 +23,7 @@ class RuntimeRecordFacade(
     private val db: AppDatabase = AppDatabase.getInstance(context),
     relayRecordRepository: MessageRecordRepository? = null,
     private val recordInserter: (suspend (SmsMsg, Boolean) -> Long?)? = null,
+    private val smsBlacklistHitInserter: (suspend (SmsBlacklistHit) -> Long?)? = null,
 ) {
     private val appContext = context.applicationContext ?: context
     private val relayRecordRepository: MessageRecordRepository by lazy {
@@ -166,6 +169,12 @@ class RuntimeRecordFacade(
         )
     }
 
+    suspend fun insertSmsBlacklistHit(hit: XpSmsBlacklistHitRecord): Long? = withContext(Dispatchers.IO) {
+        val runtimeHit = hit.toRuntimeHit()
+        smsBlacklistHitInserter?.invoke(runtimeHit)
+            ?: (relayRecordRepository as RelayRecordRepository).insertSmsBlacklistHit(runtimeHit)
+    }
+
     suspend fun backfillSmsRouting(
         sender: String?,
         body: String?,
@@ -236,4 +245,20 @@ class RuntimeRecordFacade(
         private const val SMS_HOOK_MAX_MESSAGE_LENGTH = 300
         private const val ROUTING_BACKFILL_WINDOW_MS = 30 * 60 * 1000L
     }
+}
+
+private fun XpSmsBlacklistHitRecord.toRuntimeHit(): SmsBlacklistHit {
+    return SmsBlacklistHit(
+        eventId = eventId,
+        source = source,
+        sender = sender,
+        body = body,
+        smsDate = smsDate,
+        matchType = matchType,
+        pattern = pattern,
+        actionDelete = actionDelete,
+        actionBlock = actionBlock,
+        blockReason = blockReason,
+        createdAt = createdAt,
+    )
 }

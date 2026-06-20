@@ -12,6 +12,9 @@ import io.github.magisk317.relay.xp.hook.SmsForwardConvergence
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
+import io.github.magisk317.relay.xpbridge.SmsMsg
+import io.github.magisk317.relay.xp.hook.code.ParsedCodeSmsForwarder
+import io.github.magisk317.relay.xp.hook.code.action.impl.OperateSmsAction
 import io.github.magisk317.relay.xp.hook.SmsHookDispatchGate
 import io.github.magisk317.relay.xp.hook.PhoneHookTargetPackages
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
@@ -23,12 +26,15 @@ import io.github.magisk317.smscode.domain.utils.SmsForwardDedupSpec
 import io.github.magisk317.smscode.verification.SmsIntentHookSupport
 import io.github.magisk317.smscode.xposed.helper.XposedWrapper
 import io.github.magisk317.smscode.xposed.hook.BaseHook
+import io.github.magisk317.smscode.xposed.hook.telephony.InboundSmsBlocker
 import io.github.magisk317.smscode.xposed.hookapi.LoadParam
 import io.github.magisk317.smscode.xposed.hookapi.MethodHook
 import io.github.magisk317.smscode.xposed.hookapi.MethodHookParam
 import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 import io.github.magisk317.smscode.xposed.utils.XLog
 import kotlinx.coroutines.runBlocking
+import java.lang.reflect.Method
+import java.util.concurrent.Executors
 
 /**
  * Dedicated SMS forward hook (decoupled from SMS code pipeline).
@@ -48,7 +54,22 @@ class SmsForwardHook : BaseHook() {
         val prepared: io.github.magisk317.relay.xpbridge.PreparedSmsHookDispatch,
     )
 
+    private val smsOperationExecutor = Executors.newSingleThreadExecutor()
     private val runtimeSession = SmsHookRuntimeSession(SMSCODE_PACKAGE)
+    private val inboundSmsBlocker = InboundSmsBlocker(SMS_HANDLER_CLASS)
+    private val parsedCodeSmsForwarder = ParsedCodeSmsForwarder()
+    private val blockHandler = SmsForwardBlockHandler(
+        blacklistDeleteScheduler = ::scheduleBlacklistDelete,
+        inboundBlocker = { inboundSmsHandler, receiver, reason, eventId ->
+            inboundSmsBlocker.blockInboundSms(
+                inboundSmsHandler = inboundSmsHandler,
+                smsReceiver = receiver,
+                reason = reason,
+                eventId = eventId,
+            )
+        },
+        parsedCodeForwarder = parsedCodeSmsForwarder::forwardIfCodeSms,
+    )
     @Volatile
     private var suppressionLogged = false
 
@@ -135,6 +156,21 @@ class SmsForwardHook : BaseHook() {
         maybeInitRuntimeFromHandler(param)
         val dispatch = resolveIncomingSmsDispatch(param) ?: return
         if (shouldSkipDispatch(dispatch)) return
+        val blockOutcome = blockHandler.handle(
+            SmsForwardBlockHandler.Request(
+                pluginContext = dispatch.pluginContext,
+                phoneContext = dispatch.phoneContext,
+                intent = dispatch.intent,
+                eventId = dispatch.eventId,
+                inboundSmsHandler = param.thisObject,
+                hookArgs = param.args,
+                methodReturnType = (param.method as? Method)?.returnType,
+            ),
+        )
+        if (blockOutcome.shouldSetMethodResult) {
+            param.result = blockOutcome.methodResult
+        }
+        if (blockOutcome.suppressForward) return
         val preparedDispatch = prepareForwardDispatch(dispatch) ?: return
         if (shouldSuppressDuplicateDispatch(preparedDispatch)) return
         dispatchPreparedForward(preparedDispatch)
@@ -391,6 +427,27 @@ class SmsForwardHook : BaseHook() {
             preparedDispatch.prepared.smsMsg.smsCode?.isNotBlank() == true,
             dispatchResult.tokenPresent,
         )
+    }
+
+    private fun scheduleBlacklistDelete(pluginContext: Context, phoneContext: Context, smsMsg: SmsMsg) {
+        smsOperationExecutor.execute {
+            XLog.withRoute(LogRoute.FORWARD) {
+                runCatching {
+                    OperateSmsAction(
+                        pluginContext,
+                        phoneContext,
+                        smsMsg,
+                        OperateSmsAction.OP_DELETE,
+                    ).call()
+                }.onFailure {
+                    XLog.w("SmsForwardHook blacklist delete task failed: %s", it.message ?: "unknown")
+                }
+            }
+        }
+    }
+
+    override fun onHotReloading() {
+        smsOperationExecutor.shutdownNow()
     }
 
     private fun buildSmsDispatchDedupKey(

@@ -3,6 +3,7 @@ package io.github.magisk317.relay.xpbridge
 import android.content.Context
 import io.github.magisk317.relay.contract.xpbridge.NoopXpRecordRuntimeBridge
 import io.github.magisk317.relay.contract.xpbridge.XpRecordRuntimeBridge
+import io.github.magisk317.relay.contract.xpbridge.XpSmsBlacklistHitRecord
 
 class XpRecordFacade(
     context: Context,
@@ -150,6 +151,11 @@ class XpRecordFacade(
         smsMsg: SmsMsg,
         isCodeSms: Boolean,
     ): Long? = bridge.insertSmsRecord(context = appContext, smsMsg = smsMsg.toRecord(), isCodeSms = isCodeSms)
+
+    suspend fun insertSmsBlacklistHit(hit: XpSmsBlacklistHitRecord): Long? = bridge.insertSmsBlacklistHit(
+        context = appContext,
+        hit = hit,
+    )
 
     suspend fun backfillSmsRouting(
         sender: String?,

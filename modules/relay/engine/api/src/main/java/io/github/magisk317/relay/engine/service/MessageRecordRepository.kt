@@ -1,10 +1,16 @@
 package io.github.magisk317.relay.engine.service
 
 import io.github.magisk317.relay.engine.model.ReadRecordData
+import io.github.magisk317.relay.engine.model.ReadSmsBlacklistHitData
 import kotlinx.coroutines.flow.Flow
 
 interface MessageRecordRepository {
     suspend fun listRecords(limit: Int): List<ReadRecordData>
+    suspend fun listSmsBlacklistHits(limit: Int): List<ReadSmsBlacklistHitData>
+    fun observeSmsBlacklistHits(limit: Int): Flow<List<ReadSmsBlacklistHitData>>
+    suspend fun removeSmsBlacklistHits(list: List<ReadSmsBlacklistHitData>)
+    suspend fun restoreSmsBlacklistHits(list: List<ReadSmsBlacklistHitData>)
+    suspend fun clearSmsBlacklistHits()
     fun queryAllFlow(): Flow<List<ReadRecordData>>
     fun observeLogsForPackage(packageName: String, limit: Int): Flow<List<ReadRecordData>>
     fun observeRecentNotifyChannelIds(packageName: String, limit: Int): Flow<List<String>>

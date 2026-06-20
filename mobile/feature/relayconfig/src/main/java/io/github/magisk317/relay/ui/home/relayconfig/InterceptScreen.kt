@@ -1,6 +1,7 @@
 @file:Suppress("LocalContextGetResourceValueCall")
 
 package io.github.magisk317.relay.ui.home.relayconfig
+
 import io.github.magisk317.relay.ui.common.StateSwitchItem
 import io.github.magisk317.relay.ui.common.Item
 import io.github.magisk317.relay.ui.common.TextInputDialog
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -21,9 +23,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,10 +41,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.SmsBlacklistSettingsUpdate
+import io.github.magisk317.relay.engine.model.ReadSmsBlacklistHitData
+import io.github.magisk317.relay.engine.service.MessageRecordRepository
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.blurEffect
@@ -52,6 +55,7 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,10 +63,14 @@ fun InterceptScreen(
     hazeState: HazeState,
     hazeStyle: HazeBlurStyle,
     refreshTrigger: Int = 0,
+    onOpenBlacklistHits: () -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val repository: SettingsPreferencesRepository = koinInject()
+    val recordRepository: MessageRecordRepository = koinInject()
+    val blacklistHits by recordRepository.observeSmsBlacklistHits(BLACKLIST_HIT_DISPLAY_LIMIT)
+        .collectAsStateWithLifecycle(initialValue = emptyList())
     val snackbarHostState = remember { SnackbarHostState() }
     var smsBlacklistEnabled by remember { mutableStateOf(false) }
     var deleteBlockedSms by remember { mutableStateOf(true) }
@@ -113,6 +121,7 @@ fun InterceptScreen(
             snackbarHostState.showLatestSnackbar(savedSnackbarText)
         }
     }
+    val dateFormat = rememberBlacklistHitDateFormat()
     fun saveSettingsIfChanged(
         update: SmsBlacklistSettingsUpdate,
         applyState: () -> Unit = {},
@@ -230,6 +239,15 @@ fun InterceptScreen(
                 }
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = Const.SPACING_SMALL.dp))
+                Item(
+                    title = stringResource(R.string.sms_blacklist_hit_list_title),
+                    summary = blacklistHitSummary(
+                        hits = blacklistHits,
+                        dateFormat = dateFormat,
+                    ),
+                ) {
+                    onOpenBlacklistHits()
+                }
             }
         }
     }
@@ -350,3 +368,26 @@ fun InterceptScreen(
         }
     }
 }
+
+@Composable
+private fun blacklistHitSummary(
+    hits: List<ReadSmsBlacklistHitData>,
+    dateFormat: java.text.SimpleDateFormat,
+): String {
+    if (hits.isEmpty()) {
+        return stringResource(R.string.sms_blacklist_hit_recent_empty)
+    }
+    val latest = hits.first()
+    return buildString {
+        append(stringResource(R.string.sms_blacklist_hit_count_summary, hits.size))
+        append('\n')
+        append(
+            stringResource(
+                R.string.sms_blacklist_hit_latest_summary,
+                dateFormat.format(Date(latest.createdAt)),
+            ),
+        )
+    }
+}
+
+private const val BLACKLIST_HIT_DISPLAY_LIMIT = 20

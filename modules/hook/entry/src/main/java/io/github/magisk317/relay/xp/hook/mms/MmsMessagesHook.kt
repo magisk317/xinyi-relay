@@ -6,6 +6,7 @@ import io.github.magisk317.relay.hookentry.BuildConfig
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.hook.code.CodeWorker
 import io.github.magisk317.relay.xp.hook.code.SmsBlockEvaluator
+import io.github.magisk317.relay.xp.hook.code.SmsBlacklistHitRecorder
 import io.github.magisk317.relay.xp.hook.code.action.impl.OperateSmsAction
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpHookDiagnostics
@@ -163,6 +164,14 @@ class MmsMessagesHook : BaseHook() {
             verboseLogging = verboseLogging,
         )
         val evaluation = SmsBlockEvaluator.evaluate(resolvedPluginContext, intent, eventId, "mms") ?: return
+        SmsBlacklistHitRecorder.record(
+            pluginContext = resolvedPluginContext,
+            smsMsg = evaluation.smsMsg,
+            blacklistResult = evaluation.blacklistResult,
+            decision = evaluation.decision,
+            eventId = eventId,
+            source = "mms",
+        )
         if (evaluation.blacklistDeleteOnly && evaluation.smsMsg != null) {
             scheduleBlacklistDelete(resolvedPluginContext, context, evaluation.smsMsg)
         }
