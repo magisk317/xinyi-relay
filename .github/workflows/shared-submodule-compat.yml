@@ -44,7 +44,7 @@ jobs:
       SKIP_GOOGLE_SERVICES: ${{ secrets.GOOGLE_SERVICES_JSON == '' }}
       ALLOW_INCOMPATIBLE_DEBUG_SIGNING: "true"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
           fetch-depth: 0
