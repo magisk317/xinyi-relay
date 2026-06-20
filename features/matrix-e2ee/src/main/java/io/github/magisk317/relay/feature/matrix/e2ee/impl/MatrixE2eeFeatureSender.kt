@@ -1198,4 +1198,27 @@ object MatrixE2eeFeatureSender : MatrixE2eeSender {
         val hashBytes = digest.digest(input.toByteArray(Charsets.UTF_8))
         return hashBytes.joinToString("") { "%02x".format(it) }
     }
+
+    internal suspend fun forceClearDeviceStore(context: Context, setting: MatrixSetting) {
+        val safeSetting = SenderSettingSanitizer.sanitizeMatrixSetting(setting)
+        val useLoginMode = safeSetting.username.isNotBlank() && safeSetting.password.isNotBlank()
+
+        clientMutex.withLock {
+            cachedClient?.let { client ->
+                SLog.w(TAG, "Force clearing device: closing existing client")
+                closeClientSafely(client)
+                cachedClient = null
+            }
+            cachedAccessToken = null
+            initialSyncDone = false
+
+            val cacheKey = if (useLoginMode) safeSetting.username.trim() else safeSetting.accessToken.trim()
+            if (cacheKey.isNotBlank()) {
+                val storeDir = getStoreDir(context, cacheKey)
+                SLog.w(TAG, "Force clearing device: deleting store directory $storeDir")
+                storeDir.deleteRecursively()
+                storeDir.mkdirs()
+            }
+        }
+    }
 }
