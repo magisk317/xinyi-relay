@@ -19,7 +19,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
           fetch-depth: 0
@@ -42,7 +42,7 @@ jobs:
       HAS_RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE != '' }}
       HAS_GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
           fetch-depth: 0
@@ -142,7 +142,7 @@ jobs:
       HAS_RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE != '' }}
       HAS_GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
           fetch-depth: 0
@@ -236,7 +236,7 @@ jobs:
       HAS_RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE != '' }}
       HAS_GOOGLE_PLAY_CREDENTIALS: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS != '' }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
           fetch-depth: 0
@@ -450,7 +450,7 @@ jobs:
       HAS_RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE != '' }}
       MODULES_REPO: Xposed-Modules-Repo/io.github.magisk317.xinyi.relay
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
           fetch-depth: 0
