@@ -9,6 +9,10 @@ permissions:
   contents: write
   pull-requests: write
   security-events: read
+  packages: read
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || secrets.GITHUB_TOKEN }}
 
 jobs:
   dependency-force:
