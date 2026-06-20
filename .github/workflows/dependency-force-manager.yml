@@ -28,7 +28,7 @@ jobs:
       DEPENDENCY_FORCE_HISTORICAL_ALERT_COOLDOWN_HOURS: 168
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: beta
           submodules: recursive
