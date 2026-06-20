@@ -1,3 +1,5 @@
+@file:OptIn(io.kotest.common.ExperimentalKotest::class)
+
 package io.github.magisk317.relay.sender
 
 import io.kotest.core.spec.style.FunSpec

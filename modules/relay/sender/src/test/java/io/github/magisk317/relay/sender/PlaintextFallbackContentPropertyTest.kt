@@ -37,6 +37,7 @@ import kotlinx.serialization.json.jsonPrimitive
  * - We parse the resulting JSON and extract the "body" field to verify content preservation
  *   without being affected by JSON serialization escaping.
  */
+@OptIn(io.kotest.common.ExperimentalKotest::class)
 class PlaintextFallbackContentPropertyTest : FunSpec({
 
     // --- Generators ---

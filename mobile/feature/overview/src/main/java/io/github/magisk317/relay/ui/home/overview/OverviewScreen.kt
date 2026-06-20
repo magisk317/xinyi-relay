@@ -690,7 +690,15 @@ private fun OverviewCardItem(
                     frameworkType = frameworkType,
                     frameworkVersion = frameworkVersion,
                     interactive = !editMode,
-                    onRootHint = if (hasRootAccess) null else { { scope.launch { snackbarHostState.showLatestSnackbar(context.getString(R.string.root_permission_hint)) } } },
+                    onRootHint = if (hasRootAccess) {
+                        null
+                    } else {
+                        {
+                            scope.launch {
+                                snackbarHostState.showLatestSnackbar(context.getString(R.string.root_permission_hint))
+                            }
+                        }
+                    },
                 )
             }
             CARD_DEVICE_INFO -> io.github.magisk317.uikit.surface.OverviewDeviceInfoCard()
@@ -707,9 +715,27 @@ private fun OverviewCardItem(
                         onShowDonate
                     },
                     interactive = !editMode,
-                    onJoinQQ = { io.github.magisk317.relay.common.utils.PackageUtils.joinQQGroup(context)?.let { scope.launch { snackbarHostState.showLatestSnackbar(it) } } },
-                    onJoinTelegram = { io.github.magisk317.relay.common.utils.Utils.showWebPage(context, io.github.magisk317.relay.contract.constant.RelayAppConst.TELEGRAM_GROUP_URL)?.let { scope.launch { snackbarHostState.showLatestSnackbar(it) } } },
-                    onSourceCode = { io.github.magisk317.relay.common.utils.Utils.showWebPage(context, io.github.magisk317.relay.contract.constant.RelayAppConst.PROJECT_SOURCE_CODE_URL)?.let { scope.launch { snackbarHostState.showLatestSnackbar(it) } } },
+                    onJoinQQ = {
+                        io.github.magisk317.relay.common.utils.PackageUtils.joinQQGroup(context)?.let {
+                            scope.launch { snackbarHostState.showLatestSnackbar(it) }
+                        }
+                    },
+                    onJoinTelegram = {
+                        io.github.magisk317.relay.common.utils.Utils.showWebPage(
+                            context,
+                            io.github.magisk317.relay.contract.constant.RelayAppConst.TELEGRAM_GROUP_URL
+                        )?.let {
+                            scope.launch { snackbarHostState.showLatestSnackbar(it) }
+                        }
+                    },
+                    onSourceCode = {
+                        io.github.magisk317.relay.common.utils.Utils.showWebPage(
+                            context,
+                            io.github.magisk317.relay.contract.constant.RelayAppConst.PROJECT_SOURCE_CODE_URL
+                        )?.let {
+                            scope.launch { snackbarHostState.showLatestSnackbar(it) }
+                        }
+                    },
                 )
             }
         }

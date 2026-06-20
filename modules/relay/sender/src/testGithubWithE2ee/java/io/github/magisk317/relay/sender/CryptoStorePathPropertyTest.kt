@@ -16,6 +16,7 @@ import io.kotest.property.checkAll
  *
  * **Validates: Requirements 2.2**
  */
+@OptIn(io.kotest.common.ExperimentalKotest::class)
 class CryptoStorePathPropertyTest : FunSpec({
 
     test("Property 3: sha256Hex is deterministic - same input always produces same output") {
