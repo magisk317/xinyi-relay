@@ -4,7 +4,6 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - "desktop-v*.*.*"
       - "v*.*.*"
 
 permissions:
@@ -164,34 +163,10 @@ jobs:
             exit 1
           fi
 
-          if [[ "$release_kind" == "full" ]]; then
-            for attempt in $(seq 1 60); do
-              if gh release view "$release_tag" >/dev/null 2>&1; then
-                break
-              fi
-              echo "Waiting for full release $release_tag to be created by APK workflow ($attempt/60)..."
-              sleep 20
-            done
-            gh release view "$release_tag" >/dev/null 2>&1 || {
-              echo "ERROR: full release $release_tag was not created in time" >&2
-              exit 1
-            }
-            gh release upload "$release_tag" "${release_assets[@]}" --clobber
-            exit 0
-          fi
-
-          release_notes="Desktop bundles for ${release_version}."
           if gh release view "$release_tag" >/dev/null 2>&1; then
             gh release upload "$release_tag" "${release_assets[@]}" --clobber
-            gh release edit "$release_tag" --title "$release_title"
           else
-            if ! gh release create "$release_tag" "${release_assets[@]}" \
-              --draft \
-              --title "$release_title" \
-              --verify-tag \
-              --generate-notes \
-              --notes "$release_notes"; then
+            if ! gh release create "$release_tag" "${release_assets[@]}" --title "$release_title" --verify-tag; then
               gh release upload "$release_tag" "${release_assets[@]}" --clobber
-              gh release edit "$release_tag" --title "$release_title"
             fi
           fi

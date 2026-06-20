@@ -23,7 +23,7 @@ jobs:
         run: |
           set -euo pipefail
           tag_name="${{ github.event.workflow_run.head_branch }}"
-          if [[ ! "$tag_name" =~ ^(v|mobile-v)[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if [[ ! "$tag_name" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "should_recover=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi

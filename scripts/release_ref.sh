@@ -30,33 +30,6 @@ parse_tag() {
       release_requires_android_metadata="true"
       release_is_component_only="false"
       ;;
-    mobile-v[0-9]*.[0-9]*.[0-9]*)
-      release_kind="mobile"
-      release_component="mobile"
-      release_tag="$tag_name"
-      release_version="${tag_name#mobile-}"
-      release_title="Mobile ${release_version}"
-      release_requires_android_metadata="true"
-      release_is_component_only="true"
-      ;;
-    desktop-v[0-9]*.[0-9]*.[0-9]*)
-      release_kind="desktop"
-      release_component="desktop"
-      release_tag="$tag_name"
-      release_version="${tag_name#desktop-}"
-      release_title="Desktop ${release_version}"
-      release_requires_android_metadata="false"
-      release_is_component_only="true"
-      ;;
-    backend-v[0-9]*.[0-9]*.[0-9]*)
-      release_kind="backend"
-      release_component="backend"
-      release_tag="$tag_name"
-      release_version="${tag_name#backend-}"
-      release_title="Backend ${release_version}"
-      release_requires_android_metadata="false"
-      release_is_component_only="true"
-      ;;
     *)
       echo "Unsupported release tag: $tag_name" >&2
       return 1
@@ -100,15 +73,6 @@ tag_for_target() {
     all)
       printf "v%s\n" "$version_name"
       ;;
-    mobile)
-      printf "mobile-v%s\n" "$version_name"
-      ;;
-    desktop)
-      printf "desktop-v%s\n" "$version_name"
-      ;;
-    backend)
-      printf "backend-v%s\n" "$version_name"
-      ;;
     *)
       echo "Unsupported release target: $target" >&2
       return 1
@@ -134,7 +98,7 @@ case "$command" in
 Usage:
   release_ref.sh parse-ref <ref_type> <ref_name>
   release_ref.sh parse-tag <tag_name>
-  release_ref.sh tag-for-target <version_name> <all|mobile|desktop|backend>
+  release_ref.sh tag-for-target <version_name> <all>
 EOF
     exit 1
     ;;

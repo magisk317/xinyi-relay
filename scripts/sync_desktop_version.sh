@@ -7,9 +7,9 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION_FILE="$ROOT_DIR/gradle/libs.versions.toml"
-PACKAGE_JSON="$ROOT_DIR/desktop/package.json"
-CARGO_TOML="$ROOT_DIR/desktop/src-tauri/Cargo.toml"
-TAURI_CONF="$ROOT_DIR/desktop/src-tauri/tauri.conf.json"
+PACKAGE_JSON="$ROOT_DIR/frontend/desktop/package.json"
+CARGO_TOML="$ROOT_DIR/frontend/desktop/src-tauri/Cargo.toml"
+TAURI_CONF="$ROOT_DIR/frontend/desktop/src-tauri/tauri.conf.json"
 
 extract_toml_value() {
   local key="$1"

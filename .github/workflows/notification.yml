@@ -125,7 +125,7 @@ jobs:
             fi
 
             if [ "${WF_RUN_NAME:-}" = "Release" ]; then
-              if [[ "${WF_RUN_BRANCH:-}" != v* && "${WF_RUN_BRANCH:-}" != mobile-v* ]]; then
+              if [[ "${WF_RUN_BRANCH:-}" != v* ]]; then
                 exit 0
               fi
 
@@ -188,12 +188,12 @@ jobs:
             fi
           fi
 
-          if [[ "${EVENT_NAME:-}" == "release" && ( "$RELEASE_KIND" == "full" || "$RELEASE_KIND" == "mobile" ) ]]; then
-            echo "Full/mobile release notification is handled by Release workflow_run; skip release event."
+          if [[ "${EVENT_NAME:-}" == "release" && "$RELEASE_KIND" == "full" ]]; then
+            echo "Full release notification is handled by Release workflow_run; skip release event."
             exit 0
           fi
 
-          if [[ "$RELEASE_KIND" == "full" || "$RELEASE_KIND" == "mobile" ]]; then
+          if [[ "$RELEASE_KIND" == "full" ]]; then
             RELEASE_NOTES_FILE="release-notes.md"
             if awk -v version="$RELEASE_VERSION" '
               $0 == "---" && found { exit }
@@ -205,10 +205,6 @@ jobs:
             else
               WHATSNEW_CONTENT="Release notes not found in docs/CHANGELOG.md for $RELEASE_VERSION"
             fi
-          elif [[ "$RELEASE_KIND" == "desktop" ]]; then
-            WHATSNEW_CONTENT="Desktop release ${RELEASE_VERSION} is published. See GitHub Release assets for platform bundles."
-          elif [[ "$RELEASE_KIND" == "backend" ]]; then
-            WHATSNEW_CONTENT="Backend release ${RELEASE_VERSION} is published. See GitHub Release notes for container image tags."
           else
             WHATSNEW_CONTENT="Release ${RELEASE_TAG} is published."
           fi

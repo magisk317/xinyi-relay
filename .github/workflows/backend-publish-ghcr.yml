@@ -7,7 +7,6 @@ on:
       - beta
     tags:
       - "v*.*.*"
-      - "backend-v*.*.*"
     paths:
       - "backend/**"
       - ".github/workflows/backend-publish-ghcr.yml"
@@ -31,7 +30,6 @@ jobs:
       release_tag: ${{ steps.vars.outputs.release_tag }}
       release_version: ${{ steps.vars.outputs.release_version }}
       release_title: ${{ steps.vars.outputs.release_title }}
-      create_github_release: ${{ steps.vars.outputs.create_github_release }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -72,14 +70,10 @@ jobs:
           fi
 
           tags=()
-          create_github_release=false
           if [[ "$release_kind" == "beta" ]]; then
             tags+=("beta")
           elif [[ "$release_kind" == "full" ]]; then
             tags+=("${release_version}" "latest")
-          elif [[ "$release_kind" == "backend" ]]; then
-            tags+=("${release_version}")
-            create_github_release=true
           else
             echo "Unsupported release kind for backend publish: $release_kind" >&2
             exit 1
@@ -95,7 +89,6 @@ jobs:
             echo "release_kind=$release_kind"
             echo "release_tag=$release_tag"
             echo "release_version=$release_version"
-            echo "create_github_release=$create_github_release"
             echo "release_title<<EOF"
             echo "$release_title"
             echo "EOF"
@@ -341,55 +334,7 @@ jobs:
             docker buildx imagetools inspect "${DOCKERHUB_IMAGE}:${tag}"
           done < <(jq -r '.[]' <<<"$TAGS_JSON")
 
-      - name: Create or update backend release
-        if: needs.prepare.outputs.create_github_release == 'true'
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
-          GHCR_IMAGE: ${{ needs.prepare.outputs.ghcr_image }}
-          TAGS_JSON: ${{ needs.prepare.outputs.tags_json }}
-          RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
-          RELEASE_TITLE: ${{ needs.prepare.outputs.release_title }}
-        run: |
-          set -euo pipefail
 
-          dockerhub_enabled=0
-          dockerhub_image=""
-          if [[ -n "${{ secrets.DOCKERHUB_USERNAME }}" && -n "${{ secrets.DOCKERHUB_TOKEN }}" ]]; then
-            dockerhub_enabled=1
-            if [[ -n "${{ secrets.DOCKERHUB_IMAGE }}" ]]; then
-              dockerhub_image="${{ secrets.DOCKERHUB_IMAGE }}"
-            else
-              dockerhub_image="docker.io/${{ secrets.DOCKERHUB_USERNAME }}/xinyi-relay-backend"
-            fi
-          fi
-
-          image_lines=()
-          while IFS= read -r tag; do
-            [[ -z "$tag" ]] && continue
-            image_lines+=("- ${GHCR_IMAGE}:${tag}")
-            if [[ "$dockerhub_enabled" == "1" && -n "$dockerhub_image" ]]; then
-              image_lines+=("- ${dockerhub_image}:${tag}")
-            fi
-          done < <(jq -r '.[]' <<<"$TAGS_JSON")
-
-          release_notes="$(cat <<EOF
-          Backend image release for ${RELEASE_TAG}
-
-          Published images:
-          $(printf '%s\n' "${image_lines[@]}")
-          EOF
-          )"
-
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release edit "$RELEASE_TAG" --title "$RELEASE_TITLE" --notes "$release_notes"
-          else
-            gh release create "$RELEASE_TAG" \
-              --draft \
-              --title "$RELEASE_TITLE" \
-              --verify-tag \
-              --notes "$release_notes"
-          fi
 
   notify_telegram:
     name: Notify Telegram

@@ -149,7 +149,7 @@ else
   check_non_ascii_commit_subjects
 fi
 
-if [[ "$release_kind" == "full" || "$release_kind" == "mobile" ]]; then
+if [[ "$release_kind" == "full" ]]; then
   CHANGELOG_FILE="$ROOT_DIR/docs/CHANGELOG.md"
   if [[ ! -f "$CHANGELOG_FILE" ]]; then
     echo "FAIL: missing changelog file ($CHANGELOG_FILE)"

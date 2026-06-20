@@ -41,11 +41,11 @@ run_webui_checks() {
   echo "Running WebUI checks (install/lint/typecheck/test/build)..."
   (
     cd "$ROOT_DIR"
-    pnpm -C webui install --frozen-lockfile
-    pnpm -C webui lint
-    pnpm -C webui typecheck
-    pnpm -C webui test
-    pnpm -C webui build
+    pnpm -C frontend/webui install --frozen-lockfile
+    pnpm -C frontend/webui lint
+    pnpm -C frontend/webui typecheck
+    pnpm -C frontend/webui test
+    pnpm -C frontend/webui build
   )
 
   echo "WebUI checks passed."
@@ -110,7 +110,7 @@ run_pre_push_checks() {
   echo "Running pre-push CI command..."
   (
     cd "$ROOT_DIR"
-    ./gradlew --warning-mode all \
+    ./gradlew --no-daemon --warning-mode all \
       verifyModuleBoundaries \
       verifyStructureBoundaries \
       verifyEmbeddedSubmodules \
@@ -127,7 +127,7 @@ run_pre_push_checks() {
   echo "Running pre-push Detekt command..."
   (
     cd "$ROOT_DIR"
-    ./gradlew detekt --continue
+    ./gradlew --no-daemon detekt --continue
   )
 
   local sarif_files=(
@@ -180,7 +180,7 @@ if [[ -z "$VERSION_CODE" ]]; then
   exit 2
 fi
 
-RELEASE_TARGET="${1:-all}"
+RELEASE_TARGET="all"
 TAG_NAME="$(bash "$RELEASE_REF_SCRIPT" tag-for-target "$VERSION_NAME" "$RELEASE_TARGET")"
 REMOTE_NAME="${RELEASE_REMOTE:-origin}"
 
@@ -216,13 +216,9 @@ ensure_fastlane_changelogs_ready() {
 }
 
 run_sync_readme_badges
-if [[ "$RELEASE_TARGET" == "all" || "$RELEASE_TARGET" == "mobile" ]]; then
-  run_sync_fastlane_metadata
-  auto_commit_fastlane_metadata
-  ensure_fastlane_changelogs_ready
-else
-  echo "Skipping fastlane metadata sync for release target: $RELEASE_TARGET"
-fi
+run_sync_fastlane_metadata
+auto_commit_fastlane_metadata
+ensure_fastlane_changelogs_ready
 run_webui_checks
 "$ROOT_DIR/scripts/check_release_guard.sh" "$TAG_NAME"
 run_pre_push_checks

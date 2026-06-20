@@ -5,8 +5,27 @@
 ---
 
 ## [Unreleased]
-- `[ci/release]` 移动端发布工作流对齐为 `.github/workflows/release.yml` / `Release`；本仓库 Release 统一读取当前版本 `CHANGELOG` 块并发布移动端 APK/AAB，桌面端继续由 `desktop-release.yml` 向本仓库 Release 补传桌面资产。
-- `[ci/release]` Xposed-Modules-Repo 同步保留下载徽章并复用同一版本 `CHANGELOG` 块，但只上传移动端 APK。
+
+---
+
+## [v0.2.0] - 2026-06-20
+- 版本：`versionCode 40` / `versionName 0.2.0`。
+- ⚠️ **重要提示**：本版本仅支持 LibXposed API 102，低于此版本的用户请务必升级框架（[点击下载最新框架](https://lsposed.zip)）。
+- `[xposed]` 适配 LibXposed API 102 热重载 (Hot Reload) 特性，不再保留 API 101 支持。
+- **🌟 新特性 (Features)**
+  - `[sender]` 新增 Matrix 协议发送通道，并支持端到端加密 (E2EE)。
+  - `[scanner]` 迁移至 Google Play Services 扫码服务，移除对 CAMERA 权限的依赖。
+  - `[ui]` 支持预测性返回手势 (Predictive Back Gesture) 动画，提升 Android 14+ 导航体验。
+  - `[ui]` 迁移到统一的概览卡片，提升交互体验。
+- **🐛 修复与优化 (Fixes & Perf)**
+  - `[hook]` 回填观察到的短信 SIM 卡路由信息，修复部分机型下无法正确识别卡槽的兼容性问题。
+  - `[ui]` 迁移至原生 Compose 多语言适配与 LocaleManager。
+  - `[verification]` 对齐与增强短信验证码的动作行为。
+  - `[ci]` 合并桌面端和移动端发布流程，并新增规则校验保护。
+- **📦 依赖与底层构建 (Chores)**
+  - `[mobile]` 重构移动端架构，将所有业务拆分为多个独立的 feature 模块（`settings`, `relayconfig`, `sender`, `forward` 等）。
+
+> Full Changelog: https://github.com/magisk317/xinyi-relay/compare/v0.1.3...v0.2.0
 
 ---
 
