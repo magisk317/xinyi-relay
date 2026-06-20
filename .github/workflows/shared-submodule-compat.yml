@@ -3,6 +3,9 @@ permissions:
   packages: read
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
 on:
   pull_request:
     paths:

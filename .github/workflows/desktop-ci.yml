@@ -18,7 +18,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: desktop-ci-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}
   cancel-in-progress: true
 
 permissions:
