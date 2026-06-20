@@ -13,7 +13,9 @@ permissions:
 env:
   GITHUB_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || secrets.GITHUB_TOKEN }}
 
-
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
 jobs:
   autofix:
     runs-on: ubuntu-latest

@@ -16,7 +16,7 @@ permissions:
   packages: write
 
 concurrency:
-  group: publish-backend-ghcr-${{ github.ref }}
+  group: ${{ github.workflow }}
   cancel-in-progress: true
 
 jobs:

@@ -30,7 +30,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: detekt-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}
   cancel-in-progress: true
 
 jobs:
