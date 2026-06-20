@@ -840,11 +840,6 @@ fun CodeRecordScreen(
             }
         }
 
-        io.github.magisk317.uikit.common.DismissibleSnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding(),
-        )
-
         val sms = detailSmsMsg
         if (sms != null) {
             RecordDetailOverlay(
@@ -869,6 +864,11 @@ fun CodeRecordScreen(
                 },
             )
         }
+
+        io.github.magisk317.uikit.common.DismissibleSnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding(),
+        )
     }
 }
 
@@ -896,11 +896,8 @@ private fun RecordDetailOverlay(
     val forwardMessageAnnotated = resolveForwardMessageAnnotated(sms.forwardMessage)
     val dismissInteraction = remember { MutableInteractionSource() }
     val detailTitleRes = if (isAppNotification) R.string.message_details_notification else R.string.message_details
-    val copyTextRes = if (isAppNotification) R.string.copy_notification else R.string.copy_sms
-    val copyMessageRes = if (isAppNotification) R.string.prompt_notification_copied else R.string.prompt_sms_copied
     val deleteTextRes =
         if (isAppNotification) R.string.delete_notification_action else R.string.delete_sms_action
-    val copyLabel = if (isAppNotification) "app_notification_body" else "sms_body"
     val appDisplayName = remember(sms.packageName) {
         if (!isAppNotification) {
             null
@@ -1163,35 +1160,6 @@ private fun RecordDetailOverlay(
                                 text = { Text(stringResource(if (isAppNotification) R.string.refund_notification else R.string.refund_sms)) },
                                 onClick = {
                                     onRefund()
-                                    menuState.dismiss()
-                                    onDismiss()
-                                },
-                            )
-                        },
-                    )
-                    customItem(
-                        buttonGroupContent = {
-                            OutlinedButton(
-                                modifier = Modifier.weight(1f),
-                                onClick = {
-                                    if (content.isNotEmpty()) {
-                                        val message = context.getString(copyMessageRes)
-                                        onCopy(copyLabel, content, message)
-                                    }
-                                    onDismiss()
-                                },
-                            ) {
-                                Text(stringResource(copyTextRes))
-                            }
-                        },
-                        menuContent = { menuState ->
-                            DropdownMenuItem(
-                                text = { Text(stringResource(copyTextRes)) },
-                                onClick = {
-                                    if (content.isNotEmpty()) {
-                                        val message = context.getString(copyMessageRes)
-                                        onCopy(copyLabel, content, message)
-                                    }
                                     menuState.dismiss()
                                     onDismiss()
                                 },

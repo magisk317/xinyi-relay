@@ -29,6 +29,7 @@ object PrefRestoreTypeRegistry {
         RelayPrefConst.KEY_ENABLE_CODE_RECORDS_PLAIN_SMS,
         RelayPrefConst.KEY_ENABLE_CODE_RECORDS_APP_NOTIFY,
         RelayPrefConst.KEY_ENABLE_CODE_RECORDS_CALL_NOTIFY,
+        RelayPrefConst.KEY_ENABLE_SMS_BLACKLIST_HIT_RECORDS,
         RelayPrefConst.KEY_ROOT_DB_CATCHUP_ENABLE,
         RelayPrefConst.KEY_ROOT_DB_CATCHUP_WRITEBACK,
         RelayPrefConst.KEY_INTERNAL_ROOT_DB_BASELINE_INITED,

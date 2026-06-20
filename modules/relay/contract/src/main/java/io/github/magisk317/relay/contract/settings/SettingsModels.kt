@@ -183,6 +183,8 @@ data class RecordSettingsSnapshot(
     val plainSmsHistoryLimit: String,
     val appNotifyHistoryLimit: String,
     val callNotifyHistoryLimit: String,
+    val smsBlacklistHitRecordEnabled: Boolean = true,
+    val smsBlacklistHitHistoryLimit: String = "200",
 )
 
 @Serializable
@@ -195,6 +197,8 @@ data class RecordSettingsUpdate(
     val plainSmsHistoryLimit: String? = null,
     val appNotifyHistoryLimit: String? = null,
     val callNotifyHistoryLimit: String? = null,
+    val smsBlacklistHitRecordEnabled: Boolean? = null,
+    val smsBlacklistHitHistoryLimit: String? = null,
 )
 
 // ── SMS Blacklist ────────────────────────────────────────────────────────────

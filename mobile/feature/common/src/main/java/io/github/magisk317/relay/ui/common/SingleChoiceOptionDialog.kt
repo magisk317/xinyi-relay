@@ -15,9 +15,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Text
+import io.github.magisk317.relay.core.R
 
 @Composable
 fun SingleChoiceOptionDialog(
@@ -63,13 +65,13 @@ fun SingleChoiceOptionDialog(
         },
         confirmButton = {
             io.github.magisk317.uikit.surface.AppTextButton(
-                text = "Confirm",
+                text = stringResource(R.string.confirm),
                 onClick = { onConfirm(currentIndex) },
             )
         },
         dismissButton = {
             io.github.magisk317.uikit.surface.AppTextButton(
-                text = "Cancel",
+                text = stringResource(R.string.cancel),
                 onClick = onDismiss,
             )
         },

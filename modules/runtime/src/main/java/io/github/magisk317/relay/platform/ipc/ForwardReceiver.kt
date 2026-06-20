@@ -9,6 +9,7 @@ import io.github.magisk317.relay.android.common.utils.CallSessionTracker
 import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
+import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.relay.android.platform.metadata.SourceMetadataResolver
 import io.github.magisk317.relay.android.sms.SmsCodeUtils
@@ -145,6 +146,24 @@ class ForwardReceiver : BroadcastReceiver() {
                             )
                         }
                     }
+                }
+                if (originalMsgTypeStr == ForwardBroadcastContract.MSG_TYPE_BLACKLIST_HIT) {
+                    val hit = BlacklistHitBroadcast.fromIntent(intent)
+                    if (hit == null) {
+                        ForwardFlowLog.w(traceId, "Blacklist hit payload missing event_id, drop")
+                        markResult(RESULT_REJECT_ACTION, "blacklist_hit_invalid")
+                        return@runCatching
+                    }
+                    val insertedId = runBlocking {
+                        RuntimeRecordFacade(context).insertSmsBlacklistHit(hit)
+                    }
+                    ForwardFlowLog.i(
+                        traceId,
+                        "Blacklist hit recorded event=${hit.eventId} source=${hit.source} " +
+                            "pattern=${hit.pattern ?: "<none>"} id=${insertedId ?: -1}",
+                    )
+                    markResult(RESULT_OK, "blacklist_hit_recorded")
+                    return@runCatching
                 }
                 val payload = normalizeNmsSmsPayload(
                     context = context,

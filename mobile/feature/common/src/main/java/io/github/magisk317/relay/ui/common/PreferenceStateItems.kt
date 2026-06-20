@@ -203,7 +203,7 @@ fun TextInputDialog(
                 )
                 if (resetValue != null) {
                     io.github.magisk317.uikit.surface.AppTextButton(
-                        text = "Reset",
+                        text = stringResource(R.string.reset),
                         onClick = {
                             fieldValue = TextFieldValue(
                                 text = resetValue,
@@ -248,14 +248,14 @@ fun TextInputDialog(
         },
         confirmButton = {
             io.github.magisk317.uikit.surface.AppTextButton(
-                text = "Confirm",
+                text = stringResource(R.string.confirm),
                 enabled = errorMessage == null,
                 onClick = { onConfirm(fieldValue.text) },
             )
         },
         dismissButton = {
             io.github.magisk317.uikit.surface.AppTextButton(
-                text = "Cancel",
+                text = stringResource(R.string.cancel),
                 onClick = onDismiss,
             )
         },

@@ -3,9 +3,11 @@ package io.github.magisk317.relay.platform.xpbridge
 import android.content.Context
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.contract.xpbridge.XpRecordRuntimeBridge
+import io.github.magisk317.relay.contract.xpbridge.XpSmsBlacklistHitRecord
 import io.github.magisk317.relay.contract.xpbridge.XpSmsRecord
 import io.github.magisk317.relay.domain.system.RuntimeCodeRecordFileStore
 import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
+import io.github.magisk317.relay.platform.ipc.BlacklistHitBroadcast
 
 object RuntimeXpRecordBridge : XpRecordRuntimeBridge {
     override suspend fun isDuplicateSms(
@@ -145,6 +147,17 @@ object RuntimeXpRecordBridge : XpRecordRuntimeBridge {
         isCodeSms: Boolean,
     ): Long? {
         return RuntimeRecordFacade(context).insertSmsRecord(smsMsg.toRuntimeSmsMsg(), isCodeSms)
+    }
+
+    override suspend fun insertSmsBlacklistHit(
+        context: Context,
+        hit: XpSmsBlacklistHitRecord,
+    ): Long? {
+        // SMS hooks run in the phone process (UID != app) and cannot open the relay app's private
+        // Room database directly. Hand the hit to the app process over the forward broadcast IPC,
+        // where ForwardReceiver persists it. Fire-and-forget: the row id is unknown to the sender.
+        BlacklistHitBroadcast.dispatch(context, hit)
+        return null
     }
 
     override suspend fun backfillSmsRouting(

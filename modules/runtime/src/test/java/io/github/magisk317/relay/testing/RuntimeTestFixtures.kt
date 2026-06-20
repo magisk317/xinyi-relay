@@ -3,6 +3,7 @@ package io.github.magisk317.relay.testing
 import android.content.Context
 import android.content.Intent
 import io.github.magisk317.relay.android.data.db.AppDatabase
+import io.github.magisk317.relay.android.data.db.dao.SmsBlacklistHitDao
 import io.github.magisk317.relay.android.data.db.dao.SmsMsgDao
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.platform.ipc.ForwardBroadcastContract
@@ -12,6 +13,7 @@ import io.mockk.mockk
 data class RuntimeDatabaseFixture(
     val database: AppDatabase,
     val smsMsgDao: SmsMsgDao,
+    val smsBlacklistHitDao: SmsBlacklistHitDao,
 )
 
 fun relaxedContext(): Context = mockk(relaxed = true)
@@ -43,8 +45,14 @@ fun runtimeSmsMsg(
 fun smsMsgDatabaseFixture(): RuntimeDatabaseFixture {
     val database = mockk<AppDatabase>(relaxed = true)
     val smsMsgDao = mockk<SmsMsgDao>(relaxed = true)
+    val smsBlacklistHitDao = mockk<SmsBlacklistHitDao>(relaxed = true)
     every { database.smsMsgDao() } returns smsMsgDao
-    return RuntimeDatabaseFixture(database = database, smsMsgDao = smsMsgDao)
+    every { database.smsBlacklistHitDao() } returns smsBlacklistHitDao
+    return RuntimeDatabaseFixture(
+        database = database,
+        smsMsgDao = smsMsgDao,
+        smsBlacklistHitDao = smsBlacklistHitDao,
+    )
 }
 
 fun Intent.stubStringExtra(
@@ -60,6 +68,14 @@ fun Intent.stubLongExtra(
     defaultValue: Long = 0L,
 ) {
     every { getLongExtra(key, defaultValue) } returns value
+}
+
+fun Intent.stubBooleanExtra(
+    key: String,
+    value: Boolean,
+    defaultValue: Boolean = false,
+) {
+    every { getBooleanExtra(key, defaultValue) } returns value
 }
 
 fun Intent.stubLongArrayExtra(

@@ -33,6 +33,9 @@ object FaqRoute
 object InterceptRoute
 
 @Serializable
+object BlacklistHitsRoute
+
+@Serializable
 object RecordsGraphRoute
 
 @Serializable

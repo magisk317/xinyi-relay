@@ -5,6 +5,7 @@ import io.github.magisk317.relay.android.data.db.entity.ForwardFilterRuleEntity
 import io.github.magisk317.relay.android.data.db.entity.AppInfo
 import io.github.magisk317.relay.android.data.db.entity.AutoInputEvent
 import io.github.magisk317.relay.android.data.db.entity.NotifyRouteRule
+import io.github.magisk317.relay.android.data.db.entity.SmsBlacklistHit
 import io.github.magisk317.relay.android.data.db.entity.SmsCodeRule
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.android.data.db.entity.SenderDispatchLog
@@ -193,6 +194,34 @@ interface SmsMsgDao {
 
     @Delete
     suspend fun deleteInTx(msgs: List<SmsMsg>)
+}
+
+@Dao
+interface SmsBlacklistHitDao {
+    @Query("SELECT * FROM sms_blacklist_hit ORDER BY created_at DESC LIMIT :limit")
+    suspend fun getRecent(limit: Int): List<SmsBlacklistHit>
+
+    @Query("SELECT * FROM sms_blacklist_hit ORDER BY created_at DESC LIMIT :limit")
+    fun observeRecent(limit: Int): Flow<List<SmsBlacklistHit>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(hit: SmsBlacklistHit): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(hits: List<SmsBlacklistHit>)
+
+    @Delete
+    suspend fun deleteAll(hits: List<SmsBlacklistHit>)
+
+    @Query(
+        "DELETE FROM sms_blacklist_hit WHERE id NOT IN (" +
+            "SELECT id FROM sms_blacklist_hit ORDER BY created_at DESC LIMIT :limit" +
+            ")",
+    )
+    suspend fun trimToLimit(limit: Int)
+
+    @Query("DELETE FROM sms_blacklist_hit")
+    suspend fun clearAll()
 }
 
 data class SenderDispatchStatRow(

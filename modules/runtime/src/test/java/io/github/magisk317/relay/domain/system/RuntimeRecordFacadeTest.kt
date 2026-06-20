@@ -2,7 +2,9 @@ package io.github.magisk317.relay.domain.system
 
 import io.mockk.coEvery
 import io.mockk.every
+import io.github.magisk317.relay.android.data.db.entity.SmsBlacklistHit
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
+import io.github.magisk317.relay.contract.xpbridge.XpSmsBlacklistHitRecord
 import io.github.magisk317.relay.testing.relaxedContext
 import io.github.magisk317.relay.testing.runtimeSmsMsg
 import io.github.magisk317.relay.testing.smsMsgDatabaseFixture
@@ -37,6 +39,51 @@ class RuntimeRecordFacadeTest {
         assertEquals(42L, recordId)
         assertEquals(smsMsg, insertedSmsMsg)
         assertEquals(true, insertedIsCodeSms)
+    }
+
+    @Test
+    fun insertSmsBlacklistHit_persistsHookHitRecord() = runBlocking {
+        val context = relaxedContext()
+        val database = smsMsgDatabaseFixture().database
+        var insertedArg: SmsBlacklistHit? = null
+
+        val facade = RuntimeRecordFacade(
+            context = context,
+            db = database,
+            smsBlacklistHitInserter = { incoming ->
+                insertedArg = incoming
+                51L
+            },
+        )
+        val id = facade.insertSmsBlacklistHit(
+            XpSmsBlacklistHitRecord(
+                eventId = "evt-1",
+                source = "dispatch_intent",
+                sender = "1068",
+                body = "otp 123456",
+                smsDate = 100L,
+                matchType = "number",
+                pattern = "1068",
+                actionDelete = true,
+                actionBlock = true,
+                blockReason = "blacklist_block",
+                createdAt = 200L,
+            ),
+        )
+
+        val inserted = requireNotNull(insertedArg)
+        assertEquals(51L, id)
+        assertEquals("evt-1", inserted.eventId)
+        assertEquals("dispatch_intent", inserted.source)
+        assertEquals("1068", inserted.sender)
+        assertEquals("otp 123456", inserted.body)
+        assertEquals(100L, inserted.smsDate)
+        assertEquals("number", inserted.matchType)
+        assertEquals("1068", inserted.pattern)
+        assertTrue(inserted.actionDelete)
+        assertTrue(inserted.actionBlock)
+        assertEquals("blacklist_block", inserted.blockReason)
+        assertEquals(200L, inserted.createdAt)
     }
 
     @Test

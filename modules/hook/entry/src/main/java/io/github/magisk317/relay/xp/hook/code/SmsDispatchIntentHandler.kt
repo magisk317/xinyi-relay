@@ -70,6 +70,16 @@ internal class SmsDispatchIntentHandler(
             conflictNotifier = conflictNotifier,
             suppressionLogger = suppressionLogger,
             blacklistDeleteScheduler = blacklistDeleteScheduler,
+            blacklistHitRecorder = { pluginContext, _, smsMsg, blacklistResult, decision, eventId ->
+                SmsBlacklistHitRecorder.record(
+                    pluginContext = pluginContext,
+                    smsMsg = smsMsg,
+                    blacklistResult = blacklistResult,
+                    decision = decision,
+                    eventId = eventId,
+                    source = "dispatch_intent",
+                )
+            },
             inboundBlocker = inboundBlocker,
             gateEvaluator = gateEvaluator,
         )

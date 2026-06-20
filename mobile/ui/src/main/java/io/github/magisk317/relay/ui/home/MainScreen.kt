@@ -59,6 +59,7 @@ import io.github.magisk317.relay.ui.home.settings.SettingsHomeScreen
 import io.github.magisk317.relay.ui.home.appconfig.AppConfigViewModel
 import io.github.magisk317.relay.ui.home.forward.ForwardKeepAliveScreen
 import io.github.magisk317.relay.ui.home.relayconfig.RemoteAgentScreen
+import io.github.magisk317.relay.ui.home.relayconfig.BlacklistHitListScreen
 import io.github.magisk317.relay.ui.home.relayconfig.InterceptScreen
 import io.github.magisk317.relay.ui.home.scheduled.ScheduledReminderScreen
 import io.github.magisk317.relay.ui.home.appconfig.AppNotifySenderBindingScreen
@@ -121,6 +122,7 @@ fun MainScreen(
             destination.hasRoute(VerificationSettingsRoute::class) -> NavigationSection.SETTINGS
             destination.hasRoute(RemoteAgentRoute::class) -> NavigationSection.SETTINGS
             destination.hasRoute(InterceptRoute::class) -> NavigationSection.ADVANCED
+            destination.hasRoute(BlacklistHitsRoute::class) -> NavigationSection.ADVANCED
             destination.hasRoute(ScheduledReminderRoute::class) -> NavigationSection.ADVANCED
             destination.hasRoute(ScheduledTasksRoute::class) -> NavigationSection.ADVANCED
             destination.hasRoute(ScheduledTaskConfigRoute::class) -> NavigationSection.ADVANCED
@@ -510,6 +512,14 @@ fun MainScreen(
                             hazeState = hazeState,
                             hazeStyle = hazeStyle,
                             refreshTrigger = interceptRefreshTrigger,
+                            onOpenBlacklistHits = { navController.navigate(BlacklistHitsRoute) },
+                        )
+                    }
+                    composable<BlacklistHitsRoute> {
+                        BlacklistHitListScreen(
+                            hazeState = hazeState,
+                            hazeStyle = hazeStyle,
+                            onBack = { navController.popBackStack() },
                         )
                     }
                     navigation<RecordsGraphRoute>(startDestination = RecordsRoute) {

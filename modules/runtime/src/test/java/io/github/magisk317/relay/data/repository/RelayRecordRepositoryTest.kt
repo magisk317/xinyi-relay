@@ -1,7 +1,9 @@
 package io.github.magisk317.relay.data.repository
 
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
+import io.github.magisk317.relay.android.data.db.entity.SmsBlacklistHit
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.engine.service.SenderDispatchResult
 import io.github.magisk317.relay.testing.relaxedContext
@@ -155,5 +157,115 @@ class RelayRecordRepositoryTest {
         assertEquals("ok", updated.forwardMessage)
         assertEquals(200L, updated.forwardTime)
         coVerify(exactly = 0) { smsMsgDao.insert(any()) }
+    }
+
+    @Test
+    fun `blacklist hit remove restore and clear use blacklist hit dao`() = runBlocking {
+        val context = relaxedContext()
+        val (database, _, smsBlacklistHitDao) = smsMsgDatabaseFixture()
+        val preferences = mockk<PreferenceDataSource>(relaxed = true)
+        val hit = SmsBlacklistHit(
+            id = 8L,
+            eventId = "evt-8",
+            source = "dispatch_intent",
+            sender = "1068",
+            body = "blocked",
+            smsDate = 100L,
+            matchType = "number",
+            pattern = "1068",
+            actionDelete = true,
+            actionBlock = true,
+            blockReason = "blacklist_block",
+            createdAt = 200L,
+        )
+
+        val repository = RelayRecordRepository(
+            context = context,
+            db = database,
+            preferenceDataSource = preferences,
+            recordUploadScheduler = {},
+        )
+        repository.removeSmsBlacklistHits(listOf(hit))
+        repository.restoreSmsBlacklistHits(listOf(hit))
+        repository.clearSmsBlacklistHits()
+
+        coVerify(exactly = 1) { smsBlacklistHitDao.deleteAll(listOf(hit)) }
+        coVerify(exactly = 1) { smsBlacklistHitDao.insertAll(listOf(hit)) }
+        coVerify(exactly = 1) { smsBlacklistHitDao.clearAll() }
+    }
+
+    @Test
+    fun `insert blacklist hit respects record setting and history limit`() = runBlocking {
+        val context = relaxedContext()
+        val (database, _, smsBlacklistHitDao) = smsMsgDatabaseFixture()
+        val preferences = mockk<PreferenceDataSource>(relaxed = true)
+        val hit = SmsBlacklistHit(
+            id = 8L,
+            eventId = "evt-8",
+            source = "dispatch_intent",
+            sender = "1068",
+            body = "blocked",
+            smsDate = 100L,
+            matchType = "number",
+            pattern = "1068",
+            actionDelete = true,
+            actionBlock = true,
+            blockReason = "blacklist_block",
+            createdAt = 200L,
+        )
+        coEvery { preferences.getBoolean(PrefConst.KEY_ENABLE_SMS_BLACKLIST_HIT_RECORDS, true) } returns true
+        coEvery {
+            preferences.getString(
+                PrefConst.KEY_HISTORY_LIMIT_SMS_BLACKLIST_HIT,
+                PrefConst.SMS_BLACKLIST_HIT_HISTORY_LIMIT_DEFAULT,
+            )
+        } returns "20"
+        coEvery { smsBlacklistHitDao.insert(hit) } returns 9L
+
+        val repository = RelayRecordRepository(
+            context = context,
+            db = database,
+            preferenceDataSource = preferences,
+            recordUploadScheduler = {},
+        )
+        val id = repository.insertSmsBlacklistHit(hit)
+
+        assertEquals(9L, id)
+        coVerify(exactly = 1) { smsBlacklistHitDao.insert(hit) }
+        coVerify(exactly = 1) { smsBlacklistHitDao.trimToLimit(20) }
+    }
+
+    @Test
+    fun `insert blacklist hit skips when record setting disabled`() = runBlocking {
+        val context = relaxedContext()
+        val (database, _, smsBlacklistHitDao) = smsMsgDatabaseFixture()
+        val preferences = mockk<PreferenceDataSource>(relaxed = true)
+        val hit = SmsBlacklistHit(
+            id = 8L,
+            eventId = "evt-8",
+            source = "dispatch_intent",
+            sender = "1068",
+            body = "blocked",
+            smsDate = 100L,
+            matchType = "number",
+            pattern = "1068",
+            actionDelete = true,
+            actionBlock = true,
+            blockReason = "blacklist_block",
+            createdAt = 200L,
+        )
+        coEvery { preferences.getBoolean(PrefConst.KEY_ENABLE_SMS_BLACKLIST_HIT_RECORDS, true) } returns false
+
+        val repository = RelayRecordRepository(
+            context = context,
+            db = database,
+            preferenceDataSource = preferences,
+            recordUploadScheduler = {},
+        )
+        val id = repository.insertSmsBlacklistHit(hit)
+
+        assertEquals(null, id)
+        coVerify(exactly = 0) { smsBlacklistHitDao.insert(any()) }
+        coVerify(exactly = 0) { smsBlacklistHitDao.trimToLimit(any()) }
     }
 }

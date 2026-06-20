@@ -488,6 +488,8 @@ class RemoteAgentRepository(
                     plainSmsHistoryLimit = payload.records.plainSmsHistoryLimit,
                     appNotifyHistoryLimit = payload.records.appNotifyHistoryLimit,
                     callNotifyHistoryLimit = payload.records.callNotifyHistoryLimit,
+                    smsBlacklistHitRecordEnabled = payload.records.smsBlacklistHitRecordEnabled,
+                    smsBlacklistHitHistoryLimit = payload.records.smsBlacklistHitHistoryLimit,
                 ),
             )
             settingsRepository.updateSmsBlacklistSettings(

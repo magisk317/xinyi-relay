@@ -6,10 +6,12 @@ import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.common.utils.CallSessionTracker
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.AppDatabase
+import io.github.magisk317.relay.android.data.db.entity.SmsBlacklistHit
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.android.data.db.mergeSmsMsgForInsert
 import io.github.magisk317.smscode.domain.utils.CodeRecordSimilarityUtils
 import io.github.magisk317.relay.engine.model.ReadRecordData
+import io.github.magisk317.relay.engine.model.ReadSmsBlacklistHitData
 import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.engine.service.MessageRecordRepository
 import io.github.magisk317.relay.engine.service.SenderDispatchResult
@@ -25,6 +27,35 @@ class RelayRecordRepository(
     private val appContext = context.applicationContext ?: context
 
     override suspend fun listRecords(limit: Int): List<ReadRecordData> = db.smsMsgDao().getAll().take(limit)
+
+    override suspend fun listSmsBlacklistHits(limit: Int): List<ReadSmsBlacklistHitData> =
+        db.smsBlacklistHitDao().getRecent(limit)
+
+    override fun observeSmsBlacklistHits(limit: Int): Flow<List<ReadSmsBlacklistHitData>> =
+        db.smsBlacklistHitDao().observeRecent(limit)
+
+    override suspend fun removeSmsBlacklistHits(list: List<ReadSmsBlacklistHitData>) {
+        if (list.isEmpty()) return
+        db.smsBlacklistHitDao().deleteAll(list.map { it.toSmsBlacklistHit() })
+    }
+
+    override suspend fun restoreSmsBlacklistHits(list: List<ReadSmsBlacklistHitData>) {
+        if (list.isEmpty()) return
+        db.smsBlacklistHitDao().insertAll(list.map { it.toSmsBlacklistHit() })
+    }
+
+    override suspend fun clearSmsBlacklistHits() {
+        db.smsBlacklistHitDao().clearAll()
+    }
+
+    suspend fun insertSmsBlacklistHit(hit: SmsBlacklistHit): Long? {
+        if (!preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE_SMS_BLACKLIST_HIT_RECORDS, true)) {
+            return null
+        }
+        val id = db.smsBlacklistHitDao().insert(hit)
+        trimSmsBlacklistHitsIfNeeded()
+        return id
+    }
 
     /** 观察全量记录的 Flow，Room 自动在 DB 变更时发出新列表。 */
     override fun queryAllFlow(): Flow<List<ReadRecordData>> = db.smsMsgDao().getAllFlow()
@@ -380,6 +411,17 @@ class RelayRecordRepository(
         return value.toIntOrNull() ?: 0
     }
 
+    private suspend fun trimSmsBlacklistHitsIfNeeded() {
+        val value = preferenceDataSource.getString(
+            PrefConst.KEY_HISTORY_LIMIT_SMS_BLACKLIST_HIT,
+            PrefConst.SMS_BLACKLIST_HIT_HISTORY_LIMIT_DEFAULT,
+        )
+        val limit = value.toIntOrNull()
+            ?: PrefConst.SMS_BLACKLIST_HIT_HISTORY_LIMIT_DEFAULT.toInt()
+        if (limit <= 0) return
+        db.smsBlacklistHitDao().trimToLimit(limit)
+    }
+
     private fun recordMatchesType(record: SmsMsg, msgType: Int, isCodeSms: Boolean): Boolean = when (msgType) {
         SmsMsg.MSG_TYPE_APP_NOTIFY -> record.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY
         SmsMsg.MSG_TYPE_SMS -> {
@@ -398,4 +440,21 @@ class RelayRecordRepository(
         private const val MAX_FORWARD_MESSAGE_LEN = 2000
         private const val CODE_RECORD_DEDUP_WINDOW_MS = CodeRecordSimilarityUtils.DEFAULT_WINDOW_MS
     }
+}
+
+private fun ReadSmsBlacklistHitData.toSmsBlacklistHit(): SmsBlacklistHit {
+    return this as? SmsBlacklistHit ?: SmsBlacklistHit(
+        id = id,
+        eventId = eventId,
+        source = source,
+        sender = sender,
+        body = body,
+        smsDate = smsDate,
+        matchType = matchType,
+        pattern = pattern,
+        actionDelete = actionDelete,
+        actionBlock = actionBlock,
+        blockReason = blockReason,
+        createdAt = createdAt,
+    )
 }

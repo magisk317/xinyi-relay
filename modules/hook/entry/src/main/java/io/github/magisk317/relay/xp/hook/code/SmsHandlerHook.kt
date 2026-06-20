@@ -382,6 +382,14 @@ class SmsHandlerHook : BaseHook() {
         }
         val eventId = SmsIntentHookSupport.ensureEventId(intent)
         val evaluation = SmsBlockEvaluator.evaluate(pluginContext, intent, eventId, "dispatch_chain") ?: return
+        SmsBlacklistHitRecorder.record(
+            pluginContext = pluginContext,
+            smsMsg = evaluation.smsMsg,
+            blacklistResult = evaluation.blacklistResult,
+            decision = evaluation.decision,
+            eventId = eventId,
+            source = "dispatch_chain",
+        )
         if (evaluation.blacklistDeleteOnly && evaluation.smsMsg != null) {
             scheduleBlacklistDelete(pluginContext, phoneContext, evaluation.smsMsg)
         }

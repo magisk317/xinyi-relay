@@ -37,6 +37,13 @@ object ForwardReceiverPolicy {
                 sentFromUid == -1 ||
                 (sdkInt < API_LEVEL_34 && sentFromUid == null)
         }
+        msgType == ForwardBroadcastContract.MSG_TYPE_BLACKLIST_HIT &&
+            forwardSource == ForwardBroadcastContract.SOURCE_SMS_HOOK -> {
+            sentFromUid == SYSTEM_UID ||
+                sentFromUid == PHONE_UID ||
+                sentFromUid == -1 ||
+                (sdkInt < API_LEVEL_34 && sentFromUid == null)
+        }
         else -> false
     }
 

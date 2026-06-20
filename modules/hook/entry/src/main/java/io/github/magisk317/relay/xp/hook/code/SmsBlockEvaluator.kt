@@ -7,6 +7,7 @@ import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.XpSmsCodeParser
 import io.github.magisk317.relay.xpbridge.XpSmsBlacklist
 import io.github.magisk317.smscode.verification.BlacklistMatchResult
+import io.github.magisk317.smscode.verification.SmsHandlerDispatchDecision
 import io.github.magisk317.smscode.verification.SmsBlockEvaluator as SharedSmsBlockEvaluator
 
 internal object SmsBlockEvaluator {
@@ -17,6 +18,8 @@ internal object SmsBlockEvaluator {
         val smsMsg: SmsMsg?,
         val blockReason: String?,
         val blacklistDeleteOnly: Boolean,
+        val blacklistResult: BlacklistMatchResult,
+        val decision: SmsHandlerDispatchDecision.Decision,
     )
 
     private val delegate = SharedSmsBlockEvaluator(
@@ -44,6 +47,11 @@ internal object SmsBlockEvaluator {
             smsMsg = result.smsMsg,
             blockReason = result.blockReasonWireValue,
             blacklistDeleteOnly = result.blacklistDeleteOnly,
+            blacklistResult = result.blacklistResult,
+            decision = SmsHandlerDispatchDecision.Decision(
+                shouldDeleteByBlacklist = result.blacklistDeleteOnly,
+                blockReason = result.blockReason,
+            ),
         )
     }
 

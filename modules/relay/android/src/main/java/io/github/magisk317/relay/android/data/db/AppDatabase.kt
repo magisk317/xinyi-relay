@@ -18,6 +18,7 @@ import io.github.magisk317.relay.android.data.db.dao.AutoInputEventDao
 import io.github.magisk317.relay.android.data.db.dao.ForwardFilterRuleDao
 import io.github.magisk317.relay.android.data.db.dao.NotifyRouteRuleDao
 import io.github.magisk317.relay.android.data.db.dao.SenderDispatchLogDao
+import io.github.magisk317.relay.android.data.db.dao.SmsBlacklistHitDao
 import io.github.magisk317.relay.android.data.db.dao.SmsCodeRuleDao
 import io.github.magisk317.relay.android.data.db.dao.SmsMsgDao
 import io.github.magisk317.relay.android.data.db.entity.AppInfo
@@ -28,10 +29,12 @@ import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.android.data.db.entity.SenderDispatchLog
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.db.entity.ScheduledTaskEntity
+import io.github.magisk317.relay.android.data.db.entity.SmsBlacklistHit
 
 @Database(entities = [
     SmsCodeRule::class,
     SmsMsg::class,
+    SmsBlacklistHit::class,
     AppInfo::class,
     AutoInputEvent::class,
     SenderDispatchLog::class,
@@ -40,12 +43,13 @@ import io.github.magisk317.relay.android.data.db.entity.ScheduledTaskEntity
     SenderEntity::class,
     RuleEntity::class,
     ScheduledTaskEntity::class
-], version = 31, exportSchema = false)
+], version = 32, exportSchema = false)
 @TypeConverters(ConvertersDate::class, ConvertersSenderList::class)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun smsCodeRuleDao(): SmsCodeRuleDao
     abstract fun smsMsgDao(): SmsMsgDao
+    abstract fun smsBlacklistHitDao(): SmsBlacklistHitDao
     abstract fun appInfoDao(): AppInfoDao
     abstract fun autoInputEventDao(): AutoInputEventDao
     abstract fun senderDispatchLogDao(): SenderDispatchLogDao
@@ -887,6 +891,48 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_31_32 = object : androidx.room.migration.Migration(31, 32) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                createSmsBlacklistHitTable(db, "31_32")
+            }
+        }
+
+        private fun createSmsBlacklistHitTable(
+            db: androidx.sqlite.db.SupportSQLiteDatabase,
+            migration: String,
+        ) {
+            execSqlSafely(
+                db = db,
+                sql = "CREATE TABLE IF NOT EXISTS sms_blacklist_hit (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "event_id TEXT NOT NULL, " +
+                    "source TEXT NOT NULL, " +
+                    "sender TEXT, " +
+                    "body TEXT, " +
+                    "sms_date INTEGER NOT NULL DEFAULT 0, " +
+                    "match_type TEXT, " +
+                    "pattern TEXT, " +
+                    "action_delete INTEGER NOT NULL DEFAULT 0, " +
+                    "action_block INTEGER NOT NULL DEFAULT 0, " +
+                    "block_reason TEXT, " +
+                    "created_at INTEGER NOT NULL DEFAULT 0" +
+                    ")",
+                migration = migration,
+            )
+            execSqlSafely(
+                db = db,
+                sql = "CREATE INDEX IF NOT EXISTS index_sms_blacklist_hit_created_at " +
+                    "ON sms_blacklist_hit(created_at)",
+                migration = migration,
+            )
+            execSqlSafely(
+                db = db,
+                sql = "CREATE UNIQUE INDEX IF NOT EXISTS index_sms_blacklist_hit_event_source " +
+                    "ON sms_blacklist_hit(event_id, source)",
+                migration = migration,
+            )
+        }
+
         private fun execSqlSafely(
             db: androidx.sqlite.db.SupportSQLiteDatabase,
             sql: String,
@@ -938,6 +984,7 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_28_29,
                     MIGRATION_29_30,
                     MIGRATION_30_31,
+                    MIGRATION_31_32,
                 )
                 .enableMultiInstanceInvalidation()
                 .build().also { instance = it }
