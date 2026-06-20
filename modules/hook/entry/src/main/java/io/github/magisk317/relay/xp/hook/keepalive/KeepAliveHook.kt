@@ -52,7 +52,7 @@ class KeepAliveHook : BaseHook() {
 
             HookBridge.hookMethod(
                 targetMethod,
-                object : MethodHook() {
+                object : MethodHook("relay.keepalive.oom_adjuster") {
                     override fun afterHookedMethod(param: MethodHookParam) {
                         runNonFatalCatching {
                             if (!readPrefEnabled(KeepAliveHookConst.KEY_KEEPALIVE_OOM_ADJ)) return
@@ -125,7 +125,7 @@ class KeepAliveHook : BaseHook() {
 
             HookBridge.hookMethod(
                 killMethod,
-                object : MethodHook() {
+                object : MethodHook("relay.keepalive.kill_process") {
                     override fun beforeHookedMethod(param: MethodHookParam) {
                         runNonFatalCatching {
                             if (!readPrefEnabled(KeepAliveHookConst.KEY_KEEPALIVE_ANTI_KILL)) return
@@ -189,7 +189,7 @@ class KeepAliveHook : BaseHook() {
 
             HookBridge.hookMethod(
                 bucketMethod,
-                object : MethodHook() {
+                object : MethodHook("relay.keepalive.app_standby") {
                     override fun beforeHookedMethod(param: MethodHookParam) {
                         runNonFatalCatching {
                             if (!readPrefEnabled(KeepAliveHookConst.KEY_KEEPALIVE_STANDBY_BYPASS)) return
@@ -256,7 +256,7 @@ class KeepAliveHook : BaseHook() {
 
             HookBridge.hookMethod(
                 idleMethod,
-                object : MethodHook() {
+                object : MethodHook("relay.keepalive.device_idle") {
                     override fun beforeHookedMethod(param: MethodHookParam) {
                         runNonFatalCatching {
                             if (!readPrefEnabled(KeepAliveHookConst.KEY_KEEPALIVE_DOZE_BYPASS)) return

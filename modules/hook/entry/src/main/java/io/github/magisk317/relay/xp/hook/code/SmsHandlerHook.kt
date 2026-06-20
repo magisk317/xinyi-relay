@@ -37,6 +37,7 @@ import java.util.concurrent.Executors
  * Hook class com.android.internal.telephony.InboundSmsHandler
  */
 class SmsHandlerHook : BaseHook() {
+    private val smsOperationExecutor = Executors.newSingleThreadExecutor()
     private val runtimeSession = SmsHookRuntimeSession(SMSCODE_PACKAGE)
     private val inboundSmsBlocker = InboundSmsBlocker(SMS_HANDLER_CLASS)
     private val parsedCodeSmsForwarder = ParsedCodeSmsForwarder()
@@ -176,7 +177,7 @@ class SmsHandlerHook : BaseHook() {
             methods.forEach { method ->
                 XposedWrapper.hookMethod(
                     method,
-                    object : MethodHook() {
+                    object : MethodHook("relay.sms_handler.dispatch_chain.$className.$name") {
                         override fun beforeHookedMethod(param: MethodHookParam) {
                             XLog.withRoute(LogRoute.SMS_HOOK) {
                                 maybeBlockFromDispatchChain(
@@ -241,7 +242,7 @@ class SmsHandlerHook : BaseHook() {
         }
     }
 
-    private inner class ConstructorHook : MethodHook() {
+    private inner class ConstructorHook : MethodHook("relay.sms_handler.constructor") {
         @Throws(Throwable::class)
         override fun afterHookedMethod(param: MethodHookParam) {
             XLog.withRoute(LogRoute.SMS_HOOK) {
@@ -270,7 +271,9 @@ class SmsHandlerHook : BaseHook() {
         smsInboxObserver = SmsInboxObserver(runtime.pluginContext, runtime.phoneContext).also { it.register() }
     }
 
-    private inner class DispatchIntentHook(private val mReceiverIndex: Int) : MethodHook() {
+    private inner class DispatchIntentHook(
+        private val mReceiverIndex: Int,
+    ) : MethodHook("relay.sms_handler.dispatch_intent") {
         @Throws(Throwable::class)
         override fun beforeHookedMethod(param: MethodHookParam) {
             XLog.withRoute(LogRoute.SMS_HOOK) {
@@ -344,7 +347,7 @@ class SmsHandlerHook : BaseHook() {
     }
 
     private fun scheduleBlacklistDelete(pluginContext: Context, phoneContext: Context, smsMsg: SmsMsg) {
-        SMS_OPERATION_EXECUTOR.execute {
+        smsOperationExecutor.execute {
             XLog.withRoute(LogRoute.SMS_HOOK) {
                 runCatching {
                     OperateSmsAction(
@@ -484,7 +487,7 @@ class SmsHandlerHook : BaseHook() {
 
         val key = result.key ?: return false
         val timestampMs = result.timestampMs ?: return false
-        SMS_OPERATION_EXECUTOR.execute {
+        smsOperationExecutor.execute {
             syncSharedDedupToFile(pluginContext, key, timestampMs)
         }
 
@@ -520,12 +523,17 @@ class SmsHandlerHook : BaseHook() {
         }
     }
 
+    override fun onHotReloading() {
+        smsInboxObserver?.unregister()
+        smsInboxObserver = null
+        smsOperationExecutor.shutdownNow()
+    }
+
     companion object {
         private const val TELEPHONY_PACKAGE = "com.android.internal.telephony"
         private const val SMS_HANDLER_CLASS = "$TELEPHONY_PACKAGE.InboundSmsHandler"
         private const val DISPATCH_HANDLER_KEY = "sms_handler"
         private val SMSCODE_PACKAGE = BuildConfig.APPLICATION_ID
-        private val SMS_OPERATION_EXECUTOR = Executors.newSingleThreadExecutor()
         private val dispatchIntentDeduplicator = SmsDispatchIntentDeduplicator()
         private val dispatchChainBlockDeduplicator = SmsDispatchChainBlockDeduplicator()
     }

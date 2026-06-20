@@ -23,6 +23,7 @@ internal class SmsInboxObserver(
 ) {
     private val smsRoleStateResolver = SmsRoleStateResolver()
     private val smsInboxScanner = createInboxScanner()
+    private val queryExecutor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
     private val observedSmsHandler = ObservedSmsHandler(
         pluginContext = pluginContext,
         phoneContext = phoneContext,
@@ -47,6 +48,16 @@ internal class SmsInboxObserver(
         }.onFailure {
             XLog.w("SmsInboxObserver register failed: %s", it.message ?: it.javaClass.simpleName)
         }
+    }
+
+    fun unregister() {
+        runCatching {
+            phoneContext.contentResolver.unregisterContentObserver(observer)
+            XLog.i("SmsInboxObserver unregistered")
+        }.onFailure {
+            XLog.w("SmsInboxObserver unregister failed: %s", it.message ?: it.javaClass.simpleName)
+        }
+        queryExecutor.shutdownNow()
     }
 
     private fun repairRecentRouting() {
@@ -135,6 +146,5 @@ internal class SmsInboxObserver(
         private const val ROUTING_REPAIR_WINDOW_MS = 24 * 60 * 60 * 1000L
         private const val ROUTING_REPAIR_TRIGGER_URI = "content://sms"
         private const val MAX_TRACKED_SMS_IDS = 128
-        private val queryExecutor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
     }
 }

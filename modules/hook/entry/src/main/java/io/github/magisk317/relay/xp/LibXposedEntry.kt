@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.xp
 
+import android.os.Bundle
 import android.util.Log
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
@@ -8,6 +9,8 @@ import io.github.libxposed.api.XposedModuleInterface.HotReloadingParam
 import io.github.libxposed.api.XposedModuleInterface.ModuleLoadedParam
 import io.github.libxposed.api.XposedModuleInterface.PackageReadyParam
 import io.github.libxposed.api.XposedModuleInterface.SystemServerStartingParam
+import java.lang.ref.WeakReference
+import java.util.ArrayList
 import java.util.concurrent.ConcurrentHashMap
 import io.github.magisk317.relay.android.platform.clipboard.AndroidClipboardPlatformBridge
 import io.github.magisk317.relay.android.platform.notification.AndroidNotificationPlatformBridge
@@ -48,6 +51,8 @@ import io.github.magisk317.smscode.xposed.utils.XLog
 class LibXposedEntry : XposedModule {
     private companion object {
         private const val MIN_LIBXPOSED_API_VERSION = 102
+        private const val STATE_PROCESS_NAME = "processName"
+        private const val STATE_LOADED_PACKAGES = "loadedPackages"
     }
 
     @Suppress("unused", "UnusedParameter")
@@ -77,6 +82,11 @@ class LibXposedEntry : XposedModule {
             return
         }
         Log.i(BuildConfig.LOG_TAG, "LibXposedEntry running API 102 path: apiVersion=$api")
+        installModuleRuntime(param, LibXposedHookApi(this))
+        installInitZygoteHooks()
+    }
+
+    private fun installModuleRuntime(param: ModuleLoadedParam, hookApi: LibXposedHookApi) {
         installCoreRuntime()
         XpHookDiagnostics.installRuntimeBridge(AndroidXpDiagnosticsBridge)
         XpHookDiagnostics.installXposedRuntimeLogSink()
@@ -87,20 +97,22 @@ class LibXposedEntry : XposedModule {
         XpNotificationBridge.installPlatformBridge(AndroidNotificationPlatformBridge)
         XpSmsRuntimeBridge.installPlatformBridge(AndroidSmsRuntimeBridge)
         XpPrefs.installPlatformBridge(AndroidXpPrefsBridge)
-        HookEnv.init(LibXposedHookApi(this))
+        HookEnv.init(hookApi)
         XpPrefs.installRuntimeBridge(RuntimeBridgeFactory.create(this))
         processName = if (param.isSystemServer) "android" else param.processName
-
-        for (hook in hookList) {
-            if (hook.hookInitZygote()) {
-                hook.initZygote(ZygoteParam())
-            }
-        }
 
         try {
             XLog.setLogLevel(BuildConfig.LOG_LEVEL)
         } catch (t: Throwable) {
             XLog.e("", t)
+        }
+    }
+
+    private fun installInitZygoteHooks() {
+        for (hook in hookList) {
+            if (hook.hookInitZygote()) {
+                hook.initZygote(ZygoteParam())
+            }
         }
     }
 
@@ -160,25 +172,117 @@ class LibXposedEntry : XposedModule {
     }
 
     override fun onHotReloading(param: HotReloadingParam): Boolean {
-        param.setSavedInstanceState(Pair(processName, HashMap(loadedPackages)))
-        return true
+        return runCatching {
+            param.setSavedInstanceState(createHotReloadState())
+            cleanupForHotReload()
+            true
+        }.getOrElse { t ->
+            Log.e(BuildConfig.LOG_TAG, "LibXposedEntry hot reload rejected: ${t.message}", t)
+            false
+        }
     }
 
-    @Suppress("UNCHECKED_CAST")
     override fun onHotReloaded(param: HotReloadedParam) {
-        installCoreRuntime()
-        val hookApi = HookEnv.api as? LibXposedHookApi ?: return
+        val hookApi = LibXposedHookApi(this)
+        installModuleRuntime(param, hookApi)
         hookApi.beginHotReload(param.oldHookHandles)
-        
-        val state = param.savedInstanceState as? Pair<String, Map<String, ClassLoader>>
-        if (state != null) {
-            processName = state.first
-            state.second.forEach { (pkg, cl) ->
+        val removed = try {
+            installInitZygoteHooks()
+            restoreHotReloadState(param.savedInstanceState)
+            resolveCurrentProcessTargets(param).forEach { (pkg, cl) ->
+                loadedPackages.putIfAbsent(pkg, cl)
+            }
+            loadedPackages.forEach { (pkg, cl) ->
                 dispatchLoad(LoadParam(pkg, processName, cl))
             }
+            hookApi.finishHotReload()
+        } catch (t: Throwable) {
+            hookApi.finishHotReload()
+            Log.e(BuildConfig.LOG_TAG, "LibXposedEntry hot reload failed", t)
+            throw t
         }
-        
-        val removed = hookApi.finishHotReload()
         Log.i(BuildConfig.LOG_TAG, "onHotReloaded: replaced hooks, removed $removed stale hooks")
+    }
+
+    private fun createHotReloadState(): Bundle {
+        return Bundle().apply {
+            putString(STATE_PROCESS_NAME, processName)
+            putStringArrayList(STATE_LOADED_PACKAGES, ArrayList(loadedPackages.keys.sorted()))
+        }
+    }
+
+    private fun cleanupForHotReload() {
+        for (hook in hookList) {
+            runCatching { hook.onHotReloading() }
+                .onFailure { t ->
+                    Log.e(BuildConfig.LOG_TAG, "Hot reload cleanup failed: ${hook.javaClass.name}", t)
+                }
+        }
+    }
+
+    private fun restoreHotReloadState(savedState: Any?) {
+        val state = savedState as? Bundle ?: return
+        processName = state.getString(STATE_PROCESS_NAME) ?: processName
+        val packages = state.getStringArrayList(STATE_LOADED_PACKAGES) ?: return
+        loadedPackages.clear()
+        packages.forEach { pkg ->
+            val classLoader = resolveLoadedPackageClassLoader(pkg)
+            if (classLoader == null) {
+                Log.w(BuildConfig.LOG_TAG, "Hot reload skipped package without classloader: $pkg")
+            } else {
+                loadedPackages[pkg] = classLoader
+            }
+        }
+    }
+
+    private fun resolveCurrentProcessTargets(param: ModuleLoadedParam): Map<String, ClassLoader> {
+        val process = if (param.isSystemServer) "android" else param.processName
+        return when (process) {
+            "android", "system", "system_server" -> mapOf("android" to resolveSystemServerClassLoader())
+            "com.android.phone", "com.xiaomi.phone" -> {
+                val classLoader = resolveLoadedPackageClassLoader(process) ?: resolveContextClassLoader()
+                mapOf(process to classLoader)
+            }
+            "com.android.mms", "com.android.mms:mms_service" -> {
+                val classLoader = resolveLoadedPackageClassLoader("com.android.mms") ?: resolveContextClassLoader()
+                mapOf("com.android.mms" to classLoader)
+            }
+            "com.android.providers.telephony" -> {
+                val classLoader = resolveLoadedPackageClassLoader(process) ?: resolveContextClassLoader()
+                mapOf(process to classLoader)
+            }
+            else -> emptyMap()
+        }
+    }
+
+    private fun resolveLoadedPackageClassLoader(packageName: String): ClassLoader? {
+        if (packageName == "android" || packageName == "system") {
+            return resolveSystemServerClassLoader()
+        }
+        return runCatching {
+            val activityThreadClass = Class.forName("android.app.ActivityThread")
+            val activityThread = activityThreadClass.getDeclaredMethod("currentActivityThread").invoke(null) ?: return null
+            listOf("mPackages", "mResourcePackages").firstNotNullOfOrNull { fieldName ->
+                val field = activityThreadClass.getDeclaredField(fieldName).apply { isAccessible = true }
+                val packages = field.get(activityThread) as? Map<*, *> ?: return@firstNotNullOfOrNull null
+                val loadedApkRef = packages[packageName] ?: return@firstNotNullOfOrNull null
+                val loadedApk = (loadedApkRef as? WeakReference<*>)?.get() ?: loadedApkRef
+                loadedApk.javaClass
+                    .getDeclaredMethod("getClassLoader")
+                    .apply { isAccessible = true }
+                    .invoke(loadedApk) as? ClassLoader
+            }
+        }.getOrElse { t ->
+            Log.w(BuildConfig.LOG_TAG, "Hot reload classloader resolve failed for $packageName: ${t.message}", t)
+            null
+        }
+    }
+
+    private fun resolveSystemServerClassLoader(): ClassLoader {
+        return resolveContextClassLoader()
+    }
+
+    private fun resolveContextClassLoader(): ClassLoader {
+        return Thread.currentThread().contextClassLoader ?: ClassLoader.getSystemClassLoader()
     }
 }
