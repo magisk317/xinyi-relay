@@ -248,6 +248,32 @@ object MatrixE2eeFeatureVerification : MatrixE2eeVerification {
         }
     }
 
+    override suspend fun revokeDevice(context: Context, setting: MatrixSetting) {
+        SLog.d(TAG, "Matrix verification revoke device requested: ${summarizeClientSession(client)}")
+        val activeClient = client
+        if (activeClient != null) {
+            try {
+                withContext(Dispatchers.IO) {
+                    activeClient.logout()
+                }
+                SLog.d(TAG, "Matrix verification logout completed")
+            } catch (e: Exception) {
+                SLog.w(TAG, "Matrix verification logout failed: ${e.javaClass.simpleName}: ${e.message}")
+            }
+        } else {
+            SLog.d(TAG, "Matrix verification revoke skipped without client")
+        }
+
+        try {
+            MatrixE2eeFeatureSender.forceClearDeviceStore(context, setting)
+            SLog.d(TAG, "Matrix verification device store forcefully cleared")
+        } catch (e: Exception) {
+            SLog.w(TAG, "Failed to forcefully clear Matrix device store: ${e.message}")
+        }
+
+        reset()
+    }
+
     override fun reset() {
         SLog.d(TAG, "Matrix verification reset requested: ${summarizeClientSession(client)}")
         stopOutgoingSasStart()
