@@ -20,10 +20,8 @@ android {
 }
 
 dependencies {
-    implementation(project(":relay:contract"))
     implementation(project(":magisk-ui-kit"))
     implementation(project(":mobile:feature:common"))
-    implementation(project(":relay:android"))
     implementation(project(":core"))
     implementation(project(":smscode-core:domain"))
     implementation(platform(libs.androidx.compose.bom))

@@ -24,8 +24,6 @@ android {
 
 dependencies {
     implementation(project(":core"))
-    implementation(project(":relay:contract"))
-    implementation(project(":relay:engine:api"))
     implementation(project(":mobile:feature:common"))
     implementation(project(":magisk-ui-kit"))
     implementation(platform(libs.androidx.compose.bom))
