@@ -1,10 +1,20 @@
 # 更新日志 (CHANGELOG)
 
-本日志记录了项目近期的主要变更。
+本日志记录了项目近期的主要变更。 
 
 
-## [v0.2.1] - Unreleased
-- 版本：`versionCode 41` / `versionName 0.2.1`。
+## [v0.2.1-beta] - 2026-06-21
+- 版本：`versionCode 41` / `versionName 0.2.1-beta`。
+- **🌟 新特性 (Features)**
+  - `[sms]` 新增发送方黑名单拦截机制，并添加短信号码黑名单拦截记录与配置 UI。
+- **🐛 修复与优化 (Fixes & Perf)**
+  - `[hook]` 修复并兼容针对 LibXposed API 102 的热重载 (Hot Reload) 替换逻辑。
+  - `[desktop]` 清理已废弃的 keyring v3 凭据初始化逻辑。
+- **📦 依赖与底层构建 (Chores)**
+  - `[mobile]` 进一步重构领域结构：将共享契约抽取到 `feature-common`，清理废弃的发送端 E2EE 源码集并开启构建缓存加速。
+  - `[ci]` 对 CI 脚本目录进行大规模分类重构，同时将 Cargo/PNPM 全栈依赖强制锁定与漏洞清理整合入自动修复流程。
+
+> Full Changelog: https://github.com/magisk317/xinyi-relay/compare/v0.2.0...v0.2.1-beta
 
 ---
 

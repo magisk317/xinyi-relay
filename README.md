@@ -49,9 +49,8 @@
 4. 在应用内配置转发通道、路由规则、拦截策略与验证码自动填写。
 
 ### 兼容性
-- **最低 Android 8.0（API 26），Target SDK 37。**
-- **适用于偏原生系统，第三方深度定制 Rom 可能存在兼容性差异。**
-- **代码库：100% Kotlin + Jetpack Compose + Room + Coroutines。**
+- 最低 Android 8.0（API 26）。
+- 适用于偏原生系统，第三方深度定制 Rom 可能存在兼容性差异。
 
 ### 主要能力
 - 短信转发：按规则转发验证码短信与普通短信
@@ -62,30 +61,7 @@
 - 验证码规则：内置官方只读规则、远程刷新缓存与用户自定义规则分层合并
 - 记录与备份：支持导出/导入配置与历史记录
 
-### 自定义消息广播接口
-- 首版开放安全广播入口：`io.github.magisk317.relay.ACTION_INGEST_CUSTOM_MESSAGE`
-- 必填参数：
-  - `ipc_token`
-  - `message`
-- 选填参数：
-  - `title`
-  - `app_name`
-  - `package_name`
-  - `notify_channel_id`
-  - `event_id`
-  - `target_sender_ids`（`long[]`，仅向指定 senderId 列表分发）
-- 示例：
 
-```bash
-adb shell am broadcast \
-  -a io.github.magisk317.relay.ACTION_INGEST_CUSTOM_MESSAGE \
-  -n io.github.magisk317.xinyi.relay/io.github.magisk317.relay.platform.ipc.CustomMessageReceiver \
-  --es ipc_token YOUR_IPC_TOKEN \
-  --es title "自定义消息" \
-  --es message "Hello from adb" \
-  --es app_name "ADB" \
-  --es package_name "com.example.custom"
-```
 
 ## Backend
 
@@ -105,7 +81,7 @@ Backend 是信驿 Relay 的自建远程控制面，默认部署模式为“本�
 ### 入口文档
 - [Backend 使用说明](backend/README.md)
 - [Backend API 概览](backend/API_OVERVIEW.md)
-- [远程架构](docs/REMOTE_ARCHITECTURE.md)
+- [远程架构](docs/ARCHITECTURE.md)
 - [Desktop 使用说明](frontend/desktop/README.md)
 
 ### 日志位置
@@ -137,35 +113,21 @@ Backend 和 Desktop 都支持日志文件输出，便于问题排查：
 
 欢迎反馈，欢迎提出意见或建议。
 
-# 发布元数据维护
-- Fastlane 元数据目录：`fastlane/metadata/android`
-- 发版前同步 Fastlane 更新日志与截图：`scripts/release/sync_fastlane_metadata.sh`
-- 发版前校验版本与发布元数据：`scripts/release/check_release_guard.sh`
-- Fastlane 的 `changelogs/{versionCode}.txt` 由 `distribution/whatsnew` 自动同步生成。
-- 打 tag 脚本：`scripts/release/release_tag.sh`
-- `distribution/whatsnew` / Fastlane metadata 用于 Android 发布元数据校验。
 
-# 代码库说明
-- 主工程入口始终以仓库根目录为准。
-- `build-logic` 作为子模块提供 Gradle 约定插件与全局构建逻辑。
-- `magisk-ui-kit` 作为 UI 组件库子模块提供通用的 Compose 基础设施。
-- `smscode-core` 作为内嵌共享库子模块参与构建，不作为日常开发的主构建根工程。
-- `smscode-rules` 作为内容型子模块提供官方验证码规则快照，打包为 APK assets，不作为 Gradle/Kotlin 代码模块参与编译。
-- `frontend/desktop` 目录包含了基于 Tauri 的跨平台桌面端应用，内建 Rust 本地 SQLite 引擎与数据同步协议。
-- 运行时分层与模块边界说明见 [架构与运行时重构说明](docs/REFACTORING.md)。
 
 # 文档
 - [更新日志 (Changelog)](docs/CHANGELOG.md)
-- [架构与运行时重构说明](docs/REFACTORING.md)
-- [远程架构 (Remote Architecture)](docs/REMOTE_ARCHITECTURE.md)
+- [自定义消息广播接口 (Custom Broadcast)](modules/runtime/README.md)
+- [系统与代码库架构](docs/ARCHITECTURE.md)
 - [Backend 使用说明](backend/README.md)
 - [Backend API 概览](backend/API_OVERVIEW.md)
 - [隐私政策 (Privacy Policy)](docs/PRIVACY.md)
 - [赞助与捐赠 (Donations)](docs/DONATIONS.md)
 
 # 感谢
-- [原始项目 (tianma8023/XposedSmsCode)](https://github.com/tianma8023/XposedSmsCode)
-- [Xposed](https://github.com/rovo89/Xposed)
+- [XposedSmsCode](https://github.com/tianma8023/XposedSmsCode)
+- [LSPosed API](https://github.com/libxposed/api)
+- [SmsForwarder](https://github.com/pppscn/SmsForwarder)
 - [NekoSMS](https://github.com/apsun/NekoSMS)
 - [Material Dialogs](https://github.com/afollestad/material-dialogs)
 - [EventBus](https://github.com/greenrobot/EventBus)
