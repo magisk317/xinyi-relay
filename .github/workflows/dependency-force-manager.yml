@@ -50,14 +50,14 @@ jobs:
       - name: Read current forced dependencies
         id: forced
         run: |
-          python3 scripts/manage_dependency_forces.py read-forces \
+          python3 scripts/security/manage_dependency_forces.py read-forces \
             --build-file build.gradle.kts \
             --toml-file gradle/libs.versions.toml \
             --output /tmp/forced.json
 
       - name: Temporarily remove all force rules
         run: |
-          python3 scripts/manage_dependency_forces.py strip-force-lines --build-file build.gradle.kts
+          python3 scripts/security/manage_dependency_forces.py strip-force-lines --build-file build.gradle.kts
 
       - name: Resolve natural versions (multi-variant)
         run: |
@@ -66,7 +66,7 @@ jobs:
           for config in "${configs[@]}"; do
             args+=(--config "$config")
           done
-          python3 scripts/manage_dependency_forces.py resolve-natural \
+          python3 scripts/security/manage_dependency_forces.py resolve-natural \
             --project "$DEPENDENCY_FORCE_PROJECT" \
             --forced-json /tmp/forced.json \
             --output /tmp/natural.json \
@@ -95,7 +95,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
         run: |
-          python3 scripts/manage_dependency_forces.py determine-removable \
+          python3 scripts/security/manage_dependency_forces.py determine-removable \
             --forced-json /tmp/forced.json \
             --natural-json /tmp/natural.json \
             --alerts-json /tmp/dependabot-alerts.json \
@@ -116,7 +116,7 @@ jobs:
           for config in "${configs[@]}"; do
             args+=(--config "$config")
           done
-          python3 scripts/manage_dependency_forces.py resolve-alert-natural \
+          python3 scripts/security/manage_dependency_forces.py resolve-alert-natural \
             --project "$DEPENDENCY_FORCE_PROJECT" \
             --alerts-json /tmp/dependabot-alerts.json \
             --output /tmp/security-natural.json \
@@ -125,7 +125,7 @@ jobs:
       - name: Apply updates (remove + add security forces)
         id: apply
         run: |
-          python3 scripts/manage_dependency_forces.py apply-updates \
+          python3 scripts/security/manage_dependency_forces.py apply-updates \
             --build-file build.gradle.kts \
             --toml-file gradle/libs.versions.toml \
             --removable-json /tmp/removable.json \

@@ -7,7 +7,7 @@ on:
     paths:
       - gradle/libs.versions.toml
       - gradle/wrapper/gradle-wrapper.properties
-      - scripts/sync_readme_badges.sh
+      - scripts/codegen/sync_readme_badges.sh
       - .github/workflows/sync-readme-badges.yml
   workflow_dispatch:
 
@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Sync badges
-        run: ./scripts/sync_readme_badges.sh
+        run: ./scripts/codegen/sync_readme_badges.sh
 
       - name: Commit and push if changed
         run: |

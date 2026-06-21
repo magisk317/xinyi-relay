@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 VERSION_FILE="$ROOT_DIR/gradle/libs.versions.toml"
 FASTLANE_META_DIR="$ROOT_DIR/fastlane/metadata/android"
-RELEASE_REF_SCRIPT="$ROOT_DIR/scripts/release_ref.sh"
+RELEASE_REF_SCRIPT="$ROOT_DIR/scripts/release/release_ref.sh"
 
 working_tree_dirty() {
   if ! git -C "$ROOT_DIR" diff --quiet || ! git -C "$ROOT_DIR" diff --cached --quiet; then
@@ -52,7 +52,7 @@ run_webui_checks() {
 }
 
 run_sync_readme_badges() {
-  local sync_script="$ROOT_DIR/scripts/sync_readme_badges.sh"
+  local sync_script="$ROOT_DIR/scripts/codegen/sync_readme_badges.sh"
   if [[ ! -f "$sync_script" ]]; then
     echo "ERROR: missing script: $sync_script" >&2
     exit 1
@@ -67,7 +67,7 @@ run_sync_readme_badges() {
 }
 
 run_sync_fastlane_metadata() {
-  local sync_script="$ROOT_DIR/scripts/sync_fastlane_metadata.sh"
+  local sync_script="$ROOT_DIR/scripts/release/sync_fastlane_metadata.sh"
   if [[ ! -f "$sync_script" ]]; then
     echo "ERROR: missing script: $sync_script" >&2
     exit 1
@@ -210,7 +210,7 @@ ensure_fastlane_changelogs_ready() {
   if [[ "${#missing_files[@]}" -ne 0 ]]; then
     echo "ERROR: missing or empty Fastlane changelog(s) for versionCode=$VERSION_CODE:" >&2
     printf ' - %s\n' "${missing_files[@]}" >&2
-    echo "Hint: run scripts/sync_fastlane_metadata.sh and commit generated files." >&2
+    echo "Hint: run scripts/release/sync_fastlane_metadata.sh and commit generated files." >&2
     exit 1
   fi
 }
@@ -220,7 +220,7 @@ run_sync_fastlane_metadata
 auto_commit_fastlane_metadata
 ensure_fastlane_changelogs_ready
 run_webui_checks
-"$ROOT_DIR/scripts/check_release_guard.sh" "$TAG_NAME"
+"$ROOT_DIR/scripts/release/check_release_guard.sh" "$TAG_NAME"
 run_pre_push_checks
 
 if working_tree_dirty; then

@@ -181,7 +181,7 @@ jobs:
           RELEASE_KIND="manual"
           RELEASE_VERSION="$RELEASE_TAG"
           if [[ -n "${RELEASE_TAG:-}" ]]; then
-            if release_meta="$(bash scripts/release_ref.sh parse-tag "$RELEASE_TAG" 2>/dev/null)"; then
+            if release_meta="$(bash scripts/release/release_ref.sh parse-tag "$RELEASE_TAG" 2>/dev/null)"; then
               eval "$release_meta"
               RELEASE_KIND="$release_kind"
               RELEASE_VERSION="${release_version:-$RELEASE_TAG}"

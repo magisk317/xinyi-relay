@@ -133,7 +133,7 @@
 ./gradlew check
 ./gradlew verifyModuleBoundaries verifyStructureBoundaries verifyDependencyGovernance
 ./gradlew verifyEmbeddedSubmodules
-SKIP_GOOGLE_SERVICES=true ALLOW_INCOMPATIBLE_DEBUG_SIGNING=true bash scripts/verify_shared_submodule_compat.sh
+SKIP_GOOGLE_SERVICES=true ALLOW_INCOMPATIBLE_DEBUG_SIGNING=true bash scripts/checks/verify_shared_submodule_compat.sh
 ```
 
 根项目 `check` 已聚合 `verifyModuleBoundaries`、`verifyStructureBoundaries`、
@@ -216,7 +216,7 @@ SKIP_GOOGLE_SERVICES=true ALLOW_INCOMPATIBLE_DEBUG_SIGNING=true bash scripts/ver
 - 配置快照 clone / normalize / conflict / load / save 纯逻辑统一经由 `shared/configSnapshot.ts` 维护；
   Web / Desktop 的 React hook 只保留状态 ownership 和 runtime adapter 调用。
 - sender 结构化配置字段合同来自 `shared/contracts/senderSchemas.json`，由
-  `scripts/generate_sender_schema_contract.py` 从 Kotlin `SenderSettingSchemas` 生成；Web / Desktop 只能在该合同上补 UI label、布局和控件类型。
+  `scripts/codegen/generate_sender_schema_contract.py` 从 Kotlin `SenderSettingSchemas` 生成；Web / Desktop 只能在该合同上补 UI label、布局和控件类型。
 - sender 字段默认值和枚举选项优先写入 `SenderSettingSchemas`，当前覆盖 Telegram / Pushplus / Bark /
   Webhook / Dingtalk / Dingtalk Inner / WeCom Robot / WeCom App / Feishu / Feishu App / Socket 的跨端选项，
   Email、Gotify、Ntfy、SMS 等通道的默认值，并同步生成到 `shared/contracts/senderSchemas.json`；

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-source "$ROOT_DIR/scripts/regex_helpers.sh"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+source "$ROOT_DIR/scripts/utils/regex_helpers.sh"
 ROOT_BUILD="$ROOT_DIR/build.gradle.kts"
 ROOT_SETTINGS="$ROOT_DIR/settings.gradle.kts"
 BUILD_LOGIC_SETTINGS="$ROOT_DIR/build-logic/settings.gradle.kts"

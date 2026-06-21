@@ -12,6 +12,9 @@
     "baseBranchPatterns": [
         "beta"
     ],
+    "ignoreDeps": [
+        "rustls:rustls-platform-verifier"
+    ],
     "packageRules": [
         {
             "matchUpdateTypes": [
@@ -99,5 +102,14 @@
     "vulnerabilityAlerts": {
         "enabled": true,
         "labels": ["security"]
+    },
+    "timezone": "Asia/Shanghai",
+    "dependencyDashboard": true,
+    "dependencyDashboardOSVVulnerabilitySummary": "all",
+    "transitiveRemediation": true,
+    "lockFileMaintenance": {
+        "enabled": true,
+        "automerge": true,
+        "schedule": ["before 6am every day"]
     }
 }

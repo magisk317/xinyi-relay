@@ -5,7 +5,7 @@ set -euo pipefail
 # If already in sync, exits silently (no file writes).
 # If out of sync, patches the files and prints a warning.
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 VERSION_FILE="$ROOT_DIR/gradle/libs.versions.toml"
 PACKAGE_JSON="$ROOT_DIR/frontend/desktop/package.json"
 CARGO_TOML="$ROOT_DIR/frontend/desktop/src-tauri/Cargo.toml"

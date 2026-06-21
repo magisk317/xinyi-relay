@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Iterable
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 SENDER_TYPE_SOURCE = (
     ROOT
     / "modules/relay/engine/api/src/main/java/io/github/magisk317/relay/engine/sender/SenderType.kt"
