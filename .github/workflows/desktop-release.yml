@@ -31,25 +31,18 @@ jobs:
             bundle_args: "--target aarch64-unknown-linux-gnu --bundles appimage,deb,rpm"
             bundle_dir: frontend/desktop/src-tauri/target/aarch64-unknown-linux-gnu/release/bundle
           - runner: windows-latest
-            job_label: Windows-x86
-            os_name: windows
-            arch_name: x86
-            rust_target: i686-pc-windows-msvc
-            bundle_args: "--target i686-pc-windows-msvc --bundles nsis,msix"
-            bundle_dir: frontend/desktop/src-tauri/target/i686-pc-windows-msvc/release/bundle
-          - runner: windows-latest
             job_label: Windows-x64
             os_name: windows
             arch_name: x64
             rust_target: x86_64-pc-windows-msvc
-            bundle_args: "--target x86_64-pc-windows-msvc --bundles nsis,msix"
+            bundle_args: "--target x86_64-pc-windows-msvc --bundles nsis"
             bundle_dir: frontend/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle
           - runner: windows-11-arm
             job_label: Windows-arm64
             os_name: windows
             arch_name: arm64
             rust_target: aarch64-pc-windows-msvc
-            bundle_args: "--target aarch64-pc-windows-msvc --bundles nsis,msix"
+            bundle_args: "--target aarch64-pc-windows-msvc --bundles nsis"
             bundle_dir: frontend/desktop/src-tauri/target/aarch64-pc-windows-msvc/release/bundle
           - runner: macos-15-intel
             job_label: macOS-intel
@@ -122,13 +115,14 @@ jobs:
 
       - name: Build desktop bundles
         working-directory: frontend/desktop
+        shell: bash
         env:
           PKG_CONFIG: ${{ matrix.os_name == 'linux' && '/usr/bin/pkg-config' || '' }}
           TAURI_LINUX_AYATANA_APPINDICATOR: ${{ matrix.os_name == 'linux' && '1' || '' }}
           WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
           WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         run: |
-          sed -i -E 's/"version": "([0-9]+\.[0-9]+\.[0-9]+)-[a-zA-Z0-9]+"/"version": "\1"/g' src-tauri/tauri.conf.json
+          node -e "const fs=require('fs'); let c=fs.readFileSync('src-tauri/tauri.conf.json','utf8'); fs.writeFileSync('src-tauri/tauri.conf.json', c.replace(/\"version\":\s*\"([0-9]+\\.[0-9]+\\.[0-9]+)-[a-zA-Z0-9]+\"/, '\"version\": \"\$1\"'));"
           pnpm exec node ./scripts/with-system-pkg-config.mjs tauri build ${{ matrix.bundle_args }}
 
       - name: Upload desktop bundles
