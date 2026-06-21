@@ -48,9 +48,8 @@ The Android app is the on-device module for Xposed/LSPosed. It is responsible fo
 4. Configure sender channels, routing rules, filters, and verification-code autofill policies.
 
 ### Compatibility
-- **Minimum Android 8.0 (API 26), target SDK 37.**
-- **Designed for AOSP-like systems; heavily customized ROMs may have compatibility issues.**
-- **Codebase: 100% Kotlin + Jetpack Compose + Room + Coroutines.**
+- Minimum Android 8.0 (API 26).
+- Designed for AOSP-like systems; heavily customized ROMs may have compatibility issues.
 
 ### Core Features
 - SMS relay: relay verification SMS and plain SMS with rules
@@ -79,7 +78,6 @@ The Backend is the self-hosted remote control plane for Xinyi Relay, with a loca
 ### Entry Docs
 - [Backend Guide](backend/README.md)
 - [Backend API Overview](backend/API_OVERVIEW.md)
-- [Remote Architecture](docs/REMOTE_ARCHITECTURE.md)
 - [Desktop Guide](frontend/desktop/README.md)
 
 ### Log Locations
@@ -111,35 +109,19 @@ The Desktop app is a cross-platform management tool built with Tauri + Rust (ava
 
 Feedback and suggestions are welcome.
 
-# Release Metadata
-- Fastlane metadata location: `fastlane/metadata/android`
-- Sync Fastlane changelogs/screenshots before release: `scripts/release/sync_fastlane_metadata.sh`
-- Validate release metadata and tag consistency: `scripts/release/check_release_guard.sh`
-- Fastlane changelog files `changelogs/{versionCode}.txt` are synchronized from `distribution/whatsnew`.
-- Tagging helper: `scripts/release/release_tag.sh`
-- `distribution/whatsnew` and Fastlane metadata are used for Android metadata validation.
-
-# Repository Notes
-- The repository root is the primary build entry for day-to-day development.
-- `build-logic` is a submodule providing Gradle convention plugins and global build logic.
-- `magisk-ui-kit` is a UI component library submodule providing common Compose infrastructure.
-- `smscode-core` is treated as an embedded shared-library submodule, not a parallel primary root project.
-- `smscode-rules` is a content-only submodule for the bundled official verification-code rule snapshot. It is packaged as APK assets and is not a Gradle/Kotlin code module.
-- `desktop` directory contains the Tauri cross-platform app, featuring a built-in Rust SQLite engine and sync protocol.
-- Runtime layering and module-boundary guidance lives in [docs/REFACTORING.md](docs/REFACTORING.md).
-
 # Documentation
 - [Release Logs](docs/CHANGELOG.md)
-- [Architecture & Runtime Refactoring](docs/REFACTORING.md)
-- [Remote Architecture](docs/REMOTE_ARCHITECTURE.md)
+- [Custom Broadcast Interface](modules/runtime/README.md)
+- [System Architecture & Runtime Refactoring Codebase Architecture](docs/ARCHITECTURE.md)
 - [Backend Guide](backend/README.md)
 - [Backend API Overview](backend/API_OVERVIEW.md)
 - [Privacy Policy](docs/PRIVACY.md)
 - [Donations](docs/DONATIONS.md)
 
 # Thanks To
-- [Original Project (tianma8023/XposedSmsCode)](https://github.com/tianma8023/XposedSmsCode)
-- [Xposed](https://github.com/rovo89/Xposed)
+- [XposedSmsCode](https://github.com/tianma8023/XposedSmsCode)
+- [LSPosed API](https://github.com/libxposed/api)
+- [SmsForwarder](https://github.com/pppscn/SmsForwarder)
 - [NekoSMS](https://github.com/apsun/NekoSMS)
 - [Material Dialogs](https://github.com/afollestad/material-dialogs)
 - [EventBus](https://github.com/greenrobot/EventBus)
