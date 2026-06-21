@@ -50,21 +50,21 @@ jobs:
             os_name: windows
             arch_name: x86
             rust_target: i686-pc-windows-msvc
-            bundle_args: "--target i686-pc-windows-msvc --bundles nsis,msi"
+            bundle_args: "--target i686-pc-windows-msvc --bundles nsis,msix"
             bundle_dir: frontend/desktop/src-tauri/target/i686-pc-windows-msvc/release/bundle
           - runner: windows-latest
             job_label: Windows-x64
             os_name: windows
             arch_name: x64
             rust_target: x86_64-pc-windows-msvc
-            bundle_args: "--target x86_64-pc-windows-msvc --bundles nsis,msi"
+            bundle_args: "--target x86_64-pc-windows-msvc --bundles nsis,msix"
             bundle_dir: frontend/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle
           - runner: windows-11-arm
             job_label: Windows-arm64
             os_name: windows
             arch_name: arm64
             rust_target: aarch64-pc-windows-msvc
-            bundle_args: "--target aarch64-pc-windows-msvc --bundles nsis,msi"
+            bundle_args: "--target aarch64-pc-windows-msvc --bundles nsis,msix"
             bundle_dir: frontend/desktop/src-tauri/target/aarch64-pc-windows-msvc/release/bundle
           - runner: macos-15-intel
             job_label: macOS-intel
@@ -148,6 +148,7 @@ jobs:
           WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         run: |
           cd frontend/desktop
+          sed -i -E 's/"version": "([0-9]+\.[0-9]+\.[0-9]+)-[a-zA-Z0-9]+"/"version": "\1"/g' src-tauri/tauri.conf.json
           pnpm exec node ./scripts/with-system-pkg-config.mjs tauri build ${{ matrix.bundle_args }}
 
       - name: Upload AppImage artifact
@@ -182,13 +183,14 @@ jobs:
           path: ${{ matrix.bundle_dir }}/**/*.exe
           if-no-files-found: error
 
-      - name: Upload MSI artifact
+      - name: Upload Windows Installer artifacts
         if: matrix.os_name == 'windows'
         uses: actions/upload-artifact@v7
         with:
-          name: xinyi-relay-desktop-${{ matrix.os_name }}-${{ matrix.arch_name }}-msi
-          path: ${{ matrix.bundle_dir }}/**/*.msi
-          if-no-files-found: error
+          name: xinyi-relay-desktop-${{ matrix.os_name }}-${{ matrix.arch_name }}-installers
+          path: |
+            ${{ matrix.bundle_dir }}/**/*.msix
+          if-no-files-found: ignore
 
       - name: Upload APP artifact
         if: matrix.os_name == 'macos'
