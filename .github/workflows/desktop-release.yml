@@ -35,21 +35,21 @@ jobs:
             os_name: windows
             arch_name: x86
             rust_target: i686-pc-windows-msvc
-            bundle_args: "--target i686-pc-windows-msvc --bundles nsis,msi"
+            bundle_args: "--target i686-pc-windows-msvc --bundles nsis,msix"
             bundle_dir: frontend/desktop/src-tauri/target/i686-pc-windows-msvc/release/bundle
           - runner: windows-latest
             job_label: Windows-x64
             os_name: windows
             arch_name: x64
             rust_target: x86_64-pc-windows-msvc
-            bundle_args: "--target x86_64-pc-windows-msvc --bundles nsis,msi"
+            bundle_args: "--target x86_64-pc-windows-msvc --bundles nsis,msix"
             bundle_dir: frontend/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle
           - runner: windows-11-arm
             job_label: Windows-arm64
             os_name: windows
             arch_name: arm64
             rust_target: aarch64-pc-windows-msvc
-            bundle_args: "--target aarch64-pc-windows-msvc --bundles nsis,msi"
+            bundle_args: "--target aarch64-pc-windows-msvc --bundles nsis,msix"
             bundle_dir: frontend/desktop/src-tauri/target/aarch64-pc-windows-msvc/release/bundle
           - runner: macos-15-intel
             job_label: macOS-intel
@@ -113,21 +113,23 @@ jobs:
         run: bash scripts/release/sync_desktop_version.sh
 
       - name: Install desktop pnpm dependencies
-        working-directory: desktop
+        working-directory: frontend/desktop
         run: pnpm install --frozen-lockfile
 
       - name: Build desktop frontend
-        working-directory: desktop
+        working-directory: frontend/desktop
         run: pnpm build
 
       - name: Build desktop bundles
-        working-directory: desktop
+        working-directory: frontend/desktop
         env:
           PKG_CONFIG: ${{ matrix.os_name == 'linux' && '/usr/bin/pkg-config' || '' }}
           TAURI_LINUX_AYATANA_APPINDICATOR: ${{ matrix.os_name == 'linux' && '1' || '' }}
           WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
           WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-        run: pnpm exec node ./scripts/with-system-pkg-config.mjs tauri build ${{ matrix.bundle_args }}
+        run: |
+          sed -i -E 's/"version": "([0-9]+\.[0-9]+\.[0-9]+)-[a-zA-Z0-9]+"/"version": "\1"/g' src-tauri/tauri.conf.json
+          pnpm exec node ./scripts/with-system-pkg-config.mjs tauri build ${{ matrix.bundle_args }}
 
       - name: Upload desktop bundles
         uses: actions/upload-artifact@v7
@@ -137,7 +139,6 @@ jobs:
             ${{ matrix.bundle_dir }}/**/*.AppImage
             ${{ matrix.bundle_dir }}/**/*.deb
             ${{ matrix.bundle_dir }}/**/*.rpm
-            ${{ matrix.bundle_dir }}/**/*.msi
             ${{ matrix.bundle_dir }}/**/*.exe
             ${{ matrix.bundle_dir }}/**/*.app
             ${{ matrix.bundle_dir }}/**/*.dmg
@@ -154,7 +155,7 @@ jobs:
 
           mapfile -d '' release_assets < <(
             find "${{ matrix.bundle_dir }}" -type f \
-              \( -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' -o -name '*.msi' -o -name '*.exe' -o -name '*.app' -o -name '*.dmg' \) \
+              \( -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' -o -name '*.msix' -o -name '*.exe' -o -name '*.app' -o -name '*.dmg' \) \
               -print0 | sort -z
           )
           if [[ ${#release_assets[@]} -eq 0 ]]; then
