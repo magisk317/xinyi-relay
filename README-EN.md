@@ -80,7 +80,7 @@ The Backend is the self-hosted remote control plane for Xinyi Relay, with a loca
 - [Backend Guide](backend/README.md)
 - [Backend API Overview](backend/API_OVERVIEW.md)
 - [Remote Architecture](docs/REMOTE_ARCHITECTURE.md)
-- [Desktop Guide](desktop/README.md)
+- [Desktop Guide](frontend/desktop/README.md)
 
 ### Log Locations
 
@@ -106,21 +106,23 @@ The Desktop app is a cross-platform management tool built with Tauri + Rust (ava
 
 - Desktop releases currently ship Linux, macOS, and Windows packages.
 - macOS builds are currently distributed unsigned, so first launch may require a manual allow step in system settings.
-- Windows builds are signed with the repository-managed self-signed certificate. If Windows blocks the installer, import the public certificate [desktop/certs/windows-codesign.cer](desktop/certs/windows-codesign.cer) first and then retry the installer.
+- Windows builds are signed with the repository-managed self-signed certificate. If Windows blocks the installer, import the public certificate [frontend/desktop/certs/windows-codesign.cer](frontend/desktop/certs/windows-codesign.cer) first and then retry the installer.
 - This Windows certificate is only intended for niche distribution of this project. It is not a public CA commercial code-signing certificate, so only import it if you trust this project's releases.
 
 Feedback and suggestions are welcome.
 
 # Release Metadata
 - Fastlane metadata location: `fastlane/metadata/android`
-- Sync Fastlane changelogs/screenshots before release: `scripts/sync_fastlane_metadata.sh`
-- Validate release metadata and tag consistency: `scripts/check_release_guard.sh`
+- Sync Fastlane changelogs/screenshots before release: `scripts/release/sync_fastlane_metadata.sh`
+- Validate release metadata and tag consistency: `scripts/release/check_release_guard.sh`
 - Fastlane changelog files `changelogs/{versionCode}.txt` are synchronized from `distribution/whatsnew`.
-- Tagging helper: `scripts/release_tag.sh`
+- Tagging helper: `scripts/release/release_tag.sh`
 - `distribution/whatsnew` and Fastlane metadata are used for Android metadata validation.
 
 # Repository Notes
 - The repository root is the primary build entry for day-to-day development.
+- `build-logic` is a submodule providing Gradle convention plugins and global build logic.
+- `magisk-ui-kit` is a UI component library submodule providing common Compose infrastructure.
 - `smscode-core` is treated as an embedded shared-library submodule, not a parallel primary root project.
 - `smscode-rules` is a content-only submodule for the bundled official verification-code rule snapshot. It is packaged as APK assets and is not a Gradle/Kotlin code module.
 - `desktop` directory contains the Tauri cross-platform app, featuring a built-in Rust SQLite engine and sync protocol.

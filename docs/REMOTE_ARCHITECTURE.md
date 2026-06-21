@@ -128,8 +128,8 @@
 
 - Backend：`backend/api/internal/http/openapi_contract_test.go` 校验路由和 DTO 字段。
 - Android Agent：`runtime/src/test/.../RemoteApiDtosContractTest.kt` 校验 agent wire DTO 字段。
-- Desktop：`desktop/src/test/ConsoleOpenApiContract.test.ts` 校验共享 TypeScript 类型。
-- Web：`webui/src/__tests__/ConsoleOpenApiContract.test.ts` 校验共享 TypeScript 类型，并在 CI 中执行 lint/typecheck/test/build。
+- Desktop：`frontend/desktop/src/test/ConsoleOpenApiContract.test.ts` 校验共享 TypeScript 类型。
+- Web：`frontend/webui/src/__tests__/ConsoleOpenApiContract.test.ts` 校验共享 TypeScript 类型，并在 CI 中执行 lint/typecheck/test/build。
 
 后续要求：
 
@@ -139,7 +139,7 @@
 ## 对现有工程的影响
 
 - 当前 Android Gradle 工程保持不变，不将 Backend 纳入 Android 构建图。
-- `webui/` 作为远程控制台前端保留。
+- `frontend/webui/` 作为远程控制台前端保留。
 - Android 主运行链已停止启动旧内嵌 WebUI 服务。
 - Android 端远程同步继续落在 `runtime`，由 `RuntimeGraph` 装配。
 
@@ -148,5 +148,5 @@
 1. 继续抽共享配置编辑器和 sender 表单布局元数据；React hook 需要先有明确前端 package / workspace
    边界，不直接放仓库根 `shared/`。
 2. 继续收敛 Web / Desktop 与手机端的功能 parity。
-3. 逐步把前端静态资源也纳入远端镜像链，减少宿主机对本地 `webui/dist` 的依赖。
+3. 逐步把前端静态资源也纳入远端镜像链，减少宿主机对本地 `frontend/webui/dist` 的依赖。
 4. 扩展 OpenAPI schema 覆盖新增 endpoint，并把合同测试纳入对应 CI。

@@ -110,7 +110,7 @@ jobs:
 
       - name: Sync desktop version from libs.versions.toml
         shell: bash
-        run: bash scripts/sync_desktop_version.sh
+        run: bash scripts/release/sync_desktop_version.sh
 
       - name: Install desktop pnpm dependencies
         working-directory: desktop
@@ -150,7 +150,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          eval "$(bash scripts/release_ref.sh parse-ref "${GITHUB_REF_TYPE}" "${GITHUB_REF_NAME}")"
+          eval "$(bash scripts/release/release_ref.sh parse-ref "${GITHUB_REF_TYPE}" "${GITHUB_REF_NAME}")"
 
           mapfile -d '' release_assets < <(
             find "${{ matrix.bundle_dir }}" -type f \

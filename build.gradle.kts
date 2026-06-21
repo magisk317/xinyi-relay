@@ -166,28 +166,28 @@ tasks.register<Exec>("verifyModuleBoundaries") {
     group = "verification"
     description = "Ensure app/core/runtime follow the intended direct project dependency graph."
     workingDir = rootProject.projectDir
-    commandLine("bash", "${rootProject.projectDir}/scripts/verify_module_boundaries.sh")
+    commandLine("bash", "${rootProject.projectDir}/scripts/checks/verify_module_boundaries.sh")
 }
 
 tasks.register<Exec>("verifyStructureBoundaries") {
     group = "verification"
     description = "Ensure app keeps only entry-layer sources and moved logic stays out."
     workingDir = rootProject.projectDir
-    commandLine("bash", "${rootProject.projectDir}/scripts/verify_structure_boundaries.sh")
+    commandLine("bash", "${rootProject.projectDir}/scripts/checks/verify_structure_boundaries.sh")
 }
 
 tasks.register<Exec>("verifyEmbeddedSubmodules") {
     group = "verification"
     description = "Ensure embedded submodules stay minimal and do not regrow into parallel root builds."
     workingDir = rootProject.projectDir
-    commandLine("bash", "${rootProject.projectDir}/scripts/verify_embedded_submodules.sh")
+    commandLine("bash", "${rootProject.projectDir}/scripts/checks/verify_embedded_submodules.sh")
 }
 
 tasks.register<Exec>("verifyDependencyGovernance") {
     group = "verification"
     description = "Ensure dependency repositories stay centralized and force rules stay localized in the root build."
     workingDir = rootProject.projectDir
-    commandLine("bash", "${rootProject.projectDir}/scripts/verify_dependency_governance.sh")
+    commandLine("bash", "${rootProject.projectDir}/scripts/checks/verify_dependency_governance.sh")
 }
 
 tasks.register("check") {

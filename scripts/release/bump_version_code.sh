@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 VERSION_FILE="$ROOT_DIR/gradle/libs.versions.toml"
 CHANGELOG_FILE="$ROOT_DIR/docs/CHANGELOG.md"
 WHATSNEW_EN_FILE="$ROOT_DIR/distribution/whatsnew/whatsnew-en-US"
-SYNC_FASTLANE_SCRIPT="$ROOT_DIR/scripts/sync_fastlane_metadata.sh"
+SYNC_FASTLANE_SCRIPT="$ROOT_DIR/scripts/release/sync_fastlane_metadata.sh"
 
 extract_toml_value() {
   local key="$1"

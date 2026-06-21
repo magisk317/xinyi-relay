@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 MAX_LEN="${PLAY_WHATSNEW_MAX:-500}"
 TAG_NAME="${1:-}"
-RELEASE_REF_SCRIPT="$ROOT_DIR/scripts/release_ref.sh"
+RELEASE_REF_SCRIPT="$ROOT_DIR/scripts/release/release_ref.sh"
 REQUIRED_LOCALES=(${PLAY_WHATSNEW_REQUIRED_LOCALES:-en-US zh-CN})
 FASTLANE_REQUIRED_LOCALES=(${FASTLANE_REQUIRED_LOCALES:-en-US zh-CN})
 FASTLANE_MIN_SCREENSHOTS="${FASTLANE_MIN_SCREENSHOTS:-1}"
@@ -174,7 +174,7 @@ if [[ -n "$TAG_NAME" ]]; then
   fi
 fi
 
-FASTLANE_SYNC_SCRIPT="$ROOT_DIR/scripts/sync_fastlane_metadata.sh"
+FASTLANE_SYNC_SCRIPT="$ROOT_DIR/scripts/release/sync_fastlane_metadata.sh"
 if [[ "$release_requires_android_metadata" == "true" ]]; then
   if [[ ! -x "$FASTLANE_SYNC_SCRIPT" ]]; then
     echo "FAIL: missing executable fastlane sync script ($FASTLANE_SYNC_SCRIPT)"

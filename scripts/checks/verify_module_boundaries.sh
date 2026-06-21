@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-source "$ROOT_DIR/scripts/regex_helpers.sh"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+source "$ROOT_DIR/scripts/utils/regex_helpers.sh"
 APP_BUILD="$ROOT_DIR/app/build.gradle.kts"
 CORE_BUILD="$ROOT_DIR/modules/core/build.gradle.kts"
 HOOK_ENTRY_BUILD="$ROOT_DIR/modules/hook/entry/build.gradle.kts"
@@ -17,7 +17,7 @@ XPBRIDGE_CORE_BUILD="$ROOT_DIR/modules/xpbridge/core/build.gradle.kts"
 
 violations=()
 
-python3 "$ROOT_DIR/scripts/generate_sender_schema_contract.py" --check
+python3 "$ROOT_DIR/scripts/codegen/generate_sender_schema_contract.py" --check
 
 require_pattern() {
   local file="$1"

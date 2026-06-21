@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${ROOT_DIR}"
 
 if ! command -v gh >/dev/null 2>&1; then
@@ -39,7 +39,7 @@ gh api --paginate "/repos/${REPO}/dependabot/alerts?state=open&per_page=100" \
   | jq -s 'flatten' > "${ALERTS_FILE}"
 
 echo "Reading current force rules..."
-python3 scripts/manage_dependency_forces.py read-forces \
+python3 scripts/security/manage_dependency_forces.py read-forces \
   --build-file build.gradle.kts \
   --toml-file gradle/libs.versions.toml \
   --output "${FORCED_FILE}"

@@ -26,11 +26,11 @@ jobs:
 
       - name: Validate release notes and tag/version consistency
         run: |
-          chmod +x scripts/check_release_guard.sh
+          chmod +x scripts/release/check_release_guard.sh
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            scripts/check_release_guard.sh "${GITHUB_REF_NAME}"
+            scripts/release/check_release_guard.sh "${GITHUB_REF_NAME}"
           else
-            scripts/check_release_guard.sh
+            scripts/release/check_release_guard.sh
           fi
 
   build-github-apk:
@@ -262,7 +262,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
         run: |
-          eval "$(bash scripts/release_ref.sh parse-ref "${GITHUB_REF_TYPE}" "${GITHUB_REF_NAME}")"
+          eval "$(bash scripts/release/release_ref.sh parse-ref "${GITHUB_REF_TYPE}" "${GITHUB_REF_NAME}")"
           {
             echo "release_kind=$release_kind"
             echo "release_version=$release_version"
@@ -465,7 +465,7 @@ jobs:
         id: release_meta
         shell: bash
         run: |
-          eval "$(bash scripts/release_ref.sh parse-ref "${GITHUB_REF_TYPE}" "${GITHUB_REF_NAME}")"
+          eval "$(bash scripts/release/release_ref.sh parse-ref "${GITHUB_REF_TYPE}" "${GITHUB_REF_NAME}")"
           {
             echo "release_kind=$release_kind"
             echo "release_tag=$release_tag"

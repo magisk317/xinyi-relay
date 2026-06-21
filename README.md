@@ -106,7 +106,7 @@ Backend 是信驿 Relay 的自建远程控制面，默认部署模式为“本�
 - [Backend 使用说明](backend/README.md)
 - [Backend API 概览](backend/API_OVERVIEW.md)
 - [远程架构](docs/REMOTE_ARCHITECTURE.md)
-- [Desktop 使用说明](desktop/README.md)
+- [Desktop 使用说明](frontend/desktop/README.md)
 
 ### 日志位置
 
@@ -132,24 +132,26 @@ Backend 和 Desktop 都支持日志文件输出，便于问题排查：
 
 - Desktop Release 默认提供 Linux、macOS 与 Windows 包。
 - macOS 当前为 unsigned 发布，首次运行时可能需要用户在系统设置里手动允许。
-- Windows 当前使用仓库自管的自签名证书签名；若系统拦截，可先导入公开证书 [desktop/certs/windows-codesign.cer](desktop/certs/windows-codesign.cer) 再运行安装包。
+- Windows 当前使用仓库自管的自签名证书签名；若系统拦截，可先导入公开证书 [frontend/desktop/certs/windows-codesign.cer](frontend/desktop/certs/windows-codesign.cer) 再运行安装包。
 - 该 Windows 证书仅用于当前项目的小众分发，不是公有 CA 商业签名证书；请仅在你信任本项目 Release 的前提下导入。
 
 欢迎反馈，欢迎提出意见或建议。
 
 # 发布元数据维护
 - Fastlane 元数据目录：`fastlane/metadata/android`
-- 发版前同步 Fastlane 更新日志与截图：`scripts/sync_fastlane_metadata.sh`
-- 发版前校验版本与发布元数据：`scripts/check_release_guard.sh`
+- 发版前同步 Fastlane 更新日志与截图：`scripts/release/sync_fastlane_metadata.sh`
+- 发版前校验版本与发布元数据：`scripts/release/check_release_guard.sh`
 - Fastlane 的 `changelogs/{versionCode}.txt` 由 `distribution/whatsnew` 自动同步生成。
-- 打 tag 脚本：`scripts/release_tag.sh`
+- 打 tag 脚本：`scripts/release/release_tag.sh`
 - `distribution/whatsnew` / Fastlane metadata 用于 Android 发布元数据校验。
 
 # 代码库说明
 - 主工程入口始终以仓库根目录为准。
+- `build-logic` 作为子模块提供 Gradle 约定插件与全局构建逻辑。
+- `magisk-ui-kit` 作为 UI 组件库子模块提供通用的 Compose 基础设施。
 - `smscode-core` 作为内嵌共享库子模块参与构建，不作为日常开发的主构建根工程。
 - `smscode-rules` 作为内容型子模块提供官方验证码规则快照，打包为 APK assets，不作为 Gradle/Kotlin 代码模块参与编译。
-- `desktop` 目录包含了基于 Tauri 的跨平台桌面端应用，内建 Rust 本地 SQLite 引擎与数据同步协议。
+- `frontend/desktop` 目录包含了基于 Tauri 的跨平台桌面端应用，内建 Rust 本地 SQLite 引擎与数据同步协议。
 - 运行时分层与模块边界说明见 [架构与运行时重构说明](docs/REFACTORING.md)。
 
 # 文档

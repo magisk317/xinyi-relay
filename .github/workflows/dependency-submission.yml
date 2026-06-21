@@ -41,10 +41,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
           GITHUB_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
         run: |
-          chmod +x scripts/validate_dependabot_graph.sh
+          chmod +x scripts/security/validate_dependabot_graph.sh
           snapshot="${{ steps.dependency-graph.outputs.dependency-graph-file }}"
           test -n "${snapshot}"
-          scripts/validate_dependabot_graph.sh --snapshot "${snapshot}"
+          scripts/security/validate_dependabot_graph.sh --snapshot "${snapshot}"
 
       - name: Submit Dependency Graph
         env:

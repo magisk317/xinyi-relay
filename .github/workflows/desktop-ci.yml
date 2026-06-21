@@ -128,7 +128,7 @@ jobs:
 
       - name: Sync desktop version from libs.versions.toml
         shell: bash
-        run: bash scripts/sync_desktop_version.sh
+        run: bash scripts/release/sync_desktop_version.sh
 
       - name: Install desktop pnpm dependencies
         run: |

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-source "$ROOT_DIR/scripts/regex_helpers.sh"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+source "$ROOT_DIR/scripts/utils/regex_helpers.sh"
 APP_SRC="$ROOT_DIR/app/src/main/java/io/github/magisk317/relay"
 RUNTIME_SRC="$ROOT_DIR/modules/runtime/src/main/java/io/github/magisk317/relay"
 MOBILE_UI_SRC="$ROOT_DIR/mobile/ui/src/main/java/io/github/magisk317/relay"

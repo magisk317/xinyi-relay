@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 VERSION_FILE="$ROOT_DIR/gradle/libs.versions.toml"
 FASTLANE_ROOT="$ROOT_DIR/fastlane/metadata/android"
 MODE="write"
@@ -10,7 +10,7 @@ STATUS=0
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/sync_fastlane_metadata.sh [--check]
+  scripts/release/sync_fastlane_metadata.sh [--check]
 
 Options:
   --check   Validate metadata is synchronized, do not modify files.
