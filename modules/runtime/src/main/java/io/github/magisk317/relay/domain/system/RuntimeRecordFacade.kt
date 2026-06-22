@@ -163,15 +163,20 @@ class RuntimeRecordFacade(
         smsMsg: SmsMsg,
         isCodeSms: Boolean,
     ): Long? = withContext(Dispatchers.IO) {
-        recordInserter?.invoke(smsMsg, isCodeSms) ?: (relayRecordRepository as RelayRecordRepository).insertRecord(
-            smsMsg = smsMsg,
-            isCodeSms = isCodeSms,
-        )
+        recordInserter?.invoke(smsMsg, isCodeSms)
+            // Safe cast: the lazy field always creates RelayRecordRepository when
+            // no explicit inserter lambda was provided (non-Koin call sites).
+            ?: (relayRecordRepository as RelayRecordRepository).insertRecord(
+                smsMsg = smsMsg,
+                isCodeSms = isCodeSms,
+            )
     }
 
     suspend fun insertSmsBlacklistHit(hit: XpSmsBlacklistHitRecord): Long? = withContext(Dispatchers.IO) {
         val runtimeHit = hit.toRuntimeHit()
         smsBlacklistHitInserter?.invoke(runtimeHit)
+            // Safe cast: the lazy field always creates RelayRecordRepository when
+            // no explicit inserter lambda was provided (non-Koin call sites).
             ?: (relayRecordRepository as RelayRecordRepository).insertSmsBlacklistHit(runtimeHit)
     }
 

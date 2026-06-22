@@ -18,7 +18,6 @@ import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import java.util.concurrent.ConcurrentHashMap
-import kotlinx.coroutines.runBlocking
 
 object SpecialAlertNotifier {
     private const val DEDUP_WINDOW_MS = 5_000L
@@ -29,7 +28,7 @@ object SpecialAlertNotifier {
         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
         .build()
 
-    fun notifySmsKeywordAlert(
+    suspend fun notifySmsKeywordAlert(
         context: Context,
         sender: String,
         body: String,
@@ -61,7 +60,7 @@ object SpecialAlertNotifier {
         )
     }
 
-    fun notifyAppKeywordAlert(
+    suspend fun notifyAppKeywordAlert(
         context: Context,
         appName: String,
         title: String,
@@ -95,7 +94,7 @@ object SpecialAlertNotifier {
         )
     }
 
-    fun notifyIncomingCallAlert(context: Context, display: String) {
+    suspend fun notifyIncomingCallAlert(context: Context, display: String) {
         val settings = loadSettings(context)
         if (!settings.callAlertLocalEnabled) return
         val normalizedDisplay = display.ifBlank { context.getString(R.string.call_alert_notification_title) }
@@ -113,11 +112,10 @@ object SpecialAlertNotifier {
         )
     }
 
-    private fun loadSettings(context: Context) = runBlocking {
+    private suspend fun loadSettings(context: Context) =
         RuntimeSettingsCache.getSpecialAlertSettings(
             RuntimeGraph.from(context).settingsRepository,
         )
-    }
 
     private fun notifyInternal(
         context: Context,

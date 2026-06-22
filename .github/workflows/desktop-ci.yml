@@ -177,15 +177,6 @@ jobs:
           path: ${{ matrix.bundle_dir }}/**/*.exe
           if-no-files-found: error
 
-      - name: Upload Windows Installer artifacts
-        if: matrix.os_name == 'windows'
-        uses: actions/upload-artifact@v7
-        with:
-          name: xinyi-relay-desktop-${{ matrix.os_name }}-${{ matrix.arch_name }}-installers
-          path: |
-            ${{ matrix.bundle_dir }}/**/*.msix
-          if-no-files-found: ignore
-
       - name: Upload APP artifact
         if: matrix.os_name == 'macos'
         uses: actions/upload-artifact@v7

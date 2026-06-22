@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.domain.system
 
 import android.content.Context
-import io.github.magisk317.relay.bootstrap.RuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.android.data.db.entity.AppInfo
 import io.github.magisk317.relay.engine.service.AppConfigRepository
 import io.github.magisk317.relay.android.data.store.EntityStoreManager
@@ -21,7 +21,7 @@ class RuntimeAppConfigFacade(
     },
 ) {
     private val configRepository: AppConfigRepository by lazy {
-        configRepository ?: RuntimeGraph.from(context).configRepository
+        configRepository ?: RuntimeDependencies.get().configRepository
     }
 
     suspend fun isPackageBlocked(packageName: String): Boolean = withContext(Dispatchers.IO) {

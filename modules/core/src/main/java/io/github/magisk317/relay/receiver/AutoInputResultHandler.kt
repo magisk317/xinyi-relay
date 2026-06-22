@@ -11,34 +11,28 @@ import io.github.magisk317.relay.security.IpcTokenGate
 import io.github.magisk317.smscode.runtime.contract.autoinput.AutoInputBroadcastContract
 import io.github.magisk317.smscode.runtime.contract.autoinput.AutoInputResultBroadcastContract
 import io.github.magisk317.smscode.xposed.hook.system.SystemInputInjectorHook
-import kotlinx.coroutines.runBlocking
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 object AutoInputResultHandler {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     val action: String
         get() = SystemInputInjectorHook.resolveActionAutoInputResult()
 
     fun handle(context: Context, intent: Intent, onComplete: () -> Unit = {}) {
-        runCatching {
-            AUTO_INPUT_RESULT_EXECUTOR.execute {
-                try {
-                    handleOnWorker(context, intent)
-                } finally {
-                    onComplete()
-                }
+        scope.launch {
+            try {
+                handleOnWorker(context, intent)
+            } finally {
+                onComplete()
             }
-        }.onFailure { error ->
-            XLog.w(
-                "AutoInput result worker rejected: %s",
-                error.message ?: error.javaClass.simpleName,
-            )
-            onComplete()
         }
     }
 
-    private fun handleOnWorker(context: Context, intent: Intent) {
+    private suspend fun handleOnWorker(context: Context, intent: Intent) {
         val result = when (
             val receiverResult = AutoInputResultBroadcastContract.readResult(
                 intent = intent,
@@ -50,14 +44,12 @@ object AutoInputResultHandler {
             is AutoInputResultBroadcastContract.ReceiverResult.Accepted -> receiverResult.result
         }
         val attemptId = result.attemptId
-        val runtimeGraph = RuntimeGraph.from(context)
-        val expectedToken = runBlocking {
-            RuntimeSettingsCache.getString(
-                key = PrefConst.KEY_IPC_TOKEN,
-                defaultValue = "",
-            ) { key, defaultValue ->
-                runtimeGraph.preferenceDataSource.getString(key, defaultValue)
-            }
+        val deps = RuntimeGraph.from(context)
+        val expectedToken = RuntimeSettingsCache.getString(
+            key = PrefConst.KEY_IPC_TOKEN,
+            defaultValue = "",
+        ) { key, defaultValue ->
+            deps.preferenceDataSource.getString(key, defaultValue)
         }
         val receivedToken = intent.getStringExtra(AutoInputBroadcastContract.EXTRA_IPC_TOKEN)
         val tokenDecision = IpcTokenGate.evaluate(
@@ -81,13 +73,11 @@ object AutoInputResultHandler {
             success,
             reason ?: "<none>",
         )
-        val analyticsEnabled = runBlocking {
-            RuntimeSettingsCache.getBoolean(
-                key = PrefConst.KEY_ENABLE_ANALYTICS,
-                defaultValue = true,
-            ) { key, defaultValue ->
-                runtimeGraph.preferenceDataSource.getBoolean(key, defaultValue)
-            }
+        val analyticsEnabled = RuntimeSettingsCache.getBoolean(
+            key = PrefConst.KEY_ENABLE_ANALYTICS,
+            defaultValue = true,
+        ) { key, defaultValue ->
+            deps.preferenceDataSource.getBoolean(key, defaultValue)
         }
         if (!analyticsEnabled) {
             XLog.w("Diag AutoInputResultReceiver analytics disabled: attemptId=%d", attemptId)
@@ -95,10 +85,8 @@ object AutoInputResultHandler {
         }
 
         runCatching {
-            val updatedRows = runBlocking {
-                RuntimeGraph.from(context).runtimeRecordFacade
-                    .updateAutoInputResult(attemptId, success, reason)
-            }
+            val updatedRows = RuntimeGraph.from(context).runtimeRecordFacade
+                .updateAutoInputResult(attemptId, success, reason)
             if (updatedRows <= 0) {
                 XLog.w(
                     "Diag AutoInputResultReceiver skipped stale result: attemptId=%d success=%s reason=%s",
@@ -122,10 +110,5 @@ object AutoInputResultHandler {
                 error.message ?: error.javaClass.simpleName,
             )
         }
-    }
-
-    private val workerIndex = AtomicInteger(1)
-    private val AUTO_INPUT_RESULT_EXECUTOR: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
-        Thread(runnable, "AutoInputResult-${workerIndex.getAndIncrement()}")
     }
 }

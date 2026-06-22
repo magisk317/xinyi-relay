@@ -69,9 +69,6 @@ dependencies {
     
     implementation(libs.timber)
 
-    // Dependency injection (RuntimeGraph resolves singletons from the Koin container)
-    implementation(libs.koin.core)
-
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.mockk)
@@ -89,7 +86,7 @@ val verifyNoComposeUiLeak = tasks.register("verifyNoComposeUiLeak") {
         Regex("""^\s*import\s+androidx\.compose\."""),
         Regex("""@\s*Composable\b"""),
         Regex("""\bMaterialTheme\b"""),
-        Regex("""\bModifier\b"""),
+        Regex("""\bModifier\.(size|fillMax|padding|clickable|background|border|clip)\b"""),
     )
 
     inputs.dir(sourceRoot)

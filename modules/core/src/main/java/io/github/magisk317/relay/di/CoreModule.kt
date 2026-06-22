@@ -47,7 +47,16 @@ val coreModule = module {
     single<MessageRecordRepository> { RelayRecordRepository(androidContext(), get(), get()) }
     single<RuntimeAnalyticsProvider> { AnalyticsRepository(androidContext(), get()) }
     single<RemoteSyncRepository> { RemoteAgentRepository(androidContext(), get()) }
-    single { RuntimeRecordFacade(androidContext(), get(), get<MessageRecordRepository>()) }
+    single {
+        val repo = get<MessageRecordRepository>() as RelayRecordRepository
+        RuntimeRecordFacade(
+            context = androidContext(),
+            db = get(),
+            relayRecordRepository = repo,
+            recordInserter = { smsMsg, isCodeSms -> repo.insertRecord(smsMsg, isCodeSms) },
+            smsBlacklistHitInserter = { hit -> repo.insertSmsBlacklistHit(hit) },
+        )
+    }
     single<AppConfigRepository> {
         val db = get<AppDatabase>()
         ConfigRepository(

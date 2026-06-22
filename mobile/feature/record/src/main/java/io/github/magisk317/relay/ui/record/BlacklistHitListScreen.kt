@@ -1,7 +1,8 @@
 @file:Suppress("LocalContextGetResourceValueCall")
 
-package io.github.magisk317.relay.ui.home.relayconfig
+package io.github.magisk317.relay.ui.record
 
+import io.github.magisk317.relay.ui.common.rememberBlacklistHitDateFormat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box

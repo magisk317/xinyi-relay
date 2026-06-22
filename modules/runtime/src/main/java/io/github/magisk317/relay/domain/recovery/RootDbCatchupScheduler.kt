@@ -3,7 +3,7 @@ package io.github.magisk317.relay.domain.recovery
 import android.content.Context
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
-import io.github.magisk317.relay.bootstrap.RuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,12 +29,12 @@ object RootDbCatchupScheduler {
             XLog.i("Root DB catchup periodic started reason=%s", reason)
             while (isActive) {
                 RootDbCatchupEngine.runOnce(appContext, reason = "periodic:$reason")
-                val runtimeGraph = RuntimeGraph.from(appContext)
+                val deps = RuntimeDependencies.get()
                 val intervalMin = RuntimeSettingsCache.getString(
                     key = PrefConst.KEY_ROOT_DB_CATCHUP_INTERVAL_MIN,
                     defaultValue = "5",
                 ) { key, defaultValue ->
-                    runtimeGraph.preferenceDataSource.getString(key, defaultValue)
+                    deps.preferenceDataSource.getString(key, defaultValue)
                 }.toLongOrNull() ?: 5L
                 val intervalMs = intervalMin.coerceAtLeast(1L) * 60_000L
                 delay(intervalMs)

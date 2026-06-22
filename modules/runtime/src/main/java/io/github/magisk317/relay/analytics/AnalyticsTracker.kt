@@ -4,9 +4,8 @@ import android.content.Context
 import android.os.Bundle
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.common.utils.XLog
-import io.github.magisk317.relay.bootstrap.RuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
-import kotlinx.coroutines.runBlocking
 
 object AnalyticsTracker {
     @Volatile
@@ -31,16 +30,14 @@ object AnalyticsTracker {
         }.getOrNull()
     }
 
-    fun logEvent(name: String, params: Map<String, Any?> = emptyMap()) {
+    suspend fun logEvent(name: String, params: Map<String, Any?> = emptyMap()) {
         val context = appContext ?: return
-        val analyticsEnabled = runBlocking {
-            val runtimeGraph = RuntimeGraph.from(context)
-            RuntimeSettingsCache.getBoolean(
-                key = PrefConst.KEY_ENABLE_ANALYTICS,
-                defaultValue = true,
-            ) { key, defaultValue ->
-                runtimeGraph.preferenceDataSource.getBoolean(key, defaultValue)
-            }
+        val deps = RuntimeDependencies.get()
+        val analyticsEnabled = RuntimeSettingsCache.getBoolean(
+            key = PrefConst.KEY_ENABLE_ANALYTICS,
+            defaultValue = true,
+        ) { key, defaultValue ->
+            deps.preferenceDataSource.getBoolean(key, defaultValue)
         }
         if (!analyticsEnabled) return
         val tracker = instance ?: return

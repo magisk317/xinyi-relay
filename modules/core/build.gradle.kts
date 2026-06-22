@@ -57,7 +57,6 @@ androidComponents {
 
 dependencies {
     implementation(project(":runtime"))
-    implementation(project(":relay:engine"))
     implementation(project(":relay:engine:api"))
     implementation(project(":relay:android"))
     implementation(project(":relay:contract"))
