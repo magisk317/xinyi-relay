@@ -17,12 +17,17 @@ import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.relay.platform.ipc.CallIngressAdapter
 import io.github.magisk317.relay.platform.ipc.ForwardBroadcastDispatcher
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 object CallStateMonitor {
     private const val RINGING_DEDUP_MS = 8_000L
     private const val CALL_TYPE_INCOMING = 1
     private const val CALL_TYPE_OUTGOING = 2
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     @Volatile
     private var appContext: Context? = null
@@ -47,21 +52,23 @@ object CallStateMonitor {
     fun refresh(reason: String) {
         val context = appContext ?: return
         if (BuildConfig.FLAVOR != "github") return
-        val (forwardEnabled, localEnabled) = loadCallAlertFlags(context)
-        if (!forwardEnabled && !localEnabled) {
-            stop("disabled")
-            return
+        scope.launch {
+            val (forwardEnabled, localEnabled) = loadCallAlertFlags(context)
+            if (!forwardEnabled && !localEnabled) {
+                stop("disabled")
+                return@launch
+            }
+            val permissionGranted = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.READ_PHONE_STATE,
+            ) == PackageManager.PERMISSION_GRANTED
+            if (!permissionGranted) {
+                stop("no_permission")
+                return@launch
+            }
+            if (started) return@launch
+            start(context, reason)
         }
-        val permissionGranted = ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.READ_PHONE_STATE,
-        ) == PackageManager.PERMISSION_GRANTED
-        if (!permissionGranted) {
-            stop("no_permission")
-            return
-        }
-        if (started) return
-        start(context, reason)
     }
 
     private fun start(context: Context, reason: String) {
@@ -125,21 +132,21 @@ object CallStateMonitor {
                     timestamp = now,
                     callType = CALL_TYPE_INCOMING,
                 )
-                SpecialAlertCoordinator.notifyForEvent(
-                    context = context,
-                    event = payload.toRelayEvent(),
-                )
-                val (forwardEnabled, _) = loadCallAlertFlags(context)
-                if (!forwardEnabled) {
-                    lastState = state
-                    return
+                scope.launch {
+                    SpecialAlertCoordinator.notifyForEvent(
+                        context = context,
+                        event = payload.toRelayEvent(),
+                    )
+                    val (forwardEnabled, _) = loadCallAlertFlags(context)
+                    if (forwardEnabled) {
+                        sendCallBroadcast(
+                            context = context,
+                            stage = "ringing",
+                            callType = CALL_TYPE_INCOMING,
+                            number = lastNumber,
+                        )
+                    }
                 }
-                sendCallBroadcast(
-                    context = context,
-                    stage = "ringing",
-                    callType = CALL_TYPE_INCOMING,
-                    number = lastNumber,
-                )
             }
             TelephonyManager.CALL_STATE_OFFHOOK -> {
                 if (lastState == TelephonyManager.CALL_STATE_IDLE) {
@@ -148,22 +155,24 @@ object CallStateMonitor {
             }
             TelephonyManager.CALL_STATE_IDLE -> {
                 if (lastState != TelephonyManager.CALL_STATE_IDLE) {
-                    val (forwardEnabled, _) = loadCallAlertFlags(context)
-                    if (forwardEnabled) {
-                        val number = lastNumber?.ifBlank { null }
-                            ?: CallSessionTracker.findRecentNumber(
-                                if (lastDirection == 0) CALL_TYPE_INCOMING else lastDirection,
-                            )
-                        if (lastNumber.isNullOrBlank() && !number.isNullOrBlank()) {
-                            XLog.i("CallStateMonitor recovered call number from recent ingress")
-                        }
-                        if (!number.isNullOrBlank()) {
-                            sendCallBroadcast(
-                                context = context,
-                                stage = "ended",
-                                callType = if (lastDirection == 0) CALL_TYPE_INCOMING else lastDirection,
-                                number = number,
-                            )
+                    scope.launch {
+                        val (forwardEnabled, _) = loadCallAlertFlags(context)
+                        if (forwardEnabled) {
+                            val number = lastNumber?.ifBlank { null }
+                                ?: CallSessionTracker.findRecentNumber(
+                                    if (lastDirection == 0) CALL_TYPE_INCOMING else lastDirection,
+                                )
+                            if (lastNumber.isNullOrBlank() && !number.isNullOrBlank()) {
+                                XLog.i("CallStateMonitor recovered call number from recent ingress")
+                            }
+                            if (!number.isNullOrBlank()) {
+                                sendCallBroadcast(
+                                    context = context,
+                                    stage = "ended",
+                                    callType = if (lastDirection == 0) CALL_TYPE_INCOMING else lastDirection,
+                                    number = number,
+                                )
+                            }
                         }
                     }
                 }
@@ -174,7 +183,7 @@ object CallStateMonitor {
         lastState = state
     }
 
-    private fun sendCallBroadcast(
+    private suspend fun sendCallBroadcast(
         context: Context,
         stage: String,
         callType: Int,
@@ -208,7 +217,7 @@ object CallStateMonitor {
         }
     }
 
-    private fun loadCallAlertFlags(context: Context): Pair<Boolean, Boolean> = runBlocking {
+    private suspend fun loadCallAlertFlags(context: Context): Pair<Boolean, Boolean> {
         val runtimeGraph = RuntimeGraph.from(context)
         val messageTypeEnabled = RuntimeSettingsCache.getBoolean(
             key = PrefConst.KEY_MSG_TYPE_CALL_NOTIFY_ENABLED,
@@ -231,6 +240,6 @@ object CallStateMonitor {
         val localEnabled = RuntimeSettingsCache
             .getSpecialAlertSettings(runtimeGraph.settingsRepository)
             .callAlertLocalEnabled
-        forwardEnabled to localEnabled
+        return forwardEnabled to localEnabled
     }
 }

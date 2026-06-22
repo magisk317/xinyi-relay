@@ -1,7 +1,8 @@
 @file:Suppress("LocalContextGetResourceValueCall")
 
-package io.github.magisk317.relay.ui.home.relayconfig
+package io.github.magisk317.relay.ui.record
 
+import io.github.magisk317.relay.ui.common.rememberBlacklistHitDateFormat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -35,11 +36,6 @@ import java.util.Locale
 
 internal const val SMS_BLOCK_REASON_BLACKLIST = "blacklist_block"
 internal const val SMS_BLOCK_REASON_PREF = "pref_block_sms"
-
-@Composable
-internal fun rememberBlacklistHitDateFormat(): SimpleDateFormat {
-    return remember { SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.getDefault()) }
-}
 
 @Composable
 internal fun SmsBlacklistHitListItem(

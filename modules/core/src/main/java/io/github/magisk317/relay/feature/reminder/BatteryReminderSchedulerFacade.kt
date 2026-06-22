@@ -8,7 +8,7 @@ object BatteryReminderSchedulerFacade {
         LowBatteryReminderScheduler.scheduleNext(context, reason, immediate)
     }
 
-    fun syncFromPrefs(context: Context, reason: String) {
+    suspend fun syncFromPrefs(context: Context, reason: String) {
         LowBatteryReminderScheduler.syncFromPrefs(context, reason)
     }
 }

@@ -14,7 +14,7 @@ object CodeRecordRestoreManager {
     }
 
     @JvmStatic
-    fun importToDatabase(context: Context): Boolean {
+    suspend fun importToDatabase(context: Context): Boolean {
         return RuntimeCodeRecordFileStore.importRecordFiles(
             recordFiles = getRecordFiles(context),
             insertRecords = { smsMsgList ->
@@ -23,7 +23,7 @@ object CodeRecordRestoreManager {
         )
     }
 
-    internal fun importRecordFiles(
+    internal suspend fun importRecordFiles(
         recordFiles: Array<File>?,
         insertRecords: suspend (List<SmsMsg>) -> Unit,
         logSuccess: (String) -> Unit = XLog::d,

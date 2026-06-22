@@ -6,10 +6,9 @@ import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
 import io.github.magisk317.relay.engine.event.RelayEvent
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
-import kotlinx.coroutines.runBlocking
 
 object SpecialAlertCoordinator {
-    fun notifyForEvent(
+    suspend fun notifyForEvent(
         context: Context,
         event: RelayEvent,
         traceId: String? = null,
@@ -19,9 +18,7 @@ object SpecialAlertCoordinator {
             MessageType.SMS_PLAIN,
             MessageType.APP_NOTIFY,
             -> {
-                val decision = runBlocking {
-                    RuntimeGraph.from(context).eventGatekeeper.check(event, traceId.orEmpty())
-                }
+                val decision = RuntimeGraph.from(context).eventGatekeeper.check(event, traceId.orEmpty())
                 if (!decision.allowed) {
                     ForwardFlowLog.i(
                         traceId,
@@ -51,11 +48,9 @@ object SpecialAlertCoordinator {
             }
 
             MessageType.CALL_NOTIFY -> {
-                val enabled = runBlocking {
-                    RuntimeSettingsCache.getSpecialAlertSettings(
-                        RuntimeGraph.from(context).settingsRepository,
-                    ).callAlertLocalEnabled
-                }
+                val enabled = RuntimeSettingsCache.getSpecialAlertSettings(
+                    RuntimeGraph.from(context).settingsRepository,
+                ).callAlertLocalEnabled
                 if (!enabled) return
                 SpecialAlertNotifier.notifyIncomingCallAlert(
                     context = context,

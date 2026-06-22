@@ -13,8 +13,10 @@ import io.github.magisk317.relay.android.data.db.entity.AppInfo
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toEntity
 import io.github.magisk317.relay.android.data.secret.InternalSecretStore
-import io.github.magisk317.relay.bootstrap.RuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.contract.model.RemoteConfigSnapshot
+import io.github.magisk317.relay.data.remote.DeviceTokenExpiredException
+import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.relay.contract.repository.RemoteSyncRepository
 import io.github.magisk317.relay.android.common.utils.DeviceIdentityUtils
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
@@ -56,6 +58,23 @@ class RemoteAgentRepository(
     private val backgroundSyncInFlight = AtomicBoolean(false)
     private val backgroundSyncQueued = AtomicBoolean(false)
     private val applyingRemoteConfigDepth = AtomicInteger(0)
+
+    /**
+     * Wrap an API call with 401 handling. If the device token is expired/revoked,
+     * sets a clear error state telling the user to re-bind.
+     */
+    private suspend fun <T> withTokenRefresh(block: () -> T): T {
+        return try {
+            block()
+        } catch (e: DeviceTokenExpiredException) {
+            preferenceDataSource.setString(
+                PrefConst.KEY_REMOTE_AGENT_LAST_ERROR,
+                "设备令牌已过期，请重新绑定设备",
+            )
+            setSyncState("token_expired")
+            throw e
+        }
+    }
 
     override suspend fun getSnapshot(): RemoteAgentSnapshot = withContext(Dispatchers.IO) {
         val token = InternalSecretStore.getString(appContext, PrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, "")
@@ -167,8 +186,11 @@ class RemoteAgentRepository(
         val baseUrl = normalizedBackendBaseUrl()
         setSyncState("pulling")
         return@withContext runCatching {
-            val payload = remoteApiClient.pullConfigSnapshot(baseUrl, token)
-            payload.snapshot?.let { applyRemoteConfigPayload(it) }
+            val payload = withTokenRefresh { remoteApiClient.pullConfigSnapshot(baseUrl, token) }
+            payload.snapshot?.let {
+                applyRemoteConfigPayload(it)
+                RuntimeSettingsCache.clear()
+            }
             preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_REVISION, payload.revision.toString())
             preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_PULL_AT, nowEpochMillis().toString())
             preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, "")
@@ -192,7 +214,7 @@ class RemoteAgentRepository(
         val token = InternalSecretStore.getString(appContext, PrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, "")
         val appCatalogDigest = computeAppCatalogDigest(
             resolveInstalledAppCatalog(
-                RuntimeGraph.from(appContext).configRepository.getAllAppInfo().map { it.toEntity() },
+                RuntimeDependencies.get().configRepository.getAllAppInfo().map { it.toEntity() },
             ),
         )
         val request = ConfigSnapshotRequest(
@@ -205,14 +227,20 @@ class RemoteAgentRepository(
             when (val result = remoteApiClient.pushConfigSnapshot(baseUrl, token, request)) {
                 is ConfigSnapshotPushResult.Conflict -> {
                     val payload = result.payload
-                    payload.snapshot?.let { applyRemoteConfigPayload(it) }
+                    // Apply cloud snapshot as new base, but preserve pending mutations
+                    // so local changes are not silently discarded.
+                    payload.snapshot?.let {
+                        applyRemoteConfigPayload(it)
+                        RuntimeSettingsCache.clear()
+                    }
                     preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_REVISION, payload.revision.toString())
-                    preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_PENDING_MUTATIONS, "0")
+                    // Do NOT clear pendingMutations here — local changes still need to be pushed.
+                    // Set state to "dirty" so the next sync cycle will re-push with the new base revision.
                     preferenceDataSource.setString(
                         PrefConst.KEY_REMOTE_AGENT_LAST_ERROR,
-                        "config conflict: cloud revision ${payload.revision} replaced local pending snapshot",
+                        "config conflict: cloud revision ${payload.revision} applied as base; local changes will re-push",
                     )
-                    setSyncState("conflict")
+                    setSyncState("dirty")
                     publishHookPrefs()
                 }
                 is ConfigSnapshotPushResult.Success -> {
@@ -239,7 +267,7 @@ class RemoteAgentRepository(
         val snapshot = getSnapshot()
         require(snapshot.bound) { "device not bound" }
         val token = InternalSecretStore.getString(appContext, PrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, "")
-        val records = RuntimeGraph.from(appContext).relayRecordRepository.listRecords(limit).map {
+        val records = RuntimeDependencies.get().relayRecordRepository.listRecords(limit).map {
             val metadata = buildJsonObject {
                 put("localRecordId", it.id)
                 put("company", it.company)
@@ -324,7 +352,7 @@ class RemoteAgentRepository(
     ) {
         runCatching {
             setSyncState(stateLabel)
-            block()
+            withTokenRefresh { block() }
             preferenceDataSource.setString(timestampKey, nowEpochMillis().toString())
             preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, "")
             setSyncState("idle")
@@ -342,9 +370,9 @@ class RemoteAgentRepository(
     }
 
     private suspend fun buildConfigSnapshotModel(): RemoteConfigPayload {
-        val runtimeGraph = RuntimeGraph.from(appContext)
-        val settingsRepository = runtimeGraph.settingsRepository
-        val configRepository = runtimeGraph.configRepository
+        val deps = RuntimeDependencies.get()
+        val settingsRepository = deps.settingsRepository
+        val configRepository = deps.configRepository
         return RemoteConfigPayload(
             general = settingsRepository.getGeneralSettings(),
             verification = settingsRepository.getVerificationSettings(),
@@ -377,8 +405,8 @@ class RemoteAgentRepository(
                 deviceAppInfos[deviceIdStr] = resolveInstalledAppCatalog(configRepository.getAllAppInfo().map { it.toEntity() })
                 deviceAppInfos
             },
-            notifyRoutes = runtimeGraph.database.notifyRouteRuleDao().getAll(),
-            forwardFilters = runtimeGraph.database.forwardFilterRuleDao().getAll().map { it.toDomain() },
+            notifyRoutes = deps.database.notifyRouteRuleDao().getAll(),
+            forwardFilters = deps.database.forwardFilterRuleDao().getAll().map { it.toDomain() },
         )
     }
 
@@ -392,9 +420,9 @@ class RemoteAgentRepository(
                     incoming = snapshot,
                 ).toString(),
             )
-            val runtimeGraph = RuntimeGraph.from(appContext)
-            val settingsRepository = runtimeGraph.settingsRepository
-            val configRepository = runtimeGraph.configRepository
+            val deps = RuntimeDependencies.get()
+            val settingsRepository = deps.settingsRepository
+            val configRepository = deps.configRepository
 
             settingsRepository.updateGeneralSettings(
                 GeneralSettingsUpdate(
@@ -571,7 +599,7 @@ class RemoteAgentRepository(
     private suspend fun pushInstalledAppCatalogIfNeeded() {
         val snapshot = getSnapshot()
         if (!snapshot.bound) return
-        val currentConfigs = RuntimeGraph.from(appContext).configRepository
+        val currentConfigs = RuntimeDependencies.get().configRepository
             .getAllAppInfo()
             .map { it.toEntity() }
         val digest = computeAppCatalogDigest(resolveInstalledAppCatalog(currentConfigs))

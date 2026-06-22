@@ -10,7 +10,7 @@ import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.dao.SmsMsgDao
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.engine.event.RelayEvent
-import io.github.magisk317.relay.bootstrap.RuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.smscode.domain.constant.SmsCodeConst
 import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 import java.util.concurrent.atomic.AtomicBoolean
@@ -100,8 +100,8 @@ internal object RootDbCatchupEngine {
     }
 
     private suspend fun runCatchup(context: Context, reason: String) {
-        val runtimeGraph = RuntimeGraph.from(context)
-        if (!preferenceValue(runtimeGraph, PrefConst.KEY_ROOT_DB_CATCHUP_ENABLE, false)) {
+        val deps = RuntimeDependencies.get()
+        if (!preferenceValue(deps, PrefConst.KEY_ROOT_DB_CATCHUP_ENABLE, false)) {
             return
         }
         if (!RootShellExecutor.canUseRoot()) {
@@ -121,17 +121,17 @@ internal object RootDbCatchupEngine {
             return
         }
 
-        val stateStore = RuntimeStateStore(runtimeGraph.preferenceDataSource)
+        val stateStore = RuntimeStateStore(deps.preferenceDataSource)
         val baselineInited = stateStore.isBaselineInitialized()
         if (!baselineInited) {
             initBaseline(stateStore, reason)
             return
         }
 
-        val writeback = preferenceValue(runtimeGraph, PrefConst.KEY_ROOT_DB_CATCHUP_WRITEBACK, false)
-        val db = runtimeGraph.database
+        val writeback = preferenceValue(deps, PrefConst.KEY_ROOT_DB_CATCHUP_WRITEBACK, false)
+        val db = deps.database
         val dao = db.smsMsgDao()
-        val relayKeywords = runtimeGraph.preferenceDataSource.getString(
+        val relayKeywords = deps.preferenceDataSource.getString(
             PrefConst.KEY_SMSCODE_KEYWORDS,
             SmsCodeConst.VERIFICATION_KEYWORDS_REGEX,
         )
@@ -143,7 +143,7 @@ internal object RootDbCatchupEngine {
             runCatching {
                 handleSmsRow(
                     context = context,
-                    runtimeGraph = runtimeGraph,
+                    deps = deps,
                     dao = dao,
                     row = row,
                     writeback = writeback,
@@ -167,7 +167,7 @@ internal object RootDbCatchupEngine {
             runCatching {
                 handleCallRow(
                     context = context,
-                    runtimeGraph = runtimeGraph,
+                    deps = deps,
                     dao = dao,
                     row = row,
                     writeback = writeback,
@@ -213,7 +213,7 @@ internal object RootDbCatchupEngine {
 
     private suspend fun handleSmsRow(
         context: Context,
-        runtimeGraph: RuntimeGraph,
+        deps: RuntimeDependencies,
         dao: SmsMsgDao,
         row: SmsRow,
         writeback: Boolean,
@@ -226,9 +226,9 @@ internal object RootDbCatchupEngine {
         val isCodeSms = smsCode.isNotBlank()
 
         val canRecord = if (isCodeSms) {
-            runtimeGraph.preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE_CODE_RECORDS_CODE, true)
+            deps.preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE_CODE_RECORDS_CODE, true)
         } else {
-            runtimeGraph.preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE_CODE_RECORDS_PLAIN_SMS, true)
+            deps.preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE_CODE_RECORDS_PLAIN_SMS, true)
         }
 
         var recordId = dao.getByFingerprint(
@@ -240,7 +240,7 @@ internal object RootDbCatchupEngine {
 
         if (recordId == null && canRecord) {
             trimOldRecordsIfNeeded(
-                runtimeGraph = runtimeGraph,
+                deps = deps,
                 dao = dao,
                 msgType = SmsMsg.MSG_TYPE_SMS,
                 isCodeSms = isCodeSms,
@@ -260,7 +260,7 @@ internal object RootDbCatchupEngine {
         }
 
         val messageType = if (isCodeSms) MessageType.SMS_CODE else MessageType.SMS_PLAIN
-        runtimeGraph.eventPipeline.process(
+        deps.eventPipeline.process(
             event = buildSmsRelayEvent(row = row, messageType = messageType, smsCode = smsCode),
             preferredRecordId = recordId,
             traceId = "root_sms_${row.id}",
@@ -273,7 +273,7 @@ internal object RootDbCatchupEngine {
 
     private suspend fun handleCallRow(
         context: Context,
-        runtimeGraph: RuntimeGraph,
+        deps: RuntimeDependencies,
         dao: SmsMsgDao,
         row: CallRow,
         writeback: Boolean,
@@ -289,17 +289,17 @@ internal object RootDbCatchupEngine {
             packageName = null,
         )
 
-        val canRecord = runtimeGraph.preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE_CODE_RECORDS_CALL_NOTIFY, true)
+        val canRecord = deps.preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE_CODE_RECORDS_CALL_NOTIFY, true)
         if (canRecord && dao.getBySessionKey(SmsMsg.MSG_TYPE_CALL_NOTIFY, sessionKey) == null) {
             trimOldRecordsIfNeeded(
-                runtimeGraph = runtimeGraph,
+                deps = deps,
                 dao = dao,
                 msgType = SmsMsg.MSG_TYPE_CALL_NOTIFY,
                 isCodeSms = false,
             )
         }
 
-        runtimeGraph.eventPipeline.process(
+        deps.eventPipeline.process(
             event = buildCallRelayEvent(row),
             preferredRecordId = null,
             traceId = "root_call_${row.id}",
@@ -311,7 +311,7 @@ internal object RootDbCatchupEngine {
     }
 
     private suspend fun trimOldRecordsIfNeeded(
-        runtimeGraph: RuntimeGraph,
+        deps: RuntimeDependencies,
         dao: SmsMsgDao,
         msgType: Int,
         isCodeSms: Boolean,
@@ -322,7 +322,7 @@ internal object RootDbCatchupEngine {
             SmsMsg.MSG_TYPE_SMS -> if (isCodeSms) PrefConst.KEY_HISTORY_LIMIT_CODE else PrefConst.KEY_HISTORY_LIMIT_PLAIN_SMS
             else -> PrefConst.KEY_HISTORY_LIMIT
         }
-        val limit = runtimeGraph.preferenceDataSource
+        val limit = deps.preferenceDataSource
             .getString(limitKey, "0")
             .toIntOrNull()
             ?: 0
@@ -475,10 +475,10 @@ internal object RootDbCatchupEngine {
     }
 
     private suspend fun preferenceValue(
-        runtimeGraph: RuntimeGraph,
+        deps: RuntimeDependencies,
         key: String,
         defaultValue: Boolean,
-    ): Boolean = runtimeGraph.preferenceDataSource.getBoolean(key, defaultValue)
+    ): Boolean = deps.preferenceDataSource.getBoolean(key, defaultValue)
 
     internal fun buildSmsRelayEvent(row: SmsRow, messageType: MessageType, smsCode: String?): RelayEvent {
         val timestamp = if (row.date > 0L) row.date else System.currentTimeMillis()

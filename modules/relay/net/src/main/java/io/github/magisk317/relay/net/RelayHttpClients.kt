@@ -5,11 +5,13 @@ import java.util.concurrent.TimeUnit
 
 object RelayHttpClients {
     private const val DEFAULT_TIMEOUT_SECONDS = 15L
+    private const val CALL_TIMEOUT_SECONDS = 30L
 
     val default: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .readTimeout(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .writeTimeout(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .callTimeout(CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .build()
 
     fun newBuilder(): OkHttpClient.Builder {

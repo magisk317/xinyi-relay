@@ -7,12 +7,15 @@ import io.github.magisk317.relay.android.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
 import io.github.magisk317.relay.android.platform.sender.SenderLogBridge
 import io.github.magisk317.relay.android.platform.sender.SenderRuntimeBridge
+import io.github.magisk317.relay.bootstrap.RuntimeDependencies
+import io.github.magisk317.relay.di.RuntimeDependenciesImpl
 import io.github.magisk317.smscode.xposed.runtime.CoreHookPolicy
 import io.github.magisk317.smscode.xposed.runtime.CoreHookPolicyHolder
 import io.github.magisk317.smscode.xposed.runtime.CoreLogSink
 import io.github.magisk317.smscode.xposed.runtime.CoreLogSinkHolder
 import io.github.magisk317.smscode.xposed.runtime.CoreRuntime
 import io.github.magisk317.smscode.xposed.runtime.CoreRuntimeAccess
+import org.koin.core.context.GlobalContext
 import timber.log.Timber
 
 object AppInfrastructureCoordinator {
@@ -20,6 +23,9 @@ object AppInfrastructureCoordinator {
         application: Application,
         shouldSuppressSystemHooks: (Context?, String) -> Boolean,
     ) {
+        // Bridge Koin singletons into :runtime via the RuntimeDependencies interface,
+        // so :runtime callers can resolve dependencies without importing Koin directly.
+        RuntimeDependencies.register(RuntimeDependenciesImpl(GlobalContext.get()))
         AnalyticsTracker.init(application)
         RuntimeLogStore.initialize(application, enableDetailedLogs = false)
         SensitiveLogPolicy.setEnabled(false)

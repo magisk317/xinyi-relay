@@ -4,7 +4,7 @@ import android.content.Context
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.entity.ScheduledTaskEntity
-import io.github.magisk317.relay.bootstrap.RuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.domain.schedule.ScheduledTaskManager
 import io.github.magisk317.relay.engine.model.ScheduledTask
 import io.github.magisk317.relay.engine.service.ScheduledTaskRepository
@@ -106,7 +106,7 @@ class ScheduledTaskRepositoryImpl(
     }
 
     private fun noteMutation(source: String) {
-        runCatching { RuntimeGraph.from(context).autoBackupTrigger.scheduleAutoBackup(source) }
+        runCatching { RuntimeDependencies.get().autoBackupTrigger.scheduleAutoBackup(source) }
             .onFailure { XLog.e("scheduleAutoBackup failed: %s", it.message ?: it.javaClass.simpleName) }
     }
 }

@@ -59,7 +59,7 @@ import io.github.magisk317.relay.ui.home.settings.SettingsHomeScreen
 import io.github.magisk317.relay.ui.home.appconfig.AppConfigViewModel
 import io.github.magisk317.relay.ui.home.forward.ForwardKeepAliveScreen
 import io.github.magisk317.relay.ui.home.relayconfig.RemoteAgentScreen
-import io.github.magisk317.relay.ui.home.relayconfig.BlacklistHitListScreen
+import io.github.magisk317.relay.ui.record.BlacklistHitListScreen
 import io.github.magisk317.relay.ui.home.relayconfig.InterceptScreen
 import io.github.magisk317.relay.ui.home.scheduled.ScheduledReminderScreen
 import io.github.magisk317.relay.ui.home.appconfig.AppNotifySenderBindingScreen

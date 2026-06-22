@@ -24,15 +24,17 @@ import org.koin.core.context.GlobalContext
 /**
  * Typed facade over the single application object graph.
  *
- * The graph itself is constructed exactly once in the Koin `coreModule`; this
- * class merely resolves each member from the running Koin container, giving
- * non-UI code (services, receivers, initializers) a static, context-based entry
- * point (`RuntimeGraph.from(context).x`) without a second hand-maintained
+ * All singletons are constructed exactly once in the Koin `coreModule` and
+ * live in the global Koin container. This class resolves each member by type,
+ * giving non-UI code (services, receivers, initializers) a static entry point
+ * (`RuntimeGraph.from(context).x`) without a second hand-maintained
  * construction list.
  *
- * Every `from(...)` call site runs after `startKoin` (single process; Koin is
- * started first in `SmsCodeApplication.onCreate`, and no ContentProvider or
- * pre-onCreate code touches this facade).
+ * [from] no longer uses its [context] parameter; it is retained so that
+ * existing call sites compile unchanged. Every call site runs after
+ * `startKoin` (single process; Koin is started first in
+ * `SmsCodeApplication.onCreate`, and no ContentProvider or pre-onCreate code
+ * touches this facade).
  */
 object RuntimeGraph {
 

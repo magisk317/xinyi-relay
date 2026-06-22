@@ -298,12 +298,38 @@ jobs:
             index($0, "## [" version "]") == 1 { found = 1; print; next }
             END { if (!found) exit 1 }
           ' docs/CHANGELOG.md > "$changelog_file"
+          previous_tag=""
+          compare_range="$(sed -nE 's#.*compare/([^[:space:]]+)\.\.\.([^[:space:]]+).*#\1 \2#p' "$changelog_file" | head -n 1)"
+          if [[ -n "$compare_range" ]]; then
+            read -r previous_tag compare_to <<< "$compare_range"
+            if [[ "$compare_to" != "${{ steps.release_meta.outputs.release_tag }}" ]]; then
+              previous_tag=""
+            fi
+          fi
+          if [[ -z "$previous_tag" ]]; then
+            previous_tag="$(git describe --tags --abbrev=0 "${{ steps.release_meta.outputs.release_tag }}^{commit}^" 2>/dev/null || true)"
+          fi
+          generate_args=(-X POST -f "tag_name=${{ steps.release_meta.outputs.release_tag }}")
+          if [[ -n "$previous_tag" ]]; then
+            generate_args+=(-f "previous_tag_name=${previous_tag}")
+          fi
+          generated_notes="$(gh api "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
+            "${generate_args[@]}" \
+            --jq '.body' 2>/dev/null || true)"
+          if [[ -n "$generated_notes" ]]; then
+            sed -i '/^[[:space:]]*>[[:space:]]*Full Changelog:/d' "$changelog_file"
+          fi
           cat "$changelog_file" >> "$notes_file"
+          if [[ -n "$generated_notes" ]]; then
+            printf '\n%s\n' "$generated_notes" >> "$notes_file"
+          fi
           if [[ ! -s "$notes_file" ]]; then
             echo "ERROR: empty release notes for $release_name" >&2
             exit 1
           fi
           echo "notes_file=$notes_file" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
 
       - name: Publish Release
         if: startsWith(github.ref, 'refs/tags/') && env.HAS_RELEASE_KEYSTORE == 'true'
@@ -500,12 +526,38 @@ jobs:
             index($0, "## [" version "]") == 1 { found = 1; print; next }
             END { if (!found) exit 1 }
           ' docs/CHANGELOG.md > "$changelog_file"
+          previous_tag=""
+          compare_range="$(sed -nE 's#.*compare/([^[:space:]]+)\.\.\.([^[:space:]]+).*#\1 \2#p' "$changelog_file" | head -n 1)"
+          if [[ -n "$compare_range" ]]; then
+            read -r previous_tag compare_to <<< "$compare_range"
+            if [[ "$compare_to" != "${{ steps.release_meta.outputs.release_tag }}" ]]; then
+              previous_tag=""
+            fi
+          fi
+          if [[ -z "$previous_tag" ]]; then
+            previous_tag="$(git describe --tags --abbrev=0 "${{ steps.release_meta.outputs.release_tag }}^{commit}^" 2>/dev/null || true)"
+          fi
+          generate_args=(-X POST -f "tag_name=${{ steps.release_meta.outputs.release_tag }}")
+          if [[ -n "$previous_tag" ]]; then
+            generate_args+=(-f "previous_tag_name=${previous_tag}")
+          fi
+          generated_notes="$(gh api "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
+            "${generate_args[@]}" \
+            --jq '.body' 2>/dev/null || true)"
+          if [[ -n "$generated_notes" ]]; then
+            sed -i '/^[[:space:]]*>[[:space:]]*Full Changelog:/d' "$changelog_file"
+          fi
           cat "$changelog_file" >> "$notes_file"
+          if [[ -n "$generated_notes" ]]; then
+            printf '\n%s\n' "$generated_notes" >> "$notes_file"
+          fi
           if [[ ! -s "$notes_file" ]]; then
             echo "ERROR: empty release notes for $release_name" >&2
             exit 1
           fi
           echo "notes_file=$notes_file" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
 
       - name: Publish Release in Xposed-Modules-Repo
         if: env.HAS_MODULES_REPO_TOKEN == 'true' && env.HAS_RELEASE_KEYSTORE == 'true'

@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.data.repository
 
 import android.content.Context
-import io.github.magisk317.relay.bootstrap.RuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.common.utils.CallSessionTracker
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
@@ -433,7 +433,7 @@ class RelayRecordRepository(
 
     private fun scheduleRecordUpload(reason: String) {
         recordUploadScheduler?.invoke(reason)
-            ?: RuntimeGraph.from(appContext).remoteAgentRepository.scheduleRecordUpload(reason)
+            ?: RuntimeDependencies.get().remoteAgentRepository.scheduleRecordUpload(reason)
     }
 
     private companion object {

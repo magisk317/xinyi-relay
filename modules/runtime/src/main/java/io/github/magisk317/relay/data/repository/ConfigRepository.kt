@@ -2,7 +2,7 @@ package io.github.magisk317.relay.data.repository
 
 import android.content.Context
 import io.github.magisk317.relay.android.common.utils.XLog
-import io.github.magisk317.relay.bootstrap.RuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.dao.AppInfoDao
 import io.github.magisk317.relay.android.data.db.dao.ForwardFilterRuleDao
@@ -38,11 +38,25 @@ class ConfigRepository(
 ) : AppConfigRepository {
     private val appContext = context.applicationContext ?: context
 
+    private fun validateSmsCodeRule(rule: SmsCodeRuleData) {
+        val regex = rule.codeRegex
+        if (regex.isNotBlank()) {
+            runCatching { Regex(regex) }.onFailure {
+                throw IllegalArgumentException("Invalid regex in SMS code rule: $regex", it)
+            }
+        }
+    }
+
+    private fun validateAppInfo(appInfo: AppInfoData) {
+        require(appInfo.packageName.isNotBlank()) { "AppInfo packageName must not be blank" }
+    }
+
     // Legacy SmsCodeRule
     override fun observeSmsCodeRulesFlow(): Flow<List<SmsCodeRuleData>> = smsCodeRuleDao.getAllFlow()
     override suspend fun getAllSmsCodeRules(): List<SmsCodeRuleData> = smsCodeRuleDao.getAll()
     override suspend fun getSmsCodeRuleById(id: Long): SmsCodeRuleData? = smsCodeRuleDao.getById(id)
     override suspend fun upsertSmsCodeRule(rule: SmsCodeRuleData): Long {
+        validateSmsCodeRule(rule)
         val result = smsCodeRuleDao.insert(rule as SmsCodeRule)
         noteMutation("config.sms_code_rule_upsert")
         return result
@@ -65,6 +79,7 @@ class ConfigRepository(
     override suspend fun getAllAppInfo(): List<AppInfoData> = appInfoDao.getAll()
     override suspend fun getAppInfoByPackage(packageName: String): AppInfoData? = appInfoDao.getByPackageName(packageName)
     override suspend fun upsertAppInfo(appInfo: AppInfoData) {
+        validateAppInfo(appInfo)
         appInfoDao.insert(appInfo as AppInfo)
         noteMutation("config.app_info_upsert")
     }
@@ -214,9 +229,9 @@ class ConfigRepository(
     private fun <T> Flow<List<T>>.mapToSet(): Flow<Set<T>> = map { it.toSet() }
 
     private suspend fun noteMutation(source: String) {
-        runCatching { RuntimeGraph.from(appContext).remoteAgentRepository.noteLocalMutation(source) }
+        runCatching { RuntimeDependencies.get().remoteAgentRepository.noteLocalMutation(source) }
             .onFailure { XLog.e("noteLocalMutation failed: %s", it.message ?: it.javaClass.simpleName) }
-        runCatching { RuntimeGraph.from(appContext).autoBackupTrigger.scheduleAutoBackup(source) }
+        runCatching { RuntimeDependencies.get().autoBackupTrigger.scheduleAutoBackup(source) }
             .onFailure { XLog.e("scheduleAutoBackup failed: %s", it.message ?: it.javaClass.simpleName) }
     }
 

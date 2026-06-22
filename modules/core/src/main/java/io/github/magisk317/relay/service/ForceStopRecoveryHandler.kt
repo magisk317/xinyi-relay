@@ -11,10 +11,21 @@ import io.github.magisk317.relay.domain.recovery.RootDbCatchupScheduler
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.relay.security.IpcTokenGate
 import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 object ForceStopRecoveryHandler {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     fun handle(context: Context, intent: Intent, tag: String) {
+        scope.launch {
+            handleInternal(context, intent, tag)
+        }
+    }
+
+    private suspend fun handleInternal(context: Context, intent: Intent, tag: String) {
         val expectedToken = loadExpectedToken(context)
         val receivedToken = intent.getStringExtra(ForceStopRecoveryContract.EXTRA_IPC_TOKEN)
         val tokenDecision = IpcTokenGate.evaluate(
@@ -61,15 +72,13 @@ object ForceStopRecoveryHandler {
         )
     }
 
-    private fun loadExpectedToken(context: Context): String {
-        val runtimeGraph = RuntimeGraph.from(context)
-        return runBlocking {
-            RuntimeSettingsCache.getString(
-                key = PrefConst.KEY_IPC_TOKEN,
-                defaultValue = "",
-            ) { key, defaultValue ->
-                runtimeGraph.preferenceDataSource.getString(key, defaultValue)
-            }
+    private suspend fun loadExpectedToken(context: Context): String {
+        val deps = RuntimeGraph.from(context)
+        return RuntimeSettingsCache.getString(
+            key = PrefConst.KEY_IPC_TOKEN,
+            defaultValue = "",
+        ) { key, defaultValue ->
+            deps.preferenceDataSource.getString(key, defaultValue)
         }
     }
 }

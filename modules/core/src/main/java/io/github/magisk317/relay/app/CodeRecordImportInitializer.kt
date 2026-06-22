@@ -14,7 +14,7 @@ class CodeRecordImportInitializer(
         String,
         suspend () -> Unit,
     ) -> Unit = AppInitExecution::runWhenUserUnlocked,
-    private val recordImporter: (Context) -> Boolean = CodeRecordRestoreManager::importToDatabase,
+    private val recordImporter: suspend (Context) -> Boolean = CodeRecordRestoreManager::importToDatabase,
 ) : AppInitializer {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
