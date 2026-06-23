@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod desktop_i18n;
+mod local_server;
 mod logger;
 mod remote_store;
 mod sqlite_store;
@@ -25,7 +26,7 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::{
     atomic::{AtomicU64, Ordering},
-    Mutex,
+    Arc, Mutex,
 };
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager, State, WindowEvent};
@@ -462,6 +463,8 @@ struct DesktopAppState {
     monitor_generation: AtomicU64,
     run_mode: Mutex<RunMode>,
     local_store: Mutex<Option<SqliteStore>>,
+    last_auto_sync: Mutex<Option<std::time::Instant>>,
+    local_server_addr: Mutex<Option<std::net::SocketAddr>>,
 }
 
 #[tauri::command]
@@ -1253,17 +1256,36 @@ async fn desktop_put_config_snapshot(
     }
     let (profile, session) = ensure_active_session_if_needed(&app, &state).await?;
     let client = build_client(&profile)?;
-    let response: ConfigSnapshotState = send_json_request(
-        &client,
-        Method::PUT,
-        &format!("{}/api/v1/config/snapshot", profile.base_url),
-        Some(&session.access_token),
-        Some(json!(ConfigSnapshotPutBody {
+    let url = format!("{}/api/v1/config/snapshot", profile.base_url);
+    let resp = client
+        .put(&url)
+        .bearer_auth(&session.access_token)
+        .json(&json!(ConfigSnapshotPutBody {
             base_revision,
             snapshot,
-        })),
-    )
-    .await?;
+        }))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    let status = resp.status();
+    let text = resp.text().await.map_err(|e| e.to_string())?;
+    if status == reqwest::StatusCode::CONFLICT {
+        // 409: return the latest snapshot in a structured error so the frontend
+        // can reload the editor with the cloud version.
+        let latest: ConfigSnapshotState =
+            serde_json::from_str(&text).map_err(|e| format!("409 but cannot parse latest snapshot: {e}"))?;
+        let conflict_payload = json!({
+            "__config_conflict__": true,
+            "message": "Cloud config changed on another client. Reloaded the latest revision.",
+            "latest": latest,
+        });
+        return Err(conflict_payload.to_string());
+    }
+    if !status.is_success() {
+        return Err(extract_error_message(status, &text));
+    }
+    let response: ConfigSnapshotState =
+        serde_json::from_str(&text).map_err(|e| e.to_string())?;
     update_monitor_snapshot(&state, |monitor| {
         monitor.config_revision = Some(response.revision);
     })?;
@@ -1441,6 +1463,54 @@ async fn desktop_export_diagnostics(
         path: file_path.to_string_lossy().into_owned(),
         created_at,
     })
+}
+
+#[tauri::command]
+fn desktop_get_local_server_addr(state: State<'_, DesktopAppState>) -> Result<Option<String>, String> {
+    let addr = state
+        .local_server_addr
+        .lock()
+        .map_err(|_| "local_server_addr poisoned".to_string())?;
+    Ok(addr.map(|a| a.to_string()))
+}
+
+#[tauri::command]
+async fn desktop_export_database(app: AppHandle, state: State<'_, DesktopAppState>) -> Result<String, String> {
+    let local_guard = state.local_store.lock().map_err(|_| "local_store poisoned".to_string())?;
+    let _store = local_guard.as_ref().ok_or("Local store not initialized. Switch to Local or Hybrid mode first.")?;
+    let app_dir = app.path().app_data_dir().map_err(|err| err.to_string())?;
+    let db_path = app_dir.join("local-data.db");
+    if !db_path.exists() {
+        return Err("Database file not found".to_string());
+    }
+    let downloads = app.path().download_dir().unwrap_or_else(|_| app_dir.clone());
+    let timestamp = Utc::now().format("%Y%m%d_%H%M%S");
+    let dest = downloads.join(format!("xinyi-relay-backup-{}.db", timestamp));
+    fs::copy(&db_path, &dest).map_err(|err| err.to_string())?;
+    Ok(dest.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
+async fn desktop_import_database(app: AppHandle, state: State<'_, DesktopAppState>, source_path: String) -> Result<String, String> {
+    let source = std::path::Path::new(&source_path);
+    if !source.exists() {
+        return Err(format!("Source file not found: {}", source_path));
+    }
+    let app_dir = app.path().app_data_dir().map_err(|err| err.to_string())?;
+    let db_path = app_dir.join("local-data.db");
+    // Close existing connection before overwriting
+    {
+        let mut local_guard = state.local_store.lock().map_err(|_| "local_store poisoned".to_string())?;
+        *local_guard = None;
+    }
+    fs::copy(source, &db_path).map_err(|err| err.to_string())?;
+    // Re-open the imported database
+    let store = SqliteStore::open(&db_path).map_err(|err| err.to_string())?;
+    {
+        let mut local_guard = state.local_store.lock().map_err(|_| "local_store poisoned".to_string())?;
+        *local_guard = Some(store);
+    }
+    Ok(db_path.to_string_lossy().into_owned())
 }
 
 #[tauri::command]
@@ -2213,6 +2283,43 @@ async fn monitor_tick(app: &AppHandle, state: &DesktopAppState) -> Result<(), St
                 .map_err(|_| "monitor state poisoned".to_string())?
                 .clone();
             let (_profile, session) = ensure_active_session_if_needed(app, state).await?;
+
+            // Auto-sync in Hybrid mode every 5 minutes
+            if mode == RunMode::Hybrid {
+                let should_sync = {
+                    let mut last = state.last_auto_sync.lock().map_err(|_| "last_auto_sync poisoned".to_string())?;
+                    match *last {
+                        Some(t) if t.elapsed().as_secs() < 300 => false,
+                        _ => { *last = Some(std::time::Instant::now()); true }
+                    }
+                };
+                if should_sync {
+                    log_info!("monitor_tick: auto-sync pull triggered");
+                    let sync_result = {
+                        let local_guard = state.local_store.lock().map_err(|_| "local_store poisoned".to_string())?;
+                        if let Some(local_store) = local_guard.as_ref() {
+                            let mut remote = RemoteStore::new(&profile.base_url, profile.allow_self_signed)
+                                .map_err(|e| e.to_string())?;
+                            remote.set_access_token(Some(session.access_token.clone()));
+                            Some(sync::sync_pull(local_store as &dyn Store, &remote))
+                        } else {
+                            None
+                        }
+                    };
+                    match sync_result {
+                        Some(Ok(_)) => {
+                            log_info!("monitor_tick: auto-sync pull completed");
+                            emit_realtime_event(app, realtime_event("sync.completed", None));
+                        }
+                        Some(Err(e)) => {
+                            log_info!("monitor_tick: auto-sync pull failed: {}", e);
+                        }
+                        None => {
+                            log_info!("monitor_tick: auto-sync skipped (local store not initialized)");
+                        }
+                    }
+                }
+            }
             let devices: DevicesResponse = send_json_request(
                 &client,
                 Method::GET,
@@ -2409,6 +2516,8 @@ fn main() {
                 monitor_generation: AtomicU64::new(0),
                 run_mode: Mutex::new(initial_run_mode.clone()),
                 local_store: Mutex::new(None),
+                last_auto_sync: Mutex::new(None),
+                local_server_addr: Mutex::new(None),
             });
 
             // Init local store at startup if persisted mode is Local or Hybrid
@@ -2421,6 +2530,26 @@ fn main() {
                         let state = app.state::<DesktopAppState>();
                         if let Ok(mut ls) = state.local_store.lock() {
                             *ls = Some(store);
+                        }
+                        // Start local HTTP server for device connections
+                        let store_for_server: Arc<Mutex<dyn Store + Send>> = {
+                            // Create a second connection for the HTTP server
+                            match SqliteStore::open(&db_path) {
+                                Ok(server_store) => Arc::new(Mutex::new(server_store)),
+                                Err(e) => {
+                                    log_error!("Failed to open store for local server: {}", e);
+                                    return Ok(());
+                                }
+                            }
+                        };
+                        match local_server::start_local_server(store_for_server).await {
+                            Ok(addr) => {
+                                log_info!("Local HTTP server started on {}", addr);
+                                if let Ok(mut sa) = state.local_server_addr.lock() {
+                                    *sa = Some(addr);
+                                }
+                            }
+                            Err(e) => log_error!("Failed to start local server: {}", e),
                         }
                     }
                     Err(e) => {
@@ -2454,6 +2583,9 @@ fn main() {
             desktop_fetch_records,
             desktop_fetch_record,
             desktop_export_diagnostics,
+            desktop_get_local_server_addr,
+            desktop_export_database,
+            desktop_import_database,
             desktop_update_notifications,
             desktop_send_test_notification,
             desktop_get_run_mode,

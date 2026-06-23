@@ -4,11 +4,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import io.github.magisk317.relay.bootstrap.RuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.prefs.PrefsReader
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
-import kotlinx.coroutines.runBlocking
 
 data class ForwardBroadcastAck(
     val resultCode: Int,
@@ -36,19 +35,17 @@ object ForwardBroadcastDispatcher {
         dispatchIntent(context, intent, orderedAck)
     }
 
-    fun dispatchFromHost(
+    suspend fun dispatchFromHost(
         context: Context,
         payload: ForwardBroadcastPayload,
         orderedAck: ((ForwardBroadcastAck) -> Unit)? = null,
     ) {
-        val runtimeGraph = RuntimeGraph.from(context)
-        val token = runBlocking {
-            RuntimeSettingsCache.getString(
-                key = PrefConst.KEY_IPC_TOKEN,
-                defaultValue = "",
-            ) { key, defaultValue ->
-                runtimeGraph.preferenceDataSource.getString(key, defaultValue)
-            }
+        val deps = RuntimeDependencies.get()
+        val token = RuntimeSettingsCache.getString(
+            key = PrefConst.KEY_IPC_TOKEN,
+            defaultValue = "",
+        ) { key, defaultValue ->
+            deps.preferenceDataSource.getString(key, defaultValue)
         }
         dispatch(
             context = context,

@@ -6,7 +6,6 @@ import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.smscode.runtime.common.utils.JsonUtils
 import io.github.magisk317.smscode.runtime.common.utils.StorageUtils
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.SerializationException
 import java.io.File
 import java.io.FileInputStream
@@ -46,7 +45,7 @@ object RuntimeCodeRecordFileStore {
         }
     }
 
-    fun importRecordFiles(
+    suspend fun importRecordFiles(
         recordFiles: Array<File>?,
         insertRecords: suspend (List<SmsMsg>) -> Unit,
         logSuccess: (String) -> Unit = XLog::d,
@@ -64,9 +63,7 @@ object RuntimeCodeRecordFileStore {
         }
 
         if (smsMsgList.isNotEmpty()) {
-            runBlocking {
-                insertRecords(smsMsgList)
-            }
+            insertRecords(smsMsgList)
             importedFiles.forEach { it.delete() }
             logSuccess("Import code records to database succeed")
         }

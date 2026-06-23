@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ProfileManagerPanel } from '../components/ProfileManagerPanel'
+import { desktopApi } from '../api/desktopApi'
 import { useDesktopI18n } from '../i18n'
 import { useDesktop } from '../state/DesktopContext'
 import { DesktopSelect, Panel } from '../ui'
@@ -22,6 +23,8 @@ export function AdvancedPage() {
   } = useDesktop()
   const [syncBusy, setSyncBusy] = useState(false)
   const [lastSyncReport, setLastSyncReport] = useState<SyncReport | null>(null)
+  const [dbExportPath, setDbExportPath] = useState('')
+  const [dbError, setDbError] = useState('')
 
   const notificationPrefs = useMemo(() => bootstrap?.notifications, [bootstrap?.notifications])
 
@@ -95,16 +98,38 @@ export function AdvancedPage() {
             </div>
           ) : null}
           {lastSyncReport ? (
-            <div className="callout">
-              <div className="callout-title">{t('advanced.syncResult')}</div>
-              <div>{t('advanced.syncConfig')}: {JSON.stringify(lastSyncReport.config)}</div>
-              <div className="callout-meta">
-                {t('advanced.syncDevices')}: {lastSyncReport.devicesSynced} | {t('advanced.syncRecords')}: {lastSyncReport.recordsSynced}
-              </div>
-            </div>
+            <SyncResultCard report={lastSyncReport} t={t} />
           ) : null}
         </div>
       </Panel>
+
+      {runMode !== 'remote' ? (
+        <Panel title={t('advanced.databaseTitle') ?? 'Database'}>
+          <div className="stack">
+            <div className="button-row">
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={() => {
+                  setDbError('')
+                  void desktopApi.exportDatabase()
+                    .then(setDbExportPath)
+                    .catch((err) => setDbError(err instanceof Error ? err.message : String(err)))
+                }}
+              >
+                {t('advanced.exportDatabase') ?? 'Export database'}
+              </button>
+            </div>
+            {dbExportPath ? (
+              <div className="callout callout--success">
+                <div className="callout-title">{t('advanced.exportSuccess') ?? 'Export complete'}</div>
+                <div className="callout-meta">{dbExportPath}</div>
+              </div>
+            ) : null}
+            {dbError ? <div className="banner banner--danger">{dbError}</div> : null}
+          </div>
+        </Panel>
+      ) : null}
 
       <Panel title={t('advanced.nativeBehaviorTitle')}>
         <div className="stack">
@@ -177,6 +202,45 @@ export function AdvancedPage() {
           ) : null}
         </div>
       </Panel>
+    </div>
+  )
+}
+
+function SyncResultCard({ report, t }: { report: SyncReport; t: (key: string) => string }) {
+  const config = report.config
+  let tone: 'success' | 'warning' | 'danger' | 'info' = 'info'
+  let title = ''
+  let detail = ''
+
+  if (config.UpToDate) {
+    tone = 'success'
+    title = t('advanced.syncUpToDate') ?? 'Up to date'
+  } else if (config.Pulled) {
+    tone = 'success'
+    title = t('advanced.syncPulled') ?? 'Pulled from remote'
+    detail = `revision ${config.Pulled.newRevision}`
+  } else if (config.Pushed) {
+    tone = 'success'
+    title = t('advanced.syncPushed') ?? 'Pushed to remote'
+    detail = `revision ${config.Pushed.newRevision}`
+  } else if (config.Conflict) {
+    tone = 'danger'
+    title = t('advanced.syncConflict') ?? 'Conflict'
+    detail = `local r${config.Conflict.localRevision} vs remote r${config.Conflict.remoteRevision}`
+  }
+
+  return (
+    <div className={`callout callout--${tone}`}>
+      <div className="callout-title">{t('advanced.syncResult')}: {title}</div>
+      {detail ? <div>{detail}</div> : null}
+      <div className="callout-meta">
+        {t('advanced.syncDevices')}: {report.devicesSynced} | {t('advanced.syncRecords')}: {report.recordsSynced}
+      </div>
+      {config.Conflict ? (
+        <div className="callout-meta" style={{ marginTop: '0.5rem', opacity: 0.7 }}>
+          {t('advanced.syncConflictHint') ?? 'Use Pull to accept remote, or Push to overwrite remote.'}
+        </div>
+      ) : null}
     </div>
   )
 }

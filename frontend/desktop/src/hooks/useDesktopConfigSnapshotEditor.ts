@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { desktopApi } from '../api/desktopApi'
 import {
+  latestConfigSnapshotFromError,
   loadNormalizedConfigSnapshot,
   normalizeConfigSnapshotError,
   saveNormalizedConfigSnapshot
@@ -43,7 +44,14 @@ export function useDesktopConfigSnapshotEditor() {
       setError('')
       return next.config
     } catch (nextError) {
-      setError(normalizeConfigSnapshotError(nextError, 'Failed to save desktop cloud snapshot.'))
+      const latest = latestConfigSnapshotFromError(nextError)
+      if (latest) {
+        setConfig(latest.config)
+        setRoot(latest.root)
+        setError(normalizeConfigSnapshotError(nextError, 'Cloud config changed on another client.'))
+      } else {
+        setError(normalizeConfigSnapshotError(nextError, 'Failed to save desktop cloud snapshot.'))
+      }
       throw nextError
     } finally {
       setSaving(false)

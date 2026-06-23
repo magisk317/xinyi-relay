@@ -8,7 +8,7 @@ import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.common.utils.CallSessionTracker
 import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
 import io.github.magisk317.relay.android.common.utils.XLog
-import io.github.magisk317.relay.bootstrap.RuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.relay.android.platform.metadata.SourceMetadataResolver
@@ -16,24 +16,24 @@ import io.github.magisk317.relay.android.sms.SmsCodeUtils
 import io.github.magisk317.smscode.domain.utils.RecentEventDeduplicator
 import io.github.magisk317.smscode.domain.utils.SmsForwardDedupKeyFactory
 import io.github.magisk317.smscode.domain.utils.SmsForwardDedupSpec
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
 class ForwardReceiver : BroadcastReceiver() {
     @Suppress("CyclomaticComplexMethod")
     override fun onReceive(context: Context, intent: Intent) {
-        val runtimeGraph = RuntimeGraph.from(context)
-        val eventPipeline = runtimeGraph.eventPipeline
         val ordered = isOrderedBroadcast
         val pendingResult = goAsync()
         val initialPayload = ForwardBroadcastPayload.fromIntent(intent)
         val eventId = initialPayload.eventId
         val traceId = buildTraceId(intent, eventId)
-        val task = Runnable {
+
+        RECEIVER_SCOPE.launch {
             var resultMarked = false
             var broadcastFinished = false
             fun markResult(code: Int, reason: String) {
@@ -58,6 +58,8 @@ class ForwardReceiver : BroadcastReceiver() {
                     traceId,
                     receiveStartMessage,
                 )
+                val deps = RuntimeDependencies.get()
+                val eventPipeline = deps.eventPipeline
                 // 1. Action validation
                 if (intent.action != PrefConst.ACTION_FORWARD_SMS) {
                     XLog.e("Rejecting broadcast with invalid action: %s", intent.action)
@@ -80,14 +82,11 @@ class ForwardReceiver : BroadcastReceiver() {
                 val rawSlot = rawPayload.simSlot
 
                 // 2. Verifying IPC Token: prevent third-party apps from spoofing broadcasts.
-                // We retrieve local token from DataStore (which is synced to xposed_prefs).
-                val expectedToken = runBlocking {
-                    RuntimeSettingsCache.getString(
-                        key = PrefConst.KEY_IPC_TOKEN,
-                        defaultValue = "",
-                    ) { key, defaultValue ->
-                        runtimeGraph.preferenceDataSource.getString(key, defaultValue)
-                    }
+                val expectedToken = RuntimeSettingsCache.getString(
+                    key = PrefConst.KEY_IPC_TOKEN,
+                    defaultValue = "",
+                ) { key, defaultValue ->
+                    deps.preferenceDataSource.getString(key, defaultValue)
                 }
                 val tokenMatched = expectedToken.isNotEmpty() && receivedToken == expectedToken
                 val allowSystemBypass = ForwardReceiverPolicy.shouldAllowCompatTokenBypass(
@@ -154,9 +153,7 @@ class ForwardReceiver : BroadcastReceiver() {
                         markResult(RESULT_REJECT_ACTION, "blacklist_hit_invalid")
                         return@runCatching
                     }
-                    val insertedId = runBlocking {
-                        RuntimeRecordFacade(context).insertSmsBlacklistHit(hit)
-                    }
+                    val insertedId = RuntimeRecordFacade(context).insertSmsBlacklistHit(hit)
                     ForwardFlowLog.i(
                         traceId,
                         "Blacklist hit recorded event=${hit.eventId} source=${hit.source} " +
@@ -216,15 +213,13 @@ class ForwardReceiver : BroadcastReceiver() {
                     val smsCode = payload.smsCode
                     if (!smsCode.isNullOrBlank()) {
                         val codeDedupWindowSec = runCatching {
-                            runBlocking {
-                                runtimeGraph.preferenceDataSource.getString(
-                                    PrefConst.KEY_SMS_FORWARD_DEDUP_WINDOW_SEC,
-                                    PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_DEFAULT.toString(),
-                                ).toIntOrNull()?.coerceIn(
-                                    PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_MIN,
-                                    PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_MAX,
-                                ) ?: PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_DEFAULT
-                            }
+                            deps.preferenceDataSource.getString(
+                                PrefConst.KEY_SMS_FORWARD_DEDUP_WINDOW_SEC,
+                                PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_DEFAULT.toString(),
+                            ).toIntOrNull()?.coerceIn(
+                                PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_MIN,
+                                PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_MAX,
+                            ) ?: PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_DEFAULT
                         }.getOrDefault(PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_DEFAULT)
                         val codeDedupKey = "code:${smsCode.trim()}"
                         val codeDedup = getCodeDedup(codeDedupWindowSec * 1000L)
@@ -271,7 +266,7 @@ class ForwardReceiver : BroadcastReceiver() {
                 }
                 if (
                     msgTypeStr == ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY &&
-                    !shouldForwardAppNotify(runtimeGraph, normalizedPackageName, traceId, forwardSource)
+                    !shouldForwardAppNotify(deps, normalizedPackageName, traceId, forwardSource)
                 ) {
                     markResult(RESULT_REJECT_APP_GATE, "app_gate_drop")
                     return@runCatching
@@ -469,8 +464,6 @@ class ForwardReceiver : BroadcastReceiver() {
                     forwardSource == ForwardBroadcastContract.SOURCE_SMS_HOOK &&
                     relayEvent.messageType == io.github.magisk317.relay.contract.constant.MessageType.SMS_CODE
                 ) {
-                    // Mark the sms_hook code path as soon as it enters the runtime pipeline so
-                    // reclassified NMS copies arriving milliseconds later can be suppressed.
                     ForwardReceiverPolicy.markSuccessfulSmsHookDispatch(
                         smsCode = payload.smsCode,
                         company = normalizedCompany,
@@ -479,26 +472,19 @@ class ForwardReceiver : BroadcastReceiver() {
                         recentSuccessfulSmsHook = recentSuccessfulSmsHook,
                     )
                 }
-                runCatching {
-                    runtimeGraph.remoteAgentRepository.scheduleMessageTriggeredSync(
-                        "${relayEvent.messageType.name.lowercase()}_ingress",
-                    )
-                }
+                // Sync trigger is handled by EventPipeline.finally via messageSyncTrigger callback.
+                // No duplicate scheduleMessageTriggeredSync call needed here.
 
                 if (!resultMarked) {
-                    // Foreground broadcasts have a tight timeout budget; acknowledge after the
-                    // cheap validation path and keep the expensive dispatch work out of it.
                     markResult(RESULT_OK, "accepted_async")
                     ForwardFlowLog.i(traceId, "ForwardReceiver broadcast acknowledged result=accepted_async")
                     finishBroadcast()
                 }
 
-                val pipelineResult = runBlocking {
-                    eventPipeline.process(
-                        event = relayEvent,
-                        traceId = traceId,
-                    )
-                }
+                val pipelineResult = eventPipeline.process(
+                    event = relayEvent,
+                    traceId = traceId,
+                )
                 if (pipelineResult.dispatchError != null) {
                     ForwardFlowLog.w(
                         traceId,
@@ -554,23 +540,6 @@ class ForwardReceiver : BroadcastReceiver() {
             ForwardFlowLog.d(traceId, "ForwardReceiver finished")
             finishBroadcast()
         }
-        runCatching {
-            FORWARD_EXECUTOR.execute(task)
-        }.onFailure { error ->
-            XLog.e("ForwardReceiver failed to schedule task", error)
-            ForwardFlowLog.e(
-                traceId,
-                buildString {
-                    append("ForwardReceiver schedule failed action=")
-                    append(intent.action)
-                    append(" event=")
-                    append(eventId.ifBlank { "<none>" })
-                },
-                error,
-            )
-            setOrderedResult(pendingResult, ordered, RESULT_DISPATCH_FAILED, "executor_rejected", eventId)
-            pendingResult.finish()
-        }
     }
 
     companion object {
@@ -581,18 +550,14 @@ class ForwardReceiver : BroadcastReceiver() {
         private const val RESULT_REJECT_APP_GATE = -103
         private const val RESULT_DROP_DUPLICATE = -104
         private const val RESULT_DISPATCH_FAILED = -105
-        private const val FORWARD_WORKER_COUNT = 2
-        private val workerIndex = AtomicInteger(1)
-        private val FORWARD_EXECUTOR: ExecutorService = Executors.newFixedThreadPool(FORWARD_WORKER_COUNT) { runnable ->
-            Thread(runnable, "ForwardReceiverWorker-${workerIndex.getAndIncrement()}")
-        }
+        private val RECEIVER_SCOPE = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         private val recentNotify = ConcurrentHashMap<String, Long>()
         private val recentForwardedSmsHook = ConcurrentHashMap<String, Long>()
         private val recentSmsForward = RecentEventDeduplicator(windowMs = SMS_FORWARD_DEDUP_WINDOW_MS)
         private val recentSuccessfulSmsHook = ConcurrentHashMap<String, Long>()
         private val nmsHookSeen = ConcurrentHashMap<String, Long>()
         private val recentCodeDedupRef = AtomicReference<RecentEventDeduplicator?>(null)
-        private val recentCodeDedupWindowMs = java.util.concurrent.atomic.AtomicLong(0L)
+        private val recentCodeDedupWindowMs = AtomicLong(0L)
 
         internal fun getCodeDedup(windowMs: Long): RecentEventDeduplicator {
             if (recentCodeDedupWindowMs.get() == windowMs) {
@@ -626,7 +591,7 @@ class ForwardReceiver : BroadcastReceiver() {
         return runCatching { getSentFromPackage() }.getOrNull()
     }
 
-    private fun normalizeNmsSmsPayload(
+    private suspend fun normalizeNmsSmsPayload(
         context: Context,
         payload: ForwardBroadcastPayload,
         traceId: String,
@@ -638,7 +603,7 @@ class ForwardReceiver : BroadcastReceiver() {
         val content = buildNmsNotificationContent(payload)
         if (content.isBlank()) return payload
         val parsedResult = runCatching {
-            runBlocking { SmsCodeUtils.parseSmsCodeResultIfExists(context, content) }
+            SmsCodeUtils.parseSmsCodeResultIfExists(context, content)
         }.getOrNull() ?: return payload
         val smsCode = parsedResult.code.trim()
         if (smsCode.isBlank()) return payload
@@ -680,24 +645,20 @@ class ForwardReceiver : BroadcastReceiver() {
         return packageName in TELEPHONY_NMS_PACKAGE_ALLOWLIST || packageName.contains("telephony")
     }
 
-    private fun shouldForwardAppNotify(
-        runtimeGraph: RuntimeGraph,
+    private suspend fun shouldForwardAppNotify(
+        deps: RuntimeDependencies,
         packageName: String?,
         traceId: String,
         forwardSource: String,
     ): Boolean {
-        val messageTypeEnabled = runBlocking {
-            runtimeGraph.preferenceDataSource.getBoolean(
-                PrefConst.KEY_MSG_TYPE_APP_NOTIFY_ENABLED,
-                true,
-            )
-        }
-        val forwardTypeEnabled = runBlocking {
-            runtimeGraph.preferenceDataSource.getBoolean(
-                PrefConst.KEY_FORWARD_APP_NOTIFY_ENABLED,
-                true,
-            )
-        }
+        val messageTypeEnabled = deps.preferenceDataSource.getBoolean(
+            PrefConst.KEY_MSG_TYPE_APP_NOTIFY_ENABLED,
+            true,
+        )
+        val forwardTypeEnabled = deps.preferenceDataSource.getBoolean(
+            PrefConst.KEY_FORWARD_APP_NOTIFY_ENABLED,
+            true,
+        )
         val pkg = packageName.orEmpty().trim()
         if (pkg.isEmpty()) {
             ForwardFlowLog.w(
@@ -715,7 +676,7 @@ class ForwardReceiver : BroadcastReceiver() {
             return false
         }
         val appInfo = runCatching {
-            runBlocking { runtimeGraph.database.appInfoDao().getByPackageName(pkg) }
+            deps.database.appInfoDao().getByPackageName(pkg)
         }.getOrElse { error ->
             ForwardFlowLog.e(
                 traceId,

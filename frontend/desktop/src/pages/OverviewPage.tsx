@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { desktopApi } from '../api/desktopApi'
 import { useDesktopRealtimeRefresh } from '../hooks/useDesktopRealtimeRefresh'
 import { useDesktopI18n } from '../i18n'
@@ -24,15 +23,9 @@ type OverviewSnapshot = {
 }
 
 export function OverviewPage() {
-  const navigate = useNavigate()
   const { t } = useDesktopI18n()
   const { bootstrap, activeProfile, connection, lastRealtimeEvent, session, runMode } = useDesktop()
 
-  useEffect(() => {
-    if (runMode === 'local') {
-      navigate('/devices', { replace: true })
-    }
-  }, [navigate, runMode])
   const [snapshot, setSnapshot] = useState<OverviewSnapshot>({
     systemInfo: null,
     devices: [],
@@ -43,12 +36,11 @@ export function OverviewPage() {
   const [error, setError] = useState('')
 
   const load = useCallback(async () => {
-    if (runMode === 'local') return
     try {
       setLoading(true)
       setError('')
       const [systemInfo, devices, records, config] = await Promise.all([
-        desktopApi.getSystemInfo(),
+        runMode === 'local' ? Promise.resolve(null) : desktopApi.getSystemInfo(),
         desktopApi.getDevices(),
         desktopApi.getRecords(12),
         desktopApi.getConfigSnapshot()
@@ -101,10 +93,10 @@ export function OverviewPage() {
       >
         {error ? <div className="banner banner--danger">{t(error)}</div> : null}
         <div className="metrics-grid metrics-grid--overview">
-          <Metric label={t('overview.platform')} value={bootstrap?.platform ?? 'desktop'} />
-          <Metric label={t('overview.session')} value={session.authenticated ? t('common.authenticated') : t('common.signedOut')} />
-          <Metric label={t('overview.backend')} value={activeProfile?.name ?? t('common.noActiveBackend')} />
-          <Metric label={t('overview.connection')} value={translateConnectionState(connection.state, t)} />
+          <Metric label={t('overview.platform')} value={runMode === 'local' ? 'Local SQLite' : (bootstrap?.platform ?? 'desktop')} />
+          <Metric label={t('overview.session')} value={runMode === 'local' ? t('common.localMode') : (session.authenticated ? t('common.authenticated') : t('common.signedOut'))} />
+          <Metric label={t('overview.backend')} value={runMode === 'local' ? 'local://sqlite' : (activeProfile?.name ?? t('common.noActiveBackend'))} />
+          <Metric label={t('overview.connection')} value={runMode === 'local' ? t('common.localMode') : translateConnectionState(connection.state, t)} />
           <Metric label={t('analytics.cloudRevision')} value={snapshot.config?.revision ?? t('common.none')} />
           <Metric label={t('app.route.devices')} value={snapshot.devices.length} />
           <Metric label={t('app.route.records')} value={snapshot.records.length} />
@@ -113,12 +105,23 @@ export function OverviewPage() {
       </Panel>
 
       <div className="split-grid">
-        <Panel title={t('overview.backendServiceTitle')}>
+        <Panel title={runMode === 'local' ? t('overview.localStorageTitle') : t('overview.backendServiceTitle')}>
           <div className="metrics-grid metrics-grid--balanced">
-            <Metric label={t('overview.service')} value={snapshot.systemInfo?.service ?? (loading ? t('common.loading') : t('common.unavailable'))} />
-            <Metric label={t('overview.localUrl')} value={snapshot.systemInfo?.localBaseUrl ?? activeProfile?.baseUrl ?? t('common.none')} compact />
-            <Metric label={t('overview.users')} value={snapshot.systemInfo?.userCount ?? t('common.none')} />
-            <Metric label={t('overview.database')} value={snapshot.systemInfo?.databaseReady ? t('common.ready') : t('common.unknown')} />
+            {runMode === 'local' ? (
+              <>
+                <Metric label={t('overview.service')} value="SQLite" />
+                <Metric label={t('overview.localUrl')} value="local-data.db" compact />
+                <Metric label={t('app.route.devices')} value={snapshot.devices.length} />
+                <Metric label={t('app.route.records')} value={snapshot.records.length} />
+              </>
+            ) : (
+              <>
+                <Metric label={t('overview.service')} value={snapshot.systemInfo?.service ?? (loading ? t('common.loading') : t('common.unavailable'))} />
+                <Metric label={t('overview.localUrl')} value={snapshot.systemInfo?.localBaseUrl ?? activeProfile?.baseUrl ?? t('common.none')} compact />
+                <Metric label={t('overview.users')} value={snapshot.systemInfo?.userCount ?? t('common.none')} />
+                <Metric label={t('overview.database')} value={snapshot.systemInfo?.databaseReady ? t('common.ready') : t('common.unknown')} />
+              </>
+            )}
           </div>
         </Panel>
 

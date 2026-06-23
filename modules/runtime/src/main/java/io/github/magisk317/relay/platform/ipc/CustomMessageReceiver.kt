@@ -4,14 +4,14 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import io.github.magisk317.relay.bootstrap.RuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
-import kotlinx.coroutines.runBlocking
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class CustomMessageReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -25,7 +25,8 @@ class CustomMessageReceiver : BroadcastReceiver() {
             title = payload.title,
             packageName = payload.packageName,
         )
-        val task = Runnable {
+
+        RECEIVER_SCOPE.launch {
             fun finish(code: Int, reason: String) {
                 if (ordered) {
                     runCatching {
@@ -49,13 +50,11 @@ class CustomMessageReceiver : BroadcastReceiver() {
                     return@runCatching
                 }
 
-                val expectedToken = runBlocking {
-                    RuntimeSettingsCache.getString(
-                        key = PrefConst.KEY_IPC_TOKEN,
-                        defaultValue = "",
-                    ) { key, defaultValue ->
-                        RuntimeGraph.from(context).preferenceDataSource.getString(key, defaultValue)
-                    }
+                val expectedToken = RuntimeSettingsCache.getString(
+                    key = PrefConst.KEY_IPC_TOKEN,
+                    defaultValue = "",
+                ) { key, defaultValue ->
+                    RuntimeDependencies.get().preferenceDataSource.getString(key, defaultValue)
                 }
                 val receivedToken = intent.getStringExtra(CustomMessageBroadcastContract.EXTRA_IPC_TOKEN)
                 if (!CustomMessageReceiverPolicy.isTokenAccepted(receivedToken, expectedToken)) {
@@ -63,11 +62,9 @@ class CustomMessageReceiver : BroadcastReceiver() {
                     return@runCatching
                 }
 
-                val runtimeGraph = RuntimeGraph.from(context)
+                val deps = RuntimeDependencies.get()
                 val event = payload.toRelayEvent(sentFromPackage = resolveSentFromPackageCompat())
-                val result = runBlocking {
-                    runtimeGraph.eventPipeline.process(event = event, traceId = traceId)
-                }
+                val result = deps.eventPipeline.process(event = event, traceId = traceId)
                 if (result.dispatchError != null) {
                     finish(RESULT_DISPATCH_FAILED, "dispatch_error")
                     return@runCatching
@@ -77,19 +74,6 @@ class CustomMessageReceiver : BroadcastReceiver() {
                 XLog.e("CustomMessageReceiver failed", error)
                 finish(RESULT_DISPATCH_FAILED, "receiver_error")
             }
-        }
-
-        runCatching {
-            CUSTOM_MESSAGE_EXECUTOR.execute(task)
-        }.onFailure { error ->
-            XLog.e("CustomMessageReceiver failed to schedule task", error)
-            if (ordered) {
-                runCatching {
-                    pendingResult.setResultCode(RESULT_DISPATCH_FAILED)
-                    pendingResult.setResultData("reason=executor_rejected")
-                }
-            }
-            pendingResult.finish()
         }
     }
 
@@ -104,9 +88,6 @@ class CustomMessageReceiver : BroadcastReceiver() {
         private const val RESULT_REJECT_TOKEN = -202
         private const val RESULT_REJECT_PAYLOAD = -203
         private const val RESULT_DISPATCH_FAILED = -204
-        private val workerIndex = AtomicInteger(1)
-        private val CUSTOM_MESSAGE_EXECUTOR: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
-            Thread(runnable, "CustomMessageReceiver-${workerIndex.getAndIncrement()}")
-        }
+        private val RECEIVER_SCOPE = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     }
 }

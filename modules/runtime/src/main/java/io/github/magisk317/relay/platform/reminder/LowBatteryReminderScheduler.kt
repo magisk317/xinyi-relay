@@ -7,9 +7,8 @@ import android.content.Intent
 import android.os.Build
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.common.utils.XLog
-import io.github.magisk317.relay.bootstrap.RuntimeGraph
+import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
-import kotlinx.coroutines.runBlocking
 
 object LowBatteryReminderScheduler {
 
@@ -17,12 +16,10 @@ object LowBatteryReminderScheduler {
     private const val DEFAULT_INTERVAL_MIN = 15L
     private const val IMMEDIATE_DELAY_MS = 5_000L
 
-    fun syncFromPrefs(context: Context, reason: String) {
-        val settings = runBlocking {
-            RuntimeSettingsCache.getSpecialAlertSettings(
-                RuntimeGraph.from(context).settingsRepository,
-            )
-        }
+    suspend fun syncFromPrefs(context: Context, reason: String) {
+        val settings = RuntimeSettingsCache.getSpecialAlertSettings(
+            RuntimeDependencies.get().settingsRepository,
+        )
         if (settings.lowBatteryReminderEnabled || settings.fullBatteryReminderEnabled) {
             scheduleNext(context, reason = "sync:$reason", immediate = false)
         } else {

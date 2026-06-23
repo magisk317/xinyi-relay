@@ -933,26 +933,42 @@ abstract class AppDatabase : RoomDatabase() {
             )
         }
 
+        /**
+         * Execute a migration SQL statement.
+         *
+         * [isIdempotent] = true for "IF NOT EXISTS" / "ADD COLUMN IF NOT EXISTS" style
+         * statements where failure means "already exists" and can be safely skipped.
+         * For non-idempotent statements (CREATE TABLE, INSERT ... SELECT), failure
+         * is re-thrown so Room can trigger fallbackToDestructiveMigration.
+         */
         private fun execSqlSafely(
             db: androidx.sqlite.db.SupportSQLiteDatabase,
             sql: String,
             migration: String,
+            isIdempotent: Boolean = false,
         ) {
             try {
                 db.execSQL(sql)
             } catch (e: SQLiteException) {
-                XLog.w("Room migration %s skipped SQL: %s (%s)", migration, sql, e.message ?: "unknown")
+                if (isIdempotent) {
+                    XLog.w("Room migration %s skipped idempotent SQL: %s (%s)", migration, sql, e.message ?: "unknown")
+                } else {
+                    XLog.e("Room migration %s failed on SQL: %s", e, migration, sql)
+                    throw e
+                }
             }
         }
 
         fun getInstance(context: Context): AppDatabase = instance ?: synchronized(this) {
             val dbContext = context.applicationContext ?: context
             migratePreviousDatabaseFiles(dbContext)
+            recoverCorruptedDatabase(dbContext)
             instance ?: Room.databaseBuilder(
                 dbContext,
                 AppDatabase::class.java,
                 DATABASE_NAME,
             )
+                .fallbackToDestructiveMigration()
                 .addMigrations(
                     MIGRATION_1_2,
                     MIGRATION_2_3,
@@ -988,6 +1004,32 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                 .enableMultiInstanceInvalidation()
                 .build().also { instance = it }
+        }
+
+        /**
+         * Check if the database file is corrupted (e.g., from a crash during write).
+         * If integrity check fails, delete the database so Room can recreate it fresh.
+         */
+        private fun recoverCorruptedDatabase(context: Context) {
+            val dbFile = context.getDatabasePath(DATABASE_NAME)
+            if (!dbFile.exists()) return
+            runCatching {
+                val conn = android.database.sqlite.SQLiteDatabase.openDatabase(
+                    dbFile.absolutePath, null,
+                    android.database.sqlite.SQLiteDatabase.OPEN_READONLY
+                )
+                val cursor = conn.rawQuery("PRAGMA integrity_check", null)
+                val ok = cursor.moveToFirst() && cursor.getString(0) == "ok"
+                cursor.close()
+                conn.close()
+                if (!ok) {
+                    XLog.e("Database integrity check failed, deleting corrupted database")
+                    context.deleteDatabase(DATABASE_NAME)
+                }
+            }.onFailure { e ->
+                XLog.e("Database integrity check threw, deleting corrupted database", e)
+                context.deleteDatabase(DATABASE_NAME)
+            }
         }
 
         private fun migratePreviousDatabaseFiles(context: Context) {

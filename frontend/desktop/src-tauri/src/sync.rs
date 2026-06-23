@@ -1,6 +1,29 @@
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use serde::{Deserialize, Serialize};
 
 use super::store::{Store, StoreError, StoreResult};
+
+/// Global sync lock to prevent concurrent sync operations.
+static SYNC_LOCK: AtomicBool = AtomicBool::new(false);
+
+struct SyncGuard;
+
+impl SyncGuard {
+    fn try_acquire() -> Option<Self> {
+        if SYNC_LOCK.compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed).is_ok() {
+            Some(SyncGuard)
+        } else {
+            None
+        }
+    }
+}
+
+impl Drop for SyncGuard {
+    fn drop(&mut self) {
+        SYNC_LOCK.store(false, Ordering::Release);
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -28,6 +51,8 @@ pub fn sync_pull(
     local: &dyn Store,
     remote: &dyn Store,
 ) -> StoreResult<SyncReport> {
+    let _guard = SyncGuard::try_acquire()
+        .ok_or_else(|| StoreError::Internal("Sync already in progress".to_string()))?;
     let remote_config = remote.get_config_snapshot()?;
     let local_config = local.get_config_snapshot()?;
 
@@ -96,6 +121,8 @@ pub fn sync_push(
     local: &dyn Store,
     remote: &dyn Store,
 ) -> StoreResult<SyncReport> {
+    let _guard = SyncGuard::try_acquire()
+        .ok_or_else(|| StoreError::Internal("Sync already in progress".to_string()))?;
     let local_config = local.get_config_snapshot()?;
     let remote_config = remote.get_config_snapshot()?;
 

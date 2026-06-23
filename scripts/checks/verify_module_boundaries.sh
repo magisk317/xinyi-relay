@@ -159,6 +159,14 @@ forbid_pattern "$RUNTIME_BUILD" 'project\(":relay:sender"\)' \
 forbid_pattern "$RUNTIME_SRC" '^\s*import\s+io\.github\.magisk317\.relay\.sender\.' \
   "runtime must use relay/engine:api SenderDispatcher services instead of importing relay/sender implementation packages"
 
+# Constraint: no legacy/forwarder directories in runtime (docs/ARCHITECTURE.md constraint #4)
+for dir in "$RUNTIME_SRC/main/java/io/github/magisk317/relay/legacy" \
+           "$RUNTIME_SRC/main/java/io/github/magisk317/relay/forwarder"; do
+  if [[ -d "$dir" ]]; then
+    violations+=("runtime must not contain legacy/forwarder directories: $dir")
+  fi
+done
+
 if [[ "${#violations[@]}" -ne 0 ]]; then
   printf 'Module boundary verification failed:\n' >&2
   printf ' - %s\n' "${violations[@]}" >&2

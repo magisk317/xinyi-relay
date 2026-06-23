@@ -374,6 +374,44 @@ object AppPreferencesDataStore {
         }
     }
 
+    /**
+     * Execute multiple writes atomically in a single DataStore transaction.
+     * All writes inside [block] are committed together; if any fails, all are rolled back.
+     */
+    suspend fun batchEdit(
+        context: Context,
+        block: suspend BatchEditScope.() -> Unit,
+    ) {
+        val scope = BatchEditScope()
+        scope.block()
+        getInstance(context).edit { prefs ->
+            for (op in scope.operations) {
+                when (op) {
+                    is BatchOp.SetBool -> prefs[booleanPreferencesKey(op.key)] = coerceBooleanValue(op.key, op.value)
+                    is BatchOp.SetStr -> prefs[stringPreferencesKey(op.key)] = op.value
+                    is BatchOp.SetInt -> prefs[intPreferencesKey(op.key)] = op.value
+                    is BatchOp.SetFlt -> prefs[floatPreferencesKey(op.key)] = op.value
+                }
+            }
+        }
+    }
+
+    class BatchEditScope {
+        internal val operations = mutableListOf<BatchOp>()
+
+        suspend fun setBoolean(key: String, value: Boolean) { operations.add(BatchOp.SetBool(key, value)) }
+        suspend fun setString(key: String, value: String) { operations.add(BatchOp.SetStr(key, value)) }
+        suspend fun setInt(key: String, value: Int) { operations.add(BatchOp.SetInt(key, value)) }
+        suspend fun setFloat(key: String, value: Float) { operations.add(BatchOp.SetFlt(key, value)) }
+    }
+
+    internal sealed interface BatchOp {
+        data class SetBool(val key: String, val value: Boolean) : BatchOp
+        data class SetStr(val key: String, val value: String) : BatchOp
+        data class SetInt(val key: String, val value: Int) : BatchOp
+        data class SetFlt(val key: String, val value: Float) : BatchOp
+    }
+
     @Suppress("TooGenericExceptionCaught")
     suspend fun syncToRemotePrefs(context: Context) {
         val prefs = getRemotePrefs() ?: run {
