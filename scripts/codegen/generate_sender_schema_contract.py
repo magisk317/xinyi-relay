@@ -130,7 +130,7 @@ def main() -> int:
     parser.add_argument(
         "--check",
         action="store_true",
-        help="fail if shared/contracts/senderSchemas.json is not up to date",
+        help="fail if frontend/shared/contracts/senderSchemas.json is not up to date",
     )
     args = parser.parse_args()
 

@@ -7,6 +7,22 @@ import kotlinx.coroutines.flow.Flow
 
 class PreferenceDataSourceImpl(private val context: Context) : PreferenceDataSource {
 
+    override suspend fun batchEdit(block: suspend PreferenceWriteScope.() -> Unit) {
+        AppPreferencesDataStore.batchEdit(context) {
+            val scope = PreferenceWriteScopeImpl(this)
+            scope.block()
+        }
+    }
+
+    private class PreferenceWriteScopeImpl(
+        private val delegate: AppPreferencesDataStore.BatchEditScope,
+    ) : PreferenceWriteScope {
+        override suspend fun setBoolean(key: String, value: Boolean) = delegate.setBoolean(key, value)
+        override suspend fun setString(key: String, value: String) = delegate.setString(key, value)
+        override suspend fun setInt(key: String, value: Int) = delegate.setInt(key, value)
+        override suspend fun setFloat(key: String, value: Float) = delegate.setFloat(key, value)
+    }
+
     override suspend fun getBoolean(key: String, defaultValue: Boolean): Boolean {
         return AppPreferencesDataStore.getBoolean(context, key, defaultValue)
     }

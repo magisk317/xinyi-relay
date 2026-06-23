@@ -247,25 +247,34 @@ impl Store for SqliteStore {
 
     fn upsert_devices(&self, devices: Vec<Device>) -> StoreResult<()> {
         let conn = self.conn.lock().map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
-        for d in &devices {
-            conn.execute(
-                "INSERT INTO devices (id, user_id, device_name, device_model, platform, app_version, display_name, enabled, revoked_at, last_seen_at, local_addresses, capabilities, created_at, updated_at)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
-                 ON CONFLICT(id) DO UPDATE SET
-                     user_id=excluded.user_id, device_name=excluded.device_name, device_model=excluded.device_model,
-                     platform=excluded.platform, app_version=excluded.app_version, display_name=excluded.display_name,
-                     enabled=excluded.enabled, revoked_at=excluded.revoked_at, last_seen_at=excluded.last_seen_at,
-                     local_addresses=excluded.local_addresses, capabilities=excluded.capabilities, updated_at=excluded.updated_at",
-                rusqlite::params![
-                    d.id, d.user_id, d.device_name, d.device_model, d.platform, d.app_version,
-                    d.display_name, d.enabled as i32, d.revoked_at, d.last_seen_at,
-                    serde_json::to_string(&d.local_addresses).unwrap_or_else(|_| "[]".to_string()),
-                    serde_json::to_string(&d.capabilities).unwrap_or_else(|_| "{}".to_string()),
-                    d.created_at, d.updated_at,
-                ],
-            )?;
+        conn.execute_batch("BEGIN").map_err(|e| StoreError::Internal(e.to_string()))?;
+        let result = (|| -> StoreResult<()> {
+            for d in &devices {
+                conn.execute(
+                    "INSERT INTO devices (id, user_id, device_name, device_model, platform, app_version, display_name, enabled, revoked_at, last_seen_at, local_addresses, capabilities, created_at, updated_at)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
+                     ON CONFLICT(id) DO UPDATE SET
+                         user_id=excluded.user_id, device_name=excluded.device_name, device_model=excluded.device_model,
+                         platform=excluded.platform, app_version=excluded.app_version, display_name=excluded.display_name,
+                         enabled=excluded.enabled, revoked_at=excluded.revoked_at, last_seen_at=excluded.last_seen_at,
+                         local_addresses=excluded.local_addresses, capabilities=excluded.capabilities, updated_at=excluded.updated_at",
+                    rusqlite::params![
+                        d.id, d.user_id, d.device_name, d.device_model, d.platform, d.app_version,
+                        d.display_name, d.enabled as i32, d.revoked_at, d.last_seen_at,
+                        serde_json::to_string(&d.local_addresses).unwrap_or_else(|_| "[]".to_string()),
+                        serde_json::to_string(&d.capabilities).unwrap_or_else(|_| "{}".to_string()),
+                        d.created_at, d.updated_at,
+                    ],
+                )?;
+            }
+            Ok(())
+        })();
+        if result.is_ok() {
+            conn.execute_batch("COMMIT").map_err(|e| StoreError::Internal(e.to_string()))?;
+        } else {
+            conn.execute_batch("ROLLBACK").map_err(|e| StoreError::Internal(e.to_string()))?;
         }
-        Ok(())
+        result
     }
 
     fn list_records(&self, limit: i32, device_id: Option<i64>) -> StoreResult<Paginated<Record>> {
@@ -346,23 +355,32 @@ impl Store for SqliteStore {
 
     fn upsert_records(&self, records: Vec<Record>) -> StoreResult<()> {
         let conn = self.conn.lock().map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
-        for r in &records {
-            conn.execute(
-                "INSERT INTO relay_records (id, user_id, device_id, event_id, record_type, sender, body, sms_code, package_name, msg_type, call_type, occurred_at, uploaded_at, metadata)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
-                 ON CONFLICT(id) DO UPDATE SET
-                     device_id=excluded.device_id, event_id=excluded.event_id, record_type=excluded.record_type,
-                     sender=excluded.sender, body=excluded.body, sms_code=excluded.sms_code,
-                     package_name=excluded.package_name, msg_type=excluded.msg_type, call_type=excluded.call_type,
-                     occurred_at=excluded.occurred_at, uploaded_at=excluded.uploaded_at, metadata=excluded.metadata",
-                rusqlite::params![
-                    r.id, 0i64, r.device_id, r.event_id, r.record_type, r.sender, r.body, r.sms_code,
-                    r.package_name, r.msg_type, r.call_type, r.occurred_at, r.uploaded_at,
-                    serde_json::to_string(&r.metadata).unwrap_or_else(|_| "{}".to_string()),
-                ],
-            )?;
+        conn.execute_batch("BEGIN").map_err(|e| StoreError::Internal(e.to_string()))?;
+        let result = (|| -> StoreResult<()> {
+            for r in &records {
+                conn.execute(
+                    "INSERT INTO relay_records (id, user_id, device_id, event_id, record_type, sender, body, sms_code, package_name, msg_type, call_type, occurred_at, uploaded_at, metadata)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
+                     ON CONFLICT(id) DO UPDATE SET
+                         device_id=excluded.device_id, event_id=excluded.event_id, record_type=excluded.record_type,
+                         sender=excluded.sender, body=excluded.body, sms_code=excluded.sms_code,
+                         package_name=excluded.package_name, msg_type=excluded.msg_type, call_type=excluded.call_type,
+                         occurred_at=excluded.occurred_at, uploaded_at=excluded.uploaded_at, metadata=excluded.metadata",
+                    rusqlite::params![
+                        r.id, 0i64, r.device_id, r.event_id, r.record_type, r.sender, r.body, r.sms_code,
+                        r.package_name, r.msg_type, r.call_type, r.occurred_at, r.uploaded_at,
+                        serde_json::to_string(&r.metadata).unwrap_or_else(|_| "{}".to_string()),
+                    ],
+                )?;
+            }
+            Ok(())
+        })();
+        if result.is_ok() {
+            conn.execute_batch("COMMIT").map_err(|e| StoreError::Internal(e.to_string()))?;
+        } else {
+            conn.execute_batch("ROLLBACK").map_err(|e| StoreError::Internal(e.to_string()))?;
         }
-        Ok(())
+        result
     }
 
     fn get_system_info(&self) -> StoreResult<SystemInfo> {

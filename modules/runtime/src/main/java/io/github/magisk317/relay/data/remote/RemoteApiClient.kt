@@ -99,6 +99,9 @@ internal class RemoteApiClient(
         failureLabel: String,
     ): T {
         client.newCall(request).execute().use { response ->
+            if (response.code == HTTP_UNAUTHORIZED) {
+                throw DeviceTokenExpiredException(errorMessage(response.body.string(), failureLabel, response.code))
+            }
             if (!response.isSuccessful) {
                 throw IllegalStateException(errorMessage(response.body.string(), failureLabel, response.code))
             }
@@ -108,6 +111,9 @@ internal class RemoteApiClient(
 
     private fun executeEmpty(request: Request, failureLabel: String) {
         client.newCall(request).execute().use { response ->
+            if (response.code == HTTP_UNAUTHORIZED) {
+                throw DeviceTokenExpiredException(errorMessage(response.body.string(), failureLabel, response.code))
+            }
             if (!response.isSuccessful) {
                 throw IllegalStateException(errorMessage(response.body.string(), failureLabel, response.code))
             }
@@ -133,3 +139,10 @@ internal sealed interface ConfigSnapshotPushResult {
 }
 
 private const val HTTP_CONFLICT = 409
+private const val HTTP_UNAUTHORIZED = 401
+
+/**
+ * Thrown when the backend returns 401, indicating the device token has expired
+ * or been revoked. Callers should attempt re-registration.
+ */
+class DeviceTokenExpiredException(message: String) : IllegalStateException(message)

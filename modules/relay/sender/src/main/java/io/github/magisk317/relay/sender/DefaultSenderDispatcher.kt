@@ -36,12 +36,36 @@ class DefaultSenderDispatcher(private val context: Context) : SenderDispatcher {
     ): SenderDispatchResult {
         val safeSender = SenderSettingSanitizer.sanitizeSenderLenient(sender)
         val senderName = SenderType.displayName(safeSender.type, safeSender.name)
+        val senderTypeKey = safeSender.type.toString()
+
+        if (SenderRetryPolicy.isCircuitOpen(senderTypeKey)) {
+            return SenderDispatchResult(safeSender.id, safeSender.type, senderName, false, "circuit breaker open")
+        }
+
         SLog.d(
             "DefaultSenderDispatcher",
             "Dispatching to sender: id=${safeSender.id}, type=${safeSender.type}, name=${safeSender.name}",
         )
         try {
-            when (safeSender.type) {
+            SenderRetryPolicy.withRetry(senderTypeKey) {
+                dispatchByType(safeSender, msgInfo, traceId)
+            }
+            return SenderDispatchResult(safeSender.id, safeSender.type, senderName, true, "OK")
+        } catch (e: SerializationException) {
+            val message = "配置解析失败: ${e.message ?: "SerializationException"}"
+            return SenderDispatchResult(safeSender.id, safeSender.type, senderName, false, message)
+        } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+            val errorSummary = "${e.javaClass.simpleName}: ${e.message ?: "<empty>"}"
+            return SenderDispatchResult(safeSender.id, safeSender.type, senderName, false, errorSummary)
+        }
+    }
+
+    private suspend fun dispatchByType(
+        safeSender: Sender,
+        msgInfo: MsgInfo,
+        traceId: String?,
+    ) {
+        when (safeSender.type) {
                 SenderType.DINGTALK_GROUP_ROBOT -> DingtalkGroupRobotUtils.sendMsg(
                     SenderSettingJson.decode(DingtalkGroupRobotSetting.serializer(), safeSender.jsonSetting),
                     msgInfo,
@@ -137,17 +161,8 @@ class DefaultSenderDispatcher(private val context: Context) : SenderDispatcher {
                     msgInfo,
                 )
                 else -> {
-                    val message = "Unsupported sender type: ${safeSender.type}"
-                    return SenderDispatchResult(safeSender.id, safeSender.type, senderName, false, message)
+                    throw IllegalArgumentException("Unsupported sender type: ${safeSender.type}")
                 }
             }
-            return SenderDispatchResult(safeSender.id, safeSender.type, senderName, true, "OK")
-        } catch (e: SerializationException) {
-            val message = "配置解析失败: ${e.message ?: "SerializationException"}"
-            return SenderDispatchResult(safeSender.id, safeSender.type, senderName, false, message)
-        } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-            val errorSummary = "${e.javaClass.simpleName}: ${e.message ?: "<empty>"}"
-            return SenderDispatchResult(safeSender.id, safeSender.type, senderName, false, errorSummary)
-        }
     }
 }

@@ -15,8 +15,21 @@ interface PreferenceDataSource {
     suspend fun getFloat(key: String, defaultValue: Float): Float
     suspend fun setFloat(key: String, value: Float)
 
+    /**
+     * Execute multiple writes atomically in a single DataStore transaction.
+     * If any write fails, all changes are rolled back.
+     */
+    suspend fun batchEdit(block: suspend PreferenceWriteScope.() -> Unit)
+
     fun getBooleanFlow(key: String, defaultValue: Boolean): Flow<Boolean>
     fun getStringFlow(key: String, defaultValue: String): Flow<String>
     fun getIntFlow(key: String, defaultValue: Int): Flow<Int>
     fun getFloatFlow(key: String, defaultValue: Float): Flow<Float>
+}
+
+interface PreferenceWriteScope {
+    suspend fun setBoolean(key: String, value: Boolean)
+    suspend fun setString(key: String, value: String)
+    suspend fun setInt(key: String, value: Int)
+    suspend fun setFloat(key: String, value: Float)
 }

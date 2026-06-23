@@ -1,6 +1,8 @@
 import { invoke } from '@tauri-apps/api/core'
 import { createConsoleApiClient, type ConsoleApiRequestOptions } from '../../../shared/consoleApiClient'
+import { ConfigConflictError } from '../../../shared/configSnapshot'
 import type {
+  ConfigSnapshotState,
   DesktopAuthExchangeResponse,
   DesktopAuthStart,
   DesktopBackendProbe,
@@ -45,7 +47,10 @@ export const desktopApi = {
   getConfigAuditLogs: desktopConsoleApi.getConfigAuditLogs,
   getRecords: desktopConsoleApi.getRecords,
   getRecord: desktopConsoleApi.getRecord,
+  getLocalServerAddr: () => invoke<string | null>('desktop_get_local_server_addr'),
   exportDiagnostics: () => invoke<DesktopDiagnosticsExport>('desktop_export_diagnostics'),
+  exportDatabase: () => invoke<string>('desktop_export_database'),
+  importDatabase: (sourcePath: string) => invoke<string>('desktop_import_database', { sourcePath }),
   updateNotifications: (preferences: DesktopNotificationPreferences) =>
     invoke<DesktopBootstrapState>('desktop_update_notifications', { preferences }),
   sendTestNotification: () => invoke('desktop_send_test_notification'),
@@ -87,10 +92,14 @@ async function requestDesktopConsoleApi<T>(
   }
   if (method === 'PUT' && pathname === '/api/v1/config/snapshot') {
     const body = asRecord(options.body)
-    return invoke<T>('desktop_put_config_snapshot', {
-      baseRevision: Number(body.base_revision),
-      snapshot: asRecord(body.snapshot)
-    })
+    try {
+      return await invoke<T>('desktop_put_config_snapshot', {
+        baseRevision: Number(body.base_revision),
+        snapshot: asRecord(body.snapshot)
+      })
+    } catch (err: unknown) {
+      throw mapConflictError(err, options.conflictMessage)
+    }
   }
   if (method === 'GET' && pathname === '/api/v1/config/audit') {
     return invoke<T>('desktop_fetch_config_audit_logs', {
@@ -135,4 +144,26 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
     : {}
+}
+
+/**
+ * Detect structured conflict errors returned by the Rust backend (409 responses)
+ * and throw a ConfigConflictError so the UI can reload the editor with the cloud version.
+ */
+function mapConflictError(err: unknown, conflictMessage?: string): unknown {
+  if (typeof err === 'string') {
+    try {
+      const parsed = JSON.parse(err)
+      if (parsed.__config_conflict__ && parsed.latest) {
+        throw new ConfigConflictError(
+          conflictMessage ?? parsed.message ?? 'Config conflict',
+          parsed.latest as ConfigSnapshotState
+        )
+      }
+    } catch (parseErr) {
+      if (parseErr instanceof ConfigConflictError) throw parseErr
+      // not JSON, fall through
+    }
+  }
+  throw err
 }
