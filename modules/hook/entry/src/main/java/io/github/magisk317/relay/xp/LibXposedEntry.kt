@@ -7,6 +7,7 @@ import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.HotReloadedParam
 import io.github.libxposed.api.XposedModuleInterface.HotReloadingParam
 import io.github.libxposed.api.XposedModuleInterface.ModuleLoadedParam
+import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import io.github.libxposed.api.XposedModuleInterface.PackageReadyParam
 import io.github.libxposed.api.XposedModuleInterface.SystemServerStartingParam
 import java.lang.ref.WeakReference
@@ -84,6 +85,10 @@ class LibXposedEntry : XposedModule {
         Log.i(BuildConfig.LOG_TAG, "LibXposedEntry running API 102 path: apiVersion=$api")
         installModuleRuntime(param, LibXposedHookApi(this))
         installInitZygoteHooks()
+        // Dispatch hooks to already-running target processes (e.g. com.android.phone).
+        // onPackageReady is NOT called for processes that were already running when
+        // the module was loaded, so we must proactively dispatch here.
+        dispatchCurrentLoadedTargets(param, phase = "moduleLoadedCurrentProcess")
     }
 
     private fun installModuleRuntime(param: ModuleLoadedParam, hookApi: LibXposedHookApi) {
@@ -116,9 +121,40 @@ class LibXposedEntry : XposedModule {
         }
     }
 
+    /**
+     * Dispatch hooks to already-running target processes when the module is first loaded.
+     * onPackageReady is NOT called for processes that were already running, so we must
+     * proactively dispatch here. This is critical for com.android.phone and com.xiaomi.phone
+     * which are long-running system processes.
+     */
+    private fun dispatchCurrentLoadedTargets(param: ModuleLoadedParam, phase: String) {
+        val process = if (param.isSystemServer) "android" else param.processName
+        if (process == "android" || process == "system" || process == "system_server") {
+            return // System server is handled by onSystemServerStarting
+        }
+        val packageName = when (process) {
+            "com.android.phone", "com.xiaomi.phone", "com.android.providers.telephony" -> process
+            "com.android.mms", "com.android.mms:mms_service" -> "com.android.mms"
+            else -> return
+        }
+        val classLoader = resolveLoadedPackageClassLoader(packageName)
+        if (classLoader != null) {
+            loadedPackages.putIfAbsent(packageName, classLoader)
+            dispatchLoad(LoadParam(packageName, processName, classLoader))
+            XLog.i("LibXposedEntry: dispatched current loaded target pkg=%s process=%s phase=%s", packageName, process, phase)
+        }
+    }
+
     override fun onSystemServerStarting(param: SystemServerStartingParam) {
         loadedPackages["android"] = param.classLoader
         val loadParam = LoadParam("android", processName, param.classLoader)
+        dispatchLoad(loadParam)
+    }
+
+    override fun onPackageLoaded(param: PackageLoadedParam) {
+        val classLoader = param.defaultClassLoader
+        loadedPackages.putIfAbsent(param.packageName, classLoader)
+        val loadParam = LoadParam(param.packageName, processName, classLoader)
         dispatchLoad(loadParam)
     }
 

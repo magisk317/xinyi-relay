@@ -180,14 +180,19 @@ class SmsHandlerHook : BaseHook() {
                     object : MethodHook("relay.sms_handler.dispatch_chain.$className.$name") {
                         override fun beforeHookedMethod(param: MethodHookParam) {
                             XLog.withRoute(LogRoute.SMS_HOOK) {
-                                maybeBlockFromDispatchChain(
-                                    methodName = name,
-                                    param = param,
-                                    smsIntent = SmsIntentHookSupport.extractOrBuildSmsIntent(
-                                        param.args,
-                                        Telephony.Sms.Intents.SMS_DELIVER_ACTION,
-                                    ),
-                                )
+                                try {
+                                    maybeBlockFromDispatchChain(
+                                        methodName = name,
+                                        param = param,
+                                        smsIntent = SmsIntentHookSupport.extractOrBuildSmsIntent(
+                                            param.args,
+                                            Telephony.Sms.Intents.SMS_DELIVER_ACTION,
+                                        ),
+                                    )
+                                } catch (e: Throwable) {
+                                    XLog.e("Error in dispatch chain hook $className.$name", e)
+                                    // Do NOT re-throw: crashing here would break SMS delivery
+                                }
                                 val action = SmsIntentHookSupport.extractIntentAction(param.args)
                                 XLog.w(
                                     "Diag SMS dispatch chain: class=%s method=%s action=%s args=%d",
@@ -243,14 +248,14 @@ class SmsHandlerHook : BaseHook() {
     }
 
     private inner class ConstructorHook : MethodHook("relay.sms_handler.constructor") {
-        @Throws(Throwable::class)
         override fun afterHookedMethod(param: MethodHookParam) {
             XLog.withRoute(LogRoute.SMS_HOOK) {
                 try {
                     afterConstructorHandler(param)
                 } catch (e: Throwable) {
                     XLog.e("Error occurred in constructor hook", e)
-                    throw e
+                    // Do NOT re-throw: crashing here would kill the telephony process
+                    // and break SMS reception on the device.
                 }
             }
         }
@@ -407,7 +412,11 @@ class SmsHandlerHook : BaseHook() {
             reason,
             eventId,
         )
-        CodeWorker(pluginContext, phoneContext, intent, eventId).parse()
+        // CodeWorker.parse() is async: only does toast/notification/clipboard side effects.
+        // The block decision was already made above. Don't block the dispatch chain.
+        smsOperationExecutor.execute {
+            CodeWorker(pluginContext, phoneContext, intent, eventId).parse()
+        }
         val inbound = param.thisObject ?: return
         val smsReceiver = SmsIntentHookSupport.findRawTableReceiver(param.args)
         if (smsReceiver != null) {
