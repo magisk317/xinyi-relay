@@ -5,7 +5,7 @@ import android.util.Log
 import io.github.magisk317.relay.hookentry.BuildConfig
 import io.github.magisk317.relay.xp.hook.PhoneHookTargetPackages
 import io.github.magisk317.relay.xpbridge.XpPrefs
-import io.github.magisk317.smscode.xposed.hookapi.LoadParam
+import io.github.magisk317.xposed.LoadParam
 import io.github.magisk317.smscode.xposed.utils.XLog
 import java.util.concurrent.ConcurrentHashMap
 

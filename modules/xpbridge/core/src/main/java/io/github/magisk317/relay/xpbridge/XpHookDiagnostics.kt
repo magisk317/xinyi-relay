@@ -5,6 +5,7 @@ import io.github.magisk317.relay.contract.xpbridge.NoopXpDiagnosticsRuntimeBridg
 import io.github.magisk317.relay.contract.xpbridge.XpDiagnosticsRuntimeBridge
 import io.github.magisk317.smscode.xposed.runtime.CoreLogSink
 import io.github.magisk317.smscode.xposed.runtime.CoreLogSinkHolder
+import io.github.magisk317.xposed.logging.XposedLogClient
 
 object XpHookDiagnostics {
     @Volatile
@@ -14,35 +15,30 @@ object XpHookDiagnostics {
         runtimeBridge = bridge ?: NoopXpDiagnosticsRuntimeBridge
     }
 
+    fun configureLogClient(authority: String, source: String = "Relay") {
+        XposedLogClient.configure(authority = authority, source = source)
+    }
+
     fun installXposedRuntimeLogSink() {
-        CoreLogSinkHolder.install(
-            object : CoreLogSink {
-                override fun append(
-                    priority: Int,
-                    tag: String,
-                    message: String,
-                    force: Boolean,
-                    route: String?,
-                    sensitive: Boolean,
-                ) {
-                    runtimeBridge.appendXposedLog(
-                        priority = priority,
-                        tag = tag,
-                        message = message,
-                        force = force,
-                        route = route,
-                        sensitive = sensitive,
-                        callerClassName = resolveCallerClassName(),
-                    )
-                }
-            },
-        )
+        CoreLogSinkHolder.install(object : CoreLogSink {
+            override fun append(
+                priority: Int,
+                tag: String,
+                message: String,
+                force: Boolean,
+                route: String?,
+                sensitive: Boolean,
+            ) {
+                XposedLogClient.append(priority, tag, message, force, route, sensitive)
+            }
+        })
     }
 
     fun bindRuntimeLogContext(
         context: Context,
         verboseLogging: Boolean,
     ) {
+        XposedLogClient.attachContext(context)
         runtimeBridge.bindRuntimeLogContext(context, verboseLogging)
     }
 
@@ -60,18 +56,5 @@ object XpHookDiagnostics {
             source = source,
             verboseLogging = verboseLogging,
         )
-    }
-
-    private fun resolveCallerClassName(): String? {
-        return Throwable().stackTrace
-            .mapNotNull { it.className }
-            .firstOrNull { className ->
-                className != XpHookDiagnostics::class.java.name &&
-                    !className.startsWith("${XpHookDiagnostics::class.java.name}\$") &&
-                    className != "io.github.magisk317.smscode.xposed.runtime.CoreLogSinkHolder" &&
-                    !className.startsWith("io.github.magisk317.smscode.xposed.runtime.CoreLogSinkHolder$") &&
-                    className != "io.github.magisk317.smscode.xposed.utils.XLog" &&
-                    !className.startsWith("io.github.magisk317.smscode.xposed.utils.XLog$")
-            }
     }
 }

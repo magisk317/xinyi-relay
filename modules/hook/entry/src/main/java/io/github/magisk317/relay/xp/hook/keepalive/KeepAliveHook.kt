@@ -1,15 +1,15 @@
 package io.github.magisk317.relay.xp.hook.keepalive
 
-import io.github.magisk317.smscode.xposed.hook.BaseHook
-import io.github.magisk317.smscode.xposed.hookapi.HookBridge
-import io.github.magisk317.smscode.xposed.hookapi.HookHelpers
-import io.github.magisk317.smscode.xposed.hookapi.LoadParam
-import io.github.magisk317.smscode.xposed.hookapi.MethodHook
-import io.github.magisk317.smscode.xposed.hookapi.MethodHookParam
+import io.github.magisk317.xposed.BaseHook
+import io.github.magisk317.xposed.HookEnv
+import io.github.magisk317.xposed.HookHelpers
+import io.github.magisk317.xposed.LoadParam
+import io.github.magisk317.xposed.MethodHook
+import io.github.magisk317.xposed.MethodHookParam
 import io.github.magisk317.smscode.xposed.prefs.CorePrefs
 import io.github.magisk317.smscode.xposed.utils.XLog
-import io.github.magisk317.smscode.xposed.utils.runNonFatalCatching
-import io.github.magisk317.smscode.xposed.utils.runNonFatalOrNull
+import io.github.magisk317.xposed.runNonFatalCatching
+import io.github.magisk317.xposed.runNonFatalOrNull
 import java.lang.reflect.Method
 
 class KeepAliveHook : BaseHook() {
@@ -50,9 +50,9 @@ class KeepAliveHook : BaseHook() {
 
             XLog.i("KeepAliveHook: hooking %s#%s", oomAdjusterClass.name, targetMethod.name)
 
-            HookBridge.hookMethod(
+            HookEnv.api.hookMethod(
                 targetMethod,
-                object : MethodHook("relay.keepalive.oom_adjuster") {
+                object : MethodHook() {
                     override fun afterHookedMethod(param: MethodHookParam) {
                         runNonFatalCatching {
                             if (!readPrefEnabled(KeepAliveHookConst.KEY_KEEPALIVE_OOM_ADJ)) return
@@ -123,9 +123,9 @@ class KeepAliveHook : BaseHook() {
 
             XLog.i("KeepAliveHook: hooking AMS %s", killMethod.name)
 
-            HookBridge.hookMethod(
+            HookEnv.api.hookMethod(
                 killMethod,
-                object : MethodHook("relay.keepalive.kill_process") {
+                object : MethodHook() {
                     override fun beforeHookedMethod(param: MethodHookParam) {
                         runNonFatalCatching {
                             if (!readPrefEnabled(KeepAliveHookConst.KEY_KEEPALIVE_ANTI_KILL)) return
@@ -187,9 +187,9 @@ class KeepAliveHook : BaseHook() {
 
             XLog.i("KeepAliveHook: hooking AppStandbyController %s", bucketMethod.name)
 
-            HookBridge.hookMethod(
+            HookEnv.api.hookMethod(
                 bucketMethod,
-                object : MethodHook("relay.keepalive.app_standby") {
+                object : MethodHook() {
                     override fun beforeHookedMethod(param: MethodHookParam) {
                         runNonFatalCatching {
                             if (!readPrefEnabled(KeepAliveHookConst.KEY_KEEPALIVE_STANDBY_BYPASS)) return
@@ -254,9 +254,9 @@ class KeepAliveHook : BaseHook() {
 
             XLog.i("KeepAliveHook: hooking DeviceIdleController %s", idleMethod.name)
 
-            HookBridge.hookMethod(
+            HookEnv.api.hookMethod(
                 idleMethod,
-                object : MethodHook("relay.keepalive.device_idle") {
+                object : MethodHook() {
                     override fun beforeHookedMethod(param: MethodHookParam) {
                         runNonFatalCatching {
                             if (!readPrefEnabled(KeepAliveHookConst.KEY_KEEPALIVE_DOZE_BYPASS)) return

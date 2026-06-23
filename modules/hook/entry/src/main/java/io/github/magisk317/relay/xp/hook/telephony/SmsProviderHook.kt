@@ -9,11 +9,12 @@ import io.github.magisk317.relay.xp.HookTargetDiagnostics
 import io.github.magisk317.relay.xpbridge.XpHookDiagnostics
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.smscode.xposed.utils.XLog
-import io.github.magisk317.smscode.xposed.hook.BaseHook
-import io.github.magisk317.smscode.xposed.helper.XposedWrapper
-import io.github.magisk317.smscode.xposed.hookapi.LoadParam
-import io.github.magisk317.smscode.xposed.hookapi.MethodHook
-import io.github.magisk317.smscode.xposed.hookapi.MethodHookParam
+import io.github.magisk317.xposed.BaseHook
+import io.github.magisk317.xposed.HookEnv
+import io.github.magisk317.xposed.HookHelpers
+import io.github.magisk317.xposed.LoadParam
+import io.github.magisk317.xposed.MethodHook
+import io.github.magisk317.xposed.MethodHookParam
 import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 
 /**
@@ -36,15 +37,12 @@ class SmsProviderHook : BaseHook() {
             loadParam = lpparam,
             targetPackage = TELEPHONY_PROVIDER_PACKAGE,
         )
-        val classLoader = lpparam.classLoader ?: run {
-            XLog.w("SmsProviderHook skipped: classLoader is null for %s", lpparam.packageName)
-            return
-        }
+        val classLoader = lpparam.classLoader
         hookProviderMethods(classLoader)
     }
 
     private fun hookProviderMethods(classLoader: ClassLoader) {
-        val providerClass = XposedWrapper.findClass(TELEPHONY_PROVIDER_CLASS, classLoader) ?: run {
+        val providerClass = runCatching { HookHelpers.findClass(TELEPHONY_PROVIDER_CLASS, classLoader) }.getOrNull() ?: run {
             XLog.w("SmsProviderHook: class not found: %s", TELEPHONY_PROVIDER_CLASS)
             HookTargetDiagnostics.logTargetMissIfVerbose(
                 hookName = "SmsProviderHook",
@@ -64,9 +62,9 @@ class SmsProviderHook : BaseHook() {
         val methods = clazz.declaredMethods.filter { it.name == methodName }
         if (methods.isEmpty()) return
         methods.forEach { method ->
-            XposedWrapper.hookMethod(
+            HookEnv.api.hookMethod(
                 method,
-                object : MethodHook("relay.sms_provider.$methodName") {
+                object : MethodHook() {
                     override fun beforeHookedMethod(param: MethodHookParam) {
                         XLog.withRoute(LogRoute.SMS_HOOK) {
                             val uri = param.args.getOrNull(0) as? Uri ?: return@withRoute

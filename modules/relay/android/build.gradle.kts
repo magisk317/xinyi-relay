@@ -37,6 +37,7 @@ dependencies {
     implementation(project(":relay:sender"))
     implementation(project(":smscode-core:domain"))
     implementation(project(":smscode-core:runtime"))
+    implementation(project(":magisk-xposed-kit"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.datastore.preferences)

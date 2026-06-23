@@ -12,11 +12,12 @@ import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpHookDiagnostics
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.smscode.verification.SmsIntentHookSupport
-import io.github.magisk317.smscode.xposed.helper.XposedWrapper
-import io.github.magisk317.smscode.xposed.hook.BaseHook
-import io.github.magisk317.smscode.xposed.hookapi.LoadParam
-import io.github.magisk317.smscode.xposed.hookapi.MethodHook
-import io.github.magisk317.smscode.xposed.hookapi.MethodHookParam
+import io.github.magisk317.xposed.HookHelpers
+import io.github.magisk317.xposed.BaseHook
+import io.github.magisk317.xposed.HookEnv
+import io.github.magisk317.xposed.LoadParam
+import io.github.magisk317.xposed.MethodHook
+import io.github.magisk317.xposed.MethodHookParam
 import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 import io.github.magisk317.smscode.xposed.utils.XLog
 import java.lang.reflect.Method
@@ -53,12 +54,12 @@ class MmsMessagesHook : BaseHook() {
     }
 
     private fun hookReceiver(classLoader: ClassLoader, receiverClassName: String): Int {
-        val receiverClass = XposedWrapper.findClass(receiverClassName, classLoader)
+        val receiverClass = runCatching { HookHelpers.findClass(receiverClassName, classLoader) }.getOrNull()
         if (receiverClass == null) {
             XLog.w("MmsMessagesHook receiver class missing: %s", receiverClassName)
             return 0
         }
-        val callback = object : MethodHook("relay.mms.receiver.$receiverClassName") {
+        val callback = object : MethodHook() {
             override fun beforeHookedMethod(param: MethodHookParam) {
                 XLog.withRoute(LogRoute.SMS_HOOK) {
                     val context = param.args.getOrNull(0) as? Context ?: return@withRoute
@@ -78,7 +79,7 @@ class MmsMessagesHook : BaseHook() {
                     Context::class.java.isAssignableFrom(types[0]) &&
                     Intent::class.java.isAssignableFrom(types[1])
                 ) {
-                    XposedWrapper.hookMethod(method, callback)
+                    HookEnv.api.hookMethod(method, callback)
                     hookedCount += 1
                 }
             }
@@ -89,7 +90,7 @@ class MmsMessagesHook : BaseHook() {
     }
 
     private fun hookIntentMethods(classLoader: ClassLoader, className: String): Int {
-        val clazz = XposedWrapper.findClass(className, classLoader)
+        val clazz = runCatching { HookHelpers.findClass(className, classLoader) }.getOrNull()
         if (clazz == null) {
             XLog.w("MmsMessagesHook service class missing: %s", className)
             return 0
@@ -99,9 +100,9 @@ class MmsMessagesHook : BaseHook() {
         clazz.declaredMethods
             .filter { it.name in methodNames && it.parameterTypes.any(Intent::class.java::isAssignableFrom) }
             .forEach { method ->
-                XposedWrapper.hookMethod(
+                HookEnv.api.hookMethod(
                     method,
-                    object : MethodHook("relay.mms.service.$className.${method.name}") {
+                    object : MethodHook() {
                         override fun beforeHookedMethod(param: MethodHookParam) {
                             XLog.withRoute(LogRoute.SMS_HOOK) {
                                 val context = param.thisObject as? Context ?: return@withRoute
