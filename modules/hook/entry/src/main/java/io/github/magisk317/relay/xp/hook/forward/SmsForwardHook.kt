@@ -24,12 +24,13 @@ import io.github.magisk317.smscode.domain.utils.RecentEventDeduplicator
 import io.github.magisk317.smscode.domain.utils.SmsForwardDedupKeyFactory
 import io.github.magisk317.smscode.domain.utils.SmsForwardDedupSpec
 import io.github.magisk317.smscode.verification.SmsIntentHookSupport
-import io.github.magisk317.smscode.xposed.helper.XposedWrapper
-import io.github.magisk317.smscode.xposed.hook.BaseHook
+import io.github.magisk317.xposed.HookHelpers
+import io.github.magisk317.xposed.BaseHook
+import io.github.magisk317.xposed.HookEnv
 import io.github.magisk317.smscode.xposed.hook.telephony.InboundSmsBlocker
-import io.github.magisk317.smscode.xposed.hookapi.LoadParam
-import io.github.magisk317.smscode.xposed.hookapi.MethodHook
-import io.github.magisk317.smscode.xposed.hookapi.MethodHookParam
+import io.github.magisk317.xposed.LoadParam
+import io.github.magisk317.xposed.MethodHook
+import io.github.magisk317.xposed.MethodHookParam
 import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 import io.github.magisk317.smscode.xposed.utils.XLog
 import kotlinx.coroutines.runBlocking
@@ -96,13 +97,13 @@ class SmsForwardHook : BaseHook() {
 
     private fun hookConstructor(classLoader: ClassLoader) {
         XLog.i("SmsForwardHook: Hooking InboundSmsHandler constructor")
-        val smsHandlerClazz = XposedWrapper.findClass(SMS_HANDLER_CLASS, classLoader) ?: return
-        XposedWrapper.hookAllConstructors(smsHandlerClazz, ConstructorHook())
+        val smsHandlerClazz = runCatching { HookHelpers.findClass(SMS_HANDLER_CLASS, classLoader) }.getOrNull() ?: return
+        HookEnv.api.hookAllConstructors(smsHandlerClazz, ConstructorHook())
     }
 
     private fun hookDispatchIntent(classLoader: ClassLoader) {
         XLog.d("SmsForwardHook: Hooking dispatchIntent()")
-        val inboundSmsHandlerClass = XposedWrapper.findClass(SMS_HANDLER_CLASS, classLoader) ?: run {
+        val inboundSmsHandlerClass = runCatching { HookHelpers.findClass(SMS_HANDLER_CLASS, classLoader) }.getOrNull() ?: run {
             XLog.e("SmsForwardHook: Class not found: %s", SMS_HANDLER_CLASS)
             return
         }
@@ -111,10 +112,10 @@ class SmsForwardHook : BaseHook() {
             XLog.e("SmsForwardHook: Method not found: %s in %s", DISPATCH_INTENT_METHOD, SMS_HANDLER_CLASS)
             return
         }
-        XposedWrapper.hookMethod(exactMethod, DispatchIntentHook())
+        HookEnv.api.hookMethod(exactMethod, DispatchIntentHook())
     }
 
-    private inner class ConstructorHook : MethodHook("relay.sms_forward.constructor") {
+    private inner class ConstructorHook : MethodHook() {
         override fun afterHookedMethod(param: MethodHookParam) {
             XLog.withRoute(LogRoute.FORWARD) {
                 runCatching { afterConstructorHandler(param) }
@@ -142,7 +143,7 @@ class SmsForwardHook : BaseHook() {
         }
     }
 
-    private inner class DispatchIntentHook : MethodHook("relay.sms_forward.dispatch_intent") {
+    private inner class DispatchIntentHook : MethodHook() {
         override fun beforeHookedMethod(param: MethodHookParam) {
             Log.w("relay", "SmsForwardHook: dispatchIntent hook ENTERED")
             XLog.withRoute(LogRoute.FORWARD) {

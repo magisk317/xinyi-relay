@@ -73,6 +73,7 @@ include(
     ":smscode-core:runtime",
     ":smscode-core:verification",
     ":magisk-ui-kit",
+    ":magisk-xposed-kit",
     ":features:matrix_e2ee",
 )
 

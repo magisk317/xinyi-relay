@@ -20,14 +20,13 @@ import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
 import io.github.magisk317.smscode.xposed.utils.XLog
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
-import io.github.magisk317.smscode.xposed.helper.XposedWrapper
-import io.github.magisk317.smscode.xposed.hook.BaseHook
+import io.github.magisk317.xposed.HookHelpers
+import io.github.magisk317.xposed.BaseHook
 import io.github.magisk317.relay.xp.hook.code.action.impl.OperateSmsAction
-import io.github.magisk317.smscode.xposed.hookapi.HookEnv
-import io.github.magisk317.smscode.xposed.hookapi.MethodHook
-import io.github.magisk317.smscode.xposed.hookapi.HookBridge
-import io.github.magisk317.smscode.xposed.hookapi.LoadParam
-import io.github.magisk317.smscode.xposed.hookapi.MethodHookParam
+import io.github.magisk317.xposed.HookEnv
+import io.github.magisk317.xposed.MethodHook
+import io.github.magisk317.xposed.LoadParam
+import io.github.magisk317.xposed.MethodHookParam
 import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 import java.io.File
 import java.lang.reflect.Method
@@ -106,7 +105,7 @@ class SmsHandlerHook : BaseHook() {
     }
 
     private fun resolveXposedVersion(): Int? {
-        return HookEnv.api.getXposedBridgeVersion() ?: HookEnv.api.getApiVersion()
+        return HookEnv.api.getFrameworkVersionCode()?.toInt() ?: HookEnv.api.getApiVersion()
     }
 
     private fun hookSmsHandler(lpparam: LoadParam) {
@@ -124,9 +123,9 @@ class SmsHandlerHook : BaseHook() {
     // Android 14+
     private fun hookConstructor34(lpparam: LoadParam, classLoader: ClassLoader) {
         XLog.i("Hooking InboundSmsHandler constructor for android v34+")
-        val smsHandlerClazz = XposedWrapper.findClass(SMS_HANDLER_CLASS, classLoader)
+        val smsHandlerClazz = runCatching { HookHelpers.findClass(SMS_HANDLER_CLASS, classLoader) }.getOrNull()
         if (smsHandlerClazz != null) {
-            HookBridge.hookAllConstructors(smsHandlerClazz, ConstructorHook())
+            HookEnv.api.hookAllConstructors(smsHandlerClazz, ConstructorHook())
         } else {
             HookTargetDiagnostics.logTargetMissIfVerbose(
                 hookName = "SmsHandlerHook",
@@ -170,14 +169,14 @@ class SmsHandlerHook : BaseHook() {
         className: String,
         methodNames: List<String>,
     ) {
-        val clazz = XposedWrapper.findClass(className, classLoader) ?: return
+        val clazz = runCatching { HookHelpers.findClass(className, classLoader) }.getOrNull() ?: return
         methodNames.forEach { name ->
             val methods = clazz.declaredMethods.filter { it.name == name }
             if (methods.isEmpty()) return@forEach
             methods.forEach { method ->
-                XposedWrapper.hookMethod(
+                HookEnv.api.hookMethod(
                     method,
-                    object : MethodHook("relay.sms_handler.dispatch_chain.$className.$name") {
+                    object : MethodHook() {
                         override fun beforeHookedMethod(param: MethodHookParam) {
                             XLog.withRoute(LogRoute.SMS_HOOK) {
                                 try {
@@ -212,7 +211,7 @@ class SmsHandlerHook : BaseHook() {
     // Android 10+
     private fun hookDispatchIntent29(lpparam: LoadParam, classLoader: ClassLoader) {
         XLog.d("Hooking dispatchIntent() for Android v29+")
-        val inboundSmsHandlerClass = XposedWrapper.findClass(SMS_HANDLER_CLASS, classLoader) ?: run {
+        val inboundSmsHandlerClass = runCatching { HookHelpers.findClass(SMS_HANDLER_CLASS, classLoader) }.getOrNull() ?: run {
             XLog.e("Class: %s cannot found", SMS_HANDLER_CLASS)
             return
         }
@@ -235,7 +234,7 @@ class SmsHandlerHook : BaseHook() {
         }
 
         exactMethod?.let {
-            XposedWrapper.hookMethod(it, DispatchIntentHook(receiverIndex))
+            HookEnv.api.hookMethod(it, DispatchIntentHook(receiverIndex))
         } ?: run {
             XLog.e("Method %s for Class %s cannot found", dispatchIntentMethodName, SMS_HANDLER_CLASS)
             HookTargetDiagnostics.logTargetMissIfVerbose(
@@ -247,7 +246,7 @@ class SmsHandlerHook : BaseHook() {
         }
     }
 
-    private inner class ConstructorHook : MethodHook("relay.sms_handler.constructor") {
+    private inner class ConstructorHook : MethodHook() {
         override fun afterHookedMethod(param: MethodHookParam) {
             XLog.withRoute(LogRoute.SMS_HOOK) {
                 try {
@@ -278,7 +277,7 @@ class SmsHandlerHook : BaseHook() {
 
     private inner class DispatchIntentHook(
         private val mReceiverIndex: Int,
-    ) : MethodHook("relay.sms_handler.dispatch_intent") {
+    ) : MethodHook() {
         @Throws(Throwable::class)
         override fun beforeHookedMethod(param: MethodHookParam) {
             XLog.withRoute(LogRoute.SMS_HOOK) {
