@@ -15,5 +15,4 @@ val appDependencyModule = module {
     single { ServiceMonitorInitializer() } bind AppInitializer::class
     single { LifecycleMonitorInitializer() } bind AppInitializer::class
     single { RemoteAgentInitializer() } bind AppInitializer::class
-    single { InstallMonitorInitializer() } bind AppInitializer::class
 }

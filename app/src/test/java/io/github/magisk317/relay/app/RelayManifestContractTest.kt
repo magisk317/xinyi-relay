@@ -161,14 +161,6 @@ class RelayManifestContractTest {
         assertTrue("com.android.mms" in scope)
     }
 
-    @Test
-    fun `install monitor restarts aosp and miui phone processes`() {
-        val command = InstallMonitorInitializer().buildRestartPhoneProcessCommand()
-
-        assertTrue("com.android.phone" in command)
-        assertTrue("com.xiaomi.phone" in command)
-    }
-
     private fun parseManifest(relativePath: String) = DocumentBuilderFactory.newInstance()
         .apply { isNamespaceAware = true }
         .newDocumentBuilder()
