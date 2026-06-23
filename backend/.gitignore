@@ -5,3 +5,4 @@ postgres-data-bak*/
 caddy-data/
 caddy-config/
 bin/
+logs/
