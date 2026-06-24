@@ -23,7 +23,7 @@ dependencies {
     api(project(":relay:contract"))
     implementation(project(":smscode-core:runtime"))
     implementation(project(":smscode-core:verification"))
-    implementation(project(":smscode-core:xposed"))
+    implementation(project(":smscode-core:hook"))
 
     implementation(libs.androidx.core.ktx)
 }
