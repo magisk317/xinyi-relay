@@ -65,7 +65,6 @@ include(
     ":relay:engine",
     ":relay:engine:api",
     ":xpbridge:core",
-    ":smscode-core:xposed",
     ":smscode-core:hook",
     ":smscode-core:rule",
     ":smscode-core:domain",
@@ -78,7 +77,6 @@ include(
 )
 
 // Explicitly remap moved smscode-core physical paths
-project(":smscode-core:xposed").projectDir = file("smscode/core/xposed")
 project(":smscode-core:hook").projectDir = file("smscode/core/hook")
 project(":smscode-core:rule").projectDir = file("smscode/core/rule")
 project(":smscode-core:domain").projectDir = file("smscode/core/domain")

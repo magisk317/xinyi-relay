@@ -94,42 +94,6 @@ class LibXposedEntry : BaseLibXposedEntry {
         }
     }
 
-    override fun resolveCurrentProcessTargets(param: ModuleLoadedParam): Map<String, ClassLoader> {
-        val process = if (param.isSystemServer) "android" else param.processName
-        return when (process) {
-            "android", "system", "system_server" -> {
-                resolveSystemServerClassLoader()?.let { mapOf("android" to it) } ?: emptyMap()
-            }
-            "com.android.phone", "com.xiaomi.phone" -> {
-                val classLoader = resolveLoadedPackageClassLoader(process) ?: resolveContextClassLoader()
-                mapOf(process to classLoader)
-            }
-            "com.android.mms", "com.android.mms:mms_service" -> {
-                val classLoader = resolveLoadedPackageClassLoader("com.android.mms") ?: resolveContextClassLoader()
-                mapOf("com.android.mms" to classLoader)
-            }
-            "com.android.providers.telephony" -> {
-                val classLoader = resolveLoadedPackageClassLoader(process) ?: resolveContextClassLoader()
-                mapOf(process to classLoader)
-            }
-            else -> emptyMap()
-        }
-    }
-
-    override fun resolveCurrentLoadedTargets(param: ModuleLoadedParam): Map<String, ClassLoader> {
-        val process = if (param.isSystemServer) "android" else param.processName
-        if (process == "android" || process == "system" || process == "system_server") {
-            return emptyMap()
-        }
-        val packageName = when (process) {
-            "com.android.phone", "com.xiaomi.phone", "com.android.providers.telephony" -> process
-            "com.android.mms", "com.android.mms:mms_service" -> "com.android.mms"
-            else -> return emptyMap()
-        }
-        val classLoader = resolveLoadedPackageClassLoader(packageName) ?: return emptyMap()
-        return mapOf(packageName to classLoader)
-    }
-
     private fun isCriticalHookTarget(packageName: String): Boolean {
         return packageName == "android" ||
             packageName == "system" ||

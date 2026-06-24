@@ -23,7 +23,7 @@ android {
 
 dependencies {
     compileOnly(libs.libxposed.api)
-    compileOnly(project(":smscode-core:xposed"))
+    compileOnly(project(":smscode-core:hook"))
 
     implementation(project(":xpbridge:core"))
     implementation(project(":runtime"))
@@ -38,7 +38,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
 
-    testImplementation(project(":smscode-core:xposed"))
+    testImplementation(project(":smscode-core:hook"))
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.mockk)
