@@ -13,7 +13,8 @@
         "beta"
     ],
     "ignoreDeps": [
-        "rustls:rustls-platform-verifier"
+        "rustls:rustls-platform-verifier",
+        "org.matrix.rustcomponents:sdk-android"
     ],
     "packageRules": [
         {

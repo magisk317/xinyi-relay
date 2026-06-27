@@ -42,7 +42,6 @@ internal object GithubFeatureLoader : MatrixE2eeAvailability {
                     extraTargets = emptyList(),
                     writeToStdoutOrSystem = false,
                     writeToFiles = null,
-                    sentryConfig = null,
                 ),
                 useLightweightTokioRuntime = false,
             )
