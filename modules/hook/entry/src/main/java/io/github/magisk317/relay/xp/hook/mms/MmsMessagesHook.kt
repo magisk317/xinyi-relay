@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import io.github.magisk317.relay.hookentry.BuildConfig
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
+import io.github.magisk317.relay.xp.hook.SmsHookBridgeHelper
 import io.github.magisk317.relay.xp.hook.code.CodeWorker
 import io.github.magisk317.relay.xp.hook.code.SmsBlockEvaluator
 import io.github.magisk317.relay.xp.hook.code.SmsBlacklistHitRecorder
@@ -155,6 +156,7 @@ class MmsMessagesHook : BaseHook() {
         }
         val resolvedPluginContext = pluginContext ?: return
         val verboseLogging = XpPrefs.isVerboseLogMode(resolvedPluginContext)
+        SmsHookBridgeHelper.ensureHookProcessPrefs(resolvedPluginContext)
         XpHookDiagnostics.bindRuntimeLogContext(
             context = resolvedPluginContext,
             verboseLogging = verboseLogging,

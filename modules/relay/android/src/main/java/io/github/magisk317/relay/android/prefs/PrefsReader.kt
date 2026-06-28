@@ -41,6 +41,16 @@ object PrefsReader {
         logRuntimeBridgeOnce()
     }
 
+    /**
+     * Set the hook process context for local SharedPreferences fallback.
+     * Call once when pluginContext becomes available in hook process.
+     * Mirrors XposedSmsCode's PrefsReader.setHookContext().
+     */
+    @JvmStatic
+    fun setHookContext(context: Context) {
+        PrefsSourceChain.setHookContext(context)
+    }
+
     private fun logRuntimeBridgeOnce() {
         if (!BuildConfig.DEBUG || !runtimeBridgeLogOnce.compareAndSet(false, true)) {
             return
@@ -214,7 +224,7 @@ object PrefsReader {
     }
 
     @JvmStatic
-    fun isSensitiveDebugLogSupported(): Boolean = BuildConfig.DEBUG
+    fun isSensitiveDebugLogSupported(): Boolean = true
 
     @JvmStatic
     fun isSensitiveDebugLogMode(context: Context): Boolean {
