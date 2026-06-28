@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.xp.hook
 
 import android.content.Context
+import io.github.magisk317.relay.android.prefs.PrefsReader
 import io.github.magisk317.relay.xpbridge.XpHookDiagnostics
 import io.github.magisk317.relay.xpbridge.XpPrefs
 
@@ -26,6 +27,7 @@ internal object SmsHookBridgeHelper {
         source: String,
     ) {
         val verboseLogging = XpPrefs.isVerboseLogMode(pluginContext)
+        ensureHookProcessPrefs(pluginContext)
         XpHookDiagnostics.bindRuntimeLogContext(
             context = pluginContext,
             verboseLogging = verboseLogging,
@@ -37,5 +39,13 @@ internal object SmsHookBridgeHelper {
             source = source,
             verboseLogging = verboseLogging,
         )
+    }
+
+    /**
+     * Ensure local SharedPreferences fallback is available in hook process.
+     * Mirrors XposedSmsCode's ensureHookProcessLogging → PrefsReader.setHookContext().
+     */
+    fun ensureHookProcessPrefs(context: Context) {
+        PrefsReader.setHookContext(context)
     }
 }
