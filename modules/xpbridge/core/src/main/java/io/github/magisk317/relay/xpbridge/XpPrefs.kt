@@ -40,47 +40,26 @@ object XpPrefs {
     }
 
     fun isEnabled(context: Context): Boolean = prefsBridge.isEnabled(context)
-
     fun isVerboseLogMode(context: Context): Boolean = prefsBridge.isVerboseLogMode(context)
-
     fun isSensitiveDebugLogMode(context: Context): Boolean = prefsBridge.isSensitiveDebugLogMode(context)
-
     fun relayFeaturesEnabled(context: Context): Boolean = prefsBridge.relayFeaturesEnabled(context)
-
     fun autoInputCodeEnabled(context: Context): Boolean = prefsBridge.autoInputCodeEnabled(context)
-
     fun autoEnterCodeEnabled(context: Context): Boolean = prefsBridge.autoEnterCodeEnabled(context)
-
     fun getAutoInputCodeDelay(context: Context): Long = prefsBridge.getAutoInputCodeDelay(context)
-
     fun getAutoInputCodeIntervalMs(context: Context): Long = prefsBridge.getAutoInputCodeIntervalMs(context)
-
     fun shouldShowToast(context: Context): Boolean = prefsBridge.shouldShowToast(context)
-
     fun markAsReadEnabled(context: Context): Boolean = prefsBridge.markAsReadEnabled(context)
-
     fun deleteSmsEnabled(context: Context): Boolean = prefsBridge.deleteSmsEnabled(context)
-
     fun copyToClipboardEnabled(context: Context): Boolean = prefsBridge.copyToClipboardEnabled(context)
-
     fun isMessageTypeEnabled(context: Context, messageType: XpMessageType): Boolean {
         return prefsBridge.isMessageTypeEnabled(context, messageType)
     }
-
     fun recordSmsCodeEnabled(context: Context): Boolean = prefsBridge.recordSmsCodeEnabled(context)
-
     fun blockSmsEnabled(context: Context): Boolean = prefsBridge.blockSmsEnabled(context)
-
     fun showCodeNotification(context: Context): Boolean = prefsBridge.showCodeNotification(context)
-
-    fun getCodeNotificationOwner(context: Context): String = prefsBridge.getCodeNotificationOwner(context)
-
     fun autoCancelCodeNotification(context: Context): Boolean = prefsBridge.autoCancelCodeNotification(context)
-
     fun getNotificationRetentionTime(context: Context): Int = prefsBridge.getNotificationRetentionTime(context)
-
     fun deduplicateSms(context: Context): Boolean = prefsBridge.deduplicateSms(context)
-
     fun getIpcToken(context: Context): String = prefsBridge.getIpcToken(context)
 
     private fun CoreXpRuntimeBridge.toCorePrefsAccess(): CorePrefsAccess {

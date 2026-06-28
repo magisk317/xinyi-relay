@@ -58,7 +58,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.common.utils.NotificationUtils
-import io.github.magisk317.relay.contract.constant.CodeNotificationOwner
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
@@ -108,9 +107,6 @@ fun VerificationSettingsScreen(
     var showIntervalDialog by remember { mutableStateOf(false) }
     var showRetentionDialog by remember { mutableStateOf(false) }
     var showKeywordsDialog by remember { mutableStateOf(false) }
-    var showNotificationOwnerDialog by remember { mutableStateOf(false) }
-    var pendingEnableNotification by remember { mutableStateOf(false) }
-    var pendingNotificationOwnerPermissionSelection by remember { mutableStateOf<String?>(null) }
     var pendingNotificationPermissionEnable by remember { mutableStateOf(false) }
     var showSmsTestDialog by remember { mutableStateOf(false) }
     var smsTestInput by remember { mutableStateOf("") }
@@ -130,11 +126,10 @@ fun VerificationSettingsScreen(
         )
     }
 
-    suspend fun persistNotificationOwnerSelection(owner: String, enableNotification: Boolean) {
+    suspend fun persistEnableNotification(enableNotification: Boolean) {
         settings = repository.updateVerificationSettings(
             VerificationSettingsUpdate(
-                notificationOwner = owner,
-                showCodeNotification = if (enableNotification) true else null,
+                showCodeNotification = enableNotification,
             ),
         )
         notifySaved()
@@ -180,18 +175,15 @@ fun VerificationSettingsScreen(
     ) {
         scope.launch {
             if (
-                pendingNotificationOwnerPermissionSelection == CodeNotificationOwner.APP &&
+                pendingNotificationPermissionEnable &&
                 NotificationUtils.hasPostNotificationsPermission(context)
             ) {
                 val enableNotification = pendingNotificationPermissionEnable
-                pendingNotificationOwnerPermissionSelection = null
                 pendingNotificationPermissionEnable = false
-                persistNotificationOwnerSelection(
-                    owner = CodeNotificationOwner.APP,
+                persistEnableNotification(
                     enableNotification = enableNotification,
                 )
-            } else if (pendingNotificationOwnerPermissionSelection == CodeNotificationOwner.APP) {
-                pendingNotificationOwnerPermissionSelection = null
+            } else if (pendingNotificationPermissionEnable) {
                 pendingNotificationPermissionEnable = false
                 snackbarHostState.showLatestSnackbar(
                     context.getString(R.string.pref_code_notification_owner_permission_denied),
@@ -214,7 +206,6 @@ fun VerificationSettingsScreen(
             }.recoverCatching {
                 notificationSettingsLauncher.launch(fallbackIntent)
             }.onFailure {
-                pendingNotificationOwnerPermissionSelection = null
                 pendingNotificationPermissionEnable = false
                 scope.launch {
                     snackbarHostState.showLatestSnackbar(
@@ -229,7 +220,6 @@ fun VerificationSettingsScreen(
         }.recoverCatching {
             context.startActivity(fallbackIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }.onFailure {
-            pendingNotificationOwnerPermissionSelection = null
             pendingNotificationPermissionEnable = false
             scope.launch {
                 snackbarHostState.showLatestSnackbar(
@@ -242,13 +232,11 @@ fun VerificationSettingsScreen(
     val requestNotificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
-        if (granted && pendingNotificationOwnerPermissionSelection == CodeNotificationOwner.APP) {
+        if (granted && pendingNotificationPermissionEnable) {
             scope.launch {
                 val enableNotification = pendingNotificationPermissionEnable
-                pendingNotificationOwnerPermissionSelection = null
                 pendingNotificationPermissionEnable = false
-                persistNotificationOwnerSelection(
-                    owner = CodeNotificationOwner.APP,
+                persistEnableNotification(
                     enableNotification = enableNotification,
                 )
             }
@@ -268,7 +256,6 @@ fun VerificationSettingsScreen(
         if (!permissionRequired) {
             return false
         }
-        pendingNotificationOwnerPermissionSelection = CodeNotificationOwner.APP
         pendingNotificationPermissionEnable = enableNotification
         requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         return true
@@ -383,18 +370,6 @@ fun VerificationSettingsScreen(
                 supportsAccessibilityAutoInput && isAutoInputAccessibilityServiceEnabled(context)
             autoInputAccessibilityListed =
                 supportsAccessibilityAutoInput && isAutoInputAccessibilityServiceListed(context)
-            if (
-                pendingNotificationOwnerPermissionSelection == CodeNotificationOwner.APP &&
-                NotificationUtils.hasPostNotificationsPermission(context)
-            ) {
-                val enableNotification = pendingNotificationPermissionEnable
-                pendingNotificationOwnerPermissionSelection = null
-                pendingNotificationPermissionEnable = false
-                persistNotificationOwnerSelection(
-                    owner = CodeNotificationOwner.APP,
-                    enableNotification = enableNotification,
-                )
-            }
         }
     }
 
@@ -582,16 +557,12 @@ fun VerificationSettingsScreen(
                         }
                         return@StateSwitchItem
                     }
-                    pendingEnableNotification = true
-                    showNotificationOwnerDialog = true
-                }
-                Item(
-                    title = stringResource(id = R.string.pref_code_notification_owner_title),
-                    summary = codeNotificationOwnerItemSummary(current.notificationOwner),
-                    enabled = current.verificationFeaturesEnabled,
-                ) {
-                    pendingEnableNotification = false
-                    showNotificationOwnerDialog = true
+                    if (requestNotificationPermissionIfNeeded(true)) {
+                        return@StateSwitchItem
+                    }
+                    scope.launch {
+                        persistEnableNotification(true)
+                    }
                 }
                 StateSwitchItem(
                     title = stringResource(id = R.string.pref_auto_cancel_notification_title),
@@ -735,43 +706,6 @@ fun VerificationSettingsScreen(
             showSmsTestDialog = false
         }
     }
-    if (showNotificationOwnerDialog && current != null) {
-        val options = listOf(
-            stringResource(id = R.string.pref_code_notification_owner_app_option),
-            stringResource(id = R.string.pref_code_notification_owner_phone_option),
-        )
-        val selectedIndex = when (current.notificationOwner) {
-            CodeNotificationOwner.PHONE -> 1
-            CodeNotificationOwner.APP -> 0
-            else -> 0
-        }
-        SingleChoiceOptionDialog(
-            title = stringResource(id = R.string.pref_code_notification_owner_title),
-            options = options,
-            selectedIndex = selectedIndex,
-            onDismiss = {
-                showNotificationOwnerDialog = false
-                pendingEnableNotification = false
-            },
-        ) { index ->
-            val owner = if (index == 1) {
-                CodeNotificationOwner.PHONE
-            } else {
-                CodeNotificationOwner.APP
-            }
-            val enableNotification = pendingEnableNotification
-            showNotificationOwnerDialog = false
-            pendingEnableNotification = false
-            if (owner == CodeNotificationOwner.APP &&
-                requestNotificationPermissionIfNeeded(enableNotification)
-            ) {
-                return@SingleChoiceOptionDialog
-            }
-            scope.launch {
-                persistNotificationOwnerSelection(owner, enableNotification)
-            }
-        }
-    }
 }
 
 private fun formatMatchedRuleLabel(context: Context, matchedRule: SmsCodeMatchedRule): String {
@@ -797,16 +731,6 @@ private fun historyLimitEntryLabel(
         return entries[index]
     }
     return value.takeIf { it.isNotBlank() } ?: "0"
-}
-
-@Composable
-private fun codeNotificationOwnerItemSummary(owner: String): String {
-    val ownerLabel = when (owner) {
-        CodeNotificationOwner.PHONE -> stringResource(id = R.string.pref_code_notification_owner_phone)
-        CodeNotificationOwner.APP -> stringResource(id = R.string.pref_code_notification_owner_app)
-        else -> stringResource(id = R.string.pref_code_notification_owner_unselected)
-    }
-    return stringResource(id = R.string.pref_code_notification_owner_summary, ownerLabel)
 }
 
 private fun notificationRetentionEntryLabel(

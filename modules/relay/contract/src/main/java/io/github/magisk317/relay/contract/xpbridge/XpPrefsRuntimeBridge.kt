@@ -23,7 +23,6 @@ interface XpPrefsRuntimeBridge {
     fun recordSmsCodeEnabled(context: Context): Boolean
     fun blockSmsEnabled(context: Context): Boolean
     fun showCodeNotification(context: Context): Boolean
-    fun getCodeNotificationOwner(context: Context): String
     fun autoCancelCodeNotification(context: Context): Boolean
     fun getNotificationRetentionTime(context: Context): Int
     fun deduplicateSms(context: Context): Boolean
@@ -52,7 +51,6 @@ object NoopXpPrefsRuntimeBridge : XpPrefsRuntimeBridge {
     override fun recordSmsCodeEnabled(context: Context): Boolean = true
     override fun blockSmsEnabled(context: Context): Boolean = false
     override fun showCodeNotification(context: Context): Boolean = true
-    override fun getCodeNotificationOwner(context: Context): String = ""
     override fun autoCancelCodeNotification(context: Context): Boolean = false
     override fun getNotificationRetentionTime(context: Context): Int =
         PrefConst.NOTIFICATION_RETENTION_TIME_DEFAULT.toInt()

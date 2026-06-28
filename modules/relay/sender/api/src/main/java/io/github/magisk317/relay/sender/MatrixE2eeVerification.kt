@@ -12,23 +12,14 @@ import kotlinx.coroutines.flow.asStateFlow
  */
 interface MatrixE2eeVerification {
     val state: StateFlow<MatrixE2eeVerificationState>
-
     suspend fun prepare(context: Context, setting: MatrixSetting)
-
     suspend fun requestVerification()
-
     suspend fun acceptRequest()
-
     suspend fun startSas()
-
     suspend fun approve()
-
     suspend fun decline()
-
     suspend fun cancel()
-
     suspend fun revokeDevice(context: android.content.Context, setting: io.github.magisk317.relay.sender.config.MatrixSetting)
-
     fun reset()
 }
 

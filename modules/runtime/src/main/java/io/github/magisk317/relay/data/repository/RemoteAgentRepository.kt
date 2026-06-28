@@ -436,7 +436,6 @@ class RemoteAgentRepository(
                     copyToClipboard = payload.verification.copyToClipboard,
                     showToast = payload.verification.showToast,
                     showCodeNotification = payload.verification.showCodeNotification,
-                    notificationOwner = payload.verification.notificationOwner,
                     autoCancelNotification = payload.verification.autoCancelNotification,
                     notificationRetentionTime = payload.verification.notificationRetentionTime,
                     autoInputEnabled = payload.verification.autoInputEnabled,
