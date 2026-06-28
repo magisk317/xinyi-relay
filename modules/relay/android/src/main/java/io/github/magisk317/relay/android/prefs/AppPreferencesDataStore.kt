@@ -499,6 +499,14 @@ object AppPreferencesDataStore {
                 getBoolean(context, PrefConst.KEY_AUTO_CANCEL_CODE_NOTIFICATION, true),
             )
             editor.putString(
+                PrefConst.KEY_NOTIFICATION_RETENTION_TIME,
+                getString(
+                    context,
+                    PrefConst.KEY_NOTIFICATION_RETENTION_TIME,
+                    PrefConst.NOTIFICATION_RETENTION_TIME_DEFAULT,
+                ),
+            )
+            editor.putString(
                 PrefConst.KEY_CODE_NOTIFICATION_RETENTION_TIME,
                 getString(
                     context,
