@@ -85,16 +85,31 @@ object AutoInputResultHandler {
         }
 
         runCatching {
-            val updatedRows = RuntimeGraph.from(context).runtimeRecordFacade
-                .updateAutoInputResult(attemptId, success, reason)
+            val runtimeRecordFacade = RuntimeGraph.from(context).runtimeRecordFacade
+            val updatedRows = runtimeRecordFacade.updateAutoInputResult(attemptId, success, reason)
             if (updatedRows <= 0) {
-                XLog.w(
-                    "Diag AutoInputResultReceiver skipped stale result: attemptId=%d success=%s reason=%s",
+                val upserted = runCatching {
+                    runtimeRecordFacade.upsertAutoInputResult(attemptId, success, reason)
+                }.onFailure { error ->
+                    XLog.w(
+                        "AutoInput result upsert failed: %s",
+                        error.message ?: error.javaClass.simpleName,
+                    )
+                }.getOrDefault(0L)
+                if (upserted <= 0L) {
+                    XLog.w(
+                        "Diag AutoInputResultReceiver skipped stale result: attemptId=%d success=%s reason=%s",
+                        attemptId,
+                        success,
+                        reason ?: "<none>",
+                    )
+                    return@runCatching
+                }
+                XLog.i(
+                    "Diag AutoInputResultReceiver recovered stale result via upsert: attemptId=%d success=%s",
                     attemptId,
                     success,
-                    reason ?: "<none>",
                 )
-                return@runCatching
             }
             if (success) {
                 AnalyticsTracker.logEvent("auto_input_success")

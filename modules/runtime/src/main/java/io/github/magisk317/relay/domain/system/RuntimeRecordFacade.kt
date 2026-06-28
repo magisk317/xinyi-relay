@@ -76,6 +76,19 @@ class RuntimeRecordFacade(
         db.autoInputEventDao().updateResult(attemptId, success, reason)
     }
 
+    suspend fun upsertAutoInputResult(
+        attemptId: Long,
+        success: Boolean,
+        reason: String?,
+    ): Long = withContext(Dispatchers.IO) {
+        db.autoInputEventDao().upsertResult(
+            id = attemptId,
+            codeLength = 0,
+            success = success,
+            reason = reason,
+        )
+    }
+
     suspend fun hasSmsDuplicateInRange(
         sender: String?,
         body: String?,
