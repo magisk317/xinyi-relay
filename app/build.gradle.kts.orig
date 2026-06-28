@@ -132,7 +132,6 @@ dependencies {
     implementation(project(":smscode-core:verification"))
     implementation(project(":smscode-core:hook"))
     implementation(project(":runtime"))
-    implementation(project(":relay:engine"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.libxposed.service)

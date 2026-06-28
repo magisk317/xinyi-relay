@@ -1,0 +1,10 @@
+--- app/build.gradle.kts
++++ app/build.gradle.kts
+@@ -100,6 +100,7 @@
+     implementation(project(":smscode-core:verification"))
+     implementation(project(":smscode-core:hook"))
+     implementation(project(":runtime"))
++    implementation(project(":relay:engine"))
+
+     implementation(libs.androidx.core.ktx)
+     implementation(libs.androidx.appcompat)
