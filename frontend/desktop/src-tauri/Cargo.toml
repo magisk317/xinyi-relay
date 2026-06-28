@@ -23,7 +23,7 @@ tauri-plugin-single-instance = "2.4.1"
 tokio = { version = "1.48.0", features = ["time", "net"] }
 uuid = { version = "1.18.1", features = ["v4", "serde"] }
 axum = "0.8"
-tower-http = { version = "0.6", features = ["cors"] }
+tower-http = { version = "0.7", features = ["cors"] }
 local-ip-address = "0.6"
 
 [features]
