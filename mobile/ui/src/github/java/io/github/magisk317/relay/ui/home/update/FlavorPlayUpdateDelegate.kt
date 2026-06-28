@@ -5,9 +5,7 @@ import androidx.activity.ComponentActivity
 class FlavorPlayUpdateDelegate : PlayUpdateDelegate {
 
     override fun onCreate(activity: ComponentActivity, onFallbackToStore: () -> Unit) = Unit
-
     override fun onResume(activity: ComponentActivity, onFallbackToStore: () -> Unit) = Unit
-
     override fun onDestroy() = Unit
 
     override fun requestUpdate(

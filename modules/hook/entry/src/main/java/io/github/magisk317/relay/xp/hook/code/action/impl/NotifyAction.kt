@@ -8,7 +8,7 @@ import io.github.magisk317.relay.xp.hook.code.AutoCancelReceiver
 import io.github.magisk317.relay.xp.hook.code.CodeNotificationBroadcastContract
 import io.github.magisk317.relay.xp.hook.code.CopyCodeReceiver
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
-import io.github.magisk317.relay.xpbridge.XpCodeNotificationOwner
+import io.github.magisk317.smscode.verification.CodeNotificationPayload
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpNotificationBridge
 import io.github.magisk317.relay.xpbridge.XpPrefs
@@ -29,57 +29,37 @@ class NotifyAction(
     CallableAction(pluginContext, phoneContext, smsMsg) {
 
     override fun action(): Bundle? {
-        return NotifyActionHelper(
+        val result = NotifyActionHelper(
             pluginContext = mPluginContext,
             smsMsg = mSmsMsg,
             enabled = enabled,
-            ownerReader = XpPrefs::getCodeNotificationOwner,
-            appOwnedValue = XpCodeNotificationOwner.APP,
-            phoneOwnedValue = XpCodeNotificationOwner.PHONE,
             autoCancelEnabledProvider = { autoCancelEnabled },
             retentionTimeMsProvider = { retentionTimeMs },
             tokenProvider = { XpPrefs.getIpcToken(it).takeIf(String::isNotBlank) },
-            appOwnedChannelInitializer = ::ensureNotificationChannel,
-            phoneOwnedChannelInitializer = { ensureNotificationChannel(mPhoneContext) },
-            appOwnedDiagnostics = { context -> XpNotificationBridge.inspectDelivery(context, XpNotificationBridge.CHANNEL_ID_RELAY_NOTIFICATION).toShared() },
-            appOwnedNotifier = ::showAppOwnedNotification,
-            phoneOwnedNotifier = ::showPhoneOwnedNotification,
+            channelInitializer = ::ensureNotificationChannel,
+            diagnostics = { context -> XpNotificationBridge.inspectDelivery(context, XpNotificationBridge.CHANNEL_ID_RELAY_NOTIFICATION).toShared() },
+            notifier = ::showAppOwnedNotification,
         ).run()
+        return result?.let {
+            Bundle().apply {
+                putBoolean("success", it.success)
+                putString("reason", it.reason)
+            }
+        }
     }
 
     private fun showAppOwnedNotification(
         request: NotifyActionHelper.AppOwnedNotificationRequest<SmsMsg>,
-    ): Bundle? {
-        return CodeNotificationDeliveryHelper.requestAppOwnedNotificationOrFallback(
+    ): CodeNotificationPayload.DeliveryResult {
+        return CodeNotificationDeliveryHelper.requestAppOwnedNotification(
             context = mPhoneContext,
-            request = request,
+            smsMsg = request.smsMsg,
+            notificationId = request.notificationId,
+            autoCancelEnabled = request.autoCancelEnabled,
+            retentionTimeMs = request.retentionTimeMs,
+            token = request.token,
             intentFactory = CodeNotificationBroadcastContract::createIntent,
-            fallbackNotifier = ::showPhoneOwnedNotification,
         )
-    }
-
-    private fun showPhoneOwnedNotification(
-        request: NotifyActionHelper.PhoneOwnedNotificationRequest<SmsMsg>,
-    ): Bundle? {
-        CodeNotificationDeliveryHelper.showPhoneOwnedNotification(
-            phoneContext = mPhoneContext,
-            pluginContext = mPluginContext,
-            request = request,
-            visualConfig = CodeNotificationDeliveryHelper.VisualConfig(
-                channelId = XpNotificationBridge.CHANNEL_ID_RELAY_NOTIFICATION,
-                groupKey = XpNotificationBridge.GROUP_KEY_RELAY_NOTIFICATION,
-                smallIconResId = R.drawable.ic_app_icon,
-                largeIconResId = R.drawable.ic_app_icon,
-                accentColorResId = R.color.ic_launcher_background,
-            ),
-            fallbackTitle = mPluginContext.getString(R.string.app_name),
-            contentTextProvider = { smsCode ->
-                mPluginContext.getString(R.string.code_notification_content, smsCode)
-            },
-            copyCodeIntentFactory = CopyCodeReceiver::createIntent,
-            autoCancelIntentFactory = AutoCancelReceiver::createIntent,
-        )
-        return null
     }
 
     private fun ensureNotificationChannel(context: Context) {
