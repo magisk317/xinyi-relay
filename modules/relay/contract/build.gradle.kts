@@ -19,6 +19,7 @@ android {
 }
 
 dependencies {
+    api(project(":smscode-core:contract"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.json)

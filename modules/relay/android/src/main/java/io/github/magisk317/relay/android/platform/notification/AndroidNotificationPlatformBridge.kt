@@ -2,10 +2,10 @@ package io.github.magisk317.relay.android.platform.notification
 
 import android.content.Context
 import io.github.magisk317.relay.android.common.utils.NotificationUtils
-import io.github.magisk317.relay.contract.notification.NotificationDeliveryDiagnostics
-import io.github.magisk317.relay.contract.notification.NotificationPlatformBridge
+import io.github.magisk317.relay.contract.notification.RelayNotificationPlatformBridge
+import io.github.magisk317.smscode.runtime.contract.notification.NotificationDeliveryDiagnostics
 
-object AndroidNotificationPlatformBridge : NotificationPlatformBridge {
+object AndroidNotificationPlatformBridge : RelayNotificationPlatformBridge {
     override fun createNotificationChannel(
         context: Context,
         channelId: String,

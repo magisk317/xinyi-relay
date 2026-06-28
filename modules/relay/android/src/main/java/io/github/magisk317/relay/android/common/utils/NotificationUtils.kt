@@ -8,8 +8,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import io.github.magisk317.relay.contract.notification.NotificationDeliveryDiagnostics
-import io.github.magisk317.relay.contract.notification.NotificationImportanceLabel
+import io.github.magisk317.smscode.runtime.contract.notification.NotificationDeliveryDiagnostics
 
 object NotificationUtils {
 
@@ -48,6 +47,6 @@ object NotificationUtils {
 
     @JvmStatic
     fun importanceLabel(importance: Int?): String {
-        return NotificationImportanceLabel.label(importance)
+        return NotificationDeliveryDiagnostics.importanceLabel(importance)
     }
 }

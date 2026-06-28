@@ -3,7 +3,6 @@ package io.github.magisk317.relay.xp.hook.code.action.impl
 import android.content.Context
 import android.os.Bundle
 import io.github.magisk317.relay.hookentry.R
-import io.github.magisk317.relay.contract.notification.NotificationDeliveryDiagnostics
 import io.github.magisk317.relay.xp.hook.code.AutoCancelReceiver
 import io.github.magisk317.relay.xp.hook.code.CodeNotificationBroadcastContract
 import io.github.magisk317.relay.xp.hook.code.CopyCodeReceiver
@@ -36,8 +35,8 @@ class NotifyAction(
             autoCancelEnabledProvider = { autoCancelEnabled },
             retentionTimeMsProvider = { retentionTimeMs },
             tokenProvider = { XpPrefs.getIpcToken(it).takeIf(String::isNotBlank) },
-            channelInitializer = ::ensureNotificationChannel,
-            diagnostics = { context -> XpNotificationBridge.inspectDelivery(context, XpNotificationBridge.CHANNEL_ID_RELAY_NOTIFICATION).toShared() },
+            channelId = XpNotificationBridge.CHANNEL_ID_RELAY_NOTIFICATION,
+            notificationBridge = XpNotificationBridge,
             notifier = ::showAppOwnedNotification,
         ).run()
         return result?.let {
@@ -59,22 +58,6 @@ class NotifyAction(
             retentionTimeMs = request.retentionTimeMs,
             token = request.token,
             intentFactory = CodeNotificationBroadcastContract::createIntent,
-        )
-    }
-
-    private fun ensureNotificationChannel(context: Context) {
-        XpNotificationBridge.createNotificationChannel(
-            context,
-            XpNotificationBridge.CHANNEL_ID_RELAY_NOTIFICATION,
-            mPluginContext.getString(R.string.channel_name_relay_notification),
-            android.app.NotificationManager.IMPORTANCE_HIGH,
-        )
-    }
-
-    private fun NotificationDeliveryDiagnostics.toShared(): NotifyActionHelper.DeliveryDiagnostics {
-        return NotifyActionHelper.DeliveryDiagnostics(
-            canPost = canPost,
-            summary = summary(),
         )
     }
 
