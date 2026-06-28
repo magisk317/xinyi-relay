@@ -305,7 +305,8 @@ class SmsHandlerHook : BaseHook() {
             return
         }
         val eventId = ensureEventId(intent)
-        runtimeSession.currentOrResolve()?.phoneContext?.let { phoneContext ->
+        val runtime = runtimeSession.currentOrResolveWithFallback(param.thisObject)
+        runtime?.phoneContext?.let { phoneContext ->
             HookTargetDiagnostics.logInboundSmsRuntimeHitAtInfo(
                 source = "SmsHandlerHook#dispatchIntent",
                 packageName = phoneContext.packageName,
@@ -380,7 +381,7 @@ class SmsHandlerHook : BaseHook() {
         val intent = smsIntent ?: return
         val action = intent.action
         if (!SmsIntentHookSupport.isSmsAction(action)) return
-        val runtime = runtimeSession.currentOrResolve() ?: return
+        val runtime = runtimeSession.currentOrResolveWithFallback(param.thisObject) ?: return
         val pluginContext = runtime.pluginContext
         val phoneContext = runtime.phoneContext
         if (ModuleConflictArbiter.shouldSuppressByRelay(phoneContext, "SmsHandlerHook#$methodName")) {
