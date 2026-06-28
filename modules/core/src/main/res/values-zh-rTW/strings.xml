@@ -918,6 +918,8 @@
     <string name="manufacturer">廠商</string>
     <string name="model">型號</string>
     <string name="status_working">已啟用</string>
+    <string name="status_working_enhanced">增強模式 (工作正常)</string>
+    <string name="status_working_standard">標準模式 (工作正常)</string>
     <string name="status_not_active">未啟用</string>
     <string name="status_tip">請在管理器中啟用並重啟設備</string>
     <string name="framework_incompatibility_title">偵測到框架不相容</string>
