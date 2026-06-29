@@ -925,6 +925,8 @@
     <string name="manufacturer">厂商</string>
     <string name="model">型号</string>
     <string name="status_working">工作正常</string>
+    <string name="status_working_enhanced">增强模式 (工作正常)</string>
+    <string name="status_working_standard">标准模式 (工作正常)</string>
     <string name="status_not_active">未激活</string>
     <string name="status_tip">请在管理器中启用并重启设备</string>
     <string name="framework_incompatibility_title">检测到框架不兼容</string>

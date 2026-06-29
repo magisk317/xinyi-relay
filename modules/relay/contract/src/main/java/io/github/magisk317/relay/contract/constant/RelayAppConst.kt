@@ -12,6 +12,7 @@ object RelayAppConst {
 
     const val HOME_ACTIVITY_ALIAS = "$APPLICATION_ID.HomeActivityAlias"
     const val EXTRA_ACTION = "extra_action"
+    const val REQUEST_CODE_STANDARD_PERMISSIONS = 1001
 
     const val PROJECT_SOURCE_CODE_URL = "https://github.com/magisk317/xinyi-relay"
     const val PROJECT_GITHUB_LATEST_RELEASE_URL = "$PROJECT_SOURCE_CODE_URL/releases/latest"
