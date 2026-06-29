@@ -12,6 +12,8 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.os.SystemClock
+import io.github.magisk317.relay.feature.mode.BatteryOptimizationHelper
+import io.github.magisk317.relay.feature.mode.StandardModePermissions
 import io.github.magisk317.relay.feature.mode.WorkMode
 import io.github.magisk317.relay.feature.mode.WorkModeResolver
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
@@ -127,16 +129,23 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeBlurStyle, onCheckUpdate
 
     LaunchedEffect(isEnabled, isStandardEnabled) {
         if (!isEnabled && !isStandardEnabled) {
-            val activity = context.findActivity()
-            activity?.requestPermissions(
-                arrayOf(
-                    android.Manifest.permission.READ_PHONE_STATE,
-                    android.Manifest.permission.RECEIVE_SMS,
-                    android.Manifest.permission.READ_CALL_LOG,
-                    android.Manifest.permission.READ_SMS
-                ),
-                Const.REQUEST_CODE_STANDARD_PERMISSIONS
-            )
+            // Inactive mode: either no Xposed and no permissions
+            val missing = StandardModePermissions.missingPermissions(context)
+            if (missing.isNotEmpty()) {
+                showMessage(context.getString(R.string.standard_mode_missing_permissions_hint))
+                val activity = context.findActivity()
+                activity?.requestPermissions(
+                    missing.toTypedArray(),
+                    Const.REQUEST_CODE_STANDARD_PERMISSIONS
+                )
+            }
+        }
+    }
+
+    // Prompt battery optimization exemption for Standard mode
+    LaunchedEffect(isStandardEnabled) {
+        if (isStandardEnabled && !BatteryOptimizationHelper.isExempted(context)) {
+            showMessage(context.getString(R.string.standard_mode_battery_optimization_hint))
         }
     }
     var showStatusDiagnostics by remember { mutableStateOf(false) }
