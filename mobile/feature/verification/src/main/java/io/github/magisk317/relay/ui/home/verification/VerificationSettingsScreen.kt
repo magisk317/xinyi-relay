@@ -66,6 +66,10 @@ import io.github.magisk317.relay.contract.settings.VerificationSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.VerificationSettingsUpdate
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.mobilefeature.verification.BuildConfig
+import io.github.magisk317.relay.feature.mode.StandardModeFeatureGate
+import io.github.magisk317.relay.feature.mode.StandardModeFeatureGate.Feature.*
+import io.github.magisk317.relay.feature.mode.WorkMode
+import io.github.magisk317.relay.feature.mode.WorkModeResolver
 import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
 import io.github.magisk317.relay.ui.common.normalizeIntegerInput
 import io.github.magisk317.relay.ui.common.parseNonNegativeLongInput
@@ -73,6 +77,7 @@ import io.github.magisk317.relay.android.sms.SmsCodeUtils as RelaySmsCodeUtils
 import io.github.magisk317.smscode.domain.constant.SmsCodeConst
 import io.github.magisk317.smscode.domain.model.SmsCodeMatchedRule
 import io.github.magisk317.smscode.domain.model.SmsCodeMatchedRuleSource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -101,6 +106,9 @@ fun VerificationSettingsScreen(
         }
     }
     val accordionMode = rememberPrefBoolean(PrefConst.KEY_SETTINGS_ACCORDION_MODE, true)
+    val workMode by WorkModeResolver.mode.collectAsStateWithLifecycle()
+    val canCopyToClipboard = StandardModeFeatureGate.isAvailable(COPY_CODE_TO_CLIPBOARD, workMode)
+    val xposedDisabledHint = stringResource(R.string.feature_requires_xposed)
     var settings by remember { mutableStateOf<VerificationSettingsSnapshot?>(null) }
     var recordSettings by remember { mutableStateOf<RecordSettingsSnapshot?>(null) }
     var showDelayDialog by remember { mutableStateOf(false) }
@@ -426,9 +434,13 @@ fun VerificationSettingsScreen(
             ) {
                 StateSwitchItem(
                     title = stringResource(id = R.string.pref_copy_to_clipboard_title),
-                    summary = stringResource(id = R.string.pref_copy_to_clipboard_summary),
-                    checked = current.copyToClipboard,
-                    enabled = current.verificationFeaturesEnabled,
+                    summary = if (canCopyToClipboard) {
+                        stringResource(id = R.string.pref_copy_to_clipboard_summary)
+                    } else {
+                        stringResource(id = R.string.pref_copy_to_clipboard_summary) + "\n" + xposedDisabledHint
+                    },
+                    checked = current.copyToClipboard && canCopyToClipboard,
+                    enabled = current.verificationFeaturesEnabled && canCopyToClipboard,
                 ) { enabled ->
                     scope.launch {
                         settings = repository.updateVerificationSettings(VerificationSettingsUpdate(copyToClipboard = enabled))

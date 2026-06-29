@@ -49,6 +49,10 @@ import io.github.magisk317.relay.contract.repository.SettingsPreferencesReposito
 import io.github.magisk317.relay.contract.settings.SmsBlacklistSettingsUpdate
 import io.github.magisk317.relay.engine.model.ReadSmsBlacklistHitData
 import io.github.magisk317.relay.engine.service.MessageRecordRepository
+import io.github.magisk317.relay.feature.mode.StandardModeFeatureGate
+import io.github.magisk317.relay.feature.mode.StandardModeFeatureGate.Feature.*
+import io.github.magisk317.relay.feature.mode.WorkMode
+import io.github.magisk317.relay.feature.mode.WorkModeResolver
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.blurEffect
@@ -73,6 +77,11 @@ fun InterceptScreen(
     val blacklistHits by recordRepository.observeSmsBlacklistHits(BLACKLIST_HIT_DISPLAY_LIMIT)
         .collectAsStateWithLifecycle(initialValue = emptyList())
     val snackbarHostState = remember { SnackbarHostState() }
+    val workMode by WorkModeResolver.mode.collectAsStateWithLifecycle()
+    val isXposedFeatureAvailable = { feature: StandardModeFeatureGate.Feature ->
+        StandardModeFeatureGate.isAvailable(feature, workMode)
+    }
+    val xposedDisabledHint = stringResource(R.string.feature_requires_xposed)
     var smsBlacklistEnabled by remember { mutableStateOf(false) }
     var deleteBlockedSms by remember { mutableStateOf(true) }
     var blockIncomingSms by remember { mutableStateOf(false) }
@@ -189,18 +198,30 @@ fun InterceptScreen(
                     saveSettingsIfChanged(SmsBlacklistSettingsUpdate(enabled = enabled))
                 }
                 if (smsBlacklistEnabled) {
+                    val canDelete = isXposedFeatureAvailable(SMS_BLACKLIST_DELETE)
                     StateSwitchItem(
                         title = stringResource(R.string.pref_sms_blacklist_action_delete_title),
-                        summary = stringResource(R.string.pref_sms_blacklist_action_delete_summary),
-                        checked = deleteBlockedSms,
+                        summary = if (canDelete) {
+                            stringResource(R.string.pref_sms_blacklist_action_delete_summary)
+                        } else {
+                            stringResource(R.string.pref_sms_blacklist_action_delete_summary) + "\n" + xposedDisabledHint
+                        },
+                        checked = deleteBlockedSms && canDelete,
+                        enabled = canDelete,
                     ) { enabled ->
                         deleteBlockedSms = enabled
                         saveSettingsIfChanged(SmsBlacklistSettingsUpdate(deleteBlockedSms = enabled))
                     }
+                    val canBlock = isXposedFeatureAvailable(SMS_BLACKLIST_BLOCK)
                     StateSwitchItem(
                         title = stringResource(R.string.pref_sms_blacklist_action_block_title),
-                        summary = stringResource(R.string.pref_sms_blacklist_action_block_summary),
-                        checked = blockIncomingSms,
+                        summary = if (canBlock) {
+                            stringResource(R.string.pref_sms_blacklist_action_block_summary)
+                        } else {
+                            stringResource(R.string.pref_sms_blacklist_action_block_summary) + "\n" + xposedDisabledHint
+                        },
+                        checked = blockIncomingSms && canBlock,
+                        enabled = canBlock,
                     ) { enabled ->
                         blockIncomingSms = enabled
                         saveSettingsIfChanged(SmsBlacklistSettingsUpdate(blockIncomingSms = enabled))

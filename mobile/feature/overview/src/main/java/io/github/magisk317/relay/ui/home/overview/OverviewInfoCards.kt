@@ -49,6 +49,9 @@ import io.github.magisk317.relay.common.utils.Utils
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
+import io.github.magisk317.relay.feature.mode.StandardModeFeatureGate
+import io.github.magisk317.relay.feature.mode.StandardModeFeatureGate.Feature.*
+import io.github.magisk317.relay.feature.mode.WorkMode
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -127,6 +130,36 @@ fun StatusCard(
                                 fontWeight = FontWeight.Medium,
                             )
                         }
+                    }
+                }
+            }
+            // Standard mode limitations hint
+            if (isStandardModeEnabled) {
+                val xposedFeatures = listOf(
+                    SMS_HOOK_INTERCEPT,
+                    SMS_BLACKLIST_BLOCK,
+                    COPY_CODE_TO_CLIPBOARD,
+                    DELETE_SMS_ON_CODE_INPUT,
+                    CALL_HOOK_INTERCEPT,
+                )
+                val disabledFeatures = xposedFeatures.filter {
+                    !StandardModeFeatureGate.isAvailable(it, WorkMode.Standard)
+                }
+                if (disabledFeatures.isNotEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .padding(top = 12.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(contentColor.copy(alpha = 0.08f))
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = "Standard mode: some features require Xposed",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = contentColor.copy(alpha = 0.7f),
+                        )
                     }
                 }
             }
