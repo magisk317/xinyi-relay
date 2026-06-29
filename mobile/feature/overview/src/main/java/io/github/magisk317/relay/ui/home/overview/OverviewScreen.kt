@@ -12,6 +12,8 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.os.SystemClock
+import io.github.magisk317.relay.feature.mode.WorkMode
+import io.github.magisk317.relay.feature.mode.WorkModeResolver
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -116,10 +118,27 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeBlurStyle, onCheckUpdate
 
     val analyticsEnabled = rememberPrefBoolean(PrefConst.KEY_ENABLE_ANALYTICS, true)
 
-    val isEnabled = ActivationDiagnosticsStore.isModuleActivated(context)
+    val workMode by WorkModeResolver.mode.collectAsStateWithLifecycle()
+    val isEnabled = workMode == WorkMode.Enhanced
+    val isStandardEnabled = workMode == WorkMode.Standard
     val runtimeConnected = ActivationDiagnosticsStore.isRuntimeConnected()
     var statusTapCount by remember { mutableStateOf(0) }
     var statusTapStartedAtMs by remember { mutableStateOf(0L) }
+
+    LaunchedEffect(isEnabled, isStandardEnabled) {
+        if (!isEnabled && !isStandardEnabled) {
+            val activity = context.findActivity()
+            activity?.requestPermissions(
+                arrayOf(
+                    android.Manifest.permission.READ_PHONE_STATE,
+                    android.Manifest.permission.RECEIVE_SMS,
+                    android.Manifest.permission.READ_CALL_LOG,
+                    android.Manifest.permission.READ_SMS
+                ),
+                Const.REQUEST_CODE_STANDARD_PERMISSIONS
+            )
+        }
+    }
     var showStatusDiagnostics by remember { mutableStateOf(false) }
 
     val listState = rememberLazyListState()
@@ -345,6 +364,7 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeBlurStyle, onCheckUpdate
         enabledCardIds = enabledCardIds,
         editMode = editMode,
         isEnabled = isEnabled,
+        isStandardEnabled = isStandardEnabled,
         chartType = chartType,
         chartWindow = chartWindow,
         chartSnapshot = chartSnapshot,
@@ -446,6 +466,7 @@ private fun OverviewContent(
     enabledCardIds: Set<String>,
     editMode: Boolean,
     isEnabled: Boolean,
+    isStandardEnabled: Boolean,
     chartType: HomeChartType,
     chartWindow: HomeChartWindow,
     chartSnapshot: HomeAnalyticsSnapshot?,
@@ -505,6 +526,7 @@ private fun OverviewContent(
                     enabledCardIds = enabledCardIds,
                     editMode = editMode,
                     isEnabled = isEnabled,
+                    isStandardEnabled = isStandardEnabled,
                     chartType = chartType,
                     chartWindow = chartWindow,
                     chartSnapshot = chartSnapshot,
@@ -581,6 +603,7 @@ private fun OverviewCardItem(
     enabledCardIds: Set<String>,
     editMode: Boolean,
     isEnabled: Boolean,
+    isStandardEnabled: Boolean,
     chartType: HomeChartType,
     chartWindow: HomeChartWindow,
     chartSnapshot: HomeAnalyticsSnapshot?,
@@ -652,7 +675,8 @@ private fun OverviewCardItem(
         when (spec.id) {
             CARD_STATUS -> {
                 StatusCard(
-                    isEnabled = isEnabled,
+                    isEnhancedModeEnabled = isEnabled,
+                    isStandardModeEnabled = isStandardEnabled,
                     showDiagnostics = showStatusDiagnostics,
                     diagnostics = buildStatusDiagnostics(
                         context = context,

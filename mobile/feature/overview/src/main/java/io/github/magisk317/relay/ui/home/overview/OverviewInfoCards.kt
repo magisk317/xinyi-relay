@@ -56,13 +56,15 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun StatusCard(
-    isEnabled: Boolean,
+    isEnhancedModeEnabled: Boolean,
+    isStandardModeEnabled: Boolean,
     showDiagnostics: Boolean,
     diagnostics: List<Pair<String, String>>,
     onClick: (() -> Unit)? = null,
 ) {
-    val containerColor = if (isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.errorContainer
-    val contentColor = if (isEnabled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onErrorContainer
+    val isWorking = isEnhancedModeEnabled || isStandardModeEnabled
+    val containerColor = if (isWorking) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.errorContainer
+    val contentColor = if (isWorking) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onErrorContainer
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -80,17 +82,21 @@ fun StatusCard(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Icon(
-                    imageVector = if (isEnabled) Icons.Default.CheckCircle else Icons.Default.Warning,
+                    imageVector = if (isWorking) Icons.Default.CheckCircle else Icons.Default.Warning,
                     contentDescription = null,
                     modifier = Modifier.size(48.dp),
                 )
                 Column {
                     Text(
-                        text = if (isEnabled) stringResource(id = R.string.status_working) else stringResource(id = R.string.status_not_active),
+                        text = when {
+                            isEnhancedModeEnabled -> stringResource(id = R.string.status_working_enhanced)
+                            isStandardModeEnabled -> stringResource(id = R.string.status_working_standard)
+                            else -> stringResource(id = R.string.status_not_active)
+                        },
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                     )
-                    if (!isEnabled) {
+                    if (!isWorking) {
                         Text(
                             text = stringResource(id = R.string.status_tip),
                             style = MaterialTheme.typography.bodyMedium,
