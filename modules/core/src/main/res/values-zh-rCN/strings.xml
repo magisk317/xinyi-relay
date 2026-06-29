@@ -929,6 +929,8 @@
     <string name="status_working_standard">标准模式 (工作正常)</string>
     <string name="status_not_active">未激活</string>
     <string name="status_tip">请在管理器中启用并重启设备</string>
+    <string name="standard_mode_missing_permissions_hint">标准模式需要短信和电话权限才能正常工作，请授予相关权限。</string>
+    <string name="standard_mode_battery_optimization_hint">电池优化已开启，请将本应用加入白名单以保证后台正常运行。</string>
     <string name="framework_incompatibility_title">检测到框架不兼容</string>
     <string name="framework_incompatibility_known_framework_message">检测到当前使用的是 %1$s。该框架已出现较多兼容性问题，可能导致模块异常、闪退或功能失效。建议尽快更换为官方 LSPosed 框架；你可以自行获取，或到群组内获取对应版本。</string>
     <string name="framework_incompatibility_hooker_annotation_message">当前框架与模块不兼容，Hook 注册失败。请下载最新 it 版，或滑到底部加入社群获取。</string>
