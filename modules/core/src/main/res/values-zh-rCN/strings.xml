@@ -931,6 +931,14 @@
     <string name="status_tip">请在管理器中启用并重启设备</string>
     <string name="standard_mode_missing_permissions_hint">标准模式需要短信和电话权限才能正常工作，请授予相关权限。</string>
     <string name="standard_mode_battery_optimization_hint">电池优化已开启，请将本应用加入白名单以保证后台正常运行。</string>
+    <string name="feature_requires_xposed">⚠ 需要 Xposed/LSPosed 框架</string>
+    <string name="standard_mode_limitations_title">标准模式限制</string>
+    <string name="standard_mode_limitations_summary">以下功能需要 Xposed 框架，在标准模式下不可用：</string>
+    <string name="standard_mode_limit_sms_hook">• 短信/彩信系统级拦截</string>
+    <string name="standard_mode_limit_block_sms">• 拦截/删除来信</string>
+    <string name="standard_mode_limit_clipboard">• 自动复制验证码到剪贴板</string>
+    <string name="standard_mode_limit_delete_sms">• 验证码输入后删除短信</string>
+    <string name="standard_mode_limit_call_hook">• 通话拦截（挂断等）</string>
     <string name="framework_incompatibility_title">检测到框架不兼容</string>
     <string name="framework_incompatibility_known_framework_message">检测到当前使用的是 %1$s。该框架已出现较多兼容性问题，可能导致模块异常、闪退或功能失效。建议尽快更换为官方 LSPosed 框架；你可以自行获取，或到群组内获取对应版本。</string>
     <string name="framework_incompatibility_hooker_annotation_message">当前框架与模块不兼容，Hook 注册失败。请下载最新 it 版，或滑到底部加入社群获取。</string>
