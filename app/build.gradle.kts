@@ -131,8 +131,11 @@ dependencies {
     implementation(project(":xpbridge:core"))
     implementation(project(":smscode-core:verification"))
     implementation(project(":smscode-core:hook"))
+    implementation(project(":runtime"))
+    implementation(project(":relay:engine"))
 
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.process)
     implementation(libs.libxposed.service)
 
     implementation(libs.kotlinx.coroutines.core)
