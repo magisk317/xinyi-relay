@@ -915,6 +915,8 @@
     <string name="manufacturer">Manufacturer</string>
     <string name="model">Model</string>
     <string name="status_working">Working normally</string>
+    <string name="status_working_enhanced">Enhanced mode (Working)</string>
+    <string name="status_working_standard">Standard mode (Working)</string>
     <string name="status_not_active">Inactive</string>
     <string name="status_tip">Please enable in manager and reboot device</string>
     <string name="framework_incompatibility_title">Framework incompatibility detected</string>

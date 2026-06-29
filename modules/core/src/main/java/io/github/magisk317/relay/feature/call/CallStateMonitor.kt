@@ -7,7 +7,8 @@ import android.os.Build
 import android.telephony.TelephonyCallback
 import android.telephony.TelephonyManager
 import androidx.core.content.ContextCompat
-import io.github.magisk317.relay.core.BuildConfig
+import io.github.magisk317.relay.feature.mode.WorkMode
+import io.github.magisk317.relay.feature.mode.WorkModeResolver
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.common.utils.CallSessionTracker
 import io.github.magisk317.relay.android.common.utils.XLog
@@ -51,8 +52,12 @@ object CallStateMonitor {
 
     fun refresh(reason: String) {
         val context = appContext ?: return
-        if (BuildConfig.FLAVOR != "github") return
         scope.launch {
+            val mode = WorkModeResolver.mode.value
+            if (mode == WorkMode.Enhanced) {
+                stop("enhanced_mode")
+                return@launch
+            }
             val (forwardEnabled, localEnabled) = loadCallAlertFlags(context)
             if (!forwardEnabled && !localEnabled) {
                 stop("disabled")
