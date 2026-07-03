@@ -32,7 +32,7 @@ class RelayXposedLogProvider : BaseXposedLogProvider() {
     }
 
     companion object {
-        const val AUTHORITY_SUFFIX = "xposed.log"
+        const val AUTHORITY_SUFFIX: String = "xposed.log"
 
         fun authority(context: Context): String =
             "${context.packageName}.$AUTHORITY_SUFFIX"

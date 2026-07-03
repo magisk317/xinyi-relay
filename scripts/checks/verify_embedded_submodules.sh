@@ -28,8 +28,8 @@ forbid_pattern() {
   fi
 }
 
-require_pattern "$SUBMODULE_SETTINGS" 'include\(":xposed"\)' \
-  "smscode-core/settings.gradle.kts must include :xposed"
+require_pattern "$SUBMODULE_SETTINGS" 'include\(":magisk-xposed-kit"\)' \
+  "smscode-core/settings.gradle.kts must include :magisk-xposed-kit"
 require_pattern "$SUBMODULE_SETTINGS" 'include\(":hook"\)' \
   "smscode-core/settings.gradle.kts must include :hook"
 require_pattern "$SUBMODULE_SETTINGS" 'include\(":rule"\)' \

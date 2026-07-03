@@ -10,7 +10,6 @@ import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.relay.security.IpcTokenGate
 import io.github.magisk317.smscode.runtime.contract.autoinput.AutoInputBroadcastContract
 import io.github.magisk317.smscode.runtime.contract.autoinput.AutoInputResultBroadcastContract
-import io.github.magisk317.smscode.xposed.hook.system.SystemInputInjectorHook
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -20,7 +19,7 @@ object AutoInputResultHandler {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     val action: String
-        get() = SystemInputInjectorHook.resolveActionAutoInputResult()
+        get() = AutoInputActions.resultAction
 
     fun handle(context: Context, intent: Intent, onComplete: () -> Unit = {}) {
         scope.launch {

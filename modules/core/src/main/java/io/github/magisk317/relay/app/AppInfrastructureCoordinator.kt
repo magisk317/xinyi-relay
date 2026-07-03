@@ -9,12 +9,8 @@ import io.github.magisk317.relay.android.platform.sender.SenderLogBridge
 import io.github.magisk317.relay.android.platform.sender.SenderRuntimeBridge
 import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.di.RuntimeDependenciesImpl
-import io.github.magisk317.smscode.xposed.runtime.CoreHookPolicy
-import io.github.magisk317.smscode.xposed.runtime.CoreHookPolicyHolder
-import io.github.magisk317.smscode.xposed.runtime.CoreLogSink
-import io.github.magisk317.smscode.xposed.runtime.CoreLogSinkHolder
-import io.github.magisk317.smscode.xposed.runtime.CoreRuntime
-import io.github.magisk317.smscode.xposed.runtime.CoreRuntimeAccess
+import io.github.magisk317.smscode.verification.VerificationLogSink
+import io.github.magisk317.smscode.verification.VerificationLogSinkHolder
 import org.koin.core.context.GlobalContext
 import timber.log.Timber
 
@@ -31,24 +27,15 @@ object AppInfrastructureCoordinator {
         SensitiveLogPolicy.setEnabled(false)
         SenderRuntimeBridge.install(application)
         SenderLogBridge.install()
-        installCoreRuntime(shouldSuppressSystemHooks)
+        installVerificationLogSink()
+        SmsCodeXposedRuntimeBridge.install(shouldSuppressSystemHooks)
         if (io.github.magisk317.relay.runtime.BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
     }
 
-    private fun installCoreRuntime(
-        shouldSuppressSystemHooks: (Context?, String) -> Boolean,
-    ) {
-        CoreRuntime.install(object : CoreRuntimeAccess {
-            override val logTag: String = io.github.magisk317.relay.runtime.BuildConfig.LOG_TAG
-            override val logLevel: Int = io.github.magisk317.relay.runtime.BuildConfig.LOG_LEVEL
-            override val logToXposed: Boolean = io.github.magisk317.relay.runtime.BuildConfig.LOG_TO_XPOSED
-            override val debug: Boolean = io.github.magisk317.relay.runtime.BuildConfig.DEBUG
-            override val applicationId: String = io.github.magisk317.relay.runtime.BuildConfig.APPLICATION_ID
-            override val actionNamespace: String = "io.github.magisk317.relay"
-        })
-        CoreLogSinkHolder.install(object : CoreLogSink {
+    private fun installVerificationLogSink() {
+        VerificationLogSinkHolder.install(object : VerificationLogSink {
             override fun append(
                 priority: Int,
                 tag: String,
@@ -59,11 +46,6 @@ object AppInfrastructureCoordinator {
             ) {
                 val safeMessage = if (sensitive) SensitiveLogPolicy.sanitizeLogMessage(message) else message
                 RuntimeLogStore.append(priority, tag, safeMessage, force, route)
-            }
-        })
-        CoreHookPolicyHolder.install(object : CoreHookPolicy {
-            override fun shouldSuppressSystemHooks(context: Context?, source: String): Boolean {
-                return shouldSuppressSystemHooks(context, source)
             }
         })
     }

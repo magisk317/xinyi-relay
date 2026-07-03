@@ -14,12 +14,12 @@ import android.os.Looper
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import androidx.core.content.ContextCompat
+import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.relay.receiver.AutoInputActions
+import io.github.magisk317.smscode.verification.AutoInputFallbackPolicy
 import io.github.magisk317.smscode.verification.AutoInputAccessibilityNodeHelper
 import io.github.magisk317.smscode.verification.AutoInputAccessibilityNodeHelper.Result as AutoInputResult
 import io.github.magisk317.smscode.verification.AutoInputAccessibilityRequestHandler
-import io.github.magisk317.smscode.xposed.hook.system.AutoInputFallbackPolicy
-import io.github.magisk317.smscode.xposed.hook.system.SystemInputInjectorHook
-import io.github.magisk317.smscode.xposed.utils.XLog
 
 class AutoInputAccessibilityService : AccessibilityService() {
 
@@ -50,8 +50,8 @@ class AutoInputAccessibilityService : AccessibilityService() {
                 serviceContext = this@AutoInputAccessibilityService,
                 receiver = this,
                 intent = intent,
-                expectedAction = SystemInputInjectorHook.resolveActionAutoInput(),
-                resultAction = SystemInputInjectorHook.resolveActionAutoInputResult(),
+                expectedAction = AutoInputActions.requestAction,
+                resultAction = AutoInputActions.resultAction,
                 packageName = packageName,
                 performAutoInput = { request -> handleAutoInput(request.code, request.autoEnter) },
             )
@@ -78,7 +78,7 @@ class AutoInputAccessibilityService : AccessibilityService() {
 
     private fun registerAutoInputReceiver() {
         if (receiverRegistered) return
-        val filter = IntentFilter(SystemInputInjectorHook.resolveActionAutoInput()).apply {
+        val filter = IntentFilter(AutoInputActions.requestAction).apply {
             priority = RECEIVER_PRIORITY_ACCESSIBILITY
         }
         ContextCompat.registerReceiver(
