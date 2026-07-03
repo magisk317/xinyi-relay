@@ -62,6 +62,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.blurEffect
@@ -124,8 +126,15 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeBlurStyle, onCheckUpdate
     val isEnabled = workMode == WorkMode.Enhanced
     val isStandardEnabled = workMode == WorkMode.Standard
     val runtimeConnected = ActivationDiagnosticsStore.isRuntimeConnected()
+    var isBatteryOptimizationExempted by remember { mutableStateOf(true) }
     var statusTapCount by remember { mutableStateOf(0) }
     var statusTapStartedAtMs by remember { mutableStateOf(0L) }
+
+    fun refreshBatteryOptimizationExemption(): Boolean {
+        val exempted = !isStandardEnabled || BatteryOptimizationHelper.isExempted(context)
+        isBatteryOptimizationExempted = exempted
+        return exempted
+    }
 
     LaunchedEffect(isEnabled, isStandardEnabled) {
         if (!isEnabled && !isStandardEnabled) {
@@ -144,9 +153,12 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeBlurStyle, onCheckUpdate
 
     // Prompt battery optimization exemption for Standard mode
     LaunchedEffect(isStandardEnabled) {
-        if (isStandardEnabled && !BatteryOptimizationHelper.isExempted(context)) {
+        if (!refreshBatteryOptimizationExemption()) {
             showMessage(context.getString(R.string.standard_mode_battery_optimization_hint))
         }
+    }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        refreshBatteryOptimizationExemption()
     }
     var showStatusDiagnostics by remember { mutableStateOf(false) }
 
@@ -374,6 +386,7 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeBlurStyle, onCheckUpdate
         editMode = editMode,
         isEnabled = isEnabled,
         isStandardEnabled = isStandardEnabled,
+        showBatteryOptimizationHint = isStandardEnabled && !isBatteryOptimizationExempted,
         chartType = chartType,
         chartWindow = chartWindow,
         chartSnapshot = chartSnapshot,
@@ -424,6 +437,13 @@ fun OverviewScreen(hazeState: HazeState, hazeStyle: HazeBlurStyle, onCheckUpdate
         },
         onCheckUpdate = onCheckUpdate,
         onShowDonate = { showDonateDialog = true },
+        onBatteryOptimizationClick = {
+            runCatching {
+                BatteryOptimizationHelper.requestExemption(context)
+            }.onFailure { error ->
+                showMessage(error.message ?: context.getString(R.string.standard_mode_battery_optimization_hint))
+            }
+        },
         onStatusCardTap = {
             val now = SystemClock.uptimeMillis()
             val withinWindow = now - statusTapStartedAtMs <= 1800L
@@ -476,6 +496,7 @@ private fun OverviewContent(
     editMode: Boolean,
     isEnabled: Boolean,
     isStandardEnabled: Boolean,
+    showBatteryOptimizationHint: Boolean,
     chartType: HomeChartType,
     chartWindow: HomeChartWindow,
     chartSnapshot: HomeAnalyticsSnapshot?,
@@ -503,6 +524,7 @@ private fun OverviewContent(
     onChartWindowChange: (HomeChartWindow) -> Unit,
     onCheckUpdate: () -> Unit,
     onShowDonate: () -> Unit,
+    onBatteryOptimizationClick: () -> Unit,
     onStatusCardTap: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -536,6 +558,7 @@ private fun OverviewContent(
                     editMode = editMode,
                     isEnabled = isEnabled,
                     isStandardEnabled = isStandardEnabled,
+                    showBatteryOptimizationHint = showBatteryOptimizationHint,
                     chartType = chartType,
                     chartWindow = chartWindow,
                     chartSnapshot = chartSnapshot,
@@ -560,6 +583,7 @@ private fun OverviewContent(
                     onChartWindowChange = onChartWindowChange,
                     onCheckUpdate = onCheckUpdate,
                     onShowDonate = onShowDonate,
+                    onBatteryOptimizationClick = onBatteryOptimizationClick,
                     onStatusCardTap = onStatusCardTap,
                 )
             }
@@ -613,6 +637,7 @@ private fun OverviewCardItem(
     editMode: Boolean,
     isEnabled: Boolean,
     isStandardEnabled: Boolean,
+    showBatteryOptimizationHint: Boolean,
     chartType: HomeChartType,
     chartWindow: HomeChartWindow,
     chartSnapshot: HomeAnalyticsSnapshot?,
@@ -637,6 +662,7 @@ private fun OverviewCardItem(
     onChartWindowChange: (HomeChartWindow) -> Unit,
     onCheckUpdate: () -> Unit,
     onShowDonate: () -> Unit,
+    onBatteryOptimizationClick: () -> Unit,
     onStatusCardTap: () -> Unit,
 ) {
     val scope = androidx.compose.runtime.rememberCoroutineScope()
@@ -686,6 +712,7 @@ private fun OverviewCardItem(
                 StatusCard(
                     isEnhancedModeEnabled = isEnabled,
                     isStandardModeEnabled = isStandardEnabled,
+                    showBatteryOptimizationHint = showBatteryOptimizationHint,
                     showDiagnostics = showStatusDiagnostics,
                     diagnostics = buildStatusDiagnostics(
                         context = context,
@@ -696,6 +723,11 @@ private fun OverviewCardItem(
                         null
                     } else {
                         onStatusCardTap
+                    },
+                    onBatteryOptimizationClick = if (editMode) {
+                        null
+                    } else {
+                        onBatteryOptimizationClick
                     },
                 )
             }

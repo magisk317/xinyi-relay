@@ -461,6 +461,7 @@
     <string name="startup_permission_install_unknown_apps">安装未知应用权限</string>
     <string name="startup_permission_notification_listener">通知使用权</string>
     <string name="startup_permission_accessibility_service">无障碍服务权限</string>
+    <string name="startup_permission_battery_optimization">电池优化豁免</string>
     <string name="startup_permission_missing_warning">仍未授予%1$s，部分功能可能无法正常工作。</string>
     <string name="scheduled_task_cron_label">Cron 表达式 *</string>
     <string name="scheduled_task_cron_hint">格式：分 时 日 月 星期（例：0 10 * * 1,3 表示周一、周三 10:00）</string>
@@ -931,7 +932,12 @@
     <string name="status_tip">请在管理器中启用并重启设备</string>
     <string name="standard_mode_missing_permissions_hint">标准模式需要短信和电话权限才能正常工作，请授予相关权限。</string>
     <string name="standard_mode_battery_optimization_hint">电池优化已开启，请将本应用加入白名单以保证后台正常运行。</string>
+    <string name="standard_mode_service_channel_name">标准模式</string>
+    <string name="standard_mode_service_channel_description">保持信驿 Relay 在标准模式下运行</string>
+    <string name="standard_mode_service_notification_title">信驿 Relay 正在运行</string>
+    <string name="standard_mode_service_notification_text">标准模式正在监听短信和通话</string>
     <string name="feature_requires_xposed">⚠ 需要 Xposed/LSPosed 框架</string>
+    <string name="feature_requires_root">⚠ 需要 Root 权限</string>
     <string name="standard_mode_limitations_title">标准模式限制</string>
     <string name="standard_mode_limitations_summary">以下功能需要 Xposed 框架，在标准模式下不可用：</string>
     <string name="standard_mode_limit_sms_hook">• 短信/彩信系统级拦截</string>
@@ -939,6 +945,7 @@
     <string name="standard_mode_limit_clipboard">• 自动复制验证码到剪贴板</string>
     <string name="standard_mode_limit_delete_sms">• 验证码输入后删除短信</string>
     <string name="standard_mode_limit_call_hook">• 通话拦截（挂断等）</string>
+    <string name="standard_mode_limit_keepalive">• Xposed 保活 Hook</string>
     <string name="framework_incompatibility_title">检测到框架不兼容</string>
     <string name="framework_incompatibility_known_framework_message">检测到当前使用的是 %1$s。该框架已出现较多兼容性问题，可能导致模块异常、闪退或功能失效。建议尽快更换为官方 LSPosed 框架；你可以自行获取，或到群组内获取对应版本。</string>
     <string name="framework_incompatibility_hooker_annotation_message">当前框架与模块不兼容，Hook 注册失败。请下载最新 it 版，或滑到底部加入社群获取。</string>
@@ -1101,6 +1108,10 @@
     <string name="sender_gate_ingress_summary_sms">关闭后，事件不会进入识别、记录或转发流程。</string>
     <string name="sender_gate_ingress_summary_event">关闭后，事件不会进入记录或转发流程。</string>
     <string name="sender_gate_forwarding_title">转发开关（仅影响转发）</string>
+    <string name="forward_silent_period_title">免打扰</string>
+    <string name="forward_silent_period_summary">在选定时段内跳过转发，仍保留记录。</string>
+    <string name="forward_silent_period_weekdays">星期</string>
+    <string name="forward_silent_period_range">免打扰时段</string>
     <string name="sender_template_sms_label">转发消息模板</string>
     <string name="sender_template_app_label">应用通知转发模板</string>
     <string name="sender_template_call_label">通话通知转发模板</string>

@@ -30,20 +30,28 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.magisk317.relay.common.utils.PackageUtils
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsUpdate
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.feature.mode.StandardModeFeatureGate
+import io.github.magisk317.relay.feature.mode.StandardModeFeatureGate.Feature.*
+import io.github.magisk317.relay.feature.mode.WorkModeResolver
 import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
 import io.github.magisk317.relay.ui.common.normalizeIntegerInput
 import io.github.magisk317.relay.ui.common.parseIntInRangeInput
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,6 +68,14 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
     }
     var settings by remember { mutableStateOf<DiagnosticsSettingsSnapshot?>(null) }
     var showRootDbIntervalDialog by remember { mutableStateOf(false) }
+    val workMode by WorkModeResolver.mode.collectAsStateWithLifecycle()
+    val hasRootAccess by produceState(initialValue = false) {
+        value = withContext(Dispatchers.IO) {
+            PackageUtils.hasRootAccess()
+        }
+    }
+    val xposedDisabledHint = stringResource(R.string.feature_requires_xposed)
+    val rootDisabledHint = stringResource(R.string.feature_requires_root)
 
     LaunchedEffect(Unit) {
         settings = repository.getDiagnosticsSettings()
@@ -98,10 +114,35 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
                 sectionExpanded = true,
                 onExpandedChange = {},
             ) {
+                val canUseRootDbCatchup = StandardModeFeatureGate.isAvailable(
+                    ROOT_DB_CATCHUP,
+                    workMode,
+                    hasRootAccess,
+                )
+                val canUseRootDbWriteback = StandardModeFeatureGate.isAvailable(
+                    ROOT_DB_CATCHUP_WRITEBACK,
+                    workMode,
+                    hasRootAccess,
+                )
+                val canUseForceStopRecovery = StandardModeFeatureGate.isAvailable(
+                    FORCE_STOP_RECOVERY,
+                    workMode,
+                    hasRootAccess,
+                )
+                val canUseForceStopRecoveryRelaunch = StandardModeFeatureGate.isAvailable(
+                    FORCE_STOP_RECOVERY_RELAUNCH_ONCE,
+                    workMode,
+                    hasRootAccess,
+                )
                 StateSwitchItem(
                     title = stringResource(id = R.string.pref_root_db_catchup_enable_title),
-                    summary = stringResource(id = R.string.pref_root_db_catchup_enable_summary),
-                    checked = current.rootDbCatchupEnabled,
+                    summary = if (canUseRootDbCatchup) {
+                        stringResource(id = R.string.pref_root_db_catchup_enable_summary)
+                    } else {
+                        stringResource(id = R.string.pref_root_db_catchup_enable_summary) + "\n" + rootDisabledHint
+                    },
+                    checked = current.rootDbCatchupEnabled && canUseRootDbCatchup,
+                    enabled = canUseRootDbCatchup,
                 ) { enabled ->
                     scope.launch {
                         settings = repository.updateDiagnosticsSettings(
@@ -116,11 +157,17 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
                         id = R.string.pref_root_db_catchup_interval_summary,
                         current.rootDbCatchupIntervalMin,
                     ),
+                    enabled = canUseRootDbCatchup,
                 ) { showRootDbIntervalDialog = true }
                 StateSwitchItem(
                     title = stringResource(id = R.string.pref_root_db_catchup_writeback_title),
-                    summary = stringResource(id = R.string.pref_root_db_catchup_writeback_summary),
-                    checked = current.rootDbCatchupWriteback,
+                    summary = if (canUseRootDbWriteback) {
+                        stringResource(id = R.string.pref_root_db_catchup_writeback_summary)
+                    } else {
+                        stringResource(id = R.string.pref_root_db_catchup_writeback_summary) + "\n" + rootDisabledHint
+                    },
+                    checked = current.rootDbCatchupWriteback && canUseRootDbWriteback,
+                    enabled = canUseRootDbWriteback,
                 ) { enabled ->
                     scope.launch {
                         settings = repository.updateDiagnosticsSettings(
@@ -131,8 +178,13 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
                 }
                 StateSwitchItem(
                     title = stringResource(id = R.string.pref_force_stop_recovery_title),
-                    summary = stringResource(id = R.string.pref_force_stop_recovery_summary),
-                    checked = current.forceStopRecoveryEnabled,
+                    summary = if (canUseForceStopRecovery) {
+                        stringResource(id = R.string.pref_force_stop_recovery_summary)
+                    } else {
+                        stringResource(id = R.string.pref_force_stop_recovery_summary) + "\n" + rootDisabledHint
+                    },
+                    checked = current.forceStopRecoveryEnabled && canUseForceStopRecovery,
+                    enabled = canUseForceStopRecovery,
                 ) { enabled ->
                     scope.launch {
                         settings = repository.updateDiagnosticsSettings(
@@ -143,8 +195,13 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
                 }
                 StateSwitchItem(
                     title = stringResource(id = R.string.pref_force_stop_recovery_relaunch_once_title),
-                    summary = stringResource(id = R.string.pref_force_stop_recovery_relaunch_once_summary),
-                    checked = current.forceStopRecoveryRelaunchOnceEnabled,
+                    summary = if (canUseForceStopRecoveryRelaunch) {
+                        stringResource(id = R.string.pref_force_stop_recovery_relaunch_once_summary)
+                    } else {
+                        stringResource(id = R.string.pref_force_stop_recovery_relaunch_once_summary) + "\n" + rootDisabledHint
+                    },
+                    checked = current.forceStopRecoveryRelaunchOnceEnabled && canUseForceStopRecoveryRelaunch,
+                    enabled = canUseForceStopRecoveryRelaunch,
                 ) { enabled ->
                     scope.launch {
                         settings = repository.updateDiagnosticsSettings(
@@ -161,10 +218,22 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
                 sectionExpanded = true,
                 onExpandedChange = {},
             ) {
+                val keepAliveFeatures = listOf(
+                    KEEPALIVE_OOM_ADJ,
+                    KEEPALIVE_ANTI_KILL,
+                    KEEPALIVE_STANDBY_BYPASS,
+                    KEEPALIVE_DOZE_BYPASS,
+                )
+                val canUseKeepAlive = StandardModeFeatureGate.allAvailable(workMode, *keepAliveFeatures.toTypedArray())
                 StateSwitchItem(
                     title = stringResource(id = R.string.pref_keepalive_oom_adj_title),
-                    summary = stringResource(id = R.string.pref_keepalive_oom_adj_summary),
-                    checked = current.keepAliveOomAdj,
+                    summary = if (canUseKeepAlive) {
+                        stringResource(id = R.string.pref_keepalive_oom_adj_summary)
+                    } else {
+                        stringResource(id = R.string.pref_keepalive_oom_adj_summary) + "\n" + xposedDisabledHint
+                    },
+                    checked = current.keepAliveOomAdj && canUseKeepAlive,
+                    enabled = canUseKeepAlive,
                 ) { enabled ->
                     scope.launch {
                         settings = repository.updateDiagnosticsSettings(
@@ -175,8 +244,13 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
                 }
                 StateSwitchItem(
                     title = stringResource(id = R.string.pref_keepalive_anti_kill_title),
-                    summary = stringResource(id = R.string.pref_keepalive_anti_kill_summary),
-                    checked = current.keepAliveAntiKill,
+                    summary = if (canUseKeepAlive) {
+                        stringResource(id = R.string.pref_keepalive_anti_kill_summary)
+                    } else {
+                        stringResource(id = R.string.pref_keepalive_anti_kill_summary) + "\n" + xposedDisabledHint
+                    },
+                    checked = current.keepAliveAntiKill && canUseKeepAlive,
+                    enabled = canUseKeepAlive,
                 ) { enabled ->
                     scope.launch {
                         settings = repository.updateDiagnosticsSettings(
@@ -187,8 +261,13 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
                 }
                 StateSwitchItem(
                     title = stringResource(id = R.string.pref_keepalive_standby_bypass_title),
-                    summary = stringResource(id = R.string.pref_keepalive_standby_bypass_summary),
-                    checked = current.keepAliveStandbyBypass,
+                    summary = if (canUseKeepAlive) {
+                        stringResource(id = R.string.pref_keepalive_standby_bypass_summary)
+                    } else {
+                        stringResource(id = R.string.pref_keepalive_standby_bypass_summary) + "\n" + xposedDisabledHint
+                    },
+                    checked = current.keepAliveStandbyBypass && canUseKeepAlive,
+                    enabled = canUseKeepAlive,
                 ) { enabled ->
                     scope.launch {
                         settings = repository.updateDiagnosticsSettings(
@@ -199,8 +278,13 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
                 }
                 StateSwitchItem(
                     title = stringResource(id = R.string.pref_keepalive_doze_bypass_title),
-                    summary = stringResource(id = R.string.pref_keepalive_doze_bypass_summary),
-                    checked = current.keepAliveDozeBypass,
+                    summary = if (canUseKeepAlive) {
+                        stringResource(id = R.string.pref_keepalive_doze_bypass_summary)
+                    } else {
+                        stringResource(id = R.string.pref_keepalive_doze_bypass_summary) + "\n" + xposedDisabledHint
+                    },
+                    checked = current.keepAliveDozeBypass && canUseKeepAlive,
+                    enabled = canUseKeepAlive,
                 ) { enabled ->
                     scope.launch {
                         settings = repository.updateDiagnosticsSettings(

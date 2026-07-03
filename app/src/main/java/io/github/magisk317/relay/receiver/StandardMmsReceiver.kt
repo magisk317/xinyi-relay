@@ -1,3 +1,5 @@
+@file:Suppress("TooGenericExceptionCaught")
+
 package io.github.magisk317.relay.receiver
 
 import android.content.BroadcastReceiver
@@ -8,18 +10,17 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-@Suppress("TooGenericExceptionCaught")
-class StandardSmsReceiver : BroadcastReceiver() {
+class StandardMmsReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (!StandardMessageIngressHandler.isSmsReceived(intent)) return
-        if (!StandardMessageIngressHandler.shouldHandleStandardMode(context, "StandardSmsReceiver")) return
+        if (!StandardMessageIngressHandler.isMmsWapPush(intent)) return
+        if (!StandardMessageIngressHandler.shouldHandleStandardMode(context, "StandardMmsReceiver")) return
 
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                StandardMessageIngressHandler.dispatchSms(context, intent)
+                StandardMessageIngressHandler.dispatchMms(context, intent)
             } catch (error: Throwable) {
-                XLog.e("StandardSmsReceiver: Error dispatching SMS", error)
+                XLog.e("StandardMmsReceiver: Error dispatching MMS", error)
             } finally {
                 pendingResult.finish()
             }

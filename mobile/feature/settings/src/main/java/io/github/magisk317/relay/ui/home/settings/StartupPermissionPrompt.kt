@@ -27,6 +27,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.feature.mode.BatteryOptimizationHelper
 import io.github.magisk317.relay.mobilefeature.settings.BuildConfig
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
 import kotlinx.coroutines.launch
@@ -116,6 +117,7 @@ private enum class StartupSpecialPermission(@param:StringRes val labelRes: Int) 
     INSTALL_UNKNOWN_APPS(R.string.startup_permission_install_unknown_apps),
     NOTIFICATION_LISTENER(R.string.startup_permission_notification_listener),
     ACCESSIBILITY_SERVICE(R.string.startup_permission_accessibility_service),
+    BATTERY_OPTIMIZATION(R.string.startup_permission_battery_optimization),
 }
 
 private fun Context.collectMissingStartupPermissionLabels(): List<String> {
@@ -162,6 +164,9 @@ private fun StartupSpecialPermission.isApplicable(
         StartupSpecialPermission.ACCESSIBILITY_SERVICE ->
             BuildConfig.ENABLE_ACCESSIBILITY_AUTO_INPUT &&
                 context.isServiceDeclared(AUTO_INPUT_ACCESSIBILITY_SERVICE_CLASS_NAME)
+
+        StartupSpecialPermission.BATTERY_OPTIMIZATION ->
+            Manifest.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS in requestedPermissions
     }
 }
 
@@ -172,6 +177,7 @@ private fun StartupSpecialPermission.isGranted(context: Context): Boolean {
         StartupSpecialPermission.INSTALL_UNKNOWN_APPS -> context.canRequestPackageInstalls()
         StartupSpecialPermission.NOTIFICATION_LISTENER -> context.isNotificationListenerEnabled()
         StartupSpecialPermission.ACCESSIBILITY_SERVICE -> context.isAccessibilityServiceEnabled()
+        StartupSpecialPermission.BATTERY_OPTIMIZATION -> BatteryOptimizationHelper.isExempted(context)
     }
 }
 
@@ -218,6 +224,11 @@ private fun StartupSpecialPermission.buildIntent(context: Context): Intent? {
                 )
             }
         }
+
+        StartupSpecialPermission.BATTERY_OPTIMIZATION ->
+            Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                data = Uri.parse("package:${context.packageName}")
+            }
     }
 }
 

@@ -9,6 +9,7 @@ object StandardModePermissions {
     val REQUIRED_PERMISSIONS = arrayOf(
         Manifest.permission.READ_PHONE_STATE,
         Manifest.permission.RECEIVE_SMS,
+        Manifest.permission.RECEIVE_MMS,
         Manifest.permission.READ_CALL_LOG,
         Manifest.permission.READ_SMS,
     )

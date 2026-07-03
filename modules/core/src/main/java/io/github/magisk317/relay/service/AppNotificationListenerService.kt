@@ -100,10 +100,14 @@ class AppNotificationListenerService : NotificationListenerService() {
         return runCatching {
             val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
             val wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "xinyi-relay:notification-dispatch")
-            wl.acquire(30_000L) // 30 second timeout as safety net
+            wl.acquire(WAKE_LOCK_TIMEOUT_MS)
             wl
         }.onFailure { e ->
             XLog.w("Failed to acquire wake lock: %s", e.message)
         }.getOrNull()
+    }
+
+    private companion object {
+        const val WAKE_LOCK_TIMEOUT_MS = 30_000L
     }
 }

@@ -108,6 +108,7 @@ fun VerificationSettingsScreen(
     val accordionMode = rememberPrefBoolean(PrefConst.KEY_SETTINGS_ACCORDION_MODE, true)
     val workMode by WorkModeResolver.mode.collectAsStateWithLifecycle()
     val canCopyToClipboard = StandardModeFeatureGate.isAvailable(COPY_CODE_TO_CLIPBOARD, workMode)
+    val canBlockSms = StandardModeFeatureGate.isAvailable(BLOCK_SMS, workMode)
     val xposedDisabledHint = stringResource(R.string.feature_requires_xposed)
     var settings by remember { mutableStateOf<VerificationSettingsSnapshot?>(null) }
     var recordSettings by remember { mutableStateOf<RecordSettingsSnapshot?>(null) }
@@ -607,9 +608,13 @@ fun VerificationSettingsScreen(
             ) {
                 StateSwitchItem(
                     title = stringResource(id = R.string.pref_block_sms_title),
-                    summary = stringResource(id = R.string.pref_block_sms_summary),
-                    checked = current.blockSmsEnabled,
-                    enabled = current.verificationFeaturesEnabled,
+                    summary = if (canBlockSms) {
+                        stringResource(id = R.string.pref_block_sms_summary)
+                    } else {
+                        stringResource(id = R.string.pref_block_sms_summary) + "\n" + xposedDisabledHint
+                    },
+                    checked = current.blockSmsEnabled && canBlockSms,
+                    enabled = current.verificationFeaturesEnabled && canBlockSms,
                 ) { enabled ->
                     scope.launch {
                         settings = repository.updateVerificationSettings(VerificationSettingsUpdate(blockSmsEnabled = enabled))

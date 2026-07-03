@@ -61,9 +61,11 @@ import kotlinx.coroutines.launch
 fun StatusCard(
     isEnhancedModeEnabled: Boolean,
     isStandardModeEnabled: Boolean,
+    showBatteryOptimizationHint: Boolean = false,
     showDiagnostics: Boolean,
     diagnostics: List<Pair<String, String>>,
     onClick: (() -> Unit)? = null,
+    onBatteryOptimizationClick: (() -> Unit)? = null,
 ) {
     val isWorking = isEnhancedModeEnabled || isStandardModeEnabled
     val containerColor = if (isWorking) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.errorContainer
@@ -104,6 +106,12 @@ fun StatusCard(
                             text = stringResource(id = R.string.status_tip),
                             style = MaterialTheme.typography.bodyMedium,
                         )
+                    } else if (isStandardModeEnabled) {
+                        Text(
+                            text = stringResource(id = R.string.standard_mode_service_notification_text),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = contentColor.copy(alpha = 0.82f),
+                        )
                     }
                 }
             }
@@ -135,17 +143,49 @@ fun StatusCard(
             }
             // Standard mode limitations hint
             if (isStandardModeEnabled) {
-                val xposedFeatures = listOf(
-                    SMS_HOOK_INTERCEPT,
-                    SMS_BLACKLIST_BLOCK,
-                    COPY_CODE_TO_CLIPBOARD,
-                    DELETE_SMS_ON_CODE_INPUT,
-                    CALL_HOOK_INTERCEPT,
-                )
-                val disabledFeatures = xposedFeatures.filter {
-                    !StandardModeFeatureGate.isAvailable(it, WorkMode.Standard)
+                if (showBatteryOptimizationHint) {
+                    Row(
+                        modifier = Modifier
+                            .padding(top = 12.dp)
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(contentColor.copy(alpha = 0.12f))
+                            .clickable(enabled = onBatteryOptimizationClick != null) {
+                                onBatteryOptimizationClick?.invoke()
+                            }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            modifier = Modifier.size(22.dp),
+                            tint = contentColor.copy(alpha = 0.85f),
+                        )
+                        Text(
+                            text = stringResource(R.string.standard_mode_battery_optimization_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = contentColor.copy(alpha = 0.82f),
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
-                if (disabledFeatures.isNotEmpty()) {
+                val disabledFeatureLabels = listOf(
+                    SMS_HOOK_INTERCEPT to R.string.standard_mode_limit_sms_hook,
+                    SMS_BLACKLIST_BLOCK to R.string.standard_mode_limit_block_sms,
+                    COPY_CODE_TO_CLIPBOARD to R.string.standard_mode_limit_clipboard,
+                    DELETE_SMS_ON_CODE_INPUT to R.string.standard_mode_limit_delete_sms,
+                    CALL_HOOK_INTERCEPT to R.string.standard_mode_limit_call_hook,
+                    KEEPALIVE_OOM_ADJ to R.string.standard_mode_limit_keepalive,
+                )
+                    .filter { (feature, _) ->
+                        !StandardModeFeatureGate.isAvailable(feature, WorkMode.Standard)
+                    }
+                    .map { (_, labelRes) ->
+                        stringResource(labelRes)
+                    }
+                if (disabledFeatureLabels.isNotEmpty()) {
                     Column(
                         modifier = Modifier
                             .padding(top = 12.dp)
@@ -156,8 +196,13 @@ fun StatusCard(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Text(
-                            text = "Standard mode: some features require Xposed",
+                            text = stringResource(R.string.standard_mode_limitations_title),
                             style = MaterialTheme.typography.labelMedium,
+                            color = contentColor.copy(alpha = 0.7f),
+                        )
+                        Text(
+                            text = disabledFeatureLabels.joinToString("\n"),
+                            style = MaterialTheme.typography.bodySmall,
                             color = contentColor.copy(alpha = 0.7f),
                         )
                     }

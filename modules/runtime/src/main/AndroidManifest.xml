@@ -2,8 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application>
-        <!-- IPC: receives forwarded SMS payload from the Xposed hook layer.
-             Must be exported=true because Xposed hooks run under the hooked app's UID (cross-UID).
+        <!-- IPC: receives forwarded message payloads from trusted relay ingress bridges.
+             Must be exported=true because compatibility ingress can run under another UID.
              Security: intent.setPackage(packageName) in ForwardAction ensures only this module
              receives the broadcast; no external app can deliver to this receiver via explicit package targeting. -->
         <receiver

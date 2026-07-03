@@ -459,6 +459,7 @@
     <string name="startup_permission_install_unknown_apps">install unknown apps permission</string>
     <string name="startup_permission_notification_listener">notification listener access</string>
     <string name="startup_permission_accessibility_service">accessibility service permission</string>
+    <string name="startup_permission_battery_optimization">battery optimization exemption</string>
     <string name="startup_permission_missing_warning">Still missing %1$s. Some features may not work correctly.</string>
     <string name="scheduled_task_cron_label">Cron expression *</string>
     <string name="scheduled_task_cron_hint">Format: minute hour day month weekday (example: 0 10 * * 1,3 means Monday and Wednesday 10:00)</string>
@@ -921,7 +922,12 @@
     <string name="status_tip">Please enable in manager and reboot device</string>
     <string name="standard_mode_missing_permissions_hint">Standard mode requires SMS and phone permissions. Please grant them.</string>
     <string name="standard_mode_battery_optimization_hint">Battery optimization is active. Please exempt this app for reliable background operation.</string>
+    <string name="standard_mode_service_channel_name">Standard mode</string>
+    <string name="standard_mode_service_channel_description">Keeps xinyi-relay running in standard mode</string>
+    <string name="standard_mode_service_notification_title">xinyi-relay is running</string>
+    <string name="standard_mode_service_notification_text">Standard mode is monitoring SMS and calls</string>
     <string name="feature_requires_xposed">⚠ Requires Xposed/LSPosed framework</string>
+    <string name="feature_requires_root">⚠ Requires Root access</string>
     <string name="standard_mode_limitations_title">Standard mode limitations</string>
     <string name="standard_mode_limitations_summary">The following features require Xposed and are unavailable in standard mode:</string>
     <string name="standard_mode_limit_sms_hook">• SMS/MMS system-level interception</string>
@@ -929,6 +935,7 @@
     <string name="standard_mode_limit_clipboard">• Auto-copy verification code to clipboard</string>
     <string name="standard_mode_limit_delete_sms">• Delete SMS after code input</string>
     <string name="standard_mode_limit_call_hook">• Call interception (hang up, etc.)</string>
+    <string name="standard_mode_limit_keepalive">• Xposed keep-alive hooks</string>
     <string name="framework_incompatibility_title">Framework incompatibility detected</string>
     <string name="framework_incompatibility_known_framework_message">Detected that the current framework is %1$s. This framework has had many compatibility problems and may cause crashes, broken hooks, or missing features. Please switch to the official LSPosed framework as soon as possible; you can obtain it yourself or get the appropriate build from the community group.</string>
     <string name="framework_incompatibility_hooker_annotation_message">Current framework is incompatible and hook registration failed. Please download the latest IT build, or scroll to the bottom and join the community to get it.</string>
@@ -1090,6 +1097,10 @@
     <string name="sender_gate_ingress_summary_sms">When off, events will not enter the pipeline for recognition, records, or forwarding.</string>
     <string name="sender_gate_ingress_summary_event">When off, events will not enter the pipeline for records or forwarding.</string>
     <string name="sender_gate_forwarding_title">Forwarding gate (forwarding only)</string>
+    <string name="forward_silent_period_title">Do not disturb</string>
+    <string name="forward_silent_period_summary">Skip forwarding in the selected period while keeping records.</string>
+    <string name="forward_silent_period_weekdays">Weekdays</string>
+    <string name="forward_silent_period_range">Silent period</string>
     <string name="sender_template_sms_label">Forward message template</string>
     <string name="sender_template_app_label">App notification forwarding template</string>
     <string name="sender_template_call_label">Call notification forwarding template</string>

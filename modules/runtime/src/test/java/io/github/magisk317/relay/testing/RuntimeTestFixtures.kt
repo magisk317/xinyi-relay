@@ -85,6 +85,13 @@ fun Intent.stubLongArrayExtra(
     every { getLongArrayExtra(key) } returns value
 }
 
+fun Intent.stubByteArrayExtra(
+    key: String,
+    value: ByteArray?,
+) {
+    every { getByteArrayExtra(key) } returns value
+}
+
 fun Intent.stubSimRouting(
     simSlotKey: String = ForwardBroadcastContract.EXTRA_SIM_SLOT,
     simSlot: Int? = null,
