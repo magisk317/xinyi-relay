@@ -19,6 +19,7 @@ import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.engine.pipeline.SenderSelector
+import io.github.magisk317.relay.engine.schedule.ForwardSilentPeriodEvaluator
 import android.content.Context
 
 data class EventPipelineResult(
@@ -114,6 +115,20 @@ class EventPipeline(
             }
 
             return runCatching {
+                val commonConfig = settingsRepository.loadForwardCommonConfig()
+                if (ForwardSilentPeriodEvaluator.isMuted(commonConfig.silentPeriod)) {
+                    val reason = "免打扰时间段内，已跳过转发"
+                    dispatchResultWriter.persistForwardResult(
+                        recordId = recordContext.recordId,
+                        results = emptyList(),
+                        defaultMessage = reason,
+                        forcedStatus = SmsMsg.FORWARD_STATUS_BLOCKED,
+                        msgTypeForAnalytics = recordContext.smsMsgType,
+                    )
+                    ForwardFlowLog.i(traceId, "Silent period blocked sender dispatch type=${event.messageType}")
+                    return EventPipelineResult(dispatched = false, blockedReason = "silent_period")
+                }
+
                 val senderResolution = resolveSenders(event, traceId)
                 if (senderResolution.selectedSenders.isEmpty()) {
                     val reason = senderResolution.blockedReason ?: "未启用任何转发通道"
@@ -129,7 +144,7 @@ class EventPipeline(
                 }
 
                 recordContext = ensureSmsRecordForForwardResult(event, recordContext, traceId)
-                val effectiveConfig = resolveEffectiveConfig(event)
+                val effectiveConfig = resolveEffectiveConfig(event, commonConfig)
                 val defaultMsgInfo = buildDispatchPayload(event, effectiveConfig)
                 val msgCache = java.util.concurrent.ConcurrentHashMap<String, MsgInfo>()
 
@@ -334,8 +349,10 @@ class EventPipeline(
         }
     }
 
-    private suspend fun resolveEffectiveConfig(event: RelayEvent): ForwardCommonConfig {
-        val commonConfig = settingsRepository.loadForwardCommonConfig()
+    private suspend fun resolveEffectiveConfig(
+        event: RelayEvent,
+        commonConfig: ForwardCommonConfig,
+    ): ForwardCommonConfig {
         return when (event.messageType) {
             MessageType.APP_NOTIFY -> {
                 val appConfig = db.appInfoDao().getByPackageName(event.packageName)

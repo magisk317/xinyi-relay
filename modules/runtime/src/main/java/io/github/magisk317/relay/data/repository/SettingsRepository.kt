@@ -10,9 +10,11 @@ import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
+import io.github.magisk317.relay.contract.model.ForwardSilentPeriodConfig
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.android.common.utils.DeviceIdentityUtils
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
+import io.github.magisk317.relay.engine.schedule.ForwardSilentPeriodEvaluator
 import io.github.magisk317.smscode.domain.constant.SmsCodeConst
 import kotlinx.coroutines.flow.Flow
 
@@ -454,6 +456,28 @@ class SettingsRepository(
             PrefConst.KEY_FORWARD_COMMON_DISPATCH_STRATEGY,
             DispatchStrategy.BROADCAST_ALL,
         )
+        val silentPeriod = ForwardSilentPeriodEvaluator.sanitize(
+            ForwardSilentPeriodConfig(
+                enabled = preferenceDataSource.getBoolean(
+                    PrefConst.KEY_FORWARD_SILENT_PERIOD_ENABLED,
+                    false,
+                ),
+                start = preferenceDataSource.getString(
+                    PrefConst.KEY_FORWARD_SILENT_PERIOD_START,
+                    ForwardSilentPeriodConfig.DEFAULT_START,
+                ),
+                end = preferenceDataSource.getString(
+                    PrefConst.KEY_FORWARD_SILENT_PERIOD_END,
+                    ForwardSilentPeriodConfig.DEFAULT_END,
+                ),
+                weekdays = decodeSilentPeriodWeekdays(
+                    preferenceDataSource.getString(
+                        PrefConst.KEY_FORWARD_SILENT_PERIOD_WEEKDAYS,
+                        encodeSilentPeriodWeekdays(ForwardSilentPeriodConfig.ALL_WEEKDAYS),
+                    ),
+                ),
+            ),
+        )
         return ForwardCommonConfig(
             deviceName = configuredName.ifBlank { defaultDeviceName },
             messageTemplate = configuredTemplate,
@@ -461,10 +485,12 @@ class SettingsRepository(
             includeSender = includeSender,
             includeDeviceName = includeDeviceName,
             dispatchStrategy = normalizeDispatchStrategy(dispatchStrategy),
+            silentPeriod = silentPeriod,
         )
     }
 
     override suspend fun saveForwardCommonConfig(config: ForwardCommonConfig) {
+        val silentPeriod = ForwardSilentPeriodEvaluator.sanitize(config.silentPeriod)
         preferenceDataSource.setString(
             PrefConst.KEY_FORWARD_COMMON_DEVICE_NAME,
             config.deviceName.trim(),
@@ -489,6 +515,22 @@ class SettingsRepository(
             PrefConst.KEY_FORWARD_COMMON_DISPATCH_STRATEGY,
             normalizeDispatchStrategy(config.dispatchStrategy),
         )
+        preferenceDataSource.setBoolean(
+            PrefConst.KEY_FORWARD_SILENT_PERIOD_ENABLED,
+            silentPeriod.enabled,
+        )
+        preferenceDataSource.setString(
+            PrefConst.KEY_FORWARD_SILENT_PERIOD_START,
+            silentPeriod.start,
+        )
+        preferenceDataSource.setString(
+            PrefConst.KEY_FORWARD_SILENT_PERIOD_END,
+            silentPeriod.end,
+        )
+        preferenceDataSource.setString(
+            PrefConst.KEY_FORWARD_SILENT_PERIOD_WEEKDAYS,
+            encodeSilentPeriodWeekdays(silentPeriod.weekdays),
+        )
         syncAndNoteRemoteMutation("settings.forward_common")
     }
 
@@ -500,6 +542,25 @@ class SettingsRepository(
             -> strategy
             else -> DispatchStrategy.BROADCAST_ALL
         }
+    }
+
+    private fun decodeSilentPeriodWeekdays(rawValue: String): List<Int> {
+        return rawValue
+            .split(',')
+            .mapNotNull { it.trim().toIntOrNull() }
+            .filter { it in ForwardSilentPeriodConfig.ALL_WEEKDAYS }
+            .distinct()
+            .sorted()
+            .ifEmpty { ForwardSilentPeriodConfig.ALL_WEEKDAYS }
+    }
+
+    private fun encodeSilentPeriodWeekdays(weekdays: List<Int>): String {
+        return weekdays
+            .filter { it in ForwardSilentPeriodConfig.ALL_WEEKDAYS }
+            .distinct()
+            .sorted()
+            .ifEmpty { ForwardSilentPeriodConfig.ALL_WEEKDAYS }
+            .joinToString(",")
     }
 
     override suspend fun loadAppNotifyTemplate(): String {
