@@ -2,9 +2,11 @@ package io.github.magisk317.relay.ui.sender
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -31,8 +33,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.contract.constant.DispatchStrategy
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
+import io.github.magisk317.relay.contract.model.ForwardSilentPeriodConfig
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.model.Sender
+import io.github.magisk317.relay.engine.schedule.ForwardSilentPeriodEvaluator
+import io.github.magisk317.relay.ui.common.ActiveScheduleTimeValueButton
+import io.github.magisk317.relay.ui.common.ActiveScheduleWeekdayRow
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
@@ -51,11 +57,29 @@ internal fun GeneralConfigDialog(
     }
     var simSlot1Remark by remember(currentSimSlot1Remark) { mutableStateOf(currentSimSlot1Remark) }
     var simSlot2Remark by remember(currentSimSlot2Remark) { mutableStateOf(currentSimSlot2Remark) }
+    var silentPeriod by remember(currentConfig.silentPeriod) {
+        mutableStateOf(ForwardSilentPeriodEvaluator.sanitize(currentConfig.silentPeriod))
+    }
+    fun toggleSilentWeekday(weekday: Int) {
+        val nextWeekdays = if (weekday in silentPeriod.weekdays) {
+            silentPeriod.weekdays.filterNot { it == weekday }
+        } else {
+            (silentPeriod.weekdays + weekday).distinct().sorted()
+        }
+        silentPeriod = silentPeriod.copy(
+            weekdays = nextWeekdays.ifEmpty { ForwardSilentPeriodConfig.ALL_WEEKDAYS },
+        )
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.sender_general_config_title)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier
+                    .heightIn(max = 560.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 OutlinedTextField(
                     value = deviceName,
                     onValueChange = { deviceName = it },
@@ -86,6 +110,55 @@ internal fun GeneralConfigDialog(
                     selected = dispatchStrategy,
                     onSelect = { dispatchStrategy = it },
                 )
+                HorizontalDivider()
+                ConfigGateToggle(
+                    title = stringResource(R.string.forward_silent_period_title),
+                    summary = stringResource(R.string.forward_silent_period_summary),
+                    checked = silentPeriod.enabled,
+                    onCheckedChange = { enabled ->
+                        silentPeriod = silentPeriod.copy(enabled = enabled)
+                    },
+                )
+                if (silentPeriod.enabled) {
+                    Text(
+                        text = stringResource(R.string.forward_silent_period_weekdays),
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    ActiveScheduleWeekdayRow(
+                        weekdays = listOf(1, 2, 3, 4),
+                        selectedWeekdays = silentPeriod.weekdays,
+                        onWeekdayToggle = ::toggleSilentWeekday,
+                    )
+                    ActiveScheduleWeekdayRow(
+                        weekdays = GENERAL_CONFIG_SECOND_WEEKDAY_ROW,
+                        selectedWeekdays = silentPeriod.weekdays,
+                        onWeekdayToggle = ::toggleSilentWeekday,
+                    )
+                    Text(
+                        text = stringResource(R.string.forward_silent_period_range),
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        ActiveScheduleTimeValueButton(
+                            modifier = Modifier.weight(1f),
+                            value = silentPeriod.start,
+                            onValueChange = { value ->
+                                silentPeriod = silentPeriod.copy(start = value)
+                            },
+                        )
+                        ActiveScheduleTimeValueButton(
+                            modifier = Modifier.weight(1f),
+                            value = silentPeriod.end,
+                            onValueChange = { value ->
+                                silentPeriod = silentPeriod.copy(end = value)
+                            },
+                        )
+                    }
+                }
+                HorizontalDivider()
                 OutlinedTextField(
                     value = simSlot1Remark,
                     onValueChange = { simSlot1Remark = it },
@@ -111,6 +184,7 @@ internal fun GeneralConfigDialog(
                         currentConfig.copy(
                             deviceName = deviceName.trim(),
                             dispatchStrategy = dispatchStrategy,
+                            silentPeriod = ForwardSilentPeriodEvaluator.sanitize(silentPeriod),
                         ),
                         simSlot1Remark.trim(),
                         simSlot2Remark.trim(),
@@ -127,6 +201,8 @@ internal fun GeneralConfigDialog(
         },
     )
 }
+
+private val GENERAL_CONFIG_SECOND_WEEKDAY_ROW = listOf(5, 6, 7)
 
 @Composable
 internal fun SenderPriorityDialog(
