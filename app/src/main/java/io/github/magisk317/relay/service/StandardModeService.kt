@@ -11,13 +11,16 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.feature.call.CallStateMonitor
 import io.github.magisk317.relay.feature.mode.BatteryOptimizationHelper
 import io.github.magisk317.relay.feature.mode.StandardModePermissions
 import io.github.magisk317.relay.feature.mode.WorkMode
 import io.github.magisk317.relay.feature.mode.WorkModeResolver
+import io.github.magisk317.relay.ui.home.LauncherActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collectLatest
@@ -37,6 +40,7 @@ import kotlinx.coroutines.launch
 class StandardModeService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var monitorJob: Job? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -47,18 +51,24 @@ class StandardModeService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        when (intent?.action) {
+        return when (intent?.action ?: ACTION_START) {
             ACTION_START -> {
                 startForeground(NOTIFICATION_ID, buildNotification())
                 monitorWorkMode()
                 XLog.i("StandardModeService started as foreground service")
+                START_STICKY
             }
             ACTION_STOP -> {
                 XLog.i("StandardModeService stopping on user/system request")
                 stopSelf()
+                START_NOT_STICKY
+            }
+            else -> {
+                XLog.w("StandardModeService received unknown action: %s", intent?.action)
+                stopSelf()
+                START_NOT_STICKY
             }
         }
-        return START_STICKY
     }
 
     override fun onDestroy() {
@@ -68,7 +78,8 @@ class StandardModeService : Service() {
     }
 
     private fun monitorWorkMode() {
-        scope.launch {
+        if (monitorJob?.isActive == true) return
+        monitorJob = scope.launch {
             WorkModeResolver.mode.collectLatest { mode ->
                 if (mode != WorkMode.Standard) {
                     XLog.i("StandardModeService: mode changed to %s, stopping service", mode)
@@ -93,10 +104,10 @@ class StandardModeService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Standard Mode",
+                getString(R.string.standard_mode_service_channel_name),
                 NotificationManager.IMPORTANCE_LOW,
             ).apply {
-                description = "Keeps xinyi-relay running in standard mode (non-Xposed)"
+                description = getString(R.string.standard_mode_service_channel_description)
                 setShowBadge(false)
             }
             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -105,19 +116,29 @@ class StandardModeService : Service() {
     }
 
     private fun buildNotification(): Notification {
-        // TODO: Launch MainActivity when clicked
+        val contentIntent = Intent(this, LauncherActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val pendingIntentFlags = PendingIntent.FLAG_UPDATE_CURRENT or
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
+        val contentPendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            contentIntent,
+            pendingIntentFlags,
+        )
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("xinyi-relay running")
-            .setContentText("Standard mode active - SMS and call monitoring")
+            .setContentTitle(getString(R.string.standard_mode_service_notification_title))
+            .setContentText(getString(R.string.standard_mode_service_notification_text))
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setContentIntent(contentPendingIntent)
             .setOngoing(true)
             .setShowWhen(false)
             .build()
     }
 
     companion object {
-        private const val TAG = "StandardModeService"
         private const val CHANNEL_ID = "standard_mode_service"
         private const val NOTIFICATION_ID = 0x584D // "XM" in hex
         private const val ACTION_START = "io.github.magisk317.relay.ACTION_START_STANDARD_MODE"
@@ -127,10 +148,14 @@ class StandardModeService : Service() {
             val intent = Intent(context, StandardModeService::class.java).apply {
                 action = ACTION_START
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
+            runCatching {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+            }.onFailure { error ->
+                XLog.e("Failed to start StandardModeService", error)
             }
         }
 
@@ -138,7 +163,11 @@ class StandardModeService : Service() {
             val intent = Intent(context, StandardModeService::class.java).apply {
                 action = ACTION_STOP
             }
-            context.startService(intent)
+            runCatching {
+                context.startService(intent)
+            }.onFailure { error ->
+                XLog.e("Failed to stop StandardModeService", error)
+            }
         }
     }
 }

@@ -42,6 +42,8 @@ object CallStateMonitor {
     private var lastNumber: String? = null
     @Volatile
     private var lastDirection: Int = 0
+    @Volatile
+    private var callStartedAt: Long = 0L
     private var legacyListener: Any? = null
     private var telephonyCallback: TelephonyCallback? = null
 
@@ -54,8 +56,8 @@ object CallStateMonitor {
         val context = appContext ?: return
         scope.launch {
             val mode = WorkModeResolver.mode.value
-            if (mode == WorkMode.Enhanced) {
-                stop("enhanced_mode")
+            if (mode != WorkMode.Standard) {
+                stop("mode_$mode")
                 return@launch
             }
             val (forwardEnabled, localEnabled) = loadCallAlertFlags(context)
@@ -120,6 +122,7 @@ object CallStateMonitor {
                 lastRingingAt = now
                 lastNumber = phoneNumber?.ifBlank { null }
                 lastDirection = CALL_TYPE_INCOMING
+                callStartedAt = now
                 val title = context.getString(R.string.call_alert_notification_title)
                 val display = CallIngressAdapter.displayName(
                     phoneNumber = lastNumber,
@@ -156,33 +159,50 @@ object CallStateMonitor {
             TelephonyManager.CALL_STATE_OFFHOOK -> {
                 if (lastState == TelephonyManager.CALL_STATE_IDLE) {
                     lastDirection = CALL_TYPE_OUTGOING
+                    callStartedAt = System.currentTimeMillis()
+                } else if (callStartedAt == 0L) {
+                    callStartedAt = System.currentTimeMillis()
                 }
             }
             TelephonyManager.CALL_STATE_IDLE -> {
                 if (lastState != TelephonyManager.CALL_STATE_IDLE) {
+                    val endedAt = System.currentTimeMillis()
+                    val sessionStartedAt = if (callStartedAt > 0L) callStartedAt else endedAt
+                    val expectedCallType = if (lastDirection == 0) CALL_TYPE_INCOMING else lastDirection
+                    val directNumber = lastNumber?.ifBlank { null }
                     scope.launch {
                         val (forwardEnabled, _) = loadCallAlertFlags(context)
                         if (forwardEnabled) {
-                            val number = lastNumber?.ifBlank { null }
-                                ?: CallSessionTracker.findRecentNumber(
-                                    if (lastDirection == 0) CALL_TYPE_INCOMING else lastDirection,
-                                )
-                            if (lastNumber.isNullOrBlank() && !number.isNullOrBlank()) {
-                                XLog.i("CallStateMonitor recovered call number from recent ingress")
+                            val callLogRow = CallLogQueryHelper.findRecentCall(
+                                context = context,
+                                expectedCallType = expectedCallType,
+                                sessionStartedAt = sessionStartedAt,
+                                endedAt = endedAt,
+                            )
+                            val recentNumber = CallSessionTracker.findRecentNumber(expectedCallType)
+                            val callLogNumber = callLogRow?.number
+                            val number = directNumber ?: recentNumber ?: callLogNumber
+                            when {
+                                directNumber == null && recentNumber != null ->
+                                    XLog.i("CallStateMonitor recovered call number from recent ingress")
+                                directNumber == null && recentNumber == null && callLogNumber != null ->
+                                    XLog.i("CallStateMonitor recovered call number from CallLog")
                             }
-                            if (!number.isNullOrBlank()) {
-                                sendCallBroadcast(
-                                    context = context,
-                                    stage = "ended",
-                                    callType = if (lastDirection == 0) CALL_TYPE_INCOMING else lastDirection,
-                                    number = number,
-                                )
+                            if (number.isNullOrBlank()) {
+                                XLog.i("CallStateMonitor ended call number unavailable, using fallback title")
                             }
+                            sendCallBroadcast(
+                                context = context,
+                                stage = "ended",
+                                callType = callLogRow?.callType ?: expectedCallType,
+                                number = number,
+                            )
                         }
                     }
                 }
                 lastNumber = null
                 lastDirection = 0
+                callStartedAt = 0L
             }
         }
         lastState = state
@@ -204,16 +224,29 @@ object CallStateMonitor {
         } else {
             context.getString(R.string.call_alert_notification_content, display)
         }
-        val payload = CallIngressAdapter.stagePayload(
-            packageName = context.packageName,
-            fallbackTitle = title,
-            phoneNumber = number,
-            body = body,
-            company = title,
-            timestamp = System.currentTimeMillis(),
-            callType = callType,
-            stage = stage,
-        )
+        val timestamp = System.currentTimeMillis()
+        val payload = if (stage == "ringing") {
+            CallIngressAdapter.ringingPayload(
+                packageName = context.packageName,
+                fallbackTitle = title,
+                phoneNumber = number,
+                incomingBody = body,
+                company = title,
+                timestamp = timestamp,
+                callType = callType,
+            )
+        } else {
+            CallIngressAdapter.stagePayload(
+                packageName = context.packageName,
+                fallbackTitle = title,
+                phoneNumber = number,
+                body = body,
+                company = title,
+                timestamp = timestamp,
+                callType = callType,
+                stage = stage,
+            )
+        }
         runCatching {
             ForwardBroadcastDispatcher.dispatchFromHost(
                 context = context,

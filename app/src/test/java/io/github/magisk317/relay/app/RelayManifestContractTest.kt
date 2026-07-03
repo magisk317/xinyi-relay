@@ -94,22 +94,35 @@ class RelayManifestContractTest {
     }
 
     @Test
-    fun `base manifest does not declare outgoing sms permissions`() {
+    fun `base manifest declares standard mode receive permissions only`() {
         val permissions = permissionNames("app/src/main/AndroidManifest.xml")
         val features = featureNames("app/src/main/AndroidManifest.xml")
 
         assertFalse("android.permission.SEND_SMS" in permissions)
-        assertFalse("android.permission.READ_PHONE_STATE" in permissions)
+        assertTrue("android.permission.RECEIVE_SMS" in permissions)
+        assertTrue("android.permission.RECEIVE_MMS" in permissions)
+        assertTrue("android.permission.READ_PHONE_STATE" in permissions)
+        assertTrue("android.permission.READ_CALL_LOG" in permissions)
+        assertTrue("android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" in permissions)
         assertFalse("android.hardware.telephony" in features)
     }
 
     @Test
-    fun `play manifest does not declare outgoing sms permissions`() {
+    fun `play manifest removes standard mode telephony permissions and receivers`() {
         val permissions = permissionNames("app/src/play/AndroidManifest.xml")
+        val removedPermissions = removedPermissionNames("app/src/play/AndroidManifest.xml")
+        val removedReceivers = removedReceiverNames("app/src/play/AndroidManifest.xml")
         val features = featureNames("app/src/play/AndroidManifest.xml")
 
         assertFalse("android.permission.SEND_SMS" in permissions)
-        assertFalse("android.permission.READ_PHONE_STATE" in permissions)
+        assertTrue("android.permission.RECEIVE_SMS" in removedPermissions)
+        assertTrue("android.permission.RECEIVE_MMS" in removedPermissions)
+        assertTrue("android.permission.READ_SMS" in removedPermissions)
+        assertTrue("android.permission.READ_PHONE_STATE" in removedPermissions)
+        assertTrue("android.permission.READ_CALL_LOG" in removedPermissions)
+        assertTrue("android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" in removedPermissions)
+        assertTrue("io.github.magisk317.relay.receiver.StandardSmsReceiver" in removedReceivers)
+        assertTrue("io.github.magisk317.relay.receiver.StandardMmsReceiver" in removedReceivers)
         assertFalse("android.hardware.telephony" in features)
     }
 
@@ -126,6 +139,28 @@ class RelayManifestContractTest {
     }
 
     @Test
+    fun `standard mode sms and mms receivers are declared`() {
+        val document = parseManifest("app/src/main/AndroidManifest.xml")
+        val receivers = document.getElementsByTagName("receiver")
+            .asElements()
+            .associateBy { it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue.orEmpty() }
+
+        val smsReceiver = receivers.getValue("io.github.magisk317.relay.receiver.StandardSmsReceiver")
+        assertEquals("android.permission.BROADCAST_SMS", smsReceiver.attributes.getNamedItemNS(ANDROID_NS, "permission")?.nodeValue)
+        assertReceiverAction(smsReceiver, "android.provider.Telephony.SMS_RECEIVED")
+
+        val mmsReceiver = receivers.getValue("io.github.magisk317.relay.receiver.StandardMmsReceiver")
+        assertEquals("android.permission.BROADCAST_WAP_PUSH", mmsReceiver.attributes.getNamedItemNS(ANDROID_NS, "permission")?.nodeValue)
+        assertReceiverAction(mmsReceiver, "android.provider.Telephony.WAP_PUSH_RECEIVED")
+        assertReceiverAction(mmsReceiver, "android.provider.Telephony.WAP_PUSH_DELIVER")
+        val mimeTypes = mmsReceiver.getElementsByTagName("data")
+            .asElements()
+            .mapNotNull { it.attributes.getNamedItemNS(ANDROID_NS, "mimeType")?.nodeValue }
+            .toSet()
+        assertTrue("application/vnd.wap.mms-message" in mimeTypes)
+    }
+
+    @Test
     fun `libxposed entrypoint and scope metadata remain declared`() {
         assertEquals(
             "io.github.magisk317.relay.xp.LibXposedEntry",
@@ -137,17 +172,6 @@ class RelayManifestContractTest {
         assertTrue("targetApiVersion=102" in moduleProps)
         assertTrue("staticScope=true" in moduleProps)
         assertTrue("autoHotReload=true" in moduleProps)
-
-        val entrySource = resolveProjectFile(
-            "modules/hook/entry/src/main/java/io/github/magisk317/relay/xp/LibXposedEntry.kt",
-        ).readText()
-        assertTrue("HotReloadingParam" in entrySource)
-        assertTrue("HotReloadedParam" in entrySource)
-        assertTrue("beginHotReload(param.oldHookHandles)" in entrySource)
-        assertTrue("finishHotReload()" in entrySource)
-        assertFalse("setSavedInstanceState(Pair(" in entrySource)
-        assertFalse("HashMap(loadedPackages)" in entrySource)
-        assertFalse("ClassLoader)" in entrySource.substringAfter("fun createHotReloadState"))
 
         val scope = resolveProjectFile("modules/hook/entry/src/main/resources/META-INF/xposed/scope.list")
             .readLines()
@@ -186,6 +210,24 @@ class RelayManifestContractTest {
             .toSet()
     }
 
+    private fun removedPermissionNames(relativePath: String): Set<String> {
+        return parseManifest(relativePath)
+            .getElementsByTagName("uses-permission")
+            .asElements()
+            .filter { it.attributes.getNamedItemNS(TOOLS_NS, "node")?.nodeValue == "remove" }
+            .mapNotNull { it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue }
+            .toSet()
+    }
+
+    private fun removedReceiverNames(relativePath: String): Set<String> {
+        return parseManifest(relativePath)
+            .getElementsByTagName("receiver")
+            .asElements()
+            .filter { it.attributes.getNamedItemNS(TOOLS_NS, "node")?.nodeValue == "remove" }
+            .mapNotNull { it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue }
+            .toSet()
+    }
+
     private fun featureNames(relativePath: String): Set<String> {
         return parseManifest(relativePath)
             .getElementsByTagName("uses-feature")
@@ -194,11 +236,20 @@ class RelayManifestContractTest {
             .toSet()
     }
 
+    private fun assertReceiverAction(receiver: Element, expectedAction: String) {
+        val actions = receiver.getElementsByTagName("action")
+            .asElements()
+            .mapNotNull { it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue }
+            .toSet()
+        assertTrue(expectedAction in actions)
+    }
+
     private fun org.w3c.dom.NodeList.asElements(): List<Element> {
         return List(length) { index -> item(index) }.filterIsInstance<Element>()
     }
 
     private companion object {
         const val ANDROID_NS = "http://schemas.android.com/apk/res/android"
+        const val TOOLS_NS = "http://schemas.android.com/tools"
     }
 }

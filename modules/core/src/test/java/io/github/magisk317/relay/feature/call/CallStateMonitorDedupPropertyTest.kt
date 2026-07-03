@@ -20,12 +20,12 @@ import io.kotest.property.checkAll
 class CallStateMonitorDedupPropertyTest : FunSpec({
 
     // Mirrors CallStateMonitor.RINGING_DEDUP_MS
-    val RINGING_DEDUP_MS = 8_000L
+    val ringingDedupMs = 8_000L
 
     /**
      * Simulates the dedup decision logic from CallStateMonitor.handleCallState():
      *   val now = System.currentTimeMillis()
-     *   if (now - lastRingingAt < RINGING_DEDUP_MS) return   // skip
+     *   if (now - lastRingingAt < ringingDedupMs) return   // skip
      *   lastRingingAt = now                                    // accept
      *
      * Returns list of booleans indicating whether each timestamp was accepted (dispatched).
@@ -33,7 +33,7 @@ class CallStateMonitorDedupPropertyTest : FunSpec({
     fun simulateDedup(timestamps: List<Long>): List<Boolean> {
         var lastRingingAt = 0L
         return timestamps.map { now ->
-            if (now - lastRingingAt < RINGING_DEDUP_MS) {
+            if (now - lastRingingAt < ringingDedupMs) {
                 false // silently discarded
             } else {
                 lastRingingAt = now
@@ -63,12 +63,12 @@ class CallStateMonitorDedupPropertyTest : FunSpec({
             var lastAcceptedAt = 0L
             timestamps.zip(results).forEach { (ts, accepted) ->
                 if (accepted) {
-                    // Accepted: gap from previous accepted must be >= RINGING_DEDUP_MS
-                    (ts - lastAcceptedAt >= RINGING_DEDUP_MS) shouldBe true
+                    // Accepted: gap from previous accepted must be >= ringingDedupMs
+                    (ts - lastAcceptedAt >= ringingDedupMs) shouldBe true
                     lastAcceptedAt = ts
                 } else {
-                    // Discarded: gap from previous accepted must be < RINGING_DEDUP_MS
-                    (ts - lastAcceptedAt < RINGING_DEDUP_MS) shouldBe true
+                    // Discarded: gap from previous accepted must be < ringingDedupMs
+                    (ts - lastAcceptedAt < ringingDedupMs) shouldBe true
                 }
             }
         }
