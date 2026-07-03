@@ -13,6 +13,7 @@ verify_root_directory_layout() {
   local -a allowed_hyphen_roots=(
     "build-logic"
     "magisk-ui-kit"
+    "magisk-xposed-kit"
     "smscode-core"
     "smscode-rules"
   )

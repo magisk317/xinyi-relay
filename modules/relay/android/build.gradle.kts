@@ -29,6 +29,29 @@ android {
         consumerProguardFiles("consumer-rules.pro")
     }
 
+    sourceSets {
+        getByName("play") {
+            java.directories.add("src/xposed/java")
+            kotlin.directories.add("src/xposed/java")
+            manifest.srcFile("src/xposed/AndroidManifest.xml")
+        }
+        getByName("githubNoE2ee") {
+            java.directories.add("src/xposed/java")
+            kotlin.directories.add("src/xposed/java")
+            manifest.srcFile("src/xposed/AndroidManifest.xml")
+        }
+        getByName("githubWithE2ee") {
+            java.directories.add("src/xposed/java")
+            kotlin.directories.add("src/xposed/java")
+            manifest.srcFile("src/xposed/AndroidManifest.xml")
+        }
+        getByName("fdroid") {
+            java.directories.add("src/xposed/java")
+            kotlin.directories.add("src/xposed/java")
+            manifest.srcFile("src/xposed/AndroidManifest.xml")
+        }
+    }
+
 }
 
 dependencies {
@@ -37,7 +60,6 @@ dependencies {
     implementation(project(":relay:sender"))
     implementation(project(":smscode-core:domain"))
     implementation(project(":smscode-core:runtime"))
-    implementation(project(":magisk-xposed-kit"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.datastore.preferences)
@@ -46,6 +68,11 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.timber)
+
+    listOf("play", "githubNoE2ee", "githubWithE2ee", "fdroid").forEach { flavor ->
+        add("${flavor}Implementation", project(":magisk-xposed-kit"))
+    }
+
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
 }

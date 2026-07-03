@@ -37,17 +37,21 @@ android {
 
     // Dynamic Feature Module for E2EE is only used by Play variants.
     // GitHubWithE2ee bundles the native lib directly in the sender module.
-    // Keep the DFM attached only for explicit Play bundle/build entrypoints so
-    // GitHub tasks do not resolve Play-only feature variants.
+    // AGP exposes dynamicFeatures as a global application setting, not a
+    // per-variant switch. Keep the DFM attached only for dedicated Play bundle
+    // or Play assemble invocations so mixed GitHub+Play validation commands do
+    // not force GitHub variants to resolve Play-only feature variants.
     val requestedTasks = gradle.startParameter.taskNames
-    val isPlayBuild = requestedTasks.any { taskName ->
+    val requestedAppTasks = requestedTasks.map { it.substringAfterLast(':') }
+    val requestsPlayDynamicFeature = requestedAppTasks.any { taskName ->
         val normalized = taskName.substringAfterLast(':')
         normalized.contains("bundlePlay", ignoreCase = true) ||
             normalized.contains("packagePlay", ignoreCase = true) ||
             normalized.contains("assemblePlay", ignoreCase = true) ||
             normalized == "bundleRelease"
     }
-    if (isPlayBuild) {
+    val requestsGithubVariant = requestedAppTasks.any { it.contains("Github", ignoreCase = true) }
+    if (requestsPlayDynamicFeature && !requestsGithubVariant) {
         dynamicFeatures += ":features:matrix_e2ee"
     }
 
@@ -91,11 +95,23 @@ android {
         getByName("main") {
             assets.directories.add(generatedSmsCodeRulesAssetsDir.get().asFile.path)
         }
+        getByName("play") {
+            java.directories.add("src/xposed/java")
+            kotlin.directories.add("src/xposed/java")
+        }
         getByName("githubNoE2ee") {
             setRoot("src/github")
+            java.directories.add("src/xposed/java")
+            kotlin.directories.add("src/xposed/java")
         }
         getByName("githubWithE2ee") {
             setRoot("src/github")
+            java.directories.add("src/xposed/java")
+            kotlin.directories.add("src/xposed/java")
+        }
+        getByName("fdroid") {
+            java.directories.add("src/xposed/java")
+            kotlin.directories.add("src/xposed/java")
         }
     }
 
@@ -124,19 +140,14 @@ tasks.matching { it.name.endsWith("GoogleServices") }.configureEach {
 
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
-    implementation(project(":hook:entry"))
     implementation(project(":core"))
     implementation(project(":mobile:ui"))
     implementation(project(":relay:android"))
-    implementation(project(":xpbridge:core"))
     implementation(project(":smscode-core:verification"))
-    implementation(project(":smscode-core:hook"))
-    implementation(project(":runtime"))
     implementation(project(":relay:engine"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.process)
-    implementation(libs.libxposed.service)
 
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
@@ -149,6 +160,12 @@ dependencies {
     add("githubNoE2eeImplementation", libs.firebase.analytics)
     add("githubWithE2eeImplementation", platform(libs.firebase.bom))
     add("githubWithE2eeImplementation", libs.firebase.analytics)
+
+    listOf("play", "githubNoE2ee", "githubWithE2ee", "fdroid").forEach { flavor ->
+        add("${flavor}Implementation", project(":hook:entry"))
+        add("${flavor}Implementation", project(":xpbridge:core"))
+        add("${flavor}Implementation", libs.libxposed.service)
+    }
 
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)

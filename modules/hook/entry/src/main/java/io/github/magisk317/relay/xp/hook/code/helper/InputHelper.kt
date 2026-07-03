@@ -3,7 +3,9 @@ package io.github.magisk317.relay.xp.hook.code.helper
 import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
+import io.github.magisk317.smscode.runtime.contract.autoinput.AutoInputBroadcastContract
 import io.github.magisk317.smscode.verification.AutoInputBroadcastHelper
+import io.github.magisk317.smscode.xposed.prefs.CorePrefs
 import io.github.magisk317.smscode.xposed.utils.XLog
 
 object InputHelper {
@@ -25,6 +27,9 @@ object InputHelper {
             attemptId = attemptId,
             actionResolver = {
                 io.github.magisk317.smscode.xposed.hook.system.SystemInputInjectorHook.resolveActionAutoInput()
+            },
+            tokenProvider = {
+                CorePrefs.getString(AutoInputBroadcastContract.EXTRA_IPC_TOKEN, "")
             },
         )
     }

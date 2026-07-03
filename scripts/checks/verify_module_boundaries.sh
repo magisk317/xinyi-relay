@@ -80,19 +80,32 @@ forbid_pattern "$APP_BUILD" 'implementation\(project\(":smscode-core:core"\)\)' 
   "app must not runtime-package :smscode-core:core directly"
 forbid_pattern "$APP_BUILD" 'api\(project\(":smscode-core:core"\)\)' \
   "app must not expose :smscode-core:core directly"
-require_pattern "$APP_BUILD" 'implementation\(project\(":hook:entry"\)\)' \
-  "app must package :hook:entry for libxposed entrypoints"
-forbid_pattern "$APP_BUILD" 'implementation\(project\(":smscode-core:xposed"\)\)' \
-  "app must not package :smscode-core:xposed directly"
-
+forbid_pattern "$APP_BUILD" 'implementation\(project\(":hook:entry"\)\)' \
+  "app must not package :hook:entry for every flavor; keep it on Xposed-capable flavors only"
+forbid_pattern "$APP_BUILD" 'implementation\(project\(":xpbridge:core"\)\)' \
+  "app must not package :xpbridge:core for every flavor; keep it on Xposed-capable flavors only"
+forbid_pattern "$APP_BUILD" 'implementation\(libs\.libxposed\.service\)' \
+  "app must not package libxposed service for every flavor; keep it on Xposed-capable flavors only"
+forbid_pattern "$APP_BUILD" 'project\(":smscode-core:hook"\)' \
+  "app must not package :smscode-core:hook directly"
+require_pattern "$APP_BUILD" 'add\("\$\{flavor\}Implementation", project\(":hook:entry"\)\)' \
+  "app must package :hook:entry through Xposed flavor-specific dependencies"
+require_pattern "$APP_BUILD" 'add\("\$\{flavor\}Implementation", project\(":xpbridge:core"\)\)' \
+  "app must package :xpbridge:core through Xposed flavor-specific dependencies"
+require_pattern "$APP_BUILD" 'add\("\$\{flavor\}Implementation", libs\.libxposed\.service\)' \
+  "app must package libxposed service through Xposed flavor-specific dependencies"
 require_pattern "$CORE_BUILD" 'implementation\(project\(":runtime"\)\)' \
   "core must depend on :runtime as implementation"
 forbid_pattern "$CORE_BUILD" 'api\(project\(":runtime"\)\)' \
   "core must not expose :runtime transitively"
 require_pattern "$CORE_BUILD" 'implementation\(project\(":relay:engine:api"\)\)' \
   "core must depend on :relay:engine:api for engine contracts"
-require_pattern "$CORE_BUILD" 'implementation\(project\(":smscode-core:xposed"\)\)' \
-  "core runtime bridge may depend directly on :smscode-core:xposed during the split"
+forbid_pattern "$CORE_BUILD" 'implementation\(project\(":smscode-core:hook"\)\)' \
+  "core must not package :smscode-core:hook for every flavor; keep it on Xposed-capable flavors only"
+forbid_pattern "$CORE_BUILD" 'api\(project\(":smscode-core:hook"\)\)' \
+  "core must not expose :smscode-core:hook transitively"
+require_pattern "$CORE_BUILD" 'add\("\$\{flavor\}Implementation", project\(":smscode-core:hook"\)\)' \
+  "core runtime bridge may depend on :smscode-core:hook only through Xposed flavor-specific dependencies"
 forbid_pattern "$CORE_BUILD" 'project\(":xpbridge:core"\)' \
   "core must not depend on :xpbridge:core directly"
 
@@ -142,7 +155,10 @@ require_pattern "$RELAY_ANDROID_BUILD" 'implementation\(project\(":relay:sender"
   "relay/android may bridge relay/sender but must not expose it transitively"
 forbid_pattern "$RELAY_ANDROID_BUILD" 'api\(project\(":relay:sender"\)\)' \
   "relay/android must not expose relay/sender transitively"
-
+forbid_pattern "$RELAY_ANDROID_BUILD" 'implementation\(project\(":magisk-xposed-kit"\)\)' \
+  "relay/android must not package :magisk-xposed-kit for every flavor"
+require_pattern "$RELAY_ANDROID_BUILD" 'add\("\$\{flavor\}Implementation", project\(":magisk-xposed-kit"\)\)' \
+  "relay/android must package :magisk-xposed-kit only through Xposed flavor-specific dependencies"
 forbid_pattern "$RELAY_SENDER_BUILD" 'project\(":relay:engine"\)' \
   "relay/sender must not depend on :relay:engine implementation directly"
 require_pattern "$RELAY_SENDER_BUILD" 'implementation\(project\(":relay:engine:api"\)\)' \

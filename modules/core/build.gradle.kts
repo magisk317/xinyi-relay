@@ -32,11 +32,23 @@ android {
     }
 
     sourceSets {
+        getByName("play") {
+            java.directories.add("src/xposed/java")
+            kotlin.directories.add("src/xposed/java")
+        }
         getByName("githubNoE2ee") {
             setRoot("src/github")
+            java.directories.add("src/xposed/java")
+            kotlin.directories.add("src/xposed/java")
         }
         getByName("githubWithE2ee") {
             setRoot("src/github")
+            java.directories.add("src/xposed/java")
+            kotlin.directories.add("src/xposed/java")
+        }
+        getByName("fdroid") {
+            java.directories.add("src/xposed/java")
+            kotlin.directories.add("src/xposed/java")
         }
     }
 
@@ -64,7 +76,6 @@ dependencies {
     implementation(project(":smscode-core:domain"))
     implementation(project(":smscode-core:runtime"))
     implementation(project(":smscode-core:verification"))
-    implementation(project(":smscode-core:hook"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.browser)
     implementation(libs.androidx.room.runtime)
@@ -86,6 +97,10 @@ dependencies {
     add("playImplementation", libs.play.services.auth)
     add("playImplementation", libs.kotlinx.coroutines.play.services)
     add("playImplementation", libs.billing.ktx)
+
+    listOf("play", "githubNoE2ee", "githubWithE2ee", "fdroid").forEach { flavor ->
+        add("${flavor}Implementation", project(":smscode-core:hook"))
+    }
 
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)

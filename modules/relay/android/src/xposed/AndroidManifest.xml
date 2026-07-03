@@ -3,8 +3,8 @@
 
     <application>
         <provider
-            android:name="io.github.magisk317.relay.android.data.db.DBProvider"
-            android:authorities="${applicationId}.db.provider"
+            android:name="io.github.magisk317.relay.android.platform.xpbridge.RelayXposedLogProvider"
+            android:authorities="${applicationId}.xposed.log"
             android:exported="true" />
     </application>
 
