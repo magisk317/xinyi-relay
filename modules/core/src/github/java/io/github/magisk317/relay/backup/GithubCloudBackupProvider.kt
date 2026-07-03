@@ -26,13 +26,9 @@ class GithubCloudBackupProvider(
             return@withContext Result.failure(IllegalStateException("Not logged in"))
         }
 
-        try {
-            val result = googleDriveBackupManager.uploadBackup()
-            result.map { it.id }
-        } catch (e: Exception) {
-            XLog.e("Google Drive upload backup failed: %s", e.message ?: e.javaClass.simpleName)
-            Result.failure(e)
-        }
+        googleDriveBackupManager.uploadBackup()
+            .map { it.id }
+            .onFailure { error -> XLog.e("Google Drive upload backup failed: %s", error.message ?: error.javaClass.simpleName) }
     }
 
     override suspend fun listBackups(): Result<List<CloudBackupMeta>> = withContext(Dispatchers.IO) {
@@ -40,13 +36,11 @@ class GithubCloudBackupProvider(
             return@withContext Result.success(emptyList())
         }
 
-        try {
-            val result = googleDriveBackupManager.listBackups().getOrThrow()
-            Result.success(result.map { CloudBackupMeta(it.id, it.name, it.size, it.modifiedTime, BackupSource.GOOGLE_DRIVE) })
-        } catch (e: Exception) {
-            XLog.e("Google Drive list backups failed: %s", e.message ?: e.javaClass.simpleName)
-            Result.failure(e)
-        }
+        googleDriveBackupManager.listBackups()
+            .map { result ->
+                result.map { CloudBackupMeta(it.id, it.name, it.size, it.modifiedTime, BackupSource.GOOGLE_DRIVE) }
+            }
+            .onFailure { error -> XLog.e("Google Drive list backups failed: %s", error.message ?: error.javaClass.simpleName) }
     }
 
     override suspend fun restoreFromBackup(backupId: String): Result<Unit> = withContext(Dispatchers.IO) {
@@ -54,12 +48,8 @@ class GithubCloudBackupProvider(
             return@withContext Result.failure(IllegalStateException("Not logged in"))
         }
 
-        try {
-            googleDriveBackupManager.restoreFromBackup(backupId)
-        } catch (e: Exception) {
-            XLog.e("Google Drive restore backup failed: %s", e.message ?: e.javaClass.simpleName)
-            Result.failure(e)
-        }
+        googleDriveBackupManager.restoreFromBackup(backupId)
+            .onFailure { error -> XLog.e("Google Drive restore backup failed: %s", error.message ?: error.javaClass.simpleName) }
     }
 
     override suspend fun deleteBackup(backupId: String): Result<Unit> = withContext(Dispatchers.IO) {
@@ -67,12 +57,8 @@ class GithubCloudBackupProvider(
             return@withContext Result.failure(IllegalStateException("Not logged in"))
         }
 
-        try {
-            googleDriveBackupManager.deleteBackup(backupId)
-        } catch (e: Exception) {
-            XLog.e("Google Drive delete backup failed: %s", e.message ?: e.javaClass.simpleName)
-            Result.failure(e)
-        }
+        googleDriveBackupManager.deleteBackup(backupId)
+            .onFailure { error -> XLog.e("Google Drive delete backup failed: %s", error.message ?: error.javaClass.simpleName) }
     }
 
     override suspend fun enableAutoBackup(enabled: Boolean) {

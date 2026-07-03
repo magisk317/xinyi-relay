@@ -4,11 +4,13 @@ package io.github.magisk317.relay.auth
 
 import android.accounts.Account
 import android.content.Context
+import com.google.android.gms.auth.GoogleAuthException
 import com.google.android.gms.auth.GoogleAuthUtil
 import com.google.android.gms.auth.UserRecoverableAuthException
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.FirebaseException
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.secret.InternalSecretStore
 import kotlinx.coroutines.flow.Flow
@@ -16,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.tasks.await
+import java.io.IOException
 
 class FirebaseAuthManager(
     private val context: Context,
@@ -69,7 +72,10 @@ class FirebaseAuthManager(
             )
             _session.value = session
             Result.success(session)
-        } catch (e: Exception) {
+        } catch (e: FirebaseException) {
+            XLog.e("Google sign-in failed: %s", e.message ?: e.javaClass.simpleName)
+            Result.failure(e)
+        } catch (e: IllegalArgumentException) {
             XLog.e("Google sign-in failed: %s", e.message ?: e.javaClass.simpleName)
             Result.failure(e)
         }
@@ -103,11 +109,17 @@ class FirebaseAuthManager(
             val authorizationIntent = e.intent
             if (authorizationIntent != null) {
                 XLog.w("Google Drive authorization required")
-                throw GoogleDriveAuthorizationRequiredException(authorizationIntent)
+                throw GoogleDriveAuthorizationRequiredException(authorizationIntent, e)
             }
-            XLog.e("Google Drive authorization required without intent")
+            XLog.e("Google Drive authorization required without intent: %s", e.message ?: e.javaClass.simpleName)
             null
-        } catch (e: Exception) {
+        } catch (e: IOException) {
+            XLog.e("Google Drive access token failed: %s", e.message ?: e.javaClass.simpleName)
+            null
+        } catch (e: GoogleAuthException) {
+            XLog.e("Google Drive access token failed: %s", e.message ?: e.javaClass.simpleName)
+            null
+        } catch (e: SecurityException) {
             XLog.e("Google Drive access token failed: %s", e.message ?: e.javaClass.simpleName)
             null
         }
