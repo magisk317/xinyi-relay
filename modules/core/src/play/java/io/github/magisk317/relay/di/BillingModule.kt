@@ -35,18 +35,18 @@ val billingModule = module {
 
     // Auth — Firebase 构造失败时降级为 NoOp
     single<GoogleSignInHelper> {
-        try {
+        runCatching {
             GoogleSignInHelperImpl(get())
-        } catch (e: Exception) {
-            Log.e(TAG, "GoogleSignInHelper init failed, degrading to NoOp", e)
+        }.getOrElse { error ->
+            Log.e(TAG, "GoogleSignInHelper init failed, degrading to NoOp", error)
             NoOpGoogleSignInHelper(get())
         }
     }
     single<AuthManager> {
-        try {
+        runCatching {
             FirebaseAuthManager(get(), get())
-        } catch (e: Exception) {
-            Log.e(TAG, "FirebaseAuthManager init failed, degrading to NoOp", e)
+        }.getOrElse { error ->
+            Log.e(TAG, "FirebaseAuthManager init failed, degrading to NoOp", error)
             NoOpAuthManager()
         }
     }
@@ -54,10 +54,10 @@ val billingModule = module {
     // Google Drive backup — 构造失败时降级为 NoOp
     single { GoogleDriveBackupManager(get(), get()) }
     single<CloudBackupProvider> {
-        try {
+        runCatching {
             PlayCloudBackupProvider(get(), get(), get())
-        } catch (e: Exception) {
-            Log.e(TAG, "PlayCloudBackupProvider init failed, degrading to NoOp", e)
+        }.getOrElse { error ->
+            Log.e(TAG, "PlayCloudBackupProvider init failed, degrading to NoOp", error)
             NoOpCloudBackupProvider()
         }
     }

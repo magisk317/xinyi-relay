@@ -3,6 +3,7 @@ package io.github.magisk317.relay.billing
 import android.content.Context
 import com.android.billingclient.api.Purchase
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -51,7 +52,11 @@ class SubscriptionManager(
                 _status.value = SubscriptionStatus.FREE
                 _activeProductId.value = null
             }
-        } catch (e: Exception) {
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: IllegalStateException) {
+            Timber.e(e, "Failed to refresh subscription status")
+        } catch (e: SecurityException) {
             Timber.e(e, "Failed to refresh subscription status")
         }
     }

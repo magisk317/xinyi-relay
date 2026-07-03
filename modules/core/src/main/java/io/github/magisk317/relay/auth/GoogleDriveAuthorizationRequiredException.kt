@@ -4,4 +4,5 @@ import android.content.Intent
 
 class GoogleDriveAuthorizationRequiredException(
     val authorizationIntent: Intent,
-) : Exception("Google Drive authorization required")
+    cause: Throwable? = null,
+) : Exception("Google Drive authorization required", cause)
