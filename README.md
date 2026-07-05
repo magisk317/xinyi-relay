@@ -4,14 +4,14 @@
     <a href="https://play.google.com/store/apps/details?id=io.github.magisk317.xinyi.relay">
         <img src="https://play.google.com/intl/zh-CN/badges/static/images/badges/zh-cn_badge_web_generic.png" alt="Get it on Google Play" height="80"/>
     </a>
-    <a href="https://github.com/magisk317/xinyi-relay/releases">
-        <img src="https://raw.githubusercontent.com/machiav3lli/oandbackupx/master/badge_github.png" alt="Get it on GitHub" height="80"/>
+    <a href="https://gitlab.com/magisk3171/xinyi-relay/-/releases">
+        <img src="https://img.shields.io/badge/Get%20it%20on-GitLab-FC6D26?style=for-the-badge&logo=gitlab&logoColor=white" alt="Get it on GitLab" height="40"/>
     </a>
 </div>
 
 <div align="center">
 
-[![Commits](https://img.shields.io/github/commit-activity/y/magisk317/xinyi-relay?style=flat-square)](https://github.com/magisk317/xinyi-relay/graphs/commit-activity) [![Last Commit](https://img.shields.io/github/last-commit/magisk317/xinyi-relay?style=flat-square)](https://github.com/magisk317/xinyi-relay/commits) [![Contributors](https://img.shields.io/github/contributors/magisk317/xinyi-relay?style=flat-square)](https://github.com/magisk317/xinyi-relay/graphs/contributors) [![CI](https://img.shields.io/github/actions/workflow/status/magisk317/xinyi-relay/ci.yml?branch=beta&style=flat-square&label=Build&logo=github-actions&logoColor=white)](https://github.com/magisk317/xinyi-relay/actions/workflows/ci.yml) [![Latest Release](https://img.shields.io/github/v/release/magisk317/xinyi-relay?include_prereleases&style=flat-square&logo=github)](https://github.com/magisk317/xinyi-relay/releases) [![Release Date](https://img.shields.io/github/release-date/magisk317/xinyi-relay?style=flat-square)](https://github.com/magisk317/xinyi-relay/releases) [![Downloads](https://img.shields.io/github/downloads/magisk317/xinyi-relay/total?style=flat-square&color=blue)](https://github.com/magisk317/xinyi-relay/releases) [![License](https://img.shields.io/github/license/magisk317/xinyi-relay?style=flat-square)](LICENSE)
+[![GitLab](https://img.shields.io/badge/GitLab-magisk3171%2Fxinyi--relay-FC6D26?style=flat-square&logo=gitlab&logoColor=white)](https://gitlab.com/magisk3171/xinyi-relay) [![CI](https://gitlab.com/magisk3171/xinyi-relay/badges/beta/pipeline.svg)](https://gitlab.com/magisk3171/xinyi-relay/-/pipelines?ref=beta) [![Latest Release](https://img.shields.io/gitlab/v/release/magisk3171%2Fxinyi-relay?include_prereleases&style=flat-square&logo=gitlab)](https://gitlab.com/magisk3171/xinyi-relay/-/releases) [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.0-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org) [![Jetpack Compose](https://img.shields.io/badge/Jetpack_Compose-BOM_2026.06.00-4285F4?style=flat-square&logo=android&logoColor=white)](https://developer.android.com/jetpack/compose) [![Gradle](https://img.shields.io/badge/Gradle-9.6.1-02303A?style=flat-square&logo=gradle&logoColor=white)](https://gradle.org) [![AGP](https://img.shields.io/badge/AGP-9.3.0--rc01-3DDC84?style=flat-square&logo=gradle&logoColor=white)](https://developer.android.com/studio/releases/gradle-plugin) [![Min SDK](https://img.shields.io/badge/Min_SDK-26-brightgreen?style=flat-square&logo=android)](https://developer.android.com/about/versions) [![Target SDK](https://img.shields.io/badge/Target_SDK-37-blue?style=flat-square&logo=android)](https://developer.android.com/about/versions) [![Xposed API](https://img.shields.io/badge/Xposed_API-102-orange?style=flat-square)](https://github.com/rovo89/XposedBridge) [![Telegram](https://img.shields.io/badge/Telegram-Group-2CA5E0?style=flat-square&logo=telegram&logoColor=white)](https://t.me/+NR2QaQ4dlEgxYmNl)
 
@@ -43,7 +43,7 @@
 ### 安装与使用
 1. Root 设备并安装 LSPosed/Xposed 框架；
 2. 安装信驿 Relay：
-   - GitHub Release：提供 APK 下载
+   - GitLab Release：提供 APK 下载
    - Google Play：提供商店分发
 3. 激活模块并重启；
 4. 在应用内配置转发通道、路由规则、拦截策略与验证码自动填写。
@@ -74,7 +74,7 @@ Backend 是信驿 Relay 的自建远程控制面，默认部署模式为“本�
 - Web 控制台
 
 ### 默认部署方式
-- Docker Compose 默认直接拉取 GHCR 镜像 `ghcr.io/magisk317/xinyi-relay-backend:beta`
+- Docker Compose 默认直接拉取 Docker Hub 镜像 `docker.io/alpha317/xinyi-relay-backend:beta`
 - Android Agent、Web 与 Desktop 共享同一套 Backend API
 - 本地 HTTPS 使用 Caddy `tls internal`，可通过用户证书接入 Android Agent
 

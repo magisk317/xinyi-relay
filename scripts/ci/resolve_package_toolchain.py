@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Emit GitHub Actions outputs for the package toolchain declared by package.json."""
+"""Emit package toolchain values declared by package.json."""
 
 from __future__ import annotations
 

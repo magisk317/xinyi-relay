@@ -22,12 +22,12 @@ workflow:
 
 stages:
   - build
+  - notify
   - quality
   - release-validate
   - package
   - release-build
   - release-publish
-  - notify
   - maintenance
 
 variables:
@@ -40,7 +40,7 @@ variables:
   MAGISK_ANDROID_SDK_PACKAGES: "platform-tools build-tools;37.0.0"
   MAGISK_GRADLE_ARGS: "--warning-mode all"
   MAGISK_ANDROID_RELEASE_PACKAGE_NAME: "io.github.magisk317.xinyi.relay"
-  MAGISK_ANDROID_RELEASE_GITHUB_REPOSITORY: "magisk317/xinyi-relay"
+  MAGISK_ANDROID_RELEASE_GITHUB_REPOSITORY: ""
   MAGISK_ANDROID_RELEASE_MODULES_REPO: ""
   MAGISK_ANDROID_RELEASE_PUBLISH_PLAY: "true"
   MAGISK_ANDROID_RELEASE_PLAY_TRACK: "production"
@@ -452,14 +452,6 @@ telegram:ci:
   needs:
     - job: android:build
       artifacts: true
-    - job: android:detekt
-      artifacts: false
-    - job: webui:check
-      artifacts: false
-    - job: backend:go
-      artifacts: false
-    - job: backend:smoke
-      artifacts: false
 
 renovate:gitlab:
   extends: .magisk_renovate_gitlab

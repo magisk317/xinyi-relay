@@ -4,14 +4,14 @@
     <a href="https://play.google.com/store/apps/details?id=io.github.magisk317.xinyi.relay">
         <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="80"/>
     </a>
-    <a href="https://github.com/magisk317/xinyi-relay/releases">
-        <img src="https://raw.githubusercontent.com/machiav3lli/oandbackupx/master/badge_github.png" alt="Get it on GitHub" height="80"/>
+    <a href="https://gitlab.com/magisk3171/xinyi-relay/-/releases">
+        <img src="https://img.shields.io/badge/Get%20it%20on-GitLab-FC6D26?style=for-the-badge&logo=gitlab&logoColor=white" alt="Get it on GitLab" height="40"/>
     </a>
 </div>
 
 <div align="center">
 
-[![Commits](https://img.shields.io/github/commit-activity/y/magisk317/xinyi-relay?style=flat-square)](https://github.com/magisk317/xinyi-relay/graphs/commit-activity) [![Last Commit](https://img.shields.io/github/last-commit/magisk317/xinyi-relay?style=flat-square)](https://github.com/magisk317/xinyi-relay/commits) [![Contributors](https://img.shields.io/github/contributors/magisk317/xinyi-relay?style=flat-square)](https://github.com/magisk317/xinyi-relay/graphs/contributors) [![CI](https://img.shields.io/github/actions/workflow/status/magisk317/xinyi-relay/ci.yml?branch=beta&style=flat-square&label=Build&logo=github-actions&logoColor=white)](https://github.com/magisk317/xinyi-relay/actions/workflows/ci.yml) [![Latest Release](https://img.shields.io/github/v/release/magisk317/xinyi-relay?include_prereleases&style=flat-square&logo=github)](https://github.com/magisk317/xinyi-relay/releases) [![Release Date](https://img.shields.io/github/release-date/magisk317/xinyi-relay?style=flat-square)](https://github.com/magisk317/xinyi-relay/releases) [![Downloads](https://img.shields.io/github/downloads/magisk317/xinyi-relay/total?style=flat-square&color=blue)](https://github.com/magisk317/xinyi-relay/releases) [![License](https://img.shields.io/github/license/magisk317/xinyi-relay?style=flat-square)](LICENSE)
+[![GitLab](https://img.shields.io/badge/GitLab-magisk3171%2Fxinyi--relay-FC6D26?style=flat-square&logo=gitlab&logoColor=white)](https://gitlab.com/magisk3171/xinyi-relay) [![CI](https://gitlab.com/magisk3171/xinyi-relay/badges/beta/pipeline.svg)](https://gitlab.com/magisk3171/xinyi-relay/-/pipelines?ref=beta) [![Latest Release](https://img.shields.io/gitlab/v/release/magisk3171%2Fxinyi-relay?include_prereleases&style=flat-square&logo=gitlab)](https://gitlab.com/magisk3171/xinyi-relay/-/releases) [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.0-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org) [![Jetpack Compose](https://img.shields.io/badge/Jetpack_Compose-BOM_2026.06.00-4285F4?style=flat-square&logo=android&logoColor=white)](https://developer.android.com/jetpack/compose) [![Gradle](https://img.shields.io/badge/Gradle-9.6.1-02303A?style=flat-square&logo=gradle&logoColor=white)](https://gradle.org) [![AGP](https://img.shields.io/badge/AGP-9.3.0--rc01-3DDC84?style=flat-square&logo=gradle&logoColor=white)](https://developer.android.com/studio/releases/gradle-plugin) [![Min SDK](https://img.shields.io/badge/Min_SDK-26-brightgreen?style=flat-square&logo=android)](https://developer.android.com/about/versions) [![Target SDK](https://img.shields.io/badge/Target_SDK-37-blue?style=flat-square&logo=android)](https://developer.android.com/about/versions) [![Xposed API](https://img.shields.io/badge/Xposed_API-102-orange?style=flat-square)](https://github.com/rovo89/XposedBridge) [![Telegram](https://img.shields.io/badge/Telegram-Group-2CA5E0?style=flat-square&logo=telegram&logoColor=white)](https://t.me/+NR2QaQ4dlEgxYmNl)
 
@@ -42,7 +42,7 @@ The Android app is the on-device module for Xposed/LSPosed. It is responsible fo
 ### Install & Use
 1. Root your device and install LSPosed/Xposed.
 2. Install Xinyi Relay:
-   - GitHub Releases: APK downloads
+   - GitLab Releases: APK downloads
    - Google Play: Store distribution
 3. Enable the module and reboot.
 4. Configure sender channels, routing rules, filters, and verification-code autofill policies.
@@ -71,7 +71,7 @@ The Backend is the self-hosted remote control plane for Xinyi Relay, with a loca
 - Web console
 
 ### Default Deployment
-- Docker Compose pulls `ghcr.io/magisk317/xinyi-relay-backend:beta` by default
+- Docker Compose pulls `docker.io/alpha317/xinyi-relay-backend:beta` by default
 - Android Agent, Web, and Desktop share the same backend API
 - Local HTTPS uses Caddy `tls internal`, with user CA installation available for Android Agent
 
