@@ -4,6 +4,8 @@
 # Ignore all hidden directories (e.g. .idea/, .gradle/, .vscode/, .kotlin/, etc.)
 .*/
 !/.github/
+!/.gitlab/
+!/.gitlab/**
 
 # -------------------------------------------------------------------------
 # Build & Compiled Files
