@@ -1,3 +1,6 @@
+import org.gradle.api.credentials.HttpHeaderCredentials
+import org.gradle.authentication.http.HttpHeaderAuthentication
+
 pluginManagement {
     includeBuild("build-logic")
     repositories {
@@ -24,16 +27,54 @@ dependencyResolutionManagement {
                 snapshotsOnly()
             }
         }
-        // matrix-rust-sdk FFI is published to Maven Central
-        // (org.matrix.rustcomponents:sdk-android)
-
-        // rustls-platform-verifier Android bindings hosted on GitHub Packages
         maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/magisk317/xinyi-relay")
-            credentials {
-                username = System.getenv("GITHUB_ACTOR") ?: providers.gradleProperty("gpr.user").orNull
-                password = System.getenv("GITHUB_TOKEN") ?: providers.gradleProperty("gpr.key").orNull
+            name = "GitLabPackages"
+            url = uri(
+                providers.gradleProperty("gitlab.maven.url").orNull
+                    ?: System.getenv("GITLAB_MAVEN_URL")
+                    ?: "https://gitlab.com/api/v4/projects/84113188/packages/maven",
+            )
+
+            val jobToken = System.getenv("CI_JOB_TOKEN")
+            val privateToken = System.getenv("GITLAB_TOKEN")
+                ?: System.getenv("GITLAB_PRIVATE_TOKEN")
+                ?: providers.gradleProperty("gitlab.token").orNull
+            val deployToken = System.getenv("GITLAB_DEPLOY_TOKEN")
+                ?: providers.gradleProperty("gitlab.deployToken").orNull
+
+            when {
+                !jobToken.isNullOrBlank() -> {
+                    credentials(HttpHeaderCredentials::class) {
+                        name = "Job-Token"
+                        value = jobToken
+                    }
+                    authentication {
+                        create<HttpHeaderAuthentication>("header")
+                    }
+                }
+                !privateToken.isNullOrBlank() -> {
+                    credentials(HttpHeaderCredentials::class) {
+                        name = "Private-Token"
+                        value = privateToken
+                    }
+                    authentication {
+                        create<HttpHeaderAuthentication>("header")
+                    }
+                }
+                !deployToken.isNullOrBlank() -> {
+                    credentials(HttpHeaderCredentials::class) {
+                        name = "Deploy-Token"
+                        value = deployToken
+                    }
+                    authentication {
+                        create<HttpHeaderAuthentication>("header")
+                    }
+                }
+            }
+
+            content {
+                includeGroup("org.matrix.rustcomponents")
+                includeGroup("rustls")
             }
         }
     }
