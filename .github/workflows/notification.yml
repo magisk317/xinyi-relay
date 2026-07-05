@@ -155,10 +155,10 @@ jobs:
 
               if [ -d "artifacts" ]; then
                 mapfile -d '' ci_apks < <(
-                  find artifacts -type f -name '*arm64-v8a*.apk' -print0 | sort -z
+                  find artifacts -type f -name '*arm64-v8a*NoE2ee*.apk' -print0 | sort -z
                 )
                 if [ "${#ci_apks[@]}" -eq 0 ]; then
-                  echo "No arm64-v8a APK artifacts found."
+                  echo "No arm64-v8a NoE2ee APK artifacts found."
                 else
                   for apk in "${ci_apks[@]}"; do
                     apk_caption=$(printf '📦 %s' "$(basename "$apk")")
@@ -222,7 +222,7 @@ jobs:
             echo "$ASSETS_JSON" | jq -c '.[]' | while read -r asset; do
               name=$(echo "$asset" | jq -r '.name')
               url=$(echo "$asset" | jq -r '.browser_download_url // .url')
-              if [[ "$name" == *arm64-v8a*.apk ]]; then
+              if [[ "$name" == *arm64-v8a*NoE2ee*.apk ]]; then
                 echo "Downloading $name..."
                 curl --fail-with-body -L -sS -o "downloads/$name" "$url"
                 asset_caption=$(printf '📦 %s' "$name")

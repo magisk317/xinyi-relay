@@ -135,6 +135,7 @@ backend:go:
   extends: .xinyi_ci_rules
   image: "golang:1.26.4-bookworm"
   stage: quality
+  needs: []
   variables:
     GOPROXY: "https://goproxy.cn,direct"
   script:
@@ -213,6 +214,7 @@ backend:container:manifest:
 
 desktop:linux:x64:
   extends: .xinyi_desktop_linux
+  needs: []
   tags:
     - $XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG
   script:
@@ -220,6 +222,7 @@ desktop:linux:x64:
 
 desktop:linux:arm64:
   extends: .xinyi_desktop_linux
+  needs: []
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   script:
@@ -227,6 +230,7 @@ desktop:linux:arm64:
 
 desktop:windows:x64:
   extends: .xinyi_desktop_windows
+  needs: []
   tags:
     - $XINYI_GITLAB_WINDOWS_AMD64_RUNNER_TAG
   script:
@@ -234,6 +238,7 @@ desktop:windows:x64:
 
 desktop:macos:arm64:
   extends: .xinyi_desktop_macos
+  needs: []
   rules:
     - if: '$XINYI_GITLAB_MACOS_ENABLED != "true"'
       when: never
@@ -288,6 +293,7 @@ webui:check:
   extends: .xinyi_android_rules
   image: "node:24-bookworm"
   stage: quality
+  needs: []
   cache:
     key:
       files:
@@ -341,6 +347,7 @@ android:detekt:
   extends:
     - .magisk_android_detekt
     - .xinyi_android_rules
+  needs: []
   allow_failure: true
   variables:
     MAGISK_ANDROID_DETEKT_TASKS: >-
@@ -359,6 +366,7 @@ android:detekt:
 android:release:guard:
   extends: .magisk_android_release_guard
   stage: release-validate
+  needs: []
 
 android:release:github-apk:
   extends:
@@ -463,6 +471,7 @@ telegram:ci:
     MAGISK_TELEGRAM_PROJECT_TAG: "#XinyiRelay"
     MAGISK_TELEGRAM_PROJECT_NAME: "XinyiRelay"
     MAGISK_TELEGRAM_CI_BRANCH: "beta"
+    MAGISK_TELEGRAM_CI_ARTIFACT_PATTERN: "*arm64-v8a*NoE2ee*.apk"
   needs:
     - job: android:build
       artifacts: true
