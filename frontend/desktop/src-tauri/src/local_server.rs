@@ -247,7 +247,6 @@ fn map_store_err(e: StoreError) -> (StatusCode, Json<Value>) {
             StatusCode::CONFLICT,
             Json(json!({"error": "conflict", "local": local, "remote": remote})),
         ),
-        StoreError::NotFound => (StatusCode::NOT_FOUND, Json(json!({"error": "not found"}))),
         StoreError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": msg}))),
     }
 }

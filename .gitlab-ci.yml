@@ -154,6 +154,8 @@ backend:smoke:
     - .xinyi_docker
     - .xinyi_ci_rules
   stage: quality
+  variables:
+    BASE_URL: "http://docker:8088"
   needs:
     - job: backend:go
       artifacts: false

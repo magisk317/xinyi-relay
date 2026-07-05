@@ -2542,15 +2542,19 @@ fn main() {
                                 }
                             }
                         };
-                        match local_server::start_local_server(store_for_server).await {
-                            Ok(addr) => {
-                                log_info!("Local HTTP server started on {}", addr);
-                                if let Ok(mut sa) = state.local_server_addr.lock() {
-                                    *sa = Some(addr);
+                        let app_handle = app.handle().clone();
+                        tauri::async_runtime::spawn(async move {
+                            match local_server::start_local_server(store_for_server).await {
+                                Ok(addr) => {
+                                    log_info!("Local HTTP server started on {}", addr);
+                                    let state = app_handle.state::<DesktopAppState>();
+                                    if let Ok(mut sa) = state.local_server_addr.lock() {
+                                        *sa = Some(addr);
+                                    }
                                 }
+                                Err(e) => log_error!("Failed to start local server: {}", e),
                             }
-                            Err(e) => log_error!("Failed to start local server: {}", e),
-                        }
+                        });
                     }
                     Err(e) => {
                         log_error!("Failed to init local store at startup: {}", e);

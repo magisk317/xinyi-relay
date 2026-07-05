@@ -61,10 +61,10 @@ function Install-Rust {
 function Replace-Once([string]$PathValue, [string]$Pattern, [string]$Replacement) {
   $text = Get-Content -Raw $PathValue
   $regex = [regex]::new($Pattern, [System.Text.RegularExpressions.RegexOptions]::Multiline)
-  $next = $regex.Replace($text, $Replacement, 1)
-  if ($next -eq $text) {
+  if (-not $regex.IsMatch($text)) {
     throw "Failed to update $PathValue"
   }
+  $next = $regex.Replace($text, $Replacement, 1)
   Set-Content -NoNewline -Path $PathValue -Value $next
 }
 
