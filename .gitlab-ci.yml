@@ -1,0 +1,258 @@
+include:
+  - project: magisk3171/magisk-ci-toolkit
+    ref: master
+    file: /.gitlab/ci/android.yml
+  - project: magisk3171/magisk-ci-toolkit
+    ref: master
+    file: /.gitlab/ci/android-release.yml
+  - project: magisk3171/magisk-ci-toolkit
+    ref: master
+    file: /.gitlab/ci/telegram.yml
+  - project: magisk3171/magisk-ci-toolkit
+    ref: master
+    file: /.gitlab/ci/renovate.yml
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"'
+      when: never
+    - if: '$CI_COMMIT_TAG'
+    - if: '$CI_COMMIT_BRANCH'
+
+stages:
+  - build
+  - quality
+  - release-validate
+  - release-build
+  - release-publish
+  - notify
+  - maintenance
+
+variables:
+  GIT_DEPTH: "0"
+  GIT_SUBMODULE_STRATEGY: recursive
+  GIT_SUBMODULE_DEPTH: "0"
+  MAGISK_ANDROID_SDKMANAGER_CHANNEL: "3"
+  MAGISK_ANDROID_COMPILE_SDK: "37"
+  MAGISK_ANDROID_COMPILE_SDK_PACKAGE: "platforms;android-37.0"
+  MAGISK_ANDROID_SDK_PACKAGES: "platform-tools build-tools;37.0.0"
+  MAGISK_GRADLE_ARGS: "--warning-mode all"
+  MAGISK_ANDROID_RELEASE_PACKAGE_NAME: "io.github.magisk317.xinyi.relay"
+  MAGISK_ANDROID_RELEASE_GITHUB_REPOSITORY: "magisk317/xinyi-relay"
+  MAGISK_ANDROID_RELEASE_MODULES_REPO: ""
+  MAGISK_ANDROID_RELEASE_PUBLISH_PLAY: "true"
+  MAGISK_ANDROID_RELEASE_PLAY_TRACK: "production"
+  RENOVATE_CONFIG_FILE: ".gitlab/renovate-config.js"
+
+.xinyi_android_rules:
+  rules:
+    - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "web"'
+      when: never
+    - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "api"'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_TAG'
+    - if: '$CI_COMMIT_BRANCH'
+
+.xinyi_decode_google_services: &xinyi_decode_google_services |
+  set -euo pipefail
+  : "${GOOGLE_SERVICES_JSON:?GOOGLE_SERVICES_JSON is required for release builds}"
+  mkdir -p app/src/github app/src/githubNoE2ee app/src/githubWithE2ee app/src/play
+  printf '%s' "$GOOGLE_SERVICES_JSON" | base64 --decode > app/src/github/google-services.json
+  printf '%s' "$GOOGLE_SERVICES_JSON" | base64 --decode > app/src/githubNoE2ee/google-services.json
+  printf '%s' "$GOOGLE_SERVICES_JSON" | base64 --decode > app/src/githubWithE2ee/google-services.json
+  printf '%s' "$GOOGLE_SERVICES_JSON" | base64 --decode > app/src/play/google-services.json
+
+webui:check:
+  extends: .xinyi_android_rules
+  image: "node:24-bookworm"
+  stage: quality
+  cache:
+    key:
+      files:
+        - frontend/webui/package.json
+        - frontend/webui/pnpm-lock.yaml
+    paths:
+      - .pnpm-store/
+  script:
+    - |
+      set -euo pipefail
+      corepack enable
+      corepack prepare "$(node -p "require('./frontend/webui/package.json').packageManager")" --activate
+      pnpm -C frontend/webui config set store-dir "$CI_PROJECT_DIR/.pnpm-store"
+      pnpm -C frontend/webui install --frozen-lockfile --ignore-scripts
+      pnpm -C frontend/webui lint
+      pnpm -C frontend/webui typecheck
+      pnpm -C frontend/webui test
+      pnpm -C frontend/webui build
+  artifacts:
+    name: "XinyiRelay-webui-$CI_COMMIT_REF_SLUG"
+    when: always
+    expire_in: 14 days
+    paths:
+      - frontend/webui/dist/
+
+android:build:
+  extends:
+    - .magisk_android_build
+    - .xinyi_android_rules
+  variables:
+    MAGISK_ANDROID_BUILD_TASKS: >-
+      :app:assembleGithubNoE2eeDebug
+      :app:assembleGithubWithE2eeDebug
+      :app:testGithubNoE2eeDebugUnitTest
+      :app:testGithubWithE2eeDebugUnitTest
+      :app:koverHtmlReportGithubNoE2eeDebug
+      :app:koverHtmlReportGithubWithE2eeDebug
+      -PallowIncompatibleDebugSigning=true
+      -PbuildSplits
+      -PskipGoogleServices=true
+  artifacts:
+    name: "XinyiRelay-debug-$CI_COMMIT_REF_SLUG"
+    when: always
+    expire_in: 14 days
+    paths:
+      - app/build/outputs/apk/github*/debug/*.apk
+      - app/build/reports/kover/htmlGithubNoE2eeDebug/
+      - app/build/reports/kover/htmlGithubWithE2eeDebug/
+
+android:detekt:
+  extends:
+    - .magisk_android_detekt
+    - .xinyi_android_rules
+  allow_failure: true
+  variables:
+    MAGISK_ANDROID_DETEKT_TASKS: >-
+      detekt
+      --continue
+      -PallowIncompatibleDebugSigning=true
+      -PskipGoogleServices=true
+  artifacts:
+    name: "XinyiRelay-detekt-$CI_COMMIT_REF_SLUG"
+    when: always
+    expire_in: 14 days
+    paths:
+      - merged-sarif/detekt.sarif
+      - "**/build/reports/detekt/**"
+
+android:release:guard:
+  extends: .magisk_android_release_guard
+  stage: release-validate
+
+android:release:github-apk:
+  extends:
+    - .magisk_android_base
+    - .magisk_android_release_tag_rules
+  stage: release-build
+  needs:
+    - job: android:release:guard
+      artifacts: false
+  script:
+    - *xinyi_decode_google_services
+    - |
+      set -euo pipefail
+      : "${MAGISK_GRADLE_ARGS:=--warning-mode all}"
+      : "${RELEASE_KEYSTORE:?RELEASE_KEYSTORE is required}"
+      : "${STORE_PASSWORD:?STORE_PASSWORD is required}"
+      : "${KEY_ALIAS:?KEY_ALIAS is required}"
+      : "${KEY_PASSWORD:?KEY_PASSWORD is required}"
+
+      printf '%s' "$RELEASE_KEYSTORE" | base64 --decode > app/release.jks
+      KEYSTORE_FILE="release.jks" \
+      STORE_PASSWORD="$STORE_PASSWORD" \
+      KEY_ALIAS="$KEY_ALIAS" \
+      KEY_PASSWORD="$KEY_PASSWORD" \
+        ./gradlew $MAGISK_GRADLE_ARGS \
+          :app:assembleGithubNoE2eeRelease \
+          :app:assembleGithubWithE2eeRelease \
+          -PbuildSplits
+  artifacts:
+    name: "XinyiRelay-release-apks-$CI_COMMIT_TAG"
+    when: always
+    expire_in: 30 days
+    paths:
+      - app/build/outputs/apk/**/release/*.apk
+      - app/build/outputs/native-debug-symbols/**/native-debug-symbols.zip
+
+android:release:play-bundle:
+  extends:
+    - .magisk_android_base
+    - .magisk_android_release_tag_rules
+  stage: release-build
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+[.][0-9]+[.][0-9]+.*$/ && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true"'
+    - when: never
+  needs:
+    - job: android:release:guard
+      artifacts: false
+  script:
+    - *xinyi_decode_google_services
+    - |
+      set -euo pipefail
+      : "${MAGISK_GRADLE_ARGS:=--warning-mode all}"
+      : "${RELEASE_KEYSTORE:?RELEASE_KEYSTORE is required}"
+      : "${STORE_PASSWORD:?STORE_PASSWORD is required}"
+      : "${KEY_ALIAS:?KEY_ALIAS is required}"
+      : "${KEY_PASSWORD:?KEY_PASSWORD is required}"
+
+      printf '%s' "$RELEASE_KEYSTORE" | base64 --decode > app/release.jks
+      KEYSTORE_FILE="release.jks" \
+      STORE_PASSWORD="$STORE_PASSWORD" \
+      KEY_ALIAS="$KEY_ALIAS" \
+      KEY_PASSWORD="$KEY_PASSWORD" \
+        ./gradlew $MAGISK_GRADLE_ARGS :app:bundlePlayRelease
+  artifacts:
+    name: "XinyiRelay-release-bundle-$CI_COMMIT_TAG"
+    when: always
+    expire_in: 30 days
+    paths:
+      - app/build/outputs/bundle/**/*.aab
+      - app/build/outputs/mapping/**/mapping.txt
+      - app/build/outputs/native-debug-symbols/**/native-debug-symbols.zip
+
+android:release:gitlab:
+  extends: .magisk_android_gitlab_release
+  stage: release-publish
+  needs:
+    - job: android:release:github-apk
+      artifacts: true
+    - job: android:release:play-bundle
+      artifacts: true
+      optional: true
+
+android:release:play:
+  extends: .magisk_android_publish_play
+  stage: release-publish
+  needs:
+    - job: android:release:play-bundle
+      artifacts: true
+
+android:release:modules-repo:
+  extends: .magisk_android_publish_modules_repo
+  stage: release-publish
+  needs:
+    - job: android:release:github-apk
+      artifacts: true
+
+telegram:ci:
+  extends: .magisk_telegram_ci
+  stage: notify
+  allow_failure: true
+  variables:
+    MAGISK_TELEGRAM_PROJECT_TAG: "#XinyiRelay"
+    MAGISK_TELEGRAM_PROJECT_NAME: "XinyiRelay"
+    MAGISK_TELEGRAM_CI_BRANCH: "beta"
+  needs:
+    - job: android:build
+      artifacts: true
+    - job: android:detekt
+      artifacts: false
+    - job: webui:check
+      artifacts: false
+
+renovate:gitlab:
+  extends: .magisk_renovate_gitlab
+  stage: maintenance
