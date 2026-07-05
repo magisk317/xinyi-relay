@@ -31,8 +31,8 @@ services:
   api:
     # 固定容器名，方便 docker ps / logs / exec
     container_name: relay-backend-api
-    # 默认直接拉取 GHCR 上发布好的后端镜像
-    image: ${RELAY_API_IMAGE:-ghcr.io/magisk317/xinyi-relay-backend:beta}
+    # 默认直接拉取 Docker Hub 上发布好的后端镜像
+    image: ${RELAY_API_IMAGE:-docker.io/alpha317/xinyi-relay-backend:beta}
     # 默认优先拉取远端 beta 镜像；本地烟测可用 never 覆盖
     pull_policy: ${RELAY_API_PULL_POLICY:-always}
     # 容器异常退出后自动拉起；手动 docker stop 不会强制重启

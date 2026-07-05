@@ -41,7 +41,7 @@ backend/scripts/smoke_local.sh
 说明：
 
 - `api` 容器仅在内部网络监听 `:8080`
-- `api` 默认直接拉取 `ghcr.io/magisk317/xinyi-relay-backend:beta`
+- `api` 默认直接拉取 `docker.io/alpha317/xinyi-relay-backend:beta`
 - 对外入口统一走 Caddy `https://localhost:8443`
 - 当前使用 `tls internal` 自签发证书；本地调试可先使用 `curl -k`
 - `webui/dist` 会由 Caddy 直接托管，同一入口同时提供前端页面和 `/api/*`
@@ -50,7 +50,7 @@ backend/scripts/smoke_local.sh
 如果你要临时切到某个固定版本或私有镜像，可以在 `backend/.env` 里覆盖：
 
 ```text
-RELAY_API_IMAGE=ghcr.io/magisk317/xinyi-relay-backend:beta
+RELAY_API_IMAGE=docker.io/alpha317/xinyi-relay-backend:beta
 RELAY_API_PULL_POLICY=always
 ```
 
@@ -181,41 +181,34 @@ backend/caddy-data/caddy/pki/authorities/local/root.crt
 
 ## 容器镜像托管
 
-仓库已经提供一条 GitHub Actions 工作流：
+仓库已经提供 GitLab CI 容器发布任务：
 
 ```text
-.github/workflows/backend-publish-ghcr.yml
+.gitlab-ci.yml
 ```
 
 它会把 `backend/api` 构建并发布到：
 
-- GitHub Container Registry
-- Docker Hub（当仓库配置了 Docker Hub secrets 时）
+- GitLab Container Registry
+- Docker Hub
 
-默认镜像名：
-
-```text
-ghcr.io/<owner>/<repo>-backend
-```
-
-例如当前仓库会发布成：
+GitLab 默认镜像名：
 
 ```text
-ghcr.io/magisk317/xinyi-relay-backend
+registry.gitlab.com/magisk3171/xinyi-relay/backend
 ```
 
 Docker Hub 默认镜像名：
 
 ```text
-docker.io/<DOCKERHUB_USERNAME>/xinyi-relay-backend
+docker.io/alpha317/xinyi-relay-backend
 ```
 
-如果仓库设置了 `DOCKERHUB_IMAGE`，则以该值为准。
+如果 CI 设置了 `BACKEND_GITLAB_IMAGE` 或 `DOCKERHUB_IMAGE`，则以对应覆盖值为准。
 
 触发方式：
 
-- 手动触发 `workflow_dispatch`
-- 推送 `beta` 分支且命中 `backend/**`
+- 推送 `beta` 分支
 - 推送 `v*` tag
 
 发布后的常见标签：
@@ -232,10 +225,10 @@ docker.io/<DOCKERHUB_USERNAME>/xinyi-relay-backend
 拉取示例：
 
 ```bash
-docker pull ghcr.io/magisk317/xinyi-relay-backend:beta
-docker pull ghcr.io/magisk317/xinyi-relay-backend:latest
-docker pull docker.io/magisk317/xinyi-relay-backend:beta
-docker pull docker.io/magisk317/xinyi-relay-backend:latest
+docker pull registry.gitlab.com/magisk3171/xinyi-relay/backend:beta
+docker pull registry.gitlab.com/magisk3171/xinyi-relay/backend:latest
+docker pull docker.io/alpha317/xinyi-relay-backend:beta
+docker pull docker.io/alpha317/xinyi-relay-backend:latest
 ```
 
 ## 文档

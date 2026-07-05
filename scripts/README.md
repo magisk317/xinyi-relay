@@ -1,7 +1,7 @@
 # Scripts
 
-Repository automation is intentionally kept in this directory so GitHub Actions
-workflows stay focused on triggers, permissions, and job wiring.
+Repository automation is intentionally kept in this directory so CI workflows
+stay focused on triggers, permissions, and job wiring.
 
 ## Layout
 

@@ -109,14 +109,13 @@ collect_artifacts() {
   rm -rf "$artifact_dir"
   mkdir -p "$artifact_dir"
 
-  mapfile -d '' bundle_files < <(
+  while IFS= read -r -d '' file; do
+    cp "$file" "$artifact_dir/"
+  done < <(
     find "$root_dir/$bundle_dir" -type f \
       \( -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' -o -name '*.exe' -o -name '*.msix' -o -name '*.dmg' \) \
-      -print0 | sort -z
+      -print0
   )
-  for file in "${bundle_files[@]}"; do
-    cp "$file" "$artifact_dir/"
-  done
 
   if [[ "$os_name" == "macos" ]]; then
     while IFS= read -r -d '' app_dir; do
@@ -127,7 +126,7 @@ collect_artifacts() {
       else
         (cd "$(dirname "$app_dir")" && zip -qry "$artifact_dir/${base_name}.zip" "$base_name")
       fi
-    done < <(find "$root_dir/$bundle_dir" -type d -name '*.app' -print0 | sort -z)
+    done < <(find "$root_dir/$bundle_dir" -type d -name '*.app' -print0)
   fi
 
   if ! find "$artifact_dir" -type f | grep -q .; then
