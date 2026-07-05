@@ -49,6 +49,7 @@ variables:
   XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG: "saas-linux-small-arm64"
   XINYI_GITLAB_WINDOWS_AMD64_RUNNER_TAG: "saas-windows-medium-amd64"
   XINYI_GITLAB_MACOS_ARM64_RUNNER_TAG: "saas-macos-medium-m1"
+  XINYI_GITLAB_MACOS_ENABLED: "false"
 
 .xinyi_ci_rules:
   rules:
@@ -233,6 +234,18 @@ desktop:windows:x64:
 
 desktop:macos:arm64:
   extends: .xinyi_desktop_macos
+  rules:
+    - if: '$XINYI_GITLAB_MACOS_ENABLED != "true"'
+      when: never
+    - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "web"'
+      when: never
+    - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "api"'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_TAG'
+    - if: '$CI_COMMIT_BRANCH'
   tags:
     - $XINYI_GITLAB_MACOS_ARM64_RUNNER_TAG
   script:
@@ -253,6 +266,7 @@ desktop:release:gitlab:
       artifacts: true
     - job: desktop:macos:arm64
       artifacts: true
+      optional: true
   before_script:
     - apt-get update
     - apt-get install -y --no-install-recommends bash curl
