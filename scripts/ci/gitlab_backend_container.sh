@@ -67,9 +67,9 @@ docker_login_all() {
 }
 
 create_builder() {
-  local builder="xinyi-backend-${CI_JOB_ID:-$$}"
-  docker buildx create --name "$builder" --use
-  trap 'docker buildx rm "$builder" >/dev/null 2>&1 || true' EXIT
+  BUILDX_BUILDER="xinyi-backend-${CI_JOB_ID:-$$}"
+  docker buildx create --name "$BUILDX_BUILDER" --use
+  trap 'docker buildx rm "$BUILDX_BUILDER" >/dev/null 2>&1 || true' EXIT
 }
 
 build_arch() {
