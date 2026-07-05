@@ -330,10 +330,6 @@ android:build:
     MAGISK_ANDROID_BUILD_TASKS: >-
       :app:assembleGithubNoE2eeDebug
       :app:assembleGithubWithE2eeDebug
-      :app:testGithubNoE2eeDebugUnitTest
-      :app:testGithubWithE2eeDebugUnitTest
-      :app:koverHtmlReportGithubNoE2eeDebug
-      :app:koverHtmlReportGithubWithE2eeDebug
       -PallowIncompatibleDebugSigning=true
       -PbuildSplits
       -PskipGoogleServices=true
@@ -341,12 +337,57 @@ android:build:
     name: "XinyiRelay-debug-$CI_COMMIT_REF_SLUG"
     when: always
     expire_in: 14 days
+    paths:
+      - app/build/outputs/apk/github*/debug/*.apk
+
+.xinyi_android_test:
+  extends:
+    - .magisk_android_base
+    - .xinyi_android_rules
+  stage: quality
+  needs: []
+  script:
+    - |
+      set -euo pipefail
+      : "${MAGISK_GRADLE_ARGS:=--warning-mode all}"
+      : "${XINYI_ANDROID_TEST_TASKS:?XINYI_ANDROID_TEST_TASKS is required}"
+      ./gradlew $MAGISK_GRADLE_ARGS $XINYI_ANDROID_TEST_TASKS \
+        -PallowIncompatibleDebugSigning=true \
+        -PskipGoogleServices=true
+  artifacts:
+    when: always
+    expire_in: 14 days
+
+android:test:noe2ee:
+  extends: .xinyi_android_test
+  variables:
+    XINYI_ANDROID_TEST_TASKS: >-
+      :app:testGithubNoE2eeDebugUnitTest
+      :app:koverHtmlReportGithubNoE2eeDebug
+  artifacts:
+    name: "XinyiRelay-test-noe2ee-$CI_COMMIT_REF_SLUG"
+    when: always
+    expire_in: 14 days
     reports:
       junit:
         - app/build/test-results/testGithubNoE2eeDebugUnitTest/TEST-*.xml
     paths:
-      - app/build/outputs/apk/github*/debug/*.apk
       - app/build/reports/kover/htmlGithubNoE2eeDebug/
+
+android:test:withe2ee:
+  extends: .xinyi_android_test
+  variables:
+    XINYI_ANDROID_TEST_TASKS: >-
+      :app:testGithubWithE2eeDebugUnitTest
+      :app:koverHtmlReportGithubWithE2eeDebug
+  artifacts:
+    name: "XinyiRelay-test-withe2ee-$CI_COMMIT_REF_SLUG"
+    when: always
+    expire_in: 14 days
+    reports:
+      junit:
+        - app/build/test-results/testGithubWithE2eeDebugUnitTest/TEST-*.xml
+    paths:
       - app/build/reports/kover/htmlGithubWithE2eeDebug/
 
 android:detekt:
