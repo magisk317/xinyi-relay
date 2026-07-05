@@ -339,6 +339,9 @@ android:build:
     name: "XinyiRelay-debug-$CI_COMMIT_REF_SLUG"
     when: always
     expire_in: 14 days
+    reports:
+      junit:
+        - app/build/test-results/testGithubNoE2eeDebugUnitTest/TEST-*.xml
     paths:
       - app/build/outputs/apk/github*/debug/*.apk
       - app/build/reports/kover/htmlGithubNoE2eeDebug/
