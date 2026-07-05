@@ -1,0 +1,157 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+Usage:
+  gitlab_backend_container.sh build-arch <amd64|arm64>
+  gitlab_backend_container.sh publish-manifests
+EOF
+}
+
+require_env() {
+  local name=$1
+  if [[ -z "${!name:-}" ]]; then
+    echo "ERROR: ${name} is required" >&2
+    exit 2
+  fi
+}
+
+release_tags() {
+  local ref_type ref_name
+  if [[ -n "${CI_COMMIT_TAG:-}" ]]; then
+    ref_type="tag"
+    ref_name="$CI_COMMIT_TAG"
+  else
+    ref_type="branch"
+    ref_name="${CI_COMMIT_BRANCH:-${CI_COMMIT_REF_NAME:-}}"
+  fi
+
+  eval "$(bash scripts/release/release_ref.sh parse-ref "$ref_type" "$ref_name")"
+  case "$release_kind" in
+    beta)
+      printf '%s\n' "beta"
+      ;;
+    full)
+      printf '%s\n' "$release_version" "latest"
+      ;;
+    *)
+      echo "ERROR: unsupported backend release kind: ${release_kind}" >&2
+      exit 1
+      ;;
+  esac
+}
+
+gitlab_image() {
+  require_env CI_REGISTRY_IMAGE
+  printf '%s\n' "${BACKEND_GITLAB_IMAGE:-${CI_REGISTRY_IMAGE}/backend}"
+}
+
+dockerhub_image() {
+  require_env DOCKERHUB_USERNAME
+  require_env DOCKERHUB_TOKEN
+  printf '%s\n' "${DOCKERHUB_IMAGE:-docker.io/${DOCKERHUB_USERNAME}/xinyi-relay-backend}"
+}
+
+docker_login_all() {
+  require_env CI_REGISTRY
+  require_env CI_REGISTRY_USER
+  require_env CI_REGISTRY_PASSWORD
+  require_env DOCKERHUB_USERNAME
+  require_env DOCKERHUB_TOKEN
+
+  printf '%s' "$CI_REGISTRY_PASSWORD" \
+    | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
+  printf '%s' "$DOCKERHUB_TOKEN" \
+    | docker login docker.io --username "$DOCKERHUB_USERNAME" --password-stdin
+}
+
+create_builder() {
+  local builder="xinyi-backend-${CI_JOB_ID:-$$}"
+  docker buildx create --name "$builder" --use
+  trap 'docker buildx rm "$builder" >/dev/null 2>&1 || true' EXIT
+}
+
+build_arch() {
+  local arch=${1:-}
+  case "$arch" in
+    amd64|arm64) ;;
+    *)
+      usage
+      exit 2
+      ;;
+  esac
+
+  docker_login_all
+  docker buildx version
+  create_builder
+
+  local gitlab_image dockerhub_image source_url revision ref_name
+  gitlab_image="$(gitlab_image)"
+  dockerhub_image="$(dockerhub_image)"
+  source_url="${CI_PROJECT_URL:-https://gitlab.com/magisk3171/xinyi-relay}"
+  revision="${CI_COMMIT_SHA:-unknown}"
+  ref_name="${CI_COMMIT_REF_NAME:-${CI_COMMIT_TAG:-unknown}}"
+
+  local tag_args=()
+  while IFS= read -r tag; do
+    [[ -z "$tag" ]] && continue
+    tag_args+=(
+      --tag "${gitlab_image}:${tag}-${arch}"
+      --tag "${dockerhub_image}:${tag}-${arch}"
+    )
+  done < <(release_tags)
+
+  if [[ ${#tag_args[@]} -eq 0 ]]; then
+    echo "ERROR: no backend image tags resolved" >&2
+    exit 1
+  fi
+
+  docker buildx build \
+    --platform "linux/${arch}" \
+    --file backend/api/Dockerfile \
+    --push \
+    --provenance=false \
+    --build-arg "GOPROXY=${GOPROXY:-https://goproxy.cn,direct}" \
+    --label "org.opencontainers.image.title=xinyi-relay-backend" \
+    --label "org.opencontainers.image.description=Remote backend for Xinyi Relay" \
+    --label "org.opencontainers.image.source=${source_url}" \
+    --label "org.opencontainers.image.revision=${revision}" \
+    --label "org.opencontainers.image.ref.name=${ref_name}" \
+    "${tag_args[@]}" \
+    .
+}
+
+publish_manifests() {
+  docker_login_all
+  docker buildx version
+
+  local gitlab_image dockerhub_image
+  gitlab_image="$(gitlab_image)"
+  dockerhub_image="$(dockerhub_image)"
+
+  while IFS= read -r tag; do
+    [[ -z "$tag" ]] && continue
+    for image in "$gitlab_image" "$dockerhub_image"; do
+      docker buildx imagetools create \
+        --tag "${image}:${tag}" \
+        "${image}:${tag}-amd64" \
+        "${image}:${tag}-arm64"
+      docker buildx imagetools inspect "${image}:${tag}"
+    done
+  done < <(release_tags)
+}
+
+command=${1:-}
+case "$command" in
+  build-arch)
+    build_arch "${2:-}"
+    ;;
+  publish-manifests)
+    publish_manifests
+    ;;
+  *)
+    usage
+    exit 2
+    ;;
+esac
