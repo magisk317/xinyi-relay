@@ -43,7 +43,11 @@ set -a
 . ./.env
 set +a
 prepare_postgres_data_dir
-docker build -t "$SMOKE_IMAGE" -f api/Dockerfile "$ROOT_DIR" >/dev/null
+docker build \
+  --build-arg "GOPROXY=${GOPROXY:-https://goproxy.cn,direct}" \
+  -t "$SMOKE_IMAGE" \
+  -f api/Dockerfile \
+  "$ROOT_DIR" >/dev/null
 RELAY_API_IMAGE="$SMOKE_IMAGE" \
 RELAY_API_PULL_POLICY=never \
 RELAY_POSTGRES_DATA_DIR="$POSTGRES_DATA_DIR" \

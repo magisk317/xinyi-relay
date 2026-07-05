@@ -73,7 +73,7 @@ object SenderRetryPolicy {
                 val result = block()
                 recordSuccess(senderType)
                 return result
-            } catch (e: Exception) {
+            } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
                 lastException = e
                 if (!isTransient(e) || attempt == MAX_RETRIES) {
                     recordFailure(senderType)
