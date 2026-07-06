@@ -13,6 +13,8 @@ include:
     file: /.gitlab/ci/renovate.yml
 
 workflow:
+  auto_cancel:
+    on_new_commit: interruptible
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"'
@@ -20,10 +22,15 @@ workflow:
     - if: '$CI_COMMIT_TAG'
     - if: '$CI_COMMIT_BRANCH'
 
+default:
+  interruptible: true
+  tags:
+    - magisk-local-linux
+
 stages:
   - build
-  - notify
   - quality
+  - notify
   - release-validate
   - package
   - release-build
@@ -44,7 +51,7 @@ variables:
   MAGISK_ANDROID_RELEASE_MODULES_REPO: ""
   MAGISK_ANDROID_RELEASE_PUBLISH_PLAY: "true"
   MAGISK_ANDROID_RELEASE_PLAY_TRACK: "production"
-  RENOVATE_CONFIG_FILE: ".gitlab/renovate-config.js"
+  MAGISK_RENOVATE_REPOSITORY: "magisk3171/xinyi-relay"
   XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG: "saas-linux-small-amd64"
   XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG: "saas-linux-small-arm64"
   XINYI_GITLAB_WINDOWS_AMD64_RUNNER_TAG: "saas-windows-medium-amd64"
@@ -58,6 +65,8 @@ variables:
     - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "api"'
       when: never
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /^Merge branch .renovate\/.+ into /'
       when: never
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_TAG'
@@ -77,7 +86,23 @@ variables:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
     - if: '$CI_COMMIT_TAG =~ /^v[0-9]+[.][0-9]+[.][0-9]+.*$/'
-    - if: '$CI_COMMIT_BRANCH == "beta"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: manual
+      allow_failure: true
+    - when: never
+
+.xinyi_package_rules:
+  rules:
+    - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "web"'
+      when: never
+    - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "api"'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+[.][0-9]+[.][0-9]+.*$/'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: manual
+      allow_failure: true
     - when: never
 
 .xinyi_docker:
@@ -97,7 +122,7 @@ variables:
     - docker buildx version
 
 .xinyi_desktop_linux:
-  extends: .xinyi_ci_rules
+  extends: .xinyi_package_rules
   image: "node:24-bookworm"
   stage: package
   variables:
@@ -111,7 +136,7 @@ variables:
       - desktop-artifacts/
 
 .xinyi_desktop_macos:
-  extends: .xinyi_ci_rules
+  extends: .xinyi_package_rules
   stage: package
   variables:
     RUSTUP_MAX_RETRIES: "10"
@@ -124,7 +149,7 @@ variables:
       - desktop-artifacts/
 
 .xinyi_desktop_windows:
-  extends: .xinyi_ci_rules
+  extends: .xinyi_package_rules
   stage: package
   artifacts:
     when: always
@@ -245,15 +270,11 @@ desktop:macos:arm64:
   rules:
     - if: '$XINYI_GITLAB_MACOS_ENABLED != "true"'
       when: never
-    - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "web"'
-      when: never
-    - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "api"'
-      when: never
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
-      when: never
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_TAG'
-    - if: '$CI_COMMIT_BRANCH'
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+[.][0-9]+[.][0-9]+.*$/'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: manual
+      allow_failure: true
+    - when: never
   tags:
     - $XINYI_GITLAB_MACOS_ARM64_RUNNER_TAG
   script:
@@ -264,6 +285,8 @@ desktop:release:gitlab:
   stage: release-publish
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v[0-9]+[.][0-9]+[.][0-9]+.*$/ && $RELEASE_OWNER == "gitlab"'
+      when: manual
+      allow_failure: true
     - when: never
   needs:
     - job: desktop:linux:x64
@@ -276,7 +299,17 @@ desktop:release:gitlab:
       artifacts: true
       optional: true
   before_script:
-    - apt-get update
+    - |
+      set -euo pipefail
+      export DEBIAN_FRONTEND=noninteractive
+      sed -i \
+        -e 's#http://deb.debian.org/debian-security#https://mirrors.tuna.tsinghua.edu.cn/debian-security#g' \
+        -e 's#http://security.debian.org/debian-security#https://mirrors.tuna.tsinghua.edu.cn/debian-security#g' \
+        -e 's#http://deb.debian.org/debian#https://mirrors.tuna.tsinghua.edu.cn/debian#g' \
+        -e 's#http://archive.ubuntu.com/ubuntu#https://mirrors.tuna.tsinghua.edu.cn/ubuntu#g' \
+        -e 's#http://security.ubuntu.com/ubuntu#https://mirrors.tuna.tsinghua.edu.cn/ubuntu#g' \
+        /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+      apt-get update
     - apt-get install -y --no-install-recommends bash curl
     - rm -rf /var/lib/apt/lists/*
   script:
@@ -394,6 +427,7 @@ android:detekt:
   extends:
     - .magisk_android_detekt
     - .xinyi_android_rules
+  stage: quality
   needs: []
   allow_failure: true
   variables:
@@ -510,6 +544,18 @@ android:release:modules-repo:
     - job: android:release:github-apk
       artifacts: true
 
+telegram:release:
+  extends: .magisk_telegram_release
+  stage: release-publish
+  allow_failure: true
+  variables:
+    MAGISK_TELEGRAM_PROJECT_TAG: "#XinyiRelay"
+    MAGISK_TELEGRAM_PROJECT_NAME: "XinyiRelay"
+    MAGISK_TELEGRAM_RELEASE_ARTIFACT_PATTERN: "*arm64-v8a*NoE2ee*.apk"
+  needs:
+    - job: android:release:github-apk
+      artifacts: true
+
 telegram:ci:
   extends: .magisk_telegram_ci
   stage: notify
@@ -522,6 +568,7 @@ telegram:ci:
   needs:
     - job: android:build
       artifacts: true
+      optional: true
 
 renovate:gitlab:
   extends: .magisk_renovate_gitlab
