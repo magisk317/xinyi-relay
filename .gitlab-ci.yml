@@ -384,7 +384,7 @@ android:build:
       set -euo pipefail
       : "${MAGISK_GRADLE_ARGS:=--warning-mode all}"
       : "${XINYI_ANDROID_TEST_TASKS:?XINYI_ANDROID_TEST_TASKS is required}"
-      ./gradlew $MAGISK_GRADLE_ARGS $XINYI_ANDROID_TEST_TASKS \
+      bash scripts/_toolkit/gradle/run_gradle_with_retry.sh $MAGISK_GRADLE_ARGS $XINYI_ANDROID_TEST_TASKS \
         -PallowIncompatibleDebugSigning=true \
         -PskipGoogleServices=true
   artifacts:
@@ -472,7 +472,7 @@ android:release:github-apk:
       STORE_PASSWORD="$STORE_PASSWORD" \
       KEY_ALIAS="$KEY_ALIAS" \
       KEY_PASSWORD="$KEY_PASSWORD" \
-        ./gradlew $MAGISK_GRADLE_ARGS \
+        bash scripts/_toolkit/gradle/run_gradle_with_retry.sh $MAGISK_GRADLE_ARGS \
           :app:assembleGithubNoE2eeRelease \
           :app:assembleGithubWithE2eeRelease \
           -PbuildSplits
@@ -510,7 +510,7 @@ android:release:play-bundle:
       STORE_PASSWORD="$STORE_PASSWORD" \
       KEY_ALIAS="$KEY_ALIAS" \
       KEY_PASSWORD="$KEY_PASSWORD" \
-        ./gradlew $MAGISK_GRADLE_ARGS :app:bundlePlayRelease
+        bash scripts/_toolkit/gradle/run_gradle_with_retry.sh $MAGISK_GRADLE_ARGS :app:bundlePlayRelease
   artifacts:
     name: "XinyiRelay-release-bundle-$CI_COMMIT_TAG"
     when: always

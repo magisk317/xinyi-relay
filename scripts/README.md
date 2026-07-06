@@ -11,8 +11,9 @@ stay focused on triggers, permissions, and job wiring.
 - `security/`: dependency security automation (`manage_dependabot_alerts.py`, `janitor_security_fixes.sh`, etc.), including tests under `security/tests/`.
 - `utils/`: shared helper utilities (e.g., regex, formatters) used across various scripts.
 
-Gradle invocations stay direct (`./gradlew`) in callers; keep orchestration
-there instead of adding workspace-lock wrappers.
+Gradle invocations stay in callers. For CI or network-sensitive automation, use
+`scripts/_toolkit/gradle/run_gradle_with_retry.sh` instead of adding one-off
+wrappers around `./gradlew`.
 
 When adding new automation, first reuse an existing script or Gradle task. Add a
 new top-level script only when it owns a distinct workflow that cannot fit the

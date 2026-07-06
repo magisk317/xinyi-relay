@@ -13,7 +13,7 @@ if [[ "${ALLOW_INCOMPATIBLE_DEBUG_SIGNING:-false}" == "true" ]]; then
   gradle_args+=("-PallowIncompatibleDebugSigning=true")
 fi
 
-./gradlew \
+bash scripts/_toolkit/gradle/run_gradle_with_retry.sh \
   --no-configuration-cache \
   "${gradle_args[@]}" \
   verifyEmbeddedSubmodules \

@@ -72,7 +72,8 @@ jobs:
           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/play/google-services.json
       - name: Build & Test
         run: >
-          ./gradlew --warning-mode all
+          bash scripts/_toolkit/gradle/run_gradle_with_retry.sh
+          --warning-mode all
           app:assembleGithubNoE2eeDebug app:assembleGithubWithE2eeDebug
           app:testGithubNoE2eeDebugUnitTest app:testGithubWithE2eeDebugUnitTest
           :app:koverHtmlReportGithubNoE2eeDebug :app:koverHtmlReportGithubWithE2eeDebug
