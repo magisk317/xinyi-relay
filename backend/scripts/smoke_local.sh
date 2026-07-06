@@ -10,6 +10,21 @@ COOKIE_JAR="$(mktemp)"
 POSTGRES_DATA_DIR="$(mktemp -d)"
 SMOKE_IMAGE="${RELAY_SMOKE_API_IMAGE:-relay-backend-smoke:local}"
 
+append_proxy_build_args() {
+  local -n build_args_ref=$1
+  local build_arg_name=$2
+  shift 2
+
+  local env_name value
+  for env_name in "$@"; do
+    value="${!env_name:-}"
+    if [[ -n "$value" ]]; then
+      build_args_ref+=(--build-arg "${build_arg_name}=${value}")
+      return 0
+    fi
+  done
+}
+
 prepare_postgres_data_dir() {
   chmod 0777 "$POSTGRES_DATA_DIR"
 }
@@ -43,8 +58,20 @@ set -a
 . ./.env
 set +a
 prepare_postgres_data_dir
+docker_build_args=(
+  --build-arg "GOPROXY=${GOPROXY:-https://goproxy.cn,direct}"
+)
+append_proxy_build_args docker_build_args HTTP_PROXY RELAY_BUILD_HTTP_PROXY HTTP_PROXY
+append_proxy_build_args docker_build_args HTTPS_PROXY RELAY_BUILD_HTTPS_PROXY HTTPS_PROXY
+append_proxy_build_args docker_build_args ALL_PROXY RELAY_BUILD_ALL_PROXY ALL_PROXY
+append_proxy_build_args docker_build_args NO_PROXY RELAY_BUILD_NO_PROXY NO_PROXY
+append_proxy_build_args docker_build_args http_proxy RELAY_BUILD_HTTP_PROXY http_proxy HTTP_PROXY
+append_proxy_build_args docker_build_args https_proxy RELAY_BUILD_HTTPS_PROXY https_proxy HTTPS_PROXY
+append_proxy_build_args docker_build_args all_proxy RELAY_BUILD_ALL_PROXY all_proxy ALL_PROXY
+append_proxy_build_args docker_build_args no_proxy RELAY_BUILD_NO_PROXY no_proxy NO_PROXY
+
 docker build \
-  --build-arg "GOPROXY=${GOPROXY:-https://goproxy.cn,direct}" \
+  "${docker_build_args[@]}" \
   -t "$SMOKE_IMAGE" \
   -f api/Dockerfile \
   "$ROOT_DIR" >/dev/null
