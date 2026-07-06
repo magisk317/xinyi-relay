@@ -92,7 +92,7 @@ jobs:
 
       - name: Build GitHub APK with Splits
         run: >
-          ./gradlew
+          bash scripts/_toolkit/gradle/run_gradle_with_retry.sh
           assembleGithubNoE2eeRelease assembleGithubWithE2eeRelease
           -PbuildSplits
         env:
@@ -191,7 +191,7 @@ jobs:
           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/play/google-services.json
 
       - name: Build App Bundle
-        run: ./gradlew bundlePlayRelease
+        run: bash scripts/_toolkit/gradle/run_gradle_with_retry.sh bundlePlayRelease
         env:
           KEYSTORE_FILE: release.jks
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
