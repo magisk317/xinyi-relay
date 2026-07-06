@@ -5,6 +5,9 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.service.notification.StatusBarNotification
 import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.relay.android.sms.SmsCodeUtils
+import io.github.magisk317.smscode.domain.model.SmsCodeParseSource
+import io.github.magisk317.smscode.domain.model.SmsCodeParseSourceKind
 
 object AppNotificationIngressAdapter {
     fun toPayload(
@@ -69,6 +72,33 @@ object AppNotificationIngressAdapter {
             appName = appName,
             notifyChannelId = notifyChannelId,
         )
+    }
+
+    suspend fun toPayloadWithParsedSmsCode(
+        context: Context,
+        sbn: StatusBarNotification,
+    ): ForwardBroadcastPayload? {
+        val payload = toPayload(context, sbn) ?: return null
+        val notification = sbn.notification
+        val title = notification.extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
+        val text = notification.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
+        val expandedText = resolveExpandedText(notification)
+        val tickerText = notification.tickerText?.toString() ?: ""
+        val content = buildNotificationParseContent(
+            title = title,
+            text = text,
+            body = payload.body.orEmpty(),
+            expandedText = expandedText,
+            tickerText = tickerText,
+        )
+        val smsCode = parseNotificationSmsCode(
+            context = context,
+            packageName = payload.packageName.orEmpty(),
+            title = title,
+            notifyChannelId = payload.notifyChannelId,
+            content = content,
+        )
+        return payload.copy(smsCode = smsCode)
     }
 
     internal fun shouldSkipNotification(
@@ -138,6 +168,20 @@ object AppNotificationIngressAdapter {
         }
     }
 
+    internal fun buildNotificationParseContent(
+        title: String,
+        text: String,
+        body: String,
+        expandedText: String,
+        tickerText: String,
+    ): String {
+        return listOf(title, text, body, expandedText, tickerText)
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .joinToString("\n")
+    }
+
     private fun resolveExpandedText(notification: Notification): String {
         val extras = notification.extras
         val bigText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString().orEmpty()
@@ -199,6 +243,35 @@ object AppNotificationIngressAdapter {
         sourcePackageName: String,
     ): Boolean {
         return sourcePackageName == hostPackageName || sourcePackageName == "android"
+    }
+
+    private suspend fun parseNotificationSmsCode(
+        context: Context,
+        packageName: String,
+        title: String,
+        notifyChannelId: String,
+        content: String,
+    ): String? {
+        if (content.isBlank()) return null
+        return runCatching {
+            SmsCodeUtils.parseSmsCodeResultIfExists(
+                context = context,
+                content = content,
+                source = SmsCodeParseSource(
+                    packageName = packageName,
+                    sender = title,
+                    title = title,
+                    channelId = notifyChannelId,
+                    sourceKind = SmsCodeParseSourceKind.APP_NOTIFICATION,
+                ),
+            ).code.trim().takeIf { it.isNotEmpty() }
+        }.onFailure { error ->
+            XLog.w(
+                "Notification smsCode parse failed: pkg=%s err=%s",
+                packageName.ifBlank { "<empty>" },
+                error.message ?: error.javaClass.simpleName,
+            )
+        }.getOrNull()
     }
 
     private const val RELAY_NOTIFICATION_CHANNEL_ID = "relay_notification"

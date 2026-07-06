@@ -9,6 +9,7 @@ import io.github.magisk317.relay.android.data.store.EntityType
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.prefs.PrefsReader
 import io.github.magisk317.smscode.domain.model.SmsCodeParseResult
+import io.github.magisk317.smscode.domain.model.SmsCodeParseSource
 import io.github.magisk317.smscode.domain.model.SmsCodeRuleSpec
 import io.github.magisk317.smscode.runtime.common.rules.SmsCodeRuleCatalogRefreshResult
 import io.github.magisk317.smscode.runtime.common.rules.SmsCodeRuleCatalogRepository
@@ -40,16 +41,18 @@ object SmsCodeUtils {
         context: Context,
         content: String,
         keywordsRegexOverride: String? = null,
+        source: SmsCodeParseSource? = null,
     ): String {
-        return adapter.parseSmsCodeIfExists(context, content, keywordsRegexOverride)
+        return adapter.parseSmsCodeIfExists(context, content, keywordsRegexOverride, source)
     }
 
     suspend fun parseSmsCodeResultIfExists(
         context: Context,
         content: String,
         keywordsRegexOverride: String? = null,
+        source: SmsCodeParseSource? = null,
     ): SmsCodeParseResult {
-        return adapter.parseSmsCodeResultIfExists(context, content, keywordsRegexOverride)
+        return adapter.parseSmsCodeResultIfExists(context, content, keywordsRegexOverride, source)
     }
 
     @JvmStatic
