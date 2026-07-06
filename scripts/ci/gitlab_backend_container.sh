@@ -17,6 +17,21 @@ require_env() {
   fi
 }
 
+append_proxy_build_arg() {
+  local -n tag_args_ref=$1
+  local build_arg_name=$2
+  shift 2
+
+  local env_name value
+  for env_name in "$@"; do
+    value="${!env_name:-}"
+    if [[ -n "$value" ]]; then
+      tag_args_ref+=(--build-arg "${build_arg_name}=${value}")
+      return 0
+    fi
+  done
+}
+
 release_tags() {
   local ref_type ref_name
   if [[ -n "${CI_COMMIT_TAG:-}" ]]; then
@@ -107,12 +122,24 @@ build_arch() {
     exit 1
   fi
 
+  local build_args=(
+    --build-arg "GOPROXY=${GOPROXY:-https://goproxy.cn,direct}"
+  )
+  append_proxy_build_arg build_args HTTP_PROXY RELAY_BUILD_HTTP_PROXY HTTP_PROXY
+  append_proxy_build_arg build_args HTTPS_PROXY RELAY_BUILD_HTTPS_PROXY HTTPS_PROXY
+  append_proxy_build_arg build_args ALL_PROXY RELAY_BUILD_ALL_PROXY ALL_PROXY
+  append_proxy_build_arg build_args NO_PROXY RELAY_BUILD_NO_PROXY NO_PROXY
+  append_proxy_build_arg build_args http_proxy RELAY_BUILD_HTTP_PROXY http_proxy HTTP_PROXY
+  append_proxy_build_arg build_args https_proxy RELAY_BUILD_HTTPS_PROXY https_proxy HTTPS_PROXY
+  append_proxy_build_arg build_args all_proxy RELAY_BUILD_ALL_PROXY all_proxy ALL_PROXY
+  append_proxy_build_arg build_args no_proxy RELAY_BUILD_NO_PROXY no_proxy NO_PROXY
+
   docker buildx build \
     --platform "linux/${arch}" \
     --file backend/api/Dockerfile \
     --push \
     --provenance=false \
-    --build-arg "GOPROXY=${GOPROXY:-https://goproxy.cn,direct}" \
+    "${build_args[@]}" \
     --label "org.opencontainers.image.title=xinyi-relay-backend" \
     --label "org.opencontainers.image.description=Remote backend for Xinyi Relay" \
     --label "org.opencontainers.image.source=${source_url}" \
