@@ -137,6 +137,31 @@ class MessageFormatterTest {
     }
 
     @Test
+    fun `app notify can render sms code variable without sms reclassification`() = runBlocking {
+        val event = baseEvent.copy(
+            messageType = MessageType.APP_NOTIFY,
+            sender = "Gmail",
+            body = "Your verification code is 864210",
+            companyOrAppName = "Gmail",
+            smsCode = "864210",
+            simSlot = -1,
+        )
+
+        val result = formatter().format(
+            event = event,
+            payloadContext = DispatchPayloadContext(
+                appName = "Gmail",
+                title = "Gmail",
+                message = event.body,
+            ),
+            config = ForwardCommonConfig(messageTemplate = "应用：{{CARD_SLOT}}\n验证码：{{SMS_CODE}}"),
+            env = snapshot,
+        )
+
+        assertEquals("应用：Gmail\n验证码：864210", result)
+    }
+
+    @Test
     fun `APP_ICON is replaced with valid base64 appIcon value`() = runBlocking {
         val fakeBase64Icon = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
         val template = "图标：{{APP_ICON}}\n内容：{{SMS}}"

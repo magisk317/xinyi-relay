@@ -135,4 +135,20 @@ class AppNotificationIngressAdapterTest {
             ),
         )
     }
+
+    @Test
+    fun buildNotificationParseContent_includesDistinctNotificationFields() {
+        val content = AppNotificationIngressAdapter.buildNotificationParseContent(
+            title = "Gmail",
+            text = "Your verification code is 123456",
+            body = "Your verification code is 123456",
+            expandedText = "Full message\nYour verification code is 123456",
+            tickerText = "Gmail ticker",
+        )
+
+        assertEquals(
+            "Gmail\nYour verification code is 123456\nFull message\nYour verification code is 123456\nGmail ticker",
+            content,
+        )
+    }
 }

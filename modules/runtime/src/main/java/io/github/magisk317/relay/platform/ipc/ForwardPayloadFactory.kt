@@ -221,13 +221,14 @@ object ForwardPayloadFactory {
         timestamp: Long,
         appName: String,
         notifyChannelId: String,
+        smsCode: String? = null,
     ): ForwardBroadcastPayload {
         return ForwardBroadcastPayload(
             sender = title,
             body = body,
             date = timestamp,
             company = appName,
-            smsCode = null,
+            smsCode = smsCode,
             packageName = packageName,
             notifyChannelId = notifyChannelId,
             msgType = ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY,

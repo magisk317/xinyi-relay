@@ -40,17 +40,20 @@ class AppNotificationListenerService : NotificationListenerService() {
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         super.onNotificationPosted(sbn)
-        val payload = AppNotificationIngressAdapter.toPayload(applicationContext, sbn) ?: return
-
-        XLog.i(
-            "Notification intercepted: pkg=%s event=%s title=%s body=%s",
-            payload.packageName,
-            payload.eventId,
-            payload.sender.orEmpty(),
-            payload.body.orEmpty(),
-        )
 
         serviceScope.launch {
+            val payload = AppNotificationIngressAdapter.toPayloadWithParsedSmsCode(applicationContext, sbn)
+                ?: return@launch
+
+            XLog.i(
+                "Notification intercepted: pkg=%s event=%s title=%s body=%s codePresent=%s",
+                payload.packageName,
+                payload.eventId,
+                payload.sender.orEmpty(),
+                payload.body.orEmpty(),
+                !payload.smsCode.isNullOrBlank(),
+            )
+
             val wakeLock = acquireWakeLock()
             try {
                 SpecialAlertCoordinator.notifyForEvent(
