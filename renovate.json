@@ -12,6 +12,9 @@
     "minimumReleaseAge": "24 hours",
     "internalChecksFilter": "strict",
     "prCreation": "immediate",
+    "ignoreTests": true,
+    "platformAutomerge": false,
+    "automergeType": "pr",
     "baseBranchPatterns": [
         "beta"
     ],
@@ -21,29 +24,156 @@
     ],
     "packageRules": [
         {
+            "matchManagers": [
+                "gradle",
+                "maven"
+            ],
             "matchUpdateTypes": [
-                "minor",
+                "minor"
+            ],
+            "automerge": true,
+            "automergeType": "pr",
+            "groupName": "java minor dependencies",
+            "groupSingleUpdates": false,
+            "groupSlug": "java-minor",
+            "commitMessageExtra": ""
+        },
+        {
+            "matchManagers": [
+                "gradle",
+                "maven"
+            ],
+            "matchUpdateTypes": [
                 "patch"
             ],
             "automerge": true,
             "automergeType": "pr",
-            "groupName": "other non-major dependencies",
+            "groupName": "java patch dependencies",
             "groupSingleUpdates": false,
-            "groupSlug": "all-minor-patch",
-            "commitMessageExtra": "",
-            "matchPackageNames": [
-                "!/^androidx\\./",
-                "!/^org\\.jetbrains\\.kotlin/",
-                "!/^io\\.insert-koin\\./",
-                "!/^org\\.junit\\./",
-                "!/^dev\\.chrisbanes\\.haze/",
-                "!/^com\\.squareup\\.okhttp3/",
-                "!/^com\\.squareup\\.retrofit2/",
-                "!/^io\\.ktor\\./",
-                "!/^io\\.coil-kt/",
-                "!/^io\\.kotest/",
-                "!/^com\\.google\\.firebase/"
-            ]
+            "groupSlug": "java-patch",
+            "commitMessageExtra": ""
+        },
+        {
+            "matchManagers": [
+                "npm",
+                "pnpm"
+            ],
+            "matchUpdateTypes": [
+                "minor"
+            ],
+            "automerge": true,
+            "automergeType": "pr",
+            "groupName": "javascript minor dependencies",
+            "groupSingleUpdates": false,
+            "groupSlug": "javascript-minor",
+            "commitMessageExtra": ""
+        },
+        {
+            "matchManagers": [
+                "npm",
+                "pnpm"
+            ],
+            "matchUpdateTypes": [
+                "patch"
+            ],
+            "automerge": true,
+            "automergeType": "pr",
+            "groupName": "javascript patch dependencies",
+            "groupSingleUpdates": false,
+            "groupSlug": "javascript-patch",
+            "commitMessageExtra": ""
+        },
+        {
+            "matchManagers": [
+                "cargo"
+            ],
+            "matchUpdateTypes": [
+                "minor"
+            ],
+            "automerge": true,
+            "automergeType": "pr",
+            "groupName": "rust minor dependencies",
+            "groupSingleUpdates": false,
+            "groupSlug": "rust-minor",
+            "commitMessageExtra": ""
+        },
+        {
+            "matchManagers": [
+                "cargo"
+            ],
+            "matchUpdateTypes": [
+                "patch"
+            ],
+            "automerge": true,
+            "automergeType": "pr",
+            "groupName": "rust patch dependencies",
+            "groupSingleUpdates": false,
+            "groupSlug": "rust-patch",
+            "commitMessageExtra": ""
+        },
+        {
+            "matchManagers": [
+                "gomod"
+            ],
+            "matchUpdateTypes": [
+                "minor"
+            ],
+            "automerge": true,
+            "automergeType": "pr",
+            "groupName": "go minor dependencies",
+            "groupSingleUpdates": false,
+            "groupSlug": "go-minor",
+            "commitMessageExtra": ""
+        },
+        {
+            "matchManagers": [
+                "gomod"
+            ],
+            "matchUpdateTypes": [
+                "patch"
+            ],
+            "automerge": true,
+            "automergeType": "pr",
+            "groupName": "go patch dependencies",
+            "groupSingleUpdates": false,
+            "groupSlug": "go-patch",
+            "commitMessageExtra": ""
+        },
+        {
+            "matchManagers": [
+                "docker-compose",
+                "dockerfile",
+                "gitlabci",
+                "gitlabci-include",
+                "gradle-wrapper"
+            ],
+            "matchUpdateTypes": [
+                "minor"
+            ],
+            "automerge": true,
+            "automergeType": "pr",
+            "groupName": "infra minor dependencies",
+            "groupSingleUpdates": false,
+            "groupSlug": "infra-minor",
+            "commitMessageExtra": ""
+        },
+        {
+            "matchManagers": [
+                "docker-compose",
+                "dockerfile",
+                "gitlabci",
+                "gitlabci-include",
+                "gradle-wrapper"
+            ],
+            "matchUpdateTypes": [
+                "patch"
+            ],
+            "automerge": true,
+            "automergeType": "pr",
+            "groupName": "infra patch dependencies",
+            "groupSingleUpdates": false,
+            "groupSlug": "infra-patch",
+            "commitMessageExtra": ""
         },
         {
             "matchManagers": [
@@ -112,7 +242,6 @@
     "dependencyDashboardOSVVulnerabilitySummary": "all",
     "lockFileMaintenance": {
         "enabled": true,
-        "automerge": true,
-        "schedule": ["before 6am"]
+        "automerge": true
     }
 }

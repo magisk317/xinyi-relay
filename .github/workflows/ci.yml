@@ -32,6 +32,12 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+      - name: Resolve CI toolkit
+        run: bash scripts/resolve_ci_toolkit.sh
+      - name: Setup Android CI
+        uses: ./.magisk-ci-toolkit/.github/actions/setup-android-ci
+        with:
+          checkout: 'false'
       - name: Resolve WebUI toolchain
         id: webui_toolchain
         shell: bash
@@ -50,15 +56,6 @@ jobs:
           pnpm -C frontend/webui typecheck
           pnpm -C frontend/webui test
           pnpm -C frontend/webui build
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "26"
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          validate-wrappers: false
-          allow-snapshot-wrappers: true
       - name: Decode Keystore
         if: env.HAS_RELEASE_KEYSTORE == 'true'
         run: echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > app/release.jks
@@ -71,15 +68,16 @@ jobs:
           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/githubWithE2ee/google-services.json
           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/play/google-services.json
       - name: Build & Test
-        run: >
-          bash scripts/_toolkit/gradle/run_gradle_with_retry.sh
-          --warning-mode all
-          app:assembleGithubNoE2eeDebug app:assembleGithubWithE2eeDebug
-          app:testGithubNoE2eeDebugUnitTest app:testGithubWithE2eeDebugUnitTest
-          :app:koverHtmlReportGithubNoE2eeDebug :app:koverHtmlReportGithubWithE2eeDebug
-          -PallowIncompatibleDebugSigning=true
-          -PbuildSplits
-          -PskipGoogleServices=${{ env.HAS_GOOGLE_SERVICES_JSON == 'false' }}
+        uses: ./.magisk-ci-toolkit/.github/actions/run-gradle-with-retry
+        with:
+          arguments: >
+            --warning-mode all
+            app:assembleGithubNoE2eeDebug app:assembleGithubWithE2eeDebug
+            app:testGithubNoE2eeDebugUnitTest app:testGithubWithE2eeDebugUnitTest
+            :app:koverHtmlReportGithubNoE2eeDebug :app:koverHtmlReportGithubWithE2eeDebug
+            -PallowIncompatibleDebugSigning=true
+            -PbuildSplits
+            -PskipGoogleServices=${{ env.HAS_GOOGLE_SERVICES_JSON == 'false' }}
         env:
           KEYSTORE_FILE: release.jks
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}

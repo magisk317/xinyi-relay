@@ -16,11 +16,6 @@ on:
     branches:
       - beta
 
-permissions:
-  contents: read
-  issues: read
-  pull-requests: read
-
 concurrency:
   group: renovate
   cancel-in-progress: false
@@ -28,6 +23,10 @@ concurrency:
 jobs:
   renovate:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: read
+      pull-requests: read
     if: |
       (
         github.event_name != 'pull_request_target' &&
@@ -60,13 +59,21 @@ jobs:
         contains(github.event.issue.body, 'This issue lists Renovate updates and detected dependencies.')
       )
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
+      - name: Resolve CI toolkit
+        run: bash scripts/resolve_ci_toolkit.sh
+
       - name: Self-hosted Renovate
-        uses: renovatebot/github-action@v46.1.16
+        uses: renovatebot/github-action@v46.1.15
         with:
           configurationFile: .github/renovate-config.js
           token: ${{ secrets.GH_PAT }}
+
+      - name: Cleanup orphan renovate branches
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: bash .magisk-ci-toolkit/github/cleanup_orphan_renovate_branches.sh
