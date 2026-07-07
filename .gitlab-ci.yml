@@ -106,9 +106,9 @@ variables:
     - when: never
 
 .xinyi_docker:
-  image: "docker:28-cli"
+  image: "docker:29-cli"
   services:
-    - name: "docker:28-dind"
+    - name: "docker:29-dind"
       alias: docker
       command: ["--tls=false", "--mtu=1400"]
   variables:
