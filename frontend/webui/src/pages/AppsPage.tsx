@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
-import { apiClient } from '../api/client'
-import { cloneSnapshot } from '../configSnapshot'
+import { useMemo, useState } from 'react'
+import { buildReplaceDeviceAppsMutation } from '../../../shared/configMutations'
+import { useDeviceConfig } from '../deviceConfig'
 import { useRealtimeFeed } from '../realtime'
 import { trackEvent } from '../analytics'
 import { useI18n } from '../i18n'
@@ -19,10 +19,8 @@ import type {
   SnapshotAppInfo,
   SnapshotForwardFilterRule,
   SnapshotNotifyRouteRule,
-  SnapshotSmsCodeRule,
-  DeviceItem
+  SnapshotSmsCodeRule
 } from '../types'
-import { useConfigSnapshotEditor } from '../useConfigSnapshotEditor'
 
 const EMPTY_APP_INFOS: SnapshotAppInfo[] = []
 const EMPTY_NOTIFY_ROUTES: SnapshotNotifyRouteRule[] = []
@@ -31,38 +29,27 @@ const EMPTY_FORWARD_FILTERS: SnapshotForwardFilterRule[] = []
 
 export function AppsPage() {
   const { t } = useI18n()
-  const { connected, lastEvent } = useRealtimeFeed()
-  const { config, root, loading, saving, error, setError, load, saveRoot } = useConfigSnapshotEditor()
+  const { connected } = useRealtimeFeed()
+  const {
+    config,
+    devices,
+    root,
+    loading,
+    saving,
+    error,
+    setError,
+    selectedDeviceId,
+    setSelectedDeviceId,
+    refreshConfig,
+    queueMutation
+  } = useDeviceConfig()
   const [search, setSearch] = useState('')
   const [draftPackageName, setDraftPackageName] = useState('')
   const [draftLabel, setDraftLabel] = useState('')
-  const [devices, setDevices] = useState<DeviceItem[]>([])
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null)
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      void load().catch(() => {})
-      void apiClient.getDevices().then((res) => {
-        setDevices(res.devices)
-        if (res.devices.length > 0) {
-          setSelectedDeviceId(String(res.devices[0].id))
-        }
-      }).catch(() => {})
-    })
-  }, [load])
-
-  useEffect(() => {
-    if (lastEvent?.type === 'config.updated') {
-      void load().catch(() => {})
-    }
-    if (lastEvent?.type === 'device.registered' || lastEvent?.type === 'device.updated') {
-      void apiClient.getDevices().then((res) => setDevices(res.devices)).catch(() => {})
-    }
-  }, [lastEvent, load])
 
   const appInfos = useMemo(() => {
     if (!root || !selectedDeviceId) return EMPTY_APP_INFOS
-    return root.deviceAppInfos?.[selectedDeviceId] ?? EMPTY_APP_INFOS
+    return root.deviceAppInfos?.[String(selectedDeviceId)] ?? EMPTY_APP_INFOS
   }, [root, selectedDeviceId])
   const notifyRoutes = useMemo(() => root?.notifyRoutes ?? EMPTY_NOTIFY_ROUTES, [root?.notifyRoutes])
   const smsCodeRules = useMemo(() => root?.smsCodeRules ?? EMPTY_SMS_CODE_RULES, [root?.smsCodeRules])
@@ -85,7 +72,7 @@ export function AppsPage() {
       <ActionButton
         onClick={() => {
           trackEvent('refresh', { page: 'apps' })
-          void load().catch(() => {})
+          void refreshConfig().catch(() => {})
         }}
       >
         {t('apps.refresh')}
@@ -94,14 +81,11 @@ export function AppsPage() {
   )
 
   async function persistApps(nextApps: SnapshotAppInfo[]) {
-    if (!root || !selectedDeviceId) return
-    const nextRoot = cloneSnapshot(root)
-    if (!nextRoot.deviceAppInfos) nextRoot.deviceAppInfos = {}
-    nextRoot.deviceAppInfos[selectedDeviceId] = nextApps
+    if (!selectedDeviceId) return
     try {
-      await saveRoot(nextRoot)
+      await queueMutation(buildReplaceDeviceAppsMutation(selectedDeviceId, nextApps), 'apps:update')
     } catch {
-      // saveRoot updates error state itself.
+      // queueMutation updates error state itself.
     }
   }
 
@@ -122,7 +106,7 @@ export function AppsPage() {
           <select
             className="relay-input"
             value={selectedDeviceId ?? ''}
-            onChange={(e) => setSelectedDeviceId(e.target.value)}
+            onChange={(e) => setSelectedDeviceId(Number(e.target.value))}
           >
             {devices.map((device) => (
               <option key={device.id} value={String(device.id)}>

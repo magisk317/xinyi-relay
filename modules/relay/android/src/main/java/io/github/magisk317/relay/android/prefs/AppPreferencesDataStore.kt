@@ -166,8 +166,8 @@ object AppPreferencesDataStore {
                 }
             }
         }
-        remoteSyncPending = true
-        remoteSyncPendingLogged = false
+        remotePrefsPublishPending = true
+        remotePrefsPublishPendingLogged = false
 
         val changedKeys = (removedKeys + repairedValues.keys).joinToString(",")
         XLog.w(
@@ -204,8 +204,8 @@ object AppPreferencesDataStore {
             }
         }
 
-        remoteSyncPending = true
-        remoteSyncPendingLogged = false
+        remotePrefsPublishPending = true
+        remotePrefsPublishPendingLogged = false
         XLog.w(
             "Imported missing shared prefs into DataStore: count=%d keys=%s",
             imported.size,
@@ -269,20 +269,20 @@ object AppPreferencesDataStore {
     @Volatile
     private var remoteProviderLogged = false
     @Volatile
-    private var remoteSyncPending = false
+    private var remotePrefsPublishPending = false
     @Volatile
-    private var remoteSyncPendingLogged = false
+    private var remotePrefsPublishPendingLogged = false
 
     fun setRemotePrefsProvider(provider: (() -> SharedPreferences?)?) {
         remotePrefsProvider = provider
         remoteProviderLogged = false
         if (provider == null) {
             // Keep pending flag for next service bind.
-            remoteSyncPendingLogged = false
+            remotePrefsPublishPendingLogged = false
         }
     }
 
-    fun hasPendingRemoteSync(): Boolean = remoteSyncPending
+    fun hasPendingRemotePrefsPublish(): Boolean = remotePrefsPublishPending
 
     private fun getRemotePrefs(): SharedPreferences? {
         val provider = remotePrefsProvider ?: return null
@@ -415,9 +415,9 @@ object AppPreferencesDataStore {
     @Suppress("TooGenericExceptionCaught")
     suspend fun syncToRemotePrefs(context: Context) {
         val prefs = getRemotePrefs() ?: run {
-            remoteSyncPending = true
-            if (!remoteSyncPendingLogged) {
-                remoteSyncPendingLogged = true
+            remotePrefsPublishPending = true
+            if (!remotePrefsPublishPendingLogged) {
+                remotePrefsPublishPendingLogged = true
                 XLog.w("RemotePrefs sync pending: provider not available")
             }
             return
@@ -660,15 +660,15 @@ object AppPreferencesDataStore {
             )
             val committed = editor.commit()
             if (!committed) {
-                remoteSyncPending = true
+                remotePrefsPublishPending = true
                 XLog.w("RemotePrefs sync failed: commit returned false")
             } else {
-                remoteSyncPending = false
-                remoteSyncPendingLogged = false
+                remotePrefsPublishPending = false
+                remotePrefsPublishPendingLogged = false
                 verifyTokenSyncResult(prefs, context)
             }
         } catch (e: Exception) {
-            remoteSyncPending = true
+            remotePrefsPublishPending = true
             XLog.w("RemotePrefs sync failed: %s", e.message ?: e.javaClass.simpleName)
         }
     }

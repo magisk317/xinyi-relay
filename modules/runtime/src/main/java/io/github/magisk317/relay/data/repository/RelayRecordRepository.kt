@@ -433,7 +433,7 @@ class RelayRecordRepository(
 
     private fun scheduleRecordUpload(reason: String) {
         recordUploadScheduler?.invoke(reason)
-            ?: RuntimeDependencies.get().remoteAgentRepository.scheduleRecordUpload(reason)
+            ?: RuntimeDependencies.get().configSyncCoordinator.scheduleRecordUpload(reason)
     }
 
     private companion object {

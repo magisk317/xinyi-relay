@@ -4,7 +4,8 @@ import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.contract.backup.AutoBackupTrigger
-import io.github.magisk317.relay.contract.repository.RemoteSyncRepository
+import io.github.magisk317.relay.contract.repository.ConfigSyncCoordinator
+import io.github.magisk317.relay.contract.repository.LocalConfigRepository
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.domain.pipeline.EventPipeline
 import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
@@ -26,7 +27,8 @@ class RuntimeDependenciesImpl(private val koin: Koin) : RuntimeDependencies {
     override val preferenceDataSource: PreferenceDataSource get() = koin.get()
     override val settingsRepository: SettingsPreferencesRepository get() = koin.get()
     override val relayRecordRepository: MessageRecordRepository get() = koin.get()
-    override val remoteAgentRepository: RemoteSyncRepository get() = koin.get()
+    override val localConfigRepository: LocalConfigRepository get() = koin.get()
+    override val configSyncCoordinator: ConfigSyncCoordinator get() = koin.get()
     override val runtimeRecordFacade: RuntimeRecordFacade get() = koin.get()
     override val configRepository: AppConfigRepository get() = koin.get()
     override val autoBackupTrigger: AutoBackupTrigger get() = koin.get()

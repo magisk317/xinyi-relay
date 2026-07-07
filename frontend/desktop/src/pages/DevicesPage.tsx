@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { desktopApi } from '../api/desktopApi'
+import { useDesktopDeviceConfig } from '../hooks/useDesktopDeviceConfig'
 import { useDesktopRealtimeRefresh } from '../hooks/useDesktopRealtimeRefresh'
 import { useDesktopI18n } from '../i18n'
 import { useDesktop } from '../state/DesktopContext'
-import type { BindCodeResponse, DeviceItem } from '../../../shared/contracts/console'
+import type { BindCodeResponse } from '../../../shared/contracts/console'
 import { EmptyState, Panel, Tag } from '../ui'
 
 const DEVICE_REFRESH_EVENTS = [
@@ -17,7 +18,7 @@ const DEVICE_REFRESH_EVENTS = [
 export function DevicesPage() {
   const { activeProfile } = useDesktop()
   const { t } = useDesktopI18n()
-  const [devices, setDevices] = useState<DeviceItem[]>([])
+  const { devices, refresh } = useDesktopDeviceConfig()
   const [bindCode, setBindCode] = useState<BindCodeResponse | null>(null)
   const [draftNames, setDraftNames] = useState<Record<number, string>>({})
   const [loading, setLoading] = useState(true)
@@ -29,22 +30,13 @@ export function DevicesPage() {
     try {
       setLoading(true)
       setError('')
-      const payload = await desktopApi.getDevices()
-      setDevices(payload.devices)
-      setDraftNames((previous) => {
-        const next: Record<number, string> = {}
-        for (const device of payload.devices) {
-          const fallbackName = device.displayName || device.deviceName
-          next[device.id] = previous[device.id] ?? fallbackName
-        }
-        return next
-      })
+      await refresh()
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : t('error.loadDevices'))
     } finally {
       setLoading(false)
     }
-  }, [t])
+  }, [refresh, t])
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -55,6 +47,17 @@ export function DevicesPage() {
   useDesktopRealtimeRefresh(() => {
     void load()
   }, DEVICE_REFRESH_EVENTS)
+
+  useEffect(() => {
+    setDraftNames((previous) => {
+      const next: Record<number, string> = {}
+      for (const device of devices) {
+        const fallbackName = device.displayName || device.deviceName
+        next[device.id] = previous[device.id] ?? fallbackName
+      }
+      return next
+    })
+  }, [devices])
 
   const bindQrValue = bindCode
     ? `xinyi-relay://bind?code=${encodeURIComponent(bindCode.code)}&base_url=${encodeURIComponent(activeProfile?.baseUrl ?? 'https://localhost:8443')}`

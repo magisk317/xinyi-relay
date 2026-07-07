@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useEffectEvent, useState } from 'react'
 import { apiClient } from '../api/client'
+import { useDeviceConfig } from '../deviceConfig'
 import { useRealtimeFeed } from '../realtime'
-import type { DevicesResponse, SystemInfoState } from '../types'
+import type { SystemInfoState } from '../types'
 import { trackEvent } from '../analytics'
 import { useI18n } from '../i18n'
 import { ActionButton, ErrorBanner, LoadingCard, MetricCard, PageShell, RelayBadge, SurfaceCard } from '../template'
 
 export function OverviewPage() {
   const { t } = useI18n()
+  const { devices, refreshDevices } = useDeviceConfig()
   const [systemInfo, setSystemInfo] = useState<SystemInfoState | null>(null)
-  const [devices, setDevices] = useState<DevicesResponse | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const { connected, lastEvent } = useRealtimeFeed()
@@ -18,15 +19,14 @@ export function OverviewPage() {
     try {
       setLoading(true)
       setError('')
-      const [info, deviceList] = await Promise.all([apiClient.getSystemInfo(), apiClient.getDevices()])
+      const [info] = await Promise.all([apiClient.getSystemInfo(), refreshDevices()])
       setSystemInfo(info)
-      setDevices(deviceList)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.loadFailed'))
     } finally {
       setLoading(false)
     }
-  }, [t])
+  }, [refreshDevices, t])
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -35,7 +35,17 @@ export function OverviewPage() {
   }, [load])
 
   const handleRealtimeEvent = useEffectEvent((eventType: string) => {
-    if (['device.registered', 'device.updated', 'device.heartbeat', 'device.revoked', 'config.updated', 'records.ingested'].includes(eventType)) {
+    if (
+      [
+        'device.registered',
+        'device.updated',
+        'device.heartbeat',
+        'device.revoked',
+        'device.config.updated',
+        'device.config.command.updated',
+        'records.ingested'
+      ].includes(eventType)
+    ) {
       queueMicrotask(() => {
         void load()
       })
@@ -63,7 +73,7 @@ export function OverviewPage() {
     </div>
   )
 
-  if (loading && (!systemInfo || !devices) && !error) {
+  if (loading && !systemInfo && !error) {
     return (
       <PageShell title={t('overview.title')} description={t('overview.description')} badge={t('overview.title')} actions={actions}>
         <LoadingCard title={t('overview.loadingTitle')} message={t('overview.loadingMessage')} />
@@ -74,12 +84,12 @@ export function OverviewPage() {
   return (
     <PageShell title={t('overview.title')} description={t('overview.remoteDescription')} badge={t('overview.title')} actions={actions}>
       <ErrorBanner message={error} />
-      {systemInfo && devices && (
+      {systemInfo && (
         <>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <MetricCard title={t('overview.metric.service')} value={systemInfo.service} tone="info" helper={systemInfo.appEnv} />
             <MetricCard title={t('overview.metric.users')} value={systemInfo.userCount} helper={t('overview.metric.usersHelper')} />
-            <MetricCard title={t('overview.metric.devicesRemote')} value={devices.devices.length} tone="success" helper={t('overview.metric.devicesRemoteHelper')} />
+            <MetricCard title={t('overview.metric.devicesRemote')} value={devices.length} tone="success" helper={t('overview.metric.devicesRemoteHelper')} />
             <MetricCard title={t('overview.metric.database')} value={systemInfo.databaseReady ? t('common.ready') : t('common.offline')} tone={systemInfo.databaseReady ? 'success' : 'warning'} helper={new Date(systemInfo.time).toLocaleString()} />
           </div>
 

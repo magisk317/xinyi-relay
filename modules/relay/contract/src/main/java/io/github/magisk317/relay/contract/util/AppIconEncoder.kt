@@ -15,7 +15,7 @@ import java.io.ByteArrayOutputStream
 
 /**
  * 应用图标编码工具 + 默认包名解析。
- * 与记录界面 AppIconImage 使用相同逻辑。
+ * 与记录界面 ViewModel 预解析图标 package 的规则保持一致。
  */
 object AppIconEncoder {
     private const val ICON_SIZE = 128

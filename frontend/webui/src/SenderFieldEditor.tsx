@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react'
 import type { SupportedLocale } from './i18n'
-import { ActionButton, RelaySelect, RelaySwitch } from './template'
+import { RelaySelect, RelaySwitch } from './template'
 import {
   buildSenderJsonFromFormState,
   getSenderFieldSchemas,
   parseSenderFormState,
-  prettySenderJson,
   resolveSenderText,
   type SenderFieldSchema
 } from './senderDefaults'
@@ -26,30 +25,15 @@ const EDITOR_TEXT = {
     'zh-CN': '结构化配置',
     'zh-TW': '結構化配置'
   },
-  advanced: {
-    en: 'Advanced JSON',
-    'zh-CN': '高级 JSON',
-    'zh-TW': '高級 JSON'
-  },
-  reset: {
-    en: 'Reset template',
-    'zh-CN': '重置模板',
-    'zh-TW': '重置模板'
-  },
-  apply: {
-    en: 'Apply JSON',
-    'zh-CN': '应用 JSON',
-    'zh-TW': '套用 JSON'
-  },
-  invalidJson: {
-    en: 'JSON must be a valid object.',
-    'zh-CN': 'JSON 必须是合法对象。',
-    'zh-TW': 'JSON 必須是合法物件。'
+  unsupported: {
+    en: 'This sender type is not exposed as typed fields in the console yet. Edit it on the Android device instead of using raw JSON here.',
+    'zh-CN': '该发送通道暂未在控制台暴露结构化字段，请改在 Android 设备端编辑，而不是在这里回退到原始 JSON。',
+    'zh-TW': '該傳送通道暫未在控制台暴露結構化欄位，請改在 Android 裝置端編輯，而不是在這裡回退到原始 JSON。'
   },
   syncHint: {
-    en: 'These fields mirror the sender defaults used on Android. You can still fall back to JSON below.',
-    'zh-CN': '这些字段会直接套用 Android 端同类通道的默认模板；下方仍可回退到 JSON 编辑。',
-    'zh-TW': '這些欄位會直接套用 Android 端同類通道的預設模板；下方仍可回退到 JSON 編輯。'
+    en: 'These fields mirror the sender defaults used on Android and are now the primary editing surface.',
+    'zh-CN': '这些字段会直接套用 Android 端同类通道的默认模板，并作为当前唯一的主要编辑入口。',
+    'zh-TW': '這些欄位會直接套用 Android 端同類通道的預設模板，並作為目前唯一的主要編輯入口。'
   }
 } as const
 
@@ -67,21 +51,12 @@ function SenderFieldEditorInner({
 }: SenderFieldEditorProps) {
   const fields = useMemo(() => getSenderFieldSchemas(type), [type])
   const [formState, setFormState] = useState<JsonRecord>(() => parseSenderFormState(type, jsonSetting))
-  const [rawJson, setRawJson] = useState(() => prettySenderJson(type, jsonSetting))
-  const [rawError, setRawError] = useState('')
 
   if (!fields.length) {
     return (
-      <textarea
-        className="relay-input min-h-[10rem] font-mono text-xs"
-        value={rawJson}
-        onChange={(event) => {
-          const next = event.target.value
-          setRawJson(next)
-          onLiveChange?.(next)
-        }}
-        onBlur={() => onCommit?.(rawJson)}
-      />
+      <div className="rounded-[18px] border border-[#e4d8ae] bg-[#fffaf0] px-4 py-3 text-sm leading-6 text-[#7a6540]">
+        {resolveEditorText(locale, EDITOR_TEXT.unsupported)}
+      </div>
     )
   }
 
@@ -92,7 +67,6 @@ function SenderFieldEditorInner({
         [field.key]: value
       }
       const nextJson = buildSenderJsonFromFormState(type, next)
-      setRawJson(prettySenderJson(type, nextJson))
       onLiveChange?.(nextJson)
       if (commit) {
         onCommit?.(nextJson)
@@ -103,36 +77,7 @@ function SenderFieldEditorInner({
 
   function commitCurrentForm() {
     const nextJson = buildSenderJsonFromFormState(type, formState)
-    setRawJson(prettySenderJson(type, nextJson))
     onCommit?.(nextJson)
-  }
-
-  function resetTemplate() {
-    const nextForm = parseSenderFormState(type, '')
-    const nextJson = buildSenderJsonFromFormState(type, nextForm)
-    setFormState(nextForm)
-    setRawJson(prettySenderJson(type, nextJson))
-    setRawError('')
-    onLiveChange?.(nextJson)
-    onCommit?.(nextJson)
-  }
-
-  function applyRawJson() {
-    try {
-      const parsed = JSON.parse(rawJson)
-      if (typeof parsed !== 'object' || parsed == null || Array.isArray(parsed)) {
-        throw new Error('invalid object')
-      }
-      const nextJson = buildSenderJsonFromFormState(type, parsed as JsonRecord)
-      const nextForm = parseSenderFormState(type, nextJson)
-      setFormState(nextForm)
-      setRawJson(prettySenderJson(type, nextJson))
-      setRawError('')
-      onLiveChange?.(nextJson)
-      onCommit?.(nextJson)
-    } catch {
-      setRawError(resolveEditorText(locale, EDITOR_TEXT.invalidJson))
-    }
   }
 
   return (
@@ -159,33 +104,6 @@ function SenderFieldEditorInner({
           })}
         </div>
       </div>
-
-      <details className="rounded-[24px] border border-[#dde7b6] bg-white/90 px-4 py-4">
-        <summary className="cursor-pointer select-none text-sm font-medium text-[#435722]">
-          {resolveEditorText(locale, EDITOR_TEXT.advanced)}
-        </summary>
-        <div className="mt-4 space-y-3">
-          <textarea
-            className="relay-input min-h-[12rem] font-mono text-xs"
-            value={rawJson}
-            onChange={(event) => {
-              setRawJson(event.target.value)
-              setRawError('')
-            }}
-          />
-          {rawError ? (
-            <div className="rounded-[18px] border border-[#f7c9bf] bg-[#fff8f3] px-4 py-3 text-sm text-[#b24a24]">
-              {rawError}
-            </div>
-          ) : null}
-          <div className="flex flex-wrap gap-3">
-            <ActionButton onClick={resetTemplate}>{resolveEditorText(locale, EDITOR_TEXT.reset)}</ActionButton>
-            <ActionButton tone="primary" onClick={applyRawJson}>
-              {resolveEditorText(locale, EDITOR_TEXT.apply)}
-            </ActionButton>
-          </div>
-        </div>
-      </details>
     </div>
   )
 }

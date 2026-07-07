@@ -50,8 +50,6 @@
     <string name="language_zh_tw">繁體中文</string>
     <string name="module_status_active">已激活</string>
     <string name="module_status_inactive">未激活</string>
-    <string name="pref_haze_blur_radius_title">背景模糊半径</string>
-    <string name="pref_haze_tint_alpha_title">模糊遮罩透明度</string>
     <!-- preferences general end -->
 
     <!-- preferences sms code -->
@@ -370,15 +368,15 @@
     <string name="pref_remote_agent_bind_code_summary">粘贴 Web 或 Docker 控制台生成的一次性绑定码</string>
     <string name="pref_remote_agent_bind_action">绑定设备</string>
     <string name="pref_remote_agent_heartbeat_action">发送心跳</string>
-    <string name="pref_remote_agent_pull_action">拉取配置</string>
-    <string name="pref_remote_agent_push_action">推送配置</string>
+    <string name="pref_remote_agent_pull_action">拉取命令</string>
+    <string name="pref_remote_agent_push_action">推送本地镜像</string>
     <string name="pref_remote_agent_records_action">上传最近记录</string>
     <string name="pref_remote_agent_scan_action">扫码绑定</string>
     <string name="pref_remote_agent_unbind_action">解除绑定</string>
     <string name="pref_remote_agent_saved">远程 Backend 地址已保存</string>
     <string name="pref_remote_agent_heartbeat_done">心跳已发送</string>
-    <string name="pref_remote_agent_pull_done">已拉取配置 revision %1$d</string>
-    <string name="pref_remote_agent_push_done">配置快照已推送</string>
+    <string name="pref_remote_agent_pull_done">已拉取命令，本地 revision %1$d</string>
+    <string name="pref_remote_agent_push_done">本地镜像已推送</string>
     <string name="pref_remote_agent_records_done">最近记录已上传</string>
     <string name="pref_remote_agent_unbound">设备已解除绑定</string>
     <string name="pref_remote_agent_scan_done">已读取绑定二维码</string>

@@ -27,7 +27,7 @@ class LifecycleMonitorInitializer : AppInitializer {
                     BatteryReminderForegroundMonitor.start(application)
                     scope.launch {
                         runCatching {
-                            RuntimeGraph.from(application).remoteAgentRepository.onAppForegrounded()
+                            RuntimeGraph.from(application).configSyncCoordinator.onAppForegrounded()
                         }
                     }
                 }
@@ -51,7 +51,7 @@ class LifecycleMonitorInitializer : AppInitializer {
                     BatteryReminderForegroundMonitor.stop(application)
                     scope.launch {
                         runCatching {
-                            RuntimeGraph.from(application).remoteAgentRepository.onAppBackgrounded()
+                            RuntimeGraph.from(application).configSyncCoordinator.onAppBackgrounded()
                         }
                     }
                 }

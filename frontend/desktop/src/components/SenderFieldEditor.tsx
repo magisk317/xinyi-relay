@@ -5,7 +5,6 @@ import {
   buildSenderJsonFromFormState,
   getSenderFieldSchemas,
   parseSenderFormState,
-  prettySenderJson,
   resolveSenderText,
   type SenderFieldSchema
 } from '../../../shared/senderDefaults'
@@ -29,27 +28,16 @@ export function SenderFieldEditor({
 }: SenderFieldEditorProps) {
   const fields = useMemo(() => getSenderFieldSchemas(type), [type])
   const [formState, setFormState] = useState<JsonRecord>(() => parseSenderFormState(type, jsonSetting))
-  const [rawJson, setRawJson] = useState(() => prettySenderJson(type, jsonSetting))
-  const [rawError, setRawError] = useState('')
 
   useEffect(() => {
     setFormState(parseSenderFormState(type, jsonSetting))
-    setRawJson(prettySenderJson(type, jsonSetting))
-    setRawError('')
   }, [type, jsonSetting])
 
   if (!fields.length) {
     return (
-      <textarea
-        className="code-editor sender-editor-code"
-        value={rawJson}
-        onChange={(event) => {
-          const nextValue = event.target.value
-          setRawJson(nextValue)
-          onLiveChange?.(nextValue)
-        }}
-        onBlur={() => onCommit?.(rawJson)}
-      />
+      <div className="banner">
+        {resolveEditorText(locale, 'unsupported')}
+      </div>
     )
   }
 
@@ -60,7 +48,6 @@ export function SenderFieldEditor({
         [field.key]: value
       }
       const nextJson = buildSenderJsonFromFormState(type, next)
-      setRawJson(prettySenderJson(type, nextJson))
       onLiveChange?.(nextJson)
       if (commit) {
         onCommit?.(nextJson)
@@ -69,27 +56,8 @@ export function SenderFieldEditor({
     })
   }
 
-  function applyRawJson() {
-    try {
-      const parsed = JSON.parse(rawJson)
-      if (typeof parsed !== 'object' || parsed == null || Array.isArray(parsed)) {
-        throw new Error('invalid object')
-      }
-      const nextJson = buildSenderJsonFromFormState(type, parsed as JsonRecord)
-      const nextForm = parseSenderFormState(type, nextJson)
-      setFormState(nextForm)
-      setRawJson(prettySenderJson(type, nextJson))
-      setRawError('')
-      onLiveChange?.(nextJson)
-      onCommit?.(nextJson)
-    } catch {
-      setRawError(resolveEditorText(locale, 'invalidJson'))
-    }
-  }
-
   function commitCurrentForm() {
     const nextJson = buildSenderJsonFromFormState(type, formState)
-    setRawJson(prettySenderJson(type, nextJson))
     onCommit?.(nextJson)
   }
 
@@ -119,26 +87,6 @@ export function SenderFieldEditor({
           )
         })}
       </div>
-
-      <details className="sender-editor-advanced">
-        <summary>{resolveEditorText(locale, 'advancedJson')}</summary>
-        <div className="stack">
-          <textarea
-            className="code-editor sender-editor-code"
-            value={rawJson}
-            onChange={(event) => {
-              setRawJson(event.target.value)
-              setRawError('')
-            }}
-          />
-          {rawError ? <div className="banner banner--danger">{rawError}</div> : null}
-          <div className="button-row">
-            <button type="button" className="ghost-button" onClick={applyRawJson}>
-              {resolveEditorText(locale, 'applyJson')}
-            </button>
-          </div>
-        </div>
-      </details>
     </div>
   )
 }
@@ -197,11 +145,12 @@ function renderField(
   )
 }
 
-function resolveEditorText(locale: SupportedLocale, key: 'advancedJson' | 'applyJson' | 'invalidJson' | 'enabled' | 'disabled') {
+function resolveEditorText(
+  locale: SupportedLocale,
+  key: 'unsupported' | 'enabled' | 'disabled',
+) {
   const zh = {
-    advancedJson: '高级 JSON',
-    applyJson: '应用 JSON',
-    invalidJson: 'JSON 必须是合法对象。',
+    unsupported: '该发送通道暂未在控制台暴露结构化字段，请改在 Android 设备端编辑，而不是在这里回退到原始 JSON。',
     enabled: '已启用',
     disabled: '已关闭'
   }
@@ -211,9 +160,7 @@ function resolveEditorText(locale: SupportedLocale, key: 'advancedJson' | 'apply
   }
 
   const en = {
-    advancedJson: 'Advanced JSON',
-    applyJson: 'Apply JSON',
-    invalidJson: 'JSON must be a valid object.',
+    unsupported: 'This sender type is not exposed as typed fields in the console yet. Edit it on the Android device instead of using raw JSON here.',
     enabled: 'Enabled',
     disabled: 'Disabled'
   }

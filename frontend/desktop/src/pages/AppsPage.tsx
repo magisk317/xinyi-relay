@@ -1,15 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
-import { desktopApi } from '../api/desktopApi'
-import { cloneSnapshot } from '../configSnapshot'
-import { useDesktopConfigSnapshotEditor } from '../hooks/useDesktopConfigSnapshotEditor'
-import { useDesktopRealtimeRefresh } from '../hooks/useDesktopRealtimeRefresh'
+import { useMemo, useState } from 'react'
+import { buildReplaceDeviceAppsMutation } from '../../../shared/configMutations'
+import { useDesktopDeviceConfig } from '../hooks/useDesktopDeviceConfig'
 import { useDesktopI18n } from '../i18n'
 import type {
   SnapshotAppInfo,
   SnapshotForwardFilterRule,
   SnapshotNotifyRouteRule,
-  SnapshotSmsCodeRule,
-  DeviceItem
+  SnapshotSmsCodeRule
 } from '../../../shared/contracts/console'
 import { EmptyState, Metric, Panel, Tag } from '../ui'
 
@@ -17,37 +14,17 @@ const EMPTY_APP_INFOS: SnapshotAppInfo[] = []
 const EMPTY_NOTIFY_ROUTES: SnapshotNotifyRouteRule[] = []
 const EMPTY_SMS_CODE_RULES: SnapshotSmsCodeRule[] = []
 const EMPTY_FORWARD_FILTERS: SnapshotForwardFilterRule[] = []
-const APP_REFRESH_EVENTS = ['config.updated'] as const
 
 export function AppsPage() {
   const { t } = useDesktopI18n()
-  const { config, root, saving, error, setError, load, saveRoot } = useDesktopConfigSnapshotEditor()
+  const { config, devices, root, saving, error, setError, refresh, queueMutation, selectedDeviceId, setSelectedDeviceId } = useDesktopDeviceConfig()
   const [search, setSearch] = useState('')
   const [draftPackageName, setDraftPackageName] = useState('')
   const [draftLabel, setDraftLabel] = useState('')
-  const [devices, setDevices] = useState<DeviceItem[]>([])
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null)
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      void load().catch(() => {})
-      void desktopApi.getDevices().then((res) => {
-        setDevices(res.devices)
-        if (res.devices.length > 0) {
-          setSelectedDeviceId(String(res.devices[0].id))
-        }
-      }).catch(() => {})
-    })
-  }, [load])
-
-  useDesktopRealtimeRefresh(() => {
-    void load().catch(() => {})
-    void desktopApi.getDevices().then((res) => setDevices(res.devices)).catch(() => {})
-  }, APP_REFRESH_EVENTS)
 
   const appInfos = useMemo(() => {
     if (!root || !selectedDeviceId) return EMPTY_APP_INFOS
-    return root.deviceAppInfos?.[selectedDeviceId] ?? EMPTY_APP_INFOS
+    return root.deviceAppInfos?.[String(selectedDeviceId)] ?? EMPTY_APP_INFOS
   }, [root?.deviceAppInfos, selectedDeviceId])
   const notifyRoutes = useMemo(() => root?.notifyRoutes ?? EMPTY_NOTIFY_ROUTES, [root?.notifyRoutes])
   const smsCodeRules = useMemo(() => root?.smsCodeRules ?? EMPTY_SMS_CODE_RULES, [root?.smsCodeRules])
@@ -63,14 +40,11 @@ export function AppsPage() {
   }, [appInfos, search])
 
   async function persistApps(nextApps: SnapshotAppInfo[]) {
-    if (!root || !selectedDeviceId) return
-    const nextRoot = cloneSnapshot(root)
-    if (!nextRoot.deviceAppInfos) nextRoot.deviceAppInfos = {}
-    nextRoot.deviceAppInfos[selectedDeviceId] = nextApps
+    if (!selectedDeviceId) return
     try {
-      await saveRoot(nextRoot)
+      await queueMutation(buildReplaceDeviceAppsMutation(selectedDeviceId, nextApps), 'apps:update')
     } catch {
-      // saveRoot updates page error state.
+      // queueMutation updates page error state.
     }
   }
 
@@ -80,7 +54,7 @@ export function AppsPage() {
         title={t('apps.title')}
         actions={
           <div className="button-row">
-            <button type="button" className="ghost-button" onClick={() => void load().catch(() => {})}>
+            <button type="button" className="ghost-button" onClick={() => void refresh().catch(() => {})}>
               {t('common.refresh')}
             </button>
             {config ? <Tag tone="neutral">{t('analytics.revisionLabel').replace('{revision}', String(config.revision))}</Tag> : null}
@@ -100,7 +74,7 @@ export function AppsPage() {
               <select
                 className="text-input"
                 value={selectedDeviceId ?? ''}
-                onChange={(e) => setSelectedDeviceId(e.target.value)}
+                onChange={(e) => setSelectedDeviceId(Number(e.target.value))}
               >
                 {devices.map((device) => (
                   <option key={device.id} value={String(device.id)}>

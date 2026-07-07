@@ -74,29 +74,77 @@ type patchDeviceRequest struct {
 	Enabled     *bool   `json:"enabled"`
 }
 
-type configSnapshotResponse struct {
-	Revision int64           `json:"revision"`
-	Snapshot json.RawMessage `json:"snapshot"`
+type deviceConfigStateResponse struct {
+	DeviceID        int64                     `json:"deviceId"`
+	Revision        int64                     `json:"revision"`
+	MirrorContent   json.RawMessage           `json:"mirrorContent"`
+	PendingCommands []deviceConfigCommandItem `json:"pendingCommands"`
+	UpdatedAt       time.Time                 `json:"updatedAt"`
 }
 
-type configSnapshotRequest struct {
-	BaseRevision int64           `json:"base_revision"`
-	Snapshot     json.RawMessage `json:"snapshot"`
+type deviceConfigCommandRequest struct {
+	BaseRevision int64           `json:"baseRevision"`
+	Summary      string          `json:"summary"`
+	Mutation     json.RawMessage `json:"mutation"`
 }
 
-type configAuditLogsResponse struct {
-	Logs   []configAuditLogItem `json:"logs"`
-	Limit  int32                `json:"limit"`
-	Offset int32                `json:"offset"`
+type deviceConfigCommandItem struct {
+	ID             int64           `json:"id"`
+	BaseRevision   int64           `json:"baseRevision"`
+	TargetRevision int64           `json:"targetRevision"`
+	Mutation       json.RawMessage `json:"mutation"`
+	Summary        string          `json:"summary"`
+	ActorType      string          `json:"actorType"`
+	ActorID        int64           `json:"actorId"`
+	Status         string          `json:"status"`
+	FailureReason  *string         `json:"failureReason"`
+	CreatedAt      time.Time       `json:"createdAt"`
+	UpdatedAt      time.Time       `json:"updatedAt"`
+	AppliedAt      *time.Time      `json:"appliedAt"`
 }
 
-type configAuditLogItem struct {
+type deviceConfigAuditLogsResponse struct {
+	Logs   []deviceConfigAuditLogItem `json:"logs"`
+	Limit  int32                      `json:"limit"`
+	Offset int32                      `json:"offset"`
+}
+
+type deviceConfigAuditLogItem struct {
 	ID        int64     `json:"id"`
+	DeviceID  int64     `json:"deviceId"`
+	CommandID *int64    `json:"commandId"`
 	Revision  int64     `json:"revision"`
+	EventType string    `json:"eventType"`
 	ActorType string    `json:"actorType"`
 	ActorID   int64     `json:"actorId"`
 	Summary   string    `json:"summary"`
 	CreatedAt time.Time `json:"createdAt"`
+}
+
+type agentConfigMirrorRequest struct {
+	LocalRevision int64           `json:"localRevision"`
+	MirrorContent json.RawMessage `json:"mirrorContent"`
+	Summary       string          `json:"summary"`
+}
+
+type agentConfigCommandsPullRequest struct {
+	LocalRevision int64 `json:"localRevision"`
+}
+
+type agentConfigCommandsPullResponse struct {
+	DeviceID        int64                     `json:"deviceId"`
+	Revision        int64                     `json:"revision"`
+	MirrorContent   json.RawMessage           `json:"mirrorContent"`
+	PendingCommands []deviceConfigCommandItem `json:"pendingCommands"`
+	UpdatedAt       time.Time                 `json:"updatedAt"`
+}
+
+type agentConfigCommandsAckRequest struct {
+	CommandID       int64           `json:"commandId"`
+	Status          string          `json:"status"`
+	AppliedRevision int64           `json:"appliedRevision"`
+	FailureReason   string          `json:"failureReason"`
+	MirrorContent   json.RawMessage `json:"mirrorContent"`
 }
 
 type relayRecordWire struct {

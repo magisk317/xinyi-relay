@@ -11,10 +11,6 @@ object RelayPrefConst {
     const val KEY_LANGUAGE = "pref_language"
     const val KEY_COMPOSE_SETTINGS = "pref_compose_settings"
     const val KEY_SETTINGS_ACCORDION_MODE = "pref_settings_accordion_mode"
-    const val KEY_HAZE_BLUR_RADIUS = "pref_haze_blur_radius"
-    const val HAZE_BLUR_RADIUS_DEFAULT = 25
-    const val KEY_HAZE_TINT_ALPHA = "pref_haze_tint_alpha"
-    const val HAZE_TINT_ALPHA_DEFAULT = 0.2f
 
     // SMS Code
     const val KEY_SHOW_TOAST = "pref_show_toast"
@@ -200,10 +196,12 @@ object RelayPrefConst {
     const val KEY_REMOTE_AGENT_LAST_HEARTBEAT_AT = "pref_remote_agent_last_heartbeat_at"
     const val KEY_REMOTE_AGENT_LAST_PULL_AT = "pref_remote_agent_last_pull_at"
     const val KEY_REMOTE_AGENT_LAST_PUSH_AT = "pref_remote_agent_last_push_at"
-    const val KEY_REMOTE_AGENT_PENDING_MUTATIONS = "pref_remote_agent_pending_mutations"
+    const val KEY_REMOTE_AGENT_PENDING_LOCAL_CHANGES = "pref_remote_agent_pending_mutations"
     const val KEY_REMOTE_AGENT_DEVICE_TOKEN = "pref_remote_agent_device_token"
     const val KEY_REMOTE_AGENT_LAST_APP_CATALOG_DIGEST = "pref_remote_agent_last_app_catalog_digest"
     const val KEY_REMOTE_AGENT_DEVICE_APP_INFOS = "pref_remote_agent_device_app_infos"
+    const val KEY_LOCAL_CONFIG_REVISION = "pref_local_config_revision"
+    const val KEY_LOCAL_CONFIG_PENDING_LOCAL_CHANGES = "pref_local_config_pending_mutations"
     private const val ACTION_NAMESPACE = "io.github.magisk317.relay"
     const val ACTION_FORWARD_SMS = "$ACTION_NAMESPACE.ACTION_FORWARD_SMS"
     const val ACTION_INGEST_CUSTOM_MESSAGE = "$ACTION_NAMESPACE.ACTION_INGEST_CUSTOM_MESSAGE"

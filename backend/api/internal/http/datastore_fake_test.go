@@ -93,14 +93,20 @@ func (panicStore) PatchDevice(context.Context, int64, int64, *string, *bool) (st
 func (panicStore) RevokeDevice(context.Context, int64, int64) error {
 	panic("unimplemented: RevokeDevice")
 }
-func (panicStore) GetConfigSnapshot(context.Context, int64) (store.ConfigSnapshot, error) {
-	panic("unimplemented: GetConfigSnapshot")
+func (panicStore) GetDeviceConfigState(context.Context, int64, int64) (store.DeviceConfigState, error) {
+	panic("unimplemented: GetDeviceConfigState")
 }
-func (panicStore) PutConfigSnapshot(context.Context, int64, int64, json.RawMessage, string, int64) (store.ConfigSnapshot, error) {
-	panic("unimplemented: PutConfigSnapshot")
+func (panicStore) CreateDeviceConfigCommand(context.Context, int64, int64, int64, json.RawMessage, string, string, int64) (store.DeviceConfigCommand, error) {
+	panic("unimplemented: CreateDeviceConfigCommand")
 }
-func (panicStore) ListConfigAuditLogs(context.Context, int64, int32, int32) ([]store.ConfigAuditLog, error) {
-	panic("unimplemented: ListConfigAuditLogs")
+func (panicStore) ListDeviceConfigAuditLogs(context.Context, int64, int64, int32, int32) ([]store.DeviceConfigAuditLog, error) {
+	panic("unimplemented: ListDeviceConfigAuditLogs")
+}
+func (panicStore) UpsertDeviceConfigMirror(context.Context, int64, int64, int64, json.RawMessage, string, int64, string) (store.DeviceConfigMirror, error) {
+	panic("unimplemented: UpsertDeviceConfigMirror")
+}
+func (panicStore) AckDeviceConfigCommand(context.Context, int64, int64, int64, int64, string, string, json.RawMessage, string, int64) (store.DeviceConfigCommand, error) {
+	panic("unimplemented: AckDeviceConfigCommand")
 }
 func (panicStore) InsertRelayRecords(context.Context, int64, int64, []store.RelayRecord) (int64, error) {
 	panic("unimplemented: InsertRelayRecords")

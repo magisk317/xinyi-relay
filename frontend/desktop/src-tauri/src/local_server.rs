@@ -3,12 +3,13 @@ use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
+use axum::Router;
+use axum::extract::Path;
 use axum::extract::State as AxumState;
 use axum::http::StatusCode;
 use axum::response::Json;
-use axum::routing::{get, post, put};
-use axum::Router;
-use serde_json::{json, Value};
+use axum::routing::{get, post};
+use serde_json::{Value, json};
 use tokio::net::TcpListener;
 use tower_http::cors::{AllowOrigin, CorsLayer};
 
@@ -68,14 +69,22 @@ fn auth_device(
         .and_then(|v| v.strip_prefix("Bearer "))
         .unwrap_or("");
     if token.is_empty() {
-        return Err((StatusCode::UNAUTHORIZED, Json(json!({"error": "missing token"}))));
+        return Err((
+            StatusCode::UNAUTHORIZED,
+            Json(json!({"error": "missing token"})),
+        ));
     }
     let tokens = state.device_tokens.lock().unwrap();
     tokens
         .iter()
         .find(|(t, _)| t == token)
         .map(|(_, id)| *id)
-        .ok_or_else(|| (StatusCode::UNAUTHORIZED, Json(json!({"error": "invalid token"}))))
+        .ok_or_else(|| {
+            (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"error": "invalid token"})),
+            )
+        })
 }
 
 async fn handle_register(
@@ -84,10 +93,16 @@ async fn handle_register(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Rate limiting
     if !state.rate_limiter.lock().unwrap().check_and_record() {
-        return Err((StatusCode::TOO_MANY_REQUESTS, Json(json!({"error": "rate limit exceeded"}))));
+        return Err((
+            StatusCode::TOO_MANY_REQUESTS,
+            Json(json!({"error": "rate limit exceeded"})),
+        ));
     }
 
-    let device_name = sanitize(body["deviceName"].as_str().unwrap_or("Unknown"), MAX_STRING_LEN);
+    let device_name = sanitize(
+        body["deviceName"].as_str().unwrap_or("Unknown"),
+        MAX_STRING_LEN,
+    );
     let device_model = sanitize(body["deviceModel"].as_str().unwrap_or(""), MAX_STRING_LEN);
     let platform = sanitize(body["platform"].as_str().unwrap_or("android"), 32);
     let app_version = sanitize(body["appVersion"].as_str().unwrap_or(""), 64);
@@ -97,26 +112,34 @@ async fn handle_register(
     let new_id = devices.iter().map(|d| d.id).max().unwrap_or(0) + 1;
     let token = uuid::Uuid::new_v4().to_string();
 
-    store.upsert_devices(vec![crate::store::Device {
-        id: new_id,
-        user_id: 1,
-        device_name,
-        device_model,
-        platform,
-        app_version,
-        display_name: String::new(),
-        enabled: true,
-        revoked_at: None,
-        last_seen_at: Some(chrono::Utc::now().to_rfc3339()),
-        local_addresses: json!([]),
-        capabilities: json!({}),
-        created_at: chrono::Utc::now().to_rfc3339(),
-        updated_at: chrono::Utc::now().to_rfc3339(),
-    }]).map_err(map_store_err)?;
+    store
+        .upsert_devices(vec![crate::store::Device {
+            id: new_id,
+            user_id: 1,
+            device_name,
+            device_model,
+            platform,
+            app_version,
+            display_name: String::new(),
+            enabled: true,
+            revoked_at: None,
+            last_seen_at: Some(chrono::Utc::now().to_rfc3339()),
+            local_addresses: json!([]),
+            capabilities: json!({}),
+            created_at: chrono::Utc::now().to_rfc3339(),
+            updated_at: chrono::Utc::now().to_rfc3339(),
+        }])
+        .map_err(map_store_err)?;
 
-    state.device_tokens.lock().unwrap().push((token.clone(), new_id));
+    state
+        .device_tokens
+        .lock()
+        .unwrap()
+        .push((token.clone(), new_id));
 
-    Ok(Json(json!({ "userId": 1, "deviceId": new_id, "deviceToken": token })))
+    Ok(Json(
+        json!({ "userId": 1, "deviceId": new_id, "deviceToken": token }),
+    ))
 }
 
 async fn handle_heartbeat(
@@ -136,11 +159,17 @@ async fn handle_upload_records(
     let store = state.store.lock().unwrap();
 
     let records_array = body["records"].as_array().ok_or_else(|| {
-        (StatusCode::BAD_REQUEST, Json(json!({"error": "records must be an array"})))
+        (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error": "records must be an array"})),
+        )
     })?;
 
     if records_array.len() > MAX_RECORDS_PER_BATCH {
-        return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "too many records"}))));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error": "too many records"})),
+        ));
     }
 
     let records: Vec<crate::store::Record> = records_array
@@ -169,40 +198,72 @@ async fn handle_upload_records(
     Ok(Json(json!({ "inserted": count, "status": "ok" })))
 }
 
-async fn handle_get_config(
+async fn handle_get_device_config(
+    Path(device_id): Path<i64>,
     AxumState(state): AxumState<LocalServerState>,
     headers: axum::http::HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let _device_id = auth_device(&state, &headers)?;
+    let _caller_device_id = auth_device(&state, &headers)?;
     let store = state.store.lock().unwrap();
-    let snapshot = store.get_config_snapshot().map_err(map_store_err)?;
-    match snapshot {
-        Some(snap) => Ok(Json(json!({ "revision": snap.revision, "snapshot": snap.snapshot, "updatedAt": snap.updated_at }))),
-        None => Ok(Json(json!(null))),
+    let config = store.get_device_config(device_id).map_err(map_store_err)?;
+    match config {
+        Some(value) => Ok(Json(json!({
+            "deviceId": value.device_id,
+            "revision": value.revision,
+            "mirrorContent": value.snapshot,
+            "pendingCommands": value.pending_commands,
+            "updatedAt": value.updated_at,
+        }))),
+        None => Err((
+            StatusCode::NOT_FOUND,
+            Json(json!({"error": "device config not found"})),
+        )),
     }
 }
 
-async fn handle_put_config(
+async fn handle_post_device_config_command(
+    Path(device_id): Path<i64>,
     AxumState(state): AxumState<LocalServerState>,
     headers: axum::http::HeaderMap,
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let _device_id = auth_device(&state, &headers)?;
+    let _caller_device_id = auth_device(&state, &headers)?;
     let store = state.store.lock().unwrap();
     let base_revision = body["baseRevision"].as_i64().unwrap_or(0);
-    let snapshot = body["snapshot"].clone();
+    let summary = sanitize(body["summary"].as_str().unwrap_or(""), MAX_STRING_LEN);
+    let mutation = body["mutation"].clone();
+    let command = store
+        .queue_device_config_command(device_id, base_revision, summary, mutation)
+        .map_err(map_store_err)?;
+    Ok(Json(json!(command)))
+}
 
-    match store.put_config_snapshot(base_revision, snapshot) {
-        Ok(snap) => Ok(Json(json!({ "revision": snap.revision, "snapshot": snap.snapshot, "updatedAt": snap.updated_at }))),
-        Err(StoreError::Conflict { local: _, remote }) => {
-            Err((StatusCode::CONFLICT, Json(json!({
-                "revision": remote,
-                "snapshot": store.get_config_snapshot().ok().flatten().map(|s| s.snapshot).unwrap_or(json!({})),
-                "error": "conflict"
-            }))))
-        }
-        Err(e) => Err(map_store_err(e)),
-    }
+async fn handle_get_device_config_audit_logs(
+    Path(device_id): Path<i64>,
+    AxumState(state): AxumState<LocalServerState>,
+    headers: axum::http::HeaderMap,
+    axum::extract::Query(params): axum::extract::Query<HashMap<String, String>>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let _caller_device_id = auth_device(&state, &headers)?;
+    let store = state.store.lock().unwrap();
+    let limit = params
+        .get("limit")
+        .and_then(|v| v.parse::<i64>().ok())
+        .unwrap_or(50)
+        .min(MAX_QUERY_LIMIT);
+    let offset = params
+        .get("offset")
+        .and_then(|v| v.parse::<i64>().ok())
+        .unwrap_or(0)
+        .max(0);
+    let logs = store
+        .list_device_config_audit_logs(device_id, limit as i32, offset as i32)
+        .map_err(map_store_err)?;
+    Ok(Json(json!({
+        "logs": logs.items,
+        "limit": logs.limit,
+        "offset": logs.offset,
+    })))
 }
 
 async fn handle_get_devices(
@@ -228,8 +289,12 @@ async fn handle_get_records(
         .unwrap_or(50)
         .min(MAX_QUERY_LIMIT);
     let device_filter = params.get("device_id").and_then(|v| v.parse::<i64>().ok());
-    let records = store.list_records(limit as i32, device_filter).map_err(map_store_err)?;
-    Ok(Json(json!({ "records": records.items, "total": records.items.len() })))
+    let records = store
+        .list_records(limit as i32, device_filter)
+        .map_err(map_store_err)?;
+    Ok(Json(
+        json!({ "records": records.items, "total": records.items.len() }),
+    ))
 }
 
 async fn handle_system_info() -> Json<Value> {
@@ -247,13 +312,14 @@ fn map_store_err(e: StoreError) -> (StatusCode, Json<Value>) {
             StatusCode::CONFLICT,
             Json(json!({"error": "conflict", "local": local, "remote": remote})),
         ),
-        StoreError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": msg}))),
+        StoreError::Internal(msg) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": msg})),
+        ),
     }
 }
 
-pub async fn start_local_server(
-    store: Arc<Mutex<dyn Store + Send>>,
-) -> Result<SocketAddr, String> {
+pub async fn start_local_server(store: Arc<Mutex<dyn Store + Send>>) -> Result<SocketAddr, String> {
     let state = LocalServerState {
         store,
         device_tokens: Arc::new(Mutex::new(Vec::new())),
@@ -281,11 +347,18 @@ pub async fn start_local_server(
         .route("/api/v1/system/info", get(handle_system_info))
         .route("/api/v1/devices/register", post(handle_register))
         .route("/api/v1/devices", get(handle_get_devices))
+        .route("/api/v1/devices/:id/config", get(handle_get_device_config))
+        .route(
+            "/api/v1/devices/:id/config/commands",
+            post(handle_post_device_config_command),
+        )
+        .route(
+            "/api/v1/devices/:id/config/audit",
+            get(handle_get_device_config_audit_logs),
+        )
         .route("/api/v1/heartbeat", post(handle_heartbeat))
         .route("/api/v1/records/batch", post(handle_upload_records))
         .route("/api/v1/records", get(handle_get_records))
-        .route("/api/v1/config/snapshot", get(handle_get_config))
-        .route("/api/v1/config/snapshot", put(handle_put_config))
         .route("/healthz", get(|| async { "ok" }))
         .layer(cors)
         .with_state(state);

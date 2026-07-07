@@ -19,11 +19,11 @@ class ConfigDiagnosticsInitializer : AppInitializer {
         AppInitExecution.runWhenUserUnlocked(application, scope, "ConfigDiagnosticsInitializer") {
             val runtimeGraph = RuntimeGraph.from(application)
             logInstallSnapshot(application)
-            logConfigSnapshot(runtimeGraph.configRepository, runtimeGraph)
+            logLocalConfigSummary(runtimeGraph.configRepository, runtimeGraph)
         }
     }
 
-    private suspend fun logConfigSnapshot(
+    private suspend fun logLocalConfigSummary(
         configRepository: AppConfigRepository,
         runtimeGraph: RuntimeGraph,
     ) {
@@ -38,7 +38,7 @@ class ConfigDiagnosticsInitializer : AppInitializer {
 
         RelayLogger.i(
             LogRoute.APP,
-            "Config snapshot: senders=%d enabledSenders=%d " +
+            "Local config summary: senders=%d enabledSenders=%d " +
                 "appNotifyEnabledSenders=%d legacyRules=%d smsRules=%d " +
                 "notifyRoutes=%d forwardFilters=%d forwardingApps=%d",
             senders.size,

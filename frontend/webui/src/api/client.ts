@@ -1,5 +1,4 @@
 import { createConsoleApiClient, type ConsoleApiRequestOptions } from '../../../shared/consoleApiClient'
-import { ConfigConflictError } from '../configSnapshot'
 import { translateStatic } from '../i18n'
 
 let csrfToken = ''
@@ -41,7 +40,7 @@ async function request<T>(
   path: string,
   options: ConsoleApiRequestOptions = {}
 ): Promise<T> {
-  const { body, conflictMessage, requiresCsrf = false, timeoutMs = DEFAULT_TIMEOUT_MS } = options
+  const { body, requiresCsrf = false, timeoutMs = DEFAULT_TIMEOUT_MS } = options
   const headers = new Headers()
   const method = (options.method ?? 'GET').toUpperCase()
   if (body !== undefined) {
@@ -64,10 +63,6 @@ async function request<T>(
     })
 
     const text = await resp.text()
-    if (resp.status === 409 && conflictMessage) {
-      const latest = JSON.parse(text) as import('../types').ConfigSnapshotState
-      throw new ConfigConflictError(conflictMessage, latest)
-    }
     if (!resp.ok) {
       throw new Error(extractErrorMessage(text, resp.status))
     }

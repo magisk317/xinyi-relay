@@ -1,6 +1,6 @@
 # 系统架构与代码分层
 
-最后更新：2026-06-23
+最后更新：2026-07-07
 
 ## 总览
 
@@ -9,7 +9,7 @@
 - Android 端负责短信/通知/来电采集、验证码自动输入、Xposed hook 能力。
 - 控制台能力由远程 Backend 提供，Web / Desktop 共用同一套 API。
 - 部署策略：本地优先（Docker Compose），可扩展到公网。
-- API 合同中心：`frontend/shared/contracts/openapi.json`，四端均有 drift test。
+- API 合同中心：`frontend/shared/contracts/openapi.json`；它现在由 backend `internal/http` 的 assembler 生成，但 auth/system/device-config/read-model schema 与 route metadata 已大部分先从 `relay/contract` 生成到 backend，再由 assembler 合并，`frontend/shared/contracts/console.generated.ts` 再由它生成，四端均有 drift test。
 
 ## 代码库分层
 
@@ -35,7 +35,7 @@ Xposed/runtime 之间的 facade、DTO 和桥接接口。各 facade 收敛至 `re
 
 ### `relay/contract`
 
-项目级稳定 contract：常量、设置模型、repository 接口、远程同步接口、JSON codec。`RelayJson` 是业务 JSON 首选入口。
+项目级稳定 contract：常量、设置模型、repository 接口、远程同步接口、JSON codec、设备 mirror DTO、sender active schedule 真源。`RelayJson` 是业务 JSON 首选入口。
 
 ### `relay/engine/api`
 
@@ -92,6 +92,9 @@ Android 平台数据源：Room、DataStore、PrefsReader、DBProvider、诊断�
 UI 组装壳与协调层。原 2.4 万行 god module 已拆分为 `mobile:feature:*` 子模块，入度仅 1（只被 `app` 依赖）。
 
 - 禁止：`runtime`、`xpbridge/core`、`relay/engine` 实现、`relay/sender` 实现（用 `relay/sender/api`）
+- 顶层主界面现在采用 “`MainTabsRoute` + pager shell + secondary stack”
+  结构：5 个一级页不再各自作为内部 NavHost 的主目的地，详情/配置页继续走
+  stack 路由
 
 ### `features/*`
 
@@ -132,28 +135,46 @@ bash scripts/checks/verify_shared_submodule_compat.sh  # 共享子模块兼容�
 
 - UI 优先 repository，不直接拼 pref key、不依赖 Provider URI。
 - Web/Desktop 统一通过 Backend API 访问，不直接访问 Android 端数据层。
-- 配置快照编辑逻辑统一经由 `frontend/shared/configSnapshot.ts`，Web/Desktop 共享。
+- 设备 mirror 的 clone / normalize 逻辑统一经由 `frontend/shared/configRoot.ts`，Web/Desktop 共享。
+- `frontend/shared/contracts/configRoot.generated.ts` 由
+  `scripts/codegen/generate_config_root_contract.py` 从
+  `relay/contract/model/LocalConfigMirrorPayload.kt` 生成。
+- OpenAPI schema 片段由 `scripts/codegen/generate_openapi_schemas.py` 从
+  `relay/contract/remote/*Contracts.kt` 生成，再由 backend OpenAPI builder
+  合并进最终 `openapi.json`。
+- OpenAPI route metadata 由
+  `scripts/codegen/generate_openapi_route_contracts.py` 从
+  `relay/contract/remote/OpenApiRouteContracts.kt` 生成，再由 backend
+  builder 合并进最终 `openapi.json`。
 - sender 字段 schema 由 `scripts/codegen/generate_sender_schema_contract.py` 从 Kotlin 生成。
 
 ### Xposed 跨进程读取
 
 `PrefsReader` 是唯一入口，读取链路：`remote_libxposed` → `default`。不扩展为 UI 通用配置 facade。
 
-### 远程配置冲突策略
+### 远程配置同步与冲突策略
 
-push 409 时：应用云端 snapshot 作为新 base，保留 `pendingMutations` 不清零，状态设为 `dirty` 触发下一次 push。本地修改不会被静默丢弃。
+- Android 本地配置是唯一真源，先本地 commit，再异步 push device mirror。
+- Web / Desktop 不直接写 mirror，只向目标设备提交 `ConfigMutationBatch`
+  命令。
+- 命令基线落后时，Backend 返回 `stale_base_revision`；前端必须刷新目标
+  设备 mirror 后重建 mutation，而不是套用旧的共享 snapshot merge 逻辑。
+- 已被更新 mirror 越过的旧命令会变成 stale，不允许再覆盖设备上的更新本地
+  revision。
 
 ### 多设备数据隔离
 
 | 数据 | 隔离维度 | 说明 |
 |------|---------|------|
 | 记录（relay_records） | 按设备（`device_id`） | 每条记录由后端从 Bearer token 解析 device_id 写入，`(device_id, event_id)` 唯一索引保证幂等。两台手机同步到同一后端不会混杂。 |
-| 配置快照（config_snapshots） | 按用户（`user_id`） | 所有设备共享同一配置链，乐观锁（`base_revision`）处理并发写入。`deviceAppInfos` 字段按 device_id 分区，各设备只读取自己的条目。 |
+| 设备配置镜像（device_config_mirrors） | 按设备 | Backend 只保存每台设备最新 mirror 与 revision，用于 Web/Desktop 读取和命令基线校验。 |
+| 设备配置命令（device_config_commands） | 按设备 | Web/Desktop 写入的是排队命令；设备上线后按 revision 顺序拉取、应用并 ack。 |
+| 设备配置审计（device_config_audit_logs） | 按设备 | 记录谁对哪台设备发了什么 mutation、设备何时应用、结果如何。 |
 | 设备信息（devices） | 按设备 | 每台设备独立注册，独立 token。 |
 
 ## 后续演进
 
-1. ~~共享配置编辑器 hook~~ — shared 目录无 React 依赖，hooks 无法提取到 shared；sender 业务逻辑已提取到 `shared/senderDefaults.ts`，UI 层保持各端独立。
+1. ~~共享配置编辑器 hook~~ — shared 目录无 React 依赖，hooks 无法提取到 shared；当前主路径已经切到“设备上下文 + typed mutation + 命令队列”，UI 层保持各端独立。
 2. 收敛 Web / Desktop 功能 parity — SenderFieldEditor/SendersPage 仍有 UI 层重复，因设计系统差异保持各端独立。
 3. 前端静态资源纳入远端镜像链。
 4. 扩展 OpenAPI schema 覆盖新增 endpoint。
@@ -164,7 +185,7 @@ push 409 时：应用云端 snapshot 作为新 base，保留 `pendingMutations` 
      - `POST /api/v1/devices/register` — 设备注册
      - `POST /api/v1/heartbeat` — 心跳
      - `POST /api/v1/records/batch` — 记录上传
-     - `GET/PUT /api/v1/config/snapshot` — 配置读写（乐观锁冲突检测）
+     - `GET /api/v1/devices/{id}/config` / `POST /api/v1/devices/{id}/config/commands` — 设备级配置 mirror 与命令队列
      - `GET /api/v1/devices`、`GET /api/v1/records`、`GET /api/v1/system/info`、`GET /healthz`
    - ✅ 冲突解决 UI — SyncResultCard 显示 local vs remote revision + 操作提示
    - ✅ 数据库导出（`desktop_export_database` 复制 SQLite 到 Downloads）

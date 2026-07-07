@@ -11,7 +11,7 @@ class RemoteAgentInitializer : AppInitializer {
 
     override fun init(application: Application) {
         AppInitExecution.runWhenUserUnlocked(application, scope, "RemoteAgentInitializer") {
-            RuntimeGraph.from(application).remoteAgentRepository.startupSync()
+            RuntimeGraph.from(application).configSyncCoordinator.startupSync()
         }
     }
 }

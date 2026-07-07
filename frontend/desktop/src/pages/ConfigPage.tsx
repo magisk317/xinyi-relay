@@ -1,62 +1,82 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { desktopApi } from '../api/desktopApi'
-import { normalizeConfigRoot } from '../configSnapshot'
+import { useDesktopDeviceConfig } from '../hooks/useDesktopDeviceConfig'
 import { useDesktopRealtimeRefresh } from '../hooks/useDesktopRealtimeRefresh'
-import { useDesktopConfigSnapshotEditor } from '../hooks/useDesktopConfigSnapshotEditor'
 import { useDesktopI18n } from '../i18n'
-import type { ConfigAuditLogItem } from '../../../shared/contracts/console'
+import type {
+  DeviceConfigAuditLogItem
+} from '../../../shared/contracts/console'
 import { EmptyState, Metric, Panel, Tag } from '../ui'
 
-const CONFIG_REFRESH_EVENTS = ['config.updated'] as const
+const CONFIG_REFRESH_EVENTS = [
+  'device.registered',
+  'device.updated',
+  'device.config.updated',
+  'device.config.command.updated'
+] as const
 
 export function ConfigPage() {
   const { t } = useDesktopI18n()
   const {
+    devices,
+    selectedDeviceId,
+    setSelectedDeviceId,
     config,
     root,
     loading,
-    saving,
     error,
-    setError,
-    load: loadSnapshot,
-    saveRoot
-  } = useDesktopConfigSnapshotEditor()
-  const [logs, setLogs] = useState<ConfigAuditLogItem[]>([])
-  const [rawDraft, setRawDraft] = useState('{}')
-
-  const loadAuditLogs = useCallback(async () => {
-    const auditPayload = await desktopApi.getConfigAuditLogs(30, 0)
-    setLogs(auditPayload.logs)
-  }, [])
-
-  const load = useCallback(async () => {
-    try {
-      const [snapshot] = await Promise.all([loadSnapshot(), loadAuditLogs()])
-      setRawDraft(JSON.stringify(normalizeConfigRoot(snapshot.snapshot), null, 2))
-    } catch {
-      // loadSnapshot already updates page error state.
-    }
-  }, [loadAuditLogs, loadSnapshot])
+    refresh,
+  } = useDesktopDeviceConfig()
+  const [logs, setLogs] = useState<DeviceConfigAuditLogItem[]>([])
 
   useEffect(() => {
     queueMicrotask(() => {
-      void load()
+      if (!selectedDeviceId) {
+        setLogs([])
+        return
+      }
+      void desktopApi.getDeviceConfigAuditLogs(selectedDeviceId, 30, 0)
+        .then((nextLogs) => {
+          setLogs(nextLogs.logs ?? [])
+        })
+        .catch(() => {
+          setLogs([])
+        })
     })
-  }, [load])
+  }, [selectedDeviceId])
 
-  useEffect(() => {
-    if (!root) return
-    setRawDraft(JSON.stringify(root, null, 2))
-  }, [config?.revision, root])
+  const load = useCallback(async () => {
+    try {
+      await refresh()
+      if (!selectedDeviceId) {
+        setLogs([])
+        return
+      }
+      const nextLogs = await desktopApi.getDeviceConfigAuditLogs(selectedDeviceId, 30, 0)
+      setLogs(nextLogs.logs ?? [])
+    } catch {
+      setLogs([])
+    }
+  }, [refresh, selectedDeviceId])
 
   useDesktopRealtimeRefresh(() => {
     void load()
   }, CONFIG_REFRESH_EVENTS)
 
+  useEffect(() => {
+    queueMicrotask(() => {
+      void load().catch(() => {
+        setLogs([])
+      })
+    })
+  }, [load])
+
   const routingAssets = useMemo(
     () => (root?.notifyRoutes?.length ?? 0) + (root?.smsCodeRules?.length ?? 0) + (root?.forwardFilters?.length ?? 0),
-    [root?.forwardFilters?.length, root?.notifyRoutes?.length, root?.smsCodeRules?.length]
+    [root]
   )
+
+  const selectedDevice = devices.find((device) => device.id === selectedDeviceId) ?? null
 
   return (
     <div className="page-grid">
@@ -72,65 +92,82 @@ export function ConfigPage() {
         }
       >
         {error ? <div className="banner banner--danger">{t(error)}</div> : null}
-        <div className="metrics-grid">
-          <Metric label={t('analytics.cloudRevision')} value={config?.revision ?? 0} />
-          <Metric label={t('app.route.senders')} value={root?.senders?.length ?? 0} />
-          <Metric label={t('app.route.apps')} value={Object.values(root?.deviceAppInfos ?? {}).reduce((acc, apps) => acc + apps.length, 0)} />
-          <Metric label={t('config.routingAssets')} value={routingAssets} />
-        </div>
-      </Panel>
+        {!devices.length && !loading ? (
+          <EmptyState title={t('analytics.noDevicesTitle')} />
+        ) : (
+          <>
+            {devices.length > 0 ? (
+              <div className="field" style={{ marginBottom: '1rem' }}>
+                <span>{t('devices.title')}</span>
+                <select
+                  className="text-input"
+                  value={selectedDeviceId ?? ''}
+                  onChange={(event) => setSelectedDeviceId(Number(event.target.value))}
+                >
+                  {devices.map((device) => (
+                    <option key={device.id} value={device.id}>
+                      {device.displayName || device.deviceName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
 
-      <Panel title={t('config.advancedJsonTitle')}>
-        <details className="sender-editor-advanced">
-          <summary>{t('config.rawSnapshot')}</summary>
-          <div className="stack">
-            <textarea
-              className="code-editor"
-              value={rawDraft}
-              onChange={(event) => setRawDraft(event.target.value)}
-            />
-            <div className="button-row">
-              <button
-                type="button"
-                className="primary-button"
-                disabled={!config || saving}
-                onClick={() => {
-                  if (!config) return
-                  try {
-                    const parsed = JSON.parse(rawDraft) as Record<string, unknown>
-                    const normalized = normalizeConfigRoot(parsed)
-                    void saveRoot(normalized).then((nextSnapshot) => {
-                      setRawDraft(JSON.stringify(normalizeConfigRoot(nextSnapshot.snapshot), null, 2))
-                      return loadAuditLogs()
-                    }).catch(() => {})
-                  } catch (nextError) {
-                    setError(nextError instanceof Error ? nextError.message : t('config.invalidJson'))
-                  }
-                }}
-              >
-                {saving ? t('common.saving') : t('config.saveSnapshot')}
-              </button>
+            <div className="metrics-grid">
+              <Metric label={t('analytics.cloudRevision')} value={config?.revision ?? 0} />
+              <Metric label={t('app.route.senders')} value={root?.senders?.length ?? 0} />
+              <Metric label={t('app.route.apps')} value={Object.values(root?.deviceAppInfos ?? {}).reduce((acc, apps) => acc + apps.length, 0)} />
+              <Metric label={t('config.routingAssets')} value={routingAssets} />
+              <Metric label={t('analytics.auditTitle')} value={config?.pendingCommands.length ?? 0} detail="pending" compact />
+              <Metric label={t('devices.title')} value={selectedDevice?.deviceModel || t('common.notAvailable')} detail={selectedDevice?.platform || ''} compact />
             </div>
-          </div>
-        </details>
+          </>
+        )}
       </Panel>
 
-      <Panel title={t('config.auditTitle')}>
-        {!logs.length && !loading ? (
+      <Panel title={t('config.auditTitle')} subtitle={selectedDevice ? selectedDevice.displayName || selectedDevice.deviceName : undefined}>
+        {!config?.pendingCommands.length ? (
           <EmptyState title={t('config.auditEmptyTitle')} />
+        ) : (
+          <div className="list-grid">
+            {config.pendingCommands.map((command) => (
+              <article key={command.id} className="list-card">
+                <div className="list-card-head">
+                  <div>
+                    <h3>{command.summary}</h3>
+                    <p>{t('analytics.revisionLabel').replace('{revision}', String(command.targetRevision))}</p>
+                  </div>
+                  <Tag tone={command.status === 'applied' ? 'success' : command.status === 'failed' ? 'danger' : 'warning'}>
+                    {command.status}
+                  </Tag>
+                </div>
+                <div className="list-card-body">
+                  <div>{t('config.actorId')}: {command.actorId > 0 ? command.actorId : t('common.notAvailable')}</div>
+                  <div>{new Date(command.createdAt).toLocaleString()}</div>
+                  {command.failureReason ? <div>{command.failureReason}</div> : null}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </Panel>
+
+      <Panel title={t('analytics.auditTitle')}>
+        {!logs.length && !loading ? (
+          <EmptyState title={t('analytics.auditEmptyTitle')} />
         ) : (
           <div className="list-grid">
             {logs.map((log) => (
               <article key={log.id} className="list-card">
                 <div className="list-card-head">
                   <div>
-                    <h3>{t('analytics.revisionLabel').replace('{revision}', String(log.revision))}</h3>
+                    <h3>{log.eventType}</h3>
                     <p>{log.summary}</p>
                   </div>
                   <Tag tone="neutral">{log.actorType}</Tag>
                 </div>
                 <div className="list-card-body">
-                  <div>{t('config.actorId')}: {log.actorId > 0 ? log.actorId : t('common.notAvailable')}</div>
+                  <div>{t('analytics.revisionLabel').replace('{revision}', String(log.revision))}</div>
                   <div>{new Date(log.createdAt).toLocaleString()}</div>
                 </div>
               </article>

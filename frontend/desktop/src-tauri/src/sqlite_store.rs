@@ -1,5 +1,5 @@
-use rusqlite::{params, Connection};
-use serde_json::{json, Value};
+use rusqlite::{Connection, OptionalExtension, params};
+use serde_json::{Value, json};
 use std::sync::Mutex;
 
 use super::store::*;
@@ -11,7 +11,9 @@ pub struct SqliteStore {
 impl SqliteStore {
     pub fn open(path: &std::path::Path) -> StoreResult<Self> {
         let conn = Connection::open(path)?;
-        let store = SqliteStore { conn: Mutex::new(conn) };
+        let store = SqliteStore {
+            conn: Mutex::new(conn),
+        };
         store.migrate()?;
         Ok(store)
     }
@@ -19,29 +21,49 @@ impl SqliteStore {
     #[allow(dead_code)]
     pub fn open_in_memory() -> StoreResult<Self> {
         let conn = Connection::open_in_memory()?;
-        let store = SqliteStore { conn: Mutex::new(conn) };
+        let store = SqliteStore {
+            conn: Mutex::new(conn),
+        };
         store.migrate()?;
         Ok(store)
     }
 
     fn migrate(&self) -> StoreResult<()> {
-        let conn = self.conn.lock().map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
         conn.execute_batch(
             "
-            CREATE TABLE IF NOT EXISTS config_snapshots (
+            CREATE TABLE IF NOT EXISTS device_config_commands (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                revision INTEGER NOT NULL,
-                content TEXT NOT NULL DEFAULT '{}',
-                updated_by_type TEXT NOT NULL DEFAULT 'desktop',
-                updated_by_id INTEGER NOT NULL DEFAULT 0,
+                device_id INTEGER NOT NULL,
+                base_revision INTEGER NOT NULL,
+                target_revision INTEGER NOT NULL,
+                mutation TEXT NOT NULL DEFAULT '{}',
+                summary TEXT NOT NULL DEFAULT '',
+                actor_type TEXT NOT NULL DEFAULT 'desktop',
+                actor_id INTEGER NOT NULL DEFAULT 0,
+                status TEXT NOT NULL DEFAULT 'pending',
+                failure_reason TEXT,
                 created_at TEXT NOT NULL DEFAULT (datetime('now')),
                 updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-                UNIQUE(revision)
+                applied_at TEXT
             );
 
-            CREATE TABLE IF NOT EXISTS config_audit_logs (
+            CREATE TABLE IF NOT EXISTS device_config_mirrors (
+                device_id INTEGER PRIMARY KEY,
+                revision INTEGER NOT NULL DEFAULT 0,
+                snapshot TEXT NOT NULL DEFAULT '{}',
+                updated_at TEXT
+            );
+
+            CREATE TABLE IF NOT EXISTS device_config_audit_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                revision INTEGER NOT NULL,
+                device_id INTEGER NOT NULL,
+                command_id INTEGER,
+                revision INTEGER NOT NULL DEFAULT 0,
+                event_type TEXT NOT NULL DEFAULT '',
                 actor_type TEXT NOT NULL DEFAULT 'desktop',
                 actor_id INTEGER NOT NULL DEFAULT 0,
                 summary TEXT NOT NULL DEFAULT '',
@@ -87,86 +109,300 @@ impl SqliteStore {
                 WHERE event_id IS NOT NULL;
             ",
         )?;
+        Self::seed_device_mirrors_from_legacy_snapshot(&conn, None)?;
+        Ok(())
+    }
+
+    fn seed_device_mirrors_from_legacy_snapshot(
+        conn: &Connection,
+        device_ids: Option<&[i64]>,
+    ) -> StoreResult<()> {
+        let has_legacy_snapshot_table: Option<i64> = conn
+            .query_row(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'config_snapshots' LIMIT 1",
+                [],
+                |row| row.get(0),
+            )
+            .optional()?;
+        if has_legacy_snapshot_table.is_none() {
+            return Ok(());
+        }
+
+        let mirror_count: i64 =
+            conn.query_row("SELECT COUNT(*) FROM device_config_mirrors", [], |row| {
+                row.get(0)
+            })?;
+        if mirror_count > 0 {
+            return Ok(());
+        }
+
+        let legacy_snapshot = conn
+            .query_row(
+                "SELECT revision, content, updated_at FROM config_snapshots ORDER BY revision DESC LIMIT 1",
+                [],
+                |row| {
+                    Ok(DeviceConfigMirror {
+                        revision: row.get(0)?,
+                        snapshot: {
+                            let text: String = row.get(1)?;
+                            serde_json::from_str(&text).unwrap_or(json!({}))
+                        },
+                        updated_at: row.get(2)?,
+                    })
+                },
+            )
+            .optional()?;
+        let Some(legacy_snapshot) = legacy_snapshot else {
+            return Ok(());
+        };
+
+        let target_device_ids = if let Some(device_ids) = device_ids {
+            device_ids.to_vec()
+        } else {
+            let mut stmt = conn.prepare("SELECT id FROM devices ORDER BY id ASC")?;
+            stmt.query_map([], |row| row.get::<_, i64>(0))?
+                .collect::<Result<Vec<_>, _>>()?
+        };
+        if target_device_ids.is_empty() {
+            return Ok(());
+        }
+
+        let snapshot_text = serde_json::to_string(&legacy_snapshot.snapshot)?;
+        for device_id in target_device_ids {
+            conn.execute(
+                "INSERT OR IGNORE INTO device_config_mirrors (device_id, revision, snapshot, updated_at)
+                 VALUES (?1, ?2, ?3, ?4)",
+                params![
+                    device_id,
+                    legacy_snapshot.revision,
+                    snapshot_text.as_str(),
+                    legacy_snapshot.updated_at.as_deref()
+                ],
+            )?;
+        }
         Ok(())
     }
 }
 
 impl Store for SqliteStore {
-    fn get_config_snapshot(&self) -> StoreResult<Option<ConfigSnapshot>> {
-        let conn = self.conn.lock().map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
-        let mut stmt = conn.prepare(
-            "SELECT revision, content, updated_at FROM config_snapshots ORDER BY revision DESC LIMIT 1",
-        )?;
-        let mut rows = stmt.query_map([], |row| {
-            Ok(ConfigSnapshot {
-                revision: row.get(0)?,
-                snapshot: {
-                    let text: String = row.get(1)?;
-                    serde_json::from_str(&text).unwrap_or(json!({}))
-                },
-                updated_at: row.get(2)?,
-            })
-        })?;
-        match rows.next() {
-            Some(row) => Ok(Some(row?)),
-            None => Ok(None),
-        }
-    }
+    fn get_device_config(&self, device_id: i64) -> StoreResult<Option<DeviceConfigState>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
 
-    fn put_config_snapshot(&self, base_revision: i64, content: Value) -> StoreResult<ConfigSnapshot> {
-        let conn = self.conn.lock().map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
-        let current_revision: i64 = conn
+        let snapshot = conn
             .query_row(
-                "SELECT COALESCE(MAX(revision), 0) FROM config_snapshots",
-                [],
-                |row| row.get(0),
+                "SELECT revision, snapshot, updated_at FROM device_config_mirrors WHERE device_id = ?1",
+                params![device_id],
+                |row| {
+                    Ok(DeviceConfigMirror {
+                        revision: row.get(0)?,
+                        snapshot: {
+                            let text: String = row.get(1)?;
+                            serde_json::from_str(&text).unwrap_or(json!({}))
+                        },
+                        updated_at: row.get(2)?,
+                    })
+                },
             )
-            .unwrap_or(0);
-
-        if current_revision != base_revision {
-            return Err(StoreError::Conflict {
-                local: current_revision,
-                remote: base_revision,
+            .optional()?
+            .unwrap_or(DeviceConfigMirror {
+                revision: 0,
+                snapshot: json!({}),
+                updated_at: None,
             });
-        }
 
-        let new_revision = current_revision + 1;
-        let content_text = serde_json::to_string(&content)?;
-        let now = chrono::Utc::now().to_rfc3339();
-        conn.execute(
-            "INSERT INTO config_snapshots (revision, content, updated_by_type, updated_at) VALUES (?1, ?2, 'desktop', ?3)",
-            params![new_revision, content_text, now],
-        )?;
-        conn.execute(
-            "INSERT INTO config_audit_logs (revision, actor_type, summary) VALUES (?1, 'desktop', ?2)",
-            params![new_revision, format!("Config updated to revision {}", new_revision)],
-        )?;
-
-        Ok(ConfigSnapshot {
-            revision: new_revision,
-            snapshot: content,
-            updated_at: Some(now),
-        })
-    }
-
-    fn list_config_audit_logs(&self, limit: i32, offset: i32) -> StoreResult<Paginated<ConfigAuditLog>> {
-        let conn = self.conn.lock().map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
         let mut stmt = conn.prepare(
-            "SELECT id, revision, actor_type, actor_id, summary, created_at FROM config_audit_logs ORDER BY id DESC LIMIT ?1 OFFSET ?2",
+            "SELECT id, base_revision, target_revision, mutation, summary, actor_type, actor_id, status, failure_reason, created_at, updated_at, applied_at
+             FROM device_config_commands
+             WHERE device_id = ?1 AND status = 'pending'
+             ORDER BY created_at ASC, id ASC",
         )?;
-        let logs = stmt
-            .query_map(params![limit, offset], |row| {
-                Ok(ConfigAuditLog {
+        let pending_commands = stmt
+            .query_map(params![device_id], |row| {
+                Ok(DeviceConfigCommand {
                     id: row.get(0)?,
-                    revision: row.get(1)?,
-                    actor_type: row.get(2)?,
-                    actor_id: row.get(3)?,
+                    base_revision: row.get(1)?,
+                    target_revision: row.get(2)?,
+                    mutation: {
+                        let text: String = row.get(3)?;
+                        serde_json::from_str(&text).unwrap_or(json!({}))
+                    },
                     summary: row.get(4)?,
-                    created_at: row.get(5)?,
+                    actor_type: row.get(5)?,
+                    actor_id: row.get(6)?,
+                    status: row.get(7)?,
+                    failure_reason: row.get(8)?,
+                    created_at: row.get(9)?,
+                    updated_at: row.get(10)?,
+                    applied_at: row.get(11)?,
                 })
             })?
             .collect::<Result<Vec<_>, _>>()?;
 
+        Ok(Some(DeviceConfigState {
+            device_id,
+            revision: snapshot.revision,
+            snapshot: snapshot.snapshot,
+            pending_commands,
+            updated_at: snapshot.updated_at,
+        }))
+    }
+
+    fn upsert_device_config_mirror(
+        &self,
+        device_id: i64,
+        revision: i64,
+        snapshot: Value,
+        updated_at: Option<String>,
+    ) -> StoreResult<DeviceConfigState> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
+        let snapshot_text = serde_json::to_string(&snapshot)?;
+        let timestamp = updated_at
+            .clone()
+            .unwrap_or_else(|| chrono::Utc::now().to_rfc3339());
+        conn.execute(
+            "INSERT INTO device_config_mirrors (device_id, revision, snapshot, updated_at)
+             VALUES (?1, ?2, ?3, ?4)
+             ON CONFLICT(device_id) DO UPDATE SET revision = excluded.revision, snapshot = excluded.snapshot, updated_at = excluded.updated_at",
+            params![device_id, revision, snapshot_text, timestamp],
+        )?;
+        let mut stmt = conn.prepare(
+            "SELECT id, base_revision, target_revision, mutation, summary, actor_type, actor_id, status, failure_reason, created_at, updated_at, applied_at
+             FROM device_config_commands
+             WHERE device_id = ?1 AND status = 'pending'
+             ORDER BY created_at ASC, id ASC",
+        )?;
+        let pending_commands = stmt
+            .query_map(params![device_id], |row| {
+                Ok(DeviceConfigCommand {
+                    id: row.get(0)?,
+                    base_revision: row.get(1)?,
+                    target_revision: row.get(2)?,
+                    mutation: {
+                        let text: String = row.get(3)?;
+                        serde_json::from_str(&text).unwrap_or(json!({}))
+                    },
+                    summary: row.get(4)?,
+                    actor_type: row.get(5)?,
+                    actor_id: row.get(6)?,
+                    status: row.get(7)?,
+                    failure_reason: row.get(8)?,
+                    created_at: row.get(9)?,
+                    updated_at: row.get(10)?,
+                    applied_at: row.get(11)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(DeviceConfigState {
+            device_id,
+            revision,
+            snapshot,
+            pending_commands,
+            updated_at: updated_at.or(Some(timestamp)),
+        })
+    }
+
+    fn queue_device_config_command(
+        &self,
+        device_id: i64,
+        base_revision: i64,
+        summary: String,
+        mutation: Value,
+    ) -> StoreResult<DeviceConfigCommand> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
+        let mirror_revision: i64 = match conn.query_row(
+            "SELECT revision FROM device_config_mirrors WHERE device_id = ?1",
+            params![device_id],
+            |row| row.get(0),
+        ) {
+            Ok(value) => value,
+            Err(rusqlite::Error::QueryReturnedNoRows) => 0,
+            Err(err) => return Err(err.into()),
+        };
+        let latest_pending_target_revision: i64 = conn.query_row(
+            "SELECT COALESCE(MAX(target_revision), 0) FROM device_config_commands WHERE device_id = ?1 AND status = 'pending'",
+            params![device_id],
+            |row| row.get(0),
+        )?;
+        let expected_base_revision = mirror_revision.max(latest_pending_target_revision);
+        if expected_base_revision != base_revision {
+            return Err(StoreError::Conflict {
+                local: expected_base_revision,
+                remote: base_revision,
+            });
+        }
+
+        let target_revision = expected_base_revision + 1;
+        let mutation_text = serde_json::to_string(&mutation)?;
+        let now = chrono::Utc::now().to_rfc3339();
+        conn.execute(
+            "INSERT INTO device_config_commands (device_id, base_revision, target_revision, mutation, summary, actor_type, actor_id, status, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, 'desktop', 0, 'pending', ?6, ?6)",
+            params![device_id, base_revision, target_revision, mutation_text, summary, now],
+        )?;
+        let command_id = conn.last_insert_rowid();
+        conn.execute(
+            "INSERT INTO device_config_audit_logs (device_id, command_id, revision, event_type, actor_type, actor_id, summary, created_at)
+             VALUES (?1, ?2, ?3, 'command.queued', 'desktop', 0, ?4, ?5)",
+            params![device_id, command_id, target_revision, summary, now],
+        )?;
+
+        Ok(DeviceConfigCommand {
+            id: command_id,
+            base_revision,
+            target_revision,
+            mutation,
+            summary,
+            actor_type: "desktop".to_string(),
+            actor_id: 0,
+            status: "pending".to_string(),
+            failure_reason: None,
+            created_at: now.clone(),
+            updated_at: now,
+            applied_at: None,
+        })
+    }
+
+    fn list_device_config_audit_logs(
+        &self,
+        device_id: i64,
+        limit: i32,
+        offset: i32,
+    ) -> StoreResult<Paginated<DeviceConfigAuditLog>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
+        let mut stmt = conn.prepare(
+            "SELECT id, device_id, command_id, revision, event_type, actor_type, actor_id, summary, created_at
+             FROM device_config_audit_logs
+             WHERE device_id = ?1
+             ORDER BY id DESC
+             LIMIT ?2 OFFSET ?3",
+        )?;
+        let logs = stmt
+            .query_map(params![device_id, limit, offset], |row| {
+                Ok(DeviceConfigAuditLog {
+                    id: row.get(0)?,
+                    device_id: row.get(1)?,
+                    command_id: row.get(2)?,
+                    revision: row.get(3)?,
+                    event_type: row.get(4)?,
+                    actor_type: row.get(5)?,
+                    actor_id: row.get(6)?,
+                    summary: row.get(7)?,
+                    created_at: row.get(8)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(Paginated {
             items: logs,
             limit,
@@ -174,8 +410,60 @@ impl Store for SqliteStore {
         })
     }
 
+    fn replace_device_config_pending_commands(
+        &self,
+        device_id: i64,
+        commands: Vec<DeviceConfigCommand>,
+    ) -> StoreResult<()> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
+        conn.execute(
+            "DELETE FROM device_config_commands WHERE device_id = ?1 AND status = 'pending'",
+            params![device_id],
+        )?;
+        for command in commands {
+            conn.execute(
+                "INSERT INTO device_config_commands (id, device_id, base_revision, target_revision, mutation, summary, actor_type, actor_id, status, failure_reason, created_at, updated_at, applied_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+                params![
+                    command.id,
+                    device_id,
+                    command.base_revision,
+                    command.target_revision,
+                    serde_json::to_string(&command.mutation)?,
+                    command.summary,
+                    command.actor_type,
+                    command.actor_id,
+                    command.status,
+                    command.failure_reason,
+                    command.created_at,
+                    command.updated_at,
+                    command.applied_at,
+                ],
+            )?;
+        }
+        Ok(())
+    }
+
+    fn clear_device_config_pending_commands(&self, device_id: i64) -> StoreResult<()> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
+        conn.execute(
+            "DELETE FROM device_config_commands WHERE device_id = ?1 AND status = 'pending'",
+            params![device_id],
+        )?;
+        Ok(())
+    }
+
     fn list_devices(&self) -> StoreResult<Vec<Device>> {
-        let conn = self.conn.lock().map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
         let mut stmt = conn.prepare(
             "SELECT id, user_id, device_name, device_model, platform, app_version, display_name, enabled, revoked_at, last_seen_at, local_addresses, capabilities, created_at, updated_at FROM devices ORDER BY id",
         )?;
@@ -209,8 +497,16 @@ impl Store for SqliteStore {
         Ok(devices)
     }
 
-    fn patch_device(&self, device_id: i64, display_name: Option<&str>, enabled: Option<bool>) -> StoreResult<Value> {
-        let conn = self.conn.lock().map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
+    fn patch_device(
+        &self,
+        device_id: i64,
+        display_name: Option<&str>,
+        enabled: Option<bool>,
+    ) -> StoreResult<Value> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
         if let Some(name) = display_name {
             conn.execute(
                 "UPDATE devices SET display_name = ?1, updated_at = datetime('now') WHERE id = ?2",
@@ -227,7 +523,10 @@ impl Store for SqliteStore {
     }
 
     fn revoke_device(&self, device_id: i64) -> StoreResult<Value> {
-        let conn = self.conn.lock().map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
         conn.execute(
             "UPDATE devices SET revoked_at = datetime('now'), updated_at = datetime('now') WHERE id = ?1",
             params![device_id],
@@ -246,8 +545,12 @@ impl Store for SqliteStore {
     }
 
     fn upsert_devices(&self, devices: Vec<Device>) -> StoreResult<()> {
-        let conn = self.conn.lock().map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
-        conn.execute_batch("BEGIN").map_err(|e| StoreError::Internal(e.to_string()))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
+        conn.execute_batch("BEGIN")
+            .map_err(|e| StoreError::Internal(e.to_string()))?;
         let result = (|| -> StoreResult<()> {
             for d in &devices {
                 conn.execute(
@@ -267,18 +570,25 @@ impl Store for SqliteStore {
                     ],
                 )?;
             }
+            let device_ids = devices.iter().map(|device| device.id).collect::<Vec<_>>();
+            Self::seed_device_mirrors_from_legacy_snapshot(&conn, Some(&device_ids))?;
             Ok(())
         })();
         if result.is_ok() {
-            conn.execute_batch("COMMIT").map_err(|e| StoreError::Internal(e.to_string()))?;
+            conn.execute_batch("COMMIT")
+                .map_err(|e| StoreError::Internal(e.to_string()))?;
         } else {
-            conn.execute_batch("ROLLBACK").map_err(|e| StoreError::Internal(e.to_string()))?;
+            conn.execute_batch("ROLLBACK")
+                .map_err(|e| StoreError::Internal(e.to_string()))?;
         }
         result
     }
 
     fn list_records(&self, limit: i32, device_id: Option<i64>) -> StoreResult<Paginated<Record>> {
-        let conn = self.conn.lock().map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
         let (sql, param_values): (String, Vec<Box<dyn rusqlite::types::ToSql>>) = match device_id {
             Some(did) => (
                 "SELECT id, device_id, event_id, record_type, sender, body, sms_code, package_name, metadata, msg_type, call_type, occurred_at, uploaded_at FROM relay_records WHERE device_id = ?1 ORDER BY id DESC LIMIT ?2".to_string(),
@@ -291,7 +601,8 @@ impl Store for SqliteStore {
         };
 
         let mut stmt = conn.prepare(&sql)?;
-        let params_ref: Vec<&dyn rusqlite::types::ToSql> = param_values.iter().map(|p| p.as_ref()).collect();
+        let params_ref: Vec<&dyn rusqlite::types::ToSql> =
+            param_values.iter().map(|p| p.as_ref()).collect();
         let records = stmt
             .query_map(params_ref.as_slice(), |row| {
                 Ok(Record {
@@ -323,7 +634,10 @@ impl Store for SqliteStore {
     }
 
     fn get_record(&self, record_id: i64) -> StoreResult<Record> {
-        let conn = self.conn.lock().map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
         let mut stmt = conn.prepare(
             "SELECT id, device_id, event_id, record_type, sender, body, sms_code, package_name, metadata, msg_type, call_type, occurred_at, uploaded_at FROM relay_records WHERE id = ?1",
         )?;
@@ -349,13 +663,20 @@ impl Store for SqliteStore {
         })?;
         match rows.next() {
             Some(row) => Ok(row?),
-            None => Err(StoreError::Internal(format!("Record {} not found", record_id))),
+            None => Err(StoreError::Internal(format!(
+                "Record {} not found",
+                record_id
+            ))),
         }
     }
 
     fn upsert_records(&self, records: Vec<Record>) -> StoreResult<()> {
-        let conn = self.conn.lock().map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
-        conn.execute_batch("BEGIN").map_err(|e| StoreError::Internal(e.to_string()))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
+        conn.execute_batch("BEGIN")
+            .map_err(|e| StoreError::Internal(e.to_string()))?;
         let result = (|| -> StoreResult<()> {
             for r in &records {
                 conn.execute(
@@ -376,15 +697,20 @@ impl Store for SqliteStore {
             Ok(())
         })();
         if result.is_ok() {
-            conn.execute_batch("COMMIT").map_err(|e| StoreError::Internal(e.to_string()))?;
+            conn.execute_batch("COMMIT")
+                .map_err(|e| StoreError::Internal(e.to_string()))?;
         } else {
-            conn.execute_batch("ROLLBACK").map_err(|e| StoreError::Internal(e.to_string()))?;
+            conn.execute_batch("ROLLBACK")
+                .map_err(|e| StoreError::Internal(e.to_string()))?;
         }
         result
     }
 
     fn get_system_info(&self) -> StoreResult<SystemInfo> {
-        let conn = self.conn.lock().map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
         let device_count: i64 = conn.query_row(
             "SELECT COUNT(*) FROM devices WHERE revoked_at IS NULL",
             [],
@@ -411,38 +737,169 @@ mod tests {
     }
 
     #[test]
-    fn config_snapshot_empty_by_default() {
+    fn device_config_reads_latest_local_mirror() {
         let store = test_store();
-        assert!(store.get_config_snapshot().unwrap().is_none());
+        store
+            .upsert_device_config_mirror(
+                1,
+                1,
+                json!({"senders": []}),
+                Some("2026-01-01T00:00:00Z".to_string()),
+            )
+            .unwrap();
+
+        let state = store.get_device_config(1).unwrap().unwrap();
+        assert_eq!(state.device_id, 1);
+        assert_eq!(state.revision, 1);
+        assert_eq!(state.snapshot, json!({"senders": []}));
+        assert!(state.pending_commands.is_empty());
     }
 
     #[test]
-    fn config_snapshot_put_and_get() {
+    fn device_config_queue_and_audit_logs_are_recorded() {
         let store = test_store();
-        let snap = store.put_config_snapshot(0, json!({"key": "value"})).unwrap();
-        assert_eq!(snap.revision, 1);
-        assert!(snap.updated_at.is_some());
+        store
+            .upsert_device_config_mirror(
+                1,
+                1,
+                json!({"senders": []}),
+                Some("2026-01-01T00:00:00Z".to_string()),
+            )
+            .unwrap();
 
-        let loaded = store.get_config_snapshot().unwrap().unwrap();
-        assert_eq!(loaded.revision, 1);
-        assert_eq!(loaded.snapshot, json!({"key": "value"}));
+        let command = store
+            .queue_device_config_command(
+                1,
+                1,
+                "senders:update".to_string(),
+                json!({"operations":[{"type":"replace_senders","senders":[{"id":1,"type":4,"name":"alpha","jsonSetting":"{}","status":1,"receiveCode":1,"receiveNonCode":1,"receiveAppNotify":1,"receiveCallNotify":0}]}]}),
+            )
+            .unwrap();
+
+        assert_eq!(command.base_revision, 1);
+        assert_eq!(command.target_revision, 2);
+        assert_eq!(command.status, "pending");
+
+        let state = store.get_device_config(1).unwrap().unwrap();
+        assert_eq!(state.pending_commands.len(), 1);
+        assert_eq!(state.pending_commands[0].summary, "senders:update");
+
+        let logs = store.list_device_config_audit_logs(1, 20, 0).unwrap();
+        assert_eq!(logs.items.len(), 1);
+        assert_eq!(logs.items[0].event_type, "command.queued");
     }
 
     #[test]
-    fn config_snapshot_conflict_on_stale_base() {
+    fn device_config_queue_uses_pending_target_revision_and_isolates_devices() {
         let store = test_store();
-        store.put_config_snapshot(0, json!({"v": 1})).unwrap();
-        let err = store.put_config_snapshot(0, json!({"v": 2})).unwrap_err();
-        assert!(matches!(err, StoreError::Conflict { local: 1, remote: 0 }));
+        store
+            .upsert_device_config_mirror(
+                1,
+                1,
+                json!({"senders": [{"id": 1}]}),
+                Some("2026-01-01T00:00:00Z".to_string()),
+            )
+            .unwrap();
+        store
+            .upsert_device_config_mirror(
+                2,
+                4,
+                json!({"senders": [{"id": 2}]}),
+                Some("2026-01-01T00:00:00Z".to_string()),
+            )
+            .unwrap();
+
+        let first = store
+            .queue_device_config_command(
+                1,
+                1,
+                "senders:first".to_string(),
+                json!({"operations":[{"type":"replace_senders","senders":[{"id":10}]}]}),
+            )
+            .unwrap();
+        let second = store
+            .queue_device_config_command(
+                1,
+                first.target_revision,
+                "senders:second".to_string(),
+                json!({"operations":[{"type":"replace_senders","senders":[{"id":11}]}]}),
+            )
+            .unwrap();
+
+        assert_eq!(first.base_revision, 1);
+        assert_eq!(first.target_revision, 2);
+        assert_eq!(second.base_revision, 2);
+        assert_eq!(second.target_revision, 3);
+
+        let first_state = store.get_device_config(1).unwrap().unwrap();
+        assert_eq!(first_state.revision, 1);
+        assert_eq!(first_state.pending_commands.len(), 2);
+        assert_eq!(first_state.pending_commands[0].summary, "senders:first");
+        assert_eq!(first_state.pending_commands[1].summary, "senders:second");
+
+        let second_state = store.get_device_config(2).unwrap().unwrap();
+        assert_eq!(second_state.revision, 4);
+        assert_eq!(second_state.snapshot, json!({"senders": [{"id": 2}]}));
+        assert!(second_state.pending_commands.is_empty());
     }
 
     #[test]
-    fn config_snapshot_revision_increments() {
+    fn legacy_config_snapshot_is_seeded_into_device_mirrors() {
         let store = test_store();
-        store.put_config_snapshot(0, json!({"v": 1})).unwrap();
-        store.put_config_snapshot(1, json!({"v": 2})).unwrap();
-        let snap = store.put_config_snapshot(2, json!({"v": 3})).unwrap();
-        assert_eq!(snap.revision, 3);
+        {
+            let conn = store.conn.lock().unwrap();
+            conn.execute_batch(
+                "
+                CREATE TABLE config_snapshots (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    revision INTEGER NOT NULL,
+                    content TEXT NOT NULL DEFAULT '{}',
+                    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+                );
+                INSERT INTO devices (id, user_id, device_name, device_model, platform, app_version, display_name, enabled, local_addresses, capabilities, created_at, updated_at)
+                VALUES (7, 0, 'Phone', 'Pixel', 'android', '1.0', 'Phone', 1, '[]', '{}', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z');
+                INSERT INTO config_snapshots (revision, content, updated_at)
+                VALUES (5, '{\"senders\":[{\"id\":1}]}', '2026-01-01T00:00:00Z');
+                ",
+            ).unwrap();
+            SqliteStore::seed_device_mirrors_from_legacy_snapshot(&conn, None).unwrap();
+        }
+
+        let state = store.get_device_config(7).unwrap().unwrap();
+        assert_eq!(state.revision, 5);
+        assert_eq!(state.snapshot, json!({"senders":[{"id":1}]}));
+    }
+
+    #[test]
+    fn legacy_config_snapshot_is_seeded_for_each_existing_device() {
+        let store = test_store();
+        {
+            let conn = store.conn.lock().unwrap();
+            conn.execute_batch(
+                "
+                CREATE TABLE config_snapshots (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    revision INTEGER NOT NULL,
+                    content TEXT NOT NULL DEFAULT '{}',
+                    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+                );
+                INSERT INTO devices (id, user_id, device_name, device_model, platform, app_version, display_name, enabled, local_addresses, capabilities, created_at, updated_at)
+                VALUES
+                  (7, 0, 'Phone', 'Pixel', 'android', '1.0', 'Phone', 1, '[]', '{}', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z'),
+                  (8, 0, 'Tablet', 'Pixel', 'android', '1.0', 'Tablet', 1, '[]', '{}', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z');
+                INSERT INTO config_snapshots (revision, content, updated_at)
+                VALUES (5, '{\"senders\":[{\"id\":1}]}', '2026-01-01T00:00:00Z');
+                ",
+            ).unwrap();
+            SqliteStore::seed_device_mirrors_from_legacy_snapshot(&conn, None).unwrap();
+        }
+
+        let phone = store.get_device_config(7).unwrap().unwrap();
+        let tablet = store.get_device_config(8).unwrap().unwrap();
+        assert_eq!(phone.revision, 5);
+        assert_eq!(tablet.revision, 5);
+        assert_eq!(phone.snapshot, json!({"senders":[{"id":1}]}));
+        assert_eq!(tablet.snapshot, json!({"senders":[{"id":1}]}));
     }
 
     #[test]
@@ -456,20 +913,34 @@ mod tests {
         let store = test_store();
         let devices = vec![
             Device {
-                id: 1, user_id: 0, device_name: "Phone".to_string(),
-                device_model: "Pixel".to_string(), platform: "android".to_string(),
-                app_version: "1.0".to_string(), display_name: "My Phone".to_string(),
-                enabled: true, revoked_at: None, last_seen_at: None,
-                local_addresses: json!([]), capabilities: json!({}),
+                id: 1,
+                user_id: 0,
+                device_name: "Phone".to_string(),
+                device_model: "Pixel".to_string(),
+                platform: "android".to_string(),
+                app_version: "1.0".to_string(),
+                display_name: "My Phone".to_string(),
+                enabled: true,
+                revoked_at: None,
+                last_seen_at: None,
+                local_addresses: json!([]),
+                capabilities: json!({}),
                 created_at: "2026-01-01T00:00:00Z".to_string(),
                 updated_at: "2026-01-01T00:00:00Z".to_string(),
             },
             Device {
-                id: 2, user_id: 0, device_name: "Tablet".to_string(),
-                device_model: "iPad".to_string(), platform: "ios".to_string(),
-                app_version: "1.0".to_string(), display_name: "My Tablet".to_string(),
-                enabled: true, revoked_at: None, last_seen_at: None,
-                local_addresses: json!([]), capabilities: json!({}),
+                id: 2,
+                user_id: 0,
+                device_name: "Tablet".to_string(),
+                device_model: "iPad".to_string(),
+                platform: "ios".to_string(),
+                app_version: "1.0".to_string(),
+                display_name: "My Tablet".to_string(),
+                enabled: true,
+                revoked_at: None,
+                last_seen_at: None,
+                local_addresses: json!([]),
+                capabilities: json!({}),
                 created_at: "2026-01-01T00:00:00Z".to_string(),
                 updated_at: "2026-01-01T00:00:00Z".to_string(),
             },
@@ -485,22 +956,36 @@ mod tests {
     fn devices_upsert_updates_existing() {
         let store = test_store();
         let device = Device {
-            id: 1, user_id: 0, device_name: "Phone".to_string(),
-            device_model: "Pixel".to_string(), platform: "android".to_string(),
-            app_version: "1.0".to_string(), display_name: "Old Name".to_string(),
-            enabled: true, revoked_at: None, last_seen_at: None,
-            local_addresses: json!([]), capabilities: json!({}),
+            id: 1,
+            user_id: 0,
+            device_name: "Phone".to_string(),
+            device_model: "Pixel".to_string(),
+            platform: "android".to_string(),
+            app_version: "1.0".to_string(),
+            display_name: "Old Name".to_string(),
+            enabled: true,
+            revoked_at: None,
+            last_seen_at: None,
+            local_addresses: json!([]),
+            capabilities: json!({}),
             created_at: "2026-01-01T00:00:00Z".to_string(),
             updated_at: "2026-01-01T00:00:00Z".to_string(),
         };
         store.upsert_devices(vec![device]).unwrap();
 
         let updated = Device {
-            id: 1, user_id: 0, device_name: "Phone".to_string(),
-            device_model: "Pixel".to_string(), platform: "android".to_string(),
-            app_version: "1.0".to_string(), display_name: "New Name".to_string(),
-            enabled: false, revoked_at: None, last_seen_at: None,
-            local_addresses: json!([]), capabilities: json!({}),
+            id: 1,
+            user_id: 0,
+            device_name: "Phone".to_string(),
+            device_model: "Pixel".to_string(),
+            platform: "android".to_string(),
+            app_version: "1.0".to_string(),
+            display_name: "New Name".to_string(),
+            enabled: false,
+            revoked_at: None,
+            last_seen_at: None,
+            local_addresses: json!([]),
+            capabilities: json!({}),
             created_at: "2026-01-01T00:00:00Z".to_string(),
             updated_at: "2026-01-02T00:00:00Z".to_string(),
         };
@@ -522,17 +1007,21 @@ mod tests {
     #[test]
     fn records_upsert_and_list() {
         let store = test_store();
-        let records = vec![
-            Record {
-                id: 1, device_id: 1, event_id: Some("evt1".to_string()),
-                record_type: "sms".to_string(), sender: "Bank".to_string(),
-                body: "Code 123456".to_string(), sms_code: "123456".to_string(),
-                package_name: "com.sms".to_string(), metadata: json!({}),
-                msg_type: 0, call_type: 0,
-                occurred_at: "2026-01-01T00:00:00Z".to_string(),
-                uploaded_at: "2026-01-01T00:00:00Z".to_string(),
-            },
-        ];
+        let records = vec![Record {
+            id: 1,
+            device_id: 1,
+            event_id: Some("evt1".to_string()),
+            record_type: "sms".to_string(),
+            sender: "Bank".to_string(),
+            body: "Code 123456".to_string(),
+            sms_code: "123456".to_string(),
+            package_name: "com.sms".to_string(),
+            metadata: json!({}),
+            msg_type: 0,
+            call_type: 0,
+            occurred_at: "2026-01-01T00:00:00Z".to_string(),
+            uploaded_at: "2026-01-01T00:00:00Z".to_string(),
+        }];
         store.upsert_records(records).unwrap();
         let result = store.list_records(10, None).unwrap();
         assert_eq!(result.items.len(), 1);
@@ -543,22 +1032,34 @@ mod tests {
     fn records_upsert_updates_existing() {
         let store = test_store();
         let record = Record {
-            id: 1, device_id: 1, event_id: Some("evt1".to_string()),
-            record_type: "sms".to_string(), sender: "Bank".to_string(),
-            body: "Old body".to_string(), sms_code: "111".to_string(),
-            package_name: "com.sms".to_string(), metadata: json!({}),
-            msg_type: 0, call_type: 0,
+            id: 1,
+            device_id: 1,
+            event_id: Some("evt1".to_string()),
+            record_type: "sms".to_string(),
+            sender: "Bank".to_string(),
+            body: "Old body".to_string(),
+            sms_code: "111".to_string(),
+            package_name: "com.sms".to_string(),
+            metadata: json!({}),
+            msg_type: 0,
+            call_type: 0,
             occurred_at: "2026-01-01T00:00:00Z".to_string(),
             uploaded_at: "2026-01-01T00:00:00Z".to_string(),
         };
         store.upsert_records(vec![record]).unwrap();
 
         let updated = Record {
-            id: 1, device_id: 1, event_id: Some("evt1".to_string()),
-            record_type: "sms".to_string(), sender: "Bank".to_string(),
-            body: "New body".to_string(), sms_code: "222".to_string(),
-            package_name: "com.sms".to_string(), metadata: json!({}),
-            msg_type: 0, call_type: 0,
+            id: 1,
+            device_id: 1,
+            event_id: Some("evt1".to_string()),
+            record_type: "sms".to_string(),
+            sender: "Bank".to_string(),
+            body: "New body".to_string(),
+            sms_code: "222".to_string(),
+            package_name: "com.sms".to_string(),
+            metadata: json!({}),
+            msg_type: 0,
+            call_type: 0,
             occurred_at: "2026-01-01T00:00:00Z".to_string(),
             uploaded_at: "2026-01-02T00:00:00Z".to_string(),
         };
@@ -577,11 +1078,18 @@ mod tests {
         assert_eq!(info.user_count, 0);
 
         let device = Device {
-            id: 1, user_id: 0, device_name: "Phone".to_string(),
-            device_model: "".to_string(), platform: "android".to_string(),
-            app_version: "".to_string(), display_name: "".to_string(),
-            enabled: true, revoked_at: None, last_seen_at: None,
-            local_addresses: json!([]), capabilities: json!({}),
+            id: 1,
+            user_id: 0,
+            device_name: "Phone".to_string(),
+            device_model: "".to_string(),
+            platform: "android".to_string(),
+            app_version: "".to_string(),
+            display_name: "".to_string(),
+            enabled: true,
+            revoked_at: None,
+            last_seen_at: None,
+            local_addresses: json!([]),
+            capabilities: json!({}),
             created_at: "2026-01-01T00:00:00Z".to_string(),
             updated_at: "2026-01-01T00:00:00Z".to_string(),
         };

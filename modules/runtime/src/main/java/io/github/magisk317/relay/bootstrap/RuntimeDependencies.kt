@@ -3,7 +3,8 @@ package io.github.magisk317.relay.bootstrap
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.contract.backup.AutoBackupTrigger
-import io.github.magisk317.relay.contract.repository.RemoteSyncRepository
+import io.github.magisk317.relay.contract.repository.ConfigSyncCoordinator
+import io.github.magisk317.relay.contract.repository.LocalConfigRepository
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.domain.pipeline.EventPipeline
 import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
@@ -27,7 +28,8 @@ interface RuntimeDependencies {
     val preferenceDataSource: PreferenceDataSource
     val settingsRepository: SettingsPreferencesRepository
     val relayRecordRepository: MessageRecordRepository
-    val remoteAgentRepository: RemoteSyncRepository
+    val localConfigRepository: LocalConfigRepository
+    val configSyncCoordinator: ConfigSyncCoordinator
     val runtimeRecordFacade: RuntimeRecordFacade
     val configRepository: AppConfigRepository
     val autoBackupTrigger: AutoBackupTrigger

@@ -1,8 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 import { createConsoleApiClient, type ConsoleApiRequestOptions } from '../../../shared/consoleApiClient'
-import { ConfigConflictError } from '../../../shared/configSnapshot'
 import type {
-  ConfigSnapshotState,
   DesktopAuthExchangeResponse,
   DesktopAuthStart,
   DesktopBackendProbe,
@@ -42,9 +40,9 @@ export const desktopApi = {
   createBindCode: desktopConsoleApi.createBindCode,
   patchDevice: desktopConsoleApi.patchDevice,
   revokeDevice: desktopConsoleApi.revokeDevice,
-  getConfigSnapshot: desktopConsoleApi.getConfigSnapshot,
-  putConfigSnapshot: desktopConsoleApi.putConfigSnapshot,
-  getConfigAuditLogs: desktopConsoleApi.getConfigAuditLogs,
+  getDeviceConfig: desktopConsoleApi.getDeviceConfig,
+  queueDeviceConfigCommand: desktopConsoleApi.queueDeviceConfigCommand,
+  getDeviceConfigAuditLogs: desktopConsoleApi.getDeviceConfigAuditLogs,
   getRecords: desktopConsoleApi.getRecords,
   getRecord: desktopConsoleApi.getRecord,
   getLocalServerAddr: () => invoke<string | null>('desktop_get_local_server_addr'),
@@ -86,23 +84,22 @@ async function requestDesktopConsoleApi<T>(
   if (deviceMatch && method === 'POST' && deviceMatch[2] === '/revoke') {
     return invoke<T>('desktop_revoke_device', { deviceId: Number(deviceMatch[1]) })
   }
-
-  if (method === 'GET' && pathname === '/api/v1/config/snapshot') {
-    return invoke<T>('desktop_fetch_config_snapshot')
+  const deviceConfigMatch = pathname.match(/^\/api\/v1\/devices\/(\d+)\/config(?:\/(commands|audit))?$/)
+  if (deviceConfigMatch && method === 'GET' && !deviceConfigMatch[2]) {
+    return invoke<T>('desktop_fetch_device_config', { deviceId: Number(deviceConfigMatch[1]) })
   }
-  if (method === 'PUT' && pathname === '/api/v1/config/snapshot') {
+  if (deviceConfigMatch && method === 'POST' && deviceConfigMatch[2] === 'commands') {
     const body = asRecord(options.body)
-    try {
-      return await invoke<T>('desktop_put_config_snapshot', {
-        baseRevision: Number(body.base_revision),
-        snapshot: asRecord(body.snapshot)
-      })
-    } catch (err: unknown) {
-      throw mapConflictError(err, options.conflictMessage)
-    }
+    return invoke<T>('desktop_queue_device_config_command', {
+      deviceId: Number(deviceConfigMatch[1]),
+      baseRevision: Number(body.baseRevision),
+      summary: typeof body.summary === 'string' ? body.summary : '',
+      mutation: asRecord(body.mutation)
+    })
   }
-  if (method === 'GET' && pathname === '/api/v1/config/audit') {
-    return invoke<T>('desktop_fetch_config_audit_logs', {
+  if (deviceConfigMatch && method === 'GET' && deviceConfigMatch[2] === 'audit') {
+    return invoke<T>('desktop_fetch_device_config_audit_logs', {
+      deviceId: Number(deviceConfigMatch[1]),
       limit: numericQuery(params, 'limit', 50),
       offset: numericQuery(params, 'offset', 0)
     })
@@ -144,26 +141,4 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
     : {}
-}
-
-/**
- * Detect structured conflict errors returned by the Rust backend (409 responses)
- * and throw a ConfigConflictError so the UI can reload the editor with the cloud version.
- */
-function mapConflictError(err: unknown, conflictMessage?: string): unknown {
-  if (typeof err === 'string') {
-    try {
-      const parsed = JSON.parse(err)
-      if (parsed.__config_conflict__ && parsed.latest) {
-        throw new ConfigConflictError(
-          conflictMessage ?? parsed.message ?? 'Config conflict',
-          parsed.latest as ConfigSnapshotState
-        )
-      }
-    } catch (parseErr) {
-      if (parseErr instanceof ConfigConflictError) throw parseErr
-      // not JSON, fall through
-    }
-  }
-  throw err
 }

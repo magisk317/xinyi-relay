@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { SenderFieldEditor } from '../SenderFieldEditor'
 import { SenderActiveScheduleEditor } from '../SenderActiveScheduleEditor'
-import { cloneSnapshot } from '../configSnapshot'
+import { buildReplaceSendersMutation } from '../../../shared/configMutations'
+import { useDeviceConfig } from '../deviceConfig'
 import { useRealtimeFeed } from '../realtime'
 import { trackEvent } from '../analytics'
 import { translateSenderType, useI18n } from '../i18n'
@@ -25,14 +26,13 @@ import {
   ToggleRow
 } from '../template'
 import type { SnapshotSender } from '../types'
-import { useConfigSnapshotEditor } from '../useConfigSnapshotEditor'
 
 const SENDER_TYPE_OPTIONS = [3, 4, 5, 9, 13, 7, 16, 18, 19, 11, 10, 0, 12, 1, 2, 6, 8, 14, 15]
 
 export function SendersPage() {
   const { t, locale } = useI18n()
-  const { connected, lastEvent } = useRealtimeFeed()
-  const { config, root, loading, saving, error, setError, load, saveRoot } = useConfigSnapshotEditor()
+  const { connected } = useRealtimeFeed()
+  const { config, root, loading, saving, error, setError, refreshConfig, queueMutation } = useDeviceConfig()
   const [draft, setDraft] = useState(() => ({
     name: '',
     type: 4,
@@ -42,15 +42,9 @@ export function SendersPage() {
 
   useEffect(() => {
     queueMicrotask(() => {
-      void load().catch(() => {})
+      void refreshConfig().catch(() => {})
     })
-  }, [load])
-
-  useEffect(() => {
-    if (lastEvent?.type === 'config.updated') {
-      void load().catch(() => {})
-    }
-  }, [lastEvent, load])
+  }, [refreshConfig])
 
   const senderTypeOptions = useMemo(
     () =>
@@ -74,7 +68,7 @@ export function SendersPage() {
       <ActionButton
         onClick={() => {
           trackEvent('refresh', { page: 'senders' })
-          void load().catch(() => {})
+          void refreshConfig().catch(() => {})
         }}
       >
         {t('senders.refresh')}
@@ -84,17 +78,16 @@ export function SendersPage() {
 
   async function persistSenders(nextSenders: SnapshotSender[], removedSenderId?: number) {
     if (!root) return
-    const nextRoot = cloneSnapshot(root)
-    nextRoot.senders = nextSenders.map(normalizeSnapshotSender)
-    if (removedSenderId != null) {
-      nextRoot.rules = (nextRoot.rules ?? []).filter((rule) => rule.senderId !== removedSenderId)
-      nextRoot.notifyRoutes = (nextRoot.notifyRoutes ?? []).filter((route) => route.senderId !== removedSenderId)
-      nextRoot.forwardFilters = (nextRoot.forwardFilters ?? []).filter((rule) => rule.senderId !== removedSenderId)
-    }
     try {
-      await saveRoot(nextRoot)
+      await queueMutation(
+        buildReplaceSendersMutation(
+          nextSenders.map(normalizeSnapshotSender),
+          removedSenderId != null ? [removedSenderId] : [],
+        ),
+        'senders:update',
+      )
     } catch {
-      // saveRoot already updates UI state and error.
+      // queueMutation already updates UI state and error.
     }
   }
 

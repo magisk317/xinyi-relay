@@ -38,7 +38,7 @@ class SettingsRepository(
     override suspend fun updateGeneralSettings(update: GeneralSettingsUpdate): GeneralSettingsSnapshot {
         update.moduleEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE, it) }
         update.accordionMode?.let { preferenceDataSource.setBoolean(PrefConst.KEY_SETTINGS_ACCORDION_MODE, it) }
-        syncAndNoteRemoteMutation("settings.general")
+        publishHookPrefsAndNoteLocalMutation("settings.general")
         return getGeneralSettings()
     }
 
@@ -86,7 +86,7 @@ class SettingsRepository(
         update.autoInputInterval?.let { preferenceDataSource.setString(PrefConst.KEY_AUTO_INPUT_CODE_INTERVAL, it) }
         update.relayKeywords?.let { preferenceDataSource.setString(PrefConst.KEY_SMSCODE_KEYWORDS, it) }
         update.blockSmsEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_BLOCK_SMS, it) }
-        syncAndNoteRemoteMutation("settings.verification")
+        publishHookPrefsAndNoteLocalMutation("settings.verification")
         return getVerificationSettings()
     }
 
@@ -116,7 +116,7 @@ class SettingsRepository(
                 ).toString(),
             )
         }
-        syncAndNoteRemoteMutation("settings.relay")
+        publishHookPrefsAndNoteLocalMutation("settings.relay")
         return getRelaySettings()
     }
 
@@ -176,7 +176,7 @@ class SettingsRepository(
         update.keepAliveDozeBypass?.let { preferenceDataSource.setBoolean(PrefConst.KEY_KEEPALIVE_DOZE_BYPASS, it) }
         update.keepAliveAccessibilityHeartbeat?.let { preferenceDataSource.setBoolean(PrefConst.KEY_KEEPALIVE_ACCESSIBILITY_HEARTBEAT, it) }
         update.keepAliveDedicatedService?.let { preferenceDataSource.setBoolean(PrefConst.KEY_KEEPALIVE_DEDICATED_SERVICE, it) }
-        syncAndNoteRemoteMutation("settings.diagnostics")
+        publishHookPrefsAndNoteLocalMutation("settings.diagnostics")
         return getDiagnosticsSettings()
     }
 
@@ -188,7 +188,7 @@ class SettingsRepository(
 
     override suspend fun updateAdvanced(update: AdvancedSettingsUpdate): AdvancedSettingsSnapshot {
         update.enableSmsBlacklist?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE_SMS_BLACKLIST, it) }
-        syncAndNoteRemoteMutation("settings.advanced")
+        publishHookPrefsAndNoteLocalMutation("settings.advanced")
         return getAdvancedSnapshot()
     }
 
@@ -236,7 +236,7 @@ class SettingsRepository(
         update.appKeywordNotificationEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_APP_KEYWORD_ALERT_NOTIFICATION, it) }
         update.appKeywordSoundEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_APP_KEYWORD_ALERT_SOUND, it) }
         update.appKeywordVibrateEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_APP_KEYWORD_ALERT_VIBRATE, it) }
-        syncAndNoteRemoteMutation("settings.special_alerts")
+        publishHookPrefsAndNoteLocalMutation("settings.special_alerts")
         return getSpecialAlertSettings()
     }
 
@@ -274,7 +274,7 @@ class SettingsRepository(
         update.callNotifyEnabled?.let {
             preferenceDataSource.setBoolean(PrefConst.KEY_MSG_TYPE_CALL_NOTIFY_ENABLED, it)
         }
-        syncAndNoteRemoteMutation("settings.message_type_gates")
+        publishHookPrefsAndNoteLocalMutation("settings.message_type_gates")
         return getMessageTypeGates()
     }
 
@@ -319,7 +319,7 @@ class SettingsRepository(
         update.callNotifyFinalEnabled?.let {
             preferenceDataSource.setBoolean(PrefConst.KEY_FORWARD_CALL_NOTIFY_FINAL_ENABLED, it)
         }
-        syncAndNoteRemoteMutation("settings.forward_type_gates")
+        publishHookPrefsAndNoteLocalMutation("settings.forward_type_gates")
         return getForwardTypeGates()
     }
 
@@ -346,7 +346,7 @@ class SettingsRepository(
         if (clearChargingState) {
             preferenceDataSource.setInt(PrefConst.KEY_INTERNAL_CHARGING_STATE, -1)
         }
-        syncLocalOnly()
+        publishHookPrefsOnly()
     }
 
     override suspend fun getRecordSettings(): RecordSettingsSnapshot {
@@ -388,7 +388,7 @@ class SettingsRepository(
         update.smsBlacklistHitHistoryLimit?.let {
             preferenceDataSource.setString(PrefConst.KEY_HISTORY_LIMIT_SMS_BLACKLIST_HIT, it)
         }
-        syncAndNoteRemoteMutation("settings.records")
+        publishHookPrefsAndNoteLocalMutation("settings.records")
         return getRecordSettings()
     }
 
@@ -412,7 +412,7 @@ class SettingsRepository(
         update.prefixes?.let { preferenceDataSource.setString(PrefConst.KEY_SMS_BLACKLIST_PREFIXES, it) }
         update.regexRules?.let { preferenceDataSource.setString(PrefConst.KEY_SMS_BLACKLIST_REGEX, it) }
         update.contentRules?.let { preferenceDataSource.setString(PrefConst.KEY_SMS_BLACKLIST_CONTENT, it) }
-        syncAndNoteRemoteMutation("settings.sms_blacklist")
+        publishHookPrefsAndNoteLocalMutation("settings.sms_blacklist")
         return getSmsBlacklistSettings()
     }
 
@@ -426,7 +426,7 @@ class SettingsRepository(
     override suspend fun updateSimRemarkSettings(update: SimRemarkSettingsUpdate): SimRemarkSettingsSnapshot {
         update.simSlot1Remark?.let { preferenceDataSource.setString(PrefConst.KEY_SIM_SLOT1_REMARK, it) }
         update.simSlot2Remark?.let { preferenceDataSource.setString(PrefConst.KEY_SIM_SLOT2_REMARK, it) }
-        syncAndNoteRemoteMutation("settings.sim_remarks")
+        publishHookPrefsAndNoteLocalMutation("settings.sim_remarks")
         return getSimRemarkSettings()
     }
 
@@ -531,7 +531,7 @@ class SettingsRepository(
             PrefConst.KEY_FORWARD_SILENT_PERIOD_WEEKDAYS,
             encodeSilentPeriodWeekdays(silentPeriod.weekdays),
         )
-        syncAndNoteRemoteMutation("settings.forward_common")
+        publishHookPrefsAndNoteLocalMutation("settings.forward_common")
     }
 
     private fun normalizeDispatchStrategy(strategy: Int): Int {
@@ -569,7 +569,7 @@ class SettingsRepository(
 
     override suspend fun saveAppNotifyTemplate(template: String) {
         preferenceDataSource.setString(PrefConst.KEY_FORWARD_APP_NOTIFY_TEMPLATE, template)
-        syncAndNoteRemoteMutation("settings.app_notify_template")
+        publishHookPrefsAndNoteLocalMutation("settings.app_notify_template")
     }
 
     override suspend fun loadCallNotifyTemplate(): String {
@@ -578,7 +578,7 @@ class SettingsRepository(
 
     override suspend fun saveCallNotifyTemplate(template: String) {
         preferenceDataSource.setString(PrefConst.KEY_FORWARD_CALL_NOTIFY_TEMPLATE, template)
-        syncAndNoteRemoteMutation("settings.call_notify_template")
+        publishHookPrefsAndNoteLocalMutation("settings.call_notify_template")
     }
 
     override suspend fun getUserSettingsSnapshot(): UserSettingsSnapshot {
@@ -618,7 +618,7 @@ class SettingsRepository(
         update.verboseLogMode?.let { preferenceDataSource.setBoolean(PrefConst.KEY_VERBOSE_LOG_MODE, it) }
         update.smsBlacklistEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE_SMS_BLACKLIST, it) }
         update.forceStopRecoveryEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_FORCE_STOP_RECOVERY, it) }
-        syncAndNoteRemoteMutation("settings.user_settings")
+        publishHookPrefsAndNoteLocalMutation("settings.user_settings")
         return getUserSettingsSnapshot()
     }
 
@@ -636,22 +636,8 @@ class SettingsRepository(
         update.enabledCardIds?.let { preferenceDataSource.setString(PrefConst.KEY_HOME_CARD_ENABLED, it) }
         update.chartType?.let { preferenceDataSource.setString(PrefConst.KEY_HOME_CHART_TYPE, it) }
         update.chartWindow?.let { preferenceDataSource.setString(PrefConst.KEY_HOME_CHART_WINDOW, it) }
-        syncAndNoteRemoteMutation("settings.overview")
+        publishHookPrefsAndNoteLocalMutation("settings.overview")
         return getOverviewSettings()
-    }
-
-    override fun getHazeBlurRadiusFlow(): Flow<Int> {
-        return preferenceDataSource.getIntFlow(
-            PrefConst.KEY_HAZE_BLUR_RADIUS,
-            PrefConst.HAZE_BLUR_RADIUS_DEFAULT,
-        )
-    }
-
-    override fun getHazeTintAlphaFlow(): Flow<Float> {
-        return preferenceDataSource.getFloatFlow(
-            PrefConst.KEY_HAZE_TINT_ALPHA,
-            PrefConst.HAZE_TINT_ALPHA_DEFAULT,
-        )
     }
 
     override suspend fun getAutoUpdateSettings(): AutoUpdateSettingsSnapshot {
@@ -664,7 +650,7 @@ class SettingsRepository(
 
     override suspend fun setIgnoredGithubVersion(versionName: String) {
         preferenceDataSource.setString(PrefConst.KEY_GITHUB_IGNORED_VERSION, versionName)
-        syncLocalOnly()
+        publishHookPrefsOnly()
     }
 
     override suspend fun getThemeMode(): Int {
@@ -673,7 +659,7 @@ class SettingsRepository(
 
     override suspend fun setThemeMode(mode: Int) {
         preferenceDataSource.setInt(PrefConst.KEY_CHOOSE_THEME, mode)
-        syncAndScheduleAutoBackup("settings.theme")
+        publishHookPrefsAndScheduleAutoBackup("settings.theme")
     }
 
     override suspend fun getUiKitStyle(): Int {
@@ -682,7 +668,7 @@ class SettingsRepository(
 
     override suspend fun setUiKitStyle(style: Int) {
         preferenceDataSource.setInt(PrefConst.KEY_UI_KIT_STYLE, UI_KIT_STYLE_EXPRESSIVE)
-        syncAndScheduleAutoBackup("settings.ui_kit_style")
+        publishHookPrefsAndScheduleAutoBackup("settings.ui_kit_style")
     }
 
     override suspend fun getLanguageTag(): String {
@@ -691,7 +677,7 @@ class SettingsRepository(
 
     override suspend fun setLanguageTag(languageTag: String) {
         preferenceDataSource.setString(PrefConst.KEY_LANGUAGE, languageTag)
-        syncAndScheduleAutoBackup("settings.language")
+        publishHookPrefsAndScheduleAutoBackup("settings.language")
     }
 
     override suspend fun isPrivacyPolicyAccepted(): Boolean {
@@ -700,24 +686,24 @@ class SettingsRepository(
 
     override suspend fun setPrivacyPolicyAccepted(accepted: Boolean) {
         preferenceDataSource.setBoolean(PrefConst.KEY_PRIVACY_POLICY_ACCEPTED, accepted)
-        syncLocalOnly()
+        publishHookPrefsOnly()
     }
 
-    private suspend fun syncAndNoteRemoteMutation(source: String) {
+    private suspend fun publishHookPrefsAndNoteLocalMutation(source: String) {
         HookPreferenceMirror.publish(appContext)
-        runCatching { RuntimeDependencies.get().remoteAgentRepository.noteLocalMutation(source) }
+        runCatching { RuntimeDependencies.get().localConfigRepository.noteLocalMutation(source) }
             .onFailure { XLog.e("noteLocalMutation failed: %s", it.message ?: it.javaClass.simpleName) }
         runCatching { RuntimeDependencies.get().autoBackupTrigger.scheduleAutoBackup(source) }
             .onFailure { XLog.e("scheduleAutoBackup failed: %s", it.message ?: it.javaClass.simpleName) }
     }
 
-    private suspend fun syncAndScheduleAutoBackup(source: String) {
+    private suspend fun publishHookPrefsAndScheduleAutoBackup(source: String) {
         HookPreferenceMirror.publish(appContext)
         runCatching { RuntimeDependencies.get().autoBackupTrigger.scheduleAutoBackup(source) }
             .onFailure { XLog.e("scheduleAutoBackup failed: %s", it.message ?: it.javaClass.simpleName) }
     }
 
-    private suspend fun syncLocalOnly() {
+    private suspend fun publishHookPrefsOnly() {
         HookPreferenceMirror.publish(appContext)
     }
 }

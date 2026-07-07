@@ -1,5 +1,15 @@
 package io.github.magisk317.relay.data.remote
 
+import io.github.magisk317.relay.contract.remote.AgentConfigCommandsAckRequest
+import io.github.magisk317.relay.contract.remote.AgentConfigCommandsPullRequest
+import io.github.magisk317.relay.contract.remote.AgentConfigCommandsPullResponse
+import io.github.magisk317.relay.contract.remote.AgentConfigMirrorRequest
+import io.github.magisk317.relay.contract.remote.AgentRegisterRequest
+import io.github.magisk317.relay.contract.remote.AgentRegisterResponse
+import io.github.magisk317.relay.contract.remote.DeviceConfigCommandResponse
+import io.github.magisk317.relay.contract.remote.DeviceConfigStateResponse
+import io.github.magisk317.relay.contract.remote.HeartbeatRequest
+import io.github.magisk317.relay.contract.remote.RelayRecordsBatchRequest
 import io.github.magisk317.relay.contract.json.RelayJson
 import io.github.magisk317.relay.net.RelayHttpClients
 import kotlinx.serialization.DeserializationStrategy
@@ -9,12 +19,46 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
+interface RemoteAgentApi {
+    fun registerDevice(baseUrl: String, request: AgentRegisterRequest): AgentRegisterResponse
+
+    fun sendHeartbeat(
+        baseUrl: String,
+        deviceToken: String,
+        request: HeartbeatRequest,
+    )
+
+    fun pushConfigMirror(
+        baseUrl: String,
+        deviceToken: String,
+        request: AgentConfigMirrorRequest,
+    ): DeviceConfigStateResponse
+
+    fun pullConfigCommands(
+        baseUrl: String,
+        deviceToken: String,
+        request: AgentConfigCommandsPullRequest,
+    ): AgentConfigCommandsPullResponse
+
+    fun ackConfigCommand(
+        baseUrl: String,
+        deviceToken: String,
+        request: AgentConfigCommandsAckRequest,
+    ): DeviceConfigCommandResponse
+
+    fun uploadRelayRecords(
+        baseUrl: String,
+        deviceToken: String,
+        request: RelayRecordsBatchRequest,
+    )
+}
+
 internal class RemoteApiClient(
     private val client: OkHttpClient = RelayHttpClients.default,
-) {
+) : RemoteAgentApi {
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
 
-    fun registerDevice(baseUrl: String, request: AgentRegisterRequest): AgentRegisterResponse {
+    override fun registerDevice(baseUrl: String, request: AgentRegisterRequest): AgentRegisterResponse {
         return executeJson(
             request = Request.Builder()
                 .url("$baseUrl/api/v1/agent/register")
@@ -25,7 +69,7 @@ internal class RemoteApiClient(
         )
     }
 
-    fun sendHeartbeat(
+    override fun sendHeartbeat(
         baseUrl: String,
         deviceToken: String,
         request: HeartbeatRequest,
@@ -40,42 +84,55 @@ internal class RemoteApiClient(
         )
     }
 
-    fun pullConfigSnapshot(baseUrl: String, deviceToken: String): ConfigSnapshotResponse {
+    override fun pushConfigMirror(
+        baseUrl: String,
+        deviceToken: String,
+        request: AgentConfigMirrorRequest,
+    ): DeviceConfigStateResponse {
         return executeJson(
             request = Request.Builder()
-                .url("$baseUrl/api/v1/config/snapshot")
+                .url("$baseUrl/api/v1/agent/config/mirror")
                 .bearer(deviceToken)
-                .get()
+                .post(jsonBody(AgentConfigMirrorRequest.serializer(), request))
                 .build(),
-            deserializer = ConfigSnapshotResponse.serializer(),
-            failureLabel = "pull",
+            deserializer = DeviceConfigStateResponse.serializer(),
+            failureLabel = "push_mirror",
         )
     }
 
-    fun pushConfigSnapshot(
+    override fun pullConfigCommands(
         baseUrl: String,
         deviceToken: String,
-        request: ConfigSnapshotRequest,
-    ): ConfigSnapshotPushResult {
-        val httpRequest = Request.Builder()
-            .url("$baseUrl/api/v1/config/snapshot")
-            .bearer(deviceToken)
-            .put(jsonBody(ConfigSnapshotRequest.serializer(), request))
-            .build()
-
-        client.newCall(httpRequest).execute().use { response ->
-            val responseText = response.body.string()
-            if (response.code == HTTP_CONFLICT) {
-                return ConfigSnapshotPushResult.Conflict(parseConfigSnapshot(responseText))
-            }
-            if (!response.isSuccessful) {
-                throw IllegalStateException(responseText.ifBlank { "push failed: ${response.code}" })
-            }
-            return ConfigSnapshotPushResult.Success(parseConfigSnapshot(responseText))
-        }
+        request: AgentConfigCommandsPullRequest,
+    ): AgentConfigCommandsPullResponse {
+        return executeJson(
+            request = Request.Builder()
+                .url("$baseUrl/api/v1/agent/config/commands:pull")
+                .bearer(deviceToken)
+                .post(jsonBody(AgentConfigCommandsPullRequest.serializer(), request))
+                .build(),
+            deserializer = AgentConfigCommandsPullResponse.serializer(),
+            failureLabel = "pull_commands",
+        )
     }
 
-    fun uploadRelayRecords(
+    override fun ackConfigCommand(
+        baseUrl: String,
+        deviceToken: String,
+        request: AgentConfigCommandsAckRequest,
+    ): DeviceConfigCommandResponse {
+        return executeJson(
+            request = Request.Builder()
+                .url("$baseUrl/api/v1/agent/config/commands:ack")
+                .bearer(deviceToken)
+                .post(jsonBody(AgentConfigCommandsAckRequest.serializer(), request))
+                .build(),
+            deserializer = DeviceConfigCommandResponse.serializer(),
+            failureLabel = "ack_command",
+        )
+    }
+
+    override fun uploadRelayRecords(
         baseUrl: String,
         deviceToken: String,
         request: RelayRecordsBatchRequest,
@@ -120,10 +177,6 @@ internal class RemoteApiClient(
         }
     }
 
-    private fun parseConfigSnapshot(responseText: String): ConfigSnapshotResponse {
-        return RelayJson.decode(ConfigSnapshotResponse.serializer(), responseText)
-    }
-
     private fun errorMessage(responseText: String, failureLabel: String, responseCode: Int): String {
         return responseText.ifBlank { "$failureLabel failed: $responseCode" }
     }
@@ -133,12 +186,6 @@ internal class RemoteApiClient(
     }
 }
 
-internal sealed interface ConfigSnapshotPushResult {
-    data class Success(val payload: ConfigSnapshotResponse) : ConfigSnapshotPushResult
-    data class Conflict(val payload: ConfigSnapshotResponse) : ConfigSnapshotPushResult
-}
-
-private const val HTTP_CONFLICT = 409
 private const val HTTP_UNAUTHORIZED = 401
 
 /**

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useEffectEvent, useState } from 'react'
 import { apiClient } from '../api/client'
+import { useDeviceConfig } from '../deviceConfig'
 import { useRealtimeFeed } from '../realtime'
-import type { BindCodeResponse, DeviceItem } from '../types'
+import type { BindCodeResponse } from '../types'
 import { trackEvent } from '../analytics'
 import { useI18n } from '../i18n'
 import { QRCodeSVG } from 'qrcode.react'
@@ -9,11 +10,11 @@ import { ActionButton, ErrorBanner, LoadingCard, PageShell, RelayBadge, SurfaceC
 
 export function AdvancedPage() {
   const { t } = useI18n()
-  const [devices, setDevices] = useState<DeviceItem[]>([])
   const [bindCode, setBindCode] = useState<BindCodeResponse | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const { connected, lastEvent } = useRealtimeFeed()
+  const { devices, refreshDevices } = useDeviceConfig()
   const bindQrValue = bindCode
     ? `xinyi-relay://bind?code=${encodeURIComponent(bindCode.code)}&base_url=${encodeURIComponent(window.location.origin)}`
     : ''
@@ -22,18 +23,13 @@ export function AdvancedPage() {
     try {
       setLoading(true)
       setError('')
-      const response = await apiClient.getDevices()
-      setDevices(response.devices)
+      await refreshDevices()
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.loadFailed'))
     } finally {
       setLoading(false)
     }
-  }, [t])
-
-  const removeDeviceLocally = useCallback((deviceId: number) => {
-    setDevices((current) => current.filter((device) => device.id !== deviceId))
-  }, [])
+  }, [refreshDevices, t])
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -152,9 +148,7 @@ export function AdvancedPage() {
                     tone={device.enabled ? 'warning' : 'primary'}
                     onClick={() => {
                       void apiClient.patchDevice(device.id, { enabled: !device.enabled })
-                        .then((updated) => {
-                          setDevices((current) => current.map((item) => (item.id === updated.id ? updated : item)))
-                        })
+                        .then(() => load())
                         .catch((err) => setError(err instanceof Error ? err.message : t('common.saveFailed')))
                     }}
                   >
@@ -165,10 +159,7 @@ export function AdvancedPage() {
                     onClick={() => {
                       if (!window.confirm(t('advanced.deviceRevokeConfirm'))) return
                       void apiClient.revokeDevice(device.id)
-                        .then(() => {
-                          removeDeviceLocally(device.id)
-                          return load()
-                        })
+                        .then(() => load())
                         .catch((err) => setError(err instanceof Error ? err.message : t('common.saveFailed')))
                     }}
                   >

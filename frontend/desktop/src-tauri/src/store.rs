@@ -3,7 +3,7 @@ use serde_json::Value;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ConfigSnapshot {
+pub struct DeviceConfigMirror {
     pub revision: i64,
     pub snapshot: Value,
     pub updated_at: Option<String>,
@@ -48,13 +48,44 @@ pub struct Record {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ConfigAuditLog {
+pub struct DeviceConfigCommand {
     pub id: i64,
+    pub base_revision: i64,
+    pub target_revision: i64,
+    pub mutation: Value,
+    pub summary: String,
+    pub actor_type: String,
+    pub actor_id: i64,
+    pub status: String,
+    pub failure_reason: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+    pub applied_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeviceConfigAuditLog {
+    pub id: i64,
+    pub device_id: i64,
+    pub command_id: Option<i64>,
     pub revision: i64,
+    pub event_type: String,
     pub actor_type: String,
     pub actor_id: i64,
     pub summary: String,
     pub created_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeviceConfigState {
+    pub device_id: i64,
+    pub revision: i64,
+    #[serde(rename = "mirrorContent")]
+    pub snapshot: Value,
+    pub pending_commands: Vec<DeviceConfigCommand>,
+    pub updated_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -120,13 +151,42 @@ pub type StoreResult<T> = Result<T, StoreError>;
 
 pub trait Store: Send {
     // Config
-    fn get_config_snapshot(&self) -> StoreResult<Option<ConfigSnapshot>>;
-    fn put_config_snapshot(&self, base_revision: i64, content: Value) -> StoreResult<ConfigSnapshot>;
-    fn list_config_audit_logs(&self, limit: i32, offset: i32) -> StoreResult<Paginated<ConfigAuditLog>>;
+    fn get_device_config(&self, device_id: i64) -> StoreResult<Option<DeviceConfigState>>;
+    fn upsert_device_config_mirror(
+        &self,
+        device_id: i64,
+        revision: i64,
+        snapshot: Value,
+        updated_at: Option<String>,
+    ) -> StoreResult<DeviceConfigState>;
+    fn queue_device_config_command(
+        &self,
+        device_id: i64,
+        base_revision: i64,
+        summary: String,
+        mutation: Value,
+    ) -> StoreResult<DeviceConfigCommand>;
+    fn list_device_config_audit_logs(
+        &self,
+        device_id: i64,
+        limit: i32,
+        offset: i32,
+    ) -> StoreResult<Paginated<DeviceConfigAuditLog>>;
+    fn replace_device_config_pending_commands(
+        &self,
+        device_id: i64,
+        commands: Vec<DeviceConfigCommand>,
+    ) -> StoreResult<()>;
+    fn clear_device_config_pending_commands(&self, device_id: i64) -> StoreResult<()>;
 
     // Devices
     fn list_devices(&self) -> StoreResult<Vec<Device>>;
-    fn patch_device(&self, device_id: i64, display_name: Option<&str>, enabled: Option<bool>) -> StoreResult<Value>;
+    fn patch_device(
+        &self,
+        device_id: i64,
+        display_name: Option<&str>,
+        enabled: Option<bool>,
+    ) -> StoreResult<Value>;
     fn revoke_device(&self, device_id: i64) -> StoreResult<Value>;
     fn create_bind_code(&self) -> StoreResult<BindCode>;
     fn upsert_devices(&self, devices: Vec<Device>) -> StoreResult<()>;

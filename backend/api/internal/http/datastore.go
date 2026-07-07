@@ -55,11 +55,13 @@ type deviceStore interface {
 	RevokeDevice(ctx context.Context, userID, deviceID int64) error
 }
 
-// configStore covers config snapshot + audit persistence.
+// configStore covers device config mirror + audit persistence.
 type configStore interface {
-	GetConfigSnapshot(ctx context.Context, userID int64) (store.ConfigSnapshot, error)
-	PutConfigSnapshot(ctx context.Context, userID int64, baseRevision int64, content json.RawMessage, actorType string, actorID int64) (store.ConfigSnapshot, error)
-	ListConfigAuditLogs(ctx context.Context, userID int64, limit int32, offset int32) ([]store.ConfigAuditLog, error)
+	GetDeviceConfigState(ctx context.Context, userID int64, deviceID int64) (store.DeviceConfigState, error)
+	CreateDeviceConfigCommand(ctx context.Context, userID int64, deviceID int64, baseRevision int64, mutation json.RawMessage, summary string, actorType string, actorID int64) (store.DeviceConfigCommand, error)
+	ListDeviceConfigAuditLogs(ctx context.Context, userID int64, deviceID int64, limit int32, offset int32) ([]store.DeviceConfigAuditLog, error)
+	UpsertDeviceConfigMirror(ctx context.Context, userID int64, deviceID int64, revision int64, mirrorContent json.RawMessage, actorType string, actorID int64, summary string) (store.DeviceConfigMirror, error)
+	AckDeviceConfigCommand(ctx context.Context, userID int64, deviceID int64, commandID int64, appliedRevision int64, status string, failureReason string, mirrorContent json.RawMessage, actorType string, actorID int64) (store.DeviceConfigCommand, error)
 }
 
 // recordStore covers relay-record persistence + retention.

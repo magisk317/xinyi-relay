@@ -3,8 +3,11 @@ import { vi } from 'vitest'
 import { DesktopI18nProvider } from '../i18n'
 import { AppsPage } from '../pages/AppsPage'
 
-const mockUseDesktopConfigSnapshotEditor = vi.hoisted(() => ({
+const mockUseDesktopDeviceConfig = vi.hoisted(() => ({
   config: { revision: 3 },
+  devices: [{ id: 1, deviceName: 'Test Device', deviceModel: 'Model' }],
+  selectedDeviceId: 1,
+  setSelectedDeviceId: vi.fn(),
   root: {
     deviceAppInfos: {
       '1': [
@@ -22,21 +25,12 @@ const mockUseDesktopConfigSnapshotEditor = vi.hoisted(() => ({
     smsCodeRules: [{ id: 1, company: 'Bank', codeKeyword: 'code', codeRegex: '\\d+' }],
     forwardFilters: [{ id: 1, msgType: 'sms', scopeType: 'package', scopeKey: 'com.example.bank', senderId: 1, policy: 'allow', matchMode: 'contains', pattern: 'code', enabled: 1, updateTime: 1 }]
   },
+  loading: false,
   saving: false,
   error: '',
   setError: vi.fn(),
-  load: vi.fn().mockResolvedValue(undefined),
-  saveRoot: vi.fn().mockResolvedValue(undefined)
-}))
-
-vi.mock('../api/desktopApi', () => ({
-  desktopApi: {
-    getDevices: vi.fn().mockResolvedValue({ devices: [{ id: 1, deviceName: 'Test Device', deviceModel: 'Model' }] })
-  }
-}))
-
-vi.mock('../hooks/useDesktopRealtimeRefresh', () => ({
-  useDesktopRealtimeRefresh: () => undefined
+  refresh: vi.fn().mockResolvedValue(undefined),
+  queueMutation: vi.fn().mockResolvedValue(undefined)
 }))
 
 vi.mock('../state/DesktopContext', () => ({
@@ -45,8 +39,8 @@ vi.mock('../state/DesktopContext', () => ({
   })
 }))
 
-vi.mock('../hooks/useDesktopConfigSnapshotEditor', () => ({
-  useDesktopConfigSnapshotEditor: () => mockUseDesktopConfigSnapshotEditor
+vi.mock('../hooks/useDesktopDeviceConfig', () => ({
+  useDesktopDeviceConfig: () => mockUseDesktopDeviceConfig
 }))
 
 describe('AppsPage', () => {

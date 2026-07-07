@@ -15,7 +15,7 @@ use keyring_core::{Entry, Error as KeyringError};
 use reqwest::{Client, Method, StatusCode, Url};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::BTreeMap;
 use std::fs;
 use std::io::{Read, Write};
@@ -25,8 +25,8 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::{
-    atomic::{AtomicU64, Ordering},
     Arc, Mutex,
+    atomic::{AtomicU64, Ordering},
 };
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager, State, WindowEvent};
@@ -34,10 +34,10 @@ use tauri_plugin_notification::NotificationExt;
 use uuid::Uuid;
 
 use desktop_i18n::{
-    is_chinese_language, localized_app_name, localized_backend_login_hint,
-    localized_brand_name, localized_connected_message, localized_connected_summary,
-    localized_probe_success_message, localized_record_summary, localized_runtime_message,
-    localized_runtime_text, system_language_tag,
+    is_chinese_language, localized_app_name, localized_backend_login_hint, localized_brand_name,
+    localized_connected_message, localized_connected_summary, localized_probe_success_message,
+    localized_record_summary, localized_runtime_message, localized_runtime_text,
+    system_language_tag,
 };
 use remote_store::RemoteStore;
 use sqlite_store::SqliteStore;
@@ -185,15 +185,37 @@ impl From<store::Record> for RecordItem {
     }
 }
 
-impl From<store::ConfigAuditLog> for ConfigAuditLogItem {
-    fn from(l: store::ConfigAuditLog) -> Self {
-        ConfigAuditLogItem {
-            id: l.id,
-            revision: l.revision,
-            actor_type: l.actor_type,
-            actor_id: l.actor_id,
-            summary: l.summary,
-            created_at: l.created_at,
+impl From<store::DeviceConfigCommand> for DeviceConfigCommandItem {
+    fn from(command: store::DeviceConfigCommand) -> Self {
+        DeviceConfigCommandItem {
+            id: command.id,
+            base_revision: command.base_revision,
+            target_revision: command.target_revision,
+            mutation: command.mutation,
+            summary: command.summary,
+            actor_type: command.actor_type,
+            actor_id: command.actor_id,
+            status: command.status,
+            failure_reason: command.failure_reason,
+            created_at: command.created_at,
+            updated_at: command.updated_at,
+            applied_at: command.applied_at,
+        }
+    }
+}
+
+impl From<store::DeviceConfigAuditLog> for DeviceConfigAuditLogItem {
+    fn from(log: store::DeviceConfigAuditLog) -> Self {
+        DeviceConfigAuditLogItem {
+            id: log.id,
+            device_id: log.device_id,
+            command_id: log.command_id,
+            revision: log.revision,
+            event_type: log.event_type,
+            actor_type: log.actor_type,
+            actor_id: log.actor_id,
+            summary: log.summary,
+            created_at: log.created_at,
         }
     }
 }
@@ -337,16 +359,40 @@ struct RecordsResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct ConfigSnapshotState {
-    revision: i64,
-    snapshot: Value,
+struct DeviceConfigCommandItem {
+    id: i64,
+    base_revision: i64,
+    target_revision: i64,
+    mutation: Value,
+    summary: String,
+    actor_type: String,
+    actor_id: i64,
+    status: String,
+    failure_reason: Option<String>,
+    created_at: String,
+    updated_at: String,
+    applied_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct ConfigAuditLogItem {
-    id: i64,
+struct DeviceConfigStateResponse {
+    device_id: i64,
     revision: i64,
+    #[serde(rename = "mirrorContent")]
+    snapshot: Value,
+    pending_commands: Vec<DeviceConfigCommandItem>,
+    updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DeviceConfigAuditLogItem {
+    id: i64,
+    device_id: i64,
+    command_id: Option<i64>,
+    revision: i64,
+    event_type: String,
     actor_type: String,
     actor_id: i64,
     summary: String,
@@ -355,8 +401,8 @@ struct ConfigAuditLogItem {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct ConfigAuditLogsResponse {
-    logs: Vec<ConfigAuditLogItem>,
+struct DeviceConfigAuditLogsResponse {
+    logs: Vec<DeviceConfigAuditLogItem>,
     limit: i32,
     offset: i32,
 }
@@ -399,10 +445,11 @@ struct RefreshRequestBody<'a> {
 }
 
 #[derive(Debug, Clone, Serialize)]
-struct ConfigSnapshotPutBody {
-    #[serde(rename = "base_revision")]
+#[serde(rename_all = "camelCase")]
+struct DeviceConfigCommandRequestBody {
     base_revision: i64,
-    snapshot: Value,
+    summary: String,
+    mutation: Value,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -500,7 +547,9 @@ async fn desktop_save_profile(
 
     let normalized_url = normalize_base_url(&profile.base_url);
     if normalized_url.is_empty() || profile.name.trim().is_empty() {
-        return Err(localized_runtime_message(&system_language_tag(), "profile_required").to_string());
+        return Err(
+            localized_runtime_message(&system_language_tag(), "profile_required").to_string(),
+        );
     }
 
     let profile_id = profile.id.unwrap_or_else(|| Uuid::new_v4().to_string());
@@ -617,7 +666,9 @@ async fn desktop_set_active_profile(
         }
     }
     if !found {
-        return Err(localized_runtime_message(&system_language_tag(), "profile_not_found").to_string());
+        return Err(
+            localized_runtime_message(&system_language_tag(), "profile_not_found").to_string(),
+        );
     }
 
     persist_state_to_disk(&app, &persisted)?;
@@ -646,7 +697,9 @@ async fn desktop_probe_backend(
         .profiles
         .into_iter()
         .find(|item| item.id == profile_id)
-        .ok_or_else(|| localized_runtime_message(&system_language_tag(), "profile_not_found").to_string())?;
+        .ok_or_else(|| {
+            localized_runtime_message(&system_language_tag(), "profile_not_found").to_string()
+        })?;
 
     let client = build_client(&profile)?;
     let url = format!("{}/api/v1/system/info", profile.base_url);
@@ -695,7 +748,9 @@ async fn desktop_start_browser_login(
         .profiles
         .into_iter()
         .find(|item| item.id == profile_id)
-        .ok_or_else(|| localized_runtime_message(&system_language_tag(), "profile_not_found").to_string())?;
+        .ok_or_else(|| {
+            localized_runtime_message(&system_language_tag(), "profile_not_found").to_string()
+        })?;
 
     let listener = TcpListener::bind("127.0.0.1:0").map_err(|err| err.to_string())?;
     let local_addr = listener.local_addr().map_err(|err| err.to_string())?;
@@ -813,7 +868,8 @@ async fn desktop_start_browser_login(
     };
     log_info!(
         "desktop auth start created for profile={} callback_url={}",
-        profile.id, result.callback_url
+        profile.id,
+        result.callback_url
     );
     Ok(result)
 }
@@ -886,7 +942,8 @@ async fn desktop_exchange_browser_login(
     restart_monitor(&app);
     log_info!(
         "desktop auth exchange succeeded profile={} username={}",
-        profile.id, response.username
+        profile.id,
+        response.username
     );
     Ok(response)
 }
@@ -968,9 +1025,9 @@ async fn desktop_fetch_system_info(
             time: info.time,
         });
     }
-    let profile =
-        current_active_profile(&state)?
-            .ok_or_else(|| localized_runtime_message(&system_language_tag(), "no_active_backend").to_string())?;
+    let profile = current_active_profile(&state)?.ok_or_else(|| {
+        localized_runtime_message(&system_language_tag(), "no_active_backend").to_string()
+    })?;
     let client = build_client(&profile)?;
     send_json_request(
         &client,
@@ -1185,10 +1242,11 @@ async fn desktop_revoke_device(
 }
 
 #[tauri::command]
-async fn desktop_fetch_config_snapshot(
+async fn desktop_fetch_device_config(
     app: AppHandle,
     state: State<'_, DesktopAppState>,
-) -> Result<ConfigSnapshotState, String> {
+    device_id: i64,
+) -> Result<DeviceConfigStateResponse, String> {
     let mode = state
         .run_mode
         .lock()
@@ -1200,10 +1258,16 @@ async fn desktop_fetch_config_snapshot(
             .lock()
             .map_err(|_| "local_store state poisoned".to_string())?;
         let store = local_store.as_ref().ok_or("Local store not initialized")?;
-        let snapshot = store.get_config_snapshot().map_err(|e| e.to_string())?;
-        return Ok(ConfigSnapshotState {
-            revision: snapshot.as_ref().map(|s| s.revision).unwrap_or(0),
-            snapshot: snapshot.map(|s| s.snapshot).unwrap_or(serde_json::json!({})),
+        let state = store
+            .get_device_config(device_id)
+            .map_err(|e| e.to_string())?
+            .ok_or("Device config not found")?;
+        return Ok(DeviceConfigStateResponse {
+            device_id: state.device_id,
+            revision: state.revision,
+            snapshot: state.snapshot,
+            pending_commands: state.pending_commands.into_iter().map(Into::into).collect(),
+            updated_at: state.updated_at.unwrap_or_default(),
         });
     }
     let (profile, session) = ensure_active_session_if_needed(&app, &state).await?;
@@ -1211,7 +1275,7 @@ async fn desktop_fetch_config_snapshot(
     send_json_request(
         &client,
         Method::GET,
-        &format!("{}/api/v1/config/snapshot", profile.base_url),
+        &format!("{}/api/v1/devices/{}/config", profile.base_url, device_id),
         Some(&session.access_token),
         None,
     )
@@ -1219,12 +1283,14 @@ async fn desktop_fetch_config_snapshot(
 }
 
 #[tauri::command]
-async fn desktop_put_config_snapshot(
+async fn desktop_queue_device_config_command(
     app: AppHandle,
     state: State<'_, DesktopAppState>,
+    device_id: i64,
     base_revision: i64,
-    snapshot: Value,
-) -> Result<ConfigSnapshotState, String> {
+    summary: String,
+    mutation: Value,
+) -> Result<DeviceConfigCommandItem, String> {
     let mode = state
         .run_mode
         .lock()
@@ -1236,65 +1302,54 @@ async fn desktop_put_config_snapshot(
             .lock()
             .map_err(|_| "local_store state poisoned".to_string())?;
         let store = local_store.as_ref().ok_or("Local store not initialized")?;
-        let result = store.put_config_snapshot(base_revision, snapshot).map_err(|e| e.to_string())?;
-        update_monitor_snapshot(&state, |monitor| {
-            monitor.config_revision = Some(result.revision);
-        })?;
+        let result = store
+            .queue_device_config_command(device_id, base_revision, summary, mutation)
+            .map_err(|e| e.to_string())?;
         emit_realtime_event(
             &app,
             realtime_event(
-                "config.updated",
+                "device.config.command.updated",
                 Some(json!({
-                    "revision": result.revision
+                    "deviceId": device_id,
+                    "commandId": result.id,
+                    "status": result.status,
                 })),
             ),
         );
-        return Ok(ConfigSnapshotState {
-            revision: result.revision,
-            snapshot: result.snapshot,
-        });
+        return Ok(result.into());
     }
     let (profile, session) = ensure_active_session_if_needed(&app, &state).await?;
     let client = build_client(&profile)?;
-    let url = format!("{}/api/v1/config/snapshot", profile.base_url);
+    let url = format!(
+        "{}/api/v1/devices/{}/config/commands",
+        profile.base_url, device_id
+    );
     let resp = client
-        .put(&url)
+        .post(&url)
         .bearer_auth(&session.access_token)
-        .json(&json!(ConfigSnapshotPutBody {
+        .json(&json!(DeviceConfigCommandRequestBody {
             base_revision,
-            snapshot,
+            summary,
+            mutation,
         }))
         .send()
         .await
         .map_err(|e| e.to_string())?;
     let status = resp.status();
     let text = resp.text().await.map_err(|e| e.to_string())?;
-    if status == reqwest::StatusCode::CONFLICT {
-        // 409: return the latest snapshot in a structured error so the frontend
-        // can reload the editor with the cloud version.
-        let latest: ConfigSnapshotState =
-            serde_json::from_str(&text).map_err(|e| format!("409 but cannot parse latest snapshot: {e}"))?;
-        let conflict_payload = json!({
-            "__config_conflict__": true,
-            "message": "Cloud config changed on another client. Reloaded the latest revision.",
-            "latest": latest,
-        });
-        return Err(conflict_payload.to_string());
-    }
     if !status.is_success() {
         return Err(extract_error_message(status, &text));
     }
-    let response: ConfigSnapshotState =
+    let response: DeviceConfigCommandItem =
         serde_json::from_str(&text).map_err(|e| e.to_string())?;
-    update_monitor_snapshot(&state, |monitor| {
-        monitor.config_revision = Some(response.revision);
-    })?;
     emit_realtime_event(
         &app,
         realtime_event(
-            "config.updated",
+            "device.config.command.updated",
             Some(json!({
-                "revision": response.revision
+                "deviceId": device_id,
+                "commandId": response.id,
+                "status": response.status,
             })),
         ),
     );
@@ -1302,12 +1357,13 @@ async fn desktop_put_config_snapshot(
 }
 
 #[tauri::command]
-async fn desktop_fetch_config_audit_logs(
+async fn desktop_fetch_device_config_audit_logs(
     app: AppHandle,
     state: State<'_, DesktopAppState>,
+    device_id: i64,
     limit: i32,
     offset: i32,
-) -> Result<ConfigAuditLogsResponse, String> {
+) -> Result<DeviceConfigAuditLogsResponse, String> {
     let mode = state
         .run_mode
         .lock()
@@ -1319,9 +1375,11 @@ async fn desktop_fetch_config_audit_logs(
             .lock()
             .map_err(|_| "local_store state poisoned".to_string())?;
         let store = local_store.as_ref().ok_or("Local store not initialized")?;
-        let result = store.list_config_audit_logs(limit, offset).map_err(|e| e.to_string())?;
-        return Ok(ConfigAuditLogsResponse {
-            logs: result.items.into_iter().map(ConfigAuditLogItem::from).collect(),
+        let result = store
+            .list_device_config_audit_logs(device_id, limit, offset)
+            .map_err(|e| e.to_string())?;
+        return Ok(DeviceConfigAuditLogsResponse {
+            logs: result.items.into_iter().map(Into::into).collect(),
             limit: result.limit,
             offset: result.offset,
         });
@@ -1332,8 +1390,8 @@ async fn desktop_fetch_config_audit_logs(
         &client,
         Method::GET,
         &format!(
-            "{}/api/v1/config/audit?limit={}&offset={}",
-            profile.base_url, limit, offset
+            "{}/api/v1/devices/{}/config/audit?limit={}&offset={}",
+            profile.base_url, device_id, limit, offset
         ),
         Some(&session.access_token),
         None,
@@ -1359,7 +1417,9 @@ async fn desktop_fetch_records(
             .lock()
             .map_err(|_| "local_store state poisoned".to_string())?;
         let store = local_store.as_ref().ok_or("Local store not initialized")?;
-        let result = store.list_records(limit, device_id).map_err(|e| e.to_string())?;
+        let result = store
+            .list_records(limit, device_id)
+            .map_err(|e| e.to_string())?;
         return Ok(RecordsResponse {
             records: result.items.into_iter().map(RecordItem::from).collect(),
             limit: result.limit,
@@ -1466,7 +1526,9 @@ async fn desktop_export_diagnostics(
 }
 
 #[tauri::command]
-fn desktop_get_local_server_addr(state: State<'_, DesktopAppState>) -> Result<Option<String>, String> {
+fn desktop_get_local_server_addr(
+    state: State<'_, DesktopAppState>,
+) -> Result<Option<String>, String> {
     let addr = state
         .local_server_addr
         .lock()
@@ -1475,15 +1537,26 @@ fn desktop_get_local_server_addr(state: State<'_, DesktopAppState>) -> Result<Op
 }
 
 #[tauri::command]
-async fn desktop_export_database(app: AppHandle, state: State<'_, DesktopAppState>) -> Result<String, String> {
-    let local_guard = state.local_store.lock().map_err(|_| "local_store poisoned".to_string())?;
-    let _store = local_guard.as_ref().ok_or("Local store not initialized. Switch to Local or Hybrid mode first.")?;
+async fn desktop_export_database(
+    app: AppHandle,
+    state: State<'_, DesktopAppState>,
+) -> Result<String, String> {
+    let local_guard = state
+        .local_store
+        .lock()
+        .map_err(|_| "local_store poisoned".to_string())?;
+    let _store = local_guard
+        .as_ref()
+        .ok_or("Local store not initialized. Switch to Local or Hybrid mode first.")?;
     let app_dir = app.path().app_data_dir().map_err(|err| err.to_string())?;
     let db_path = app_dir.join("local-data.db");
     if !db_path.exists() {
         return Err("Database file not found".to_string());
     }
-    let downloads = app.path().download_dir().unwrap_or_else(|_| app_dir.clone());
+    let downloads = app
+        .path()
+        .download_dir()
+        .unwrap_or_else(|_| app_dir.clone());
     let timestamp = Utc::now().format("%Y%m%d_%H%M%S");
     let dest = downloads.join(format!("xinyi-relay-backup-{}.db", timestamp));
     fs::copy(&db_path, &dest).map_err(|err| err.to_string())?;
@@ -1491,7 +1564,11 @@ async fn desktop_export_database(app: AppHandle, state: State<'_, DesktopAppStat
 }
 
 #[tauri::command]
-async fn desktop_import_database(app: AppHandle, state: State<'_, DesktopAppState>, source_path: String) -> Result<String, String> {
+async fn desktop_import_database(
+    app: AppHandle,
+    state: State<'_, DesktopAppState>,
+    source_path: String,
+) -> Result<String, String> {
     let source = std::path::Path::new(&source_path);
     if !source.exists() {
         return Err(format!("Source file not found: {}", source_path));
@@ -1500,14 +1577,20 @@ async fn desktop_import_database(app: AppHandle, state: State<'_, DesktopAppStat
     let db_path = app_dir.join("local-data.db");
     // Close existing connection before overwriting
     {
-        let mut local_guard = state.local_store.lock().map_err(|_| "local_store poisoned".to_string())?;
+        let mut local_guard = state
+            .local_store
+            .lock()
+            .map_err(|_| "local_store poisoned".to_string())?;
         *local_guard = None;
     }
     fs::copy(source, &db_path).map_err(|err| err.to_string())?;
     // Re-open the imported database
     let store = SqliteStore::open(&db_path).map_err(|err| err.to_string())?;
     {
-        let mut local_guard = state.local_store.lock().map_err(|_| "local_store poisoned".to_string())?;
+        let mut local_guard = state
+            .local_store
+            .lock()
+            .map_err(|_| "local_store poisoned".to_string())?;
         *local_guard = Some(store);
     }
     Ok(db_path.to_string_lossy().into_owned())
@@ -1549,9 +1632,7 @@ async fn desktop_send_test_notification(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn desktop_get_run_mode(
-    state: State<'_, DesktopAppState>,
-) -> Result<RunMode, String> {
+async fn desktop_get_run_mode(state: State<'_, DesktopAppState>) -> Result<RunMode, String> {
     let mode = state
         .run_mode
         .lock()
@@ -1590,7 +1671,8 @@ async fn desktop_switch_run_mode(
             .lock()
             .map_err(|_| "local_store state poisoned".to_string())?;
         if local_store.is_none() {
-            let app_dir = ensure_directory(app.path().app_data_dir().map_err(|err| err.to_string())?)?;
+            let app_dir =
+                ensure_directory(app.path().app_data_dir().map_err(|err| err.to_string())?)?;
             let db_path = app_dir.join("local-data.db");
             let store = SqliteStore::open(&db_path).map_err(|e| e.to_string())?;
             *local_store = Some(store);
@@ -1618,7 +1700,9 @@ async fn desktop_switch_run_mode(
                         Ok(report) => {
                             log_info!(
                                 "mode switch initial pull: config={:?} devices={} records={}",
-                                report.config, report.devices_synced, report.records_synced
+                                report.config,
+                                report.devices_synced,
+                                report.records_synced
                             );
                         }
                         Err(e) => {
@@ -1645,7 +1729,9 @@ async fn desktop_switch_run_mode(
             },
             message: match mode {
                 RunMode::Local => String::new(),
-                RunMode::Remote => localized_runtime_text(&language_tag, "initializing").to_string(),
+                RunMode::Remote => {
+                    localized_runtime_text(&language_tag, "initializing").to_string()
+                }
                 RunMode::Hybrid => String::new(),
             },
             last_changed_at: Some(now_rfc3339()),
@@ -1676,7 +1762,9 @@ async fn desktop_sync(
         .local_store
         .lock()
         .map_err(|_| "local_store state poisoned".to_string())?;
-    let local_store = local_store_guard.as_ref().ok_or("Local store not initialized")?;
+    let local_store = local_store_guard
+        .as_ref()
+        .ok_or("Local store not initialized")?;
 
     let profile = current_active_profile(&state)?
         .ok_or_else(|| "No active backend profile for sync".to_string())?;
@@ -1802,7 +1890,8 @@ fn sync_active_session_from_storage(
                 {
                     log_error!(
                         "desktop session keyring reload failed for profile={}, preserving in-memory session: {}",
-                        profile_id, err
+                        profile_id,
+                        err
                     );
                     current_session
                 } else {
@@ -1846,15 +1935,17 @@ async fn ensure_active_session_if_needed(
     state: &DesktopAppState,
 ) -> Result<(DesktopProfile, DesktopSessionSecrets), String> {
     sync_active_session_from_storage(app, state)?;
-    let profile =
-        current_active_profile(state)?
-            .ok_or_else(|| localized_runtime_message(&system_language_tag(), "no_active_backend").to_string())?;
+    let profile = current_active_profile(state)?.ok_or_else(|| {
+        localized_runtime_message(&system_language_tag(), "no_active_backend").to_string()
+    })?;
     let current_session = state
         .session
         .lock()
         .map_err(|_| "session state poisoned".to_string())?
         .clone()
-        .ok_or_else(|| localized_runtime_message(&system_language_tag(), "login_required").to_string())?;
+        .ok_or_else(|| {
+            localized_runtime_message(&system_language_tag(), "login_required").to_string()
+        })?;
 
     if parse_timestamp(&current_session.refresh_expires_at)? <= Utc::now() {
         let _ = delete_session_for_profile(app, &current_session.profile_id);
@@ -2003,7 +2094,8 @@ fn open_external_url(url: &str) -> Result<(), String> {
         }
     }
 
-    let error_message = last_error.unwrap_or_else(|| "No system browser launcher is available.".to_string());
+    let error_message =
+        last_error.unwrap_or_else(|| "No system browser launcher is available.".to_string());
     log_error!("failed to open external url {}: {}", url, error_message);
     Err(error_message)
 }
@@ -2084,7 +2176,8 @@ fn diff_monitor_events(previous: &MonitorSnapshot, next: &MonitorSnapshot) -> Ve
                         continue;
                     }
 
-                    let changed_core_state = previous_device.display_name != next_device.display_name
+                    let changed_core_state = previous_device.display_name
+                        != next_device.display_name
                         || previous_device.enabled != next_device.enabled
                         || previous_device.revoked_at != next_device.revoked_at
                         || (previous_device.updated_at != next_device.updated_at
@@ -2128,20 +2221,8 @@ fn diff_monitor_events(previous: &MonitorSnapshot, next: &MonitorSnapshot) -> Ve
         }
     }
 
-    if let (Some(previous_revision), Some(next_revision)) =
-        (previous.config_revision, next.config_revision)
-    {
-        if previous_revision != next_revision {
-            events.push(realtime_event(
-                "config.updated",
-                Some(json!({
-                    "revision": next_revision
-                })),
-            ));
-        }
-    }
-
-    if let (Some(previous_record), Some(next_record)) = (&previous.latest_record, &next.latest_record)
+    if let (Some(previous_record), Some(next_record)) =
+        (&previous.latest_record, &next.latest_record)
     {
         if previous_record.id != next_record.id {
             events.push(realtime_event(
@@ -2287,19 +2368,29 @@ async fn monitor_tick(app: &AppHandle, state: &DesktopAppState) -> Result<(), St
             // Auto-sync in Hybrid mode every 5 minutes
             if mode == RunMode::Hybrid {
                 let should_sync = {
-                    let mut last = state.last_auto_sync.lock().map_err(|_| "last_auto_sync poisoned".to_string())?;
+                    let mut last = state
+                        .last_auto_sync
+                        .lock()
+                        .map_err(|_| "last_auto_sync poisoned".to_string())?;
                     match *last {
                         Some(t) if t.elapsed().as_secs() < 300 => false,
-                        _ => { *last = Some(std::time::Instant::now()); true }
+                        _ => {
+                            *last = Some(std::time::Instant::now());
+                            true
+                        }
                     }
                 };
                 if should_sync {
                     log_info!("monitor_tick: auto-sync pull triggered");
                     let sync_result = {
-                        let local_guard = state.local_store.lock().map_err(|_| "local_store poisoned".to_string())?;
+                        let local_guard = state
+                            .local_store
+                            .lock()
+                            .map_err(|_| "local_store poisoned".to_string())?;
                         if let Some(local_store) = local_guard.as_ref() {
-                            let mut remote = RemoteStore::new(&profile.base_url, profile.allow_self_signed)
-                                .map_err(|e| e.to_string())?;
+                            let mut remote =
+                                RemoteStore::new(&profile.base_url, profile.allow_self_signed)
+                                    .map_err(|e| e.to_string())?;
                             remote.set_access_token(Some(session.access_token.clone()));
                             Some(sync::sync_pull(local_store as &dyn Store, &remote))
                         } else {
@@ -2315,7 +2406,9 @@ async fn monitor_tick(app: &AppHandle, state: &DesktopAppState) -> Result<(), St
                             log_info!("monitor_tick: auto-sync pull failed: {}", e);
                         }
                         None => {
-                            log_info!("monitor_tick: auto-sync skipped (local store not initialized)");
+                            log_info!(
+                                "monitor_tick: auto-sync skipped (local store not initialized)"
+                            );
                         }
                     }
                 }
@@ -2336,20 +2429,32 @@ async fn monitor_tick(app: &AppHandle, state: &DesktopAppState) -> Result<(), St
                 None,
             )
             .await?;
-            let config_revision = match send_json_request::<ConfigSnapshotState>(
-                &client,
-                Method::GET,
-                &format!("{}/api/v1/config/snapshot", profile.base_url),
-                Some(&session.access_token),
-                None,
-            )
-            .await
-            {
-                Ok(snapshot) => Some(snapshot.revision),
-                Err(_) => previous.config_revision,
-            };
+            let mut config_revision = previous.config_revision;
+            if !devices.devices.is_empty() {
+                let mut max_revision = None;
+                for device in &devices.devices {
+                    if let Ok(config_state) = send_json_request::<DeviceConfigStateResponse>(
+                        &client,
+                        Method::GET,
+                        &format!("{}/api/v1/devices/{}/config", profile.base_url, device.id),
+                        Some(&session.access_token),
+                        None,
+                    )
+                    .await
+                    {
+                        max_revision =
+                            Some(max_revision.map_or(config_state.revision, |current: i64| {
+                                current.max(config_state.revision)
+                            }));
+                    }
+                }
+                if max_revision.is_some() {
+                    config_revision = max_revision;
+                }
+            }
 
-            let next = summarize_monitor_snapshot(&devices.devices, &records.records, config_revision);
+            let next =
+                summarize_monitor_snapshot(&devices.devices, &records.records, config_revision);
             let events = diff_monitor_events(&previous, &next);
             let prefs = state
                 .persisted
@@ -2581,9 +2686,9 @@ fn main() {
             desktop_create_bind_code,
             desktop_patch_device,
             desktop_revoke_device,
-            desktop_fetch_config_snapshot,
-            desktop_put_config_snapshot,
-            desktop_fetch_config_audit_logs,
+            desktop_fetch_device_config,
+            desktop_queue_device_config_command,
+            desktop_fetch_device_config_audit_logs,
             desktop_fetch_records,
             desktop_fetch_record,
             desktop_export_diagnostics,
@@ -2629,7 +2734,12 @@ mod tests {
         }
     }
 
-    fn monitor_record(id: i64, record_type: &str, sender: &str, sms_code: &str) -> MonitorRecordSnapshot {
+    fn monitor_record(
+        id: i64,
+        record_type: &str,
+        sender: &str,
+        sms_code: &str,
+    ) -> MonitorRecordSnapshot {
         MonitorRecordSnapshot {
             id,
             record_type: record_type.to_string(),
@@ -2736,7 +2846,6 @@ mod tests {
                 "device.updated",
                 "device.revoked",
                 "device.registered",
-                "config.updated",
                 "records.ingested",
             ]
         );

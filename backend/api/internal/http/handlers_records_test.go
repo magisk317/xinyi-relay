@@ -48,7 +48,7 @@ func TestRecordsRetentionGlobalCapsOnly(t *testing.T) {
 		RecordsRetentionDays:      30,
 	}}
 
-	retention := s.recordsRetention(nil, 1)
+	retention := s.recordsRetention(nil, 1, 1)
 
 	if retention.MaxPerUser != 2000 {
 		t.Fatalf("expected MaxPerUser 2000, got %d", retention.MaxPerUser)
@@ -63,7 +63,7 @@ func TestRecordsRetentionGlobalCapsOnly(t *testing.T) {
 
 func TestRecordsRetentionDisabledDays(t *testing.T) {
 	s := &Server{cfg: config.Config{RecordsRetentionDays: 0}}
-	if got := s.recordsRetention(nil, 1).MaxAge; got != 0 {
+	if got := s.recordsRetention(nil, 1, 1).MaxAge; got != 0 {
 		t.Fatalf("expected MaxAge 0 when retention days disabled, got %s", got)
 	}
 }

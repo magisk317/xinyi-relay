@@ -6,6 +6,19 @@
 - Android Agent
 - 本地运维与健康检查
 
+补充：
+
+- `frontend/shared/contracts/openapi.json` 现在由 backend contract assembler 生成
+  - 其中 Android agent、device-config、auth/system/read-model/realtime DTO
+    schema 片段来自 `relay/contract`，先生成到
+    `backend/api/internal/http/openapi_schemas.generated.json`，再由 backend
+    assembler 合并进最终 OpenAPI
+  - OpenAPI 的 path/method/operationId 路由元数据现在统一从
+    `relay/contract/remote/OpenApiRouteContracts.kt` 生成到
+    `backend/api/internal/http/openapi_routes.generated.json`，再由 backend
+    assembler 合并
+- Web / Desktop 的 `console.generated.ts` 再由该 OpenAPI 生成
+
 ## Public Endpoints
 
 ### Health
@@ -44,30 +57,43 @@
 
 - `POST /api/v1/agent/register`
 - `POST /api/v1/agent/heartbeat`
+- `POST /api/v1/agent/config/mirror`
+- `POST /api/v1/agent/config/commands:pull`
+- `POST /api/v1/agent/config/commands:ack`
 - `POST /api/v1/agent/records:batch`
-- `GET /api/v1/config/snapshot`
-- `PUT /api/v1/config/snapshot`
 
 说明：
 
 - Agent 使用 `Authorization: Bearer <device_token>`
 - `register` 通过 bind code 换取长期 device token
 - `heartbeat` 用于设备在线状态与能力更新
+- `config/mirror` 由 Android 推送本地配置 mirror
+- `config/commands:pull` 由 Android 拉取待执行命令
+- `config/commands:ack` 由 Android 回写命令应用结果
 - `records:batch` 用于批量上报记录
 
-## Shared Config
+## Device Config
 
-- `GET /api/v1/config/snapshot`
-- `PUT /api/v1/config/snapshot`
-- `GET /api/v1/config/audit`
+- `GET /api/v1/devices/{id}/config`
+- `POST /api/v1/devices/{id}/config/commands`
+- `GET /api/v1/devices/{id}/config/audit`
 
 说明：
 
+- 配置模型已经切到“每台设备一个 mirror + 一个 command queue”
 - Web 通过 cookie session + CSRF 调用
 - Desktop 通过 desktop bearer token 调用
-- Agent 通过 device token 调用
-- `PUT` 必须带 `base_revision`
-- revision 不一致时返回 `409` 与当前云端快照
+- 管理端不再直接写 mirror，而是向目标设备提交命令
+- 命令基线过期时返回 `409 stale_base_revision`
+- 同一设备现在允许积压多条 pending command；新的命令必须以上一条
+  pending command 的 `targetRevision` 作为 `baseRevision` 继续排队
+
+## Legacy Snapshot Compatibility
+
+旧的 `/api/v1/config/snapshot` / `/api/v1/config/audit` 共享配置语义已经退出正式 API 面。
+
+- 新的 Web / Desktop 主路径不应再新增对它的依赖
+- 兼容性遗留仍可能存在于少量历史实现与迁移代码中，但不应视为当前架构的一部分
 
 ## Records
 
@@ -90,5 +116,6 @@
 - `device.heartbeat`
 - `device.updated`
 - `device.revoked`
-- `config.updated`
+- `device.config.updated`
+- `device.config.command.updated`
 - `records.ingested`
