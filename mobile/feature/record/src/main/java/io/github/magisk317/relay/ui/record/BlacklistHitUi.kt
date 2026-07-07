@@ -1,7 +1,6 @@
-@file:Suppress("LocalContextGetResourceValueCall")
-
 package io.github.magisk317.relay.ui.record
 
+import android.graphics.Bitmap
 import io.github.magisk317.relay.ui.common.rememberBlacklistHitDateFormat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,19 +16,16 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.contract.util.AppIconEncoder
 import io.github.magisk317.relay.engine.model.ReadSmsBlacklistHitData
-import io.github.magisk317.relay.ui.common.AppIconImage
+import io.github.magisk317.relay.ui.common.AppIconBitmapImage
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -43,8 +39,8 @@ internal fun SmsBlacklistHitListItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     dateFormat: SimpleDateFormat = rememberBlacklistHitDateFormat(),
+    defaultSmsIcon: Bitmap? = null,
 ) {
-    val context = LocalContext.current
     val sourceText = blacklistHitSourceText(hit.source)
     val notSetText = stringResource(R.string.blacklist_not_set)
     val senderTitle = compactBlacklistHitSenderTitle(hit.sender, notSetText)
@@ -70,10 +66,6 @@ internal fun SmsBlacklistHitListItem(
         append(" · ")
         append(sourceText)
     }
-    val iconPackageName = remember {
-        AppIconEncoder.resolveDefaultSmsPackage(context)
-    }
-
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -88,8 +80,8 @@ internal fun SmsBlacklistHitListItem(
                 .width(56.dp)
                 .padding(end = 16.dp),
         ) {
-            AppIconImage(
-                packageName = iconPackageName,
+            AppIconBitmapImage(
+                bitmap = defaultSmsIcon,
                 contentDescription = stringResource(R.string.sms_icon_description),
                 fallbackIcon = Icons.Default.Email,
             )

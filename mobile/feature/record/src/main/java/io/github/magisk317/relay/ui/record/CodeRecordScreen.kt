@@ -6,12 +6,11 @@ import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import android.graphics.Color as AndroidColor
 import android.content.ClipData
+import android.graphics.Bitmap
 import android.os.SystemClock
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -48,6 +47,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
@@ -65,9 +65,7 @@ import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.settings.RecordSettingsUpdate
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
-import io.github.magisk317.smscode.rule.utils.CodeRecordSimilarityUtils
-import io.github.magisk317.relay.contract.util.AppIconEncoder
-import io.github.magisk317.relay.ui.common.AppIconImage
+import io.github.magisk317.relay.ui.common.AppIconBitmapImage
 import io.github.magisk317.uikit.foundation.LoadingIndicatorTokens
 import io.github.magisk317.uikit.foundation.PolygonMorphLoadingIndicator
 import io.github.magisk317.uikit.foundation.SessionLoadingRegistry
@@ -79,11 +77,6 @@ import io.github.magisk317.relay.ui.common.SectionHeader
 import io.github.magisk317.relay.ui.common.StateSwitchItem
 import io.github.magisk317.relay.ui.common.TextInputDialog
 import io.github.magisk317.uikit.surface.WorkspaceEmptyState
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.blur.HazeBlurStyle
-import dev.chrisbanes.haze.blur.blurEffect
-import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -100,7 +93,9 @@ private val FORWARD_SUCCESS_COLOR = Color(AndroidColor.parseColor("#2E7D32"))
 private val FORWARD_FAILED_COLOR = Color(AndroidColor.parseColor("#C62828"))
 private val FORWARD_WARNING_COLOR = Color(AndroidColor.parseColor("#B26A00"))
 private val RECORD_TAB_ITEM_HEIGHT = 60.dp
-private const val CODE_RECORD_DEDUP_WINDOW_MS = CodeRecordSimilarityUtils.DEFAULT_WINDOW_MS
+private const val BENCHMARK_RECORDS_LIST = "xinyi_benchmark_records_list"
+private val RECORD_ICON_SIZE = 40.dp
+private val APP_NOTIFY_ICON_SIZE = 48.dp
 
 private fun recordEnableTitleRes(tab: Int): Int = when (tab) {
     0 -> R.string.pref_enable_code_records_title
@@ -137,30 +132,6 @@ private fun recordColumnShortTitleRes(tab: Int): Int = when (tab) {
     else -> R.string.records_column_call_notify_short_title
 }
 
-private fun recordsForTab(records: List<SmsMsg>, tab: Int): List<SmsMsg> = when (tab) {
-    0 -> deduplicateCodeRecords(records.filter { it.msgType == SmsMsg.MSG_TYPE_SMS && !it.smsCode.isNullOrBlank() })
-    1 -> records.filter { it.msgType == SmsMsg.MSG_TYPE_SMS && it.smsCode.isNullOrBlank() }
-    2 -> records.filter { it.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY }
-    else -> records.filter { it.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY }
-}
-
-private fun deduplicateCodeRecords(records: List<SmsMsg>): List<SmsMsg> {
-    return CodeRecordSimilarityUtils.deduplicateRecords(
-        records = records,
-        projection = { record ->
-            CodeRecordSimilarityUtils.Projection(
-                code = record.smsCode,
-                body = record.body,
-                company = record.company,
-                sender = record.sender,
-                packageName = record.packageName,
-                date = record.date,
-            )
-        },
-        windowMs = CODE_RECORD_DEDUP_WINDOW_MS,
-    )
-}
-
 private fun compactSenderTitle(sender: String?, fallback: String): String {
     val raw = sender?.takeIf { it.isNotBlank() } ?: fallback
     return raw.trim().take(8)
@@ -170,14 +141,17 @@ private fun compactSenderTitle(sender: String?, fallback: String): String {
 @Suppress("CyclomaticComplexMethod")
 @Composable
 fun CodeRecordScreen(
-    hazeState: HazeState,
-    hazeStyle: HazeBlurStyle,
     onBack: (() -> Unit)? = null,
     refreshTrigger: Int = 0,
     viewModel: CodeRecordViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val smsList = uiState.smsList
+    val queryState = uiState.queryState
+    val packageLabels = uiState.packageLabels
+    val defaultSmsPackage = uiState.defaultSmsPackage
+    val defaultDialerPackage = uiState.defaultDialerPackage
+    val recordIcons = uiState.recordIcons
     val isLoading = uiState.isLoading
     val shouldShowInitialLoading = remember { SessionLoadingRegistry.shouldShowInitial("records") }
     var initialLoadingStarted by remember { mutableStateOf(false) }
@@ -190,6 +164,10 @@ fun CodeRecordScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val iconDensity = LocalDensity.current
+    val targetRecordIconPx = remember(iconDensity) {
+        with(iconDensity) { APP_NOTIFY_ICON_SIZE.roundToPx() }
+    }
     val settingsRepository: SettingsPreferencesRepository = koinInject()
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
 
@@ -314,7 +292,7 @@ fun CodeRecordScreen(
     }
 
     fun deleteSelected() {
-        val deleteList = smsList.filter { sms -> selectedIds.contains(sms.id) }
+        val deleteList = queryState.recordsForTab(selectedRecordTab).filter { sms -> selectedIds.contains(sms.id) }
         if (deleteList.isEmpty()) return
 
         viewModel.removeSmsMsg(deleteList)
@@ -533,16 +511,29 @@ fun CodeRecordScreen(
     val pullToRefreshState = rememberPullToRefreshState()
     val density = LocalDensity.current
 
-    val codeSmsList = smsList.filter { it.msgType == SmsMsg.MSG_TYPE_SMS && !it.smsCode.isNullOrBlank() }
-    val plainSmsList = smsList.filter { it.msgType == SmsMsg.MSG_TYPE_SMS && it.smsCode.isNullOrBlank() }
-    val appNotifyList = smsList.filter { it.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY }
-    val callNotifyList = smsList.filter { it.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY }
-    val activeSmsList = recordsForTab(smsList, selectedRecordTab)
-    val rawRecordsForSelectedTab = when (selectedRecordTab) {
-        0 -> codeSmsList
-        1 -> plainSmsList
-        2 -> appNotifyList
-        else -> callNotifyList
+    val codeSmsList = queryState.codeRecords
+    val plainSmsList = queryState.plainSmsRecords
+    val appNotifyList = queryState.appNotifyRecords
+    val callNotifyList = queryState.callNotifyRecords
+    val activeSmsList = queryState.recordsForTab(selectedRecordTab)
+
+    LaunchedEffect(activeSmsList, selectedRecordTab, defaultSmsPackage, defaultDialerPackage, targetRecordIconPx) {
+        val packages = buildList {
+            if (selectedRecordTab == 0) {
+                addAll(activeSmsList.mapNotNull { it.packageName?.takeIf(String::isNotBlank) })
+            }
+            add(defaultSmsPackage)
+            add(defaultDialerPackage)
+            addAll(activeSmsList.mapNotNull { record ->
+                record.packageName?.takeIf(String::isNotBlank)
+                    ?: when (record.msgType) {
+                        SmsMsg.MSG_TYPE_CALL_NOTIFY -> defaultDialerPackage
+                        SmsMsg.MSG_TYPE_SMS -> defaultSmsPackage
+                        else -> null
+                    }
+            })
+        }
+        viewModel.preloadRecordIcons(packages, targetRecordIconPx)
     }
     val activeTitle = context.getString(recordColumnTitleRes(selectedRecordTab))
     val activeEmptyHint = when (selectedRecordTab) {
@@ -561,7 +552,7 @@ fun CodeRecordScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        val deleteList = rawRecordsForSelectedTab
+                        val deleteList = activeSmsList.toList()
                         if (deleteList.isNotEmpty()) {
                             viewModel.removeSmsMsg(deleteList)
                             scope.launch {
@@ -617,18 +608,10 @@ fun CodeRecordScreen(
                 .fillMaxSize(),
         ) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .hazeSource(state = hazeState),
+                modifier = Modifier.fillMaxSize(),
             ) {
-                AnimatedContent(
-                    targetState = Pair(showLoading, smsList),
-                    transitionSpec = {
-                        fadeIn(animationSpec = tween(300)) togetherWith fadeOut(animationSpec = tween(300))
-                    },
-                    label = "CodeRecordState",
-                ) { (loading, list) ->
-                    if (loading && !manualRefreshing && list.isEmpty()) {
+                when {
+                    showLoading && !manualRefreshing && smsList.isEmpty() -> {
                         Box(modifier = Modifier.fillMaxSize()) {
                             PolygonMorphLoadingIndicator(
                                 modifier = Modifier
@@ -636,10 +619,11 @@ fun CodeRecordScreen(
                                     .padding(top = fixedTopHeight + LoadingIndicatorTokens.OverlayTopSpacing),
                             )
                         }
-                    } else if (list.isEmpty() && !loading) {
+                    }
+                    activeSmsList.isEmpty() && !showLoading -> {
                         WorkspaceEmptyState(
                             title = stringResource(R.string.list_empty_prompt),
-                            summary = stringResource(R.string.record_empty_summary),
+                            summary = activeEmptyHint,
                             modifier = Modifier.fillMaxSize(),
                             icon = {
                                 Icon(
@@ -650,14 +634,17 @@ fun CodeRecordScreen(
                                 )
                             },
                         )
-                    } else {
-                        val activeSmsList = recordsForTab(list, selectedRecordTab)
-
+                    }
+                    else -> {
                         RecordSplitColumn(
                             title = activeTitle,
                             emptyHint = activeEmptyHint,
                             list = activeSmsList,
                             recordTab = selectedRecordTab,
+                            packageLabels = packageLabels,
+                            recordIcons = recordIcons,
+                            defaultSmsPackage = defaultSmsPackage,
+                            defaultDialerPackage = defaultDialerPackage,
                             isSelectionMode = isSelectionMode,
                             selectedIds = selectedIds,
                             onToggleSelection = { toggleSelection(it) },
@@ -691,10 +678,7 @@ fun CodeRecordScreen(
                 .fillMaxWidth()
                 .align(Alignment.TopCenter)
                 .onSizeChanged { fixedTopHeightPx = it.height }
-                .hazeEffect(hazeState) {
-                    blurEffect { style = hazeStyle }
-                    forceInvalidateOnPreDraw = true
-                },
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)),
         ) {
             TopAppBar(
                 title = {
@@ -843,9 +827,8 @@ fun CodeRecordScreen(
         val sms = detailSmsMsg
         if (sms != null) {
             RecordDetailOverlay(
-                hazeState = hazeState,
-                hazeStyle = hazeStyle,
                 sms = sms,
+                packageLabels = packageLabels,
                 onDismiss = { detailSmsMsg = null },
                 onCopy = { label, value, message ->
                     copyWithFeedback(label, value, message)
@@ -875,9 +858,8 @@ fun CodeRecordScreen(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun RecordDetailOverlay(
-    hazeState: HazeState,
-    hazeStyle: HazeBlurStyle,
     sms: SmsMsg,
+    packageLabels: Map<String, String>,
     onDismiss: () -> Unit,
     onCopy: (label: String, value: String, message: String) -> Unit,
     onDelete: () -> Unit,
@@ -898,30 +880,11 @@ private fun RecordDetailOverlay(
     val detailTitleRes = if (isAppNotification) R.string.message_details_notification else R.string.message_details
     val deleteTextRes =
         if (isAppNotification) R.string.delete_notification_action else R.string.delete_sms_action
-    val appDisplayName = remember(sms.packageName) {
-        if (!isAppNotification) {
-            null
-        } else {
-            val pkg = sms.packageName.orEmpty()
-            if (pkg.isBlank()) {
-                null
-            } else {
-                runCatching {
-                    val pm = context.packageManager
-                    val appInfo = pm.getApplicationInfo(pkg, 0)
-                    pm.getApplicationLabel(appInfo).toString().ifBlank { pkg }
-                }.getOrDefault(pkg)
-            }
-        }
-    }
+    val appDisplayName = sms.packageName?.takeIf { isAppNotification && it.isNotBlank() }?.let(packageLabels::get)
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .hazeEffect(hazeState) {
-                blurEffect { style = hazeStyle }
-                forceInvalidateOnPreDraw = true
-            }
             .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.28f))
             .clickable(
                 interactionSource = dismissInteraction,
@@ -1401,6 +1364,10 @@ private fun RecordSplitColumn(
     emptyHint: String,
     list: List<SmsMsg>,
     recordTab: Int,
+    packageLabels: Map<String, String>,
+    recordIcons: Map<String, Bitmap>,
+    defaultSmsPackage: String?,
+    defaultDialerPackage: String?,
     isSelectionMode: Boolean,
     selectedIds: Set<Long>,
     onToggleSelection: (Long) -> Unit,
@@ -1448,6 +1415,7 @@ private fun RecordSplitColumn(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
+                        .testTag(BENCHMARK_RECORDS_LIST)
                         .padding(horizontal = 12.dp),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -1461,6 +1429,7 @@ private fun RecordSplitColumn(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
+                        .testTag(BENCHMARK_RECORDS_LIST)
                         .nestedScroll(scrollBehavior.nestedScrollConnection),
                     state = listState,
                     contentPadding = listContentPadding,
@@ -1476,17 +1445,23 @@ private fun RecordSplitColumn(
                                     onClick = { onToggleSelection(smsMsg.id) },
                                     onLongClick = {},
                                     onDetailClick = { onShowDetail(smsMsg) },
+                                    packageLabels = packageLabels,
+                                    recordIcons = recordIcons,
                                     modifier = Modifier.animateItem(),
                                 )
                             } else {
                                 CodeRecordItem(
                                     smsMsg = smsMsg,
                                     recordTab = recordTab,
+                                    defaultSmsPackage = defaultSmsPackage,
+                                    defaultDialerPackage = defaultDialerPackage,
                                     isSelectionMode = true,
                                     isSelected = isSelected,
                                     onClick = { onToggleSelection(smsMsg.id) },
                                     onLongClick = {},
                                     onDetailClick = { onShowDetail(smsMsg) },
+                                    packageLabels = packageLabels,
+                                    recordIcons = recordIcons,
                                     modifier = Modifier.animateItem(),
                                 )
                             }
@@ -1531,17 +1506,23 @@ private fun RecordSplitColumn(
                                             onClick = { onCopyCode(smsMsg) },
                                             onLongClick = { onActivateSelection(smsMsg.id) },
                                             onDetailClick = { onShowDetail(smsMsg) },
+                                            packageLabels = packageLabels,
+                                            recordIcons = recordIcons,
                                             modifier = Modifier.animateItem(),
                                         )
                                     } else {
                                         CodeRecordItem(
                                             smsMsg = smsMsg,
                                             recordTab = recordTab,
+                                            defaultSmsPackage = defaultSmsPackage,
+                                            defaultDialerPackage = defaultDialerPackage,
                                             isSelectionMode = false,
                                             isSelected = false,
                                             onClick = { onCopyCode(smsMsg) },
                                             onLongClick = { onActivateSelection(smsMsg.id) },
                                             onDetailClick = { onShowDetail(smsMsg) },
+                                            packageLabels = packageLabels,
+                                            recordIcons = recordIcons,
                                             modifier = Modifier.animateItem(),
                                         )
                                     }
@@ -1561,15 +1542,18 @@ private fun RecordSplitColumn(
 fun CodeRecordItem(
     smsMsg: SmsMsg,
     recordTab: Int,
+    defaultSmsPackage: String?,
+    defaultDialerPackage: String?,
     isSelectionMode: Boolean,
     isSelected: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     onDetailClick: () -> Unit,
+    packageLabels: Map<String, String>,
+    recordIcons: Map<String, Bitmap>,
     modifier: Modifier = Modifier,
 ) {
     val dateFormatter = remember { SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.getDefault()) }
-    val context = LocalContext.current
     val showAppIcon = recordTab == 0 && !smsMsg.packageName.isNullOrBlank()
     val showIconLabel = false
 
@@ -1597,33 +1581,22 @@ fun CodeRecordItem(
         val fallbackLabel = (smsMsg.company ?: smsMsg.sender ?: stringResource(R.string.unknown))
             .trim()
             .trim('【', '】', '[', ']')
-        val appLabel = remember(smsMsg.packageName) {
-            val pkg = smsMsg.packageName
-            if (pkg.isNullOrBlank()) {
-                null
-            } else {
-                runCatching {
-                    val pm = context.packageManager
-                    val appInfo = pm.getApplicationInfo(pkg, 0)
-                    pm.getApplicationLabel(appInfo).toString()
-                }.getOrNull()
-            }
-        }
+        val appLabel = smsMsg.packageName?.let(packageLabels::get)
         val displayLabel = appLabel ?: fallbackLabel
-        val iconLabel = if (smsMsg.packageName.isNullOrBlank()) {
-            fallbackLabel.replace(Regex("[【】\\[\\]]"), "").trim()
-        } else {
-            null
-        }
-        val iconPackageName = remember(smsMsg.packageName, smsMsg.msgType, showAppIcon) {
+        val iconPackageName = remember(
+            smsMsg.packageName,
+            smsMsg.msgType,
+            showAppIcon,
+            defaultSmsPackage,
+            defaultDialerPackage,
+        ) {
             when {
                 showAppIcon && !smsMsg.packageName.isNullOrBlank() -> smsMsg.packageName
-                smsMsg.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY -> AppIconEncoder.resolveDefaultDialerPackage(context)
-                smsMsg.msgType == SmsMsg.MSG_TYPE_SMS -> AppIconEncoder.resolveDefaultSmsPackage(context)
+                smsMsg.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY -> defaultDialerPackage
+                smsMsg.msgType == SmsMsg.MSG_TYPE_SMS -> defaultSmsPackage
                 else -> null
             }
         }
-        val resolvedIconLabel = iconLabel.takeIf { iconPackageName.isNullOrBlank() && showAppIcon }
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -1631,9 +1604,9 @@ fun CodeRecordItem(
                 .width(56.dp)
                 .padding(end = 16.dp),
         ) {
-            AppIconImage(
-                packageName = iconPackageName,
-                label = resolvedIconLabel,
+            AppIconBitmapImage(
+                bitmap = iconPackageName?.let(recordIcons::get),
+                size = RECORD_ICON_SIZE,
                 contentDescription = stringResource(R.string.sms_icon_description),
                 fallbackIcon = when {
                     smsMsg.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY -> Icons.Default.Call
@@ -1719,10 +1692,11 @@ fun AppNotificationItem(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     onDetailClick: () -> Unit,
+    packageLabels: Map<String, String>,
+    recordIcons: Map<String, Bitmap>,
     modifier: Modifier = Modifier,
 ) {
     val dateFormatter = remember { SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()) }
-    val context = LocalContext.current
 
     Row(
         modifier = modifier
@@ -1748,25 +1722,14 @@ fun AppNotificationItem(
         val fallbackLabel = (smsMsg.company ?: smsMsg.sender ?: stringResource(R.string.unknown))
             .trim()
             .trim('【', '】', '[', ']')
-        val appLabel = remember(smsMsg.packageName) {
-            val pkg = smsMsg.packageName
-            if (pkg.isNullOrBlank()) {
-                null
-            } else {
-                runCatching {
-                    val pm = context.packageManager
-                    val appInfo = pm.getApplicationInfo(pkg, 0)
-                    pm.getApplicationLabel(appInfo).toString()
-                }.getOrNull()
-            }
-        }
+        val appLabel = smsMsg.packageName?.let(packageLabels::get)
         val displayLabel = appLabel ?: fallbackLabel
 
-        AppIconImage(
-            packageName = smsMsg.packageName,
-            label = null,
+        AppIconBitmapImage(
+            bitmap = smsMsg.packageName?.let(recordIcons::get),
+            size = APP_NOTIFY_ICON_SIZE,
             contentDescription = stringResource(R.string.sms_icon_description),
-            modifier = Modifier.size(48.dp)
+            modifier = Modifier.size(APP_NOTIFY_ICON_SIZE),
         )
         Spacer(modifier = Modifier.width(16.dp))
 

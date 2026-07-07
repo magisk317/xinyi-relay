@@ -1,11 +1,49 @@
 package io.github.magisk317.relay.ui.home.appconfig
 
 import io.github.magisk317.relay.android.data.db.entity.AppInfo
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 
 internal const val APP_CONFIG_LIST_PAGE_SIZE = 80
 
+internal data class AppConfigQueryState(
+    val sourceApps: ImmutableList<AppInfo> = persistentListOf(),
+    val systemPackages: Set<String> = emptySet(),
+    val usageStatsByPackage: Map<String, Long> = emptyMap(),
+    val visibleCount: Int = APP_CONFIG_LIST_PAGE_SIZE,
+    val hasLoaded: Boolean = false,
+    val isLoading: Boolean = false,
+    val hideSystemApps: Boolean = true,
+    val sortOption: AppConfigViewModel.SortOption = AppConfigViewModel.SortOption.LABEL,
+    val isAscending: Boolean = true,
+    val searchQuery: String = "",
+)
+
+internal data class AppConfigListAssembly(
+    val visibleApps: ImmutableList<AppInfo>,
+    val hasMoreApps: Boolean,
+)
+
 internal fun appInfoHasEffectiveConfig(appInfo: AppInfo): Boolean {
     return appInfo.blocked || appInfo.forwardingConfigured || appInfo.notifyTemplate.isNotBlank()
+}
+
+internal fun assembleAppConfigList(queryState: AppConfigQueryState): AppConfigListAssembly {
+    val filteredApps = filterAndSortAppConfigs(
+        apps = queryState.sourceApps,
+        filterText = queryState.searchQuery,
+        hideSystemApps = queryState.hideSystemApps,
+        systemPackages = queryState.systemPackages,
+        sortOption = queryState.sortOption,
+        isAscending = queryState.isAscending,
+        usageStatsByPackage = queryState.usageStatsByPackage,
+    )
+    val endIndex = queryState.visibleCount.coerceAtMost(filteredApps.size)
+    return AppConfigListAssembly(
+        visibleApps = filteredApps.subList(0, endIndex).toImmutableList(),
+        hasMoreApps = endIndex < filteredApps.size,
+    )
 }
 
 internal fun filterAndSortAppConfigs(
@@ -36,21 +74,19 @@ internal fun filterAndSortAppConfigs(
 }
 
 internal fun visibleAppCountAfterFilter(
-    totalSize: Int,
     previousVisibleCount: Int,
     resetVisibleWindow: Boolean,
 ): Int {
     return if (resetVisibleWindow || previousVisibleCount <= 0) {
-        minOf(APP_CONFIG_LIST_PAGE_SIZE, totalSize)
+        APP_CONFIG_LIST_PAGE_SIZE
     } else {
-        minOf(previousVisibleCount, totalSize)
+        previousVisibleCount
     }
 }
 
 internal fun visibleAppCountAfterLoadMore(
-    totalSize: Int,
     currentVisibleCount: Int,
-): Int = minOf(currentVisibleCount + APP_CONFIG_LIST_PAGE_SIZE, totalSize)
+): Int = currentVisibleCount + APP_CONFIG_LIST_PAGE_SIZE
 
 private fun appConfigComparator(
     sortOption: AppConfigViewModel.SortOption,

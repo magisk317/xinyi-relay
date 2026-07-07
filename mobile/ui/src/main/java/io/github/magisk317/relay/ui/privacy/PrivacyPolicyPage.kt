@@ -23,19 +23,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.ui.app.base.SystemBarsScrim
-import io.github.magisk317.relay.ui.app.base.rememberHazeStyle
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.blur.blurEffect
-import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.hazeSource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PrivacyPolicyPage(onDismiss: () -> Unit) {
     BackHandler(onBack = onDismiss)
     val context = LocalContext.current
-    val hazeState = remember { HazeState() }
-    val hazeStyle = rememberHazeStyle()
     val policyText = remember {
         context.resources.openRawResource(R.raw.privacy_policy).bufferedReader().use { it.readText() }
             .lineSequence()
@@ -74,7 +67,6 @@ fun PrivacyPolicyPage(onDismiss: () -> Unit) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .hazeSource(hazeState)
                 .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp)
                 .padding(top = topPadding + 8.dp, bottom = bottomPadding + 16.dp),
@@ -101,12 +93,9 @@ fun PrivacyPolicyPage(onDismiss: () -> Unit) {
                 scrolledContainerColor = Color.Transparent,
             ),
             windowInsets = WindowInsets.statusBars,
-            modifier = Modifier.hazeEffect(hazeState) {
-                blurEffect { style = hazeStyle }
-                forceInvalidateOnPreDraw = true
-            },
+            modifier = Modifier.background(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)),
         )
 
-        SystemBarsScrim(hazeState = hazeState, hazeStyle = hazeStyle)
+        SystemBarsScrim()
     }
 }

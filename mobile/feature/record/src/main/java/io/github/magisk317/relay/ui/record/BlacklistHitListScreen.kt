@@ -70,11 +70,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.blur.HazeBlurStyle
-import dev.chrisbanes.haze.blur.blurEffect
-import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.hazeSource
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
@@ -91,6 +86,7 @@ import io.github.magisk317.uikit.common.showLatestSnackbar
 import io.github.magisk317.uikit.surface.WorkspaceEmptyState
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -98,11 +94,12 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BlacklistHitListScreen(
-    hazeState: HazeState,
-    hazeStyle: HazeBlurStyle,
     onBack: () -> Unit,
+    viewModel: CodeRecordViewModel = koinViewModel(),
 ) {
     val context = LocalContext.current
+    val recordEnvironment by viewModel.recordEnvironment.collectAsStateWithLifecycle()
+    val recordIcons by viewModel.recordIcons.collectAsStateWithLifecycle()
     val recordRepository: MessageRecordRepository = koinInject()
     val settingsRepository: SettingsPreferencesRepository = koinInject()
     var recordEnabled by remember { mutableStateOf(true) }
@@ -134,6 +131,11 @@ fun BlacklistHitListScreen(
     }
     val bottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 24.dp
     val savedSnackbarText = remember(context) { context.getString(R.string.pref_sync_snackbar) }
+
+    LaunchedEffect(recordEnvironment.defaultSmsPackage, density) {
+        val targetIconPx = with(density) { 40.dp.roundToPx() }
+        viewModel.preloadRecordIcons(listOf(recordEnvironment.defaultSmsPackage), targetIconPx)
+    }
 
     LaunchedEffect(Unit) {
         val settings = settingsRepository.getRecordSettings()
@@ -284,9 +286,7 @@ fun BlacklistHitListScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .hazeSource(hazeState),
+            modifier = Modifier.fillMaxSize(),
         ) {
             if (hits.isEmpty()) {
                 WorkspaceEmptyState(
@@ -328,6 +328,8 @@ fun BlacklistHitListScreen(
                             BlacklistHitSwipeItem(
                                 hit = hit,
                                 dateFormat = dateFormat,
+                                defaultSmsIcon = recordEnvironment.defaultSmsPackage
+                                    ?.let(recordIcons::get),
                                 onDelete = deleteAndUndo,
                                 onClick = { detailHit = hit },
                             )
@@ -343,10 +345,7 @@ fun BlacklistHitListScreen(
                 .fillMaxWidth()
                 .align(Alignment.TopCenter)
                 .onSizeChanged { fixedTopHeightPx = it.height }
-                .hazeEffect(hazeState) {
-                    blurEffect { style = hazeStyle }
-                    forceInvalidateOnPreDraw = true
-                },
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)),
         ) {
             TopAppBar(
                 title = { Text(stringResource(R.string.sms_blacklist_hit_list_title)) },
@@ -408,6 +407,7 @@ fun BlacklistHitListScreen(
 private fun BlacklistHitSwipeItem(
     hit: ReadSmsBlacklistHitData,
     dateFormat: SimpleDateFormat,
+    defaultSmsIcon: android.graphics.Bitmap?,
     onDelete: (ReadSmsBlacklistHitData) -> Unit,
     onClick: () -> Unit,
 ) {
@@ -443,6 +443,7 @@ private fun BlacklistHitSwipeItem(
             hit = hit,
             onClick = onClick,
             dateFormat = dateFormat,
+            defaultSmsIcon = defaultSmsIcon,
             modifier = Modifier.fillMaxWidth(),
         )
     }

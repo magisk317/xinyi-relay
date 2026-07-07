@@ -35,8 +35,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.koin.android)
     implementation(libs.koin.compose.viewmodel)
-    implementation(libs.haze.android)
-    implementation(libs.haze.blur.android)
     implementation(libs.kotlinx.collections.immutable)
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)

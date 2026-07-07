@@ -50,8 +50,8 @@ fun AppConfigDetailScreen(
     onConfigureForwardFilters: () -> Unit,
     viewModel: AppConfigViewModel = koinViewModel(),
 ) {
-    val apps by viewModel.appsFlow.collectAsStateWithLifecycle()
-    val app = apps.firstOrNull { it.packageName == packageName } ?: viewModel.getAppByPackageName(packageName)
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val app = uiState.apps.firstOrNull { it.packageName == packageName } ?: viewModel.getAppByPackageName(packageName)
     val appLogs by remember(packageName) { viewModel.appNotifyLogsFlow(packageName) }
         .collectAsStateWithLifecycle(initialValue = emptyList())
     val context = androidx.compose.ui.platform.LocalContext.current

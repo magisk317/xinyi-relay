@@ -4,6 +4,7 @@ package io.github.magisk317.relay.ui.home.appconfig
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
 
+import android.graphics.Bitmap
 import android.os.SystemClock
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -48,6 +49,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -55,7 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.android.data.db.entity.AppInfo
-import io.github.magisk317.relay.ui.common.AppIconImage
+import io.github.magisk317.relay.ui.common.AppIconBitmapImage
 import io.github.magisk317.uikit.foundation.LoadingIndicatorTokens
 import io.github.magisk317.uikit.foundation.PolygonMorphLoadingIndicator
 import io.github.magisk317.uikit.foundation.SessionLoadingRegistry
@@ -64,34 +67,35 @@ import io.github.magisk317.uikit.surface.OverlayHeaderScaffold
 import io.github.magisk317.uikit.surface.WorkspaceListItem
 import io.github.magisk317.uikit.surface.WorkspaceTopBarSearchOverlay
 import io.github.magisk317.uikit.surface.WorkspaceTrailingIcon
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.blur.HazeBlurStyle
-import dev.chrisbanes.haze.blur.blurEffect
-import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import org.koin.compose.viewmodel.koinViewModel
 
 private const val APP_LIST_PREFETCH_DISTANCE = 12
+private const val BENCHMARK_APPS_LIST = "xinyi_benchmark_apps_list"
+private val APP_CONFIG_ICON_SIZE = 40.dp
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AppConfigScreen(
-    hazeState: HazeState,
-    hazeStyle: HazeBlurStyle,
     onBack: (() -> Unit)? = null,
     onAppClick: ((AppInfo) -> Unit)? = null,
     refreshTrigger: Int = 0,
     viewModel: AppConfigViewModel = koinViewModel(),
 ) {
-    val apps by viewModel.appsFlow.collectAsStateWithLifecycle()
-    val isLoading by viewModel.loadingFlow.collectAsStateWithLifecycle()
-    val hasMoreApps by viewModel.hasMoreAppsFlow.collectAsStateWithLifecycle()
-    val hideSystemApps by viewModel.hideSystemAppsFlow.collectAsStateWithLifecycle()
-    val currentSortOption by viewModel.sortOptionFlow.collectAsStateWithLifecycle()
-    val appNotifyBindingCount by viewModel.appNotifyBindingCountFlow.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val apps = uiState.apps
+    val isLoading = uiState.isLoading
+    val hasMoreApps = uiState.hasMoreApps
+    val hideSystemApps = uiState.hideSystemApps
+    val currentSortOption = uiState.sortOption
+    val appNotifyBindingCount = uiState.appNotifyBindingCount
+    val appIcons = uiState.appIcons
     val context = LocalContext.current
+    val density = LocalDensity.current
+    val targetIconPx = remember(density) {
+        with(density) { APP_CONFIG_ICON_SIZE.roundToPx() }
+    }
     val shouldShowInitialLoading = remember { SessionLoadingRegistry.shouldShowInitial("app_config") }
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -99,7 +103,7 @@ fun AppConfigScreen(
     var manualRefreshing by remember { mutableStateOf(false) }
     var manualRefreshStartedAt by remember { mutableLongStateOf(0L) }
     var showUsagePermissionDialog by remember { mutableStateOf(false) }
-    val searchQuery by viewModel.filterFlow.collectAsStateWithLifecycle()
+    val searchQuery = uiState.searchQuery
     var showSettingsMenu by remember { mutableStateOf(false) }
 
     val showLoading = rememberMinDurationLoading(
@@ -142,6 +146,13 @@ fun AppConfigScreen(
         viewModel.refreshData()
     }
 
+    LaunchedEffect(apps, targetIconPx) {
+        viewModel.preloadAppIcons(
+            packageNames = apps.map { it.packageName },
+            sizePx = targetIconPx,
+        )
+    }
+
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
@@ -181,10 +192,7 @@ fun AppConfigScreen(
             overlayModifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .hazeEffect(hazeState) {
-                    blurEffect { style = hazeStyle }
-                    forceInvalidateOnPreDraw = true
-                },
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)),
             overlay = {
                 WorkspaceTopBarSearchOverlay(
                     title = stringResource(R.string.app_config_settings),
@@ -301,7 +309,7 @@ fun AppConfigScreen(
                         LazyColumn(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .hazeSource(state = hazeState)
+                                .testTag(BENCHMARK_APPS_LIST)
                                 .nestedScroll(scrollBehavior.nestedScrollConnection),
                             state = listState,
                             contentPadding = PaddingValues(
@@ -309,10 +317,14 @@ fun AppConfigScreen(
                                 bottom = overlayPadding.calculateBottomPadding(),
                             ),
                         ) {
-                            items(apps) { app ->
+                            items(
+                                items = apps,
+                                key = { app -> app.packageName },
+                            ) { app ->
                                 AppConfigItem(
                                     app = app,
                                     appBoundSenderCount = appNotifyBindingCount[app.packageName] ?: 0,
+                                    appIcon = appIcons[app.packageName],
                                     onClick = { onAppClick?.invoke(app) },
                                 )
                                 HorizontalDivider(
@@ -364,6 +376,7 @@ fun AppConfigScreen(
 fun AppConfigItem(
     app: AppInfo,
     appBoundSenderCount: Int,
+    appIcon: Bitmap?,
     onClick: () -> Unit,
 ) {
     val isDark = androidx.compose.foundation.isSystemInDarkTheme()
@@ -390,8 +403,9 @@ fun AppConfigItem(
         containerColor = bgColor,
         onClick = onClick,
         leadingContent = {
-            AppIconImage(
-                packageName = app.packageName,
+            AppIconBitmapImage(
+                bitmap = appIcon,
+                size = APP_CONFIG_ICON_SIZE,
                 contentDescription = null,
             )
         },

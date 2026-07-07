@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -38,6 +39,7 @@ import org.koin.compose.koinInject
 
 private const val DRAG_EDGE_SCROLL_THRESHOLD_PX = 96
 private const val DRAG_EDGE_SCROLL_STEP_PX = 36f
+private const val BENCHMARK_SENDERS_LIST = "xinyi_benchmark_senders_list"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -244,7 +246,9 @@ fun SenderListScreen(
         ) {
             LazyColumn(
                 state = listState,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag(BENCHMARK_SENDERS_LIST),
                 contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = listBottomPadding),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {

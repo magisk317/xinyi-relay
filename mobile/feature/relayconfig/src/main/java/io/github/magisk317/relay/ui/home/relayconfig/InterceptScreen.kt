@@ -9,6 +9,7 @@ import io.github.magisk317.relay.ui.common.rememberBlacklistHitDateFormat
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -53,11 +54,6 @@ import io.github.magisk317.relay.feature.mode.StandardModeFeatureGate
 import io.github.magisk317.relay.feature.mode.StandardModeFeatureGate.Feature.*
 import io.github.magisk317.relay.feature.mode.WorkMode
 import io.github.magisk317.relay.feature.mode.WorkModeResolver
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.blur.HazeBlurStyle
-import dev.chrisbanes.haze.blur.blurEffect
-import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import java.util.Date
@@ -65,8 +61,6 @@ import java.util.Date
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InterceptScreen(
-    hazeState: HazeState,
-    hazeStyle: HazeBlurStyle,
     refreshTrigger: Int = 0,
     onOpenBlacklistHits: () -> Unit,
 ) {
@@ -163,10 +157,7 @@ fun InterceptScreen(
                     scrolledContainerColor = Color.Transparent,
                 ),
                 windowInsets = WindowInsets.statusBars,
-                modifier = Modifier.hazeEffect(hazeState) {
-                    blurEffect { style = hazeStyle }
-                    forceInvalidateOnPreDraw = true
-                },
+                modifier = Modifier.background(androidx.compose.material3.MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)),
             )
         },
         snackbarHost = {
@@ -185,7 +176,6 @@ fun InterceptScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .hazeSource(hazeState)
                     .verticalScroll(rememberScrollState())
                     .padding(bottom = 80.dp),
             ) {

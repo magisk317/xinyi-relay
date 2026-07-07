@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -45,6 +46,8 @@ import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
 import io.github.magisk317.relay.ui.common.parseIntInRangeInput
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+
+private const val BENCHMARK_RELAY_SENDERS = "xinyi_benchmark_relay_senders"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -119,6 +122,7 @@ fun RelayConfigScreen(
                     Item(
                         title = stringResource(id = R.string.tab_senders),
                         summary = stringResource(id = R.string.pref_enable_forward_summary),
+                        modifier = Modifier.testTag(BENCHMARK_RELAY_SENDERS),
                     ) { onOpenSenders() }
                     Item(
                         title = stringResource(id = R.string.title_notification_rules),
