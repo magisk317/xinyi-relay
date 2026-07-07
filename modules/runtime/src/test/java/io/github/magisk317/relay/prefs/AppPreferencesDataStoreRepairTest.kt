@@ -21,14 +21,10 @@ class AppPreferencesDataStoreRepairTest {
     }
 
     @Test
-    fun normalizeTypedPrefValue_numberAndFloatStrings_areConverted() {
+    fun normalizeTypedPrefValue_numberStrings_areConverted() {
         assertEquals(
             25,
             AppPreferencesDataStore.normalizeTypedPrefValue(PrefConst.KEY_LOW_BATTERY_THRESHOLD, "25"),
-        )
-        assertEquals(
-            0.5f,
-            AppPreferencesDataStore.normalizeTypedPrefValue(PrefConst.KEY_HAZE_TINT_ALPHA, "0.5"),
         )
     }
 

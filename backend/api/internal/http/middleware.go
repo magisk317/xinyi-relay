@@ -152,9 +152,3 @@ func (s *Server) withConsoleAuth(next authHandler) http.HandlerFunc {
 func (s *Server) withDevice(next authHandler) http.HandlerFunc {
 	return s.requireAuth("device token required", s.attemptDevice)(next)
 }
-
-// withConfigAuth accepts a desktop Bearer token, a device Bearer token, or a Web
-// session cookie — the union consumed by the config snapshot endpoint.
-func (s *Server) withConfigAuth(next authHandler) http.HandlerFunc {
-	return s.requireAuth("authentication required", s.attemptDesktopSession, s.attemptDevice, s.attemptSession)(next)
-}

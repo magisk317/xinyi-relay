@@ -21,7 +21,7 @@ object XposedServiceRuntimeCoordinator {
         frameworkVersion: String?,
     ) {
         AppPreferencesDataStore.setRemotePrefsProvider(remotePrefsProvider)
-        val pending = AppPreferencesDataStore.hasPendingRemoteSync()
+        val pending = AppPreferencesDataStore.hasPendingRemotePrefsPublish()
         applicationScope.launch {
             HookPreferenceMirror.publish(application)
             if (pending) {

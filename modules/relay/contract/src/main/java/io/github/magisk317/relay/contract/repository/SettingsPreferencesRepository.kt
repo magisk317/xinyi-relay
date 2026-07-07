@@ -2,7 +2,6 @@ package io.github.magisk317.relay.contract.repository
 
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.contract.settings.*
-import kotlinx.coroutines.flow.Flow
 
 interface SettingsPreferencesRepository {
     // General
@@ -66,10 +65,6 @@ interface SettingsPreferencesRepository {
     // Overview
     suspend fun getOverviewSettings(): OverviewSettingsSnapshot
     suspend fun updateOverviewSettings(update: OverviewSettingsUpdate): OverviewSettingsSnapshot
-
-    // UI Flows
-    fun getHazeBlurRadiusFlow(): Flow<Int>
-    fun getHazeTintAlphaFlow(): Flow<Float>
 
     // Auto Update
     suspend fun getAutoUpdateSettings(): AutoUpdateSettingsSnapshot

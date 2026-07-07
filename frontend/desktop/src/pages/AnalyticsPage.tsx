@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { desktopApi } from '../api/desktopApi'
+import { useDesktopDeviceConfig } from '../hooks/useDesktopDeviceConfig'
 import { useDesktopRealtimeRefresh } from '../hooks/useDesktopRealtimeRefresh'
 import { useDesktopI18n } from '../i18n'
 import { useDesktop } from '../state/DesktopContext'
-import type { ConfigAuditLogItem, DeviceItem, RecordItem } from '../../../shared/contracts/console'
+import type { DeviceConfigAuditLogItem, RecordItem } from '../../../shared/contracts/console'
 import { EmptyState, Metric, Panel, Tag, translateConnectionState } from '../ui'
 
 const ANALYTICS_REFRESH_EVENTS = [
@@ -11,17 +12,17 @@ const ANALYTICS_REFRESH_EVENTS = [
   'device.updated',
   'device.revoked',
   'device.heartbeat',
-  'config.updated',
+  'device.config.updated',
+  'device.config.command.updated',
   'records.ingested'
 ] as const
 
 export function AnalyticsPage() {
   const { t } = useDesktopI18n()
   const { connection } = useDesktop()
+  const { config, devices, selectedDeviceId, refresh: refreshDeviceConfig } = useDesktopDeviceConfig()
   const [records, setRecords] = useState<RecordItem[]>([])
-  const [devices, setDevices] = useState<DeviceItem[]>([])
-  const [auditLogs, setAuditLogs] = useState<ConfigAuditLogItem[]>([])
-  const [currentRevision, setCurrentRevision] = useState(0)
+  const [auditLogs, setAuditLogs] = useState<DeviceConfigAuditLogItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -29,22 +30,23 @@ export function AnalyticsPage() {
     try {
       setLoading(true)
       setError('')
-      const [recordsResp, devicesResp, auditResp, snapshot] = await Promise.all([
+      const [recordsResp] = await Promise.all([
         desktopApi.getRecords(200),
-        desktopApi.getDevices(),
-        desktopApi.getConfigAuditLogs(30, 0),
-        desktopApi.getConfigSnapshot()
+        refreshDeviceConfig()
       ])
       setRecords(recordsResp.records)
-      setDevices(devicesResp.devices)
-      setAuditLogs(auditResp.logs)
-      setCurrentRevision(snapshot.revision)
+      if (selectedDeviceId != null) {
+        const auditResp = await desktopApi.getDeviceConfigAuditLogs(selectedDeviceId, 30, 0)
+        setAuditLogs(auditResp.logs ?? [])
+      } else {
+        setAuditLogs([])
+      }
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : t('error.loadAnalytics'))
     } finally {
       setLoading(false)
     }
-  }, [t])
+  }, [refreshDeviceConfig, selectedDeviceId, t])
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -122,7 +124,7 @@ export function AnalyticsPage() {
       >
         {error ? <div className="banner banner--danger">{t(error)}</div> : null}
         <div className="metrics-grid">
-          <Metric label={t('analytics.cloudRevision')} value={currentRevision} />
+          <Metric label={t('analytics.cloudRevision')} value={config?.revision ?? 0} />
           <Metric label={t('analytics.verificationSms')} value={stats.smsCode} />
           <Metric label={t('analytics.plainSms')} value={stats.smsPlain} />
           <Metric label={t('analytics.appNotify')} value={stats.appNotify} />
@@ -180,13 +182,13 @@ export function AnalyticsPage() {
                 <article key={log.id} className="list-card">
                   <div className="list-card-head">
                     <div>
-                      <h3>{t('analytics.revisionLabel').replace('{revision}', String(log.revision))}</h3>
+                      <h3>{log.eventType}</h3>
                       <p>{log.summary}</p>
                     </div>
                     <Tag tone="neutral">{log.actorType}</Tag>
                   </div>
                   <div className="list-card-body">
-                    <div>{t('analytics.actorIdLabel')}: {log.actorId > 0 ? log.actorId : t('common.notAvailable')}</div>
+                    <div>{t('analytics.revisionLabel').replace('{revision}', String(log.revision))}</div>
                     <div>{new Date(log.createdAt).toLocaleString()}</div>
                   </div>
                 </article>

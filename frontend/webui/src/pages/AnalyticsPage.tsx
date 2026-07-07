@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useEffectEvent, useMemo, useState } from 'react'
 import { apiClient } from '../api/client'
+import { useDeviceConfig } from '../deviceConfig'
 import { useRealtimeFeed } from '../realtime'
-import type { ConfigAuditLogItem, DeviceItem, RecordItem } from '../types'
+import type { RecordItem } from '../types'
 import { trackEvent } from '../analytics'
 import { useI18n } from '../i18n'
 import {
@@ -18,10 +19,8 @@ import {
 export function AnalyticsPage() {
   const { t } = useI18n()
   const { connected, lastEvent } = useRealtimeFeed()
+  const { config, devices, selectedDeviceId, refreshConfig, refreshDevices } = useDeviceConfig()
   const [records, setRecords] = useState<RecordItem[]>([])
-  const [devices, setDevices] = useState<DeviceItem[]>([])
-  const [auditLogs, setAuditLogs] = useState<ConfigAuditLogItem[]>([])
-  const [currentRevision, setCurrentRevision] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -29,22 +28,15 @@ export function AnalyticsPage() {
     try {
       setLoading(true)
       setError('')
-      const [recordsResp, devicesResp, auditResp, snapshot] = await Promise.all([
-        apiClient.getRecords(200),
-        apiClient.getDevices(),
-        apiClient.getConfigAuditLogs(30),
-        apiClient.getConfigSnapshot()
-      ])
+      const [recordsResp] = await Promise.all([apiClient.getRecords(200), refreshDevices()])
       setRecords(recordsResp.records)
-      setDevices(devicesResp.devices)
-      setAuditLogs(auditResp.logs)
-      setCurrentRevision(snapshot.revision)
+      await refreshConfig()
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.loadFailed'))
     } finally {
       setLoading(false)
     }
-  }, [t])
+  }, [refreshConfig, refreshDevices, t])
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -53,7 +45,17 @@ export function AnalyticsPage() {
   }, [load])
 
   const handleRealtimeEvent = useEffectEvent((eventType: string) => {
-    if (['device.registered', 'device.updated', 'device.revoked', 'device.heartbeat', 'config.updated', 'records.ingested'].includes(eventType)) {
+    if (
+      [
+        'device.registered',
+        'device.updated',
+        'device.revoked',
+        'device.heartbeat',
+        'device.config.updated',
+        'device.config.command.updated',
+        'records.ingested'
+      ].includes(eventType)
+    ) {
       queueMicrotask(() => {
         void load()
       })
@@ -108,7 +110,7 @@ export function AnalyticsPage() {
     </div>
   )
 
-  if (loading && !records.length && !auditLogs.length && !error) {
+  if (loading && !records.length && !error) {
     return (
       <PageShell title={t('analytics.title')} description={t('analytics.description')} badge={t('analytics.title')} actions={actions}>
         <LoadingCard title={t('analytics.loadingTitle')} message={t('analytics.loadingMessage')} />
@@ -121,7 +123,7 @@ export function AnalyticsPage() {
       <ErrorBanner message={error} />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <MetricCard title={t('analytics.metric.cloudRevision')} value={currentRevision} tone="info" helper={t('analytics.metric.cloudRevisionHelper')} />
+        <MetricCard title={t('analytics.metric.cloudRevision')} value={config?.revision ?? 0} tone="info" helper={t('analytics.metric.cloudRevisionHelper')} />
         <MetricCard title={t('analytics.metric.smsCode')} value={stats.smsCode} tone="success" helper={t('analytics.metric.smsCodeHelper')} />
         <MetricCard title={t('analytics.metric.smsPlain')} value={stats.smsPlain} helper={t('analytics.metric.smsPlainHelper')} />
         <MetricCard title={t('analytics.metric.appNotify')} value={stats.appNotify} helper={t('analytics.metric.appNotifyHelper')} />
@@ -129,23 +131,23 @@ export function AnalyticsPage() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
-        <SurfaceCard title={t('analytics.auditTitle')} subtitle={t('analytics.auditSubtitle')}>
-          {!auditLogs.length ? (
+        <SurfaceCard title={t('analytics.auditTitle')} subtitle={selectedDeviceId ? t('records.deviceBadge', { deviceId: selectedDeviceId }) : t('analytics.auditSubtitle')}>
+          {!config?.pendingCommands.length ? (
             <EmptyCard title={t('analytics.auditEmptyTitle')} message={t('analytics.auditEmptyMessage')} />
           ) : (
             <div className="space-y-3">
-              {auditLogs.map((log) => (
+              {config.pendingCommands.map((command) => (
                 <div
-                  key={log.id}
+                  key={command.id}
                   className="rounded-[24px] border border-[#d9e6b1] bg-[linear-gradient(180deg,#ffffff_0%,#f7fbe9_100%)] px-4 py-3.5 shadow-[0_12px_30px_-24px_rgba(98,122,28,0.2)]"
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <RelayBadge tone="accent">{t('analytics.auditRevision', { revision: log.revision })}</RelayBadge>
-                    <RelayBadge>{log.actorType}</RelayBadge>
-                    {log.actorId > 0 ? <RelayBadge>{t('analytics.auditActor', { actorId: log.actorId })}</RelayBadge> : null}
+                    <RelayBadge tone="accent">{t('analytics.auditRevision', { revision: command.targetRevision })}</RelayBadge>
+                    <RelayBadge>{command.status}</RelayBadge>
+                    {command.actorId > 0 ? <RelayBadge>{t('analytics.auditActor', { actorId: command.actorId })}</RelayBadge> : null}
                   </div>
-                  <div className="mt-2 text-sm font-medium text-[#243115]">{log.summary}</div>
-                  <div className="mt-1 text-xs text-[#6c785d]">{new Date(log.createdAt).toLocaleString()}</div>
+                  <div className="mt-2 text-sm font-medium text-[#243115]">{command.summary}</div>
+                  <div className="mt-1 text-xs text-[#6c785d]">{new Date(command.createdAt).toLocaleString()}</div>
                 </div>
               ))}
             </div>

@@ -152,6 +152,27 @@ func (s *Server) handleDevices(w http.ResponseWriter, r *http.Request, auth auth
 
 func (s *Server) handleDeviceByID(w http.ResponseWriter, r *http.Request, auth authContext) {
 	switch {
+	case strings.HasSuffix(r.URL.Path, "/config/commands"):
+		deviceID, err := pathID(r.URL.Path, "/api/v1/devices/", "/config/commands")
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid device id")
+			return
+		}
+		s.handleDeviceConfigCommands(w, r, auth, deviceID)
+	case strings.HasSuffix(r.URL.Path, "/config/audit"):
+		deviceID, err := pathID(r.URL.Path, "/api/v1/devices/", "/config/audit")
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid device id")
+			return
+		}
+		s.handleDeviceConfigAuditLogs(w, r, auth, deviceID)
+	case strings.HasSuffix(r.URL.Path, "/config"):
+		deviceID, err := pathID(r.URL.Path, "/api/v1/devices/", "/config")
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid device id")
+			return
+		}
+		s.handleDeviceConfig(w, r, auth, deviceID)
 	case r.Method == http.MethodPatch:
 		deviceID, err := pathID(r.URL.Path, "/api/v1/devices/", "")
 		if err != nil {

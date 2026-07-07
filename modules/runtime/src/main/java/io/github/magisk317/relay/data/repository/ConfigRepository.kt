@@ -229,7 +229,7 @@ class ConfigRepository(
     private fun <T> Flow<List<T>>.mapToSet(): Flow<Set<T>> = map { it.toSet() }
 
     private suspend fun noteMutation(source: String) {
-        runCatching { RuntimeDependencies.get().remoteAgentRepository.noteLocalMutation(source) }
+        runCatching { RuntimeDependencies.get().localConfigRepository.noteLocalMutation(source) }
             .onFailure { XLog.e("noteLocalMutation failed: %s", it.message ?: it.javaClass.simpleName) }
         runCatching { RuntimeDependencies.get().autoBackupTrigger.scheduleAutoBackup(source) }
             .onFailure { XLog.e("scheduleAutoBackup failed: %s", it.message ?: it.javaClass.simpleName) }

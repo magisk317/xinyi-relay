@@ -3,13 +3,9 @@ import { vi } from 'vitest'
 import { DesktopI18nProvider } from '../i18n'
 import { SendersPage } from '../pages/SendersPage'
 
-const { load, saveRoot } = vi.hoisted(() => ({
-  load: vi.fn().mockResolvedValue(undefined),
-  saveRoot: vi.fn().mockResolvedValue(undefined)
-}))
-
-vi.mock('../hooks/useDesktopRealtimeRefresh', () => ({
-  useDesktopRealtimeRefresh: () => undefined
+const { refresh, queueMutation } = vi.hoisted(() => ({
+  refresh: vi.fn().mockResolvedValue(undefined),
+  queueMutation: vi.fn().mockResolvedValue(undefined)
 }))
 
 vi.mock('../state/DesktopContext', () => ({
@@ -18,9 +14,12 @@ vi.mock('../state/DesktopContext', () => ({
   })
 }))
 
-vi.mock('../hooks/useDesktopConfigSnapshotEditor', () => ({
-  useDesktopConfigSnapshotEditor: () => ({
+vi.mock('../hooks/useDesktopDeviceConfig', () => ({
+  useDesktopDeviceConfig: () => ({
     config: { revision: 7 },
+    devices: [{ id: 1, deviceName: 'Test Device', deviceModel: 'Model' }],
+    selectedDeviceId: 1,
+    setSelectedDeviceId: vi.fn(),
     root: {
       senders: [
         {
@@ -43,8 +42,8 @@ vi.mock('../hooks/useDesktopConfigSnapshotEditor', () => ({
     saving: false,
     error: '',
     setError: vi.fn(),
-    load,
-    saveRoot
+    refresh,
+    queueMutation
   })
 }))
 
@@ -64,12 +63,14 @@ describe('SendersPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Telegram' }))
 
     await waitFor(() => {
-      expect(saveRoot).toHaveBeenCalled()
+      expect(queueMutation).toHaveBeenCalled()
     })
 
-    const nextRoot = saveRoot.mock.calls[saveRoot.mock.calls.length - 1]?.[0]
-    expect(nextRoot.senders[0].type).toBe(7)
-    expect(nextRoot.senders[0].jsonSetting).toBe('{"custom":"keep-me"}')
+    const mutation = queueMutation.mock.calls[queueMutation.mock.calls.length - 1]?.[0]
+    const operation = mutation.operations[0]
+    expect(operation.type).toBe('replace_senders')
+    expect(operation.senders[0].type).toBe(7)
+    expect(operation.senders[0].jsonSetting).toBe('{"custom":"keep-me"}')
   })
 
   it('persists active schedule changes through the sender page', async () => {
@@ -86,11 +87,13 @@ describe('SendersPage', () => {
     fireEvent.click(enableCheckbox)
 
     await waitFor(() => {
-      expect(saveRoot).toHaveBeenCalled()
+      expect(queueMutation).toHaveBeenCalled()
     })
 
-    const nextRoot = saveRoot.mock.calls[saveRoot.mock.calls.length - 1]?.[0]
-    expect(nextRoot.senders[0].activeSchedule.sms.enabled).toBe(true)
-    expect(nextRoot.senders[0].activeSchedule.sms.ranges).toEqual([{ start: '09:00', end: '18:00' }])
+    const mutation = queueMutation.mock.calls[queueMutation.mock.calls.length - 1]?.[0]
+    const operation = mutation.operations[0]
+    expect(operation.type).toBe('replace_senders')
+    expect(operation.senders[0].activeSchedule.sms.enabled).toBe(true)
+    expect(operation.senders[0].activeSchedule.sms.ranges).toEqual([{ start: '09:00', end: '18:00' }])
   })
 })

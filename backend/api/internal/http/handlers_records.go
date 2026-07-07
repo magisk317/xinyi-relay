@@ -48,7 +48,7 @@ func (s *Server) handleAgentRecordsBatch(w http.ResponseWriter, r *http.Request,
 
 	// Best-effort retention: trim the user's records after ingest. A pruning
 	// failure must not fail the upload, so it is logged and ignored.
-	if _, err := s.store.PruneRelayRecords(r.Context(), auth.Device.UserID, s.recordsRetention(r.Context(), auth.Device.UserID)); err != nil {
+	if _, err := s.store.PruneRelayRecords(r.Context(), auth.Device.UserID, s.recordsRetention(r.Context(), auth.Device.UserID, auth.Device.ID)); err != nil {
 		log.Printf("[records] prune for user %d failed: %v", auth.Device.UserID, err)
 	}
 
@@ -62,7 +62,7 @@ func (s *Server) handleAgentRecordsBatch(w http.ResponseWriter, r *http.Request,
 // recordsRetention builds the retention policy for a user from server config,
 // optionally following the per-type history limits the device already syncs in
 // its config snapshot.
-func (s *Server) recordsRetention(ctx context.Context, userID int64) store.RecordsRetention {
+func (s *Server) recordsRetention(ctx context.Context, userID int64, deviceID int64) store.RecordsRetention {
 	retention := store.RecordsRetention{
 		MaxPerUser: s.cfg.RecordsMaxPerUser,
 	}
@@ -70,7 +70,7 @@ func (s *Server) recordsRetention(ctx context.Context, userID int64) store.Recor
 		retention.MaxAge = time.Duration(s.cfg.RecordsRetentionDays) * 24 * time.Hour
 	}
 	if s.cfg.RecordsFollowDeviceLimits {
-		retention.PerType = s.deviceHistoryLimits(ctx, userID)
+		retention.PerType = s.deviceHistoryLimits(ctx, userID, deviceID)
 	}
 	return retention
 }
@@ -79,9 +79,9 @@ func (s *Server) recordsRetention(ctx context.Context, userID int64) store.Recor
 // config snapshot and maps them to relay_records.record_type values. A
 // missing/unparseable/non-positive limit is treated as "unlimited" (matching
 // the device's own semantics) and omitted from the result.
-func (s *Server) deviceHistoryLimits(ctx context.Context, userID int64) map[string]int {
-	snapshot, err := s.store.GetConfigSnapshot(ctx, userID)
-	if err != nil || len(snapshot.Content) == 0 {
+func (s *Server) deviceHistoryLimits(ctx context.Context, userID int64, deviceID int64) map[string]int {
+	state, err := s.store.GetDeviceConfigState(ctx, userID, deviceID)
+	if err != nil || len(state.Snapshot) == 0 {
 		return nil
 	}
 
@@ -93,11 +93,11 @@ func (s *Server) deviceHistoryLimits(ctx context.Context, userID int64) map[stri
 			CallNotifyHistoryLimit string `json:"callNotifyHistoryLimit"`
 		} `json:"records"`
 	}
-	if err := json.Unmarshal(snapshot.Content, &parsed); err != nil {
+	if err := json.Unmarshal(state.Snapshot, &parsed); err != nil {
 		// Non-empty content that fails to parse is a likely upstream
 		// misconfiguration; log it (per-type limits are skipped for this user
 		// only) so it can be found without affecting others.
-		log.Printf("[records] config snapshot parse failed for user %d; per-type limits skipped: %v", userID, err)
+		log.Printf("[records] device config parse failed for user %d device %d; per-type limits skipped: %v", userID, deviceID, err)
 		return nil
 	}
 

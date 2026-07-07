@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { desktopApi } from '../api/desktopApi'
+import { useDesktopDeviceConfig } from '../hooks/useDesktopDeviceConfig'
 import { useDesktopRealtimeRefresh } from '../hooks/useDesktopRealtimeRefresh'
 import { useDesktopI18n } from '../i18n'
 import { useDesktop } from '../state/DesktopContext'
-import type { ConfigSnapshotState, DevicesResponse, RecordsResponse, SystemInfoState } from '../../../shared/contracts/console'
+import type { RecordsResponse, SystemInfoState } from '../../../shared/contracts/console'
 import { EmptyState, Metric, Panel, Tag, translateConnectionState } from '../ui'
 
 const OVERVIEW_REFRESH_EVENTS = [
@@ -12,25 +13,23 @@ const OVERVIEW_REFRESH_EVENTS = [
   'device.revoked',
   'device.heartbeat',
   'records.ingested',
-  'config.updated'
+  'device.config.updated',
+  'device.config.command.updated'
 ] as const
 
 type OverviewSnapshot = {
   systemInfo: SystemInfoState | null
-  devices: DevicesResponse['devices']
   records: RecordsResponse['records']
-  config: ConfigSnapshotState | null
 }
 
 export function OverviewPage() {
   const { t } = useDesktopI18n()
   const { bootstrap, activeProfile, connection, lastRealtimeEvent, session, runMode } = useDesktop()
+  const { config, root, devices, refresh: refreshDeviceConfig } = useDesktopDeviceConfig()
 
   const [snapshot, setSnapshot] = useState<OverviewSnapshot>({
     systemInfo: null,
-    devices: [],
-    records: [],
-    config: null
+    records: []
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -39,24 +38,21 @@ export function OverviewPage() {
     try {
       setLoading(true)
       setError('')
-      const [systemInfo, devices, records, config] = await Promise.all([
+      const [systemInfo, _refreshed, records] = await Promise.all([
         runMode === 'local' ? Promise.resolve(null) : desktopApi.getSystemInfo(),
-        desktopApi.getDevices(),
-        desktopApi.getRecords(12),
-        desktopApi.getConfigSnapshot()
+        refreshDeviceConfig(),
+        desktopApi.getRecords(12)
       ])
       setSnapshot({
         systemInfo,
-        devices: devices.devices,
-        records: records.records,
-        config
+        records: records.records
       })
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : t('error.loadOverview'))
     } finally {
       setLoading(false)
     }
-  }, [runMode, t])
+  }, [refreshDeviceConfig, runMode, t])
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -70,10 +66,10 @@ export function OverviewPage() {
 
   const latestRecord = snapshot.records[0] ?? null
   const routingAssets = [
-    snapshot.config?.snapshot.senders,
-    snapshot.config?.snapshot.deviceAppInfos && Object.keys(snapshot.config.snapshot.deviceAppInfos).length > 0 ? snapshot.config.snapshot.deviceAppInfos : null,
-    snapshot.config?.snapshot.notifyRoutes,
-    snapshot.config?.snapshot.forwardFilters
+    root?.senders,
+    root?.deviceAppInfos && Object.keys(root.deviceAppInfos).length > 0 ? root.deviceAppInfos : null,
+    root?.notifyRoutes,
+    root?.forwardFilters
   ]
 
   return (
@@ -97,8 +93,8 @@ export function OverviewPage() {
           <Metric label={t('overview.session')} value={runMode === 'local' ? t('common.localMode') : (session.authenticated ? t('common.authenticated') : t('common.signedOut'))} />
           <Metric label={t('overview.backend')} value={runMode === 'local' ? 'local://sqlite' : (activeProfile?.name ?? t('common.noActiveBackend'))} />
           <Metric label={t('overview.connection')} value={runMode === 'local' ? t('common.localMode') : translateConnectionState(connection.state, t)} />
-          <Metric label={t('analytics.cloudRevision')} value={snapshot.config?.revision ?? t('common.none')} />
-          <Metric label={t('app.route.devices')} value={snapshot.devices.length} />
+          <Metric label={t('analytics.cloudRevision')} value={config?.revision ?? t('common.none')} />
+          <Metric label={t('app.route.devices')} value={devices.length} />
           <Metric label={t('app.route.records')} value={snapshot.records.length} />
           <Metric label={t('overview.trackedConfig')} value={routingAssets.filter(Boolean).length} />
         </div>
@@ -111,7 +107,7 @@ export function OverviewPage() {
               <>
                 <Metric label={t('overview.service')} value="SQLite" />
                 <Metric label={t('overview.localUrl')} value="local-data.db" compact />
-                <Metric label={t('app.route.devices')} value={snapshot.devices.length} />
+                <Metric label={t('app.route.devices')} value={devices.length} />
                 <Metric label={t('app.route.records')} value={snapshot.records.length} />
               </>
             ) : (
@@ -135,7 +131,7 @@ export function OverviewPage() {
                   {latestRecord.recordType} · {new Date(latestRecord.occurredAt).toLocaleString()}
                 </div>
               </div>
-              {snapshot.devices.slice(0, 3).map((device) => (
+              {devices.slice(0, 3).map((device) => (
                 <div key={device.id} className="info-row">
                   <span>{device.displayName || device.deviceName}</span>
                   <strong>{device.lastSeenAt ? new Date(device.lastSeenAt).toLocaleString() : t('common.noHeartbeatYet')}</strong>

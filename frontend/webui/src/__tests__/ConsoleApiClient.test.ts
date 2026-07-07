@@ -43,23 +43,32 @@ describe('shared console API client', () => {
     ])
   })
 
-  it('uses the shared conflict contract for config snapshot writes', async () => {
+  it('routes device config reads and command writes through device-scoped endpoints', async () => {
     const { client, requests } = createRecordingClient()
 
-    await client.putConfigSnapshot(7, { senders: [] })
+    await client.getDeviceConfig(9)
+    await client.queueDeviceConfigCommand(9, 4, { operations: [{ type: 'replace_senders', senders: [] }] }, 'senders:update')
 
-    expect(requests[0]).toEqual({
-      path: '/api/v1/config/snapshot',
-      options: {
-        method: 'PUT',
-        body: {
-          base_revision: 7,
-          snapshot: { senders: [] }
-        },
-        requiresCsrf: true,
-        conflictMessage: 'Cloud config changed on another client. Reloaded the latest revision.'
+    expect(requests).toEqual([
+      {
+        path: '/api/v1/devices/9/config',
+        options: undefined
+      },
+      {
+        path: '/api/v1/devices/9/config/commands',
+        options: {
+          method: 'POST',
+          body: {
+            baseRevision: 4,
+            mutation: {
+              operations: [{ type: 'replace_senders', senders: [] }]
+            },
+            summary: 'senders:update'
+          },
+          requiresCsrf: true
+        }
       }
-    })
+    ])
   })
 
   it('keeps optional query parameters out of record list requests', async () => {

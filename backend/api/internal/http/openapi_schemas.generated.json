@@ -1,0 +1,1001 @@
+{
+  "AgentConfigCommandsAckRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "appliedRevision": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "commandId": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "failureReason": {
+        "type": "string"
+      },
+      "mirrorContent": {
+        "$ref": "#/components/schemas/JsonObject"
+      },
+      "status": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "appliedRevision",
+      "commandId",
+      "mirrorContent",
+      "status"
+    ],
+    "type": "object"
+  },
+  "AgentConfigCommandsPullRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "localRevision": {
+        "format": "int64",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "localRevision"
+    ],
+    "type": "object"
+  },
+  "AgentConfigCommandsPullResponse": {
+    "additionalProperties": false,
+    "properties": {
+      "deviceId": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "mirrorContent": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/JsonObject"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "pendingCommands": {
+        "items": {
+          "$ref": "#/components/schemas/DeviceConfigCommandItem"
+        },
+        "type": "array"
+      },
+      "revision": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "updatedAt": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "deviceId",
+      "pendingCommands",
+      "revision",
+      "updatedAt"
+    ],
+    "type": "object"
+  },
+  "AgentConfigMirrorRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "localRevision": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "mirrorContent": {
+        "$ref": "#/components/schemas/JsonObject"
+      },
+      "summary": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "localRevision",
+      "mirrorContent"
+    ],
+    "type": "object"
+  },
+  "AgentRegisterRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "appVersion": {
+        "type": "string"
+      },
+      "bindCode": {
+        "type": "string"
+      },
+      "deviceModel": {
+        "type": "string"
+      },
+      "deviceName": {
+        "type": "string"
+      },
+      "platform": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "appVersion",
+      "bindCode",
+      "deviceModel",
+      "deviceName",
+      "platform"
+    ],
+    "type": "object"
+  },
+  "AgentRegisterResponse": {
+    "additionalProperties": false,
+    "properties": {
+      "deviceId": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "deviceToken": {
+        "type": "string"
+      },
+      "userId": {
+        "format": "int64",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "deviceId",
+      "deviceToken",
+      "userId"
+    ],
+    "type": "object"
+  },
+  "BindCodeResponse": {
+    "additionalProperties": false,
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "expiresAt": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "code",
+      "expiresAt"
+    ],
+    "type": "object"
+  },
+  "BootstrapAdminRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "password": {
+        "type": "string"
+      },
+      "username": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "password",
+      "username"
+    ],
+    "type": "object"
+  },
+  "BootstrapAdminResponse": {
+    "additionalProperties": false,
+    "properties": {
+      "ok": {
+        "type": "boolean"
+      },
+      "userId": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "username": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "ok",
+      "userId",
+      "username"
+    ],
+    "type": "object"
+  },
+  "ChangePasswordRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "currentPassword": {
+        "type": "string"
+      },
+      "newPassword": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "currentPassword",
+      "newPassword"
+    ],
+    "type": "object"
+  },
+  "DesktopExchangeRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "code": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "code"
+    ],
+    "type": "object"
+  },
+  "DesktopLoginPageRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "client_name": {
+        "type": "string"
+      },
+      "password": {
+        "type": "string"
+      },
+      "redirect_uri": {
+        "type": "string"
+      },
+      "state": {
+        "type": "string"
+      },
+      "username": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "client_name",
+      "password",
+      "redirect_uri",
+      "state",
+      "username"
+    ],
+    "type": "object"
+  },
+  "DesktopLogoutRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "refreshToken": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "refreshToken"
+    ],
+    "type": "object"
+  },
+  "DesktopRefreshRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "refreshToken": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "refreshToken"
+    ],
+    "type": "object"
+  },
+  "DesktopSessionResponse": {
+    "additionalProperties": false,
+    "properties": {
+      "accessToken": {
+        "type": "string"
+      },
+      "authenticated": {
+        "type": "boolean"
+      },
+      "expiresAt": {
+        "type": "string"
+      },
+      "refreshExpiresAt": {
+        "type": "string"
+      },
+      "refreshToken": {
+        "type": "string"
+      },
+      "username": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "accessToken",
+      "authenticated",
+      "expiresAt",
+      "refreshExpiresAt",
+      "refreshToken",
+      "username"
+    ],
+    "type": "object"
+  },
+  "DeviceConfigAuditLogItem": {
+    "additionalProperties": false,
+    "properties": {
+      "actorId": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "actorType": {
+        "type": "string"
+      },
+      "commandId": {
+        "format": "int64",
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "createdAt": {
+        "type": "string"
+      },
+      "deviceId": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "eventType": {
+        "type": "string"
+      },
+      "id": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "revision": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "summary": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "actorId",
+      "actorType",
+      "createdAt",
+      "deviceId",
+      "eventType",
+      "id",
+      "revision",
+      "summary"
+    ],
+    "type": "object"
+  },
+  "DeviceConfigAuditLogsResponse": {
+    "additionalProperties": false,
+    "properties": {
+      "limit": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "logs": {
+        "items": {
+          "$ref": "#/components/schemas/DeviceConfigAuditLogItem"
+        },
+        "type": "array"
+      },
+      "offset": {
+        "format": "int64",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "limit",
+      "logs",
+      "offset"
+    ],
+    "type": "object"
+  },
+  "DeviceConfigCommandItem": {
+    "additionalProperties": false,
+    "properties": {
+      "actorId": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "actorType": {
+        "type": "string"
+      },
+      "appliedAt": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "baseRevision": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "createdAt": {
+        "type": "string"
+      },
+      "failureReason": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "id": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "mutation": {
+        "$ref": "#/components/schemas/JsonObject"
+      },
+      "status": {
+        "type": "string"
+      },
+      "summary": {
+        "type": "string"
+      },
+      "targetRevision": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "updatedAt": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "actorId",
+      "actorType",
+      "baseRevision",
+      "createdAt",
+      "id",
+      "mutation",
+      "status",
+      "summary",
+      "targetRevision",
+      "updatedAt"
+    ],
+    "type": "object"
+  },
+  "DeviceConfigCommandRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "baseRevision": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "mutation": {
+        "$ref": "#/components/schemas/JsonObject"
+      },
+      "summary": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "baseRevision",
+      "mutation",
+      "summary"
+    ],
+    "type": "object"
+  },
+  "DeviceConfigStateResponse": {
+    "additionalProperties": false,
+    "properties": {
+      "deviceId": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "mirrorContent": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/JsonObject"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "pendingCommands": {
+        "items": {
+          "$ref": "#/components/schemas/DeviceConfigCommandItem"
+        },
+        "type": "array"
+      },
+      "revision": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "updatedAt": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "deviceId",
+      "pendingCommands",
+      "revision",
+      "updatedAt"
+    ],
+    "type": "object"
+  },
+  "DeviceItem": {
+    "additionalProperties": false,
+    "properties": {
+      "appVersion": {
+        "type": "string"
+      },
+      "capabilities": {
+        "$ref": "#/components/schemas/JsonObject"
+      },
+      "createdAt": {
+        "type": "string"
+      },
+      "deviceModel": {
+        "type": "string"
+      },
+      "deviceName": {
+        "type": "string"
+      },
+      "displayName": {
+        "type": "string"
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "id": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "lastSeenAt": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "localAddresses": {
+        "$ref": "#/components/schemas/JsonObject"
+      },
+      "platform": {
+        "type": "string"
+      },
+      "revokedAt": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "updatedAt": {
+        "type": "string"
+      },
+      "userId": {
+        "format": "int64",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "appVersion",
+      "capabilities",
+      "createdAt",
+      "deviceModel",
+      "deviceName",
+      "displayName",
+      "enabled",
+      "id",
+      "localAddresses",
+      "platform",
+      "updatedAt",
+      "userId"
+    ],
+    "type": "object"
+  },
+  "DevicesResponse": {
+    "additionalProperties": false,
+    "properties": {
+      "devices": {
+        "items": {
+          "$ref": "#/components/schemas/DeviceItem"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "devices"
+    ],
+    "type": "object"
+  },
+  "ErrorResponse": {
+    "additionalProperties": false,
+    "properties": {
+      "error": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "error"
+    ],
+    "type": "object"
+  },
+  "HealthResponse": {
+    "additionalProperties": false,
+    "properties": {
+      "ok": {
+        "type": "boolean"
+      },
+      "service": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "ok",
+      "service"
+    ],
+    "type": "object"
+  },
+  "HeartbeatRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "appVersion": {
+        "type": "string"
+      },
+      "capabilities": {
+        "additionalProperties": {
+          "type": "boolean"
+        },
+        "type": "object"
+      },
+      "localAddresses": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "appVersion",
+      "capabilities",
+      "localAddresses"
+    ],
+    "type": "object"
+  },
+  "JsonObject": {
+    "additionalProperties": true,
+    "type": "object"
+  },
+  "LoginRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "password": {
+        "type": "string"
+      },
+      "username": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "password",
+      "username"
+    ],
+    "type": "object"
+  },
+  "LoginResponse": {
+    "additionalProperties": false,
+    "properties": {
+      "authenticated": {
+        "type": "boolean"
+      },
+      "csrfToken": {
+        "type": "string"
+      },
+      "languageTag": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "username": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "authenticated",
+      "csrfToken",
+      "username"
+    ],
+    "type": "object"
+  },
+  "MeResponse": {
+    "additionalProperties": false,
+    "properties": {
+      "authenticated": {
+        "type": "boolean"
+      },
+      "csrfToken": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "languageTag": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "username": {
+        "type": [
+          "string",
+          "null"
+        ]
+      }
+    },
+    "type": "object"
+  },
+  "PatchDeviceRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "displayName": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "enabled": {
+        "type": [
+          "boolean",
+          "null"
+        ]
+      }
+    },
+    "type": "object"
+  },
+  "RealtimeEvent": {
+    "additionalProperties": false,
+    "properties": {
+      "data": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/JsonObject"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "time": {
+        "type": "string"
+      },
+      "type": {
+        "enum": [
+          "device.registered",
+          "device.updated",
+          "device.revoked",
+          "device.heartbeat",
+          "device.config.updated",
+          "device.config.command.updated",
+          "records.ingested"
+        ],
+        "type": "string"
+      }
+    },
+    "required": [
+      "time",
+      "type"
+    ],
+    "type": "object"
+  },
+  "RecordsResponse": {
+    "additionalProperties": false,
+    "properties": {
+      "limit": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "offset": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "records": {
+        "items": {
+          "$ref": "#/components/schemas/RelayRecord"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "limit",
+      "offset",
+      "records"
+    ],
+    "type": "object"
+  },
+  "RelayRecord": {
+    "additionalProperties": false,
+    "properties": {
+      "body": {
+        "type": "string"
+      },
+      "callType": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "deviceId": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "eventId": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "id": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "metadata": {
+        "$ref": "#/components/schemas/JsonObject"
+      },
+      "msgType": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "occurredAt": {
+        "type": "string"
+      },
+      "packageName": {
+        "type": "string"
+      },
+      "recordType": {
+        "type": "string"
+      },
+      "sender": {
+        "type": "string"
+      },
+      "smsCode": {
+        "type": "string"
+      },
+      "uploadedAt": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "body",
+      "callType",
+      "deviceId",
+      "id",
+      "metadata",
+      "msgType",
+      "occurredAt",
+      "packageName",
+      "recordType",
+      "sender",
+      "smsCode",
+      "uploadedAt"
+    ],
+    "type": "object"
+  },
+  "RelayRecordWire": {
+    "additionalProperties": false,
+    "properties": {
+      "body": {
+        "type": "string"
+      },
+      "callType": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "eventId": {
+        "type": "string"
+      },
+      "metadata": {
+        "$ref": "#/components/schemas/JsonObject"
+      },
+      "msgType": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "occurredAt": {
+        "type": "string"
+      },
+      "packageName": {
+        "type": "string"
+      },
+      "recordType": {
+        "type": "string"
+      },
+      "sender": {
+        "type": "string"
+      },
+      "smsCode": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "body",
+      "callType",
+      "eventId",
+      "metadata",
+      "msgType",
+      "occurredAt",
+      "packageName",
+      "recordType",
+      "sender",
+      "smsCode"
+    ],
+    "type": "object"
+  },
+  "RelayRecordsBatchRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "records": {
+        "items": {
+          "$ref": "#/components/schemas/RelayRecordWire"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "records"
+    ],
+    "type": "object"
+  },
+  "RelayRecordsBatchResponse": {
+    "additionalProperties": false,
+    "properties": {
+      "inserted": {
+        "format": "int64",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "inserted"
+    ],
+    "type": "object"
+  },
+  "SimpleOKResponse": {
+    "additionalProperties": false,
+    "properties": {
+      "ok": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "ok"
+    ],
+    "type": "object"
+  },
+  "SystemInfoResponse": {
+    "additionalProperties": false,
+    "properties": {
+      "appEnv": {
+        "type": "string"
+      },
+      "databaseReady": {
+        "type": "boolean"
+      },
+      "localBaseUrl": {
+        "type": "string"
+      },
+      "publicBaseUrl": {
+        "type": "string"
+      },
+      "service": {
+        "type": "string"
+      },
+      "time": {
+        "type": "string"
+      },
+      "userCount": {
+        "format": "int64",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "appEnv",
+      "databaseReady",
+      "localBaseUrl",
+      "publicBaseUrl",
+      "service",
+      "time",
+      "userCount"
+    ],
+    "type": "object"
+  }
+}

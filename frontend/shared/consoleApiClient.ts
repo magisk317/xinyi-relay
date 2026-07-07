@@ -1,7 +1,9 @@
 import type {
   BindCodeResponse,
-  ConfigAuditLogsResponse,
-  ConfigSnapshotState,
+  ConfigMutationBatch,
+  DeviceConfigAuditLogsResponse,
+  DeviceConfigCommandState,
+  DeviceConfigState,
   DeviceItem,
   DevicesResponse,
   LoginResponse,
@@ -22,7 +24,6 @@ export type ConsoleApiRequestOptions = {
   body?: unknown
   requiresCsrf?: boolean
   timeoutMs?: number
-  conflictMessage?: string
 }
 
 export type ConsoleApiTransport = {
@@ -84,21 +85,29 @@ export function createConsoleApiClient(transport: ConsoleApiTransport) {
         requiresCsrf: true
       }),
 
-    getConfigSnapshot: () => transport.request<ConfigSnapshotState>('/api/v1/config/snapshot'),
+    getDeviceConfig: (deviceId: number) =>
+      transport.request<DeviceConfigState>(`/api/v1/devices/${deviceId}/config`),
 
-    putConfigSnapshot: (baseRevision: number, snapshot: Record<string, unknown>) =>
-      transport.request<ConfigSnapshotState>('/api/v1/config/snapshot', {
-        method: 'PUT',
+    queueDeviceConfigCommand: (
+      deviceId: number,
+      baseRevision: number,
+      mutation: ConfigMutationBatch,
+      summary: string
+    ) =>
+      transport.request<DeviceConfigCommandState>(`/api/v1/devices/${deviceId}/config/commands`, {
+        method: 'POST',
         body: {
-          base_revision: baseRevision,
-          snapshot
+          baseRevision,
+          mutation,
+          summary
         },
-        requiresCsrf: true,
-        conflictMessage: 'Cloud config changed on another client. Reloaded the latest revision.'
+        requiresCsrf: true
       }),
 
-    getConfigAuditLogs: (limit = 50, offset = 0) =>
-      transport.request<ConfigAuditLogsResponse>(`/api/v1/config/audit?${buildQuery({ limit, offset })}`),
+    getDeviceConfigAuditLogs: (deviceId: number, limit = 50, offset = 0) =>
+      transport.request<DeviceConfigAuditLogsResponse>(
+        `/api/v1/devices/${deviceId}/config/audit?${buildQuery({ limit, offset })}`
+      ),
 
     getRecords: (limit = 80, deviceId?: number) =>
       transport.request<RecordsResponse>(`/api/v1/records?${buildQuery({ limit, device_id: deviceId })}`),

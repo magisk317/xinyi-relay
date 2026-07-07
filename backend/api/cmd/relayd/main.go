@@ -14,6 +14,7 @@ import (
 
 	"github.com/magisk317/xinyi-relay/backend/api/internal/config"
 	relayhttp "github.com/magisk317/xinyi-relay/backend/api/internal/http"
+	"github.com/magisk317/xinyi-relay/backend/api/internal/observability"
 )
 
 func setupLogFile(cfg config.Config) (*os.File, error) {
@@ -68,6 +69,18 @@ func main() {
 	server, err := relayhttp.NewServer(context.Background(), cfg)
 	if err != nil {
 		log.Fatalf("relay backend init failed: %v", err)
+	}
+	observabilityShutdown, err := observability.Start(context.Background())
+	if err != nil {
+		log.Printf("[observability] disabled after init error: %v", err)
+	} else {
+		defer func() {
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if shutdownErr := observabilityShutdown(shutdownCtx); shutdownErr != nil {
+				log.Printf("[observability] shutdown error: %v", shutdownErr)
+			}
+		}()
 	}
 	if err := server.BootstrapAdminIfNeeded(context.Background()); err != nil {
 		log.Fatalf("relay backend bootstrap failed: %v", err)

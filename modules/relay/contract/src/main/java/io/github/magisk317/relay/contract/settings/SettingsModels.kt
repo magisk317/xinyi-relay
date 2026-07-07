@@ -345,11 +345,11 @@ data class RemoteAgentSnapshot(
     val userId: Long,
     val deviceId: Long,
     val deviceTokenPresent: Boolean,
-    val lastAppliedConfigRevision: Long,
+    val localConfigRevision: Long,
     val syncState: String,
     val lastError: String,
     val lastHeartbeatAt: Long,
     val lastPullAt: Long,
     val lastPushAt: Long,
-    val pendingMutations: Int,
+    val pendingLocalChanges: Int,
 )

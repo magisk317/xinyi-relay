@@ -6,10 +6,12 @@ import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.service.SystemInfoProviderImpl
 import io.github.magisk317.relay.app.sender.SenderTestService
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
-import io.github.magisk317.relay.contract.repository.RemoteSyncRepository
+import io.github.magisk317.relay.contract.repository.ConfigSyncCoordinator
+import io.github.magisk317.relay.contract.repository.LocalConfigRepository
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.data.repository.AnalyticsRepository
 import io.github.magisk317.relay.data.repository.ConfigRepository
+import io.github.magisk317.relay.data.repository.LocalConfigRepositoryImpl
 import io.github.magisk317.relay.data.repository.RelayRecordRepository
 import io.github.magisk317.relay.data.repository.RemoteAgentRepository
 import io.github.magisk317.relay.data.repository.ScheduledTaskRepositoryImpl
@@ -46,7 +48,6 @@ val coreModule = module {
     single<SettingsPreferencesRepository> { SettingsRepository(androidContext(), get()) }
     single<MessageRecordRepository> { RelayRecordRepository(androidContext(), get(), get()) }
     single<RuntimeAnalyticsProvider> { AnalyticsRepository(androidContext(), get()) }
-    single<RemoteSyncRepository> { RemoteAgentRepository(androidContext(), get()) }
     single {
         val repo = get<MessageRecordRepository>() as RelayRecordRepository
         RuntimeRecordFacade(
@@ -70,6 +71,17 @@ val coreModule = module {
             senderDao = db.senderDao(),
         )
     }
+    single<LocalConfigRepository> {
+        LocalConfigRepositoryImpl(
+            context = androidContext(),
+            preferenceDataSource = get(),
+            settingsRepository = get(),
+            configRepository = get(),
+            database = get(),
+        )
+    }
+    single { RemoteAgentRepository(androidContext(), get(), get()) }
+    single<ConfigSyncCoordinator> { get<RemoteAgentRepository>() }
     single<ScheduledTaskRepository> { ScheduledTaskRepositoryImpl(androidContext(), get()) }
 
     single<SystemInfoProvider> { SystemInfoProviderImpl(androidContext()) }
@@ -108,7 +120,7 @@ val coreModule = module {
             systemInfoProvider = get(),
             settingsRepository = get(),
             preferenceDataSource = get(),
-            messageSyncTrigger = get<RemoteSyncRepository>()::scheduleMessageTriggeredSync,
+            messageSyncTrigger = get<ConfigSyncCoordinator>()::scheduleMessageTriggeredSync,
         )
     }
     single { SenderTestService(androidContext()) }

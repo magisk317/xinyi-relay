@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -26,8 +25,6 @@ type authFakeStore struct {
 
 	device    store.Device
 	deviceErr error
-
-	snapshot store.ConfigSnapshot
 }
 
 func (f authFakeStore) GetSessionByTokenHash(context.Context, string) (store.Session, error) {
@@ -46,9 +43,6 @@ func (f authFakeStore) GetDesktopSessionByAccessTokenHash(context.Context, strin
 func (f authFakeStore) TouchDesktopSession(context.Context, int64) error { return nil }
 func (f authFakeStore) GetDeviceByTokenHash(context.Context, string) (store.Device, error) {
 	return f.device, f.deviceErr
-}
-func (f authFakeStore) GetConfigSnapshot(context.Context, int64) (store.ConfigSnapshot, error) {
-	return f.snapshot, nil
 }
 
 func withCookie(r *http.Request) *http.Request {
@@ -77,10 +71,6 @@ func spyAuth(mw func(authHandler) http.HandlerFunc, req *http.Request) (*authCon
 
 func consoleMW(s *Server) func(authHandler) http.HandlerFunc {
 	return s.requireAuth("authentication required", s.attemptDesktopSession, s.attemptSession)
-}
-
-func configMW(s *Server) func(authHandler) http.HandlerFunc {
-	return s.requireAuth("authentication required", s.attemptDesktopSession, s.attemptDevice, s.attemptSession)
 }
 
 func TestRequireAuthNoCredential(t *testing.T) {
@@ -115,7 +105,7 @@ func TestRequireAuthDesktopBeatsDevice(t *testing.T) {
 		desktop: store.DesktopSession{ID: 5, UserID: 9},
 		user:    store.User{ID: 9, Username: "alice"},
 	}}
-	got, rec := spyAuth(configMW(s), withBearer(httptest.NewRequest(http.MethodGet, "/x", nil)))
+	got, rec := spyAuth(s.requireAuth("authentication required", s.attemptDesktopSession, s.attemptDevice, s.attemptSession), withBearer(httptest.NewRequest(http.MethodGet, "/x", nil)))
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("expected 204, got %d", rec.Code)
 	}
@@ -130,7 +120,7 @@ func TestRequireAuthFallsThroughToDevice(t *testing.T) {
 		desktopErr: store.ErrNotFound,
 		device:     store.Device{ID: 7, UserID: 9},
 	}}
-	got, rec := spyAuth(configMW(s), withBearer(httptest.NewRequest(http.MethodGet, "/x", nil)))
+	got, rec := spyAuth(s.requireAuth("authentication required", s.attemptDesktopSession, s.attemptDevice, s.attemptSession), withBearer(httptest.NewRequest(http.MethodGet, "/x", nil)))
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("expected 204, got %d", rec.Code)
 	}
@@ -162,7 +152,7 @@ func TestRequireAuthInfrastructureError(t *testing.T) {
 	s := &Server{store: authFakeStore{
 		desktopErr: errors.New("db down"),
 	}}
-	got, rec := spyAuth(configMW(s), withBearer(httptest.NewRequest(http.MethodGet, "/x", nil)))
+	got, rec := spyAuth(s.requireAuth("authentication required", s.attemptDesktopSession, s.attemptDevice, s.attemptSession), withBearer(httptest.NewRequest(http.MethodGet, "/x", nil)))
 	if got != nil {
 		t.Fatalf("handler should not be reached on infra error")
 	}
@@ -183,7 +173,7 @@ func TestWithDeviceUnknownToken(t *testing.T) {
 	}
 }
 
-func TestConfigSnapshotActor(t *testing.T) {
+func TestConfigCommandActor(t *testing.T) {
 	cases := []struct {
 		name      string
 		auth      authContext
@@ -197,48 +187,10 @@ func TestConfigSnapshotActor(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			gotType, gotActor := configSnapshotActor(tc.auth)
+			gotType, gotActor := configCommandActor(tc.auth)
 			if gotType != tc.wantType || gotActor != tc.wantActor {
 				t.Fatalf("got (%q,%d), want (%q,%d)", gotType, gotActor, tc.wantType, tc.wantActor)
 			}
 		})
-	}
-}
-
-func TestHandleConfigSnapshotGetViaDevice(t *testing.T) {
-	// End-to-end through withConfigAuth: a device Bearer reaches the unified
-	// GET handler and serves the snapshot for the device's user.
-	s := &Server{store: authFakeStore{
-		desktopErr: store.ErrNotFound, // force fall-through to the device attempt
-		device:     store.Device{ID: 7, UserID: 9},
-		snapshot:   store.ConfigSnapshot{Revision: 3, Content: json.RawMessage(`{"a":1}`)},
-	}}
-	req := withBearer(httptest.NewRequest(http.MethodGet, "/api/v1/config/snapshot", nil))
-	rec := httptest.NewRecorder()
-	s.withConfigAuth(s.handleConfigSnapshot)(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", rec.Code)
-	}
-	var resp configSnapshotResponse
-	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("decode: %v", err)
-	}
-	if resp.Revision != 3 {
-		t.Fatalf("expected revision 3, got %d", resp.Revision)
-	}
-}
-
-func TestHandleConfigSnapshotPutSessionRequiresCSRF(t *testing.T) {
-	s := &Server{store: authFakeStore{
-		session: store.Session{ID: 1, Username: "alice", CSRFToken: "expected"},
-		user:    store.User{ID: 9, Username: "alice"},
-	}}
-	req := withCookie(httptest.NewRequest(http.MethodPut, "/api/v1/config/snapshot", nil))
-	rec := httptest.NewRecorder()
-	s.withConfigAuth(s.handleConfigSnapshot)(rec, req)
-
-	if rec.Code != http.StatusForbidden {
-		t.Fatalf("expected 403 without CSRF token, got %d", rec.Code)
 	}
 }

@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS device_config_commands_single_pending_idx;

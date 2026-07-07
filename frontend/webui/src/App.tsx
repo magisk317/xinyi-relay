@@ -12,6 +12,7 @@ import { RecordsPage } from './pages/RecordsPage'
 import { SendersPage } from './pages/SendersPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { trackPageView } from './analytics'
+import { DeviceConfigProvider } from './deviceConfig'
 import { useI18n } from './i18n'
 import { RealtimeProvider } from './realtime'
 import { RelaySpinner } from './template'
@@ -34,7 +35,9 @@ function ProtectedLayout() {
   }
   return (
     <RealtimeProvider>
-      <AppLayout />
+      <DeviceConfigProvider>
+        <AppLayout />
+      </DeviceConfigProvider>
     </RealtimeProvider>
   )
 }

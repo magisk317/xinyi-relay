@@ -145,6 +145,7 @@ curl -kfsS -X POST "$BASE_URL/api/v1/agent/register" \
   -H 'Content-Type: application/json' \
   -d "{\"bindCode\":\"$BIND_CODE\",\"deviceName\":\"Smoke Device\",\"deviceModel\":\"CLI\",\"platform\":\"android\",\"appVersion\":\"0.0.4\"}" >/tmp/relay_register.json
 DEVICE_TOKEN="$(jq -r '.deviceToken' /tmp/relay_register.json)"
+DEVICE_ID="$(jq -r '.deviceId' /tmp/relay_register.json)"
 
 echo "[smoke] heartbeat"
 curl -kfsS -X POST "$BASE_URL/api/v1/agent/heartbeat" \
@@ -152,15 +153,33 @@ curl -kfsS -X POST "$BASE_URL/api/v1/agent/heartbeat" \
   -H 'Content-Type: application/json' \
   -d '{"appVersion":"0.0.4","localAddresses":["https://192.168.1.2:8443"],"capabilities":{"remoteConfig":true,"recordUpload":true}}' | jq .
 
-echo "[smoke] round-trip config snapshot"
-curl -kfsS -b "$COOKIE_JAR" "$BASE_URL/api/v1/config/snapshot" >/tmp/relay_snapshot.json
-BASE_REVISION="$(jq -r '.revision' /tmp/relay_snapshot.json)"
-curl -kfsS -b "$COOKIE_JAR" -H "X-CSRF-Token: $CSRF_TOKEN" -X PUT \
-  "$BASE_URL/api/v1/config/snapshot" \
-  -H 'Content-Type: application/json' \
-  -d "{\"base_revision\":$BASE_REVISION,\"snapshot\":{\"senders\":[],\"deviceAppInfos\":{},\"rules\":[],\"smsCodeRules\":[],\"notifyRoutes\":[],\"forwardFilters\":[]}}" | jq .
+echo "[smoke] fetch device config mirror"
+curl -kfsS -b "$COOKIE_JAR" "$BASE_URL/api/v1/devices/$DEVICE_ID/config" >/tmp/relay_device_config.json
+BASE_REVISION="$(jq -r '.revision' /tmp/relay_device_config.json)"
 
-echo "[smoke] config audit"
-curl -kfsS -b "$COOKIE_JAR" "$BASE_URL/api/v1/config/audit" | jq .
+echo "[smoke] queue device config command"
+curl -kfsS -b "$COOKIE_JAR" -H "X-CSRF-Token: $CSRF_TOKEN" -X POST \
+  "$BASE_URL/api/v1/devices/$DEVICE_ID/config/commands" \
+  -H 'Content-Type: application/json' \
+  -d "{\"baseRevision\":$BASE_REVISION,\"summary\":\"smoke:update\",\"mutation\":{\"operations\":[{\"type\":\"replace_senders\",\"senders\":[]},{\"type\":\"replace_device_apps\",\"deviceId\":$DEVICE_ID,\"apps\":[]}]}}" >/tmp/relay_device_command.json
+COMMAND_ID="$(jq -r '.id' /tmp/relay_device_command.json)"
+TARGET_REVISION="$(jq -r '.targetRevision' /tmp/relay_device_command.json)"
+cat /tmp/relay_device_command.json | jq .
+
+echo "[smoke] agent pulls pending commands"
+curl -kfsS -X POST "$BASE_URL/api/v1/agent/config/commands:pull" \
+  -H "Authorization: Bearer $DEVICE_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d "{\"localRevision\":$BASE_REVISION}" >/tmp/relay_agent_pull.json
+cat /tmp/relay_agent_pull.json | jq .
+
+echo "[smoke] agent acknowledges command"
+curl -kfsS -X POST "$BASE_URL/api/v1/agent/config/commands:ack" \
+  -H "Authorization: Bearer $DEVICE_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d "{\"commandId\":$COMMAND_ID,\"status\":\"applied\",\"appliedRevision\":$TARGET_REVISION,\"failureReason\":\"\",\"snapshot\":{\"senders\":[],\"deviceAppInfos\":{\"$DEVICE_ID\":[]},\"rules\":[],\"smsCodeRules\":[],\"notifyRoutes\":[],\"forwardFilters\":[]}}" | jq .
+
+echo "[smoke] device config audit"
+curl -kfsS -b "$COOKIE_JAR" "$BASE_URL/api/v1/devices/$DEVICE_ID/config/audit" | jq .
 
 echo "[smoke] done"

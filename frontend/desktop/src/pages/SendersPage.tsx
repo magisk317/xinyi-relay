@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { SenderFieldEditor } from '../components/SenderFieldEditor'
 import { SenderActiveScheduleEditor } from '../components/SenderActiveScheduleEditor'
-import { cloneSnapshot } from '../configSnapshot'
-import { useDesktopConfigSnapshotEditor } from '../hooks/useDesktopConfigSnapshotEditor'
+import { buildReplaceSendersMutation } from '../../../shared/configMutations'
+import { useDesktopDeviceConfig } from '../hooks/useDesktopDeviceConfig'
 import { translateSenderType, useDesktopI18n } from '../i18n'
-import { useDesktopRealtimeRefresh } from '../hooks/useDesktopRealtimeRefresh'
 import {
   buildSenderDraftJson,
   nextSenderId,
@@ -16,27 +15,16 @@ import type { SnapshotSender } from '../../../shared/contracts/console'
 import { DesktopSelect, EmptyState, Metric, Panel, Tag } from '../ui'
 
 const SENDER_TYPE_OPTIONS = [3, 4, 5, 9, 13, 7, 16, 18, 19, 11, 10, 0, 12, 1, 2, 6, 8, 14, 15]
-const SENDER_REFRESH_EVENTS = ['config.updated'] as const
 
 export function SendersPage() {
   const { locale, t } = useDesktopI18n()
-  const { config, root, loading, saving, error, setError, load, saveRoot } = useDesktopConfigSnapshotEditor()
+  const { config, root, loading, saving, error, setError, refresh, queueMutation } = useDesktopDeviceConfig()
   const [draft, setDraft] = useState(() => ({
     name: '',
     type: 4,
     jsonSetting: buildSenderDraftJson(4),
     activeSchedule: buildDefaultSenderActiveSchedule()
   }))
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      void load().catch(() => {})
-    })
-  }, [load])
-
-  useDesktopRealtimeRefresh(() => {
-    void load().catch(() => {})
-  }, SENDER_REFRESH_EVENTS)
 
   const senders = root?.senders ?? []
   const rules = root?.rules ?? []
@@ -45,17 +33,16 @@ export function SendersPage() {
 
   async function persistSenders(nextSenders: SnapshotSender[], removedSenderId?: number) {
     if (!root) return
-    const nextRoot = cloneSnapshot(root)
-    nextRoot.senders = nextSenders.map(normalizeSnapshotSender)
-    if (removedSenderId != null) {
-      nextRoot.rules = (nextRoot.rules ?? []).filter((rule) => rule.senderId !== removedSenderId)
-      nextRoot.notifyRoutes = (nextRoot.notifyRoutes ?? []).filter((route) => route.senderId !== removedSenderId)
-      nextRoot.forwardFilters = (nextRoot.forwardFilters ?? []).filter((rule) => rule.senderId !== removedSenderId)
-    }
     try {
-      await saveRoot(nextRoot)
+      await queueMutation(
+        buildReplaceSendersMutation(
+          nextSenders.map(normalizeSnapshotSender),
+          removedSenderId != null ? [removedSenderId] : [],
+        ),
+        'senders:update',
+      )
     } catch {
-      // saveRoot updates page error state.
+      // queueMutation updates page error state.
     }
   }
 
@@ -65,7 +52,7 @@ export function SendersPage() {
         title={t('senders.title')}
         actions={
           <div className="button-row">
-            <button type="button" className="ghost-button" onClick={() => void load().catch(() => {})}>
+            <button type="button" className="ghost-button" onClick={() => void refresh().catch(() => {})}>
               {t('common.refresh')}
             </button>
             {config ? <Tag tone="neutral">{t('analytics.revisionLabel').replace('{revision}', String(config.revision))}</Tag> : null}

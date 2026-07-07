@@ -24,7 +24,7 @@ export function consoleSessionFromLogin(response: LoginResponse): ConsoleSession
 }
 
 export function consoleSessionFromMe(response: MeResponse): ConsoleSessionState {
-  const authenticated = response.authenticated && Boolean(response.username) && Boolean(response.csrfToken)
+  const authenticated = Boolean(response.authenticated) && Boolean(response.username) && Boolean(response.csrfToken)
   return {
     authenticated,
     username: authenticated ? response.username ?? '' : '',

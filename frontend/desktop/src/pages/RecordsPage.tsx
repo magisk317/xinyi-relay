@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { desktopApi } from '../api/desktopApi'
+import { useDesktopDeviceConfig } from '../hooks/useDesktopDeviceConfig'
 import { useDesktopRealtimeRefresh } from '../hooks/useDesktopRealtimeRefresh'
 import { useDesktopI18n } from '../i18n'
-import type { DeviceItem, RecordItem } from '../../../shared/contracts/console'
+import type { RecordItem } from '../../../shared/contracts/console'
 import { DesktopSelect, EmptyState, Panel, Tag } from '../ui'
 
 type RecordTab = 'sms_code' | 'sms_plain' | 'app_notify' | 'call'
@@ -17,9 +18,13 @@ const RECORD_REFRESH_EVENTS = [
 
 export function RecordsPage() {
   const { t } = useDesktopI18n()
+  const {
+    devices,
+    selectedDeviceId,
+    setSelectedDeviceId,
+    refresh: refreshDeviceConfig,
+  } = useDesktopDeviceConfig()
   const [records, setRecords] = useState<RecordItem[]>([])
-  const [devices, setDevices] = useState<DeviceItem[]>([])
-  const [selectedDeviceId, setSelectedDeviceId] = useState<number | ''>('')
   const [selectedTab, setSelectedTab] = useState<RecordTab>('sms_code')
   const [loading, setLoading] = useState(true)
   const [copiedRecordId, setCopiedRecordId] = useState<number | null>(null)
@@ -29,18 +34,17 @@ export function RecordsPage() {
     try {
       setLoading(true)
       setError('')
-      const [recordsPayload, devicesPayload] = await Promise.all([
-        desktopApi.getRecords(80, selectedDeviceId === '' ? undefined : selectedDeviceId),
-        desktopApi.getDevices()
+      const [recordsPayload] = await Promise.all([
+        desktopApi.getRecords(80, selectedDeviceId ?? undefined),
+        refreshDeviceConfig()
       ])
       setRecords(recordsPayload.records)
-      setDevices(devicesPayload.devices)
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : t('error.loadRecords'))
     } finally {
       setLoading(false)
     }
-  }, [selectedDeviceId, t])
+  }, [refreshDeviceConfig, selectedDeviceId, t])
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -73,13 +77,16 @@ export function RecordsPage() {
       actions={
         <div className="button-row">
           <DesktopSelect
-            value={selectedDeviceId}
-            placeholder={t('common.allDevices')}
+            value={selectedDeviceId ?? ''}
+            placeholder={t('common.none')}
             options={devices.map((device) => ({
               value: device.id,
               label: device.displayName || device.deviceName
             }))}
-            onChange={(value) => setSelectedDeviceId(value === '' ? '' : Number(value))}
+            onChange={(value) => {
+              if (value === '') return
+              setSelectedDeviceId(Number(value))
+            }}
           />
           <button type="button" className="ghost-button" onClick={() => void load()}>
             {t('common.refresh')}

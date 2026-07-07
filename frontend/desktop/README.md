@@ -14,7 +14,7 @@
   - overview
   - devices / bind codes
   - records
-  - config snapshot editor
+  - device config mirror / command audit
   - senders
   - apps
   - analytics
@@ -59,9 +59,12 @@
 
 ### Shared contract
 
+- `shared/contracts/openapi.json`
+- `shared/contracts/console.generated.ts`
 - `shared/contracts/console.ts`
 
-`webui` 和 `desktop` 共用这份类型定义，便于后端 API 变动时统一收敛。
+`webui` 和 `desktop` 共用这套契约定义：`openapi.json` 是 API 合同中心，
+`console.generated.ts` 由 OpenAPI 生成，`console.ts` 只保留兼容别名和前端专用补充类型。
 
 ## Browser-delegated login
 
@@ -168,7 +171,7 @@ Get-Content "$env:APPDATA\io.github.magisk317.relay.desktop\logs\xinyi-relay-*.l
 桌面端提供诊断导出功能，会打包以下信息：
 
 - 应用日志
-- 配置快照
+- 设备配置 mirror 与待执行命令状态
 - 连接状态
 - 系统信息
 

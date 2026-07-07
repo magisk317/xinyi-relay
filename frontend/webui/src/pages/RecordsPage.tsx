@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
 import { apiClient } from '../api/client'
+import { useDeviceConfig } from '../deviceConfig'
 import { useRealtimeFeed } from '../realtime'
-import type { DeviceItem, RecordItem } from '../types'
+import type { RecordItem } from '../types'
 import { trackEvent } from '../analytics'
 import { useI18n } from '../i18n'
 import { ActionButton, EmptyCard, ErrorBanner, LoadingCard, PageShell, RelayBadge, RelaySelect, SurfaceCard, cx } from '../template'
@@ -25,8 +26,7 @@ type EnrichedRecord = RecordItem & {
 export function RecordsPage() {
   const { t } = useI18n()
   const [records, setRecords] = useState<RecordItem[]>([])
-  const [devices, setDevices] = useState<DeviceItem[]>([])
-  const [selectedDeviceId, setSelectedDeviceId] = useState<number | ''>('')
+  const { devices, selectedDeviceId, setSelectedDeviceId, refreshDevices } = useDeviceConfig()
   const [selectedTab, setSelectedTab] = useState<RecordTab>('sms_code')
   const [selectedAppLabel, setSelectedAppLabel] = useState('')
   const [selectedPackageName, setSelectedPackageName] = useState('')
@@ -41,18 +41,17 @@ export function RecordsPage() {
     try {
       setLoading(true)
       setError('')
-      const [recordsResp, devicesResp] = await Promise.all([
-        apiClient.getRecords(80, selectedDeviceId === '' ? undefined : selectedDeviceId),
-        apiClient.getDevices()
+      const [recordsResp] = await Promise.all([
+        apiClient.getRecords(80, selectedDeviceId ?? undefined),
+        refreshDevices()
       ])
       setRecords(recordsResp.records)
-      setDevices(devicesResp.devices)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.loadFailed'))
     } finally {
       setLoading(false)
     }
-  }, [selectedDeviceId, t])
+  }, [refreshDevices, selectedDeviceId, t])
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -119,7 +118,7 @@ export function RecordsPage() {
   )
 
   const baseFilteredRecords = enrichedRecords.filter((item) => {
-    if (selectedDeviceId !== '' && item.deviceId !== selectedDeviceId) return false
+    if (selectedDeviceId != null && item.deviceId !== selectedDeviceId) return false
     if (selectedAppLabel && item.appLabel !== selectedAppLabel) return false
     if (selectedPackageName && item.packageName !== selectedPackageName) return false
     if (selectedLineLabel && item.lineLabel !== selectedLineLabel && item.simLabel !== selectedLineLabel) return false
@@ -128,17 +127,14 @@ export function RecordsPage() {
 
   const filteredRecords = baseFilteredRecords.filter((item) => item.recordType === selectedTab)
 
-  const deviceOptions = [
-    { value: '' as const, label: t('records.allDevices') },
-    ...devices.map((device) => ({
+  const deviceOptions = devices.map((device) => ({
       value: device.id,
       label: device.displayName || device.deviceName,
       description: `${device.platform} / ${device.deviceModel || t('common.unknownModel')}`
     }))
-  ]
 
   const hasActiveFacetFilters =
-    selectedDeviceId !== '' || selectedAppLabel || selectedPackageName || selectedLineLabel
+    selectedAppLabel || selectedPackageName || selectedLineLabel
 
   const copyCode = useCallback(async (recordId: number, smsCode: string) => {
     const text = smsCode.trim()
@@ -176,10 +172,11 @@ export function RecordsPage() {
       </RelayBadge>
       <RelaySelect
         className="min-w-0 flex-1 sm:min-w-[16rem] sm:flex-none"
-        value={selectedDeviceId}
+        value={selectedDeviceId ?? ''}
         options={deviceOptions}
         onChange={(value) => {
-          setSelectedDeviceId(value === '' ? '' : Number(value))
+          if (value === '') return
+          setSelectedDeviceId(Number(value))
         }}
       />
       <ActionButton
@@ -228,12 +225,6 @@ export function RecordsPage() {
             {selectedPackageName ? (
               <FilterChip label={selectedPackageName} onClear={() => setSelectedPackageName('')} />
             ) : null}
-            {selectedDeviceId !== '' ? (
-              <FilterChip
-                label={deviceNameById.get(selectedDeviceId) ?? t('records.deviceBadge', { deviceId: selectedDeviceId })}
-                onClear={() => setSelectedDeviceId('')}
-              />
-            ) : null}
             {selectedLineLabel ? (
               <FilterChip label={selectedLineLabel} onClear={() => setSelectedLineLabel('')} />
             ) : null}
@@ -241,7 +232,6 @@ export function RecordsPage() {
               onClick={() => {
                 setSelectedAppLabel('')
                 setSelectedPackageName('')
-                setSelectedDeviceId('')
                 setSelectedLineLabel('')
               }}
             >
@@ -321,7 +311,7 @@ export function RecordsPage() {
 
                 <button
                   type="button"
-                  onClick={() => setSelectedDeviceId((current) => current === item.deviceId ? '' : item.deviceId)}
+                  onClick={() => setSelectedDeviceId(item.deviceId)}
                   className={badgeButtonClass(selectedDeviceId === item.deviceId, 'muted')}
                 >
                   {item.deviceLabel}

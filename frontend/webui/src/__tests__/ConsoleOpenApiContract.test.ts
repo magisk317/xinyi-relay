@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest'
 import openApi from '../../../shared/contracts/openapi.json'
 import type {
   BindCodeResponse,
-  ConfigAuditLogItem,
-  ConfigAuditLogsResponse,
-  ConfigSnapshotState,
+  AgentConfigCommandsPullResponse,
+  DeviceConfigAuditLogItem,
+  DeviceConfigAuditLogsResponse,
+  DeviceConfigCommandState,
+  DeviceConfigState,
   DesktopAuthExchangeResponse,
   DeviceItem,
   DevicesResponse,
@@ -85,16 +87,53 @@ const schemaCases = [
   },
   { schemaName: 'DevicesResponse', fields: fieldsFor<DevicesResponse>()('devices') },
   {
-    schemaName: 'ConfigSnapshotResponse',
-    fields: fieldsFor<ConfigSnapshotState>()('revision', 'snapshot')
+    schemaName: 'DeviceConfigStateResponse',
+    fields: fieldsFor<DeviceConfigState>()('deviceId', 'revision', 'mirrorContent', 'pendingCommands', 'updatedAt')
   },
   {
-    schemaName: 'ConfigAuditLogItem',
-    fields: fieldsFor<ConfigAuditLogItem>()('id', 'revision', 'actorType', 'actorId', 'summary', 'createdAt')
+    schemaName: 'AgentConfigCommandsPullResponse',
+    fields: fieldsFor<AgentConfigCommandsPullResponse>()(
+      'deviceId',
+      'revision',
+      'mirrorContent',
+      'pendingCommands',
+      'updatedAt'
+    )
   },
   {
-    schemaName: 'ConfigAuditLogsResponse',
-    fields: fieldsFor<ConfigAuditLogsResponse>()('logs', 'limit', 'offset')
+    schemaName: 'DeviceConfigCommandItem',
+    fields: fieldsFor<DeviceConfigCommandState>()(
+      'id',
+      'baseRevision',
+      'targetRevision',
+      'mutation',
+      'summary',
+      'actorType',
+      'actorId',
+      'status',
+      'failureReason',
+      'createdAt',
+      'updatedAt',
+      'appliedAt'
+    )
+  },
+  {
+    schemaName: 'DeviceConfigAuditLogItem',
+    fields: fieldsFor<DeviceConfigAuditLogItem>()(
+      'id',
+      'deviceId',
+      'commandId',
+      'revision',
+      'eventType',
+      'actorType',
+      'actorId',
+      'summary',
+      'createdAt'
+    )
+  },
+  {
+    schemaName: 'DeviceConfigAuditLogsResponse',
+    fields: fieldsFor<DeviceConfigAuditLogsResponse>()('logs', 'limit', 'offset')
   },
   {
     schemaName: 'RelayRecord',

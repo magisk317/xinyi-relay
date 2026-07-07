@@ -6,12 +6,7 @@ import {
   useState,
   type PropsWithChildren
 } from 'react'
-
-export type RealtimeEvent = {
-  type: string
-  time: string
-  data: Record<string, unknown> | null
-}
+import type { RealtimeEvent } from './types'
 
 type RealtimeState = {
   connected: boolean

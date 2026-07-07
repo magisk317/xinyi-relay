@@ -1,33 +1,20 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useAuth } from '../auth'
 import { apiClient } from '../api/client'
+import { useDeviceConfig } from '../deviceConfig'
 import { useRealtimeFeed } from '../realtime'
 import { trackEvent } from '../analytics'
 import { useI18n } from '../i18n'
 import { ActionButton, ErrorBanner, LoadingCard, PageShell, RelayBadge, SurfaceCard } from '../template'
-import { useConfigSnapshotEditor } from '../useConfigSnapshotEditor'
 
 export function SettingsPage() {
   const { t } = useI18n()
   const { username } = useAuth()
-  const [draft, setDraft] = useState('')
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [notice, setNotice] = useState('')
-  const { connected, lastEvent } = useRealtimeFeed()
-  const { config, loading, saving, error, setError, load, saveRoot } = useConfigSnapshotEditor()
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      void load().then((next) => setDraft(JSON.stringify(next.snapshot, null, 2)))
-    })
-  }, [load])
-
-  useEffect(() => {
-    if (lastEvent?.type === 'config.updated') {
-      void load().then((next) => setDraft(JSON.stringify(next.snapshot, null, 2)))
-    }
-  }, [lastEvent, load])
+  const { connected } = useRealtimeFeed()
+  const { config, devices, loading, saving, error, setError, refreshConfig, selectedDeviceId } = useDeviceConfig()
 
   const actions = (
     <div className="flex flex-wrap items-center gap-3">
@@ -37,21 +24,13 @@ export function SettingsPage() {
       <ActionButton
         onClick={() => {
           trackEvent('refresh', { page: 'settings' })
-          void load()
+          void refreshConfig()
         }}
       >
               {t('settings.refresh')}
       </ActionButton>
     </div>
   )
-
-  const parsed = useMemo(() => {
-    try {
-      return JSON.parse(draft) as Record<string, unknown>
-    } catch {
-      return null
-    }
-  }, [draft])
 
   if (loading && !config && !error) {
     return (
@@ -71,30 +50,15 @@ export function SettingsPage() {
       ) : null}
 
       <SurfaceCard title={t('settings.cloudTitle')} subtitle={t('settings.cloudSubtitle', { revision: config?.revision ?? 0 })}>
-        <textarea
-          className="relay-input min-h-[420px] w-full font-mono text-xs"
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-        />
-        <div className="mt-4 flex flex-wrap gap-3">
-          <ActionButton
-            tone="primary"
-            disabled={!parsed || !config || saving}
-            onClick={() => {
-              if (!parsed || !config) return
-              setNotice('')
-              void saveRoot(parsed)
-                .then((next) => {
-                  setDraft(JSON.stringify(next.snapshot, null, 2))
-                })
-                .catch(() => {})
-            }}
-          >
-            {saving ? t('common.saving') : t('settings.saveCloudSnapshot')}
-          </ActionButton>
-          <ActionButton onClick={() => setDraft(JSON.stringify(config?.snapshot ?? {}, null, 2))}>
-            {t('settings.resetEditor')}
-          </ActionButton>
+        <div className="space-y-3 text-sm text-[#4f6038]">
+          <div>
+            {selectedDeviceId
+              ? `${t('records.deviceBadge', { deviceId: selectedDeviceId })} · ${devices.find((device) => device.id === selectedDeviceId)?.deviceName ?? t('common.unknown')}`
+              : t('common.none')}
+          </div>
+          <div>{config ? `pending commands: ${config.pendingCommands.length}` : t('common.none')}</div>
+          <div>{config ? `updated: ${new Date(config.updatedAt).toLocaleString()}` : t('common.none')}</div>
+          <div>{t('settings.remoteDescription')}</div>
         </div>
       </SurfaceCard>
 

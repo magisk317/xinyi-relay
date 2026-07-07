@@ -22,7 +22,7 @@ Xinyi Relay is a relay and verification-code autofill project for Xposed/LSPosed
 The project now ships in three major parts:
 
 - Android App: local event capture, verification parsing, autofill, and Xposed hooks
-- Backend: device binding, config snapshots, record upload, and cloud Web console
+- Backend: device binding, per-device config mirrors and command queues, record upload, and cloud Web console
 - Desktop App: cross-platform management tool with a built-in local SQLite database, supporting standalone offline execution and cloud sync
 
 The old embedded WebUI has been retired from the Android runtime path. The current official architecture is `Android Agent + Backend / Desktop` working collectively.

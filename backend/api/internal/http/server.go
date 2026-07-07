@@ -10,10 +10,12 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/magisk317/xinyi-relay/backend/api"
 	"github.com/magisk317/xinyi-relay/backend/api/internal/config"
 	"github.com/magisk317/xinyi-relay/backend/api/internal/database"
+	"github.com/magisk317/xinyi-relay/backend/api/internal/observability"
 	"github.com/magisk317/xinyi-relay/backend/api/internal/realtime"
 	"github.com/magisk317/xinyi-relay/backend/api/internal/store"
 )
@@ -69,19 +71,24 @@ func NewServer(ctx context.Context, cfg config.Config) (*Server, error) {
 	mux.HandleFunc("/api/v1/devices/bind-codes", s.withConsoleAuth(s.handleCreateBindCode))
 	mux.HandleFunc("/api/v1/agent/register", s.handleAgentRegister)
 	mux.HandleFunc("/api/v1/agent/heartbeat", s.withDevice(s.handleAgentHeartbeat))
+	mux.HandleFunc("/api/v1/agent/config/mirror", s.withDevice(s.handleAgentConfigMirror))
+	mux.HandleFunc("/api/v1/agent/config/commands:pull", s.withDevice(s.handleAgentConfigCommandsPull))
+	mux.HandleFunc("/api/v1/agent/config/commands:ack", s.withDevice(s.handleAgentConfigCommandsAck))
 	mux.HandleFunc("/api/v1/agent/records:batch", s.withDevice(s.handleAgentRecordsBatch))
 	mux.HandleFunc("/api/v1/devices", s.withConsoleAuth(s.handleDevices))
 	mux.HandleFunc("/api/v1/devices/", s.withConsoleAuth(s.handleDeviceByID))
-	mux.HandleFunc("/api/v1/config/snapshot", s.withConfigAuth(s.handleConfigSnapshot))
-	mux.HandleFunc("/api/v1/config/audit", s.withConsoleAuth(s.handleConfigAuditLogs))
 	mux.HandleFunc("/api/v1/records", s.withConsoleAuth(s.handleRecords))
 	mux.HandleFunc("/api/v1/records/", s.withConsoleAuth(s.handleRecordByID))
 	mux.HandleFunc("/api/v1/realtime/ws", s.withConsoleAuth(s.handleRealtimeWS))
 	mux.HandleFunc("/", s.handleWebUI)
 
+	handler := s.withCORS(mux)
+	handler = s.withLogging(handler)
+	handler = observability.WrapHTTPHandler(handler)
+
 	s.server = &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           s.withLogging(s.withCORS(mux)),
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -106,6 +113,18 @@ func (s *Server) withLogging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		next.ServeHTTP(w, r)
+		spanContext := trace.SpanContextFromContext(r.Context())
+		if spanContext.IsValid() {
+			log.Printf(
+				"%s %s %s trace_id=%s span_id=%s",
+				r.Method,
+				r.URL.Path,
+				time.Since(start),
+				spanContext.TraceID().String(),
+				spanContext.SpanID().String(),
+			)
+			return
+		}
 		log.Printf("%s %s %s", r.Method, r.URL.Path, time.Since(start))
 	})
 }

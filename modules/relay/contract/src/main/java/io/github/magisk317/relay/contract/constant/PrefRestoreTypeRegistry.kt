@@ -82,7 +82,6 @@ object PrefRestoreTypeRegistry {
 
     val INT_KEYS: Set<String> = setOf(
         RelayPrefConst.KEY_CHOOSE_THEME,
-        RelayPrefConst.KEY_HAZE_BLUR_RADIUS,
         RelayPrefConst.KEY_LOW_BATTERY_THRESHOLD,
         RelayPrefConst.KEY_RUNTIME_LOG_RETENTION_DAYS,
         @Suppress("DEPRECATION")
@@ -91,9 +90,7 @@ object PrefRestoreTypeRegistry {
         "local_version_code",
     )
 
-    val FLOAT_KEYS: Set<String> = setOf(
-        RelayPrefConst.KEY_HAZE_TINT_ALPHA,
-    )
+    val FLOAT_KEYS: Set<String> = emptySet()
 
     fun typeOf(key: String): PrefValueType {
         return when {
