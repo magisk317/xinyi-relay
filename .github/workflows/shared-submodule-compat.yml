@@ -48,6 +48,12 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+      - name: Resolve CI toolkit
+        run: bash scripts/resolve_ci_toolkit.sh
+      - name: Setup Android CI
+        uses: ./.magisk-ci-toolkit/.github/actions/setup-android-ci
+        with:
+          checkout: 'false'
       - name: Resolve WebUI toolchain
         id: webui_toolchain
         shell: bash
@@ -60,15 +66,6 @@ jobs:
           version: ${{ steps.webui_toolchain.outputs.pnpm_version }}
       - name: WebUI Install
         run: pnpm -C frontend/webui install --frozen-lockfile --ignore-scripts
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "26"
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          validate-wrappers: false
-          allow-snapshot-wrappers: true
       - name: Decode Google Services
         if: env.HAS_GOOGLE_SERVICES_JSON == 'true'
         run: |
