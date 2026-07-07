@@ -3,12 +3,10 @@ package io.github.magisk317.relay.ui.home
 import io.github.magisk317.relay.ui.home.forward.AppForwardFilterScreen
 import io.github.magisk317.relay.ui.home.forward.GlobalForwardFilterScreen
 
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -24,7 +22,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -44,10 +45,6 @@ import io.github.magisk317.uikit.surface.AppNavigationRail
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.ui.nav.*
 import io.github.magisk317.relay.ui.record.CodeRecordScreen
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.blur.HazeBlurStyle
-import dev.chrisbanes.haze.blur.blurEffect
-import dev.chrisbanes.haze.hazeEffect
 import android.os.SystemClock
 import io.github.magisk317.relay.backup.BackupSource
 import io.github.magisk317.relay.mobileui.BuildConfig
@@ -66,6 +63,7 @@ import io.github.magisk317.relay.ui.home.appconfig.AppNotifySenderBindingScreen
 import io.github.magisk317.relay.ui.home.settings.AdvancedScreen
 import io.github.magisk317.relay.ui.home.appconfig.AppConfigScreen
 import io.github.magisk317.relay.ui.home.relayconfig.RelayConfigScreen
+import kotlinx.serialization.Serializable
 
 @Immutable
 data class TabItem<T : Any>(val label: String, val icon: ImageVector, val route: T)
@@ -78,28 +76,63 @@ private enum class NavigationSection {
     APPS,
     RECORDS,
     ADVANCED,
-    SETTINGS,
+    SETTINGS;
+
+    val routeId: String
+        get() = when (this) {
+            OVERVIEW -> MAIN_TAB_OVERVIEW
+            APPS -> MAIN_TAB_APPS
+            RECORDS -> MAIN_TAB_RECORDS
+            ADVANCED -> MAIN_TAB_ADVANCED
+            SETTINGS -> MAIN_TAB_SETTINGS
+        }
+
+    companion object {
+        fun fromRouteId(routeId: String): NavigationSection {
+            return entries.firstOrNull { it.routeId == routeId } ?: OVERVIEW
+        }
+    }
 }
+
+private const val MAIN_TAB_OVERVIEW = "overview"
+private const val MAIN_TAB_APPS = "apps"
+private const val MAIN_TAB_RECORDS = "records"
+private const val MAIN_TAB_ADVANCED = "advanced"
+private const val MAIN_TAB_SETTINGS = "settings"
+private const val BENCHMARK_TAB_OVERVIEW = "xinyi_benchmark_tab_overview"
+private const val BENCHMARK_TAB_APPS = "xinyi_benchmark_tab_apps"
+private const val BENCHMARK_TAB_RECORDS = "xinyi_benchmark_tab_records"
+private const val BENCHMARK_TAB_ADVANCED = "xinyi_benchmark_tab_advanced"
+private const val BENCHMARK_TAB_SETTINGS = "xinyi_benchmark_tab_settings"
+private const val BENCHMARK_NAV_OVERVIEW = "xinyi_benchmark_nav_overview"
+private const val BENCHMARK_NAV_APPS = "xinyi_benchmark_nav_apps"
+private const val BENCHMARK_NAV_RECORDS = "xinyi_benchmark_nav_records"
+private const val BENCHMARK_NAV_ADVANCED = "xinyi_benchmark_nav_advanced"
+private const val BENCHMARK_NAV_SETTINGS = "xinyi_benchmark_nav_settings"
+
+@Serializable
+private data class MainTabsRoute(
+    val section: String = MAIN_TAB_OVERVIEW,
+)
 
 @Composable
 @Suppress("CyclomaticComplexMethod")
 fun MainScreen(
     initialTab: Any? = null,
     onInitialTabConsumed: (() -> Unit)? = null,
-    hazeState: HazeState,
-    hazeStyle: HazeBlurStyle,
 ) {
     val navController = rememberNavController()
     val appConfigViewModel: AppConfigViewModel = koinViewModel()
+    val settingsViewModel = io.github.magisk317.relay.ui.home.settings.rememberSharedSettingsViewModel()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
     val tabs = listOf(
-        TabItem(stringResource(R.string.tab_overview), Icons.Default.Home, OverviewRoute),
-        TabItem(stringResource(R.string.tab_blacklist), Icons.AutoMirrored.Filled.List, AppsRoute),
-        TabItem(stringResource(R.string.tab_records), Icons.Default.DateRange, RecordsRoute),
-        TabItem(stringResource(R.string.tab_advanced), Icons.Default.Build, AdvancedRoute),
-        TabItem(stringResource(R.string.tab_settings), Icons.Default.Settings, SettingsRoute),
+        TabItem(stringResource(R.string.tab_overview), Icons.Default.Home, MainTabsRoute(MAIN_TAB_OVERVIEW)),
+        TabItem(stringResource(R.string.tab_blacklist), Icons.AutoMirrored.Filled.List, MainTabsRoute(MAIN_TAB_APPS)),
+        TabItem(stringResource(R.string.tab_records), Icons.Default.DateRange, MainTabsRoute(MAIN_TAB_RECORDS)),
+        TabItem(stringResource(R.string.tab_advanced), Icons.Default.Build, MainTabsRoute(MAIN_TAB_ADVANCED)),
+        TabItem(stringResource(R.string.tab_settings), Icons.Default.Settings, MainTabsRoute(MAIN_TAB_SETTINGS)),
     )
 
     fun sectionFromOrigin(origin: String): NavigationSection {
@@ -113,6 +146,8 @@ fun MainScreen(
     fun resolveSection(entry: NavBackStackEntry?): NavigationSection {
         val destination = entry?.destination ?: return NavigationSection.OVERVIEW
         return when {
+            destination.hasRoute(MainTabsRoute::class) ->
+                NavigationSection.fromRouteId(entry.toRoute<MainTabsRoute>().section)
             destination.hasRoute(OverviewRoute::class) -> NavigationSection.OVERVIEW
             destination.hasRoute(AppsRoute::class) -> NavigationSection.APPS
             destination.hasRoute(AppsManageRoute::class) -> NavigationSection.APPS
@@ -170,41 +205,9 @@ fun MainScreen(
         }
     }
 
-    fun resolveExactTopLevelIndex(destination: NavDestination?): Int? {
-        if (destination == null) return null
-        return when {
-            destination.hasRoute(OverviewRoute::class) -> 0
-            destination.hasRoute(AppsRoute::class) -> 1
-            destination.hasRoute(RecordsRoute::class) -> 2
-            destination.hasRoute(AdvancedRoute::class) -> 3
-            destination.hasRoute(SettingsRoute::class) -> 4
-            else -> null
-        }
-    }
-
-    fun resolveTransitionDirection(initial: NavBackStackEntry?, target: NavBackStackEntry?): Int {
-        val initialIndex = resolveTabIndex(initial)
-        val targetIndex = resolveTabIndex(target)
-        return if (targetIndex >= initialIndex) 1 else -1
-    }
-
-    fun resolvePredictivePopDirection(initial: NavBackStackEntry?, target: NavBackStackEntry?): Int {
-        val initialIndex = resolveTabIndex(initial)
-        val targetIndex = resolveTabIndex(target)
-        return when {
-            targetIndex > initialIndex -> 1
-            targetIndex < initialIndex -> -1
-            else -> -1
-        }
-    }
-
     fun shouldShowCompactBottomBar(destination: NavDestination?): Boolean {
         if (destination == null) return true
-        return destination.hasRoute(OverviewRoute::class) ||
-            destination.hasRoute(AppsRoute::class) ||
-            destination.hasRoute(RecordsRoute::class) ||
-            destination.hasRoute(AdvancedRoute::class) ||
-            destination.hasRoute(SettingsRoute::class)
+        return destination.hasRoute(MainTabsRoute::class)
     }
 
     val selectedIndex = resolveTabIndex(navBackStackEntry)
@@ -220,29 +223,25 @@ fun MainScreen(
     var appBlockRefreshTrigger by remember { mutableIntStateOf(0) }
     var recordsRefreshTrigger by remember { mutableIntStateOf(0) }
     var interceptRefreshTrigger by remember { mutableIntStateOf(0) }
-    var settingsRefreshTrigger by remember { mutableIntStateOf(0) }
     val tabLastTapAt = remember { mutableStateMapOf<String, Long>() }
 
-    fun triggerRefreshForTab(route: Any) {
-        when (route) {
-            is AppsRoute -> appBlockRefreshTrigger++
-            is RecordsRoute -> recordsRefreshTrigger++
-            is InterceptRoute -> interceptRefreshTrigger++
-            is AppsManageRoute -> appBlockRefreshTrigger++
-            is SettingsRoute -> settingsRefreshTrigger++
+    fun triggerRefreshForSection(section: NavigationSection) {
+        when (section) {
+            NavigationSection.APPS -> appBlockRefreshTrigger++
+            NavigationSection.RECORDS -> recordsRefreshTrigger++
             else -> Unit
         }
     }
 
-    fun handleTabClick(tab: TabItem<*>, selected: Boolean) {
-        val key = tab.route::class.qualifiedName ?: tab.label
+    fun handleTabClick(tab: TabItem<MainTabsRoute>, selected: Boolean) {
+        val key = tab.route.section
         val now = SystemClock.elapsedRealtime()
         val last = tabLastTapAt[key] ?: 0L
         tabLastTapAt[key] = now
 
         if (selected) {
             if (now - last <= TAB_DOUBLE_TAP_REFRESH_WINDOW_MS) {
-                triggerRefreshForTab(tab.route)
+                triggerRefreshForSection(NavigationSection.fromRouteId(tab.route.section))
             }
             return
         }
@@ -258,12 +257,13 @@ fun MainScreen(
 
     LaunchedEffect(initialTab) {
         when (initialTab) {
-            is OverviewRoute -> navController.navigate(OverviewRoute)
-            is AppsRoute -> navController.navigate(AppsRoute)
+            is OverviewRoute -> navController.navigate(MainTabsRoute(MAIN_TAB_OVERVIEW))
+            is AppsRoute -> navController.navigate(MainTabsRoute(MAIN_TAB_APPS))
             is AppsManageRoute -> navController.navigate(AppsManageRoute)
             is InterceptRoute -> navController.navigate(InterceptRoute)
-            is RecordsRoute -> navController.navigate(RecordsRoute)
-            is SettingsRoute -> navController.navigate(SettingsRoute)
+            is RecordsRoute -> navController.navigate(MainTabsRoute(MAIN_TAB_RECORDS))
+            is AdvancedRoute -> navController.navigate(MainTabsRoute(MAIN_TAB_ADVANCED))
+            is SettingsRoute -> navController.navigate(MainTabsRoute(MAIN_TAB_SETTINGS))
             is SmsCodeRulesRoute -> navController.navigate(initialTab)
             is SmsCodeRuleEditorRoute -> navController.navigate(initialTab)
             else -> Unit
@@ -276,6 +276,7 @@ fun MainScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .semantics { testTagsAsResourceId = true }
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)),
     ) {
         Row(
@@ -298,6 +299,7 @@ fun MainScreen(
                             icon = tab.icon,
                             selected = index == selectedIndex,
                             onClick = { handleTabClick(tab, index == selectedIndex) },
+                            testTag = benchmarkNavTag(index),
                         )
                     },
                 )
@@ -310,298 +312,169 @@ fun MainScreen(
             ) {
                 NavHost(
                     navController = navController,
-                    startDestination = OverviewRoute,
-                    enterTransition = {
-                        val targetTopLevelIndex = resolveExactTopLevelIndex(targetState.destination)
-                        if (targetTopLevelIndex != null) {
-                            val direction = resolveTransitionDirection(
-                                initial = initialState,
-                                target = targetState,
-                            )
-                            slideInHorizontally(
-                                animationSpec = tween(300),
-                                initialOffsetX = { fullWidth -> direction * fullWidth },
-                            ) + fadeIn(animationSpec = tween(300))
-                        } else {
-                            slideInHorizontally(
-                                animationSpec = tween(300),
-                                initialOffsetX = { fullWidth -> fullWidth },
-                            ) + fadeIn(animationSpec = tween(300))
-                        }
-                    },
-                    exitTransition = {
-                        val targetTopLevelIndex = resolveExactTopLevelIndex(targetState.destination)
-                        if (targetTopLevelIndex != null) {
-                            val direction = resolveTransitionDirection(
-                                initial = initialState,
-                                target = targetState,
-                            )
-                            slideOutHorizontally(
-                                animationSpec = tween(300),
-                                targetOffsetX = { fullWidth -> -direction * fullWidth },
-                            ) + fadeOut(animationSpec = tween(300))
-                        } else {
-                            slideOutHorizontally(
-                                animationSpec = tween(300),
-                                targetOffsetX = { fullWidth -> -fullWidth },
-                            ) + fadeOut(animationSpec = tween(300))
-                        }
-                    },
-                    popEnterTransition = {
-                        val initialTopLevelIndex = resolveExactTopLevelIndex(initialState.destination)
-                        val targetTopLevelIndex = resolveExactTopLevelIndex(targetState.destination)
-                        if (initialTopLevelIndex != null && targetTopLevelIndex != null) {
-                            val direction = resolveTransitionDirection(
-                                initial = initialState,
-                                target = targetState,
-                            )
-                            slideInHorizontally(
-                                animationSpec = tween(300),
-                                initialOffsetX = { fullWidth -> -direction * fullWidth },
-                            ) + fadeIn(animationSpec = tween(300))
-                        } else {
-                            slideInHorizontally(
-                                animationSpec = tween(300),
-                                initialOffsetX = { fullWidth -> -fullWidth },
-                            ) + fadeIn(animationSpec = tween(300))
-                        }
-                    },
-                    popExitTransition = {
-                        val initialTopLevelIndex = resolveExactTopLevelIndex(initialState.destination)
-                        val targetTopLevelIndex = resolveExactTopLevelIndex(targetState.destination)
-                        if (initialTopLevelIndex != null && targetTopLevelIndex != null) {
-                            val direction = resolveTransitionDirection(
-                                initial = initialState,
-                                target = targetState,
-                            )
-                            slideOutHorizontally(
-                                animationSpec = tween(300),
-                                targetOffsetX = { fullWidth -> direction * fullWidth },
-                            ) + fadeOut(animationSpec = tween(300))
-                        } else {
-                            slideOutHorizontally(
-                                animationSpec = tween(300),
-                                targetOffsetX = { fullWidth -> fullWidth },
-                            ) + fadeOut(animationSpec = tween(300))
-                        }
-                    },
-                    predictivePopEnterTransition = { _ ->
-                        val initialTopLevelIndex = resolveExactTopLevelIndex(initialState.destination)
-                        val targetTopLevelIndex = resolveExactTopLevelIndex(targetState.destination)
-                        if (initialTopLevelIndex != null && targetTopLevelIndex != null) {
-                            val direction = resolvePredictivePopDirection(
-                                initial = initialState,
-                                target = targetState,
-                            )
-                            slideInHorizontally(
-                                animationSpec = tween(300),
-                                initialOffsetX = { fullWidth -> direction * fullWidth },
-                            ) + fadeIn(animationSpec = tween(300))
-                        } else {
-                            slideInHorizontally(
-                                animationSpec = tween(300),
-                                initialOffsetX = { fullWidth -> -fullWidth },
-                            ) + fadeIn(animationSpec = tween(300))
-                        }
-                    },
-                    predictivePopExitTransition = { _ ->
-                        val initialTopLevelIndex = resolveExactTopLevelIndex(initialState.destination)
-                        val targetTopLevelIndex = resolveExactTopLevelIndex(targetState.destination)
-                        if (initialTopLevelIndex != null && targetTopLevelIndex != null) {
-                            val direction = resolvePredictivePopDirection(
-                                initial = initialState,
-                                target = targetState,
-                            )
-                            slideOutHorizontally(
-                                animationSpec = tween(300),
-                                targetOffsetX = { fullWidth -> -direction * fullWidth },
-                            ) + fadeOut(animationSpec = tween(300))
-                        } else {
-                            slideOutHorizontally(
-                                animationSpec = tween(300),
-                                targetOffsetX = { fullWidth -> fullWidth },
-                            ) + fadeOut(animationSpec = tween(300))
-                        }
-                    },
+                    startDestination = MainTabsRoute(),
                 ) {
-                    composable<OverviewRoute> {
-                        val settingsViewModel = io.github.magisk317.relay.ui.home.settings.rememberSharedSettingsViewModel()
-                        OverviewScreen(
-                            hazeState = hazeState,
-                            hazeStyle = hazeStyle,
-                            onCheckUpdate = { settingsViewModel.requestPreferredUpdate() }
+                    composable<MainTabsRoute> { backStackEntry ->
+                        val route = backStackEntry.toRoute<MainTabsRoute>()
+                        MainTabsPager(
+                            selectedSection = NavigationSection.fromRouteId(route.section),
+                            appBlockRefreshTrigger = appBlockRefreshTrigger,
+                            recordsRefreshTrigger = recordsRefreshTrigger,
+                            appConfigViewModel = appConfigViewModel,
+                            onCheckUpdate = { settingsViewModel.requestPreferredUpdate() },
+                            onNavigateToAppConfigDetail = { packageName, origin ->
+                                navController.navigate(
+                                    AppConfigDetailRoute(
+                                        packageName = packageName,
+                                        origin = origin,
+                                    ),
+                                )
+                            },
+                            onNavigateToVerificationSettings = {
+                                navController.navigate(VerificationSettingsRoute)
+                            },
+                            onNavigateToIntercept = {
+                                navController.navigate(InterceptRoute)
+                            },
+                            onNavigateToRelayConfig = { origin ->
+                                navController.navigate(RelayConfigRoute(origin = origin))
+                            },
+                            onNavigateToForwardKeepAlive = {
+                                navController.navigate(ForwardKeepAliveRoute)
+                            },
+                            onNavigateToScheduledReminder = {
+                                navController.navigate(ScheduledReminderRoute)
+                            },
+                            onNavigateToRemoteAgent = {
+                                navController.navigate(RemoteAgentRoute)
+                            },
+                            onNavigateToScheduledTasks = if (BuildConfig.ENABLE_SMS_CHANNEL) {
+                                { navController.navigate(ScheduledTasksRoute) }
+                            } else {
+                                null
+                            },
+                            onNavigateToCloudBackup = { source, backupNow ->
+                                navController.navigate(
+                                    CloudBackupRoute(
+                                        initialSource = source?.name,
+                                        backupNow = backupNow,
+                                    ),
+                                )
+                            },
                         )
                     }
-                    navigation<AppGraphRoute>(startDestination = AppsRoute) {
-                        composable<AppsRoute> {
-                            AppConfigScreen(
-                                hazeState = hazeState,
-                                hazeStyle = hazeStyle,
-                                onBack = null,
-                                onAppClick = { app ->
-                                    navController.navigate(
-                                        AppConfigDetailRoute(
-                                            packageName = app.packageName,
-                                            origin = ROUTE_ORIGIN_APPS,
-                                        ),
-                                    )
-                                },
-                                refreshTrigger = appBlockRefreshTrigger,
-                                viewModel = appConfigViewModel,
-                            )
-                        }
-                        composable<AppsManageRoute> {
-                            AppConfigScreen(
-                                hazeState = hazeState,
-                                hazeStyle = hazeStyle,
-                                onBack = { navController.popBackStack() },
-                                onAppClick = { app ->
-                                    navController.navigate(
-                                        AppConfigDetailRoute(
-                                            packageName = app.packageName,
-                                            origin = ROUTE_ORIGIN_APPS,
-                                        ),
-                                    )
-                                },
-                                refreshTrigger = appBlockRefreshTrigger,
-                                viewModel = appConfigViewModel,
-                            )
-                        }
-                        composable<AppConfigDetailRoute> { backStackEntry ->
-                            val route = backStackEntry.toRoute<AppConfigDetailRoute>()
-                            AppConfigDetailScreen(
-                                packageName = route.packageName,
-                                onBack = { navController.popBackStack() },
-                                onConfigureNotifyChannels = {
-                                    navController.navigate(
-                                        AppNotifySenderBindingRoute(
-                                            packageName = route.packageName,
-                                            origin = route.origin,
-                                        ),
-                                    )
-                                },
-                                onConfigureForwardFilters = {
-                                    navController.navigate(
-                                        AppForwardFilterRoute(
-                                            packageName = route.packageName,
-                                            origin = route.origin,
-                                        ),
-                                    )
-                                },
-                                viewModel = appConfigViewModel,
-                            )
-                        }
-                        composable<AppNotifySenderBindingRoute> { backStackEntry ->
-                            val route = backStackEntry.toRoute<AppNotifySenderBindingRoute>()
-                            AppNotifySenderBindingScreen(
-                                packageName = route.packageName,
-                                onBack = { navController.popBackStack() },
-                                viewModel = appConfigViewModel,
-                            )
-                        }
-                        composable<AppForwardFilterRoute> { backStackEntry ->
-                            val route = backStackEntry.toRoute<AppForwardFilterRoute>()
-                            AppForwardFilterScreen(
-                                packageName = route.packageName,
-                                onBack = { navController.popBackStack() },
-                            )
-                        }
+                    composable<AppsManageRoute> {
+                        AppConfigScreen(
+                            onBack = { navController.popBackStack() },
+                            onAppClick = { app ->
+                                navController.navigate(
+                                    AppConfigDetailRoute(
+                                        packageName = app.packageName,
+                                        origin = ROUTE_ORIGIN_APPS,
+                                    ),
+                                )
+                            },
+                            refreshTrigger = appBlockRefreshTrigger,
+                            viewModel = appConfigViewModel,
+                        )
+                    }
+                    composable<AppConfigDetailRoute> { backStackEntry ->
+                        val route = backStackEntry.toRoute<AppConfigDetailRoute>()
+                        AppConfigDetailScreen(
+                            packageName = route.packageName,
+                            onBack = { navController.popBackStack() },
+                            onConfigureNotifyChannels = {
+                                navController.navigate(
+                                    AppNotifySenderBindingRoute(
+                                        packageName = route.packageName,
+                                        origin = route.origin,
+                                    ),
+                                )
+                            },
+                            onConfigureForwardFilters = {
+                                navController.navigate(
+                                    AppForwardFilterRoute(
+                                        packageName = route.packageName,
+                                        origin = route.origin,
+                                    ),
+                                )
+                            },
+                            viewModel = appConfigViewModel,
+                        )
+                    }
+                    composable<AppNotifySenderBindingRoute> { backStackEntry ->
+                        val route = backStackEntry.toRoute<AppNotifySenderBindingRoute>()
+                        AppNotifySenderBindingScreen(
+                            packageName = route.packageName,
+                            onBack = { navController.popBackStack() },
+                            viewModel = appConfigViewModel,
+                        )
+                    }
+                    composable<AppForwardFilterRoute> { backStackEntry ->
+                        val route = backStackEntry.toRoute<AppForwardFilterRoute>()
+                        AppForwardFilterScreen(
+                            packageName = route.packageName,
+                            onBack = { navController.popBackStack() },
+                        )
                     }
                     composable<InterceptRoute> {
                         InterceptScreen(
-                            hazeState = hazeState,
-                            hazeStyle = hazeStyle,
                             refreshTrigger = interceptRefreshTrigger,
                             onOpenBlacklistHits = { navController.navigate(BlacklistHitsRoute) },
                         )
                     }
                     composable<BlacklistHitsRoute> {
                         BlacklistHitListScreen(
-                            hazeState = hazeState,
-                            hazeStyle = hazeStyle,
                             onBack = { navController.popBackStack() },
                         )
                     }
-                    navigation<RecordsGraphRoute>(startDestination = RecordsRoute) {
-                        composable<RecordsRoute> {
-                            CodeRecordScreen(
-                                hazeState = hazeState,
-                                hazeStyle = hazeStyle,
-                                onBack = null,
-                                refreshTrigger = recordsRefreshTrigger,
-                            )
-                        }
-                        composable<ScopedRecordsRoute> {
-                            CodeRecordScreen(
-                                hazeState = hazeState,
-                                hazeStyle = hazeStyle,
-                                onBack = { navController.popBackStack() },
-                                refreshTrigger = recordsRefreshTrigger,
-                            )
-                        }
+                    composable<ScopedRecordsRoute> {
+                        CodeRecordScreen(
+                            onBack = { navController.popBackStack() },
+                            refreshTrigger = recordsRefreshTrigger,
+                        )
                     }
-                    navigation<AdvancedGraphRoute>(startDestination = AdvancedRoute) {
-                        composable<AdvancedRoute> {
-                            AdvancedScreen(
-                                onInterceptClick = { navController.navigate(InterceptRoute) },
-                                onVerificationConfigClick = {
-                                    navController.navigate(VerificationSettingsRoute)
-                                },
-                                onRelayConfigClick = {
-                                    navController.navigate(RelayConfigRoute(origin = ROUTE_ORIGIN_ADVANCED))
-                                },
-                                onForwardKeepAliveClick = { navController.navigate(ForwardKeepAliveRoute) },
-                                onScheduledReminderClick = { navController.navigate(ScheduledReminderRoute) },
-                                onRemoteAgentClick = { navController.navigate(RemoteAgentRoute) },
-                                onNavigateToScheduledTasks = if (BuildConfig.ENABLE_SMS_CHANNEL) {
-                                    { navController.navigate(ScheduledTasksRoute) }
-                                } else {
-                                    null
-                                },
-                            )
-                        }
-                        composable<ScheduledTasksRoute> {
-                            io.github.magisk317.relay.ui.scheduled.ScheduledTasksScreen(
-                                onBack = { navController.popBackStack() },
-                                onNavigateToConfig = { taskId ->
-                                    navController.navigate(ScheduledTaskConfigRoute(id = taskId))
-                                }
-                            )
-                        }
-                        composable<ScheduledTaskConfigRoute> { backStackEntry ->
-                            val route = backStackEntry.toRoute<ScheduledTaskConfigRoute>()
-                            io.github.magisk317.relay.ui.scheduled.ScheduledTaskConfigScreen(
-                                taskId = route.id,
-                                onBack = { navController.popBackStack() }
-                            )
-                        }
-                        composable<RelayConfigRoute> { backStackEntry ->
-                            val route = backStackEntry.toRoute<RelayConfigRoute>()
-                            RelayConfigScreen(
-                                onBack = { navController.popBackStack() },
-                                onOpenSenders = {
-                                    navController.navigate(SendersRoute(origin = route.origin))
-                                },
-                                onOpenAppRouting = {
-                                    navController.navigate(AppRoutingRoute(origin = route.origin))
-                                },
-                                onOpenFilters = {
-                                    navController.navigate(GlobalForwardFilterRoute(origin = route.origin))
-                                },
-                                onOpenRecords = {
-                                    navController.navigate(ScopedRecordsRoute(origin = route.origin))
-                                },
-                            )
-                        }
-                        composable<ScheduledReminderRoute> {
-                            ScheduledReminderScreen(onBack = { navController.popBackStack() })
-                        }
-                        composable<ForwardKeepAliveRoute> {
-                            ForwardKeepAliveScreen(onBack = { navController.popBackStack() })
-                        }
-                        composable<GlobalForwardFilterRoute> {
-                            GlobalForwardFilterScreen(onBack = { navController.popBackStack() })
-                        }
+                    composable<ScheduledTasksRoute> {
+                        io.github.magisk317.relay.ui.scheduled.ScheduledTasksScreen(
+                            onBack = { navController.popBackStack() },
+                            onNavigateToConfig = { taskId ->
+                                navController.navigate(ScheduledTaskConfigRoute(id = taskId))
+                            }
+                        )
+                    }
+                    composable<ScheduledTaskConfigRoute> { backStackEntry ->
+                        val route = backStackEntry.toRoute<ScheduledTaskConfigRoute>()
+                        io.github.magisk317.relay.ui.scheduled.ScheduledTaskConfigScreen(
+                            taskId = route.id,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable<RelayConfigRoute> { backStackEntry ->
+                        val route = backStackEntry.toRoute<RelayConfigRoute>()
+                        RelayConfigScreen(
+                            onBack = { navController.popBackStack() },
+                            onOpenSenders = {
+                                navController.navigate(SendersRoute(origin = route.origin))
+                            },
+                            onOpenAppRouting = {
+                                navController.navigate(AppRoutingRoute(origin = route.origin))
+                            },
+                            onOpenFilters = {
+                                navController.navigate(GlobalForwardFilterRoute(origin = route.origin))
+                            },
+                            onOpenRecords = {
+                                navController.navigate(ScopedRecordsRoute(origin = route.origin))
+                            },
+                        )
+                    }
+                    composable<ScheduledReminderRoute> {
+                        ScheduledReminderScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable<ForwardKeepAliveRoute> {
+                        ForwardKeepAliveScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable<GlobalForwardFilterRoute> {
+                        GlobalForwardFilterScreen(onBack = { navController.popBackStack() })
                     }
                     composable<SendersRoute> { backStackEntry ->
                         val route = backStackEntry.toRoute<SendersRoute>()
@@ -638,8 +511,6 @@ fun MainScreen(
                     composable<AppRoutingRoute> { backStackEntry ->
                         val route = backStackEntry.toRoute<AppRoutingRoute>()
                         AppConfigScreen(
-                            hazeState = hazeState,
-                            hazeStyle = hazeStyle,
                             onBack = { navController.popBackStack() },
                             onAppClick = { app ->
                                 navController.navigate(
@@ -731,60 +602,35 @@ fun MainScreen(
                             onBack = { navController.popBackStack() },
                         )
                     }
-                    navigation<SettingsGraphRoute>(startDestination = SettingsRoute) {
-                        composable<SettingsRoute> {
-                            SettingsHomeScreen(
-                                onOpenVerification = { navController.navigate(VerificationSettingsRoute) },
-                                onOpenAdvancedRelay = {
-                                    navController.navigate(RelayConfigRoute(origin = ROUTE_ORIGIN_SETTINGS))
-                                },
-                                onOpenCloudBackup = { source, backupNow ->
-                                    navController.navigate(
-                                        CloudBackupRoute(
-                                            initialSource = source?.name,
-                                            backupNow = backupNow,
-                                        )
-                                    )
-                                },
-                            )
-                        }
-                        composable<VerificationSettingsRoute> {
-                            VerificationSettingsScreen(
-                                onBack = { navController.popBackStack() },
-                                onOpenRules = {
-                                    navController.navigate(SmsCodeRulesRoute(origin = ROUTE_ORIGIN_SETTINGS))
-                                },
-                                onOpenRecords = {
-                                    navController.navigate(ScopedRecordsRoute(origin = ROUTE_ORIGIN_SETTINGS))
-                                },
-                            )
-                        }
-                        composable<RemoteAgentRoute> {
-                            RemoteAgentScreen(onBack = { navController.popBackStack() })
-                        }
-                        composable<CloudBackupRoute> { backStackEntry ->
-                            val route = backStackEntry.toRoute<CloudBackupRoute>()
-                            val initialSource = route.initialSource?.let(::parseBackupSource)
-                            io.github.magisk317.relay.ui.backup.CloudBackupScreen(
-                                onBack = { navController.popBackStack() },
-                                initialSource = initialSource,
-                                backupNow = route.backupNow,
-                            )
-                        }
+                    composable<VerificationSettingsRoute> {
+                        VerificationSettingsScreen(
+                            onBack = { navController.popBackStack() },
+                            onOpenRules = {
+                                navController.navigate(SmsCodeRulesRoute(origin = ROUTE_ORIGIN_SETTINGS))
+                            },
+                            onOpenRecords = {
+                                navController.navigate(ScopedRecordsRoute(origin = ROUTE_ORIGIN_SETTINGS))
+                            },
+                        )
+                    }
+                    composable<RemoteAgentRoute> {
+                        RemoteAgentScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable<CloudBackupRoute> { backStackEntry ->
+                        val route = backStackEntry.toRoute<CloudBackupRoute>()
+                        val initialSource = route.initialSource?.let(::parseBackupSource)
+                        io.github.magisk317.relay.ui.backup.CloudBackupScreen(
+                            onBack = { navController.popBackStack() },
+                            initialSource = initialSource,
+                            backupNow = route.backupNow,
+                        )
                     }
                 }
             }
         }
 
         if (isCompact && shouldShowCompactBottomBar(currentDestination)) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .hazeEffect(hazeState) {
-                        blurEffect { style = hazeStyle }
-                        forceInvalidateOnPreDraw = true
-                    },
-            ) {
+            Box(modifier = Modifier.align(Alignment.BottomCenter)) {
                 AppBottomNavigationBar(
                     containerColor = Color.Transparent,
                     alwaysShowLabel = false,
@@ -794,6 +640,7 @@ fun MainScreen(
                             icon = tab.icon,
                             selected = index == selectedIndex,
                             onClick = { handleTabClick(tab, index == selectedIndex) },
+                            testTag = benchmarkNavTag(index),
                         )
                     },
                 )
@@ -802,6 +649,133 @@ fun MainScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun MainTabsPager(
+    selectedSection: NavigationSection,
+    appBlockRefreshTrigger: Int,
+    recordsRefreshTrigger: Int,
+    appConfigViewModel: AppConfigViewModel,
+    onCheckUpdate: () -> Unit,
+    onNavigateToAppConfigDetail: (String, String) -> Unit,
+    onNavigateToVerificationSettings: () -> Unit,
+    onNavigateToIntercept: () -> Unit,
+    onNavigateToRelayConfig: (String) -> Unit,
+    onNavigateToForwardKeepAlive: () -> Unit,
+    onNavigateToScheduledReminder: () -> Unit,
+    onNavigateToRemoteAgent: () -> Unit,
+    onNavigateToScheduledTasks: (() -> Unit)?,
+    onNavigateToCloudBackup: (BackupSource?, Boolean) -> Unit,
+) {
+    val pagerState = rememberPagerState(
+        initialPage = selectedSection.ordinal,
+        pageCount = { NavigationSection.entries.size },
+    )
+
+    LaunchedEffect(selectedSection) {
+        if (pagerState.currentPage != selectedSection.ordinal) {
+            pagerState.scrollToPage(selectedSection.ordinal)
+        }
+    }
+
+    HorizontalPager(
+        state = pagerState,
+        userScrollEnabled = false,
+        beyondViewportPageCount = 0,
+        modifier = Modifier.fillMaxSize(),
+    ) { page ->
+        val section = NavigationSection.entries[page]
+        val isActivePage = page == pagerState.currentPage || page == selectedSection.ordinal
+        if (!isActivePage) {
+            Box(modifier = Modifier.fillMaxSize())
+            return@HorizontalPager
+        }
+        when (section) {
+            NavigationSection.OVERVIEW -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag(BENCHMARK_TAB_OVERVIEW),
+                ) {
+                    OverviewScreen(onCheckUpdate = onCheckUpdate)
+                }
+            }
+
+            NavigationSection.APPS -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag(BENCHMARK_TAB_APPS),
+                ) {
+                    AppConfigScreen(
+                        onBack = null,
+                        onAppClick = { app ->
+                            onNavigateToAppConfigDetail(app.packageName, ROUTE_ORIGIN_APPS)
+                        },
+                        refreshTrigger = appBlockRefreshTrigger,
+                        viewModel = appConfigViewModel,
+                    )
+                }
+            }
+
+            NavigationSection.RECORDS -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag(BENCHMARK_TAB_RECORDS),
+                ) {
+                    CodeRecordScreen(
+                        onBack = null,
+                        refreshTrigger = recordsRefreshTrigger,
+                    )
+                }
+            }
+
+            NavigationSection.ADVANCED -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag(BENCHMARK_TAB_ADVANCED),
+                ) {
+                    AdvancedScreen(
+                        onInterceptClick = onNavigateToIntercept,
+                        onVerificationConfigClick = onNavigateToVerificationSettings,
+                        onRelayConfigClick = { onNavigateToRelayConfig(ROUTE_ORIGIN_ADVANCED) },
+                        onForwardKeepAliveClick = onNavigateToForwardKeepAlive,
+                        onScheduledReminderClick = onNavigateToScheduledReminder,
+                        onRemoteAgentClick = onNavigateToRemoteAgent,
+                        onNavigateToScheduledTasks = onNavigateToScheduledTasks,
+                    )
+                }
+            }
+
+            NavigationSection.SETTINGS -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag(BENCHMARK_TAB_SETTINGS),
+                ) {
+                    SettingsHomeScreen(
+                        onOpenVerification = onNavigateToVerificationSettings,
+                        onOpenAdvancedRelay = { onNavigateToRelayConfig(ROUTE_ORIGIN_SETTINGS) },
+                        onOpenCloudBackup = onNavigateToCloudBackup,
+                    )
+                }
+            }
+        }
+    }
+}
+
 private fun parseBackupSource(rawSource: String): BackupSource? {
     return BackupSource.entries.firstOrNull { it.name == rawSource }
+}
+
+private fun benchmarkNavTag(index: Int): String {
+    return when (NavigationSection.entries[index]) {
+        NavigationSection.OVERVIEW -> BENCHMARK_NAV_OVERVIEW
+        NavigationSection.APPS -> BENCHMARK_NAV_APPS
+        NavigationSection.RECORDS -> BENCHMARK_NAV_RECORDS
+        NavigationSection.ADVANCED -> BENCHMARK_NAV_ADVANCED
+        NavigationSection.SETTINGS -> BENCHMARK_NAV_SETTINGS
+    }
 }

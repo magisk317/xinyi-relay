@@ -1,5 +1,3 @@
-@file:Suppress("LocalContextGetResourceValueCall")
-
 package io.github.magisk317.relay.ui.home.forward
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
@@ -27,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -170,28 +169,28 @@ fun AppForwardFilterScreen(
     onBack: () -> Unit,
     viewModel: ForwardFilterViewModel = koinViewModel(),
 ) {
+    val normalizedPackageName = remember(packageName) { packageName.trim() }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val savedSnackbarText = context.getString(R.string.pref_sync_snackbar)
-    val appLabel = remember(packageName) {
-        runCatching {
-            val packageManager = context.packageManager
-            val appInfo = packageManager.getApplicationInfo(
-                packageName,
-                android.content.pm.PackageManager.MATCH_ALL,
-            )
-            packageManager.getApplicationLabel(appInfo).toString()
-        }.getOrDefault(packageName)
+    val headerState by viewModel.appForwardFilterUiState.collectAsStateWithLifecycle()
+    val appLabel = if (headerState.packageName == normalizedPackageName) {
+        headerState.appLabel.ifBlank { normalizedPackageName }
+    } else {
+        normalizedPackageName
+    }
+    LaunchedEffect(normalizedPackageName) {
+        viewModel.loadAppForwardFilterHeader(normalizedPackageName)
     }
 
-    val packageRulesFlow = remember(packageName) { viewModel.appPackageForwardRulesFlow(packageName) }
+    val packageRulesFlow = remember(normalizedPackageName) { viewModel.appPackageForwardRulesFlow(normalizedPackageName) }
     val packageRules by packageRulesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
 
-    val channelRulesFlow = remember(packageName) { viewModel.appChannelForwardRulesFlow(packageName) }
+    val channelRulesFlow = remember(normalizedPackageName) { viewModel.appChannelForwardRulesFlow(normalizedPackageName) }
     val channelRules by channelRulesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
 
-    val channelCandidatesFlow = remember(packageName) { viewModel.appNotifyChannelHistoryFlow(packageName) }
+    val channelCandidatesFlow = remember(normalizedPackageName) { viewModel.appNotifyChannelHistoryFlow(normalizedPackageName) }
     val channelCandidates by channelCandidatesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
 
     var editingPackageRule by remember { mutableStateOf<EditingRule?>(null) }
@@ -284,7 +283,7 @@ fun AppForwardFilterScreen(
                             rules = channelRules,
                             emptyText = stringResource(id = R.string.forward_filter_empty),
                             channelIdLabelProvider = { rule ->
-                                ForwardFilterConst.extractNotifyChannelId(rule.scopeKey, packageName)
+                                ForwardFilterConst.extractNotifyChannelId(rule.scopeKey, normalizedPackageName)
                             },
                             onToggleEnabled = { id, enabled ->
                                 viewModel.setForwardFilterRuleEnabled(id, enabled)
@@ -294,7 +293,7 @@ fun AppForwardFilterScreen(
                             },
                             onEdit = { rule ->
                                 editingChannelRule = rule.toEditingRule(
-                                    channelId = ForwardFilterConst.extractNotifyChannelId(rule.scopeKey, packageName),
+                                    channelId = ForwardFilterConst.extractNotifyChannelId(rule.scopeKey, normalizedPackageName),
                                 )
                                 showChannelEditor = true
                             },
@@ -336,7 +335,7 @@ fun AppForwardFilterScreen(
                     id = editingPackageRule?.id ?: 0L,
                     msgType = ForwardFilterConst.MSG_TYPE_APP_NOTIFY,
                     scopeType = ForwardFilterConst.SCOPE_PACKAGE,
-                    scopeKey = packageName,
+                    scopeKey = normalizedPackageName,
                     senderId = 0L,
                     policy = policy,
                     matchMode = matchMode,
@@ -366,7 +365,7 @@ fun AppForwardFilterScreen(
             channelCandidates = channelCandidates,
             onDismiss = { showChannelEditor = false },
             onConfirm = { policy, matchMode, pattern, enabled, channelId ->
-                val scopeKey = ForwardFilterConst.buildAndroidChannelScopeKey(packageName, channelId)
+                val scopeKey = ForwardFilterConst.buildAndroidChannelScopeKey(normalizedPackageName, channelId)
                 if (scopeKey.isNotEmpty()) {
                     val rule = ForwardFilterRule(
                         id = editingChannelRule?.id ?: 0L,

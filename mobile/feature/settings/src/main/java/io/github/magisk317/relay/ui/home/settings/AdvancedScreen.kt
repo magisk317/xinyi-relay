@@ -27,9 +27,12 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
+
+private const val BENCHMARK_ADVANCED_RELAY_CONFIG = "xinyi_benchmark_advanced_relay_config"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,6 +70,7 @@ fun AdvancedScreen(
                 title = stringResource(id = R.string.pref_relay_config_title),
                 subtitle = stringResource(id = R.string.pref_relay_config_summary),
                 icon = { Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null) },
+                modifier = Modifier.testTag(BENCHMARK_ADVANCED_RELAY_CONFIG),
                 onClick = onRelayConfigClick,
             )
             AdvancedEntryCard(
@@ -110,12 +114,13 @@ private fun AdvancedEntryCard(
     title: String,
     subtitle: String,
     icon: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
     trailingContent: @Composable (() -> Unit)? = null,
     showChevron: Boolean = true,
     onClick: (() -> Unit)? = null,
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().let { base ->
+        modifier = modifier.fillMaxWidth().let { base ->
             if (onClick != null) {
                 base.clickable(onClick = onClick)
             } else {

@@ -82,6 +82,7 @@ dependencyResolutionManagement {
 
 include(
     ":app",
+    ":benchmark:macro",
     ":hook:entry",
     ":runtime",
     ":core",

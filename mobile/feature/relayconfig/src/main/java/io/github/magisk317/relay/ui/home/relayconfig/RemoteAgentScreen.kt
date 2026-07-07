@@ -43,7 +43,7 @@ import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
 import com.google.mlkit.vision.barcode.common.Barcode
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.contract.repository.RemoteSyncRepository
+import io.github.magisk317.relay.contract.repository.ConfigSyncCoordinator
 import io.github.magisk317.relay.contract.settings.RemoteAgentSnapshot
 import io.github.magisk317.uikit.common.DismissibleSnackbarHost
 import kotlinx.coroutines.launch
@@ -54,7 +54,7 @@ import java.util.Date
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RemoteAgentScreen(onBack: () -> Unit) {
-    val repository: RemoteSyncRepository = koinInject()
+    val repository: ConfigSyncCoordinator = koinInject()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -245,11 +245,11 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                 Button(
                     onClick = {
                         scope.launch {
-                            runCatching { repository.pullConfigSnapshot() }
+                            runCatching { repository.pullPendingCommands() }
                                 .onSuccess {
                                     refresh()
                                     snackbarHostState.showLatestSnackbar(
-                                        context.getString(R.string.pref_remote_agent_pull_done, it.revision),
+                                        context.getString(R.string.pref_remote_agent_pull_done, it.revision.value),
                                     )
                                 }
                                 .onFailure {
@@ -271,7 +271,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                 Button(
                     onClick = {
                         scope.launch {
-                            runCatching { repository.pushConfigSnapshot() }
+                            runCatching { repository.pushLocalMirror() }
                                 .onSuccess {
                                     refresh()
                                     snackbarHostState.showLatestSnackbar(pushDoneText)
@@ -341,7 +341,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
             )
             StatusCard(
                 title = stringResource(id = R.string.pref_remote_agent_revision_title),
-                value = current?.lastAppliedConfigRevision?.toString()
+                value = current?.localConfigRevision?.toString()
                     ?: stateUnknownText,
             )
             StatusCard(
@@ -364,7 +364,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
             )
             StatusCard(
                 title = stringResource(id = R.string.pref_remote_agent_pending_mutations_title),
-                value = (current?.pendingMutations ?: 0).toString(),
+                value = (current?.pendingLocalChanges ?: 0).toString(),
             )
         }
     }

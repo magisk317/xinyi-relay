@@ -9,15 +9,22 @@ HOOK_ENTRY_BUILD="$ROOT_DIR/modules/hook/entry/build.gradle.kts"
 MOBILE_UI_BUILD="$ROOT_DIR/mobile/ui/build.gradle.kts"
 MOBILE_UI_SRC="$ROOT_DIR/mobile/ui/src"
 MOBILE_FEATURE_DIR="$ROOT_DIR/mobile/feature"
+MOBILE_SOURCE_DIRS=("$ROOT_DIR/mobile" "$ROOT_DIR/modules/relay/android/src" "$ROOT_DIR/modules/runtime/src")
 RUNTIME_BUILD="$ROOT_DIR/modules/runtime/build.gradle.kts"
 RUNTIME_SRC="$ROOT_DIR/modules/runtime/src"
 RELAY_ANDROID_BUILD="$ROOT_DIR/modules/relay/android/build.gradle.kts"
 RELAY_SENDER_BUILD="$ROOT_DIR/modules/relay/sender/build.gradle.kts"
 XPBRIDGE_CORE_BUILD="$ROOT_DIR/modules/xpbridge/core/build.gradle.kts"
+VERSION_CATALOG="$ROOT_DIR/gradle/libs.versions.toml"
 
 violations=()
 
 python3 "$ROOT_DIR/scripts/codegen/generate_sender_schema_contract.py" --check
+python3 "$ROOT_DIR/scripts/codegen/generate_openapi_schemas.py" --check
+python3 "$ROOT_DIR/scripts/codegen/generate_openapi_route_contracts.py" --check
+bash "$ROOT_DIR/scripts/codegen/generate_openapi_contract.sh" --check
+python3 "$ROOT_DIR/scripts/codegen/generate_console_contract_from_openapi.py" --check
+python3 "$ROOT_DIR/scripts/codegen/generate_config_root_contract.py" --check
 
 require_pattern() {
   local file="$1"
@@ -146,6 +153,14 @@ forbid_pattern "$MOBILE_FEATURE_DIR" '^\s*import\s+io\.github\.magisk317\.relay\
   "mobile feature modules must not import mobile/ui navigation contracts; receive callbacks from :mobile:ui instead"
 forbid_pattern "$MOBILE_FEATURE_DIR" '^\s*import\s+androidx\.navigation\.' \
   "mobile feature modules must not own navigation graphs or controllers; route composition stays in :mobile:ui"
+forbid_pattern "$VERSION_CATALOG" '(^haze\s*=|^haze-|dev\.chrisbanes\.haze)' \
+  "version catalog must not keep haze/blur aliases after the lightweight shell migration"
+for source_dir in "${MOBILE_SOURCE_DIRS[@]}"; do
+  forbid_pattern "$source_dir" '^\s*import\s+dev\.chrisbanes\.haze\.' \
+    "mobile source must not import Haze; use static surfaces/scrims in the lightweight shell"
+  forbid_pattern "$source_dir" '\b(SubcomposeAsyncImage|rememberAsyncImagePainter|AppIconLoader|AppIconImage)\b' \
+    "mobile source must not reintroduce composition-time app icon loaders; use AppIconCache and bitmap UI state"
+done
 
 forbid_pattern "$RELAY_ANDROID_BUILD" 'project\(":relay:engine"\)' \
   "relay/android must depend on :relay:engine:api, not :relay:engine implementation"
@@ -174,6 +189,8 @@ forbid_pattern "$RUNTIME_BUILD" 'project\(":relay:sender"\)' \
   "runtime must not depend on :relay:sender directly"
 forbid_pattern "$RUNTIME_SRC" '^\s*import\s+io\.github\.magisk317\.relay\.sender\.' \
   "runtime must use relay/engine:api SenderDispatcher services instead of importing relay/sender implementation packages"
+forbid_pattern "$RUNTIME_SRC" '\b(RemoteSyncRepository|RemoteConfigSnapshot|pushConfigSnapshot|pullConfigSnapshot|ConfigSnapshotPushResult)\b' \
+  "runtime must not reintroduce legacy shared cloud snapshot sync APIs"
 
 # Constraint: no legacy/forwarder directories in runtime (docs/ARCHITECTURE.md constraint #4)
 for dir in "$RUNTIME_SRC/main/java/io/github/magisk317/relay/legacy" \

@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.ui.home.appconfig
 
 import io.github.magisk317.relay.android.data.db.entity.AppInfo
+import kotlinx.collections.immutable.toImmutableList
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -98,15 +99,58 @@ class AppConfigListPolicyTest {
 
     @Test
     fun visibleAppCountAfterFilter_resetsOrClampsWindow() {
-        assertEquals(80, visibleAppCountAfterFilter(totalSize = 120, previousVisibleCount = 20, resetVisibleWindow = true))
-        assertEquals(50, visibleAppCountAfterFilter(totalSize = 50, previousVisibleCount = 120, resetVisibleWindow = false))
-        assertEquals(40, visibleAppCountAfterFilter(totalSize = 100, previousVisibleCount = 40, resetVisibleWindow = false))
+        assertEquals(80, visibleAppCountAfterFilter(previousVisibleCount = 20, resetVisibleWindow = true))
+        assertEquals(120, visibleAppCountAfterFilter(previousVisibleCount = 120, resetVisibleWindow = false))
+        assertEquals(40, visibleAppCountAfterFilter(previousVisibleCount = 40, resetVisibleWindow = false))
     }
 
     @Test
     fun visibleAppCountAfterLoadMore_growsByPageAndClampsAtTotalSize() {
-        assertEquals(100, visibleAppCountAfterLoadMore(totalSize = 100, currentVisibleCount = 80))
-        assertEquals(160, visibleAppCountAfterLoadMore(totalSize = 200, currentVisibleCount = 80))
+        assertEquals(160, visibleAppCountAfterLoadMore(currentVisibleCount = 80))
+        assertEquals(240, visibleAppCountAfterLoadMore(currentVisibleCount = 160))
+    }
+
+    @Test
+    fun assembleAppConfigList_appliesQueryStateAndClampsVisibleApps() {
+        val state = AppConfigQueryState(
+            sourceApps = listOf(
+                app("com.alpha", label = "Alpha"),
+                app("com.system.beta", label = "Beta"),
+                app("com.gamma", label = "Gamma", blocked = true),
+            ).toImmutableList(),
+            systemPackages = setOf("com.system.beta"),
+            visibleCount = 2,
+            hideSystemApps = true,
+            searchQuery = "",
+            sortOption = AppConfigViewModel.SortOption.LABEL,
+            isAscending = true,
+        )
+
+        val assembly = assembleAppConfigList(state)
+
+        assertEquals(listOf("com.gamma", "com.alpha"), assembly.visibleApps.map { it.packageName })
+        assertFalse(assembly.hasMoreApps)
+    }
+
+    @Test
+    fun assembleAppConfigList_reportsHasMoreWhenFilteredResultExceedsVisibleWindow() {
+        val state = AppConfigQueryState(
+            sourceApps = listOf(
+                app("com.alpha", label = "Alpha"),
+                app("com.beta", label = "Beta"),
+                app("com.gamma", label = "Gamma"),
+            ).toImmutableList(),
+            visibleCount = 2,
+            hideSystemApps = false,
+            searchQuery = "",
+            sortOption = AppConfigViewModel.SortOption.LABEL,
+            isAscending = true,
+        )
+
+        val assembly = assembleAppConfigList(state)
+
+        assertEquals(listOf("com.alpha", "com.beta"), assembly.visibleApps.map { it.packageName })
+        assertTrue(assembly.hasMoreApps)
     }
 
     private fun app(

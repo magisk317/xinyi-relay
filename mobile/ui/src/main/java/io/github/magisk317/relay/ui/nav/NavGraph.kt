@@ -6,8 +6,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import io.github.magisk317.relay.ui.home.MainScreen
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.blur.HazeBlurStyle
 import kotlinx.serialization.Serializable
 
 const val ROUTE_ORIGIN_ADVANCED = "advanced"
@@ -19,9 +17,6 @@ object MainRoute
 
 @Serializable
 object OverviewRoute
-
-@Serializable
-object SettingsGraphRoute
 
 @Serializable
 object SettingsRoute
@@ -36,9 +31,6 @@ object InterceptRoute
 object BlacklistHitsRoute
 
 @Serializable
-object RecordsGraphRoute
-
-@Serializable
 object RecordsRoute
 
 @Serializable
@@ -48,16 +40,10 @@ data class ScopedRecordsRoute(val origin: String = ROUTE_ORIGIN_ADVANCED)
 object AppsRoute
 
 @Serializable
-object AppGraphRoute
-
-@Serializable
 data class SendersRoute(val origin: String = ROUTE_ORIGIN_ADVANCED)
 
 @Serializable
 data class SenderTypeRoute(val origin: String = ROUTE_ORIGIN_ADVANCED)
-
-@Serializable
-object AdvancedGraphRoute
 
 @Serializable
 object AdvancedRoute
@@ -159,8 +145,6 @@ fun SmsCodeNavHost(
     initialTab: Any? = null,
     onInitialTabConsumed: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
-    hazeState: HazeState,
-    hazeStyle: HazeBlurStyle,
 ) {
     NavHost(
         navController = navController,
@@ -171,8 +155,6 @@ fun SmsCodeNavHost(
             MainScreen(
                 initialTab = initialTab,
                 onInitialTabConsumed = onInitialTabConsumed,
-                hazeState = hazeState,
-                hazeStyle = hazeStyle,
             )
         }
     }

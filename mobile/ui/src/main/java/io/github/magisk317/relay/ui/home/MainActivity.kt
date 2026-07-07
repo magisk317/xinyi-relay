@@ -60,6 +60,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.metrics.performance.JankStats
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.runtime.CompositionLocalProvider
@@ -83,7 +84,6 @@ import io.github.magisk317.smscode.runtime.common.update.UpgradeInfo
 import io.github.magisk317.smscode.runtime.common.update.UpdatePolicy
 import io.github.magisk317.relay.ui.app.base.UpdateSystemBars
 import io.github.magisk317.relay.ui.app.base.applyEdgeToEdge
-import io.github.magisk317.relay.ui.app.base.rememberHazeStyle
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
 import io.github.magisk317.relay.ui.home.update.FlavorPlayUpdateDelegate
 import io.github.magisk317.relay.ui.home.update.PlayUpdateDelegate
@@ -91,7 +91,6 @@ import io.github.magisk317.relay.ui.nav.SmsCodeNavHost
 import io.github.magisk317.relay.ui.privacy.PrivacyPolicyPage
 import io.github.magisk317.relay.ui.theme.AppTheme
 import io.github.magisk317.uikit.theme.UiKitStyle
-import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -112,6 +111,7 @@ class MainActivity : ComponentActivity() {
 
     private val playUpdateDelegate: PlayUpdateDelegate = FlavorPlayUpdateDelegate()
     private var autoUpdateChecked = false
+    private var jankStats: JankStats? = null
     private val snackbarMessages = MutableSharedFlow<String>(extraBufferCapacity = 8)
     private val settingsRepository: SettingsPreferencesRepository by inject()
 
@@ -128,6 +128,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         applyEdgeToEdge(this)
+        installJankStatsIfDebug()
         playUpdateDelegate.onCreate(this) {
             PackageUtils.openPlayStoreOrGithub(this)?.let(::enqueueSnackbar)
         }
@@ -390,22 +391,12 @@ class MainActivity : ComponentActivity() {
                         }
 
                         Box(modifier = Modifier.fillMaxSize()) {
-                            val hazeBlurRadius by settingsRepository.getHazeBlurRadiusFlow()
-                                .collectAsStateWithLifecycle(initialValue = PrefConst.HAZE_BLUR_RADIUS_DEFAULT)
-
-                            val hazeTintAlpha by settingsRepository.getHazeTintAlphaFlow()
-                                .collectAsStateWithLifecycle(initialValue = PrefConst.HAZE_TINT_ALPHA_DEFAULT)
-
-                            val hazeState = remember { HazeState() }
-                            val hazeStyle = rememberHazeStyle(blurRadius = hazeBlurRadius.dp, tintAlpha = hazeTintAlpha)
                             SmsCodeNavHost(
                                 navController = navController,
                                 onBack = { finish() },
                                 initialTab = requestedTab,
                                 onInitialTabConsumed = { requestedTab = null },
                                 modifier = Modifier,
-                                hazeState = hazeState,
-                                hazeStyle = hazeStyle,
                             )
 
                         StartupPermissionPrompt(
@@ -718,13 +709,28 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun installJankStatsIfDebug() {
+        if (!BuildConfig.DEBUG || jankStats != null) return
+        jankStats = JankStats.createAndTrack(window) { frameData ->
+            if (frameData.isJank) {
+                XLog.d("UI jank frame: %s", frameData)
+            }
+        }
+    }
+
 
 
     override fun onResume() {
         super.onResume()
+        jankStats?.isTrackingEnabled = true
         playUpdateDelegate.onResume(this) {
             PackageUtils.openPlayStoreOrGithub(this)?.let(::enqueueSnackbar)
         }
+    }
+
+    override fun onPause() {
+        jankStats?.isTrackingEnabled = false
+        super.onPause()
     }
 
     override fun onDestroy() {
