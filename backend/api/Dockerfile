@@ -1,5 +1,5 @@
 # Stage 1: Build webui
-FROM --platform=$BUILDPLATFORM node:24-alpine AS webui-build
+FROM --platform=$BUILDPLATFORM node:24-bookworm-slim AS webui-build
 ARG HTTP_PROXY
 ARG HTTPS_PROXY
 ARG ALL_PROXY
@@ -16,12 +16,12 @@ ENV HTTP_PROXY=${HTTP_PROXY} \
     https_proxy=${https_proxy} \
     all_proxy=${all_proxy} \
     no_proxy=${no_proxy}
-RUN corepack enable pnpm
 WORKDIR /src
 COPY frontend/shared ./frontend/shared
 COPY frontend/webui ./frontend/webui
 WORKDIR /src/frontend/webui
-RUN CI=true pnpm install
+RUN corepack enable && corepack prepare "$(node -p "require('./package.json').packageManager")" --activate
+RUN CI=true pnpm install --frozen-lockfile
 RUN pnpm run build
 
 # Stage 2: Build backend
