@@ -115,9 +115,31 @@ variables:
     DOCKER_HOST: "tcp://docker:2375"
     DOCKER_TLS_CERTDIR: ""
     DOCKER_DRIVER: overlay2
+    HTTP_PROXY: "$CI_HTTP_PROXY"
+    HTTPS_PROXY: "$CI_HTTPS_PROXY"
+    http_proxy: "$CI_HTTP_PROXY"
+    https_proxy: "$CI_HTTPS_PROXY"
+    NO_PROXY: "$CI_NO_PROXY"
+    no_proxy: "$CI_NO_PROXY"
     GOPROXY: "https://goproxy.cn,direct"
   before_script:
     - apk add --no-cache bash curl git jq
+    - |
+      set -euo pipefail
+      if [ -n "${HTTP_PROXY:-${http_proxy:-}}" ] || [ -n "${HTTPS_PROXY:-${https_proxy:-}}" ]; then
+        mkdir -p "$HOME/.docker"
+        cat > "$HOME/.docker/config.json" <<EOF
+      {
+        "proxies": {
+          "default": {
+            "httpProxy": "${HTTP_PROXY:-${http_proxy:-}}",
+            "httpsProxy": "${HTTPS_PROXY:-${https_proxy:-}}",
+            "noProxy": "${NO_PROXY:-${no_proxy:-}}"
+          }
+        }
+      }
+      EOF
+      fi
     - docker version
     - docker buildx version
 
