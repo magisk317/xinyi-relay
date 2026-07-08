@@ -17,7 +17,7 @@ buildscript {
             force("io.netty:netty-handler:5.0.0.Alpha2")
             force("io.netty:netty-handler-proxy:5.0.0.Alpha2")
             force("org.apache.commons:commons-lang3:3.20.0")
-            force("org.apache.httpcomponents:httpclient:4.5.13")
+            force("org.apache.httpcomponents:httpclient:4.5.14")
             force("org.bitbucket.b_c:jose4j:0.9.6")
             force("org.bouncycastle:bcpkix-jdk18on:1.84")
             force("org.bouncycastle:bcprov-jdk18on:1.84")
@@ -86,7 +86,7 @@ allprojects {
             force("io.netty:netty-handler:5.0.0.Alpha2")
             force("io.netty:netty-handler-proxy:5.0.0.Alpha2")
             force("org.apache.commons:commons-lang3:3.20.0")
-            force("org.apache.httpcomponents:httpclient:4.5.13")
+            force("org.apache.httpcomponents:httpclient:4.5.14")
             force("org.bitbucket.b_c:jose4j:0.9.6")
             force("org.bouncycastle:bcpkix-jdk18on:1.84")
             force("org.bouncycastle:bcprov-jdk18on:1.84")
@@ -95,11 +95,11 @@ allprojects {
 
             // Custom migration overrides for Java 26 compatibility
             force("org.jetbrains.kotlin:kotlin-metadata-jvm:$forcedKotlinVersion")
-            force("org.ow2.asm:asm:9.10")
-            force("org.ow2.asm:asm-commons:9.10")
-            force("org.ow2.asm:asm-tree:9.10")
-            force("org.ow2.asm:asm-analysis:9.10")
-            force("org.ow2.asm:asm-util:9.10")
+            force("org.ow2.asm:asm:9.10.1")
+            force("org.ow2.asm:asm-commons:9.10.1")
+            force("org.ow2.asm:asm-tree:9.10.1")
+            force("org.ow2.asm:asm-analysis:9.10.1")
+            force("org.ow2.asm:asm-util:9.10.1")
         }
     }
 }
