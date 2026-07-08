@@ -104,7 +104,7 @@ class RelayManifestContractTest {
         assertTrue("android.permission.READ_PHONE_STATE" in permissions)
         assertTrue("android.permission.READ_CALL_LOG" in permissions)
         assertTrue("android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" in permissions)
-        assertFalse("android.hardware.telephony" in features)
+        assertTrue("android.hardware.telephony" in features)
     }
 
     @Test
