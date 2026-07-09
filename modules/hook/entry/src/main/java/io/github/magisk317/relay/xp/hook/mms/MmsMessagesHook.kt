@@ -27,22 +27,15 @@ import java.util.concurrent.Executors
 class MmsMessagesHook : BaseHook() {
     private val smsOperationExecutor = Executors.newSingleThreadExecutor()
 
-    override fun onLoadPackage(lpparam: LoadParam) {
+    override fun onLoadPackage(param: LoadParam) {
         XLog.withRoute(LogRoute.SMS_HOOK) {
-            onLoadPackageRouted(lpparam)
+            onLoadPackageRouted(param)
         }
     }
 
     private fun onLoadPackageRouted(lpparam: LoadParam) {
         if (lpparam.packageName != MMS_PACKAGE_NAME) return
-        val classLoader = lpparam.classLoader ?: run {
-            XLog.w(
-                "MmsMessagesHook skip: classLoader is null for pkg=%s process=%s",
-                lpparam.packageName,
-                lpparam.processName,
-            )
-            return
-        }
+        val classLoader = lpparam.classLoader
         XLog.i("MmsMessagesHook initializing")
         var totalHooks = 0
         RECEIVER_CLASS_NAMES.forEach { totalHooks += hookReceiver(classLoader, it) }

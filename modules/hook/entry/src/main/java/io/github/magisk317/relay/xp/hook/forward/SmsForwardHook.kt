@@ -74,19 +74,16 @@ class SmsForwardHook : BaseHook() {
     @Volatile
     private var suppressionLogged = false
 
-    override fun onLoadPackage(lpparam: LoadParam) {
+    override fun onLoadPackage(param: LoadParam) {
         XLog.withRoute(LogRoute.FORWARD) {
-            onLoadPackageRouted(lpparam)
+            onLoadPackageRouted(param)
         }
     }
 
     private fun onLoadPackageRouted(lpparam: LoadParam) {
         if (!PhoneHookTargetPackages.contains(lpparam.packageName)) return
         XLog.i("SmsForwardHook initializing")
-        val classLoader = lpparam.classLoader ?: run {
-            XLog.w("SmsForwardHook skipped: classLoader is null for %s", lpparam.packageName)
-            return
-        }
+        val classLoader = lpparam.classLoader
         try {
             hookConstructor(classLoader)
             hookDispatchIntent(classLoader)

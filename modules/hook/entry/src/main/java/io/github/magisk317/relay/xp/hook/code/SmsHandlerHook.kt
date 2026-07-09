@@ -63,9 +63,9 @@ class SmsHandlerHook : BaseHook() {
     @Volatile
     private var suppressionLogged = false
 
-    override fun onLoadPackage(lpparam: LoadParam) {
+    override fun onLoadPackage(param: LoadParam) {
         XLog.withRoute(LogRoute.SMS_HOOK) {
-            onLoadPackageRouted(lpparam)
+            onLoadPackageRouted(param)
         }
     }
 
@@ -78,10 +78,6 @@ class SmsHandlerHook : BaseHook() {
             )
             XLog.i("SmsCode initializing")
             printDeviceInfo()
-            val classLoader = lpparam.classLoader ?: run {
-                XLog.w("SmsHandlerHook skipped: classLoader is null for %s", lpparam.packageName)
-                return
-            }
             try {
                 hookSmsHandler(lpparam)
             } catch (e: Throwable) {
@@ -109,7 +105,7 @@ class SmsHandlerHook : BaseHook() {
     }
 
     private fun hookSmsHandler(lpparam: LoadParam) {
-        val classLoader = lpparam.classLoader ?: return
+        val classLoader = lpparam.classLoader
         hookConstructor(lpparam, classLoader)
         hookDispatchIntent(lpparam, classLoader)
         hookSmsDispatcherChain(classLoader)
