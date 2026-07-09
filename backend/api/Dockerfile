@@ -25,7 +25,7 @@ RUN CI=true pnpm install --frozen-lockfile
 RUN pnpm run build
 
 # Stage 2: Build backend
-FROM --platform=$BUILDPLATFORM golang:1.26.4-alpine3.23 AS build
+FROM --platform=$BUILDPLATFORM golang:1.26.5-alpine3.23 AS build
 WORKDIR /src
 ARG GOPROXY=https://goproxy.cn,direct
 ARG HTTP_PROXY
