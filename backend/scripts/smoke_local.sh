@@ -177,7 +177,7 @@ echo "[smoke] agent acknowledges command"
 curl -kfsS -X POST "$BASE_URL/api/v1/agent/config/commands:ack" \
   -H "Authorization: Bearer $DEVICE_TOKEN" \
   -H 'Content-Type: application/json' \
-  -d "{\"commandId\":$COMMAND_ID,\"status\":\"applied\",\"appliedRevision\":$TARGET_REVISION,\"failureReason\":\"\",\"snapshot\":{\"senders\":[],\"deviceAppInfos\":{\"$DEVICE_ID\":[]},\"rules\":[],\"smsCodeRules\":[],\"notifyRoutes\":[],\"forwardFilters\":[]}}" | jq .
+  -d "{\"commandId\":$COMMAND_ID,\"status\":\"applied\",\"appliedRevision\":$TARGET_REVISION,\"failureReason\":\"\",\"mirrorContent\":{\"senders\":[],\"deviceAppInfos\":{\"$DEVICE_ID\":[]},\"rules\":[],\"smsCodeRules\":[],\"notifyRoutes\":[],\"forwardFilters\":[]}}" | jq .
 
 echo "[smoke] device config audit"
 curl -kfsS -b "$COOKIE_JAR" "$BASE_URL/api/v1/devices/$DEVICE_ID/config/audit" | jq .
