@@ -181,7 +181,7 @@ variables:
 
 backend:go:
   extends: .xinyi_ci_rules
-  image: "golang:1.26.4-bookworm"
+  image: "golang:1.26.5-bookworm"
   stage: quality
   needs: []
   variables:
