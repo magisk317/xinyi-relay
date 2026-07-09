@@ -968,7 +968,7 @@ abstract class AppDatabase : RoomDatabase() {
                 AppDatabase::class.java,
                 DATABASE_NAME,
             )
-                .fallbackToDestructiveMigration()
+                .fallbackToDestructiveMigration(dropAllTables = true)
                 .addMigrations(
                     MIGRATION_1_2,
                     MIGRATION_2_3,
