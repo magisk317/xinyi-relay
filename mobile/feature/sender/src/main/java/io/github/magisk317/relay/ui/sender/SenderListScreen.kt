@@ -31,6 +31,7 @@ import io.github.magisk317.relay.contract.settings.MessageTypeGateUpdate
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.engine.model.Sender
+import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -226,7 +227,12 @@ fun SenderListScreen(
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.sender_config_title)) }) },
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.sender_config_title)) },
+                colors = chromeTopAppBarColors(),
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(
                 modifier = Modifier

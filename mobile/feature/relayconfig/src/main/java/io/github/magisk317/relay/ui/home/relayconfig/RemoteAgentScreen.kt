@@ -46,6 +46,7 @@ import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.contract.repository.ConfigSyncCoordinator
 import io.github.magisk317.relay.contract.settings.RemoteAgentSnapshot
 import io.github.magisk317.uikit.common.DismissibleSnackbarHost
+import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import java.text.DateFormat
@@ -101,6 +102,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                     }
                 },
+                colors = chromeTopAppBarColors(),
             )
         },
         snackbarHost = {

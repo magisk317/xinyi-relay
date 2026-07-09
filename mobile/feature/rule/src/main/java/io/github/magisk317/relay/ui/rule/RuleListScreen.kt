@@ -33,6 +33,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.engine.model.Rule
 import io.github.magisk317.relay.ui.sender.displayName
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import org.koin.compose.viewmodel.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -59,12 +60,15 @@ fun RuleListScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = {
-                Text(
-                    senderName?.let { context.getString(R.string.rule_list_title_named, it) }
-                        ?: stringResource(R.string.rule_list_title),
-                )
-            })
+            TopAppBar(
+                title = {
+                    Text(
+                        senderName?.let { context.getString(R.string.rule_list_title_named, it) }
+                            ?: stringResource(R.string.rule_list_title),
+                    )
+                },
+                colors = chromeTopAppBarColors(),
+            )
         },
         snackbarHost = {
             io.github.magisk317.uikit.common.DismissibleSnackbarHost(

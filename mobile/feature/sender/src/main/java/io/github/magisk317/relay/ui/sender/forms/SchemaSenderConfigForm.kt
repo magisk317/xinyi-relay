@@ -61,6 +61,7 @@ import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
+import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import java.util.Date
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
@@ -290,6 +291,7 @@ internal fun SchemaSenderConfigForm(
                         Text(stringResource(R.string.save))
                     }
                 },
+                colors = chromeTopAppBarColors(),
             )
         },
     ) { padding ->

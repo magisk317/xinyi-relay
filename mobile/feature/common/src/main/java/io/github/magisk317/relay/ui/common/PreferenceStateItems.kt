@@ -151,18 +151,6 @@ fun SwitchItem(
 }
 
 @Composable
-fun SectionHeader(
-    text: String,
-    modifier: Modifier = Modifier,
-) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleMedium,
-        modifier = modifier,
-    )
-}
-
-@Composable
 fun TextInputDialog(
     title: String,
     initialValue: String,

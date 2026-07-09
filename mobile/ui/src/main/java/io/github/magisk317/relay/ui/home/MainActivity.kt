@@ -82,8 +82,8 @@ import io.github.magisk317.smscode.runtime.common.update.GithubReleaseInfo
 import io.github.magisk317.smscode.runtime.common.update.UpgradeCheckResult
 import io.github.magisk317.smscode.runtime.common.update.UpgradeInfo
 import io.github.magisk317.smscode.runtime.common.update.UpdatePolicy
-import io.github.magisk317.relay.ui.app.base.UpdateSystemBars
-import io.github.magisk317.relay.ui.app.base.applyEdgeToEdge
+import io.github.magisk317.uikit.theme.UpdateSystemBars
+import io.github.magisk317.uikit.theme.applyEdgeToEdge
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
 import io.github.magisk317.relay.ui.home.update.FlavorPlayUpdateDelegate
 import io.github.magisk317.relay.ui.home.update.PlayUpdateDelegate
@@ -128,7 +128,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         applyEdgeToEdge(this)
-        installJankStatsIfDebug()
         playUpdateDelegate.onCreate(this) {
             PackageUtils.openPlayStoreOrGithub(this)?.let(::enqueueSnackbar)
         }
@@ -707,10 +706,16 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        installJankStatsIfDebug()
     }
 
     private fun installJankStatsIfDebug() {
         if (!BuildConfig.DEBUG || jankStats != null) return
+        val decorView = window.peekDecorView()
+        if (decorView == null) {
+            window.decorView.post { installJankStatsIfDebug() }
+            return
+        }
         jankStats = JankStats.createAndTrack(window) { frameData ->
             if (frameData.isJank) {
                 XLog.d("UI jank frame: %s", frameData)

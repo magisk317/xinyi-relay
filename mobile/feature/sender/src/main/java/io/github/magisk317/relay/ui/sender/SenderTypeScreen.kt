@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.mobilefeature.sender.BuildConfig
+import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,6 +72,7 @@ fun SenderTypeScreen(
                         )
                     }
                 },
+                colors = chromeTopAppBarColors(),
             )
         }
     ) { paddingValues ->

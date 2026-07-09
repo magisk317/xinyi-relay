@@ -68,12 +68,16 @@ import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.ui.common.AppIconBitmapImage
 import io.github.magisk317.uikit.foundation.LoadingIndicatorTokens
 import io.github.magisk317.uikit.foundation.PolygonMorphLoadingIndicator
+import io.github.magisk317.uikit.scroll.ReportLazyListScrollToChrome
+import io.github.magisk317.uikit.scroll.ScrollChromeState
+import io.github.magisk317.uikit.surface.chromeSurfaceColor
+import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import io.github.magisk317.uikit.foundation.SessionLoadingRegistry
 import io.github.magisk317.relay.ui.common.SingleChoiceOptionDialog
 import io.github.magisk317.uikit.foundation.rememberMinDurationLoading
 import io.github.magisk317.relay.ui.common.Item
 import io.github.magisk317.relay.ui.common.RetentionDialog
-import io.github.magisk317.relay.ui.common.SectionHeader
+import io.github.magisk317.uikit.preference.SectionHeader
 import io.github.magisk317.relay.ui.common.StateSwitchItem
 import io.github.magisk317.relay.ui.common.TextInputDialog
 import io.github.magisk317.uikit.surface.WorkspaceEmptyState
@@ -144,6 +148,7 @@ fun CodeRecordScreen(
     onBack: (() -> Unit)? = null,
     refreshTrigger: Int = 0,
     viewModel: CodeRecordViewModel = koinViewModel(),
+    scrollChromeState: ScrollChromeState? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val smsList = uiState.smsList
@@ -510,6 +515,9 @@ fun CodeRecordScreen(
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val pullToRefreshState = rememberPullToRefreshState()
     val density = LocalDensity.current
+    val headerOffset = with(density) {
+        (scrollChromeState?.animatedHeaderOffsetY ?: 0f).coerceAtMost(0f).toDp()
+    }
 
     val codeSmsList = queryState.codeRecords
     val plainSmsList = queryState.plainSmsRecords
@@ -584,7 +592,8 @@ fun CodeRecordScreen(
         modifier = Modifier.fillMaxSize(),
     ) {
         val defaultTopPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 120.dp
-        val fixedTopHeight = if (fixedTopHeightPx > 0) with(density) { fixedTopHeightPx.toDp() } else defaultTopPadding
+        val measuredTopHeight = if (fixedTopHeightPx > 0) with(density) { fixedTopHeightPx.toDp() } else defaultTopPadding
+        val fixedTopHeight = (measuredTopHeight + headerOffset).coerceAtLeast(0.dp)
         val bottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 80.dp
 
         PullToRefreshBox(
@@ -667,6 +676,7 @@ fun CodeRecordScreen(
                             scrollBehavior = scrollBehavior,
                             showHeader = false,
                             listContentPadding = PaddingValues(top = fixedTopHeight, bottom = bottomPadding),
+                            scrollChromeState = scrollChromeState,
                         )
                     }
                 }
@@ -677,8 +687,11 @@ fun CodeRecordScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopCenter)
-                .onSizeChanged { fixedTopHeightPx = it.height }
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)),
+                .offset(y = headerOffset)
+                .onSizeChanged {
+                    fixedTopHeightPx = it.height
+                    scrollChromeState?.headerHeightPx = it.height.toFloat()
+                },
         ) {
             TopAppBar(
                 title = {
@@ -752,10 +765,7 @@ fun CodeRecordScreen(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = Color.Transparent,
-                ),
+                colors = chromeTopAppBarColors(),
                 scrollBehavior = scrollBehavior,
                 windowInsets = WindowInsets.statusBars,
             )
@@ -769,6 +779,7 @@ fun CodeRecordScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .background(chromeSurfaceColor())
                         .padding(horizontal = 6.dp),
                 ) {
                     repeat(tabCounts.size) { tabIndex ->
@@ -1379,8 +1390,10 @@ private fun RecordSplitColumn(
     scrollBehavior: TopAppBarScrollBehavior,
     showHeader: Boolean = true,
     listContentPadding: PaddingValues = PaddingValues(0.dp),
+    scrollChromeState: ScrollChromeState? = null,
 ) {
     val listState = rememberLazyListState()
+    ReportLazyListScrollToChrome(listState, scrollChromeState)
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,

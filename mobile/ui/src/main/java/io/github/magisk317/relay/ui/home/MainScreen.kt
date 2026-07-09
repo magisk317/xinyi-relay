@@ -4,8 +4,8 @@ import io.github.magisk317.relay.ui.home.forward.AppForwardFilterScreen
 import io.github.magisk317.relay.ui.home.forward.GlobalForwardFilterScreen
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -19,9 +19,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
@@ -39,9 +36,14 @@ import androidx.navigation.compose.navigation
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import io.github.magisk317.uikit.surface.AppBottomNavigationBar
+import io.github.magisk317.uikit.scroll.ScrollChromeState
+import io.github.magisk317.uikit.surface.AnimatedCompactBottomNavigationChrome
+import io.github.magisk317.uikit.surface.AnimatedSystemBarsScrim
 import io.github.magisk317.uikit.surface.AppNavigationItemSpec
 import io.github.magisk317.uikit.surface.AppNavigationRail
+import io.github.magisk317.uikit.surface.TabItem
+import io.github.magisk317.uikit.surface.rememberIsCompactWidth
+import io.github.magisk317.uikit.surface.rememberMainChromeController
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.ui.nav.*
 import io.github.magisk317.relay.ui.record.CodeRecordScreen
@@ -63,10 +65,8 @@ import io.github.magisk317.relay.ui.home.appconfig.AppNotifySenderBindingScreen
 import io.github.magisk317.relay.ui.home.settings.AdvancedScreen
 import io.github.magisk317.relay.ui.home.appconfig.AppConfigScreen
 import io.github.magisk317.relay.ui.home.relayconfig.RelayConfigScreen
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-
-@Immutable
-data class TabItem<T : Any>(val label: String, val icon: ImageVector, val route: T)
 
 private const val TAB_DOUBLE_TAP_REFRESH_WINDOW_MS = 350L
 private val COMPACT_BOTTOM_BAR_CONTENT_PADDING = 80.dp
@@ -210,20 +210,60 @@ fun MainScreen(
         return destination.hasRoute(MainTabsRoute::class)
     }
 
+    fun shouldAllowScrollChrome(entry: NavBackStackEntry?): Boolean {
+        val destination = entry?.destination ?: return false
+        return when {
+            destination.hasRoute(MainTabsRoute::class) -> {
+                when (NavigationSection.fromRouteId(entry.toRoute<MainTabsRoute>().section)) {
+                    NavigationSection.APPS, NavigationSection.RECORDS -> true
+                    NavigationSection.OVERVIEW,
+                    NavigationSection.ADVANCED,
+                    NavigationSection.SETTINGS,
+                    -> false
+                }
+            }
+            destination.hasRoute(AppsRoute::class) ||
+                destination.hasRoute(AppsManageRoute::class) ||
+                destination.hasRoute(AppRoutingRoute::class) ||
+                destination.hasRoute(ScopedRecordsRoute::class) -> true
+            else -> false
+        }
+    }
+
     val selectedIndex = resolveTabIndex(navBackStackEntry)
 
-    val configuration = LocalConfiguration.current
-    val isCompact = configuration.screenWidthDp < 600
-    val compactBottomBarPadding: Dp = if (isCompact && shouldShowCompactBottomBar(currentDestination)) {
+    val coroutineScope = rememberCoroutineScope()
+    val pagerState = rememberPagerState(
+        initialPage = selectedIndex,
+        pageCount = { NavigationSection.entries.size },
+    )
+
+    val isCompact = rememberIsCompactWidth()
+    var appBlockRefreshTrigger by remember { mutableIntStateOf(0) }
+    var recordsRefreshTrigger by remember { mutableIntStateOf(0) }
+    var interceptRefreshTrigger by remember { mutableIntStateOf(0) }
+    val tabLastTapAt = remember { mutableStateMapOf<String, Long>() }
+
+    val currentSection = resolveSection(navBackStackEntry)
+    val allowScrollChrome = shouldAllowScrollChrome(navBackStackEntry)
+    val chromeController = rememberMainChromeController(
+        isCompact = isCompact,
+        compactChromeRouteAvailable = shouldShowCompactBottomBar(currentDestination),
+        keepVisible = !allowScrollChrome,
+        allowScrollHide = allowScrollChrome,
+        resetKey = "${currentDestination?.route}:${currentSection.routeId}",
+    )
+    val scrollChromeState = chromeController.scrollChromeState
+    val pageScrollChromeState = chromeController.pageScrollChromeState
+    val mainChromeVisible = chromeController.mainChromeVisible
+    val compactBottomBarVisible = chromeController.compactBottomBarVisible
+
+    val compactBottomBarPadding: Dp = if (compactBottomBarVisible) {
         COMPACT_BOTTOM_BAR_CONTENT_PADDING +
             WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     } else {
         0.dp
     }
-    var appBlockRefreshTrigger by remember { mutableIntStateOf(0) }
-    var recordsRefreshTrigger by remember { mutableIntStateOf(0) }
-    var interceptRefreshTrigger by remember { mutableIntStateOf(0) }
-    val tabLastTapAt = remember { mutableStateMapOf<String, Long>() }
 
     fun triggerRefreshForSection(section: NavigationSection) {
         when (section) {
@@ -246,6 +286,14 @@ fun MainScreen(
             return
         }
 
+        scrollChromeState.animateToTop()
+        // 点击直接驱动 pager 翻页，不依赖 navBackStackEntry -> section 的观察链。
+        // launchSingleTop 导航到同一 MainTabsRoute 时不产生新的可观察 entry，
+        // 若让 pager 观察派生 section 会导致翻页链断裂（点了没反应）。
+        val targetIndex = NavigationSection.fromRouteId(tab.route.section).ordinal
+        coroutineScope.launch {
+            pagerState.animateScrollToPage(targetIndex)
+        }
         navController.navigate(tab.route) {
             popUpTo(navController.graph.findStartDestination().id) {
                 saveState = true
@@ -318,9 +366,11 @@ fun MainScreen(
                         val route = backStackEntry.toRoute<MainTabsRoute>()
                         MainTabsPager(
                             selectedSection = NavigationSection.fromRouteId(route.section),
+                            pagerState = pagerState,
                             appBlockRefreshTrigger = appBlockRefreshTrigger,
                             recordsRefreshTrigger = recordsRefreshTrigger,
                             appConfigViewModel = appConfigViewModel,
+                            scrollChromeState = pageScrollChromeState,
                             onCheckUpdate = { settingsViewModel.requestPreferredUpdate() },
                             onNavigateToAppConfigDetail = { packageName, origin ->
                                 navController.navigate(
@@ -376,6 +426,7 @@ fun MainScreen(
                             },
                             refreshTrigger = appBlockRefreshTrigger,
                             viewModel = appConfigViewModel,
+                            scrollChromeState = pageScrollChromeState,
                         )
                     }
                     composable<AppConfigDetailRoute> { backStackEntry ->
@@ -432,6 +483,7 @@ fun MainScreen(
                         CodeRecordScreen(
                             onBack = { navController.popBackStack() },
                             refreshTrigger = recordsRefreshTrigger,
+                            scrollChromeState = pageScrollChromeState,
                         )
                     }
                     composable<ScheduledTasksRoute> {
@@ -522,6 +574,7 @@ fun MainScreen(
                             },
                             refreshTrigger = appBlockRefreshTrigger,
                             viewModel = appConfigViewModel,
+                            scrollChromeState = pageScrollChromeState,
                         )
                     }
                     composable<SenderConfigRoute> { backStackEntry ->
@@ -629,23 +682,22 @@ fun MainScreen(
             }
         }
 
-        if (isCompact && shouldShowCompactBottomBar(currentDestination)) {
-            Box(modifier = Modifier.align(Alignment.BottomCenter)) {
-                AppBottomNavigationBar(
-                    containerColor = Color.Transparent,
-                    alwaysShowLabel = false,
-                    items = tabs.mapIndexed { index, tab ->
-                        AppNavigationItemSpec(
-                            label = tab.label,
-                            icon = tab.icon,
-                            selected = index == selectedIndex,
-                            onClick = { handleTabClick(tab, index == selectedIndex) },
-                            testTag = benchmarkNavTag(index),
-                        )
-                    },
+        AnimatedCompactBottomNavigationChrome(
+            visible = compactBottomBarVisible,
+            items = tabs.mapIndexed { index, tab ->
+                AppNavigationItemSpec(
+                    label = tab.label,
+                    icon = tab.icon,
+                    selected = index == selectedIndex,
+                    onClick = { handleTabClick(tab, index == selectedIndex) },
+                    testTag = benchmarkNavTag(index),
                 )
-            }
-        }
+            },
+        )
+
+        AnimatedSystemBarsScrim(
+            visible = mainChromeVisible,
+        )
     }
 }
 
@@ -656,6 +708,7 @@ private fun MainTabsPager(
     appBlockRefreshTrigger: Int,
     recordsRefreshTrigger: Int,
     appConfigViewModel: AppConfigViewModel,
+    scrollChromeState: ScrollChromeState?,
     onCheckUpdate: () -> Unit,
     onNavigateToAppConfigDetail: (String, String) -> Unit,
     onNavigateToVerificationSettings: () -> Unit,
@@ -666,12 +719,8 @@ private fun MainTabsPager(
     onNavigateToRemoteAgent: () -> Unit,
     onNavigateToScheduledTasks: (() -> Unit)?,
     onNavigateToCloudBackup: (BackupSource?, Boolean) -> Unit,
+    pagerState: PagerState,
 ) {
-    val pagerState = rememberPagerState(
-        initialPage = selectedSection.ordinal,
-        pageCount = { NavigationSection.entries.size },
-    )
-
     LaunchedEffect(selectedSection) {
         if (pagerState.currentPage != selectedSection.ordinal) {
             pagerState.scrollToPage(selectedSection.ordinal)
@@ -714,6 +763,7 @@ private fun MainTabsPager(
                         },
                         refreshTrigger = appBlockRefreshTrigger,
                         viewModel = appConfigViewModel,
+                        scrollChromeState = scrollChromeState,
                     )
                 }
             }
@@ -727,6 +777,7 @@ private fun MainTabsPager(
                     CodeRecordScreen(
                         onBack = null,
                         refreshTrigger = recordsRefreshTrigger,
+                        scrollChromeState = scrollChromeState,
                     )
                 }
             }

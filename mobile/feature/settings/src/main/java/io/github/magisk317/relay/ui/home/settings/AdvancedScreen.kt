@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 
 private const val BENCHMARK_ADVANCED_RELAY_CONFIG = "xinyi_benchmark_advanced_relay_config"
 
@@ -49,6 +50,7 @@ fun AdvancedScreen(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(id = R.string.tab_advanced)) },
+                colors = chromeTopAppBarColors(),
             )
         },
     ) { padding ->

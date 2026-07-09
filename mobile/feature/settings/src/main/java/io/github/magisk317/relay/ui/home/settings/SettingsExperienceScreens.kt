@@ -51,6 +51,7 @@ import io.github.magisk317.relay.contract.settings.RelaySettingsUpdate
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.VerificationSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.VerificationSettingsUpdate
+import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
@@ -147,6 +148,7 @@ fun SettingsHomeScreen(
                 } else {
                     {}
                 },
+                colors = chromeTopAppBarColors(),
             )
         },
         snackbarHost = {

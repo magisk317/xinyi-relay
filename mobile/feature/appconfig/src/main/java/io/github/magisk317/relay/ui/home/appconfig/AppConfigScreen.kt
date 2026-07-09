@@ -6,7 +6,6 @@ import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import android.graphics.Bitmap
 import android.os.SystemClock
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -63,6 +62,8 @@ import io.github.magisk317.uikit.foundation.LoadingIndicatorTokens
 import io.github.magisk317.uikit.foundation.PolygonMorphLoadingIndicator
 import io.github.magisk317.uikit.foundation.SessionLoadingRegistry
 import io.github.magisk317.uikit.foundation.rememberMinDurationLoading
+import io.github.magisk317.uikit.scroll.ReportLazyListScrollToChrome
+import io.github.magisk317.uikit.scroll.ScrollChromeState
 import io.github.magisk317.uikit.surface.OverlayHeaderScaffold
 import io.github.magisk317.uikit.surface.WorkspaceListItem
 import io.github.magisk317.uikit.surface.WorkspaceTopBarSearchOverlay
@@ -82,6 +83,7 @@ fun AppConfigScreen(
     onAppClick: ((AppInfo) -> Unit)? = null,
     refreshTrigger: Int = 0,
     viewModel: AppConfigViewModel = koinViewModel(),
+    scrollChromeState: ScrollChromeState? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val apps = uiState.apps
@@ -168,6 +170,7 @@ fun AppConfigScreen(
     }
 
     val listState = rememberLazyListState()
+    ReportLazyListScrollToChrome(listState, scrollChromeState)
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val pullToRefreshState = rememberPullToRefreshState()
     val defaultTopPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 156.dp
@@ -189,10 +192,11 @@ fun AppConfigScreen(
         OverlayHeaderScaffold(
             fallbackTopPadding = defaultTopPadding,
             bottomPadding = bottomPadding,
+            headerOffsetY = scrollChromeState?.animatedHeaderOffsetY ?: 0f,
+            onHeaderHeightChanged = { scrollChromeState?.headerHeightPx = it.toFloat() },
             overlayModifier = Modifier
                 .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)),
+                .fillMaxWidth(),
             overlay = {
                 WorkspaceTopBarSearchOverlay(
                     title = stringResource(R.string.app_config_settings),

@@ -25,6 +25,7 @@ import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.common.ActiveScheduleTimeValueButton
 import io.github.magisk317.relay.ui.common.ActiveScheduleWeekdayRow
+import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -292,7 +293,8 @@ fun ScheduledTaskConfigScreen(
                     IconButton(onClick = { validateAndSave() }) {
                         Icon(Icons.Default.Check, contentDescription = stringResource(id = R.string.save))
                     }
-                }
+                },
+                colors = chromeTopAppBarColors(),
             )
         },
         snackbarHost = {
