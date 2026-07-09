@@ -64,6 +64,7 @@ import io.github.magisk317.relay.feature.reminder.BatteryReminderSchedulerFacade
 import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
 import io.github.magisk317.relay.ui.common.parseIntInRangeInput
 import io.github.magisk317.relay.ui.sender.displayName
+import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -240,6 +241,7 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                     }
                 },
+                colors = chromeTopAppBarColors(),
             )
         },
         snackbarHost = {
@@ -393,15 +395,14 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                 onExpandedChange = { expandCallSection = !expandCallSection },
             ) {
                 ListItem(
-                    headlineContent = {
-                        Text(text = stringResource(id = R.string.call_alert_forward_title))
-                    },
                     supportingContent = {
                         Text(
                             text = stringResource(id = R.string.call_alert_forward_summary_from_relay),
                         )
                     },
-                )
+                ) {
+                    Text(text = stringResource(id = R.string.call_alert_forward_title))
+                }
                 StateSwitchItem(
                     title = stringResource(id = R.string.call_alert_local_title),
                     summary = stringResource(id = R.string.call_alert_local_summary),

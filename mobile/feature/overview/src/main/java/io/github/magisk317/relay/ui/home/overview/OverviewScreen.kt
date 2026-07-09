@@ -16,7 +16,6 @@ import io.github.magisk317.relay.feature.mode.StandardModePermissions
 import io.github.magisk317.relay.feature.mode.WorkMode
 import io.github.magisk317.relay.feature.mode.WorkModeResolver
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -53,7 +52,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
@@ -68,6 +66,7 @@ import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.diagnostics.ActivationDiagnosticsSnapshot
 import io.github.magisk317.relay.common.utils.Utils
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import io.github.magisk317.relay.engine.service.RuntimeAnalyticsProvider
 import io.github.magisk317.relay.billing.BillingProvider
 import kotlinx.coroutines.launch
@@ -400,12 +399,8 @@ private fun OverviewContent(
             scrollBehavior = scrollBehavior,
             windowInsets = WindowInsets.statusBars,
             modifier = Modifier
-                .align(Alignment.TopCenter)
-                .background(androidx.compose.material3.MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)),
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent,
-                scrolledContainerColor = Color.Transparent,
-            ),
+                .align(Alignment.TopCenter),
+            colors = chromeTopAppBarColors(),
             actions = {
                 if (showAddAction) {
                     IconButton(onClick = onShowAddSheet) {

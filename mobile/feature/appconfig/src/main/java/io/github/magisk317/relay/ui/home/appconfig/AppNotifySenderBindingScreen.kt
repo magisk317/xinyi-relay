@@ -19,7 +19,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -41,6 +40,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.ui.sender.displayName
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.uikit.surface.WorkspaceSearchField
+import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -107,6 +108,7 @@ fun AppNotifySenderBindingScreen(
                         Text(stringResource(R.string.save))
                     }
                 },
+                colors = chromeTopAppBarColors(),
             )
         },
     ) { innerPadding ->
@@ -118,12 +120,11 @@ fun AppNotifySenderBindingScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             item(key = "search") {
-                OutlinedTextField(
-                    value = searchText,
+                WorkspaceSearchField(
+                    query = searchText,
                     onValueChange = { searchText = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.action_search)) },
-                    singleLine = true,
+                    placeholder = stringResource(R.string.action_search),
                 )
             }
             item(key = "tip") {
@@ -171,13 +172,6 @@ fun AppNotifySenderBindingScreen(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         androidx.compose.material3.ListItem(
-                            headlineContent = {
-                                Text(
-                                    text = senderDisplayName(sender, context),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            },
                             supportingContent = {
                                 Text(
                                     text = stringResource(
@@ -200,7 +194,13 @@ fun AppNotifySenderBindingScreen(
                                 )
                             },
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        )
+                        ) {
+                            Text(
+                                text = senderDisplayName(sender, context),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                         if (checked && denied) {
                             Text(
                                 text = stringResource(R.string.app_notify_channel_deny_hint),

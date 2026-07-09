@@ -43,6 +43,7 @@ import io.github.magisk317.relay.engine.filter.ForwardFilterConst
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterMsgTypeTabs
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterRuleEditorDialog
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterRuleList
+import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -91,6 +92,7 @@ fun GlobalForwardFilterScreen(
                         Text(stringResource(id = R.string.forward_filter_action_add))
                     }
                 },
+                colors = chromeTopAppBarColors(),
             )
         },
         snackbarHost = {
@@ -216,6 +218,7 @@ fun AppForwardFilterScreen(
                         )
                     }
                 },
+                colors = chromeTopAppBarColors(),
             )
         },
         snackbarHost = {

@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
+import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import org.koin.compose.viewmodel.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -77,6 +78,7 @@ fun AppConfigDetailScreen(
                     }
                 },
                 windowInsets = WindowInsets.statusBars,
+                colors = chromeTopAppBarColors(),
             )
         },
         snackbarHost = {
@@ -137,9 +139,6 @@ fun AppConfigDetailScreen(
                     )
                     HorizontalDivider()
                     androidx.compose.material3.ListItem(
-                        headlineContent = {
-                            Text(text = stringResource(R.string.app_notify_channel_config_title))
-                        },
                         supportingContent = {
                             val count = viewModel.getAppNotifyBindingCount(app.packageName)
                             Text(
@@ -155,12 +154,11 @@ fun AppConfigDetailScreen(
                                 Text(text = stringResource(R.string.item_config))
                             }
                         },
-                    )
+                    ) {
+                        Text(text = stringResource(R.string.app_notify_channel_config_title))
+                    }
                     HorizontalDivider()
                     androidx.compose.material3.ListItem(
-                        headlineContent = {
-                            Text(text = stringResource(R.string.app_detail_forward_filter_title))
-                        },
                         supportingContent = {
                             Text(text = stringResource(R.string.app_detail_forward_filter_summary))
                         },
@@ -169,7 +167,9 @@ fun AppConfigDetailScreen(
                                 Text(text = stringResource(R.string.item_config))
                             }
                         },
-                    )
+                    ) {
+                        Text(text = stringResource(R.string.app_detail_forward_filter_title))
+                    }
                 }
             }
 
@@ -256,14 +256,13 @@ private fun ConfigToggleRow(
     onCheckedChange: (Boolean) -> Unit,
 ) {
     androidx.compose.material3.ListItem(
-        headlineContent = {
-            Text(text = title)
-        },
         trailingContent = {
             Switch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
             )
         },
-    )
+    ) {
+        Text(text = title)
+    }
 }

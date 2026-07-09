@@ -49,7 +49,6 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -71,6 +70,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.uikit.surface.chromeSurfaceColor
+import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.RecordSettingsUpdate
@@ -78,7 +79,7 @@ import io.github.magisk317.relay.engine.model.ReadSmsBlacklistHitData
 import io.github.magisk317.relay.engine.service.MessageRecordRepository
 import io.github.magisk317.relay.ui.common.Item
 import io.github.magisk317.relay.ui.common.RetentionDialog
-import io.github.magisk317.relay.ui.common.SectionHeader
+import io.github.magisk317.uikit.preference.SectionHeader
 import io.github.magisk317.relay.ui.common.StateSwitchItem
 import io.github.magisk317.relay.ui.common.TextInputDialog
 import io.github.magisk317.uikit.common.DismissibleSnackbarHost
@@ -345,7 +346,7 @@ fun BlacklistHitListScreen(
                 .fillMaxWidth()
                 .align(Alignment.TopCenter)
                 .onSizeChanged { fixedTopHeightPx = it.height }
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)),
+                .background(chromeSurfaceColor()),
         ) {
             TopAppBar(
                 title = { Text(stringResource(R.string.sms_blacklist_hit_list_title)) },
@@ -374,10 +375,7 @@ fun BlacklistHitListScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = Color.Transparent,
-                ),
+                colors = chromeTopAppBarColors(),
                 windowInsets = WindowInsets.statusBars,
             )
         }

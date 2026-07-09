@@ -15,6 +15,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.model.ScheduledTask
+import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,7 +48,8 @@ fun ScheduledTasksScreen(
                             contentDescription = stringResource(id = R.string.action_back),
                         )
                     }
-                }
+                },
+                colors = chromeTopAppBarColors(),
             )
         },
         floatingActionButton = {

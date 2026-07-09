@@ -61,6 +61,7 @@ import io.github.magisk317.smscode.domain.model.BuiltinSmsCodeRuleSpec
 import io.github.magisk317.smscode.domain.model.BuiltinSmsCodeRules
 import io.github.magisk317.smscode.runtime.common.rules.OfficialSmsCodeRule
 import io.github.magisk317.smscode.runtime.common.rules.SmsCodeRuleCatalogSnapshot
+import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import org.koin.compose.koinInject
 import java.util.regex.Pattern
 import kotlinx.coroutines.Dispatchers
@@ -159,6 +160,7 @@ fun SmsCodeRuleListScreen(
                         Icon(Icons.Filled.Refresh, contentDescription = stringResource(id = R.string.action_refresh))
                     }
                 },
+                colors = chromeTopAppBarColors(),
             )
         },
         snackbarHost = {
@@ -514,6 +516,7 @@ fun SmsCodeRuleEditorScreen(
                         }
                     }
                 },
+                colors = chromeTopAppBarColors(),
             )
         },
         snackbarHost = {
