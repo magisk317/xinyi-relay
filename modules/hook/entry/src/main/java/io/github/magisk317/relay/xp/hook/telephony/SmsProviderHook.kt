@@ -24,9 +24,9 @@ class SmsProviderHook : BaseHook() {
 
     override fun hookOnLoadPackage(): Boolean = true
 
-    override fun onLoadPackage(lpparam: LoadParam) {
+    override fun onLoadPackage(param: LoadParam) {
         XLog.withRoute(LogRoute.SMS_HOOK) {
-            onLoadPackageRouted(lpparam)
+            onLoadPackageRouted(param)
         }
     }
 

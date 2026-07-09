@@ -16,19 +16,19 @@ class KeepAliveHook : BaseHook() {
 
     override fun hookOnLoadPackage(): Boolean = true
 
-    override fun onLoadPackage(lpparam: LoadParam) {
-        val isSystemPackage = lpparam.packageName == "android" || lpparam.packageName == "system"
-        val isSystemProcess = lpparam.processName == "system" ||
-            lpparam.processName == "android" ||
-            lpparam.processName == "system_server"
+    override fun onLoadPackage(param: LoadParam) {
+        val isSystemPackage = param.packageName == "android" || param.packageName == "system"
+        val isSystemProcess = param.processName == "system" ||
+            param.processName == "android" ||
+            param.processName == "system_server"
         if (!isSystemPackage || !isSystemProcess) return
 
         XLog.i("KeepAliveHook: loading in system_server")
 
-        hookOomAdjuster(lpparam)
-        hookKillProcess(lpparam)
-        hookAppStandbyController(lpparam)
-        hookDeviceIdleController(lpparam)
+        hookOomAdjuster(param)
+        hookKillProcess(param)
+        hookAppStandbyController(param)
+        hookDeviceIdleController(param)
     }
 
     // ── Hook 1: OomAdjuster ──────────────────────────────────────────────────
