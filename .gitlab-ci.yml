@@ -1,15 +1,15 @@
 include:
   - project: magisk3171/magisk-ci-toolkit
-    ref: master
+    ref: main
     file: /.gitlab/ci/android.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: master
+    ref: main
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: master
+    ref: main
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: master
+    ref: main
     file: /.gitlab/ci/renovate.yml
 
 workflow:
@@ -119,11 +119,16 @@ variables:
     HTTPS_PROXY: "$CI_HTTPS_PROXY"
     http_proxy: "$CI_HTTP_PROXY"
     https_proxy: "$CI_HTTPS_PROXY"
-    NO_PROXY: "$CI_NO_PROXY"
-    no_proxy: "$CI_NO_PROXY"
+    NO_PROXY: "$CI_NO_PROXY,auth.docker.io,registry-1.docker.io,production.cloudflare.docker.com,docker.io"
+    no_proxy: "$CI_NO_PROXY,auth.docker.io,registry-1.docker.io,production.cloudflare.docker.com,docker.io"
     GOPROXY: "https://goproxy.cn,direct"
   before_script:
-    - apk add --no-cache bash curl git jq
+    - |
+      if ! apk add --no-cache bash curl git jq; then
+        echo "Alpine mirror failed, falling back to official" >&2
+        sed -i 's#https://mirrors.tuna.tsinghua.edu.cn/alpine#https://dl-cdn.alpinelinux.org/alpine#g' /etc/apk/repositories 2>/dev/null || true
+        apk add --no-cache bash curl git jq
+      fi
     - |
       set -euo pipefail
       if [ -n "${HTTP_PROXY:-${http_proxy:-}}" ] || [ -n "${HTTPS_PROXY:-${https_proxy:-}}" ]; then
@@ -331,7 +336,15 @@ desktop:release:gitlab:
         -e 's#http://archive.ubuntu.com/ubuntu#https://mirrors.tuna.tsinghua.edu.cn/ubuntu#g' \
         -e 's#http://security.ubuntu.com/ubuntu#https://mirrors.tuna.tsinghua.edu.cn/ubuntu#g' \
         /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
-      apt-get update
+      if ! apt-get update; then
+        echo "Mirror apt-get update failed, falling back to official sources" >&2
+        sed -i \
+          -e 's#https://mirrors.tuna.tsinghua.edu.cn/debian-security#http://deb.debian.org/debian-security#g' \
+          -e 's#https://mirrors.tuna.tsinghua.edu.cn/debian#http://deb.debian.org/debian#g' \
+          -e 's#https://mirrors.tuna.tsinghua.edu.cn/ubuntu#http://archive.ubuntu.com/ubuntu#g' \
+          /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+        apt-get update
+      fi
     - apt-get install -y --no-install-recommends bash curl
     - rm -rf /var/lib/apt/lists/*
   script:
@@ -365,7 +378,13 @@ webui:check:
       corepack enable
       corepack prepare "$(node -p "require('./frontend/webui/package.json').packageManager")" --activate
       pnpm -C frontend/webui config set store-dir "$CI_PROJECT_DIR/.pnpm-store"
-      pnpm -C frontend/webui install --frozen-lockfile --ignore-scripts
+      # Use npmmirror as primary registry, fallback to official on failure
+      pnpm -C frontend/webui config set registry https://registry.npmmirror.com
+      if ! pnpm -C frontend/webui install --frozen-lockfile --ignore-scripts; then
+        echo "npmmirror install failed, falling back to official registry" >&2
+        pnpm -C frontend/webui config set registry https://registry.npmjs.org
+        pnpm -C frontend/webui install --frozen-lockfile --ignore-scripts
+      fi
       pnpm -C frontend/webui lint
       pnpm -C frontend/webui typecheck
       pnpm -C frontend/webui test
