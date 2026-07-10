@@ -11,17 +11,21 @@ ARG no_proxy
 ENV HTTP_PROXY=${HTTP_PROXY} \
     HTTPS_PROXY=${HTTPS_PROXY} \
     ALL_PROXY=${ALL_PROXY} \
-    NO_PROXY=${NO_PROXY} \
+    NO_PROXY="${NO_PROXY},registry.npmjs.org,registry.npmmirror.com,auth.docker.io,registry-1.docker.io" \
     http_proxy=${http_proxy} \
     https_proxy=${https_proxy} \
     all_proxy=${all_proxy} \
-    no_proxy=${no_proxy}
+    no_proxy="${no_proxy},registry.npmjs.org,registry.npmmirror.com,auth.docker.io,registry-1.docker.io"
 WORKDIR /src
 COPY frontend/shared ./frontend/shared
 COPY frontend/webui ./frontend/webui
 WORKDIR /src/frontend/webui
 RUN corepack enable && corepack prepare "$(node -p "require('./package.json').packageManager")" --activate
-RUN CI=true pnpm install --frozen-lockfile
+RUN pnpm config set registry https://registry.npmmirror.com
+RUN CI=true pnpm install --frozen-lockfile || \
+    (echo "npmmirror failed, falling back to official registry" >&2 && \
+     pnpm config set registry https://registry.npmjs.org && \
+     CI=true pnpm install --frozen-lockfile)
 RUN pnpm run build
 
 # Stage 2: Build backend

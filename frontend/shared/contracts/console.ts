@@ -173,7 +173,7 @@ export interface DesktopDiagnosticsExport {
 export type SyncResultType = 'upToDate' | 'pulled' | 'pushed' | 'conflict'
 
 export interface SyncResult {
-  UpToDate?: {}
+  UpToDate?: Record<string, never>
   Pulled?: { newRevision: number }
   Pushed?: { newRevision: number }
   Conflict?: { localRevision: number; remoteRevision: number }

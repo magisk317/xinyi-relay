@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "lint": "eslint src --ext .ts,.tsx",
+    "lint": "cd .. && eslint webui/src shared",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
@@ -32,7 +32,8 @@
     "eslint-plugin-react-hooks": "^7.0.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^4.2.2",
-    "typescript": "^7.0.0",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
     "vite": "^8.0.1",
     "vitest": "^4.0.0"
   },
