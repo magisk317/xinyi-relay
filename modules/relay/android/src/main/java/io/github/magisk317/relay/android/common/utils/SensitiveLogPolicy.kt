@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.android.common.utils
 
 import io.github.magisk317.relay.android.BuildConfig
-import io.github.magisk317.smscode.runtime.contract.logging.DefaultLogSanitizer
+import io.github.magisk317.xposed.logging.DefaultLogSanitizer
 import io.github.magisk317.smscode.runtime.common.utils.StringUtils
 import java.util.Locale
 
