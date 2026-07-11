@@ -1,7 +1,6 @@
 package io.github.magisk317.relay.android.common.utils
 
 import android.os.Build
-import android.util.Log
 
 object DeviceIdentityUtils {
     private val propertyKeys = listOf(
@@ -25,7 +24,7 @@ object DeviceIdentityUtils {
             val method = clazz.getMethod("get", String::class.java, String::class.java)
             (method.invoke(null, key, "") as? String).orEmpty().trim()
         }.onFailure {
-            Log.d("DeviceIdentityUtils", "Read system property failed: key=$key err=${it.message ?: "unknown"}")
+            XLog.d("Read system property failed: key=$key err=${it.message ?: "unknown"}")
         }.getOrDefault("")
     }
 }

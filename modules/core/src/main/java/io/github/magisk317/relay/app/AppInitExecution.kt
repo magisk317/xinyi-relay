@@ -7,12 +7,11 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.os.UserManager
-import android.util.Log
+import io.github.magisk317.relay.android.common.utils.XLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 object AppInitExecution {
-    private const val LOG_TAG = "relay"
 
     fun runWhenUserUnlocked(
         application: Application,
@@ -21,20 +20,19 @@ object AppInitExecution {
         block: suspend () -> Unit,
     ) {
         if (isUserUnlocked(application)) {
-            Log.i(LOG_TAG, "$taskName start immediately: user unlocked")
+            XLog.i("$taskName start immediately: user unlocked")
             runSafely(scope, taskName, block)
             return
         }
 
-        Log.w(
-            LOG_TAG,
+        XLog.w(
             "$taskName deferred: user locked, wait for ACTION_USER_UNLOCKED sdk=${Build.VERSION.SDK_INT}",
         )
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 if (intent?.action != Intent.ACTION_USER_UNLOCKED) return
                 unregisterReceiverSafely(application, this)
-                Log.i(LOG_TAG, "$taskName resumed after user unlock broadcast")
+                XLog.i("$taskName resumed after user unlock broadcast")
                 runSafely(scope, taskName, block)
             }
         }
@@ -42,7 +40,7 @@ object AppInitExecution {
 
         if (isUserUnlocked(application)) {
             unregisterReceiverSafely(application, receiver)
-            Log.i(LOG_TAG, "$taskName resumed after late user unlock check")
+            XLog.i("$taskName resumed after late user unlock check")
             runSafely(scope, taskName, block)
         }
     }
@@ -53,9 +51,9 @@ object AppInitExecution {
         block: suspend () -> Unit,
     ) {
         scope.launch {
-            Log.i(LOG_TAG, "$taskName executing")
+            XLog.i("$taskName executing")
             runCatching { block() }.onFailure { error ->
-                Log.e(LOG_TAG, "$taskName failed", error)
+                XLog.e("$taskName failed", error)
             }
         }
     }
