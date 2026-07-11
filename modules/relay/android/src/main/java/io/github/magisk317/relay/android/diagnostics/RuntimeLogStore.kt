@@ -1,8 +1,8 @@
 package io.github.magisk317.relay.android.diagnostics
 
 import android.content.Context
-import io.github.magisk317.smscode.runtime.contract.logging.DefaultLogSanitizer
-import io.github.magisk317.smscode.runtime.contract.logging.LogEvent
+import io.github.magisk317.xposed.logging.DefaultLogSanitizer
+import io.github.magisk317.xposed.logging.LogEvent
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogEntry as SharedRuntimeLogEntry
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogFileContent as SharedRuntimeLogFileContent
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogFileInfo as SharedRuntimeLogFileInfo

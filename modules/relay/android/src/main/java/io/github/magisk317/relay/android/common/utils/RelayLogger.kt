@@ -3,9 +3,9 @@ package io.github.magisk317.relay.android.common.utils
 import android.util.Log
 import io.github.magisk317.relay.android.BuildConfig
 import io.github.magisk317.relay.android.diagnostics.RuntimeLogStore
-import io.github.magisk317.smscode.runtime.contract.logging.LogEvent
-import io.github.magisk317.smscode.runtime.contract.logging.LogFormatter
-import io.github.magisk317.smscode.runtime.contract.logging.LogLevel
+import io.github.magisk317.xposed.logging.LogEvent
+import io.github.magisk317.xposed.logging.LogFormatter
+import io.github.magisk317.xposed.logging.LogLevel
 import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 
 object RelayLogger {
