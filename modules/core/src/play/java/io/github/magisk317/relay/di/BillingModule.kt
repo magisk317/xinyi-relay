@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.di
 
-import android.util.Log
+import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.app.AppInitializer
 import io.github.magisk317.relay.auth.AuthManager
 import io.github.magisk317.relay.auth.FirebaseAuthManager
@@ -25,8 +25,6 @@ import io.github.magisk317.relay.contract.backup.AutoBackupTrigger
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
-private const val TAG = "BillingModule"
-
 val billingModule = module {
     single { BillingManager(get()) }
     single { SubscriptionManager(get(), get(), get()) }
@@ -38,7 +36,7 @@ val billingModule = module {
         runCatching {
             GoogleSignInHelperImpl(get())
         }.getOrElse { error ->
-            Log.e(TAG, "GoogleSignInHelper init failed, degrading to NoOp", error)
+            XLog.e("GoogleSignInHelper init failed, degrading to NoOp", error)
             NoOpGoogleSignInHelper(get())
         }
     }
@@ -46,7 +44,7 @@ val billingModule = module {
         runCatching {
             FirebaseAuthManager(get(), get())
         }.getOrElse { error ->
-            Log.e(TAG, "FirebaseAuthManager init failed, degrading to NoOp", error)
+            XLog.e("FirebaseAuthManager init failed, degrading to NoOp", error)
             NoOpAuthManager()
         }
     }
@@ -57,7 +55,7 @@ val billingModule = module {
         runCatching {
             PlayCloudBackupProvider(get(), get(), get())
         }.getOrElse { error ->
-            Log.e(TAG, "PlayCloudBackupProvider init failed, degrading to NoOp", error)
+            XLog.e("PlayCloudBackupProvider init failed, degrading to NoOp", error)
             NoOpCloudBackupProvider()
         }
     }

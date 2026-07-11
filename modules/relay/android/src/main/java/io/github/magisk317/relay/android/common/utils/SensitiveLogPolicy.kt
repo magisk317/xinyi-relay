@@ -37,6 +37,9 @@ object SensitiveLogPolicy {
     @JvmStatic
     fun setEnabled(value: Boolean) {
         enabled = isSupported() && value
+        // 语义反相同步到进程级统一脱敏开关：isEnabled()=true 表示关闭深度脱敏（输出明文），
+        // 对应 LogSanitizerConfig 应关闭脱敏（false）。
+        io.github.magisk317.xposed.logging.LogSanitizerConfig.setEnabled(!isEnabled())
     }
 
     @JvmStatic

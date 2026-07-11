@@ -1,6 +1,5 @@
 package io.github.magisk317.relay.xp
 
-import android.util.Log
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.ModuleLoadedParam
@@ -88,9 +87,11 @@ class LibXposedEntry : BaseLibXposedEntry {
         HookTargetDiagnostics.logPackageReadyProbeIfVerbose(loadParam)
         HookTargetDiagnostics.logInboundSmsClassProbeAtInfo(loadParam)
         if (isCriticalHookTarget(loadParam.packageName)) {
-            val message = "LibXposedEntry package ready: pkg=${loadParam.packageName} process=${loadParam.processName}"
-            Log.w(BuildConfig.LOG_TAG, message)
-            Log.w("LSPosed-Bridge", "${BuildConfig.LOG_TAG}: $message")
+            XLog.w(
+                "LibXposedEntry package ready: pkg=%s process=%s",
+                loadParam.packageName,
+                loadParam.processName,
+            )
         }
     }
 

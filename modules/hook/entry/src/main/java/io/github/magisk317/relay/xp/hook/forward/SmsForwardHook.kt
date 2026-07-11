@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Process
 import android.provider.Telephony
-import android.util.Log
 import androidx.core.os.BundleCompat
 import io.github.magisk317.relay.hookentry.BuildConfig
 import io.github.magisk317.relay.xp.HookTargetDiagnostics
@@ -142,7 +141,7 @@ class SmsForwardHook : BaseHook() {
 
     private inner class DispatchIntentHook : MethodHook() {
         override fun beforeHookedMethod(param: MethodHookParam) {
-            Log.w("relay", "SmsForwardHook: dispatchIntent hook ENTERED")
+            XLog.w("SmsForwardHook: dispatchIntent hook ENTERED")
             XLog.withRoute(LogRoute.FORWARD) {
                 runCatching { beforeDispatchIntentHandler(param) }
                     .onFailure { XLog.e("SmsForwardHook dispatchIntent hook failed", it) }
