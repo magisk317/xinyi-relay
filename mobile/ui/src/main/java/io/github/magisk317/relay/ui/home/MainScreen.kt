@@ -230,13 +230,21 @@ fun MainScreen(
         }
     }
 
-    val selectedIndex = resolveTabIndex(navBackStackEntry)
-
     val coroutineScope = rememberCoroutineScope()
     val pagerState = rememberPagerState(
-        initialPage = selectedIndex,
+        initialPage = resolveTabIndex(navBackStackEntry),
         pageCount = { NavigationSection.entries.size },
     )
+
+    // On MainTabs the pager is the source of truth: launchSingleTop nav to the same
+    // MainTabsRoute yields no new back-stack entry, so navBackStackEntry.section stays
+    // pinned to the initial value. Fall back to route-origin derivation only on child screens.
+    val onMainTabs = currentDestination?.hasRoute(MainTabsRoute::class) == true
+    val selectedIndex = if (onMainTabs) {
+        pagerState.targetPage
+    } else {
+        resolveTabIndex(navBackStackEntry)
+    }
 
     val isCompact = rememberIsCompactWidth()
     var appBlockRefreshTrigger by remember { mutableIntStateOf(0) }
@@ -244,8 +252,15 @@ fun MainScreen(
     var interceptRefreshTrigger by remember { mutableIntStateOf(0) }
     val tabLastTapAt = remember { mutableStateMapOf<String, Long>() }
 
-    val currentSection = resolveSection(navBackStackEntry)
-    val allowScrollChrome = shouldAllowScrollChrome(navBackStackEntry)
+    // Likewise derive section from the pager so scroll chrome (only APPS/RECORDS hide on
+    // scroll) tracks the visible tab instead of the stale initial section.
+    val pagerSection = NavigationSection.entries[pagerState.targetPage]
+    val currentSection = if (onMainTabs) pagerSection else resolveSection(navBackStackEntry)
+    val allowScrollChrome = if (onMainTabs) {
+        pagerSection == NavigationSection.APPS || pagerSection == NavigationSection.RECORDS
+    } else {
+        shouldAllowScrollChrome(navBackStackEntry)
+    }
     val chromeController = rememberMainChromeController(
         isCompact = isCompact,
         compactChromeRouteAvailable = shouldShowCompactBottomBar(currentDestination),
@@ -287,9 +302,8 @@ fun MainScreen(
         }
 
         scrollChromeState.animateToTop()
-        // 点击直接驱动 pager 翻页，不依赖 navBackStackEntry -> section 的观察链。
-        // launchSingleTop 导航到同一 MainTabsRoute 时不产生新的可观察 entry，
-        // 若让 pager 观察派生 section 会导致翻页链断裂（点了没反应）。
+        // Drive the pager directly; launchSingleTop nav to the same MainTabsRoute
+        // yields no new entry, so observing a derived section would break paging.
         val targetIndex = NavigationSection.fromRouteId(tab.route.section).ordinal
         coroutineScope.launch {
             pagerState.animateScrollToPage(targetIndex)
