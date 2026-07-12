@@ -1,84 +1,52 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+# Sync README badges from libs.versions.toml + gradle-wrapper.properties.
+# Badge helpers are single-sourced from magisk-ci-toolkit/codegen/badges.sh;
+# this wrapper only declares the xinyi-relay-specific badge subset + values.
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
-TOML_FILE="gradle/libs.versions.toml"
+TOOLKIT_DIR="$("$ROOT_DIR/scripts/resolve_ci_toolkit.sh")"
+# shellcheck source=/dev/null
+source "$TOOLKIT_DIR/codegen/badges.sh"
 
-read_version() {
-  local key="$1"
-  local value
-  value=$(sed -nE "s/^${key}[[:space:]]*=[[:space:]]*\"([^\"]+)\"/\1/p" "$TOML_FILE" | head -n 1)
-  if [[ -z "$value" ]]; then
-    echo "Missing version key: $key" >&2
-    exit 1
-  fi
-  printf '%s' "$value"
-}
+TOML="gradle/libs.versions.toml"
+WRAPPER_PROPS="gradle/wrapper/gradle-wrapper.properties"
 
-read_version_fallback() {
-  local key=""
-  local value=""
-  for key in "$@"; do
-    value=$(sed -nE "s/^${key}[[:space:]]*=[[:space:]]*\"([^\"]+)\"/\1/p" "$TOML_FILE" | head -n 1)
-    if [[ -n "$value" ]]; then
-      printf '%s' "$value"
-      return 0
-    fi
-  done
-  printf ''
-  return 0
-}
+kotlin="$(read_toml_value kotlin "$TOML")"
+java="$(read_toml_value java "$TOML")"
+compose="$(read_toml_value compose-bom-alpha "$TOML")"
+agp="$(read_toml_value agp "$TOML")"
+min_sdk="$(read_toml_value minSdk "$TOML")"
+target_sdk="$(read_toml_value targetSdk "$TOML")"
+xposed="$(read_toml_value libxposed-api "$TOML")"
+gradle_ver="$(read_gradle_version "$WRAPPER_PROPS")"
 
-badge_escape() {
-  local raw="$1"
-  raw="${raw//-/--}"
-  raw="${raw// /_}"
-  printf '%s' "$raw"
-}
+# Xposed API badge shows the major API level (e.g. 102.0.0 -> 102).
+xposed_level="${xposed%%.*}"
 
-xposed_api_level() {
-  local version="$1"
-  if [[ "$version" =~ ^([0-9]+)([.+-].*)?$ ]]; then
-    printf '%s' "${BASH_REMATCH[1]}"
-    return 0
-  fi
-  printf '%s' "$version"
-}
+# --- tech stack (shared subset, identical order across all three repos) ---
+tech="$(tech_badge Kotlin "$kotlin" 7F52FF kotlin https://kotlinlang.org)"
+tech="$tech $(tech_badge Java "${java}+" E76F00 openjdk https://openjdk.org)"
+tech="$tech $(tech_badge "Jetpack Compose" "BOM ${compose}" 4285F4 android https://developer.android.com/jetpack/compose)"
+tech="$tech $(tech_badge Gradle "$gradle_ver" 02303A gradle https://gradle.org)"
+tech="$tech $(tech_badge AGP "$agp" 3DDC84 gradle https://developer.android.com/studio/releases/gradle-plugin)"
+tech="$tech $(tech_badge "Min SDK" "$min_sdk" brightgreen android https://developer.android.com/about/versions)"
+tech="$tech $(tech_badge "Target SDK" "$target_sdk" blue android https://developer.android.com/about/versions)"
+tech="$tech $(tech_badge "Xposed API" "$xposed_level" orange '' https://github.com/libxposed/api)"
+tech="$tech $(tech_badge Telegram Group 2CA5E0 telegram https://t.me/+NR2QaQ4dlEgxYmNl)"
 
-KOTLIN_VERSION=$(read_version "kotlin")
-COMPOSE_BOM_VERSION=$(read_version "compose-bom-alpha")
-AGP_VERSION=$(read_version "agp")
-MIN_SDK_VERSION=$(read_version "minSdk")
-TARGET_SDK_VERSION=$(read_version "targetSdk")
-XPOSED_API_VERSION=$(read_version_fallback "xposed" "libxposed" "libxposed-api")
-if [[ -z "$XPOSED_API_VERSION" ]]; then
-  XPOSED_API_VERSION="101"
-  echo "WARN: missing xposed/libxposed/libxposed-api version in $TOML_FILE; defaulting to $XPOSED_API_VERSION" >&2
-fi
-XPOSED_API_VERSION=$(xposed_api_level "$XPOSED_API_VERSION")
-
-GRADLE_VERSION=$(sed -nE 's/^distributionUrl=.*gradle-([0-9a-zA-Z.-]+)-(bin|all)\.zip/\1/p' gradle/wrapper/gradle-wrapper.properties)
-if [[ -z "$GRADLE_VERSION" ]]; then
-  echo "Missing Gradle version in gradle-wrapper.properties" >&2
-  exit 1
-fi
-
-KOTLIN_BADGE=$(badge_escape "$KOTLIN_VERSION")
-COMPOSE_BADGE=$(badge_escape "$COMPOSE_BOM_VERSION")
-AGP_BADGE=$(badge_escape "$AGP_VERSION")
-GRADLE_BADGE=$(badge_escape "$GRADLE_VERSION")
-
-SECOND_BADGE_LINE="[![Kotlin](https://img.shields.io/badge/Kotlin-${KOTLIN_BADGE}-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org) [![Jetpack Compose](https://img.shields.io/badge/Jetpack_Compose-BOM_${COMPOSE_BADGE}-4285F4?style=flat-square&logo=android&logoColor=white)](https://developer.android.com/jetpack/compose) [![Gradle](https://img.shields.io/badge/Gradle-${GRADLE_BADGE}-02303A?style=flat-square&logo=gradle&logoColor=white)](https://gradle.org) [![AGP](https://img.shields.io/badge/AGP-${AGP_BADGE}-3DDC84?style=flat-square&logo=gradle&logoColor=white)](https://developer.android.com/studio/releases/gradle-plugin) [![Min SDK](https://img.shields.io/badge/Min_SDK-${MIN_SDK_VERSION}-brightgreen?style=flat-square&logo=android)](https://developer.android.com/about/versions) [![Target SDK](https://img.shields.io/badge/Target_SDK-${TARGET_SDK_VERSION}-blue?style=flat-square&logo=android)](https://developer.android.com/about/versions) [![Xposed API](https://img.shields.io/badge/Xposed_API-${XPOSED_API_VERSION}-orange?style=flat-square)](https://github.com/rovo89/XposedBridge) [![Telegram](https://img.shields.io/badge/Telegram-Group-2CA5E0?style=flat-square&logo=telegram&logoColor=white)](https://t.me/+NR2QaQ4dlEgxYmNl)"
+# --- platform (GitLab flavour: link-wrapped, flat-square where shields-based) ---
+plat="$(tech_badge GitLab "magisk3171/xinyi-relay" FC6D26 gitlab https://gitlab.com/magisk3171/xinyi-relay)"
+plat="$plat [![CI](https://img.shields.io/gitlab/pipeline-status/magisk3171%2Fxinyi-relay?branch=beta&style=flat-square&logo=gitlab&label=CI)](https://gitlab.com/magisk3171/xinyi-relay/-/pipelines?ref=beta)"
+plat="$plat [![Latest Release](https://img.shields.io/gitlab/v/release/magisk3171%2Fxinyi-relay?include_prereleases&style=flat-square&logo=gitlab)](https://gitlab.com/magisk3171/xinyi-relay/-/releases)"
+plat="$plat $(tech_badge License GPL-3.0 blue '' LICENSE)"
 
 for readme in README.md README-EN.md; do
-  tmp_file="$(mktemp)"
-  awk -v replacement="$SECOND_BADGE_LINE" '
-    /^\[!\[Kotlin\]/ { print replacement; next }
-    { print }
-  ' "$readme" > "$tmp_file"
-  mv "$tmp_file" "$readme"
+  replace_block "$readme" platform "$plat"
+  replace_block "$readme" tech "$tech"
 done
 
-echo "README badges synced from $TOML_FILE and gradle-wrapper.properties"
+echo "xinyi-relay README badges synced."
