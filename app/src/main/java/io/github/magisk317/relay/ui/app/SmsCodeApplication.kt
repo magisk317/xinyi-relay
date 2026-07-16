@@ -28,10 +28,9 @@ class SmsCodeApplication : Application() {
             modules(coreModule, billingModule, uiModule, appDependencyModule)
         }
 
-        PhoneProcessRestartCoordinator.requestAfterInstallOrUpdate(this, applicationScope)
-        XposedServiceBridge.initialize(this, applicationScope)
         val koin = getKoin()
         koin.get<InfrastructureInitializer>().init(this)
+        XposedServiceBridge.initialize(this, applicationScope)
         val initializers = koin.getAll<AppInitializer>().filterNot { it is InfrastructureInitializer }
         initializers.forEach { it.init(this) }
     }

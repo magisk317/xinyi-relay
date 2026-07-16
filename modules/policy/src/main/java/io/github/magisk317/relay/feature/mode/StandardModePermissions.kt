@@ -3,6 +3,7 @@ package io.github.magisk317.relay.feature.mode
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import androidx.core.content.ContextCompat
 
 object StandardModePermissions {
@@ -15,12 +16,38 @@ object StandardModePermissions {
     )
 
     fun allGranted(context: Context): Boolean =
-        REQUIRED_PERMISSIONS.all {
+        requiredPermissions(context).all {
             ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
         }
 
     fun missingPermissions(context: Context): List<String> =
-        REQUIRED_PERMISSIONS.filter {
+        requiredPermissions(context).filter {
             ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
         }
+
+    /**
+     * Only request capabilities declared by the active distribution manifest.
+     * For example, Play deliberately omits telephony permissions but still has
+     * a valid Standard mode for notification forwarding and other system APIs.
+     */
+    fun requiredPermissions(context: Context): List<String> {
+        val declaredPermissions = runCatching {
+            val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                context.packageManager.getPackageInfo(
+                    context.packageName,
+                    PackageManager.PackageInfoFlags.of(PackageManager.GET_PERMISSIONS.toLong()),
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_PERMISSIONS)
+            }
+            packageInfo.requestedPermissions?.toSet().orEmpty()
+        }.getOrNull()
+        return requiredPermissionsFromDeclared(declaredPermissions)
+    }
+
+    internal fun requiredPermissionsFromDeclared(declaredPermissions: Set<String>?): List<String> {
+        if (declaredPermissions == null) return REQUIRED_PERMISSIONS.toList()
+        return REQUIRED_PERMISSIONS.filter(declaredPermissions::contains)
+    }
 }

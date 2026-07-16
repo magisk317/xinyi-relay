@@ -14,7 +14,6 @@ import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.feature.call.CallStateMonitor
 import io.github.magisk317.relay.feature.mode.BatteryOptimizationHelper
-import io.github.magisk317.relay.feature.mode.StandardModePermissions
 import io.github.magisk317.relay.feature.mode.WorkMode
 import io.github.magisk317.relay.feature.mode.WorkModeResolver
 import io.github.magisk317.relay.ui.home.LauncherActivity
@@ -82,15 +81,14 @@ class StandardModeService : Service() {
         monitorJob = scope.launch {
             WorkModeResolver.mode.collectLatest { mode ->
                 if (mode != WorkMode.Standard) {
+                    CallStateMonitor.refresh("standard_service_mode_$mode")
                     XLog.i("StandardModeService: mode changed to %s, stopping service", mode)
                     stopSelf()
                     return@collectLatest
                 }
 
                 // Re-check and refresh CallStateMonitor if needed
-                if (StandardModePermissions.allGranted(this@StandardModeService)) {
-                    CallStateMonitor.refresh("standard_mode_service")
-                }
+                CallStateMonitor.refresh("standard_mode_service")
 
                 // Log battery optimization status
                 if (!BatteryOptimizationHelper.isExempted(this@StandardModeService)) {
@@ -160,13 +158,20 @@ class StandardModeService : Service() {
         }
 
         fun stop(context: Context) {
-            val intent = Intent(context, StandardModeService::class.java).apply {
-                action = ACTION_STOP
-            }
             runCatching {
-                context.startService(intent)
+                context.stopService(Intent(context, StandardModeService::class.java))
             }.onFailure { error ->
                 XLog.e("Failed to stop StandardModeService", error)
+            }
+        }
+
+        fun reconcile(context: Context, mode: WorkMode, reason: String) {
+            CallStateMonitor.refresh("work_mode_$reason")
+            when (mode) {
+                WorkMode.Standard -> start(context)
+                WorkMode.Enhanced,
+                WorkMode.Inactive,
+                -> stop(context)
             }
         }
     }

@@ -5,7 +5,6 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import io.github.magisk317.relay.feature.call.CallStateMonitor
-import io.github.magisk317.relay.feature.mode.WorkMode
 import io.github.magisk317.relay.feature.mode.WorkModeResolver
 import io.github.magisk317.relay.service.StandardModeService
 
@@ -20,19 +19,14 @@ class InfrastructureInitializer : AppInitializer {
         )
 
         // Start foreground service if in Standard mode
-        if (WorkModeResolver.mode.value == WorkMode.Standard) {
-            StandardModeService.start(application)
-        }
+        StandardModeService.reconcile(application, WorkModeResolver.mode.value, "app_init")
 
         // Register ProcessLifecycleOwner observer to re-evaluate work mode on app resume
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onResume(owner: LifecycleOwner) {
                 WorkModeResolver.resolve(application)
                 // Re-check mode on resume and start/stop service accordingly
-                when (WorkModeResolver.mode.value) {
-                    WorkMode.Standard -> StandardModeService.start(application)
-                    else -> StandardModeService.stop(application)
-                }
+                StandardModeService.reconcile(application, WorkModeResolver.mode.value, "process_resume")
             }
         })
     }

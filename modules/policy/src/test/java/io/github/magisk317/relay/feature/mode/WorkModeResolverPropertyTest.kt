@@ -17,11 +17,12 @@ import io.mockk.unmockkObject
  *
  * **Validates: Requirements 1.1, 1.2, 1.3, 1.4**
  *
- * For any combination of (isModuleActivated: Boolean, allPermissionsGranted: Boolean),
+ * For either Xposed activation state, permissions do not select the app-wide mode:
  * the WorkModeResolver SHALL produce:
- * - Enhanced when isModuleActivated = true (regardless of permissions)
- * - Standard when isModuleActivated = false AND allPermissionsGranted = true
- * - Inactive when isModuleActivated = false AND allPermissionsGranted = false
+ * - Enhanced when isModuleActivated = true
+ * - Standard when isModuleActivated = false
+ *
+ * Individual Standard capabilities enforce their own permissions.
  */
 class WorkModeResolverPropertyTest : FunSpec({
 
@@ -29,30 +30,33 @@ class WorkModeResolverPropertyTest : FunSpec({
 
     beforeSpec {
         mockkObject(ActivationDiagnosticsStore)
-        mockkObject(StandardModePermissions)
     }
 
     afterSpec {
         unmockkObject(ActivationDiagnosticsStore)
-        unmockkObject(StandardModePermissions)
     }
 
     test("Property 1: mode resolution matches decision table for all inputs").config(
         invocations = 100,
     ) {
-        checkAll(1, Arb.boolean(), Arb.boolean()) { xposedActive, permissionsGranted ->
+        checkAll(1, Arb.boolean()) { xposedActive ->
             every { ActivationDiagnosticsStore.isModuleActivated(context) } returns xposedActive
-            every { StandardModePermissions.allGranted(context) } returns permissionsGranted
 
-            WorkModeResolver.resolve(context)
+            val resolved = WorkModeResolver.resolve(context)
 
-            val expected = when {
-                xposedActive -> WorkMode.Enhanced
-                permissionsGranted -> WorkMode.Standard
-                else -> WorkMode.Inactive
-            }
+            val expected = if (xposedActive) WorkMode.Enhanced else WorkMode.Standard
 
+            resolved shouldBe expected
             WorkModeResolver.mode.value shouldBe expected
         }
+    }
+
+    test("runtime activation transitions Standard to Enhanced and back immediately") {
+        every { ActivationDiagnosticsStore.isModuleActivated(context) } returnsMany
+            listOf(false, true, false)
+
+        WorkModeResolver.resolve(context) shouldBe WorkMode.Standard
+        WorkModeResolver.resolve(context) shouldBe WorkMode.Enhanced
+        WorkModeResolver.resolve(context) shouldBe WorkMode.Standard
     }
 })
