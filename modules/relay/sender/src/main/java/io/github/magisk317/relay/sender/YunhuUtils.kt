@@ -7,7 +7,6 @@ import io.github.magisk317.relay.sender.result.YunhuResult
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
-import java.net.URLEncoder
 
 object YunhuUtils {
 
@@ -29,7 +28,7 @@ object YunhuUtils {
             }
         }
 
-        val requestUrl = "$BASE_URL?token=${URLEncoder.encode(setting.token, "UTF-8")}"
+        val requestUrl = "$BASE_URL?token=${SenderSigning.urlEncode(setting.token)}"
         val requestMsg = SenderWireJson.encode(requestJson)
         SLog.i(TAG, "requestMsg:$requestMsg")
 

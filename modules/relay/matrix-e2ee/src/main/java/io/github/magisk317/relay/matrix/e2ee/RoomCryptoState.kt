@@ -1,8 +1,9 @@
-package io.github.magisk317.relay.sender
+package io.github.magisk317.relay.matrix.e2ee
 
 import io.github.magisk317.relay.net.RelayHttpClients
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -15,12 +16,16 @@ import okhttp3.Request
  * Queries and caches the encryption state of Matrix rooms.
  *
  * A room is considered encrypted if and only if its `m.room.encryption` state event
- * returns HTTP 200 with `algorithm == "m.megolm.v1.aes-sha2"`. All other conditions
- * (404, network errors, parse failures, unsupported algorithms) are treated as unencrypted.
+ * returns HTTP 200 with `algorithm == "m.megolm.v1.aes-sha2"`. Authentication failures
+ * are propagated so callers cannot silently downgrade an encrypted room to plaintext.
+ * Other failures are treated as unencrypted.
  *
  * Cache entries expire after [CACHE_TTL_MS] (60 minutes). The cache is cleared on process restart.
  */
 internal object RoomCryptoState {
+
+    internal class AuthenticationException(statusCode: Int) :
+        IllegalStateException("Room encryption query failed: HTTP $statusCode (token may be expired)")
 
     private const val TAG = "RoomCryptoState"
     private const val SUPPORTED_ALGORITHM = "m.megolm.v1.aes-sha2"
@@ -44,8 +49,8 @@ internal object RoomCryptoState {
      * Check whether [roomId] has E2EE encryption enabled.
      *
      * Returns `true` only when the room state query succeeds (HTTP 200) and the
-     * `algorithm` field equals [SUPPORTED_ALGORITHM]. All failures are treated as
-     * unencrypted to allow plaintext fallback.
+     * `algorithm` field equals [SUPPORTED_ALGORITHM]. HTTP 401/403 failures are
+     * propagated and never cached; other failures allow plaintext fallback.
      *
      * Results are cached per room for up to 60 minutes.
      */
@@ -89,7 +94,7 @@ internal object RoomCryptoState {
                     // Auth failure — don't cache this result and don't treat as "unencrypted".
                     // Throw so the caller knows the token is invalid.
                     SLog.w(TAG, "Room state query returned HTTP ${response.code} for room=$roomId (auth error, not caching)")
-                    throw IllegalStateException("Room encryption query failed: HTTP ${response.code} (token may be expired)")
+                    throw AuthenticationException(response.code)
                 }
 
                 if (response.code != HTTP_OK) {
@@ -123,6 +128,11 @@ internal object RoomCryptoState {
                     )
                 }
             }
+        } catch (e: AuthenticationException) {
+            SLog.w(TAG, "Room encryption authentication failed for room=$roomId: ${e.message}")
+            throw e
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             SLog.w(TAG, "Room encryption query failed for room=$roomId: ${e.message}", e)
             EncryptionInfo(

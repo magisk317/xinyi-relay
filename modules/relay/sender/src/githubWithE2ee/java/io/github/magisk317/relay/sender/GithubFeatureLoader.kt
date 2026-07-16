@@ -1,8 +1,6 @@
 package io.github.magisk317.relay.sender
 
-import org.matrix.rustcomponents.sdk.LogLevel
-import org.matrix.rustcomponents.sdk.TracingConfiguration
-import org.matrix.rustcomponents.sdk.initPlatform
+import io.github.magisk317.relay.matrix.e2ee.MatrixE2eePlatform
 
 /**
  * GitHub variant (withE2ee) implementation of [MatrixE2eeAvailability].
@@ -35,16 +33,7 @@ internal object GithubFeatureLoader : MatrixE2eeAvailability {
 
             // Initialize the Rust SDK platform support (required for TLS/rustls on Android).
             // This must be called once before building any Matrix client.
-            initPlatform(
-                TracingConfiguration(
-                    logLevel = LogLevel.INFO,
-                    traceLogPacks = emptyList(),
-                    extraTargets = emptyList(),
-                    writeToStdoutOrSystem = false,
-                    writeToFiles = null,
-                ),
-                useLightweightTokioRuntime = false,
-            )
+            MatrixE2eePlatform.initialize()
             SLog.i(TAG, "Matrix SDK platform initialized (initPlatform)")
 
             E2eeModuleStatus.AVAILABLE

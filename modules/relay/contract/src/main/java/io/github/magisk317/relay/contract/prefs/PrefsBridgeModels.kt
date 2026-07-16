@@ -1,30 +1,18 @@
 package io.github.magisk317.relay.contract.prefs
 
-import android.content.Context
+import io.github.magisk317.smscode.runtime.contract.prefs.PrefRead
 
-data class PrefReadResult<T>(
-    val value: T,
-    val source: String,
-)
-
-interface PrefsSource {
-    val sourceName: String
-
-    fun readBoolean(context: Context, key: String, defaultValue: Boolean): PrefReadResult<Boolean>?
-
-    fun readString(context: Context, key: String, defaultValue: String): PrefReadResult<String>?
-
-    fun readInt(context: Context, key: String, defaultValue: Int): PrefReadResult<Int>?
-}
+typealias PrefReadResult<T> = io.github.magisk317.smscode.runtime.contract.prefs.PrefReadResult<T>
+typealias PrefsSource = io.github.magisk317.smscode.runtime.contract.prefs.PrefsSource
 
 object NoopRemotePrefsSource : PrefsSource {
     override val sourceName: String = "remote_noop"
 
-    override fun readBoolean(context: Context, key: String, defaultValue: Boolean): PrefReadResult<Boolean>? = null
+    override fun readBoolean(key: String, defaultValue: Boolean): PrefRead<Boolean> = PrefRead.Unavailable
 
-    override fun readString(context: Context, key: String, defaultValue: String): PrefReadResult<String>? = null
+    override fun readString(key: String, defaultValue: String): PrefRead<String> = PrefRead.Unavailable
 
-    override fun readInt(context: Context, key: String, defaultValue: Int): PrefReadResult<Int>? = null
+    override fun readInt(key: String, defaultValue: Int): PrefRead<Int> = PrefRead.Unavailable
 }
 
 data class XpCapabilities(

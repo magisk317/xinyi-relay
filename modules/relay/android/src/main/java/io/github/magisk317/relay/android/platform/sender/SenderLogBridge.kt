@@ -1,7 +1,8 @@
 package io.github.magisk317.relay.android.platform.sender
 
+import io.github.magisk317.relay.android.diagnostics.RuntimeDiagnosticsBridge
 import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
-import io.github.magisk317.relay.android.diagnostics.RuntimeLogStore
+import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.sender.SenderLogSink
 import io.github.magisk317.relay.sender.SenderLogSanitizer
 import io.github.magisk317.relay.sender.SenderLogger
@@ -15,6 +16,7 @@ object SenderLogBridge {
         SenderLogger.install(
             sink = object : SenderLogSink {
                 override fun append(priority: Int, tag: String, message: String, force: Boolean, route: String?) {
+                    RuntimeDiagnosticsBridge.ensureInstalled()
                     RuntimeLogStore.append(priority, tag, message, force, route)
                 }
             },

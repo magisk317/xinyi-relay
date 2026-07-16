@@ -1,11 +1,10 @@
 package io.github.magisk317.relay.ui.home.settings
 
+import io.github.magisk317.relay.android.diagnostics.RuntimeDiagnosticsBridge
 import io.github.magisk317.uikit.common.showLatestSnackbar
 
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.SnackbarHostState
+import io.github.magisk317.uikit.surface.ConfirmActionDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -14,7 +13,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import io.github.magisk317.relay.android.diagnostics.LogBundleExporter
+import io.github.magisk317.smscode.runtime.common.diagnostics.LogBundleExporter
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsUpdate
@@ -45,6 +44,7 @@ internal fun rememberSettingsRuntimeLogActions(
     fun shareLog() {
         scope.launch {
             val result = withContext(Dispatchers.IO) {
+                RuntimeDiagnosticsBridge.ensureInstalled()
                 LogBundleExporter.buildLogBundle(context)
             }
             val file = result.file
@@ -55,6 +55,7 @@ internal fun rememberSettingsRuntimeLogActions(
                 return@launch
             }
             runCatching {
+                RuntimeDiagnosticsBridge.ensureInstalled()
                 LogBundleExporter.shareLogBundle(context, file)
             }.onFailure {
                 snackbarHostState.showLatestSnackbar(
@@ -70,6 +71,7 @@ internal fun rememberSettingsRuntimeLogActions(
     fun clearLog() {
         scope.launch {
             val result = withContext(Dispatchers.IO) {
+                RuntimeDiagnosticsBridge.ensureInstalled()
                 LogBundleExporter.clearLogFolders(context)
             }
             snackbarHostState.showLatestSnackbar(
@@ -83,22 +85,15 @@ internal fun rememberSettingsRuntimeLogActions(
     }
 
     if (showClearConfirmDialog) {
-        AlertDialog(
+        ConfirmActionDialog(
+            title = stringResource(R.string.runtime_log_clear_confirm_title),
+            message = stringResource(R.string.runtime_log_clear_confirm_message),
+            confirmText = stringResource(R.string.action_clear),
+            cancelText = stringResource(R.string.cancel),
             onDismissRequest = { showClearConfirmDialog = false },
-            title = { Text(stringResource(R.string.runtime_log_clear_confirm_title)) },
-            text = { Text(stringResource(R.string.runtime_log_clear_confirm_message)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    showClearConfirmDialog = false
-                    clearLog()
-                }) {
-                    Text(stringResource(R.string.action_clear))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showClearConfirmDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
+            onConfirm = {
+                showClearConfirmDialog = false
+                clearLog()
             },
         )
     }

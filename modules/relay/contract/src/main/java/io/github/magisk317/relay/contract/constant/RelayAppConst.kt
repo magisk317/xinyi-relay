@@ -3,10 +3,6 @@ package io.github.magisk317.relay.contract.constant
 object RelayAppConst {
     const val APPLICATION_ID = "io.github.magisk317.xinyi.relay"
 
-    const val ALIPAY_PACKAGE_NAME = "com.eg.android.AlipayGphone"
-    const val ALIPAY_QRCODE_URI_PREFIX = "alipayqr://platformapi/startapp?saId=10000007&qrcode="
-    const val ALIPAY_QRCODE_URL = "HTTPS://QR.ALIPAY.COM/FKX074142EKXD0OIMV8B60"
-
     const val QQ_GROUP_URL = "https://qm.qq.com/q/4mMpX3vk4U"
     const val TELEGRAM_GROUP_URL = "https://t.me/+NR2QaQ4dlEgxYmNl"
 
@@ -31,8 +27,6 @@ object RelayAppConst {
     const val KEY_CODE_RULE = "key_code_rule"
     const val KEY_RULE_ID = "key_rule_id"
     const val EXTRA_IMPORT_URI = "extra_import_uri"
-
-    const val WECHAT_PACKAGE_NAME = "com.tencent.mm"
 
     const val PADDING_SMALL = 8
     const val PADDING_MEDIUM = 16

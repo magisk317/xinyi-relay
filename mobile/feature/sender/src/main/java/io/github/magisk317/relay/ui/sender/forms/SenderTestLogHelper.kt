@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.ui.sender.forms
 
+import io.github.magisk317.relay.android.diagnostics.RuntimeDiagnosticsBridge
 import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import android.content.Context
@@ -19,7 +20,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.smscode.runtime.common.utils.ClipboardUtils
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.android.diagnostics.RuntimeLogStore
+import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.ui.sender.SenderViewModel
@@ -33,6 +34,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 internal fun logSenderTest(channel: String, message: String, priority: Int = Log.INFO) {
+    RuntimeDiagnosticsBridge.ensureInstalled()
     RuntimeLogStore.append(
         priority = priority,
         tag = "SenderTest-$channel",

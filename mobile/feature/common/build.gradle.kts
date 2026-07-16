@@ -27,11 +27,9 @@ android {
 
 dependencies {
     implementation(project(":core"))
-    // Re-export the contracts every mobile feature consumes, so feature modules
-    // depend on :mobile:feature:common alone instead of re-declaring each one.
-    api(project(":relay:android"))
-    api(project(":relay:engine:api"))
-    api(project(":relay:contract"))
+    implementation(project(":relay:android"))
+    implementation(project(":relay:engine:api"))
+    implementation(project(":relay:contract"))
     implementation(project(":magisk-ui-kit"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

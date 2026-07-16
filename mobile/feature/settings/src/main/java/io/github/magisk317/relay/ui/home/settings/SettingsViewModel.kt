@@ -14,7 +14,7 @@ import io.github.magisk317.relay.contract.constant.PrefRestoreTypeRegistry
 import io.github.magisk317.relay.contract.constant.PrefValueType
 import io.github.magisk317.relay.common.utils.PackageUtils
 import io.github.magisk317.smscode.runtime.common.utils.StorageUtils
-import io.github.magisk317.relay.common.utils.Utils
+import io.github.magisk317.smscode.runtime.common.utils.BrowserUtils
 import io.github.magisk317.relay.android.common.utils.XLog
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
@@ -266,7 +266,11 @@ class SettingsViewModel(
     }
 
     fun showSourceProject() {
-        Utils.showWebPage(getApplication(), Const.PROJECT_SOURCE_CODE_URL)?.let {
+        BrowserUtils.openWebPage(
+            getApplication(),
+            Const.PROJECT_SOURCE_CODE_URL,
+            R.string.browser_install_or_enable_prompt,
+        )?.let {
             _eventsFlow.tryEmit(SettingsEvent.ShowSnackbar(it))
         }
     }

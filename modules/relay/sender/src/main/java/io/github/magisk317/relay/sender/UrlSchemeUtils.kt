@@ -7,7 +7,6 @@ import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.sender.config.UrlSchemeSetting
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -40,5 +39,5 @@ object UrlSchemeUtils {
         }
     }
 
-    private fun urlEncode(value: String): String = URLEncoder.encode(value, "UTF-8")
+    private fun urlEncode(value: String): String = SenderSigning.urlEncode(value)
 }

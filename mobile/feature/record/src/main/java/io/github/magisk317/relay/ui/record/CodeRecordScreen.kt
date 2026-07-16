@@ -73,13 +73,13 @@ import io.github.magisk317.uikit.scroll.ScrollChromeState
 import io.github.magisk317.uikit.surface.chromeSurfaceColor
 import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import io.github.magisk317.uikit.foundation.SessionLoadingRegistry
-import io.github.magisk317.relay.ui.common.SingleChoiceOptionDialog
+import io.github.magisk317.uikit.preference.SingleChoiceConfirmDialog
 import io.github.magisk317.uikit.foundation.rememberMinDurationLoading
 import io.github.magisk317.relay.ui.common.Item
 import io.github.magisk317.relay.ui.common.RetentionDialog
 import io.github.magisk317.uikit.preference.SectionHeader
 import io.github.magisk317.relay.ui.common.StateSwitchItem
-import io.github.magisk317.relay.ui.common.TextInputDialog
+import io.github.magisk317.uikit.preference.TextInputDialog
 import io.github.magisk317.uikit.surface.WorkspaceEmptyState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -481,35 +481,44 @@ fun CodeRecordScreen(
 
     if (showExportDialog) {
         val currentTabName = stringResource(recordTabNameRes(selectedRecordTab))
-        SingleChoiceOptionDialog(
+        var selectedExportIndex by remember(showExportDialog, exportScope) {
+            mutableIntStateOf(if (exportScope == RecordExportScope.CURRENT_TAB) 0 else 1)
+        }
+        SingleChoiceConfirmDialog(
             title = stringResource(R.string.record_export_dialog_title),
             options = listOf(
                 stringResource(R.string.record_export_current_tab_option, currentTabName),
                 stringResource(R.string.record_export_all_tabs_option),
             ),
-            selectedIndex = if (exportScope == RecordExportScope.CURRENT_TAB) 0 else 1,
-            onDismiss = { showExportDialog = false },
-        ) { index ->
-            exportScope = if (index == 0) RecordExportScope.CURRENT_TAB else RecordExportScope.ALL_TABS
-            pendingExportScope = exportScope
-            pendingExportTab = selectedRecordTab
-            val suffix = if (exportScope == RecordExportScope.ALL_TABS) {
-                "all"
-            } else {
-                when (selectedRecordTab) {
-                    0 -> "code"
-                    1 -> "plain"
-                    2 -> "app_notify"
-                    else -> "call_notify"
+            selectedIndex = selectedExportIndex,
+            onSelectionChange = { selectedExportIndex = it },
+            onDismissRequest = { showExportDialog = false },
+            onConfirm = {
+                exportScope = if (selectedExportIndex == 0) {
+                    RecordExportScope.CURRENT_TAB
+                } else {
+                    RecordExportScope.ALL_TABS
                 }
-            }
-            val filename = "Records_${suffix}_${SimpleDateFormat(
-                "yyyyMMdd_HHmm",
-                Locale.getDefault(),
-            ).format(Date())}.json"
-            showExportDialog = false
-            exportLauncher.launch(filename)
-        }
+                pendingExportScope = exportScope
+                pendingExportTab = selectedRecordTab
+                val suffix = if (exportScope == RecordExportScope.ALL_TABS) {
+                    "all"
+                } else {
+                    when (selectedRecordTab) {
+                        0 -> "code"
+                        1 -> "plain"
+                        2 -> "app_notify"
+                        else -> "call_notify"
+                    }
+                }
+                val filename = "Records_${suffix}_${SimpleDateFormat(
+                    "yyyyMMdd_HHmm",
+                    Locale.getDefault(),
+                ).format(Date())}.json"
+                showExportDialog = false
+                exportLauncher.launch(filename)
+            },
+        )
     }
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()

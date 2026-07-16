@@ -28,6 +28,9 @@ android {
 }
 
 dependencies {
+    implementation(project(":relay:contract"))
+    implementation(project(":relay:engine:api"))
+    implementation(project(":policy"))
     implementation(project(":core"))
     implementation(project(":magisk-ui-kit"))
     implementation(project(":mobile:feature:common"))

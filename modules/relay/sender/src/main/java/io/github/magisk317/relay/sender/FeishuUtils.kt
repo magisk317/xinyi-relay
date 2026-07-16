@@ -1,6 +1,5 @@
 package io.github.magisk317.relay.sender
 
-import android.util.Base64
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.net.RelayHttpClients
 import io.github.magisk317.relay.sender.result.FeishuResult
@@ -10,9 +9,6 @@ import kotlinx.serialization.json.put
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.nio.charset.StandardCharsets
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
 
 object FeishuUtils {
     private const val TAG = "FeishuUtils"
@@ -27,10 +23,7 @@ object FeishuUtils {
         if (setting.secret.isNotBlank()) {
             timestamp = System.currentTimeMillis() / 1000
             val stringToSign = "$timestamp\n${setting.secret}"
-            val mac = Mac.getInstance("HmacSHA256")
-            mac.init(SecretKeySpec(stringToSign.toByteArray(StandardCharsets.UTF_8), "HmacSHA256"))
-            val signData = mac.doFinal(byteArrayOf())
-            sign = String(Base64.encode(signData, Base64.NO_WRAP))
+            sign = SenderSigning.hmacSha256Base64(stringToSign, "")
         }
 
         val requestJson = buildJsonObject {

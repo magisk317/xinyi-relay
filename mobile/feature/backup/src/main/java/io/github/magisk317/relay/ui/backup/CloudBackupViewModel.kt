@@ -144,9 +144,12 @@ class CloudBackupViewModel(application: Application) : AndroidViewModel(applicat
             _events.tryEmit(CloudBackupEvent.Error(string(R.string.cloud_backup_webdav_required)))
             return null
         }
+        if (!WebDavConfigStore.saveConfig(getApplication(), normalizedConfig)) {
+            _events.tryEmit(CloudBackupEvent.Error(string(R.string.cloud_backup_webdav_save_failed)))
+            return null
+        }
         _webDavConfig.value = normalizedConfig
         webDavCloudBackupProvider.updateConfig(normalizedConfig)
-        WebDavConfigStore.saveConfig(getApplication(), normalizedConfig)
         return normalizedConfig
     }
 

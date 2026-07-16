@@ -15,7 +15,6 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.net.InetSocketAddress
 import java.net.Proxy
-import java.net.URLEncoder
 
 object TelegramUtils {
     private const val TAG = "TelegramUtils"
@@ -123,7 +122,7 @@ object TelegramUtils {
         var requestUrl = "${base}/bot${setting.apiToken}/sendMessage"
 
         val request = if (setting.method == "GET") {
-            requestUrl += "?chat_id=${setting.chatId}&text=${URLEncoder.encode(content, "UTF-8")}&parse_mode=${setting.parseMode}"
+            requestUrl += "?chat_id=${setting.chatId}&text=${SenderSigning.urlEncode(content)}&parse_mode=${setting.parseMode}"
             if (setting.messageThreadId.isNotEmpty()) {
                 requestUrl += "&message_thread_id=${setting.messageThreadId}"
             }

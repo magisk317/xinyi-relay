@@ -22,6 +22,12 @@ import io.github.magisk317.relay.contract.settings.RelaySettingsSnapshot
 import io.github.magisk317.relay.contract.settings.VerificationSettingsSnapshot
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.mobilefeature.settings.BuildConfig
+import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsCallbacks
+import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsItem
+import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsItems
+import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsLabels
+import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsLayout
+import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsState
 
 @Composable
 internal fun SettingsGeneralSection(
@@ -163,33 +169,51 @@ internal fun SettingsDiagnosticsSection(
         onExpandedChange = onExpandedChange,
         accordionMode = true,
     ) {
-        StateSwitchItem(
-            title = stringResource(id = R.string.pref_verbose_log_mode_title),
-            summary = stringResource(id = R.string.pref_verbose_log_mode_summary),
-            checked = diagnostics.verboseLogMode,
-            onTitleClick = onRuntimeLogTitleClick,
-            onCheckedChange = onVerboseLogModeChange,
-        )
-        if (BuildConfig.DEBUG) {
-            StateSwitchItem(
-                title = stringResource(id = R.string.pref_sensitive_debug_log_mode_title),
-                summary = stringResource(id = R.string.pref_sensitive_debug_log_mode_summary),
-                checked = diagnostics.sensitiveDebugLogMode,
-                onCheckedChange = onSensitiveDebugLogModeChange,
-            )
-        }
-        Item(
-            title = stringResource(id = R.string.pref_runtime_log_retention_days_title),
-            summary = stringResource(
-                id = R.string.pref_runtime_log_retention_days_summary,
-                diagnostics.runtimeLogRetentionDays,
+        RuntimeLogDiagnosticsItems(
+            labels = RuntimeLogDiagnosticsLabels(
+                verboseLogTitle = stringResource(id = R.string.pref_verbose_log_mode_title),
+                verboseLogSummary = stringResource(id = R.string.pref_verbose_log_mode_summary),
+                retentionTitle = stringResource(id = R.string.pref_runtime_log_retention_days_title),
+                retentionSummary = stringResource(
+                    id = R.string.pref_runtime_log_retention_days_summary,
+                    diagnostics.runtimeLogRetentionDays,
+                ),
+                clearLogTitle = stringResource(id = R.string.runtime_log_clear_confirm_title),
+                clearLogSummary = stringResource(id = R.string.runtime_log_clear_summary),
+                sensitiveLogTitle = if (BuildConfig.DEBUG) {
+                    stringResource(id = R.string.pref_sensitive_debug_log_mode_title)
+                } else {
+                    null
+                },
+                sensitiveLogSummary = if (BuildConfig.DEBUG) {
+                    stringResource(id = R.string.pref_sensitive_debug_log_mode_summary)
+                } else {
+                    ""
+                },
             ),
-            onClick = onRuntimeLogRetentionClick,
-        )
-        Item(
-            title = stringResource(id = R.string.runtime_log_clear_confirm_title),
-            summary = stringResource(id = R.string.runtime_log_clear_summary),
-            onClick = onClearLog,
+            state = RuntimeLogDiagnosticsState(
+                verboseLogEnabled = diagnostics.verboseLogMode,
+                sensitiveLogEnabled = diagnostics.sensitiveDebugLogMode,
+            ),
+            callbacks = RuntimeLogDiagnosticsCallbacks(
+                onShareLog = onRuntimeLogTitleClick,
+                onVerboseLogEnabledChange = onVerboseLogModeChange,
+                onRetentionClick = onRuntimeLogRetentionClick,
+                onClearLogClick = onClearLog,
+                onSensitiveLogEnabledChange = if (BuildConfig.DEBUG) {
+                    onSensitiveDebugLogModeChange
+                } else {
+                    null
+                },
+            ),
+            layout = RuntimeLogDiagnosticsLayout(
+                itemOrder = listOf(
+                    RuntimeLogDiagnosticsItem.VERBOSE_LOG,
+                    RuntimeLogDiagnosticsItem.SENSITIVE_LOG,
+                    RuntimeLogDiagnosticsItem.RETENTION,
+                    RuntimeLogDiagnosticsItem.CLEAR_LOG,
+                ),
+            ),
         )
         StateSwitchItem(
             title = stringResource(id = R.string.pref_auto_update_on_start_title),

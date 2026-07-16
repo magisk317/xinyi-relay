@@ -4,6 +4,7 @@ import io.github.magisk317.relay.mobilefeature.overview.BuildConfig
 import io.github.magisk317.relay.ui.common.rememberPrefBoolean
 import io.github.magisk317.uikit.surface.DonateDialog
 import io.github.magisk317.uikit.surface.QRCodeDialog
+import io.github.magisk317.uikit.surface.saveImageToGalleryAsync
 import io.github.magisk317.uikit.R as UiKitR
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
@@ -63,8 +64,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
-import io.github.magisk317.relay.android.diagnostics.ActivationDiagnosticsSnapshot
-import io.github.magisk317.relay.common.utils.Utils
+import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsSnapshot
+import io.github.magisk317.smscode.runtime.common.utils.BrowserUtils
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import io.github.magisk317.relay.engine.service.RuntimeAnalyticsProvider
@@ -584,17 +585,19 @@ private fun OverviewCardItem(
                         }
                     },
                     onJoinTelegram = {
-                        io.github.magisk317.relay.common.utils.Utils.showWebPage(
+                        BrowserUtils.openWebPage(
                             context,
-                            io.github.magisk317.relay.contract.constant.RelayAppConst.TELEGRAM_GROUP_URL
+                            Const.TELEGRAM_GROUP_URL,
+                            R.string.browser_install_or_enable_prompt,
                         )?.let {
                             scope.launch { snackbarHostState.showLatestSnackbar(it) }
                         }
                     },
                     onSourceCode = {
-                        io.github.magisk317.relay.common.utils.Utils.showWebPage(
+                        BrowserUtils.openWebPage(
                             context,
-                            io.github.magisk317.relay.contract.constant.RelayAppConst.PROJECT_SOURCE_CODE_URL
+                            Const.PROJECT_SOURCE_CODE_URL,
+                            R.string.browser_install_or_enable_prompt,
                         )?.let {
                             scope.launch { snackbarHostState.showLatestSnackbar(it) }
                         }
@@ -619,6 +622,7 @@ private fun OverviewDialogs(
     onPlayDonation: (String) -> Unit,
     onShowMessage: (String) -> Unit,
 ) {
+    val scope = rememberCoroutineScope()
     if (showAddCardSheet) {
         AddOverviewCardSheet(
             specs = addableCardSpecs,
@@ -652,8 +656,10 @@ private fun OverviewDialogs(
             type = pair.second,
             onDismiss = { onShowQrCodeDialog(null) },
             onSave = {
-                Utils.saveImageToGallery(context, pair.first, "${pair.second}_qrcode")
-                    .forEach(onShowMessage)
+                scope.launch {
+                    saveImageToGalleryAsync(context, pair.first, "${pair.second}_qrcode")
+                        .forEach(onShowMessage)
+                }
             },
         )
     }
