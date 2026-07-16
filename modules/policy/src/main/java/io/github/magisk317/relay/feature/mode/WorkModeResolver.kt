@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.feature.mode
 
 import android.content.Context
-import io.github.magisk317.relay.android.diagnostics.ActivationDiagnosticsStore
+import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

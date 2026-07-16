@@ -71,9 +71,9 @@ import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.smscode.runtime.common.utils.FrameworkCompatibilityMonitor
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.common.utils.PackageUtils
-import io.github.magisk317.relay.common.utils.Utils
+import io.github.magisk317.smscode.runtime.common.utils.BrowserUtils
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
-import io.github.magisk317.relay.update.ApkSecurityVerifier
+import io.github.magisk317.smscode.runtime.common.update.ApkSecurityVerifier
 import io.github.magisk317.relay.update.GithubUpdateChecker
 import io.github.magisk317.smscode.runtime.common.update.UpgradeApkAsset
 import io.github.magisk317.relay.update.UpgradeDownloader
@@ -518,7 +518,11 @@ class MainActivity : ComponentActivity() {
                                         onClick = {
                                             when (updateState) {
                                                 is GithubUpdateUiState.ReleaseLink -> {
-                                                    Utils.showWebPage(this@MainActivity, updateState.release.htmlUrl)
+                                                    BrowserUtils.openWebPage(
+                                                        this@MainActivity,
+                                                        updateState.release.htmlUrl,
+                                                        R.string.browser_install_or_enable_prompt,
+                                                    )
                                                         ?.let(::enqueueSnackbar)
                                                     githubUpdateUiState = null
                                                 }

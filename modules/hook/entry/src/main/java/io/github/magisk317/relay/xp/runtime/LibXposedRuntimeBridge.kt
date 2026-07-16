@@ -1,11 +1,12 @@
 package io.github.magisk317.relay.xp.runtime
 
-import android.content.Context
+import android.content.SharedPreferences
 import io.github.magisk317.relay.xpbridge.bridge.NoopRemotePrefsSource
-import io.github.magisk317.relay.xpbridge.bridge.PrefReadResult
 import io.github.magisk317.relay.xpbridge.bridge.PrefsSource
 import io.github.magisk317.relay.xpbridge.bridge.XpCapabilities
 import io.github.magisk317.relay.xpbridge.bridge.XpRuntimeBridge
+import io.github.magisk317.smscode.runtime.common.prefs.SharedPrefsSource
+import io.github.magisk317.smscode.runtime.contract.prefs.PrefRead
 
 class LibXposedRuntimeBridge(
     private val runtimeHandle: Any?,
@@ -17,6 +18,12 @@ class LibXposedRuntimeBridge(
     override fun remotePrefsSource(group: String): PrefsSource {
         val handle = runtimeHandle ?: return NoopRemotePrefsSource
         val remotePrefs = callMethod(handle, "getRemotePreferences", group) ?: return NoopRemotePrefsSource
+        if (remotePrefs is SharedPreferences) {
+            return SharedPrefsSource(
+                sourceName = REMOTE_PREFS_SOURCE_NAME,
+                provider = { remotePrefs },
+            )
+        }
         return LibXposedRemotePrefsSource(remotePrefs)
     }
 
@@ -91,44 +98,60 @@ class LibXposedRuntimeBridge(
     private class LibXposedRemotePrefsSource(
         private val remotePrefs: Any,
     ) : PrefsSource {
-        override val sourceName: String = "remote_libxposed"
+        override val sourceName: String = REMOTE_PREFS_SOURCE_NAME
 
-        override fun readBoolean(context: Context, key: String, defaultValue: Boolean): PrefReadResult<Boolean>? {
-            val value = readValue(key) ?: return null
-            val normalized = when (value) {
-                is Boolean -> value
-                is Number -> value.toInt() != 0
-                is String -> value == "1" || value.equals("true", ignoreCase = true)
-                else -> defaultValue
+        override fun readBoolean(key: String, defaultValue: Boolean): PrefRead<Boolean> {
+            return when (val value = readValue(key)) {
+                is PrefRead.Hit -> {
+                    val normalized = when (val raw = value.value) {
+                        is Boolean -> raw
+                        is Number -> raw.toInt() != 0
+                        is String -> raw == "1" || raw.equals("true", ignoreCase = true)
+                        else -> defaultValue
+                    }
+                    PrefRead.Hit(normalized, sourceName)
+                }
+                is PrefRead.Miss -> PrefRead.Miss
+                is PrefRead.Unavailable -> PrefRead.Unavailable
             }
-            return PrefReadResult(normalized, sourceName)
         }
 
-        override fun readString(context: Context, key: String, defaultValue: String): PrefReadResult<String>? {
-            val value = readValue(key) ?: return null
-            val normalized = when (value) {
-                is String -> value
-                else -> value.toString()
+        override fun readString(key: String, defaultValue: String): PrefRead<String> {
+            return when (val value = readValue(key)) {
+                is PrefRead.Hit -> {
+                    val normalized = when (val raw = value.value) {
+                        is String -> raw
+                        null -> defaultValue
+                        else -> raw.toString()
+                    }
+                    PrefRead.Hit(normalized, sourceName)
+                }
+                is PrefRead.Miss -> PrefRead.Miss
+                is PrefRead.Unavailable -> PrefRead.Unavailable
             }
-            return PrefReadResult(normalized, sourceName)
         }
 
-        override fun readInt(context: Context, key: String, defaultValue: Int): PrefReadResult<Int>? {
-            val value = readValue(key) ?: return null
-            val normalized = when (value) {
-                is Int -> value
-                is Long -> value.toInt()
-                is Number -> value.toInt()
-                is String -> value.toIntOrNull() ?: defaultValue
-                else -> defaultValue
+        override fun readInt(key: String, defaultValue: Int): PrefRead<Int> {
+            return when (val value = readValue(key)) {
+                is PrefRead.Hit -> {
+                    val normalized = when (val raw = value.value) {
+                        is Int -> raw
+                        is Long -> raw.toInt()
+                        is Number -> raw.toInt()
+                        is String -> raw.toIntOrNull() ?: defaultValue
+                        else -> defaultValue
+                    }
+                    PrefRead.Hit(normalized, sourceName)
+                }
+                is PrefRead.Miss -> PrefRead.Miss
+                is PrefRead.Unavailable -> PrefRead.Unavailable
             }
-            return PrefReadResult(normalized, sourceName)
         }
 
-        private fun readValue(key: String): Any? {
-            val all = callNoArg("getAll") as? Map<*, *> ?: return null
-            if (!all.containsKey(key)) return null
-            return all[key]
+        private fun readValue(key: String): PrefRead<Any?> {
+            val all = callNoArg("getAll") as? Map<*, *> ?: return PrefRead.Unavailable
+            if (!all.containsKey(key)) return PrefRead.Miss
+            return PrefRead.Hit(all[key], sourceName)
         }
 
         private fun callNoArg(name: String): Any? = runCatching {
@@ -142,6 +165,7 @@ class LibXposedRuntimeBridge(
 
     companion object {
         private const val LIB_XPOSED_INTERFACE_CLASS = "io.github.libxposed.api.XposedInterface"
+        private const val REMOTE_PREFS_SOURCE_NAME = "remote_libxposed"
 
         fun looksLikeLibXposedInterface(candidate: Any): Boolean {
             val methods = candidate.javaClass.methods.map { it.name }.toSet()

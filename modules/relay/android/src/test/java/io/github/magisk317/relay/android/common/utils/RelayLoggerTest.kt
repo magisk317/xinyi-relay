@@ -1,7 +1,11 @@
 package io.github.magisk317.relay.android.common.utils
 
-import io.github.magisk317.relay.android.diagnostics.RuntimeLogStore
+import io.github.magisk317.relay.android.diagnostics.RuntimeDiagnosticsBridge
+import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
 import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
+import io.github.magisk317.xposed.logging.LogEvent
+import io.github.magisk317.xposed.logging.LogSink
+import io.github.magisk317.xposed.logging.XLog as ContractXLog
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -12,8 +16,7 @@ class RelayLoggerTest {
 
     @AfterEach
     fun tearDown() {
-        XLog.setLogLevel(2)
-        XLog.setTestSink(null)
+        ContractXLog.resetForTest()
         RelayLogger.setRuntimeSinkForTest(null)
         SensitiveLogPolicy.setEnabled(false)
     }
@@ -30,7 +33,7 @@ class RelayLoggerTest {
     }
 
     @Test
-    fun xLogTestSinkReceivesFormattedAndSanitizedMessage() {
+    fun xLogTestSinkReceivesSanitizedFormattedMessage() {
         var captured: Pair<Int, String>? = null
         XLog.setLogLevel(2)
         XLog.setTestSink { priority, message -> captured = priority to message }
@@ -38,14 +41,14 @@ class RelayLoggerTest {
         XLog.i("token=%s body=%s", "secret123", "验证码123456")
 
         assertEquals(4, captured?.first)
+        assertTrue(captured?.second.orEmpty().contains("token=***"))
+        assertTrue(captured?.second.orEmpty().contains("body=payload["))
         assertFalse(captured?.second.orEmpty().contains("secret123"))
         assertFalse(captured?.second.orEmpty().contains("验证码123456"))
-        assertTrue(captured?.second.orEmpty().contains("token=***"))
-        assertTrue(captured?.second.orEmpty().contains("payload[len="))
     }
 
     @Test
-    fun xLogRuntimeSinkReceivesSanitizedRouteEvent() {
+    fun relayLoggerRuntimeSinkReceivesSanitizedRouteEvent() {
         var captured: CapturedRuntimeLog? = null
         XLog.setLogLevel(2)
         RelayLogger.setRuntimeSinkForTest(
@@ -62,7 +65,7 @@ class RelayLoggerTest {
             },
         )
 
-        XLog.e("sender=13800138000")
+        RelayLogger.e("sender=13800138000")
 
         assertEquals(6, captured?.priority)
         assertEquals("relay", captured?.tag)
@@ -105,27 +108,16 @@ class RelayLoggerTest {
 
     @Test
     fun xLogAllowsExplicitRoute() {
-        var captured: CapturedRuntimeLog? = null
+        var captured: LogEvent? = null
         XLog.setLogLevel(2)
-        RelayLogger.setRuntimeSinkForTest(
-            object : RelayLogger.RuntimeSink {
-                override fun append(
-                    priority: Int,
-                    tag: String,
-                    message: String,
-                    force: Boolean,
-                    route: String?,
-                ) {
-                    captured = CapturedRuntimeLog(priority, tag, message, force, route)
-                }
-            },
-        )
+        ContractXLog.install(LogSink { captured = it })
 
         XLog.i(LogRoute.ROOT_DB, "root db event")
 
         assertEquals(4, captured?.priority)
         assertEquals("root db event", captured?.message)
-        assertTrue(captured?.force ?: false)
+        assertFalse(captured?.force ?: true)
+        assertTrue(captured?.sensitive ?: false)
         assertEquals(RuntimeLogStore.ROUTE_ROOT_DB, captured?.route)
     }
 

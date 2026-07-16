@@ -3,7 +3,7 @@ package io.github.magisk317.relay.ui.home.relayconfig
 import io.github.magisk317.relay.ui.common.SectionCard
 import io.github.magisk317.relay.ui.common.StateSwitchItem
 import io.github.magisk317.relay.ui.common.Item
-import io.github.magisk317.relay.ui.common.TextInputDialog
+import io.github.magisk317.uikit.preference.TextInputDialog
 import io.github.magisk317.uikit.common.showLatestSnackbar
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

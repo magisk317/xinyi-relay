@@ -3,11 +3,11 @@
 package io.github.magisk317.relay.ui.home.verification
 
 import io.github.magisk317.relay.ui.common.SectionCard
-import io.github.magisk317.relay.ui.common.SingleChoiceOptionDialog
+import io.github.magisk317.uikit.preference.SingleChoiceConfirmDialog
 import io.github.magisk317.relay.ui.common.rememberPrefBoolean
 import io.github.magisk317.relay.ui.common.StateSwitchItem
 import io.github.magisk317.relay.ui.common.Item
-import io.github.magisk317.relay.ui.common.TextInputDialog
+import io.github.magisk317.uikit.preference.TextInputDialog
 import io.github.magisk317.uikit.common.showLatestSnackbar
 import android.Manifest
 import android.content.ComponentName
@@ -43,6 +43,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -57,7 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import io.github.magisk317.relay.android.common.utils.XLog
-import io.github.magisk317.relay.android.common.utils.NotificationUtils
+import io.github.magisk317.relay.android.platform.notification.AndroidNotificationPlatformBridge as NotificationUtils
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
@@ -680,20 +681,27 @@ fun VerificationSettingsScreen(
     if (showRetentionDialog && current != null) {
         val entries = stringArrayResource(id = R.array.notification_retention_time_entry_list)
         val values = stringArrayResource(id = R.array.notification_retention_time_list)
-        SingleChoiceOptionDialog(
+        var selectedIndex by remember(current.notificationRetentionTime) {
+            mutableIntStateOf(values.indexOf(current.notificationRetentionTime).coerceAtLeast(0))
+        }
+        SingleChoiceConfirmDialog(
             title = stringResource(id = R.string.pref_notification_retention_time_title),
             options = entries.toList(),
-            selectedIndex = values.indexOf(current.notificationRetentionTime).coerceAtLeast(0),
-            onDismiss = { showRetentionDialog = false },
-        ) { index ->
-            showRetentionDialog = false
-            scope.launch {
-                settings = repository.updateVerificationSettings(
-                    VerificationSettingsUpdate(notificationRetentionTime = values[index]),
-                )
-                notifySaved()
-            }
-        }
+            selectedIndex = selectedIndex,
+            onSelectionChange = { selectedIndex = it },
+            onDismissRequest = { showRetentionDialog = false },
+            onConfirm = {
+                values.getOrNull(selectedIndex)?.let { value ->
+                    showRetentionDialog = false
+                    scope.launch {
+                        settings = repository.updateVerificationSettings(
+                            VerificationSettingsUpdate(notificationRetentionTime = value),
+                        )
+                        notifySaved()
+                    }
+                }
+            },
+        )
     }
     if (showKeywordsDialog && current != null) {
         TextInputDialog(

@@ -8,11 +8,11 @@ import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
 import android.os.Binder
-import android.os.Process
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.db.entity.AppInfo
 import io.github.magisk317.relay.android.data.db.entity.SmsCodeRule
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
+import io.github.magisk317.relay.android.platform.ipc.ProviderCallerPolicy
 import io.github.magisk317.smscode.runtime.common.record.SmsMsgCursorContract
 import kotlinx.coroutines.runBlocking
 
@@ -292,37 +292,16 @@ class DBProvider : ContentProvider() {
     }
 
     private fun isCallerAllowedForQuery(ctx: Context, uriType: Int): Boolean {
-        if (isCallerSelf(ctx)) return true
-        if (!isPrivilegedCaller(ctx)) return false
+        if (ProviderCallerPolicy.isSelf(ctx)) return true
+        if (!ProviderCallerPolicy.isSelfOrSystemScope(ctx)) return false
         return when (uriType) {
             SMS_CODE_RULE_DIR, SMS_CODE_RULE_ID, APP_INFO_DIR, APP_INFO_ITEM -> true
             else -> false
         }
     }
 
-    private fun isCallerAllowedForMutation(ctx: Context): Boolean = isCallerSelf(ctx)
-
-    private fun isCallerSelf(ctx: Context): Boolean = Binder.getCallingUid() == ctx.applicationInfo?.uid
-
-    private fun isPrivilegedCaller(ctx: Context): Boolean {
-        val uid = Binder.getCallingUid()
-        if (uid < Process.FIRST_APPLICATION_UID) return true
-        return try {
-            val packages = ctx.packageManager.getPackagesForUid(uid) ?: return false
-            packages.any { packageName -> isSystemApp(ctx, packageName) }
-        } catch (_: Exception) {
-            false
-        }
-    }
-
-    private fun isSystemApp(context: Context, packageName: String): Boolean = try {
-        val info = context.packageManager.getApplicationInfo(packageName, 0)
-        (info.flags and
-            (android.content.pm.ApplicationInfo.FLAG_SYSTEM or
-                android.content.pm.ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0
-    } catch (_: Exception) {
-        false
-    }
+    private fun isCallerAllowedForMutation(ctx: Context): Boolean =
+        ProviderCallerPolicy.isSelf(ctx)
 
     private fun updateSmsMsgByUriId(uri: Uri, values: ContentValues?): Int {
         val id = uri.lastPathSegment?.toLongOrNull() ?: return 0

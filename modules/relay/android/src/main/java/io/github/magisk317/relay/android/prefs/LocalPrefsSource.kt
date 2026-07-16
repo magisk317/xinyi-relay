@@ -3,8 +3,8 @@ package io.github.magisk317.relay.android.prefs
 import android.content.Context
 import android.content.SharedPreferences
 import io.github.magisk317.relay.android.common.utils.XLog
-import io.github.magisk317.relay.contract.prefs.PrefReadResult
 import io.github.magisk317.relay.contract.prefs.PrefsSource
+import io.github.magisk317.smscode.runtime.contract.prefs.PrefRead
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -44,33 +44,33 @@ internal class LocalPrefsSource(
         }
     }
 
-    override fun readBoolean(context: Context, key: String, defaultValue: Boolean): PrefReadResult<Boolean>? {
-        val prefs = getLocalPrefs() ?: return null
+    override fun readBoolean(key: String, defaultValue: Boolean): PrefRead<Boolean> {
+        val prefs = getLocalPrefs() ?: return PrefRead.Unavailable
         return runCatching {
-            if (!prefs.contains(key)) return null
-            PrefReadResult(prefs.getBoolean(key, defaultValue), sourceName)
-        }.getOrNull()
+            if (!prefs.contains(key)) return PrefRead.Miss
+            PrefRead.Hit(prefs.getBoolean(key, defaultValue), sourceName)
+        }.getOrElse { PrefRead.Unavailable }
     }
 
-    override fun readString(context: Context, key: String, defaultValue: String): PrefReadResult<String>? {
-        val prefs = getLocalPrefs() ?: return null
+    override fun readString(key: String, defaultValue: String): PrefRead<String> {
+        val prefs = getLocalPrefs() ?: return PrefRead.Unavailable
         return runCatching {
-            if (!prefs.contains(key)) return null
-            PrefReadResult(prefs.getString(key, defaultValue) ?: defaultValue, sourceName)
-        }.getOrNull()
+            if (!prefs.contains(key)) return PrefRead.Miss
+            PrefRead.Hit(prefs.getString(key, defaultValue) ?: defaultValue, sourceName)
+        }.getOrElse { PrefRead.Unavailable }
     }
 
-    override fun readInt(context: Context, key: String, defaultValue: Int): PrefReadResult<Int>? {
-        val prefs = getLocalPrefs() ?: return null
+    override fun readInt(key: String, defaultValue: Int): PrefRead<Int> {
+        val prefs = getLocalPrefs() ?: return PrefRead.Unavailable
         return runCatching {
-            if (!prefs.contains(key)) return null
+            if (!prefs.contains(key)) return PrefRead.Miss
             val value = when (val any = prefs.all[key]) {
                 is Int -> any
                 is Long -> any.toInt()
                 is String -> any.toIntOrNull() ?: defaultValue
                 else -> prefs.getInt(key, defaultValue)
             }
-            PrefReadResult(value, sourceName)
-        }.getOrNull()
+            PrefRead.Hit(value, sourceName)
+        }.getOrElse { PrefRead.Unavailable }
     }
 }

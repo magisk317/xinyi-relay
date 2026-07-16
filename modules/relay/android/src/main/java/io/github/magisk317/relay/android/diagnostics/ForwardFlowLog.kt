@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.android.diagnostics
 
 import android.util.Log
+import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
 
 /**
  * Application-side forwarding flow logs.
@@ -43,6 +44,7 @@ object ForwardFlowLog {
             return
         }
         Log.println(priority, TAG, prefixed)
+        RuntimeDiagnosticsBridge.ensureInstalled()
         RuntimeLogStore.append(
             priority = priority,
             tag = TAG,

@@ -12,6 +12,7 @@ import io.github.magisk317.relay.contract.prefs.XpRuntimeBridge
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.android.BuildConfig
 import io.github.magisk317.smscode.domain.constant.SmsCodeConst
+import io.github.magisk317.smscode.runtime.common.prefs.PrefsResolver
 import java.util.concurrent.atomic.AtomicBoolean
 
 // Phase3 complete: PrefsReader is runtime/Xposed/跨进程只读 only.
@@ -21,13 +22,10 @@ object PrefsReader {
     private data class BooleanReadTrace(val value: Boolean, val source: String)
     private data class StringReadTrace(val value: String, val source: String)
     private val runtimeBridgeLogOnce = AtomicBoolean(false)
-    private val cache = java.util.concurrent.ConcurrentHashMap<String, CachedResult<*>>()
     private const val CACHE_TTL_MS = 10_000L
-
-    private data class CachedResult<T>(
-        val value: T,
-        val source: String,
-        val timestamp: Long = System.currentTimeMillis(),
+    private val prefsResolver = PrefsResolver(
+        cacheTtlMs = CACHE_TTL_MS,
+        missFallsThrough = true,
     )
 
     @Volatile
@@ -38,6 +36,7 @@ object PrefsReader {
         // Runtime bridge installation stays here to keep hook-side initialization centralized.
         runtimeBridge = bridge ?: NoopXpRuntimeBridge
         runtimeBridgeLogOnce.set(false)
+        invalidateCache()
         logRuntimeBridgeOnce()
     }
 
@@ -49,6 +48,12 @@ object PrefsReader {
     @JvmStatic
     fun setHookContext(context: Context) {
         PrefsSourceChain.setHookContext(context)
+        invalidateCache()
+    }
+
+    @JvmStatic
+    fun invalidateCache() {
+        prefsResolver.invalidate()
     }
 
     private fun logRuntimeBridgeOnce() {
@@ -85,19 +90,8 @@ object PrefsReader {
         defaultValue: Boolean,
         sources: List<PrefsSource> = resolveSources(),
     ): PrefReadResult<Boolean> {
-        val cached = getFromCache<Boolean>(key)
-        if (cached != null) return cached
-
-        val result = PrefsSourceChain.resolveBoolean(
-            context = context,
-            key = key,
-            defaultValue = defaultValue,
-            sources = sources,
-            logRuntimeBridgeOnce = ::logRuntimeBridgeOnce,
-            warn = ::safeWarn,
-        )
-        putToCache(key, result)
-        return result
+        logRuntimeBridgeOnce()
+        return prefsResolver.resolveBoolean(key, defaultValue, sources)
     }
 
     private fun resolveString(
@@ -106,19 +100,8 @@ object PrefsReader {
         defaultValue: String,
         sources: List<PrefsSource> = resolveSources(),
     ): PrefReadResult<String> {
-        val cached = getFromCache<String>(key)
-        if (cached != null) return cached
-
-        val result = PrefsSourceChain.resolveString(
-            context = context,
-            key = key,
-            defaultValue = defaultValue,
-            sources = sources,
-            logRuntimeBridgeOnce = ::logRuntimeBridgeOnce,
-            warn = ::safeWarn,
-        )
-        putToCache(key, result)
-        return result
+        logRuntimeBridgeOnce()
+        return prefsResolver.resolveString(key, defaultValue, sources)
     }
 
     private fun resolveInt(
@@ -127,33 +110,8 @@ object PrefsReader {
         defaultValue: Int,
         sources: List<PrefsSource> = resolveSources(),
     ): PrefReadResult<Int> {
-        val cached = getFromCache<Int>(key)
-        if (cached != null) return cached
-
-        val result = PrefsSourceChain.resolveInt(
-            context = context,
-            key = key,
-            defaultValue = defaultValue,
-            sources = sources,
-            logRuntimeBridgeOnce = ::logRuntimeBridgeOnce,
-            warn = ::safeWarn,
-        )
-        putToCache(key, result)
-        return result
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    private fun <T> getFromCache(key: String): PrefReadResult<T>? {
-        val cached = cache[key] as? CachedResult<T> ?: return null
-        if (System.currentTimeMillis() - cached.timestamp > CACHE_TTL_MS) {
-            cache.remove(key)
-            return null
-        }
-        return PrefReadResult(cached.value, cached.source)
-    }
-
-    private fun <T> putToCache(key: String, result: PrefReadResult<T>) {
-        cache[key] = CachedResult(result.value, result.source)
+        logRuntimeBridgeOnce()
+        return prefsResolver.resolveInt(key, defaultValue, sources)
     }
 
     private fun safeWarn(message: String, vararg args: Any?) {

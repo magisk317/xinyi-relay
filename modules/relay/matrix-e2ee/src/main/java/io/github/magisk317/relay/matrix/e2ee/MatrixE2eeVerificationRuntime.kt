@@ -1,9 +1,14 @@
-package io.github.magisk317.relay.sender
+package io.github.magisk317.relay.matrix.e2ee
 
 import android.content.Context
+import io.github.magisk317.relay.sender.MatrixE2eeVerification
+import io.github.magisk317.relay.sender.MatrixE2eeVerificationEmoji
+import io.github.magisk317.relay.sender.MatrixE2eeVerificationState
+import io.github.magisk317.relay.sender.MatrixE2eeVerificationStatus
+import io.github.magisk317.relay.sender.SenderSettingSanitizer
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlinx.coroutines.CoroutineScope
 import io.github.magisk317.relay.sender.config.MatrixSetting
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -29,7 +34,7 @@ import org.matrix.rustcomponents.sdk.TaskHandle
 import org.matrix.rustcomponents.sdk.VerificationStateListener
 
 @Suppress("TooGenericExceptionCaught")
-object MatrixE2eeVerificationManager : MatrixE2eeVerification {
+object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
     private const val TAG = "MatrixE2eeVerification"
     private const val VERIFICATION_INIT_TIMEOUT_MS = 15_000L
     private const val VERIFICATION_SYNC_TIMEOUT_MS = 30_000L
@@ -95,7 +100,7 @@ object MatrixE2eeVerificationManager : MatrixE2eeVerification {
 
             try {
                 val nextClient = withContext(Dispatchers.IO) {
-                    MatrixE2eeUtils.getClientForVerification(context.applicationContext, safeSetting)
+                    MatrixE2eeRuntime.getClientForVerification(context.applicationContext, safeSetting)
                 }
                 client = nextClient
                 stopSync()
@@ -260,7 +265,7 @@ object MatrixE2eeVerificationManager : MatrixE2eeVerification {
 
         // Force clear the DB even if logout failed
         try {
-            MatrixE2eeUtils.forceClearDeviceStore(context, setting)
+            MatrixE2eeRuntime.forceClearDeviceStore(context, setting)
             SLog.d(TAG, "Matrix verification device store forcefully cleared")
         } catch (e: Exception) {
             SLog.w(TAG, "Failed to forcefully clear Matrix device store: ${e.message}")

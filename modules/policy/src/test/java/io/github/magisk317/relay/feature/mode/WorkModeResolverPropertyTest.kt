@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.feature.mode
 
 import android.content.Context
-import io.github.magisk317.relay.android.diagnostics.ActivationDiagnosticsStore
+import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.property.Arb

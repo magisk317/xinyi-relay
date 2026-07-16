@@ -26,6 +26,7 @@ android {
 
 }
 dependencies {
+    api(project(":magisk-xposed-kit:logging"))
     implementation(project(":relay:sender:api"))
     implementation(project(":relay:contract"))
     implementation(project(":relay:engine:api"))
@@ -37,11 +38,7 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.jakarta.mail)
     implementation(libs.paho.mqtt)
-    // matrix-rust-sdk FFI for E2EE support
-    // Published as "sdk-android" on Maven Central by element-hq
-    add("githubWithE2eeImplementation", libs.matrix.sdk.android)
-    // rustls-platform-verifier Android bindings (required by matrix-rust-sdk for TLS on Android)
-    add("githubWithE2eeImplementation", "rustls:rustls-platform-verifier:0.1.1")
+    add("githubWithE2eeImplementation", project(":relay:matrix-e2ee"))
     // Play Feature Delivery for on-demand E2EE module installation
     add("playImplementation", libs.play.feature.delivery)
     testImplementation(libs.junit.jupiter)

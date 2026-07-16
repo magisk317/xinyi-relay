@@ -199,6 +199,7 @@ object RelayPrefConst {
     const val KEY_REMOTE_AGENT_PENDING_LOCAL_CHANGES = "pref_remote_agent_pending_mutations"
     const val KEY_REMOTE_AGENT_DEVICE_TOKEN = "pref_remote_agent_device_token"
     const val KEY_REMOTE_AGENT_LAST_APP_CATALOG_DIGEST = "pref_remote_agent_last_app_catalog_digest"
+    const val KEY_REMOTE_AGENT_LAST_RECORD_SNAPSHOT_DIGEST = "pref_remote_agent_last_record_snapshot_digest"
     const val KEY_REMOTE_AGENT_DEVICE_APP_INFOS = "pref_remote_agent_device_app_infos"
     const val KEY_LOCAL_CONFIG_REVISION = "pref_local_config_revision"
     const val KEY_LOCAL_CONFIG_PENDING_LOCAL_CHANGES = "pref_local_config_pending_mutations"

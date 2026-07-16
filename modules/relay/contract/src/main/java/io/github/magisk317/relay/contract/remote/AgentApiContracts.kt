@@ -3,6 +3,9 @@ package io.github.magisk317.relay.contract.remote
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 
+const val MAX_RELAY_RECORDS_PER_SNAPSHOT = 200
+const val MAX_RELAY_RECORD_SNAPSHOT_BYTES = 8 * 1024 * 1024
+
 @Serializable
 data class AgentRegisterRequest(
     val bindCode: String,
@@ -98,9 +101,12 @@ data class RelayRecordWire(
 @Serializable
 data class RelayRecordsBatchRequest(
     val records: List<RelayRecordWire>,
+    val replaceExisting: Boolean = false,
 )
 
 @Serializable
 data class RelayRecordsBatchResponse(
     val inserted: Long = 0L,
+    val updated: Long = 0L,
+    val deleted: Long = 0L,
 )

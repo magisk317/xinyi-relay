@@ -1,10 +1,11 @@
 package io.github.magisk317.relay.android.platform.xpbridge
 
+import io.github.magisk317.relay.android.diagnostics.RuntimeDiagnosticsBridge
 import android.content.Context
 import android.util.Log
 import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
-import io.github.magisk317.relay.android.diagnostics.ActivationDiagnosticsStore
-import io.github.magisk317.relay.android.diagnostics.RuntimeLogStore
+import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
+import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.contract.xpbridge.XpDiagnosticsRuntimeBridge
 
 object AndroidXpDiagnosticsBridge : XpDiagnosticsRuntimeBridge {
@@ -18,6 +19,7 @@ object AndroidXpDiagnosticsBridge : XpDiagnosticsRuntimeBridge {
         callerClassName: String?,
     ) {
         val safeMessage = if (sensitive) SensitiveLogPolicy.sanitizeLogMessage(message) else message
+        RuntimeDiagnosticsBridge.ensureInstalled()
         RuntimeLogStore.append(
             priority = priority,
             tag = tag,
@@ -31,6 +33,7 @@ object AndroidXpDiagnosticsBridge : XpDiagnosticsRuntimeBridge {
         context: Context,
         verboseLogging: Boolean,
     ) {
+        RuntimeDiagnosticsBridge.ensureInstalled()
         RuntimeLogStore.initialize(context, enableDetailedLogs = verboseLogging)
     }
 

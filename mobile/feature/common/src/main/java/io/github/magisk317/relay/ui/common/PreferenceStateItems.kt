@@ -5,17 +5,13 @@ package io.github.magisk317.relay.ui.common
 import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -28,19 +24,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.clickable
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
-import io.github.magisk317.relay.ui.common.SingleChoiceOptionDialog
+import io.github.magisk317.uikit.preference.SingleChoiceValueConfirmDialog
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import androidx.compose.ui.window.DialogProperties
@@ -151,106 +144,6 @@ fun SwitchItem(
 }
 
 @Composable
-fun TextInputDialog(
-    title: String,
-    initialValue: String,
-    onDismiss: () -> Unit,
-    supportingText: String? = null,
-    singleLine: Boolean = true,
-    maxLines: Int = if (singleLine) 1 else 4,
-    resetValue: String? = null,
-    validator: ((String) -> String?)? = null,
-    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    inputFilter: ((String) -> String)? = null,
-    onFocusLost: ((String) -> Unit)? = null,
-    onConfirm: (String) -> Unit,
-) {
-    var fieldValue by remember(title, initialValue) {
-        mutableStateOf(TextFieldValue(initialValue))
-    }
-    val filteredValue = inputFilter?.invoke(fieldValue.text) ?: fieldValue.text
-    if (filteredValue != fieldValue.text) {
-        fieldValue = fieldValue.copy(
-            text = filteredValue,
-            selection = TextRange(filteredValue.length),
-        )
-    }
-    val errorMessage = validator?.invoke(fieldValue.text)
-
-    io.github.magisk317.uikit.surface.AppAlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = title,
-                    modifier = Modifier.weight(1f),
-                )
-                if (resetValue != null) {
-                    io.github.magisk317.uikit.surface.AppTextButton(
-                        text = stringResource(R.string.reset),
-                        onClick = {
-                            fieldValue = TextFieldValue(
-                                text = resetValue,
-                                selection = TextRange(resetValue.length),
-                            )
-                        },
-                    )
-                }
-            }
-        },
-        text = {
-            io.github.magisk317.uikit.surface.AppTextField(
-                value = fieldValue,
-                onValueChange = { updated ->
-                    val normalized = inputFilter?.invoke(updated.text) ?: updated.text
-                    fieldValue = if (normalized == updated.text) {
-                        updated
-                    } else {
-                        updated.copy(
-                            text = normalized,
-                            selection = TextRange(normalized.length),
-                        )
-                    }
-                },
-                label = title,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .onFocusChanged { state ->
-                        if (!state.isFocused) {
-                            onFocusLost?.invoke(fieldValue.text)
-                        }
-                    },
-                singleLine = singleLine,
-                maxLines = maxLines,
-                keyboardOptions = keyboardOptions,
-                supportingText = if (errorMessage != null || supportingText != null) {
-                    { Text(text = errorMessage ?: supportingText!!) }
-                } else {
-                    null
-                },
-            )
-        },
-        confirmButton = {
-            io.github.magisk317.uikit.surface.AppTextButton(
-                text = stringResource(R.string.confirm),
-                enabled = errorMessage == null,
-                onClick = { onConfirm(fieldValue.text) },
-            )
-        },
-        dismissButton = {
-            io.github.magisk317.uikit.surface.AppTextButton(
-                text = stringResource(R.string.cancel),
-                onClick = onDismiss,
-            )
-        },
-    )
-}
-
-@Composable
 fun PrivacyPolicyDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
@@ -259,7 +152,7 @@ fun PrivacyPolicyDialog(
     dismissOnBackPress: Boolean = true,
     dismissOnClickOutside: Boolean = true,
 ) {
-    AlertDialog(
+    io.github.magisk317.uikit.surface.AppAlertDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
             dismissOnBackPress = dismissOnBackPress,
@@ -268,12 +161,21 @@ fun PrivacyPolicyDialog(
         title = { Text(text = stringResource(id = R.string.pref_privacy_policy_title)) },
         text = { Text(text = stringResource(id = R.string.privacy_policy_confirm_message)) },
         confirmButton = {
-            TextButton(onClick = onConfirm) { Text(text = stringResource(id = R.string.action_accept)) }
+            io.github.magisk317.uikit.surface.AppTextButton(
+                text = stringResource(id = R.string.action_accept),
+                onClick = onConfirm,
+            )
         },
         dismissButton = {
             Row {
-                TextButton(onClick = onViewPolicy) { Text(text = stringResource(id = R.string.action_view_details)) }
-                TextButton(onClick = onCancel) { Text(text = stringResource(id = R.string.action_decline)) }
+                io.github.magisk317.uikit.surface.AppTextButton(
+                    text = stringResource(id = R.string.action_view_details),
+                    onClick = onViewPolicy,
+                )
+                io.github.magisk317.uikit.surface.AppTextButton(
+                    text = stringResource(id = R.string.action_decline),
+                    onClick = onCancel,
+                )
             }
         },
     )
@@ -292,16 +194,12 @@ fun RetentionDialog(
     val title = stringResource(id = titleId)
     val entries = stringArrayResource(id = entriesId)
     val values = stringArrayResource(id = valuesId)
-    val selectedIndex = remember(selectedValue, entriesId, valuesId) {
-        values.indexOf(selectedValue).coerceAtLeast(0)
-    }
-
-    SingleChoiceOptionDialog(
+    SingleChoiceValueConfirmDialog(
         title = title,
         options = entries.toList(),
-        selectedIndex = selectedIndex,
-        onDismiss = onDismiss,
-    ) { index ->
-        onConfirm(values[index])
-    }
+        values = values.toList(),
+        selectedValue = selectedValue,
+        onDismissRequest = onDismiss,
+        onConfirm = onConfirm,
+    )
 }

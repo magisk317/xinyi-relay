@@ -43,9 +43,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import io.github.magisk317.relay.android.diagnostics.ActivationDiagnosticsSnapshot
+import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsSnapshot
 import io.github.magisk317.relay.common.utils.PackageUtils
-import io.github.magisk317.relay.common.utils.Utils
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState

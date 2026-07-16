@@ -1,29 +1,23 @@
 package io.github.magisk317.relay.sender
 
-import io.github.magisk317.relay.sender.BuildConfig
 import android.text.TextUtils
-import android.util.Base64
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.net.RelayHttpClients
-import io.github.magisk317.relay.sender.config.WebhookSetting
 import io.github.magisk317.relay.sender.SenderSettingSanitizer
-
+import io.github.magisk317.relay.sender.config.WebhookSetting
+import io.github.magisk317.xposed.logging.SecretRedactor
+import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import okhttp3.Credentials
 import okhttp3.FormBody
 import okhttp3.Headers
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.io.IOException
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
-import java.text.SimpleDateFormat
-import java.util.Locale
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 object WebhookUtils {
     private const val TAG = "WebhookUtils"
@@ -50,10 +44,7 @@ object WebhookUtils {
         var sign = ""
         if (!TextUtils.isEmpty(safeSetting.secret)) {
             val stringToSign = "$timestamp\n" + safeSetting.secret
-            val mac = Mac.getInstance("HmacSHA256")
-            mac.init(SecretKeySpec(safeSetting.secret.toByteArray(StandardCharsets.UTF_8), "HmacSHA256"))
-            val signData = mac.doFinal(stringToSign.toByteArray(StandardCharsets.UTF_8))
-            sign = URLEncoder.encode(String(Base64.encode(signData, Base64.NO_WRAP)), "UTF-8")
+            sign = SenderSigning.urlEncode(SenderSigning.hmacSha256Base64(safeSetting.secret, stringToSign))
         }
 
         val regex = "^(https?://)([^:]+):([^@]+)@(.+)".toRegex(RegexOption.IGNORE_CASE)
@@ -81,7 +72,7 @@ object WebhookUtils {
         fun applyTemplate(raw: String, urlEncode: Boolean = false, escapeForJson: Boolean = false): String {
             fun encodeIfNeeded(value: String): String {
                 if (!urlEncode) return value
-                return URLEncoder.encode(value, "UTF-8")
+                return SenderSigning.urlEncode(value)
             }
 
             fun jsonIfNeeded(value: String): String {
@@ -132,9 +123,9 @@ object WebhookUtils {
             val webParams = safeSetting.webParams.trim()
             requestUrl = if (webParams.isBlank()) {
                 val withDefaults = if (requestUrl.contains("?")) {
-                    "$requestUrl&from=${URLEncoder.encode(from, "UTF-8")}&content=${URLEncoder.encode(content, "UTF-8")}"
+                    "$requestUrl&from=${SenderSigning.urlEncode(from)}&content=${SenderSigning.urlEncode(content)}"
                 } else {
-                    "$requestUrl?from=${URLEncoder.encode(from, "UTF-8")}&content=${URLEncoder.encode(content, "UTF-8")}"
+                    "$requestUrl?from=${SenderSigning.urlEncode(from)}&content=${SenderSigning.urlEncode(content)}"
                 }
                 appendSignQuery(withDefaults)
             } else {
@@ -296,26 +287,20 @@ object WebhookUtils {
         throw lastError ?: IllegalStateException("Webhook $method failed without captured IOException")
     }
 
-    // Keep escaping behavior close to SmsForwarder JSON template rendering.
-    private fun escapeJson(input: String): String {
-        return input
-            .replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-            .replace("\b", "\\b")
-            .replace("\u000C", "\\f")
-            .replace("\n", "\\n")
-            .replace("\r", "\\r")
-            .replace("\t", "\\t")
-    }
+    private fun escapeJson(input: String): String = SenderWireJson.escapeStringContent(input)
 
-    private fun sanitizeUrlForLog(url: String): String = sanitizeTextForLog(url)
+    private fun sanitizeUrlForLog(url: String): String = SecretRedactor.redact(url)
 
-    private fun sanitizeBodyForLog(body: String): String = truncateForLog(sanitizeTextForLog(body), 400)
+    private fun sanitizeBodyForLog(body: String): String = truncateForLog(SecretRedactor.redact(body), 400)
 
     private fun sanitizeHeadersForLog(headers: Map<String, String>): String {
         if (headers.isEmpty()) return "{}"
         return headers.entries.joinToString(prefix = "{", postfix = "}") { (key, value) ->
-            val displayValue = if (isSensitiveHeader(key)) "***" else truncateForLog(value, 120)
+            val displayValue = if (isSensitiveHeader(key)) {
+                "***"
+            } else {
+                truncateForLog(SecretRedactor.redact(value), 120)
+            }
             "$key=$displayValue"
         }
     }
@@ -326,20 +311,12 @@ object WebhookUtils {
             normalized.contains("token") ||
             normalized.contains("secret") ||
             normalized.contains("sign") ||
-            normalized.contains("password")
-    }
-
-    private fun sanitizeTextForLog(raw: String): String {
-        var text = raw
-        val keyValuePattern = Regex("(?i)(access_token|token|secret|sign|authorization|password|passwd|pwd)=([^&\\s,\\\"]+)")
-        text = keyValuePattern.replace(text) { match ->
-            "${match.groupValues[1]}=***"
-        }
-        val bearerPattern = Regex("(?i)(bearer\\s+)[A-Za-z0-9._\\-+/=]+")
-        text = bearerPattern.replace(text) { match ->
-            "${match.groupValues[1]}***"
-        }
-        return text
+            normalized.contains("password") ||
+            normalized == "cookie" ||
+            normalized == "set-cookie" ||
+            normalized == "proxy-authorization" ||
+            normalized == "api-key" ||
+            normalized == "x-api-key"
     }
 
     private fun truncateForLog(value: String, max: Int): String {

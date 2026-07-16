@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.android.common.utils
 
 import android.util.Log
+import io.github.magisk317.relay.android.BuildConfig
 import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 import io.github.magisk317.xposed.logging.XLog as ContractXLog
 
@@ -11,6 +12,11 @@ import io.github.magisk317.xposed.logging.XLog as ContractXLog
  * neutral string id at the call site.
  */
 object XLog {
+    @JvmStatic fun configure() = ContractXLog.configure(
+        tag = BuildConfig.LOG_TAG,
+        logLevel = BuildConfig.LOG_LEVEL,
+        logToXposed = BuildConfig.LOG_TO_XPOSED,
+    )
     @JvmStatic fun v(message: String, vararg args: Any?) = ContractXLog.v(message, *args)
     @JvmStatic fun d(message: String, vararg args: Any?) = ContractXLog.d(message, *args)
     @JvmStatic fun i(message: String, vararg args: Any?) = ContractXLog.i(message, *args)

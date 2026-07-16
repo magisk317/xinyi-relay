@@ -20,6 +20,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":magisk-xposed-kit"))
     api(project(":relay:contract"))
     implementation(project(":smscode-core:runtime"))
     implementation(project(":smscode-core:verification"))

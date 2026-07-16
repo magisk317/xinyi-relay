@@ -25,6 +25,7 @@ object SenderRuntimeInstaller {
      * so that the UI can query E2EE module status.
      */
     fun initE2eeAvailability(context: Context) {
+        MatrixE2eeHostProvider.install(SenderMatrixE2eeHost)
         MatrixE2eeSetup.init(context)
     }
 }

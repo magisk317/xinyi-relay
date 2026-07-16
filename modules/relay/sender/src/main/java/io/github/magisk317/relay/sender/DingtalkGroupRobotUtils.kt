@@ -1,7 +1,6 @@
 package io.github.magisk317.relay.sender
 
 import android.text.TextUtils
-import android.util.Base64
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.sender.result.DingtalkResult
 import io.github.magisk317.relay.sender.config.DingtalkGroupRobotSetting
@@ -10,10 +9,6 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
 
 object DingtalkGroupRobotUtils {
 
@@ -28,10 +23,7 @@ object DingtalkGroupRobotUtils {
         if (!TextUtils.isEmpty(setting.secret)) {
             val timestamp = System.currentTimeMillis()
             val stringToSign = "$timestamp\n" + setting.secret
-            val mac = Mac.getInstance("HmacSHA256")
-            mac.init(SecretKeySpec(setting.secret.toByteArray(StandardCharsets.UTF_8), "HmacSHA256"))
-            val signData = mac.doFinal(stringToSign.toByteArray(StandardCharsets.UTF_8))
-            val sign = URLEncoder.encode(String(Base64.encode(signData, Base64.NO_WRAP)), "UTF-8")
+            val sign = SenderSigning.urlEncode(SenderSigning.hmacSha256Base64(setting.secret, stringToSign))
             requestUrl += "&timestamp=$timestamp&sign=$sign"
         }
 
