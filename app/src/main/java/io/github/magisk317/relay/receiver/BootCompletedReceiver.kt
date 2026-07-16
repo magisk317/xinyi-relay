@@ -8,7 +8,6 @@ import android.service.notification.NotificationListenerService
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.feature.call.CallStateMonitor
 import io.github.magisk317.relay.feature.mode.BatteryOptimizationHelper
-import io.github.magisk317.relay.feature.mode.StandardModePermissions
 import io.github.magisk317.relay.feature.mode.WorkMode
 import io.github.magisk317.relay.feature.mode.WorkModeResolver
 import io.github.magisk317.relay.service.AppNotificationListenerService
@@ -27,12 +26,8 @@ class BootCompletedReceiver : BroadcastReceiver() {
             return
         }
 
-        // Initialize call state monitoring
-        if (StandardModePermissions.allGranted(context)) {
-            CallStateMonitor.init(context)
-        } else {
-            XLog.w("BootCompletedReceiver: permissions missing, skip CallStateMonitor")
-        }
+        // Each standard capability owns its permission check; do not disable the whole mode.
+        CallStateMonitor.init(context)
 
         // Verify NLS binding
         runCatching {
@@ -50,6 +45,6 @@ class BootCompletedReceiver : BroadcastReceiver() {
         }
 
         // Start foreground service to keep standard mode alive
-        StandardModeService.start(context)
+        StandardModeService.reconcile(context, mode, "boot_completed")
     }
 }

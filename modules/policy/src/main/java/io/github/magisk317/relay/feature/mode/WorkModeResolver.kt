@@ -9,20 +9,17 @@ import kotlinx.coroutines.flow.asStateFlow
 enum class WorkMode {
     Enhanced,   // Xposed hooks active
     Standard,   // System APIs only
-    Inactive    // Neither working — needs permission or Xposed
+    Inactive    // Reserved for an explicit global disable state
 }
 
 object WorkModeResolver {
     private val _mode = MutableStateFlow(WorkMode.Inactive)
     val mode: StateFlow<WorkMode> = _mode.asStateFlow()
 
-    fun resolve(context: Context) {
+    fun resolve(context: Context): WorkMode {
         val xposedActive = ActivationDiagnosticsStore.isModuleActivated(context)
-        val permissionsGranted = StandardModePermissions.allGranted(context)
-        _mode.value = when {
-            xposedActive -> WorkMode.Enhanced
-            permissionsGranted -> WorkMode.Standard
-            else -> WorkMode.Inactive
-        }
+        val resolved = if (xposedActive) WorkMode.Enhanced else WorkMode.Standard
+        _mode.value = resolved
+        return resolved
     }
 }

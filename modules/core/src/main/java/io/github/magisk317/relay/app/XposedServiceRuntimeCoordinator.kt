@@ -8,6 +8,8 @@ import io.github.magisk317.relay.android.diagnostics.RuntimeActivationState
 import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
 import io.github.magisk317.relay.android.prefs.PrefsReader
+import io.github.magisk317.relay.feature.mode.WorkMode
+import io.github.magisk317.relay.feature.mode.WorkModeResolver
 import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -19,7 +21,7 @@ object XposedServiceRuntimeCoordinator {
         remotePrefsProvider: (() -> SharedPreferences?)?,
         frameworkName: String?,
         frameworkVersion: String?,
-    ) {
+    ): WorkMode {
         AppPreferencesDataStore.setRemotePrefsProvider(remotePrefsProvider)
         val pending = AppPreferencesDataStore.hasPendingRemotePrefsPublish()
         applicationScope.launch {
@@ -43,9 +45,10 @@ object XposedServiceRuntimeCoordinator {
             frameworkName ?: "unknown",
             frameworkVersion ?: "unknown",
         )
+        return WorkModeResolver.resolve(application)
     }
 
-    fun handleServiceDied(application: Application) {
+    fun handleServiceDied(application: Application): WorkMode {
         AppPreferencesDataStore.setRemotePrefsProvider(null)
         RuntimeActivationState.setRuntimeActivated(false)
         ActivationDiagnosticsStore.recordServiceDied(
@@ -53,6 +56,7 @@ object XposedServiceRuntimeCoordinator {
             verboseLogging = PrefsReader.isVerboseLogMode(application),
         )
         RelayLogger.w(LogRoute.APP, "Xposed service disconnected")
+        return WorkModeResolver.resolve(application)
     }
 
     fun logRegistrationFailure(throwable: Throwable) {

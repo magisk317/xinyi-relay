@@ -109,9 +109,9 @@ fun OverviewScreen(onCheckUpdate: () -> Unit) {
         return exempted
     }
 
-    LaunchedEffect(isEnabled, isStandardEnabled) {
-        if (!isEnabled && !isStandardEnabled) {
-            // Inactive mode: either no Xposed and no permissions
+    LaunchedEffect(isStandardEnabled) {
+        if (isStandardEnabled) {
+            // Standard mode remains active while individual capabilities request their permissions.
             val missing = StandardModePermissions.missingPermissions(context)
             if (missing.isNotEmpty()) {
                 showMessage(context.getString(R.string.standard_mode_missing_permissions_hint))
