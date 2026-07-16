@@ -26,10 +26,10 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 /**
- * Foreground service that keeps the app alive in Standard mode (non-Xposed).
+ * Foreground service that keeps cross-device message relay active in Standard mode (non-Xposed).
  *
  * Responsibilities:
- * - Shows a persistent notification so the system is less likely to kill the process
+ * - Shows a persistent notification for the ongoing remote-messaging relay
  * - Monitors WorkMode changes and stops itself if mode is no longer Standard
  * - Ensures CallStateMonitor stays initialized
  *
