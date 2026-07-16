@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -16,6 +17,8 @@ import io.github.magisk317.relay.contract.constant.PrefValueType
 import io.github.magisk317.smscode.runtime.common.utils.StorageUtils
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.smscode.domain.constant.SmsCodeConst
+import io.github.magisk317.smscode.runtime.common.prefs.PreferenceChange
+import io.github.magisk317.smscode.runtime.common.prefs.PreferenceChangeSet
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -374,6 +377,37 @@ object AppPreferencesDataStore {
         }
     }
 
+    /** Applies one shared change set in a single DataStore transaction. */
+    suspend fun persistChanges(context: Context, changes: PreferenceChangeSet): Boolean {
+        if (changes.isEmpty) return true
+        getInstance(context).edit { prefs ->
+            applyPreferenceChanges(prefs, changes)
+        }
+        return true
+    }
+
+    internal fun applyPreferenceChanges(
+        prefs: MutablePreferences,
+        changes: PreferenceChangeSet,
+    ) {
+        changes.changes.forEach { change ->
+            when (change) {
+                is PreferenceChange.PutBoolean -> {
+                    prefs[booleanPreferencesKey(change.key)] = coerceBooleanValue(change.key, change.value)
+                }
+                is PreferenceChange.PutString -> prefs[stringPreferencesKey(change.key)] = change.value
+                is PreferenceChange.PutInt -> prefs[intPreferencesKey(change.key)] = change.value
+                is PreferenceChange.PutFloat -> prefs[floatPreferencesKey(change.key)] = change.value
+                is PreferenceChange.Remove -> {
+                    prefs.remove(booleanPreferencesKey(change.key))
+                    prefs.remove(stringPreferencesKey(change.key))
+                    prefs.remove(intPreferencesKey(change.key))
+                    prefs.remove(floatPreferencesKey(change.key))
+                }
+            }
+        }
+    }
+
     /**
      * Execute multiple writes atomically in a single DataStore transaction.
      * All writes inside [block] are committed together; if any fails, all are rolled back.
@@ -413,16 +447,24 @@ object AppPreferencesDataStore {
     }
 
     @Suppress("TooGenericExceptionCaught")
-    suspend fun syncToRemotePrefs(context: Context) {
-        val prefs = getRemotePrefs() ?: run {
+    suspend fun syncToRemotePrefs(context: Context): Boolean? {
+        if (remotePrefsProvider == null) {
             remotePrefsPublishPending = true
             if (!remotePrefsPublishPendingLogged) {
                 remotePrefsPublishPendingLogged = true
                 XLog.w("RemotePrefs sync pending: provider not available")
             }
-            return
+            return null
         }
-        try {
+        val prefs = getRemotePrefs() ?: run {
+            remotePrefsPublishPending = true
+            if (!remotePrefsPublishPendingLogged) {
+                remotePrefsPublishPendingLogged = true
+                XLog.w("RemotePrefs sync failed: provider unavailable")
+            }
+            return false
+        }
+        return try {
             val editor = prefs.edit()
             editor.putBoolean(PrefConst.KEY_ENABLE, getBoolean(context, PrefConst.KEY_ENABLE, true))
             editor.putBoolean(
@@ -662,14 +704,17 @@ object AppPreferencesDataStore {
             if (!committed) {
                 remotePrefsPublishPending = true
                 XLog.w("RemotePrefs sync failed: commit returned false")
+                false
             } else {
                 remotePrefsPublishPending = false
                 remotePrefsPublishPendingLogged = false
                 verifyTokenSyncResult(prefs, context)
+                true
             }
         } catch (e: Exception) {
             remotePrefsPublishPending = true
             XLog.w("RemotePrefs sync failed: %s", e.message ?: e.javaClass.simpleName)
+            false
         }
     }
 

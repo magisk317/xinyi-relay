@@ -24,6 +24,8 @@ import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
 import io.github.magisk317.relay.data.remote.RemoteAgentApi
 import io.github.magisk317.relay.data.remote.DeviceTokenExpiredException
 import io.github.magisk317.relay.testing.relaxedContext
+import io.github.magisk317.smscode.runtime.common.prefs.PreferenceChange
+import io.github.magisk317.smscode.runtime.common.prefs.PreferenceChangeSet
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -53,7 +55,7 @@ class RemoteAgentRepositoryTest {
         mockkObject(HookPreferenceMirror)
         every { InternalSecretStore.putString(any(), any(), any()) } returns Unit
         every { InternalSecretStore.getString(any(), any(), any()) } returns "device-token"
-        coEvery { HookPreferenceMirror.publish(any()) } returns Unit
+        coEvery { HookPreferenceMirror.publish(any()) } returns true
     }
 
     @AfterEach
@@ -707,6 +709,24 @@ private class FakeRemotePreferenceDataSource(
             }
         }
         scope.block()
+    }
+
+    override suspend fun persist(changes: PreferenceChangeSet): Boolean {
+        changes.changes.forEach { change ->
+            when (change) {
+                is PreferenceChange.PutBoolean -> booleans[change.key] = change.value
+                is PreferenceChange.PutString -> strings[change.key] = change.value
+                is PreferenceChange.PutInt -> ints[change.key] = change.value
+                is PreferenceChange.PutFloat -> floats[change.key] = change.value
+                is PreferenceChange.Remove -> {
+                    booleans.remove(change.key)
+                    strings.remove(change.key)
+                    ints.remove(change.key)
+                    floats.remove(change.key)
+                }
+            }
+        }
+        return true
     }
 
     override fun getBooleanFlow(key: String, defaultValue: Boolean): Flow<Boolean> = emptyFlow()
