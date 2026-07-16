@@ -1,6 +1,6 @@
 # 系统架构与代码分层
 
-最后更新：2026-07-07
+最后更新：2026-07-16
 
 ## 总览
 
@@ -11,13 +11,41 @@
 - 部署策略：本地优先（Docker Compose），可扩展到公网。
 - API 合同中心：`frontend/shared/contracts/openapi.json`；它现在由 backend `internal/http` 的 assembler 生成，但 auth/system/device-config/read-model schema 与 route metadata 已大部分先从 `relay/contract` 生成到 backend，再由 assembler 合并，`frontend/shared/contracts/console.generated.ts` 再由它生成，四端均有 drift test。
 
+## Gradle 坐标与物理路径
+
+下文模块名优先使用 **Gradle 逻辑坐标**（`:` 风格，叙述里常写成 `hook/entry`）。源码目录与坐标并不总是 1:1，对照如下：
+
+| 叙述 / Gradle 坐标 | 物理目录 |
+|---|---|
+| `:app` / `app` | `app/` |
+| `:hook:entry` / `hook/entry` | `modules/hook/entry/` |
+| `:runtime` / `runtime` | `modules/runtime/` |
+| `:core` / `core` | `modules/core/` |
+| `:policy` / `policy` | `modules/policy/` |
+| `:relay:android` / `relay/android` | `modules/relay/android/` |
+| `:relay:contract` / `relay/contract` | `modules/relay/contract/` |
+| `:relay:engine` / `relay/engine` | `modules/relay/engine/` |
+| `:relay:engine:api` / `relay/engine/api` | `modules/relay/engine/api/` |
+| `:relay:net` / `relay/net` | `modules/relay/net/` |
+| `:relay:sender` / `relay/sender` | `modules/relay/sender/` |
+| `:relay:sender:api` / `relay/sender/api` | `modules/relay/sender/api/` |
+| `:relay:matrix-e2ee` / `relay/matrix-e2ee` | `modules/relay/matrix-e2ee/` |
+| `:xpbridge:core` / `xpbridge/core` | `modules/xpbridge/core/` |
+| `:mobile:ui` / `mobile/ui` | `mobile/ui/` |
+| `:mobile:feature:*` / `mobile/feature/*` | `mobile/feature/*/` |
+| `:features:matrix_e2ee` | `features/matrix-e2ee/` |
+| `:smscode-core:*` | `smscode/core/*`（Git 子模块） |
+
+查找真实路径时以 `settings.gradle.kts` 的 `project(...).projectDir` 为准，不要假设“Gradle 名 = 仓库根下同名目录”。
+
+
 ## 代码库分层
 
 ### `app`
 
-Android 应用壳。打包 `hook/entry`、`core`、`mobile/ui`、`relay/android`、`xpbridge/core`。
+Android 应用壳。打包 `hook/entry`、`core`、`policy`、`mobile/ui`、feature 模块、`relay/android`、`xpbridge/core` 等。
 
-- 允许：`core`、`hook/entry`、`relay/android`、`mobile/ui`、`xpbridge/core`、`smscode-core/verification`、`smscode-core/hook`
+- 允许：`core`、`policy`、`hook/entry`、`relay/android`、`mobile/ui`、`mobile/feature/*`、`xpbridge/core`、`smscode-core/verification`、`smscode-core/hook`
 - 禁止：直接依赖 `runtime`（`verifyNoRuntimePipelineLeak` 源码级禁令）
 
 ### `hook/entry`
@@ -56,6 +84,16 @@ sender 配置模型、发送实现、发送结果模型。通过 `SenderRuntimeI
 - 允许：`relay/sender/api`、`relay/engine/api`、`relay/net`、`relay/contract`、`smscode-core/contract`
 - 禁止：`relay/engine` 实现
 
+### `relay/matrix-e2ee`
+
+产品内 Matrix E2EE 唯一实现，持有 Matrix SDK sender、verification、room crypto state 和
+对应测试。它通过 `relay/sender/api` 的 `MatrixE2eeHost` 端口使用 sender 侧的认证、明文回退、
+格式化与日志策略，避免依赖 `relay/sender` 实现或任一打包入口。
+
+- 允许：`relay/sender/api`、`relay/net`、Matrix SDK
+- 禁止：`app`、`features/matrix-e2ee`、`relay/sender` 实现
+- GitHub 仅由 `githubWithE2ee` 变体依赖；Play base 不依赖，由动态 feature 负责携带
+
 ### `relay/android`
 
 Android 平台数据源：Room、DataStore、PrefsReader、DBProvider、诊断、日志落地。
@@ -77,14 +115,36 @@ Android 平台数据源：Room、DataStore、PrefsReader、DBProvider、诊断�
 
 应用侧 facade、initializer、Koin binding、系统能力协调层。`RuntimeGraph` 是 Koin 的类型化 facade，仅供 `:core` 内部使用。
 
-- 允许：`runtime`（implementation，不传递暴露）、`relay/engine/api`、`relay/android`、`relay/contract`、`magisk-ui-kit`、`smscode-core/*`
+- 允许：`runtime`（implementation，不传递暴露）、`policy`、`relay/engine/api`、`relay/android`、`relay/contract`、`magisk-ui-kit`、`smscode-core/*`
 - 禁止：`xpbridge/core`、`webui` 包（`verifyNoWebUiLeak`）
+
+### `policy`
+
+标准模式 / 工作模式策略层：`WorkModeResolver`、`StandardModeFeatureGate`、权限与电池优化相关策略。从 `core` 拆出，供 app、core 与部分 feature 使用。
+
+- Enhanced 与 Standard 是同一个 APK 的运行时能力状态，不是产品 flavor：检测到有效
+  libxposed runtime/本次开机 hook 心跳时为 Enhanced，否则为 Standard。
+- `Inactive` 只为未来显式全局停用保留；缺少 Xposed 或某一项电话权限不再禁用整个应用。
+- Standard 权限按当前发行 manifest 求交并下沉到具体能力。Play 即使移除了电话权限，仍可
+  以通知监听等合规能力运行 Standard 子集。
+- libxposed service bind/died 后必须立即重算模式并协调 `StandardModeService` 与
+  `CallStateMonitor`；安装/更新后的电话进程重启只允许在成功 bind 后触发。
+- `StandardModeService` 使用 `remoteMessaging` FGS 与对应权限；不得退回 Android 15+ 受
+  开机启动限制和累计时限约束的 `dataSync`。
+- Standard MMS 的 Notification.ind metadata parser 随 APK 交付，禁止反射未打包的
+  `com.google.android.mms` 隐藏实现。解析异常需记录结构化原因并安全降级。
+- 通话结束的 CallLog 补全是有上限、可取消的延迟解析；已有直接/recent ingress 号码或无
+  `READ_CALL_LOG` 时不得查询，模式切换/新通话需取消旧等待，最终事件只派发一次。
+
+- Gradle：`:policy`；物理目录：`modules/policy/`
+- 允许：Android/Kotlin 标准库与策略所需的轻量依赖（见 `modules/policy/build.gradle.kts`）
+- 禁止：Compose UI、`relay/engine` 实现、直接依赖 hook 进程专用 API
 
 ### `mobile/feature/*`
 
-业务功能组件化。`mobile:feature:common` 是共享 UI 工具层，通过 `api()` 传递暴露 `:relay:android`、`:relay:engine:api`、`:relay:contract`。
+业务功能组件化。`mobile:feature:common` 是共享 UI 工具层；**不**通过 `api()` 重导出 relay 依赖（`implementation` 即可）。各 feature 须显式声明自己真正用到的 `:relay:*` / `:core` / `:policy` / `:smscode-core:*`。
 
-- Feature 模块可依赖 `mobile:feature:common`、`core`、`relay:engine:api`
+- Feature 模块可依赖：`mobile:feature:common`、`:core`、`:policy`、`:relay:engine:api`、`:relay:contract`、`:relay:android`、`:relay:sender:api`、`:magisk-ui-kit`、`:smscode-core:*`（按需）
 - 业务 Feature 之间原则上不得相互依赖
 
 ### `mobile/ui`
@@ -92,13 +152,16 @@ Android 平台数据源：Room、DataStore、PrefsReader、DBProvider、诊断�
 UI 组装壳与协调层。原 2.4 万行 god module 已拆分为 `mobile:feature:*` 子模块，入度仅 1（只被 `app` 依赖）。
 
 - 禁止：`runtime`、`xpbridge/core`、`relay/engine` 实现、`relay/sender` 实现（用 `relay/sender/api`）
-- 顶层主界面现在采用 “`MainTabsRoute` + pager shell + secondary stack”
-  结构：5 个一级页不再各自作为内部 NavHost 的主目的地，详情/配置页继续走
-  stack 路由
+- 顶层主界面使用 `magisk-ui-kit:MainTabScaffold` + typed `NavHost`：5 个主 tab 是独立
+  destination，详情/配置页继续走 stack 路由；不再使用 `HorizontalPager` 作为主导航宿主。
+- tab 转场、compact chrome inset 与双击刷新判定由 ui-kit 提供，父模块仍拥有 typed route、
+  业务页、刷新信号和滚动 chrome 策略。
 
 ### `features/*`
 
 Play Feature Delivery 动态下发模块（如 `features/matrix-e2ee`），隔离重型依赖。
+Matrix dynamic feature 只负责 SDK 初始化及 provider 注册，业务实现来自
+`:relay:matrix-e2ee`，不得在 feature 内复制 sender、verification 或 room state。
 
 ## 边界守护
 

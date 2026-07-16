@@ -42,15 +42,19 @@
 
 ## 手机端
 
-手机端是面向 Xposed/LSPosed 的 Android 模块，负责本地事件采集、验证码解析与自动填写。
+手机端是一个运行时自适应的 Android Agent：检测到有效 Xposed/LSPosed runtime 时进入
+Enhanced 模式；没有 Xposed 时使用系统 API 进入 Standard 模式。两种模式使用同一个 APK、
+应用身份、数据库和配置。
 
 ### 安装与使用
-1. Root 设备并安装 LSPosed/Xposed 框架；
-2. 安装信驿 Relay：
+1. 安装信驿 Relay：
    - GitLab Release：提供 APK 下载
    - Google Play：提供商店分发
-3. 激活模块并重启；
-4. 在应用内配置转发通道、路由规则、拦截策略与验证码自动填写。
+2. Standard 模式按需授予当前发行包实际声明的短信、彩信、通话或通知监听权限；拒绝某一
+   权限只会停用对应能力。
+3. 如需 Hook 拦截、系统级短信阻断和 Hook 保活等 Enhanced 能力，再选择 Root 设备并在
+   LSPosed/Xposed 中激活模块；不需要改装另一个 lite APK。
+4. 在应用内配置转发通道、路由规则、拦截策略与验证码功能。
 
 ### 兼容性
 - 最低 Android 8.0（API 26）。
@@ -64,6 +68,19 @@
 - 验证码自动解析、复制与自动填写
 - 验证码规则：内置官方只读规则、远程刷新缓存与用户自定义规则分层合并
 - 记录与备份：支持导出/导入配置与历史记录
+
+### 工作模式边界
+
+- Enhanced/Standard 是运行时状态，不是 Play/GitHub/E2EE 等发行 flavor。
+- Xposed service bind/died 后会立即重新解析模式并协调 Standard 前台服务与通话监听。
+- 安装/更新后的电话进程重启只在 Xposed service 成功绑定后请求；普通 Standard 启动不会
+  探测 Root 或重启电话/MMS 进程。
+- Standard 常驻服务使用 `remoteMessaging` 前台服务类型，可从开机广播恢复且不受
+  Android 15 `dataSync` 的累计时限约束。
+- Standard MMS 由 APK 内置的有界 Notification.ind metadata parser 解析，不依赖隐藏系统类；
+  通话结束补全只在号码缺失且有通话记录权限时做有限、可取消的延迟查询。
+- Google Play 按 manifest 合规保留通知监听等 Standard 子集；GitHub 发行可按用户授权启用
+  更完整的短信、彩信和通话能力。
 
 
 
