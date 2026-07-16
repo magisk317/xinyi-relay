@@ -19,14 +19,33 @@ bash "$TOOLKIT_DIR/gradle/run_gradle_with_retry.sh" \
   "${gradle_args[@]}" \
   verifyEmbeddedSubmodules \
   verifyModuleBoundaries \
+  verifyStructureBoundaries \
+  :app:verifyBundledSmsCodeRules \
   :smscode-core:domain:testDebugUnitTest \
+  :smscode-core:verification:testDebugUnitTest \
   :smscode-core:verification:detekt \
   :smscode-core:hook:lintDebug \
   :smscode-core:runtime:lintDebug \
   :magisk-ui-kit:compileDebugKotlin \
+  :magisk-xposed-kit:testDebugUnitTest \
+  :magisk-xposed-kit:logging:testDebugUnitTest \
+  :magisk-xposed-kit:diagnostics:testDebugUnitTest \
   :xpbridge:core:compileGithubNoE2eeDebugKotlin \
+  :hook:entry:testGithubNoE2eeDebugUnitTest \
+  :runtime:testGithubNoE2eeDebugUnitTest \
+  :relay:sender:testGithubNoE2eeDebugUnitTest \
   :core:testGithubNoE2eeDebugUnitTest \
+  :core:koverVerifyGithubNoE2eeDebug \
   :core:compileGithubNoE2eeDebugKotlin \
-  :app:lintGithubNoE2eeDebug \
-  :app:testGithubNoE2eeDebugUnitTest \
-  :app:detekt
+  :app:detekt \
+  -PkoverLineCoverageMin=5
+
+bash "$TOOLKIT_DIR/gradle/run_gradle_with_retry.sh" \
+  --no-configuration-cache \
+  "${gradle_args[@]}" \
+  :app:testGithubNoE2eeDebugUnitTest
+
+bash "$TOOLKIT_DIR/gradle/run_gradle_with_retry.sh" \
+  --no-configuration-cache \
+  "${gradle_args[@]}" \
+  :app:lintReportGithubNoE2eeDebug

@@ -1,15 +1,15 @@
 include:
   - project: magisk3171/magisk-ci-toolkit
-    ref: main
+    ref: 80c97bce4285efac8d6cfea21c0078498c400e28
     file: /.gitlab/ci/android.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: main
+    ref: 80c97bce4285efac8d6cfea21c0078498c400e28
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: main
+    ref: 80c97bce4285efac8d6cfea21c0078498c400e28
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: main
+    ref: 80c97bce4285efac8d6cfea21c0078498c400e28
     file: /.gitlab/ci/renovate.yml
 
 workflow:
@@ -38,6 +38,7 @@ stages:
   - maintenance
 
 variables:
+  MAGISK_CI_TOOLKIT_REF: "80c97bce4285efac8d6cfea21c0078498c400e28"
   GIT_DEPTH: "0"
   GIT_SUBMODULE_STRATEGY: recursive
   GIT_SUBMODULE_DEPTH: "0"
@@ -438,6 +439,8 @@ android:test:noe2ee:
     XINYI_ANDROID_TEST_TASKS: >-
       :app:testGithubNoE2eeDebugUnitTest
       :app:koverHtmlReportGithubNoE2eeDebug
+      :app:koverVerifyGithubNoE2eeDebug
+      verifyStructureBoundaries
   artifacts:
     name: "XinyiRelay-test-noe2ee-$CI_COMMIT_REF_SLUG"
     when: always
@@ -454,6 +457,7 @@ android:test:withe2ee:
     XINYI_ANDROID_TEST_TASKS: >-
       :app:testGithubWithE2eeDebugUnitTest
       :app:koverHtmlReportGithubWithE2eeDebug
+      :app:koverVerifyGithubWithE2eeDebug
   artifacts:
     name: "XinyiRelay-test-withe2ee-$CI_COMMIT_REF_SLUG"
     when: always

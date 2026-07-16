@@ -122,6 +122,10 @@ Feedback and suggestions are welcome.
 - [Privacy Policy](docs/PRIVACY.md)
 - [Donations](docs/DONATIONS.md)
 
+Shared CI logic is pinned to one immutable `magisk-ci-toolkit` commit across GitLab includes, job
+variables, and the local/GitHub resolver. The resolver uses exact fetch and must not default back to
+a floating `main` ref.
+
 # Thanks To
 - [XposedSmsCode](https://github.com/tianma8023/XposedSmsCode)
 - [LSPosed API](https://github.com/libxposed/api)

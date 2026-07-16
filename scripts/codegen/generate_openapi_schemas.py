@@ -197,6 +197,10 @@ REQUIRED_FIELD_OVERRIDES: dict[str, set[str]] = {
     },
 }
 
+ARRAY_MAX_ITEMS: dict[tuple[str, str], int] = {
+    ("RelayRecordsBatchRequest", "records"): 200,
+}
+
 REALTIME_EVENT_TYPES_RE = re.compile(
     r"RealtimeEventTypes\s*\{.*?val ALL:\s*List<String>\s*=\s*listOf\((.*?)\)",
     re.DOTALL,
@@ -406,6 +410,9 @@ def render_schema(schema_name: str, kotlin_class: KotlinClass) -> dict[str, obje
     override_required = REQUIRED_FIELD_OVERRIDES.get(schema_name, set())
     for field in kotlin_class.fields:
         properties[field.name] = schema_for_type(field.type_name)
+        max_items = ARRAY_MAX_ITEMS.get((schema_name, field.name))
+        if max_items is not None:
+            properties[field.name]["maxItems"] = max_items
         if field.name in override_required or (not field.has_default and not field.type_name.endswith("?")):
             required.append(field.name)
     if schema_name == "RealtimeEvent":

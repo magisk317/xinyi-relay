@@ -128,6 +128,9 @@ Backend 和 Desktop 都支持日志文件输出，便于问题排查：
 - [隐私政策 (Privacy Policy)](docs/PRIVACY.md)
 - [赞助与捐赠 (Donations)](docs/DONATIONS.md)
 
+CI 公共逻辑来自 `magisk-ci-toolkit`：GitLab include、作业变量与本地/GitHub resolver 固定到
+同一不可变提交并使用 exact fetch；父仓默认不得回退到浮动 `main`。
+
 # 感谢
 - [XposedSmsCode](https://github.com/tianma8023/XposedSmsCode)
 - [LSPosed API](https://github.com/libxposed/api)

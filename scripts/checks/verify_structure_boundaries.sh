@@ -14,8 +14,6 @@ verify_root_directory_layout() {
     "build-logic"
     "magisk-ui-kit"
     "magisk-xposed-kit"
-    "smscode-core"
-    "smscode-rules"
   )
 
   local -a allowed_lookup=()
@@ -28,6 +26,7 @@ verify_root_directory_layout() {
   while IFS= read -r dir; do
     local name
     name="$(basename "$dir")"
+    [[ "$name" == .* ]] && continue
     [[ "$name" == *-* ]] || continue
 
     local marker="|$name|"

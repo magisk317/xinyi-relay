@@ -53,6 +53,7 @@ val koverLineCoverageMin = providers.gradleProperty("koverLineCoverageMin")
     .map { value ->
         value.toIntOrNull() ?: error("koverLineCoverageMin must be an integer percentage")
     }
+val defaultAppKoverLineCoverageMin = 4
 
 fun KoverProjectExtension.configureProjectKoverVerification(lineCoverageMin: Int?) {
     reports {
@@ -122,7 +123,12 @@ subprojects {
     if (enableKover) {
         apply(plugin = "org.jetbrains.kotlinx.kover")
         extensions.configure<KoverProjectExtension>("kover") {
-            configureProjectKoverVerification(koverLineCoverageMin.orNull)
+            val appMinimum = defaultAppKoverLineCoverageMin.takeIf { project.path == ":app" }
+            val lineCoverageMin = when {
+                appMinimum != null -> maxOf(appMinimum, koverLineCoverageMin.orNull ?: appMinimum)
+                else -> koverLineCoverageMin.orNull
+            }
+            configureProjectKoverVerification(lineCoverageMin)
         }
     }
 

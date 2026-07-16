@@ -75,6 +75,8 @@ jobs:
             app:assembleGithubNoE2eeDebug app:assembleGithubWithE2eeDebug
             app:testGithubNoE2eeDebugUnitTest app:testGithubWithE2eeDebugUnitTest
             :app:koverHtmlReportGithubNoE2eeDebug :app:koverHtmlReportGithubWithE2eeDebug
+            :app:koverVerifyGithubNoE2eeDebug :app:koverVerifyGithubWithE2eeDebug
+            verifyStructureBoundaries
             -PallowIncompatibleDebugSigning=true
             -PbuildSplits
             -PskipGoogleServices=${{ env.HAS_GOOGLE_SERVICES_JSON == 'false' }}
