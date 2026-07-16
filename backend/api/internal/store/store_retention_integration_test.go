@@ -56,7 +56,7 @@ func seedRecords(t *testing.T, s *Store, recordType string, count int) (int64, i
 			Metadata:   []byte("{}"),
 		})
 	}
-	if _, err := s.InsertRelayRecords(ctx, user.ID, device.ID, records); err != nil {
+	if _, err := s.SyncRelayRecords(ctx, user.ID, device.ID, records, false); err != nil {
 		t.Fatalf("insert records: %v", err)
 	}
 	return user.ID, device.ID
@@ -127,7 +127,7 @@ func TestPruneRelayRecordsPerTypeIsScopedByType(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		records = append(records, RelayRecord{RecordType: "call", Body: fmt.Sprintf("k-%d", i), OccurredAt: base.Add(time.Duration(i) * time.Hour), Metadata: []byte("{}")})
 	}
-	if _, err := s.InsertRelayRecords(ctx, user.ID, device.ID, records); err != nil {
+	if _, err := s.SyncRelayRecords(ctx, user.ID, device.ID, records, false); err != nil {
 		t.Fatalf("insert: %v", err)
 	}
 
@@ -176,6 +176,46 @@ func TestPruneRelayRecordsMaxAge(t *testing.T) {
 	remaining := countRecords(t, s, userID)
 	if remaining == 0 || remaining == 5 {
 		t.Fatalf("expected partial age-based pruning, got %d remaining", remaining)
+	}
+}
+
+func TestSyncRelayRecordsSnapshotPropagatesDeletesAndDistinguishesUpdates(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	username := fmt.Sprintf("record_snapshot_%d", time.Now().UnixNano())
+	user, err := s.CreateUser(ctx, username, "hash")
+	if err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+	device, err := s.CreateDevice(ctx, user.ID, "dev", "model", "android", "1.0", username+"_token")
+	if err != nil {
+		t.Fatalf("create device: %v", err)
+	}
+	first := RelayRecord{EventID: "local-record-1", RecordType: "sms_plain", Body: "first", OccurredAt: time.Now(), Metadata: []byte("{}")}
+	second := RelayRecord{EventID: "local-record-2", RecordType: "sms_plain", Body: "second", OccurredAt: time.Now(), Metadata: []byte("{}")}
+
+	initial, err := s.SyncRelayRecords(ctx, user.ID, device.ID, []RelayRecord{first, second}, true)
+	if err != nil {
+		t.Fatalf("initial sync: %v", err)
+	}
+	if initial.Inserted != 2 || initial.Updated != 0 || initial.Deleted != 0 {
+		t.Fatalf("unexpected initial result: %+v", initial)
+	}
+
+	first.Body = "updated"
+	next, err := s.SyncRelayRecords(ctx, user.ID, device.ID, []RelayRecord{first}, true)
+	if err != nil {
+		t.Fatalf("replacement sync: %v", err)
+	}
+	if next.Inserted != 0 || next.Updated != 1 || next.Deleted != 1 {
+		t.Fatalf("unexpected replacement result: %+v", next)
+	}
+	rows, err := s.ListRelayRecords(ctx, user.ID, 10, 0, &device.ID)
+	if err != nil {
+		t.Fatalf("list records: %v", err)
+	}
+	if len(rows) != 1 || rows[0].EventID != first.EventID || rows[0].Body != "updated" {
+		t.Fatalf("snapshot replacement did not converge: %+v", rows)
 	}
 }
 

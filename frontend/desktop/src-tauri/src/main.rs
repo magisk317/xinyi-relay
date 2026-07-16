@@ -15,18 +15,16 @@ use keyring_core::{Entry, Error as KeyringError};
 use reqwest::{Client, Method, StatusCode, Url};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::fs;
 use std::io::{Read, Write};
 use std::net::TcpListener;
-#[cfg(unix)]
-use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::{
-    Arc, Mutex,
     atomic::{AtomicU64, Ordering},
+    Arc, Mutex,
 };
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager, State, WindowEvent};
@@ -103,7 +101,7 @@ impl Default for DesktopPersistedState {
                 id: Uuid::new_v4().to_string(),
                 name: DEFAULT_PROFILE_NAME.to_string(),
                 base_url: DEFAULT_BACKEND_URL.to_string(),
-                allow_self_signed: true,
+                allow_self_signed: false,
                 trusted_fingerprint: None,
                 trusted_issuer: Some("Local Docker + Caddy".to_string()),
                 active: true,
@@ -512,6 +510,7 @@ struct DesktopAppState {
     local_store: Mutex<Option<SqliteStore>>,
     last_auto_sync: Mutex<Option<std::time::Instant>>,
     local_server_addr: Mutex<Option<std::net::SocketAddr>>,
+    refresh_guard: tokio::sync::Mutex<()>,
 }
 
 #[tauri::command]
@@ -539,6 +538,12 @@ async fn desktop_save_profile(
     state: State<'_, DesktopAppState>,
     profile: SaveProfileInput,
 ) -> Result<DesktopBootstrapState, String> {
+    if profile.allow_self_signed {
+        return Err(
+            "Self-signed TLS bypass is no longer supported; trust a local CA in the operating system instead."
+                .to_string(),
+        );
+    }
     let mut persisted = state
         .persisted
         .lock()
@@ -558,7 +563,9 @@ async fn desktop_save_profile(
         if item.id == profile_id {
             item.name = profile.name.trim().to_string();
             item.base_url = normalized_url.clone();
-            item.allow_self_signed = profile.allow_self_signed;
+            item.allow_self_signed = false;
+            item.trusted_fingerprint = None;
+            item.trusted_issuer = None;
             item.note = profile
                 .note
                 .clone()
@@ -574,13 +581,9 @@ async fn desktop_save_profile(
             id: profile_id.clone(),
             name: profile.name.trim().to_string(),
             base_url: normalized_url,
-            allow_self_signed: profile.allow_self_signed,
+            allow_self_signed: false,
             trusted_fingerprint: None,
-            trusted_issuer: Some(if profile.allow_self_signed {
-                "Local override enabled".to_string()
-            } else {
-                "System certificate trust".to_string()
-            }),
+            trusted_issuer: Some("System certificate trust".to_string()),
             active: should_activate,
             last_connected_at: None,
             note: profile
@@ -1666,16 +1669,30 @@ async fn desktop_switch_run_mode(
     }
 
     if mode == RunMode::Local || mode == RunMode::Hybrid {
-        let mut local_store = state
-            .local_store
+        let app_dir = ensure_directory(app.path().app_data_dir().map_err(|err| err.to_string())?)?;
+        let db_path = app_dir.join("local-data.db");
+        {
+            let mut local_store = state
+                .local_store
+                .lock()
+                .map_err(|_| "local_store state poisoned".to_string())?;
+            if local_store.is_none() {
+                let store = SqliteStore::open(&db_path).map_err(|e| e.to_string())?;
+                *local_store = Some(store);
+            }
+        }
+        let server_started = state
+            .local_server_addr
             .lock()
-            .map_err(|_| "local_store state poisoned".to_string())?;
-        if local_store.is_none() {
-            let app_dir =
-                ensure_directory(app.path().app_data_dir().map_err(|err| err.to_string())?)?;
-            let db_path = app_dir.join("local-data.db");
-            let store = SqliteStore::open(&db_path).map_err(|e| e.to_string())?;
-            *local_store = Some(store);
+            .map_err(|_| "local_server_addr poisoned".to_string())?
+            .is_some();
+        if !server_started {
+            let server_store = Arc::new(SqliteStore::open(&db_path).map_err(|e| e.to_string())?);
+            let addr = local_server::start_local_server(server_store).await?;
+            *state
+                .local_server_addr
+                .lock()
+                .map_err(|_| "local_server_addr poisoned".to_string())? = Some(addr);
         }
     }
 
@@ -1922,12 +1939,11 @@ fn parse_timestamp(value: &str) -> Result<DateTime<Utc>, String> {
         .map_err(|err| err.to_string())
 }
 
-fn build_client(profile: &DesktopProfile) -> Result<Client, String> {
-    let mut builder = Client::builder().timeout(Duration::from_secs(15));
-    if profile.allow_self_signed {
-        builder = builder.danger_accept_invalid_certs(true);
-    }
-    builder.build().map_err(|err| err.to_string())
+fn build_client(_profile: &DesktopProfile) -> Result<Client, String> {
+    Client::builder()
+        .timeout(Duration::from_secs(15))
+        .build()
+        .map_err(|err| err.to_string())
 }
 
 async fn ensure_active_session_if_needed(
@@ -1957,7 +1973,29 @@ async fn ensure_active_session_if_needed(
     }
 
     if parse_timestamp(&current_session.expires_at)? <= Utc::now() {
-        let refreshed = refresh_session(app, state, &profile, &current_session).await?;
+        let _refresh_guard = state.refresh_guard.lock().await;
+        // Another request may have refreshed while this request waited.
+        sync_active_session_from_storage(app, state)?;
+        let latest_session = state
+            .session
+            .lock()
+            .map_err(|_| "session state poisoned".to_string())?
+            .clone()
+            .ok_or_else(|| {
+                localized_runtime_message(&system_language_tag(), "login_required").to_string()
+            })?;
+        if parse_timestamp(&latest_session.refresh_expires_at)? <= Utc::now() {
+            let _ = delete_session_for_profile(app, &latest_session.profile_id);
+            *state
+                .session
+                .lock()
+                .map_err(|_| "session state poisoned".to_string())? = None;
+            return Err("Desktop session expired. Please sign in again.".to_string());
+        }
+        if parse_timestamp(&latest_session.expires_at)? > Utc::now() {
+            return Ok((profile, latest_session));
+        }
+        let refreshed = refresh_session(app, state, &profile, &latest_session).await?;
         return Ok((profile, refreshed));
     }
 
@@ -2623,6 +2661,7 @@ fn main() {
                 local_store: Mutex::new(None),
                 last_auto_sync: Mutex::new(None),
                 local_server_addr: Mutex::new(None),
+                refresh_guard: tokio::sync::Mutex::new(()),
             });
 
             // Init local store at startup if persisted mode is Local or Hybrid
@@ -2637,10 +2676,10 @@ fn main() {
                             *ls = Some(store);
                         }
                         // Start local HTTP server for device connections
-                        let store_for_server: Arc<Mutex<dyn Store + Send>> = {
+                        let store_for_server: Arc<SqliteStore> = {
                             // Create a second connection for the HTTP server
                             match SqliteStore::open(&db_path) {
-                                Ok(server_store) => Arc::new(Mutex::new(server_store)),
+                                Ok(server_store) => Arc::new(server_store),
                                 Err(e) => {
                                     log_error!("Failed to open store for local server: {}", e);
                                     return Ok(());

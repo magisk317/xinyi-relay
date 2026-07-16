@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type RelayRecord struct {
@@ -26,16 +27,30 @@ type RelayRecord struct {
 	Metadata   json.RawMessage `json:"metadata"`
 }
 
-func (s *Store) InsertRelayRecords(ctx context.Context, userID int64, deviceID int64, records []RelayRecord) (int64, error) {
+type RelayRecordSyncResult struct {
+	Inserted int64
+	Updated  int64
+	Deleted  int64
+}
+
+func (s *Store) SyncRelayRecords(
+	ctx context.Context,
+	userID int64,
+	deviceID int64,
+	records []RelayRecord,
+	replaceExisting bool,
+) (RelayRecordSyncResult, error) {
 	tx, err := s.db.Pool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
-		return 0, err
+		return RelayRecordSyncResult{}, err
 	}
 	defer tx.Rollback(ctx)
 
-	var inserted int64
+	result := RelayRecordSyncResult{}
+	eventIDs := make([]string, 0, len(records))
 	for _, record := range records {
-		commandTag, err := tx.Exec(
+		var inserted bool
+		err := tx.QueryRow(
 			ctx,
 			`INSERT INTO relay_records (
 				user_id, device_id, event_id, record_type, sender, body, sms_code, package_name, msg_type, call_type, occurred_at, metadata
@@ -49,8 +64,9 @@ func (s *Store) InsertRelayRecords(ctx context.Context, userID int64, deviceID i
 			     msg_type = EXCLUDED.msg_type,
 			     call_type = EXCLUDED.call_type,
 			     occurred_at = EXCLUDED.occurred_at,
-			     metadata = EXCLUDED.metadata,
-			     uploaded_at = NOW()`,
+				     metadata = EXCLUDED.metadata,
+				     uploaded_at = NOW()
+				 RETURNING (xmax = 0)`,
 			userID,
 			deviceID,
 			nullableString(record.EventID),
@@ -63,17 +79,50 @@ func (s *Store) InsertRelayRecords(ctx context.Context, userID int64, deviceID i
 			record.CallType,
 			record.OccurredAt,
 			record.Metadata,
-		)
+		).Scan(&inserted)
 		if err != nil {
-			return 0, err
+			return RelayRecordSyncResult{}, err
 		}
-		inserted += commandTag.RowsAffected()
+		if inserted {
+			result.Inserted++
+		} else {
+			result.Updated++
+		}
+		if record.EventID != "" {
+			eventIDs = append(eventIDs, record.EventID)
+		}
+	}
+
+	if replaceExisting {
+		var tag pgconn.CommandTag
+		if len(eventIDs) == 0 {
+			tag, err = tx.Exec(
+				ctx,
+				`DELETE FROM relay_records WHERE user_id = $1 AND device_id = $2`,
+				userID,
+				deviceID,
+			)
+		} else {
+			tag, err = tx.Exec(
+				ctx,
+				`DELETE FROM relay_records
+				  WHERE user_id = $1 AND device_id = $2
+				    AND (event_id IS NULL OR NOT (event_id = ANY($3)))`,
+				userID,
+				deviceID,
+				eventIDs,
+			)
+		}
+		if err != nil {
+			return RelayRecordSyncResult{}, err
+		}
+		result.Deleted = tag.RowsAffected()
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return 0, err
+		return RelayRecordSyncResult{}, err
 	}
-	return inserted, nil
+	return result, nil
 }
 
 func (s *Store) ListRelayRecords(ctx context.Context, userID int64, limit int32, offset int32, deviceID *int64) ([]RelayRecord, error) {

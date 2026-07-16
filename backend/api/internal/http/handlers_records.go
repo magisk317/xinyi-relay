@@ -23,6 +23,10 @@ func (s *Server) handleAgentRecordsBatch(w http.ResponseWriter, r *http.Request,
 		writeDecodeError(w, err)
 		return
 	}
+	if len(payload.Records) > maxRecordsPerBatch {
+		writeError(w, http.StatusBadRequest, "too many records; maximum is 200; snapshot was not applied")
+		return
+	}
 
 	records := make([]store.RelayRecord, 0, len(payload.Records))
 	for _, item := range payload.Records {
@@ -40,7 +44,13 @@ func (s *Server) handleAgentRecordsBatch(w http.ResponseWriter, r *http.Request,
 		})
 	}
 
-	inserted, err := s.store.InsertRelayRecords(r.Context(), auth.Device.UserID, auth.Device.ID, records)
+	result, err := s.store.SyncRelayRecords(
+		r.Context(),
+		auth.Device.UserID,
+		auth.Device.ID,
+		records,
+		payload.ReplaceExisting,
+	)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "insert records failed")
 		return
@@ -52,11 +62,19 @@ func (s *Server) handleAgentRecordsBatch(w http.ResponseWriter, r *http.Request,
 		log.Printf("[records] prune for user %d failed: %v", auth.Device.UserID, err)
 	}
 
-	s.hub.Broadcast(auth.Device.UserID, "records.ingested", map[string]any{
-		"deviceId": auth.Device.ID,
-		"inserted": inserted,
+	if result.Inserted > 0 || result.Updated > 0 || result.Deleted > 0 {
+		s.hub.Broadcast(auth.Device.UserID, "records.ingested", map[string]any{
+			"deviceId": auth.Device.ID,
+			"inserted": result.Inserted,
+			"updated":  result.Updated,
+			"deleted":  result.Deleted,
+		})
+	}
+	writeJSON(w, http.StatusOK, relayRecordsBatchResponse{
+		Inserted: result.Inserted,
+		Updated:  result.Updated,
+		Deleted:  result.Deleted,
 	})
-	writeJSON(w, http.StatusOK, relayRecordsBatchResponse{Inserted: inserted})
 }
 
 // recordsRetention builds the retention policy for a user from server config,

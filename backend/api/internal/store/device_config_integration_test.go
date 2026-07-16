@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 )
@@ -294,6 +295,75 @@ func TestDeviceConfigCommandQueueAllowsSequentialPendingCommands(t *testing.T) {
 	}
 	if state.PendingCommands[0].ID != first.ID || state.PendingCommands[1].ID != second.ID {
 		t.Fatalf("unexpected pending queue order: %+v", state.PendingCommands)
+	}
+}
+
+// TestDeviceConfigCommandQueueSerializesConcurrentWriters proves the advisory
+// lock + partial unique index fix: many goroutines racing to queue a command
+// against the same base revision must not corrupt the queue. Exactly one writer
+// wins each revision slot; losers get ErrStaleBaseRevision. No two pending
+// commands may ever share a target_revision, and the queue must be a gap-free
+// 1..N sequence.
+func TestDeviceConfigCommandQueueSerializesConcurrentWriters(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	userID, deviceID := createDeviceConfigFixture(t, s)
+
+	const goroutines = 24
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+	results := make(chan error, goroutines)
+	start := make(chan struct{})
+	for i := 0; i < goroutines; i++ {
+		go func() {
+			defer wg.Done()
+			<-start
+			// Every writer optimistically targets base revision 0, so at most
+			// one can legally win that slot per round.
+			_, err := s.CreateDeviceConfigCommand(
+				ctx,
+				userID,
+				deviceID,
+				0,
+				json.RawMessage(`{"operations":[{"type":"replace_senders","senders":[]} ]}`),
+				"senders:update",
+				"web_session",
+				9,
+			)
+			results <- err
+		}()
+	}
+	close(start)
+	wg.Wait()
+	close(results)
+
+	var wins, stale int
+	for err := range results {
+		switch {
+		case err == nil:
+			wins++
+		case errors.Is(err, ErrStaleBaseRevision):
+			stale++
+		default:
+			t.Fatalf("unexpected error from concurrent queue: %v", err)
+		}
+	}
+	if wins != 1 {
+		t.Fatalf("expected exactly 1 winner against base revision 0, got %d (stale=%d)", wins, stale)
+	}
+	if stale != goroutines-1 {
+		t.Fatalf("expected %d stale rejections, got %d", goroutines-1, stale)
+	}
+
+	state, err := s.GetDeviceConfigState(ctx, userID, deviceID)
+	if err != nil {
+		t.Fatalf("get device config state: %v", err)
+	}
+	if len(state.PendingCommands) != 1 {
+		t.Fatalf("expected 1 pending command after race, got %d", len(state.PendingCommands))
+	}
+	if state.PendingCommands[0].TargetRevision != 1 {
+		t.Fatalf("expected surviving command at target revision 1, got %d", state.PendingCommands[0].TargetRevision)
 	}
 }
 

@@ -16,7 +16,7 @@ const DEVICE_REFRESH_EVENTS = [
 ] as const
 
 export function DevicesPage() {
-  const { activeProfile } = useDesktop()
+  const { activeProfile, runMode } = useDesktop()
   const { t } = useDesktopI18n()
   const { devices, refresh } = useDesktopDeviceConfig()
   const [bindCode, setBindCode] = useState<BindCodeResponse | null>(null)
@@ -25,6 +25,7 @@ export function DevicesPage() {
   const [busyDeviceId, setBusyDeviceId] = useState<number | null>(null)
   const [pendingRevokeId, setPendingRevokeId] = useState<number | null>(null)
   const [error, setError] = useState('')
+  const [localServerAddr, setLocalServerAddr] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -59,8 +60,21 @@ export function DevicesPage() {
     })
   }, [devices])
 
-  const bindQrValue = bindCode
-    ? `xinyi-relay://bind?code=${encodeURIComponent(bindCode.code)}&base_url=${encodeURIComponent(activeProfile?.baseUrl ?? 'https://localhost:8443')}`
+  useEffect(() => {
+    if (runMode !== 'local') {
+      setLocalServerAddr(null)
+      return
+    }
+    void desktopApi.getLocalServerAddr()
+      .then(setLocalServerAddr)
+      .catch(() => setLocalServerAddr(null))
+  }, [runMode])
+
+  const bindBaseUrl = runMode === 'local'
+    ? normalizeBindBaseUrl(localServerAddr ? `http://${localServerAddr}` : null)
+    : normalizeBindBaseUrl(activeProfile?.baseUrl ?? null)
+  const bindQrValue = bindCode && bindBaseUrl
+    ? `xinyi-relay://bind?code=${encodeURIComponent(bindCode.code)}&base_url=${encodeURIComponent(bindBaseUrl)}`
     : ''
 
   return (
@@ -75,7 +89,13 @@ export function DevicesPage() {
             type="button"
             className="primary-button"
             onClick={() => {
-              void desktopApi.createBindCode().then(setBindCode).catch((nextError) => {
+              void Promise.all([
+                desktopApi.createBindCode(),
+                runMode === 'local' ? desktopApi.getLocalServerAddr() : Promise.resolve(null)
+              ]).then(([nextBindCode, nextLocalServerAddr]) => {
+                setBindCode(nextBindCode)
+                if (runMode === 'local') setLocalServerAddr(nextLocalServerAddr)
+              }).catch((nextError) => {
                 setError(nextError instanceof Error ? nextError.message : t('error.createBindCode'))
               })
             }}
@@ -102,11 +122,16 @@ export function DevicesPage() {
           <div className="callout-title">{t('common.latestBindCode')}</div>
           <div className="bind-code">{bindCode.code}</div>
           <div className="callout-meta">{new Date(bindCode.expiresAt).toLocaleString()}</div>
-          <div className="bind-qr-wrap">
-            <div className="bind-qr-card">
-              <QRCodeSVG value={bindQrValue} size={168} includeMargin />
+          {runMode === 'local' ? (
+            <div className="callout-meta">{t('devices.localBindLoopbackOnly')}</div>
+          ) : null}
+          {bindQrValue ? (
+            <div className="bind-qr-wrap">
+              <div className="bind-qr-card">
+                <QRCodeSVG value={bindQrValue} size={168} includeMargin />
+              </div>
             </div>
-          </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -240,4 +265,15 @@ export function DevicesPage() {
       )}
     </Panel>
   )
+}
+
+export function normalizeBindBaseUrl(value: string | null): string | null {
+  if (!value) return null
+  try {
+    const url = new URL(value)
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null
+    return url.toString().replace(/\/$/, '')
+  } catch {
+    return null
+  }
 }

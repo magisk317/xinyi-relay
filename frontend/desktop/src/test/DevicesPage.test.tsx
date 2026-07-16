@@ -3,7 +3,7 @@ import { vi } from 'vitest'
 import { DesktopI18nProvider } from '../i18n'
 import { DevicesPage } from '../pages/DevicesPage'
 
-const { getDevices, patchDevice } = vi.hoisted(() => ({
+const { getDevices, getLocalServerAddr, patchDevice } = vi.hoisted(() => ({
   getDevices: vi.fn().mockResolvedValue({
     devices: [
       {
@@ -24,6 +24,7 @@ const { getDevices, patchDevice } = vi.hoisted(() => ({
       }
     ]
   }),
+  getLocalServerAddr: vi.fn().mockResolvedValue('127.0.0.1:43123'),
   patchDevice: vi.fn().mockResolvedValue({})
 }))
 
@@ -31,6 +32,7 @@ vi.mock('../api/desktopApi', () => ({
   desktopApi: {
     getDevices,
     createBindCode: vi.fn().mockResolvedValue({ code: 'ABCDEF', expiresAt: '2026-04-09T11:00:00Z' }),
+    getLocalServerAddr,
     patchDevice,
     revokeDevice: vi.fn().mockResolvedValue({})
   }
@@ -38,7 +40,9 @@ vi.mock('../api/desktopApi', () => ({
 
 vi.mock('../state/DesktopContext', () => ({
   useDesktop: () => ({
-    bootstrap: { languageTag: 'en', session: { authenticated: true }, profiles: [], connection: { state: 'connected', message: '' } }
+    activeProfile: null,
+    bootstrap: { languageTag: 'en', session: { authenticated: true }, profiles: [], connection: { state: 'connected', message: '' } },
+    runMode: 'local'
   })
 }))
 
@@ -60,6 +64,22 @@ describe('DevicesPage', () => {
 
     await waitFor(() => {
       expect(patchDevice).toHaveBeenCalledWith(1, { displayName: 'Desk Phone' })
+    })
+  })
+
+  it('uses the actual loopback server address for local bind QR codes', async () => {
+    const { container } = render(
+      <DesktopI18nProvider>
+        <DevicesPage />
+      </DesktopI18nProvider>
+    )
+
+    fireEvent.click(await screen.findByText('Create Bind Code'))
+
+    await waitFor(() => {
+      expect(getLocalServerAddr).toHaveBeenCalled()
+      expect(container.querySelector('svg')).not.toBeNull()
+      expect(screen.getByText(/loopback-only/)).toBeTruthy()
     })
   })
 })

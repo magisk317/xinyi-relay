@@ -41,6 +41,7 @@ const (
 	maxDeviceBodyBytes  int64 = 64 << 10 // 64 KiB: device register / heartbeat / patch
 	maxConfigBodyBytes  int64 = 1 << 20  // 1 MiB: config snapshot
 	maxRecordsBodyBytes int64 = 8 << 20  // 8 MiB: relay records batch upload
+	maxRecordsPerBatch        = 200
 )
 
 func decodeJSON(w http.ResponseWriter, r *http.Request, target any, maxBytes int64) error {

@@ -257,6 +257,7 @@ func (s *Store) DeleteSessionByTokenHash(ctx context.Context, tokenHash string) 
 func (s *Store) RotateDesktopSession(
 	ctx context.Context,
 	sessionID int64,
+	expectedRefreshTokenHash string,
 	accessTokenHash string,
 	refreshTokenHash string,
 	expiresAt time.Time,
@@ -271,13 +272,14 @@ func (s *Store) RotateDesktopSession(
 		        expires_at = $4,
 		        refresh_expires_at = $5,
 		        last_seen_at = NOW()
-		  WHERE id = $1 AND revoked_at IS NULL
+		  WHERE id = $1 AND refresh_token_hash = $6 AND revoked_at IS NULL
 		  RETURNING id, user_id, client_name, access_token_hash, refresh_token_hash, expires_at, refresh_expires_at, last_seen_at, revoked_at`,
 		sessionID,
 		accessTokenHash,
 		refreshTokenHash,
 		expiresAt,
 		refreshExpiresAt,
+		expectedRefreshTokenHash,
 	).Scan(
 		&session.ID,
 		&session.UserID,
@@ -298,6 +300,15 @@ func (s *Store) RotateDesktopSession(
 	}
 	session.Username = user.Username
 	return session, nil
+}
+
+func (s *Store) RevokeDesktopSession(ctx context.Context, sessionID int64) error {
+	_, err := s.db.Pool.Exec(
+		ctx,
+		`UPDATE desktop_sessions SET revoked_at = NOW() WHERE id = $1 AND revoked_at IS NULL`,
+		sessionID,
+	)
+	return err
 }
 
 func (s *Store) DeleteDesktopSessionByAccessTokenHash(ctx context.Context, accessTokenHash string) error {

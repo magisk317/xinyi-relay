@@ -1,11 +1,19 @@
-use rusqlite::{Connection, OptionalExtension, params};
-use serde_json::{Value, json};
+use rusqlite::{params, Connection, OptionalExtension};
+use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
+use std::collections::HashSet;
 use std::sync::Mutex;
 
 use super::store::*;
 
 pub struct SqliteStore {
     conn: Mutex<Connection>,
+}
+
+pub(crate) struct RecordSyncResult {
+    pub(crate) inserted: usize,
+    pub(crate) updated: usize,
+    pub(crate) deleted: usize,
 }
 
 impl SqliteStore {
@@ -107,6 +115,18 @@ impl SqliteStore {
             CREATE UNIQUE INDEX IF NOT EXISTS relay_records_device_event_id_idx
                 ON relay_records(device_id, event_id)
                 WHERE event_id IS NOT NULL;
+
+			CREATE TABLE IF NOT EXISTS local_device_bind_codes (
+				code_hash TEXT PRIMARY KEY,
+				expires_at TEXT NOT NULL,
+				used_at TEXT
+			);
+
+			CREATE TABLE IF NOT EXISTS local_device_tokens (
+				device_id INTEGER PRIMARY KEY,
+				token_hash TEXT NOT NULL UNIQUE,
+				revoked_at TEXT
+			);
             ",
         )?;
         Self::seed_device_mirrors_from_legacy_snapshot(&conn, None)?;
@@ -182,6 +202,331 @@ impl SqliteStore {
         }
         Ok(())
     }
+}
+
+fn hash_secret(value: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(value.as_bytes());
+    format!("{:x}", hasher.finalize())
+}
+
+impl SqliteStore {
+    pub(crate) fn authenticate_local_device(&self, token: &str) -> StoreResult<Option<i64>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
+        let device_id = conn
+            .query_row(
+                "SELECT d.id
+                   FROM local_device_tokens t
+                   JOIN devices d ON d.id = t.device_id
+                  WHERE t.token_hash = ?1 AND t.revoked_at IS NULL
+                    AND d.revoked_at IS NULL AND d.enabled = 1",
+                params![hash_secret(token)],
+                |row| row.get(0),
+            )
+            .optional()?;
+        Ok(device_id)
+    }
+
+    pub(crate) fn register_local_device(
+        &self,
+        bind_code: &str,
+        device_name: &str,
+        device_model: &str,
+        platform: &str,
+        app_version: &str,
+        device_token: &str,
+    ) -> StoreResult<Option<Device>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
+        conn.execute_batch("BEGIN IMMEDIATE")?;
+        let result = (|| -> StoreResult<Option<Device>> {
+            let now = chrono::Utc::now().to_rfc3339();
+            let consumed = conn.execute(
+                "UPDATE local_device_bind_codes SET used_at = ?2
+                  WHERE code_hash = ?1 AND used_at IS NULL AND expires_at > ?2",
+                params![hash_secret(bind_code), now],
+            )?;
+            if consumed != 1 {
+                return Ok(None);
+            }
+            let device_id: i64 =
+                conn.query_row("SELECT COALESCE(MAX(id), 0) + 1 FROM devices", [], |row| {
+                    row.get(0)
+                })?;
+            conn.execute(
+                "INSERT INTO devices (
+                    id, user_id, device_name, device_model, platform, app_version, display_name,
+                    enabled, local_addresses, capabilities, created_at, updated_at
+                 ) VALUES (?1, 1, ?2, ?3, ?4, ?5, ?2, 1, '[]', '{}', ?6, ?6)",
+                params![
+                    device_id,
+                    device_name,
+                    device_model,
+                    platform,
+                    app_version,
+                    now
+                ],
+            )?;
+            conn.execute(
+                "INSERT INTO local_device_tokens (device_id, token_hash) VALUES (?1, ?2)",
+                params![device_id, hash_secret(device_token)],
+            )?;
+            Ok(Some(Device {
+                id: device_id,
+                user_id: 1,
+                device_name: device_name.to_string(),
+                device_model: device_model.to_string(),
+                platform: platform.to_string(),
+                app_version: app_version.to_string(),
+                display_name: device_name.to_string(),
+                enabled: true,
+                revoked_at: None,
+                last_seen_at: None,
+                local_addresses: json!([]),
+                capabilities: json!({}),
+                created_at: now.clone(),
+                updated_at: now,
+            }))
+        })();
+        if result.is_ok() {
+            conn.execute_batch("COMMIT")?;
+        } else {
+            let _ = conn.execute_batch("ROLLBACK");
+        }
+        result
+    }
+
+    pub(crate) fn update_local_device_heartbeat(
+        &self,
+        device_id: i64,
+        app_version: &str,
+        local_addresses: &Value,
+        capabilities: &Value,
+    ) -> StoreResult<()> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
+        conn.execute(
+            "UPDATE devices SET app_version=?2, local_addresses=?3, capabilities=?4,
+             last_seen_at=?5, updated_at=?5 WHERE id=?1 AND revoked_at IS NULL",
+            params![
+                device_id,
+                app_version,
+                serde_json::to_string(local_addresses)?,
+                serde_json::to_string(capabilities)?,
+                chrono::Utc::now().to_rfc3339(),
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub(crate) fn ack_local_device_config_command(
+        &self,
+        device_id: i64,
+        command_id: i64,
+        status: &str,
+        applied_revision: i64,
+        failure_reason: &str,
+        snapshot: &Value,
+    ) -> StoreResult<DeviceConfigCommand> {
+        if status != "applied" && status != "failed" {
+            return Err(StoreError::Internal(
+                "unsupported command status".to_string(),
+            ));
+        }
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
+        conn.execute_batch("BEGIN IMMEDIATE")?;
+        let result = (|| -> StoreResult<DeviceConfigCommand> {
+            let now = chrono::Utc::now().to_rfc3339();
+            let applied_at = (status == "applied").then_some(now.clone());
+            let changed = conn.execute(
+                "UPDATE device_config_commands
+                    SET status=?3, failure_reason=?4, updated_at=?5, applied_at=?6
+                  WHERE id=?1 AND device_id=?2 AND status='pending'",
+                params![
+                    command_id,
+                    device_id,
+                    status,
+                    failure_reason,
+                    now,
+                    applied_at
+                ],
+            )?;
+            if changed != 1 {
+                return Err(StoreError::Conflict {
+                    local: command_id,
+                    remote: command_id,
+                });
+            }
+            if status == "applied" {
+                conn.execute(
+                    "INSERT INTO device_config_mirrors (device_id, revision, snapshot, updated_at)
+                     VALUES (?1, ?2, ?3, ?4)
+                     ON CONFLICT(device_id) DO UPDATE SET revision=excluded.revision,
+                     snapshot=excluded.snapshot, updated_at=excluded.updated_at",
+                    params![
+                        device_id,
+                        applied_revision,
+                        serde_json::to_string(snapshot)?,
+                        now,
+                    ],
+                )?;
+            }
+            read_device_config_command(&conn, device_id, command_id)
+        })();
+        if result.is_ok() {
+            conn.execute_batch("COMMIT")?;
+        } else {
+            let _ = conn.execute_batch("ROLLBACK");
+        }
+        result
+    }
+
+    pub(crate) fn sync_local_device_records(
+        &self,
+        device_id: i64,
+        records: &[Record],
+        replace_existing: bool,
+    ) -> StoreResult<RecordSyncResult> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
+        conn.execute_batch("BEGIN IMMEDIATE")?;
+        let result = (|| -> StoreResult<RecordSyncResult> {
+            let mut existing_event_ids = {
+                let mut stmt = conn.prepare(
+                    "SELECT event_id FROM relay_records WHERE device_id=?1 AND event_id IS NOT NULL",
+                )?;
+                stmt.query_map(params![device_id], |row| row.get::<_, String>(0))?
+                    .collect::<Result<HashSet<_>, _>>()?
+            };
+            let incoming_event_ids = records
+                .iter()
+                .filter_map(|record| record.event_id.clone())
+                .collect::<HashSet<_>>();
+            let deleted = if replace_existing {
+                let mut stmt =
+                    conn.prepare("SELECT id, event_id FROM relay_records WHERE device_id=?1")?;
+                let stale_ids = stmt
+                    .query_map(params![device_id], |row| {
+                        Ok((row.get::<_, i64>(0)?, row.get::<_, Option<String>>(1)?))
+                    })?
+                    .collect::<Result<Vec<_>, _>>()?
+                    .into_iter()
+                    .filter_map(|(id, event_id)| {
+                        if event_id
+                            .as_ref()
+                            .is_some_and(|value| incoming_event_ids.contains(value))
+                        {
+                            None
+                        } else {
+                            Some(id)
+                        }
+                    })
+                    .collect::<Vec<_>>();
+                for id in &stale_ids {
+                    conn.execute("DELETE FROM relay_records WHERE id=?1", params![id])?;
+                }
+                stale_ids.len()
+            } else {
+                0
+            };
+            let mut inserted = 0;
+            let mut updated = 0;
+            for record in records {
+                let was_existing = record
+                    .event_id
+                    .as_ref()
+                    .is_some_and(|event_id| existing_event_ids.contains(event_id));
+                conn.execute(
+                    "INSERT INTO relay_records (
+                        user_id, device_id, event_id, record_type, sender, body, sms_code,
+                        package_name, msg_type, call_type, occurred_at, uploaded_at, metadata
+                     ) VALUES (1, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
+                     ON CONFLICT(device_id, event_id) WHERE event_id IS NOT NULL DO UPDATE SET
+                        record_type=excluded.record_type, sender=excluded.sender, body=excluded.body,
+                        sms_code=excluded.sms_code, package_name=excluded.package_name,
+                        msg_type=excluded.msg_type, call_type=excluded.call_type,
+                        occurred_at=excluded.occurred_at, uploaded_at=excluded.uploaded_at,
+                        metadata=excluded.metadata",
+                    params![
+                        device_id,
+                        record.event_id,
+                        record.record_type,
+                        record.sender,
+                        record.body,
+                        record.sms_code,
+                        record.package_name,
+                        record.msg_type,
+                        record.call_type,
+                        record.occurred_at,
+                        record.uploaded_at,
+                        serde_json::to_string(&record.metadata)?,
+                    ],
+                )?;
+                if was_existing {
+                    updated += 1;
+                } else {
+                    inserted += 1;
+                }
+                if let Some(event_id) = &record.event_id {
+                    existing_event_ids.insert(event_id.clone());
+                }
+            }
+            Ok(RecordSyncResult {
+                inserted,
+                updated,
+                deleted,
+            })
+        })();
+        if result.is_ok() {
+            conn.execute_batch("COMMIT")?;
+        } else {
+            let _ = conn.execute_batch("ROLLBACK");
+        }
+        result
+    }
+}
+
+fn read_device_config_command(
+    conn: &Connection,
+    device_id: i64,
+    command_id: i64,
+) -> StoreResult<DeviceConfigCommand> {
+    conn.query_row(
+        "SELECT id, base_revision, target_revision, mutation, summary, actor_type, actor_id,
+                status, failure_reason, created_at, updated_at, applied_at
+           FROM device_config_commands WHERE id=?1 AND device_id=?2",
+        params![command_id, device_id],
+        |row| {
+            let mutation: String = row.get(3)?;
+            Ok(DeviceConfigCommand {
+                id: row.get(0)?,
+                base_revision: row.get(1)?,
+                target_revision: row.get(2)?,
+                mutation: serde_json::from_str(&mutation).unwrap_or(json!({})),
+                summary: row.get(4)?,
+                actor_type: row.get(5)?,
+                actor_id: row.get(6)?,
+                status: row.get(7)?,
+                failure_reason: row.get(8)?,
+                created_at: row.get(9)?,
+                updated_at: row.get(10)?,
+                applied_at: row.get(11)?,
+            })
+        },
+    )
+    .map_err(StoreError::from)
 }
 
 impl Store for SqliteStore {
@@ -531,6 +876,10 @@ impl Store for SqliteStore {
             "UPDATE devices SET revoked_at = datetime('now'), updated_at = datetime('now') WHERE id = ?1",
             params![device_id],
         )?;
+        conn.execute(
+            "UPDATE local_device_tokens SET revoked_at = datetime('now') WHERE device_id = ?1",
+            params![device_id],
+        )?;
         Ok(json!({ "ok": true }))
     }
 
@@ -538,6 +887,14 @@ impl Store for SqliteStore {
         use uuid::Uuid;
         let code = Uuid::new_v4().to_string();
         let expires_at = chrono::Utc::now() + chrono::Duration::minutes(10);
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| StoreError::Internal("sqlite mutex poisoned".to_string()))?;
+        conn.execute(
+            "INSERT INTO local_device_bind_codes (code_hash, expires_at) VALUES (?1, ?2)",
+            params![hash_secret(&code), expires_at.to_rfc3339()],
+        )?;
         Ok(BindCode {
             code,
             expires_at: expires_at.to_rfc3339(),
@@ -909,6 +1266,52 @@ mod tests {
     }
 
     #[test]
+    fn local_bind_code_is_single_use_and_device_token_is_hashed() {
+        let store = test_store();
+        let bind = store.create_bind_code().unwrap();
+        let registered = store
+            .register_local_device(
+                &bind.code,
+                "Phone",
+                "Pixel",
+                "android",
+                "1.0",
+                "secret-device-token",
+            )
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            store
+                .authenticate_local_device("secret-device-token")
+                .unwrap(),
+            Some(registered.id),
+        );
+        assert_eq!(store.authenticate_local_device("wrong").unwrap(), None);
+        assert!(store
+            .register_local_device(
+                &bind.code,
+                "Second",
+                "Pixel",
+                "android",
+                "1.0",
+                "second-token",
+            )
+            .unwrap()
+            .is_none(),);
+
+        let conn = store.conn.lock().unwrap();
+        let stored_hash: String = conn
+            .query_row(
+                "SELECT token_hash FROM local_device_tokens WHERE device_id=?1",
+                params![registered.id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(stored_hash, hash_secret("secret-device-token"));
+        assert_ne!(stored_hash, "secret-device-token");
+    }
+
+    #[test]
     fn devices_upsert_and_list() {
         let store = test_store();
         let devices = vec![
@@ -1069,6 +1472,64 @@ mod tests {
         assert_eq!(result.items.len(), 1);
         assert_eq!(result.items[0].sms_code, "222");
         assert_eq!(result.items[0].body, "New body");
+    }
+
+    #[test]
+    fn record_snapshot_preserves_ids_and_reports_insert_update_delete_counts() {
+        let store = test_store();
+        let first = snapshot_record("evt-1", "first");
+        let initial = store
+            .sync_local_device_records(7, &[first.clone()], true)
+            .unwrap();
+        assert_eq!(initial.inserted, 1);
+        assert_eq!(initial.updated, 0);
+        assert_eq!(initial.deleted, 0);
+        let stable_id = store.list_records(10, None).unwrap().items[0].id;
+
+        let second = snapshot_record("evt-2", "second");
+        let next = store
+            .sync_local_device_records(
+                7,
+                &[snapshot_record("evt-1", "updated"), second.clone()],
+                true,
+            )
+            .unwrap();
+        assert_eq!(next.inserted, 1);
+        assert_eq!(next.updated, 1);
+        assert_eq!(next.deleted, 0);
+        let records = store.list_records(10, None).unwrap();
+        assert_eq!(
+            records
+                .items
+                .iter()
+                .find(|record| record.event_id.as_deref() == Some("evt-1"))
+                .unwrap()
+                .id,
+            stable_id,
+        );
+
+        let final_result = store.sync_local_device_records(7, &[second], true).unwrap();
+        assert_eq!(final_result.inserted, 0);
+        assert_eq!(final_result.updated, 1);
+        assert_eq!(final_result.deleted, 1);
+    }
+
+    fn snapshot_record(event_id: &str, body: &str) -> Record {
+        Record {
+            id: 0,
+            device_id: 7,
+            event_id: Some(event_id.to_string()),
+            record_type: "sms".to_string(),
+            sender: "Bank".to_string(),
+            body: body.to_string(),
+            sms_code: String::new(),
+            package_name: "com.sms".to_string(),
+            metadata: json!({}),
+            msg_type: 0,
+            call_type: 0,
+            occurred_at: "2026-01-01T00:00:00Z".to_string(),
+            uploaded_at: "2026-01-01T00:00:00Z".to_string(),
+        }
     }
 
     #[test]

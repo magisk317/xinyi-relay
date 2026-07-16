@@ -1,7 +1,7 @@
-use reqwest::StatusCode;
 use reqwest::blocking::Client;
+use reqwest::StatusCode;
 use serde::de::DeserializeOwned;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 use super::store::*;
 
@@ -46,12 +46,10 @@ struct BindCodeResponse {
 }
 
 impl RemoteStore {
-    pub fn new(base_url: &str, allow_self_signed: bool) -> StoreResult<Self> {
-        let mut builder = Client::builder().timeout(std::time::Duration::from_secs(15));
-        if allow_self_signed {
-            builder = builder.danger_accept_invalid_certs(true);
-        }
-        let client = builder.build()?;
+    pub fn new(base_url: &str, _allow_self_signed: bool) -> StoreResult<Self> {
+        let client = Client::builder()
+            .timeout(std::time::Duration::from_secs(15))
+            .build()?;
         Ok(RemoteStore {
             client,
             base_url: base_url.trim_end_matches('/').to_string(),

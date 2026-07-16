@@ -930,7 +930,11 @@
             "items": {
               "$ref": "#/components/schemas/RelayRecordWire"
             },
+            "maxItems": 200,
             "type": "array"
+          },
+          "replaceExisting": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -941,7 +945,15 @@
       "RelayRecordsBatchResponse": {
         "additionalProperties": false,
         "properties": {
+          "deleted": {
+            "format": "int64",
+            "type": "integer"
+          },
           "inserted": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "updated": {
             "format": "int64",
             "type": "integer"
           }

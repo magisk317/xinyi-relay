@@ -244,10 +244,13 @@ export interface RelayRecordWire {
 
 export interface RelayRecordsBatchRequest {
   records: Array<RelayRecordWire>
+  replaceExisting?: boolean
 }
 
 export interface RelayRecordsBatchResponse {
+  deleted?: number
   inserted: number
+  updated?: number
 }
 
 export interface SimpleOKResponse {

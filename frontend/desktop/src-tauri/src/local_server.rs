@@ -1,88 +1,72 @@
-use std::collections::HashMap;
 use std::net::SocketAddr;
-use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::sync::Arc;
 
-use axum::Router;
-use axum::extract::Path;
-use axum::extract::State as AxumState;
-use axum::http::StatusCode;
+use axum::extract::{DefaultBodyLimit, State as AxumState};
+use axum::http::{HeaderMap, StatusCode};
 use axum::response::Json;
 use axum::routing::{get, post};
-use serde_json::{Value, json};
+use axum::Router;
+use serde_json::{json, Value};
 use tokio::net::TcpListener;
-use tower_http::cors::{AllowOrigin, CorsLayer};
 
-use crate::store::{Store, StoreError};
+use crate::sqlite_store::SqliteStore;
+use crate::store::{Record, Store, StoreError};
 
 const MAX_STRING_LEN: usize = 512;
 const MAX_RECORDS_PER_BATCH: usize = 200;
-const MAX_QUERY_LIMIT: i64 = 500;
-const RATE_LIMIT_WINDOW: Duration = Duration::from_secs(60);
-const RATE_LIMIT_MAX_REGISTERS: usize = 5;
+const MAX_REQUEST_BODY_BYTES: usize = 8 << 20;
 
 #[derive(Clone)]
 struct LocalServerState {
-    store: Arc<Mutex<dyn Store + Send>>,
-    device_tokens: Arc<Mutex<Vec<(String, i64)>>>,
-    rate_limiter: Arc<Mutex<RateLimiter>>,
+    store: Arc<SqliteStore>,
 }
 
-struct RateLimiter {
-    window_start: Instant,
-    count: usize,
+type HttpError = (StatusCode, Json<Value>);
+
+fn sanitize(value: &str, max_len: usize) -> String {
+    value.chars().take(max_len).collect()
 }
 
-impl RateLimiter {
-    fn new() -> Self {
-        Self {
-            window_start: Instant::now(),
-            count: 0,
-        }
-    }
+fn bad_request(message: &str) -> HttpError {
+    (StatusCode::BAD_REQUEST, Json(json!({"error": message})))
+}
 
-    fn check_and_record(&mut self) -> bool {
-        let now = Instant::now();
-        if now.duration_since(self.window_start) > RATE_LIMIT_WINDOW {
-            self.window_start = now;
-            self.count = 0;
-        }
-        if self.count >= RATE_LIMIT_MAX_REGISTERS {
-            return false;
-        }
-        self.count += true as usize;
-        true
+fn map_store_err(error: StoreError) -> HttpError {
+    match error {
+        StoreError::Conflict { local, remote } => (
+            StatusCode::CONFLICT,
+            Json(json!({"error": "conflict", "local": local, "remote": remote})),
+        ),
+        StoreError::Internal(message) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": message})),
+        ),
     }
 }
 
-fn sanitize(s: &str, max_len: usize) -> String {
-    s.chars().take(max_len).collect()
-}
-
-fn auth_device(
-    state: &LocalServerState,
-    headers: &axum::http::HeaderMap,
-) -> Result<i64, (StatusCode, Json<Value>)> {
-    let token = headers
+fn bearer_token(headers: &HeaderMap) -> Option<&str> {
+    headers
         .get("authorization")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.strip_prefix("Bearer "))
-        .unwrap_or("");
-    if token.is_empty() {
-        return Err((
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.strip_prefix("Bearer "))
+        .filter(|value| !value.is_empty())
+}
+
+fn authenticate(state: &LocalServerState, headers: &HeaderMap) -> Result<i64, HttpError> {
+    let token = bearer_token(headers).ok_or_else(|| {
+        (
             StatusCode::UNAUTHORIZED,
-            Json(json!({"error": "missing token"})),
-        ));
-    }
-    let tokens = state.device_tokens.lock().unwrap();
-    tokens
-        .iter()
-        .find(|(t, _)| t == token)
-        .map(|(_, id)| *id)
+            Json(json!({"error": "missing device token"})),
+        )
+    })?;
+    state
+        .store
+        .authenticate_local_device(token)
+        .map_err(map_store_err)?
         .ok_or_else(|| {
             (
                 StatusCode::UNAUTHORIZED,
-                Json(json!({"error": "invalid token"})),
+                Json(json!({"error": "invalid or revoked device token"})),
             )
         })
 }
@@ -90,291 +74,272 @@ fn auth_device(
 async fn handle_register(
     AxumState(state): AxumState<LocalServerState>,
     Json(body): Json<Value>,
-) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    // Rate limiting
-    if !state.rate_limiter.lock().unwrap().check_and_record() {
-        return Err((
-            StatusCode::TOO_MANY_REQUESTS,
-            Json(json!({"error": "rate limit exceeded"})),
-        ));
-    }
-
+) -> Result<(StatusCode, Json<Value>), HttpError> {
+    let bind_code = body["bindCode"].as_str().unwrap_or("").trim();
     let device_name = sanitize(
-        body["deviceName"].as_str().unwrap_or("Unknown"),
+        body["deviceName"].as_str().unwrap_or("").trim(),
         MAX_STRING_LEN,
     );
-    let device_model = sanitize(body["deviceModel"].as_str().unwrap_or(""), MAX_STRING_LEN);
-    let platform = sanitize(body["platform"].as_str().unwrap_or("android"), 32);
-    let app_version = sanitize(body["appVersion"].as_str().unwrap_or(""), 64);
-
-    let store = state.store.lock().unwrap();
-    let devices = store.list_devices().map_err(map_store_err)?;
-    let new_id = devices.iter().map(|d| d.id).max().unwrap_or(0) + 1;
-    let token = uuid::Uuid::new_v4().to_string();
-
-    store
-        .upsert_devices(vec![crate::store::Device {
-            id: new_id,
-            user_id: 1,
-            device_name,
-            device_model,
-            platform,
-            app_version,
-            display_name: String::new(),
-            enabled: true,
-            revoked_at: None,
-            last_seen_at: Some(chrono::Utc::now().to_rfc3339()),
-            local_addresses: json!([]),
-            capabilities: json!({}),
-            created_at: chrono::Utc::now().to_rfc3339(),
-            updated_at: chrono::Utc::now().to_rfc3339(),
-        }])
-        .map_err(map_store_err)?;
-
-    state
-        .device_tokens
-        .lock()
-        .unwrap()
-        .push((token.clone(), new_id));
-
-    Ok(Json(
-        json!({ "userId": 1, "deviceId": new_id, "deviceToken": token }),
+    if bind_code.is_empty() || device_name.is_empty() {
+        return Err(bad_request("bindCode and deviceName are required"));
+    }
+    let device_token = uuid::Uuid::new_v4().to_string();
+    let device = state
+        .store
+        .register_local_device(
+            bind_code,
+            &device_name,
+            &sanitize(body["deviceModel"].as_str().unwrap_or(""), MAX_STRING_LEN),
+            &sanitize(body["platform"].as_str().unwrap_or("android"), 32),
+            &sanitize(body["appVersion"].as_str().unwrap_or(""), 64),
+            &device_token,
+        )
+        .map_err(map_store_err)?
+        .ok_or_else(|| {
+            (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"error": "invalid or expired bind code"})),
+            )
+        })?;
+    Ok((
+        StatusCode::CREATED,
+        Json(json!({
+            "userId": device.user_id,
+            "deviceId": device.id,
+            "deviceToken": device_token,
+        })),
     ))
 }
 
 async fn handle_heartbeat(
     AxumState(state): AxumState<LocalServerState>,
-    headers: axum::http::HeaderMap,
-) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let _device_id = auth_device(&state, &headers)?;
-    Ok(Json(json!({ "status": "ok" })))
-}
-
-async fn handle_upload_records(
-    AxumState(state): AxumState<LocalServerState>,
-    headers: axum::http::HeaderMap,
+    headers: HeaderMap,
     Json(body): Json<Value>,
-) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let device_id = auth_device(&state, &headers)?;
-    let store = state.store.lock().unwrap();
-
-    let records_array = body["records"].as_array().ok_or_else(|| {
-        (
-            StatusCode::BAD_REQUEST,
-            Json(json!({"error": "records must be an array"})),
+) -> Result<Json<Value>, HttpError> {
+    let device_id = authenticate(&state, &headers)?;
+    state
+        .store
+        .update_local_device_heartbeat(
+            device_id,
+            body["appVersion"].as_str().unwrap_or(""),
+            &body["localAddresses"],
+            &body["capabilities"],
         )
-    })?;
-
-    if records_array.len() > MAX_RECORDS_PER_BATCH {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            Json(json!({"error": "too many records"})),
-        ));
-    }
-
-    let records: Vec<crate::store::Record> = records_array
-        .iter()
-        .filter_map(|r| {
-            Some(crate::store::Record {
-                id: 0,
-                device_id,
-                event_id: r["eventId"].as_str().map(|s| sanitize(s, 128)),
-                record_type: sanitize(r["recordType"].as_str().unwrap_or("sms"), 32),
-                sender: sanitize(r["sender"].as_str().unwrap_or(""), MAX_STRING_LEN),
-                body: sanitize(r["body"].as_str().unwrap_or(""), 4096),
-                sms_code: sanitize(r["smsCode"].as_str().unwrap_or(""), 32),
-                package_name: sanitize(r["packageName"].as_str().unwrap_or(""), 256),
-                metadata: r["metadata"].clone(),
-                msg_type: r["msgType"].as_i64().unwrap_or(0) as i32,
-                call_type: r["callType"].as_i64().unwrap_or(0) as i32,
-                occurred_at: sanitize(r["occurredAt"].as_str().unwrap_or(""), 64),
-                uploaded_at: chrono::Utc::now().to_rfc3339(),
-            })
-        })
-        .collect();
-
-    let count = records.len();
-    store.upsert_records(records).map_err(map_store_err)?;
-    Ok(Json(json!({ "inserted": count, "status": "ok" })))
+        .map_err(map_store_err)?;
+    Ok(Json(json!({"ok": true})))
 }
 
-async fn handle_get_device_config(
-    Path(device_id): Path<i64>,
+async fn handle_config_mirror(
     AxumState(state): AxumState<LocalServerState>,
-    headers: axum::http::HeaderMap,
-) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let _caller_device_id = auth_device(&state, &headers)?;
-    let store = state.store.lock().unwrap();
-    let config = store.get_device_config(device_id).map_err(map_store_err)?;
-    match config {
-        Some(value) => Ok(Json(json!({
-            "deviceId": value.device_id,
-            "revision": value.revision,
-            "mirrorContent": value.snapshot,
-            "pendingCommands": value.pending_commands,
-            "updatedAt": value.updated_at,
-        }))),
-        None => Err((
-            StatusCode::NOT_FOUND,
-            Json(json!({"error": "device config not found"})),
-        )),
-    }
-}
-
-async fn handle_post_device_config_command(
-    Path(device_id): Path<i64>,
-    AxumState(state): AxumState<LocalServerState>,
-    headers: axum::http::HeaderMap,
+    headers: HeaderMap,
     Json(body): Json<Value>,
-) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let _caller_device_id = auth_device(&state, &headers)?;
-    let store = state.store.lock().unwrap();
-    let base_revision = body["baseRevision"].as_i64().unwrap_or(0);
-    let summary = sanitize(body["summary"].as_str().unwrap_or(""), MAX_STRING_LEN);
-    let mutation = body["mutation"].clone();
-    let command = store
-        .queue_device_config_command(device_id, base_revision, summary, mutation)
+) -> Result<Json<Value>, HttpError> {
+    let device_id = authenticate(&state, &headers)?;
+    let revision = body["localRevision"]
+        .as_i64()
+        .ok_or_else(|| bad_request("localRevision is required"))?;
+    let snapshot = body["mirrorContent"].clone();
+    let config = state
+        .store
+        .upsert_device_config_mirror(device_id, revision, snapshot, None)
+        .map_err(map_store_err)?;
+    Ok(Json(json!(config)))
+}
+
+async fn handle_config_pull(
+    AxumState(state): AxumState<LocalServerState>,
+    headers: HeaderMap,
+    Json(body): Json<Value>,
+) -> Result<Json<Value>, HttpError> {
+    let device_id = authenticate(&state, &headers)?;
+    let local_revision = body["localRevision"].as_i64().unwrap_or(0);
+    let config = state
+        .store
+        .get_device_config(device_id)
+        .map_err(map_store_err)?
+        .ok_or_else(|| {
+            (
+                StatusCode::NOT_FOUND,
+                Json(json!({"error": "device config not found"})),
+            )
+        })?;
+    let mirror_content = if local_revision > 0 && local_revision >= config.revision {
+        json!({})
+    } else {
+        config.snapshot
+    };
+    Ok(Json(json!({
+        "deviceId": device_id,
+        "revision": config.revision,
+        "mirrorContent": mirror_content,
+        "pendingCommands": config.pending_commands,
+        "updatedAt": config.updated_at.unwrap_or_default(),
+    })))
+}
+
+async fn handle_config_ack(
+    AxumState(state): AxumState<LocalServerState>,
+    headers: HeaderMap,
+    Json(body): Json<Value>,
+) -> Result<Json<Value>, HttpError> {
+    let device_id = authenticate(&state, &headers)?;
+    let command = state
+        .store
+        .ack_local_device_config_command(
+            device_id,
+            body["commandId"]
+                .as_i64()
+                .ok_or_else(|| bad_request("commandId is required"))?,
+            body["status"].as_str().unwrap_or("applied"),
+            body["appliedRevision"].as_i64().unwrap_or(0),
+            body["failureReason"].as_str().unwrap_or(""),
+            &body["mirrorContent"],
+        )
         .map_err(map_store_err)?;
     Ok(Json(json!(command)))
 }
 
-async fn handle_get_device_config_audit_logs(
-    Path(device_id): Path<i64>,
+async fn handle_upload_records(
     AxumState(state): AxumState<LocalServerState>,
-    headers: axum::http::HeaderMap,
-    axum::extract::Query(params): axum::extract::Query<HashMap<String, String>>,
-) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let _caller_device_id = auth_device(&state, &headers)?;
-    let store = state.store.lock().unwrap();
-    let limit = params
-        .get("limit")
-        .and_then(|v| v.parse::<i64>().ok())
-        .unwrap_or(50)
-        .min(MAX_QUERY_LIMIT);
-    let offset = params
-        .get("offset")
-        .and_then(|v| v.parse::<i64>().ok())
-        .unwrap_or(0)
-        .max(0);
-    let logs = store
-        .list_device_config_audit_logs(device_id, limit as i32, offset as i32)
+    headers: HeaderMap,
+    Json(body): Json<Value>,
+) -> Result<Json<Value>, HttpError> {
+    let device_id = authenticate(&state, &headers)?;
+    let source = body["records"]
+        .as_array()
+        .ok_or_else(|| bad_request("records must be an array"))?;
+    if source.len() > MAX_RECORDS_PER_BATCH {
+        return Err(bad_request("too many records"));
+    }
+    let uploaded_at = chrono::Utc::now().to_rfc3339();
+    let records = source
+        .iter()
+        .map(|record| Record {
+            id: 0,
+            device_id,
+            event_id: record["eventId"].as_str().map(|value| sanitize(value, 128)),
+            record_type: sanitize(record["recordType"].as_str().unwrap_or("sms"), 32),
+            sender: sanitize(record["sender"].as_str().unwrap_or(""), MAX_STRING_LEN),
+            body: sanitize(record["body"].as_str().unwrap_or(""), 4096),
+            sms_code: sanitize(record["smsCode"].as_str().unwrap_or(""), 32),
+            package_name: sanitize(record["packageName"].as_str().unwrap_or(""), 256),
+            metadata: record["metadata"].clone(),
+            msg_type: record["msgType"].as_i64().unwrap_or(0) as i32,
+            call_type: record["callType"].as_i64().unwrap_or(0) as i32,
+            occurred_at: sanitize(record["occurredAt"].as_str().unwrap_or(""), 64),
+            uploaded_at: uploaded_at.clone(),
+        })
+        .collect::<Vec<_>>();
+    let result = state
+        .store
+        .sync_local_device_records(
+            device_id,
+            &records,
+            body["replaceExisting"].as_bool().unwrap_or(false),
+        )
         .map_err(map_store_err)?;
     Ok(Json(json!({
-        "logs": logs.items,
-        "limit": logs.limit,
-        "offset": logs.offset,
+        "inserted": result.inserted,
+        "updated": result.updated,
+        "deleted": result.deleted,
     })))
 }
 
-async fn handle_get_devices(
+async fn handle_system_info(
     AxumState(state): AxumState<LocalServerState>,
-    headers: axum::http::HeaderMap,
-) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let _device_id = auth_device(&state, &headers)?;
-    let store = state.store.lock().unwrap();
-    let devices = store.list_devices().map_err(map_store_err)?;
-    Ok(Json(json!({ "devices": devices })))
+) -> Result<Json<Value>, HttpError> {
+    let info = state.store.get_system_info().map_err(map_store_err)?;
+    Ok(Json(json!(info)))
 }
 
-async fn handle_get_records(
-    AxumState(state): AxumState<LocalServerState>,
-    headers: axum::http::HeaderMap,
-    axum::extract::Query(params): axum::extract::Query<HashMap<String, String>>,
-) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let _device_id = auth_device(&state, &headers)?;
-    let store = state.store.lock().unwrap();
-    let limit = params
-        .get("limit")
-        .and_then(|v| v.parse::<i64>().ok())
-        .unwrap_or(50)
-        .min(MAX_QUERY_LIMIT);
-    let device_filter = params.get("device_id").and_then(|v| v.parse::<i64>().ok());
-    let records = store
-        .list_records(limit as i32, device_filter)
-        .map_err(map_store_err)?;
-    Ok(Json(
-        json!({ "records": records.items, "total": records.items.len() }),
-    ))
-}
-
-async fn handle_system_info() -> Json<Value> {
-    Json(json!({
-        "service": "xinyi-relay-desktop-local",
-        "version": env!("CARGO_PKG_VERSION"),
-        "localBaseUrl": "local://sqlite",
-        "databaseReady": true,
-    }))
-}
-
-fn map_store_err(e: StoreError) -> (StatusCode, Json<Value>) {
-    match e {
-        StoreError::Conflict { local, remote } => (
-            StatusCode::CONFLICT,
-            Json(json!({"error": "conflict", "local": local, "remote": remote})),
-        ),
-        StoreError::Internal(msg) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({"error": msg})),
-        ),
-    }
-}
-
-pub async fn start_local_server(store: Arc<Mutex<dyn Store + Send>>) -> Result<SocketAddr, String> {
-    let state = LocalServerState {
-        store,
-        device_tokens: Arc::new(Mutex::new(Vec::new())),
-        rate_limiter: Arc::new(Mutex::new(RateLimiter::new())),
-    };
-
-    // Restrict CORS to Tauri app origins only
-    let cors = CorsLayer::new()
-        .allow_origin(AllowOrigin::list([
-            "tauri://localhost".parse().unwrap(),
-            "https://tauri.localhost".parse().unwrap(),
-            "http://tauri.localhost".parse().unwrap(),
-        ]))
-        .allow_methods([
-            axum::http::Method::GET,
-            axum::http::Method::POST,
-            axum::http::Method::PUT,
-        ])
-        .allow_headers([
-            axum::http::header::AUTHORIZATION,
-            axum::http::header::CONTENT_TYPE,
-        ]);
-
-    let app = Router::new()
+fn local_server_router(store: Arc<SqliteStore>) -> Router {
+    Router::new()
         .route("/api/v1/system/info", get(handle_system_info))
-        .route("/api/v1/devices/register", post(handle_register))
-        .route("/api/v1/devices", get(handle_get_devices))
-        .route("/api/v1/devices/:id/config", get(handle_get_device_config))
+        .route("/api/v1/agent/register", post(handle_register))
+        .route("/api/v1/agent/heartbeat", post(handle_heartbeat))
+        .route("/api/v1/agent/config/mirror", post(handle_config_mirror))
         .route(
-            "/api/v1/devices/:id/config/commands",
-            post(handle_post_device_config_command),
+            "/api/v1/agent/config/commands:pull",
+            post(handle_config_pull),
         )
-        .route(
-            "/api/v1/devices/:id/config/audit",
-            get(handle_get_device_config_audit_logs),
-        )
-        .route("/api/v1/heartbeat", post(handle_heartbeat))
-        .route("/api/v1/records/batch", post(handle_upload_records))
-        .route("/api/v1/records", get(handle_get_records))
+        .route("/api/v1/agent/config/commands:ack", post(handle_config_ack))
+        .route("/api/v1/agent/records:batch", post(handle_upload_records))
         .route("/healthz", get(|| async { "ok" }))
-        .layer(cors)
-        .with_state(state);
+        .layer(DefaultBodyLimit::max(MAX_REQUEST_BODY_BYTES))
+        .with_state(LocalServerState { store })
+}
 
-    let listener = TcpListener::bind("0.0.0.0:0")
+pub async fn start_local_server(store: Arc<SqliteStore>) -> Result<SocketAddr, String> {
+    // Device payloads contain bearer tokens and message bodies. Until this
+    // embedded server has a real TLS identity, it must never listen on LAN.
+    let listener = TcpListener::bind(("127.0.0.1", 0))
         .await
-        .map_err(|e| format!("Failed to bind local server: {}", e))?;
-    let addr = listener
+        .map_err(|error| format!("Failed to bind local server: {error}"))?;
+    let address = listener
         .local_addr()
-        .map_err(|e| format!("Failed to get local address: {}", e))?;
-
+        .map_err(|error| format!("Failed to get local address: {error}"))?;
     tokio::spawn(async move {
-        if let Err(e) = axum::serve(listener, app).await {
-            eprintln!("Local server error: {}", e);
+        if let Err(error) = axum::serve(listener, local_server_router(store)).await {
+            eprintln!("Local server error: {error}");
         }
     });
+    Ok(address)
+}
 
-    Ok(addr)
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::body::{to_bytes, Body};
+    use axum::http::Request;
+    use tower::ServiceExt;
+
+    async fn json_body(response: axum::response::Response) -> Value {
+        let body = to_bytes(response.into_body(), MAX_REQUEST_BODY_BYTES)
+            .await
+            .unwrap();
+        serde_json::from_slice(&body).unwrap()
+    }
+
+    #[tokio::test]
+    async fn agent_registration_requires_a_single_use_desktop_bind_code() {
+        let store = Arc::new(SqliteStore::open_in_memory().unwrap());
+        let bind_code = store.create_bind_code().unwrap().code;
+        let router = local_server_router(store);
+        let payload = json!({
+            "bindCode": bind_code,
+            "deviceName": "Phone",
+            "deviceModel": "Pixel",
+            "platform": "android",
+            "appVersion": "1.0",
+        });
+        let request = || {
+            Request::post("/api/v1/agent/register")
+                .header("content-type", "application/json")
+                .body(Body::from(payload.to_string()))
+                .unwrap()
+        };
+
+        let registered = router.clone().oneshot(request()).await.unwrap();
+        assert_eq!(registered.status(), StatusCode::CREATED);
+        let response = json_body(registered).await;
+        assert!(response["deviceToken"].as_str().unwrap().len() >= 32);
+
+        let replayed = router.oneshot(request()).await.unwrap();
+        assert_eq!(replayed.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn agent_routes_reject_missing_device_token() {
+        let store = Arc::new(SqliteStore::open_in_memory().unwrap());
+        let response = local_server_router(store)
+            .oneshot(
+                Request::post("/api/v1/agent/config/commands:pull")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"localRevision":0}"#))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
 }

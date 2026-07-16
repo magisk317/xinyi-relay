@@ -538,7 +538,8 @@ func (s *Server) handleDesktopAuthRefresh(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	current, err := s.store.GetDesktopSessionByRefreshTokenHash(r.Context(), security.HashToken(strings.TrimSpace(payload.RefreshToken)))
+	currentRefreshTokenHash := security.HashToken(strings.TrimSpace(payload.RefreshToken))
+	current, err := s.store.GetDesktopSessionByRefreshTokenHash(r.Context(), currentRefreshTokenHash)
 	if err != nil {
 		if err == store.ErrNotFound {
 			writeError(w, http.StatusUnauthorized, "invalid desktop refresh token")
@@ -564,6 +565,7 @@ func (s *Server) handleDesktopAuthRefresh(w http.ResponseWriter, r *http.Request
 	session, err := s.store.RotateDesktopSession(
 		r.Context(),
 		current.ID,
+		currentRefreshTokenHash,
 		accessTokenHash,
 		refreshTokenHash,
 		expiresAt,
@@ -571,7 +573,7 @@ func (s *Server) handleDesktopAuthRefresh(w http.ResponseWriter, r *http.Request
 	)
 	if err != nil {
 		if err == store.ErrNotFound {
-			writeError(w, http.StatusUnauthorized, "desktop session no longer exists")
+			writeError(w, http.StatusUnauthorized, "desktop refresh token was already used")
 			return
 		}
 		writeError(w, http.StatusInternalServerError, "desktop session refresh failed")

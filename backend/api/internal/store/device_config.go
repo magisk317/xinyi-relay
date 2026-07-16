@@ -303,11 +303,22 @@ func (s *Store) UpsertDeviceConfigMirror(
 		return DeviceConfigMirror{}, err
 	}
 	defer staleRows.Close()
+	var staleCommands []DeviceConfigCommand
 	for staleRows.Next() {
 		command, scanErr := scanDeviceConfigCommand(staleRows)
 		if scanErr != nil {
 			return DeviceConfigMirror{}, scanErr
 		}
+		staleCommands = append(staleCommands, command)
+	}
+	if err := staleRows.Err(); err != nil {
+		return DeviceConfigMirror{}, err
+	}
+	staleRows.Close()
+
+	// pgx allows only one active result set per transaction connection. Finish
+	// consuming UPDATE ... RETURNING before issuing the audit inserts.
+	for _, command := range staleCommands {
 		if err := s.insertDeviceConfigAuditLog(
 			ctx,
 			tx,
@@ -322,9 +333,6 @@ func (s *Store) UpsertDeviceConfigMirror(
 		); err != nil {
 			return DeviceConfigMirror{}, err
 		}
-	}
-	if err := staleRows.Err(); err != nil {
-		return DeviceConfigMirror{}, err
 	}
 
 	if err := s.insertDeviceConfigAuditLog(
@@ -521,49 +529,81 @@ func (s *Store) AckDeviceConfigCommand(
 	return updated, nil
 }
 
+// ensureDeviceConfigMirror returns the device's config mirror row, seeding it
+// from the newest legacy config_snapshot on first touch. It uses a
+// read -> insert -> read sequence rather than a single INSERT ... RETURNING CTE
+// so it stays correct under concurrency: a single-snapshot CTE cannot observe
+// its own ON CONFLICT DO NOTHING insert, so the loser of a first-touch race
+// would spuriously see zero rows. With three separate statements under READ
+// COMMITTED, each read gets a fresh snapshot, so the second read observes the
+// row a concurrent writer committed. Write paths additionally hold
+// lockDeviceConfig, so they never race here; the lock-free GetDeviceConfigState
+// read path is the one this guards.
 func (s *Store) ensureDeviceConfigMirror(
 	ctx context.Context,
 	q deviceConfigQuerier,
 	userID, deviceID int64,
 ) (DeviceConfigMirror, error) {
-	mirror, err := scanDeviceConfigMirror(
+	mirror, err := s.selectDeviceConfigMirror(ctx, q, userID, deviceID)
+	if err == nil {
+		return mirror, nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return DeviceConfigMirror{}, err
+	}
+
+	// Seed the mirror from the newest legacy snapshot for this user. ON CONFLICT
+	// DO NOTHING makes this safe if a concurrent caller inserted first; we read
+	// the row back in a fresh statement below regardless of who won.
+	if _, err := q.Exec(
+		ctx,
+		`INSERT INTO device_config_mirrors (user_id, device_id, revision, snapshot, updated_at)
+			SELECT
+				devices.user_id,
+				devices.id,
+				COALESCE(latest_snapshot.revision, 0),
+				COALESCE(latest_snapshot.content, '{}'::jsonb),
+				NOW()
+			FROM devices
+			LEFT JOIN LATERAL (
+				SELECT revision, content
+				FROM config_snapshots
+				WHERE user_id = devices.user_id
+				ORDER BY revision DESC
+				LIMIT 1
+			) AS latest_snapshot ON TRUE
+			WHERE devices.user_id = $1 AND devices.id = $2
+			ON CONFLICT (device_id) DO NOTHING`,
+		userID,
+		deviceID,
+	); err != nil {
+		return DeviceConfigMirror{}, err
+	}
+
+	mirror, err = s.selectDeviceConfigMirror(ctx, q, userID, deviceID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		// No row even after the seeding insert: the device does not exist for
+		// this user (the INSERT ... SELECT FROM devices matched nothing).
+		return DeviceConfigMirror{}, ErrNotFound
+	}
+	return mirror, err
+}
+
+func (s *Store) selectDeviceConfigMirror(
+	ctx context.Context,
+	q deviceConfigQuerier,
+	userID, deviceID int64,
+) (DeviceConfigMirror, error) {
+	return scanDeviceConfigMirror(
 		q.QueryRow(
 			ctx,
-			`WITH inserted AS (
-				INSERT INTO device_config_mirrors (user_id, device_id, revision, snapshot, updated_at)
-				SELECT
-					devices.user_id,
-					devices.id,
-					COALESCE(latest_snapshot.revision, 0),
-					COALESCE(latest_snapshot.content, '{}'::jsonb),
-					NOW()
-				FROM devices
-				LEFT JOIN LATERAL (
-					SELECT revision, content
-					FROM config_snapshots
-					WHERE user_id = devices.user_id
-					ORDER BY revision DESC
-					LIMIT 1
-				) AS latest_snapshot ON TRUE
-				WHERE devices.user_id = $1 AND devices.id = $2
-				ON CONFLICT (device_id) DO NOTHING
-				RETURNING user_id, device_id, revision, snapshot, updated_at
-			)
-			SELECT user_id, device_id, revision, snapshot, updated_at
-			  FROM inserted
-			UNION ALL
-			SELECT user_id, device_id, revision, snapshot, updated_at
-			  FROM device_config_mirrors
-			 WHERE user_id = $1 AND device_id = $2
-			LIMIT 1`,
+			`SELECT user_id, device_id, revision, snapshot, updated_at
+			   FROM device_config_mirrors
+			  WHERE user_id = $1 AND device_id = $2`,
 			userID,
 			deviceID,
 		),
 	)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return DeviceConfigMirror{}, ErrNotFound
-	}
-	return mirror, err
 }
 
 func (s *Store) listDeviceConfigCommands(

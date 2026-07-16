@@ -34,7 +34,8 @@ type sessionStore interface {
 	GetDesktopSessionByAccessTokenHash(ctx context.Context, accessTokenHash string) (store.DesktopSession, error)
 	GetDesktopSessionByRefreshTokenHash(ctx context.Context, refreshTokenHash string) (store.DesktopSession, error)
 	TouchDesktopSession(ctx context.Context, sessionID int64) error
-	RotateDesktopSession(ctx context.Context, sessionID int64, accessTokenHash string, refreshTokenHash string, expiresAt time.Time, refreshExpiresAt time.Time) (store.DesktopSession, error)
+	RotateDesktopSession(ctx context.Context, sessionID int64, expectedRefreshTokenHash string, accessTokenHash string, refreshTokenHash string, expiresAt time.Time, refreshExpiresAt time.Time) (store.DesktopSession, error)
+	RevokeDesktopSession(ctx context.Context, sessionID int64) error
 	DeleteDesktopSessionByAccessTokenHash(ctx context.Context, accessTokenHash string) error
 	DeleteDesktopSessionByRefreshTokenHash(ctx context.Context, refreshTokenHash string) error
 }
@@ -66,7 +67,7 @@ type configStore interface {
 
 // recordStore covers relay-record persistence + retention.
 type recordStore interface {
-	InsertRelayRecords(ctx context.Context, userID int64, deviceID int64, records []store.RelayRecord) (int64, error)
+	SyncRelayRecords(ctx context.Context, userID int64, deviceID int64, records []store.RelayRecord, replaceExisting bool) (store.RelayRecordSyncResult, error)
 	ListRelayRecords(ctx context.Context, userID int64, limit int32, offset int32, deviceID *int64) ([]store.RelayRecord, error)
 	GetRelayRecord(ctx context.Context, userID int64, recordID int64) (store.RelayRecord, error)
 	PruneRelayRecords(ctx context.Context, userID int64, retention store.RecordsRetention) (int64, error)

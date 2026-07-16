@@ -5664,6 +5664,7 @@ dependencies = [
  "rusqlite",
  "serde",
  "serde_json",
+ "sha2",
  "tauri",
  "tauri-build",
  "tauri-plugin-notification",
@@ -5671,6 +5672,7 @@ dependencies = [
  "tauri-plugin-single-instance",
  "thiserror 2.0.18",
  "tokio",
+ "tower",
  "tower-http 0.7.0",
  "uuid",
 ]
