@@ -161,11 +161,14 @@ type relayRecordWire struct {
 }
 
 type relayRecordsBatchRequest struct {
-	Records []relayRecordWire `json:"records"`
+	Records         []relayRecordWire `json:"records"`
+	ReplaceExisting bool              `json:"replaceExisting"`
 }
 
 type relayRecordsBatchResponse struct {
 	Inserted int64 `json:"inserted"`
+	Updated  int64 `json:"updated"`
+	Deleted  int64 `json:"deleted"`
 }
 
 type meResponse struct {

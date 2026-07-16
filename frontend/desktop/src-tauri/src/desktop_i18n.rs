@@ -7,11 +7,19 @@ pub(crate) fn system_language_tag() -> String {
                 .ok()
                 .filter(|value| !value.trim().is_empty())
         })
-        .or_else(|| std::env::var("LANG").ok().filter(|value| !value.trim().is_empty()))
+        .or_else(|| {
+            std::env::var("LANG")
+                .ok()
+                .filter(|value| !value.trim().is_empty())
+        })
         .unwrap_or_else(|| "en".to_string())
         .to_lowercase();
 
-    if raw.starts_with("zh_tw") || raw.starts_with("zh-tw") || raw.starts_with("zh_hk") || raw.starts_with("zh-hk") {
+    if raw.starts_with("zh_tw")
+        || raw.starts_with("zh-tw")
+        || raw.starts_with("zh_hk")
+        || raw.starts_with("zh-hk")
+    {
         "zh-TW".to_string()
     } else if raw.starts_with("zh") {
         "zh-CN".to_string()
@@ -102,7 +110,10 @@ pub(crate) fn localized_backend_login_hint(language_tag: &str, profile_name: &st
     if is_chinese_language(language_tag) {
         format!("后端 {} 可达。请先登录以解锁控制台能力。", profile_name)
     } else {
-        format!("Backend reachable at {}. Sign in to unlock console features.", profile_name)
+        format!(
+            "Backend reachable at {}. Sign in to unlock console features.",
+            profile_name
+        )
     }
 }
 
@@ -113,9 +124,15 @@ pub(crate) fn localized_connected_summary(
     app_env: &str,
 ) -> String {
     if is_chinese_language(language_tag) {
-        format!("已连接到 {} · {} 个用户 · {}", profile_name, user_count, app_env)
+        format!(
+            "已连接到 {} · {} 个用户 · {}",
+            profile_name, user_count, app_env
+        )
     } else {
-        format!("Connected to {} · {} users · {}", profile_name, user_count, app_env)
+        format!(
+            "Connected to {} · {} users · {}",
+            profile_name, user_count, app_env
+        )
     }
 }
 

@@ -43,12 +43,16 @@ fn emit_navigation(app: &AppHandle, path: &str) {
         if let Some(window) = app_handle.get_webview_window("main") {
             let stamp = chrono::Utc::now().timestamp_millis();
             let hash_path = format!("#{}?tray={}", target_path, stamp);
-            let serialized_hash = serde_json::to_string(&hash_path).unwrap_or_else(|_| "\"#/overview\"".to_string());
+            let serialized_hash =
+                serde_json::to_string(&hash_path).unwrap_or_else(|_| "\"#/overview\"".to_string());
             let script = format!(
                 "const nextHash = {serialized_hash}; if (typeof window.__desktopNavigate === 'function') {{ window.__desktopNavigate({target_path:?}, {stamp}); }} if (window.location.hash !== nextHash) {{ window.location.hash = nextHash; }} else {{ window.dispatchEvent(new HashChangeEvent('hashchange')); }}"
             );
             if let Err(error) = window.eval(&script) {
-                eprintln!("[tray] window.eval navigate failed for {}: {}", target_path, error);
+                eprintln!(
+                    "[tray] window.eval navigate failed for {}: {}",
+                    target_path, error
+                );
             }
             println!("[tray] emit navigate -> {}", target_path);
             let _ = window.emit(
@@ -58,7 +62,10 @@ fn emit_navigation(app: &AppHandle, path: &str) {
                 },
             );
         } else {
-            eprintln!("[tray] main window missing while navigating to {}", target_path);
+            eprintln!(
+                "[tray] main window missing while navigating to {}",
+                target_path
+            );
         }
     });
 }
@@ -73,7 +80,10 @@ fn emit_action(app: &AppHandle, kind: &str) {
                 "if (typeof window.__desktopAction === 'function') {{ window.__desktopAction({action_kind:?}); }}"
             );
             if let Err(error) = window.eval(&script) {
-                eprintln!("[tray] window.eval action failed for {}: {}", action_kind, error);
+                eprintln!(
+                    "[tray] window.eval action failed for {}: {}",
+                    action_kind, error
+                );
             }
             println!("[tray] emit action -> {}", action_kind);
             let _ = window.emit(
@@ -83,7 +93,10 @@ fn emit_action(app: &AppHandle, kind: &str) {
                 },
             );
         } else {
-            eprintln!("[tray] main window missing while sending action {}", action_kind);
+            eprintln!(
+                "[tray] main window missing while sending action {}",
+                action_kind
+            );
         }
     });
 }
@@ -133,7 +146,8 @@ pub(crate) fn setup_tray(app: &AppHandle, language_tag: &str) -> tauri::Result<(
         .show_menu_on_left_click(false)
         .tooltip(localized_app_name(language_tag))
         .icon(
-            Some(tray_icon_image()).or_else(|| app.default_window_icon().cloned())
+            Some(tray_icon_image())
+                .or_else(|| app.default_window_icon().cloned())
                 .expect("tray icon or default window icon must be available"),
         )
         .on_menu_event(|app, event: MenuEvent| handle_menu_event(app, &event))

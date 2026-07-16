@@ -1,7 +1,7 @@
+use chrono::Local;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, BufWriter, Write};
 use std::sync::Mutex;
-use chrono::Local;
 use tauri::Manager;
 
 /// 全局日志写入器
@@ -32,7 +32,10 @@ pub fn init_log_file(app_handle: &tauri::AppHandle) -> io::Result<()> {
 
     // 设置全局日志写入器
     let mut global_writer = LOG_WRITER.lock().map_err(|e| {
-        io::Error::new(io::ErrorKind::Other, format!("Failed to lock log writer: {}", e))
+        io::Error::new(
+            io::ErrorKind::Other,
+            format!("Failed to lock log writer: {}", e),
+        )
     })?;
     *global_writer = Some(writer);
 

@@ -13,7 +13,7 @@ const DEFAULT_PROFILE_FORM = {
   id: '',
   name: '',
   baseUrl: 'https://localhost:8443',
-  allowSelfSigned: true,
+  allowSelfSigned: false,
   note: ''
 }
 
@@ -49,14 +49,6 @@ export function ProfileManagerPanel({
             onChange={(event) => setForm((value) => ({ ...value, baseUrl: event.target.value }))}
           />
         </label>
-        <label className="field field--checkbox">
-          <input
-            type="checkbox"
-            checked={form.allowSelfSigned}
-            onChange={(event) => setForm((value) => ({ ...value, allowSelfSigned: event.target.checked }))}
-          />
-          <span>{t('profile.field.allowSelfSigned')}</span>
-        </label>
         <label className="field">
           <span>{t('profile.field.note')}</span>
           <input
@@ -76,7 +68,7 @@ export function ProfileManagerPanel({
               id: form.id || undefined,
               name: form.name,
               baseUrl: form.baseUrl,
-              allowSelfSigned: form.allowSelfSigned,
+              allowSelfSigned: false,
               note: form.note
             }).then(resetForm).catch(() => {})
           }}
@@ -123,7 +115,7 @@ export function ProfileManagerPanel({
                   id: profile.id,
                   name: profile.name,
                   baseUrl: profile.baseUrl,
-                  allowSelfSigned: profile.allowSelfSigned,
+                  allowSelfSigned: false,
                   note: profile.note ?? ''
                 })}
               >

@@ -1,11 +1,34 @@
 package http
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/magisk317/xinyi-relay/backend/api/internal/config"
+	"github.com/magisk317/xinyi-relay/backend/api/internal/store"
 )
+
+type recordSyncCountingStore struct {
+	panicStore
+	calls int
+}
+
+func (s *recordSyncCountingStore) SyncRelayRecords(
+	context.Context,
+	int64,
+	int64,
+	[]store.RelayRecord,
+	bool,
+) (store.RelayRecordSyncResult, error) {
+	s.calls++
+	return store.RelayRecordSyncResult{}, nil
+}
 
 func TestAddHistoryLimit(t *testing.T) {
 	cases := []struct {
@@ -65,5 +88,33 @@ func TestRecordsRetentionDisabledDays(t *testing.T) {
 	s := &Server{cfg: config.Config{RecordsRetentionDays: 0}}
 	if got := s.recordsRetention(nil, 1, 1).MaxAge; got != 0 {
 		t.Fatalf("expected MaxAge 0 when retention days disabled, got %s", got)
+	}
+}
+
+func TestRecordsSnapshotOverLimitIsRejectedBeforeStoreMutation(t *testing.T) {
+	fake := &recordSyncCountingStore{}
+	s := &Server{store: fake}
+	records := make([]map[string]any, maxRecordsPerBatch+1)
+	for index := range records {
+		records[index] = map[string]any{
+			"eventId":    strconv.Itoa(index),
+			"recordType": "sms_plain",
+			"occurredAt": "2026-07-16T00:00:00Z",
+		}
+	}
+	body, err := json.Marshal(map[string]any{"records": records, "replaceExisting": true})
+	if err != nil {
+		t.Fatalf("marshal request: %v", err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/agent/records:batch", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+
+	s.handleAgentRecordsBatch(rec, req, authContext{Device: store.Device{ID: 2, UserID: 1}})
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if fake.calls != 0 {
+		t.Fatalf("oversized replacement reached the store %d times", fake.calls)
 	}
 }

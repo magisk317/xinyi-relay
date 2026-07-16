@@ -60,8 +60,11 @@ func (panicStore) GetDesktopSessionByRefreshTokenHash(context.Context, string) (
 func (panicStore) TouchDesktopSession(context.Context, int64) error {
 	panic("unimplemented: TouchDesktopSession")
 }
-func (panicStore) RotateDesktopSession(context.Context, int64, string, string, time.Time, time.Time) (store.DesktopSession, error) {
+func (panicStore) RotateDesktopSession(context.Context, int64, string, string, string, time.Time, time.Time) (store.DesktopSession, error) {
 	panic("unimplemented: RotateDesktopSession")
+}
+func (panicStore) RevokeDesktopSession(context.Context, int64) error {
+	panic("unimplemented: RevokeDesktopSession")
 }
 func (panicStore) DeleteDesktopSessionByAccessTokenHash(context.Context, string) error {
 	panic("unimplemented: DeleteDesktopSessionByAccessTokenHash")
@@ -108,8 +111,8 @@ func (panicStore) UpsertDeviceConfigMirror(context.Context, int64, int64, int64,
 func (panicStore) AckDeviceConfigCommand(context.Context, int64, int64, int64, int64, string, string, json.RawMessage, string, int64) (store.DeviceConfigCommand, error) {
 	panic("unimplemented: AckDeviceConfigCommand")
 }
-func (panicStore) InsertRelayRecords(context.Context, int64, int64, []store.RelayRecord) (int64, error) {
-	panic("unimplemented: InsertRelayRecords")
+func (panicStore) SyncRelayRecords(context.Context, int64, int64, []store.RelayRecord, bool) (store.RelayRecordSyncResult, error) {
+	panic("unimplemented: SyncRelayRecords")
 }
 func (panicStore) ListRelayRecords(context.Context, int64, int32, int32, *int64) ([]store.RelayRecord, error) {
 	panic("unimplemented: ListRelayRecords")
