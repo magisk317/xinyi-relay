@@ -17,14 +17,7 @@ class CustomMessageReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val ordered = isOrderedBroadcast
         val pendingResult = goAsync()
-        val rawEventId = intent.getStringExtra(CustomMessageBroadcastContract.EXTRA_EVENT_ID).orEmpty()
-        val payload = CustomMessageBroadcastPayload.fromIntent(intent)
-        val traceId = CustomMessageReceiverPolicy.resolveEventId(
-            eventId = rawEventId,
-            message = payload.message,
-            title = payload.title,
-            packageName = payload.packageName,
-        )
+        var traceId = "ipc_custom_${System.currentTimeMillis().toString(36)}"
 
         RECEIVER_SCOPE.launch {
             fun finish(code: Int, reason: String) {
@@ -45,16 +38,12 @@ class CustomMessageReceiver : BroadcastReceiver() {
                     return@runCatching
                 }
 
-                if (payload.message.isBlank()) {
-                    finish(RESULT_REJECT_PAYLOAD, "message_missing")
-                    return@runCatching
-                }
-
+                val deps = RuntimeDependencies.get()
                 val expectedToken = RuntimeSettingsCache.getString(
                     key = PrefConst.KEY_IPC_TOKEN,
                     defaultValue = "",
                 ) { key, defaultValue ->
-                    RuntimeDependencies.get().preferenceDataSource.getString(key, defaultValue)
+                    deps.preferenceDataSource.getString(key, defaultValue)
                 }
                 val receivedToken = intent.getStringExtra(CustomMessageBroadcastContract.EXTRA_IPC_TOKEN)
                 if (!CustomMessageReceiverPolicy.isTokenAccepted(receivedToken, expectedToken)) {
@@ -62,7 +51,31 @@ class CustomMessageReceiver : BroadcastReceiver() {
                     return@runCatching
                 }
 
-                val deps = RuntimeDependencies.get()
+                val rawTargetSenderIds =
+                    intent.getLongArrayExtra(CustomMessageBroadcastContract.EXTRA_TARGET_SENDER_IDS)
+                if ((rawTargetSenderIds?.size ?: 0) > IpcPayloadLimits.MAX_TARGET_SENDER_IDS) {
+                    finish(RESULT_REJECT_PAYLOAD, "target_sender_ids_too_large")
+                    return@runCatching
+                }
+                val payload = CustomMessageBroadcastPayload.fromIntent(intent)
+                val payloadRejection = IpcPayloadLimits.validateCustom(
+                    payload = payload,
+                    rawTargetSenderIdCount = rawTargetSenderIds?.size ?: 0,
+                )
+                if (payloadRejection != null) {
+                    finish(RESULT_REJECT_PAYLOAD, payloadRejection)
+                    return@runCatching
+                }
+                if (payload.message.isBlank()) {
+                    finish(RESULT_REJECT_PAYLOAD, "message_missing")
+                    return@runCatching
+                }
+                traceId = CustomMessageReceiverPolicy.resolveEventId(
+                    eventId = payload.eventId,
+                    message = payload.message,
+                    title = payload.title,
+                    packageName = payload.packageName,
+                )
                 val event = payload.toRelayEvent(sentFromPackage = resolveSentFromPackageCompat())
                 val result = deps.eventPipeline.process(event = event, traceId = traceId)
                 if (result.dispatchError != null) {

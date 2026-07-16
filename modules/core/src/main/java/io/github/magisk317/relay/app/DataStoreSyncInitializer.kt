@@ -1,10 +1,11 @@
 package io.github.magisk317.relay.app
 
+import io.github.magisk317.relay.android.diagnostics.RuntimeDiagnosticsBridge
 import android.app.Application
 import io.github.magisk317.relay.android.common.utils.RelayLogger
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
-import io.github.magisk317.relay.android.diagnostics.RuntimeLogStore
+import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
 import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
@@ -36,7 +37,9 @@ class DataStoreSyncInitializer : AppInitializer {
                 PrefConst.KEY_RUNTIME_LOG_RETENTION_DAYS,
                 PrefConst.RUNTIME_LOG_RETENTION_DAYS_DEFAULT,
             )
+            RuntimeDiagnosticsBridge.ensureInstalled()
             RuntimeLogStore.setEnabled(verboseLog)
+            RuntimeDiagnosticsBridge.ensureInstalled()
             RuntimeLogStore.setRetentionDays(logRetentionDays)
             SensitiveLogPolicy.setEnabled(sensitiveDebugLog)
             RelayLogger.w(

@@ -1,9 +1,11 @@
 package io.github.magisk317.relay.service
 
+import io.github.magisk317.relay.android.diagnostics.RuntimeDiagnosticsBridge
 import android.content.Context
 import android.content.Intent
+import android.os.SystemClock
 import android.util.Log
-import io.github.magisk317.relay.android.diagnostics.RuntimeLogStore
+import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
@@ -18,8 +20,16 @@ import kotlinx.coroutines.launch
 
 object ForceStopRecoveryHandler {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val wakeupThrottle = ProcessEventThrottle(
+        minIntervalMillis = WAKEUP_MIN_INTERVAL_MILLIS,
+        elapsedRealtime = SystemClock::elapsedRealtime,
+    )
 
     fun handle(context: Context, intent: Intent, tag: String) {
+        if (!wakeupThrottle.tryAcquire()) {
+            XLog.w(LogRoute.ROOT_DB, "ForceStopRecoveryService wakeup throttled")
+            return
+        }
         scope.launch {
             handleInternal(context, intent, tag)
         }
@@ -28,37 +38,28 @@ object ForceStopRecoveryHandler {
     private suspend fun handleInternal(context: Context, intent: Intent, tag: String) {
         val expectedToken = loadExpectedToken(context)
         val receivedToken = intent.getStringExtra(ForceStopRecoveryContract.EXTRA_IPC_TOKEN)
-        val tokenDecision = IpcTokenGate.evaluate(
+        val tokenAccepted = IpcTokenGate.isAccepted(
             expectedToken = expectedToken,
             receivedToken = receivedToken,
         )
-        val reason = intent.getStringExtra(ForceStopRecoveryContract.EXTRA_REASON).orEmpty()
-        val eventId = intent.getStringExtra(ForceStopRecoveryContract.EXTRA_EVENT_ID).orEmpty()
-        if (!tokenDecision.accepted) {
+        if (!tokenAccepted) {
             XLog.w(
                 LogRoute.ROOT_DB,
-                "ForceStopRecoveryService rejected token. reason=%s event=%s expectedEmpty=%s receivedEmpty=%s",
-                reason.ifBlank { "<none>" },
-                eventId.ifBlank { "<none>" },
+                "ForceStopRecoveryService rejected token. expectedEmpty=%s receivedEmpty=%s",
                 expectedToken.isBlank(),
                 receivedToken.isNullOrBlank(),
             )
             return
         }
-        if (tokenDecision.compatBypassUsed) {
-            XLog.w(
-                LogRoute.ROOT_DB,
-                "ForceStopRecoveryService accepted legacy empty-token compat wakeup. reason=%s event=%s",
-                reason.ifBlank { "<none>" },
-                eventId.ifBlank { "<none>" },
-            )
-        }
+        val reason = intent.getStringExtra(ForceStopRecoveryContract.EXTRA_REASON).orEmpty()
+        val eventId = intent.getStringExtra(ForceStopRecoveryContract.EXTRA_EVENT_ID).orEmpty()
         XLog.w(
             LogRoute.ROOT_DB,
             "ForceStopRecoveryService started. reason=%s event=%s",
             reason.ifBlank { "<none>" },
             eventId.ifBlank { "<none>" },
         )
+        RuntimeDiagnosticsBridge.ensureInstalled()
         RuntimeLogStore.append(
             Log.WARN,
             tag,
@@ -81,4 +82,6 @@ object ForceStopRecoveryHandler {
             deps.preferenceDataSource.getString(key, defaultValue)
         }
     }
+
+    private const val WAKEUP_MIN_INTERVAL_MILLIS = 5_000L
 }

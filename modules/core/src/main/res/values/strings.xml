@@ -965,31 +965,13 @@
     <!-- overview end -->
 
     <!-- translation audit -->
-    <string name="runtime_log_viewer_title">Detailed log</string>
     <string name="runtime_log_export_failed">Export failed: %1$s</string>
     <string name="runtime_log_share_failed">Share failed: %1$s</string>
-    <string name="runtime_log_copied">Logs copied</string>
     <string name="runtime_log_cleared">Logs and crash files cleared</string>
     <string name="runtime_log_clear_partial_failed">Partially cleared: %1$s</string>
     <string name="runtime_log_clear_confirm_title">Clear logs</string>
     <string name="runtime_log_clear_confirm_message">Are you sure you want to clear all logs and crash files?</string>
     <string name="runtime_log_clear_summary">Clear all runtime logs and crash files</string>
-    <string name="runtime_log_info_loading">Loading logs...</string>
-    <string name="runtime_log_info_empty">No runtime logs yet</string>
-    <string name="runtime_log_info_summary">Files: %1$d, size: %2$s, entries: %3$d</string>
-    <string name="runtime_log_info_range">Range: %1$s - %2$s</string>
-    <string name="runtime_log_info_preview_title">Recent logs</string>
-    <string name="runtime_log_action_wrap">Wrap</string>
-    <string name="runtime_log_action_no_wrap">No wrap</string>
-    <string name="runtime_log_keyword_search">Keyword search</string>
-    <string name="runtime_log_filter_forward_flow">Forward flow</string>
-    <string name="runtime_log_filter_clear">Clear filter</string>
-    <string name="runtime_log_window_1m">Last 1 min</string>
-    <string name="runtime_log_window_5m">Last 5 mins</string>
-    <string name="runtime_log_window_10m">Last 10 mins</string>
-    <string name="runtime_log_window_all">All</string>
-    <string name="runtime_log_empty_filtered">No logs match the current filters</string>
-    <string name="runtime_log_total_count">%1$d entries</string>
     <string name="rule_list_title">Forward rules</string>
     <string name="rule_list_title_named">%1$s rules</string>
     <string name="rule_add_rule_content_description">Add rule</string>
@@ -1363,8 +1345,6 @@
     <string name="overview_runtime_service_label">Xposed Service</string>
     <string name="overview_runtime_recent_hook_process">Recent hook process</string>
     <string name="overview_runtime_recent_hook_time">Recent hook time</string>
-    <string name="runtime_log_filter_webhook">Webhook</string>
-    <string name="runtime_log_filter_email">Email</string>
     <!-- translation audit end -->
 
     <!-- donate -->
@@ -1423,6 +1403,7 @@
     <string name="cloud_backup_webdav_required">Please fill in WebDAV server URL, username, and password</string>
     <string name="cloud_backup_webdav_connection_success">Connection successful</string>
     <string name="cloud_backup_webdav_connection_failed">Connection failed</string>
+    <string name="cloud_backup_webdav_save_failed">Could not store WebDAV credentials securely</string>
     <string name="cloud_backup_load_failed">Failed to load</string>
     <string name="cloud_backup_local_export_failed">Local backup export failed</string>
     <string name="cloud_backup_upload_failed">Upload failed</string>

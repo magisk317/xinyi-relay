@@ -29,23 +29,23 @@ class ForwardBroadcastDispatcherTest {
     }
 
     @Test
-    fun dispatchFromSmsHook_allowsLegacySystemBypassWithoutToken() {
+    fun dispatchFromSmsHook_blocksTrustedUidWhenTokenIsMissing() {
         val context = mockk<Context>(relaxed = true)
         var dispatchCount = 0
 
         val result = ForwardBroadcastDispatcher.dispatchFromSmsHook(
             context = context,
             payload = ForwardBroadcastPayload(eventId = "sms_test"),
-            sentFromUid = ForwardReceiverPolicy.PHONE_UID,
+            sentFromUid = 1001,
             sdkInt = 34,
             tokenResolver = { "" },
             dispatchBlock = { dispatchCount += 1 },
         )
 
-        assertTrue(result.dispatched)
+        assertFalse(result.dispatched)
         assertFalse(result.tokenPresent)
-        assertTrue(result.bypassUsed)
-        assertTrue(dispatchCount == 1)
+        assertFalse(result.bypassUsed)
+        assertTrue(dispatchCount == 0)
     }
 
     @Test

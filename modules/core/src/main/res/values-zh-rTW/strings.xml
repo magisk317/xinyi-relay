@@ -969,28 +969,10 @@
 
     <!-- translation audit -->
     <string name="record_empty_summary">等待新的轉發記錄，或先觸發一次已關聯的擷取鏈路。</string>
-    <string name="runtime_log_viewer_title">詳細日誌</string>
     <string name="runtime_log_export_failed">導出失敗：%1$s</string>
     <string name="runtime_log_share_failed">分享失敗：%1$s</string>
-    <string name="runtime_log_copied">日誌已複製</string>
     <string name="runtime_log_cleared">日誌與崩潰檔案已清空</string>
     <string name="runtime_log_clear_partial_failed">部分清空失敗：%1$s</string>
-    <string name="runtime_log_info_loading">正在載入日誌...</string>
-    <string name="runtime_log_info_empty">暫無執行日誌</string>
-    <string name="runtime_log_info_summary">檔案：%1$d 個，大小：%2$s，條目：%3$d</string>
-    <string name="runtime_log_info_range">範圍：%1$s - %2$s</string>
-    <string name="runtime_log_info_preview_title">最近日誌</string>
-    <string name="runtime_log_action_wrap">換行</string>
-    <string name="runtime_log_action_no_wrap">不換行</string>
-    <string name="runtime_log_keyword_search">關鍵字搜尋</string>
-    <string name="runtime_log_filter_forward_flow">轉發鏈路</string>
-    <string name="runtime_log_filter_clear">清空篩選</string>
-    <string name="runtime_log_window_1m">近1分鐘</string>
-    <string name="runtime_log_window_5m">近5分鐘</string>
-    <string name="runtime_log_window_10m">近10分鐘</string>
-    <string name="runtime_log_window_all">全部</string>
-    <string name="runtime_log_empty_filtered">目前篩選條件下沒有日誌</string>
-    <string name="runtime_log_total_count">共 %1$d 條</string>
     <string name="rule_list_title">轉發規則</string>
     <string name="rule_list_title_named">%1$s 的規則</string>
     <string name="rule_add_rule_content_description">新增規則</string>
@@ -1362,8 +1344,6 @@
     <string name="overview_runtime_service_label">Xposed 服務</string>
     <string name="overview_runtime_recent_hook_process">最近 Hook 進程</string>
     <string name="overview_runtime_recent_hook_time">最近 Hook 時間</string>
-    <string name="runtime_log_filter_webhook">Webhook</string>
-    <string name="runtime_log_filter_email">郵件</string>
     <string name="settings_cloud_backup_title">雲端備份</string>
     <string name="settings_cloud_backup_summary">Google Drive 與 WebDAV 備份</string>
     <string name="settings_cloud_backup_pro_tag">PRO</string>
@@ -1411,6 +1391,7 @@
     <string name="cloud_backup_webdav_required">請填寫 WebDAV 伺服器位址、使用者名稱和密碼</string>
     <string name="cloud_backup_webdav_connection_success">連線成功</string>
     <string name="cloud_backup_webdav_connection_failed">連線失敗</string>
+    <string name="cloud_backup_webdav_save_failed">無法安全儲存 WebDAV 憑證</string>
     <string name="cloud_backup_load_failed">載入失敗</string>
     <string name="cloud_backup_local_export_failed">本機備份匯出失敗</string>
     <string name="cloud_backup_upload_failed">上傳失敗</string>

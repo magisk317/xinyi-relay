@@ -51,6 +51,30 @@ class RelayManifestContractTest {
     }
 
     @Test
+    fun `system backup excludes sensitive preferences and message databases`() {
+        val manifest = parseManifest("app/src/main/AndroidManifest.xml")
+        val application = manifest.getElementsByTagName("application").item(0)
+        assertEquals(
+            "@xml/backup_rules",
+            application.attributes.getNamedItemNS(ANDROID_NS, "fullBackupContent")?.nodeValue,
+        )
+        assertEquals(
+            "@xml/data_extraction_rules",
+            application.attributes.getNamedItemNS(ANDROID_NS, "dataExtractionRules")?.nodeValue,
+        )
+
+        val requiredExcludes = requiredSensitiveBackupExcludes()
+        val legacyRules = parseManifest("app/src/main/res/xml/backup_rules.xml")
+        assertTrue(excludesUnder(legacyRules.documentElement).containsAll(requiredExcludes))
+
+        val extractionRules = parseManifest("app/src/main/res/xml/data_extraction_rules.xml")
+        listOf("cloud-backup", "device-transfer").forEach { sectionName ->
+            val section = extractionRules.getElementsByTagName(sectionName).item(0) as Element
+            assertTrue(excludesUnder(section).containsAll(requiredExcludes))
+        }
+    }
+
+    @Test
     fun `launcher activity remains visible and owns static shortcuts`() {
         val document = parseManifest("app/src/main/AndroidManifest.xml")
         val launcherActivity = document.getElementsByTagName("activity")
@@ -243,6 +267,27 @@ class RelayManifestContractTest {
             .toSet()
         assertTrue(expectedAction in actions)
     }
+
+    private fun requiredSensitiveBackupExcludes(): Set<Pair<String, String>> = buildSet {
+        add("root" to "datastore/")
+        listOf("relay_room.db", "xrelay_room.db", "xsmscode_room.db").forEach { databaseName ->
+            listOf("", "-shm", "-wal", "-journal").forEach { suffix ->
+                add("database" to "$databaseName$suffix")
+            }
+        }
+        add("sharedpref" to "internal_secret_prefs.xml")
+        add("sharedpref" to "xposed_prefs.xml")
+        add("sharedpref" to "webdav_config_prefs.xml")
+        add("sharedpref" to "webdav_crypto_prefs.xml")
+        add("sharedpref" to "google_drive_backup_config_prefs.xml")
+        add("sharedpref" to "cloud_backup_settings_prefs.xml")
+    }
+
+    private fun excludesUnder(element: Element): Set<Pair<String, String>> =
+        element.getElementsByTagName("exclude")
+            .asElements()
+            .map { exclude -> exclude.getAttribute("domain") to exclude.getAttribute("path") }
+            .toSet()
 
     private fun org.w3c.dom.NodeList.asElements(): List<Element> {
         return List(length) { index -> item(index) }.filterIsInstance<Element>()

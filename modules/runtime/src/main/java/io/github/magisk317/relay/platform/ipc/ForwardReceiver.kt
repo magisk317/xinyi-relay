@@ -16,6 +16,7 @@ import io.github.magisk317.relay.android.sms.SmsCodeUtils
 import io.github.magisk317.smscode.domain.utils.RecentEventDeduplicator
 import io.github.magisk317.smscode.domain.utils.SmsForwardDedupKeyFactory
 import io.github.magisk317.smscode.domain.utils.SmsForwardDedupSpec
+import io.github.magisk317.smscode.runtime.contract.ipc.IpcTokenMatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -29,9 +30,8 @@ class ForwardReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val ordered = isOrderedBroadcast
         val pendingResult = goAsync()
-        val initialPayload = ForwardBroadcastPayload.fromIntent(intent)
-        val eventId = initialPayload.eventId
-        val traceId = buildTraceId(intent, eventId)
+        var eventId = ""
+        var traceId = newReceiverTraceId()
 
         RECEIVER_SCOPE.launch {
             var resultMarked = false
@@ -58,9 +58,6 @@ class ForwardReceiver : BroadcastReceiver() {
                     traceId,
                     receiveStartMessage,
                 )
-                val deps = RuntimeDependencies.get()
-                val eventPipeline = deps.eventPipeline
-                // 1. Action validation
                 if (intent.action != PrefConst.ACTION_FORWARD_SMS) {
                     XLog.e("Rejecting broadcast with invalid action: %s", intent.action)
                     ForwardFlowLog.w(traceId, "Reject invalid action=${intent.action}")
@@ -68,51 +65,22 @@ class ForwardReceiver : BroadcastReceiver() {
                     return@runCatching
                 }
 
-                val rawPayload = ForwardBroadcastPayload.fromIntent(intent)
-                val sender = rawPayload.sender
-                val body = rawPayload.body
-                val date = rawPayload.date
-                val packageName = rawPayload.packageName
+                val deps = RuntimeDependencies.get()
                 val receivedToken = intent.getStringExtra(ForwardBroadcastContract.EXTRA_IPC_TOKEN)
-                val originalMsgTypeStr = rawPayload.msgType
-                val forwardSource = rawPayload.forwardSource
-                val sentFromUid = resolveSentFromUidCompat()
-                val sentFromPkg = resolveSentFromPackageCompat()
-                val subId = rawPayload.subId
-                val rawSlot = rawPayload.simSlot
-
-                // 2. Verifying IPC Token: prevent third-party apps from spoofing broadcasts.
                 val expectedToken = RuntimeSettingsCache.getString(
                     key = PrefConst.KEY_IPC_TOKEN,
                     defaultValue = "",
                 ) { key, defaultValue ->
                     deps.preferenceDataSource.getString(key, defaultValue)
                 }
-                val tokenMatched = expectedToken.isNotEmpty() && receivedToken == expectedToken
-                val allowSystemBypass = ForwardReceiverPolicy.shouldAllowCompatTokenBypass(
-                    expectedToken = expectedToken,
-                    msgType = originalMsgTypeStr,
-                    forwardSource = forwardSource,
-                    sentFromUid = sentFromUid,
-                )
-
-                if (!tokenMatched && !allowSystemBypass) {
+                if (!IpcTokenMatcher.matches(expectedToken, receivedToken)) {
                     XLog.e("IPC Token mismatch! Security breach attempt or uninitialized token. Rejecting broadcast.")
                     val rejectTokenMessage = buildString {
-                        append("Reject token mismatch event=")
-                        append(eventId.ifBlank { "<none>" })
-                        append(" pkg=")
-                        append(packageName.orEmpty())
+                        append("Reject token mismatch")
                         append(" expectedEmpty=")
-                        append(expectedToken.isEmpty())
+                        append(expectedToken.isBlank())
                         append(" receivedEmpty=")
                         append(receivedToken.isNullOrBlank())
-                        append(" source=")
-                        append(forwardSource)
-                        append(" sentFromUid=")
-                        append(sentFromUid ?: -1)
-                        append(" sentFromPkg=")
-                        append(sentFromPkg ?: "<none>")
                     }
                     ForwardFlowLog.w(
                         traceId,
@@ -121,31 +89,19 @@ class ForwardReceiver : BroadcastReceiver() {
                     markResult(RESULT_REJECT_TOKEN, "token_mismatch")
                     return@runCatching
                 }
-                if (!tokenMatched && allowSystemBypass) {
-                    val bypassMessage = buildString {
-                        append("Token bypass accepted source=")
-                        append(forwardSource)
-                        append(" msgType=")
-                        append(originalMsgTypeStr)
-                        append(" sentFromUid=")
-                        append(sentFromUid ?: -1)
-                        append(" sentFromPkg=")
-                        append(sentFromPkg ?: "<none>")
-                    }
-                    XLog.w("IPC token bypass accepted. %s", bypassMessage)
-                    ForwardFlowLog.w(traceId, bypassMessage)
-                    if (receivedToken.isNullOrBlank()) {
-                        runCatching {
-                            io.github.magisk317.relay.domain.recovery.RootDbCatchupScheduler
-                                .triggerImmediate(context, reason = "token_blank_bypass")
-                        }.onFailure { error ->
-                            XLog.w(
-                                "Trigger root DB catchup failed: %s",
-                                error.message ?: error.javaClass.simpleName,
-                            )
-                        }
-                    }
+
+                val rawPayload = ForwardBroadcastPayload.fromIntent(intent)
+                val payloadRejection = IpcPayloadLimits.validateForward(rawPayload)
+                if (payloadRejection != null) {
+                    ForwardFlowLog.w(traceId, "Reject oversized payload reason=$payloadRejection")
+                    markResult(RESULT_REJECT_PAYLOAD, payloadRejection)
+                    return@runCatching
                 }
+                eventId = rawPayload.eventId
+                traceId = buildTraceId(eventId, rawPayload.packageName)
+                val eventPipeline = deps.eventPipeline
+                val originalMsgTypeStr = rawPayload.msgType
+                val forwardSource = rawPayload.forwardSource
                 if (originalMsgTypeStr == ForwardBroadcastContract.MSG_TYPE_BLACKLIST_HIT) {
                     val hit = BlacklistHitBroadcast.fromIntent(intent)
                     if (hit == null) {
@@ -550,6 +506,7 @@ class ForwardReceiver : BroadcastReceiver() {
         private const val RESULT_REJECT_APP_GATE = -103
         private const val RESULT_DROP_DUPLICATE = -104
         private const val RESULT_DISPATCH_FAILED = -105
+        private const val RESULT_REJECT_PAYLOAD = -106
         private val RECEIVER_SCOPE = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         private val recentNotify = ConcurrentHashMap<String, Long>()
         private val recentForwardedSmsHook = ConcurrentHashMap<String, Long>()
@@ -579,16 +536,6 @@ class ForwardReceiver : BroadcastReceiver() {
             "com.google.android.apps.messaging",
             "com.samsung.android.messaging",
         )
-    }
-
-    private fun resolveSentFromUidCompat(): Int? {
-        if (Build.VERSION.SDK_INT < ForwardReceiverPolicy.API_LEVEL_34) return null
-        return runCatching { getSentFromUid() }.getOrNull()
-    }
-
-    private fun resolveSentFromPackageCompat(): String? {
-        if (Build.VERSION.SDK_INT < ForwardReceiverPolicy.API_LEVEL_34) return null
-        return runCatching { getSentFromPackage() }.getOrNull()
     }
 
     private suspend fun normalizeNmsSmsPayload(
@@ -738,12 +685,14 @@ class ForwardReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun buildTraceId(intent: Intent, eventId: String): String {
+    private fun buildTraceId(eventId: String, packageName: String?): String {
         if (eventId.isNotBlank()) return eventId
-        val pkg = intent.getStringExtra(ForwardBroadcastContract.EXTRA_PACKAGE_NAME) ?: "unknown"
         val now = System.currentTimeMillis().toString(36)
-        val suffix = kotlin.math.abs((pkg + now).hashCode()).toString(36)
+        val suffix = kotlin.math.abs((packageName.orEmpty() + now).hashCode()).toString(36)
         return "${now}_$suffix"
     }
+
+    private fun newReceiverTraceId(): String =
+        "ipc_${System.currentTimeMillis().toString(Character.MAX_RADIX)}"
 
 }

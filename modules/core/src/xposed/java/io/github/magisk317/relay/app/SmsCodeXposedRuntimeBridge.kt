@@ -1,8 +1,9 @@
 package io.github.magisk317.relay.app
 
+import io.github.magisk317.relay.android.diagnostics.RuntimeDiagnosticsBridge
 import android.content.Context
 import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
-import io.github.magisk317.relay.android.diagnostics.RuntimeLogStore
+import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.receiver.AutoInputActions
 import io.github.magisk317.smscode.xposed.runtime.CoreHookPolicy
 import io.github.magisk317.smscode.xposed.runtime.CoreHookPolicyHolder
@@ -33,6 +34,7 @@ object SmsCodeXposedRuntimeBridge {
                 sensitive: Boolean,
             ) {
                 val safeMessage = if (sensitive) SensitiveLogPolicy.sanitizeLogMessage(message) else message
+                RuntimeDiagnosticsBridge.ensureInstalled()
                 RuntimeLogStore.append(priority, tag, safeMessage, force, route)
             }
         })

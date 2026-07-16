@@ -8,6 +8,7 @@ import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.secret.InternalSecretStore
 import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.contract.json.RelayJson
 import io.github.magisk317.relay.contract.model.LocalConfigMirror
 import io.github.magisk317.relay.contract.repository.ConfigSyncCoordinator
 import io.github.magisk317.relay.contract.repository.LocalConfigRepository
@@ -18,6 +19,8 @@ import io.github.magisk317.relay.contract.remote.AgentConfigMirrorRequest
 import io.github.magisk317.relay.contract.remote.AgentRegisterRequest
 import io.github.magisk317.relay.contract.remote.DeviceConfigCommandResponse
 import io.github.magisk317.relay.contract.remote.HeartbeatRequest
+import io.github.magisk317.relay.contract.remote.MAX_RELAY_RECORDS_PER_SNAPSHOT
+import io.github.magisk317.relay.contract.remote.MAX_RELAY_RECORD_SNAPSHOT_BYTES
 import io.github.magisk317.relay.contract.remote.RelayRecordWire
 import io.github.magisk317.relay.contract.remote.RelayRecordsBatchRequest
 import io.github.magisk317.relay.contract.settings.RemoteAgentSnapshot
@@ -47,6 +50,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import java.security.MessageDigest
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -134,6 +138,7 @@ class RemoteAgentRepository(
         preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_PENDING_LOCAL_CHANGES, "0")
         preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_DEVICE_APP_INFOS, "")
         preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_APP_CATALOG_DIGEST, "")
+        preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_RECORD_SNAPSHOT_DIGEST, "")
         InternalSecretStore.putString(appContext, PrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, "")
         publishHookPrefs()
         getSnapshot()
@@ -266,45 +271,68 @@ class RemoteAgentRepository(
 
     override suspend fun uploadRecentRecords(limit: Int): RemoteAgentSnapshot = withContext(Dispatchers.IO) {
         syncMutex.withLock {
-        val snapshot = getSnapshot()
-        require(snapshot.bound) { "device not bound" }
-        val token = InternalSecretStore.getString(appContext, PrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, "")
-        val records = RuntimeDependencies.get().relayRecordRepository.listRecords(limit).map {
-            val metadata = buildJsonObject {
-                put("localRecordId", it.id)
-                put("company", it.company)
-                put("notifyChannelId", it.notifyChannelId)
-                put("simSlot", it.simSlot)
-                put("subId", it.subId)
-                put("contactName", it.contactName)
-                put("phoneArea", it.phoneArea)
-                put("forwardStatus", it.forwardStatus)
-                put("forwardTarget", it.forwardTarget)
-                put("forwardMessage", it.forwardMessage)
-                put("forwardTime", it.forwardTime)
+            val snapshotLimit = normalizeRecordSnapshotLimit(limit)
+            val snapshot = getSnapshot()
+            require(snapshot.bound) { "device not bound" }
+            val token = InternalSecretStore.getString(appContext, PrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, "")
+            // The remote records view is a bounded recent-history snapshot. Keeping
+            // the window bounded prevents old local history from permanently blocking sync.
+            val records = RuntimeDependencies.get().relayRecordRepository.listRecords(snapshotLimit).map {
+                val metadata = buildJsonObject {
+                    put("localRecordId", it.id)
+                    put("company", it.company)
+                    put("notifyChannelId", it.notifyChannelId)
+                    put("simSlot", it.simSlot)
+                    put("subId", it.subId)
+                    put("contactName", it.contactName)
+                    put("phoneArea", it.phoneArea)
+                    put("forwardStatus", it.forwardStatus)
+                    put("forwardTarget", it.forwardTarget)
+                    put("forwardMessage", it.forwardMessage)
+                    put("forwardTime", it.forwardTime)
+                }
+                RelayRecordWire(
+                    eventId = "local-record-${it.id}",
+                    recordType = when (it.msgType) {
+                        1 -> "app_notify"
+                        2 -> "call"
+                        else -> if (it.smsCode.isNullOrBlank()) "sms_plain" else "sms_code"
+                    },
+                    sender = it.sender.orEmpty(),
+                    body = it.body.orEmpty(),
+                    smsCode = it.smsCode.orEmpty(),
+                    packageName = it.packageName.orEmpty(),
+                    msgType = it.msgType,
+                    callType = it.callType,
+                    occurredAt = Instant.ofEpochMilli(it.date).toString(),
+                    metadata = metadata,
+                )
             }
-            RelayRecordWire(
-                eventId = "local-record-${it.id}",
-                recordType = when (it.msgType) {
-                    1 -> "app_notify"
-                    2 -> "call"
-                    else -> if (it.smsCode.isNullOrBlank()) "sms_plain" else "sms_code"
-                },
-                sender = it.sender.orEmpty(),
-                body = it.body.orEmpty(),
-                smsCode = it.smsCode.orEmpty(),
-                packageName = it.packageName.orEmpty(),
-                msgType = it.msgType,
-                callType = it.callType,
-                occurredAt = Instant.ofEpochMilli(it.date).toString(),
-                metadata = metadata,
+            val recordSnapshotDigest = runCatching {
+                computeRecordSnapshotDigest(records)
+            }.onFailure {
+                recordAgentFailure(it)
+            }.getOrThrow()
+            val lastRecordSnapshotDigest = preferenceDataSource.getString(
+                PrefConst.KEY_REMOTE_AGENT_LAST_RECORD_SNAPSHOT_DIGEST,
+                "",
             )
-        }
-        val baseUrl = normalizedBackendBaseUrl()
-        executeSimpleAgentWrite(PrefConst.KEY_REMOTE_AGENT_LAST_PUSH_AT, "records_upload") {
-            remoteApiClient.uploadRelayRecords(baseUrl, token, RelayRecordsBatchRequest(records))
-        }
-        getSnapshot()
+            if (recordSnapshotDigest == lastRecordSnapshotDigest) {
+                return@withLock getSnapshot()
+            }
+            val baseUrl = normalizedBackendBaseUrl()
+            executeSimpleAgentWrite(PrefConst.KEY_REMOTE_AGENT_LAST_PUSH_AT, "records_upload") {
+                remoteApiClient.uploadRelayRecords(
+                    baseUrl,
+                    token,
+                    RelayRecordsBatchRequest(records = records, replaceExisting = true),
+                )
+            }
+            preferenceDataSource.setString(
+                PrefConst.KEY_REMOTE_AGENT_LAST_RECORD_SNAPSHOT_DIGEST,
+                recordSnapshotDigest,
+            )
+            getSnapshot()
         }
     }
 
@@ -504,6 +532,25 @@ class RemoteAgentRepository(
     private suspend fun publishHookPrefs() {
         HookPreferenceMirror.publish(appContext)
     }
+}
+
+internal fun computeRecordSnapshotDigest(records: List<RelayRecordWire>): String {
+    require(records.size <= MAX_RELAY_RECORDS_PER_SNAPSHOT) {
+        "record snapshot contains ${records.size} records; maximum is $MAX_RELAY_RECORDS_PER_SNAPSHOT; nothing uploaded"
+    }
+    val canonical = RelayJson.encode(RelayRecordsBatchRequest.serializer(), RelayRecordsBatchRequest(records, true))
+    val canonicalBytes = canonical.toByteArray(Charsets.UTF_8)
+    require(canonicalBytes.size <= MAX_RELAY_RECORD_SNAPSHOT_BYTES) {
+        "record snapshot is ${canonicalBytes.size} bytes; maximum is $MAX_RELAY_RECORD_SNAPSHOT_BYTES; nothing uploaded"
+    }
+    return MessageDigest.getInstance("SHA-256")
+        .digest(canonicalBytes)
+        .joinToString(separator = "") { byte -> "%02x".format(byte) }
+}
+
+internal fun normalizeRecordSnapshotLimit(limit: Int): Int {
+    require(limit > 0) { "record upload limit must be positive" }
+    return limit.coerceAtMost(MAX_RELAY_RECORDS_PER_SNAPSHOT)
 }
 
 internal fun mergeRemoteConfigJson(

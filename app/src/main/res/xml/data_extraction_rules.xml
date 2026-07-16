@@ -1,14 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
 <data-extraction-rules>
     <cloud-backup>
+        <exclude domain="root" path="datastore/" />
+        <exclude domain="database" path="relay_room.db" />
+        <exclude domain="database" path="relay_room.db-shm" />
+        <exclude domain="database" path="relay_room.db-wal" />
+        <exclude domain="database" path="relay_room.db-journal" />
+        <exclude domain="database" path="xrelay_room.db" />
+        <exclude domain="database" path="xrelay_room.db-shm" />
+        <exclude domain="database" path="xrelay_room.db-wal" />
+        <exclude domain="database" path="xrelay_room.db-journal" />
+        <exclude domain="database" path="xsmscode_room.db" />
+        <exclude domain="database" path="xsmscode_room.db-shm" />
+        <exclude domain="database" path="xsmscode_room.db-wal" />
+        <exclude domain="database" path="xsmscode_room.db-journal" />
         <exclude domain="sharedpref" path="internal_secret_prefs.xml" />
+        <exclude domain="sharedpref" path="xposed_prefs.xml" />
+        <exclude domain="sharedpref" path="webdav_config_prefs.xml" />
+        <exclude domain="sharedpref" path="webdav_crypto_prefs.xml" />
+        <exclude domain="sharedpref" path="google_drive_backup_config_prefs.xml" />
+        <exclude domain="sharedpref" path="cloud_backup_settings_prefs.xml" />
         <exclude domain="file" path="webui_tls_keystore.p12" />
         <exclude domain="file" path="log/" />
         <exclude domain="file" path="crash/" />
         <exclude domain="file" path="xsms_logs/" />
     </cloud-backup>
     <device-transfer>
+        <exclude domain="root" path="datastore/" />
+        <exclude domain="database" path="relay_room.db" />
+        <exclude domain="database" path="relay_room.db-shm" />
+        <exclude domain="database" path="relay_room.db-wal" />
+        <exclude domain="database" path="relay_room.db-journal" />
+        <exclude domain="database" path="xrelay_room.db" />
+        <exclude domain="database" path="xrelay_room.db-shm" />
+        <exclude domain="database" path="xrelay_room.db-wal" />
+        <exclude domain="database" path="xrelay_room.db-journal" />
+        <exclude domain="database" path="xsmscode_room.db" />
+        <exclude domain="database" path="xsmscode_room.db-shm" />
+        <exclude domain="database" path="xsmscode_room.db-wal" />
+        <exclude domain="database" path="xsmscode_room.db-journal" />
         <exclude domain="sharedpref" path="internal_secret_prefs.xml" />
+        <exclude domain="sharedpref" path="xposed_prefs.xml" />
+        <exclude domain="sharedpref" path="webdav_config_prefs.xml" />
+        <exclude domain="sharedpref" path="webdav_crypto_prefs.xml" />
+        <exclude domain="sharedpref" path="google_drive_backup_config_prefs.xml" />
+        <exclude domain="sharedpref" path="cloud_backup_settings_prefs.xml" />
         <exclude domain="file" path="webui_tls_keystore.p12" />
         <exclude domain="file" path="log/" />
         <exclude domain="file" path="crash/" />

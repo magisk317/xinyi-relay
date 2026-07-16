@@ -1,9 +1,19 @@
 package io.github.magisk317.relay.android.diagnostics
 
+import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 
 class RuntimeLogStoreRouteTest {
+
+    companion object {
+        @JvmStatic
+        @BeforeAll
+        fun installRuntimeDiagnosticsBridge() {
+            RuntimeDiagnosticsBridge.ensureInstalled()
+        }
+    }
 
     @Test
     fun routeFromCallerClassName_mapsKnownHookPackages() {

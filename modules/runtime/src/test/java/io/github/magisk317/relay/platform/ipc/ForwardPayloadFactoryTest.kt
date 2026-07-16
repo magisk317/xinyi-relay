@@ -179,6 +179,7 @@ class ForwardPayloadFactoryTest {
         assertEquals("ringing", callPayload.callStage)
     }
 
+    @Suppress("DEPRECATION")
     private fun relaxedIntentWithPdus(pdus: Array<ByteArray>) = relaxedIntent().also { intent ->
         intent.stubStringExtra(ForwardBroadcastContract.EXTRA_EVENT_ID, null)
         val extras = mockk<Bundle>()
