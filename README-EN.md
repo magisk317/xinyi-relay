@@ -21,7 +21,9 @@
 
 </div>
 
-Xinyi Relay is a relay and verification-code autofill project for Xposed/LSPosed, with unified handling for SMS, app notifications, and incoming call events.
+Xinyi Relay is an adaptive Android relay and verification-code autofill project. It uses Enhanced
+mode when a live Xposed/LSPosed runtime is available and otherwise falls back to Standard Android
+APIs, with unified handling for SMS, app notifications, and incoming call events.
 
 The project now ships in three major parts:
 
@@ -41,15 +43,18 @@ The old embedded WebUI has been retired from the Android runtime path. The curre
 
 ## Android App
 
-The Android app is the on-device module for Xposed/LSPosed. It is responsible for local event capture, verification parsing, autofill, and runtime hooks.
+The Android app is a runtime-adaptive agent. Enhanced and Standard use the same APK, app identity,
+database, and settings; Xposed is optional unless hook-only capabilities are required.
 
 ### Install & Use
-1. Root your device and install LSPosed/Xposed.
-2. Install Xinyi Relay:
+1. Install Xinyi Relay:
    - GitLab Releases: APK downloads
    - Google Play: Store distribution
-3. Enable the module and reboot.
-4. Configure sender channels, routing rules, filters, and verification-code autofill policies.
+2. In Standard mode, grant only the SMS, MMS, call, or notification-listener capabilities declared
+   by the installed distribution. Denying one permission disables only that capability.
+3. If you need hook interception, system-level SMS blocking, or hook keep-alive features, optionally
+   root the device and enable the same app in LSPosed/Xposed; no separate lite APK is required.
+4. Configure sender channels, routing rules, filters, and verification-code policies.
 
 ### Compatibility
 - Minimum Android 8.0 (API 26).
@@ -63,6 +68,20 @@ The Android app is the on-device module for Xposed/LSPosed. It is responsible fo
 - Verification code parsing, copy, and autofill
 - Verification-code rules: bundled official read-only rules, refreshable cache, and user custom rules are merged in layers
 - Records and backup: export/import config and history
+
+### Work-mode Boundary
+
+- Enhanced/Standard are runtime states, not Play/GitHub/E2EE distribution flavors.
+- Xposed service bind/death immediately re-resolves the mode and reconciles the Standard foreground
+  service and call monitor.
+- Post-install phone-process restart is requested only after a successful Xposed service bind;
+  ordinary Standard startup never probes root or restarts telephony/MMS processes.
+- The Standard keep-alive service uses the `remoteMessaging` foreground-service type, so boot
+  recovery does not inherit Android 15's `dataSync` start restriction or cumulative timeout.
+- Standard MMS metadata is decoded by a bounded Notification.ind parser shipped in the APK, while
+  ended-call enrichment uses finite, cancellable CallLog retries only when the number is missing.
+- Google Play keeps a policy-compliant Standard subset centered on notification forwarding, while
+  GitHub distributions can enable broader SMS/MMS/call capabilities when the user grants them.
 
 ## Backend
 
