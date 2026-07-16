@@ -132,6 +132,78 @@ class RelayManifestContractTest {
     }
 
     @Test
+    fun `standard mode foreground service uses remote messaging contract`() {
+        val document = parseManifest("app/src/main/AndroidManifest.xml")
+        val permissions = permissionNames("app/src/main/AndroidManifest.xml")
+        val services = document.getElementsByTagName("service")
+            .asElements()
+            .associateBy { it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue.orEmpty() }
+        val standardModeService = services.getValue(
+            "io.github.magisk317.relay.service.StandardModeService",
+        )
+
+        assertTrue("android.permission.FOREGROUND_SERVICE" in permissions)
+        assertTrue("android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" in permissions)
+        assertFalse("android.permission.FOREGROUND_SERVICE_DATA_SYNC" in permissions)
+        assertEquals(
+            "remoteMessaging",
+            standardModeService.attributes.getNamedItemNS(ANDROID_NS, "foregroundServiceType")?.nodeValue,
+        )
+        assertEquals(
+            "false",
+            standardModeService.attributes.getNamedItemNS(ANDROID_NS, "exported")?.nodeValue,
+        )
+    }
+
+    @Test
+    fun `distribution manifests preserve remote messaging foreground service`() {
+        listOf(
+            "app/src/play/AndroidManifest.xml",
+            "app/src/github/AndroidManifest.xml",
+            "app/src/fdroid/AndroidManifest.xml",
+        ).forEach { manifestPath ->
+            val document = parseManifest(manifestPath)
+            val permissions = document.getElementsByTagName("uses-permission").asElements()
+            val standardModeServices = document.getElementsByTagName("service")
+                .asElements()
+                .filter {
+                    it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue ==
+                        "io.github.magisk317.relay.service.StandardModeService"
+                }
+
+            assertFalse(
+                permissions.any {
+                    it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue ==
+                        "android.permission.FOREGROUND_SERVICE_DATA_SYNC" &&
+                        it.attributes.getNamedItemNS(TOOLS_NS, "node")?.nodeValue != "remove"
+                },
+                "$manifestPath must not add the dataSync foreground-service permission",
+            )
+            assertFalse(
+                permissions.any {
+                    it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue ==
+                        "android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" &&
+                        it.attributes.getNamedItemNS(TOOLS_NS, "node")?.nodeValue == "remove"
+                },
+                "$manifestPath must not remove the remoteMessaging foreground-service permission",
+            )
+            standardModeServices.forEach { service ->
+                assertFalse(
+                    service.attributes.getNamedItemNS(TOOLS_NS, "node")?.nodeValue == "remove",
+                    "$manifestPath must not remove StandardModeService",
+                )
+                val foregroundServiceType = service.attributes
+                    .getNamedItemNS(ANDROID_NS, "foregroundServiceType")
+                    ?.nodeValue
+                assertTrue(
+                    foregroundServiceType == null || foregroundServiceType == "remoteMessaging",
+                    "$manifestPath must not override StandardModeService with a different type",
+                )
+            }
+        }
+    }
+
+    @Test
     fun `play manifest removes standard mode telephony permissions and receivers`() {
         val permissions = permissionNames("app/src/play/AndroidManifest.xml")
         val removedPermissions = removedPermissionNames("app/src/play/AndroidManifest.xml")

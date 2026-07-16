@@ -4,7 +4,8 @@ package io.github.magisk317.relay.feature.mode
  * Defines which features are available in each [WorkMode].
  *
  * - **Enhanced** (Xposed active): Xposed and standard features enabled.
- * - **Standard** (no Xposed, permissions granted): only standard Android API features.
+ * - **Standard** (no active Xposed runtime): standard Android API features remain available,
+ *   with each capability enforcing its own permissions.
  * - **Inactive**: nothing works.
  *
  * Root-backed features are independent from Xposed and must pass the root
