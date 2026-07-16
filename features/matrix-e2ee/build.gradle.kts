@@ -32,11 +32,5 @@ dependencies {
     implementation(project(":app"))
     implementation(project(":relay:sender:api"))
     implementation(project(":relay:sender"))
-    implementation(project(":relay:net"))
-    implementation(libs.okhttp)
-    // matrix-rust-sdk FFI for E2EE support
-    // Published as "sdk-android" on Maven Central by element-hq
-    implementation(libs.matrix.sdk.android)
-    // rustls-platform-verifier Android bindings (required by matrix-rust-sdk for TLS on Android)
-    implementation("rustls:rustls-platform-verifier:0.1.1")
+    implementation(project(":relay:matrix-e2ee"))
 }
