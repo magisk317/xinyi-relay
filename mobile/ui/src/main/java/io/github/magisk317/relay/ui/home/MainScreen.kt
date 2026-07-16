@@ -3,11 +3,14 @@ package io.github.magisk317.relay.ui.home
 import io.github.magisk317.relay.ui.home.forward.AppForwardFilterScreen
 import io.github.magisk317.relay.ui.home.forward.GlobalForwardFilterScreen
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.PagerState
-import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Build
@@ -15,90 +18,98 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.navigation
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import io.github.magisk317.uikit.scroll.ScrollChromeState
-import io.github.magisk317.uikit.surface.AnimatedCompactBottomNavigationChrome
-import io.github.magisk317.uikit.surface.AnimatedSystemBarsScrim
-import io.github.magisk317.uikit.surface.AppNavigationItemSpec
-import io.github.magisk317.uikit.surface.AppNavigationRail
-import io.github.magisk317.uikit.surface.TabItem
+import io.github.magisk317.relay.backup.BackupSource
+import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobileui.BuildConfig
+import io.github.magisk317.relay.ui.home.appconfig.AppConfigDetailScreen
+import io.github.magisk317.relay.ui.home.appconfig.AppConfigScreen
+import io.github.magisk317.relay.ui.home.appconfig.AppConfigViewModel
+import io.github.magisk317.relay.ui.home.appconfig.AppNotifySenderBindingScreen
+import io.github.magisk317.relay.ui.home.forward.ForwardKeepAliveScreen
+import io.github.magisk317.relay.ui.home.overview.OverviewScreen
+import io.github.magisk317.relay.ui.home.relayconfig.InterceptScreen
+import io.github.magisk317.relay.ui.home.relayconfig.RelayConfigScreen
+import io.github.magisk317.relay.ui.home.relayconfig.RemoteAgentScreen
+import io.github.magisk317.relay.ui.home.scheduled.ScheduledReminderScreen
+import io.github.magisk317.relay.ui.home.settings.AdvancedScreen
+import io.github.magisk317.relay.ui.home.settings.SettingsHomeScreen
+import io.github.magisk317.relay.ui.home.verification.VerificationSettingsScreen
+import io.github.magisk317.relay.ui.nav.AdvancedRoute
+import io.github.magisk317.relay.ui.nav.AppConfigDetailRoute
+import io.github.magisk317.relay.ui.nav.AppForwardFilterRoute
+import io.github.magisk317.relay.ui.nav.AppNotifySenderBindingRoute
+import io.github.magisk317.relay.ui.nav.AppRoutingRoute
+import io.github.magisk317.relay.ui.nav.AppsManageRoute
+import io.github.magisk317.relay.ui.nav.AppsRoute
+import io.github.magisk317.relay.ui.nav.BlacklistHitsRoute
+import io.github.magisk317.relay.ui.nav.CloudBackupRoute
+import io.github.magisk317.relay.ui.nav.ForwardKeepAliveRoute
+import io.github.magisk317.relay.ui.nav.GlobalForwardFilterRoute
+import io.github.magisk317.relay.ui.nav.InterceptRoute
+import io.github.magisk317.relay.ui.nav.OverviewRoute
+import io.github.magisk317.relay.ui.nav.ROUTE_ORIGIN_ADVANCED
+import io.github.magisk317.relay.ui.nav.ROUTE_ORIGIN_APPS
+import io.github.magisk317.relay.ui.nav.ROUTE_ORIGIN_SETTINGS
+import io.github.magisk317.relay.ui.nav.RecordsRoute
+import io.github.magisk317.relay.ui.nav.RelayConfigRoute
+import io.github.magisk317.relay.ui.nav.RemoteAgentRoute
+import io.github.magisk317.relay.ui.nav.RuleConfigRoute
+import io.github.magisk317.relay.ui.nav.RulesRoute
+import io.github.magisk317.relay.ui.nav.ScheduledReminderRoute
+import io.github.magisk317.relay.ui.nav.ScheduledTaskConfigRoute
+import io.github.magisk317.relay.ui.nav.ScheduledTasksRoute
+import io.github.magisk317.relay.ui.nav.ScopedRecordsRoute
+import io.github.magisk317.relay.ui.nav.SenderConfigRoute
+import io.github.magisk317.relay.ui.nav.SenderForwardFilterRoute
+import io.github.magisk317.relay.ui.nav.SenderTypeRoute
+import io.github.magisk317.relay.ui.nav.SendersRoute
+import io.github.magisk317.relay.ui.nav.SettingsRoute
+import io.github.magisk317.relay.ui.nav.SmsCodeRuleEditorRoute
+import io.github.magisk317.relay.ui.nav.SmsCodeRulesRoute
+import io.github.magisk317.relay.ui.nav.VerificationSettingsRoute
+import io.github.magisk317.relay.ui.record.BlacklistHitListScreen
+import io.github.magisk317.relay.ui.record.CodeRecordScreen
+import io.github.magisk317.uikit.surface.MainTabScaffold
+import io.github.magisk317.uikit.surface.tabEnterTransition
+import io.github.magisk317.uikit.surface.tabExitTransition
+import io.github.magisk317.uikit.surface.tabPopEnterTransition
+import io.github.magisk317.uikit.surface.tabPopExitTransition
+import io.github.magisk317.uikit.surface.tabTransitionDirection
+import io.github.magisk317.uikit.surface.MainTabSpec
 import io.github.magisk317.uikit.surface.rememberIsCompactWidth
 import io.github.magisk317.uikit.surface.rememberMainChromeController
-import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.ui.nav.*
-import io.github.magisk317.relay.ui.record.CodeRecordScreen
-import android.os.SystemClock
-import io.github.magisk317.relay.backup.BackupSource
-import io.github.magisk317.relay.mobileui.BuildConfig
 import org.koin.compose.viewmodel.koinViewModel
-import io.github.magisk317.relay.ui.home.overview.OverviewScreen
-import io.github.magisk317.relay.ui.home.appconfig.AppConfigDetailScreen
-import io.github.magisk317.relay.ui.home.verification.VerificationSettingsScreen
-import io.github.magisk317.relay.ui.home.settings.SettingsHomeScreen
-import io.github.magisk317.relay.ui.home.appconfig.AppConfigViewModel
-import io.github.magisk317.relay.ui.home.forward.ForwardKeepAliveScreen
-import io.github.magisk317.relay.ui.home.relayconfig.RemoteAgentScreen
-import io.github.magisk317.relay.ui.record.BlacklistHitListScreen
-import io.github.magisk317.relay.ui.home.relayconfig.InterceptScreen
-import io.github.magisk317.relay.ui.home.scheduled.ScheduledReminderScreen
-import io.github.magisk317.relay.ui.home.appconfig.AppNotifySenderBindingScreen
-import io.github.magisk317.relay.ui.home.settings.AdvancedScreen
-import io.github.magisk317.relay.ui.home.appconfig.AppConfigScreen
-import io.github.magisk317.relay.ui.home.relayconfig.RelayConfigScreen
-import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
-
-private const val TAB_DOUBLE_TAP_REFRESH_WINDOW_MS = 350L
-private val COMPACT_BOTTOM_BAR_CONTENT_PADDING = 80.dp
 
 private enum class NavigationSection {
     OVERVIEW,
     APPS,
     RECORDS,
     ADVANCED,
-    SETTINGS;
-
-    val routeId: String
-        get() = when (this) {
-            OVERVIEW -> MAIN_TAB_OVERVIEW
-            APPS -> MAIN_TAB_APPS
-            RECORDS -> MAIN_TAB_RECORDS
-            ADVANCED -> MAIN_TAB_ADVANCED
-            SETTINGS -> MAIN_TAB_SETTINGS
-        }
-
-    companion object {
-        fun fromRouteId(routeId: String): NavigationSection {
-            return entries.firstOrNull { it.routeId == routeId } ?: OVERVIEW
-        }
-    }
+    SETTINGS,
 }
 
-private const val MAIN_TAB_OVERVIEW = "overview"
-private const val MAIN_TAB_APPS = "apps"
-private const val MAIN_TAB_RECORDS = "records"
-private const val MAIN_TAB_ADVANCED = "advanced"
-private const val MAIN_TAB_SETTINGS = "settings"
 private const val BENCHMARK_TAB_OVERVIEW = "xinyi_benchmark_tab_overview"
 private const val BENCHMARK_TAB_APPS = "xinyi_benchmark_tab_apps"
 private const val BENCHMARK_TAB_RECORDS = "xinyi_benchmark_tab_records"
@@ -109,11 +120,6 @@ private const val BENCHMARK_NAV_APPS = "xinyi_benchmark_nav_apps"
 private const val BENCHMARK_NAV_RECORDS = "xinyi_benchmark_nav_records"
 private const val BENCHMARK_NAV_ADVANCED = "xinyi_benchmark_nav_advanced"
 private const val BENCHMARK_NAV_SETTINGS = "xinyi_benchmark_nav_settings"
-
-@Serializable
-private data class MainTabsRoute(
-    val section: String = MAIN_TAB_OVERVIEW,
-)
 
 @Composable
 @Suppress("CyclomaticComplexMethod")
@@ -128,11 +134,38 @@ fun MainScreen(
     val currentDestination = navBackStackEntry?.destination
 
     val tabs = listOf(
-        TabItem(stringResource(R.string.tab_overview), Icons.Default.Home, MainTabsRoute(MAIN_TAB_OVERVIEW)),
-        TabItem(stringResource(R.string.tab_blacklist), Icons.AutoMirrored.Filled.List, MainTabsRoute(MAIN_TAB_APPS)),
-        TabItem(stringResource(R.string.tab_records), Icons.Default.DateRange, MainTabsRoute(MAIN_TAB_RECORDS)),
-        TabItem(stringResource(R.string.tab_advanced), Icons.Default.Build, MainTabsRoute(MAIN_TAB_ADVANCED)),
-        TabItem(stringResource(R.string.tab_settings), Icons.Default.Settings, MainTabsRoute(MAIN_TAB_SETTINGS)),
+        MainTabSpec(
+            label = stringResource(R.string.tab_overview),
+            icon = Icons.Default.Home,
+            testTag = BENCHMARK_NAV_OVERVIEW,
+        ),
+        MainTabSpec(
+            label = stringResource(R.string.tab_blacklist),
+            icon = Icons.AutoMirrored.Filled.List,
+            testTag = BENCHMARK_NAV_APPS,
+        ),
+        MainTabSpec(
+            label = stringResource(R.string.tab_records),
+            icon = Icons.Default.DateRange,
+            testTag = BENCHMARK_NAV_RECORDS,
+        ),
+        MainTabSpec(
+            label = stringResource(R.string.tab_advanced),
+            icon = Icons.Default.Build,
+            testTag = BENCHMARK_NAV_ADVANCED,
+        ),
+        MainTabSpec(
+            label = stringResource(R.string.tab_settings),
+            icon = Icons.Default.Settings,
+            testTag = BENCHMARK_NAV_SETTINGS,
+        ),
+    )
+    val tabRoutes = listOf(
+        OverviewRoute,
+        AppsRoute,
+        RecordsRoute,
+        AdvancedRoute,
+        SettingsRoute,
     )
 
     fun sectionFromOrigin(origin: String): NavigationSection {
@@ -146,8 +179,6 @@ fun MainScreen(
     fun resolveSection(entry: NavBackStackEntry?): NavigationSection {
         val destination = entry?.destination ?: return NavigationSection.OVERVIEW
         return when {
-            destination.hasRoute(MainTabsRoute::class) ->
-                NavigationSection.fromRouteId(entry.toRoute<MainTabsRoute>().section)
             destination.hasRoute(OverviewRoute::class) -> NavigationSection.OVERVIEW
             destination.hasRoute(AppsRoute::class) -> NavigationSection.APPS
             destination.hasRoute(AppsManageRoute::class) -> NavigationSection.APPS
@@ -178,8 +209,6 @@ fun MainScreen(
                 sectionFromOrigin(entry.toRoute<AppNotifySenderBindingRoute>().origin)
             destination.hasRoute(AppForwardFilterRoute::class) ->
                 sectionFromOrigin(entry.toRoute<AppForwardFilterRoute>().origin)
-            destination.hasRoute(GlobalForwardFilterRoute::class) ->
-                sectionFromOrigin(entry.toRoute<GlobalForwardFilterRoute>().origin)
             destination.hasRoute(ScopedRecordsRoute::class) ->
                 sectionFromOrigin(entry.toRoute<ScopedRecordsRoute>().origin)
             destination.hasRoute(RulesRoute::class) ->
@@ -191,6 +220,10 @@ fun MainScreen(
             destination.hasRoute(SmsCodeRuleEditorRoute::class) ->
                 sectionFromOrigin(entry.toRoute<SmsCodeRuleEditorRoute>().origin)
             destination.hasRoute(CloudBackupRoute::class) -> NavigationSection.SETTINGS
+            destination.hasRoute(GlobalForwardFilterRoute::class) ->
+                sectionFromOrigin(entry.toRoute<GlobalForwardFilterRoute>().origin)
+            destination.hasRoute(SenderTypeRoute::class) ->
+                sectionFromOrigin(entry.toRoute<SenderTypeRoute>().origin)
             else -> NavigationSection.OVERVIEW
         }
     }
@@ -207,108 +240,49 @@ fun MainScreen(
 
     fun shouldShowCompactBottomBar(destination: NavDestination?): Boolean {
         if (destination == null) return true
-        return destination.hasRoute(MainTabsRoute::class)
+        return destination.hasRoute(OverviewRoute::class) ||
+            destination.hasRoute(AppsRoute::class) ||
+            destination.hasRoute(RecordsRoute::class) ||
+            destination.hasRoute(AdvancedRoute::class) ||
+            destination.hasRoute(SettingsRoute::class)
     }
 
     fun shouldAllowScrollChrome(entry: NavBackStackEntry?): Boolean {
         val destination = entry?.destination ?: return false
-        return when {
-            destination.hasRoute(MainTabsRoute::class) -> {
-                when (NavigationSection.fromRouteId(entry.toRoute<MainTabsRoute>().section)) {
-                    NavigationSection.APPS, NavigationSection.RECORDS -> true
-                    NavigationSection.OVERVIEW,
-                    NavigationSection.ADVANCED,
-                    NavigationSection.SETTINGS,
-                    -> false
-                }
-            }
-            destination.hasRoute(AppsRoute::class) ||
-                destination.hasRoute(AppsManageRoute::class) ||
-                destination.hasRoute(AppRoutingRoute::class) ||
-                destination.hasRoute(ScopedRecordsRoute::class) -> true
-            else -> false
-        }
+        return destination.hasRoute(AppsRoute::class) ||
+            destination.hasRoute(RecordsRoute::class) ||
+            destination.hasRoute(AppsManageRoute::class) ||
+            destination.hasRoute(AppRoutingRoute::class) ||
+            destination.hasRoute(ScopedRecordsRoute::class)
     }
 
-    val coroutineScope = rememberCoroutineScope()
-    val pagerState = rememberPagerState(
-        initialPage = resolveTabIndex(navBackStackEntry),
-        pageCount = { NavigationSection.entries.size },
-    )
-
-    // On MainTabs the pager is the source of truth: launchSingleTop nav to the same
-    // MainTabsRoute yields no new back-stack entry, so navBackStackEntry.section stays
-    // pinned to the initial value. Fall back to route-origin derivation only on child screens.
-    val onMainTabs = currentDestination?.hasRoute(MainTabsRoute::class) == true
-    val selectedIndex = if (onMainTabs) {
-        pagerState.targetPage
-    } else {
-        resolveTabIndex(navBackStackEntry)
-    }
-
+    val selectedIndex = resolveTabIndex(navBackStackEntry)
     val isCompact = rememberIsCompactWidth()
     var appBlockRefreshTrigger by remember { mutableIntStateOf(0) }
     var recordsRefreshTrigger by remember { mutableIntStateOf(0) }
     var interceptRefreshTrigger by remember { mutableIntStateOf(0) }
-    val tabLastTapAt = remember { mutableStateMapOf<String, Long>() }
 
-    // Likewise derive section from the pager so scroll chrome (only APPS/RECORDS hide on
-    // scroll) tracks the visible tab instead of the stale initial section.
-    val pagerSection = NavigationSection.entries[pagerState.targetPage]
-    val currentSection = if (onMainTabs) pagerSection else resolveSection(navBackStackEntry)
-    val allowScrollChrome = if (onMainTabs) {
-        pagerSection == NavigationSection.APPS || pagerSection == NavigationSection.RECORDS
-    } else {
-        shouldAllowScrollChrome(navBackStackEntry)
-    }
+    val currentSection = resolveSection(navBackStackEntry)
+    val allowScrollChrome = shouldAllowScrollChrome(navBackStackEntry)
     val chromeController = rememberMainChromeController(
         isCompact = isCompact,
         compactChromeRouteAvailable = shouldShowCompactBottomBar(currentDestination),
         keepVisible = !allowScrollChrome,
         allowScrollHide = allowScrollChrome,
-        resetKey = "${currentDestination?.route}:${currentSection.routeId}",
+        resetKey = "${currentDestination?.route}:${currentSection.name}",
     )
-    val scrollChromeState = chromeController.scrollChromeState
     val pageScrollChromeState = chromeController.pageScrollChromeState
-    val mainChromeVisible = chromeController.mainChromeVisible
-    val compactBottomBarVisible = chromeController.compactBottomBarVisible
 
-    val compactBottomBarPadding: Dp = if (compactBottomBarVisible) {
-        COMPACT_BOTTOM_BAR_CONTENT_PADDING +
-            WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    } else {
-        0.dp
-    }
-
-    fun triggerRefreshForSection(section: NavigationSection) {
-        when (section) {
-            NavigationSection.APPS -> appBlockRefreshTrigger++
-            NavigationSection.RECORDS -> recordsRefreshTrigger++
-            else -> Unit
+    fun triggerRefreshForIndex(index: Int) {
+        when (index) {
+            1 -> appBlockRefreshTrigger++
+            2 -> recordsRefreshTrigger++
         }
     }
 
-    fun handleTabClick(tab: TabItem<MainTabsRoute>, selected: Boolean) {
-        val key = tab.route.section
-        val now = SystemClock.elapsedRealtime()
-        val last = tabLastTapAt[key] ?: 0L
-        tabLastTapAt[key] = now
-
-        if (selected) {
-            if (now - last <= TAB_DOUBLE_TAP_REFRESH_WINDOW_MS) {
-                triggerRefreshForSection(NavigationSection.fromRouteId(tab.route.section))
-            }
-            return
-        }
-
-        scrollChromeState.animateToTop()
-        // Drive the pager directly; launchSingleTop nav to the same MainTabsRoute
-        // yields no new entry, so observing a derived section would break paging.
-        val targetIndex = NavigationSection.fromRouteId(tab.route.section).ordinal
-        coroutineScope.launch {
-            pagerState.animateScrollToPage(targetIndex)
-        }
-        navController.navigate(tab.route) {
+    fun navigateToTab(index: Int) {
+        val route = tabRoutes.getOrNull(index) ?: return
+        navController.navigate(route) {
             popUpTo(navController.graph.findStartDestination().id) {
                 saveState = true
             }
@@ -319,13 +293,13 @@ fun MainScreen(
 
     LaunchedEffect(initialTab) {
         when (initialTab) {
-            is OverviewRoute -> navController.navigate(MainTabsRoute(MAIN_TAB_OVERVIEW))
-            is AppsRoute -> navController.navigate(MainTabsRoute(MAIN_TAB_APPS))
+            is OverviewRoute -> navController.navigate(OverviewRoute)
+            is AppsRoute -> navController.navigate(AppsRoute)
             is AppsManageRoute -> navController.navigate(AppsManageRoute)
             is InterceptRoute -> navController.navigate(InterceptRoute)
-            is RecordsRoute -> navController.navigate(MainTabsRoute(MAIN_TAB_RECORDS))
-            is AdvancedRoute -> navController.navigate(MainTabsRoute(MAIN_TAB_ADVANCED))
-            is SettingsRoute -> navController.navigate(MainTabsRoute(MAIN_TAB_SETTINGS))
+            is RecordsRoute -> navController.navigate(RecordsRoute)
+            is AdvancedRoute -> navController.navigate(AdvancedRoute)
+            is SettingsRoute -> navController.navigate(SettingsRoute)
             is SmsCodeRulesRoute -> navController.navigate(initialTab)
             is SmsCodeRuleEditorRoute -> navController.navigate(initialTab)
             else -> Unit
@@ -338,94 +312,156 @@ fun MainScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .semantics { testTagsAsResourceId = true }
-            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)),
+            .semantics { testTagsAsResourceId = true },
     ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            if (!isCompact) {
-                AppNavigationRail(
-                    header = {
-                        Icon(
-                            imageVector = Icons.Default.Email,
-                            contentDescription = null,
-                            modifier = Modifier.padding(vertical = 12.dp),
-                        )
-                    },
-                    modifier = Modifier.fillMaxHeight(),
-                    alwaysShowLabel = false,
-                    items = tabs.mapIndexed { index, tab ->
-                        AppNavigationItemSpec(
-                            label = tab.label,
-                            icon = tab.icon,
-                            selected = index == selectedIndex,
-                            onClick = { handleTabClick(tab, index == selectedIndex) },
-                            testTag = benchmarkNavTag(index),
-                        )
-                    },
+        MainTabScaffold(
+            tabs = tabs,
+            selectedIndex = selectedIndex,
+            isCompact = isCompact,
+            chromeController = chromeController,
+            onTabSelected = { index -> navigateToTab(index) },
+            onTabReselected = { index -> triggerRefreshForIndex(index) },
+            railHeader = {
+                Icon(
+                    imageVector = Icons.Default.Email,
+                    contentDescription = null,
+                    modifier = Modifier.padding(vertical = 12.dp),
                 )
-            }
-
-            Box(
+            },
+            modifier = Modifier.fillMaxSize(),
+        ) { contentPadding ->
+            NavHost(
+                navController = navController,
+                startDestination = OverviewRoute,
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(bottom = compactBottomBarPadding),
+                    .fillMaxSize()
+                    .padding(bottom = contentPadding.calculateBottomPadding()),
+                enterTransition = {
+                    tabEnterTransition(
+                        tabTransitionDirection(
+                            initialIndex = resolveTabIndex(initialState),
+                            targetIndex = resolveTabIndex(targetState),
+                        ),
+                    )
+                },
+                exitTransition = {
+                    tabExitTransition(
+                        tabTransitionDirection(
+                            initialIndex = resolveTabIndex(initialState),
+                            targetIndex = resolveTabIndex(targetState),
+                        ),
+                    )
+                },
+                popEnterTransition = {
+                    tabPopEnterTransition(
+                        tabTransitionDirection(
+                            initialIndex = resolveTabIndex(initialState),
+                            targetIndex = resolveTabIndex(targetState),
+                        ),
+                    )
+                },
+                popExitTransition = {
+                    tabPopExitTransition(
+                        tabTransitionDirection(
+                            initialIndex = resolveTabIndex(initialState),
+                            targetIndex = resolveTabIndex(targetState),
+                        ),
+                    )
+                },
             ) {
-                NavHost(
-                    navController = navController,
-                    startDestination = MainTabsRoute(),
-                ) {
-                    composable<MainTabsRoute> { backStackEntry ->
-                        val route = backStackEntry.toRoute<MainTabsRoute>()
-                        MainTabsPager(
-                            selectedSection = NavigationSection.fromRouteId(route.section),
-                            pagerState = pagerState,
-                            appBlockRefreshTrigger = appBlockRefreshTrigger,
-                            recordsRefreshTrigger = recordsRefreshTrigger,
-                            appConfigViewModel = appConfigViewModel,
-                            scrollChromeState = pageScrollChromeState,
-                            onCheckUpdate = { settingsViewModel.requestPreferredUpdate() },
-                            onNavigateToAppConfigDetail = { packageName, origin ->
-                                navController.navigate(
-                                    AppConfigDetailRoute(
-                                        packageName = packageName,
-                                        origin = origin,
-                                    ),
-                                )
-                            },
-                            onNavigateToVerificationSettings = {
-                                navController.navigate(VerificationSettingsRoute)
-                            },
-                            onNavigateToIntercept = {
-                                navController.navigate(InterceptRoute)
-                            },
-                            onNavigateToRelayConfig = { origin ->
-                                navController.navigate(RelayConfigRoute(origin = origin))
-                            },
-                            onNavigateToForwardKeepAlive = {
-                                navController.navigate(ForwardKeepAliveRoute)
-                            },
-                            onNavigateToScheduledReminder = {
-                                navController.navigate(ScheduledReminderRoute)
-                            },
-                            onNavigateToRemoteAgent = {
-                                navController.navigate(RemoteAgentRoute)
-                            },
-                            onNavigateToScheduledTasks = if (BuildConfig.ENABLE_SMS_CHANNEL) {
-                                { navController.navigate(ScheduledTasksRoute) }
-                            } else {
-                                null
-                            },
-                            onNavigateToCloudBackup = { source, backupNow ->
-                                navController.navigate(
-                                    CloudBackupRoute(
-                                        initialSource = source?.name,
-                                        backupNow = backupNow,
-                                    ),
-                                )
-                            },
-                        )
+
+                    composable<OverviewRoute> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .testTag(BENCHMARK_TAB_OVERVIEW),
+                        ) {
+                            OverviewScreen(onCheckUpdate = { settingsViewModel.requestPreferredUpdate() })
+                        }
+                    }
+                    composable<AppsRoute> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .testTag(BENCHMARK_TAB_APPS),
+                        ) {
+                            AppConfigScreen(
+                                onBack = null,
+                                onAppClick = { app ->
+                                    navController.navigate(
+                                        AppConfigDetailRoute(
+                                            packageName = app.packageName,
+                                            origin = ROUTE_ORIGIN_APPS,
+                                        ),
+                                    )
+                                },
+                                refreshTrigger = appBlockRefreshTrigger,
+                                viewModel = appConfigViewModel,
+                                scrollChromeState = pageScrollChromeState,
+                            )
+                        }
+                    }
+                    composable<RecordsRoute> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .testTag(BENCHMARK_TAB_RECORDS),
+                        ) {
+                            CodeRecordScreen(
+                                onBack = null,
+                                refreshTrigger = recordsRefreshTrigger,
+                                scrollChromeState = pageScrollChromeState,
+                            )
+                        }
+                    }
+                    composable<AdvancedRoute> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .testTag(BENCHMARK_TAB_ADVANCED),
+                        ) {
+                            AdvancedScreen(
+                                onInterceptClick = { navController.navigate(InterceptRoute) },
+                                onVerificationConfigClick = {
+                                    navController.navigate(VerificationSettingsRoute)
+                                },
+                                onRelayConfigClick = {
+                                    navController.navigate(RelayConfigRoute(origin = ROUTE_ORIGIN_ADVANCED))
+                                },
+                                onForwardKeepAliveClick = { navController.navigate(ForwardKeepAliveRoute) },
+                                onScheduledReminderClick = { navController.navigate(ScheduledReminderRoute) },
+                                onRemoteAgentClick = { navController.navigate(RemoteAgentRoute) },
+                                onNavigateToScheduledTasks = if (BuildConfig.ENABLE_SMS_CHANNEL) {
+                                    { navController.navigate(ScheduledTasksRoute) }
+                                } else {
+                                    null
+                                },
+                            )
+                        }
+                    }
+                    composable<SettingsRoute> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .testTag(BENCHMARK_TAB_SETTINGS),
+                        ) {
+                            SettingsHomeScreen(
+                                onOpenVerification = {
+                                    navController.navigate(VerificationSettingsRoute)
+                                },
+                                onOpenAdvancedRelay = {
+                                    navController.navigate(RelayConfigRoute(origin = ROUTE_ORIGIN_SETTINGS))
+                                },
+                                onOpenCloudBackup = { source, backupNow ->
+                                    navController.navigate(
+                                        CloudBackupRoute(
+                                            initialSource = source?.name,
+                                            backupNow = backupNow,
+                                        ),
+                                    )
+                                },
+                            )
+                        }
                     }
                     composable<AppsManageRoute> {
                         AppConfigScreen(
@@ -692,140 +728,7 @@ fun MainScreen(
                             backupNow = route.backupNow,
                         )
                     }
-                }
-            }
-        }
 
-        AnimatedCompactBottomNavigationChrome(
-            visible = compactBottomBarVisible,
-            items = tabs.mapIndexed { index, tab ->
-                AppNavigationItemSpec(
-                    label = tab.label,
-                    icon = tab.icon,
-                    selected = index == selectedIndex,
-                    onClick = { handleTabClick(tab, index == selectedIndex) },
-                    testTag = benchmarkNavTag(index),
-                )
-            },
-        )
-
-        AnimatedSystemBarsScrim(
-            visible = mainChromeVisible,
-        )
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun MainTabsPager(
-    selectedSection: NavigationSection,
-    appBlockRefreshTrigger: Int,
-    recordsRefreshTrigger: Int,
-    appConfigViewModel: AppConfigViewModel,
-    scrollChromeState: ScrollChromeState?,
-    onCheckUpdate: () -> Unit,
-    onNavigateToAppConfigDetail: (String, String) -> Unit,
-    onNavigateToVerificationSettings: () -> Unit,
-    onNavigateToIntercept: () -> Unit,
-    onNavigateToRelayConfig: (String) -> Unit,
-    onNavigateToForwardKeepAlive: () -> Unit,
-    onNavigateToScheduledReminder: () -> Unit,
-    onNavigateToRemoteAgent: () -> Unit,
-    onNavigateToScheduledTasks: (() -> Unit)?,
-    onNavigateToCloudBackup: (BackupSource?, Boolean) -> Unit,
-    pagerState: PagerState,
-) {
-    LaunchedEffect(selectedSection) {
-        if (pagerState.currentPage != selectedSection.ordinal) {
-            pagerState.scrollToPage(selectedSection.ordinal)
-        }
-    }
-
-    HorizontalPager(
-        state = pagerState,
-        userScrollEnabled = false,
-        beyondViewportPageCount = 0,
-        modifier = Modifier.fillMaxSize(),
-    ) { page ->
-        val section = NavigationSection.entries[page]
-        val isActivePage = page == pagerState.currentPage || page == selectedSection.ordinal
-        if (!isActivePage) {
-            Box(modifier = Modifier.fillMaxSize())
-            return@HorizontalPager
-        }
-        when (section) {
-            NavigationSection.OVERVIEW -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag(BENCHMARK_TAB_OVERVIEW),
-                ) {
-                    OverviewScreen(onCheckUpdate = onCheckUpdate)
-                }
-            }
-
-            NavigationSection.APPS -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag(BENCHMARK_TAB_APPS),
-                ) {
-                    AppConfigScreen(
-                        onBack = null,
-                        onAppClick = { app ->
-                            onNavigateToAppConfigDetail(app.packageName, ROUTE_ORIGIN_APPS)
-                        },
-                        refreshTrigger = appBlockRefreshTrigger,
-                        viewModel = appConfigViewModel,
-                        scrollChromeState = scrollChromeState,
-                    )
-                }
-            }
-
-            NavigationSection.RECORDS -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag(BENCHMARK_TAB_RECORDS),
-                ) {
-                    CodeRecordScreen(
-                        onBack = null,
-                        refreshTrigger = recordsRefreshTrigger,
-                        scrollChromeState = scrollChromeState,
-                    )
-                }
-            }
-
-            NavigationSection.ADVANCED -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag(BENCHMARK_TAB_ADVANCED),
-                ) {
-                    AdvancedScreen(
-                        onInterceptClick = onNavigateToIntercept,
-                        onVerificationConfigClick = onNavigateToVerificationSettings,
-                        onRelayConfigClick = { onNavigateToRelayConfig(ROUTE_ORIGIN_ADVANCED) },
-                        onForwardKeepAliveClick = onNavigateToForwardKeepAlive,
-                        onScheduledReminderClick = onNavigateToScheduledReminder,
-                        onRemoteAgentClick = onNavigateToRemoteAgent,
-                        onNavigateToScheduledTasks = onNavigateToScheduledTasks,
-                    )
-                }
-            }
-
-            NavigationSection.SETTINGS -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag(BENCHMARK_TAB_SETTINGS),
-                ) {
-                    SettingsHomeScreen(
-                        onOpenVerification = onNavigateToVerificationSettings,
-                        onOpenAdvancedRelay = { onNavigateToRelayConfig(ROUTE_ORIGIN_SETTINGS) },
-                        onOpenCloudBackup = onNavigateToCloudBackup,
-                    )
-                }
             }
         }
     }
@@ -833,14 +736,4 @@ private fun MainTabsPager(
 
 private fun parseBackupSource(rawSource: String): BackupSource? {
     return BackupSource.entries.firstOrNull { it.name == rawSource }
-}
-
-private fun benchmarkNavTag(index: Int): String {
-    return when (NavigationSection.entries[index]) {
-        NavigationSection.OVERVIEW -> BENCHMARK_NAV_OVERVIEW
-        NavigationSection.APPS -> BENCHMARK_NAV_APPS
-        NavigationSection.RECORDS -> BENCHMARK_NAV_RECORDS
-        NavigationSection.ADVANCED -> BENCHMARK_NAV_ADVANCED
-        NavigationSection.SETTINGS -> BENCHMARK_NAV_SETTINGS
-    }
 }
