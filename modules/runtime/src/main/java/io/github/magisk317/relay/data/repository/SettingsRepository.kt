@@ -13,9 +13,14 @@ import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.contract.model.ForwardSilentPeriodConfig
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.android.common.utils.DeviceIdentityUtils
+import io.github.magisk317.relay.android.prefs.AppPreferenceTransactions
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
+import io.github.magisk317.relay.android.prefs.HookPreferenceSpecs
 import io.github.magisk317.relay.engine.schedule.ForwardSilentPeriodEvaluator
 import io.github.magisk317.smscode.domain.constant.SmsCodeConst
+import io.github.magisk317.smscode.runtime.common.prefs.AtomicPreferencePersistence
+import io.github.magisk317.smscode.runtime.common.prefs.PreferenceCommitResult
+import io.github.magisk317.smscode.runtime.common.prefs.PreferenceSpec
 import kotlinx.coroutines.flow.Flow
 
 class SettingsRepository(
@@ -72,21 +77,24 @@ class SettingsRepository(
     }
 
     override suspend fun updateVerificationSettings(update: VerificationSettingsUpdate): VerificationSettingsSnapshot {
-        update.verificationFeaturesEnabled?.let {
-            preferenceDataSource.setBoolean(PrefConst.KEY_VERIFICATION_FEATURES_ENABLED, it)
+        val result = AppPreferenceTransactions.commit(
+            context = appContext,
+            persistence = AtomicPreferencePersistence(preferenceDataSource::persist),
+        ) {
+            update.verificationFeaturesEnabled?.let { set(VerificationPreferenceSpecs.featuresEnabled, it) }
+            update.copyToClipboard?.let { set(VerificationPreferenceSpecs.copyToClipboard, it) }
+            update.showToast?.let { set(VerificationPreferenceSpecs.showToast, it) }
+            update.showCodeNotification?.let { set(VerificationPreferenceSpecs.showCodeNotification, it) }
+            update.autoCancelNotification?.let { set(VerificationPreferenceSpecs.autoCancelNotification, it) }
+            update.notificationRetentionTime?.let { set(VerificationPreferenceSpecs.notificationRetentionTime, it) }
+            update.autoInputEnabled?.let { set(HookPreferenceSpecs.autoInputEnabled, it) }
+            update.autoEnterEnabled?.let { set(HookPreferenceSpecs.autoEnterEnabled, it) }
+            update.autoInputDelay?.let { set(HookPreferenceSpecs.autoInputDelay, it) }
+            update.autoInputInterval?.let { set(HookPreferenceSpecs.autoInputInterval, it) }
+            update.relayKeywords?.let { set(VerificationPreferenceSpecs.relayKeywords, it) }
+            update.blockSmsEnabled?.let { set(VerificationPreferenceSpecs.blockSms, it) }
         }
-        update.copyToClipboard?.let { preferenceDataSource.setBoolean(PrefConst.KEY_COPY_TO_CLIPBOARD, it) }
-        update.showToast?.let { preferenceDataSource.setBoolean(PrefConst.KEY_SHOW_TOAST, it) }
-        update.showCodeNotification?.let { preferenceDataSource.setBoolean(PrefConst.KEY_SHOW_CODE_NOTIFICATION, it) }
-        update.autoCancelNotification?.let { preferenceDataSource.setBoolean(PrefConst.KEY_AUTO_CANCEL_CODE_NOTIFICATION, it) }
-        update.notificationRetentionTime?.let { preferenceDataSource.setString(PrefConst.KEY_NOTIFICATION_RETENTION_TIME, it) }
-        update.autoInputEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE_AUTO_INPUT_CODE, it) }
-        update.autoEnterEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE_AUTO_ENTER_CODE, it) }
-        update.autoInputDelay?.let { preferenceDataSource.setString(PrefConst.KEY_AUTO_INPUT_CODE_DELAY, it) }
-        update.autoInputInterval?.let { preferenceDataSource.setString(PrefConst.KEY_AUTO_INPUT_CODE_INTERVAL, it) }
-        update.relayKeywords?.let { preferenceDataSource.setString(PrefConst.KEY_SMSCODE_KEYWORDS, it) }
-        update.blockSmsEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_BLOCK_SMS, it) }
-        publishHookPrefsAndNoteLocalMutation("settings.verification")
+        handleVerificationCommitResult(result)
         return getVerificationSettings()
     }
 
@@ -691,10 +699,33 @@ class SettingsRepository(
 
     private suspend fun publishHookPrefsAndNoteLocalMutation(source: String) {
         HookPreferenceMirror.publish(appContext)
+        noteLocalMutationAndScheduleAutoBackup(source)
+    }
+
+    private suspend fun noteLocalMutationAndScheduleAutoBackup(source: String) {
         runCatching { RuntimeDependencies.get().localConfigRepository.noteLocalMutation(source) }
             .onFailure { XLog.e("noteLocalMutation failed: %s", it.message ?: it.javaClass.simpleName) }
         runCatching { RuntimeDependencies.get().autoBackupTrigger.scheduleAutoBackup(source) }
             .onFailure { XLog.e("scheduleAutoBackup failed: %s", it.message ?: it.javaClass.simpleName) }
+    }
+
+    private suspend fun handleVerificationCommitResult(result: PreferenceCommitResult) {
+        when (result) {
+            is PreferenceCommitResult.Persisted -> {
+                result.postCommitFailures.forEach { failure ->
+                    XLog.e(
+                        "Verification preference post-commit hook failed: hook=%s error=%s",
+                        failure.hookName,
+                        failure.error.message ?: failure.error.javaClass.simpleName,
+                    )
+                }
+                noteLocalMutationAndScheduleAutoBackup("settings.verification")
+            }
+            is PreferenceCommitResult.NoChanges -> Unit
+            is PreferenceCommitResult.NotPersisted -> {
+                throw IllegalStateException("Verification preferences were not persisted", result.error)
+            }
+        }
     }
 
     private suspend fun publishHookPrefsAndScheduleAutoBackup(source: String) {
@@ -706,4 +737,18 @@ class SettingsRepository(
     private suspend fun publishHookPrefsOnly() {
         HookPreferenceMirror.publish(appContext)
     }
+}
+
+private object VerificationPreferenceSpecs {
+    val featuresEnabled = PreferenceSpec.boolean(PrefConst.KEY_VERIFICATION_FEATURES_ENABLED, true)
+    val copyToClipboard = PreferenceSpec.boolean(PrefConst.KEY_COPY_TO_CLIPBOARD, false)
+    val showToast = PreferenceSpec.boolean(PrefConst.KEY_SHOW_TOAST, true)
+    val showCodeNotification = PreferenceSpec.boolean(PrefConst.KEY_SHOW_CODE_NOTIFICATION, true)
+    val autoCancelNotification = PreferenceSpec.boolean(PrefConst.KEY_AUTO_CANCEL_CODE_NOTIFICATION, false)
+    val notificationRetentionTime = PreferenceSpec.string(
+        PrefConst.KEY_NOTIFICATION_RETENTION_TIME,
+        PrefConst.NOTIFICATION_RETENTION_TIME_DEFAULT,
+    )
+    val relayKeywords = PreferenceSpec.string(PrefConst.KEY_SMSCODE_KEYWORDS, SmsCodeConst.VERIFICATION_KEYWORDS_REGEX)
+    val blockSms = PreferenceSpec.boolean(PrefConst.KEY_BLOCK_SMS, false)
 }

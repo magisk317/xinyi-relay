@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.android.data.datasource
 
+import io.github.magisk317.smscode.runtime.common.prefs.PreferenceChangeSet
 import kotlinx.coroutines.flow.Flow
 
 interface PreferenceDataSource {
@@ -20,6 +21,9 @@ interface PreferenceDataSource {
      * If any write fails, all changes are rolled back.
      */
     suspend fun batchEdit(block: suspend PreferenceWriteScope.() -> Unit)
+
+    /** Persist a pre-staged shared change set atomically and report backend acceptance. */
+    suspend fun persist(changes: PreferenceChangeSet): Boolean
 
     fun getBooleanFlow(key: String, defaultValue: Boolean): Flow<Boolean>
     fun getStringFlow(key: String, defaultValue: String): Flow<String>

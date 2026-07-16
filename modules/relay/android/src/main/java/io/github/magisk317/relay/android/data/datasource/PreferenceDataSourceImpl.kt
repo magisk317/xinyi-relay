@@ -3,9 +3,13 @@ package io.github.magisk317.relay.android.data.datasource
 import android.content.Context
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
+import io.github.magisk317.smscode.runtime.common.prefs.PreferenceChangeSet
 import kotlinx.coroutines.flow.Flow
 
 class PreferenceDataSourceImpl(private val context: Context) : PreferenceDataSource {
+
+    override suspend fun persist(changes: PreferenceChangeSet): Boolean =
+        AppPreferencesDataStore.persistChanges(context, changes)
 
     override suspend fun batchEdit(block: suspend PreferenceWriteScope.() -> Unit) {
         AppPreferencesDataStore.batchEdit(context) {
