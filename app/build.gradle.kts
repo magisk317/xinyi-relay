@@ -28,7 +28,24 @@ val syncSmsCodeRulesAssets = tasks.register<Sync>("syncSmsCodeRulesAssets") {
     from(rulesRoot.dir("rules")) {
         into("rules")
     }
-    into(generatedSmsCodeRulesAssetsDir.map { it.dir("smscode/rules") })
+    into(generatedSmsCodeRulesAssetsDir.map { it.dir("smscode-rules") })
+}
+
+val verifyBundledSmsCodeRules = tasks.register("verifyBundledSmsCodeRules") {
+    group = "verification"
+    description = "Verify the generated APK assets match the smscode-core bundled rule contract."
+    dependsOn(syncSmsCodeRulesAssets)
+    val generatedRoot = generatedSmsCodeRulesAssetsDir.map { it.dir("smscode-rules") }
+    inputs.dir(generatedRoot)
+    doLast {
+        val root = generatedRoot.get().asFile
+        check(root.resolve("meta/rules-index.json").isFile) {
+            "Bundled SMS code rules index is missing from smscode-rules/meta/rules-index.json"
+        }
+        check(root.resolve("rules").isDirectory) {
+            "Bundled SMS code rules directory is missing from smscode-rules/rules"
+        }
+    }
 }
 
 android {
@@ -128,7 +145,7 @@ android {
 }
 
 tasks.named("preBuild") {
-    dependsOn(syncSmsCodeRulesAssets)
+    dependsOn(verifyBundledSmsCodeRules)
 }
 
 tasks.matching { it.name.endsWith("GoogleServices") }.configureEach {
@@ -139,10 +156,12 @@ tasks.matching { it.name.endsWith("GoogleServices") }.configureEach {
 }
 
 dependencies {
+    implementation(project(":policy"))
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(project(":core"))
     implementation(project(":mobile:ui"))
     implementation(project(":relay:android"))
+    implementation(project(":smscode-core:runtime"))
     implementation(project(":smscode-core:verification"))
     implementation(project(":relay:engine"))
 

@@ -1,8 +1,10 @@
 package io.github.magisk317.relay.platform.ipc
 
+import io.github.magisk317.smscode.runtime.contract.ipc.IpcTokenMatcher
+
 object CustomMessageReceiverPolicy {
     fun isTokenAccepted(receivedToken: String?, expectedToken: String): Boolean {
-        return expectedToken.isNotBlank() && receivedToken == expectedToken
+        return IpcTokenMatcher.matches(expectedToken, receivedToken)
     }
 
     fun normalizeTargetSenderIds(targetSenderIds: LongArray?): List<Long>? {

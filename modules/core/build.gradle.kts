@@ -68,6 +68,7 @@ androidComponents {
 }
 
 dependencies {
+    implementation(project(":policy"))
     implementation(project(":runtime"))
     implementation(project(":relay:engine:api"))
     implementation(project(":relay:android"))
@@ -77,7 +78,6 @@ dependencies {
     implementation(project(":smscode-core:runtime"))
     implementation(project(":smscode-core:verification"))
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.browser)
     implementation(libs.androidx.room.runtime)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.retrofit)

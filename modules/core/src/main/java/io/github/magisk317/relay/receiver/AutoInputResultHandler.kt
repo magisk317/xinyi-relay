@@ -2,14 +2,12 @@ package io.github.magisk317.relay.receiver
 
 import android.content.Context
 import android.content.Intent
+import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.analytics.AnalyticsTracker
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
-import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
-import io.github.magisk317.relay.security.IpcTokenGate
-import io.github.magisk317.smscode.runtime.contract.autoinput.AutoInputBroadcastContract
-import io.github.magisk317.smscode.runtime.contract.autoinput.AutoInputResultBroadcastContract
+import io.github.magisk317.smscode.runtime.common.autoinput.AutoInputResultProcessor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -32,38 +30,33 @@ object AutoInputResultHandler {
     }
 
     private suspend fun handleOnWorker(context: Context, intent: Intent) {
+        val deps = RuntimeGraph.from(context)
         val result = when (
-            val receiverResult = AutoInputResultBroadcastContract.readResult(
+            val validation = AutoInputResultProcessor.validate(
                 intent = intent,
                 expectedAction = action,
-            )
+            ) {
+                RuntimeSettingsCache.getString(
+                    key = PrefConst.KEY_IPC_TOKEN,
+                    defaultValue = "",
+                ) { key, defaultValue ->
+                    deps.preferenceDataSource.getString(key, defaultValue)
+                }
+            }
         ) {
-            AutoInputResultBroadcastContract.ReceiverResult.Ignored -> return
-            AutoInputResultBroadcastContract.ReceiverResult.MissingAttemptId -> return
-            is AutoInputResultBroadcastContract.ReceiverResult.Accepted -> receiverResult.result
+            AutoInputResultProcessor.ValidationResult.Ignored -> return
+            AutoInputResultProcessor.ValidationResult.MissingAttemptId -> return
+            is AutoInputResultProcessor.ValidationResult.RejectedToken -> {
+                XLog.w(
+                    "Diag AutoInputResultReceiver rejected token: expectedEmpty=%s receivedEmpty=%s",
+                    validation.expectedTokenEmpty,
+                    validation.receivedTokenEmpty,
+                )
+                return
+            }
+            is AutoInputResultProcessor.ValidationResult.Accepted -> validation.result
         }
         val attemptId = result.attemptId
-        val deps = RuntimeGraph.from(context)
-        val expectedToken = RuntimeSettingsCache.getString(
-            key = PrefConst.KEY_IPC_TOKEN,
-            defaultValue = "",
-        ) { key, defaultValue ->
-            deps.preferenceDataSource.getString(key, defaultValue)
-        }
-        val receivedToken = intent.getStringExtra(AutoInputBroadcastContract.EXTRA_IPC_TOKEN)
-        val tokenDecision = IpcTokenGate.evaluate(
-            expectedToken = expectedToken,
-            receivedToken = receivedToken,
-        )
-        if (!tokenDecision.accepted) {
-            XLog.w(
-                "Diag AutoInputResultReceiver rejected token: attemptId=%d expectedEmpty=%s receivedEmpty=%s",
-                attemptId,
-                expectedToken.isBlank(),
-                receivedToken.isNullOrBlank(),
-            )
-            return
-        }
         val success = result.success
         val reason = result.reason
         XLog.w(
@@ -84,18 +77,35 @@ object AutoInputResultHandler {
         }
 
         runCatching {
-            val runtimeRecordFacade = RuntimeGraph.from(context).runtimeRecordFacade
-            val updatedRows = runtimeRecordFacade.updateAutoInputResult(attemptId, success, reason)
-            if (updatedRows <= 0) {
-                val upserted = runCatching {
-                    runtimeRecordFacade.upsertAutoInputResult(attemptId, success, reason)
-                }.onFailure { error ->
-                    XLog.w(
-                        "AutoInput result upsert failed: %s",
-                        error.message ?: error.javaClass.simpleName,
+            val runtimeRecordFacade = deps.runtimeRecordFacade
+            when (
+                AutoInputResultProcessor.persist(
+                    result = result,
+                    update = {
+                        runtimeRecordFacade.updateAutoInputResult(
+                            it.attemptId,
+                            it.success,
+                            it.reason,
+                        ).toLong()
+                    },
+                    upsert = {
+                        runtimeRecordFacade.upsertAutoInputResult(
+                            it.attemptId,
+                            it.success,
+                            it.reason,
+                        )
+                    },
+                )
+            ) {
+                AutoInputResultProcessor.PersistenceOutcome.UPDATED -> Unit
+                AutoInputResultProcessor.PersistenceOutcome.UPSERTED -> {
+                    XLog.i(
+                        "Diag AutoInputResultReceiver recovered stale result via upsert: attemptId=%d success=%s",
+                        attemptId,
+                        success,
                     )
-                }.getOrDefault(0L)
-                if (upserted <= 0L) {
+                }
+                AutoInputResultProcessor.PersistenceOutcome.STALE -> {
                     XLog.w(
                         "Diag AutoInputResultReceiver skipped stale result: attemptId=%d success=%s reason=%s",
                         attemptId,
@@ -104,11 +114,6 @@ object AutoInputResultHandler {
                     )
                     return@runCatching
                 }
-                XLog.i(
-                    "Diag AutoInputResultReceiver recovered stale result via upsert: attemptId=%d success=%s",
-                    attemptId,
-                    success,
-                )
             }
             if (success) {
                 AnalyticsTracker.logEvent("auto_input_success")

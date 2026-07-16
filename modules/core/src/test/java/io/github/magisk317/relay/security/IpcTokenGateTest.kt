@@ -6,42 +6,22 @@ import org.junit.jupiter.api.Test
 
 class IpcTokenGateTest {
     @Test
-    fun evaluate_acceptsMatchingInitializedToken() {
-        val decision = IpcTokenGate.evaluate(expectedToken = "token", receivedToken = "token")
-
-        assertTrue(decision.accepted)
-        assertTrue(decision.tokenMatched)
-        assertFalse(decision.compatBypassUsed)
+    fun isAccepted_acceptsMatchingInitializedToken() {
+        assertTrue(IpcTokenGate.isAccepted(expectedToken = "token", receivedToken = "token"))
     }
 
     @Test
-    fun evaluate_rejectsMismatchedInitializedToken() {
-        val decision = IpcTokenGate.evaluate(expectedToken = "token", receivedToken = "other")
-
-        assertFalse(decision.accepted)
-        assertFalse(decision.tokenMatched)
-        assertFalse(decision.compatBypassUsed)
+    fun isAccepted_rejectsMismatchedInitializedToken() {
+        assertFalse(IpcTokenGate.isAccepted(expectedToken = "token", receivedToken = "other"))
     }
 
     @Test
-    fun evaluate_rejectsEmptyExpectedTokenByDefault() {
-        val decision = IpcTokenGate.evaluate(expectedToken = "", receivedToken = null)
-
-        assertFalse(decision.accepted)
-        assertFalse(decision.tokenMatched)
-        assertFalse(decision.compatBypassUsed)
+    fun isAccepted_rejectsEmptyExpectedToken() {
+        assertFalse(IpcTokenGate.isAccepted(expectedToken = "", receivedToken = null))
     }
 
     @Test
-    fun evaluate_acceptsEmptyExpectedTokenOnlyWhenCompatBypassExplicitlyAllowed() {
-        val decision = IpcTokenGate.evaluate(
-            expectedToken = "",
-            receivedToken = null,
-            allowEmptyExpectedTokenBypass = true,
-        )
-
-        assertTrue(decision.accepted)
-        assertFalse(decision.tokenMatched)
-        assertTrue(decision.compatBypassUsed)
+    fun isAccepted_rejectsBlankTokens() {
+        assertFalse(IpcTokenGate.isAccepted(expectedToken = " ", receivedToken = " "))
     }
 }

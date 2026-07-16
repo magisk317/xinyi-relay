@@ -1,77 +1,17 @@
 package io.github.magisk317.relay.platform.ipc
 
-import android.os.Build
 import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.smscode.domain.utils.CodeRecordSimilarityUtils
 import io.github.magisk317.smscode.runtime.contract.sim.SmsRoutingMetadata
 
 object ForwardReceiverPolicy {
     const val API_LEVEL_34 = 34
-    const val SYSTEM_UID = 1000
-    const val PHONE_UID = 1001
     private const val NOTIFY_DEDUP_WINDOW_MS = 10_000L
     private const val NMS_HOOK_SUPPRESS_TTL_MS = 30_000L
     private const val SMS_HOOK_SUCCESS_SUPPRESS_TTL_MS = 120_000L
     private const val SMS_HOOK_FORWARDED_SUPPRESS_TTL_MS = 30_000L
     private const val SYSTEM_SUMMARY_CODE_ONLY_WINDOW_MS = 20_000L
     private const val NOTIFY_DEDUP_MAX_ENTRIES = 256
-
-    fun shouldAllowSystemTokenBypass(
-        msgType: String,
-        forwardSource: String,
-        sentFromUid: Int?,
-        sdkInt: Int = Build.VERSION.SDK_INT,
-    ): Boolean = when {
-        (
-            msgType == ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY ||
-                msgType == ForwardBroadcastContract.MSG_TYPE_CALL_NOTIFY
-            ) && forwardSource == ForwardBroadcastContract.SOURCE_NMS_HOOK -> {
-            sentFromUid == SYSTEM_UID ||
-                sentFromUid == -1 ||
-                (sdkInt < API_LEVEL_34 && sentFromUid == null)
-        }
-        msgType == ForwardBroadcastContract.MSG_TYPE_SMS &&
-            forwardSource == ForwardBroadcastContract.SOURCE_SMS_HOOK -> {
-            sentFromUid == SYSTEM_UID ||
-                sentFromUid == PHONE_UID ||
-                sentFromUid == -1 ||
-                (sdkInt < API_LEVEL_34 && sentFromUid == null)
-        }
-        msgType == ForwardBroadcastContract.MSG_TYPE_BLACKLIST_HIT &&
-            forwardSource == ForwardBroadcastContract.SOURCE_SMS_HOOK -> {
-            sentFromUid == SYSTEM_UID ||
-                sentFromUid == PHONE_UID ||
-                sentFromUid == -1 ||
-                (sdkInt < API_LEVEL_34 && sentFromUid == null)
-        }
-        else -> false
-    }
-
-    fun shouldAllowCompatTokenBypass(
-        expectedToken: String,
-        msgType: String,
-        forwardSource: String,
-        sentFromUid: Int?,
-        sdkInt: Int = Build.VERSION.SDK_INT,
-    ): Boolean {
-        return expectedToken.isBlank() &&
-            shouldAllowSystemTokenBypass(
-                msgType = msgType,
-                forwardSource = forwardSource,
-                sentFromUid = sentFromUid,
-                sdkInt = sdkInt,
-            )
-    }
-
-    fun shouldAllowSmsHookTokenBypass(
-        sentFromUid: Int?,
-        sdkInt: Int = Build.VERSION.SDK_INT,
-    ): Boolean {
-        return sentFromUid == SYSTEM_UID ||
-            sentFromUid == PHONE_UID ||
-            sentFromUid == -1 ||
-            (sdkInt < API_LEVEL_34 && sentFromUid == null)
-    }
 
     fun resolveSimSlot(
         rawSlot: Int?,

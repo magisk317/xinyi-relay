@@ -58,8 +58,8 @@ object ForwardBroadcastDispatcher {
     fun dispatchFromSmsHook(
         context: Context,
         payload: ForwardBroadcastPayload,
-        sentFromUid: Int?,
-        sdkInt: Int = android.os.Build.VERSION.SDK_INT,
+        @Suppress("UNUSED_PARAMETER") sentFromUid: Int?,
+        @Suppress("UNUSED_PARAMETER") sdkInt: Int = android.os.Build.VERSION.SDK_INT,
         tokenResolver: (Context) -> String = PrefsReader::getIpcToken,
         dispatchBlock: (String?) -> Unit = { resolvedToken ->
             dispatch(
@@ -71,12 +71,7 @@ object ForwardBroadcastDispatcher {
     ): SmsHookDispatchResult {
         val token = tokenResolver(context)
         val tokenPresent = token.isNotBlank()
-        val bypassUsed = !tokenPresent &&
-            ForwardReceiverPolicy.shouldAllowSmsHookTokenBypass(
-                sentFromUid = sentFromUid,
-                sdkInt = sdkInt,
-            )
-        if (!tokenPresent && !bypassUsed) {
+        if (!tokenPresent) {
             return SmsHookDispatchResult(
                 dispatched = false,
                 tokenPresent = false,
@@ -87,7 +82,7 @@ object ForwardBroadcastDispatcher {
         return SmsHookDispatchResult(
             dispatched = true,
             tokenPresent = tokenPresent,
-            bypassUsed = bypassUsed,
+            bypassUsed = false,
         )
     }
 

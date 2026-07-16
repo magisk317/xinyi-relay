@@ -17,6 +17,7 @@ import io.github.magisk317.relay.contract.remote.DeviceConfigCommandResponse
 import io.github.magisk317.relay.contract.remote.DeviceConfigStateResponse
 import io.github.magisk317.relay.contract.remote.HeartbeatRequest
 import io.github.magisk317.relay.contract.remote.RelayRecordsBatchRequest
+import io.github.magisk317.relay.contract.remote.RelayRecordWire
 import io.github.magisk317.relay.contract.repository.LocalConfigRepository
 import io.github.magisk317.relay.android.data.secret.InternalSecretStore
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
@@ -40,6 +41,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -73,8 +75,82 @@ class RemoteAgentRepositoryTest {
         coVerify { preferences.setString(RelayPrefConst.KEY_REMOTE_AGENT_DEVICE_ID, "0") }
         coVerify { preferences.setString(RelayPrefConst.KEY_REMOTE_AGENT_DEVICE_APP_INFOS, "") }
         coVerify { preferences.setString(RelayPrefConst.KEY_REMOTE_AGENT_LAST_APP_CATALOG_DIGEST, "") }
+        coVerify { preferences.setString(RelayPrefConst.KEY_REMOTE_AGENT_LAST_RECORD_SNAPSHOT_DIGEST, "") }
         coVerify { InternalSecretStore.putString(context, RelayPrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, "") }
         coVerify { HookPreferenceMirror.publish(context) }
+    }
+
+    @Test
+    fun `record snapshot digest is stable and includes record content`() {
+        val base = RelayRecordWire(
+            eventId = "local-record-1",
+            recordType = "sms_code",
+            sender = "10086",
+            body = "code 123456",
+            smsCode = "123456",
+            packageName = "com.android.mms",
+            msgType = 0,
+            callType = 0,
+            occurredAt = "2026-07-16T00:00:00Z",
+            metadata = JsonObject(emptyMap()),
+        )
+
+        assertEquals(computeRecordSnapshotDigest(listOf(base)), computeRecordSnapshotDigest(listOf(base)))
+        assertFalse(
+            computeRecordSnapshotDigest(listOf(base)) ==
+                computeRecordSnapshotDigest(listOf(base.copy(body = "code 654321"))),
+        )
+        assertFalse(computeRecordSnapshotDigest(emptyList()) == computeRecordSnapshotDigest(listOf(base)))
+    }
+
+    @Test
+    fun `record snapshot rejects an oversized set instead of truncating a replace`() {
+        val record = RelayRecordWire(
+            eventId = "local-record-1",
+            recordType = "sms_plain",
+            sender = "sender",
+            body = "body",
+            smsCode = "",
+            packageName = "",
+            msgType = 0,
+            callType = 0,
+            occurredAt = "2026-07-16T00:00:00Z",
+            metadata = JsonObject(emptyMap()),
+        )
+
+        val error = assertThrows<IllegalArgumentException> {
+            computeRecordSnapshotDigest(List(201) { index -> record.copy(eventId = "local-record-$index") })
+        }
+        assertTrue(error.message.orEmpty().contains("nothing uploaded"))
+    }
+
+    @Test
+    fun `record snapshot rejects an oversized payload before networking`() {
+        val record = RelayRecordWire(
+            eventId = "local-record-1",
+            recordType = "sms_plain",
+            sender = "sender",
+            body = "x".repeat(8 * 1024 * 1024),
+            smsCode = "",
+            packageName = "",
+            msgType = 0,
+            callType = 0,
+            occurredAt = "2026-07-16T00:00:00Z",
+            metadata = JsonObject(emptyMap()),
+        )
+
+        val error = assertThrows<IllegalArgumentException> {
+            computeRecordSnapshotDigest(listOf(record))
+        }
+        assertTrue(error.message.orEmpty().contains("nothing uploaded"))
+    }
+
+    @Test
+    fun `record upload uses caller window and caps oversized requests`() {
+        assertEquals(100, normalizeRecordSnapshotLimit(100))
+        assertEquals(200, normalizeRecordSnapshotLimit(200))
+        assertEquals(200, normalizeRecordSnapshotLimit(500))
+        assertThrows<IllegalArgumentException> { normalizeRecordSnapshotLimit(0) }
     }
 
     @Test

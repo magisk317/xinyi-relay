@@ -3,9 +3,8 @@
 
     <application>
         <!-- IPC: receives forwarded message payloads from trusted relay ingress bridges.
-             Must be exported=true because compatibility ingress can run under another UID.
-             Security: intent.setPackage(packageName) in ForwardAction ensures only this module
-             receives the broadcast; no external app can deliver to this receiver via explicit package targeting. -->
+             Must be exported=true because ingress can run under another UID. Explicit targeting
+             does not authenticate the sender, so the receiver validates its action and IPC token. -->
         <receiver
             android:name="io.github.magisk317.relay.platform.ipc.ForwardReceiver"
             android:exported="true">
