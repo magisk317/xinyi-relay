@@ -86,6 +86,7 @@ include(
     ":hook:entry",
     ":runtime",
     ":core",
+    ":policy",
     ":mobile:ui",
     ":mobile:feature:common",
     ":mobile:feature:overview",
@@ -102,6 +103,7 @@ include(
     ":relay:android",
     ":relay:sender:api",
     ":relay:sender",
+    ":relay:matrix-e2ee",
     ":relay:contract",
     ":relay:net",
     ":relay:engine",
@@ -115,6 +117,8 @@ include(
     ":smscode-core:verification",
     ":magisk-ui-kit",
     ":magisk-xposed-kit",
+    ":magisk-xposed-kit:logging",
+    ":magisk-xposed-kit:diagnostics",
     ":features:matrix_e2ee",
 )
 
@@ -126,13 +130,17 @@ project(":smscode-core:contract").projectDir = file("smscode/core/contract")
 project(":smscode-core:runtime").projectDir = file("smscode/core/runtime")
 project(":smscode-core:verification").projectDir = file("smscode/core/verification")
 project(":smscode-core").projectDir = file("smscode/core")
+project(":magisk-xposed-kit:logging").projectDir = file("magisk-xposed-kit/logging")
+project(":magisk-xposed-kit:diagnostics").projectDir = file("magisk-xposed-kit/diagnostics")
 
 // Explicitly remap moved android libraries physical paths to 'modules/'
 project(":core").projectDir = file("modules/core")
+project(":policy").projectDir = file("modules/policy")
 project(":hook:entry").projectDir = file("modules/hook/entry")
 project(":relay:android").projectDir = file("modules/relay/android")
 project(":relay:sender:api").projectDir = file("modules/relay/sender/api")
 project(":relay:sender").projectDir = file("modules/relay/sender")
+project(":relay:matrix-e2ee").projectDir = file("modules/relay/matrix-e2ee")
 project(":relay:contract").projectDir = file("modules/relay/contract")
 project(":relay:net").projectDir = file("modules/relay/net")
 project(":relay:engine").projectDir = file("modules/relay/engine")

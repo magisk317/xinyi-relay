@@ -13,7 +13,11 @@ MOBILE_SOURCE_DIRS=("$ROOT_DIR/mobile" "$ROOT_DIR/modules/relay/android/src" "$R
 RUNTIME_BUILD="$ROOT_DIR/modules/runtime/build.gradle.kts"
 RUNTIME_SRC="$ROOT_DIR/modules/runtime/src"
 RELAY_ANDROID_BUILD="$ROOT_DIR/modules/relay/android/build.gradle.kts"
+RELAY_MATRIX_E2EE_BUILD="$ROOT_DIR/modules/relay/matrix-e2ee/build.gradle.kts"
 RELAY_SENDER_BUILD="$ROOT_DIR/modules/relay/sender/build.gradle.kts"
+RELAY_SENDER_SRC="$ROOT_DIR/modules/relay/sender/src"
+MATRIX_FEATURE_BUILD="$ROOT_DIR/features/matrix-e2ee/build.gradle.kts"
+MATRIX_FEATURE_SRC="$ROOT_DIR/features/matrix-e2ee/src"
 XPBRIDGE_CORE_BUILD="$ROOT_DIR/modules/xpbridge/core/build.gradle.kts"
 VERSION_CATALOG="$ROOT_DIR/gradle/libs.versions.toml"
 
@@ -180,6 +184,22 @@ require_pattern "$RELAY_SENDER_BUILD" 'implementation\(project\(":relay:engine:a
   "relay/sender must depend on :relay:engine:api for engine contracts"
 require_pattern "$RELAY_SENDER_BUILD" 'implementation\(project\(":relay:net"\)\)' \
   "relay/sender must depend on :relay:net for shared HTTP helpers"
+require_pattern "$RELAY_SENDER_BUILD" 'add\("githubWithE2eeImplementation", project\(":relay:matrix-e2ee"\)\)' \
+  "relay/sender must consume the product-owned Matrix E2EE module only in githubWithE2ee"
+require_pattern "$MATRIX_FEATURE_BUILD" 'implementation\(project\(":relay:matrix-e2ee"\)\)' \
+  "the Matrix dynamic feature must consume the product-owned Matrix E2EE implementation"
+forbid_pattern "$RELAY_MATRIX_E2EE_BUILD" 'project\(":relay:sender"\)' \
+  "relay/matrix-e2ee must use sender host ports and must not depend on relay/sender implementation"
+forbid_pattern "$RELAY_MATRIX_E2EE_BUILD" 'project\(":app"\)|project\(":features:matrix_e2ee"\)' \
+  "relay/matrix-e2ee must remain independent from app and dynamic-feature entrypoints"
+forbid_pattern "$RELAY_SENDER_SRC" '^\s*import\s+org\.matrix\.rustcomponents\.sdk\.' \
+  "relay/sender entrypoints must not reintroduce Matrix SDK implementation code"
+forbid_pattern "$MATRIX_FEATURE_SRC" '^\s*import\s+org\.matrix\.rustcomponents\.sdk\.' \
+  "the Matrix dynamic feature must remain a thin bridge to relay/matrix-e2ee"
+forbid_pattern "$RELAY_SENDER_BUILD" 'libs\.matrix\.sdk\.android|rustls-platform-verifier' \
+  "relay/sender must not declare Matrix SDK dependencies outside relay/matrix-e2ee"
+forbid_pattern "$MATRIX_FEATURE_BUILD" 'libs\.matrix\.sdk\.android|rustls-platform-verifier' \
+  "the Matrix dynamic feature must not duplicate relay/matrix-e2ee SDK dependencies"
 
 require_pattern "$RUNTIME_BUILD" 'implementation\(project\(":smscode-core:domain"\)\)' \
   "runtime must depend on :smscode-core:domain"
