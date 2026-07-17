@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.platform.ipc
 
 import android.content.Intent
+import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import java.util.UUID
 import kotlin.math.abs
@@ -15,6 +16,8 @@ object ForwardPayloadFactory {
     private const val EXTRA_MMS_TRANSACTION_ID_CAMEL = "transactionId"
     private const val EXTRA_MMS_DATA = "data"
     private const val MMS_SENDER_FALLBACK = "MMS"
+    private const val MMS_PDU_UNAVAILABLE_FALLBACK = "MMS received (PDU data unavailable)"
+    private const val MMS_METADATA_UNAVAILABLE_FALLBACK = "MMS received (PDU metadata unavailable)"
     private const val EVENT_ID_HASH_RADIX = 36
 
     fun ensureSmsEventId(intent: Intent): String {
@@ -71,7 +74,9 @@ object ForwardPayloadFactory {
     fun mmsPayload(intent: Intent, receivedAt: Long = System.currentTimeMillis()): ForwardBroadcastPayload {
         val rawPdu = intent.getByteArrayExtra(EXTRA_MMS_DATA)
         val rawPduHash = rawPdu?.takeIf { it.isNotEmpty() }?.contentHashCode()?.toString(EVENT_ID_HASH_RADIX)
-        val parsedMms = parseMmsPdu(rawPdu)
+        val parseResult = rawPdu?.takeIf { it.isNotEmpty() }?.let(MmsNotificationPduParser::parse)
+        val parsedMms = (parseResult as? MmsNotificationPduParser.Result.Parsed)?.metadata
+        logMmsParseDiagnostics(parseResult)
         val sender = intent.firstNonBlankStringExtra(
             EXTRA_MMS_FROM,
             EXTRA_MMS_ADDRESS,
@@ -86,20 +91,24 @@ object ForwardPayloadFactory {
             EXTRA_MMS_TRANSACTION_ID,
             EXTRA_MMS_TRANSACTION_ID_CAMEL,
         ) ?: parsedMms?.transactionId
-        val body = (listOfNotNull(subject) + (parsedMms?.textParts ?: emptyList()) + listOfNotNull(
+        val body = (listOfNotNull(subject) + listOfNotNull(
             contentLocation,
             transactionId,
         ))
             .takeIf { it.isNotEmpty() }
             ?.joinToString(separator = "\n")
-            ?: "MMS received"
+            ?: if (rawPdu == null || rawPdu.isEmpty()) {
+                MMS_PDU_UNAVAILABLE_FALLBACK
+            } else {
+                MMS_METADATA_UNAVAILABLE_FALLBACK
+            }
         val stableEventParts = listOfNotNull(
             sender.takeUnless { it == MMS_SENDER_FALLBACK },
             subject,
             contentLocation,
             transactionId,
             rawPduHash,
-        ) + parsedMms?.textParts.orEmpty()
+        )
         val eventId = stableMmsEventId(stableEventParts, fallbackSeed = receivedAt.toString())
         return ForwardBroadcastPayload(
             sender = sender,
@@ -115,26 +124,31 @@ object ForwardPayloadFactory {
         ).withSimRoutingFrom(intent)
     }
 
-    private data class ParsedMms(
-        val sender: String?,
-        val subject: String?,
-        val contentLocation: String?,
-        val transactionId: String?,
-        val textParts: List<String>,
-    )
-
-    private fun parseMmsPdu(data: ByteArray?): ParsedMms? {
-        if (data == null || data.isEmpty()) return null
-        return runCatching {
-            val pdu = parseGenericPdu(data) ?: return null
-            ParsedMms(
-                sender = callNoArg(pdu, "getFrom").asMmsString(),
-                subject = callNoArg(pdu, "getSubject").asMmsString(),
-                contentLocation = callNoArg(pdu, "getContentLocation").asMmsString(),
-                transactionId = callNoArg(pdu, "getTransactionId").asMmsString(),
-                textParts = extractMmsTextParts(callNoArg(pdu, "getBody")),
+    private fun logMmsParseDiagnostics(result: MmsNotificationPduParser.Result?) {
+        when (result) {
+            is MmsNotificationPduParser.Result.Parsed -> {
+                if (!result.isComplete || result.warnings.isNotEmpty()) {
+                    val missing = result.missingMandatoryHeaders.joinToString(",") { it.wireName }
+                        .ifEmpty { "none" }
+                    val warnings = result.warnings.joinToString(",") { it.name.lowercase() }
+                        .ifEmpty { "none" }
+                    XLog.w(
+                        "Standard MMS PDU parsed with diagnostics: missing=%s warnings=%s",
+                        missing,
+                        warnings,
+                    )
+                }
+            }
+            is MmsNotificationPduParser.Result.Unsupported -> XLog.w(
+                "Standard MMS PDU type unsupported: messageType=0x%s; using intent metadata or safe fallback",
+                result.messageType.toString(16),
             )
-        }.getOrNull()
+            is MmsNotificationPduParser.Result.Malformed -> XLog.w(
+                "Standard MMS PDU malformed: reason=%s; using intent metadata or safe fallback",
+                result.reason.name.lowercase(),
+            )
+            null -> Unit
+        }
     }
 
     private fun stableMmsEventId(stableParts: List<String>, fallbackSeed: String): String {
@@ -167,45 +181,6 @@ object ForwardPayloadFactory {
         val pduHashes = rawPdus.mapNotNull { (it as? ByteArray)?.contentHashCode()?.toString(EVENT_ID_HASH_RADIX) }
         if (pduHashes.isEmpty() || pduHashes.size != rawPdus.size) return null
         return pduHashes.joinToString(separator = "_")
-    }
-
-    private fun parseGenericPdu(data: ByteArray): Any? {
-        val parserClass = Class.forName("com.google.android.mms.pdu.PduParser")
-        val parser = runCatching {
-            parserClass
-                .getConstructor(ByteArray::class.java, Boolean::class.javaPrimitiveType!!)
-                .newInstance(data, true)
-        }.getOrElse {
-            parserClass.getConstructor(ByteArray::class.java).newInstance(data)
-        }
-        return parserClass.getMethod("parse").invoke(parser)
-    }
-
-    private fun extractMmsTextParts(body: Any?): List<String> {
-        if (body == null) return emptyList()
-        val partCount = callNoArg(body, "getPartsNum") as? Int ?: return emptyList()
-        val getPart = runCatching {
-            body.javaClass.getMethod("getPart", Int::class.javaPrimitiveType!!)
-        }.getOrNull() ?: return emptyList()
-        return (0 until partCount).mapNotNull { index ->
-            val part = runCatching { getPart.invoke(body, index) }.getOrNull() ?: return@mapNotNull null
-            val contentType = callNoArg(part, "getContentType").asMmsString()
-            if (contentType?.startsWith("text/", ignoreCase = true) != true) return@mapNotNull null
-            callNoArg(part, "getData").asMmsString()
-        }
-    }
-
-    private fun callNoArg(target: Any, methodName: String): Any? {
-        return runCatching {
-            target.javaClass.getMethod(methodName).invoke(target)
-        }.getOrNull()
-    }
-
-    private fun Any?.asMmsString(): String? = when (this) {
-        null -> null
-        is String -> trim().ifBlank { null }
-        is ByteArray -> toString(Charsets.UTF_8).trim().trim('\u0000').ifBlank { null }
-        else -> callNoArg(this, "getString").asMmsString()
     }
 
     private fun Intent.firstNonBlankStringExtra(vararg names: String): String? {

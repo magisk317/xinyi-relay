@@ -129,8 +129,21 @@ class ForwardPayloadFactoryTest {
         val payload = ForwardPayloadFactory.mmsPayload(sourceIntent, receivedAt = 456L)
 
         assertEquals("MMS", payload.sender)
-        assertEquals("MMS received", payload.body)
+        assertEquals("MMS received (PDU metadata unavailable)", payload.body)
         assertEquals(456L, payload.date)
+        assertTrue(payload.eventId.startsWith("mms_"))
+    }
+
+    @Test
+    fun mmsPayload_decodesNotificationPduInsideOrdinaryAppProcess() {
+        val sourceIntent = relaxedIntent()
+        sourceIntent.stubByteArrayExtra("data", mmsNotificationPduFixture())
+
+        val payload = ForwardPayloadFactory.mmsPayload(sourceIntent, receivedAt = 789L)
+
+        assertEquals("15551234", payload.sender)
+        assertEquals("你好\nhttp://mmsc.test/m/42\ntx-123", payload.body)
+        assertEquals(789L, payload.date)
         assertTrue(payload.eventId.startsWith("mms_"))
     }
 
