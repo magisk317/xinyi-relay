@@ -19,7 +19,9 @@ import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.relay.platform.ipc.CallIngressAdapter
 import io.github.magisk317.relay.platform.ipc.ForwardBroadcastDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
@@ -46,6 +48,8 @@ object CallStateMonitor {
     private var callStartedAt: Long = 0L
     private var legacyListener: Any? = null
     private var telephonyCallback: TelephonyCallback? = null
+    @Volatile
+    private var pendingEndedCallJob: Job? = null
 
     fun init(context: Context) {
         appContext = context.applicationContext
@@ -100,6 +104,7 @@ object CallStateMonitor {
     }
 
     private fun stop(reason: String) {
+        cancelPendingEndedCall("monitor_$reason")
         val context = appContext ?: return
         if (!started) return
         val manager = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager? ?: return
@@ -117,6 +122,7 @@ object CallStateMonitor {
     private fun handleCallState(context: Context, state: Int, phoneNumber: String?) {
         when (state) {
             TelephonyManager.CALL_STATE_RINGING -> {
+                cancelPendingEndedCall("new_ringing_call")
                 val now = System.currentTimeMillis()
                 if (now - lastRingingAt < RINGING_DEDUP_MS) return
                 lastRingingAt = now
@@ -157,6 +163,7 @@ object CallStateMonitor {
                 }
             }
             TelephonyManager.CALL_STATE_OFFHOOK -> {
+                cancelPendingEndedCall("call_offhook")
                 if (lastState == TelephonyManager.CALL_STATE_IDLE) {
                     lastDirection = CALL_TYPE_OUTGOING
                     callStartedAt = System.currentTimeMillis()
@@ -170,35 +177,13 @@ object CallStateMonitor {
                     val sessionStartedAt = if (callStartedAt > 0L) callStartedAt else endedAt
                     val expectedCallType = if (lastDirection == 0) CALL_TYPE_INCOMING else lastDirection
                     val directNumber = lastNumber?.ifBlank { null }
-                    scope.launch {
-                        val (forwardEnabled, _) = loadCallAlertFlags(context)
-                        if (forwardEnabled) {
-                            val callLogRow = CallLogQueryHelper.findRecentCall(
-                                context = context,
-                                expectedCallType = expectedCallType,
-                                sessionStartedAt = sessionStartedAt,
-                                endedAt = endedAt,
-                            )
-                            val recentNumber = CallSessionTracker.findRecentNumber(expectedCallType)
-                            val callLogNumber = callLogRow?.number
-                            val number = directNumber ?: recentNumber ?: callLogNumber
-                            when {
-                                directNumber == null && recentNumber != null ->
-                                    XLog.i("CallStateMonitor recovered call number from recent ingress")
-                                directNumber == null && recentNumber == null && callLogNumber != null ->
-                                    XLog.i("CallStateMonitor recovered call number from CallLog")
-                            }
-                            if (number.isNullOrBlank()) {
-                                XLog.i("CallStateMonitor ended call number unavailable, using fallback title")
-                            }
-                            sendCallBroadcast(
-                                context = context,
-                                stage = "ended",
-                                callType = callLogRow?.callType ?: expectedCallType,
-                                number = number,
-                            )
-                        }
-                    }
+                    scheduleEndedCallDispatch(
+                        context = context,
+                        expectedCallType = expectedCallType,
+                        sessionStartedAt = sessionStartedAt,
+                        endedAt = endedAt,
+                        directNumber = directNumber,
+                    )
                 }
                 lastNumber = null
                 lastDirection = 0
@@ -206,6 +191,69 @@ object CallStateMonitor {
             }
         }
         lastState = state
+    }
+
+    private fun scheduleEndedCallDispatch(
+        context: Context,
+        expectedCallType: Int,
+        sessionStartedAt: Long,
+        endedAt: Long,
+        directNumber: String?,
+    ) {
+        cancelPendingEndedCall("superseded_ended_call")
+        val job = scope.launch(start = CoroutineStart.LAZY) {
+            val (forwardEnabled, _) = loadCallAlertFlags(context)
+            if (!forwardEnabled) return@launch
+
+            val resolution = CallEndResolver.resolve(
+                directNumber = directNumber,
+                expectedCallType = expectedCallType,
+                retryAllowed = CallLogQueryHelper.canReadCallLog(context),
+                recentNumberProvider = {
+                    CallSessionTracker.findRecentNumber(expectedCallType)
+                },
+                callLogProvider = {
+                    CallLogQueryHelper.findRecentCall(
+                        context = context,
+                        expectedCallType = expectedCallType,
+                        sessionStartedAt = sessionStartedAt,
+                        endedAt = endedAt,
+                    )
+                },
+            )
+            when (resolution.source) {
+                CallEndResolutionPolicy.NumberSource.Direct -> Unit
+                CallEndResolutionPolicy.NumberSource.RecentIngress ->
+                    XLog.i("CallStateMonitor recovered call number from recent ingress")
+                CallEndResolutionPolicy.NumberSource.CallLog ->
+                    XLog.i(
+                        "CallStateMonitor recovered call number from CallLog after %d attempt(s)",
+                        resolution.attemptCount,
+                    )
+                CallEndResolutionPolicy.NumberSource.Unavailable ->
+                    XLog.i("CallStateMonitor ended call number unavailable, using fallback title")
+            }
+            sendCallBroadcast(
+                context = context,
+                stage = "ended",
+                callType = resolution.callType,
+                number = resolution.number,
+            )
+        }
+        pendingEndedCallJob = job
+        job.invokeOnCompletion {
+            if (pendingEndedCallJob === job) pendingEndedCallJob = null
+        }
+        job.start()
+    }
+
+    private fun cancelPendingEndedCall(reason: String) {
+        val job = pendingEndedCallJob ?: return
+        pendingEndedCallJob = null
+        if (!job.isCompleted) {
+            job.cancel()
+            XLog.i("CallStateMonitor cancelled pending ended-call lookup reason=%s", reason)
+        }
     }
 
     private suspend fun sendCallBroadcast(

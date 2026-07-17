@@ -27,12 +27,7 @@ internal object CallLogQueryHelper {
         sessionStartedAt: Long,
         endedAt: Long,
     ): RecentCall? {
-        if (
-            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALL_LOG) !=
-            PackageManager.PERMISSION_GRANTED
-        ) {
-            return null
-        }
+        if (!canReadCallLog(context)) return null
 
         val startWindow = (sessionStartedAt - LOOKBACK_BEFORE_START_MS).coerceAtLeast(0L)
         val endWindow = endedAt + LOOKAHEAD_AFTER_END_MS
@@ -41,6 +36,11 @@ internal object CallLogQueryHelper {
         }.onFailure { error ->
             XLog.w("CallLog query failed: %s", error.message ?: error.javaClass.simpleName)
         }.getOrNull()
+    }
+
+    fun canReadCallLog(context: Context): Boolean {
+        return ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALL_LOG) ==
+            PackageManager.PERMISSION_GRANTED
     }
 
     internal fun bestMatch(
