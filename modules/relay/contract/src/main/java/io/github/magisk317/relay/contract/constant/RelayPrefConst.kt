@@ -80,6 +80,7 @@ object RelayPrefConst {
     const val KEY_RELAY_KEYWORDS_REGEX = "pref_relay_keywords_regex"
     const val KEY_RELAY_TEST = "pref_relay_test"
     const val KEY_CODE_RULES = "pref_code_rules"
+    const val KEY_SMS_CODE_RULE_SOURCE_URL = "pref_sms_code_rule_source_url"
 
     // Experimental
     const val KEY_MARK_AS_READ = "pref_mark_as_read"

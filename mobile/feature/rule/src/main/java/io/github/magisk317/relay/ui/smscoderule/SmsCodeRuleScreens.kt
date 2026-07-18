@@ -24,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -62,6 +63,7 @@ import io.github.magisk317.smscode.domain.model.BuiltinSmsCodeRules
 import io.github.magisk317.smscode.runtime.common.rules.OfficialSmsCodeRule
 import io.github.magisk317.smscode.runtime.common.rules.SmsCodeRuleCatalogSnapshot
 import io.github.magisk317.uikit.surface.chromeTopAppBarColors
+import io.github.magisk317.uikit.preference.UrlSourceSettingsScreen
 import org.koin.compose.koinInject
 import java.util.regex.Pattern
 import kotlinx.coroutines.Dispatchers
@@ -93,6 +95,7 @@ fun SmsCodeRuleListScreen(
     onBack: () -> Unit,
     onAddClick: () -> Unit,
     onEditClick: (Long) -> Unit,
+    onSourceSettingsClick: () -> Unit,
 ) {
     val context = LocalContext.current
     val repository: AppConfigRepository = koinInject()
@@ -153,6 +156,12 @@ fun SmsCodeRuleListScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onSourceSettingsClick) {
+                        Icon(
+                            Icons.Filled.Settings,
+                            contentDescription = stringResource(id = R.string.action_rule_source_settings),
+                        )
+                    }
                     IconButton(
                         enabled = !officialLoading,
                         onClick = { loadOfficialRules(refresh = true) },
@@ -260,6 +269,23 @@ fun SmsCodeRuleListScreen(
             }
         }
     }
+}
+
+@Composable
+fun SmsCodeRuleSourceSettingsScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
+    UrlSourceSettingsScreen(
+        title = stringResource(id = R.string.rule_source_settings_title),
+        fieldLabel = stringResource(id = R.string.rule_source_url_label),
+        supportingText = stringResource(id = R.string.rule_source_url_summary),
+        invalidUrlMessage = stringResource(id = R.string.rule_source_url_invalid),
+        savedMessage = stringResource(id = R.string.rule_source_saved),
+        saveFailedMessage = stringResource(id = R.string.rule_source_save_failed),
+        saveContentDescription = stringResource(id = R.string.save),
+        valueFlow = remember(context) { RelaySmsCodeUtils.observeOfficialRuleSourceUrl(context) },
+        onSaveValue = { value -> RelaySmsCodeUtils.saveOfficialRuleSourceUrl(context, value) },
+        onBack = onBack,
+    )
 }
 
 @Composable
