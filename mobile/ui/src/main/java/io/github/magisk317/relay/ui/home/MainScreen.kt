@@ -87,6 +87,7 @@ import io.github.magisk317.relay.ui.nav.SenderTypeRoute
 import io.github.magisk317.relay.ui.nav.SendersRoute
 import io.github.magisk317.relay.ui.nav.SettingsRoute
 import io.github.magisk317.relay.ui.nav.SmsCodeRuleEditorRoute
+import io.github.magisk317.relay.ui.nav.SmsCodeRuleSourceRoute
 import io.github.magisk317.relay.ui.nav.SmsCodeRulesRoute
 import io.github.magisk317.relay.ui.nav.VerificationSettingsRoute
 import io.github.magisk317.relay.ui.record.BlacklistHitListScreen
@@ -219,6 +220,8 @@ fun MainScreen(
                 sectionFromOrigin(entry.toRoute<SmsCodeRulesRoute>().origin)
             destination.hasRoute(SmsCodeRuleEditorRoute::class) ->
                 sectionFromOrigin(entry.toRoute<SmsCodeRuleEditorRoute>().origin)
+            destination.hasRoute(SmsCodeRuleSourceRoute::class) ->
+                sectionFromOrigin(entry.toRoute<SmsCodeRuleSourceRoute>().origin)
             destination.hasRoute(CloudBackupRoute::class) -> NavigationSection.SETTINGS
             destination.hasRoute(GlobalForwardFilterRoute::class) ->
                 sectionFromOrigin(entry.toRoute<GlobalForwardFilterRoute>().origin)
@@ -696,12 +699,20 @@ fun MainScreen(
                                     SmsCodeRuleEditorRoute(id = id, origin = route.origin),
                                 )
                             },
+                            onSourceSettingsClick = {
+                                navController.navigate(SmsCodeRuleSourceRoute(origin = route.origin))
+                            },
                         )
                     }
                     composable<SmsCodeRuleEditorRoute> { backStackEntry ->
                         val route = backStackEntry.toRoute<SmsCodeRuleEditorRoute>()
                         io.github.magisk317.relay.ui.smscoderule.SmsCodeRuleEditorScreen(
                             ruleId = route.id,
+                            onBack = { navController.popBackStack() },
+                        )
+                    }
+                    composable<SmsCodeRuleSourceRoute> {
+                        io.github.magisk317.relay.ui.smscoderule.SmsCodeRuleSourceSettingsScreen(
                             onBack = { navController.popBackStack() },
                         )
                     }

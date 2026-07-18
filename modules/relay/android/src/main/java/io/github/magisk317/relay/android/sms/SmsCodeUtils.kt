@@ -7,7 +7,9 @@ import io.github.magisk317.relay.android.data.db.entity.SmsCodeRule
 import io.github.magisk317.relay.android.data.store.EntityStoreManager
 import io.github.magisk317.relay.android.data.store.EntityType
 import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.android.prefs.PrefsReader
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.smscode.domain.model.SmsCodeParseResult
 import io.github.magisk317.smscode.domain.model.SmsCodeParseSource
 import io.github.magisk317.smscode.domain.model.SmsCodeRuleSpec
@@ -15,10 +17,12 @@ import io.github.magisk317.smscode.runtime.common.rules.SmsCodeRuleCatalogRefres
 import io.github.magisk317.smscode.runtime.common.rules.SmsCodeRuleCatalogRepository
 import io.github.magisk317.smscode.runtime.common.rules.SmsCodeRuleCatalogSnapshot
 import io.github.magisk317.smscode.runtime.common.rules.SmsCodeRuleMerger
+import io.github.magisk317.smscode.runtime.common.rules.SmsCodeRuleRemoteSource
 import io.github.magisk317.smscode.runtime.common.sms.RuntimeSmsCodeAdapter
 import io.github.magisk317.smscode.runtime.common.sms.SmsCodeRuleProvider
 import io.github.magisk317.smscode.runtime.common.sms.SmsKeywordProvider
 import io.github.magisk317.smscode.runtime.common.sms.SmsPackageLabelResolver
+import kotlinx.coroutines.flow.Flow
 
 object SmsCodeUtils {
     private const val COLUMN_COMPANY = "company"
@@ -76,6 +80,23 @@ object SmsCodeUtils {
                 XLog.w("Refresh official SmsCode rules failed: %s", result.errorMessage ?: "unknown")
             }
         }
+    }
+
+    fun observeOfficialRuleSourceUrl(context: Context): Flow<String> =
+        AppPreferencesDataStore.getStringFlow(
+            context,
+            PrefConst.KEY_SMS_CODE_RULE_SOURCE_URL,
+            "",
+        )
+
+    suspend fun saveOfficialRuleSourceUrl(context: Context, value: String): String {
+        val normalized = SmsCodeRuleRemoteSource.normalizeCustomBaseUrl(value).orEmpty()
+        AppPreferencesDataStore.setString(
+            context,
+            PrefConst.KEY_SMS_CODE_RULE_SOURCE_URL,
+            normalized,
+        )
+        return normalized
     }
 
     private fun resolvePackageNameByLabel(context: Context, label: String): String? {
@@ -184,10 +205,16 @@ object SmsCodeUtils {
         )
     }
 
-    private fun catalogRepository(context: Context): SmsCodeRuleCatalogRepository {
+    private suspend fun catalogRepository(context: Context): SmsCodeRuleCatalogRepository {
         val appContext = context.applicationContext ?: context
+        val customBaseUrl = AppPreferencesDataStore.getString(
+            appContext,
+            PrefConst.KEY_SMS_CODE_RULE_SOURCE_URL,
+            "",
+        )
         return SmsCodeRuleCatalogRepository(
             context = appContext,
+            remote = SmsCodeRuleRemoteSource(customBaseUrl = customBaseUrl),
             userAgent = "XinyiRelay/SmsCodeRules",
         )
     }
