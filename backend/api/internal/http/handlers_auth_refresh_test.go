@@ -14,10 +14,10 @@ import (
 
 type refreshReplayStore struct {
 	panicStore
-	session          store.DesktopSession
-	expectedOldHash  string
-	rotateErr        error
-	revokeCalls      int
+	session         store.DesktopSession
+	expectedOldHash string
+	rotateErr       error
+	revokeCalls     int
 }
 
 func (s *refreshReplayStore) GetDesktopSessionByRefreshTokenHash(
