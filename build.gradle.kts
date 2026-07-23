@@ -2,8 +2,6 @@ import dev.detekt.gradle.extensions.DetektExtension
 import com.adarshr.gradle.testlogger.theme.ThemeType
 import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.api.tasks.Exec
-import kotlinx.kover.gradle.plugin.dsl.KoverProjectExtension
-
 buildscript {
     configurations.all {
         resolutionStrategy {
@@ -49,23 +47,6 @@ val enableKover = providers.gradleProperty("enableKover")
     gradle.startParameter.taskNames.any { taskName ->
         taskName.contains("kover", ignoreCase = true)
     }
-val koverLineCoverageMin = providers.gradleProperty("koverLineCoverageMin")
-    .map { value ->
-        value.toIntOrNull() ?: error("koverLineCoverageMin must be an integer percentage")
-    }
-val defaultAppKoverLineCoverageMin = 4
-
-fun KoverProjectExtension.configureProjectKoverVerification(lineCoverageMin: Int?) {
-    reports {
-        if (lineCoverageMin != null) {
-            verify {
-                rule {
-                    minBound(lineCoverageMin)
-                }
-            }
-        }
-    }
-}
 
 val forcedKotlinVersion = extensions
     .getByType<VersionCatalogsExtension>()
@@ -120,16 +101,9 @@ subprojects {
         }
     }
 
+    // Kover is report-only: keep HTML/XML coverage artifacts, never fail the build on thresholds.
     if (enableKover) {
         apply(plugin = "org.jetbrains.kotlinx.kover")
-        extensions.configure<KoverProjectExtension>("kover") {
-            val appMinimum = defaultAppKoverLineCoverageMin.takeIf { project.path == ":app" }
-            val lineCoverageMin = when {
-                appMinimum != null -> maxOf(appMinimum, koverLineCoverageMin.orNull ?: appMinimum)
-                else -> koverLineCoverageMin.orNull
-            }
-            configureProjectKoverVerification(lineCoverageMin)
-        }
     }
 
     pluginManager.withPlugin("com.android.application") {

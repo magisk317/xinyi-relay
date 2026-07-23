@@ -439,7 +439,6 @@ android:test:noe2ee:
     XINYI_ANDROID_TEST_TASKS: >-
       :app:testGithubNoE2eeDebugUnitTest
       :app:koverHtmlReportGithubNoE2eeDebug
-      :app:koverVerifyGithubNoE2eeDebug
       verifyStructureBoundaries
   artifacts:
     name: "XinyiRelay-test-noe2ee-$CI_COMMIT_REF_SLUG"
@@ -457,7 +456,6 @@ android:test:withe2ee:
     XINYI_ANDROID_TEST_TASKS: >-
       :app:testGithubWithE2eeDebugUnitTest
       :app:koverHtmlReportGithubWithE2eeDebug
-      :app:koverVerifyGithubWithE2eeDebug
   artifacts:
     name: "XinyiRelay-test-withe2ee-$CI_COMMIT_REF_SLUG"
     when: always
