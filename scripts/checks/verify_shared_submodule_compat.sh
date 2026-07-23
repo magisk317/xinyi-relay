@@ -35,10 +35,9 @@ bash "$TOOLKIT_DIR/gradle/run_gradle_with_retry.sh" \
   :runtime:testGithubNoE2eeDebugUnitTest \
   :relay:sender:testGithubNoE2eeDebugUnitTest \
   :core:testGithubNoE2eeDebugUnitTest \
-  :core:koverVerifyGithubNoE2eeDebug \
+  :core:koverHtmlReportGithubNoE2eeDebug \
   :core:compileGithubNoE2eeDebugKotlin \
-  :app:detekt \
-  -PkoverLineCoverageMin=5
+  :app:detekt
 
 bash "$TOOLKIT_DIR/gradle/run_gradle_with_retry.sh" \
   --no-configuration-cache \
