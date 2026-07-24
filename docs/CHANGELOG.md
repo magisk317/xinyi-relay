@@ -3,6 +3,21 @@
 本日志记录了项目近期的主要变更。 
 
 
+## [v0.2.1-beta2] - 2026-07-24
+- 版本：`versionCode 42` / `versionName 0.2.1-beta2`。
+- `[standard]` 完善无 Xposed 标准模式：自适应入口、前台服务、短信/通话/MMS 回退链路。
+- `[notification]` 支持从应用通知解析验证码，并统一通知桥接。
+- `[ui]` 主界面改用共享 `MainTabScaffold` / ui-kit 组件。
+- `[hook/runtime]` 加固 IPC、进程重启门控与短信异步分发超时。
+- `[prefs/security]` 验证码设置原子更新；统一日志脱敏与 XLog。
+- `[sender/matrix]` 收敛 Matrix E2EE，并新增静默转发时段。
+- `[backend/desktop]` 强化会话、队列与本地 agent 鉴权。
+- `[ci/deps]` 对齐共享 toolkit / 子模块指针，Telegram 多 APK 合并通知。
+
+> Full Changelog: https://github.com/magisk317/xinyi-relay/compare/v0.2.1-beta...v0.2.1-beta2
+
+---
+
 ## [v0.2.1-beta] - 2026-06-21
 - 版本：`versionCode 41` / `versionName 0.2.1-beta`。
 - **🌟 新特性 (Features)**
