@@ -1,18 +1,16 @@
 package io.github.magisk317.relay.service
 
-import android.app.Notification
 import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
 import android.os.PowerManager
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
-import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.core.BuildConfig
 import io.github.magisk317.relay.feature.reminder.SpecialAlertCoordinator
 import io.github.magisk317.relay.platform.ipc.AppNotificationIngressAdapter
 import io.github.magisk317.relay.platform.ipc.ForwardBroadcastDispatcher
+import io.github.magisk317.xposed.logging.MagiskOtel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -26,22 +24,36 @@ class AppNotificationListenerService : NotificationListenerService() {
     override fun onListenerConnected() {
         super.onListenerConnected()
         XLog.i("AppNotificationListenerService connected")
+        emitNotify(
+            result = "ok",
+            reason = "listener_connected",
+            stage = "lifecycle",
+        )
     }
 
     override fun onListenerDisconnected() {
         super.onListenerDisconnected()
         XLog.w("AppNotificationListenerService disconnected, requestRebind")
-        runCatching {
+        val rebound = runCatching {
             requestRebind(ComponentName(this, AppNotificationListenerService::class.java))
+            true
         }.onFailure {
             XLog.e("AppNotificationListenerService requestRebind failed", it)
-        }
+        }.getOrDefault(false)
+        emitNotify(
+            result = if (rebound) "ok" else "error",
+            reason = if (rebound) "listener_disconnected_rebind" else "listener_disconnected_rebind_failed",
+            stage = "lifecycle",
+            statusOk = rebound,
+            errorClass = if (rebound) null else "rebind_failed",
+        )
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         super.onNotificationPosted(sbn)
 
         serviceScope.launch {
+            val startedAt = System.nanoTime()
             val payload = AppNotificationIngressAdapter.toPayloadWithParsedSmsCode(applicationContext, sbn)
                 ?: return@launch
 
@@ -61,8 +73,6 @@ class AppNotificationListenerService : NotificationListenerService() {
                     event = payload.toRelayEvent(),
                     traceId = payload.eventId,
                 )
-                // Sync trigger is handled by EventPipeline.finally via messageSyncTrigger callback.
-                // No duplicate scheduleMessageTriggeredSync call needed here.
 
                 if (BuildConfig.DEBUG) {
                     ForwardBroadcastDispatcher.dispatchFromHost(
@@ -84,6 +94,28 @@ class AppNotificationListenerService : NotificationListenerService() {
                         payload = payload,
                     )
                 }
+                emitNotify(
+                    result = "ok",
+                    reason = "dispatched",
+                    stage = "posted",
+                    targetPackage = payload.packageName.orEmpty(),
+                    codePresent = !payload.smsCode.isNullOrBlank(),
+                    eventIdPresent = payload.eventId.isNotBlank(),
+                    durationMs = elapsedMs(startedAt),
+                )
+            } catch (error: Exception) {
+                emitNotify(
+                    result = "error",
+                    reason = "dispatch_failed",
+                    stage = "posted",
+                    targetPackage = payload.packageName.orEmpty(),
+                    codePresent = !payload.smsCode.isNullOrBlank(),
+                    eventIdPresent = payload.eventId.isNotBlank(),
+                    durationMs = elapsedMs(startedAt),
+                    statusOk = false,
+                    errorClass = error.javaClass.simpleName,
+                )
+                throw error
             } finally {
                 wakeLock?.release()
             }
@@ -108,6 +140,43 @@ class AppNotificationListenerService : NotificationListenerService() {
         }.onFailure { e ->
             XLog.w("Failed to acquire wake lock: %s", e.message)
         }.getOrNull()
+    }
+
+    private fun elapsedMs(startedAt: Long): Long =
+        ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+
+    private fun emitNotify(
+        result: String,
+        reason: String,
+        stage: String,
+        targetPackage: String = "",
+        codePresent: Boolean? = null,
+        eventIdPresent: Boolean? = null,
+        durationMs: Long = 0L,
+        statusOk: Boolean = true,
+        errorClass: String? = null,
+    ) {
+        val attrs = mutableMapOf(
+            "result" to result,
+            "duration_ms" to durationMs.toString(),
+            "process" to "main",
+            "stage" to stage,
+            "reason" to reason,
+            "source" to "notification_listener",
+        )
+        if (targetPackage.isNotBlank()) {
+            attrs["target_package"] = targetPackage
+        }
+        if (codePresent != null) {
+            attrs["code_present"] = codePresent.toString()
+        }
+        if (eventIdPresent != null) {
+            attrs["event_id_present"] = eventIdPresent.toString()
+        }
+        if (!errorClass.isNullOrBlank()) {
+            attrs["error_class"] = errorClass
+        }
+        MagiskOtel.event(name = "notify.owned", attributes = attrs, statusOk = statusOk)
     }
 
     private companion object {

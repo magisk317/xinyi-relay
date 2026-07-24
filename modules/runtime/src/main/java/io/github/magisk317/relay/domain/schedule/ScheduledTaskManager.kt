@@ -10,6 +10,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.MagiskOtel
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.entity.ScheduledTaskEntity
 import io.github.magisk317.relay.engine.schedule.CronUtils
@@ -32,23 +33,54 @@ class ScheduledTaskManager(
 
     suspend fun scheduleAllActiveTasks() {
         withContext(Dispatchers.IO) {
+            val startedAt = System.nanoTime()
             val tasks = appDatabase.scheduledTaskDao().getActiveTasks()
             if (!BuildConfig.ENABLE_SMS_CHANNEL) {
                 tasks.forEach { task -> cancelTask(task.id) }
                 updateFallbackWorker(false)
                 XLog.w("Scheduled SMS tasks disabled in current distribution, active task alarms cancelled")
+                MagiskOtel.event(
+                    name = "sms.schedule",
+                    attributes = mapOf(
+                        "result" to "skip",
+                        "duration_ms" to elapsedMs(startedAt).toString(),
+                        "process" to "main",
+                        "stage" to "schedule_all",
+                        "reason" to "sms_channel_disabled",
+                        "found_count" to tasks.size.toString(),
+                    ),
+                    statusOk = true,
+                )
                 return@withContext
             }
+            var failed = 0
             tasks.forEach { task ->
                 runCatching {
                     scheduleTask(task)
                 }.onFailure { e ->
+                    failed += 1
                     XLog.e("Failed to schedule task ${task.id}", e)
                 }
             }
             updateFallbackWorker(tasks.isNotEmpty())
+            MagiskOtel.event(
+                name = "sms.schedule",
+                attributes = mapOf(
+                    "result" to if (failed == 0) "ok" else if (failed < tasks.size) "ok" else "error",
+                    "duration_ms" to elapsedMs(startedAt).toString(),
+                    "process" to "main",
+                    "stage" to "schedule_all",
+                    "reason" to if (failed == 0) "scheduled" else "partial_failed",
+                    "found_count" to tasks.size.toString(),
+                    "pending_count" to failed.toString(),
+                ),
+                statusOk = failed < tasks.size || tasks.isEmpty(),
+            )
         }
     }
+
+    private fun elapsedMs(startedAt: Long): Long =
+        ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
 
     suspend fun rescheduleTask(taskId: Long) {
         withContext(Dispatchers.IO) {
