@@ -17,6 +17,7 @@ import io.github.magisk317.relay.sender.config.SmsSetting
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.withTimeout
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 internal object SmsSendBackend {
     private const val SENT_RESULT_TIMEOUT_MS = 60_000L
@@ -30,23 +31,62 @@ internal object SmsSendBackend {
         content: String,
         waitForSentResult: Boolean,
     ) {
+        val startedAt = System.nanoTime()
+        fun emit(result: String, reason: String, statusOk: Boolean = true) {
+            val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+            MagiskOtel.event(
+                name = "sms.forward",
+                attributes = mapOf(
+                    "result" to result,
+                    "duration_ms" to durationMs.toString(),
+                    "process" to "app",
+                    "stage" to "sms_send_backend",
+                    "reason" to reason,
+                    "sender_type" to "sms",
+                    "target_count" to mobiles.size.toString(),
+                    "content_length" to content.length.toString(),
+                    "wait_for_result" to waitForSentResult.toString(),
+                    "sim_slot" to setting.simSlot.toString(),
+                ),
+                statusOk = statusOk,
+            )
+        }
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
+            emit(result = "error", reason = "missing_send_sms", statusOk = false)
             throw SecurityException("缺少 SEND_SMS 权限")
         }
 
-        val smsManager = getSmsManager(context, setting.simSlot)
-        if (waitForSentResult) {
-            sendAndAwaitSentResult(
-                context = context.applicationContext,
-                smsManager = smsManager,
-                mobiles = mobiles,
-                content = content,
-            )
-        } else {
-            mobiles.forEach { mobile ->
-                val parts = smsManager.divideMessage(content).ifEmpty { arrayListOf(content) }
-                smsManager.sendMultipartTextMessage(mobile, null, parts, null, null)
+        try {
+            val smsManager = getSmsManager(context, setting.simSlot)
+            if (waitForSentResult) {
+                sendAndAwaitSentResult(
+                    context = context.applicationContext,
+                    smsManager = smsManager,
+                    mobiles = mobiles,
+                    content = content,
+                )
+            } else {
+                mobiles.forEach { mobile ->
+                    val parts = smsManager.divideMessage(content).ifEmpty { arrayListOf(content) }
+                    smsManager.sendMultipartTextMessage(mobile, null, parts, null, null)
+                }
             }
+            emit(result = "ok", reason = if (waitForSentResult) "sent_confirmed" else "sent_fire_and_forget")
+        } catch (error: TimeoutCancellationException) {
+            emit(result = "error", reason = "timeout", statusOk = false)
+            throw error
+        } catch (error: SecurityException) {
+            emit(result = "error", reason = "security", statusOk = false)
+            throw error
+        } catch (error: IllegalArgumentException) {
+            emit(result = "error", reason = "invalid_sim", statusOk = false)
+            throw error
+        } catch (error: IllegalStateException) {
+            emit(result = "error", reason = "service_unavailable", statusOk = false)
+            throw error
+        } catch (error: Exception) {
+            emit(result = "error", reason = error.javaClass.simpleName, statusOk = false)
+            throw error
         }
     }
 

@@ -8,6 +8,7 @@ import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.engine.service.SenderRuntimeServiceRegistry
 import io.github.magisk317.relay.runtime.BuildConfig
+import io.github.magisk317.xposed.logging.MagiskOtel
 import io.github.magisk317.smscode.runtime.common.backup.BackupDatabaseHooks
 import io.github.magisk317.smscode.runtime.common.backup.BackupImportResult
 import io.github.magisk317.smscode.runtime.common.backup.BackupManagerConfig
@@ -117,9 +118,10 @@ object BackupManager {
 
     @JvmStatic
     fun inspectBackup(context: Context, uri: Uri): BackupInspection {
+        val startedAt = System.nanoTime()
         val importResult = runCatching { BackupManagerCore.importRuleList(context, uri, resolveAppVersion(context)) }.getOrNull()
         val dbInspection = inspectBackupDatabase(context, uri)
-        return BackupInspection(
+        val inspection = BackupInspection(
             payloadReadable = importResult?.result == ImportResult.SUCCESS,
             payloadRules = importResult?.rules?.size ?: 0,
             payloadPreferences = importResult?.preferences?.size ?: 0,
@@ -129,6 +131,22 @@ object BackupManager {
             blankSenderConfigs = dbInspection?.blankSenderConfigs ?: 0,
             degradedSenderConfigs = dbInspection?.degradedSenderConfigs ?: 0,
         )
+        val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+        MagiskOtel.event(
+            name = "prefs.restore",
+            attributes = mapOf(
+                "result" to if (inspection.payloadReadable) "ok" else "error",
+                "duration_ms" to durationMs.toString(),
+                "process" to "app",
+                "stage" to "inspect_backup",
+                "reason" to if (inspection.payloadReadable) "readable" else "unreadable",
+                "rule_count" to inspection.payloadRules.toString(),
+                "include_database" to inspection.databasePresent.toString(),
+                "sender_count" to inspection.senderCount.toString(),
+            ),
+            statusOk = inspection.payloadReadable,
+        )
+        return inspection
     }
 
     @JvmStatic

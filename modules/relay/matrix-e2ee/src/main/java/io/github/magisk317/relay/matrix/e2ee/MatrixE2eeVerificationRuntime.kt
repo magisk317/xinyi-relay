@@ -32,6 +32,7 @@ import org.matrix.rustcomponents.sdk.SyncResponseV2
 import org.matrix.rustcomponents.sdk.SyncSettingsV2
 import org.matrix.rustcomponents.sdk.TaskHandle
 import org.matrix.rustcomponents.sdk.VerificationStateListener
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 @Suppress("TooGenericExceptionCaught")
 object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
@@ -932,6 +933,28 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
                     "after={${summarizeVerificationState(after)}} " +
                     "pending=${summarizePendingRequest()}",
             )
+            if (before.status != after.status) {
+                val statusName = after.status.name.lowercase()
+                val result = when (after.status) {
+                    MatrixE2eeVerificationStatus.FAILED -> "error"
+                    MatrixE2eeVerificationStatus.CANCELLED,
+                    MatrixE2eeVerificationStatus.UNSUPPORTED_AUTH -> "skip"
+                    MatrixE2eeVerificationStatus.VERIFIED -> "ok"
+                    else -> "ok"
+                }
+                MagiskOtel.event(
+                    name = "sms.forward",
+                    attributes = mapOf(
+                        "result" to result,
+                        "duration_ms" to "0",
+                        "process" to "app",
+                        "stage" to "matrix_verify",
+                        "reason" to statusName,
+                        "sender_type" to "matrix",
+                    ),
+                    statusOk = result != "error",
+                )
+            }
         }
         _state.value = after
     }

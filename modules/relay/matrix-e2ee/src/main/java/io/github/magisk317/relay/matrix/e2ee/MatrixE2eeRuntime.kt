@@ -41,6 +41,7 @@ import org.matrix.rustcomponents.sdk.SyncSettingsV2
 import org.matrix.rustcomponents.sdk.TaskHandle
 import org.matrix.rustcomponents.sdk.TextMessageContent
 import org.matrix.rustcomponents.sdk.Timeline
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 @Suppress("TooGenericExceptionCaught", "DEPRECATION")
 object MatrixE2eeRuntime : MatrixE2eeSender {
@@ -102,14 +103,41 @@ object MatrixE2eeRuntime : MatrixE2eeSender {
      *
      * This maintains the same method signature as the noE2ee variant.
      */
+
+    private fun emitMatrixE2ee(
+        result: String,
+        reason: String,
+        durationMs: Long,
+        statusOk: Boolean = true,
+    ) {
+        MagiskOtel.event(
+            name = "sms.forward",
+            attributes = mapOf(
+                "result" to result,
+                "duration_ms" to durationMs.toString(),
+                "process" to "app",
+                "stage" to "matrix_e2ee",
+                "reason" to reason,
+                "sender_type" to "matrix",
+            ),
+            statusOk = statusOk,
+        )
+    }
+
     override suspend fun sendMsg(context: Context, setting: MatrixSetting, msgInfo: MsgInfo) {
         val safeSetting = SenderSettingSanitizer.sanitizeMatrixSetting(setting)
+        val startedAt = System.nanoTime()
 
         // Step 1: Check E2EE module availability
         val availability = MatrixE2eeAvailabilityProvider.get()
         if (!availability.isAvailable) {
             SLog.d(TAG, "E2EE module not available (status=${availability.status}), using plaintext")
             MatrixUtils.sendMsg(setting, msgInfo)
+            emitMatrixE2ee(
+                result = "ok",
+                reason = "plaintext_unavailable",
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+            )
             return
         }
 
@@ -133,6 +161,11 @@ object MatrixE2eeRuntime : MatrixE2eeSender {
         if (!roomEncrypted) {
             SLog.d(TAG, "Room ${safeSetting.roomId} is not encrypted, using plaintext")
             MatrixUtils.sendMsg(setting, msgInfo)
+            emitMatrixE2ee(
+                result = "ok",
+                reason = "plaintext_unencrypted",
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+            )
             return
         }
 
@@ -144,6 +177,11 @@ object MatrixE2eeRuntime : MatrixE2eeSender {
             // Step 3: Attempt E2EE send
             try {
                 sendEncrypted(context, safeSetting, msgInfo)
+                emitMatrixE2ee(
+                    result = "ok",
+                    reason = "e2ee_sent",
+                    durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+                )
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -157,6 +195,11 @@ object MatrixE2eeRuntime : MatrixE2eeSender {
                     e,
                 )
                 MatrixUtils.sendMsg(setting, msgInfo)
+                emitMatrixE2ee(
+                    result = "ok",
+                    reason = "fallback_${fallbackReason}",
+                    durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+                )
             }
         }
     }

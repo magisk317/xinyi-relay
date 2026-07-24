@@ -16,6 +16,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":magisk-xposed-kit:logging"))
     implementation(project(":relay:sender:api"))
     implementation(project(":relay:net"))
     implementation(libs.kotlinx.coroutines.android)
