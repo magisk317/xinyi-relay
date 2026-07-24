@@ -5,6 +5,7 @@ import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.net.RelayHttpClients
 import io.github.magisk317.relay.sender.SenderSettingSanitizer
 import io.github.magisk317.relay.sender.config.WebhookSetting
+import io.github.magisk317.xposed.logging.MagiskOtel
 import io.github.magisk317.xposed.logging.SecretRedactor
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -38,6 +39,12 @@ object WebhookUtils {
 
         if (!BuildConfig.ALLOW_HTTP_WEBHOOK && requestUrl.trim().startsWith("http://", ignoreCase = true)) {
             SLog.w(TAG, t("Webhook blocked: cleartext http is disabled in this flavor"))
+            emitWebhook(
+                result = "skip",
+                reason = "cleartext_http_blocked",
+                method = method,
+                statusOk = true,
+            )
             throw IllegalStateException("当前构建版本仅支持 HTTPS Webhook 地址")
         }
 
@@ -247,6 +254,7 @@ object WebhookUtils {
         fun t(message: String): String = if (traceId.isNullOrBlank()) message else "[trace=$traceId] $message"
         var attempt = 1
         var lastError: IOException? = null
+        val startedAt = System.nanoTime()
 
         while (attempt <= MAX_ATTEMPTS) {
             try {
@@ -260,9 +268,25 @@ object WebhookUtils {
                                     "${response.message} $respBody",
                             ),
                         )
+                        emitWebhook(
+                            result = "error",
+                            reason = "http_${response.code}",
+                            method = method,
+                            retryIndex = attempt,
+                            statusOk = false,
+                            startedAt = startedAt,
+                        )
                         throw IllegalStateException("Webhook $method 失败: HTTP ${response.code}")
                     }
                     SLog.i(TAG, t("$successPrefix: ${response.code} attempt=$attempt"))
+                    emitWebhook(
+                        result = "ok",
+                        reason = "http_${response.code}",
+                        method = method,
+                        retryIndex = attempt,
+                        statusOk = true,
+                        startedAt = startedAt,
+                    )
                     return
                 }
             } catch (e: IOException) {
@@ -277,6 +301,15 @@ object WebhookUtils {
                     e,
                 )
                 if (!willRetry) {
+                    emitWebhook(
+                        result = "error",
+                        reason = "io_exception",
+                        method = method,
+                        retryIndex = attempt,
+                        statusOk = false,
+                        startedAt = startedAt,
+                        errorClass = e.javaClass.simpleName,
+                    )
                     throw e
                 }
                 delay(RETRY_DELAY_MS)
@@ -284,7 +317,48 @@ object WebhookUtils {
             }
         }
 
+        emitWebhook(
+            result = "error",
+            reason = "exhausted",
+            method = method,
+            retryIndex = MAX_ATTEMPTS,
+            statusOk = false,
+            startedAt = startedAt,
+            errorClass = lastError?.javaClass?.simpleName,
+        )
         throw lastError ?: IllegalStateException("Webhook $method failed without captured IOException")
+    }
+
+    private fun emitWebhook(
+        result: String,
+        reason: String,
+        method: String,
+        retryIndex: Int = 0,
+        statusOk: Boolean = true,
+        startedAt: Long? = null,
+        errorClass: String? = null,
+    ) {
+        val durationMs = if (startedAt == null) {
+            0L
+        } else {
+            ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+        }
+        val attrs = mutableMapOf(
+            "result" to result,
+            "duration_ms" to durationMs.toString(),
+            "process" to "main",
+            "stage" to "webhook_http",
+            "reason" to reason,
+            "sender_type" to "webhook",
+            "action" to method.lowercase(),
+        )
+        if (retryIndex > 0) {
+            attrs["retry_index"] = retryIndex.toString()
+        }
+        if (!errorClass.isNullOrBlank()) {
+            attrs["error_class"] = errorClass
+        }
+        MagiskOtel.event(name = "sms.forward", attributes = attrs, statusOk = statusOk)
     }
 
     private fun escapeJson(input: String): String = SenderWireJson.escapeStringContent(input)

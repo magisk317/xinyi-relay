@@ -4,6 +4,7 @@ import android.text.TextUtils
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.sender.config.SocketSetting
 import io.github.magisk317.relay.sender.SenderSettingSanitizer
+import io.github.magisk317.xposed.logging.MagiskOtel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.eclipse.paho.client.mqttv3.MqttClient
@@ -23,6 +24,21 @@ import java.util.Locale
 object SocketUtils {
     private const val TAG = "SocketUtils"
 
+    private fun emitSocket(method: String, statusOk: Boolean, reason: String, startedAt: Long) {
+        val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+        MagiskOtel.event(
+            name = "sms.forward",
+            attributes = mapOf(
+                "result" to if (statusOk) "ok" else "error",
+                "duration_ms" to durationMs.toString(),
+                "process" to "app",
+                "stage" to "socket_${method.lowercase()}",
+                "reason" to reason,
+            ),
+            statusOk = statusOk,
+        )
+    }
+
     suspend fun sendMsg(setting: SocketSetting, msgInfo: MsgInfo) {
         val safeSetting = SenderSettingSanitizer.sanitizeSocketSetting(setting)
         val message = buildMessage(safeSetting, msgInfo)
@@ -34,6 +50,7 @@ object SocketUtils {
     }
 
     private suspend fun sendTcp(setting: SocketSetting, message: String) = withContext(Dispatchers.IO) {
+        val startedAt = System.nanoTime()
         runCatching {
             Socket(setting.address, setting.port).use { socket ->
                 BufferedWriter(OutputStreamWriter(socket.getOutputStream(), Charset.forName(outputCharset(setting)))).use { out ->
@@ -43,12 +60,20 @@ object SocketUtils {
                 }
             }
             SLog.i(TAG, "TCP send success")
+            emitSocket(method = "TCP", statusOk = true, reason = "sent", startedAt = startedAt)
         }.onFailure {
             SLog.e(TAG, "TCP send failed", it)
+            emitSocket(
+                method = "TCP",
+                statusOk = false,
+                reason = it.javaClass.simpleName.ifBlank { "send_failed" },
+                startedAt = startedAt,
+            )
         }.getOrElse { throw it }
     }
 
     private suspend fun sendUdp(setting: SocketSetting, message: String) = withContext(Dispatchers.IO) {
+        val startedAt = System.nanoTime()
         runCatching {
             DatagramSocket().use { socket ->
                 val data = message.toByteArray(Charset.forName(outputCharset(setting)))
@@ -56,8 +81,15 @@ object SocketUtils {
                 socket.send(packet)
             }
             SLog.i(TAG, "UDP send success")
+            emitSocket(method = "UDP", statusOk = true, reason = "sent", startedAt = startedAt)
         }.onFailure {
             SLog.e(TAG, "UDP send failed", it)
+            emitSocket(
+                method = "UDP",
+                statusOk = false,
+                reason = it.javaClass.simpleName.ifBlank { "send_failed" },
+                startedAt = startedAt,
+            )
         }.getOrElse { throw it }
     }
 
@@ -73,6 +105,7 @@ object SocketUtils {
         val clientId = if (setting.clientId.isBlank()) UUID.randomUUID().toString() else setting.clientId
         val client = MqttClient(brokerUrl, clientId, MemoryPersistence())
 
+        val startedAt = System.nanoTime()
         runCatching {
             val options = MqttConnectOptions().apply {
                 isCleanSession = true
@@ -88,9 +121,16 @@ object SocketUtils {
             })
             client.disconnect()
             SLog.i(TAG, "MQTT send success")
+            emitSocket(method = "MQTT", statusOk = true, reason = "sent", startedAt = startedAt)
         }.onFailure {
             SLog.e(TAG, "MQTT send failed", it)
             runCatching { if (client.isConnected) client.disconnect() }
+            emitSocket(
+                method = "MQTT",
+                statusOk = false,
+                reason = it.javaClass.simpleName.ifBlank { "send_failed" },
+                startedAt = startedAt,
+            )
         }.getOrElse { throw it }
     }
 
