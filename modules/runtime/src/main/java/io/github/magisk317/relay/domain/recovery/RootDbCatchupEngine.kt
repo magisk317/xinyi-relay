@@ -15,6 +15,7 @@ import io.github.magisk317.smscode.domain.constant.SmsCodeConst
 import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 // Recovery runtime for Root DB catchup. Emits RelayEvent into the main pipeline.
 internal object RootDbCatchupEngine {
@@ -82,18 +83,56 @@ internal object RootDbCatchupEngine {
                 "Root DB catchup skipped: previous run still active reason=%s",
                 reason,
             )
+            MagiskOtel.event(
+                name = "app.recovery",
+                attributes = mapOf(
+                    "result" to "skip",
+                    "duration_ms" to "0",
+                    "process" to "app",
+                    "stage" to "root_db_run",
+                    "reason" to "already_running",
+                    "source" to reason,
+                ),
+                statusOk = true,
+            )
             return
         }
+        val startedAt = System.nanoTime()
         try {
-            runCatching { runCatchup(appContext, reason) }
-                .onFailure { throwable ->
-                    XLog.w(
-                        LogRoute.ROOT_DB,
-                        "Root DB catchup failed: reason=%s err=%s",
-                        reason,
-                        throwable.message ?: throwable.javaClass.simpleName,
-                    )
-                }
+            val outcome = runCatching { runCatchup(appContext, reason) }
+            val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+            outcome.onFailure { throwable ->
+                XLog.w(
+                    LogRoute.ROOT_DB,
+                    "Root DB catchup failed: reason=%s err=%s",
+                    reason,
+                    throwable.message ?: throwable.javaClass.simpleName,
+                )
+                MagiskOtel.event(
+                    name = "app.recovery",
+                    attributes = mapOf(
+                        "result" to "error",
+                        "duration_ms" to durationMs.toString(),
+                        "process" to "app",
+                        "stage" to "root_db_run",
+                        "reason" to reason,
+                        "error_class" to throwable.javaClass.simpleName,
+                    ),
+                    statusOk = false,
+                )
+            }.onSuccess {
+                MagiskOtel.event(
+                    name = "app.recovery",
+                    attributes = mapOf(
+                        "result" to "ok",
+                        "duration_ms" to durationMs.toString(),
+                        "process" to "app",
+                        "stage" to "root_db_run",
+                        "reason" to reason,
+                    ),
+                    statusOk = true,
+                )
+            }
         } finally {
             running.set(false)
         }
