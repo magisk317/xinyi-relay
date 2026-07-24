@@ -161,6 +161,7 @@ dependencies {
     implementation(project(":core"))
     implementation(project(":mobile:ui"))
     implementation(project(":relay:android"))
+    implementation(project(":magisk-xposed-kit:logging"))
     implementation(project(":smscode-core:runtime"))
     implementation(project(":smscode-core:verification"))
     implementation(project(":relay:engine"))

@@ -4,12 +4,32 @@ import android.app.Application
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.feature.call.CallStateMonitor
 import io.github.magisk317.relay.feature.mode.WorkModeResolver
 import io.github.magisk317.relay.service.StandardModeService
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 class InfrastructureInitializer : AppInitializer {
     override fun init(application: Application) {
+        MagiskOtel.configure(
+            MagiskOtel.Config(
+                enabled = BuildConfig.DEBUG,
+                serviceName = "xinyi-relay",
+                serviceVersion = BuildConfig.VERSION_NAME,
+                projectId = "84113188",
+                projectName = "xinyi-relay",
+                environment = if (BuildConfig.DEBUG) "debug" else "release",
+            ),
+        )
+        MagiskOtel.event(
+            name = "app.boot",
+            attributes = mapOf(
+                "result" to "ok",
+                "process" to "main",
+            ),
+        )
+
         FlavorXposedRuntimeInitializer.installPlatformBridges()
         WorkModeResolver.resolve(application)
         CallStateMonitor.init(application)
