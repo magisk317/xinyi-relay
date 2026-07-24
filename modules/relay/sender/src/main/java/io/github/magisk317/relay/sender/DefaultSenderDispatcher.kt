@@ -27,6 +27,7 @@ import io.github.magisk317.relay.sender.config.WeworkAgentSetting
 import io.github.magisk317.relay.sender.config.WeworkRobotSetting
 import io.github.magisk317.relay.sender.config.YunhuSetting
 import kotlinx.serialization.SerializationException
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 class DefaultSenderDispatcher(private val context: Context) : SenderDispatcher {
     override suspend fun dispatchToSender(
@@ -34,11 +35,31 @@ class DefaultSenderDispatcher(private val context: Context) : SenderDispatcher {
         msgInfo: MsgInfo,
         traceId: String?,
     ): SenderDispatchResult {
+        val startedAt = System.nanoTime()
         val safeSender = SenderSettingSanitizer.sanitizeSenderLenient(sender)
         val senderName = SenderType.displayName(safeSender.type, safeSender.name)
         val senderTypeKey = safeSender.type.toString()
 
+        fun emit(result: String, statusOk: Boolean = true, reason: String? = null) {
+            val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+            val attrs = mutableMapOf(
+                "result" to result,
+                "duration_ms" to durationMs.toString(),
+                "process" to "main",
+                "sender_type" to senderTypeKey,
+            )
+            if (reason != null) {
+                attrs["reason"] = reason
+            }
+            MagiskOtel.event(
+                name = "sms.forward",
+                attributes = attrs,
+                statusOk = statusOk,
+            )
+        }
+
         if (SenderRetryPolicy.isCircuitOpen(senderTypeKey)) {
+            emit(result = "skip", reason = "circuit_open")
             return SenderDispatchResult(safeSender.id, safeSender.type, senderName, false, "circuit breaker open")
         }
 
@@ -50,12 +71,15 @@ class DefaultSenderDispatcher(private val context: Context) : SenderDispatcher {
             SenderRetryPolicy.withRetry(senderTypeKey) {
                 dispatchByType(safeSender, msgInfo, traceId)
             }
+            emit(result = "ok")
             return SenderDispatchResult(safeSender.id, safeSender.type, senderName, true, "OK")
         } catch (e: SerializationException) {
             val message = "配置解析失败: ${e.message ?: "SerializationException"}"
+            emit(result = "error", statusOk = false, reason = "SerializationException")
             return SenderDispatchResult(safeSender.id, safeSender.type, senderName, false, message)
         } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
             val errorSummary = "${e.javaClass.simpleName}: ${e.message ?: "<empty>"}"
+            emit(result = "error", statusOk = false, reason = e.javaClass.simpleName)
             return SenderDispatchResult(safeSender.id, safeSender.type, senderName, false, errorSummary)
         }
     }
