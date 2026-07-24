@@ -8,6 +8,7 @@ import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.prefs.PrefsReader
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 data class ForwardBroadcastAck(
     val resultCode: Int,
@@ -28,11 +29,35 @@ object ForwardBroadcastDispatcher {
         token: String? = null,
         orderedAck: ((ForwardBroadcastAck) -> Unit)? = null,
     ) {
+        val startedAt = System.nanoTime()
         val intent = payload.toIntent(
             context = context,
             token = token.takeIf { !it.isNullOrBlank() },
         )
-        dispatchIntent(context, intent, orderedAck)
+        runCatching {
+            dispatchIntent(context, intent, orderedAck)
+        }.fold(
+            onSuccess = {
+                emitRelay(
+                    startedAt = startedAt,
+                    result = "ok",
+                    reason = if (orderedAck != null) "ordered" else "unordered",
+                    msgType = payload.msgType,
+                    source = payload.forwardSource,
+                )
+            },
+            onFailure = { error ->
+                emitRelay(
+                    startedAt = startedAt,
+                    result = "error",
+                    statusOk = false,
+                    reason = error.javaClass.simpleName,
+                    msgType = payload.msgType,
+                    source = payload.forwardSource,
+                )
+                throw error
+            },
+        )
     }
 
     suspend fun dispatchFromHost(
@@ -69,16 +94,50 @@ object ForwardBroadcastDispatcher {
             )
         },
     ): SmsHookDispatchResult {
+        val startedAt = System.nanoTime()
         val token = tokenResolver(context)
         val tokenPresent = token.isNotBlank()
         if (!tokenPresent) {
+            emitRelay(
+                startedAt = startedAt,
+                result = "skip",
+                reason = "token_missing",
+                msgType = payload.msgType,
+                source = payload.forwardSource,
+                process = "hook",
+            )
             return SmsHookDispatchResult(
                 dispatched = false,
                 tokenPresent = false,
                 bypassUsed = false,
             )
         }
-        dispatchBlock(token.takeIf { tokenPresent })
+        runCatching {
+            dispatchBlock(token.takeIf { tokenPresent })
+        }.fold(
+            onSuccess = {
+                emitRelay(
+                    startedAt = startedAt,
+                    result = "ok",
+                    reason = "hook_dispatch",
+                    msgType = payload.msgType,
+                    source = payload.forwardSource,
+                    process = "hook",
+                )
+            },
+            onFailure = { error ->
+                emitRelay(
+                    startedAt = startedAt,
+                    result = "error",
+                    statusOk = false,
+                    reason = error.javaClass.simpleName,
+                    msgType = payload.msgType,
+                    source = payload.forwardSource,
+                    process = "hook",
+                )
+                throw error
+            },
+        )
         return SmsHookDispatchResult(
             dispatched = true,
             tokenPresent = tokenPresent,
@@ -114,5 +173,26 @@ object ForwardBroadcastDispatcher {
             null,
             null,
         )
+    }
+
+    private fun emitRelay(
+        startedAt: Long,
+        result: String,
+        statusOk: Boolean = true,
+        reason: String? = null,
+        msgType: String? = null,
+        source: String? = null,
+        process: String = "main",
+    ) {
+        val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+        val attrs = mutableMapOf(
+            "result" to result,
+            "duration_ms" to durationMs.toString(),
+            "process" to process,
+        )
+        if (reason != null) attrs["reason"] = reason
+        if (!msgType.isNullOrBlank()) attrs["msg_type"] = msgType
+        if (!source.isNullOrBlank()) attrs["source"] = source
+        MagiskOtel.event(name = "sms.relay", attributes = attrs, statusOk = statusOk)
     }
 }

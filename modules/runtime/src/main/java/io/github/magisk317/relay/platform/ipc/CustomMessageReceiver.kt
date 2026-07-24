@@ -12,15 +12,29 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 class CustomMessageReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val ordered = isOrderedBroadcast
         val pendingResult = goAsync()
         var traceId = "ipc_custom_${System.currentTimeMillis().toString(36)}"
+        val startedAt = System.nanoTime()
 
         RECEIVER_SCOPE.launch {
             fun finish(code: Int, reason: String) {
+                val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+                val ok = code == RESULT_OK
+                MagiskOtel.event(
+                    name = "sms.custom",
+                    attributes = mapOf(
+                        "result" to if (ok) "ok" else if (code == RESULT_DISPATCH_FAILED) "error" else "skip",
+                        "duration_ms" to durationMs.toString(),
+                        "process" to "main",
+                        "reason" to reason,
+                    ),
+                    statusOk = ok || code != RESULT_DISPATCH_FAILED,
+                )
                 if (ordered) {
                     runCatching {
                         pendingResult.setResultCode(code)

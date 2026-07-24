@@ -46,6 +46,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":magisk-xposed-kit:logging"))
     implementation(libs.androidx.work.runtime.ktx)
     implementation(project(":relay:contract"))
     implementation(project(":relay:engine"))
