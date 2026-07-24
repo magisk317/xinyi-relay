@@ -12,6 +12,7 @@ import io.github.magisk317.relay.platform.ipc.ForwardBroadcastDispatcher
 import io.github.magisk317.relay.platform.ipc.ForwardBroadcastPayload
 import io.github.magisk317.relay.platform.ipc.ForwardPayloadFactory
 import io.github.magisk317.relay.platform.ipc.SmsIngressAdapter
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 object StandardMessageIngressHandler {
     fun isSmsReceived(intent: Intent): Boolean {
@@ -45,6 +46,18 @@ object StandardMessageIngressHandler {
         ) ?: return
         if (EventDeduplicator.isDuplicate(payload.eventId)) {
             XLog.i("StandardSmsReceiver: Duplicate event skipped (eventId=%s)", payload.eventId)
+            MagiskOtel.event(
+                name = "sms.ingest",
+                attributes = mapOf(
+                    "result" to "skip",
+                    "duration_ms" to "0",
+                    "process" to "app",
+                    "stage" to "standard_sms",
+                    "reason" to "duplicate",
+                    "msg_type" to "sms",
+                ),
+                statusOk = true,
+            )
             return
         }
         ForwardBroadcastDispatcher.dispatchFromHost(
@@ -81,12 +94,36 @@ object StandardMessageIngressHandler {
         val payload = ForwardPayloadFactory.mmsPayload(intent)
         if (EventDeduplicator.isDuplicate(payload.eventId)) {
             XLog.i("StandardMmsReceiver: Duplicate event skipped (eventId=%s)", payload.eventId)
+            MagiskOtel.event(
+                name = "sms.ingest",
+                attributes = mapOf(
+                    "result" to "skip",
+                    "duration_ms" to "0",
+                    "process" to "app",
+                    "stage" to "standard_mms",
+                    "reason" to "duplicate",
+                    "msg_type" to "mms",
+                ),
+                statusOk = true,
+            )
             return
         }
         XLog.i("StandardMmsReceiver: Intercepted MMS eventId=%s", payload.eventId)
         ForwardBroadcastDispatcher.dispatchFromHost(
             context = context,
             payload = payload,
+        )
+        MagiskOtel.event(
+            name = "sms.ingest",
+            attributes = mapOf(
+                "result" to "ok",
+                "duration_ms" to "0",
+                "process" to "app",
+                "stage" to "standard_sms",
+                "event_id_present" to payload.eventId.isNotBlank().toString(),
+                "msg_type" to "sms",
+            ),
+            statusOk = true,
         )
     }
 
