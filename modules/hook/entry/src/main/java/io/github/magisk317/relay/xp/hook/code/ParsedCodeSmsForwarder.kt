@@ -9,6 +9,7 @@ import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
 import io.github.magisk317.relay.xpbridge.XpMessageTypes
 import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.MagiskOtel
 import kotlinx.coroutines.runBlocking
 
 internal class ParsedCodeSmsForwarder(
@@ -61,6 +62,23 @@ internal class ParsedCodeSmsForwarder(
         sourceIntent: Intent,
         eventId: String,
     ): Boolean {
+        val startedAt = System.nanoTime()
+        fun emit(result: String, statusOk: Boolean, reason: String, codeLength: Int? = null) {
+            val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+            val attrs = mutableMapOf(
+                "result" to result,
+                "duration_ms" to durationMs.toString(),
+                "process" to "hook",
+                "stage" to "parsed_code_forward",
+                "reason" to reason,
+            )
+            if (codeLength != null) {
+                attrs["code_length"] = codeLength.toString()
+            }
+            MagiskOtel.event(name = "sms.relay", attributes = attrs, statusOk = statusOk)
+        }
+
+        var prepareFailed = false
         val preparedForward = runCatching {
             runBlocking {
                 smsForwardPreparer(
@@ -72,20 +90,48 @@ internal class ParsedCodeSmsForwarder(
                 )
             }
         }.onFailure { error ->
+            prepareFailed = true
             XLog.e("ParsedCodeSmsForwarder failed to prepare direct sms forward", error)
-        }.getOrNull() ?: return false
+            emit(result = "error", statusOk = false, reason = "prepare_failed")
+        }.getOrNull()
+        if (preparedForward == null) {
+            if (!prepareFailed) {
+                emit(result = "skip", statusOk = true, reason = "prepare_null")
+            }
+            return false
+        }
 
         val hasCode = preparedForward.smsMsg.smsCode?.isNotBlank() == true
         if (!hasCode) {
+            emit(result = "skip", statusOk = true, reason = "no_code", codeLength = 0)
             return false
         }
         if (preparedForward.messageType != null && !XpMessageTypes.isSmsCode(preparedForward.messageType)) {
+            emit(
+                result = "skip",
+                statusOk = true,
+                reason = "non_code_type",
+                codeLength = preparedForward.smsMsg.smsCode?.length,
+            )
             return false
         }
 
         val dispatched = smsForwardDispatcher(pluginContext, preparedForward, eventId)
         if (dispatched) {
             parsedForwardMarker(sourceIntent)
+            emit(
+                result = "ok",
+                statusOk = true,
+                reason = "dispatched",
+                codeLength = preparedForward.smsMsg.smsCode?.length,
+            )
+        } else {
+            emit(
+                result = "error",
+                statusOk = false,
+                reason = "dispatch_failed",
+                codeLength = preparedForward.smsMsg.smsCode?.length,
+            )
         }
         return dispatched
     }

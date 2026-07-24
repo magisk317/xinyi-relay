@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Process
 import io.github.magisk317.relay.contract.xpbridge.XpSmsBlacklistHitRecord
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 /**
  * Cross-process transport for blacklist hit records.
@@ -19,6 +20,7 @@ object BlacklistHitBroadcast {
      * Fire-and-forget: the actual row id is unknown to the sender.
      */
     fun dispatch(context: Context, hit: XpSmsBlacklistHitRecord): Boolean {
+        val startedAt = System.nanoTime()
         val intent = buildIntent(context, hit)
         val result = ForwardBroadcastDispatcher.dispatchFromSmsHook(
             context = context,
@@ -35,6 +37,19 @@ object BlacklistHitBroadcast {
                 ForwardBroadcastContract.putIpcToken(intent, resolvedToken)
                 context.sendBroadcast(intent)
             },
+        )
+        val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+        MagiskOtel.event(
+            name = "sms.block",
+            attributes = mapOf(
+                "result" to if (result.dispatched) "ok" else "error",
+                "duration_ms" to durationMs.toString(),
+                "process" to "hook",
+                "stage" to "blacklist_hit_ipc",
+                "reason" to if (result.dispatched) "dispatched" else "dispatch_failed",
+                "source" to hit.source.ifBlank { "unknown" },
+            ),
+            statusOk = result.dispatched,
         )
         return result.dispatched
     }
