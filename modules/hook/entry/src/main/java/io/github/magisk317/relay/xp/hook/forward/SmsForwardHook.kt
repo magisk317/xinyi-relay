@@ -30,6 +30,7 @@ import io.github.magisk317.smscode.xposed.hook.telephony.InboundSmsBlocker
 import io.github.magisk317.xposed.LoadParam
 import io.github.magisk317.xposed.MethodHook
 import io.github.magisk317.xposed.MethodHookParam
+import io.github.magisk317.xposed.logging.MagiskOtel
 import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 import io.github.magisk317.smscode.xposed.utils.XLog
 import kotlinx.coroutines.runBlocking
@@ -86,8 +87,20 @@ class SmsForwardHook : BaseHook() {
         try {
             hookConstructor(classLoader)
             hookDispatchIntent(classLoader)
+            emitRelay(
+                result = "ok",
+                reason = "installed",
+                stage = "hook_install",
+            )
         } catch (t: Throwable) {
             XLog.e("SmsForwardHook init failed", t)
+            emitRelay(
+                result = "error",
+                reason = "install_failed",
+                stage = "hook_install",
+                statusOk = false,
+                errorClass = t.javaClass.simpleName,
+            )
         }
     }
 
@@ -217,6 +230,11 @@ class SmsForwardHook : BaseHook() {
                 "SmsForwardHook: skip redundant action=%s (same SMS already handled via other action)",
                 action,
             )
+            emitRelay(
+                result = "skip",
+                reason = "redundant_action",
+                stage = "dedupe_action",
+            )
             return null
         }
         val eventId = XpDispatchCoordinator.ensureIncomingEventId(intent)
@@ -225,6 +243,12 @@ class SmsForwardHook : BaseHook() {
                 "SmsForwardHook skipped: parsed sms forward already dispatched. event_id=%s",
                 eventId,
             )
+            emitRelay(
+                result = "skip",
+                reason = "parsed_forwarded",
+                stage = "forward_hook",
+                eventIdPresent = true,
+            )
             return null
         }
         val runtime = runtimeSession.recordHeartbeat("sms_forward_dispatch") ?: run {
@@ -232,6 +256,13 @@ class SmsForwardHook : BaseHook() {
                 "SmsForwardHook: Context is null, skip. pluginContext=%s phoneContext=%s",
                 null,
                 null,
+            )
+            emitRelay(
+                result = "error",
+                reason = "context_null",
+                stage = "forward_hook",
+                eventIdPresent = true,
+                statusOk = false,
             )
             return null
         }
@@ -277,6 +308,12 @@ class SmsForwardHook : BaseHook() {
                 dispatch.eventId,
                 dispatch.action,
             )
+            emitRelay(
+                result = "skip",
+                reason = "intent_extra_dedupe",
+                stage = "dedupe_intent",
+                eventIdPresent = true,
+            )
             return true
         }
 
@@ -293,11 +330,23 @@ class SmsForwardHook : BaseHook() {
         ) {
             SmsHookDispatchGate.BlockReason.MODULE_DISABLED -> {
                 XLog.w("SmsForwardHook: module disabled, skip forward. event_id=%s", dispatch.eventId)
+                emitRelay(
+                    result = "skip",
+                    reason = "module_disabled",
+                    stage = "forward_hook",
+                    eventIdPresent = true,
+                )
                 true
             }
 
             SmsHookDispatchGate.BlockReason.RELAY_DISABLED -> {
                 XLog.w("SmsForwardHook: relay disabled, skip forward. event_id=%s", dispatch.eventId)
+                emitRelay(
+                    result = "skip",
+                    reason = "relay_disabled",
+                    stage = "forward_hook",
+                    eventIdPresent = true,
+                )
                 true
             }
 
@@ -309,6 +358,12 @@ class SmsForwardHook : BaseHook() {
                     dispatch.eventId,
                     "SmsForwardHook#dispatchIntent",
                 )
+                emitRelay(
+                    result = "skip",
+                    reason = "conflict_suppressed",
+                    stage = "forward_hook",
+                    eventIdPresent = true,
+                )
                 true
             }
 
@@ -319,10 +374,22 @@ class SmsForwardHook : BaseHook() {
     private fun prepareForwardDispatch(dispatch: IncomingSmsDispatch): PreparedForwardDispatch? {
         val smsMsg = XpDispatchCoordinator.parseIncomingSms(dispatch.intent) ?: run {
             XLog.w("SmsForwardHook: parse sms failed, skip. event_id=%s", dispatch.eventId)
+            emitRelay(
+                result = "skip",
+                reason = "parse_failed",
+                stage = "forward_hook",
+                eventIdPresent = true,
+            )
             return null
         }
         if (smsMsg.sender.isNullOrBlank() || smsMsg.body.isNullOrBlank()) {
             XLog.w("SmsForwardHook: empty sender/body, skip. event_id=%s", dispatch.eventId)
+            emitRelay(
+                result = "skip",
+                reason = "empty_sender_or_body",
+                stage = "forward_hook",
+                eventIdPresent = true,
+            )
             return null
         }
 
@@ -339,10 +406,22 @@ class SmsForwardHook : BaseHook() {
                 "SmsForwardHook: empty sender/body after ingress adapter, skip. event_id=%s",
                 dispatch.eventId,
             )
+            emitRelay(
+                result = "skip",
+                reason = "ingress_prepare_null",
+                stage = "forward_hook",
+                eventIdPresent = true,
+            )
             return null
         }
         val messageType = prepared.messageType ?: run {
             XLog.w("SmsForwardHook: ingress message type missing, skip. event_id=%s", dispatch.eventId)
+            emitRelay(
+                result = "skip",
+                reason = "message_type_missing",
+                stage = "forward_hook",
+                eventIdPresent = true,
+            )
             return null
         }
         if (!XpPrefs.isMessageTypeEnabled(dispatch.pluginContext, messageType)) {
@@ -350,6 +429,13 @@ class SmsForwardHook : BaseHook() {
                 "SmsForwardHook: message type disabled, skip. event_id=%s type=%s",
                 dispatch.eventId,
                 messageType.name.lowercase(),
+            )
+            emitRelay(
+                result = "skip",
+                reason = "message_type_disabled",
+                stage = "forward_hook",
+                eventIdPresent = true,
+                msgType = messageType.name.lowercase(),
             )
             return null
         }
@@ -383,6 +469,12 @@ class SmsForwardHook : BaseHook() {
                 preparedDispatch.dedupKey,
                 sharedDedupClaim.ageMs ?: -1L,
             )
+            emitRelay(
+                result = "skip",
+                reason = "shared_store_dedupe",
+                stage = "dedupe_shared",
+                eventIdPresent = true,
+            )
             return true
         }
         if (recentSmsForward.shouldDrop(preparedDispatch.dedupKey)) {
@@ -391,6 +483,12 @@ class SmsForwardHook : BaseHook() {
                 dispatch.eventId,
                 dispatch.action,
                 preparedDispatch.dedupKey,
+            )
+            emitRelay(
+                result = "skip",
+                reason = "memory_dedupe",
+                stage = "dedupe_memory",
+                eventIdPresent = true,
             )
             return true
         }
@@ -404,10 +502,19 @@ class SmsForwardHook : BaseHook() {
             prepared = preparedDispatch.prepared,
             sentFromUid = Process.myUid(),
         )
+        val codePresent = preparedDispatch.prepared.smsMsg.smsCode?.isNotBlank() == true
         if (!dispatchResult.dispatched) {
             XLog.e(
                 "SmsForwardHook: IPC token empty, skip forward. event_id=%s",
                 dispatch.eventId,
+            )
+            emitRelay(
+                result = "error",
+                reason = "ipc_token_empty",
+                stage = "forward_hook",
+                eventIdPresent = true,
+                codePresent = codePresent,
+                statusOk = false,
             )
             return
         }
@@ -421,8 +528,15 @@ class SmsForwardHook : BaseHook() {
         XLog.i(
             "SmsForwardHook forwarded: event_id=%s code_present=%s tokenPresent=%s",
             dispatch.eventId,
-            preparedDispatch.prepared.smsMsg.smsCode?.isNotBlank() == true,
+            codePresent,
             dispatchResult.tokenPresent,
+        )
+        emitRelay(
+            result = "ok",
+            reason = if (dispatchResult.bypassUsed) "dispatched_bypass" else "dispatched",
+            stage = "forward_hook",
+            eventIdPresent = true,
+            codePresent = codePresent,
         )
     }
 
@@ -462,6 +576,41 @@ class SmsForwardHook : BaseHook() {
                 source = SMS_HOOK_SOURCE,
             ),
         )
+    }
+
+
+    private fun emitRelay(
+        result: String,
+        reason: String,
+        stage: String,
+        eventIdPresent: Boolean = false,
+        codePresent: Boolean? = null,
+        msgType: String? = null,
+        statusOk: Boolean = true,
+        errorClass: String? = null,
+    ) {
+        val attrs = mutableMapOf(
+            "result" to result,
+            "duration_ms" to "0",
+            "process" to "hook",
+            "stage" to stage,
+            "reason" to reason,
+            "source" to SMS_HOOK_SOURCE,
+            "msg_type" to SMS_MSG_TYPE,
+        )
+        if (eventIdPresent) {
+            attrs["event_id_present"] = "true"
+        }
+        if (codePresent != null) {
+            attrs["code_present"] = codePresent.toString()
+        }
+        if (!msgType.isNullOrBlank()) {
+            attrs["msg_type"] = msgType
+        }
+        if (!errorClass.isNullOrBlank()) {
+            attrs["error_class"] = errorClass
+        }
+        MagiskOtel.event(name = "sms.relay", attributes = attrs, statusOk = statusOk)
     }
 
     private fun logSuppressedOnce(stage: String) {
