@@ -24,6 +24,7 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 class ForwardReceiver : BroadcastReceiver() {
     @Suppress("CyclomaticComplexMethod")
@@ -36,9 +37,23 @@ class ForwardReceiver : BroadcastReceiver() {
         RECEIVER_SCOPE.launch {
             var resultMarked = false
             var broadcastFinished = false
+            val startedAt = System.nanoTime()
             fun markResult(code: Int, reason: String) {
                 resultMarked = true
                 setOrderedResult(pendingResult, ordered, code, reason, eventId)
+                val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+                val ok = code == RESULT_OK
+                MagiskOtel.event(
+                    name = "sms.ingest",
+                    attributes = mapOf(
+                        "result" to if (ok) "ok" else if (code == RESULT_DISPATCH_FAILED) "error" else "skip",
+                        "duration_ms" to durationMs.toString(),
+                        "process" to "main",
+                        "reason" to reason,
+                        "event_id_present" to eventId.isNotBlank().toString(),
+                    ),
+                    statusOk = ok || code != RESULT_DISPATCH_FAILED,
+                )
             }
             fun finishBroadcast() {
                 if (broadcastFinished) return
