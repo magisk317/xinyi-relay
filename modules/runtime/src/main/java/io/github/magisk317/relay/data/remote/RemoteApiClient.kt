@@ -18,6 +18,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 interface RemoteAgentApi {
     fun registerDevice(baseUrl: String, request: AgentRegisterRequest): AgentRegisterResponse
@@ -155,26 +156,123 @@ internal class RemoteApiClient(
         deserializer: DeserializationStrategy<T>,
         failureLabel: String,
     ): T {
-        client.newCall(request).execute().use { response ->
-            if (response.code == HTTP_UNAUTHORIZED) {
-                throw DeviceTokenExpiredException(errorMessage(response.body.string(), failureLabel, response.code))
+        val startedAt = System.nanoTime()
+        return try {
+            client.newCall(request).execute().use { response ->
+                if (response.code == HTTP_UNAUTHORIZED) {
+                    emitRemote(
+                        result = "error",
+                        reason = "unauthorized",
+                        label = failureLabel,
+                        startedAt = startedAt,
+                        statusOk = false,
+                    )
+                    throw DeviceTokenExpiredException(errorMessage(response.body.string(), failureLabel, response.code))
+                }
+                if (!response.isSuccessful) {
+                    emitRemote(
+                        result = "error",
+                        reason = "http_${response.code}",
+                        label = failureLabel,
+                        startedAt = startedAt,
+                        statusOk = false,
+                    )
+                    throw IllegalStateException(errorMessage(response.body.string(), failureLabel, response.code))
+                }
+                val decoded = RelayJson.decode(deserializer, response.body.string())
+                emitRemote(
+                    result = "ok",
+                    reason = "success",
+                    label = failureLabel,
+                    startedAt = startedAt,
+                    statusOk = true,
+                )
+                decoded
             }
-            if (!response.isSuccessful) {
-                throw IllegalStateException(errorMessage(response.body.string(), failureLabel, response.code))
-            }
-            return RelayJson.decode(deserializer, response.body.string())
+        } catch (error: DeviceTokenExpiredException) {
+            throw error
+        } catch (error: IllegalStateException) {
+            throw error
+        } catch (error: Throwable) {
+            emitRemote(
+                result = "error",
+                reason = error.javaClass.simpleName.ifBlank { "network_error" },
+                label = failureLabel,
+                startedAt = startedAt,
+                statusOk = false,
+            )
+            throw error
         }
     }
 
     private fun executeEmpty(request: Request, failureLabel: String) {
-        client.newCall(request).execute().use { response ->
-            if (response.code == HTTP_UNAUTHORIZED) {
-                throw DeviceTokenExpiredException(errorMessage(response.body.string(), failureLabel, response.code))
+        val startedAt = System.nanoTime()
+        try {
+            client.newCall(request).execute().use { response ->
+                if (response.code == HTTP_UNAUTHORIZED) {
+                    emitRemote(
+                        result = "error",
+                        reason = "unauthorized",
+                        label = failureLabel,
+                        startedAt = startedAt,
+                        statusOk = false,
+                    )
+                    throw DeviceTokenExpiredException(errorMessage(response.body.string(), failureLabel, response.code))
+                }
+                if (!response.isSuccessful) {
+                    emitRemote(
+                        result = "error",
+                        reason = "http_${response.code}",
+                        label = failureLabel,
+                        startedAt = startedAt,
+                        statusOk = false,
+                    )
+                    throw IllegalStateException(errorMessage(response.body.string(), failureLabel, response.code))
+                }
+                emitRemote(
+                    result = "ok",
+                    reason = "success",
+                    label = failureLabel,
+                    startedAt = startedAt,
+                    statusOk = true,
+                )
             }
-            if (!response.isSuccessful) {
-                throw IllegalStateException(errorMessage(response.body.string(), failureLabel, response.code))
-            }
+        } catch (error: DeviceTokenExpiredException) {
+            throw error
+        } catch (error: IllegalStateException) {
+            throw error
+        } catch (error: Throwable) {
+            emitRemote(
+                result = "error",
+                reason = error.javaClass.simpleName.ifBlank { "network_error" },
+                label = failureLabel,
+                startedAt = startedAt,
+                statusOk = false,
+            )
+            throw error
         }
+    }
+
+    private fun emitRemote(
+        result: String,
+        reason: String,
+        label: String,
+        startedAt: Long,
+        statusOk: Boolean,
+    ) {
+        val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+        MagiskOtel.event(
+            name = "app.monitor",
+            attributes = mapOf(
+                "result" to result,
+                "duration_ms" to durationMs.toString(),
+                "process" to "app",
+                "stage" to "remote_agent",
+                "reason" to reason,
+                "source" to label,
+            ),
+            statusOk = statusOk,
+        )
     }
 
     private fun errorMessage(responseText: String, failureLabel: String, responseCode: Int): String {
