@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import java.io.IOException
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 object ScheduledTaskExecutor {
     private const val DEDUPE_WINDOW_MS = 60_000L
@@ -20,6 +21,18 @@ object ScheduledTaskExecutor {
         withContext(Dispatchers.IO) {
             if (!BuildConfig.ENABLE_SMS_CHANNEL) {
                 XLog.w("ScheduledTask $taskId skipped: SMS channel disabled in current distribution")
+                MagiskOtel.event(
+                    name = "sms.schedule",
+                    attributes = mapOf(
+                        "result" to "skip",
+                        "duration_ms" to "0",
+                        "process" to "app",
+                        "stage" to "execute",
+                        "source" to source,
+                        "reason" to "sms_channel_disabled",
+                    ),
+                    statusOk = true,
+                )
                 return@withContext
             }
 
@@ -34,6 +47,18 @@ object ScheduledTaskExecutor {
             )
             if (claimed == 0) {
                 XLog.i("Task $taskId skipped, disabled, stale, early, or already claimed recently")
+                MagiskOtel.event(
+                    name = "sms.schedule",
+                    attributes = mapOf(
+                        "result" to "skip",
+                        "duration_ms" to "0",
+                        "process" to "app",
+                        "stage" to "execute",
+                        "source" to source,
+                        "reason" to "not_claimed",
+                    ),
+                    statusOk = true,
+                )
                 return@withContext
             }
 
@@ -60,11 +85,48 @@ object ScheduledTaskExecutor {
                         )
                         dao.markRunSucceeded(taskId, System.currentTimeMillis())
                         XLog.i("ScheduledTask $taskId sent SMS successfully")
+                    }.onSuccess {
+                        MagiskOtel.event(
+                            name = "sms.schedule",
+                            attributes = mapOf(
+                                "result" to "ok",
+                                "duration_ms" to "0",
+                                "process" to "app",
+                                "stage" to "execute",
+                                "source" to source,
+                                "reason" to "sms_sent",
+                            ),
+                            statusOk = true,
+                        )
                     }.onFailure {
                         XLog.e("ScheduledTask $taskId SMS failed", it)
+                        MagiskOtel.event(
+                            name = "sms.schedule",
+                            attributes = mapOf(
+                                "result" to "error",
+                                "duration_ms" to "0",
+                                "process" to "app",
+                                "stage" to "execute",
+                                "source" to source,
+                                "reason" to it.javaClass.simpleName,
+                            ),
+                            statusOk = false,
+                        )
                     }
                 } else {
                     XLog.w("ScheduledTask $taskId skipped unsupported type=${task.taskType}")
+                    MagiskOtel.event(
+                        name = "sms.schedule",
+                        attributes = mapOf(
+                            "result" to "skip",
+                            "duration_ms" to "0",
+                            "process" to "app",
+                            "stage" to "execute",
+                            "source" to source,
+                            "reason" to "unsupported_type",
+                        ),
+                        statusOk = true,
+                    )
                 }
             } finally {
                 ScheduledTaskManager(context, db).rescheduleTask(task.id)
