@@ -7,6 +7,7 @@ import io.github.magisk317.relay.xp.hook.code.SmsBlockEvaluator
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.smscode.verification.SmsIntentHookSupport
 import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 internal class SmsForwardBlockHandler(
     private val blockEvaluator: (Context, Intent, String, String) -> SmsBlockEvaluator.Result? =
@@ -43,12 +44,29 @@ internal class SmsForwardBlockHandler(
     )
 
     fun handle(request: Request): Outcome {
+        val startedAt = System.nanoTime()
+        fun emit(result: String, statusOk: Boolean = true, reason: String? = null) {
+            val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+            val attrs = mutableMapOf(
+                "result" to result,
+                "duration_ms" to durationMs.toString(),
+                "process" to "hook",
+                "source" to SOURCE_SMS_FORWARD,
+                "event_id_present" to request.eventId.isNotBlank().toString(),
+            )
+            if (reason != null) attrs["reason"] = reason
+            MagiskOtel.event(name = "sms.block", attributes = attrs, statusOk = statusOk)
+        }
+
         val evaluation = blockEvaluator(
             request.pluginContext,
             request.intent,
             request.eventId,
             SOURCE_SMS_FORWARD,
-        ) ?: return Outcome()
+        ) ?: run {
+            emit(result = "skip", reason = "no_block")
+            return Outcome()
+        }
 
         blacklistHitRecorder(
             request.pluginContext,
@@ -62,18 +80,23 @@ internal class SmsForwardBlockHandler(
             blacklistDeleteScheduler(request.pluginContext, request.phoneContext, evaluation.smsMsg)
         }
 
-        val reason = evaluation.blockReason ?: return Outcome()
+        val reason = evaluation.blockReason ?: run {
+            emit(result = "skip", reason = "delete_only")
+            return Outcome()
+        }
         XLog.w("SmsForwardHook block start: reason=%s event_id=%s", reason, request.eventId)
         val inbound = request.inboundSmsHandler
         val receiver = receiverResolver(request.hookArgs)
         if (inbound == null || receiver == null) {
             XLog.w("SmsForwardHook block fallback: receiver unavailable event_id=%s", request.eventId)
+            emit(result = "error", statusOk = false, reason = "receiver_unavailable")
             return Outcome(suppressForward = true)
         }
 
         val blocked = inboundBlocker(inbound, receiver, reason, request.eventId)
         if (!blocked) {
             XLog.w("SmsForwardHook block aborted: cleanup incomplete event_id=%s", request.eventId)
+            emit(result = "error", statusOk = false, reason = "cleanup_incomplete")
             return Outcome(suppressForward = true)
         }
         if (reason == SmsBlockEvaluator.BLOCK_REASON_PREF_BLOCK) {
@@ -87,6 +110,7 @@ internal class SmsForwardBlockHandler(
                 )
             }
         }
+        emit(result = "ok", reason = reason)
         return Outcome(
             suppressForward = true,
             inboundBlocked = true,

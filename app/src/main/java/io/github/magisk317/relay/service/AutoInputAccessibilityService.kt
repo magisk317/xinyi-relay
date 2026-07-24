@@ -20,6 +20,7 @@ import io.github.magisk317.smscode.verification.AutoInputFallbackPolicy
 import io.github.magisk317.smscode.verification.AutoInputAccessibilityNodeHelper
 import io.github.magisk317.smscode.verification.AutoInputAccessibilityNodeHelper.Result as AutoInputResult
 import io.github.magisk317.smscode.verification.AutoInputAccessibilityRequestHandler
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 class AutoInputAccessibilityService : AccessibilityService() {
 
@@ -63,12 +64,14 @@ class AutoInputAccessibilityService : AccessibilityService() {
         registerAutoInputReceiver()
         startHeartbeat()
         XLog.w("Accessibility auto input service connected")
+        emitA11y(stage = "connected")
     }
 
     override fun onDestroy() {
         stopHeartbeat()
         unregisterAutoInputReceiver()
         XLog.w("Accessibility auto input service destroyed")
+        emitA11y(stage = "destroy")
         super.onDestroy()
     }
 
@@ -232,6 +235,20 @@ class AutoInputAccessibilityService : AccessibilityService() {
         }.onFailure { t ->
             XLog.w("Accessibility heartbeat: wake failed: %s", t.message)
         }
+    }
+
+
+    private fun emitA11y(stage: String, result: String = "ok", statusOk: Boolean = true) {
+        MagiskOtel.event(
+            name = "a11y.service",
+            attributes = mapOf(
+                "result" to result,
+                "duration_ms" to "0",
+                "process" to "app",
+                "stage" to stage,
+            ),
+            statusOk = statusOk,
+        )
     }
 
     private companion object {
