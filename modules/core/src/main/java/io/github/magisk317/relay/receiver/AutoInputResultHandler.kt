@@ -12,6 +12,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 object AutoInputResultHandler {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -44,13 +45,50 @@ object AutoInputResultHandler {
                 }
             }
         ) {
-            AutoInputResultProcessor.ValidationResult.Ignored -> return
-            AutoInputResultProcessor.ValidationResult.MissingAttemptId -> return
+            AutoInputResultProcessor.ValidationResult.Ignored -> {
+                MagiskOtel.event(
+                    name = "auto.input",
+                    attributes = mapOf(
+                        "result" to "skip",
+                        "duration_ms" to "0",
+                        "process" to "app",
+                        "stage" to "result_handler",
+                        "reason" to "ignored",
+                    ),
+                    statusOk = true,
+                )
+                return
+            }
+            AutoInputResultProcessor.ValidationResult.MissingAttemptId -> {
+                MagiskOtel.event(
+                    name = "auto.input",
+                    attributes = mapOf(
+                        "result" to "skip",
+                        "duration_ms" to "0",
+                        "process" to "app",
+                        "stage" to "result_handler",
+                        "reason" to "missing_attempt_id",
+                    ),
+                    statusOk = true,
+                )
+                return
+            }
             is AutoInputResultProcessor.ValidationResult.RejectedToken -> {
                 XLog.w(
                     "Diag AutoInputResultReceiver rejected token: expectedEmpty=%s receivedEmpty=%s",
                     validation.expectedTokenEmpty,
                     validation.receivedTokenEmpty,
+                )
+                MagiskOtel.event(
+                    name = "auto.input",
+                    attributes = mapOf(
+                        "result" to "error",
+                        "duration_ms" to "0",
+                        "process" to "app",
+                        "stage" to "result_handler",
+                        "reason" to "token_rejected",
+                    ),
+                    statusOk = false,
                 )
                 return
             }
@@ -73,6 +111,17 @@ object AutoInputResultHandler {
         }
         if (!analyticsEnabled) {
             XLog.w("Diag AutoInputResultReceiver analytics disabled: attemptId=%d", attemptId)
+            MagiskOtel.event(
+                name = "auto.input",
+                attributes = mapOf(
+                    "result" to "skip",
+                    "duration_ms" to "0",
+                    "process" to "app",
+                    "stage" to "result_handler",
+                    "reason" to "analytics_disabled",
+                ),
+                statusOk = true,
+            )
             return
         }
 
@@ -97,12 +146,35 @@ object AutoInputResultHandler {
                     },
                 )
             ) {
-                AutoInputResultProcessor.PersistenceOutcome.UPDATED -> Unit
+                AutoInputResultProcessor.PersistenceOutcome.UPDATED -> {
+                    MagiskOtel.event(
+                        name = "auto.input",
+                        attributes = mapOf(
+                            "result" to if (success) "ok" else "error",
+                            "duration_ms" to "0",
+                            "process" to "app",
+                            "stage" to "result_handler",
+                            "reason" to "updated",
+                        ),
+                        statusOk = success,
+                    )
+                }
                 AutoInputResultProcessor.PersistenceOutcome.UPSERTED -> {
                     XLog.i(
                         "Diag AutoInputResultReceiver recovered stale result via upsert: attemptId=%d success=%s",
                         attemptId,
                         success,
+                    )
+                    MagiskOtel.event(
+                        name = "auto.input",
+                        attributes = mapOf(
+                            "result" to if (success) "ok" else "error",
+                            "duration_ms" to "0",
+                            "process" to "app",
+                            "stage" to "result_handler",
+                            "reason" to "upserted",
+                        ),
+                        statusOk = success,
                     )
                 }
                 AutoInputResultProcessor.PersistenceOutcome.STALE -> {
@@ -111,6 +183,17 @@ object AutoInputResultHandler {
                         attemptId,
                         success,
                         reason ?: "<none>",
+                    )
+                    MagiskOtel.event(
+                        name = "auto.input",
+                        attributes = mapOf(
+                            "result" to "skip",
+                            "duration_ms" to "0",
+                            "process" to "app",
+                            "stage" to "result_handler",
+                            "reason" to "stale",
+                        ),
+                        statusOk = true,
                     )
                     return@runCatching
                 }
@@ -127,6 +210,18 @@ object AutoInputResultHandler {
             XLog.w(
                 "AutoInput result persist failed: %s",
                 error.message ?: error.javaClass.simpleName,
+            )
+            MagiskOtel.event(
+                name = "auto.input",
+                attributes = mapOf(
+                    "result" to "error",
+                    "duration_ms" to "0",
+                    "process" to "app",
+                    "stage" to "result_handler",
+                    "reason" to "persist_failed",
+                    "error_class" to error.javaClass.simpleName,
+                ),
+                statusOk = false,
             )
         }
     }

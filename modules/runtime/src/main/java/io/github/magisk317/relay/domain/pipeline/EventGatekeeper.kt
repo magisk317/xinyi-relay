@@ -9,6 +9,7 @@ import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.engine.event.RelayEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 data class GateDecision(
     val allowed: Boolean,
@@ -20,6 +21,24 @@ class EventGatekeeper(
     private val preferenceDataSource: PreferenceDataSource,
 ) {
     suspend fun check(event: RelayEvent, traceId: String): GateDecision {
+        val decision = evaluate(event, traceId)
+        MagiskOtel.event(
+            name = "sms.pipeline",
+            attributes = mapOf(
+                "result" to if (decision.allowed) "ok" else "skip",
+                "duration_ms" to "0",
+                "process" to "app",
+                "stage" to "gate",
+                "reason" to decision.reason,
+                "msg_type" to event.messageType.name.lowercase(),
+                "event_id_present" to traceId.isNotBlank().toString(),
+            ),
+            statusOk = true,
+        )
+        return decision
+    }
+
+    private suspend fun evaluate(event: RelayEvent, traceId: String): GateDecision {
         if (!preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE, true)) {
             return GateDecision(false, "module_disabled")
         }

@@ -13,6 +13,7 @@ import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 class DataStoreSyncInitializer : AppInitializer {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -48,6 +49,18 @@ class DataStoreSyncInitializer : AppInitializer {
                 verboseLog,
                 sensitiveDebugLog,
                 logRetentionDays,
+            )
+            MagiskOtel.event(
+                name = "prefs.access",
+                attributes = mapOf(
+                    "result" to "ok",
+                    "duration_ms" to "0",
+                    "process" to "app",
+                    "stage" to "startup_sync",
+                    "reason" to "user_unlocked",
+                    "change_count" to (repaired + imported).toString(),
+                ),
+                statusOk = true,
             )
         }
     }

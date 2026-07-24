@@ -11,6 +11,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 class AutoCloudBackupCoordinator(
     private val context: Context,
@@ -33,6 +34,7 @@ class AutoCloudBackupCoordinator(
             val settings = CloudBackupSettingsStore.getSettings(context)
             if (!settings.autoBackupEnabled) {
                 XLog.i("Auto cloud backup skipped: disabled reason=%s", reason)
+                emitBackup(result = "skip", reason = "disabled", source = reason)
                 return
             }
 
@@ -46,6 +48,7 @@ class AutoCloudBackupCoordinator(
                     val config = WebDavConfigStore.getConfig(context)
                     if (config == null) {
                         XLog.w("Auto cloud backup skipped: WebDAV config missing reason=%s", reason)
+                        emitBackup(result = "skip", reason = "webdav_config_missing", source = reason)
                         return
                     }
                     webDavProvider.updateConfig(config)
@@ -58,6 +61,12 @@ class AutoCloudBackupCoordinator(
                     "Auto cloud backup skipped: provider unavailable source=%s reason=%s",
                     settings.autoBackupSource.name,
                     reason,
+                )
+                emitBackup(
+                    result = "skip",
+                    reason = "provider_unavailable",
+                    source = reason,
+                    backupSource = settings.autoBackupSource.name,
                 )
                 return
             }
@@ -76,6 +85,12 @@ class AutoCloudBackupCoordinator(
                         reason,
                         backupId,
                     )
+                    emitBackup(
+                        result = "ok",
+                        reason = "uploaded",
+                        source = reason,
+                        backupSource = settings.autoBackupSource.name,
+                    )
                 },
                 onFailure = { error ->
                     XLog.e(
@@ -84,9 +99,42 @@ class AutoCloudBackupCoordinator(
                         reason,
                         error.message ?: error.javaClass.simpleName,
                     )
+                    emitBackup(
+                        result = "error",
+                        reason = "upload_failed",
+                        source = reason,
+                        backupSource = settings.autoBackupSource.name,
+                        statusOk = false,
+                        errorClass = error.javaClass.simpleName,
+                    )
                 },
             )
         }
+    }
+
+    private fun emitBackup(
+        result: String,
+        reason: String,
+        source: String,
+        backupSource: String? = null,
+        statusOk: Boolean = true,
+        errorClass: String? = null,
+    ) {
+        val attrs = mutableMapOf(
+            "result" to result,
+            "duration_ms" to "0",
+            "process" to "app",
+            "stage" to "auto_cloud",
+            "reason" to reason,
+            "source" to source,
+        )
+        if (!backupSource.isNullOrBlank()) {
+            attrs["sender_type"] = backupSource
+        }
+        if (!errorClass.isNullOrBlank()) {
+            attrs["error_class"] = errorClass
+        }
+        MagiskOtel.event(name = "prefs.backup", attributes = attrs, statusOk = statusOk)
     }
 
     private companion object {
