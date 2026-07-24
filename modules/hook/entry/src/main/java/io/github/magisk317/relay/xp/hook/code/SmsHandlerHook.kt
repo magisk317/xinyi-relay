@@ -27,6 +27,7 @@ import io.github.magisk317.xposed.HookEnv
 import io.github.magisk317.xposed.MethodHook
 import io.github.magisk317.xposed.LoadParam
 import io.github.magisk317.xposed.MethodHookParam
+import io.github.magisk317.xposed.logging.MagiskOtel
 import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 import java.io.File
 import java.lang.reflect.Method
@@ -80,8 +81,20 @@ class SmsHandlerHook : BaseHook() {
             printDeviceInfo()
             try {
                 hookSmsHandler(lpparam)
+                emitHandler(
+                    result = "ok",
+                    reason = "installed",
+                    stage = "hook_install",
+                )
             } catch (e: Throwable) {
                 XLog.e("Failed to hook SmsHandler", e)
+                emitHandler(
+                    result = "error",
+                    reason = "install_failed",
+                    stage = "hook_install",
+                    statusOk = false,
+                    errorClass = e.javaClass.simpleName,
+                )
             }
             XLog.i("SmsCode initialize completely")
         }
@@ -316,10 +329,22 @@ class SmsHandlerHook : BaseHook() {
                 eventId,
                 action,
             )
+            emitHandler(
+                result = "skip",
+                reason = "intent_extra_dedupe",
+                stage = "dedupe_intent",
+                eventIdPresent = true,
+            )
             return
         }
         val pluginContext = runtimeSession.currentOrResolve()?.pluginContext
         if (pluginContext != null && shouldSkipDispatchBySharedDedup(pluginContext, eventId, action)) {
+            emitHandler(
+                result = "skip",
+                reason = "shared_store_dedupe",
+                stage = "dedupe_shared",
+                eventIdPresent = true,
+            )
             return
         }
         val pduCount = SmsIntentHookSupport.getPduCount(intent) {
@@ -342,6 +367,16 @@ class SmsHandlerHook : BaseHook() {
         if (outcome.inboundBlocked) {
             param.result = null
         }
+        emitHandler(
+            result = if (outcome.shouldStopDispatch || outcome.inboundBlocked) "ok" else "ok",
+            reason = when {
+                outcome.inboundBlocked -> "inbound_blocked"
+                outcome.shouldStopDispatch -> "stop_dispatch"
+                else -> "handled"
+            },
+            stage = "sms_handler",
+            eventIdPresent = true,
+        )
         if (outcome.shouldStopDispatch) {
             return
         }
@@ -532,6 +567,33 @@ class SmsHandlerHook : BaseHook() {
         smsInboxObserver?.unregister()
         smsInboxObserver = null
         smsOperationExecutor.shutdownNow()
+    }
+
+
+    private fun emitHandler(
+        result: String,
+        reason: String,
+        stage: String,
+        eventIdPresent: Boolean = false,
+        statusOk: Boolean = true,
+        errorClass: String? = null,
+    ) {
+        val attrs = mutableMapOf(
+            "result" to result,
+            "duration_ms" to "0",
+            "process" to "hook",
+            "stage" to stage,
+            "reason" to reason,
+            "source" to "sms_handler",
+            "msg_type" to "sms",
+        )
+        if (eventIdPresent) {
+            attrs["event_id_present"] = "true"
+        }
+        if (!errorClass.isNullOrBlank()) {
+            attrs["error_class"] = errorClass
+        }
+        MagiskOtel.event(name = "sms.process", attributes = attrs, statusOk = statusOk)
     }
 
     companion object {
