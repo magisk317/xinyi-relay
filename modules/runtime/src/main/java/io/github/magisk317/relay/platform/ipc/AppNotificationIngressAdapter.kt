@@ -8,38 +8,52 @@ import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.sms.SmsCodeUtils
 import io.github.magisk317.smscode.domain.model.SmsCodeParseSource
 import io.github.magisk317.smscode.domain.model.SmsCodeParseSourceKind
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 object AppNotificationIngressAdapter {
     fun toPayload(
         context: Context,
         sbn: StatusBarNotification,
     ): ForwardBroadcastPayload? {
-        val packageName = sbn.packageName
-        if (shouldIgnoreSourcePackage(context.packageName, packageName)) {
-            return null
-        }
-
-        val notification = sbn.notification
-        val title = notification.extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
-        val text = notification.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
-        val expandedText = resolveExpandedText(notification)
-        val tickerText = notification.tickerText?.toString() ?: ""
-        val notifyChannelId = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            notification.channelId.orEmpty()
-        } else {
-            ""
-        }
-        if (shouldSkipRelayOwnedTelephonyNotification(packageName, notifyChannelId)) {
-            XLog.d(
-                "Notification ingress skipped: pkg=%s reason=channel_relay_notification channel=%s",
-                packageName,
-                notifyChannelId.ifBlank { "<empty>" },
+        val startedAt = System.nanoTime()
+        val packageName = sbn.packageName.orEmpty()
+        if (packageName.isBlank()) {
+            emitAppNotification(
+                result = "skip",
+                reason = "blank_package",
+                durationMs = elapsedMs(startedAt),
             )
             return null
         }
-        val body = resolveNotificationBody(text, expandedText, tickerText)
+        val notification = sbn.notification ?: run {
+            emitAppNotification(
+                result = "skip",
+                reason = "missing_notification",
+                durationMs = elapsedMs(startedAt),
+                targetPackage = packageName,
+            )
+            return null
+        }
+        val title = notification.extras.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty()
+        val text = notification.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty()
+        val expandedText = resolveExpandedText(notification)
+        val tickerText = notification.tickerText?.toString().orEmpty()
+        val body = resolveNotificationBody(
+            text = text,
+            expandedText = expandedText,
+            tickerText = tickerText,
+        )
+        val notifyChannelId = notification.channelId.orEmpty()
+        if (title.isBlank() && body.isBlank()) {
+            emitAppNotification(
+                result = "skip",
+                reason = "empty_content",
+                durationMs = elapsedMs(startedAt),
+                targetPackage = packageName,
+            )
+            return null
+        }
 
-        if (title.isBlank() && body.isBlank()) return null
         val skipReason = resolveSkipReason(
             notification = notification,
             title = title,
@@ -53,6 +67,12 @@ object AppNotificationIngressAdapter {
                 skipReason,
                 notifyChannelId.ifBlank { "<empty>" },
             )
+            emitAppNotification(
+                result = "skip",
+                reason = skipReason,
+                durationMs = elapsedMs(startedAt),
+                targetPackage = packageName,
+            )
             return null
         }
 
@@ -64,6 +84,13 @@ object AppNotificationIngressAdapter {
             packageName
         }
 
+        emitAppNotification(
+            result = "ok",
+            reason = "accepted",
+            durationMs = elapsedMs(startedAt),
+            targetPackage = packageName,
+            bodyLength = body.length,
+        )
         return ForwardPayloadFactory.appNotificationPayload(
             packageName = packageName,
             title = title,
@@ -284,4 +311,30 @@ object AppNotificationIngressAdapter {
         "com.google.android.apps.messaging",
         "com.samsung.android.messaging",
     )
+
+    private fun elapsedMs(startedAt: Long): Long =
+        ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+
+    private fun emitAppNotification(
+        result: String,
+        reason: String,
+        durationMs: Long,
+        targetPackage: String = "",
+        bodyLength: Int? = null,
+    ) {
+        val attrs = mutableMapOf(
+            "result" to result,
+            "duration_ms" to durationMs.toString(),
+            "process" to "app",
+            "stage" to "app_notification",
+            "reason" to reason,
+        )
+        if (targetPackage.isNotBlank()) {
+            attrs["target_package"] = targetPackage
+        }
+        if (bodyLength != null) {
+            attrs["body_length"] = bodyLength.toString()
+        }
+        MagiskOtel.event(name = "sms.ingest", attributes = attrs, statusOk = true)
+    }
 }
