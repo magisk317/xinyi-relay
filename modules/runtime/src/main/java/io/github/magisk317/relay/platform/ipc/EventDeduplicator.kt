@@ -1,5 +1,7 @@
 package io.github.magisk317.relay.platform.ipc
 
+import io.github.magisk317.xposed.logging.MagiskOtel
+
 /**
  * Singleton that prevents duplicate event processing when both Enhanced Mode
  * (Xposed hooks) and Standard Mode (system APIs) produce payloads for the
@@ -22,12 +24,52 @@ object EventDeduplicator {
      */
     @Synchronized
     fun isDuplicate(eventId: String): Boolean {
-        if (eventId.isBlank()) return false
+        if (eventId.isBlank()) {
+            MagiskOtel.event(
+                name = "sms.event",
+                attributes = mapOf(
+                    "result" to "ok",
+                    "duration_ms" to "0",
+                    "process" to "app",
+                    "stage" to "dedupe",
+                    "reason" to "blank_event_id",
+                    "event_id_present" to "false",
+                ),
+                statusOk = true,
+            )
+            return false
+        }
         val now = System.currentTimeMillis()
         evict(now)
         val existing = recentEvents[eventId]
-        if (existing != null) return true
+        if (existing != null) {
+            MagiskOtel.event(
+                name = "sms.event",
+                attributes = mapOf(
+                    "result" to "skip",
+                    "duration_ms" to (now - existing).coerceAtLeast(0L).toString(),
+                    "process" to "app",
+                    "stage" to "dedupe",
+                    "reason" to "duplicate_window",
+                    "event_id_present" to "true",
+                ),
+                statusOk = true,
+            )
+            return true
+        }
         recentEvents[eventId] = now
+        MagiskOtel.event(
+            name = "sms.event",
+            attributes = mapOf(
+                "result" to "ok",
+                "duration_ms" to "0",
+                "process" to "app",
+                "stage" to "dedupe",
+                "reason" to "unique",
+                "event_id_present" to "true",
+            ),
+            statusOk = true,
+        )
         return false
     }
 
