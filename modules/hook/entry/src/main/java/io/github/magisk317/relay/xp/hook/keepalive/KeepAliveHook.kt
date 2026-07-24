@@ -6,6 +6,7 @@ import io.github.magisk317.xposed.HookHelpers
 import io.github.magisk317.xposed.LoadParam
 import io.github.magisk317.xposed.MethodHook
 import io.github.magisk317.xposed.MethodHookParam
+import io.github.magisk317.xposed.logging.MagiskOtel
 import io.github.magisk317.smscode.xposed.prefs.CorePrefs
 import io.github.magisk317.smscode.xposed.utils.XLog
 import io.github.magisk317.xposed.runNonFatalCatching
@@ -29,6 +30,18 @@ class KeepAliveHook : BaseHook() {
         hookKillProcess(param)
         hookAppStandbyController(param)
         hookDeviceIdleController(param)
+        MagiskOtel.event(
+            name = "push.keepalive",
+            attributes = mapOf(
+                "result" to "ok",
+                "duration_ms" to "0",
+                "process" to "system_server",
+                "stage" to "hook_install",
+                "reason" to "installed",
+                "target_package" to KeepAliveHookConst.TARGET_PACKAGE,
+            ),
+            statusOk = true,
+        )
     }
 
     // ── Hook 1: OomAdjuster ──────────────────────────────────────────────────
@@ -132,6 +145,18 @@ class KeepAliveHook : BaseHook() {
                             if (shouldSkipKill(param)) {
                                 param.result = null
                                 XLog.w("KeepAliveHook: intercepted kill for %s", KeepAliveHookConst.TARGET_PACKAGE)
+                                MagiskOtel.event(
+                                    name = "push.keepalive",
+                                    attributes = mapOf(
+                                        "result" to "skip",
+                                        "duration_ms" to "0",
+                                        "process" to "system_server",
+                                        "stage" to "kill_guard",
+                                        "reason" to "target_protected",
+                                        "target_package" to KeepAliveHookConst.TARGET_PACKAGE,
+                                    ),
+                                    statusOk = true,
+                                )
                             }
                         }.onFailure { t ->
                             XLog.e("KeepAliveHook: kill hook error", t)
