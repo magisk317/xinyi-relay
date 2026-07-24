@@ -22,6 +22,7 @@ import io.github.magisk317.relay.sender.config.WeworkAgentSetting
 import io.github.magisk317.relay.sender.config.WeworkRobotSetting
 import io.github.magisk317.relay.sender.config.YunhuSetting
 import io.github.magisk317.relay.engine.sender.SenderType
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 data class SenderValidationResult(
     val valid: Boolean,
@@ -37,7 +38,7 @@ object SenderValidator {
         enableSmsChannel: Boolean = true,
     ): SenderValidationResult {
         val safeSender = SenderSettingSanitizer.sanitizeSenderLenient(sender)
-        return try {
+        val result = try {
             when (safeSender.type) {
                 SenderType.DINGTALK_GROUP_ROBOT -> {
                     val setting = SenderSettingJson.decode(DingtalkGroupRobotSetting.serializer(), safeSender.jsonSetting)
@@ -182,6 +183,19 @@ object SenderValidator {
         } catch (_: Exception) {
             invalid("通道配置格式错误，请检查字段")
         }
+        MagiskOtel.event(
+            name = "sms.sender_runtime",
+            attributes = mapOf(
+                "result" to if (result.valid) "ok" else "error",
+                "duration_ms" to "0",
+                "process" to "app",
+                "stage" to "sender_validate",
+                "reason" to if (result.valid) "valid" else "invalid",
+                "sender_type" to safeSender.type.toString(),
+            ),
+            statusOk = result.valid,
+        )
+        return result
     }
 
     private fun ok(): SenderValidationResult = SenderValidationResult(valid = true)

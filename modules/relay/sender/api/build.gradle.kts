@@ -18,6 +18,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":magisk-xposed-kit:logging"))
     api(project(":relay:contract"))
     api(project(":relay:engine:api"))
     api(libs.kotlinx.serialization.json)
