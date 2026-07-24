@@ -1,4 +1,8 @@
-- Features: Added SMS sender blacklist filtering and hit record UI.
-- Fixes: Hot reload compatibility on API 102; Removed obsolete desktop keyring logic.
-- Chores: Massive repository architecture refactoring and CI stabilization.
+- Updated to 0.2.1-beta2 (42).
+- Standard mode fallback for SMS/call/MMS without Xposed.
+- Parse verification codes from app notifications.
+- Main UI uses shared MainTabScaffold / ui-kit.
+- Hardened IPC, atomic prefs, unified log redaction.
+- Matrix E2EE cleanup and silent forward window.
 - https://github.com/magisk317/xinyi-relay/releases
+- https://gitlab.com/magisk3171/xinyi-relay/-/releases

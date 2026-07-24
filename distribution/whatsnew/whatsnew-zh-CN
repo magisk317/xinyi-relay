@@ -1,4 +1,8 @@
-- 新增：支持拦截特定发送方的短信，并记录在黑名单中。
-- 修复：适配最新框架的热重载替换；清理桌面端凭证遗留逻辑。
-- 构建：底层仓库架构及持续集成深度重构，进一步提升稳定性与性能。
+- 升级至 0.2.1-beta2（42）。
+- 完善无 Xposed 标准模式短信/通话/MMS 回退。
+- 支持从应用通知解析验证码。
+- 主界面改用共享 MainTabScaffold / ui-kit。
+- 加固 IPC、原子设置与统一日志脱敏。
+- 收敛 Matrix E2EE，并支持静默转发时段。
 - https://github.com/magisk317/xinyi-relay/releases
+- https://gitlab.com/magisk3171/xinyi-relay/-/releases
