@@ -14,6 +14,7 @@ import io.github.magisk317.smscode.verification.ObservedInboxScanner
 import io.github.magisk317.smscode.verification.SmsInboxSeenTracker
 import io.github.magisk317.smscode.verification.SmsRoleStateResolver
 import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.MagiskOtel
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 
@@ -44,9 +45,11 @@ internal class SmsInboxObserver(
         runCatching {
             phoneContext.contentResolver.registerContentObserver(Telephony.Sms.CONTENT_URI, true, observer)
             XLog.i("SmsInboxObserver registered")
+            emitObserver(result = "ok", reason = "registered")
             queryExecutor.execute { repairRecentRouting() }
         }.onFailure {
             XLog.w("SmsInboxObserver register failed: %s", it.message ?: it.javaClass.simpleName)
+            emitObserver(result = "error", reason = "register_failed", statusOk = false)
         }
     }
 
@@ -54,8 +57,10 @@ internal class SmsInboxObserver(
         runCatching {
             phoneContext.contentResolver.unregisterContentObserver(observer)
             XLog.i("SmsInboxObserver unregistered")
+            emitObserver(result = "ok", reason = "unregistered")
         }.onFailure {
             XLog.w("SmsInboxObserver unregister failed: %s", it.message ?: it.javaClass.simpleName)
+            emitObserver(result = "error", reason = "unregister_failed", statusOk = false)
         }
         queryExecutor.shutdownNow()
     }
@@ -81,13 +86,24 @@ internal class SmsInboxObserver(
             scanned,
             updated,
         )
+        emitObserver(
+            result = "ok",
+            reason = "routing_repair",
+            extra = mapOf(
+                "scanned_count" to scanned.toString(),
+                "updated_count" to updated.toString(),
+            ),
+        )
     }
 
     private fun scanRecentInbox(triggerUri: String) {
+        val startedAt = System.nanoTime()
+        var handled = 0
         smsInboxScanner.scan(
             triggerUri = triggerUri,
             recentSmsWindowMs = RECENT_SMS_WINDOW_MS,
         ).forEach { record ->
+            handled += 1
             val sensitiveDebugLog = XpPrefs.isSensitiveDebugLogMode(pluginContext)
             XLog.w(
                 "Diag SMS provider observed: sms_id=%d trigger_uri=%s sender_hash=%s date=%d read=%s simSlot=%d subId=%d code=%s body=%s",
@@ -104,6 +120,30 @@ internal class SmsInboxObserver(
             logSmsRoleStateForSms(record.smsId, record.triggerUri)
             observedSmsHandler.handle(record)
         }
+        emitObserver(
+            result = "ok",
+            reason = if (handled == 0) "scan_empty" else "scan_handled",
+            durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+            extra = mapOf("handled_count" to handled.toString()),
+        )
+    }
+
+    private fun emitObserver(
+        result: String,
+        reason: String,
+        statusOk: Boolean = true,
+        durationMs: Long = 0L,
+        extra: Map<String, String> = emptyMap(),
+    ) {
+        val attrs = linkedMapOf(
+            "result" to result,
+            "duration_ms" to durationMs.toString(),
+            "process" to "hook",
+            "stage" to "sms_inbox_observer",
+            "reason" to reason,
+        )
+        attrs.putAll(extra)
+        MagiskOtel.event(name = "sms.observe", attributes = attrs, statusOk = statusOk)
     }
 
     private fun logSmsRoleState(eventId: String) {
