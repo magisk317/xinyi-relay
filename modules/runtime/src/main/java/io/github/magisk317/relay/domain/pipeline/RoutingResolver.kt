@@ -12,6 +12,7 @@ import io.github.magisk317.relay.engine.routing.NotifyRoutingResolver
 import io.github.magisk317.relay.engine.routing.NotifyRoutingResult
 import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 data class SenderRoutingResolution(
     val senders: List<Sender>,
@@ -73,6 +74,7 @@ class RoutingResolver(private val db: AppDatabase) {
             return SenderRoutingResolution(routedSenders, routingResult)
         }
         val senderFilteredReasonParts = mutableListOf<String>()
+        var blockedSenders = 0
         val filtered = routedSenders.filter { sender ->
             val decision = ForwardFilterEngine.evaluateSenderScope(
                 rules = forwardFilterRules,
@@ -80,6 +82,7 @@ class RoutingResolver(private val db: AppDatabase) {
                 senderId = sender.id,
             )
             if (decision.blocked) {
+                blockedSenders += 1
                 val senderName = SenderType.displayName(sender.type, sender.name)
                 senderFilteredReasonParts += "$senderName:${decision.reason ?: "blocked"}"
                 false
@@ -87,16 +90,67 @@ class RoutingResolver(private val db: AppDatabase) {
                 true
             }
         }
+        if (blockedSenders > 0 || forwardFilterRules.isNotEmpty()) {
+            emitFilter(
+                stage = "sender_scope",
+                decision = ForwardFilterDecision(
+                    blocked = blockedSenders > 0 && filtered.isEmpty(),
+                    reason = if (blockedSenders == 0) "allowed" else "sender_filtered",
+                    allowConfiguredCount = forwardFilterRules.size,
+                    allowMatchedCount = filtered.size,
+                    denyMatchedCount = blockedSenders,
+                ),
+                msgType = event.messageType.name,
+                targetPackage = event.packageName,
+                filteredCount = blockedSenders,
+            )
+        }
         return SenderRoutingResolution(filtered, routingResult, senderFilteredReasonParts)
     }
 
     suspend fun evaluatePreRoute(
         event: RelayEvent,
-    ): ForwardFilterDecision = when {
-        needsFilterEvaluation(event.messageType) -> {
-            val rules = db.forwardFilterRuleDao().getEnabledByMsgType(event.messageType.runtimeType).map { it.toDomain() }
-            ForwardFilterEngine.evaluatePreRoute(rules, event)
+    ): ForwardFilterDecision {
+        val decision = when {
+            needsFilterEvaluation(event.messageType) -> {
+                val rules = db.forwardFilterRuleDao().getEnabledByMsgType(event.messageType.runtimeType).map { it.toDomain() }
+                ForwardFilterEngine.evaluatePreRoute(rules, event)
+            }
+            else -> ForwardFilterDecision(blocked = false)
         }
-        else -> ForwardFilterDecision(blocked = false)
+        emitFilter(
+            stage = "pre_route",
+            decision = decision,
+            msgType = event.messageType.name,
+            targetPackage = event.packageName,
+        )
+        return decision
+    }
+
+    private fun emitFilter(
+        stage: String,
+        decision: ForwardFilterDecision,
+        msgType: String,
+        targetPackage: String,
+        filteredCount: Int? = null,
+    ) {
+        val attrs = mutableMapOf(
+            "result" to if (decision.blocked) "skip" else "ok",
+            "duration_ms" to "0",
+            "process" to "main",
+            "stage" to stage,
+            "reason" to (decision.reason ?: if (decision.blocked) "blocked" else "allowed"),
+            "msg_type" to msgType,
+            "rule_count" to (decision.allowConfiguredCount + decision.denyMatchedCount + decision.allowMatchedCount).toString(),
+            "found_count" to decision.allowMatchedCount.toString(),
+            "pending_count" to decision.denyMatchedCount.toString(),
+        )
+        if (targetPackage.isNotBlank()) {
+            attrs["target_package"] = targetPackage
+        }
+        if (filteredCount != null) {
+            attrs["change_count"] = filteredCount.toString()
+        }
+        MagiskOtel.event(name = "sms.block", attributes = attrs, statusOk = true)
     }
 }
