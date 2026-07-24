@@ -17,6 +17,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 object ForceStopRecoveryHandler {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -28,6 +29,18 @@ object ForceStopRecoveryHandler {
     fun handle(context: Context, intent: Intent, tag: String) {
         if (!wakeupThrottle.tryAcquire()) {
             XLog.w(LogRoute.ROOT_DB, "ForceStopRecoveryService wakeup throttled")
+            MagiskOtel.event(
+                name = "app.recovery",
+                attributes = mapOf(
+                    "result" to "skip",
+                    "duration_ms" to "0",
+                    "process" to "app",
+                    "stage" to "force_stop",
+                    "reason" to "throttled",
+                    "source" to tag,
+                ),
+                statusOk = true,
+            )
             return
         }
         scope.launch {
@@ -48,6 +61,18 @@ object ForceStopRecoveryHandler {
                 "ForceStopRecoveryService rejected token. expectedEmpty=%s receivedEmpty=%s",
                 expectedToken.isBlank(),
                 receivedToken.isNullOrBlank(),
+            )
+            MagiskOtel.event(
+                name = "app.recovery",
+                attributes = mapOf(
+                    "result" to "error",
+                    "duration_ms" to "0",
+                    "process" to "app",
+                    "stage" to "force_stop",
+                    "reason" to "token_rejected",
+                    "source" to tag,
+                ),
+                statusOk = false,
             )
             return
         }
@@ -70,6 +95,19 @@ object ForceStopRecoveryHandler {
         RootDbCatchupScheduler.triggerImmediate(
             context = context,
             reason = "force_stop_recovery",
+        )
+        MagiskOtel.event(
+            name = "app.recovery",
+            attributes = mapOf(
+                "result" to "ok",
+                "duration_ms" to "0",
+                "process" to "app",
+                "stage" to "force_stop",
+                "reason" to reason.ifBlank { "force_stop_recovery" },
+                "source" to tag,
+                "event_id_present" to eventId.isNotBlank().toString(),
+            ),
+            statusOk = true,
         )
     }
 
