@@ -179,7 +179,6 @@ internal object MmsNotificationPduParser {
                         is Result.Parsed -> "ok"
                         is Result.Unsupported -> "skip"
                         is Result.Malformed -> "error"
-                        else -> "ok"
                     },
                     "duration_ms" to "0",
                     "process" to "main",
@@ -188,7 +187,6 @@ internal object MmsNotificationPduParser {
                         is Result.Parsed -> if (result.isComplete) "complete" else "partial"
                         is Result.Unsupported -> "unsupported"
                         is Result.Malformed -> result.reason.name.lowercase()
-                        else -> "parsed"
                     },
                     "payload_size" to data.size.toString(),
                 ),
