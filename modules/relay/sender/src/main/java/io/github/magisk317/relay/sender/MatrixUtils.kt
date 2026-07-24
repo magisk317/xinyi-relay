@@ -16,6 +16,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 @Suppress("DEPRECATION")
 object MatrixUtils {
@@ -27,7 +28,31 @@ object MatrixUtils {
     private const val RESPONSE_BODY_PREVIEW_LENGTH = 400
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
 
+    private fun emitForward(
+        result: String,
+        reason: String,
+        durationMs: Long,
+        statusOk: Boolean = true,
+    ) {
+        MagiskOtel.event(
+            name = "sms.forward",
+            attributes = mapOf(
+                "result" to result,
+                "duration_ms" to durationMs.toString(),
+                "process" to "app",
+                "stage" to "matrix_plaintext",
+                "reason" to reason,
+                "sender_type" to "matrix",
+            ),
+            statusOk = statusOk,
+        )
+    }
+
+
     suspend fun sendMsg(setting: MatrixSetting, msgInfo: MsgInfo) = withContext(Dispatchers.IO) {
+        val startedAt = System.nanoTime()
+        try {
+
         val safeSetting = SenderSettingSanitizer.sanitizeMatrixSetting(setting)
         val client = buildClient(safeSetting)
         val token = getAuthToken(safeSetting)
@@ -52,7 +77,22 @@ object MatrixUtils {
         } else {
             SLog.i(TAG, "Matrix send success: ${response.code}")
         }
-    }
+    
+            emitForward(
+                result = "ok",
+                reason = "success",
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+            )
+        } catch (error: Exception) {
+            emitForward(
+                result = "error",
+                reason = error.javaClass.simpleName,
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+                statusOk = false,
+            )
+            throw error
+        }
+}
 
     internal data class SendResponse(val code: Int, val message: String, val body: String, val isSuccessful: Boolean)
 

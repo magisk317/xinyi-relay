@@ -16,12 +16,35 @@ import jakarta.mail.internet.MimeMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Properties
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 object EmailUtils {
     private const val TAG = "EmailUtils"
 
+    private fun emitForward(
+        result: String,
+        reason: String,
+        durationMs: Long,
+        statusOk: Boolean = true,
+    ) {
+        MagiskOtel.event(
+            name = "sms.forward",
+            attributes = mapOf(
+                "result" to result,
+                "duration_ms" to durationMs.toString(),
+                "process" to "app",
+                "stage" to "email_send",
+                "reason" to reason,
+                "sender_type" to "email",
+            ),
+            statusOk = statusOk,
+        )
+    }
+
+
     suspend fun sendMsg(setting: EmailSetting, msgInfo: MsgInfo, traceId: String? = null) = withContext(Dispatchers.IO) {
         fun t(message: String): String = if (traceId.isNullOrBlank()) message else "[trace=$traceId] $message"
+        val startedAt = System.nanoTime()
         runCatching {
             val safeSetting = SenderSettingSanitizer.sanitizeEmailSetting(setting)
             normalizeMailType(safeSetting)
@@ -68,8 +91,19 @@ object EmailUtils {
 
             sendByTransport(session, message, host, portInt, authEmail, password)
             SLog.i(TAG, t("Email send success"))
+            emitForward(
+                result = "ok",
+                reason = "success",
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+            )
         }.onFailure {
             SLog.e(TAG, t("Email send failed"), it)
+            emitForward(
+                result = "error",
+                reason = it.javaClass.simpleName,
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+                statusOk = false,
+            )
         }.getOrElse { throw it }
     }
 

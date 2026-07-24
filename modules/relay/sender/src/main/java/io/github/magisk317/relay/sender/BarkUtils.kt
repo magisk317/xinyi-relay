@@ -13,12 +13,37 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.net.URL
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 object BarkUtils {
     private const val TAG = "BarkUtils"
     private val client = RelayHttpClients.default
 
+    private fun emitForward(
+        result: String,
+        reason: String,
+        durationMs: Long,
+        statusOk: Boolean = true,
+    ) {
+        MagiskOtel.event(
+            name = "sms.forward",
+            attributes = mapOf(
+                "result" to result,
+                "duration_ms" to durationMs.toString(),
+                "process" to "app",
+                "stage" to "bark_send",
+                "reason" to reason,
+                "sender_type" to "bark",
+            ),
+            statusOk = statusOk,
+        )
+    }
+
+
     suspend fun sendMsg(setting: BarkSetting, msgInfo: MsgInfo) {
+        val startedAt = System.nanoTime()
+        try {
+
         val title = SenderTemplateRenderer.renderTitle(setting.title, msgInfo)
         val content = msgInfo.content
 
@@ -101,7 +126,22 @@ object BarkUtils {
                 throw IllegalStateException("Bark 返回失败: $body")
             }
         }
-    }
+    
+            emitForward(
+                result = "ok",
+                reason = "success",
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+            )
+        } catch (error: Exception) {
+            emitForward(
+                result = "error",
+                reason = error.javaClass.simpleName,
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+                statusOk = false,
+            )
+            throw error
+        }
+}
 
     private fun parseBasicAuthUrl(url: String): Pair<String, String?> {
         return runCatching {

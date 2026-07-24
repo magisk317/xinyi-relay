@@ -17,6 +17,7 @@ import kotlinx.serialization.json.put
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.util.concurrent.ConcurrentHashMap
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 object WeworkAgentUtils {
     private const val TAG = "WeworkAgentUtils"
@@ -24,7 +25,31 @@ object WeworkAgentUtils {
     private data class TokenCache(val token: String, val expiresAt: Long)
     private val tokenCache = ConcurrentHashMap<String, TokenCache>()
 
+    private fun emitForward(
+        result: String,
+        reason: String,
+        durationMs: Long,
+        statusOk: Boolean = true,
+    ) {
+        MagiskOtel.event(
+            name = "sms.forward",
+            attributes = mapOf(
+                "result" to result,
+                "duration_ms" to durationMs.toString(),
+                "process" to "app",
+                "stage" to "wework_send",
+                "reason" to reason,
+                "sender_type" to "wework",
+            ),
+            statusOk = statusOk,
+        )
+    }
+
+
     suspend fun sendMsg(setting: WeworkAgentSetting, msgInfo: MsgInfo) {
+        val startedAt = System.nanoTime()
+        try {
+
         val cacheKey = "${setting.corpID}:${setting.agentID}"
         val now = System.currentTimeMillis()
         var token = tokenCache[cacheKey]?.takeIf { it.expiresAt > now }?.token
@@ -32,7 +57,22 @@ object WeworkAgentUtils {
             token = fetchToken(setting) ?: throw IllegalStateException("企业微信应用获取 token 失败")
         }
         sendText(setting, token, msgInfo)
-    }
+    
+            emitForward(
+                result = "ok",
+                reason = "success",
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+            )
+        } catch (error: Exception) {
+            emitForward(
+                result = "error",
+                reason = error.javaClass.simpleName,
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+                statusOk = false,
+            )
+            throw error
+        }
+}
 
     private fun fetchToken(setting: WeworkAgentSetting): String? {
         val client = buildClient(setting)
