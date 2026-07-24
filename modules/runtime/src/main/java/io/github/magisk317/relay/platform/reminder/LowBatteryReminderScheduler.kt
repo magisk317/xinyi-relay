@@ -9,6 +9,7 @@ import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 object LowBatteryReminderScheduler {
 
@@ -57,6 +58,18 @@ object LowBatteryReminderScheduler {
             delayMs,
             reason,
         )
+        MagiskOtel.event(
+            name = "battery.reminder",
+            attributes = mapOf(
+                "result" to "ok",
+                "duration_ms" to "0",
+                "process" to "main",
+                "stage" to "schedule",
+                "reason" to reason.take(64),
+                "delay_ms" to delayMs.toString(),
+            ),
+            statusOk = true,
+        )
     }
 
     fun cancel(context: Context, reason: String) {
@@ -64,6 +77,17 @@ object LowBatteryReminderScheduler {
         val pendingIntent = buildPendingIntent(context)
         alarmManager.cancel(pendingIntent)
         XLog.i("LowBattery reminder cancelled reason=%s", reason)
+        MagiskOtel.event(
+            name = "battery.reminder",
+            attributes = mapOf(
+                "result" to "ok",
+                "duration_ms" to "0",
+                "process" to "main",
+                "stage" to "cancel",
+                "reason" to reason.take(64),
+            ),
+            statusOk = true,
+        )
     }
 
     private fun buildPendingIntent(context: Context): PendingIntent {

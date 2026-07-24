@@ -6,6 +6,7 @@ import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.android.sms.SmsCodeUtils
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.smscode.domain.utils.SmsCodeParsedMetadataResolver
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 object SmsIngressAdapter {
     data class Result(
@@ -22,9 +23,21 @@ object SmsIngressAdapter {
         eventId: String? = null,
         smsCodeParser: (suspend (Context, String) -> String)? = null,
     ): Result? {
+        val startedAt = System.nanoTime()
         val sender = smsMsg.sender
         val body = smsMsg.body
         if (sender.isNullOrBlank() || body.isNullOrBlank()) {
+            MagiskOtel.event(
+                name = "sms.ingest",
+                attributes = mapOf(
+                    "result" to "skip",
+                    "duration_ms" to elapsedMs(startedAt).toString(),
+                    "process" to "hook",
+                    "stage" to "sms_ingress",
+                    "reason" to "blank_sender_or_body",
+                ),
+                statusOk = true,
+            )
             return null
         }
 
@@ -39,6 +52,22 @@ object SmsIngressAdapter {
             smsMsg = smsMsg,
             smsCode = smsCode,
         )
+        MagiskOtel.event(
+            name = "sms.ingest",
+            attributes = mapOf(
+                "result" to "ok",
+                "duration_ms" to elapsedMs(startedAt).toString(),
+                "process" to "hook",
+                "stage" to "sms_ingress",
+                "reason" to "prepared",
+                "msg_type" to messageType.name,
+                "code_length" to smsCode.length.toString(),
+                "body_length" to body.length.toString(),
+                "company_present" to (!resolvedSmsMsg.company.isNullOrBlank()).toString(),
+                "event_id_present" to (!eventId.isNullOrBlank()).toString(),
+            ),
+            statusOk = true,
+        )
 
         return Result(
             smsMsg = resolvedSmsMsg,
@@ -50,6 +79,9 @@ object SmsIngressAdapter {
             messageType = messageType,
         )
     }
+
+    private fun elapsedMs(startedAt: Long): Long =
+        ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
 
     fun enrichSmsMsg(
         phoneContext: Context,
