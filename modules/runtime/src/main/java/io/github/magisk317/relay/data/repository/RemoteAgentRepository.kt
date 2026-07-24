@@ -30,6 +30,7 @@ import io.github.magisk317.relay.android.common.utils.DeviceIdentityUtils
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.relay.data.remote.RemoteAgentApi
 import io.github.magisk317.relay.data.remote.RemoteApiClient
+import io.github.magisk317.xposed.logging.MagiskOtel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -87,6 +88,31 @@ class RemoteAgentRepository(
      * Wrap an API call with 401 handling. If the device token is expired/revoked,
      * sets a clear error state telling the user to re-bind.
      */
+    private fun emitAgent(
+        stage: String,
+        result: String,
+        reason: String,
+        durationMs: Long,
+        statusOk: Boolean = true,
+        count: Int? = null,
+    ) {
+        val attrs = mutableMapOf(
+            "result" to result,
+            "duration_ms" to durationMs.toString(),
+            "process" to "app",
+            "stage" to stage,
+            "reason" to reason,
+        )
+        if (count != null) {
+            attrs["count"] = count.toString()
+        }
+        MagiskOtel.event(
+            name = "app.monitor",
+            attributes = attrs,
+            statusOk = statusOk,
+        )
+    }
+
     private suspend fun <T> withTokenRefresh(block: () -> T): T {
         return try {
             block()
@@ -141,10 +167,18 @@ class RemoteAgentRepository(
         preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_RECORD_SNAPSHOT_DIGEST, "")
         InternalSecretStore.putString(appContext, PrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, "")
         publishHookPrefs()
+        emitAgent(
+            stage = "agent_clear",
+            result = "ok",
+            reason = "cleared",
+            durationMs = 0L,
+        )
         getSnapshot()
     }
 
     override suspend fun bindDevice(bindCode: String): RemoteAgentSnapshot = withContext(Dispatchers.IO) {
+        val startedAt = System.nanoTime()
+        try {
         syncMutex.withLock {
         val baseUrl = normalizedBackendBaseUrl()
         val request = AgentRegisterRequest(
@@ -170,13 +204,31 @@ class RemoteAgentRepository(
         runCatching { pushInstalledAppCatalogIfNeeded() }
         val snapshot = getSnapshot()
         scheduleBackgroundSync("bind")
+        emitAgent(
+            stage = "agent_bind",
+            result = "ok",
+            reason = "bound",
+            durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+        )
         snapshot
+        } catch (error: Throwable) {
+            emitAgent(
+                stage = "agent_bind",
+                result = "error",
+                reason = error.javaClass.simpleName,
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+                statusOk = false,
+            )
+            throw error
+        }
     }
 
     override suspend fun sendHeartbeat(): RemoteAgentSnapshot = withContext(Dispatchers.IO) {
+        val startedAt = System.nanoTime()
+        try {
         syncMutex.withLock {
-        val snapshot = getSnapshot()
-        require(snapshot.bound) { "device not bound" }
+        val boundSnapshot = getSnapshot()
+        require(boundSnapshot.bound) { "device not bound" }
         val token = InternalSecretStore.getString(appContext, PrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, "")
         val baseUrl = normalizedBackendBaseUrl()
         val request = HeartbeatRequest(
@@ -192,60 +244,99 @@ class RemoteAgentRepository(
         executeSimpleAgentWrite(PrefConst.KEY_REMOTE_AGENT_LAST_HEARTBEAT_AT, "heartbeat") {
             remoteApiClient.sendHeartbeat(baseUrl, token, request)
         }
-        getSnapshot()
+        val snapshot = getSnapshot()
+        emitAgent(
+            stage = "agent_heartbeat",
+            result = "ok",
+            reason = "heartbeat",
+            durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+        )
+        snapshot
+        }
+        } catch (error: Throwable) {
+            emitAgent(
+                stage = "agent_heartbeat",
+                result = "error",
+                reason = error.javaClass.simpleName,
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+                statusOk = false,
+            )
+            throw error
         }
     }
 
     override suspend fun pullPendingCommands(): LocalConfigMirror = withContext(Dispatchers.IO) {
-        syncMutex.withLock {
-            val snapshot = getSnapshot()
-            require(snapshot.bound) { "device not bound" }
-            val token = InternalSecretStore.getString(appContext, PrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, "")
-            val baseUrl = normalizedBackendBaseUrl()
-            setSyncState("pulling")
-            return@withContext runCatching {
-                val localRevision = localConfigRepository.getRevision().value
-                val localDirtyState = localConfigRepository.getDirtyState()
-                val payload = withTokenRefresh {
-                    remoteApiClient.pullConfigCommands(
-                        baseUrl = baseUrl,
-                        deviceToken = token,
-                        request = AgentConfigCommandsPullRequest(localRevision = localRevision),
+        val startedAt = System.nanoTime()
+        try {
+            syncMutex.withLock {
+                val snapshot = getSnapshot()
+                require(snapshot.bound) { "device not bound" }
+                val token = InternalSecretStore.getString(appContext, PrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, "")
+                val baseUrl = normalizedBackendBaseUrl()
+                setSyncState("pulling")
+                return@withContext runCatching {
+                    val localRevision = localConfigRepository.getRevision().value
+                    val localDirtyState = localConfigRepository.getDirtyState()
+                    val payload = withTokenRefresh {
+                        remoteApiClient.pullConfigCommands(
+                            baseUrl = baseUrl,
+                            deviceToken = token,
+                            request = AgentConfigCommandsPullRequest(localRevision = localRevision),
+                        )
+                    }
+                    var currentMirror = localConfigRepository.exportMirror()
+                    val bootstrapMirrorContent = payload.mirrorContent
+                    if (localRevision == 0L && !localDirtyState.dirty && bootstrapMirrorContent?.isNotEmpty() == true) {
+                        currentMirror = localConfigRepository.applyMirror(
+                            mirrorContent = bootstrapMirrorContent,
+                            revision = payload.revision,
+                            source = "bootstrap_import",
+                        )
+                        RuntimeSettingsCache.clear()
+                    }
+                    val commandCount = payload.pendingCommands.size
+                    payload.pendingCommands.forEach { command ->
+                        currentMirror = applyPulledCommand(baseUrl, token, command, currentMirror)
+                    }
+                    preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_PULL_AT, nowEpochMillis().toString())
+                    preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, "")
+                    setSyncState("idle")
+                    publishHookPrefs()
+                    emitAgent(
+                        stage = "agent_pull",
+                        result = "ok",
+                        reason = "pulled",
+                        durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+                        count = commandCount,
                     )
-                }
-                var currentMirror = localConfigRepository.exportMirror()
-                val bootstrapMirrorContent = payload.mirrorContent
-                if (localRevision == 0L && !localDirtyState.dirty && bootstrapMirrorContent?.isNotEmpty() == true) {
-                    currentMirror = localConfigRepository.applyMirror(
-                        mirrorContent = bootstrapMirrorContent,
-                        revision = payload.revision,
-                        source = "bootstrap_import",
-                    )
-                    RuntimeSettingsCache.clear()
-                }
-                payload.pendingCommands.forEach { command ->
-                    currentMirror = applyPulledCommand(baseUrl, token, command, currentMirror)
-                }
-                preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_PULL_AT, nowEpochMillis().toString())
-                preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, "")
-                setSyncState("idle")
-                publishHookPrefs()
-                currentMirror
-            }.onFailure {
-                recordAgentFailure(it)
-            }.getOrThrow()
+                    currentMirror
+                }.onFailure {
+                    recordAgentFailure(it)
+                }.getOrThrow()
+            }
+        } catch (error: Throwable) {
+            emitAgent(
+                stage = "agent_pull",
+                result = "error",
+                reason = error.javaClass.simpleName,
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+                statusOk = false,
+            )
+            throw error
         }
     }
 
     override suspend fun pushLocalMirror(): RemoteAgentSnapshot = withContext(Dispatchers.IO) {
+        val startedAt = System.nanoTime()
+        try {
         syncMutex.withLock {
-            val snapshot = getSnapshot()
-            require(snapshot.bound) { "device not bound" }
+            val boundSnapshot = getSnapshot()
+            require(boundSnapshot.bound) { "device not bound" }
             val token = InternalSecretStore.getString(appContext, PrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, "")
             val localMirror = localConfigRepository.exportMirror()
             val appCatalogDigest = computeDeviceAppCatalogDigest(
                 mirrorContent = localMirror.content,
-                deviceId = snapshot.deviceId.toString(),
+                deviceId = boundSnapshot.deviceId.toString(),
             )
             val request = AgentConfigMirrorRequest(
                 localRevision = localMirror.revision.value,
@@ -265,11 +356,30 @@ class RemoteAgentRepository(
             }.onFailure {
                 recordAgentFailure(it)
             }.getOrThrow()
-            getSnapshot()
+            val snapshot = getSnapshot()
+            emitAgent(
+                stage = "agent_push",
+                result = "ok",
+                reason = "pushed",
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+            )
+            snapshot
+        }
+        } catch (error: Throwable) {
+            emitAgent(
+                stage = "agent_push",
+                result = "error",
+                reason = error.javaClass.simpleName,
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+                statusOk = false,
+            )
+            throw error
         }
     }
 
     override suspend fun uploadRecentRecords(limit: Int): RemoteAgentSnapshot = withContext(Dispatchers.IO) {
+        val startedAt = System.nanoTime()
+        try {
         syncMutex.withLock {
             val snapshotLimit = normalizeRecordSnapshotLimit(limit)
             val snapshot = getSnapshot()
@@ -318,6 +428,13 @@ class RemoteAgentRepository(
                 "",
             )
             if (recordSnapshotDigest == lastRecordSnapshotDigest) {
+                emitAgent(
+                    stage = "agent_upload",
+                    result = "skip",
+                    reason = "unchanged",
+                    durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+                    count = records.size,
+                )
                 return@withLock getSnapshot()
             }
             val baseUrl = normalizedBackendBaseUrl()
@@ -332,7 +449,24 @@ class RemoteAgentRepository(
                 PrefConst.KEY_REMOTE_AGENT_LAST_RECORD_SNAPSHOT_DIGEST,
                 recordSnapshotDigest,
             )
+            emitAgent(
+                stage = "agent_upload",
+                result = "ok",
+                reason = "uploaded",
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+                count = records.size,
+            )
             getSnapshot()
+        }
+        } catch (error: Throwable) {
+            emitAgent(
+                stage = "agent_upload",
+                result = "error",
+                reason = error.javaClass.simpleName,
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+                statusOk = false,
+            )
+            throw error
         }
     }
 
