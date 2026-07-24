@@ -32,12 +32,25 @@ object StandardMessageIngressHandler {
         val mode = WorkModeResolver.mode.value
         if (mode != WorkMode.Standard) {
             XLog.i("%s: mode=%s, skipping standard ingress", source, mode)
+            MagiskOtel.event(
+                name = "sms.ingest",
+                attributes = mapOf(
+                    "result" to "skip",
+                    "duration_ms" to "0",
+                    "process" to "app",
+                    "stage" to "standard_mode_gate",
+                    "reason" to "mode_${mode.name.lowercase()}",
+                    "source" to source,
+                ),
+                statusOk = true,
+            )
             return false
         }
         return true
     }
 
     suspend fun dispatchSms(context: Context, intent: Intent) {
+        val startedAt = System.nanoTime()
         val smsMsg = SmsMsg.fromIntent(intent)
         val payload = buildSmsPayload(
             context = context,
@@ -46,23 +59,26 @@ object StandardMessageIngressHandler {
         ) ?: return
         if (EventDeduplicator.isDuplicate(payload.eventId)) {
             XLog.i("StandardSmsReceiver: Duplicate event skipped (eventId=%s)", payload.eventId)
-            MagiskOtel.event(
-                name = "sms.ingest",
-                attributes = mapOf(
-                    "result" to "skip",
-                    "duration_ms" to "0",
-                    "process" to "app",
-                    "stage" to "standard_sms",
-                    "reason" to "duplicate",
-                    "msg_type" to "sms",
-                ),
-                statusOk = true,
+            emitIngest(
+                result = "skip",
+                stage = "standard_sms",
+                reason = "duplicate",
+                msgType = "sms",
+                durationMs = elapsedMs(startedAt),
+                eventIdPresent = payload.eventId.isNotBlank(),
             )
             return
         }
         ForwardBroadcastDispatcher.dispatchFromHost(
             context = context,
             payload = payload,
+        )
+        emitIngest(
+            result = "ok",
+            stage = "standard_sms",
+            msgType = "sms",
+            durationMs = elapsedMs(startedAt),
+            eventIdPresent = payload.eventId.isNotBlank(),
         )
     }
 
@@ -74,6 +90,14 @@ object StandardMessageIngressHandler {
     ): ForwardBroadcastPayload? {
         if (smsMsg.sender.isNullOrBlank() || smsMsg.body.isNullOrBlank()) {
             XLog.e("StandardSmsReceiver: Failed to parse SMS")
+            emitIngest(
+                result = "error",
+                stage = "standard_sms",
+                reason = "parse_missing_fields",
+                msgType = "sms",
+                durationMs = 0L,
+                statusOk = false,
+            )
             return null
         }
 
@@ -86,25 +110,34 @@ object StandardMessageIngressHandler {
             sourceIntent = intent,
             eventId = eventId,
             smsCodeParser = smsCodeParser,
-        ) ?: return null
+        )
+        if (result == null) {
+            emitIngest(
+                result = "error",
+                stage = "standard_sms",
+                reason = "adapter_null",
+                msgType = "sms",
+                durationMs = 0L,
+                eventIdPresent = eventId.isNotBlank(),
+                statusOk = false,
+            )
+            return null
+        }
         return result.payload
     }
 
     suspend fun dispatchMms(context: Context, intent: Intent) {
+        val startedAt = System.nanoTime()
         val payload = ForwardPayloadFactory.mmsPayload(intent)
         if (EventDeduplicator.isDuplicate(payload.eventId)) {
             XLog.i("StandardMmsReceiver: Duplicate event skipped (eventId=%s)", payload.eventId)
-            MagiskOtel.event(
-                name = "sms.ingest",
-                attributes = mapOf(
-                    "result" to "skip",
-                    "duration_ms" to "0",
-                    "process" to "app",
-                    "stage" to "standard_mms",
-                    "reason" to "duplicate",
-                    "msg_type" to "mms",
-                ),
-                statusOk = true,
+            emitIngest(
+                result = "skip",
+                stage = "standard_mms",
+                reason = "duplicate",
+                msgType = "mms",
+                durationMs = elapsedMs(startedAt),
+                eventIdPresent = payload.eventId.isNotBlank(),
             )
             return
         }
@@ -113,18 +146,46 @@ object StandardMessageIngressHandler {
             context = context,
             payload = payload,
         )
-        MagiskOtel.event(
-            name = "sms.ingest",
-            attributes = mapOf(
-                "result" to "ok",
-                "duration_ms" to "0",
-                "process" to "app",
-                "stage" to "standard_sms",
-                "event_id_present" to payload.eventId.isNotBlank().toString(),
-                "msg_type" to "sms",
-            ),
-            statusOk = true,
+        emitIngest(
+            result = "ok",
+            stage = "standard_mms",
+            msgType = "mms",
+            durationMs = elapsedMs(startedAt),
+            eventIdPresent = payload.eventId.isNotBlank(),
         )
+    }
+
+    private fun emitIngest(
+        result: String,
+        stage: String,
+        msgType: String,
+        durationMs: Long,
+        reason: String? = null,
+        eventIdPresent: Boolean? = null,
+        source: String? = null,
+        statusOk: Boolean = true,
+    ) {
+        val attrs = mutableMapOf(
+            "result" to result,
+            "duration_ms" to durationMs.toString(),
+            "process" to "app",
+            "stage" to stage,
+            "msg_type" to msgType,
+        )
+        if (reason != null) {
+            attrs["reason"] = reason
+        }
+        if (eventIdPresent != null) {
+            attrs["event_id_present"] = eventIdPresent.toString()
+        }
+        if (source != null) {
+            attrs["source"] = source
+        }
+        MagiskOtel.event(name = "sms.ingest", attributes = attrs, statusOk = statusOk)
+    }
+
+    private fun elapsedMs(startedAt: Long): Long {
+        return ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
     }
 
     private const val MMS_MIME_TYPE = "application/vnd.wap.mms-message"
