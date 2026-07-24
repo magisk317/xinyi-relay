@@ -21,6 +21,7 @@ import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.engine.pipeline.SenderSelector
 import io.github.magisk317.relay.engine.schedule.ForwardSilentPeriodEvaluator
 import android.content.Context
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 data class EventPipelineResult(
     val dispatched: Boolean,
@@ -60,6 +61,18 @@ class EventPipeline(
         preferredRecordId: Long? = null,
         traceId: String? = null,
     ): EventPipelineResult {
+        val startedAt = System.nanoTime()
+        fun emit(result: String, statusOk: Boolean = true, reason: String? = null) {
+            val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+            val attrs = mutableMapOf(
+                "result" to result,
+                "duration_ms" to durationMs.toString(),
+                "process" to "main",
+                "msg_type" to event.messageType.name,
+            )
+            if (reason != null) attrs["reason"] = reason
+            MagiskOtel.event(name = "sms.event", attributes = attrs, statusOk = statusOk)
+        }
         try {
             var recordContext = resolveRecordContext(event, preferredRecordId)
             val gateDecision = eventGatekeeper.check(event, traceId.orEmpty())
@@ -71,6 +84,7 @@ class EventPipeline(
                     defaultMessage = gateDecision.reason,
                     msgTypeForAnalytics = recordContext.smsMsgType,
                 )
+                emit(result = "skip", reason = "gate_blocked")
                 return EventPipelineResult(dispatched = false, blockedReason = gateDecision.reason)
             }
 
@@ -87,6 +101,7 @@ class EventPipeline(
                     forcedStatus = SmsMsg.FORWARD_STATUS_BLOCKED,
                     msgTypeForAnalytics = recordContext.smsMsgType,
                 )
+                emit(result = "skip", reason = "pre_route_blocked")
                 return EventPipelineResult(dispatched = false, blockedReason = preRouteDecision.reason)
             }
 
@@ -99,6 +114,7 @@ class EventPipeline(
                     msgTypeForAnalytics = recordContext.smsMsgType,
                 )
                 ForwardFlowLog.i(traceId, "Relay feature gate blocked sender dispatch type=${event.messageType}")
+                emit(result = "skip", reason = "relay_disabled")
                 return EventPipelineResult(dispatched = false, blockedReason = reason)
             }
 
@@ -111,6 +127,7 @@ class EventPipeline(
                     msgTypeForAnalytics = recordContext.smsMsgType,
                 )
                 ForwardFlowLog.i(traceId, "Forward type gate blocked sender dispatch type=${event.messageType}")
+                emit(result = "skip", reason = "type_disabled")
                 return EventPipelineResult(dispatched = false, blockedReason = reason)
             }
 
@@ -126,6 +143,7 @@ class EventPipeline(
                         msgTypeForAnalytics = recordContext.smsMsgType,
                     )
                     ForwardFlowLog.i(traceId, "Silent period blocked sender dispatch type=${event.messageType}")
+                    emit(result = "skip", reason = "silent_period")
                     return EventPipelineResult(dispatched = false, blockedReason = "silent_period")
                 }
 
@@ -140,6 +158,7 @@ class EventPipeline(
                         msgTypeForAnalytics = recordContext.smsMsgType,
                     )
                     ForwardFlowLog.w(traceId, "No eligible senders: $reason")
+                    emit(result = "skip", reason = "no_senders")
                     return EventPipelineResult(dispatched = false, blockedReason = reason)
                 }
 
@@ -185,6 +204,7 @@ class EventPipeline(
                     defaultMessage = "未启用任何转发通道",
                     msgTypeForAnalytics = recordContext.smsMsgType,
                 )
+                emit(result = "ok", reason = "dispatched")
                 EventPipelineResult(dispatched = true)
             }.getOrElse { error ->
                 XLog.e("Event pipeline failed", error)
@@ -194,6 +214,11 @@ class EventPipeline(
                     defaultMessage = "转发异常: ${error.message ?: error.javaClass.simpleName}",
                     forceFailed = true,
                     msgTypeForAnalytics = recordContext.smsMsgType,
+                )
+                emit(
+                    result = "error",
+                    statusOk = false,
+                    reason = error.javaClass.simpleName,
                 )
                 EventPipelineResult(dispatched = false, dispatchError = error)
             }
