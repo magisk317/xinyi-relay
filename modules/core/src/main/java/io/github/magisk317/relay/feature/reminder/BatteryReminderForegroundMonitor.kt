@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 object BatteryReminderForegroundMonitor {
     @Volatile
@@ -31,6 +32,17 @@ object BatteryReminderForegroundMonitor {
         receiver = newReceiver
         registered = true
         XLog.i("Battery reminder foreground monitor started")
+        MagiskOtel.event(
+            name = "battery.reminder",
+            attributes = mapOf(
+                "result" to "ok",
+                "duration_ms" to "0",
+                "process" to "app",
+                "stage" to "fg_start",
+                "reason" to "foreground",
+            ),
+            statusOk = true,
+        )
     }
 
     fun stop(context: Context) {
@@ -44,5 +56,16 @@ object BatteryReminderForegroundMonitor {
         receiver = null
         registered = false
         XLog.i("Battery reminder foreground monitor stopped")
+        MagiskOtel.event(
+            name = "battery.reminder",
+            attributes = mapOf(
+                "result" to "ok",
+                "duration_ms" to "0",
+                "process" to "app",
+                "stage" to "fg_stop",
+                "reason" to "background",
+            ),
+            statusOk = true,
+        )
     }
 }

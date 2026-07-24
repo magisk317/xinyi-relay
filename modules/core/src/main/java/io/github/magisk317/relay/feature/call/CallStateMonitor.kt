@@ -24,6 +24,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 object CallStateMonitor {
     private const val RINGING_DEDUP_MS = 8_000L
@@ -94,12 +95,36 @@ object CallStateMonitor {
             telephonyCallback = callback
             started = true
             XLog.i("CallStateMonitor started (callback) reason=%s", reason)
+            MagiskOtel.event(
+                name = "call.alert",
+                attributes = mapOf(
+                    "result" to "ok",
+                    "duration_ms" to "0",
+                    "process" to "app",
+                    "stage" to "start",
+                    "reason" to reason,
+                    "source" to "callback",
+                ),
+                statusOk = true,
+            )
         } else {
             legacyListener = LegacyCallStateListener.register(manager) { state, phoneNumber ->
                 handleCallState(context, state, phoneNumber)
             }
             started = true
             XLog.i("CallStateMonitor started (listener) reason=%s", reason)
+            MagiskOtel.event(
+                name = "call.alert",
+                attributes = mapOf(
+                    "result" to "ok",
+                    "duration_ms" to "0",
+                    "process" to "app",
+                    "stage" to "start",
+                    "reason" to reason,
+                    "source" to "listener",
+                ),
+                statusOk = true,
+            )
         }
     }
 
@@ -117,6 +142,17 @@ object CallStateMonitor {
         }
         started = false
         XLog.i("CallStateMonitor stopped reason=%s", reason)
+        MagiskOtel.event(
+            name = "call.alert",
+            attributes = mapOf(
+                "result" to "ok",
+                "duration_ms" to "0",
+                "process" to "app",
+                "stage" to "stop",
+                "reason" to reason,
+            ),
+            statusOk = true,
+        )
     }
 
     private fun handleCallState(context: Context, state: Int, phoneNumber: String?) {
@@ -124,7 +160,20 @@ object CallStateMonitor {
             TelephonyManager.CALL_STATE_RINGING -> {
                 cancelPendingEndedCall("new_ringing_call")
                 val now = System.currentTimeMillis()
-                if (now - lastRingingAt < RINGING_DEDUP_MS) return
+                if (now - lastRingingAt < RINGING_DEDUP_MS) {
+                    MagiskOtel.event(
+                        name = "call.alert",
+                        attributes = mapOf(
+                            "result" to "skip",
+                            "duration_ms" to "0",
+                            "process" to "app",
+                            "stage" to "state",
+                            "reason" to "ringing_dedup",
+                        ),
+                        statusOk = true,
+                    )
+                    return
+                }
                 lastRingingAt = now
                 lastNumber = phoneNumber?.ifBlank { null }
                 lastDirection = CALL_TYPE_INCOMING
@@ -295,12 +344,34 @@ object CallStateMonitor {
                 stage = stage,
             )
         }
-        runCatching {
+        val startedAt = System.nanoTime()
+        val outcome = runCatching {
             ForwardBroadcastDispatcher.dispatchFromHost(
                 context = context,
                 payload = payload,
             )
         }
+        val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+        MagiskOtel.event(
+            name = "call.alert",
+            attributes = mapOf(
+                "result" to if (outcome.isSuccess) "ok" else "error",
+                "duration_ms" to durationMs.toString(),
+                "process" to "app",
+                "stage" to "dispatch",
+                "reason" to stage,
+                "source" to when (callType) {
+                    CALL_TYPE_INCOMING -> "incoming"
+                    CALL_TYPE_OUTGOING -> "outgoing"
+                    else -> "unknown"
+                },
+            ) + if (outcome.isFailure) {
+                mapOf("error_class" to (outcome.exceptionOrNull()?.javaClass?.simpleName ?: "Throwable"))
+            } else {
+                emptyMap()
+            },
+            statusOk = outcome.isSuccess,
+        )
     }
 
     private suspend fun loadCallAlertFlags(context: Context): Pair<Boolean, Boolean> {
