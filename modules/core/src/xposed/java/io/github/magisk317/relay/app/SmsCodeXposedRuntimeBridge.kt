@@ -11,11 +11,22 @@ import io.github.magisk317.smscode.xposed.runtime.CoreLogSink
 import io.github.magisk317.smscode.xposed.runtime.CoreLogSinkHolder
 import io.github.magisk317.smscode.xposed.runtime.CoreRuntime
 import io.github.magisk317.smscode.xposed.runtime.CoreRuntimeAccess
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 object SmsCodeXposedRuntimeBridge {
     fun install(
         shouldSuppressSystemHooks: (Context?, String) -> Boolean,
     ) {
+        MagiskOtel.configureIfAbsent(
+            MagiskOtel.Config(
+                enabled = io.github.magisk317.relay.runtime.BuildConfig.DEBUG,
+                serviceName = "xinyi-relay",
+                serviceVersion = io.github.magisk317.relay.core.BuildConfig.VERSION_NAME,
+                projectId = "84113188",
+                projectName = "xinyi-relay",
+                environment = if (io.github.magisk317.relay.runtime.BuildConfig.DEBUG) "debug" else "release",
+            ),
+        )
         CoreRuntime.install(object : CoreRuntimeAccess {
             override val logTag: String = io.github.magisk317.relay.runtime.BuildConfig.LOG_TAG
             override val logLevel: Int = io.github.magisk317.relay.runtime.BuildConfig.LOG_LEVEL
