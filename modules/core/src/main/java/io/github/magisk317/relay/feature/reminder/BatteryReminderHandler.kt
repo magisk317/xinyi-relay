@@ -17,6 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import java.util.Locale
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 /**
  * 电量提醒处理器。
@@ -43,6 +44,18 @@ class BatteryReminderHandler(
             if (scheduleNext) {
                 LowBatteryReminderScheduler.cancel(context, reason = "disabled:$reason")
             }
+            MagiskOtel.event(
+                name = "battery.reminder",
+                attributes = mapOf(
+                    "result" to "skip",
+                    "duration_ms" to "0",
+                    "process" to "app",
+                    "stage" to "handle",
+                    "reason" to "disabled",
+                    "source" to reason,
+                ),
+                statusOk = true,
+            )
             return
         }
         val level = batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
@@ -110,6 +123,17 @@ class BatteryReminderHandler(
         ).lowBatteryChannelId.trim().toLongOrNull()
         if (senderId == null) {
             XLog.w("LowBattery reminder skipped: sender not set")
+            MagiskOtel.event(
+                name = "battery.reminder",
+                attributes = mapOf(
+                    "result" to "skip",
+                    "duration_ms" to "0",
+                    "process" to "app",
+                    "stage" to "low",
+                    "reason" to "sender_not_set",
+                ),
+                statusOk = true,
+            )
             return
         }
         val title = context.getString(R.string.low_battery_notification_title)
@@ -125,6 +149,7 @@ class BatteryReminderHandler(
             ),
             traceId = "low_battery_${System.currentTimeMillis()}",
         )
+        emitBattery(stage = "low", result = "ok", reason = "sent")
         XLog.i("LowBattery reminder routed through EventPipeline: pct=%d threshold=%d", percent, threshold)
     }
 
@@ -134,6 +159,17 @@ class BatteryReminderHandler(
         ).fullBatteryChannelId.trim().toLongOrNull()
         if (senderId == null) {
             XLog.w("FullBattery reminder skipped: sender not set")
+            MagiskOtel.event(
+                name = "battery.reminder",
+                attributes = mapOf(
+                    "result" to "skip",
+                    "duration_ms" to "0",
+                    "process" to "app",
+                    "stage" to "full",
+                    "reason" to "sender_not_set",
+                ),
+                statusOk = true,
+            )
             return
         }
         val title = context.getString(R.string.full_battery_notification_title)
@@ -149,6 +185,7 @@ class BatteryReminderHandler(
             ),
             traceId = "full_battery_${System.currentTimeMillis()}",
         )
+        emitBattery(stage = "full", result = "ok", reason = "sent")
         XLog.i("FullBattery reminder routed through EventPipeline: pct=%d", percent)
     }
 
@@ -158,6 +195,17 @@ class BatteryReminderHandler(
         ).chargingChangeChannelId.trim().toLongOrNull()
         if (senderId == null) {
             XLog.w("ChargingChange reminder skipped: sender not set")
+            MagiskOtel.event(
+                name = "battery.reminder",
+                attributes = mapOf(
+                    "result" to "skip",
+                    "duration_ms" to "0",
+                    "process" to "app",
+                    "stage" to "charging_change",
+                    "reason" to "sender_not_set",
+                ),
+                statusOk = true,
+            )
             return
         }
         val title = context.getString(R.string.charging_change_notification_title)
@@ -177,7 +225,20 @@ class BatteryReminderHandler(
             ),
             traceId = "charging_change_${System.currentTimeMillis()}",
         )
+        emitBattery(stage = "charging_change", result = "ok", reason = "sent")
         XLog.i("ChargingChange reminder routed through EventPipeline: pct=%d plugged=%s", percent, isPluggedIn)
+    }
+
+
+    private fun emitBattery(stage: String, result: String, reason: String? = null, statusOk: Boolean = true) {
+        val attrs = mutableMapOf(
+            "result" to result,
+            "duration_ms" to "0",
+            "process" to "app",
+            "stage" to stage,
+        )
+        if (reason != null) attrs["reason"] = reason
+        MagiskOtel.event(name = "battery.reminder", attributes = attrs, statusOk = statusOk)
     }
 
     companion object {
