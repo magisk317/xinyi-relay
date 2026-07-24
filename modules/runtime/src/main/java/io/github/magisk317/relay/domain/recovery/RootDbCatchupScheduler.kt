@@ -2,9 +2,10 @@ package io.github.magisk317.relay.domain.recovery
 
 import android.content.Context
 import io.github.magisk317.relay.android.common.utils.XLog
-import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.bootstrap.RuntimeDependencies
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
+import io.github.magisk317.xposed.logging.MagiskOtel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -27,6 +28,18 @@ object RootDbCatchupScheduler {
         }
         periodicJob = scope.launch {
             XLog.i("Root DB catchup periodic started reason=%s", reason)
+            MagiskOtel.event(
+                name = "app.recovery",
+                attributes = mapOf(
+                    "result" to "ok",
+                    "duration_ms" to "0",
+                    "process" to "app",
+                    "stage" to "root_db_periodic",
+                    "reason" to reason,
+                    "source" to "start",
+                ),
+                statusOk = true,
+            )
             while (isActive) {
                 RootDbCatchupEngine.runOnce(appContext, reason = "periodic:$reason")
                 val deps = RuntimeDependencies.get()
@@ -47,10 +60,33 @@ object RootDbCatchupScheduler {
         job.cancel()
         periodicJob = null
         XLog.i("Root DB catchup periodic stopped reason=%s", reason)
+        MagiskOtel.event(
+            name = "app.recovery",
+            attributes = mapOf(
+                "result" to "ok",
+                "duration_ms" to "0",
+                "process" to "app",
+                "stage" to "root_db_periodic",
+                "reason" to reason,
+                "source" to "stop",
+            ),
+            statusOk = true,
+        )
     }
 
     fun triggerImmediate(context: Context, reason: String) {
         val appContext = context.applicationContext ?: context
+        MagiskOtel.event(
+            name = "app.recovery",
+            attributes = mapOf(
+                "result" to "ok",
+                "duration_ms" to "0",
+                "process" to "app",
+                "stage" to "root_db_immediate",
+                "reason" to reason,
+            ),
+            statusOk = true,
+        )
         scope.launch {
             RootDbCatchupEngine.runOnce(appContext, reason = reason)
         }

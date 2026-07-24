@@ -4,6 +4,7 @@ import android.app.Application
 import io.github.magisk317.relay.domain.recovery.RootDbCatchupScheduler
 import io.github.magisk317.relay.feature.call.CallStateMonitor
 import io.github.magisk317.relay.platform.reminder.LowBatteryReminderScheduler
+import io.github.magisk317.xposed.logging.MagiskOtel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -17,5 +18,16 @@ class ServiceMonitorInitializer : AppInitializer {
             LowBatteryReminderScheduler.syncFromPrefs(application, reason = "app_create")
         }
         CallStateMonitor.init(application)
+        MagiskOtel.event(
+            name = "app.monitor",
+            attributes = mapOf(
+                "result" to "ok",
+                "duration_ms" to "0",
+                "process" to "app",
+                "stage" to "service_init",
+                "reason" to "app_create",
+            ),
+            statusOk = true,
+        )
     }
 }

@@ -6,6 +6,7 @@ import android.os.Bundle
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.recovery.RootDbCatchupScheduler
 import io.github.magisk317.relay.feature.reminder.BatteryReminderForegroundMonitor
+import io.github.magisk317.xposed.logging.MagiskOtel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -25,6 +26,17 @@ class LifecycleMonitorInitializer : AppInitializer {
                 if (startedActivityCount == 1) {
                     RootDbCatchupScheduler.stopPeriodic(reason = "app_foreground")
                     BatteryReminderForegroundMonitor.start(application)
+                    MagiskOtel.event(
+                        name = "app.lifecycle",
+                        attributes = mapOf(
+                            "result" to "ok",
+                            "duration_ms" to "0",
+                            "process" to "app",
+                            "stage" to "foreground",
+                            "reason" to "activity_started",
+                        ),
+                        statusOk = true,
+                    )
                     scope.launch {
                         runCatching {
                             RuntimeGraph.from(application).configSyncCoordinator.onAppForegrounded()
@@ -49,6 +61,17 @@ class LifecycleMonitorInitializer : AppInitializer {
                 if (startedActivityCount == 0) {
                     RootDbCatchupScheduler.startPeriodic(application, reason = "app_background")
                     BatteryReminderForegroundMonitor.stop(application)
+                    MagiskOtel.event(
+                        name = "app.lifecycle",
+                        attributes = mapOf(
+                            "result" to "ok",
+                            "duration_ms" to "0",
+                            "process" to "app",
+                            "stage" to "background",
+                            "reason" to "activity_stopped",
+                        ),
+                        statusOk = true,
+                    )
                     scope.launch {
                         runCatching {
                             RuntimeGraph.from(application).configSyncCoordinator.onAppBackgrounded()
