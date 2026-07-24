@@ -11,12 +11,37 @@ import kotlinx.serialization.json.put
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 object WeworkRobotUtils {
     private const val TAG = "WeworkRobotUtils"
     private val client = RelayHttpClients.default
 
+    private fun emitForward(
+        result: String,
+        reason: String,
+        durationMs: Long,
+        statusOk: Boolean = true,
+    ) {
+        MagiskOtel.event(
+            name = "sms.forward",
+            attributes = mapOf(
+                "result" to result,
+                "duration_ms" to durationMs.toString(),
+                "process" to "app",
+                "stage" to "wework_robot_send",
+                "reason" to reason,
+                "sender_type" to "wework_robot",
+            ),
+            statusOk = statusOk,
+        )
+    }
+
+
     suspend fun sendMsg(setting: WeworkRobotSetting, msgInfo: MsgInfo) {
+        val startedAt = System.nanoTime()
+        try {
+
         val content = msgInfo.content
         val msgType = if (setting.msgType == "markdown") "markdown" else "text"
         val json = SenderWireJson.encode(
@@ -84,5 +109,20 @@ object WeworkRobotUtils {
                 throw IllegalStateException("企业微信机器人返回失败: $body")
             }
         }
-    }
+    
+            emitForward(
+                result = "ok",
+                reason = "success",
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+            )
+        } catch (error: Exception) {
+            emitForward(
+                result = "error",
+                reason = error.javaClass.simpleName,
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+                statusOk = false,
+            )
+            throw error
+        }
+}
 }

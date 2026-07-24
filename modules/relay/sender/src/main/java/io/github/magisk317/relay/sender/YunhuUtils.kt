@@ -7,13 +7,38 @@ import io.github.magisk317.relay.sender.result.YunhuResult
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 object YunhuUtils {
 
     private const val TAG = "YunhuUtils"
     private const val BASE_URL = "https://chat-go.jwzhd.com/open-apis/v1/bot/send"
 
+    private fun emitForward(
+        result: String,
+        reason: String,
+        durationMs: Long,
+        statusOk: Boolean = true,
+    ) {
+        MagiskOtel.event(
+            name = "sms.forward",
+            attributes = mapOf(
+                "result" to result,
+                "duration_ms" to durationMs.toString(),
+                "process" to "app",
+                "stage" to "yunhu_send",
+                "reason" to reason,
+                "sender_type" to "yunhu",
+            ),
+            statusOk = statusOk,
+        )
+    }
+
+
     suspend fun sendMsg(setting: YunhuSetting, msgInfo: MsgInfo) {
+        val startedAt = System.nanoTime()
+        try {
+
         val title = SenderTemplateRenderer.renderTitle(setting.titleTemplate, msgInfo)
         val text = "$title\n${msgInfo.content}"
         val contentType = setting.contentType.ifBlank { "text" }
@@ -44,5 +69,20 @@ object YunhuUtils {
             SLog.e(TAG, "Yunhu Send Failed: $response")
             throw IllegalStateException("云湖返回失败: $response")
         }
-    }
+    
+            emitForward(
+                result = "ok",
+                reason = "success",
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+            )
+        } catch (error: Exception) {
+            emitForward(
+                result = "error",
+                reason = error.javaClass.simpleName,
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+                statusOk = false,
+            )
+            throw error
+        }
+}
 }

@@ -8,6 +8,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import okhttp3.FormBody
 import okhttp3.Request
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 object PushdeerUtils {
     private const val TAG = "PushdeerUtils"
@@ -19,7 +20,31 @@ object PushdeerUtils {
         val error: String? = null,
     )
 
+    private fun emitForward(
+        result: String,
+        reason: String,
+        durationMs: Long,
+        statusOk: Boolean = true,
+    ) {
+        MagiskOtel.event(
+            name = "sms.forward",
+            attributes = mapOf(
+                "result" to result,
+                "duration_ms" to durationMs.toString(),
+                "process" to "app",
+                "stage" to "pushdeer_send",
+                "reason" to reason,
+                "sender_type" to "pushdeer",
+            ),
+            statusOk = statusOk,
+        )
+    }
+
+
     suspend fun sendMsg(setting: PushdeerSetting, msgInfo: MsgInfo) = withContext(Dispatchers.IO) {
+        val startedAt = System.nanoTime()
+        try {
+
         val title = SenderTemplateRenderer.renderTitle(setting.titleTemplate, msgInfo)
         val content = msgInfo.content
 
@@ -57,5 +82,20 @@ object PushdeerUtils {
                 throw IllegalStateException("PushDeer 返回失败: $errorMsg")
             }
         }
-    }
+    
+            emitForward(
+                result = "ok",
+                reason = "success",
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+            )
+        } catch (error: Exception) {
+            emitForward(
+                result = "error",
+                reason = error.javaClass.simpleName,
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+                statusOk = false,
+            )
+            throw error
+        }
+}
 }

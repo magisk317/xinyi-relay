@@ -2,6 +2,7 @@ package io.github.magisk317.relay.android.common.utils
 
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 object CallSessionTracker {
     private const val SESSION_TTL_MS = 120_000L
@@ -38,7 +39,7 @@ object CallSessionTracker {
         if (number.isNotBlank()) {
             recentNumbers[direction] = RecentNumber(number = number, updatedAt = now)
         }
-        return when (stage) {
+        val decision = when (stage) {
             "ringing", "dialing", "ongoing" -> {
                 val activeAt = activeSessions[key]
                 if (activeAt != null && now - activeAt < SESSION_TTL_MS) {
@@ -66,6 +67,21 @@ object CallSessionTracker {
             }
             else -> Decision(true, stage, key)
         }
+        MagiskOtel.event(
+            name = "call.alert",
+            attributes = mapOf(
+                "result" to if (decision.allow) "ok" else "skip",
+                "duration_ms" to "0",
+                "process" to "app",
+                "stage" to "call_session",
+                "reason" to if (decision.allow) "allow" else "deduped",
+                "call_stage" to decision.stage,
+                "package_present" to (!packageName.isNullOrBlank()).toString(),
+                "number_present" to number.isNotBlank().toString(),
+            ),
+            statusOk = true,
+        )
+        return decision
     }
 
     fun normalizeStage(stageRaw: String?, callType: Int): String {
