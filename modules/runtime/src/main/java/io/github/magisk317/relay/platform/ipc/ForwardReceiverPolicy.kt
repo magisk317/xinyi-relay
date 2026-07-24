@@ -3,8 +3,23 @@ package io.github.magisk317.relay.platform.ipc
 import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.smscode.domain.utils.CodeRecordSimilarityUtils
 import io.github.magisk317.smscode.runtime.contract.sim.SmsRoutingMetadata
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 object ForwardReceiverPolicy {
+    private fun emitPolicy(result: String, reason: String, statusOk: Boolean = true) {
+        MagiskOtel.event(
+            name = "sms.forward",
+            attributes = mapOf(
+                "result" to result,
+                "duration_ms" to "0",
+                "process" to "app",
+                "stage" to "forward_policy",
+                "reason" to reason,
+            ),
+            statusOk = statusOk,
+        )
+    }
+
     const val API_LEVEL_34 = 34
     private const val NOTIFY_DEDUP_WINDOW_MS = 10_000L
     private const val NMS_HOOK_SUPPRESS_TTL_MS = 30_000L
@@ -53,6 +68,7 @@ object ForwardReceiverPolicy {
 
         val previous = recentNotify[key]
         if (previous != null && nowMs - previous < NOTIFY_DEDUP_WINDOW_MS) {
+            emitPolicy(result = "skip", reason = "notify_dedup")
             return true
         }
         recentNotify[key] = nowMs
@@ -133,7 +149,11 @@ object ForwardReceiverPolicy {
         nowMs: Long = System.currentTimeMillis(),
     ): Boolean {
         val seenAt = nmsHookSeen[key] ?: return false
-        return nowMs - seenAt < NMS_HOOK_SUPPRESS_TTL_MS
+        val drop = nowMs - seenAt < NMS_HOOK_SUPPRESS_TTL_MS
+        if (drop) {
+            emitPolicy(result = "skip", reason = "telephony_state_dedup")
+        }
+        return drop
     }
 
     fun markSuccessfulSmsHookDispatch(
@@ -176,7 +196,10 @@ object ForwardReceiverPolicy {
             val seenAt = recentSuccessfulSmsHook[key] ?: return@any false
             nowMs - seenAt < SMS_HOOK_SUCCESS_SUPPRESS_TTL_MS
         }
-        if (matched) return true
+        if (matched) {
+            emitPolicy(result = "skip", reason = "reclassified_nms_after_sms_hook")
+            return true
+        }
 
         if (
             CodeRecordSimilarityUtils.isSystemSmsPackage(packageName) &&
@@ -185,7 +208,11 @@ object ForwardReceiverPolicy {
             val normalizedCode = smsCode.orEmpty().trim()
             if (normalizedCode.isBlank()) return false
             val seenAt = recentSuccessfulSmsHook["sms_hook_success|code:$normalizedCode"] ?: return false
-            return nowMs - seenAt < SYSTEM_SUMMARY_CODE_ONLY_WINDOW_MS
+            val drop = nowMs - seenAt < SYSTEM_SUMMARY_CODE_ONLY_WINDOW_MS
+            if (drop) {
+                emitPolicy(result = "skip", reason = "system_summary_code_dedup")
+            }
+            return drop
         }
         return false
     }
@@ -222,7 +249,7 @@ object ForwardReceiverPolicy {
         nowMs: Long = System.currentTimeMillis(),
     ): Boolean {
         if (!CodeRecordSimilarityUtils.isSystemSmsPackage(packageName)) return false
-        return buildForwardedSmsHookKeys(
+        val suppress = buildForwardedSmsHookKeys(
             smsCode = smsCode,
             company = company,
             sender = sender,
@@ -231,6 +258,10 @@ object ForwardReceiverPolicy {
             val seenAt = recentForwardedSmsHook[key] ?: return@any false
             nowMs - seenAt < SMS_HOOK_FORWARDED_SUPPRESS_TTL_MS
         }
+        if (suppress) {
+            emitPolicy(result = "skip", reason = "telephony_nms_after_forward")
+        }
+        return suppress
     }
 
     private fun buildNotifyDedupKey(
