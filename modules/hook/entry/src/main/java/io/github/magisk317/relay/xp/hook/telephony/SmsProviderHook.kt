@@ -9,6 +9,7 @@ import io.github.magisk317.relay.xp.HookTargetDiagnostics
 import io.github.magisk317.relay.xpbridge.XpHookDiagnostics
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.MagiskOtel
 import io.github.magisk317.xposed.BaseHook
 import io.github.magisk317.xposed.HookEnv
 import io.github.magisk317.xposed.HookHelpers
@@ -39,16 +40,41 @@ class SmsProviderHook : BaseHook() {
         )
         val classLoader = lpparam.classLoader
         hookProviderMethods(classLoader)
+        MagiskOtel.event(
+            name = "hook.load",
+            attributes = mapOf(
+                "result" to "ok",
+                "duration_ms" to "0",
+                "process" to "hook",
+                "stage" to "sms_provider",
+                "reason" to "installed",
+                "target_package" to TELEPHONY_PROVIDER_PACKAGE,
+            ),
+            statusOk = true,
+        )
     }
 
     private fun hookProviderMethods(classLoader: ClassLoader) {
-        val providerClass = runCatching { HookHelpers.findClass(TELEPHONY_PROVIDER_CLASS, classLoader) }.getOrNull() ?: run {
+        val providerClass = runCatching { HookHelpers.findClass(TELEPHONY_PROVIDER_CLASS, classLoader) }.getOrNull()
+        if (providerClass == null) {
             XLog.w("SmsProviderHook: class not found: %s", TELEPHONY_PROVIDER_CLASS)
             HookTargetDiagnostics.logTargetMissIfVerbose(
                 hookName = "SmsProviderHook",
                 loadParam = LoadParam(TELEPHONY_PROVIDER_PACKAGE, TELEPHONY_PROVIDER_PACKAGE, classLoader),
                 reason = "class_not_found",
                 detail = TELEPHONY_PROVIDER_CLASS,
+            )
+            MagiskOtel.event(
+                name = "hook.load",
+                attributes = mapOf(
+                    "result" to "skip",
+                    "duration_ms" to "0",
+                    "process" to "hook",
+                    "stage" to "sms_provider",
+                    "reason" to "class_missing",
+                    "target_package" to TELEPHONY_PROVIDER_PACKAGE,
+                ),
+                statusOk = true,
             )
             return
         }
