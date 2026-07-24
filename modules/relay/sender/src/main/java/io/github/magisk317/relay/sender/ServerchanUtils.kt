@@ -6,12 +6,37 @@ import io.github.magisk317.relay.sender.result.ServerchanResult
 import io.github.magisk317.relay.sender.config.ServerchanSetting
 import okhttp3.FormBody
 import okhttp3.Request
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 object ServerchanUtils {
     private const val TAG = "ServerchanUtils"
     private val client = RelayHttpClients.default
 
+    private fun emitForward(
+        result: String,
+        reason: String,
+        durationMs: Long,
+        statusOk: Boolean = true,
+    ) {
+        MagiskOtel.event(
+            name = "sms.forward",
+            attributes = mapOf(
+                "result" to result,
+                "duration_ms" to durationMs.toString(),
+                "process" to "app",
+                "stage" to "serverchan_send",
+                "reason" to reason,
+                "sender_type" to "serverchan",
+            ),
+            statusOk = statusOk,
+        )
+    }
+
+
     suspend fun sendMsg(setting: ServerchanSetting, msgInfo: MsgInfo) {
+        val startedAt = System.nanoTime()
+        try {
+
         val title = SenderTemplateRenderer.renderTitle(setting.titleTemplate, msgInfo)
         val content = msgInfo.content
 
@@ -48,5 +73,20 @@ object ServerchanUtils {
                 throw IllegalStateException("Server酱返回失败: $body")
             }
         }
-    }
+    
+            emitForward(
+                result = "ok",
+                reason = "success",
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+            )
+        } catch (error: Exception) {
+            emitForward(
+                result = "error",
+                reason = error.javaClass.simpleName,
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+                statusOk = false,
+            )
+            throw error
+        }
+}
 }

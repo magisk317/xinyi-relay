@@ -10,6 +10,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 object NtfyUtils {
     private const val TAG = "NtfyUtils"
@@ -17,7 +18,31 @@ object NtfyUtils {
     private val client = RelayHttpClients.default
     private val textPlain = "text/plain; charset=utf-8".toMediaType()
 
+    private fun emitForward(
+        result: String,
+        reason: String,
+        durationMs: Long,
+        statusOk: Boolean = true,
+    ) {
+        MagiskOtel.event(
+            name = "sms.forward",
+            attributes = mapOf(
+                "result" to result,
+                "duration_ms" to durationMs.toString(),
+                "process" to "app",
+                "stage" to "ntfy_send",
+                "reason" to reason,
+                "sender_type" to "ntfy",
+            ),
+            statusOk = statusOk,
+        )
+    }
+
+
     suspend fun sendMsg(setting: NtfySetting, msgInfo: MsgInfo) = withContext(Dispatchers.IO) {
+        val startedAt = System.nanoTime()
+        try {
+
         val safeSetting = SenderSettingSanitizer.sanitizeNtfySetting(setting)
         val requestUrl = buildPublishUrl(safeSetting.server, safeSetting.topic)
         val headers = buildHeaders(safeSetting, msgInfo)
@@ -46,7 +71,22 @@ object NtfyUtils {
             }
             SLog.i(TAG, "Ntfy send success: ${response.code}")
         }
-    }
+    
+            emitForward(
+                result = "ok",
+                reason = "success",
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+            )
+        } catch (error: Exception) {
+            emitForward(
+                result = "error",
+                reason = error.javaClass.simpleName,
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+                statusOk = false,
+            )
+            throw error
+        }
+}
 
     internal fun buildPublishUrl(server: String, topic: String): String {
         val normalizedServer = normalizeServer(server)

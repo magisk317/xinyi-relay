@@ -10,11 +10,36 @@ import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 object UrlSchemeUtils {
     private const val TAG = "UrlSchemeUtils"
 
+    private fun emitForward(
+        result: String,
+        reason: String,
+        durationMs: Long,
+        statusOk: Boolean = true,
+    ) {
+        MagiskOtel.event(
+            name = "sms.forward",
+            attributes = mapOf(
+                "result" to result,
+                "duration_ms" to durationMs.toString(),
+                "process" to "app",
+                "stage" to "urlscheme_send",
+                "reason" to reason,
+                "sender_type" to "urlscheme",
+            ),
+            statusOk = statusOk,
+        )
+    }
+
+
     suspend fun sendMsg(context: Context, setting: UrlSchemeSetting, msgInfo: MsgInfo) {
+        val startedAt = System.nanoTime()
+        try {
+
         val timestamp = System.currentTimeMillis()
         val receiveTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
 
@@ -37,7 +62,22 @@ object UrlSchemeUtils {
                 SLog.e(TAG, "UrlScheme invoke failed", it)
             }.getOrElse { throw it }
         }
-    }
+    
+            emitForward(
+                result = "ok",
+                reason = "success",
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+            )
+        } catch (error: Exception) {
+            emitForward(
+                result = "error",
+                reason = error.javaClass.simpleName,
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+                statusOk = false,
+            )
+            throw error
+        }
+}
 
     private fun urlEncode(value: String): String = SenderSigning.urlEncode(value)
 }

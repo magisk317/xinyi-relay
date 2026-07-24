@@ -9,12 +9,37 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 object DingtalkGroupRobotUtils {
 
     private const val TAG = "DingtalkGroupRobot"
 
+    private fun emitForward(
+        result: String,
+        reason: String,
+        durationMs: Long,
+        statusOk: Boolean = true,
+    ) {
+        MagiskOtel.event(
+            name = "sms.forward",
+            attributes = mapOf(
+                "result" to result,
+                "duration_ms" to durationMs.toString(),
+                "process" to "app",
+                "stage" to "dingtalk_group_send",
+                "reason" to reason,
+                "sender_type" to "dingtalk_group",
+            ),
+            statusOk = statusOk,
+        )
+    }
+
+
     suspend fun sendMsg(setting: DingtalkGroupRobotSetting, msgInfo: MsgInfo) {
+        val startedAt = System.nanoTime()
+        try {
+
         val content = msgInfo.content
         val title = SenderTemplateRenderer.renderTitle(setting.titleTemplate, msgInfo)
 
@@ -109,5 +134,20 @@ object DingtalkGroupRobotUtils {
             SLog.e(TAG, "Dingtalk Send Failed: $response")
             throw IllegalStateException("钉钉群机器人返回失败: $response")
         }
-    }
+    
+            emitForward(
+                result = "ok",
+                reason = "success",
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+            )
+        } catch (error: Exception) {
+            emitForward(
+                result = "error",
+                reason = error.javaClass.simpleName,
+                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+                statusOk = false,
+            )
+            throw error
+        }
+}
 }
