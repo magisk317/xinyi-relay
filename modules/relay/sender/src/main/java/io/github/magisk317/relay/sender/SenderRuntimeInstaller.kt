@@ -8,15 +8,48 @@ import io.github.magisk317.relay.engine.service.SenderConfigSanitizer
 import io.github.magisk317.relay.engine.service.SenderRuntimeServiceRegistry
 import io.github.magisk317.relay.engine.service.SenderRuntimeServices
 import io.github.magisk317.relay.sender.config.SmsSetting
+import io.github.magisk317.xposed.logging.MagiskOtel
 
 object SenderRuntimeInstaller {
     fun install(): SenderRuntimeServices {
-        return SenderRuntimeServiceRegistry.install(
-            SenderRuntimeServices(
-                dispatcherFactory = { context -> DefaultSenderDispatcher(context) },
-                configSanitizer = DefaultSenderConfigSanitizer,
-                scheduledSmsSender = DefaultScheduledSmsSender,
-            ),
+        val startedAt = System.nanoTime()
+        return runCatching {
+            SenderRuntimeServiceRegistry.install(
+                SenderRuntimeServices(
+                    dispatcherFactory = { context -> DefaultSenderDispatcher(context) },
+                    configSanitizer = DefaultSenderConfigSanitizer,
+                    scheduledSmsSender = DefaultScheduledSmsSender,
+                ),
+            )
+        }.fold(
+            onSuccess = { services ->
+                val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+                MagiskOtel.event(
+                    name = "sms.sender_runtime",
+                    attributes = mapOf(
+                        "result" to "ok",
+                        "duration_ms" to durationMs.toString(),
+                        "process" to "main",
+                        "reason" to "installed",
+                    ),
+                    statusOk = true,
+                )
+                services
+            },
+            onFailure = { error ->
+                val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+                MagiskOtel.event(
+                    name = "sms.sender_runtime",
+                    attributes = mapOf(
+                        "result" to "error",
+                        "duration_ms" to durationMs.toString(),
+                        "process" to "main",
+                        "reason" to error.javaClass.simpleName,
+                    ),
+                    statusOk = false,
+                )
+                throw error
+            },
         )
     }
 
