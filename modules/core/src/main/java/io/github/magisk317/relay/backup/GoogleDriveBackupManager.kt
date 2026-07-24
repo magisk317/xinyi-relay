@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.backup
 
+import io.github.magisk317.xposed.logging.MagiskOtel
 import android.content.Context
 import android.net.Uri
 import androidx.core.content.FileProvider
@@ -44,6 +45,22 @@ class GoogleDriveBackupManager(
     private val context: Context,
     private val authManager: AuthManager,
 ) {
+    private fun emitDrive(stage: String, statusOk: Boolean, reason: String, startedAt: Long) {
+        val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+        MagiskOtel.event(
+            name = if (stage.contains("restore")) "prefs.restore" else "prefs.backup",
+            attributes = mapOf(
+                "result" to if (statusOk) "ok" else "error",
+                "duration_ms" to durationMs.toString(),
+                "process" to "app",
+                "stage" to stage,
+                "reason" to reason,
+                "source" to "gdrive",
+            ),
+            statusOk = statusOk,
+        )
+    }
+
     private val client = OkHttpClient()
     private var config: GoogleDriveBackupConfig = GoogleDriveBackupConfig()
 
@@ -72,6 +89,7 @@ class GoogleDriveBackupManager(
         includeRecords: Boolean = true,
         includeDatabase: Boolean = true,
     ): Result<DriveBackupMeta> = withContext(Dispatchers.IO) {
+        val startedAt = System.nanoTime()
         runCatching {
             val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
             val fileName = "Relay-Cloud-$timestamp.zip"
@@ -148,9 +166,15 @@ class GoogleDriveBackupManager(
                     XLog.i("Google Drive backup temp cleanup: name=%s deleted=%s", fileName, deleted)
                 }
             }
+        }.also { result ->
+            emitDrive(
+                stage = "gdrive_upload",
+                statusOk = result.isSuccess,
+                reason = if (result.isSuccess) "uploaded" else (result.exceptionOrNull()?.javaClass?.simpleName ?: "upload_failed"),
+                startedAt = startedAt,
+            )
         }
     }
-
     suspend fun listBackups(): Result<List<DriveBackupMeta>> = withContext(Dispatchers.IO) {
         runCatching {
             val folderId = findFolderPath(config.folderPath) ?: return@runCatching emptyList()

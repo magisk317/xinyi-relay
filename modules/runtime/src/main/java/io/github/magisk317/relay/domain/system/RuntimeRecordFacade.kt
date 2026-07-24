@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.domain.system
 
+import io.github.magisk317.xposed.logging.MagiskOtel
 import android.content.Context
 import android.os.Build
 import android.telephony.SubscriptionManager
@@ -40,7 +41,19 @@ class RuntimeRecordFacade(
         date: Long,
         msgType: Int = SmsMsg.MSG_TYPE_SMS,
     ): Boolean = withContext(Dispatchers.IO) {
-        db.smsMsgDao().getByFingerprint(sender, body, date, msgType) != null
+        val duplicate = db.smsMsgDao().getByFingerprint(sender, body, date, msgType) != null
+        MagiskOtel.event(
+            name = "sms.record",
+            attributes = mapOf(
+                "result" to if (duplicate) "skip" else "ok",
+                "duration_ms" to "0",
+                "process" to "main",
+                "stage" to "duplicate_check",
+                "reason" to if (duplicate) "duplicate" else "unique",
+            ),
+            statusOk = true,
+        )
+        duplicate
     }
 
     suspend fun findSmsRecordIdByFingerprint(
@@ -73,7 +86,19 @@ class RuntimeRecordFacade(
         success: Boolean,
         reason: String?,
     ): Int = withContext(Dispatchers.IO) {
-        db.autoInputEventDao().updateResult(attemptId, success, reason)
+        val updated = db.autoInputEventDao().updateResult(attemptId, success, reason)
+        MagiskOtel.event(
+            name = "auto.input",
+            attributes = mapOf(
+                "result" to if (success) "ok" else "error",
+                "duration_ms" to "0",
+                "process" to "main",
+                "stage" to "result_persist",
+                "reason" to (reason?.take(48)?.ifBlank { "empty" } ?: "none"),
+            ),
+            statusOk = success,
+        )
+        updated
     }
 
     suspend fun upsertAutoInputResult(
@@ -155,6 +180,18 @@ class RuntimeRecordFacade(
         } else {
             dao.insert(updated)
         }
+        MagiskOtel.event(
+            name = "sms.record",
+            attributes = mapOf(
+                "result" to if (success) "ok" else "error",
+                "duration_ms" to "0",
+                "process" to "main",
+                "stage" to "forward_result",
+                "reason" to if (success) "forward_success" else "forward_failed",
+                "sender_type" to (target?.take(32) ?: "unknown"),
+            ),
+            statusOk = success,
+        )
     }
 
     suspend fun persistSmsHookDispatchFailure(
@@ -176,13 +213,26 @@ class RuntimeRecordFacade(
         smsMsg: SmsMsg,
         isCodeSms: Boolean,
     ): Long? = withContext(Dispatchers.IO) {
-        recordInserter?.invoke(smsMsg, isCodeSms)
+        val id = recordInserter?.invoke(smsMsg, isCodeSms)
             // Safe cast: the lazy field always creates RelayRecordRepository when
             // no explicit inserter lambda was provided (non-Koin call sites).
             ?: (relayRecordRepository as RelayRecordRepository).insertRecord(
                 smsMsg = smsMsg,
                 isCodeSms = isCodeSms,
             )
+        MagiskOtel.event(
+            name = "sms.record",
+            attributes = mapOf(
+                "result" to if (id != null) "ok" else "error",
+                "duration_ms" to "0",
+                "process" to "main",
+                "stage" to "insert",
+                "reason" to if (isCodeSms) "code_sms" else "plain_sms",
+                "code_present" to isCodeSms.toString(),
+            ),
+            statusOk = id != null,
+        )
+        id
     }
 
     suspend fun insertSmsBlacklistHit(hit: XpSmsBlacklistHitRecord): Long? = withContext(Dispatchers.IO) {

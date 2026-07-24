@@ -1,5 +1,7 @@
 package io.github.magisk317.relay.platform.ipc
 
+import io.github.magisk317.xposed.logging.MagiskOtel
+
 import java.nio.ByteBuffer
 import java.nio.charset.CharacterCodingException
 import java.nio.charset.Charset
@@ -97,7 +99,21 @@ internal object MmsNotificationPduParser {
     }
 
     fun parse(data: ByteArray): Result {
-        if (data.isEmpty()) return Result.Malformed(MalformedReason.EMPTY_PDU)
+        if (data.isEmpty()) {
+            MagiskOtel.event(
+                name = "sms.observe",
+                attributes = mapOf(
+                    "result" to "error",
+                    "duration_ms" to "0",
+                    "process" to "main",
+                    "stage" to "mms_pdu_parse",
+                    "reason" to "empty_pdu",
+                    "payload_size" to "0",
+                ),
+                statusOk = false,
+            )
+            return Result.Malformed(MalformedReason.EMPTY_PDU)
+        }
 
         return try {
             val cursor = Cursor(data)
@@ -155,8 +171,43 @@ internal object MmsNotificationPduParser {
                 }
             }
 
-            values.toResult()
+            val result = values.toResult()
+            MagiskOtel.event(
+                name = "sms.observe",
+                attributes = mapOf(
+                    "result" to when (result) {
+                        is Result.Parsed -> "ok"
+                        is Result.Unsupported -> "skip"
+                        is Result.Malformed -> "error"
+                        else -> "ok"
+                    },
+                    "duration_ms" to "0",
+                    "process" to "main",
+                    "stage" to "mms_pdu_parse",
+                    "reason" to when (result) {
+                        is Result.Parsed -> if (result.isComplete) "complete" else "partial"
+                        is Result.Unsupported -> "unsupported"
+                        is Result.Malformed -> result.reason.name.lowercase()
+                        else -> "parsed"
+                    },
+                    "payload_size" to data.size.toString(),
+                ),
+                statusOk = result is Result.Parsed,
+            )
+            result
         } catch (error: MalformedPdu) {
+            MagiskOtel.event(
+                name = "sms.observe",
+                attributes = mapOf(
+                    "result" to "error",
+                    "duration_ms" to "0",
+                    "process" to "main",
+                    "stage" to "mms_pdu_parse",
+                    "reason" to error.reason.name.lowercase(),
+                    "payload_size" to data.size.toString(),
+                ),
+                statusOk = false,
+            )
             Result.Malformed(error.reason)
         }
     }

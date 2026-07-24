@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.backup
 
+import io.github.magisk317.xposed.logging.MagiskOtel
 import android.content.Context
 import android.net.Uri
 import androidx.core.content.FileProvider
@@ -19,6 +20,21 @@ import java.util.Locale
 class WebDavBackupManager(
     private val context: Context,
 ) {
+    private fun emitBackup(stage: String, statusOk: Boolean, reason: String, startedAt: Long) {
+        val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+        MagiskOtel.event(
+            name = if (stage.startsWith("restore")) "prefs.restore" else "prefs.backup",
+            attributes = mapOf(
+                "result" to if (statusOk) "ok" else "error",
+                "duration_ms" to durationMs.toString(),
+                "process" to "app",
+                "stage" to stage,
+                "reason" to reason,
+                "source" to "webdav",
+            ),
+            statusOk = statusOk,
+        )
+    }
     private var config: WebDavConfig? = null
     private var client: WebDavClient? = null
 
@@ -30,7 +46,11 @@ class WebDavBackupManager(
     fun getConfig(): WebDavConfig? = config
 
     suspend fun uploadBackup(): Result<CloudBackupMeta> = withContext(Dispatchers.IO) {
-        val currentClient = client ?: return@withContext Result.failure(IllegalStateException("WebDAV not configured"))
+        val startedAt = System.nanoTime()
+        val currentClient = client ?: run {
+            emitBackup(stage = "webdav_upload", statusOk = false, reason = "not_configured", startedAt = startedAt)
+            return@withContext Result.failure(IllegalStateException("WebDAV not configured"))
+        }
         runCatching {
             val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
             val fileName = "Relay-Cloud-$timestamp.zip"
@@ -73,6 +93,13 @@ class WebDavBackupManager(
                     XLog.i("WebDAV backup temp cleanup: name=%s deleted=%s", fileName, deleted)
                 }
             }
+        }.also { result ->
+            emitBackup(
+                stage = "webdav_upload",
+                statusOk = result.isSuccess,
+                reason = if (result.isSuccess) "uploaded" else (result.exceptionOrNull()?.javaClass?.simpleName ?: "upload_failed"),
+                startedAt = startedAt,
+            )
         }
     }
 
@@ -108,6 +135,7 @@ class WebDavBackupManager(
     }
 
     suspend fun restoreFromBackup(fileName: String): Result<Unit> = withContext(Dispatchers.IO) {
+        val startedAt = System.nanoTime()
         runCatching {
             val tempFile = downloadBackup(fileName).getOrThrow()
             try {
@@ -120,13 +148,31 @@ class WebDavBackupManager(
             } finally {
                 tempFile.delete()
             }
+        }.also { result ->
+            emitBackup(
+                stage = "webdav_restore",
+                statusOk = result.isSuccess,
+                reason = if (result.isSuccess) "restored" else (result.exceptionOrNull()?.javaClass?.simpleName ?: "restore_failed"),
+                startedAt = startedAt,
+            )
         }
     }
 
     suspend fun testConnection(): Result<Unit> = withContext(Dispatchers.IO) {
-        val currentClient = client ?: return@withContext Result.failure(IllegalStateException("WebDAV not configured"))
+        val startedAt = System.nanoTime()
+        val currentClient = client ?: run {
+            emitBackup(stage = "webdav_test", statusOk = false, reason = "not_configured", startedAt = startedAt)
+            return@withContext Result.failure(IllegalStateException("WebDAV not configured"))
+        }
         runCatching {
             currentClient.ensureDirectory().getOrThrow()
+        }.also { result ->
+            emitBackup(
+                stage = "webdav_test",
+                statusOk = result.isSuccess,
+                reason = if (result.isSuccess) "connected" else (result.exceptionOrNull()?.javaClass?.simpleName ?: "test_failed"),
+                startedAt = startedAt,
+            )
         }
     }
 }
