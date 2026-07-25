@@ -101,9 +101,25 @@ function Collect-Artifacts {
 
 Install-Node24
 Install-Rust
-corepack enable
+
+# Single source of truth: pnpm version follows the desktop package.json
+# packageManager field. Mirrors magisk-ci-toolkit's ci/ensure_pnpm.sh, inlined
+# here because Windows runners execute PowerShell and cannot invoke the bash
+# toolkit helpers. corepack was removed from Node 25+, so install pnpm directly.
 $packageManager = node -p "require('$($DesktopDir.Replace('\', '\\'))/package.json').packageManager"
-corepack prepare $packageManager --activate
+if ($packageManager -notmatch '^pnpm@') {
+  throw "packageManager in desktop package.json is not pnpm@x.y.z (got '$packageManager')"
+}
+# Strip the "pnpm@" prefix and any corepack integrity suffix ("+sha512...").
+$pnpmVersion = ($packageManager -replace '^pnpm@', '') -replace '\+.*$', ''
+$currentPnpm = $null
+try { $currentPnpm = (pnpm --version) 2>$null } catch { $currentPnpm = $null }
+if ($currentPnpm -ne $pnpmVersion) {
+  npm install --global --no-audit --no-fund "pnpm@$pnpmVersion"
+}
+if ((pnpm --version) -ne $pnpmVersion) {
+  throw "Expected pnpm $pnpmVersion, got $(pnpm --version)"
+}
 
 Sync-DesktopVersion
 Set-Location $DesktopDir
