@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.receiver
 
+import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap
 import android.content.Context
 import android.content.Intent
 import io.github.magisk317.relay.android.common.utils.XLog
@@ -109,7 +110,7 @@ object AutoInputResultHandler {
         ) { key, defaultValue ->
             deps.preferenceDataSource.getBoolean(key, defaultValue)
         }
-        if (!analyticsEnabled) {
+        if (!MagiskOtelBootstrap.isEffectivelyEnabled(analyticsEnabled)) {
             XLog.w("Diag AutoInputResultReceiver analytics disabled: attemptId=%d", attemptId)
             MagiskOtel.event(
                 name = "auto.input",

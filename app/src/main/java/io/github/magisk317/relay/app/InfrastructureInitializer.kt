@@ -8,19 +8,14 @@ import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.feature.call.CallStateMonitor
 import io.github.magisk317.relay.feature.mode.WorkModeResolver
 import io.github.magisk317.relay.service.StandardModeService
+import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap
 import io.github.magisk317.xposed.logging.MagiskOtel
 
 class InfrastructureInitializer : AppInitializer {
     override fun init(application: Application) {
-        MagiskOtel.configure(
-            MagiskOtel.Config(
-                enabled = BuildConfig.DEBUG,
-                serviceName = "xinyi-relay",
-                serviceVersion = BuildConfig.VERSION_NAME,
-                projectId = "84113188",
-                projectName = "xinyi-relay",
-                environment = if (BuildConfig.DEBUG) "debug" else "release",
-            ),
+        MagiskOtelBootstrap.install(
+            application,
+            serviceVersion = BuildConfig.VERSION_NAME,
         )
         MagiskOtel.event(
             name = "app.boot",

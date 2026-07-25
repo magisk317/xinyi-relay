@@ -11,15 +11,27 @@ import io.github.magisk317.smscode.xposed.runtime.CoreLogSink
 import io.github.magisk317.smscode.xposed.runtime.CoreLogSinkHolder
 import io.github.magisk317.smscode.xposed.runtime.CoreRuntime
 import io.github.magisk317.smscode.xposed.runtime.CoreRuntimeAccess
+import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap
 import io.github.magisk317.xposed.logging.MagiskOtel
 
 object SmsCodeXposedRuntimeBridge {
     fun install(
         shouldSuppressSystemHooks: (Context?, String) -> Boolean,
     ) {
+        // Hook process: default ON (release pref default true). Prefer prefs when readable.
+        val hookContext = runCatching {
+            Class.forName("android.app.ActivityThread")
+                .getMethod("currentApplication")
+                .invoke(null) as? Context
+        }.getOrNull()
+        val otelEnabled = if (hookContext != null) {
+            MagiskOtelBootstrap.isEnabled(hookContext)
+        } else {
+            MagiskOtelBootstrap.isEffectivelyEnabled(userPrefEnabled = true)
+        }
         MagiskOtel.configureIfAbsent(
             MagiskOtel.Config(
-                enabled = io.github.magisk317.relay.runtime.BuildConfig.DEBUG,
+                enabled = otelEnabled,
                 serviceName = "xinyi-relay",
                 serviceVersion = io.github.magisk317.relay.core.BuildConfig.VERSION_NAME,
                 projectId = "84113188",
