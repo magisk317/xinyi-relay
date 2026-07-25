@@ -1,15 +1,15 @@
 include:
   - project: magisk3171/magisk-ci-toolkit
-    ref: 0d1ba5c86ecfd269d5772b865ea9f091248d6048
+    ref: d88061b293a6fb042a26b2feb8e60769d336f813
     file: /.gitlab/ci/android.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: 0d1ba5c86ecfd269d5772b865ea9f091248d6048
+    ref: d88061b293a6fb042a26b2feb8e60769d336f813
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: 0d1ba5c86ecfd269d5772b865ea9f091248d6048
+    ref: d88061b293a6fb042a26b2feb8e60769d336f813
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: 0d1ba5c86ecfd269d5772b865ea9f091248d6048
+    ref: d88061b293a6fb042a26b2feb8e60769d336f813
     file: /.gitlab/ci/renovate.yml
 
 workflow:
@@ -38,7 +38,7 @@ stages:
   - maintenance
 
 variables:
-  MAGISK_CI_TOOLKIT_REF: "0d1ba5c86ecfd269d5772b865ea9f091248d6048"
+  MAGISK_CI_TOOLKIT_REF: "d88061b293a6fb042a26b2feb8e60769d336f813"
   GIT_DEPTH: "0"
   GIT_SUBMODULE_STRATEGY: recursive
   GIT_SUBMODULE_DEPTH: "0"
@@ -267,6 +267,12 @@ backend:container:manifest:
   script:
     - chmod +x scripts/ci/gitlab_backend_container.sh
     - scripts/ci/gitlab_backend_container.sh publish-manifests
+  artifacts:
+    reports:
+      dotenv: telegram_images.env
+    paths:
+      - telegram_images.env
+    expire_in: 1 day
 
 desktop:linux:x64:
   extends: .xinyi_desktop_linux
@@ -594,7 +600,7 @@ telegram:images:
   allow_failure: true
   needs:
     - job: backend:container:manifest
-      artifacts: false
+      artifacts: true
   rules:
     - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "web"'
       when: never
@@ -605,6 +611,7 @@ telegram:images:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
     - if: '$CI_COMMIT_TAG =~ /^v[0-9]+[.][0-9]+[.][0-9]+.*$/'
+      when: on_success
     - if: '$CI_PIPELINE_SOURCE == "web"'
       when: manual
       allow_failure: true
