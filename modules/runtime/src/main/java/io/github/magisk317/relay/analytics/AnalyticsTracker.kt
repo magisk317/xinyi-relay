@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.analytics
 
+import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap
 import android.content.Context
 import android.os.Bundle
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
@@ -39,7 +40,7 @@ object AnalyticsTracker {
         ) { key, defaultValue ->
             deps.preferenceDataSource.getBoolean(key, defaultValue)
         }
-        if (!analyticsEnabled) return
+        if (!MagiskOtelBootstrap.isEffectivelyEnabled(analyticsEnabled)) return
         val tracker = instance ?: return
         runCatching {
             val bundle = Bundle()

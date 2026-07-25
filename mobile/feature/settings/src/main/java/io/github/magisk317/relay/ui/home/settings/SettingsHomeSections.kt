@@ -229,11 +229,13 @@ internal fun SettingsDiagnosticsSection(
                 onCheckedChange = onAutoUpdateWifiOnlyChange,
             )
         }
-        StateSwitchItem(
-            title = stringResource(id = R.string.pref_enable_analytics_title),
-            summary = stringResource(id = R.string.pref_enable_analytics_summary),
-            checked = diagnostics.analyticsEnabled,
-            onCheckedChange = onAnalyticsEnabledChange,
-        )
+        if (!BuildConfig.DEBUG) {
+            StateSwitchItem(
+                title = stringResource(id = R.string.pref_enable_analytics_title),
+                summary = stringResource(id = R.string.pref_enable_analytics_summary),
+                checked = diagnostics.analyticsEnabled,
+                onCheckedChange = onAnalyticsEnabledChange,
+            )
+        }
     }
 }

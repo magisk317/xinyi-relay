@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.ui.home.overview
 
+import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap
 import io.github.magisk317.relay.mobilefeature.overview.BuildConfig
 import io.github.magisk317.relay.ui.common.rememberPrefBoolean
 import io.github.magisk317.uikit.surface.DonateDialog
@@ -98,6 +99,7 @@ fun OverviewScreen(onCheckUpdate: () -> Unit) {
     var showQRCodeDialog by remember { mutableStateOf<Pair<Int, String>?>(null) }
 
     val analyticsEnabled = rememberPrefBoolean(PrefConst.KEY_ENABLE_ANALYTICS, true)
+    val effectiveAnalyticsEnabled = MagiskOtelBootstrap.isEffectivelyEnabled(analyticsEnabled.value)
 
     val workMode by WorkModeResolver.mode.collectAsStateWithLifecycle()
     val isEnabled = workMode == WorkMode.Enhanced
@@ -177,7 +179,7 @@ fun OverviewScreen(onCheckUpdate: () -> Unit) {
             id = CARD_CHART,
             titleRes = R.string.home_card_chart_title,
             icon = Icons.AutoMirrored.Filled.List,
-            available = analyticsEnabled.value,
+            available = effectiveAnalyticsEnabled,
         ),
     )
     val cardSpecById = remember(allCardSpecs) { allCardSpecs.associateBy(HomeCardSpec::id) }
@@ -185,11 +187,11 @@ fun OverviewScreen(onCheckUpdate: () -> Unit) {
     LaunchedEffect(Unit) {
         viewModel.loadSettings()
     }
-    LaunchedEffect(analyticsEnabled.value, overviewUiState.chartWindow) {
+    LaunchedEffect(effectiveAnalyticsEnabled, overviewUiState.chartWindow) {
         viewModel.refreshRuntimeSnapshot(
             context = context,
             analyticsRepository = analyticsRepository,
-            analyticsEnabled = analyticsEnabled.value,
+            analyticsEnabled = effectiveAnalyticsEnabled,
         )
     }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
@@ -198,7 +200,7 @@ fun OverviewScreen(onCheckUpdate: () -> Unit) {
             viewModel.refreshRuntimeSnapshot(
                 context = context,
                 analyticsRepository = analyticsRepository,
-                analyticsEnabled = analyticsEnabled.value,
+                analyticsEnabled = effectiveAnalyticsEnabled,
             )
         }
     }
@@ -208,7 +210,7 @@ fun OverviewScreen(onCheckUpdate: () -> Unit) {
     val chartWindow = overviewUiState.chartWindow
     val runtimeUiState = overviewUiState.runtimeSnapshot
 
-    val visibleCardIds = remember(cardOrder, enabledCardIds, analyticsEnabled.value) {
+    val visibleCardIds = remember(cardOrder, enabledCardIds, effectiveAnalyticsEnabled) {
         cardOrder.filter { id ->
             enabledCardIds.contains(id) && (cardSpecById[id]?.available == true)
         }

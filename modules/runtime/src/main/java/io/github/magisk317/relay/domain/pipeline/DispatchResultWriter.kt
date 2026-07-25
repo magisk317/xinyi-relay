@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.domain.pipeline
 
+import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap
 import io.github.magisk317.relay.analytics.AnalyticsTracker
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.common.utils.XLog
@@ -31,7 +32,7 @@ class DispatchResultWriter(
                 forceFailed = forceFailed,
                 forcedStatus = forcedStatus,
             )
-            if (msgTypeForAnalytics != null && preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE_ANALYTICS, true)) {
+            if (msgTypeForAnalytics != null && MagiskOtelBootstrap.isEffectivelyEnabled(preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE_ANALYTICS, true))) {
                 persistSenderDispatchLogs(recordId, msgTypeForAnalytics, results)
             }
         }.onFailure { error ->

@@ -7,6 +7,7 @@ import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.settings.*
 import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
 import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap
 import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
@@ -177,7 +178,10 @@ class SettingsRepository(
         }
         update.autoUpdateOnStart?.let { preferenceDataSource.setBoolean(PrefConst.KEY_AUTO_UPDATE_ON_START, it) }
         update.autoUpdateWifiOnly?.let { preferenceDataSource.setBoolean(PrefConst.KEY_AUTO_UPDATE_WIFI_ONLY, it) }
-        update.analyticsEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE_ANALYTICS, it) }
+        update.analyticsEnabled?.let {
+            preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE_ANALYTICS, it)
+            MagiskOtelBootstrap.install(appContext)
+        }
         update.keepAliveOomAdj?.let { preferenceDataSource.setBoolean(PrefConst.KEY_KEEPALIVE_OOM_ADJ, it) }
         update.keepAliveAntiKill?.let { preferenceDataSource.setBoolean(PrefConst.KEY_KEEPALIVE_ANTI_KILL, it) }
         update.keepAliveStandbyBypass?.let { preferenceDataSource.setBoolean(PrefConst.KEY_KEEPALIVE_STANDBY_BYPASS, it) }
