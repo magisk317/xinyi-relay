@@ -82,6 +82,20 @@ docker_login_all() {
     | docker login docker.io --username "$DOCKERHUB_USERNAME" --password-stdin
 }
 
+backend_arches() {
+  local arches="${XINYI_BACKEND_ARCHES:-amd64}"
+  local arch
+  for arch in $arches; do
+    case "$arch" in
+      amd64|arm64) printf '%s\n' "$arch" ;;
+      *)
+        echo "ERROR: unsupported backend arch: ${arch}" >&2
+        exit 2
+        ;;
+    esac
+  done
+}
+
 create_builder() {
   BUILDX_BUILDER="xinyi-backend-${CI_JOB_ID:-$$}"
   docker buildx create --name "$BUILDX_BUILDER" --use
@@ -161,10 +175,14 @@ publish_manifests() {
   while IFS= read -r tag; do
     [[ -z "$tag" ]] && continue
     for image in "$gitlab_image" "$dockerhub_image"; do
+      local image_sources=()
+      while IFS= read -r arch; do
+        [[ -z "$arch" ]] && continue
+        image_sources+=("${image}:${tag}-${arch}")
+      done < <(backend_arches)
       docker buildx imagetools create \
         --tag "${image}:${tag}" \
-        "${image}:${tag}-amd64" \
-        "${image}:${tag}-arm64"
+        "${image_sources[@]}"
       docker buildx imagetools inspect "${image}:${tag}"
     done
   done < <(release_tags)

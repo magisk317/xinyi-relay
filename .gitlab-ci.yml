@@ -1,15 +1,15 @@
 include:
   - project: magisk3171/magisk-ci-toolkit
-    ref: bcdb55f5f5c0fbef3c8b1466855100ca6c16dea8
+    ref: 2e8ae3ce243e9008b09156ebac789a0e8cdc355f
     file: /.gitlab/ci/android.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: bcdb55f5f5c0fbef3c8b1466855100ca6c16dea8
+    ref: 2e8ae3ce243e9008b09156ebac789a0e8cdc355f
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: bcdb55f5f5c0fbef3c8b1466855100ca6c16dea8
+    ref: 2e8ae3ce243e9008b09156ebac789a0e8cdc355f
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: bcdb55f5f5c0fbef3c8b1466855100ca6c16dea8
+    ref: 2e8ae3ce243e9008b09156ebac789a0e8cdc355f
     file: /.gitlab/ci/renovate.yml
 
 workflow:
@@ -38,7 +38,7 @@ stages:
   - maintenance
 
 variables:
-  MAGISK_CI_TOOLKIT_REF: "bcdb55f5f5c0fbef3c8b1466855100ca6c16dea8"
+  MAGISK_CI_TOOLKIT_REF: "2e8ae3ce243e9008b09156ebac789a0e8cdc355f"
   GIT_DEPTH: "0"
   GIT_SUBMODULE_STRATEGY: recursive
   GIT_SUBMODULE_DEPTH: "0"
@@ -245,6 +245,8 @@ backend:container:arm64:
     - .xinyi_backend_publish_rules
   resource_group: xinyi-backend-docker-arm64
   stage: package
+  rules:
+    - when: never
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
@@ -264,8 +266,6 @@ backend:container:manifest:
   stage: release-publish
   needs:
     - job: backend:container:amd64
-      artifacts: false
-    - job: backend:container:arm64
       artifacts: false
   script:
     - chmod +x scripts/ci/gitlab_backend_container.sh
@@ -288,6 +288,8 @@ desktop:linux:x64:
 desktop:linux:arm64:
   extends: .xinyi_desktop_linux
   needs: []
+  rules:
+    - when: never
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   script:
@@ -296,6 +298,8 @@ desktop:linux:arm64:
 desktop:windows:x64:
   extends: .xinyi_desktop_windows
   needs: []
+  rules:
+    - when: never
   tags:
     - $XINYI_GITLAB_WINDOWS_AMD64_RUNNER_TAG
   script:
@@ -328,13 +332,6 @@ desktop:release:gitlab:
   needs:
     - job: desktop:linux:x64
       artifacts: true
-    - job: desktop:linux:arm64
-      artifacts: true
-    - job: desktop:windows:x64
-      artifacts: true
-    - job: desktop:macos:arm64
-      artifacts: true
-      optional: true
   before_script:
     - |
       set -euo pipefail
@@ -631,7 +628,7 @@ telegram:images:
     MAGISK_TELEGRAM_PROJECT_TAG: "#XinyiRelay"
     MAGISK_TELEGRAM_PROJECT_NAME: "XinyiRelay"
     MAGISK_TELEGRAM_IMAGE_EVENT: "backend-docker"
-    MAGISK_TELEGRAM_PLATFORMS: "linux/amd64, linux/arm64"
+    MAGISK_TELEGRAM_PLATFORMS: "linux/amd64"
     MAGISK_TELEGRAM_IMAGE_LIST_COMMAND: "scripts/ci/gitlab_backend_container.sh list-images"
 
 telegram:release:
