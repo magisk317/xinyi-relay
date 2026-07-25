@@ -1,15 +1,15 @@
 include:
   - project: magisk3171/magisk-ci-toolkit
-    ref: d88061b293a6fb042a26b2feb8e60769d336f813
+    ref: bcdb55f5f5c0fbef3c8b1466855100ca6c16dea8
     file: /.gitlab/ci/android.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: d88061b293a6fb042a26b2feb8e60769d336f813
+    ref: bcdb55f5f5c0fbef3c8b1466855100ca6c16dea8
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: d88061b293a6fb042a26b2feb8e60769d336f813
+    ref: bcdb55f5f5c0fbef3c8b1466855100ca6c16dea8
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: d88061b293a6fb042a26b2feb8e60769d336f813
+    ref: bcdb55f5f5c0fbef3c8b1466855100ca6c16dea8
     file: /.gitlab/ci/renovate.yml
 
 workflow:
@@ -38,7 +38,7 @@ stages:
   - maintenance
 
 variables:
-  MAGISK_CI_TOOLKIT_REF: "d88061b293a6fb042a26b2feb8e60769d336f813"
+  MAGISK_CI_TOOLKIT_REF: "bcdb55f5f5c0fbef3c8b1466855100ca6c16dea8"
   GIT_DEPTH: "0"
   GIT_SUBMODULE_STRATEGY: recursive
   GIT_SUBMODULE_DEPTH: "0"
@@ -385,8 +385,11 @@ webui:check:
   script:
     - |
       set -euo pipefail
-      corepack enable
-      corepack prepare "$(node -p "require('./frontend/webui/package.json').packageManager")" --activate
+      # Install pnpm via the shared toolkit helper (single source of truth is
+      # frontend/webui/package.json's packageManager field). Avoids corepack,
+      # which is unbundled from Node 25+.
+      toolkit_dir="$(bash scripts/resolve_ci_toolkit.sh)"
+      bash "$toolkit_dir/ci/ensure_pnpm.sh" frontend/webui/package.json
       pnpm -C frontend/webui config set store-dir "$CI_PROJECT_DIR/.pnpm-store"
       # Use npmmirror as primary registry, fallback to official on failure
       pnpm -C frontend/webui config set registry https://registry.npmmirror.com

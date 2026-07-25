@@ -139,8 +139,11 @@ collect_artifacts() {
 install_linux_dependencies
 install_node24
 install_rust
-corepack enable
-corepack prepare "$(node -p "require('$desktop_dir/package.json').packageManager")" --activate
+# Install pnpm via the shared toolkit helper (single source of truth: the
+# packageManager field in frontend/desktop/package.json). Avoids corepack,
+# which is unbundled from Node 25+.
+toolkit_dir="$(bash "$root_dir/scripts/resolve_ci_toolkit.sh")"
+bash "$toolkit_dir/ci/ensure_pnpm.sh" "$desktop_dir/package.json"
 
 cd "$desktop_dir"
 sync_and_strip_desktop_version
