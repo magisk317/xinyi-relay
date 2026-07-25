@@ -12,6 +12,10 @@ permissions:
   contents: write
   pull-requests: write
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch || github.event.pull_request.head.ref || github.ref }}
+  cancel-in-progress: false
+
 jobs:
   recover-versioncode:
     runs-on: ubuntu-latest
