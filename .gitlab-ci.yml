@@ -226,6 +226,7 @@ backend:container:amd64:
   extends:
     - .xinyi_docker
     - .xinyi_backend_publish_rules
+  resource_group: xinyi-backend-docker-amd64
   stage: package
   tags:
     - $XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG
@@ -242,6 +243,7 @@ backend:container:arm64:
   extends:
     - .xinyi_docker
     - .xinyi_backend_publish_rules
+  resource_group: xinyi-backend-docker-arm64
   stage: package
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
@@ -258,6 +260,7 @@ backend:container:manifest:
   extends:
     - .xinyi_docker
     - .xinyi_backend_publish_rules
+  resource_group: xinyi-backend-docker-manifest
   stage: release-publish
   needs:
     - job: backend:container:amd64
@@ -502,6 +505,7 @@ android:release:github-apk:
   extends:
     - .magisk_android_base
     - .magisk_android_release_tag_rules
+  resource_group: xinyi-android-release-apk
   stage: release-build
   needs:
     - job: android:release:guard
@@ -537,6 +541,7 @@ android:release:play-bundle:
   extends:
     - .magisk_android_base
     - .magisk_android_release_tag_rules
+  resource_group: xinyi-android-release-play
   stage: release-build
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v[0-9]+[.][0-9]+[.][0-9]+.*$/ && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true"'
@@ -571,6 +576,7 @@ android:release:play-bundle:
 
 android:release:gitlab:
   extends: .magisk_android_gitlab_release
+  resource_group: xinyi-android-release-publish
   stage: release-publish
   needs:
     - job: android:release:github-apk
@@ -581,6 +587,7 @@ android:release:gitlab:
 
 android:release:play:
   extends: .magisk_android_publish_play
+  resource_group: xinyi-android-release-play
   stage: release-publish
   needs:
     - job: android:release:play-bundle
@@ -588,6 +595,7 @@ android:release:play:
 
 android:release:modules-repo:
   extends: .magisk_android_publish_modules_repo
+  resource_group: xinyi-android-release-publish
   stage: release-publish
   needs:
     - job: android:release:github-apk
@@ -651,4 +659,5 @@ telegram:ci:
 
 renovate:gitlab:
   extends: .magisk_renovate_gitlab
+  interruptible: false
   stage: maintenance
