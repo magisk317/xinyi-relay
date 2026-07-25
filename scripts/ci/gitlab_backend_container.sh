@@ -6,6 +6,7 @@ usage() {
 Usage:
   gitlab_backend_container.sh build-arch <amd64|arm64>
   gitlab_backend_container.sh publish-manifests
+  gitlab_backend_container.sh list-images
 EOF
 }
 
@@ -169,6 +170,22 @@ publish_manifests() {
   done < <(release_tags)
 }
 
+
+list_images() {
+  local tag
+  local gitlab
+  gitlab="$(gitlab_image)"
+  while IFS= read -r tag; do
+    [[ -z "$tag" ]] && continue
+    printf '%s:%s\n' "$gitlab" "$tag"
+    if [[ -n "${DOCKERHUB_USERNAME:-}" && -n "${DOCKERHUB_TOKEN:-}" ]]; then
+      printf '%s:%s\n' "$(dockerhub_image)" "$tag"
+    elif [[ -n "${DOCKERHUB_IMAGE:-}" ]]; then
+      printf '%s:%s\n' "$DOCKERHUB_IMAGE" "$tag"
+    fi
+  done < <(release_tags)
+}
+
 command=${1:-}
 case "$command" in
   build-arch)
@@ -176,6 +193,9 @@ case "$command" in
     ;;
   publish-manifests)
     publish_manifests
+    ;;
+  list-images)
+    list_images
     ;;
   *)
     usage
