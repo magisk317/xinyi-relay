@@ -1,15 +1,15 @@
 include:
   - project: magisk3171/magisk-ci-toolkit
-    ref: be19abe86ebf69044451e9ed1c803c01fa557131
+    ref: 0d1ba5c86ecfd269d5772b865ea9f091248d6048
     file: /.gitlab/ci/android.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: be19abe86ebf69044451e9ed1c803c01fa557131
+    ref: 0d1ba5c86ecfd269d5772b865ea9f091248d6048
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: be19abe86ebf69044451e9ed1c803c01fa557131
+    ref: 0d1ba5c86ecfd269d5772b865ea9f091248d6048
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: be19abe86ebf69044451e9ed1c803c01fa557131
+    ref: 0d1ba5c86ecfd269d5772b865ea9f091248d6048
     file: /.gitlab/ci/renovate.yml
 
 workflow:
@@ -38,7 +38,7 @@ stages:
   - maintenance
 
 variables:
-  MAGISK_CI_TOOLKIT_REF: "be19abe86ebf69044451e9ed1c803c01fa557131"
+  MAGISK_CI_TOOLKIT_REF: "0d1ba5c86ecfd269d5772b865ea9f091248d6048"
   GIT_DEPTH: "0"
   GIT_SUBMODULE_STRATEGY: recursive
   GIT_SUBMODULE_DEPTH: "0"
@@ -586,6 +586,35 @@ android:release:modules-repo:
   needs:
     - job: android:release:github-apk
       artifacts: true
+
+
+telegram:images:
+  extends: .magisk_telegram_images
+  stage: notify
+  allow_failure: true
+  needs:
+    - job: backend:container:manifest
+      artifacts: false
+  rules:
+    - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "web"'
+      when: never
+    - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "api"'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+[.][0-9]+[.][0-9]+.*$/'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: manual
+      allow_failure: true
+    - when: never
+  variables:
+    MAGISK_TELEGRAM_PROJECT_TAG: "#XinyiRelay"
+    MAGISK_TELEGRAM_PROJECT_NAME: "XinyiRelay"
+    MAGISK_TELEGRAM_IMAGE_EVENT: "backend-docker"
+    MAGISK_TELEGRAM_PLATFORMS: "linux/amd64, linux/arm64"
+    MAGISK_TELEGRAM_IMAGE_LIST_COMMAND: "scripts/ci/gitlab_backend_container.sh list-images"
 
 telegram:release:
   extends: .magisk_telegram_release
