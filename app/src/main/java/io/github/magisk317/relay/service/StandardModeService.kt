@@ -46,12 +46,16 @@ class StandardModeService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        XLog.i("StandardModeService created")
+        // Must promote to FGS before any later stopService() race (Xposed bind can flip
+        // Standard -> Enhanced within tens of ms after app_init reconcile).
+        startForeground(NOTIFICATION_ID, buildNotification())
+        XLog.i("StandardModeService created and promoted to foreground")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         return when (intent?.action ?: ACTION_START) {
             ACTION_START -> {
+                // Refresh notification content; onCreate already called startForeground.
                 startForeground(NOTIFICATION_ID, buildNotification())
                 monitorWorkMode()
                 XLog.i("StandardModeService started as foreground service")
@@ -126,7 +130,9 @@ class StandardModeService : Service() {
             pendingIntentFlags,
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            // Brand monochrome (ic_launcher_monochrome via ic_notification). Do not use
+            // android.R.drawable.* — framework ids tagged with this package become blank on HyperOS.
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(getString(R.string.standard_mode_service_notification_title))
             .setContentText(getString(R.string.standard_mode_service_notification_text))
             .setPriority(NotificationCompat.PRIORITY_LOW)
