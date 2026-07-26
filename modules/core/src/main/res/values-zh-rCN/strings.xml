@@ -560,10 +560,6 @@
     <string name="pref_about_title">关于</string>
     <string name="pref_version_title">版本</string>
     <string name="pref_version_summary"><![CDATA[当前版本: %1$s (%2$d)]]></string>
-    <string name="pref_join_qq_group_title">QQ</string>
-    <string name="pref_join_qq_group_summary">点击加入</string>
-    <string name="qq_group_number">1075934453</string>
-    <string name="prompt_join_qq_group_failed">请先安装 QQ</string>
     <string name="pref_join_telegram_group_title">Telegram</string>
     <string name="pref_join_telegram_group_summary">点击加入</string>
     <string name="pref_source_code_title">源代码</string>

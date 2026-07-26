@@ -259,12 +259,6 @@ class SettingsViewModel(
         }.getOrElse { false }
     }
 
-    fun joinQQGroup() {
-        PackageUtils.joinQQGroup(getApplication())?.let {
-            _eventsFlow.tryEmit(SettingsEvent.ShowSnackbar(it))
-        }
-    }
-
     fun showSourceProject() {
         BrowserUtils.openWebPage(
             getApplication(),
