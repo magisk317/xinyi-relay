@@ -581,11 +581,6 @@ private fun OverviewCardItem(
                         onShowDonate
                     },
                     interactive = !editMode,
-                    onJoinQQ = {
-                        io.github.magisk317.relay.common.utils.PackageUtils.joinQQGroup(context)?.let {
-                            scope.launch { snackbarHostState.showLatestSnackbar(it) }
-                        }
-                    },
                     onJoinTelegram = {
                         BrowserUtils.openWebPage(
                             context,
