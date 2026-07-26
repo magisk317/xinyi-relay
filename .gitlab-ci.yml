@@ -1,15 +1,15 @@
 include:
   - project: magisk3171/magisk-ci-toolkit
-    ref: 2e8ae3ce243e9008b09156ebac789a0e8cdc355f
+    ref: 569e12b02470a630b6f9d07618f076e2ff247e93
     file: /.gitlab/ci/android.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: 2e8ae3ce243e9008b09156ebac789a0e8cdc355f
+    ref: 569e12b02470a630b6f9d07618f076e2ff247e93
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: 2e8ae3ce243e9008b09156ebac789a0e8cdc355f
+    ref: 569e12b02470a630b6f9d07618f076e2ff247e93
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: 2e8ae3ce243e9008b09156ebac789a0e8cdc355f
+    ref: 569e12b02470a630b6f9d07618f076e2ff247e93
     file: /.gitlab/ci/renovate.yml
 
 workflow:
@@ -38,7 +38,7 @@ stages:
   - maintenance
 
 variables:
-  MAGISK_CI_TOOLKIT_REF: "2e8ae3ce243e9008b09156ebac789a0e8cdc355f"
+  MAGISK_CI_TOOLKIT_REF: "569e12b02470a630b6f9d07618f076e2ff247e93"
   GIT_DEPTH: "0"
   GIT_SUBMODULE_STRATEGY: recursive
   GIT_SUBMODULE_DEPTH: "0"
@@ -67,11 +67,13 @@ variables:
       when: never
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
       when: never
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^renovate\//'
+      when: never
     - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /^Merge branch .renovate\/.+ into /'
       when: never
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_TAG'
     - if: '$CI_COMMIT_BRANCH'
+    - when: never
 
 .xinyi_android_rules:
   extends: .xinyi_ci_rules
@@ -603,27 +605,14 @@ android:release:modules-repo:
 
 
 telegram:images:
-  extends: .magisk_telegram_images
-  stage: notify
+  extends:
+    - .magisk_telegram_images
+    - .xinyi_backend_publish_rules
+  stage: release-publish
   allow_failure: true
   needs:
     - job: backend:container:manifest
       artifacts: true
-  rules:
-    - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "web"'
-      when: never
-    - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "api"'
-      when: never
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
-      when: never
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
-    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+[.][0-9]+[.][0-9]+.*$/'
-      when: on_success
-    - if: '$CI_PIPELINE_SOURCE == "web"'
-      when: manual
-      allow_failure: true
-    - when: never
   variables:
     MAGISK_TELEGRAM_PROJECT_TAG: "#XinyiRelay"
     MAGISK_TELEGRAM_PROJECT_NAME: "XinyiRelay"
@@ -644,7 +633,9 @@ telegram:release:
       artifacts: true
 
 telegram:ci:
-  extends: .magisk_telegram_ci
+  extends:
+    - .magisk_telegram_ci
+    - .xinyi_ci_rules
   stage: notify
   allow_failure: true
   variables:
@@ -655,7 +646,7 @@ telegram:ci:
   needs:
     - job: android:build
       artifacts: true
-      optional: true
+      optional: false
 
 renovate:gitlab:
   extends: .magisk_renovate_gitlab
