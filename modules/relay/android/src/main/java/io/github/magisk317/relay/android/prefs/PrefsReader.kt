@@ -14,6 +14,7 @@ import io.github.magisk317.relay.android.BuildConfig
 import io.github.magisk317.smscode.domain.constant.SmsCodeConst
 import io.github.magisk317.smscode.runtime.common.prefs.PrefsResolver
 import java.util.concurrent.atomic.AtomicBoolean
+import io.github.magisk317.xposed.logging.AnonymousInstallationId
 
 // Phase3 complete: PrefsReader is runtime/Xposed/跨进程只读 only.
 // Source-chain resolution lives in PrefsSourceChain; do not add more business getters here.
@@ -296,6 +297,13 @@ object PrefsReader {
     fun analyticsEnabled(context: Context): Boolean {
         val defaultValue = true
         return getBooleanViaProvider(context, PrefConst.KEY_ENABLE_ANALYTICS, defaultValue)
+    }
+
+    @JvmStatic
+    fun installationId(context: Context): String {
+        return AnonymousInstallationId.canonicalUuid(
+            getStringViaProvider(context, AnonymousInstallationId.PREFERENCE_KEY, ""),
+        ).orEmpty()
     }
 
     @JvmStatic
