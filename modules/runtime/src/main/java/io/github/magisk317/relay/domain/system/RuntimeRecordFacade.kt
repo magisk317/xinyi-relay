@@ -94,7 +94,7 @@ class RuntimeRecordFacade(
                 "duration_ms" to "0",
                 "process" to "main",
                 "stage" to "result_persist",
-                "reason" to (reason?.take(48)?.ifBlank { "empty" } ?: "none"),
+                "reason" to (reason?.take(MAX_OTEL_REASON_LENGTH)?.ifBlank { "empty" } ?: "none"),
             ),
             statusOk = success,
         )
@@ -312,6 +312,7 @@ class RuntimeRecordFacade(
         private const val SMS_HOOK_TARGET = "SmsCode Engine"
         private const val SMS_HOOK_MAX_MESSAGE_LENGTH = 300
         private const val ROUTING_BACKFILL_WINDOW_MS = 30 * 60 * 1000L
+        private const val MAX_OTEL_REASON_LENGTH = 48
     }
 }
 

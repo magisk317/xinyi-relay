@@ -27,6 +27,7 @@ class ScheduledTaskManager(
         const val ALARM_ACTION = "io.github.magisk317.relay.action.SCHEDULED_TASK"
         const val EXTRA_TASK_ID = "extra_task_id"
         private const val WORK_NAME = "ScheduledTaskWorker"
+        private const val NANOS_PER_MILLI = 1_000_000L
     }
 
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -80,7 +81,7 @@ class ScheduledTaskManager(
     }
 
     private fun elapsedMs(startedAt: Long): Long =
-        ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+        ((System.nanoTime() - startedAt) / NANOS_PER_MILLI).coerceAtLeast(0L)
 
     suspend fun rescheduleTask(taskId: Long) {
         withContext(Dispatchers.IO) {

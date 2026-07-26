@@ -193,7 +193,7 @@ internal class RemoteApiClient(
             throw error
         } catch (error: IllegalStateException) {
             throw error
-        } catch (error: Throwable) {
+        } catch (@Suppress("TooGenericExceptionCaught") error: Throwable) {
             emitRemote(
                 result = "error",
                 reason = error.javaClass.simpleName.ifBlank { "network_error" },
@@ -241,7 +241,7 @@ internal class RemoteApiClient(
             throw error
         } catch (error: IllegalStateException) {
             throw error
-        } catch (error: Throwable) {
+        } catch (@Suppress("TooGenericExceptionCaught") error: Throwable) {
             emitRemote(
                 result = "error",
                 reason = error.javaClass.simpleName.ifBlank { "network_error" },

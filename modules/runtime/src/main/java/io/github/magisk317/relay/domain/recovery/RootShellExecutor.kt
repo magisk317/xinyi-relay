@@ -16,6 +16,7 @@ internal object RootShellExecutor {
     }
 
     private const val DEFAULT_TIMEOUT_SEC = 10L
+    private const val NANOS_PER_MILLI = 1_000_000L
 
     fun canUseRoot(): Boolean {
         val startedAt = System.nanoTime()
@@ -107,7 +108,7 @@ internal object RootShellExecutor {
     }
 
     private fun elapsedMs(startedAt: Long): Long =
-        ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+        ((System.nanoTime() - startedAt) / NANOS_PER_MILLI).coerceAtLeast(0L)
 
     private fun emitRootShell(
         source: String,

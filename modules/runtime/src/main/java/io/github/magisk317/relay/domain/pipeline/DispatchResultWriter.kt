@@ -32,7 +32,10 @@ class DispatchResultWriter(
                 forceFailed = forceFailed,
                 forcedStatus = forcedStatus,
             )
-            if (msgTypeForAnalytics != null && MagiskOtelBootstrap.isEffectivelyEnabled(preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE_ANALYTICS, true))) {
+            val analyticsEnabled = MagiskOtelBootstrap.isEffectivelyEnabled(
+                preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE_ANALYTICS, true),
+            )
+            if (msgTypeForAnalytics != null && analyticsEnabled) {
                 persistSenderDispatchLogs(recordId, msgTypeForAnalytics, results)
             }
         }.onFailure { error ->

@@ -16,6 +16,7 @@ object LowBatteryReminderScheduler {
     private const val REQUEST_CODE = 4101
     private const val DEFAULT_INTERVAL_MIN = 15L
     private const val IMMEDIATE_DELAY_MS = 5_000L
+    private const val MAX_OTEL_REASON_LENGTH = 64
 
     suspend fun syncFromPrefs(context: Context, reason: String) {
         val settings = RuntimeSettingsCache.getSpecialAlertSettings(
@@ -65,7 +66,7 @@ object LowBatteryReminderScheduler {
                 "duration_ms" to "0",
                 "process" to "main",
                 "stage" to "schedule",
-                "reason" to reason.take(64),
+                "reason" to reason.take(MAX_OTEL_REASON_LENGTH),
                 "delay_ms" to delayMs.toString(),
             ),
             statusOk = true,
@@ -84,7 +85,7 @@ object LowBatteryReminderScheduler {
                 "duration_ms" to "0",
                 "process" to "main",
                 "stage" to "cancel",
-                "reason" to reason.take(64),
+                "reason" to reason.take(MAX_OTEL_REASON_LENGTH),
             ),
             statusOk = true,
         )

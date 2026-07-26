@@ -171,7 +171,7 @@ class MmsMessagesHook : BaseHook() {
                     "stage" to "mms",
                     "reason" to "duplicate",
                     "event_id_present" to eventId.isNotBlank().toString(),
-                    "source" to source.substringAfterLast('.').take(48),
+                    "source" to source.substringAfterLast('.').take(MAX_OTEL_SOURCE_LENGTH),
                 ),
                 statusOk = true,
             )
@@ -234,7 +234,7 @@ class MmsMessagesHook : BaseHook() {
                     "stage" to "mms",
                     "reason" to "allow_after_eval",
                     "event_id_present" to eventId.isNotBlank().toString(),
-                    "source" to source.substringAfterLast('.').take(48),
+                    "source" to source.substringAfterLast('.').take(MAX_OTEL_SOURCE_LENGTH),
                 ),
                 statusOk = true,
             )
@@ -248,9 +248,9 @@ class MmsMessagesHook : BaseHook() {
                 "duration_ms" to "0",
                 "process" to "hook",
                 "stage" to "mms",
-                "reason" to reason.take(64),
+                "reason" to reason.take(MAX_OTEL_REASON_LENGTH),
                 "event_id_present" to eventId.isNotBlank().toString(),
-                "source" to source.substringAfterLast('.').take(48),
+                "source" to source.substringAfterLast('.').take(MAX_OTEL_SOURCE_LENGTH),
             ),
             statusOk = true,
         )
@@ -296,6 +296,8 @@ class MmsMessagesHook : BaseHook() {
 
     companion object {
         private const val MMS_PACKAGE_NAME = "com.android.mms"
+        private const val MAX_OTEL_SOURCE_LENGTH = 48
+        private const val MAX_OTEL_REASON_LENGTH = 64
         private val RECEIVER_CLASS_NAMES = listOf(
             "com.android.mms.transaction.PrivilegedSmsReceiver",
             "com.android.mms.transaction.SmsReceiver",

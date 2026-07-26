@@ -48,7 +48,7 @@ class SenderTestService(context: Context) {
             result
         } catch (error: SenderTestException) {
             throw error
-        } catch (error: Throwable) {
+        } catch (@Suppress("TooGenericExceptionCaught") error: Throwable) {
             MagiskOtel.event(
                 name = "sms.forward",
                 attributes = mapOf(
@@ -93,7 +93,7 @@ class SenderTestService(context: Context) {
                 ),
                 statusOk = true,
             )
-        } catch (error: Throwable) {
+        } catch (@Suppress("TooGenericExceptionCaught") error: Throwable) {
             MagiskOtel.event(
                 name = "sms.forward",
                 attributes = mapOf(
@@ -111,11 +111,12 @@ class SenderTestService(context: Context) {
     }
 
     private fun elapsedMs(startedAt: Long): Long {
-        return ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+        return ((System.nanoTime() - startedAt) / NANOS_PER_MILLI).coerceAtLeast(0L)
     }
 
     companion object {
         private const val TEST_TRACE_ID = "ui-sender-test"
+        private const val NANOS_PER_MILLI = 1_000_000L
     }
 }
 

@@ -15,6 +15,8 @@ import io.github.magisk317.relay.platform.ipc.SmsIngressAdapter
 import io.github.magisk317.xposed.logging.MagiskOtel
 
 object StandardMessageIngressHandler {
+    private const val NANOS_PER_MILLI = 1_000_000L
+
     fun isSmsReceived(intent: Intent): Boolean {
         return intent.action == Telephony.Sms.Intents.SMS_RECEIVED_ACTION
     }
@@ -185,7 +187,7 @@ object StandardMessageIngressHandler {
     }
 
     private fun elapsedMs(startedAt: Long): Long {
-        return ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+        return ((System.nanoTime() - startedAt) / NANOS_PER_MILLI).coerceAtLeast(0L)
     }
 
     private const val MMS_MIME_TYPE = "application/vnd.wap.mms-message"

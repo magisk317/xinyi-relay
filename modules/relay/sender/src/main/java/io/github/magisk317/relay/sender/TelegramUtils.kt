@@ -15,7 +15,6 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.net.InetSocketAddress
 import java.net.Proxy
-import io.github.magisk317.xposed.logging.MagiskOtel
 
 object TelegramUtils {
     private const val TAG = "TelegramUtils"
@@ -25,62 +24,28 @@ object TelegramUtils {
         return this.replace(Regex("""([_*\[\]()~`>#+\-=|{}.!\\])""")) { "\\${it.value}" }
     }
 
-    private fun emitForward(
-        result: String,
-        reason: String,
-        durationMs: Long,
-        statusOk: Boolean = true,
-    ) {
-        MagiskOtel.event(
-            name = "sms.forward",
-            attributes = mapOf(
-                "result" to result,
-                "duration_ms" to durationMs.toString(),
-                "process" to "app",
-                "stage" to "telegram_send",
-                "reason" to reason,
-                "sender_type" to "telegram",
-            ),
-            statusOk = statusOk,
-        )
-    }
-
-
     suspend fun sendMsg(setting: TelegramSetting, msgInfo: MsgInfo) = withContext(Dispatchers.IO) {
-        val startedAt = System.nanoTime()
-        try {
+        SenderTelemetry.trace(
+            senderType = "telegram",
+            stage = "telegram_send",
+        ) {
+            val content = if (setting.parseMode == "MarkdownV2") {
+                "*信息驿站: ${msgInfo.from.escapeMarkdownV2()}*\n${msgInfo.content.escapeMarkdownV2()}"
+            } else {
+                "<b>信息驿站: ${msgInfo.from}</b>\n${msgInfo.content}"
+            }
 
-        val content = if (setting.parseMode == "MarkdownV2") {
-            "*信息驿站: ${msgInfo.from.escapeMarkdownV2()}*\n${msgInfo.content.escapeMarkdownV2()}"
-        } else {
-            "<b>信息驿站: ${msgInfo.from}</b>\n${msgInfo.content}"
-        }
+            val base = setting.apiBase.ifBlank { "https://api.telegram.org" }.trimEnd('/')
+            val client = buildClient(setting)
 
-        val base = setting.apiBase.ifBlank { "https://api.telegram.org" }.trimEnd('/')
-        val client = buildClient(setting)
-
-        val iconBytes = decodeIconBytes(msgInfo.appIcon)
-        if (iconBytes != null && content.length <= CAPTION_MAX_LENGTH) {
-            sendPhoto(client, base, setting, content, iconBytes)
-        } else {
-            sendMessage(client, base, setting, content)
+            val iconBytes = decodeIconBytes(msgInfo.appIcon)
+            if (iconBytes != null && content.length <= CAPTION_MAX_LENGTH) {
+                sendPhoto(client, base, setting, content, iconBytes)
+            } else {
+                sendMessage(client, base, setting, content)
+            }
         }
-    
-            emitForward(
-                result = "ok",
-                reason = "success",
-                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
-            )
-        } catch (error: Exception) {
-            emitForward(
-                result = "error",
-                reason = error.javaClass.simpleName,
-                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
-                statusOk = false,
-            )
-            throw error
-        }
-}
+    }
 
     private fun decodeIconBytes(appIcon: String): ByteArray? {
         if (appIcon.isBlank()) return null

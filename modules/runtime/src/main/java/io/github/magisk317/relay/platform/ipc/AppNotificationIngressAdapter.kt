@@ -11,6 +11,8 @@ import io.github.magisk317.smscode.domain.model.SmsCodeParseSourceKind
 import io.github.magisk317.xposed.logging.MagiskOtel
 
 object AppNotificationIngressAdapter {
+    private const val NANOS_PER_MILLI = 1_000_000L
+
     fun toPayload(
         context: Context,
         sbn: StatusBarNotification,
@@ -313,7 +315,7 @@ object AppNotificationIngressAdapter {
     )
 
     private fun elapsedMs(startedAt: Long): Long =
-        ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+        ((System.nanoTime() - startedAt) / NANOS_PER_MILLI).coerceAtLeast(0L)
 
     private fun emitAppNotification(
         result: String,

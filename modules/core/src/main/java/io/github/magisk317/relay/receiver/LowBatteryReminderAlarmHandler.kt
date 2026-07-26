@@ -15,8 +15,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 object LowBatteryReminderAlarmHandler {
+    private const val NANOS_PER_MILLI = 1_000_000L
+
     private fun elapsedMs(startedAt: Long): Long =
-        ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+        ((System.nanoTime() - startedAt) / NANOS_PER_MILLI).coerceAtLeast(0L)
 
     const val action: String = PrefConst.ACTION_LOW_BATTERY_REMINDER
     private val alarmScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)

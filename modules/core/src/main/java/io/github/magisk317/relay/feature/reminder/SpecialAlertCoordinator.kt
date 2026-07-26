@@ -9,6 +9,8 @@ import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.xposed.logging.MagiskOtel
 
 object SpecialAlertCoordinator {
+    private const val MAX_OTEL_REASON_LENGTH = 64
+
     suspend fun notifyForEvent(
         context: Context,
         event: RelayEvent,
@@ -83,7 +85,7 @@ object SpecialAlertCoordinator {
                 "duration_ms" to "0",
                 "process" to "app",
                 "stage" to "special_alert",
-                "reason" to reason.take(64),
+                "reason" to reason.take(MAX_OTEL_REASON_LENGTH),
                 "msg_type" to msgType,
             ),
             statusOk = true,

@@ -10,7 +10,6 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import io.github.magisk317.xposed.logging.MagiskOtel
 
 object NtfyUtils {
     private const val TAG = "NtfyUtils"
@@ -18,75 +17,41 @@ object NtfyUtils {
     private val client = RelayHttpClients.default
     private val textPlain = "text/plain; charset=utf-8".toMediaType()
 
-    private fun emitForward(
-        result: String,
-        reason: String,
-        durationMs: Long,
-        statusOk: Boolean = true,
-    ) {
-        MagiskOtel.event(
-            name = "sms.forward",
-            attributes = mapOf(
-                "result" to result,
-                "duration_ms" to durationMs.toString(),
-                "process" to "app",
-                "stage" to "ntfy_send",
-                "reason" to reason,
-                "sender_type" to "ntfy",
-            ),
-            statusOk = statusOk,
-        )
-    }
-
-
     suspend fun sendMsg(setting: NtfySetting, msgInfo: MsgInfo) = withContext(Dispatchers.IO) {
-        val startedAt = System.nanoTime()
-        try {
+        SenderTelemetry.trace(
+            senderType = "ntfy",
+            stage = "ntfy_send",
+        ) {
+            val safeSetting = SenderSettingSanitizer.sanitizeNtfySetting(setting)
+            val requestUrl = buildPublishUrl(safeSetting.server, safeSetting.topic)
+            val headers = buildHeaders(safeSetting, msgInfo)
+            val requestBody = msgInfo.content.toRequestBody(textPlain)
+            val requestBuilder = Request.Builder()
+                .url(requestUrl)
+                .post(requestBody)
 
-        val safeSetting = SenderSettingSanitizer.sanitizeNtfySetting(setting)
-        val requestUrl = buildPublishUrl(safeSetting.server, safeSetting.topic)
-        val headers = buildHeaders(safeSetting, msgInfo)
-        val requestBody = msgInfo.content.toRequestBody(textPlain)
-        val requestBuilder = Request.Builder()
-            .url(requestUrl)
-            .post(requestBody)
-
-        headers.forEach { (key, value) ->
-            requestBuilder.header(key, value)
-        }
-        val request = requestBuilder.build()
-        val authMode = if (headers.containsKey("Authorization")) "bearer" else "none"
-        SLog.d(
-            TAG,
-            "Ntfy request prepared: url=$requestUrl priority=${headers["Priority"]} " +
-                "tags=${headers["Tags"] ?: "<none>"} auth=$authMode",
-        )
-
-        client.newCall(request).execute().use { response ->
-            val responseBody = response.body.string()
-            if (!response.isSuccessful) {
-                val bodyPreview = responseBody.take(400)
-                SLog.e(TAG, "Ntfy failed: ${response.code} ${response.message} $bodyPreview")
-                throw IllegalStateException("ntfy HTTP ${response.code}: ${response.message}")
+            headers.forEach { (key, value) ->
+                requestBuilder.header(key, value)
             }
-            SLog.i(TAG, "Ntfy send success: ${response.code}")
-        }
-    
-            emitForward(
-                result = "ok",
-                reason = "success",
-                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+            val request = requestBuilder.build()
+            val authMode = if (headers.containsKey("Authorization")) "bearer" else "none"
+            SLog.d(
+                TAG,
+                "Ntfy request prepared: url=$requestUrl priority=${headers["Priority"]} " +
+                    "tags=${headers["Tags"] ?: "<none>"} auth=$authMode",
             )
-        } catch (error: Exception) {
-            emitForward(
-                result = "error",
-                reason = error.javaClass.simpleName,
-                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
-                statusOk = false,
-            )
-            throw error
+
+            client.newCall(request).execute().use { response ->
+                val responseBody = response.body.string()
+                if (!response.isSuccessful) {
+                    val bodyPreview = responseBody.take(400)
+                    SLog.e(TAG, "Ntfy failed: ${response.code} ${response.message} $bodyPreview")
+                    throw IllegalStateException("ntfy HTTP ${response.code}: ${response.message}")
+                }
+                SLog.i(TAG, "Ntfy send success: ${response.code}")
+            }
         }
-}
+    }
 
     internal fun buildPublishUrl(server: String, topic: String): String {
         val normalizedServer = normalizeServer(server)

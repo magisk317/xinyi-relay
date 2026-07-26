@@ -35,7 +35,7 @@ class DispatchExecutor(
                     name = "sms.forward",
                     attributes = mapOf(
                         "result" to if (result.success) "ok" else "error",
-                        "duration_ms" to (((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)).toString(),
+                        "duration_ms" to (((System.nanoTime() - startedAt) / NANOS_PER_MILLI).coerceAtLeast(0L)).toString(),
                         "process" to "app",
                         "stage" to "dispatch_executor",
                         "reason" to if (result.success) "success" else "failed",
@@ -53,7 +53,7 @@ class DispatchExecutor(
                     name = "sms.forward",
                     attributes = mapOf(
                         "result" to "error",
-                        "duration_ms" to (((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)).toString(),
+                        "duration_ms" to (((System.nanoTime() - startedAt) / NANOS_PER_MILLI).coerceAtLeast(0L)).toString(),
                         "process" to "app",
                         "stage" to "dispatch_executor",
                         "reason" to "exception",
@@ -66,5 +66,9 @@ class DispatchExecutor(
                 SenderDispatchResult(sender.id, sender.type, senderName, false, errorSummary)
             },
         )
+    }
+
+    private companion object {
+        const val NANOS_PER_MILLI = 1_000_000L
     }
 }
