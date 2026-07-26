@@ -70,7 +70,6 @@ play-services-auth = "21.6.0"
 play-services-code-scanner = "16.1.0"
 retrofit = "3.0.0"
 room = "2.8.4"
-test-logger = "4.0.0"
 timber = "5.0.1"
 version-catalog-update = "1.1.0"
 work = "2.11.2"
@@ -175,5 +174,4 @@ kotlin-parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref =
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
-test-logger = { id = "com.adarshr.test-logger", version.ref = "test-logger" }
 version-catalog-update = { id = "nl.littlerobots.version-catalog-update", version.ref = "version-catalog-update" }
