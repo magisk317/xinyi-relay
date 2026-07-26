@@ -13,6 +13,7 @@ import io.github.magisk317.smscode.xposed.runtime.CoreRuntime
 import io.github.magisk317.smscode.xposed.runtime.CoreRuntimeAccess
 import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap
 import io.github.magisk317.xposed.logging.MagiskOtel
+import io.github.magisk317.xposed.logging.AnonymousInstallationId
 
 object SmsCodeXposedRuntimeBridge {
     fun install(
@@ -37,6 +38,9 @@ object SmsCodeXposedRuntimeBridge {
                 projectId = "84113188",
                 projectName = "xinyi-relay",
                 environment = if (io.github.magisk317.relay.runtime.BuildConfig.DEBUG) "debug" else "release",
+                serviceInstanceId = hookContext?.let {
+                    io.github.magisk317.relay.android.prefs.PrefsReader.installationId(it)
+                }.orEmpty(),
             ),
         )
         CoreRuntime.install(object : CoreRuntimeAccess {
