@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.billing
 
 import android.app.Activity
+import io.github.magisk317.uikit.billing.BillingManager
 
 class PlayBillingProvider(
     private val billingManager: BillingManager,
