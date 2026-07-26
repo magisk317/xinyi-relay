@@ -29,8 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import io.github.magisk317.relay.contract.constant.MessageType
@@ -57,66 +55,22 @@ internal fun ForwardCommonConfigDialog(
     onSave: (ForwardCommonConfig) -> Unit,
 ) {
     val context = LocalContext.current
-    var templateValue by remember(currentConfig.messageTemplate) {
-        mutableStateOf(TextFieldValue(currentConfig.messageTemplate))
-    }
-    var templateFocused by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
     val fillTemplateInteractionSource = remember { MutableInteractionSource() }
     val isFillTemplatePressed by fillTemplateInteractionSource.collectIsPressedAsState()
     var suppressNextClick by remember { mutableStateOf(false) }
-    fun renderPreview(templateText: String): String {
+    val templateState = rememberSenderTemplateEditorState(
+        currentConfig.messageTemplate,
+        currentConfig.deviceName,
+    ) { templateText ->
         val previewConfig = currentConfig.copy(messageTemplate = templateText)
-        return ForwardCommonConfigStore.applyToMessage(
+        ForwardCommonConfigStore.applyToMessage(
             context = context,
             messageType = MessageType.SMS_PLAIN,
             msgInfo = buildSmsPreviewMessage(context),
             config = previewConfig,
             simRemarkSnapshot = simRemarkSettings,
         ).content
-    }
-    var previewText by remember(currentConfig.deviceName, currentConfig.messageTemplate) {
-        mutableStateOf(renderPreview(templateValue.text))
-    }
-    fun insertToken(token: String) {
-        val start = templateValue.selection.start.coerceIn(0, templateValue.text.length)
-        val end = templateValue.selection.end.coerceIn(0, templateValue.text.length)
-        val newText = buildString {
-            append(templateValue.text.substring(0, start))
-            append(token)
-            append(templateValue.text.substring(end))
-        }
-        val cursor = start + token.length
-        templateValue = templateValue.copy(text = newText, selection = TextRange(cursor))
-        if (!templateFocused) {
-            previewText = renderPreview(templateValue.text)
-        }
-    }
-
-    fun normalizeTokenDeletion(oldValue: TextFieldValue, newValue: TextFieldValue): TextFieldValue {
-        val oldText = oldValue.text
-        val newText = newValue.text
-        val oldSelection = oldValue.selection
-        val newSelection = newValue.selection
-        if (oldSelection.start != oldSelection.end) return newValue
-        if (newText.length != oldText.length - 1) return newValue
-
-        val oldCursor = oldSelection.start
-        val isBackspace = newSelection.start == (oldCursor - 1).coerceAtLeast(0)
-        val removeIndex = if (isBackspace) oldCursor - 1 else oldCursor
-        if (removeIndex !in oldText.indices) return newValue
-
-        val token = templateTokenRegex.findAll(oldText).firstOrNull { match ->
-            removeIndex in match.range
-        } ?: return newValue
-
-        val start = token.range.first
-        val endExclusive = token.range.last + 1
-        val merged = oldText.removeRange(start, endExclusive)
-        return TextFieldValue(
-            text = merged,
-            selection = TextRange(start.coerceAtMost(merged.length)),
-        )
     }
 
     @Suppress("MagicNumber")
@@ -126,10 +80,7 @@ internal fun ForwardCommonConfigDialog(
             if (isFillTemplatePressed) {
                 suppressNextClick = true
                 val fullTemplate = ForwardCommonConfigStore.fullInfoTemplate()
-                templateValue = TextFieldValue(
-                    fullTemplate,
-                    selection = TextRange(fullTemplate.length),
-                )
+                templateState.replaceTemplate(fullTemplate)
             }
         }
     }
@@ -187,25 +138,20 @@ internal fun ForwardCommonConfigDialog(
                 )
                 HorizontalDivider()
                 OutlinedTextField(
-                    value = templateValue,
-                    onValueChange = { newValue ->
-                        templateValue = normalizeTokenDeletion(templateValue, newValue)
-                    },
+                    value = templateState.value,
+                    onValueChange = templateState::onValueChange,
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 140.dp)
                         .onFocusChanged { focusState ->
-                            if (templateFocused && !focusState.isFocused) {
-                                previewText = renderPreview(templateValue.text)
-                            }
-                            templateFocused = focusState.isFocused
+                            templateState.onFocusChanged(focusState.isFocused)
                         },
                     label = { Text(stringResource(R.string.sender_template_sms_label)) },
                     placeholder = { Text(stringResource(R.string.sender_template_placeholder)) },
                     supportingText = { Text(stringResource(R.string.sender_template_supporting)) },
                 )
                 Text(
-                    text = stringResource(R.string.sender_template_preview, previewText),
+                    text = stringResource(R.string.sender_template_preview, templateState.preview),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -220,11 +166,7 @@ internal fun ForwardCommonConfigDialog(
                                 return@TextButton
                             }
                             val defaultTemplate = ForwardCommonConfigStore.defaultTemplate()
-                            templateValue = TextFieldValue(
-                                defaultTemplate,
-                                selection = TextRange(defaultTemplate.length),
-                            )
-                            previewText = renderPreview(templateValue.text)
+                            templateState.replaceTemplate(defaultTemplate)
                         },
                         interactionSource = fillTemplateInteractionSource,
                     ) {
@@ -243,7 +185,7 @@ internal fun ForwardCommonConfigDialog(
                     items(forwardTemplateVariables.size) { index ->
                         val variable = forwardTemplateVariables[index]
                         OutlinedButton(
-                            onClick = { insertToken(variable.token) },
+                            onClick = { templateState.insertToken(variable.token) },
                             modifier = Modifier.fillMaxWidth(),
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
                         ) {
@@ -258,7 +200,7 @@ internal fun ForwardCommonConfigDialog(
                 onClick = {
                     onSave(
                         currentConfig.copy(
-                            messageTemplate = templateValue.text,
+                            messageTemplate = templateState.value.text,
                         ),
                     )
                 },
@@ -287,65 +229,22 @@ internal fun AppNotifyTemplateDialog(
     onSave: (String) -> Unit,
 ) {
     val context = LocalContext.current
-    var templateValue by remember(currentTemplate) { mutableStateOf(TextFieldValue(currentTemplate)) }
-    var templateFocused by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
     val fillTemplateInteractionSource = remember { MutableInteractionSource() }
     val isFillTemplatePressed by fillTemplateInteractionSource.collectIsPressedAsState()
     var suppressNextClick by remember { mutableStateOf(false) }
-    fun renderPreview(templateText: String): String {
+    val templateState = rememberSenderTemplateEditorState(
+        currentTemplate,
+        currentCommonConfig.deviceName,
+    ) { templateText ->
         val previewConfig = currentCommonConfig.copy(messageTemplate = templateText)
-        return ForwardCommonConfigStore.applyToMessage(
+        ForwardCommonConfigStore.applyToMessage(
             context = context,
             messageType = MessageType.APP_NOTIFY,
             msgInfo = buildAppNotifyPreviewMessage(context),
             config = previewConfig,
             simRemarkSnapshot = simRemarkSettings,
         ).content
-    }
-    var previewText by remember(currentTemplate, currentCommonConfig.deviceName) {
-        mutableStateOf(renderPreview(templateValue.text))
-    }
-
-    fun insertToken(token: String) {
-        val start = templateValue.selection.start.coerceIn(0, templateValue.text.length)
-        val end = templateValue.selection.end.coerceIn(0, templateValue.text.length)
-        val newText = buildString {
-            append(templateValue.text.substring(0, start))
-            append(token)
-            append(templateValue.text.substring(end))
-        }
-        val cursor = start + token.length
-        templateValue = templateValue.copy(text = newText, selection = TextRange(cursor))
-        if (!templateFocused) {
-            previewText = renderPreview(templateValue.text)
-        }
-    }
-
-    fun normalizeTokenDeletion(oldValue: TextFieldValue, newValue: TextFieldValue): TextFieldValue {
-        val oldText = oldValue.text
-        val newText = newValue.text
-        val oldSelection = oldValue.selection
-        val newSelection = newValue.selection
-        if (oldSelection.start != oldSelection.end) return newValue
-        if (newText.length != oldText.length - 1) return newValue
-
-        val oldCursor = oldSelection.start
-        val isBackspace = newSelection.start == (oldCursor - 1).coerceAtLeast(0)
-        val removeIndex = if (isBackspace) oldCursor - 1 else oldCursor
-        if (removeIndex !in oldText.indices) return newValue
-
-        val token = templateTokenRegex.findAll(oldText).firstOrNull { match ->
-            removeIndex in match.range
-        } ?: return newValue
-
-        val start = token.range.first
-        val endExclusive = token.range.last + 1
-        val merged = oldText.removeRange(start, endExclusive)
-        return TextFieldValue(
-            text = merged,
-            selection = TextRange(start.coerceAtMost(merged.length)),
-        )
     }
 
     @Suppress("MagicNumber")
@@ -355,10 +254,7 @@ internal fun AppNotifyTemplateDialog(
             if (isFillTemplatePressed) {
                 suppressNextClick = true
                 val fullTemplate = appNotifyFullTemplate()
-                templateValue = TextFieldValue(
-                    fullTemplate,
-                    selection = TextRange(fullTemplate.length),
-                )
+                templateState.replaceTemplate(fullTemplate)
             }
         }
     }
@@ -404,25 +300,20 @@ internal fun AppNotifyTemplateDialog(
                 )
                 HorizontalDivider()
                 OutlinedTextField(
-                    value = templateValue,
-                    onValueChange = { newValue ->
-                        templateValue = normalizeTokenDeletion(templateValue, newValue)
-                    },
+                    value = templateState.value,
+                    onValueChange = templateState::onValueChange,
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 140.dp)
                         .onFocusChanged { focusState ->
-                            if (templateFocused && !focusState.isFocused) {
-                                previewText = renderPreview(templateValue.text)
-                            }
-                            templateFocused = focusState.isFocused
+                            templateState.onFocusChanged(focusState.isFocused)
                         },
                     label = { Text(stringResource(R.string.sender_template_app_label)) },
                     placeholder = { Text(stringResource(R.string.sender_template_placeholder)) },
                     supportingText = { Text(stringResource(R.string.sender_template_supporting)) },
                 )
                 Text(
-                    text = stringResource(R.string.sender_template_preview, previewText),
+                    text = stringResource(R.string.sender_template_preview, templateState.preview),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -437,11 +328,7 @@ internal fun AppNotifyTemplateDialog(
                                 return@TextButton
                             }
                             val defaultTemplate = appNotifyDefaultTemplate()
-                            templateValue = TextFieldValue(
-                                defaultTemplate,
-                                selection = TextRange(defaultTemplate.length),
-                            )
-                            previewText = renderPreview(templateValue.text)
+                            templateState.replaceTemplate(defaultTemplate)
                         },
                         interactionSource = fillTemplateInteractionSource,
                     ) {
@@ -460,7 +347,7 @@ internal fun AppNotifyTemplateDialog(
                     items(appNotifyTemplateVariables.size) { index ->
                         val variable = appNotifyTemplateVariables[index]
                         OutlinedButton(
-                            onClick = { insertToken(variable.token) },
+                            onClick = { templateState.insertToken(variable.token) },
                             modifier = Modifier.fillMaxWidth(),
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
                         ) {
@@ -471,7 +358,7 @@ internal fun AppNotifyTemplateDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(templateValue.text) }) {
+            TextButton(onClick = { onSave(templateState.value.text) }) {
                 Text(stringResource(R.string.save))
             }
         },
@@ -498,65 +385,22 @@ internal fun CallNotifyTemplateDialog(
     onSave: (String) -> Unit,
 ) {
     val context = LocalContext.current
-    var templateValue by remember(currentTemplate) { mutableStateOf(TextFieldValue(currentTemplate)) }
-    var templateFocused by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
     val fillTemplateInteractionSource = remember { MutableInteractionSource() }
     val isFillTemplatePressed by fillTemplateInteractionSource.collectIsPressedAsState()
     var suppressNextClick by remember { mutableStateOf(false) }
-    fun renderPreview(templateText: String): String {
+    val templateState = rememberSenderTemplateEditorState(
+        currentTemplate,
+        currentCommonConfig.deviceName,
+    ) { templateText ->
         val previewConfig = currentCommonConfig.copy(messageTemplate = templateText)
-        return ForwardCommonConfigStore.applyToMessage(
+        ForwardCommonConfigStore.applyToMessage(
             context = context,
             messageType = MessageType.CALL_NOTIFY,
             msgInfo = buildCallNotifyPreviewMessage(context),
             config = previewConfig,
             simRemarkSnapshot = simRemarkSettings,
         ).content
-    }
-    var previewText by remember(currentTemplate, currentCommonConfig.deviceName) {
-        mutableStateOf(renderPreview(templateValue.text))
-    }
-
-    fun insertToken(token: String) {
-        val start = templateValue.selection.start.coerceIn(0, templateValue.text.length)
-        val end = templateValue.selection.end.coerceIn(0, templateValue.text.length)
-        val newText = buildString {
-            append(templateValue.text.substring(0, start))
-            append(token)
-            append(templateValue.text.substring(end))
-        }
-        val cursor = start + token.length
-        templateValue = templateValue.copy(text = newText, selection = TextRange(cursor))
-        if (!templateFocused) {
-            previewText = renderPreview(templateValue.text)
-        }
-    }
-
-    fun normalizeTokenDeletion(oldValue: TextFieldValue, newValue: TextFieldValue): TextFieldValue {
-        val oldText = oldValue.text
-        val newText = newValue.text
-        val oldSelection = oldValue.selection
-        val newSelection = newValue.selection
-        if (oldSelection.start != oldSelection.end) return newValue
-        if (newText.length != oldText.length - 1) return newValue
-
-        val oldCursor = oldSelection.start
-        val isBackspace = newSelection.start == (oldCursor - 1).coerceAtLeast(0)
-        val removeIndex = if (isBackspace) oldCursor - 1 else oldCursor
-        if (removeIndex !in oldText.indices) return newValue
-
-        val token = templateTokenRegex.findAll(oldText).firstOrNull { match ->
-            removeIndex in match.range
-        } ?: return newValue
-
-        val start = token.range.first
-        val endExclusive = token.range.last + 1
-        val merged = oldText.removeRange(start, endExclusive)
-        return TextFieldValue(
-            text = merged,
-            selection = TextRange(start.coerceAtMost(merged.length)),
-        )
     }
 
     @Suppress("MagicNumber")
@@ -566,10 +410,7 @@ internal fun CallNotifyTemplateDialog(
             if (isFillTemplatePressed) {
                 suppressNextClick = true
                 val fullTemplate = callNotifyFullTemplate()
-                templateValue = TextFieldValue(
-                    fullTemplate,
-                    selection = TextRange(fullTemplate.length),
-                )
+                templateState.replaceTemplate(fullTemplate)
             }
         }
     }
@@ -621,25 +462,20 @@ internal fun CallNotifyTemplateDialog(
                 )
                 HorizontalDivider()
                 OutlinedTextField(
-                    value = templateValue,
-                    onValueChange = { newValue ->
-                        templateValue = normalizeTokenDeletion(templateValue, newValue)
-                    },
+                    value = templateState.value,
+                    onValueChange = templateState::onValueChange,
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 140.dp)
                         .onFocusChanged { focusState ->
-                            if (templateFocused && !focusState.isFocused) {
-                                previewText = renderPreview(templateValue.text)
-                            }
-                            templateFocused = focusState.isFocused
+                            templateState.onFocusChanged(focusState.isFocused)
                         },
                     label = { Text(stringResource(R.string.sender_template_call_label)) },
                     placeholder = { Text(stringResource(R.string.sender_template_placeholder)) },
                     supportingText = { Text(stringResource(R.string.sender_template_supporting)) },
                 )
                 Text(
-                    text = stringResource(R.string.sender_template_preview, previewText),
+                    text = stringResource(R.string.sender_template_preview, templateState.preview),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -654,11 +490,7 @@ internal fun CallNotifyTemplateDialog(
                                 return@TextButton
                             }
                             val defaultTemplate = callNotifyDefaultTemplate()
-                            templateValue = TextFieldValue(
-                                defaultTemplate,
-                                selection = TextRange(defaultTemplate.length),
-                            )
-                            previewText = renderPreview(templateValue.text)
+                            templateState.replaceTemplate(defaultTemplate)
                         },
                         interactionSource = fillTemplateInteractionSource,
                     ) {
@@ -677,7 +509,7 @@ internal fun CallNotifyTemplateDialog(
                     items(callNotifyTemplateVariables.size) { index ->
                         val variable = callNotifyTemplateVariables[index]
                         OutlinedButton(
-                            onClick = { insertToken(variable.token) },
+                            onClick = { templateState.insertToken(variable.token) },
                             modifier = Modifier.fillMaxWidth(),
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
                         ) {
@@ -688,7 +520,7 @@ internal fun CallNotifyTemplateDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(templateValue.text) }) {
+            TextButton(onClick = { onSave(templateState.value.text) }) {
                 Text(stringResource(R.string.save))
             }
         },

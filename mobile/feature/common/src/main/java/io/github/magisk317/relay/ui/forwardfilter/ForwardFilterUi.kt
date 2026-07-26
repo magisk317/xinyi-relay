@@ -3,12 +3,15 @@ package io.github.magisk317.relay.ui.forwardfilter
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
@@ -17,9 +20,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,6 +43,88 @@ import io.github.magisk317.relay.engine.filter.ForwardFilterConst
 import io.github.magisk317.relay.ui.common.CenteredChipText
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
+import io.github.magisk317.uikit.common.DismissibleSnackbarHost
+import io.github.magisk317.uikit.surface.chromeTopAppBarColors
+
+data class ForwardFilterEditorState(
+    val id: Long,
+    val policy: String,
+    val matchMode: String,
+    val pattern: String,
+    val enabled: Boolean,
+    val channelId: String = "",
+)
+
+fun ForwardFilterRule.toEditorState(channelId: String = ""): ForwardFilterEditorState =
+    ForwardFilterEditorState(
+        id = id,
+        policy = policy,
+        matchMode = matchMode,
+        pattern = pattern,
+        enabled = enabled == 1,
+        channelId = channelId,
+    )
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ForwardFilterScreenScaffold(
+    title: String,
+    onBack: () -> Unit,
+    snackbarHostState: SnackbarHostState,
+    selectedMsgType: String,
+    onSelectMsgType: (String) -> Unit,
+    rules: List<ForwardFilterRule>,
+    onAdd: () -> Unit,
+    onToggleEnabled: (Long, Boolean) -> Unit,
+    onEdit: (ForwardFilterRule) -> Unit,
+    onDelete: (Long) -> Unit,
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(id = R.string.action_back),
+                        )
+                    }
+                },
+                actions = {
+                    TextButton(onClick = onAdd) {
+                        Text(stringResource(id = R.string.forward_filter_action_add))
+                    }
+                },
+                colors = chromeTopAppBarColors(),
+            )
+        },
+        snackbarHost = {
+            DismissibleSnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.navigationBarsPadding(),
+            )
+        },
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+        ) {
+            ForwardFilterMsgTypeTabs(
+                selectedMsgType = selectedMsgType,
+                onSelect = onSelectMsgType,
+            )
+            ForwardFilterRuleList(
+                rules = rules,
+                emptyText = stringResource(id = R.string.forward_filter_empty),
+                onToggleEnabled = onToggleEnabled,
+                onEdit = onEdit,
+                onDelete = onDelete,
+            )
+        }
+    }
+}
 
 @Composable
 fun ForwardFilterMsgTypeTabs(

@@ -36,17 +36,12 @@ import io.github.magisk317.relay.engine.model.ForwardFilterRule
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterMsgTypeTabs
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterRuleEditorDialog
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterRuleList
+import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterEditorState
+import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterScreenScaffold
+import io.github.magisk317.relay.ui.forwardfilter.toEditorState
 import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
-
-private data class SenderEditingRule(
-    val id: Long,
-    val policy: String,
-    val matchMode: String,
-    val pattern: String,
-    val enabled: Boolean,
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,75 +60,34 @@ fun SenderForwardFilterScreen(
     val senders by viewModel.senderList.collectAsStateWithLifecycle()
     val senderName = senders.firstOrNull { it.id == senderId }?.name.orEmpty()
 
-    var editing by remember { mutableStateOf<SenderEditingRule?>(null) }
+    var editing by remember { mutableStateOf<ForwardFilterEditorState?>(null) }
     var showEditor by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = if (senderName.isNotBlank()) {
-                            stringResource(id = R.string.forward_filter_sender_title_with_name, senderName)
-                        } else {
-                            stringResource(id = R.string.forward_filter_sender_title)
-                        },
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(id = R.string.action_back),
-                        )
-                    }
-                },
-                actions = {
-                    TextButton(onClick = {
-                        editing = null
-                        showEditor = true
-                    }) {
-                        Text(stringResource(id = R.string.forward_filter_action_add))
-                    }
-                },
-                colors = chromeTopAppBarColors(),
-            )
+    ForwardFilterScreenScaffold(
+        title = if (senderName.isNotBlank()) {
+            stringResource(id = R.string.forward_filter_sender_title_with_name, senderName)
+        } else {
+            stringResource(id = R.string.forward_filter_sender_title)
         },
-        snackbarHost = {
-            io.github.magisk317.uikit.common.DismissibleSnackbarHost(
-                hostState = snackbarHostState,
-                modifier = Modifier.navigationBarsPadding(),
-            )
+        onBack = onBack,
+        snackbarHostState = snackbarHostState,
+        selectedMsgType = msgType,
+        onSelectMsgType = { msgType = it },
+        rules = rules,
+        onAdd = {
+            editing = null
+            showEditor = true
         },
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-        ) {
-            ForwardFilterMsgTypeTabs(
-                selectedMsgType = msgType,
-                onSelect = { msgType = it },
-            )
-            ForwardFilterRuleList(
-                rules = rules,
-                emptyText = stringResource(id = R.string.forward_filter_empty),
-                onToggleEnabled = { id, enabled ->
-                    viewModel.setForwardFilterRuleEnabled(id, enabled)
-                    scope.launch {
-                        snackbarHostState.showLatestSnackbar(savedSnackbarText)
-                    }
-                },
-                onEdit = { rule ->
-                    editing = rule.toEditingRule()
-                    showEditor = true
-                },
-                onDelete = { id -> viewModel.deleteForwardFilterRule(id) },
-            )
-        }
-    }
+        onToggleEnabled = { id, enabled ->
+            viewModel.setForwardFilterRuleEnabled(id, enabled)
+            scope.launch { snackbarHostState.showLatestSnackbar(savedSnackbarText) }
+        },
+        onEdit = { rule ->
+            editing = rule.toEditorState()
+            showEditor = true
+        },
+        onDelete = viewModel::deleteForwardFilterRule,
+    )
 
     if (showEditor) {
         ForwardFilterRuleEditorDialog(
@@ -164,14 +118,4 @@ fun SenderForwardFilterScreen(
             },
         )
     }
-}
-
-private fun ForwardFilterRule.toEditingRule(): SenderEditingRule {
-    return SenderEditingRule(
-        id = id,
-        policy = policy,
-        matchMode = matchMode,
-        pattern = pattern,
-        enabled = enabled == 1,
-    )
 }
