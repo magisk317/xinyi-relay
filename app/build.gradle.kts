@@ -8,8 +8,6 @@ plugins {
 
 val versionNameStr = libs.versions.versionName.get()
 val versionCodeInt = libs.versions.versionCode.get().toInt()
-val minSdkStr = libs.versions.minSdk.get()
-val targetSdkStr = libs.versions.targetSdk.get()
 val ndkVersionStr = libs.versions.ndk.get()
 val allowConflictBypass = findProperty("allowConflictBypass")
     ?.toString()
@@ -78,23 +76,6 @@ android {
 
     defaultConfig {
         applicationId = "io.github.magisk317.xinyi.relay"
-
-        val minSdkCodename = minSdkStr.removePrefix("android-")
-        val minSdkAsInt = minSdkCodename.toIntOrNull()
-        if (minSdkAsInt != null) {
-            minSdk = minSdkAsInt
-        } else {
-            @Suppress("DEPRECATION")
-            minSdkPreview = minSdkCodename
-        }
-
-        val targetSdkCodename = targetSdkStr.removePrefix("android-")
-        val targetSdkAsInt = targetSdkCodename.toIntOrNull()
-        if (targetSdkAsInt != null) {
-            targetSdk = targetSdkAsInt
-        } else {
-            targetSdkPreview = targetSdkCodename
-        }
 
         versionCode = versionCodeInt
         versionName = versionNameStr
