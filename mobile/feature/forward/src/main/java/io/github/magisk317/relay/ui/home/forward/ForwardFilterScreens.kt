@@ -43,18 +43,12 @@ import io.github.magisk317.relay.engine.filter.ForwardFilterConst
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterMsgTypeTabs
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterRuleEditorDialog
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterRuleList
+import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterEditorState
+import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterScreenScaffold
+import io.github.magisk317.relay.ui.forwardfilter.toEditorState
 import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
-
-private data class EditingRule(
-    val id: Long,
-    val policy: String,
-    val matchMode: String,
-    val pattern: String,
-    val enabled: Boolean,
-    val channelId: String = "",
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,65 +63,30 @@ fun GlobalForwardFilterScreen(
     var msgType by remember { mutableStateOf(ForwardFilterConst.MSG_TYPE_SMS) }
     val rulesFlow = remember(msgType) { viewModel.globalForwardRulesFlow(msgType) }
     val rules by rulesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
-    var editing by remember { mutableStateOf<EditingRule?>(null) }
+    var editing by remember { mutableStateOf<ForwardFilterEditorState?>(null) }
     var showEditor by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(id = R.string.forward_filter_global_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(id = R.string.action_back),
-                        )
-                    }
-                },
-                actions = {
-                    TextButton(onClick = {
-                        editing = null
-                        showEditor = true
-                    }) {
-                        Text(stringResource(id = R.string.forward_filter_action_add))
-                    }
-                },
-                colors = chromeTopAppBarColors(),
-            )
+    ForwardFilterScreenScaffold(
+        title = stringResource(id = R.string.forward_filter_global_title),
+        onBack = onBack,
+        snackbarHostState = snackbarHostState,
+        selectedMsgType = msgType,
+        onSelectMsgType = { msgType = it },
+        rules = rules,
+        onAdd = {
+            editing = null
+            showEditor = true
         },
-        snackbarHost = {
-            io.github.magisk317.uikit.common.DismissibleSnackbarHost(
-                hostState = snackbarHostState,
-                modifier = Modifier.navigationBarsPadding(),
-            )
+        onToggleEnabled = { id, enabled ->
+            viewModel.setForwardFilterRuleEnabled(id, enabled)
+            scope.launch { snackbarHostState.showLatestSnackbar(savedSnackbarText) }
         },
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-        ) {
-            ForwardFilterMsgTypeTabs(
-                selectedMsgType = msgType,
-                onSelect = { msgType = it },
-            )
-            ForwardFilterRuleList(
-                rules = rules,
-                emptyText = stringResource(id = R.string.forward_filter_empty),
-                onToggleEnabled = { id, enabled ->
-                    viewModel.setForwardFilterRuleEnabled(id, enabled)
-                    scope.launch {
-                        snackbarHostState.showLatestSnackbar(savedSnackbarText)
-                    }
-                },
-                onEdit = { rule ->
-                    editing = rule.toEditingRule()
-                    showEditor = true
-                },
-                onDelete = { id -> viewModel.deleteForwardFilterRule(id) },
-            )
-        }
-    }
+        onEdit = { rule ->
+            editing = rule.toEditorState()
+            showEditor = true
+        },
+        onDelete = viewModel::deleteForwardFilterRule,
+    )
 
     if (showEditor) {
         ForwardFilterRuleEditorDialog(
@@ -195,8 +154,8 @@ fun AppForwardFilterScreen(
     val channelCandidatesFlow = remember(normalizedPackageName) { viewModel.appNotifyChannelHistoryFlow(normalizedPackageName) }
     val channelCandidates by channelCandidatesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
 
-    var editingPackageRule by remember { mutableStateOf<EditingRule?>(null) }
-    var editingChannelRule by remember { mutableStateOf<EditingRule?>(null) }
+    var editingPackageRule by remember { mutableStateOf<ForwardFilterEditorState?>(null) }
+    var editingChannelRule by remember { mutableStateOf<ForwardFilterEditorState?>(null) }
     var showPackageEditor by remember { mutableStateOf(false) }
     var showChannelEditor by remember { mutableStateOf(false) }
 
@@ -259,7 +218,7 @@ fun AppForwardFilterScreen(
                                 }
                             },
                             onEdit = { rule ->
-                                editingPackageRule = rule.toEditingRule()
+                                editingPackageRule = rule.toEditorState()
                                 showPackageEditor = true
                             },
                             onDelete = { id -> viewModel.deleteForwardFilterRule(id) },
@@ -295,7 +254,7 @@ fun AppForwardFilterScreen(
                                 }
                             },
                             onEdit = { rule ->
-                                editingChannelRule = rule.toEditingRule(
+                                editingChannelRule = rule.toEditorState(
                                     channelId = ForwardFilterConst.extractNotifyChannelId(rule.scopeKey, normalizedPackageName),
                                 )
                                 showChannelEditor = true
@@ -407,15 +366,4 @@ private fun SectionHeaderRow(
             Text(stringResource(id = R.string.forward_filter_action_add))
         }
     }
-}
-
-private fun ForwardFilterRule.toEditingRule(channelId: String = ""): EditingRule {
-    return EditingRule(
-        id = id,
-        policy = policy,
-        matchMode = matchMode,
-        pattern = pattern,
-        enabled = enabled == 1,
-        channelId = channelId,
-    )
 }
