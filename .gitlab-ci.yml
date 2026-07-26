@@ -632,7 +632,9 @@ telegram:release:
   variables:
     MAGISK_TELEGRAM_PROJECT_TAG: "#XinyiRelay"
     MAGISK_TELEGRAM_PROJECT_NAME: "XinyiRelay"
-    MAGISK_TELEGRAM_RELEASE_ARTIFACT_PATTERN: "*arm64-v8a*NoE2ee*.apk"
+    MAGISK_TELEGRAM_RELEASE_ARTIFACT_PATTERNS: |
+      *arm64-v8a*NoE2ee*.apk
+      *arm64-v8a*WithE2ee*.apk
   needs:
     - job: android:release:github-apk
       artifacts: true
@@ -647,7 +649,9 @@ telegram:ci:
     MAGISK_TELEGRAM_PROJECT_TAG: "#XinyiRelay"
     MAGISK_TELEGRAM_PROJECT_NAME: "XinyiRelay"
     MAGISK_TELEGRAM_CI_BRANCH: "beta"
-    MAGISK_TELEGRAM_CI_ARTIFACT_PATTERN: "*arm64-v8a*NoE2ee*.apk"
+    MAGISK_TELEGRAM_CI_ARTIFACT_PATTERNS: |
+      *arm64-v8a*NoE2ee*.apk
+      *arm64-v8a*WithE2ee*.apk
   needs:
     - job: android:build
       artifacts: true
