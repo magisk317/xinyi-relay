@@ -97,6 +97,8 @@ import io.github.magisk317.uikit.surface.tabEnterTransition
 import io.github.magisk317.uikit.surface.tabExitTransition
 import io.github.magisk317.uikit.surface.tabPopEnterTransition
 import io.github.magisk317.uikit.surface.tabPopExitTransition
+import io.github.magisk317.uikit.surface.tabPredictivePopEnterTransition
+import io.github.magisk317.uikit.surface.tabPredictivePopExitTransition
 import io.github.magisk317.uikit.surface.tabTransitionDirection
 import io.github.magisk317.uikit.surface.MainTabSpec
 import io.github.magisk317.uikit.surface.rememberIsCompactWidth
@@ -370,6 +372,12 @@ fun MainScreen(
                             targetIndex = resolveTabIndex(targetState),
                         ),
                     )
+                },
+                predictivePopEnterTransition = { _ ->
+                    tabPredictivePopEnterTransition()
+                },
+                predictivePopExitTransition = { swipeEdge ->
+                    tabPredictivePopExitTransition(swipeEdge)
                 },
             ) {
 
