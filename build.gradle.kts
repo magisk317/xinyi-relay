@@ -1,5 +1,4 @@
 import dev.detekt.gradle.extensions.DetektExtension
-import com.adarshr.gradle.testlogger.theme.ThemeType
 import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.api.tasks.Exec
 buildscript {
@@ -36,7 +35,6 @@ plugins {
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.detekt) apply false
     alias(libs.plugins.kover) apply false
-    alias(libs.plugins.test.logger) apply false
     id("magisk.maintenance")
 }
 
@@ -108,30 +106,15 @@ subprojects {
 
     pluginManager.withPlugin("com.android.application") {
         configureDetekt()
-        apply(plugin = "com.adarshr.test-logger")
     }
     pluginManager.withPlugin("com.android.library") {
         configureDetekt()
-        apply(plugin = "com.adarshr.test-logger")
     }
     pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
         configureDetekt()
-        apply(plugin = "com.adarshr.test-logger")
     }
     pluginManager.withPlugin("org.jetbrains.kotlin.android") {
         configureDetekt()
-        apply(plugin = "com.adarshr.test-logger")
-    }
-
-    // Configure test-logger for all projects
-    plugins.withId("com.adarshr.test-logger") {
-        configure<com.adarshr.gradle.testlogger.TestLoggerExtension> {
-            theme = ThemeType.MOCHA
-            showExceptions = true
-            showStackTraces = true
-            showCauses = true
-            showSummary = true
-        }
     }
 
 }
