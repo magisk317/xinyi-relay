@@ -97,7 +97,7 @@ dependencies {
     add("playImplementation", libs.firebase.auth)
     add("playImplementation", libs.play.services.auth)
     add("playImplementation", libs.kotlinx.coroutines.play.services)
-    add("playImplementation", libs.billing.ktx)
+    add("playImplementation", project(":magisk-ui-kit:billing"))
 
     listOf("play", "githubNoE2ee", "githubWithE2ee", "fdroid").forEach { flavor ->
         add("${flavor}Implementation", project(":smscode-core:hook"))

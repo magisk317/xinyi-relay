@@ -7,7 +7,7 @@ import io.github.magisk317.relay.auth.NoOpGoogleSignInHelper
 import io.github.magisk317.relay.backup.AutoCloudBackupCoordinator
 import io.github.magisk317.relay.backup.CloudAutoBackupTrigger
 import io.github.magisk317.relay.backup.CloudBackupProvider
-import io.github.magisk317.relay.backup.GithubCloudBackupProvider
+import io.github.magisk317.relay.backup.GoogleDriveCloudBackupProvider
 import io.github.magisk317.relay.backup.GoogleDriveBackupManager
 import io.github.magisk317.relay.backup.WebDavBackupManager
 import io.github.magisk317.relay.backup.WebDavCloudBackupProvider
@@ -21,7 +21,7 @@ val billingModule = module {
 
     // Google Drive backup
     single { GoogleDriveBackupManager(get(), get()) }
-    single<CloudBackupProvider> { GithubCloudBackupProvider(get(), get(), get()) }
+    single<CloudBackupProvider> { GoogleDriveCloudBackupProvider(get(), get(), get()) }
 
     // WebDAV backup
     single { WebDavBackupManager(get()) }

@@ -2,6 +2,7 @@ package io.github.magisk317.relay.billing
 
 import android.content.Context
 import com.android.billingclient.api.Purchase
+import io.github.magisk317.uikit.billing.BillingManager
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope

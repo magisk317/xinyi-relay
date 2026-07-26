@@ -13,11 +13,11 @@ import io.github.magisk317.relay.backup.CloudAutoBackupTrigger
 import io.github.magisk317.relay.backup.CloudBackupProvider
 import io.github.magisk317.relay.backup.GoogleDriveBackupManager
 import io.github.magisk317.relay.backup.NoOpCloudBackupProvider
-import io.github.magisk317.relay.backup.PlayCloudBackupProvider
+import io.github.magisk317.relay.backup.GoogleDriveCloudBackupProvider
 import io.github.magisk317.relay.backup.WebDavBackupManager
 import io.github.magisk317.relay.backup.WebDavCloudBackupProvider
-import io.github.magisk317.relay.billing.BillingInitializer
-import io.github.magisk317.relay.billing.BillingManager
+import io.github.magisk317.uikit.billing.BillingInitializer
+import io.github.magisk317.uikit.billing.BillingManager
 import io.github.magisk317.relay.billing.BillingProvider
 import io.github.magisk317.relay.billing.PlayBillingProvider
 import io.github.magisk317.relay.billing.SubscriptionManager
@@ -53,9 +53,9 @@ val billingModule = module {
     single { GoogleDriveBackupManager(get(), get()) }
     single<CloudBackupProvider> {
         runCatching {
-            PlayCloudBackupProvider(get(), get(), get())
+            GoogleDriveCloudBackupProvider(get(), get(), get())
         }.getOrElse { error ->
-            XLog.e("PlayCloudBackupProvider init failed, degrading to NoOp", error)
+            XLog.e("GoogleDriveCloudBackupProvider init failed, degrading to NoOp", error)
             NoOpCloudBackupProvider()
         }
     }
