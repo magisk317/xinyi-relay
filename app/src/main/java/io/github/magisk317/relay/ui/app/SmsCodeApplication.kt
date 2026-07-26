@@ -29,8 +29,9 @@ class SmsCodeApplication : Application() {
         }
 
         val koin = getKoin()
-        koin.get<InfrastructureInitializer>().init(this)
+        // Register Xposed listener first so Enhanced can settle before any Standard FGS start.
         XposedServiceBridge.initialize(this, applicationScope)
+        koin.get<InfrastructureInitializer>().init(this)
         val initializers = koin.getAll<AppInitializer>().filterNot { it is InfrastructureInitializer }
         initializers.forEach { it.init(this) }
     }
