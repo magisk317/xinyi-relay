@@ -2,15 +2,14 @@ package io.github.magisk317.relay.sender
 
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.net.RelayHttpClients
+import io.github.magisk317.relay.net.ProxyConfig
+import io.github.magisk317.relay.net.applyProxy
 import io.github.magisk317.relay.sender.config.MatrixSetting
-import java.net.InetSocketAddress
-import java.net.Proxy
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import okhttp3.Credentials
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -124,23 +123,19 @@ object MatrixUtils {
     }
 
     fun buildClient(setting: MatrixSetting): OkHttpClient {
-        val builder = RelayHttpClients.newBuilder()
-        if (setting.proxyType != Proxy.Type.DIRECT && setting.proxyHost.isNotBlank() && setting.proxyPort.isNotBlank()) {
-            val port = setting.proxyPort.toIntOrNull() ?: 0
-            if (port > 0) {
-                builder.proxy(Proxy(setting.proxyType, InetSocketAddress(setting.proxyHost, port)))
-                if (setting.proxyAuthenticator && setting.proxyUsername.isNotBlank() && setting.proxyPassword.isNotBlank()) {
-                    builder.proxyAuthenticator { _, response ->
-                        val credential = Credentials.basic(setting.proxyUsername, setting.proxyPassword)
-                        response.request.newBuilder()
-                            .header("Proxy-Authorization", credential)
-                            .build()
-                    }
-                }
-            }
-        }
-        return builder.build()
+        return RelayHttpClients.newBuilder()
+            .applyProxy(setting.toProxyConfig())
+            .build()
     }
+
+    private fun MatrixSetting.toProxyConfig() = ProxyConfig(
+        type = proxyType,
+        host = proxyHost,
+        port = proxyPort,
+        authenticate = proxyAuthenticator,
+        username = proxyUsername,
+        password = proxyPassword,
+    )
 
     fun buildFormattedBody(title: String, content: String): String {
         return "<strong>${escapeHtml(title)}</strong><br />${markdownInlineToHtml(content).replace("\n", "<br />")}"

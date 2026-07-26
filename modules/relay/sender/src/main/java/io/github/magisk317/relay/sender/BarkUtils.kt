@@ -4,15 +4,14 @@ import android.text.TextUtils
 import android.util.Base64
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.net.RelayHttpClients
+import io.github.magisk317.relay.net.parseBasicAuthUrl
 import io.github.magisk317.relay.sender.result.BarkResult
 import io.github.magisk317.relay.sender.config.BarkSetting
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import okhttp3.Credentials
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.net.URL
 
 object BarkUtils {
     private const val TAG = "BarkUtils"
@@ -27,8 +26,8 @@ object BarkUtils {
             val content = msgInfo.content
 
             val parsed = parseBasicAuthUrl(setting.server)
-            val url = parsed.first
-            val basicAuth = parsed.second
+            val url = parsed.url
+            val basicAuth = parsed.authorization
 
             val json = SenderWireJson.encode(
                 buildJsonObject {
@@ -108,19 +107,4 @@ object BarkUtils {
         }
     }
 
-    private fun parseBasicAuthUrl(url: String): Pair<String, String?> {
-        return runCatching {
-            val u = URL(url)
-            val userInfo = u.userInfo
-            if (userInfo.isNullOrBlank()) {
-                url to null
-            } else {
-                val split = userInfo.split(":", limit = 2)
-                val username = split.getOrElse(0) { "" }
-                val password = split.getOrElse(1) { "" }
-                val clean = URL(u.protocol, u.host, u.port, u.file).toString()
-                clean to Credentials.basic(username, password)
-            }
-        }.getOrElse { url to null }
-    }
 }

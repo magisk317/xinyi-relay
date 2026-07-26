@@ -19,4 +19,6 @@ android {
 dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.okhttp)
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
 }
