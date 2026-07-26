@@ -159,7 +159,7 @@ export function DeviceConfigProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     if (!lastEvent) return
     handleRealtimeEvent(lastEvent)
-  }, [handleRealtimeEvent, lastEvent])
+  }, [lastEvent])
 
   const root = useMemo(() => deriveEffectiveRoot(config), [config])
 
