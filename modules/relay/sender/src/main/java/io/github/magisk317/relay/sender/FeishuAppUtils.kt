@@ -10,7 +10,6 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.ConcurrentHashMap
-import io.github.magisk317.xposed.logging.MagiskOtel
 
 object FeishuAppUtils {
     private const val TAG = "FeishuAppUtils"
@@ -18,53 +17,19 @@ object FeishuAppUtils {
     private data class TokenCache(val token: String, val expiresAt: Long)
     private val tokenCache = ConcurrentHashMap<String, TokenCache>()
 
-    private fun emitForward(
-        result: String,
-        reason: String,
-        durationMs: Long,
-        statusOk: Boolean = true,
-    ) {
-        MagiskOtel.event(
-            name = "sms.forward",
-            attributes = mapOf(
-                "result" to result,
-                "duration_ms" to durationMs.toString(),
-                "process" to "app",
-                "stage" to "feishu_send",
-                "reason" to reason,
-                "sender_type" to "feishu",
-            ),
-            statusOk = statusOk,
-        )
-    }
-
-
     suspend fun sendMsg(setting: FeishuAppSetting, msgInfo: MsgInfo) {
-        val startedAt = System.nanoTime()
-        try {
-
-        val now = System.currentTimeMillis()
-        var token = tokenCache[setting.appId]?.takeIf { it.expiresAt > now }?.token
-        if (token.isNullOrBlank()) {
-            token = fetchToken(setting) ?: throw IllegalStateException("飞书应用获取 token 失败")
+        SenderTelemetry.trace(
+            senderType = "feishu",
+            stage = "feishu_send",
+        ) {
+            val now = System.currentTimeMillis()
+            var token = tokenCache[setting.appId]?.takeIf { it.expiresAt > now }?.token
+            if (token.isNullOrBlank()) {
+                token = fetchToken(setting) ?: throw IllegalStateException("飞书应用获取 token 失败")
+            }
+            sendMessage(setting, token, msgInfo)
         }
-        sendMessage(setting, token, msgInfo)
-    
-            emitForward(
-                result = "ok",
-                reason = "success",
-                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
-            )
-        } catch (error: Exception) {
-            emitForward(
-                result = "error",
-                reason = error.javaClass.simpleName,
-                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
-                statusOk = false,
-            )
-            throw error
-        }
-}
+    }
 
     private fun fetchToken(setting: FeishuAppSetting): String? {
         val requestBody = SenderWireJson.encode(

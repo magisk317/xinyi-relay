@@ -103,7 +103,7 @@ class AppNotificationListenerService : NotificationListenerService() {
                     eventIdPresent = payload.eventId.isNotBlank(),
                     durationMs = elapsedMs(startedAt),
                 )
-            } catch (error: Exception) {
+            } catch (@Suppress("TooGenericExceptionCaught") error: Exception) {
                 emitNotify(
                     result = "error",
                     reason = "dispatch_failed",
@@ -143,7 +143,7 @@ class AppNotificationListenerService : NotificationListenerService() {
     }
 
     private fun elapsedMs(startedAt: Long): Long =
-        ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+        ((System.nanoTime() - startedAt) / NANOS_PER_MILLI).coerceAtLeast(0L)
 
     private fun emitNotify(
         result: String,
@@ -181,5 +181,6 @@ class AppNotificationListenerService : NotificationListenerService() {
 
     private companion object {
         const val WAKE_LOCK_TIMEOUT_MS = 30_000L
+        const val NANOS_PER_MILLI = 1_000_000L
     }
 }

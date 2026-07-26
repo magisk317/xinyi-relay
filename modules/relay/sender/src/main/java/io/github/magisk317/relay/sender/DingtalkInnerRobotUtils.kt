@@ -18,7 +18,6 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.util.concurrent.ConcurrentHashMap
-import io.github.magisk317.xposed.logging.MagiskOtel
 
 object DingtalkInnerRobotUtils {
     private const val TAG = "DingtalkInnerRobotUtils"
@@ -26,54 +25,20 @@ object DingtalkInnerRobotUtils {
     private data class TokenCache(val token: String, val expiresAt: Long)
     private val tokenCache = ConcurrentHashMap<String, TokenCache>()
 
-    private fun emitForward(
-        result: String,
-        reason: String,
-        durationMs: Long,
-        statusOk: Boolean = true,
-    ) {
-        MagiskOtel.event(
-            name = "sms.forward",
-            attributes = mapOf(
-                "result" to result,
-                "duration_ms" to durationMs.toString(),
-                "process" to "app",
-                "stage" to "dingtalk_send",
-                "reason" to reason,
-                "sender_type" to "dingtalk",
-            ),
-            statusOk = statusOk,
-        )
-    }
-
-
     suspend fun sendMsg(setting: DingtalkInnerRobotSetting, msgInfo: MsgInfo) {
-        val startedAt = System.nanoTime()
-        try {
-
-        val cacheKey = setting.agentID
-        val now = System.currentTimeMillis()
-        var token = tokenCache[cacheKey]?.takeIf { it.expiresAt > now }?.token
-        if (token.isNullOrBlank()) {
-            token = fetchToken(setting) ?: throw IllegalStateException("钉钉内部机器人获取 token 失败")
+        SenderTelemetry.trace(
+            senderType = "dingtalk",
+            stage = "dingtalk_send",
+        ) {
+            val cacheKey = setting.agentID
+            val now = System.currentTimeMillis()
+            var token = tokenCache[cacheKey]?.takeIf { it.expiresAt > now }?.token
+            if (token.isNullOrBlank()) {
+                token = fetchToken(setting) ?: throw IllegalStateException("钉钉内部机器人获取 token 失败")
+            }
+            sendInternal(setting, token, msgInfo)
         }
-        sendInternal(setting, token, msgInfo)
-    
-            emitForward(
-                result = "ok",
-                reason = "success",
-                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
-            )
-        } catch (error: Exception) {
-            emitForward(
-                result = "error",
-                reason = error.javaClass.simpleName,
-                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
-                statusOk = false,
-            )
-            throw error
-        }
-}
+    }
 
     private fun fetchToken(setting: DingtalkInnerRobotSetting): String? {
         val client = buildClient(setting)

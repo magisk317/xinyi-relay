@@ -9,6 +9,8 @@ import io.github.magisk317.smscode.domain.utils.SmsCodeParsedMetadataResolver
 import io.github.magisk317.xposed.logging.MagiskOtel
 
 object SmsIngressAdapter {
+    private const val NANOS_PER_MILLI = 1_000_000L
+
     data class Result(
         val smsMsg: SmsMsg,
         val payload: ForwardBroadcastPayload,
@@ -81,7 +83,7 @@ object SmsIngressAdapter {
     }
 
     private fun elapsedMs(startedAt: Long): Long =
-        ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+        ((System.nanoTime() - startedAt) / NANOS_PER_MILLI).coerceAtLeast(0L)
 
     fun enrichSmsMsg(
         phoneContext: Context,

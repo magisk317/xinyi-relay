@@ -16,7 +16,6 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import io.github.magisk317.xposed.logging.MagiskOtel
 
 @Suppress("DEPRECATION")
 object MatrixUtils {
@@ -28,71 +27,37 @@ object MatrixUtils {
     private const val RESPONSE_BODY_PREVIEW_LENGTH = 400
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
 
-    private fun emitForward(
-        result: String,
-        reason: String,
-        durationMs: Long,
-        statusOk: Boolean = true,
-    ) {
-        MagiskOtel.event(
-            name = "sms.forward",
-            attributes = mapOf(
-                "result" to result,
-                "duration_ms" to durationMs.toString(),
-                "process" to "app",
-                "stage" to "matrix_plaintext",
-                "reason" to reason,
-                "sender_type" to "matrix",
-            ),
-            statusOk = statusOk,
-        )
-    }
-
-
     suspend fun sendMsg(setting: MatrixSetting, msgInfo: MsgInfo) = withContext(Dispatchers.IO) {
-        val startedAt = System.nanoTime()
-        try {
+        SenderTelemetry.trace(
+            senderType = "matrix",
+            stage = "matrix_plaintext",
+        ) {
+            val safeSetting = SenderSettingSanitizer.sanitizeMatrixSetting(setting)
+            val client = buildClient(safeSetting)
+            val token = getAuthToken(safeSetting)
 
-        val safeSetting = SenderSettingSanitizer.sanitizeMatrixSetting(setting)
-        val client = buildClient(safeSetting)
-        val token = getAuthToken(safeSetting)
-
-        val response = executeSend(client, safeSetting, msgInfo, token)
-        if (response.code == HTTP_UNAUTHORIZED && safeSetting.username.isNotBlank()) {
-            // Token expired or invalidated — force re-login and retry once
-            SLog.w(TAG, "Matrix send got 401, re-login and retrying...")
-            invalidateCachedAuthToken()
-            val freshToken = getAuthToken(safeSetting, forceRefresh = true)
-            val retryResponse = executeSend(client, safeSetting, msgInfo, freshToken)
-            if (!retryResponse.isSuccessful) {
-                val bodyPreview = retryResponse.body.take(RESPONSE_BODY_PREVIEW_LENGTH)
-                val errorMsg = if (retryResponse.message.isNotBlank()) retryResponse.message else "Forbidden/Error"
-                throw IllegalStateException("Matrix HTTP ${retryResponse.code} $errorMsg: $bodyPreview")
+            val response = executeSend(client, safeSetting, msgInfo, token)
+            if (response.code == HTTP_UNAUTHORIZED && safeSetting.username.isNotBlank()) {
+                // Token expired or invalidated — force re-login and retry once
+                SLog.w(TAG, "Matrix send got 401, re-login and retrying...")
+                invalidateCachedAuthToken()
+                val freshToken = getAuthToken(safeSetting, forceRefresh = true)
+                val retryResponse = executeSend(client, safeSetting, msgInfo, freshToken)
+                if (!retryResponse.isSuccessful) {
+                    val bodyPreview = retryResponse.body.take(RESPONSE_BODY_PREVIEW_LENGTH)
+                    val errorMsg = if (retryResponse.message.isNotBlank()) retryResponse.message else "Forbidden/Error"
+                    throw IllegalStateException("Matrix HTTP ${retryResponse.code} $errorMsg: $bodyPreview")
+                }
+                SLog.i(TAG, "Matrix send success on retry: ${retryResponse.code}")
+            } else if (!response.isSuccessful) {
+                val bodyPreview = response.body.take(RESPONSE_BODY_PREVIEW_LENGTH)
+                val errorMsg = if (response.message.isNotBlank()) response.message else "Forbidden/Error"
+                throw IllegalStateException("Matrix HTTP ${response.code} $errorMsg: $bodyPreview")
+            } else {
+                SLog.i(TAG, "Matrix send success: ${response.code}")
             }
-            SLog.i(TAG, "Matrix send success on retry: ${retryResponse.code}")
-        } else if (!response.isSuccessful) {
-            val bodyPreview = response.body.take(RESPONSE_BODY_PREVIEW_LENGTH)
-            val errorMsg = if (response.message.isNotBlank()) response.message else "Forbidden/Error"
-            throw IllegalStateException("Matrix HTTP ${response.code} $errorMsg: $bodyPreview")
-        } else {
-            SLog.i(TAG, "Matrix send success: ${response.code}")
         }
-    
-            emitForward(
-                result = "ok",
-                reason = "success",
-                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
-            )
-        } catch (error: Exception) {
-            emitForward(
-                result = "error",
-                reason = error.javaClass.simpleName,
-                durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
-                statusOk = false,
-            )
-            throw error
-        }
-}
+    }
 
     internal data class SendResponse(val code: Int, val message: String, val body: String, val isSuccessful: Boolean)
 
