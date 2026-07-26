@@ -29,6 +29,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.surface.chromeTopAppBarColors
@@ -38,6 +40,7 @@ private const val BENCHMARK_ADVANCED_RELAY_CONFIG = "xinyi_benchmark_advanced_re
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdvancedScreen(
+    bottomContentPadding: Dp = 0.dp,
     onNavigateToScheduledTasks: (() -> Unit)? = null,
     onInterceptClick: () -> Unit,
     onVerificationConfigClick: () -> Unit,
@@ -59,7 +62,12 @@ fun AdvancedScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(
+                    start = 16.dp,
+                    top = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp + bottomContentPadding,
+                ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             AdvancedEntryCard(
@@ -150,7 +158,13 @@ private fun AdvancedEntryCard(
                     Text(text = title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                     trailingContent?.invoke()
                 }
-                Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
             if (showChevron) {
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)

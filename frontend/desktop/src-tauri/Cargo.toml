@@ -1,6 +1,6 @@
 [package]
 name = "xinyi-relay-desktop"
-version = "0.2.1-beta"
+version = "0.2.1"
 edition = "2024"
 rust-version = "1.96.0"
 

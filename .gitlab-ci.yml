@@ -1,15 +1,15 @@
 include:
   - project: magisk3171/magisk-ci-toolkit
-    ref: f6efc802b06f87547b2869df9e9133c19c514ce7
+    ref: 5bf4300fe276f07921e389a90c17a7fcb556c516
     file: /.gitlab/ci/android.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: f6efc802b06f87547b2869df9e9133c19c514ce7
+    ref: 5bf4300fe276f07921e389a90c17a7fcb556c516
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: f6efc802b06f87547b2869df9e9133c19c514ce7
+    ref: 5bf4300fe276f07921e389a90c17a7fcb556c516
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: f6efc802b06f87547b2869df9e9133c19c514ce7
+    ref: 5bf4300fe276f07921e389a90c17a7fcb556c516
     file: /.gitlab/ci/renovate.yml
 
 workflow:
@@ -38,7 +38,7 @@ stages:
   - maintenance
 
 variables:
-  MAGISK_CI_TOOLKIT_REF: "f6efc802b06f87547b2869df9e9133c19c514ce7"
+  MAGISK_CI_TOOLKIT_REF: "5bf4300fe276f07921e389a90c17a7fcb556c516"
   GIT_DEPTH: "0"
   GIT_SUBMODULE_STRATEGY: recursive
   GIT_SUBMODULE_DEPTH: "0"
@@ -77,6 +77,11 @@ variables:
 
 .xinyi_android_rules:
   extends: .xinyi_ci_rules
+
+.xinyi_backend_validation_rules:
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+[.][0-9]+[.][0-9]+.*$/'
+    - !reference [.xinyi_ci_rules, rules]
 
 .xinyi_backend_publish_rules:
   rules:
@@ -188,7 +193,7 @@ variables:
       - desktop-artifacts/
 
 backend:go:
-  extends: .xinyi_ci_rules
+  extends: .xinyi_backend_validation_rules
   image: "golang:1.26.5-bookworm"
   stage: quality
   needs: []
@@ -207,7 +212,7 @@ backend:go:
 backend:smoke:
   extends:
     - .xinyi_docker
-    - .xinyi_ci_rules
+    - .xinyi_backend_validation_rules
   stage: quality
   variables:
     BASE_URL: "http://docker:8088"

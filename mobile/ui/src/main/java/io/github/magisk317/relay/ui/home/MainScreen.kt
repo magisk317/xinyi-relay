@@ -262,6 +262,7 @@ fun MainScreen(
     }
 
     val selectedIndex = resolveTabIndex(navBackStackEntry)
+    val isAdvancedRoot = currentDestination?.hasRoute(AdvancedRoute::class) == true
     val isCompact = rememberIsCompactWidth()
     var appBlockRefreshTrigger by remember { mutableIntStateOf(0) }
     var recordsRefreshTrigger by remember { mutableIntStateOf(0) }
@@ -340,7 +341,13 @@ fun MainScreen(
                 startDestination = OverviewRoute,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = contentPadding.calculateBottomPadding()),
+                    .padding(
+                        bottom = if (isAdvancedRoot) {
+                            0.dp
+                        } else {
+                            contentPadding.calculateBottomPadding()
+                        },
+                    ),
                 enterTransition = {
                     tabEnterTransition(
                         tabTransitionDirection(
@@ -432,6 +439,7 @@ fun MainScreen(
                                 .testTag(BENCHMARK_TAB_ADVANCED),
                         ) {
                             AdvancedScreen(
+                                bottomContentPadding = contentPadding.calculateBottomPadding(),
                                 onInterceptClick = { navController.navigate(InterceptRoute) },
                                 onVerificationConfigClick = {
                                     navController.navigate(VerificationSettingsRoute)
