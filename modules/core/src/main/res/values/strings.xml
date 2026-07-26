@@ -347,11 +347,11 @@
     <string name="pref_verification_settings_title">Verification settings</string>
     <string name="pref_verification_settings_summary">Recognition, notifications, auto-copy, auto-fill, and rule testing</string>
     <string name="pref_verification_config_title">Verification config</string>
-    <string name="pref_verification_config_summary">Recognition, notifications, auto-copy, auto-fill, and rules</string>
+    <string name="pref_verification_config_summary">Recognition, notifications, autofill, and rules</string>
     <string name="pref_relay_features_title">Relay features</string>
     <string name="pref_relay_features_summary">Turn off sender delivery for SMS, app notifications, and calls</string>
     <string name="pref_relay_config_title">Relay config</string>
-    <string name="pref_relay_config_summary">Channels, app notification forwarding, filters, and record settings</string>
+    <string name="pref_relay_config_summary">Channels, forwarding, filters, and records</string>
     <string name="pref_relay_records_title">Relay records</string>
     <string name="pref_relay_records_summary">View and manage SMS, app, and call records</string>
     <string name="pref_sms_forward_dedup_window_title">SMS dedup window</string>
@@ -359,7 +359,7 @@
     <string name="pref_sms_forward_dedup_window_hint">Same verification code within this window will not be forwarded again (default 60s)</string>
     <string name="pref_sms_forward_dedup_window_error">Please enter an integer between %1$d and %2$d</string>
     <string name="pref_remote_agent_title">Web console sync</string>
-    <string name="pref_remote_agent_summary">Connect this phone to your self-hosted Web / Docker backend so the web console can sync config, device state, and records.</string>
+    <string name="pref_remote_agent_summary">Connect to a self-hosted backend and sync settings and records</string>
     <string name="pref_remote_agent_base_url_title">Web / Docker URL</string>
     <string name="pref_remote_agent_base_url_summary">Example: https://your-server:8443</string>
     <string name="pref_remote_agent_bind_code_title">Bind code</string>
@@ -392,7 +392,7 @@
     <string name="pref_remote_agent_none">None</string>
     <string name="pref_remote_agent_not_yet">Not yet</string>
     <string name="advanced_filter_title">Intercept &amp; filters</string>
-    <string name="advanced_filter_summary">SMS blacklist, global filters, and source-level interception rules</string>
+    <string name="advanced_filter_summary">SMS blacklist, filters, and interception rules</string>
     <string name="advanced_keepalive_summary">Force-stop recovery and root DB catchup fallback</string>
     <string name="advanced_diagnostics_title">Experimental &amp; diagnostics</string>
     <string name="advanced_diagnostics_summary">Recovery, catchup, logs, updates, and analytics</string>

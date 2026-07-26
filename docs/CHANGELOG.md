@@ -3,33 +3,18 @@
 本日志记录了项目近期的主要变更。 
 
 
-## [v0.2.1-beta2] - 2026-07-24
-- 版本：`versionCode 42` / `versionName 0.2.1-beta2`。
-- `[standard]` 完善无 Xposed 标准模式：自适应入口、前台服务、短信/通话/MMS 回退链路。
-- `[notification]` 支持从应用通知解析验证码，并统一通知桥接。
-- `[ui]` 主界面改用共享 `MainTabScaffold` / ui-kit 组件。
-- `[hook/runtime]` 加固 IPC、进程重启门控与短信异步分发超时。
-- `[prefs/security]` 验证码设置原子更新；统一日志脱敏与 XLog。
-- `[sender/matrix]` 收敛 Matrix E2EE，并新增静默转发时段。
-- `[backend/desktop]` 强化会话、队列与本地 agent 鉴权。
-- `[ci/deps]` 对齐共享 toolkit / 子模块指针，Telegram 多 APK 合并通知。
+## [v0.2.1] - 2026-07-26
+- 版本：`versionCode 43` / `versionName 0.2.1`。
+- `[notification/sms]` 支持从应用通知解析验证码；新增发送方黑名单拦截、记录与配置，并统一通知桥接和短信分发去重。
+- `[hook/runtime]` 对齐 LibXposed API 102 热重载，复用共享 Hook 入口，加固 IPC、异步分发超时与进程重启门控。
+- `[telemetry/logging]` 补齐应用、Hook、短信解析、转发、发送器、备份及 Matrix E2EE 链路的 OpenTelemetry 观测，统一安装标识、日志脱敏与动态发布开关。
+- `[ui/prefs]` 主界面改用共享 `MainTabScaffold` / ui-kit，收敛发送器编辑状态并将验证码设置改为原子更新。
+- `[sender/matrix]` 收敛 Matrix E2EE 与网络辅助逻辑，新增静默转发时段并强化发送结果观测。
+- `[backend/desktop]` 强化会话、队列与本地 agent 鉴权，清理废弃凭据初始化逻辑。
+- `[architecture]` 抽取共享契约、Billing、备份、日志及 Preview SDK 约定，继续收敛运行时、Hook、发送器和 UI 边界。
+- `[ci/deps]` 对齐 GitLab/GitHub 并发取消策略、Renovate 通知、共享 toolkit 与核心子模块指针，完善多 APK 和容器发布通知。
 
-> Full Changelog: https://github.com/magisk317/xinyi-relay/compare/v0.2.1-beta...v0.2.1-beta2
-
----
-
-## [v0.2.1-beta] - 2026-06-21
-- 版本：`versionCode 41` / `versionName 0.2.1-beta`。
-- **🌟 新特性 (Features)**
-  - `[sms]` 新增发送方黑名单拦截机制，并添加短信号码黑名单拦截记录与配置 UI。
-- **🐛 修复与优化 (Fixes & Perf)**
-  - `[hook]` 修复并兼容针对 LibXposed API 102 的热重载 (Hot Reload) 替换逻辑。
-  - `[desktop]` 清理已废弃的 keyring v3 凭据初始化逻辑。
-- **📦 依赖与底层构建 (Chores)**
-  - `[mobile]` 进一步重构领域结构：将共享契约抽取到 `feature-common`，清理废弃的发送端 E2EE 源码集并开启构建缓存加速。
-  - `[ci]` 对 CI 脚本目录进行大规模分类重构，同时将 Cargo/PNPM 全栈依赖强制锁定与漏洞清理整合入自动修复流程。
-
-> Full Changelog: https://github.com/magisk317/xinyi-relay/compare/v0.2.0...v0.2.1-beta
+> Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.2.0...v0.2.1
 
 ---
 

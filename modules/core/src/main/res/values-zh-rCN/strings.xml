@@ -349,11 +349,11 @@
     <string name="pref_verification_settings_title">验证码功能设置</string>
     <string name="pref_verification_settings_summary">识别、通知、自动复制、自动输入与规则测试</string>
     <string name="pref_verification_config_title">验证码配置</string>
-    <string name="pref_verification_config_summary">验证码识别、通知、自动复制、自动输入与规则</string>
+    <string name="pref_verification_config_summary">识别、通知、复制、输入与规则</string>
     <string name="pref_relay_features_title">转发功能</string>
     <string name="pref_relay_features_summary">关闭后不再向任何通道分发短信、应用通知与来电</string>
     <string name="pref_relay_config_title">转发配置</string>
-    <string name="pref_relay_config_summary">通道、应用通知转发、过滤规则与记录设置</string>
+    <string name="pref_relay_config_summary">转发通道、过滤与记录</string>
     <string name="pref_relay_records_title">转发记录</string>
     <string name="pref_relay_records_summary">查看和管理短信、通知与来电记录</string>
     <string name="pref_sms_forward_dedup_window_title">短信去重窗口</string>
@@ -361,7 +361,7 @@
     <string name="pref_sms_forward_dedup_window_hint">相同验证码在此窗口内不会重复转发（默认60秒），如果有收到重复转发，可适当增加此值</string>
     <string name="pref_sms_forward_dedup_window_error">请输入 %1$d 到 %2$d 之间的整数</string>
     <string name="pref_remote_agent_title">网页协作</string>
-    <string name="pref_remote_agent_summary">连接你自建的 Web / Docker 后台，把手机接入网页控制台，同步配置、设备状态和记录</string>
+    <string name="pref_remote_agent_summary">连接自建后台并同步配置与记录</string>
     <string name="pref_remote_agent_base_url_title">Web / Docker 地址</string>
     <string name="pref_remote_agent_base_url_summary">示例：https://你的服务器:8443</string>
     <string name="pref_remote_agent_bind_code_title">绑定码</string>
@@ -394,7 +394,7 @@
     <string name="pref_remote_agent_none">无</string>
     <string name="pref_remote_agent_not_yet">尚未发生</string>
     <string name="advanced_filter_title">拦截与过滤</string>
-    <string name="advanced_filter_summary">短信黑名单、全局过滤与来源拦截规则</string>
+    <string name="advanced_filter_summary">短信黑名单、过滤与拦截规则</string>
     <string name="advanced_keepalive_summary">强停恢复与 Root 直查库补偿</string>
     <string name="advanced_diagnostics_title">实验性与诊断</string>
     <string name="advanced_diagnostics_summary">自恢复、补偿、日志、更新与统计</string>

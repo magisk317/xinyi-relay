@@ -5728,7 +5728,7 @@ dependencies = [
 
 [[package]]
 name = "xinyi-relay-desktop"
-version = "0.2.1-beta"
+version = "0.2.1"
 dependencies = [
  "axum",
  "chrono",

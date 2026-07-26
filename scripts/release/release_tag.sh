@@ -17,8 +17,8 @@ RELEASE_REF_SCRIPT="$ROOT_DIR/scripts/release/release_ref.sh"
 run_pre_push_checks() {
   run_common_gradle_checks "$ROOT_DIR" \
     :app:testGithubWithE2eeDebugUnitTest \
-    :app:assembleGithubWithE2eeDebug
-  run_detekt_sarif_check "$ROOT_DIR"
+    :app:assembleGithubWithE2eeDebug \
+    detekt
   run_webui_checks "$ROOT_DIR"
   run_fastlane_sync "$ROOT_DIR"
 }
