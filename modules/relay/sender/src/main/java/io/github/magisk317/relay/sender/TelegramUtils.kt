@@ -3,18 +3,17 @@ package io.github.magisk317.relay.sender
 import android.util.Base64
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.net.RelayHttpClients
+import io.github.magisk317.relay.net.ProxyConfig
+import io.github.magisk317.relay.net.applyProxy
 import io.github.magisk317.relay.sender.config.TelegramSetting
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import okhttp3.Credentials
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.net.InetSocketAddress
-import java.net.Proxy
 
 object TelegramUtils {
     private const val TAG = "TelegramUtils"
@@ -55,23 +54,19 @@ object TelegramUtils {
     }
 
     private fun buildClient(setting: TelegramSetting): okhttp3.OkHttpClient {
-        val clientBuilder = RelayHttpClients.newBuilder()
-        if (setting.proxyType != Proxy.Type.DIRECT && setting.proxyHost.isNotEmpty() && setting.proxyPort.isNotEmpty()) {
-            val port = setting.proxyPort.toIntOrNull() ?: 0
-            val proxy = Proxy(setting.proxyType, InetSocketAddress(setting.proxyHost, port))
-            clientBuilder.proxy(proxy)
-
-            if (setting.proxyAuthenticator && setting.proxyUsername.isNotEmpty() && setting.proxyPassword.isNotEmpty()) {
-                clientBuilder.proxyAuthenticator { _, response ->
-                    val credential = Credentials.basic(setting.proxyUsername, setting.proxyPassword)
-                    response.request.newBuilder()
-                        .header("Proxy-Authorization", credential)
-                        .build()
-                }
-            }
-        }
-        return clientBuilder.build()
+        return RelayHttpClients.newBuilder()
+            .applyProxy(setting.toProxyConfig())
+            .build()
     }
+
+    private fun TelegramSetting.toProxyConfig() = ProxyConfig(
+        type = proxyType,
+        host = proxyHost,
+        port = proxyPort,
+        authenticate = proxyAuthenticator,
+        username = proxyUsername,
+        password = proxyPassword,
+    )
 
     private fun sendPhoto(
         client: okhttp3.OkHttpClient,

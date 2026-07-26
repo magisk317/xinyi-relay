@@ -24,7 +24,16 @@ android {
         }
     }
 
+    sourceSets {
+        listOf("fdroid", "githubNoE2ee", "githubWithE2ee").forEach { flavor ->
+            getByName(flavor).kotlin.srcDir("src/nonPlaySms/java")
+        }
+        listOf("githubNoE2ee", "play").forEach { flavor ->
+            getByName(flavor).kotlin.srcDir("src/matrixE2eeStub/java")
+        }
+    }
 }
+
 dependencies {
     api(project(":magisk-xposed-kit:logging"))
     implementation(project(":relay:sender:api"))
