@@ -1,15 +1,15 @@
 include:
   - project: magisk3171/magisk-ci-toolkit
-    ref: 5bf4300fe276f07921e389a90c17a7fcb556c516
+    ref: ad6caa88fdb7bb395fb935a6ff261134103d6dd6
     file: /.gitlab/ci/android.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: 5bf4300fe276f07921e389a90c17a7fcb556c516
+    ref: ad6caa88fdb7bb395fb935a6ff261134103d6dd6
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: 5bf4300fe276f07921e389a90c17a7fcb556c516
+    ref: ad6caa88fdb7bb395fb935a6ff261134103d6dd6
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: 5bf4300fe276f07921e389a90c17a7fcb556c516
+    ref: ad6caa88fdb7bb395fb935a6ff261134103d6dd6
     file: /.gitlab/ci/renovate.yml
 
 workflow:
@@ -38,7 +38,7 @@ stages:
   - maintenance
 
 variables:
-  MAGISK_CI_TOOLKIT_REF: "5bf4300fe276f07921e389a90c17a7fcb556c516"
+  MAGISK_CI_TOOLKIT_REF: "ad6caa88fdb7bb395fb935a6ff261134103d6dd6"
   GIT_DEPTH: "0"
   GIT_SUBMODULE_STRATEGY: recursive
   GIT_SUBMODULE_DEPTH: "0"
@@ -53,7 +53,8 @@ variables:
   MAGISK_ANDROID_RELEASE_PUBLISH_PLAY: "true"
   MAGISK_ANDROID_RELEASE_PLAY_TRACK: "production"
   MAGISK_RENOVATE_REPOSITORY: "magisk3171/xinyi-relay"
-  XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG: "saas-linux-small-amd64"
+  XINYI_DOCKERHUB_PUBLISH: "true"
+  XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG: "magisk-local-linux"
   XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG: "saas-linux-small-arm64"
   XINYI_GITLAB_WINDOWS_AMD64_RUNNER_TAG: "saas-windows-medium-amd64"
   XINYI_GITLAB_MACOS_ARM64_RUNNER_TAG: "saas-macos-medium-m1"
@@ -235,6 +236,7 @@ backend:container:amd64:
     - .xinyi_backend_publish_rules
   resource_group: xinyi-backend-docker-amd64
   stage: package
+  allow_failure: true
   tags:
     - $XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG
   needs:
@@ -271,6 +273,7 @@ backend:container:manifest:
     - .xinyi_backend_publish_rules
   resource_group: xinyi-backend-docker-manifest
   stage: release-publish
+  allow_failure: true
   needs:
     - job: backend:container:amd64
       artifacts: false
