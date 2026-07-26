@@ -57,18 +57,6 @@ jobs:
 
           ghcr_image="ghcr.io/${GITHUB_REPOSITORY}-backend"
 
-          if [[ -n "${{ secrets.DOCKERHUB_USERNAME }}" && -n "${{ secrets.DOCKERHUB_TOKEN }}" ]]; then
-            dockerhub_enabled=1
-            if [[ -n "${{ secrets.DOCKERHUB_IMAGE }}" ]]; then
-              dockerhub_image="${{ secrets.DOCKERHUB_IMAGE }}"
-            else
-              dockerhub_image="docker.io/${{ secrets.DOCKERHUB_USERNAME }}/xinyi-relay-backend"
-            fi
-          else
-            dockerhub_enabled=0
-            dockerhub_image=""
-          fi
-
           tags=()
           if [[ "$release_kind" == "beta" ]]; then
             tags+=("beta")
@@ -113,45 +101,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Derive Docker Hub target (optional)
-        run: |
-          if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ] && [ -n "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
-            echo "DOCKERHUB_ENABLED=1" >> "$GITHUB_ENV"
-            if [ -n "${{ secrets.DOCKERHUB_IMAGE }}" ]; then
-              echo "DOCKERHUB_IMAGE=${{ secrets.DOCKERHUB_IMAGE }}" >> "$GITHUB_ENV"
-            else
-              echo "DOCKERHUB_IMAGE=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/xinyi-relay-backend" >> "$GITHUB_ENV"
-            fi
-          else
-            echo "DOCKERHUB_ENABLED=0" >> "$GITHUB_ENV"
-            echo "DOCKERHUB_IMAGE=" >> "$GITHUB_ENV"
-          fi
-
-      - name: Log in to Docker Hub
-        if: env.DOCKERHUB_ENABLED == '1' && github.actor != 'dependabot[bot]'
-        uses: docker/login-action@v4
-        with:
-          registry: docker.io
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Derive image tags
         id: tags
         shell: bash
         env:
           GHCR_IMAGE: ${{ needs.prepare.outputs.ghcr_image }}
           TAGS_JSON: ${{ needs.prepare.outputs.tags_json }}
-          DOCKERHUB_ENABLED: ${{ env.DOCKERHUB_ENABLED }}
-          DOCKERHUB_IMAGE: ${{ env.DOCKERHUB_IMAGE }}
         run: |
           set -euo pipefail
 
           image_tags=()
           while IFS= read -r tag; do
             image_tags+=("${GHCR_IMAGE}:${tag}-amd64")
-            if [[ "$DOCKERHUB_ENABLED" == "1" && -n "$DOCKERHUB_IMAGE" ]]; then
-              image_tags+=("${DOCKERHUB_IMAGE}:${tag}-amd64")
-            fi
           done < <(jq -r '.[]' <<<"$TAGS_JSON")
 
           {
@@ -196,45 +157,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Derive Docker Hub target (optional)
-        run: |
-          if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ] && [ -n "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
-            echo "DOCKERHUB_ENABLED=1" >> "$GITHUB_ENV"
-            if [ -n "${{ secrets.DOCKERHUB_IMAGE }}" ]; then
-              echo "DOCKERHUB_IMAGE=${{ secrets.DOCKERHUB_IMAGE }}" >> "$GITHUB_ENV"
-            else
-              echo "DOCKERHUB_IMAGE=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/xinyi-relay-backend" >> "$GITHUB_ENV"
-            fi
-          else
-            echo "DOCKERHUB_ENABLED=0" >> "$GITHUB_ENV"
-            echo "DOCKERHUB_IMAGE=" >> "$GITHUB_ENV"
-          fi
-
-      - name: Log in to Docker Hub
-        if: env.DOCKERHUB_ENABLED == '1' && github.actor != 'dependabot[bot]'
-        uses: docker/login-action@v4
-        with:
-          registry: docker.io
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Derive image tags
         id: tags
         shell: bash
         env:
           GHCR_IMAGE: ${{ needs.prepare.outputs.ghcr_image }}
           TAGS_JSON: ${{ needs.prepare.outputs.tags_json }}
-          DOCKERHUB_ENABLED: ${{ env.DOCKERHUB_ENABLED }}
-          DOCKERHUB_IMAGE: ${{ env.DOCKERHUB_IMAGE }}
         run: |
           set -euo pipefail
 
           image_tags=()
           while IFS= read -r tag; do
             image_tags+=("${GHCR_IMAGE}:${tag}-arm64")
-            if [[ "$DOCKERHUB_ENABLED" == "1" && -n "$DOCKERHUB_IMAGE" ]]; then
-              image_tags+=("${DOCKERHUB_IMAGE}:${tag}-arm64")
-            fi
           done < <(jq -r '.[]' <<<"$TAGS_JSON")
 
           {
@@ -268,7 +202,15 @@ jobs:
       - build_amd64
       - build_arm64
     runs-on: ubuntu-latest
+    outputs:
+      dockerhub_published: ${{ steps.dockerhub_mirror.outcome == 'success' }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Resolve CI toolkit
+        run: bash scripts/resolve_ci_toolkit.sh >/dev/null
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
@@ -293,14 +235,6 @@ jobs:
             echo "DOCKERHUB_IMAGE=" >> "$GITHUB_ENV"
           fi
 
-      - name: Log in to Docker Hub
-        if: env.DOCKERHUB_ENABLED == '1' && github.actor != 'dependabot[bot]'
-        uses: docker/login-action@v4
-        with:
-          registry: docker.io
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Publish GHCR multi-arch manifests
         shell: bash
         env:
@@ -317,22 +251,26 @@ jobs:
             docker buildx imagetools inspect "${GHCR_IMAGE}:${tag}"
           done < <(jq -r '.[]' <<<"$TAGS_JSON")
 
-      - name: Publish Docker Hub multi-arch manifests
+      - name: Mirror manifests to Docker Hub (optional)
+        id: dockerhub_mirror
         if: env.DOCKERHUB_ENABLED == '1' && github.actor != 'dependabot[bot]'
+        continue-on-error: true
         shell: bash
         env:
+          MAGISK_SOURCE_REGISTRY: ghcr.io
+          MAGISK_SOURCE_USERNAME: ${{ github.actor }}
+          MAGISK_SOURCE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          MAGISK_SOURCE_IMAGE: ${{ needs.prepare.outputs.ghcr_image }}
+          MAGISK_TARGET_REGISTRY: docker.io
+          MAGISK_TARGET_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          MAGISK_TARGET_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
+          MAGISK_TARGET_IMAGE: ${{ env.DOCKERHUB_IMAGE }}
           TAGS_JSON: ${{ needs.prepare.outputs.tags_json }}
-          DOCKERHUB_IMAGE: ${{ env.DOCKERHUB_IMAGE }}
         run: |
           set -euo pipefail
-
-          while IFS= read -r tag; do
-            docker buildx imagetools create \
-              --tag "${DOCKERHUB_IMAGE}:${tag}" \
-              "${DOCKERHUB_IMAGE}:${tag}-amd64" \
-              "${DOCKERHUB_IMAGE}:${tag}-arm64"
-            docker buildx imagetools inspect "${DOCKERHUB_IMAGE}:${tag}"
-          done < <(jq -r '.[]' <<<"$TAGS_JSON")
+          MAGISK_CONTAINER_TAGS="$(jq -r '.[]' <<<"$TAGS_JSON")"
+          export MAGISK_CONTAINER_TAGS
+          bash .magisk-ci-toolkit/ci/container_mirror.sh mirror
 
 
 
@@ -346,6 +284,12 @@ jobs:
       - publish_manifests
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Resolve CI toolkit
+        run: bash scripts/resolve_ci_toolkit.sh >/dev/null
+
       - name: Send Telegram notification
         env:
           GHCR_IMAGE: ${{ needs.prepare.outputs.ghcr_image }}
@@ -354,6 +298,7 @@ jobs:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           DOCKERHUB_IMAGE_OVERRIDE: ${{ secrets.DOCKERHUB_IMAGE }}
+          DOCKERHUB_PUBLISH_OK: ${{ needs.publish_manifests.outputs.dockerhub_published }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_TO_GROUP: ${{ secrets.TELEGRAM_TO_GROUP }}
           TELEGRAM_TOPIC_ID: ${{ secrets.TELEGRAM_TOPIC_ID }}
@@ -373,7 +318,7 @@ jobs:
 
           dockerhub_enabled=0
           dockerhub_image=""
-          if [[ -n "$DOCKERHUB_USERNAME" && -n "$DOCKERHUB_TOKEN" ]]; then
+          if [[ "$DOCKERHUB_PUBLISH_OK" == "true" && -n "$DOCKERHUB_USERNAME" && -n "$DOCKERHUB_TOKEN" ]]; then
             dockerhub_enabled=1
             if [[ -n "$DOCKERHUB_IMAGE_OVERRIDE" ]]; then
               dockerhub_image="$DOCKERHUB_IMAGE_OVERRIDE"
@@ -382,16 +327,14 @@ jobs:
             fi
           fi
 
-          image_lines=()
-          while IFS= read -r tag; do
-            [[ -z "$tag" ]] && continue
-            image_lines+=("  - ${GHCR_IMAGE}:${tag}")
-            if [[ "$dockerhub_enabled" == "1" && -n "$dockerhub_image" ]]; then
-              image_lines+=("  - ${dockerhub_image}:${tag}")
-            fi
-          done < <(jq -r '.[]' <<<"$TAGS_JSON")
-
-          images_block="$(printf '%s\n' "${image_lines[@]}")"
+          MAGISK_CONTAINER_TAGS="$(jq -r '.[]' <<<"$TAGS_JSON")"
+          export MAGISK_CONTAINER_TAGS
+          images_block="$(
+            MAGISK_PRIMARY_IMAGE="$GHCR_IMAGE" \
+            MAGISK_OPTIONAL_IMAGE="$dockerhub_image" \
+            MAGISK_OPTIONAL_PUBLISHED="$dockerhub_enabled" \
+              bash .magisk-ci-toolkit/ci/container_mirror.sh list | sed 's/^/  - /'
+          )"
           if [[ -z "$images_block" ]]; then
             images_block="  - ${GHCR_IMAGE}:<unresolved>"
           fi

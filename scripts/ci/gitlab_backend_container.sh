@@ -18,6 +18,9 @@ require_env() {
   fi
 }
 
+toolkit_dir="${MAGISK_CI_TOOLKIT_DIR:-$(bash scripts/resolve_ci_toolkit.sh)}"
+source "$toolkit_dir/ci/optional_registry.sh"
+
 append_proxy_build_arg() {
   local -n tag_args_ref=$1
   local build_arg_name=$2
@@ -44,6 +47,8 @@ release_tags() {
   fi
 
   eval "$(bash scripts/release/release_ref.sh parse-ref "$ref_type" "$ref_name")"
+  # release_ref.sh assigns these variables through the eval above.
+  # shellcheck disable=SC2154
   case "$release_kind" in
     beta)
       printf '%s\n' "beta"
@@ -64,22 +69,16 @@ gitlab_image() {
 }
 
 dockerhub_image() {
-  require_env DOCKERHUB_USERNAME
-  require_env DOCKERHUB_TOKEN
-  printf '%s\n' "${DOCKERHUB_IMAGE:-docker.io/${DOCKERHUB_USERNAME}/xinyi-relay-backend}"
+  printf '%s\n' "${DOCKERHUB_IMAGE:-docker.io/${DOCKERHUB_USERNAME:-unknown}/xinyi-relay-backend}"
 }
 
-docker_login_all() {
+docker_login_gitlab() {
   require_env CI_REGISTRY
   require_env CI_REGISTRY_USER
   require_env CI_REGISTRY_PASSWORD
-  require_env DOCKERHUB_USERNAME
-  require_env DOCKERHUB_TOKEN
 
   printf '%s' "$CI_REGISTRY_PASSWORD" \
     | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
-  printf '%s' "$DOCKERHUB_TOKEN" \
-    | docker login docker.io --username "$DOCKERHUB_USERNAME" --password-stdin
 }
 
 backend_arches() {
@@ -102,6 +101,32 @@ create_builder() {
   trap 'docker buildx rm "$BUILDX_BUILDER" >/dev/null 2>&1 || true' EXIT
 }
 
+build_target() {
+  local image=$1
+  local arch=$2
+  shift 2
+  local build_args=("$@")
+  local tag_args=()
+  while IFS= read -r tag; do
+    [[ -z "$tag" ]] && continue
+    tag_args+=(--tag "${image}:${tag}-${arch}")
+  done < <(release_tags)
+
+  if [[ ${#tag_args[@]} -eq 0 ]]; then
+    echo "ERROR: no backend image tags resolved" >&2
+    return 1
+  fi
+
+  docker buildx build \
+    --platform "linux/${arch}" \
+    --file backend/api/Dockerfile \
+    --push \
+    --provenance=false \
+    "${build_args[@]}" \
+    "${tag_args[@]}" \
+    .
+}
+
 build_arch() {
   local arch=${1:-}
   case "$arch" in
@@ -112,30 +137,15 @@ build_arch() {
       ;;
   esac
 
-  docker_login_all
+  docker_login_gitlab
   docker buildx version
   create_builder
 
-  local gitlab_image dockerhub_image source_url revision ref_name
+  local gitlab_image source_url revision ref_name
   gitlab_image="$(gitlab_image)"
-  dockerhub_image="$(dockerhub_image)"
   source_url="${CI_PROJECT_URL:-https://gitlab.com/magisk3171/xinyi-relay}"
   revision="${CI_COMMIT_SHA:-unknown}"
   ref_name="${CI_COMMIT_REF_NAME:-${CI_COMMIT_TAG:-unknown}}"
-
-  local tag_args=()
-  while IFS= read -r tag; do
-    [[ -z "$tag" ]] && continue
-    tag_args+=(
-      --tag "${gitlab_image}:${tag}-${arch}"
-      --tag "${dockerhub_image}:${tag}-${arch}"
-    )
-  done < <(release_tags)
-
-  if [[ ${#tag_args[@]} -eq 0 ]]; then
-    echo "ERROR: no backend image tags resolved" >&2
-    exit 1
-  fi
 
   local build_args=(
     --build-arg "GOPROXY=${GOPROXY:-https://goproxy.cn,direct}"
@@ -149,46 +159,59 @@ build_arch() {
   append_proxy_build_arg build_args all_proxy RELAY_BUILD_ALL_PROXY all_proxy ALL_PROXY
   append_proxy_build_arg build_args no_proxy RELAY_BUILD_NO_PROXY no_proxy NO_PROXY
 
-  docker buildx build \
-    --platform "linux/${arch}" \
-    --file backend/api/Dockerfile \
-    --push \
-    --provenance=false \
-    "${build_args[@]}" \
+  local labels=(
     --label "org.opencontainers.image.title=xinyi-relay-backend" \
     --label "org.opencontainers.image.description=Remote backend for Xinyi Relay" \
     --label "org.opencontainers.image.source=${source_url}" \
     --label "org.opencontainers.image.revision=${revision}" \
-    --label "org.opencontainers.image.ref.name=${ref_name}" \
-    "${tag_args[@]}" \
-    .
+    --label "org.opencontainers.image.ref.name=${ref_name}"
+  )
+
+  build_target "$gitlab_image" "$arch" "${build_args[@]}" "${labels[@]}"
+
+  magisk_publish_optional_registry \
+    "${XINYI_DOCKERHUB_PUBLISH:-true}" \
+    "Docker Hub" \
+    docker.io \
+    "${DOCKERHUB_USERNAME:-}" \
+    "${DOCKERHUB_TOKEN:-}" \
+    build_target "$(dockerhub_image)" "$arch" "${build_args[@]}" "${labels[@]}"
+}
+
+publish_image_manifests() {
+  local image=$1
+  local tag
+  while IFS= read -r tag; do
+    [[ -z "$tag" ]] && continue
+    local image_sources=()
+    while IFS= read -r arch; do
+      [[ -z "$arch" ]] && continue
+      image_sources+=("${image}:${tag}-${arch}")
+    done < <(backend_arches)
+    docker buildx imagetools create --tag "${image}:${tag}" "${image_sources[@]}" || return 1
+    docker buildx imagetools inspect "${image}:${tag}" || return 1
+  done < <(release_tags)
 }
 
 publish_manifests() {
-  docker_login_all
+  docker_login_gitlab
   docker buildx version
 
-  local gitlab_image dockerhub_image
+  local gitlab_image
   gitlab_image="$(gitlab_image)"
-  dockerhub_image="$(dockerhub_image)"
+  publish_image_manifests "$gitlab_image"
 
-  while IFS= read -r tag; do
-    [[ -z "$tag" ]] && continue
-    for image in "$gitlab_image" "$dockerhub_image"; do
-      local image_sources=()
-      while IFS= read -r arch; do
-        [[ -z "$arch" ]] && continue
-        image_sources+=("${image}:${tag}-${arch}")
-      done < <(backend_arches)
-      docker buildx imagetools create \
-        --tag "${image}:${tag}" \
-        "${image_sources[@]}"
-      docker buildx imagetools inspect "${image}:${tag}"
-    done
-  done < <(release_tags)
+  magisk_publish_optional_registry \
+    "${XINYI_DOCKERHUB_PUBLISH:-true}" \
+    "Docker Hub" \
+    docker.io \
+    "${DOCKERHUB_USERNAME:-}" \
+    "${DOCKERHUB_TOKEN:-}" \
+    publish_image_manifests "$(dockerhub_image)"
 
   local signal_file="${MAGISK_TELEGRAM_IMAGE_PUBLISH_ENV_FILE:-telegram_images.env}"
-  printf 'MAGISK_TELEGRAM_IMAGE_PUBLISH_OK=1\n' >"$signal_file"
+  printf 'MAGISK_TELEGRAM_IMAGE_PUBLISH_OK=1\nXINYI_DOCKERHUB_PUBLISH_OK=%s\n' \
+    "$MAGISK_OPTIONAL_REGISTRY_PUBLISH_OK" >"$signal_file"
   echo "Wrote publish success signal: $signal_file"
 }
 
@@ -200,10 +223,8 @@ list_images() {
   while IFS= read -r tag; do
     [[ -z "$tag" ]] && continue
     printf '%s:%s\n' "$gitlab" "$tag"
-    if [[ -n "${DOCKERHUB_USERNAME:-}" && -n "${DOCKERHUB_TOKEN:-}" ]]; then
+    if [[ "${XINYI_DOCKERHUB_PUBLISH_OK:-0}" == "1" ]]; then
       printf '%s:%s\n' "$(dockerhub_image)" "$tag"
-    elif [[ -n "${DOCKERHUB_IMAGE:-}" ]]; then
-      printf '%s:%s\n' "$DOCKERHUB_IMAGE" "$tag"
     fi
   done < <(release_tags)
 }
