@@ -1,6 +1,6 @@
 # 系统架构与代码分层
 
-最后更新：2026-07-16
+最后更新：2026-07-26
 
 ## 总览
 
@@ -220,10 +220,16 @@ bash scripts/checks/verify_shared_submodule_compat.sh  # 共享子模块兼容�
 - Android 本地配置是唯一真源，先本地 commit，再异步 push device mirror。
 - Web / Desktop 不直接写 mirror，只向目标设备提交 `ConfigMutationBatch`
   命令。
+- Backend mirror 与 pending command 均按设备隔离；pending command 只表示乐观状态，
+  设备成功应用并 ack 前不得修改 mirror。
+- 同一设备连续排队时，下一条命令以最新 pending `targetRevision` 为基线；首次绑定仅在
+  本地 revision 为 `0` 且没有 dirty state 时允许导入远端初始 mirror。
 - 命令基线落后时，Backend 返回 `stale_base_revision`；前端必须刷新目标
   设备 mirror 后重建 mutation，而不是套用旧的共享 snapshot merge 逻辑。
 - 已被更新 mirror 越过的旧命令会变成 stale，不允许再覆盖设备上的更新本地
   revision。
+- 活跃 wire 字段使用 `mirrorContent`，写操作只接受 typed mutation；`config_snapshots`
+  与 SQLite `snapshot` 仅是一次性迁移或本地存储实现细节，不得恢复为共享配置真源。
 
 ### 多设备数据隔离
 
@@ -265,7 +271,7 @@ bash scripts/checks/verify_shared_submodule_compat.sh  # 共享子模块兼容�
 | P3 | 模块边界治理（`verifyModuleBoundaries` 固化） | ✅ |
 | P4 | Compose UI 大文件拆分 | ✅ |
 | P5 | 日志系统收敛（`LogLevel`/`LogRoute`/`LogEvent`/`LogSink`） | ✅ |
-| P6 | 桌面端独立运行（SQLite Store + pull 同步已实现，push + UI 待完成） | 🔵 |
+| P6 | 桌面端独立运行（SQLite Store、双向配置同步、本地服务与管理 UI） | ✅ |
 
 ## 平台兼容性：Android 17 (API 37)
 
@@ -278,8 +284,6 @@ bash scripts/checks/verify_shared_submodule_compat.sh  # 共享子模块兼容�
 | ⚠️ 中 | 后台音频 API 调用静默失败。项目未使用后台音频。 | 无需修改 |
 | ⚠️ 低 | 隐式 URI 授权限制（Android 18 预告）。 | 无需修改 |
 | ⚠️ 低 | 每应用密钥库限制。 | 无需修改 |
-
-详细分析：`docs/xinyi-relay-android17-impact.md`
 
 ## 已知技术债
 

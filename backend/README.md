@@ -233,5 +233,5 @@ docker pull docker.io/alpha317/xinyi-relay-backend:latest
 
 ## 文档
 
-- 远程架构：`docs/REMOTE_ARCHITECTURE.md`
+- 系统架构：`docs/ARCHITECTURE.md`
 - API 概览：`backend/API_OVERVIEW.md`
