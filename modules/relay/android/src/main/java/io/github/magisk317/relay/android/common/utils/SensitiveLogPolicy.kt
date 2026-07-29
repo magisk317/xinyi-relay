@@ -21,7 +21,7 @@ object SensitiveLogPolicy {
     @JvmStatic
     fun setEnabled(value: Boolean) {
         enabled = isSupported() && value
-        LogSanitizerConfig.syncSensitiveDebugMode(isEnabled())
+        LogSanitizerConfig.syncSanitizationEnabled(!isEnabled())
     }
 
     @JvmStatic
