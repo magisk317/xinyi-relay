@@ -1,4 +1,25 @@
 # ==========================
+# Xposed module entry / hooks
+# Loaded reflectively by LSPosed via META-INF/xposed/java_init.list.
+# Must stay alive under R8; app process code does not reference these classes.
+# ==========================
+-keep class io.github.magisk317.relay.xp.LibXposedEntry { *; }
+-keep class io.github.magisk317.relay.xp.** { *; }
+-keep class io.github.magisk317.xposed.BaseLibXposedEntry { *; }
+-keep class io.github.magisk317.xposed.BaseHook { *; }
+-keep class io.github.magisk317.xposed.LibXposedHookApi { *; }
+-keep class io.github.magisk317.xposed.LoadParam { *; }
+-keep class io.github.magisk317.xposed.HookEnv { *; }
+-keep class io.github.magisk317.smscode.xposed.** { *; }
+-keepclassmembers class * implements io.github.libxposed.api.XposedInterface$Hooker {
+    <methods>;
+}
+
+# LibXposed API is provided at runtime by LSPosed framework (compileOnly dependency).
+# Suppress R8 missing-class errors for these interfaces/classes.
+-dontwarn io.github.libxposed.api.**
+
+# ==========================
 # jsoup proguard start
 -keeppackagenames org.jsoup.nodes
 # jsoup proguard end
