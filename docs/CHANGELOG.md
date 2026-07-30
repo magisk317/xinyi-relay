@@ -3,6 +3,16 @@
 本日志记录了项目近期的主要变更。 
 
 
+## [v0.2.2] - 2026-07-30
+- 版本：`versionCode 44` / `versionName 0.2.2`。
+- `[build]` 修复 R8 release shrinking 删除 Xposed 入口类导致模块加载失败的问题（v0.2.1 回归）。
+- `[hook/runtime]` 适配日志脱敏偏好 API。
+- `[deps]` 更新 magisk-xposed-kit 子模块。
+
+> Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.2.1...v0.2.2
+
+---
+
 ## [v0.2.1] - 2026-07-26
 - 版本：`versionCode 43` / `versionName 0.2.1`。
 - `[notification/sms]` 支持从应用通知解析验证码；新增发送方黑名单拦截、记录与配置，并统一通知桥接和短信分发去重。

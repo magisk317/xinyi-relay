@@ -1,0 +1,6 @@
+- Updated to 0.2.1 (42).
+- Parse verification codes from app notifications; add sender blacklist controls.
+- Harden IPC, process recovery, atomic preferences, and log redaction.
+- Expand telemetry across hooks, forwarding, senders, backup, and Matrix E2EE.
+- Refine the shared UI, sender runtime, and release pipelines.
+- https://gitlab.com/magisk3171/xinyi-relay/-/releases
