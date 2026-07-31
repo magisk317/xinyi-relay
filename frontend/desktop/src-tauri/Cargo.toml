@@ -2,7 +2,7 @@
 name = "xinyi-relay-desktop"
 version = "0.2.1"
 edition = "2024"
-rust-version = "1.96.0"
+rust-version = "1.97.1"
 
 [build-dependencies]
 tauri-build = { version = "2.1.1", features = [] }
