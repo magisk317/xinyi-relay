@@ -618,6 +618,8 @@ telegram:images:
     - .xinyi_backend_publish_rules
   stage: release-publish
   allow_failure: true
+  tags:
+    - magisk-remote-linux
   needs:
     - job: backend:container:manifest
       artifacts: true
@@ -632,6 +634,8 @@ telegram:release:
   extends: .magisk_telegram_release
   stage: release-publish
   allow_failure: true
+  tags:
+    - magisk-remote-linux
   variables:
     MAGISK_TELEGRAM_PROJECT_TAG: "#XinyiRelay"
     MAGISK_TELEGRAM_PROJECT_NAME: "XinyiRelay"
@@ -648,6 +652,8 @@ telegram:ci:
     - .xinyi_ci_rules
   stage: notify
   allow_failure: true
+  tags:
+    - magisk-remote-linux
   variables:
     MAGISK_TELEGRAM_PROJECT_TAG: "#XinyiRelay"
     MAGISK_TELEGRAM_PROJECT_NAME: "XinyiRelay"
