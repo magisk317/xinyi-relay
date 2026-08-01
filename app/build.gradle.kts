@@ -85,6 +85,17 @@ android {
         buildConfigField("boolean", "ALLOW_CONFLICT_BYPASS", allowConflictBypass.toString())
     }
 
+    productFlavors {
+        getByName("play") {
+            buildConfigField("boolean", "ENABLE_STANDARD_MODE_SERVICE", "false")
+        }
+        listOf("githubNoE2ee", "githubWithE2ee", "fdroid").forEach { flavorName ->
+            getByName(flavorName) {
+                buildConfigField("boolean", "ENABLE_STANDARD_MODE_SERVICE", "true")
+            }
+        }
+    }
+
     buildFeatures {
         buildConfig = true
     }

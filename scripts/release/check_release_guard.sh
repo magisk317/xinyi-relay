@@ -37,6 +37,53 @@ check_commit_subjects "$ROOT_DIR" "$ALLOW_NON_ASCII_COMMIT_SUBJECT"
 check_changelog_section "$ROOT_DIR" "$VERSION_NAME"
 check_tag_matches_version "$TAG_NAME" "$VERSION_NAME"
 
+python3 - "$ROOT_DIR/app/src/main/AndroidManifest.xml" "$ROOT_DIR/app/src/play/AndroidManifest.xml" <<'PY'
+import sys
+import xml.etree.ElementTree as ET
+
+android_ns = "{http://schemas.android.com/apk/res/android}"
+tools_ns = "{http://schemas.android.com/tools}"
+main_manifest, play_manifest = map(ET.parse, sys.argv[1:])
+
+main_permissions = {
+    element.get(android_ns + "name")
+    for element in main_manifest.getroot().findall("uses-permission")
+}
+if {
+    "android.permission.FOREGROUND_SERVICE",
+    "android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING",
+} - main_permissions:
+    raise SystemExit("FAIL: main manifest lost the remote-messaging foreground-service permissions")
+
+main_services = [
+    element for element in main_manifest.getroot().findall("application/service")
+    if element.get(android_ns + "name") == "io.github.magisk317.relay.service.StandardModeService"
+]
+if len(main_services) != 1 or main_services[0].get(android_ns + "foregroundServiceType") != "remoteMessaging":
+    raise SystemExit("FAIL: main manifest must declare StandardModeService as remoteMessaging")
+
+play_root = play_manifest.getroot()
+play_permissions = [
+    element for element in play_root.findall("uses-permission")
+    if element.get(android_ns + "name") in {
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING",
+    }
+]
+if len(play_permissions) != 2 or any(
+    element.get(tools_ns + "node") != "remove" for element in play_permissions
+):
+    raise SystemExit("FAIL: Play manifest must explicitly remove both foreground-service permissions")
+
+play_services = [
+    element for element in play_root.findall("application/service")
+    if element.get(android_ns + "name") == "io.github.magisk317.relay.service.StandardModeService"
+]
+if len(play_services) != 1 or play_services[0].get(tools_ns + "node") != "remove":
+    raise SystemExit("FAIL: Play manifest must explicitly remove StandardModeService")
+PY
+echo "PASS: Play foreground-service manifest contract"
+
 # xinyi-relay specific: check whatsnew locales
 whatsnew_dir="${ROOT_DIR}/distribution/whatsnew"
 fail=0
