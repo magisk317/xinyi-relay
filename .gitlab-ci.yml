@@ -25,7 +25,7 @@ workflow:
 default:
   interruptible: true
   tags:
-    - magisk-linux
+    - $XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG
 
 stages:
   - build
@@ -78,6 +78,14 @@ variables:
 
 .xinyi_android_rules:
   extends: .xinyi_ci_rules
+  cache: []
+
+.xinyi_signed_android_rules:
+  cache: []
+  rules:
+    - if: '$RELEASE_KEYSTORE == "" || $STORE_PASSWORD == "" || $KEY_ALIAS == "" || $KEY_PASSWORD == ""'
+      when: never
+    - !reference [.xinyi_ci_rules, rules]
 
 .xinyi_backend_validation_rules:
   rules:
@@ -118,7 +126,6 @@ variables:
   image: "docker:29-cli"
   services:
     - name: "docker:29-dind"
-      alias: docker
       command: ["--tls=false", "--mtu=1400"]
   variables:
     DOCKER_HOST: "tcp://docker:2375"
@@ -419,12 +426,11 @@ webui:check:
 android:build:
   extends:
     - .magisk_android_build
-    - .xinyi_android_rules
+    - .xinyi_signed_android_rules
   variables:
     MAGISK_ANDROID_BUILD_TASKS: >-
       :app:assembleGithubNoE2eeDebug
       :app:assembleGithubWithE2eeDebug
-      -PallowIncompatibleDebugSigning=true
       -PbuildSplits
       -PskipGoogleServices=true
   artifacts:
@@ -446,7 +452,6 @@ android:build:
       : "${MAGISK_GRADLE_ARGS:=--warning-mode all}"
       : "${XINYI_ANDROID_TEST_TASKS:?XINYI_ANDROID_TEST_TASKS is required}"
       bash "$MAGISK_CI_TOOLKIT_DIR/gradle/run_gradle_with_retry.sh" $MAGISK_GRADLE_ARGS $XINYI_ANDROID_TEST_TASKS \
-        -PallowIncompatibleDebugSigning=true \
         -PskipGoogleServices=true
   artifacts:
     when: always
@@ -496,7 +501,6 @@ android:detekt:
     MAGISK_ANDROID_DETEKT_TASKS: >-
       detekt
       --continue
-      -PallowIncompatibleDebugSigning=true
       -PskipGoogleServices=true
   artifacts:
     name: "XinyiRelay-detekt-$CI_COMMIT_REF_SLUG"
@@ -670,3 +674,5 @@ renovate:gitlab:
   extends: .magisk_renovate_gitlab
   interruptible: false
   stage: maintenance
+  tags:
+    - magisk-arm64-linux

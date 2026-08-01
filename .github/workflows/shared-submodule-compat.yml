@@ -48,7 +48,6 @@ jobs:
     env:
       HAS_GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
       SKIP_GOOGLE_SERVICES: ${{ secrets.GOOGLE_SERVICES_JSON == '' }}
-      ALLOW_INCOMPATIBLE_DEBUG_SIGNING: "true"
     steps:
       - uses: actions/checkout@v7
         with:
