@@ -3,6 +3,14 @@
 本日志记录了项目近期的主要变更。 
 
 
+## [v0.2.3] - Unreleased
+- 版本：`versionCode 45` / `versionName 0.2.3`。
+- 下一轮开发占位，发布前补充具体变更。
+
+> Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.2.2...v0.2.3
+
+---
+
 ## [v0.2.2] - 2026-07-31
 - 版本：`versionCode 44` / `versionName 0.2.2`。
 - `[xposed/build]` 修复 R8 release shrinking 删除反射入口导致的模块加载问题，并恢复类加载器变化后的 Hook 分发。
