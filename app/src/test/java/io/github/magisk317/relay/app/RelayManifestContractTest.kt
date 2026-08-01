@@ -156,9 +156,8 @@ class RelayManifestContractTest {
     }
 
     @Test
-    fun `distribution manifests preserve remote messaging foreground service`() {
+    fun `non play distribution manifests preserve remote messaging foreground service`() {
         listOf(
-            "app/src/play/AndroidManifest.xml",
             "app/src/github/AndroidManifest.xml",
             "app/src/fdroid/AndroidManifest.xml",
         ).forEach { manifestPath ->
@@ -204,10 +203,11 @@ class RelayManifestContractTest {
     }
 
     @Test
-    fun `play manifest removes standard mode telephony permissions and receivers`() {
+    fun `play manifest removes standard mode services and telephony permissions`() {
         val permissions = permissionNames("app/src/play/AndroidManifest.xml")
         val removedPermissions = removedPermissionNames("app/src/play/AndroidManifest.xml")
         val removedReceivers = removedReceiverNames("app/src/play/AndroidManifest.xml")
+        val removedServices = removedServiceNames("app/src/play/AndroidManifest.xml")
         val features = featureNames("app/src/play/AndroidManifest.xml")
 
         assertFalse("android.permission.SEND_SMS" in permissions)
@@ -217,8 +217,11 @@ class RelayManifestContractTest {
         assertTrue("android.permission.READ_PHONE_STATE" in removedPermissions)
         assertTrue("android.permission.READ_CALL_LOG" in removedPermissions)
         assertTrue("android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" in removedPermissions)
+        assertTrue("android.permission.FOREGROUND_SERVICE" in removedPermissions)
+        assertTrue("android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" in removedPermissions)
         assertTrue("io.github.magisk317.relay.receiver.StandardSmsReceiver" in removedReceivers)
         assertTrue("io.github.magisk317.relay.receiver.StandardMmsReceiver" in removedReceivers)
+        assertTrue("io.github.magisk317.relay.service.StandardModeService" in removedServices)
         assertFalse("android.hardware.telephony" in features)
     }
 
@@ -281,6 +284,17 @@ class RelayManifestContractTest {
         assertTrue("com.android.mms" in scope)
     }
 
+    @Test
+    fun `release shrinking preserves libxposed entry and hook contracts`() {
+        val rules = resolveProjectFile("app/proguard-rules.pro").readText()
+
+        assertTrue("-keep class io.github.magisk317.relay.xp.** { *; }" in rules)
+        assertTrue("-keep class io.github.magisk317.xposed.** { *; }" in rules)
+        assertTrue("implements io.github.libxposed.api.XposedInterface\$Hooker" in rules)
+        assertTrue("extends io.github.libxposed.api.XposedModule" in rules)
+        assertTrue("-dontwarn io.github.libxposed.api.**" in rules)
+    }
+
     private fun parseManifest(relativePath: String) = DocumentBuilderFactory.newInstance()
         .apply { isNamespaceAware = true }
         .newDocumentBuilder()
@@ -318,6 +332,15 @@ class RelayManifestContractTest {
     private fun removedReceiverNames(relativePath: String): Set<String> {
         return parseManifest(relativePath)
             .getElementsByTagName("receiver")
+            .asElements()
+            .filter { it.attributes.getNamedItemNS(TOOLS_NS, "node")?.nodeValue == "remove" }
+            .mapNotNull { it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue }
+            .toSet()
+    }
+
+    private fun removedServiceNames(relativePath: String): Set<String> {
+        return parseManifest(relativePath)
+            .getElementsByTagName("service")
             .asElements()
             .filter { it.attributes.getNamedItemNS(TOOLS_NS, "node")?.nodeValue == "remove" }
             .mapNotNull { it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue }

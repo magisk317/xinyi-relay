@@ -10,6 +10,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.feature.call.CallStateMonitor
@@ -149,6 +150,10 @@ class StandardModeService : Service() {
         private const val ACTION_STOP = "io.github.magisk317.relay.ACTION_STOP_STANDARD_MODE"
 
         fun start(context: Context) {
+            if (!BuildConfig.ENABLE_STANDARD_MODE_SERVICE) {
+                XLog.i("StandardModeService disabled for this distribution")
+                return
+            }
             val intent = Intent(context, StandardModeService::class.java).apply {
                 action = ACTION_START
             }
@@ -172,6 +177,14 @@ class StandardModeService : Service() {
         }
 
         fun reconcile(context: Context, mode: WorkMode, reason: String) {
+            if (!BuildConfig.ENABLE_STANDARD_MODE_SERVICE) {
+                XLog.i(
+                    "StandardModeService reconcile skipped: distribution disabled mode=%s reason=%s",
+                    mode,
+                    reason,
+                )
+                return
+            }
             CallStateMonitor.refresh("work_mode_$reason")
             when (mode) {
                 WorkMode.Standard -> start(context)

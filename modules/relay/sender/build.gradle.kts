@@ -26,10 +26,10 @@ android {
 
     sourceSets {
         listOf("fdroid", "githubNoE2ee", "githubWithE2ee").forEach { flavor ->
-            getByName(flavor).kotlin.srcDir("src/nonPlaySms/java")
+            getByName(flavor).kotlin.directories.add("src/nonPlaySms/java")
         }
         listOf("githubNoE2ee", "play").forEach { flavor ->
-            getByName(flavor).kotlin.srcDir("src/matrixE2eeStub/java")
+            getByName(flavor).kotlin.directories.add("src/matrixE2eeStub/java")
         }
     }
 }

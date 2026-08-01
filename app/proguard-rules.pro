@@ -3,16 +3,21 @@
 # Loaded reflectively by LSPosed via META-INF/xposed/java_init.list.
 # Must stay alive under R8; app process code does not reference these classes.
 # ==========================
--keep class io.github.magisk317.relay.xp.LibXposedEntry { *; }
 -keep class io.github.magisk317.relay.xp.** { *; }
--keep class io.github.magisk317.xposed.BaseLibXposedEntry { *; }
--keep class io.github.magisk317.xposed.BaseHook { *; }
--keep class io.github.magisk317.xposed.LibXposedHookApi { *; }
--keep class io.github.magisk317.xposed.LoadParam { *; }
--keep class io.github.magisk317.xposed.HookEnv { *; }
+-keep class io.github.magisk317.xposed.** { *; }
 -keep class io.github.magisk317.smscode.xposed.** { *; }
+
+# Safety net for Hooker implementations outside the packages above. The two production
+# implementations both live in io.github.magisk317.xposed, so this rule is redundant today, but
+# without it a Hooker added elsewhere would have intercept() renamed and its hooks would silently
+# never fire (AbstractMethodError at dispatch time).
 -keepclassmembers class * implements io.github.libxposed.api.XposedInterface$Hooker {
     <methods>;
+}
+
+# LSPosed instantiates the entry reflectively; keep both constructor forms.
+-keepclassmembers class * extends io.github.libxposed.api.XposedModule {
+    <init>(...);
 }
 
 # LibXposed API is provided at runtime by LSPosed framework (compileOnly dependency).
