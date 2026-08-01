@@ -8,6 +8,7 @@ ARG http_proxy
 ARG https_proxy
 ARG all_proxy
 ARG no_proxy
+ARG PNPM_CONFIG_REGISTRY=https://registry.npmjs.org
 ENV HTTP_PROXY=${HTTP_PROXY} \
     HTTPS_PROXY=${HTTPS_PROXY} \
     ALL_PROXY=${ALL_PROXY} \
@@ -21,9 +22,9 @@ COPY frontend/shared ./frontend/shared
 COPY frontend/webui ./frontend/webui
 WORKDIR /src/frontend/webui
 RUN corepack enable && corepack prepare "$(node -p "require('./package.json').packageManager")" --activate
-RUN pnpm config set registry https://registry.npmmirror.com
+RUN pnpm config set registry "${PNPM_CONFIG_REGISTRY}"
 RUN CI=true pnpm install --frozen-lockfile || \
-    (echo "npmmirror failed, falling back to official registry" >&2 && \
+    (echo "Configured npm registry failed, falling back to official registry" >&2 && \
      pnpm config set registry https://registry.npmjs.org && \
      CI=true pnpm install --frozen-lockfile)
 RUN pnpm run build
@@ -31,7 +32,7 @@ RUN pnpm run build
 # Stage 2: Build backend
 FROM --platform=$BUILDPLATFORM golang:1.26.5-alpine3.23 AS build
 WORKDIR /src
-ARG GOPROXY=https://goproxy.cn,direct
+ARG GOPROXY=https://proxy.golang.org,direct
 ARG HTTP_PROXY
 ARG HTTPS_PROXY
 ARG ALL_PROXY

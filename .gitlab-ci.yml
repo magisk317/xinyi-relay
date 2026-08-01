@@ -1,15 +1,15 @@
 include:
   - project: magisk3171/magisk-ci-toolkit
-    ref: ad6caa88fdb7bb395fb935a6ff261134103d6dd6
+    ref: f7f01cd8b4bfb7c541dbab9b17cf84e10930ab79
     file: /.gitlab/ci/android.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: ad6caa88fdb7bb395fb935a6ff261134103d6dd6
+    ref: f7f01cd8b4bfb7c541dbab9b17cf84e10930ab79
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: ad6caa88fdb7bb395fb935a6ff261134103d6dd6
+    ref: f7f01cd8b4bfb7c541dbab9b17cf84e10930ab79
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: ad6caa88fdb7bb395fb935a6ff261134103d6dd6
+    ref: f7f01cd8b4bfb7c541dbab9b17cf84e10930ab79
     file: /.gitlab/ci/renovate.yml
 
 workflow:
@@ -38,7 +38,7 @@ stages:
   - maintenance
 
 variables:
-  MAGISK_CI_TOOLKIT_REF: "ad6caa88fdb7bb395fb935a6ff261134103d6dd6"
+  MAGISK_CI_TOOLKIT_REF: "f7f01cd8b4bfb7c541dbab9b17cf84e10930ab79"
   GIT_DEPTH: "0"
   GIT_SUBMODULE_STRATEGY: recursive
   GIT_SUBMODULE_DEPTH: "0"
@@ -52,10 +52,12 @@ variables:
   MAGISK_ANDROID_RELEASE_MODULES_REPO: ""
   MAGISK_ANDROID_RELEASE_PUBLISH_PLAY: "true"
   MAGISK_ANDROID_RELEASE_PLAY_TRACK: "production"
+  # Public SHA-256 fingerprint of the production APK signing certificate.
+  MAGISK_ANDROID_RELEASE_CERT_SHA256: "027b936e1d82a606d83599548b8b11e49a2c8ae2588c4a9fbe8311e2c54f103a"
   MAGISK_RENOVATE_REPOSITORY: "magisk3171/xinyi-relay"
   XINYI_DOCKERHUB_PUBLISH: "true"
   XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG: "magisk-amd64-linux"
-  XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG: "saas-linux-small-arm64"
+  XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG: "magisk-arm64-linux"
   XINYI_GITLAB_WINDOWS_AMD64_RUNNER_TAG: "saas-windows-medium-amd64"
   XINYI_GITLAB_MACOS_ARM64_RUNNER_TAG: "saas-macos-medium-m1"
   XINYI_GITLAB_MACOS_ENABLED: "false"
@@ -137,11 +139,14 @@ variables:
     https_proxy: "$CI_HTTPS_PROXY"
     NO_PROXY: "$CI_NO_PROXY,auth.docker.io,registry-1.docker.io,production.cloudflare.docker.com,docker.io"
     no_proxy: "$CI_NO_PROXY,auth.docker.io,registry-1.docker.io,production.cloudflare.docker.com,docker.io"
-    GOPROXY: "https://goproxy.cn,direct"
   before_script:
     - |
+      use_mirror="${MAGISK_LINUX_USE_MIRROR:-true}"
+      if [ "$use_mirror" = "true" ]; then
+        sed -i 's#https://dl-cdn.alpinelinux.org/alpine#https://mirrors.tuna.tsinghua.edu.cn/alpine#g' /etc/apk/repositories 2>/dev/null || true
+      fi
       if ! apk add --no-cache bash curl git jq; then
-        echo "Alpine mirror failed, falling back to official" >&2
+        echo "Alpine package source failed, falling back to official" >&2
         sed -i 's#https://mirrors.tuna.tsinghua.edu.cn/alpine#https://dl-cdn.alpinelinux.org/alpine#g' /etc/apk/repositories 2>/dev/null || true
         apk add --no-cache bash curl git jq
       fi
@@ -204,12 +209,17 @@ backend:go:
   extends: .xinyi_backend_validation_rules
   image: "golang:1.26.5-bookworm"
   stage: quality
+  tags:
+    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs: []
-  variables:
-    GOPROXY: "https://goproxy.cn,direct"
   script:
     - |
       set -euo pipefail
+      if [[ "${MAGISK_LINUX_USE_MIRROR:-true}" == "true" ]]; then
+        export GOPROXY="${GOPROXY:-https://goproxy.cn,direct}"
+      else
+        export GOPROXY="https://proxy.golang.org,direct"
+      fi
       cd backend/api
       test -z "$(gofmt -l .)"
       mkdir -p webui_dist
@@ -222,6 +232,8 @@ backend:smoke:
     - .xinyi_docker
     - .xinyi_backend_validation_rules
   stage: quality
+  tags:
+    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   variables:
     BASE_URL: "http://docker:8088"
   needs:
@@ -281,6 +293,8 @@ backend:container:manifest:
   resource_group: xinyi-backend-docker-manifest
   stage: release-publish
   allow_failure: true
+  tags:
+    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
     - job: backend:container:amd64
       artifacts: false
@@ -339,8 +353,10 @@ desktop:macos:arm64:
     - scripts/ci/gitlab_desktop_package.sh macos macos-arm64 aarch64-apple-darwin "--target aarch64-apple-darwin --bundles app,dmg" "frontend/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle"
 
 desktop:release:gitlab:
-  image: "python:3.14-slim"
+  extends: .magisk_linux_base
   stage: release-publish
+  tags:
+    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v[0-9]+[.][0-9]+[.][0-9]+.*$/ && $RELEASE_OWNER == "gitlab"'
       when: manual
@@ -349,28 +365,6 @@ desktop:release:gitlab:
   needs:
     - job: desktop:linux:x64
       artifacts: true
-  before_script:
-    - |
-      set -euo pipefail
-      export DEBIAN_FRONTEND=noninteractive
-      sed -i \
-        -e 's#http://deb.debian.org/debian-security#https://mirrors.tuna.tsinghua.edu.cn/debian-security#g' \
-        -e 's#http://security.debian.org/debian-security#https://mirrors.tuna.tsinghua.edu.cn/debian-security#g' \
-        -e 's#http://deb.debian.org/debian#https://mirrors.tuna.tsinghua.edu.cn/debian#g' \
-        -e 's#http://archive.ubuntu.com/ubuntu#https://mirrors.tuna.tsinghua.edu.cn/ubuntu#g' \
-        -e 's#http://security.ubuntu.com/ubuntu#https://mirrors.tuna.tsinghua.edu.cn/ubuntu#g' \
-        /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
-      if ! apt-get update; then
-        echo "Mirror apt-get update failed, falling back to official sources" >&2
-        sed -i \
-          -e 's#https://mirrors.tuna.tsinghua.edu.cn/debian-security#http://deb.debian.org/debian-security#g' \
-          -e 's#https://mirrors.tuna.tsinghua.edu.cn/debian#http://deb.debian.org/debian#g' \
-          -e 's#https://mirrors.tuna.tsinghua.edu.cn/ubuntu#http://archive.ubuntu.com/ubuntu#g' \
-          /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
-        apt-get update
-      fi
-    - apt-get install -y --no-install-recommends bash curl
-    - rm -rf /var/lib/apt/lists/*
   script:
     - chmod +x scripts/release/gitlab_desktop_release.sh
     - scripts/release/gitlab_desktop_release.sh
@@ -388,6 +382,8 @@ webui:check:
   extends: .xinyi_android_rules
   image: "node:24-bookworm"
   stage: quality
+  tags:
+    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs: []
   cache:
     key:
@@ -402,14 +398,22 @@ webui:check:
       # Install pnpm via the shared toolkit helper (single source of truth is
       # frontend/webui/package.json's packageManager field). Avoids corepack,
       # which is unbundled from Node 25+.
+      if [[ "${MAGISK_LINUX_USE_MIRROR:-true}" == "true" ]]; then
+        export PNPM_CONFIG_REGISTRY="${PNPM_CONFIG_REGISTRY:-https://registry.npmmirror.com}"
+      else
+        export PNPM_CONFIG_REGISTRY="https://registry.npmjs.org"
+      fi
       toolkit_dir="$(bash scripts/resolve_ci_toolkit.sh)"
       bash "$toolkit_dir/ci/ensure_pnpm.sh" frontend/webui/package.json
       pnpm -C frontend/webui config set store-dir "$CI_PROJECT_DIR/.pnpm-store"
-      # Use npmmirror as primary registry, fallback to official on failure
-      pnpm -C frontend/webui config set registry https://registry.npmmirror.com
-      if ! pnpm -C frontend/webui install --frozen-lockfile --ignore-scripts; then
-        echo "npmmirror install failed, falling back to official registry" >&2
-        pnpm -C frontend/webui config set registry https://registry.npmjs.org
+      pnpm -C frontend/webui config set registry "$PNPM_CONFIG_REGISTRY"
+      if [[ "${MAGISK_LINUX_USE_MIRROR:-true}" == "true" ]]; then
+        if ! pnpm -C frontend/webui install --frozen-lockfile --ignore-scripts; then
+          echo "Mirror npm registry failed, falling back to official registry" >&2
+          pnpm -C frontend/webui config set registry https://registry.npmjs.org
+          pnpm -C frontend/webui install --frozen-lockfile --ignore-scripts
+        fi
+      else
         pnpm -C frontend/webui install --frozen-lockfile --ignore-scripts
       fi
       pnpm -C frontend/webui lint
@@ -513,6 +517,8 @@ android:detekt:
 android:release:guard:
   extends: .magisk_android_release_guard
   stage: release-validate
+  tags:
+    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs: []
 
 android:release:github-apk:
@@ -543,6 +549,8 @@ android:release:github-apk:
           :app:assembleGithubNoE2eeRelease \
           :app:assembleGithubWithE2eeRelease \
           -PbuildSplits
+      chmod +x "$MAGISK_CI_TOOLKIT_DIR/release/validate_android_apk_signatures.sh"
+      bash "$MAGISK_CI_TOOLKIT_DIR/release/validate_android_apk_signatures.sh" app/build/outputs/apk
   artifacts:
     name: "XinyiRelay-release-apks-$CI_COMMIT_TAG"
     when: always
@@ -592,6 +600,8 @@ android:release:gitlab:
   extends: .magisk_android_gitlab_release
   resource_group: xinyi-android-release-publish
   stage: release-publish
+  tags:
+    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
     - job: android:release:github-apk
       artifacts: true
@@ -603,6 +613,8 @@ android:release:play:
   extends: .magisk_android_publish_play
   resource_group: xinyi-android-release-play
   stage: release-publish
+  tags:
+    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
     - job: android:release:play-bundle
       artifacts: true
@@ -611,6 +623,8 @@ android:release:modules-repo:
   extends: .magisk_android_publish_modules_repo
   resource_group: xinyi-android-release-publish
   stage: release-publish
+  tags:
+    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
     - job: android:release:github-apk
       artifacts: true
@@ -623,7 +637,7 @@ telegram:images:
   stage: release-publish
   allow_failure: true
   tags:
-    - magisk-arm64-linux
+    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
     - job: backend:container:manifest
       artifacts: true
@@ -639,7 +653,7 @@ telegram:release:
   stage: release-publish
   allow_failure: true
   tags:
-    - magisk-arm64-linux
+    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   variables:
     MAGISK_TELEGRAM_PROJECT_TAG: "#XinyiRelay"
     MAGISK_TELEGRAM_PROJECT_NAME: "XinyiRelay"
@@ -656,7 +670,7 @@ telegram:ci:
   stage: notify
   allow_failure: true
   tags:
-    - magisk-arm64-linux
+    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   variables:
     MAGISK_TELEGRAM_PROJECT_TAG: "#XinyiRelay"
     MAGISK_TELEGRAM_PROJECT_NAME: "XinyiRelay"
@@ -671,4 +685,4 @@ renovate:gitlab:
   interruptible: false
   stage: maintenance
   tags:
-    - magisk-arm64-linux
+    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG

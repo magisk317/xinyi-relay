@@ -25,6 +25,26 @@ append_proxy_build_args() {
   done
 }
 
+network_use_mirror() {
+  [[ "${MAGISK_LINUX_USE_MIRROR:-true}" == "true" ]]
+}
+
+go_proxy() {
+  if network_use_mirror; then
+    printf '%s\n' "${GOPROXY:-https://goproxy.cn,direct}"
+  else
+    printf '%s\n' "https://proxy.golang.org,direct"
+  fi
+}
+
+npm_registry() {
+  if network_use_mirror; then
+    printf '%s\n' "${PNPM_CONFIG_REGISTRY:-https://registry.npmmirror.com}"
+  else
+    printf '%s\n' "https://registry.npmjs.org"
+  fi
+}
+
 prepare_postgres_data_dir() {
   chmod 0777 "$POSTGRES_DATA_DIR"
 }
@@ -59,7 +79,8 @@ set -a
 set +a
 prepare_postgres_data_dir
 docker_build_args=(
-  --build-arg "GOPROXY=${GOPROXY:-https://goproxy.cn,direct}"
+  --build-arg "GOPROXY=$(go_proxy)"
+  --build-arg "PNPM_CONFIG_REGISTRY=$(npm_registry)"
 )
 append_proxy_build_args docker_build_args HTTP_PROXY RELAY_BUILD_HTTP_PROXY HTTP_PROXY
 append_proxy_build_args docker_build_args HTTPS_PROXY RELAY_BUILD_HTTPS_PROXY HTTPS_PROXY

@@ -36,6 +36,26 @@ append_proxy_build_arg() {
   done
 }
 
+network_use_mirror() {
+  [[ "${MAGISK_LINUX_USE_MIRROR:-true}" == "true" ]]
+}
+
+go_proxy() {
+  if network_use_mirror; then
+    printf '%s\n' "${GOPROXY:-https://goproxy.cn,direct}"
+  else
+    printf '%s\n' "https://proxy.golang.org,direct"
+  fi
+}
+
+npm_registry() {
+  if network_use_mirror; then
+    printf '%s\n' "${PNPM_CONFIG_REGISTRY:-https://registry.npmmirror.com}"
+  else
+    printf '%s\n' "https://registry.npmjs.org"
+  fi
+}
+
 release_tags() {
   local ref_type ref_name
   if [[ -n "${CI_COMMIT_TAG:-}" ]]; then
@@ -148,7 +168,8 @@ build_arch() {
   ref_name="${CI_COMMIT_REF_NAME:-${CI_COMMIT_TAG:-unknown}}"
 
   local build_args=(
-    --build-arg "GOPROXY=${GOPROXY:-https://goproxy.cn,direct}"
+    --build-arg "GOPROXY=$(go_proxy)"
+    --build-arg "PNPM_CONFIG_REGISTRY=$(npm_registry)"
   )
   append_proxy_build_arg build_args HTTP_PROXY RELAY_BUILD_HTTP_PROXY HTTP_PROXY
   append_proxy_build_arg build_args HTTPS_PROXY RELAY_BUILD_HTTPS_PROXY HTTPS_PROXY
