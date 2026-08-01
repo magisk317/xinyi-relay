@@ -28,7 +28,7 @@ install_node24() {
     return
   fi
 
-  local platform arch archive node_base node_archive node_dir
+  local platform arch archive node_base node_dir
   case "$(uname -s)" in
     Linux) platform="linux" ;;
     Darwin) platform="darwin" ;;
@@ -46,7 +46,11 @@ install_node24() {
       ;;
   esac
 
-  node_base="https://nodejs.org/dist/${XINYI_NODE_RELEASE_CHANNEL:-latest-v24.x}"
+  if [[ "${MAGISK_LINUX_USE_MIRROR:-true}" == "true" ]]; then
+    node_base="https://npmmirror.com/mirrors/node/${XINYI_NODE_RELEASE_CHANNEL:-latest-v24.x}"
+  else
+    node_base="https://nodejs.org/dist/${XINYI_NODE_RELEASE_CHANNEL:-latest-v24.x}"
+  fi
   if [[ "$platform" == "linux" ]]; then
     archive="$(curl -fsSL "$node_base/SHASUMS256.txt" | awk -v p="node-v.*-${platform}-${arch}.tar.xz" '$2 ~ p { print $2; exit }')"
   else
@@ -67,13 +71,47 @@ install_node24() {
 }
 
 install_rust() {
+  local use_mirror="${MAGISK_LINUX_USE_MIRROR:-true}"
+  if [[ "$use_mirror" == "true" ]]; then
+    export RUSTUP_DIST_SERVER="https://mirrors.tuna.tsinghua.edu.cn/rustup"
+    export RUSTUP_UPDATE_ROOT="https://mirrors.tuna.tsinghua.edu.cn/rustup/rustup"
+  else
+    export RUSTUP_DIST_SERVER="https://static.rust-lang.org"
+    export RUSTUP_UPDATE_ROOT="https://static.rust-lang.org/rustup"
+  fi
   if ! command -v rustup >/dev/null 2>&1; then
     curl --proto '=https' --tlsv1.2 -fsS https://sh.rustup.rs \
       | sh -s -- -y --profile minimal --default-toolchain stable
   fi
   # shellcheck disable=SC1091
   source "$HOME/.cargo/env"
-  rustup target add "$rust_target"
+  if ! rustup target add "$rust_target"; then
+    if [[ "$use_mirror" != "true" ]]; then
+      return 1
+    fi
+    echo "Rustup mirror failed, falling back to official server" >&2
+    export RUSTUP_DIST_SERVER="https://static.rust-lang.org"
+    export RUSTUP_UPDATE_ROOT="https://static.rust-lang.org/rustup"
+    rustup target add "$rust_target"
+  fi
+
+  local cargo_home
+  cargo_home="${CARGO_HOME:-$HOME/.cargo}"
+  mkdir -p "$cargo_home"
+  cat > "$cargo_home/config.toml" <<'EOF'
+[net]
+git-fetch-with-cli = true
+EOF
+  if [[ "$use_mirror" == "true" ]]; then
+    cat >> "$cargo_home/config.toml" <<'EOF'
+
+[source.crates-io]
+replace-with = "runner-registry"
+
+[source.runner-registry]
+registry = "sparse+https://mirrors.tuna.tsinghua.edu.cn/crates.io-index/"
+EOF
+  fi
 }
 
 install_linux_dependencies() {
@@ -83,7 +121,25 @@ install_linux_dependencies() {
   if ! command -v apt-get >/dev/null 2>&1; then
     return
   fi
-  apt-get update
+  local use_mirror="${MAGISK_LINUX_USE_MIRROR:-true}"
+  if [[ "$use_mirror" == "true" ]]; then
+    sed -i \
+      -e 's#http://deb.debian.org/debian-security#https://mirrors.tuna.tsinghua.edu.cn/debian-security#g' \
+      -e 's#http://security.debian.org/debian-security#https://mirrors.tuna.tsinghua.edu.cn/debian-security#g' \
+      -e 's#http://deb.debian.org/debian#https://mirrors.tuna.tsinghua.edu.cn/debian#g' \
+      /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+  fi
+  if ! apt-get update; then
+    if [[ "$use_mirror" != "true" ]]; then
+      return 1
+    fi
+    echo "APT mirror failed, falling back to official sources" >&2
+    sed -i \
+      -e 's#https://mirrors.tuna.tsinghua.edu.cn/debian-security#http://deb.debian.org/debian-security#g' \
+      -e 's#https://mirrors.tuna.tsinghua.edu.cn/debian#http://deb.debian.org/debian#g' \
+      /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+    apt-get update
+  fi
   apt-get install -y --no-install-recommends \
     build-essential \
     curl \
@@ -143,9 +199,15 @@ install_rust
 # packageManager field in frontend/desktop/package.json). Avoids corepack,
 # which is unbundled from Node 25+.
 toolkit_dir="$(bash "$root_dir/scripts/resolve_ci_toolkit.sh")"
+if [[ "${MAGISK_LINUX_USE_MIRROR:-true}" == "true" ]]; then
+  export PNPM_CONFIG_REGISTRY="${PNPM_CONFIG_REGISTRY:-https://registry.npmmirror.com}"
+else
+  export PNPM_CONFIG_REGISTRY="https://registry.npmjs.org"
+fi
 bash "$toolkit_dir/ci/ensure_pnpm.sh" "$desktop_dir/package.json"
 
 cd "$desktop_dir"
+pnpm config set registry "$PNPM_CONFIG_REGISTRY"
 sync_and_strip_desktop_version
 pnpm install --frozen-lockfile
 pnpm build

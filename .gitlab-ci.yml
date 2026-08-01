@@ -56,6 +56,7 @@ variables:
   MAGISK_ANDROID_RELEASE_CERT_SHA256: "027b936e1d82a606d83599548b8b11e49a2c8ae2588c4a9fbe8311e2c54f103a"
   MAGISK_RENOVATE_REPOSITORY: "magisk3171/xinyi-relay"
   XINYI_DOCKERHUB_PUBLISH: "true"
+  XINYI_BACKEND_ARCHES: "amd64 arm64"
   XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG: "magisk-amd64-linux"
   XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG: "magisk-arm64-linux"
   XINYI_GITLAB_WINDOWS_AMD64_RUNNER_TAG: "saas-windows-medium-amd64"
@@ -273,8 +274,7 @@ backend:container:arm64:
     - .xinyi_backend_publish_rules
   resource_group: xinyi-backend-docker-arm64
   stage: package
-  rules:
-    - when: never
+  allow_failure: true
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
@@ -298,6 +298,8 @@ backend:container:manifest:
   needs:
     - job: backend:container:amd64
       artifacts: false
+    - job: backend:container:arm64
+      artifacts: false
   script:
     - chmod +x scripts/ci/gitlab_backend_container.sh
     - scripts/ci/gitlab_backend_container.sh publish-manifests
@@ -319,8 +321,6 @@ desktop:linux:x64:
 desktop:linux:arm64:
   extends: .xinyi_desktop_linux
   needs: []
-  rules:
-    - when: never
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   script:
@@ -364,6 +364,8 @@ desktop:release:gitlab:
     - when: never
   needs:
     - job: desktop:linux:x64
+      artifacts: true
+    - job: desktop:linux:arm64
       artifacts: true
   script:
     - chmod +x scripts/release/gitlab_desktop_release.sh
@@ -499,6 +501,8 @@ android:detekt:
     - .magisk_android_detekt
     - .xinyi_android_rules
   stage: quality
+  tags:
+    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs: []
   allow_failure: true
   variables:
@@ -645,7 +649,7 @@ telegram:images:
     MAGISK_TELEGRAM_PROJECT_TAG: "#XinyiRelay"
     MAGISK_TELEGRAM_PROJECT_NAME: "XinyiRelay"
     MAGISK_TELEGRAM_IMAGE_EVENT: "backend-docker"
-    MAGISK_TELEGRAM_PLATFORMS: "linux/amd64"
+    MAGISK_TELEGRAM_PLATFORMS: "linux/amd64,linux/arm64"
     MAGISK_TELEGRAM_IMAGE_LIST_COMMAND: "scripts/ci/gitlab_backend_container.sh list-images"
 
 telegram:release:
