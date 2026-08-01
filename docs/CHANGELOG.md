@@ -3,11 +3,11 @@
 本日志记录了项目近期的主要变更。 
 
 
-## [v0.2.2] - 2026-07-30
+## [v0.2.2] - 2026-07-31
 - 版本：`versionCode 44` / `versionName 0.2.2`。
-- `[build]` 修复 R8 release shrinking 删除 Xposed 入口类导致模块加载失败的问题（v0.2.1 回归）。
+- `[xposed/build]` 修复 R8 release shrinking 删除反射入口导致的模块加载问题，并恢复类加载器变化后的 Hook 分发。
 - `[hook/runtime]` 适配日志脱敏偏好 API。
-- `[deps]` 更新 magisk-xposed-kit 子模块。
+- `[maintenance]` 修复桌面端 SHA-256 格式，并更新 Rust 工具链、依赖与 CI runner。
 
 > Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.2.1...v0.2.2
 

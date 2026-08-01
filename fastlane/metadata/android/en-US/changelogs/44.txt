@@ -1,5 +1,5 @@
 - Updated to 0.2.2 (44).
-- Fix Xposed module loading failure caused by R8 stripping entry classes.
-- Adapt sanitization preference API for logging.
-- Update magisk-xposed-kit dependency.
+- Fix Xposed module loading and hook dispatch after classloader changes.
+- Improve logging compatibility.
+- Fix desktop SHA-256 formatting and update dependencies and build tooling.
 - https://gitlab.com/magisk3171/xinyi-relay/-/releases
