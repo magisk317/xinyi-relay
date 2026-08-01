@@ -25,7 +25,7 @@ jobs:
     if: github.actor != 'dependabot[bot]'
     env:
       GRADLE_OPTS: -Dorg.gradle.warning.mode=all
-      HAS_RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE != '' }}
+      HAS_RELEASE_SIGNING: ${{ secrets.RELEASE_KEYSTORE != '' && secrets.STORE_PASSWORD != '' && secrets.KEY_ALIAS != '' && secrets.KEY_PASSWORD != '' }}
       HAS_GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
     steps:
       - uses: actions/checkout@v7
@@ -57,7 +57,7 @@ jobs:
           pnpm -C frontend/webui test
           pnpm -C frontend/webui build
       - name: Decode Keystore
-        if: env.HAS_RELEASE_KEYSTORE == 'true'
+        if: env.HAS_RELEASE_SIGNING == 'true'
         run: echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > app/release.jks
       - name: Decode Google Services
         if: env.HAS_GOOGLE_SERVICES_JSON == 'true'
@@ -67,16 +67,22 @@ jobs:
           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/githubNoE2ee/google-services.json
           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/githubWithE2ee/google-services.json
           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/play/google-services.json
-      - name: Build & Test
+      - name: Test
+        uses: ./.magisk-ci-toolkit/.github/actions/run-gradle-with-retry
+        with:
+          arguments: >
+            --warning-mode all
+            app:testGithubNoE2eeDebugUnitTest app:testGithubWithE2eeDebugUnitTest
+            :app:koverHtmlReportGithubNoE2eeDebug :app:koverHtmlReportGithubWithE2eeDebug
+            verifyStructureBoundaries
+            -PskipGoogleServices=${{ env.HAS_GOOGLE_SERVICES_JSON == 'false' }}
+      - name: Build signed debug APKs
+        if: env.HAS_RELEASE_SIGNING == 'true'
         uses: ./.magisk-ci-toolkit/.github/actions/run-gradle-with-retry
         with:
           arguments: >
             --warning-mode all
             app:assembleGithubNoE2eeDebug app:assembleGithubWithE2eeDebug
-            app:testGithubNoE2eeDebugUnitTest app:testGithubWithE2eeDebugUnitTest
-            :app:koverHtmlReportGithubNoE2eeDebug :app:koverHtmlReportGithubWithE2eeDebug
-            verifyStructureBoundaries
-            -PallowIncompatibleDebugSigning=true
             -PbuildSplits
             -PskipGoogleServices=${{ env.HAS_GOOGLE_SERVICES_JSON == 'false' }}
         env:
@@ -85,7 +91,7 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       - name: Write build summary
-        if: always()
+        if: always() && env.HAS_RELEASE_SIGNING == 'true'
         run: |
           {
             echo "## Debug APK summary"
@@ -102,31 +108,31 @@ jobs:
             done < <(find app/build/outputs/apk -path '*/debug/*.apk' | sort)
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Upload Debug APK - GitHub arm64-v8a
-        if: always()
+        if: always() && env.HAS_RELEASE_SIGNING == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: XinyiRelay-debug-github-arm64-v8a
           path: app/build/outputs/apk/github*/debug/*arm64-v8a*.apk
       - name: Upload Debug APK - GitHub armeabi-v7a
-        if: always()
+        if: always() && env.HAS_RELEASE_SIGNING == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: XinyiRelay-debug-github-armeabi-v7a
           path: app/build/outputs/apk/github*/debug/*armeabi-v7a*.apk
       - name: Upload Debug APK - GitHub x86
-        if: always()
+        if: always() && env.HAS_RELEASE_SIGNING == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: XinyiRelay-debug-github-x86
           path: app/build/outputs/apk/github*/debug/*x86*.apk
       - name: Upload Debug APK - GitHub x86_64
-        if: always()
+        if: always() && env.HAS_RELEASE_SIGNING == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: XinyiRelay-debug-github-x86_64
           path: app/build/outputs/apk/github*/debug/*x86_64*.apk
       - name: Upload Debug APK - GitHub universal
-        if: always()
+        if: always() && env.HAS_RELEASE_SIGNING == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: XinyiRelay-debug-github-universal
