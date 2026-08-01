@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<network-security-config>
+<network-security-config xmlns:tools="http://schemas.android.com/tools">
     <!-- 动态后端（用户在 App 内输入任意 http(s):// 主机，本地优先：可能是局域网明文 http，
          或 Caddy `tls internal` 自签 HTTPS 经用户证书接入）与自建 Sender（Webhook / 自建
          Bark、Gotify、Ntfy 等）需要明文与用户证书，故默认仍放开 system + user。 -->
-    <base-config cleartextTrafficPermitted="true">
+    <base-config
+        cleartextTrafficPermitted="true"
+        tools:ignore="AcceptsUserCertificates,InsecureBaseConfiguration">
         <trust-anchors>
             <certificates src="system" />
             <certificates src="user" />

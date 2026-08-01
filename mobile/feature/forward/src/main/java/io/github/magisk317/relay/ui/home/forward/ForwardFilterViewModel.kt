@@ -148,8 +148,8 @@ internal fun normalizeAppForwardFilterLabel(packageName: String, resolvedLabel: 
 
 private fun PackageManager.getApplicationInfoCompat(packageName: String) =
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-        getApplicationInfo(packageName, PackageManager.ApplicationInfoFlags.of(PackageManager.MATCH_ALL.toLong()))
+        getApplicationInfo(packageName, PackageManager.ApplicationInfoFlags.of(0))
     } else {
         @Suppress("DEPRECATION")
-        getApplicationInfo(packageName, PackageManager.MATCH_ALL)
+        getApplicationInfo(packageName, 0)
     }
