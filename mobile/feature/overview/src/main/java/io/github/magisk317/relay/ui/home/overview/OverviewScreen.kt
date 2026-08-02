@@ -3,8 +3,10 @@ package io.github.magisk317.relay.ui.home.overview
 import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap
 import io.github.magisk317.relay.mobilefeature.overview.BuildConfig
 import io.github.magisk317.relay.ui.common.rememberPrefBoolean
+import android.widget.Toast
 import io.github.magisk317.uikit.surface.DonateDialog
 import io.github.magisk317.uikit.surface.QRCodeDialog
+import io.github.magisk317.uikit.surface.startAlipayPlatformDonate
 import io.github.magisk317.uikit.surface.saveImageToGalleryAsync
 import io.github.magisk317.uikit.R as UiKitR
 
@@ -633,7 +635,18 @@ private fun OverviewDialogs(
             onDismiss = { onToggleDonateDialog(false) },
             onAlipay = {
                 onToggleDonateDialog(false)
-                onShowQrCodeDialog(Pair(UiKitR.drawable.alipay, "alipay"))
+                Toast.makeText(
+                    context,
+                    UiKitR.string.alipay_platform_opening,
+                    Toast.LENGTH_SHORT,
+                ).show()
+                scope.launch {
+                    val error = startAlipayPlatformDonate(context)
+                    if (error != null) {
+                        Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+                        onShowQrCodeDialog(Pair(UiKitR.drawable.alipay, "alipay"))
+                    }
+                }
             },
             onWechat = {
                 onToggleDonateDialog(false)
