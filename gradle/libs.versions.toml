@@ -71,7 +71,7 @@ play-services-code-scanner = "16.1.0"
 retrofit = "3.0.0"
 room = "2.8.4"
 timber = "5.0.1"
-version-catalog-update = "1.1.0"
+version-catalog-update = "1.1.1"
 work = "2.11.2"
 
 [libraries]
