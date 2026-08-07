@@ -35,6 +35,20 @@ class SmsHookDispatchGateTest {
     }
 
     @Test
+    fun evaluate_blocksWhenMobileEntitlementUnavailable() {
+        val decision = SmsHookDispatchGate.evaluate(
+            moduleEnabled = true,
+            relayFeatureRequired = true,
+            relayFeaturesEnabled = true,
+            suppressedByRelay = false,
+            mobileAutomationAllowed = false,
+        )
+
+        assertTrue(decision.blocked)
+        assertEquals(SmsHookDispatchGate.BlockReason.MOBILE_ENTITLEMENT_UNAVAILABLE, decision.reason)
+    }
+
+    @Test
     fun evaluate_blocksWhenSuppressedByConflict() {
         val decision = SmsHookDispatchGate.evaluate(
             moduleEnabled = true,

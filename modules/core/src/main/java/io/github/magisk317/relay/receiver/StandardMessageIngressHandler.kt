@@ -5,6 +5,7 @@ import android.content.Intent
 import android.provider.Telephony
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.feature.mode.WorkMode
 import io.github.magisk317.relay.feature.mode.WorkModeResolver
 import io.github.magisk317.relay.platform.ipc.EventDeduplicator
@@ -29,6 +30,18 @@ object StandardMessageIngressHandler {
     }
 
     fun shouldHandleStandardMode(context: Context, source: String): Boolean {
+        if (!isMobileAutomationAllowed(context)) {
+            XLog.i("%s: mobile entitlement unavailable, skipping standard ingress", source)
+            emitIngest(
+                result = "skip",
+                stage = "mobile_entitlement_gate",
+                reason = "mobile_entitlement",
+                msgType = "unknown",
+                durationMs = 0L,
+                source = source,
+            )
+            return false
+        }
         val appContext = context.applicationContext
         WorkModeResolver.resolve(appContext)
         val mode = WorkModeResolver.mode.value
@@ -52,6 +65,16 @@ object StandardMessageIngressHandler {
     }
 
     suspend fun dispatchSms(context: Context, intent: Intent) {
+        if (!isMobileAutomationAllowed(context)) {
+            emitIngest(
+                result = "skip",
+                stage = "standard_sms",
+                reason = "mobile_entitlement",
+                msgType = "sms",
+                durationMs = 0L,
+            )
+            return
+        }
         val startedAt = System.nanoTime()
         val smsMsg = SmsMsg.fromIntent(intent)
         val payload = buildSmsPayload(
@@ -129,6 +152,16 @@ object StandardMessageIngressHandler {
     }
 
     suspend fun dispatchMms(context: Context, intent: Intent) {
+        if (!isMobileAutomationAllowed(context)) {
+            emitIngest(
+                result = "skip",
+                stage = "standard_mms",
+                reason = "mobile_entitlement",
+                msgType = "mms",
+                durationMs = 0L,
+            )
+            return
+        }
         val startedAt = System.nanoTime()
         val payload = ForwardPayloadFactory.mmsPayload(intent)
         if (EventDeduplicator.isDuplicate(payload.eventId)) {
@@ -190,5 +223,13 @@ object StandardMessageIngressHandler {
         return ((System.nanoTime() - startedAt) / NANOS_PER_MILLI).coerceAtLeast(0L)
     }
 
+    private fun isMobileAutomationAllowed(context: Context): Boolean {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getBoolean(
+            PrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+            PrefConst.DEFAULT_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+        )
+    }
+
     private const val MMS_MIME_TYPE = "application/vnd.wap.mms-message"
+    private const val PREFS_NAME = "xposed_prefs"
 }

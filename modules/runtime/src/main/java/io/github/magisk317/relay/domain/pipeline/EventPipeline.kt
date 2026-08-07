@@ -105,6 +105,24 @@ class EventPipeline(
                 return EventPipelineResult(dispatched = false, blockedReason = preRouteDecision.reason)
             }
 
+            if (!preferenceDataSource.getBoolean(
+                    PrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+                    PrefConst.DEFAULT_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+                )
+            ) {
+                val reason = "设备激活状态已失效"
+                dispatchResultWriter.persistForwardResult(
+                    recordId = recordContext.recordId,
+                    results = emptyList(),
+                    defaultMessage = reason,
+                    forcedStatus = SmsMsg.FORWARD_STATUS_BLOCKED,
+                    msgTypeForAnalytics = recordContext.smsMsgType,
+                )
+                ForwardFlowLog.i(traceId, "Mobile entitlement gate blocked sender dispatch type=${event.messageType}")
+                emit(result = "skip", reason = "mobile_entitlement")
+                return EventPipelineResult(dispatched = false, blockedReason = reason)
+            }
+
             if (!preferenceDataSource.getBoolean(PrefConst.KEY_RELAY_FEATURES_ENABLED, true)) {
                 val reason = "转发功能已关闭"
                 dispatchResultWriter.persistForwardResult(

@@ -3,6 +3,7 @@ package io.github.magisk317.relay.xp.hook
 internal object SmsHookDispatchGate {
     enum class BlockReason {
         MODULE_DISABLED,
+        MOBILE_ENTITLEMENT_UNAVAILABLE,
         RELAY_DISABLED,
         CONFLICT_SUPPRESSED,
     }
@@ -17,11 +18,18 @@ internal object SmsHookDispatchGate {
         relayFeatureRequired: Boolean,
         relayFeaturesEnabled: Boolean,
         suppressedByRelay: Boolean,
+        mobileAutomationAllowed: Boolean = true,
     ): Decision {
         if (!moduleEnabled) {
             return Decision(
                 blocked = true,
                 reason = BlockReason.MODULE_DISABLED,
+            )
+        }
+        if (!mobileAutomationAllowed) {
+            return Decision(
+                blocked = true,
+                reason = BlockReason.MOBILE_ENTITLEMENT_UNAVAILABLE,
             )
         }
         if (relayFeatureRequired && !relayFeaturesEnabled) {

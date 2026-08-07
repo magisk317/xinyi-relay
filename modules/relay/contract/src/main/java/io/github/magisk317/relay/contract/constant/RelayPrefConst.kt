@@ -12,6 +12,10 @@ object RelayPrefConst {
     const val KEY_COMPOSE_SETTINGS = "pref_compose_settings"
     const val KEY_SETTINGS_ACCORDION_MODE = "pref_settings_accordion_mode"
 
+    /** Derived by the parent app's entitlement coordinator and mirrored to hook processes. */
+    const val KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED = "mobile_entitlement_automation_allowed"
+    const val DEFAULT_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED = false
+
     // SMS Code
     const val KEY_SHOW_TOAST = "pref_show_toast"
     const val KEY_COPY_TO_CLIPBOARD = "pref_copy_to_clipboard"

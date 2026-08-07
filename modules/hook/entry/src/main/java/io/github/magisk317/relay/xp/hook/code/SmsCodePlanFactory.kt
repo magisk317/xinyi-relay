@@ -33,16 +33,18 @@ internal object SmsCodePlanFactory {
 private class RelayVerificationPrefs(
     private val context: Context,
 ) : VerificationPrefs {
-    override fun showNotification(): Boolean = XpPrefs.showCodeNotification(context)
-    override fun autoCancelNotification(): Boolean = XpPrefs.autoCancelCodeNotification(context)
+    private fun mobileAutomationAllowed(): Boolean = XpPrefs.mobileAutomationAllowed(context)
+
+    override fun showNotification(): Boolean = mobileAutomationAllowed() && XpPrefs.showCodeNotification(context)
+    override fun autoCancelNotification(): Boolean = mobileAutomationAllowed() && XpPrefs.autoCancelCodeNotification(context)
     override fun notificationRetentionMs(): Long = XpPrefs.getNotificationRetentionTime(context) * 1000L
-    override fun autoInputEnabled(): Boolean = XpPrefs.autoInputCodeEnabled(context)
+    override fun autoInputEnabled(): Boolean = mobileAutomationAllowed() && XpPrefs.autoInputCodeEnabled(context)
     override fun autoInputDelayMs(): Long = XpPrefs.getAutoInputCodeDelay(context) * 1000L
-    override fun copyToClipboardEnabled(): Boolean = XpPrefs.copyToClipboardEnabled(context)
-    override fun showToast(): Boolean = XpPrefs.shouldShowToast(context)
+    override fun copyToClipboardEnabled(): Boolean = mobileAutomationAllowed() && XpPrefs.copyToClipboardEnabled(context)
+    override fun showToast(): Boolean = mobileAutomationAllowed() && XpPrefs.shouldShowToast(context)
     override fun recordSmsEnabled(): Boolean = XpPrefs.recordSmsCodeEnabled(context)
-    override fun blockSmsEnabled(): Boolean = XpPrefs.blockSmsEnabled(context)
-    override fun markAsReadEnabled(): Boolean = XpPrefs.markAsReadEnabled(context)
-    override fun deleteSmsEnabled(): Boolean = XpPrefs.deleteSmsEnabled(context)
+    override fun blockSmsEnabled(): Boolean = mobileAutomationAllowed() && XpPrefs.blockSmsEnabled(context)
+    override fun markAsReadEnabled(): Boolean = mobileAutomationAllowed() && XpPrefs.markAsReadEnabled(context)
+    override fun deleteSmsEnabled(): Boolean = mobileAutomationAllowed() && XpPrefs.deleteSmsEnabled(context)
     override fun deduplicateSmsEnabled(): Boolean = XpPrefs.deduplicateSms(context)
 }

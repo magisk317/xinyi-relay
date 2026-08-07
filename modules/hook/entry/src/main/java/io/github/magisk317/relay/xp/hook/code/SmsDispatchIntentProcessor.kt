@@ -6,6 +6,7 @@ import android.os.Process
 import io.github.magisk317.relay.xpbridge.PreparedSmsHookDispatch
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
+import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.XpSmsBlacklist
 import io.github.magisk317.smscode.verification.BlacklistMatchResult
 import io.github.magisk317.smscode.verification.SmsDispatchIntentProcessor as SharedSmsDispatchIntentProcessor
@@ -100,7 +101,7 @@ internal class SmsDispatchIntentProcessor(
         ).handle(intent, eventId)
         val parseResult = outcome.parseResult as? ParseResult
         val smsMsg = outcome.smsMsg
-        if (smsMsg != null && parseResult != null) {
+        if (smsMsg != null && parseResult != null && XpPrefs.mobileAutomationAllowed(pluginContext)) {
             parsedCodeSmsForwarder.forwardIfCodeSms(
                 pluginContext = pluginContext,
                 phoneContext = phoneContext,

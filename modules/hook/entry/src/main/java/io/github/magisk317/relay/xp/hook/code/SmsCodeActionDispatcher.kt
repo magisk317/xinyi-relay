@@ -3,6 +3,7 @@ package io.github.magisk317.relay.xp.hook.code
 import android.content.Context
 import android.os.Handler
 import io.github.magisk317.relay.xpbridge.SmsMsg
+import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
 import io.github.magisk317.relay.xp.hook.code.action.impl.AutoInputAction
 import io.github.magisk317.relay.xp.hook.code.action.impl.CopyToClipboardAction
@@ -14,6 +15,7 @@ import io.github.magisk317.smscode.verification.AutoInputDispatchGuard
 import io.github.magisk317.smscode.verification.SmsCodeActionScheduler
 import io.github.magisk317.smscode.verification.SmsCodeActionDispatcher as SharedSmsCodeActionDispatcher
 import io.github.magisk317.smscode.verification.SmsCodePostParseCoordinator
+import java.util.concurrent.Callable
 import java.util.concurrent.ScheduledExecutorService
 
 internal object SmsCodeActionDispatcher {
@@ -123,6 +125,7 @@ internal object SmsCodeActionDispatcher {
         smsMsg: SmsMsg,
         uiPlan: SmsCodePostParseCoordinator.UiPlan,
     ) {
+        if (!mobileAutomationAllowed(pluginContext)) return
         uiHandler.post(
             CopyToClipboardAction(
                 pluginContext = pluginContext,
@@ -237,6 +240,7 @@ internal object SmsCodeActionDispatcher {
         smsMsg: SmsMsg,
         plan: SmsCodePostParseCoordinator.NotificationPlan,
     ) {
+        if (!mobileAutomationAllowed(pluginContext)) return
         SmsCodeActionScheduler.scheduleNow(executor) {
             NotifyAction(
                 pluginContext = pluginContext,
@@ -260,7 +264,11 @@ internal object SmsCodeActionDispatcher {
             executor = executor,
             delays = delays,
         ) {
-            OperateSmsAction(pluginContext, phoneContext, smsMsg)
+            Callable {
+                if (mobileAutomationAllowed(pluginContext)) {
+                    OperateSmsAction(pluginContext, phoneContext, smsMsg).call()
+                }
+            }
         }
     }
 
@@ -279,6 +287,7 @@ internal object SmsCodeActionDispatcher {
                 )
             },
     ): Boolean {
+        if (!mobileAutomationAllowed(pluginContext)) return false
         return AutoInputDispatchGuard.claim(
             pluginContext = pluginContext,
             smsMsg = smsMsg,
@@ -293,6 +302,9 @@ internal object SmsCodeActionDispatcher {
             ).toAutoInputClaim()
         }
     }
+
+    private fun mobileAutomationAllowed(context: Context): Boolean =
+        XpPrefs.mobileAutomationAllowed(context)
 
     private fun XpSharedRuntimeGate.ClaimResult.toAutoInputClaim(): AutoInputDispatchGuard.ClaimResult {
         return AutoInputDispatchGuard.ClaimResult(

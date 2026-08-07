@@ -201,6 +201,14 @@ object PrefsReader {
         return getBooleanViaProvider(context, PrefConst.KEY_RELAY_FEATURES_ENABLED, true)
     }
 
+    fun mobileAutomationAllowed(context: Context): Boolean {
+        return getBooleanViaProvider(
+            context,
+            PrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+            PrefConst.DEFAULT_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+        )
+    }
+
     @JvmStatic
     fun autoInputCodeEnabled(context: Context): Boolean {
         if (!verificationFeaturesEnabled(context)) return false

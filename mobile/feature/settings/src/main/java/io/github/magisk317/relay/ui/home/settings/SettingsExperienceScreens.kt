@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.ui.home.settings
 
+import android.content.Intent
 import io.github.magisk317.relay.android.diagnostics.RuntimeDiagnosticsBridge
 import io.github.magisk317.uikit.common.showLatestSnackbar
 
@@ -240,6 +241,14 @@ fun SettingsHomeScreen(
                 diagnostics = diagnosticsSnapshot,
                 expanded = expandOthers,
                 onExpandedChange = { expandOthers = !expandOthers },
+                onOpenMobileEntitlement = {
+                    context.startActivity(
+                        Intent().setClassName(
+                            context,
+                            "${context.packageName}.entitlement.MobileEntitlementActivity",
+                        ),
+                    )
+                },
                 onRuntimeLogTitleClick = runtimeLogActions.onRuntimeLogTitleClick,
                 onVerboseLogModeChange = { enabled ->
                     scope.launch {

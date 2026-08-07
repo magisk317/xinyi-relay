@@ -3,6 +3,8 @@ package io.github.magisk317.relay.domain.schedule
 import android.content.Context
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.db.AppDatabase
+import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.ScheduledTask
 import io.github.magisk317.relay.engine.service.SenderRuntimeServiceRegistry
@@ -30,6 +32,28 @@ object ScheduledTaskExecutor {
                         "stage" to "execute",
                         "source" to source,
                         "reason" to "sms_channel_disabled",
+                    ),
+                    statusOk = true,
+                )
+                return@withContext
+            }
+
+            if (!AppPreferencesDataStore.getBoolean(
+                    context = context,
+                    key = PrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+                    defaultValue = PrefConst.DEFAULT_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+                )
+            ) {
+                XLog.i("ScheduledTask $taskId skipped: mobile entitlement unavailable")
+                MagiskOtel.event(
+                    name = "sms.schedule",
+                    attributes = mapOf(
+                        "result" to "skip",
+                        "duration_ms" to "0",
+                        "process" to "app",
+                        "stage" to "execute",
+                        "source" to source,
+                        "reason" to "mobile_entitlement",
                     ),
                     statusOk = true,
                 )

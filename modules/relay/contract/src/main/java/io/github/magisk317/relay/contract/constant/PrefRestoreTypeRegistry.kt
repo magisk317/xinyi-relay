@@ -13,6 +13,7 @@ object PrefRestoreTypeRegistry {
         RelayPrefConst.KEY_HIDE_LAUNCHER_ICON,
         RelayPrefConst.KEY_SHOW_LAUNCHER_ICON,
         RelayPrefConst.KEY_SETTINGS_ACCORDION_MODE,
+        RelayPrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
         RelayPrefConst.KEY_SHOW_TOAST,
         RelayPrefConst.KEY_COPY_TO_CLIPBOARD,
         RelayPrefConst.KEY_ENABLE_AUTO_INPUT_CODE,

@@ -320,6 +320,7 @@ class SmsForwardHook : BaseHook() {
         return when (
             SmsHookDispatchGate.evaluate(
                 moduleEnabled = XpPrefs.isEnabled(dispatch.pluginContext),
+                mobileAutomationAllowed = XpPrefs.mobileAutomationAllowed(dispatch.pluginContext),
                 relayFeatureRequired = true,
                 relayFeaturesEnabled = XpPrefs.relayFeaturesEnabled(dispatch.pluginContext),
                 suppressedByRelay = ModuleConflictArbiter.shouldSuppressByRelay(
@@ -344,6 +345,17 @@ class SmsForwardHook : BaseHook() {
                 emitRelay(
                     result = "skip",
                     reason = "relay_disabled",
+                    stage = "forward_hook",
+                    eventIdPresent = true,
+                )
+                true
+            }
+
+            SmsHookDispatchGate.BlockReason.MOBILE_ENTITLEMENT_UNAVAILABLE -> {
+                XLog.w("SmsForwardHook: mobile entitlement unavailable, skip forward. event_id=%s", dispatch.eventId)
+                emitRelay(
+                    result = "skip",
+                    reason = "mobile_entitlement",
                     stage = "forward_hook",
                     eventIdPresent = true,
                 )

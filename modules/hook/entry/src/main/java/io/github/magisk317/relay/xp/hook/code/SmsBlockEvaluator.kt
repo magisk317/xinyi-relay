@@ -43,14 +43,15 @@ internal object SmsBlockEvaluator {
             eventId = eventId,
             source = source,
         ) ?: return null
+        val mobileAutomationAllowed = XpPrefs.mobileAutomationAllowed(pluginContext)
         return Result(
             smsMsg = result.smsMsg,
-            blockReason = result.blockReasonWireValue,
-            blacklistDeleteOnly = result.blacklistDeleteOnly,
+            blockReason = result.blockReasonWireValue.takeIf { mobileAutomationAllowed },
+            blacklistDeleteOnly = result.blacklistDeleteOnly && mobileAutomationAllowed,
             blacklistResult = result.blacklistResult,
             decision = SmsHandlerDispatchDecision.Decision(
-                shouldDeleteByBlacklist = result.blacklistDeleteOnly,
-                blockReason = result.blockReason,
+                shouldDeleteByBlacklist = result.blacklistDeleteOnly && mobileAutomationAllowed,
+                blockReason = result.blockReason.takeIf { mobileAutomationAllowed },
             ),
         )
     }

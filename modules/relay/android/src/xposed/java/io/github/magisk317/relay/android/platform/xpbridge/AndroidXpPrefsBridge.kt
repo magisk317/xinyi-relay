@@ -17,6 +17,7 @@ object AndroidXpPrefsBridge : XpPrefsRuntimeBridge {
     override fun isSensitiveDebugLogSupported(): Boolean = PrefsReader.isSensitiveDebugLogSupported()
     override fun isSensitiveDebugLogMode(context: Context): Boolean = PrefsReader.isSensitiveDebugLogMode(context)
     override fun relayFeaturesEnabled(context: Context): Boolean = PrefsReader.relayFeaturesEnabled(context)
+    override fun mobileAutomationAllowed(context: Context): Boolean = PrefsReader.mobileAutomationAllowed(context)
     override fun autoInputCodeEnabled(context: Context): Boolean = PrefsReader.autoInputCodeEnabled(context)
     override fun autoEnterCodeEnabled(context: Context): Boolean = PrefsReader.autoEnterCodeEnabled(context)
     override fun getAutoInputCodeDelay(context: Context): Long = PrefsReader.getAutoInputCodeDelay(context)

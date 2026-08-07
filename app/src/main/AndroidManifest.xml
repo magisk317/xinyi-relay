@@ -46,6 +46,10 @@
         android:theme="@style/AppNoActionBarTheme"
         tools:ignore="GoogleAppIndexingWarning,UnusedAttribute">
 
+        <activity
+            android:name="io.github.magisk317.relay.entitlement.MobileEntitlementActivity"
+            android:exported="false" />
+
         <receiver
             android:name="io.github.magisk317.relay.receiver.StandardSmsReceiver"
             android:exported="true"

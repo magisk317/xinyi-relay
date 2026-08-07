@@ -3,6 +3,7 @@ package io.github.magisk317.relay.xp.hook.code
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.smscode.verification.CodeNotificationActionHandler
 import io.github.magisk317.smscode.verification.CodeNotificationActionPayload
 import io.github.magisk317.xposed.logging.MagiskOtel
@@ -13,6 +14,14 @@ import io.github.magisk317.xposed.logging.MagiskOtel
 class AutoCancelReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
+        if (!XpPrefs.mobileAutomationAllowed(context)) {
+            MagiskOtel.event(
+                name = "notify.cancel",
+                attributes = mapOf("result" to "skip", "process" to "hook", "reason" to "mobile_entitlement"),
+                statusOk = true,
+            )
+            return
+        }
         MagiskOtel.event(
             name = "notify.cancel",
             attributes = mapOf(

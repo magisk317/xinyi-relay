@@ -468,6 +468,14 @@ object AppPreferencesDataStore {
             val editor = prefs.edit()
             editor.putBoolean(PrefConst.KEY_ENABLE, getBoolean(context, PrefConst.KEY_ENABLE, true))
             editor.putBoolean(
+                PrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+                getBoolean(
+                    context,
+                    PrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+                    PrefConst.DEFAULT_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+                ),
+            )
+            editor.putBoolean(
                 PrefConst.KEY_SETTINGS_ACCORDION_MODE,
                 getBoolean(context, PrefConst.KEY_SETTINGS_ACCORDION_MODE, true),
             )

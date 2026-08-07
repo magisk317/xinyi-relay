@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.google.services)
     id("magisk.app.signing")
     id("magisk.app.packaging")
+    id(libs.plugins.kotlin.compose.get().pluginId)
 }
 
 val versionNameStr = libs.versions.versionName.get()
@@ -17,6 +18,15 @@ val skipGoogleServices = findProperty("skipGoogleServices")
     ?.toString()
     ?.toBooleanStrictOrNull()
     ?: false
+val mobileEntitlementEnforced = true
+val mobileEntitlementApiOrigin = findProperty("mobileEntitlementApiOrigin")?.toString()
+    ?: "https://activate.magisk317.qzz.io"
+val mobileEntitlementSigningPublicJwk = findProperty("mobileEntitlementSigningPublicJwk")?.toString()
+    ?: """{"kty":"EC","x":"4kPpwUt1wFRuF3EqGq6q57J3YmANf7wyiNH90FNkAbI","y":"U4-E1XK6LjWIXMFNEoSAoik7nD1S07BDb7qAipQd4Ts","crv":"P-256","alg":"ES256","use":"sig","kid":"mobile-entitlement-1"}"""
+val mobileEntitlementGoogleWebClientId = findProperty("mobileEntitlementGoogleWebClientId")?.toString()
+    ?: "87389120666-vom72bgs4me1eijuiufo0rnug528n6ce.apps.googleusercontent.com"
+fun buildConfigString(value: String): String =
+    "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
 val generatedSmsCodeRulesAssetsDir = layout.buildDirectory.dir("generated/smscodeRulesAssets")
 val syncSmsCodeRulesAssets = tasks.register<Sync>("syncSmsCodeRulesAssets") {
     val rulesRoot = rootProject.layout.projectDirectory.dir("smscode/rules")
@@ -58,6 +68,9 @@ android {
     // not force GitHub variants to resolve Play-only feature variants.
     val requestedTasks = gradle.startParameter.taskNames
     val requestedAppTasks = requestedTasks.map { it.substringAfterLast(':') }
+    val requestsMatrixFeature = requestedTasks.any { taskName ->
+        taskName.contains(":features:matrix_e2ee")
+    }
     val requestsPlayDynamicFeature = requestedAppTasks.any { taskName ->
         val normalized = taskName.substringAfterLast(':')
         normalized.contains("bundlePlay", ignoreCase = true) ||
@@ -66,7 +79,7 @@ android {
             normalized == "bundleRelease"
     }
     val requestsGithubVariant = requestedAppTasks.any { it.contains("Github", ignoreCase = true) }
-    if (requestsPlayDynamicFeature && !requestsGithubVariant) {
+    if ((requestsPlayDynamicFeature || requestsMatrixFeature) && !requestsGithubVariant) {
         dynamicFeatures += ":features:matrix_e2ee"
     }
 
@@ -83,15 +96,21 @@ android {
         buildConfigField("String", "LOG_TAG", "\"relay\"")
         buildConfigField("int", "MODULE_VERSION", "$versionCodeInt")
         buildConfigField("boolean", "ALLOW_CONFLICT_BYPASS", allowConflictBypass.toString())
+        buildConfigField("boolean", "MOBILE_ENTITLEMENT_ENFORCED", mobileEntitlementEnforced.toString())
+        buildConfigField("String", "MOBILE_ENTITLEMENT_API_ORIGIN", buildConfigString(mobileEntitlementApiOrigin))
+        buildConfigField("String", "MOBILE_ENTITLEMENT_SIGNING_PUBLIC_JWK", buildConfigString(mobileEntitlementSigningPublicJwk))
+        buildConfigField("String", "MOBILE_ENTITLEMENT_GOOGLE_WEB_CLIENT_ID", buildConfigString(mobileEntitlementGoogleWebClientId))
     }
 
     productFlavors {
         getByName("play") {
             buildConfigField("boolean", "ENABLE_STANDARD_MODE_SERVICE", "false")
+            buildConfigField("String", "MOBILE_ENTITLEMENT_CHANNEL", "\"play\"")
         }
         listOf("githubNoE2ee", "githubWithE2ee", "fdroid").forEach { flavorName ->
             getByName(flavorName) {
                 buildConfigField("boolean", "ENABLE_STANDARD_MODE_SERVICE", "true")
+                buildConfigField("String", "MOBILE_ENTITLEMENT_CHANNEL", "\"sideload\"")
             }
         }
     }
@@ -148,10 +167,12 @@ tasks.matching { it.name.endsWith("GoogleServices") }.configureEach {
 }
 
 dependencies {
+    implementation("com.magisk317.mobile:entitlement-android:0.1.7")
     implementation(project(":policy"))
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(project(":core"))
     implementation(project(":mobile:ui"))
+    implementation(project(":mobile:feature:common"))
     implementation(project(":relay:android"))
     implementation(project(":magisk-xposed-kit:logging"))
     implementation(project(":smscode-core:runtime"))
@@ -159,15 +180,24 @@ dependencies {
     implementation(project(":relay:engine"))
 
     implementation(libs.androidx.core.ktx)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.material.icons.core)
     implementation(libs.androidx.lifecycle.process)
 
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.koin.android)
     implementation(libs.timber)
 
     add("playImplementation", platform(libs.firebase.bom))
     add("playImplementation", libs.firebase.analytics)
+    add("playImplementation", libs.androidx.credential.core)
+    add("playImplementation", libs.androidx.credential.play.services.auth)
+    add("playImplementation", libs.google.id)
     add("githubNoE2eeImplementation", platform(libs.firebase.bom))
     add("githubNoE2eeImplementation", libs.firebase.analytics)
     add("githubWithE2eeImplementation", platform(libs.firebase.bom))

@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
+import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.hookentry.R
 import io.github.magisk317.relay.xpbridge.XpClipboard
 import io.github.magisk317.smscode.verification.CodeNotificationActionHandler
@@ -16,6 +17,14 @@ import io.github.magisk317.xposed.logging.MagiskOtel
 class CopyCodeReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
+        if (!XpPrefs.mobileAutomationAllowed(context)) {
+            MagiskOtel.event(
+                name = "sms.copy",
+                attributes = mapOf("result" to "skip", "process" to "hook", "reason" to "mobile_entitlement"),
+                statusOk = true,
+            )
+            return
+        }
         MagiskOtel.event(
             name = "sms.copy",
             attributes = mapOf(

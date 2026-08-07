@@ -10,6 +10,7 @@ import io.github.magisk317.relay.xp.HookTargetDiagnostics
 import io.github.magisk317.smscode.xposed.utils.ModuleActivationStore
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
+import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.smscode.verification.SmsDispatchChainBlockDeduplicator
 import io.github.magisk317.smscode.verification.SmsDispatchIntentDeduplicator
 import io.github.magisk317.smscode.verification.SmsIntentHookSupport
@@ -417,6 +418,10 @@ class SmsHandlerHook : BaseHook() {
         val phoneContext = runtime.phoneContext
         if (ModuleConflictArbiter.shouldSuppressByRelay(phoneContext, "SmsHandlerHook#$methodName")) {
             logSuppressedOnce("dispatchChain:$methodName")
+            return
+        }
+        if (!XpPrefs.mobileAutomationAllowed(pluginContext)) {
+            XLog.i("Mobile entitlement gate skipped dispatch-chain side effects")
             return
         }
         val eventId = SmsIntentHookSupport.ensureEventId(intent)

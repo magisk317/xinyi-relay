@@ -15,6 +15,7 @@ import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import androidx.core.content.ContextCompat
 import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.relay.android.prefs.PrefsReader
 import io.github.magisk317.relay.receiver.AutoInputActions
 import io.github.magisk317.smscode.verification.AutoInputFallbackPolicy
 import io.github.magisk317.smscode.verification.AutoInputAccessibilityNodeHelper
@@ -47,6 +48,10 @@ class AutoInputAccessibilityService : AccessibilityService() {
 
     private val autoInputReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
+            if (!PrefsReader.mobileAutomationAllowed(this@AutoInputAccessibilityService)) {
+                XLog.i("Mobile entitlement gate skipped accessibility auto-input")
+                return
+            }
             AutoInputAccessibilityRequestHandler.handle(
                 serviceContext = this@AutoInputAccessibilityService,
                 receiver = this,
@@ -103,6 +108,10 @@ class AutoInputAccessibilityService : AccessibilityService() {
         code: String,
         autoEnter: Boolean,
     ): AutoInputResult {
+        if (!PrefsReader.mobileAutomationAllowed(this)) {
+            XLog.i("Mobile entitlement gate skipped accessibility execution")
+            return AutoInputResult(false, "none", "mobile_entitlement", packageName)
+        }
         val homePackages = resolveHomePackages()
         val targetPackageHint = resolveTargetPackageHint()
         return AutoInputFallbackPolicy.runWithRetries(

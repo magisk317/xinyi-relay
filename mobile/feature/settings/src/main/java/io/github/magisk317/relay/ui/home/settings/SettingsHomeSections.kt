@@ -154,6 +154,7 @@ internal fun SettingsDiagnosticsSection(
     diagnostics: DiagnosticsSettingsSnapshot,
     expanded: Boolean,
     onExpandedChange: () -> Unit,
+    onOpenMobileEntitlement: () -> Unit,
     onRuntimeLogTitleClick: () -> Unit,
     onVerboseLogModeChange: (Boolean) -> Unit,
     onSensitiveDebugLogModeChange: (Boolean) -> Unit,
@@ -169,6 +170,11 @@ internal fun SettingsDiagnosticsSection(
         onExpandedChange = onExpandedChange,
         accordionMode = true,
     ) {
+        Item(
+            title = stringResource(id = R.string.mobile_entitlement_settings_title),
+            summary = stringResource(id = R.string.mobile_entitlement_settings_summary),
+            onClick = onOpenMobileEntitlement,
+        )
         RuntimeLogDiagnosticsItems(
             labels = RuntimeLogDiagnosticsLabels(
                 verboseLogTitle = stringResource(id = R.string.pref_verbose_log_mode_title),

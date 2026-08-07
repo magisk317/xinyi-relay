@@ -11,6 +11,7 @@ interface XpPrefsRuntimeBridge {
     fun isSensitiveDebugLogSupported(): Boolean
     fun isSensitiveDebugLogMode(context: Context): Boolean
     fun relayFeaturesEnabled(context: Context): Boolean
+    fun mobileAutomationAllowed(context: Context): Boolean
     fun autoInputCodeEnabled(context: Context): Boolean
     fun autoEnterCodeEnabled(context: Context): Boolean
     fun getAutoInputCodeDelay(context: Context): Long
@@ -36,6 +37,7 @@ object NoopXpPrefsRuntimeBridge : XpPrefsRuntimeBridge {
     override fun isSensitiveDebugLogSupported(): Boolean = false
     override fun isSensitiveDebugLogMode(context: Context): Boolean = false
     override fun relayFeaturesEnabled(context: Context): Boolean = true
+    override fun mobileAutomationAllowed(context: Context): Boolean = true
     override fun autoInputCodeEnabled(context: Context): Boolean = true
     override fun autoEnterCodeEnabled(context: Context): Boolean = false
     override fun getAutoInputCodeDelay(context: Context): Long = PrefConst.KEY_AUTO_INPUT_CODE_DELAY_DEFAULT.toLong()

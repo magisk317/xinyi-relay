@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import kotlinx.coroutines.async
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
@@ -92,7 +93,7 @@ class OverviewViewModelTest {
                 ),
             ),
         )
-        val eventDeferred = async { viewModel.events.first() }
+        val eventDeferred = async(start = CoroutineStart.UNDISPATCHED) { viewModel.events.first() }
 
         repeat(5) { index ->
             viewModel.onStatusCardTapped(1000L + index * 100L)

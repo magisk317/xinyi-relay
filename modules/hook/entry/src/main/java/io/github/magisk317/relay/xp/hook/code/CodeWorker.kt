@@ -67,6 +67,8 @@ class CodeWorker(
     }
 
     private fun buildParseResult(blockSms: Boolean): ParseResult {
-        return ParseResult().apply { isBlockSms = blockSms }
+        return ParseResult().apply {
+            isBlockSms = blockSms && XpPrefs.mobileAutomationAllowed(mPluginContext)
+        }
     }
 }
