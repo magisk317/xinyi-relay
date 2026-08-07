@@ -126,10 +126,12 @@ private fun MobileEntitlementScreen(
         scope.launch {
             busy = true
             message = null
+            var googleBotUrl: String? = null
             runCatching {
                 val challenge = withContext(Dispatchers.IO) {
                     MobileEntitlementCoordinator.createGoogleChallenge(context)
                 }
+                googleBotUrl = challenge.botUrl
                 val idToken = googleSignIn.getIdToken(
                     activity = activity,
                     serverClientId = BuildConfig.MOBILE_ENTITLEMENT_GOOGLE_WEB_CLIENT_ID,
@@ -142,7 +144,23 @@ private fun MobileEntitlementScreen(
                         idToken = idToken,
                     )
                 }
-            }.onSuccess { evaluation = it }
+            }.onSuccess { state ->
+                if (state.status == MobileEntitlementActivationStatus.APPROVED) {
+                    evaluation = state.evaluation
+                } else {
+                    val botUrl = googleBotUrl ?: state.botUrl
+                    if (botUrl.isNullOrBlank()) {
+                        message = context.getString(R.string.mobile_entitlement_telegram_required)
+                    } else {
+                        challenge = MobileEntitlementChallenge(
+                            id = state.challengeId,
+                            expiresAt = state.expiresAt ?: 0L,
+                            botUrl = botUrl,
+                        )
+                        openTelegram(botUrl)
+                    }
+                }
+            }
                 .onFailure { message = it.message ?: it.javaClass.simpleName }
             busy = false
         }

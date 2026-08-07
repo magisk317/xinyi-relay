@@ -840,6 +840,7 @@
     <string name="mobile_entitlement_refresh">刷新状态</string>
     <string name="mobile_entitlement_activate_telegram">通过 Telegram 激活</string>
     <string name="mobile_entitlement_activate_google">通过 Google 激活</string>
+    <string name="mobile_entitlement_telegram_required">Google 激活还需要加入官方 Telegram 频道。</string>
     <string name="mobile_entitlement_open_telegram">打开 Telegram</string>
     <string name="mobile_entitlement_pending">等待频道确认...</string>
     <string name="mobile_entitlement_play_flow">Play 版本使用 Google 激活，本版本尚未配置。</string>

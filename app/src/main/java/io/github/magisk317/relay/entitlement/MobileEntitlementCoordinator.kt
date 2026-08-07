@@ -41,6 +41,6 @@ object MobileEntitlementCoordinator {
         context: Context,
         challengeId: String,
         idToken: String,
-    ): MobileEntitlementEvaluation =
+    ): MobileEntitlementActivationState =
         PrivateMobileEntitlementCoordinator.activateWithGoogleIdToken(context, challengeId, idToken)
 }

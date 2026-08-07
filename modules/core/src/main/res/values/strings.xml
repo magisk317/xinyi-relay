@@ -830,6 +830,7 @@
     <string name="mobile_entitlement_refresh">Refresh status</string>
     <string name="mobile_entitlement_activate_telegram">Activate with Telegram</string>
     <string name="mobile_entitlement_activate_google">Activate with Google</string>
+    <string name="mobile_entitlement_telegram_required">Google activation also requires Telegram channel membership.</string>
     <string name="mobile_entitlement_open_telegram">Open Telegram</string>
     <string name="mobile_entitlement_pending">Waiting for channel approval...</string>
     <string name="mobile_entitlement_play_flow">Play activation uses Google and is not configured in this build.</string>
