@@ -1,15 +1,15 @@
 include:
   - project: magisk3171/magisk-ci-toolkit
-    ref: f7f01cd8b4bfb7c541dbab9b17cf84e10930ab79
+    ref: 2df77420a6f05d42283a5ada14957b62746a17aa
     file: /.gitlab/ci/android.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: f7f01cd8b4bfb7c541dbab9b17cf84e10930ab79
+    ref: 2df77420a6f05d42283a5ada14957b62746a17aa
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: f7f01cd8b4bfb7c541dbab9b17cf84e10930ab79
+    ref: 2df77420a6f05d42283a5ada14957b62746a17aa
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: f7f01cd8b4bfb7c541dbab9b17cf84e10930ab79
+    ref: 2df77420a6f05d42283a5ada14957b62746a17aa
     file: /.gitlab/ci/renovate.yml
 
 workflow:
@@ -38,7 +38,7 @@ stages:
   - maintenance
 
 variables:
-  MAGISK_CI_TOOLKIT_REF: "f7f01cd8b4bfb7c541dbab9b17cf84e10930ab79"
+  MAGISK_CI_TOOLKIT_REF: "2df77420a6f05d42283a5ada14957b62746a17aa"
   GIT_DEPTH: "0"
   GIT_SUBMODULE_STRATEGY: recursive
   GIT_SUBMODULE_DEPTH: "0"
@@ -57,7 +57,7 @@ variables:
   MAGISK_RENOVATE_REPOSITORY: "magisk3171/xinyi-relay"
   XINYI_DOCKERHUB_PUBLISH: "true"
   XINYI_BACKEND_ARCHES: "amd64 arm64"
-  XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG: "magisk-amd64-linux"
+  XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG: "magisk-arm64-linux"
   XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG: "magisk-arm64-linux"
   XINYI_GITLAB_WINDOWS_AMD64_RUNNER_TAG: "saas-windows-medium-amd64"
   XINYI_GITLAB_MACOS_ARM64_RUNNER_TAG: "saas-macos-medium-m1"
@@ -670,7 +670,7 @@ telegram:release:
 telegram:ci:
   extends:
     - .magisk_telegram_ci
-    - .xinyi_ci_rules
+    - .xinyi_signed_android_rules
   stage: notify
   allow_failure: true
   tags:

@@ -5,16 +5,20 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TOOLKIT_DIR="${MAGISK_CI_TOOLKIT_DIR:-${ROOT_DIR}/.magisk-ci-toolkit}"
 TOOLKIT_REPOSITORY="${MAGISK_CI_TOOLKIT_REPOSITORY:-https://gitlab.com/magisk3171/magisk-ci-toolkit.git}"
-TOOLKIT_REF="${MAGISK_CI_TOOLKIT_REF:-f7f01cd8b4bfb7c541dbab9b17cf84e10930ab79}"
+TOOLKIT_REF="${MAGISK_CI_TOOLKIT_REF:-2df77420a6f05d42283a5ada14957b62746a17aa}"
+TOOLKIT_REPOSITORY_AUTH="$TOOLKIT_REPOSITORY"
+if [[ -n "${CI_JOB_TOKEN:-}" && "$TOOLKIT_REPOSITORY" == https://gitlab.com/* ]]; then
+  TOOLKIT_REPOSITORY_AUTH="${TOOLKIT_REPOSITORY/https:\/\//https:\/\/gitlab-ci-token:${CI_JOB_TOKEN}@}"
+fi
 
 if [[ ! -d "$TOOLKIT_DIR/.git" ]]; then
   rm -rf -- "$TOOLKIT_DIR"
   git init --quiet "$TOOLKIT_DIR" >&2
-  git -C "$TOOLKIT_DIR" remote add origin "$TOOLKIT_REPOSITORY" >&2
+  git -C "$TOOLKIT_DIR" remote add origin "$TOOLKIT_REPOSITORY_AUTH" >&2
 elif git -C "$TOOLKIT_DIR" remote get-url origin >/dev/null 2>&1; then
-  git -C "$TOOLKIT_DIR" remote set-url origin "$TOOLKIT_REPOSITORY" >&2
+  git -C "$TOOLKIT_DIR" remote set-url origin "$TOOLKIT_REPOSITORY_AUTH" >&2
 else
-  git -C "$TOOLKIT_DIR" remote add origin "$TOOLKIT_REPOSITORY" >&2
+  git -C "$TOOLKIT_DIR" remote add origin "$TOOLKIT_REPOSITORY_AUTH" >&2
 fi
 
 git -C "$TOOLKIT_DIR" fetch --depth 1 origin "$TOOLKIT_REF" >&2
