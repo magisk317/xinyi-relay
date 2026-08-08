@@ -245,8 +245,8 @@ fun SettingsHomeScreen(
                     context.startActivity(
                         Intent().setClassName(
                             context,
-                            "${context.packageName}.entitlement.MobileEntitlementActivity",
-                        ),
+                            "io.github.magisk317.relay.entitlement.MobileEntitlementActivity",
+                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                     )
                 },
                 onRuntimeLogTitleClick = runtimeLogActions.onRuntimeLogTitleClick,
