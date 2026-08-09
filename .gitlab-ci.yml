@@ -1,18 +1,18 @@
 include:
   - project: magisk3171/magisk-ci-toolkit
-    ref: f52f56a2bd14ecd9c3130fa3d7e424039440dadd
+    ref: ab1988d8adb7afd0d28be300aae03202eade0c77
     file: /.gitlab/ci/android.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: f52f56a2bd14ecd9c3130fa3d7e424039440dadd
+    ref: ab1988d8adb7afd0d28be300aae03202eade0c77
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: f52f56a2bd14ecd9c3130fa3d7e424039440dadd
+    ref: ab1988d8adb7afd0d28be300aae03202eade0c77
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: f52f56a2bd14ecd9c3130fa3d7e424039440dadd
+    ref: ab1988d8adb7afd0d28be300aae03202eade0c77
     file: /.gitlab/ci/renovate.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: f52f56a2bd14ecd9c3130fa3d7e424039440dadd
+    ref: ab1988d8adb7afd0d28be300aae03202eade0c77
     file: /.gitlab/ci/cancel-mr-pipelines.yml
 
 workflow:
@@ -41,7 +41,7 @@ stages:
   - maintenance
 
 variables:
-  MAGISK_CI_TOOLKIT_REF: "f52f56a2bd14ecd9c3130fa3d7e424039440dadd"
+  MAGISK_CI_TOOLKIT_REF: "ab1988d8adb7afd0d28be300aae03202eade0c77"
   MAGISK_CANCEL_OLDER_MR_PIPELINES: "true"
   GIT_DEPTH: "0"
   GIT_SUBMODULE_STRATEGY: recursive
@@ -463,20 +463,19 @@ cancel:older:mr:pipelines:
     - |
       set -euo pipefail
       : "${MAGISK_GRADLE_ARGS:=--warning-mode all}"
-      : "${XINYI_ANDROID_TEST_TASKS:?XINYI_ANDROID_TEST_TASKS is required}"
-      bash "$MAGISK_CI_TOOLKIT_DIR/gradle/run_gradle_with_retry.sh" $MAGISK_GRADLE_ARGS $XINYI_ANDROID_TEST_TASKS \
-        -PskipGoogleServices=true
+      mapfile -t selected_tasks < <(bash scripts/ci/select_android_test_tasks.sh "$MAGISK_CI_TOOLKIT_DIR")
+      if ((${#selected_tasks[@]} == 0)); then
+        echo "No Android test tasks selected for this change."
+        exit 0
+      fi
+      bash "$MAGISK_CI_TOOLKIT_DIR/gradle/run_gradle_with_retry.sh" $MAGISK_GRADLE_ARGS \
+        "${selected_tasks[@]}" -PskipGoogleServices=true
   artifacts:
     when: always
     expire_in: 14 days
 
 android:test:noe2ee:
   extends: .xinyi_android_test
-  variables:
-    XINYI_ANDROID_TEST_TASKS: >-
-      :app:testGithubNoE2eeDebugUnitTest
-      :app:koverHtmlReportGithubNoE2eeDebug
-      verifyStructureBoundaries
   artifacts:
     name: "XinyiRelay-test-noe2ee-$CI_COMMIT_REF_SLUG"
     when: always
@@ -489,10 +488,6 @@ android:test:noe2ee:
 
 android:test:withe2ee:
   extends: .xinyi_android_test
-  variables:
-    XINYI_ANDROID_TEST_TASKS: >-
-      :app:testGithubWithE2eeDebugUnitTest
-      :app:koverHtmlReportGithubWithE2eeDebug
   artifacts:
     name: "XinyiRelay-test-withe2ee-$CI_COMMIT_REF_SLUG"
     when: always
