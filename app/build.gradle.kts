@@ -7,8 +7,13 @@ plugins {
     id(libs.plugins.kotlin.compose.get().pluginId)
 }
 
-val versionNameStr = libs.versions.versionName.get()
-val versionCodeInt = libs.versions.versionCode.get().toInt()
+val versionNameStr = providers.gradleProperty("versionName")
+    .orElse(libs.versions.versionName)
+    .get()
+val versionCodeInt = providers.gradleProperty("versionCode")
+    .map { requireNotNull(it.toIntOrNull()) { "Invalid -PversionCode=$it" } }
+    .orElse(libs.versions.versionCode.map { it.toInt() })
+    .get()
 val ndkVersionStr = libs.versions.ndk.get()
 val allowConflictBypass = findProperty("allowConflictBypass")
     ?.toString()

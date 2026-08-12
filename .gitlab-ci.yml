@@ -1,18 +1,18 @@
 include:
   - project: magisk3171/magisk-ci-toolkit
-    ref: ab1988d8adb7afd0d28be300aae03202eade0c77
+    ref: 97bbd5c245cbdc6ae67e705e09658f7fce14e0eb
     file: /.gitlab/ci/android.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: ab1988d8adb7afd0d28be300aae03202eade0c77
+    ref: 97bbd5c245cbdc6ae67e705e09658f7fce14e0eb
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: ab1988d8adb7afd0d28be300aae03202eade0c77
+    ref: 97bbd5c245cbdc6ae67e705e09658f7fce14e0eb
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: ab1988d8adb7afd0d28be300aae03202eade0c77
+    ref: 97bbd5c245cbdc6ae67e705e09658f7fce14e0eb
     file: /.gitlab/ci/renovate.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: ab1988d8adb7afd0d28be300aae03202eade0c77
+    ref: 97bbd5c245cbdc6ae67e705e09658f7fce14e0eb
     file: /.gitlab/ci/cancel-mr-pipelines.yml
 
 workflow:
@@ -32,16 +32,16 @@ default:
 
 stages:
   - build
-  - quality
-  - notify
-  - release-validate
   - package
+  - release-validate
   - release-build
   - release-publish
+  - notify
+  - quality
   - maintenance
 
 variables:
-  MAGISK_CI_TOOLKIT_REF: "ab1988d8adb7afd0d28be300aae03202eade0c77"
+  MAGISK_CI_TOOLKIT_REF: "97bbd5c245cbdc6ae67e705e09658f7fce14e0eb"
   MAGISK_CANCEL_OLDER_MR_PIPELINES: "true"
   GIT_DEPTH: "0"
   GIT_SUBMODULE_STRATEGY: recursive
@@ -213,7 +213,7 @@ variables:
 backend:go:
   extends: .xinyi_backend_validation_rules
   image: "golang:1.26.5-bookworm"
-  stage: quality
+  stage: build
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs: []
@@ -266,8 +266,6 @@ backend:container:amd64:
   needs:
     - job: backend:go
       artifacts: false
-    - job: backend:smoke
-      artifacts: false
   script:
     - chmod +x scripts/ci/gitlab_backend_container.sh
     - scripts/ci/gitlab_backend_container.sh build-arch amd64
@@ -283,8 +281,6 @@ backend:container:arm64:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
     - job: backend:go
-      artifacts: false
-    - job: backend:smoke
       artifacts: false
   script:
     - chmod +x scripts/ci/gitlab_backend_container.sh
@@ -588,11 +584,17 @@ android:release:play-bundle:
       : "${KEY_PASSWORD:?KEY_PASSWORD is required}"
 
       printf '%s' "$RELEASE_KEYSTORE" | base64 --decode > app/release.jks
+      bash "$MAGISK_CI_TOOLKIT_DIR/release/resolve_play_release.sh" \
+        --package-name "$MAGISK_ANDROID_RELEASE_PACKAGE_NAME" \
+        --version-file "$CI_PROJECT_DIR/gradle/libs.versions.toml" \
+        --output "$CI_PROJECT_DIR/play-release.env"
+      source "$CI_PROJECT_DIR/play-release.env"
       KEYSTORE_FILE="release.jks" \
       STORE_PASSWORD="$STORE_PASSWORD" \
       KEY_ALIAS="$KEY_ALIAS" \
       KEY_PASSWORD="$KEY_PASSWORD" \
-        bash "$MAGISK_CI_TOOLKIT_DIR/gradle/run_gradle_with_retry.sh" $MAGISK_GRADLE_ARGS :app:bundlePlayRelease
+        bash "$MAGISK_CI_TOOLKIT_DIR/gradle/run_gradle_with_retry.sh" $MAGISK_GRADLE_ARGS :app:bundlePlayRelease \
+          -PversionName="$MAGISK_PLAY_VERSION_NAME" -PversionCode="$MAGISK_PLAY_VERSION_CODE"
   artifacts:
     name: "XinyiRelay-release-bundle-$CI_COMMIT_TAG"
     when: always
@@ -601,6 +603,7 @@ android:release:play-bundle:
       - app/build/outputs/bundle/**/*.aab
       - app/build/outputs/mapping/**/mapping.txt
       - app/build/outputs/native-debug-symbols/**/native-debug-symbols.zip
+      - play-release.env
 
 android:release:gitlab:
   extends: .magisk_android_gitlab_release
@@ -624,6 +627,75 @@ android:release:play:
   needs:
     - job: android:release:play-bundle
       artifacts: true
+  artifacts:
+    reports:
+      dotenv: play-release-status.env
+    paths:
+      - play-release-status.env
+    when: always
+    expire_in: 1 day
+
+android:ci:play-alpha-bundle:
+  extends: .magisk_android_base
+  resource_group: xinyi-android-release-play
+  stage: release-build
+  tags:
+    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != "" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
+    - when: never
+  script:
+    - *xinyi_decode_google_services
+    - |
+      set -euo pipefail
+      printf '%s' "$RELEASE_KEYSTORE" | base64 --decode > app/release.jks
+      bash "$MAGISK_CI_TOOLKIT_DIR/release/resolve_play_release.sh" \
+        --package-name "$MAGISK_ANDROID_RELEASE_PACKAGE_NAME" \
+        --version-file "$CI_PROJECT_DIR/gradle/libs.versions.toml" \
+        --output "$CI_PROJECT_DIR/play-release.env"
+      source "$CI_PROJECT_DIR/play-release.env"
+      KEYSTORE_FILE=release.jks STORE_PASSWORD="$STORE_PASSWORD" KEY_ALIAS="$KEY_ALIAS" KEY_PASSWORD="$KEY_PASSWORD" \
+        bash "$MAGISK_CI_TOOLKIT_DIR/gradle/run_gradle_with_retry.sh" $MAGISK_GRADLE_ARGS :app:bundlePlayRelease \
+          -PversionName="$MAGISK_PLAY_VERSION_NAME" -PversionCode="$MAGISK_PLAY_VERSION_CODE"
+  artifacts:
+    when: always
+    expire_in: 1 day
+    paths:
+      - app/build/outputs/bundle/**/*.aab
+      - app/build/outputs/mapping/**/mapping.txt
+      - app/build/outputs/native-debug-symbols/**/native-debug-symbols.zip
+      - play-release.env
+
+android:ci:play-alpha:
+  extends: .magisk_android_base
+  resource_group: xinyi-android-release-play
+  stage: release-publish
+  tags:
+    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
+    - when: never
+  needs:
+    - job: android:ci:play-alpha-bundle
+      artifacts: true
+  script:
+    - |
+      set -euo pipefail
+      set -a
+      source play-release.env
+      set +a
+      export MAGISK_PLAY_AAB_FILE="$(find app/build/outputs/bundle -type f -name '*.aab' | sort | head -n 1)"
+      export MAGISK_PLAY_MAPPING_FILE="$(find app/build/outputs/mapping -type f -name mapping.txt | sort | head -n 1 || true)"
+      export MAGISK_PLAY_SYMBOLS_FILE="$(find app/build/outputs/native-debug-symbols -type f -name native-debug-symbols.zip 2>/dev/null | sort | head -n 1 || true)"
+      export MAGISK_RELEASE_ENV_FILE=play-release-status.env
+      bash "$MAGISK_CI_TOOLKIT_DIR/release/publish_play.sh"
+  artifacts:
+    when: always
+    expire_in: 1 day
+    reports:
+      dotenv: play-release-status.env
+    paths:
+      - play-release-status.env
 
 android:release:modules-repo:
   extends: .magisk_android_publish_modules_repo
@@ -640,7 +712,7 @@ telegram:images:
   extends:
     - .magisk_telegram_images
     - .xinyi_backend_publish_rules
-  stage: release-publish
+  stage: notify
   allow_failure: true
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
@@ -656,7 +728,7 @@ telegram:images:
 
 telegram:release:
   extends: .magisk_telegram_release
-  stage: release-publish
+  stage: notify
   allow_failure: true
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
@@ -668,6 +740,9 @@ telegram:release:
       artifacts: true
     - job: android:release:gitlab
       artifacts: false
+    - job: android:release:play
+      artifacts: false
+      optional: true
 
 telegram:ci:
   extends:
@@ -685,6 +760,9 @@ telegram:ci:
     - job: android:build
       artifacts: true
       optional: false
+    - job: android:ci:play-alpha
+      artifacts: false
+      optional: true
 
 renovate:gitlab:
   extends: .magisk_renovate_gitlab
