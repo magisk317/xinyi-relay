@@ -1,6 +1,8 @@
 package io.github.magisk317.relay.ui.app
 
 import android.app.Application
+import android.app.Activity
+import android.os.Bundle
 import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.app.AppInitializer
 import io.github.magisk317.relay.app.InfrastructureInitializer
@@ -16,6 +18,7 @@ import com.magisk317.mobile.entitlement.MobileEntitlementRuntime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import org.koin.android.ext.android.getKoin
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
@@ -24,6 +27,8 @@ import org.koin.core.context.startKoin
 class SmsCodeApplication : Application() {
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var startedActivityCount: Int = 0
+    private var entitlementForegroundPrimed = false
 
     override fun onCreate() {
         super.onCreate()
@@ -66,5 +71,35 @@ class SmsCodeApplication : Application() {
             },
         )
         MobileEntitlementCoordinator.initialize(this, applicationScope)
+        registerEntitlementForegroundRefresh()
+    }
+
+    private fun registerEntitlementForegroundRefresh() {
+        registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
+            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
+
+            override fun onActivityStarted(activity: Activity) {
+                if (startedActivityCount == 0) {
+                    if (entitlementForegroundPrimed) {
+                        applicationScope.launch {
+                            runCatching { MobileEntitlementCoordinator.refresh(this@SmsCodeApplication) }
+                        }
+                    } else {
+                        // initialize() covers the first process start.
+                        entitlementForegroundPrimed = true
+                    }
+                }
+                startedActivityCount += 1
+            }
+
+            override fun onActivityStopped(activity: Activity) {
+                startedActivityCount = (startedActivityCount - 1).coerceAtLeast(0)
+            }
+
+            override fun onActivityResumed(activity: Activity) = Unit
+            override fun onActivityPaused(activity: Activity) = Unit
+            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
+            override fun onActivityDestroyed(activity: Activity) = Unit
+        })
     }
 }
