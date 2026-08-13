@@ -2,5 +2,8 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "gitlab>magisk3171/magisk-ci-toolkit"
+  ],
+  "ignoreDeps": [
+    "fdroid:githubNoE2ee"
   ]
 }
