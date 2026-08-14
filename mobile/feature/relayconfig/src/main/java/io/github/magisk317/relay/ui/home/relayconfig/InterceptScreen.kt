@@ -282,6 +282,7 @@ fun InterceptScreen(
         TextInputDialog(
             title = stringResource(id = R.string.pref_sms_blacklist_numbers_title),
             initialValue = smsBlacklistNumbers,
+            selectAllOnOpen = true,
             onDismiss = { showSmsBlacklistNumbersDialog = false },
             supportingText = separatorHint,
             validator = separatorValidator,
@@ -306,6 +307,7 @@ fun InterceptScreen(
         TextInputDialog(
             title = stringResource(id = R.string.pref_sms_blacklist_prefixes_title),
             initialValue = smsBlacklistPrefixes,
+            selectAllOnOpen = true,
             onDismiss = { showSmsBlacklistPrefixesDialog = false },
             supportingText = separatorHint,
             validator = separatorValidator,
@@ -330,6 +332,7 @@ fun InterceptScreen(
         TextInputDialog(
             title = stringResource(id = R.string.pref_sms_blacklist_regex_title),
             initialValue = smsBlacklistRegex,
+            selectAllOnOpen = true,
             onDismiss = { showSmsBlacklistRegexDialog = false },
             supportingText = regexSeparatorHint,
             validator = regexSeparatorValidator,
@@ -354,6 +357,7 @@ fun InterceptScreen(
         TextInputDialog(
             title = stringResource(id = R.string.pref_sms_blacklist_content_title),
             initialValue = smsBlacklistContent,
+            selectAllOnOpen = true,
             onDismiss = { showSmsBlacklistContentDialog = false },
             supportingText = separatorHint,
             validator = separatorValidator,

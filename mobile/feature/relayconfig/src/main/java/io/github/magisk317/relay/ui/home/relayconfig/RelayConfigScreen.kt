@@ -160,6 +160,7 @@ fun RelayConfigScreen(
         TextInputDialog(
             title = stringResource(id = R.string.pref_sms_forward_dedup_window_title),
             initialValue = current.smsForwardDedupWindowSec.toString(),
+            selectAllOnOpen = true,
             onDismiss = { showDedupWindowDialog = false },
             supportingText = stringResource(id = R.string.pref_sms_forward_dedup_window_hint),
             validator = {

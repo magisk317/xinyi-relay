@@ -455,6 +455,7 @@ fun CodeRecordScreen(
             } else {
                 currentHistoryLimit
             },
+            selectAllOnOpen = true,
             onDismiss = { showHistoryLimitInput = false },
         ) { value ->
             if (value.all { it.isDigit() } && value.isNotEmpty()) {

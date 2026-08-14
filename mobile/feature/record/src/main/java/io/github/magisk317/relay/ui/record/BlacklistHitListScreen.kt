@@ -270,6 +270,7 @@ fun BlacklistHitListScreen(
         TextInputDialog(
             title = stringResource(R.string.history_limit_custom_entry),
             initialValue = if (historyLimit == "0" || historyLimit == "-1") "" else historyLimit,
+            selectAllOnOpen = true,
             onDismiss = { showHistoryLimitInput = false },
         ) { value ->
             if (value.all { it.isDigit() } && value.isNotEmpty()) {

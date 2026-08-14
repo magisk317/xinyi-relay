@@ -635,6 +635,7 @@ fun VerificationSettingsScreen(
         TextInputDialog(
             title = stringResource(id = R.string.pref_auto_input_code_delay_title),
             initialValue = normalizeIntegerInput(current.autoInputDelay),
+            selectAllOnOpen = true,
             onDismiss = { showDelayDialog = false },
             supportingText = stringResource(id = R.string.pref_number_non_negative_integer_hint),
             validator = {
@@ -659,6 +660,7 @@ fun VerificationSettingsScreen(
         TextInputDialog(
             title = stringResource(id = R.string.pref_auto_input_code_interval_title),
             initialValue = normalizeIntegerInput(current.autoInputInterval),
+            selectAllOnOpen = true,
             onDismiss = { showIntervalDialog = false },
             supportingText = stringResource(id = R.string.pref_number_non_negative_integer_hint),
             validator = {
@@ -707,6 +709,7 @@ fun VerificationSettingsScreen(
         TextInputDialog(
             title = stringResource(id = R.string.pref_relay_keywords_title),
             initialValue = current.relayKeywords,
+            selectAllOnOpen = true,
             onDismiss = { showKeywordsDialog = false },
             supportingText = stringResource(id = R.string.pref_relay_keywords_summary),
             singleLine = false,

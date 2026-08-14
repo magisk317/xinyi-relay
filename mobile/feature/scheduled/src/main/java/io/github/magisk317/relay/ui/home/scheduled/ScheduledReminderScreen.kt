@@ -582,6 +582,7 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
         TextInputDialog(
             title = stringResource(id = R.string.scheduled_reminder_threshold_title),
             initialValue = current.lowBatteryThreshold.toString(),
+            selectAllOnOpen = true,
             onDismiss = { showThresholdDialog = false },
             supportingText = stringResource(id = R.string.scheduled_reminder_threshold_hint),
             validator = { value ->
@@ -611,6 +612,7 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
         TextInputDialog(
             title = stringResource(id = R.string.special_alert_sms_keywords_dialog_title),
             initialValue = current.smsKeywordKeywords,
+            selectAllOnOpen = true,
             onDismiss = { showSmsKeywordDialog = false },
             singleLine = false,
             maxLines = 8,
@@ -629,6 +631,7 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
         TextInputDialog(
             title = stringResource(id = R.string.special_alert_app_keywords_dialog_title),
             initialValue = current.appKeywordKeywords,
+            selectAllOnOpen = true,
             onDismiss = { showAppKeywordDialog = false },
             singleLine = false,
             maxLines = 8,

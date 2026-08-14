@@ -337,6 +337,7 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
         TextInputDialog(
             title = stringResource(id = R.string.pref_root_db_catchup_interval_title),
             initialValue = normalizeIntegerInput(current.rootDbCatchupIntervalMin),
+            selectAllOnOpen = true,
             onDismiss = { showRootDbIntervalDialog = false },
             supportingText = stringResource(id = R.string.pref_root_db_catchup_interval_hint),
             validator = {
