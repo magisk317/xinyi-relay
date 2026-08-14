@@ -39,8 +39,7 @@ private class RelayVerificationPrefs(
     override fun autoCancelNotification(): Boolean = mobileAutomationAllowed() && XpPrefs.autoCancelCodeNotification(context)
     override fun notificationRetentionMs(): Long = XpPrefs.getNotificationRetentionTime(context) * 1000L
     override fun autoInputEnabled(): Boolean = mobileAutomationAllowed() && XpPrefs.autoInputCodeEnabled(context)
-    override fun autoInputDelayMs(): Long = XpPrefs.getAutoInputCodeDelay(context)
-    override fun inputIntervalMs(): Long = XpPrefs.getAutoInputCodeIntervalMs(context)
+    override fun autoInputDelayMs(): Long = XpPrefs.getAutoInputCodeDelay(context) * 1000L
     override fun copyToClipboardEnabled(): Boolean = mobileAutomationAllowed() && XpPrefs.copyToClipboardEnabled(context)
     override fun showToast(): Boolean = mobileAutomationAllowed() && XpPrefs.shouldShowToast(context)
     override fun recordSmsEnabled(): Boolean = XpPrefs.recordSmsCodeEnabled(context)
