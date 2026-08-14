@@ -61,10 +61,7 @@ class SettingsRepository(
             ),
             autoInputEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE_AUTO_INPUT_CODE, true),
             autoEnterEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE_AUTO_ENTER_CODE, false),
-            autoInputDelay = preferenceDataSource.getString(
-                PrefConst.KEY_AUTO_INPUT_CODE_DELAY,
-                PrefConst.KEY_AUTO_INPUT_CODE_DELAY_DEFAULT,
-            ),
+            autoInputDelay = loadAutoInputDelayMs(),
             autoInputInterval = preferenceDataSource.getString(
                 PrefConst.KEY_AUTO_INPUT_CODE_INTERVAL,
                 PrefConst.KEY_AUTO_INPUT_CODE_INTERVAL_DEFAULT,
@@ -740,6 +737,17 @@ class SettingsRepository(
 
     private suspend fun publishHookPrefsOnly() {
         HookPreferenceMirror.publish(appContext)
+    }
+
+    private suspend fun loadAutoInputDelayMs(): String {
+        val milliseconds = preferenceDataSource.getString(PrefConst.KEY_AUTO_INPUT_CODE_DELAY, "")
+        if (milliseconds.isNotEmpty()) return milliseconds
+
+        val legacySeconds = preferenceDataSource.getString(
+            PrefConst.KEY_AUTO_INPUT_CODE_DELAY_LEGACY,
+            PrefConst.KEY_AUTO_INPUT_CODE_DELAY_DEFAULT,
+        ).toLongOrNull()?.coerceAtLeast(0L) ?: 0L
+        return (legacySeconds * 1000L).toString()
     }
 }
 
