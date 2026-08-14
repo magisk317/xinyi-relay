@@ -20,6 +20,7 @@ import io.github.magisk317.xposed.logging.AnonymousInstallationId
 // Source-chain resolution lives in PrefsSourceChain; do not add more business getters here.
 object PrefsReader {
     internal const val PREFS_NAME = "xposed_prefs"
+    private const val MISSING_LONG_VALUE = "-9223372036854775808"
     private data class BooleanReadTrace(val value: Boolean, val source: String)
     private data class StringReadTrace(val value: String, val source: String)
     private val runtimeBridgeLogOnce = AtomicBoolean(false)
@@ -228,13 +229,16 @@ object PrefsReader {
         val value = getStringViaProvider(
             context,
             PrefConst.KEY_AUTO_INPUT_CODE_DELAY,
-            PrefConst.KEY_AUTO_INPUT_CODE_DELAY_DEFAULT,
+            MISSING_LONG_VALUE,
         )
-        return try {
-            value.toLong()
-        } catch (ignored: Exception) {
-            PrefConst.KEY_AUTO_INPUT_CODE_DELAY_DEFAULT.toLong()
-        }
+        value.toLongOrNull()?.takeUnless { it == Long.MIN_VALUE }?.let { return it.coerceAtLeast(0L) }
+
+        return getStringViaProvider(
+            context,
+            PrefConst.KEY_AUTO_INPUT_CODE_DELAY_LEGACY,
+            PrefConst.KEY_AUTO_INPUT_CODE_DELAY_DEFAULT,
+        ).toLongOrNull()?.coerceAtLeast(0L)?.times(1000L)
+            ?: PrefConst.KEY_AUTO_INPUT_CODE_DELAY_DEFAULT.toLong()
     }
 
     @JvmStatic

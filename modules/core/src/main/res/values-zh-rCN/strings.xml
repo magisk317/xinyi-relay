@@ -87,7 +87,7 @@
     <string name="pref_enable_auto_enter_code_title">自动确认/回车</string>
     <string name="pref_enable_auto_enter_code_summary">填充验证码后自动触发回车操作</string>
     <string name="pref_auto_input_code_delay_title">自动输入延迟</string>
-    <string name="pref_auto_input_code_delay_summary">延迟 %ss</string>
+    <string name="pref_auto_input_code_delay_summary">延迟 %sms</string>
     <string name="pref_auto_input_code_interval_title">自动输入间隔</string>
     <string name="pref_auto_input_code_interval_summary">间隔 %sms</string>
     <!-- preferences auto-input end -->
