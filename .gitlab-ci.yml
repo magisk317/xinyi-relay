@@ -431,6 +431,11 @@ android:build:
   extends:
     - .magisk_android_build
     - .xinyi_signed_android_rules
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != ""'
+    - when: never
   variables:
     MAGISK_ANDROID_BUILD_TASKS: >-
       :app:assembleGithubNoE2eeDebug
@@ -443,6 +448,18 @@ android:build:
     expire_in: 14 days
     paths:
       - app/build/outputs/apk/github*/debug/*.apk
+
+android:check:
+  extends: .magisk_android_build
+  stage: quality
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - when: never
+  variables:
+    MAGISK_ANDROID_BUILD_TASKS: >-
+      :app:compileGithubNoE2eeDebug
+      :app:compileGithubWithE2eeDebug
+      -PskipGoogleServices=true
 
 cancel:older:mr:pipelines:
   extends: .magisk_cancel_older_mr_pipelines
@@ -748,6 +765,9 @@ telegram:ci:
     - .xinyi_signed_android_rules
   stage: notify
   allow_failure: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != ""'
+    - when: never
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   variables:
@@ -757,7 +777,7 @@ telegram:ci:
   needs:
     - job: android:build
       artifacts: true
-      optional: false
+      optional: true
     - job: android:ci:play-alpha
       artifacts: false
       optional: true
