@@ -12,6 +12,7 @@ import io.github.magisk317.relay.contract.constant.RelayAppConst
 @Composable
 fun SectionCard(
     title: String,
+    summary: String = "",
     accordionMode: Boolean,
     sectionExpanded: Boolean,
     onExpandedChange: () -> Unit,
@@ -24,6 +25,7 @@ fun SectionCard(
     ) {
         io.github.magisk317.uikit.preference.SectionCard(
             title = title,
+            summary = summary,
             accordionMode = accordionMode,
             sectionExpanded = sectionExpanded,
             onExpandedChange = onExpandedChange,

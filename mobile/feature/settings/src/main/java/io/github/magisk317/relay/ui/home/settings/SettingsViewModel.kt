@@ -33,19 +33,20 @@ import io.github.magisk317.smscode.runtime.common.backup.BackupSmsRecord
 import io.github.magisk317.smscode.runtime.common.backup.ExportResult
 import io.github.magisk317.uikit.theme.UiKitStyle
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicLong
 
 sealed class SettingsEvent {
     data object ShowPrivacyPolicy : SettingsEvent()
@@ -54,12 +55,61 @@ sealed class SettingsEvent {
     data object StartPlayUpdate : SettingsEvent()
     data object StartGithubUpdateCheck : SettingsEvent()
     data class ShowSnackbar(val message: String) : SettingsEvent()
-    data class BackupResultEvent(
+}
+
+internal sealed class SettingsBackupEvent {
+    data class BackupResult(
         val success: Boolean,
         val inspection: RelayBackupManager.BackupInspection? = null,
-    ) : SettingsEvent()
-    data class RestoreResultEvent(val result: BackupImportResult) : SettingsEvent()
-    data class ImportDialogConfirm(val uri: android.net.Uri) : SettingsEvent()
+    ) : SettingsBackupEvent()
+
+    data class RestoreResult(val result: BackupImportResult) : SettingsBackupEvent()
+    data class ImportDialogConfirm(val uri: String) : SettingsBackupEvent()
+}
+
+internal data class PendingSettingsBackupEvent(
+    val id: Long,
+    val event: SettingsBackupEvent,
+)
+
+internal class SettingsBackupEventQueue {
+    private val nextId = AtomicLong(0L)
+    private val _events = MutableStateFlow<List<PendingSettingsBackupEvent>>(emptyList())
+
+    val events: StateFlow<List<PendingSettingsBackupEvent>> = _events.asStateFlow()
+
+    fun emit(event: SettingsBackupEvent): Boolean {
+        if (event is SettingsBackupEvent.ImportDialogConfirm) {
+            return emitUniqueImportDialog(event)
+        }
+        _events.update { pending ->
+            pending + PendingSettingsBackupEvent(
+                id = nextId.incrementAndGet(),
+                event = event,
+            )
+        }
+        return true
+    }
+
+    fun acknowledge(id: Long) {
+        _events.update { pending -> pending.filterNot { it.id == id } }
+    }
+
+    private fun emitUniqueImportDialog(event: SettingsBackupEvent.ImportDialogConfirm): Boolean {
+        while (true) {
+            val pending = _events.value
+            val alreadyPending = pending.any { queued ->
+                val queuedEvent = queued.event
+                queuedEvent is SettingsBackupEvent.ImportDialogConfirm && queuedEvent.uri == event.uri
+            }
+            if (alreadyPending) return false
+            val appended = pending + PendingSettingsBackupEvent(
+                id = nextId.incrementAndGet(),
+                event = event,
+            )
+            if (_events.compareAndSet(pending, appended)) return true
+        }
+    }
 }
 
 fun resolvePreferredUpdateEvent(installedFromPlay: Boolean): SettingsEvent =
@@ -93,6 +143,12 @@ class SettingsViewModel(
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
     val eventsFlow = _eventsFlow.asSharedFlow()
+    private val backupEventQueue = SettingsBackupEventQueue()
+    internal val backupEventsFlow = backupEventQueue.events
+
+    internal fun acknowledgeBackupEvent(id: Long) {
+        backupEventQueue.acknowledge(id)
+    }
 
     data class ThemeState(
         val mode: Int,
@@ -120,9 +176,6 @@ class SettingsViewModel(
         }
         viewModelScope.launch {
             sharedLanguageState.value = LanguageState(settingsRepository.getLanguageTag())
-        }
-        viewModelScope.launch {
-            HookPreferenceMirror.publish(getApplication())
         }
     }
 
@@ -285,11 +338,12 @@ class SettingsViewModel(
         }
     }
 
-    fun handleBackupArguments(uri: android.net.Uri?) {
-        if (uri == null) return
-        viewModelScope.launch {
-            _eventsFlow.tryEmit(SettingsEvent.ImportDialogConfirm(uri))
-        }
+    fun handleBackupArguments(uri: android.net.Uri?): Boolean {
+        if (uri == null) return false
+        // An already-pending event for this URI also counts as accepted: the durable queue
+        // already represents the import request, so the Activity may safely clear its Intent.
+        backupEventQueue.emit(SettingsBackupEvent.ImportDialogConfirm(uri.toString()))
+        return true
     }
 
     fun performBackup(
@@ -383,24 +437,29 @@ class SettingsViewModel(
                 XLog.i("Backup finished: result=%s", result.name)
                 var backupInspection: RelayBackupManager.BackupInspection? = null
                 if (result == ExportResult.SUCCESS) {
-                    runCatching {
-                        RelayBackupManager.inspectBackup(context, uri)
-                    }.onSuccess { inspected ->
+                    try {
+                        val inspected = withContext(Dispatchers.IO) {
+                            RelayBackupManager.inspectBackup(context, uri)
+                        }
                         backupInspection = inspected
                         XLog.i("Backup inspect: %s", inspected.toLogString())
-                    }.onFailure {
-                        XLog.w("Backup inspect failed: %s", it.message ?: it.javaClass.simpleName)
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (t: Throwable) {
+                        XLog.w("Backup inspect failed: %s", t.message ?: t.javaClass.simpleName)
                     }
                 }
-                _eventsFlow.tryEmit(
-                    SettingsEvent.BackupResultEvent(
+                backupEventQueue.emit(
+                    SettingsBackupEvent.BackupResult(
                         success = result == ExportResult.SUCCESS,
                         inspection = backupInspection,
                     ),
                 )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (e: Exception) {
                 XLog.e("Backup failed", e)
-                _eventsFlow.tryEmit(SettingsEvent.BackupResultEvent(false))
+                backupEventQueue.emit(SettingsBackupEvent.BackupResult(false))
             }
         }
     }
@@ -426,12 +485,15 @@ class SettingsViewModel(
                 val importResult = withContext(Dispatchers.IO) {
                     RelayBackupManager.importRuleList(context, uri, BuildConfig.VERSION_NAME)
                 }
-                runCatching {
-                    RelayBackupManager.inspectBackup(context, uri)
-                }.onSuccess { inspection ->
+                try {
+                    val inspection = withContext(Dispatchers.IO) {
+                        RelayBackupManager.inspectBackup(context, uri)
+                    }
                     XLog.i("Restore inspect: %s", inspection.toLogString())
-                }.onFailure {
-                    XLog.w("Restore inspect failed: %s", it.message ?: it.javaClass.simpleName)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (t: Throwable) {
+                    XLog.w("Restore inspect failed: %s", t.message ?: t.javaClass.simpleName)
                 }
                 XLog.i(
                     "Restore import result=%s rules=%d records=%d prefs=%d warning=%s",
@@ -464,12 +526,13 @@ class SettingsViewModel(
                     }
                     XLog.i("Restore apply finished")
                 }
-                _eventsFlow.tryEmit(SettingsEvent.RestoreResultEvent(importResult))
+                backupEventQueue.emit(SettingsBackupEvent.RestoreResult(importResult))
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (e: Exception) {
                 XLog.e("Restore failed", e)
-                // Return failed event
-                _eventsFlow.tryEmit(
-                    SettingsEvent.RestoreResultEvent(
+                backupEventQueue.emit(
+                    SettingsBackupEvent.RestoreResult(
                         BackupImportResult(io.github.magisk317.smscode.runtime.common.backup.ImportResult.READ_FAILED),
                     ),
                 )
@@ -568,11 +631,14 @@ class SettingsViewModel(
     suspend fun inspectBackup(uri: android.net.Uri): RelayBackupManager.BackupInspection? {
         val context = getApplication<Application>()
         return withContext(Dispatchers.IO) {
-            runCatching { RelayBackupManager.inspectBackup(context, uri) }
-                .onFailure {
-                    XLog.w("Inspect backup failed: %s", it.message ?: it.javaClass.simpleName)
-                }
-                .getOrNull()
+            try {
+                RelayBackupManager.inspectBackup(context, uri)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Throwable) {
+                XLog.w("Inspect backup failed: %s", failure.message ?: failure.javaClass.simpleName)
+                null
+            }
         }
     }
 

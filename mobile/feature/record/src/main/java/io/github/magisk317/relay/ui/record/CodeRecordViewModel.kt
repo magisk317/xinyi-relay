@@ -24,11 +24,17 @@ import kotlinx.collections.immutable.toImmutableList
 import io.github.magisk317.smscode.rule.utils.CodeRecordSimilarityUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.OutputStreamWriter
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
 
 @Immutable
 data class CodeRecordUiState(
@@ -92,6 +98,14 @@ private data class RecordExportPayload(
 
 private const val CODE_RECORD_DEDUP_WINDOW_MS = CodeRecordSimilarityUtils.DEFAULT_WINDOW_MS
 
+@OptIn(ExperimentalCoroutinesApi::class)
+internal fun <T> activePageFlow(
+    active: Flow<Boolean>,
+    source: () -> Flow<T>,
+): Flow<T> = active.flatMapLatest { isActive ->
+    if (isActive) source() else emptyFlow()
+}
+
 internal fun buildRecordQueryState(records: List<SmsMsg>): RecordQueryState {
     val codeRecords = records.filter {
         it.msgType == SmsMsg.MSG_TYPE_SMS && !it.smsCode.isNullOrBlank()
@@ -138,16 +152,24 @@ class CodeRecordViewModel(
     internal val recordEnvironment: StateFlow<RecordEnvironmentState> = _recordEnvironment.asStateFlow()
     private val _recordIcons = MutableStateFlow<Map<String, Bitmap>>(emptyMap())
     internal val recordIcons: StateFlow<Map<String, Bitmap>> = _recordIcons.asStateFlow()
-    private val loadingIconPackages = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
-    private val packageLabelCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+    private val pageActive = MutableStateFlow(false)
+    private val loadingIconPackages = ConcurrentHashMap<String, Long>()
+    private val packageLabelCache = ConcurrentHashMap<String, String>()
+    private val iconLoadJobs = ConcurrentHashMap.newKeySet<Job>()
+    private val iconBatchSequence = AtomicLong(0L)
+    private var activationGeneration = 0L
+    private var refreshGeneration = 0L
+    private var refreshJob: Job? = null
 
-    private val recordsWithLabelsFlow: Flow<Triple<ImmutableList<SmsMsg>, RecordQueryState, Map<String, String>>> = repository.queryAllFlow()
-        .mapLatest { smsList ->
-            val (records, queryState) = withContext(Dispatchers.Default) {
-                val normalized = smsList.map { it.toSmsMsg() }.toImmutableList()
-                normalized to buildRecordQueryState(normalized)
+    private val recordsWithLabelsFlow: Flow<Triple<ImmutableList<SmsMsg>, RecordQueryState, Map<String, String>>> =
+        activePageFlow(pageActive) {
+            repository.queryAllFlow().mapLatest { smsList ->
+                val (records, queryState) = withContext(Dispatchers.Default) {
+                    val normalized = smsList.map { it.toSmsMsg() }.toImmutableList()
+                    normalized to buildRecordQueryState(normalized)
+                }
+                Triple(records, queryState, resolvePackageLabels(records))
             }
-            Triple(records, queryState, resolvePackageLabels(records))
         }
 
     val uiState: StateFlow<CodeRecordUiState> = recordsWithLabelsFlow
@@ -176,61 +198,76 @@ class CodeRecordViewModel(
             initialValue = CodeRecordUiState(isLoading = true),
         )
 
-    init {
-        refreshRecordEnvironment()
-    }
-
-    fun loadData() {
-        // Data is automatically loaded via queryAllFlow() in uiState
-    }
-
-    fun refreshData() {
-        viewModelScope.launch {
-            _loading.value = true
-            try {
-                withContext(Dispatchers.IO) {
-                    refreshRecordEnvironmentBlocking()
-                    repository.queryAll()
-                }
-            } finally {
-                _loading.value = false
-            }
+    fun setPageActive(active: Boolean) {
+        if (pageActive.value == active) return
+        pageActive.value = active
+        activationGeneration++
+        refreshGeneration++
+        if (active) {
+            refreshRecordEnvironment(showLoading = false)
+        } else {
+            refreshJob?.cancel()
+            refreshJob = null
+            iconLoadJobs.forEach { it.cancel() }
+            iconLoadJobs.clear()
+            loadingIconPackages.clear()
+            _loading.value = false
         }
     }
 
+    fun loadData() {
+        // Active pages are automatically loaded through queryAllFlow().
+    }
+
+    fun refreshData() {
+        if (!pageActive.value) return
+        refreshRecordEnvironment(showLoading = true)
+    }
+
     fun preloadRecordIcons(packageNames: Collection<String?>, sizePx: Int) {
+        if (!pageActive.value) return
+        val batchId = iconBatchSequence.incrementAndGet()
         val normalizedPackages = packageNames
             .asSequence()
             .mapNotNull { it?.trim() }
             .filter { it.isNotEmpty() }
             .distinct()
             .filter { packageName ->
-                !_recordIcons.value.containsKey(packageName) && loadingIconPackages.add(packageName)
+                !_recordIcons.value.containsKey(packageName) &&
+                    loadingIconPackages.putIfAbsent(packageName, batchId) == null
             }
             .toList()
         if (normalizedPackages.isEmpty()) return
 
-        viewModelScope.launch(Dispatchers.IO) {
+        val generation = activationGeneration
+        val job = viewModelScope.launch(Dispatchers.IO, start = CoroutineStart.LAZY) {
             val context = getApplication<Application>().applicationContext
             val loaded = mutableMapOf<String, Bitmap>()
-            for (packageName in normalizedPackages) {
-                try {
+            try {
+                for (packageName in normalizedPackages) {
+                    currentCoroutineContext().ensureActive()
                     val bitmap = AppIconCache.load(
                         context = context,
                         packageName = packageName,
                         sizePx = sizePx,
                     )
+                    currentCoroutineContext().ensureActive()
                     if (bitmap != null) {
                         loaded[packageName] = bitmap
                     }
-                } finally {
-                    loadingIconPackages.remove(packageName)
+                }
+            } finally {
+                normalizedPackages.forEach { packageName ->
+                    loadingIconPackages.remove(packageName, batchId)
                 }
             }
-            if (loaded.isNotEmpty()) {
+            if (pageActive.value && generation == activationGeneration && loaded.isNotEmpty()) {
                 _recordIcons.update { current -> current + loaded }
             }
         }
+        iconLoadJobs += job
+        job.invokeOnCompletion { iconLoadJobs -= job }
+        job.start()
     }
 
     fun removeSmsMsg(smsMsgList: List<ReadRecordData>) {
@@ -348,26 +385,42 @@ class CodeRecordViewModel(
         val pm = getApplication<Application>().packageManager
         buildMap {
             for (pkg in packages) {
+                currentCoroutineContext().ensureActive()
                 val label = packageLabelCache[pkg] ?: runCatching {
                     val appInfo = pm.getApplicationInfo(pkg, 0)
                     pm.getApplicationLabel(appInfo).toString().ifBlank { pkg }
                 }.getOrDefault(pkg).also { resolved ->
                     packageLabelCache[pkg] = resolved
                 }
+                currentCoroutineContext().ensureActive()
                 put(pkg, label)
             }
         }
     }
 
-    private fun refreshRecordEnvironment() {
-        viewModelScope.launch(Dispatchers.IO) {
-            refreshRecordEnvironmentBlocking()
+    private fun refreshRecordEnvironment(showLoading: Boolean) {
+        refreshJob?.cancel()
+        val generation = ++refreshGeneration
+        if (showLoading) _loading.value = true
+        refreshJob = viewModelScope.launch {
+            try {
+                val environment = withContext(Dispatchers.IO) {
+                    resolveRecordEnvironment()
+                }
+                if (pageActive.value && generation == refreshGeneration) {
+                    _recordEnvironment.value = environment
+                }
+            } finally {
+                if (generation == refreshGeneration) {
+                    _loading.value = false
+                }
+            }
         }
     }
 
-    private fun refreshRecordEnvironmentBlocking() {
+    private fun resolveRecordEnvironment(): RecordEnvironmentState {
         val context = getApplication<Application>()
-        _recordEnvironment.value = RecordEnvironmentState(
+        return RecordEnvironmentState(
             defaultSmsPackage = AppIconEncoder.resolveDefaultSmsPackage(context),
             defaultDialerPackage = AppIconEncoder.resolveDefaultDialerPackage(context),
         )

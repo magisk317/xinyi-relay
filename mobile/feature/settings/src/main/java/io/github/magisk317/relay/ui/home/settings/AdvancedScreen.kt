@@ -4,8 +4,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -37,10 +40,15 @@ import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 
 private const val BENCHMARK_ADVANCED_RELAY_CONFIG = "xinyi_benchmark_advanced_relay_config"
 
+private fun Modifier.advancedBenchmarkTag(enabled: Boolean): Modifier =
+    if (enabled) testTag(BENCHMARK_ADVANCED_RELAY_CONFIG) else this
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdvancedScreen(
     bottomContentPadding: Dp = 0.dp,
+    isActive: Boolean = true,
+    benchmarkTagsEnabled: Boolean = true,
     onNavigateToScheduledTasks: (() -> Unit)? = null,
     onInterceptClick: () -> Unit,
     onVerificationConfigClick: () -> Unit,
@@ -49,6 +57,11 @@ fun AdvancedScreen(
     onScheduledReminderClick: () -> Unit,
     onRemoteAgentClick: () -> Unit,
 ) {
+    val workPolicy = advancedPageWorkPolicy(isActive, benchmarkTagsEnabled)
+    val navigationBarPadding = WindowInsets.navigationBars
+        .asPaddingValues()
+        .calculateBottomPadding()
+    val effectiveBottomPadding = maxOf(bottomContentPadding, navigationBarPadding)
     Scaffold(
         topBar = {
             TopAppBar(
@@ -56,17 +69,21 @@ fun AdvancedScreen(
                 colors = chromeTopAppBarColors(),
             )
         },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(
+                    state = rememberScrollState(),
+                    enabled = workPolicy.enableScrolling,
+                )
                 .padding(
                     start = 16.dp,
                     top = 16.dp,
                     end = 16.dp,
-                    bottom = 16.dp + bottomContentPadding,
+                    bottom = 16.dp + effectiveBottomPadding,
                 ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -80,7 +97,7 @@ fun AdvancedScreen(
                 title = stringResource(id = R.string.pref_relay_config_title),
                 subtitle = stringResource(id = R.string.pref_relay_config_summary),
                 icon = { Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null) },
-                modifier = Modifier.testTag(BENCHMARK_ADVANCED_RELAY_CONFIG),
+                modifier = Modifier.advancedBenchmarkTag(workPolicy.exposeBenchmarkTags),
                 onClick = onRelayConfigClick,
             )
             AdvancedEntryCard(

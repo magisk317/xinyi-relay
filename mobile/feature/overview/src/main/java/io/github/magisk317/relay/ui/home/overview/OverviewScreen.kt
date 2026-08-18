@@ -12,9 +12,8 @@ import io.github.magisk317.uikit.R as UiKitR
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
 
-import android.app.Activity
 import android.content.Context
-import android.content.ContextWrapper
+import androidx.activity.compose.LocalActivity
 import io.github.magisk317.relay.feature.mode.BatteryOptimizationHelper
 import io.github.magisk317.relay.feature.mode.StandardModePermissions
 import io.github.magisk317.relay.feature.mode.WorkMode
@@ -48,12 +47,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -64,7 +65,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsSnapshot
@@ -73,6 +75,7 @@ import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import io.github.magisk317.relay.engine.service.RuntimeAnalyticsProvider
 import io.github.magisk317.relay.billing.BillingProvider
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -87,8 +90,13 @@ internal data class HomeCardSpec(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OverviewScreen(onCheckUpdate: () -> Unit) {
+fun OverviewScreen(
+    onCheckUpdate: () -> Unit,
+    isActive: Boolean = true,
+    bottomContentPadding: androidx.compose.ui.unit.Dp = 0.dp,
+) {
     val context = LocalContext.current
+    val activity = LocalActivity.current
     val viewModel: OverviewViewModel = koinViewModel()
     val analyticsRepository: RuntimeAnalyticsProvider = koinInject()
     val billingProvider: BillingProvider = koinInject()
@@ -99,8 +107,21 @@ fun OverviewScreen(onCheckUpdate: () -> Unit) {
     }
     var showDonateDialog by remember { mutableStateOf(false) }
     var showQRCodeDialog by remember { mutableStateOf<Pair<Int, String>?>(null) }
+    var standardPermissionPromptHandled by rememberSaveable { mutableStateOf(false) }
+    var batteryOptimizationHintShown by rememberSaveable { mutableStateOf(false) }
 
-    val analyticsEnabled = rememberPrefBoolean(PrefConst.KEY_ENABLE_ANALYTICS, true)
+    DisposableEffect(viewModel, isActive) {
+        viewModel.setPageActive(isActive)
+        onDispose {
+            if (isActive) viewModel.setPageActive(false)
+        }
+    }
+
+    val analyticsEnabled = rememberPrefBoolean(
+        PrefConst.KEY_ENABLE_ANALYTICS,
+        true,
+        isActive = isActive,
+    )
     val effectiveAnalyticsEnabled = MagiskOtelBootstrap.isEffectivelyEnabled(analyticsEnabled.value)
 
     val workMode by WorkModeResolver.mode.collectAsStateWithLifecycle()
@@ -113,34 +134,32 @@ fun OverviewScreen(onCheckUpdate: () -> Unit) {
         return exempted
     }
 
-    LaunchedEffect(isStandardEnabled) {
-        if (isStandardEnabled) {
+    LaunchedEffect(isActive, isStandardEnabled, activity) {
+        if (isActive && isStandardEnabled && !standardPermissionPromptHandled) {
             // Standard mode remains active while individual capabilities request their permissions.
             val missing = StandardModePermissions.missingPermissions(context)
-            if (missing.isNotEmpty()) {
+            if (missing.isEmpty()) {
+                standardPermissionPromptHandled = true
+            } else if (activity != null) {
                 showMessage(context.getString(R.string.standard_mode_missing_permissions_hint))
-                val activity = context.findActivity()
-                activity?.requestPermissions(
+                activity.requestPermissions(
                     missing.toTypedArray(),
-                    Const.REQUEST_CODE_STANDARD_PERMISSIONS
+                    Const.REQUEST_CODE_STANDARD_PERMISSIONS,
                 )
+                standardPermissionPromptHandled = true
             }
         }
     }
 
-    // Prompt battery optimization exemption for Standard mode
-    LaunchedEffect(isStandardEnabled) {
-        if (!refreshBatteryOptimizationExemption()) {
-            showMessage(context.getString(R.string.standard_mode_battery_optimization_hint))
-        }
-    }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     val listState = rememberLazyListState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val density = LocalDensity.current
     val dragThresholdPx = remember(density) { with(density) { 72.dp.toPx() } }
     val overviewUiState by viewModel.uiState.collectAsStateWithLifecycle()
-    LaunchedEffect(Unit) {
+    LaunchedEffect(isActive) {
+        if (!isActive) return@LaunchedEffect
         viewModel.events.collect { event ->
             when (event) {
                 is OverviewEvent.StatusDiagnosticsVisibilityChanged -> {
@@ -186,24 +205,35 @@ fun OverviewScreen(onCheckUpdate: () -> Unit) {
     )
     val cardSpecById = remember(allCardSpecs) { allCardSpecs.associateBy(HomeCardSpec::id) }
 
-    LaunchedEffect(Unit) {
-        viewModel.loadSettings()
+    LaunchedEffect(isActive) {
+        if (isActive) {
+            viewModel.loadSettings()
+        }
     }
-    LaunchedEffect(effectiveAnalyticsEnabled, overviewUiState.chartWindow) {
-        viewModel.refreshRuntimeSnapshot(
-            context = context,
-            analyticsRepository = analyticsRepository,
-            analyticsEnabled = effectiveAnalyticsEnabled,
-        )
-    }
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        refreshBatteryOptimizationExemption()
-        coroutineScope.launch {
+    LaunchedEffect(
+        lifecycleOwner,
+        isActive,
+        effectiveAnalyticsEnabled,
+        overviewUiState.chartWindow,
+    ) {
+        if (!isActive) {
+            viewModel.invalidateRuntimeRefresh()
+            return@LaunchedEffect
+        }
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            val batteryOptimizationExempted = refreshBatteryOptimizationExemption()
+            if (!batteryOptimizationExempted && !batteryOptimizationHintShown) {
+                batteryOptimizationHintShown = true
+                showMessage(context.getString(R.string.standard_mode_battery_optimization_hint))
+            } else if (batteryOptimizationExempted) {
+                batteryOptimizationHintShown = false
+            }
             viewModel.refreshRuntimeSnapshot(
                 context = context,
                 analyticsRepository = analyticsRepository,
                 analyticsEnabled = effectiveAnalyticsEnabled,
             )
+            awaitCancellation()
         }
     }
     val cardOrder = overviewUiState.cardOrder
@@ -225,6 +255,10 @@ fun OverviewScreen(onCheckUpdate: () -> Unit) {
             spec.available && !enabledCardIds.contains(spec.id)
         }
     }
+    val navigationBarPadding = WindowInsets.navigationBars
+        .asPaddingValues()
+        .calculateBottomPadding()
+    val effectiveBottomPadding = maxOf(bottomContentPadding, navigationBarPadding)
 
     OverviewContent(
         listState = listState,
@@ -275,6 +309,7 @@ fun OverviewScreen(onCheckUpdate: () -> Unit) {
             }
         },
         onStatusCardTap = { viewModel.onStatusCardTapped(android.os.SystemClock.uptimeMillis()) },
+        bottomContentPadding = effectiveBottomPadding,
     )
 
     OverviewDialogs(
@@ -288,8 +323,8 @@ fun OverviewScreen(onCheckUpdate: () -> Unit) {
         onToggleDonateDialog = { showDonateDialog = it },
         onShowQrCodeDialog = { showQRCodeDialog = it },
         onPlayDonation = { productId ->
-            context.findActivity()?.let { activity ->
-                billingProvider.launchDonation(activity, productId)
+            activity?.let { hostActivity ->
+                billingProvider.launchDonation(hostActivity, productId)
             }
         },
         onShowMessage = ::showMessage,
@@ -337,6 +372,7 @@ private fun OverviewContent(
     onShowDonate: () -> Unit,
     onBatteryOptimizationClick: () -> Unit,
     onStatusCardTap: () -> Unit,
+    bottomContentPadding: androidx.compose.ui.unit.Dp,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -354,7 +390,7 @@ private fun OverviewContent(
             userScrollEnabled = draggingCardId == null,
             contentPadding = PaddingValues(
                 top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 64.dp + 8.dp,
-                bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 80.dp,
+                bottom = bottomContentPadding + 16.dp,
             ),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -673,10 +709,4 @@ private fun OverviewDialogs(
             },
         )
     }
-}
-
-private tailrec fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
 }

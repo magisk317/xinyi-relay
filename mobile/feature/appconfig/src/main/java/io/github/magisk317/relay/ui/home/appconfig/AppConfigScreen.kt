@@ -38,11 +38,13 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -53,6 +55,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.core.R
@@ -84,8 +87,20 @@ fun AppConfigScreen(
     refreshTrigger: Int = 0,
     viewModel: AppConfigViewModel = koinViewModel(),
     scrollChromeState: ScrollChromeState? = null,
+    isActive: Boolean = true,
+    bottomContentPadding: Dp = 0.dp,
+    benchmarkTagsEnabled: Boolean = true,
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val workPolicy = appConfigPageWorkPolicy(isActive)
+    val retainedUiStateFlow = remember(viewModel, isActive) {
+        retainedAppConfigUiStateFlow(
+            policy = appConfigPageWorkPolicy(isActive),
+            uiState = viewModel.uiState,
+        )
+    }
+    val uiState by retainedUiStateFlow.collectAsStateWithLifecycle(
+        initialValue = viewModel.uiState.value,
+    )
     val apps = uiState.apps
     val isLoading = uiState.isLoading
     val hasMoreApps = uiState.hasMoreApps
@@ -104,16 +119,22 @@ fun AppConfigScreen(
     var initialLoadingStarted by remember { mutableStateOf(false) }
     var manualRefreshing by remember { mutableStateOf(false) }
     var manualRefreshStartedAt by remember { mutableLongStateOf(0L) }
+    var manualRefreshRequest by remember { mutableIntStateOf(0) }
+    var handledManualRefreshRequest by remember { mutableIntStateOf(0) }
+    // A trigger is an edge, not durable screen state. A newly created secondary screen starts at
+    // the current counter so it does not replay a top-level reselect that happened in the past.
+    var handledRefreshTrigger by rememberSaveable { mutableIntStateOf(refreshTrigger) }
     var showUsagePermissionDialog by remember { mutableStateOf(false) }
     val searchQuery = uiState.searchQuery
     var showSettingsMenu by remember { mutableStateOf(false) }
 
     val showLoading = rememberMinDurationLoading(
-        actualLoading = isLoading && shouldShowInitialLoading,
+        actualLoading = isActive && isLoading && shouldShowInitialLoading,
         minDurationMillis = LoadingIndicatorTokens.MIN_VISIBLE_DURATION_MILLIS,
     )
 
-    LaunchedEffect(isLoading, shouldShowInitialLoading, initialLoadingStarted) {
+    LaunchedEffect(isActive, isLoading, shouldShowInitialLoading, initialLoadingStarted) {
+        if (!isActive) return@LaunchedEffect
         if (!shouldShowInitialLoading) return@LaunchedEffect
         if (isLoading) {
             initialLoadingStarted = true
@@ -122,7 +143,12 @@ fun AppConfigScreen(
         }
     }
 
-    LaunchedEffect(isLoading, manualRefreshing) {
+    LaunchedEffect(isActive, isLoading, manualRefreshing) {
+        if (!isActive) {
+            manualRefreshing = false
+            manualRefreshStartedAt = 0L
+            return@LaunchedEffect
+        }
         if (manualRefreshing && !isLoading) {
             val elapsed = if (manualRefreshStartedAt > 0L) {
                 SystemClock.elapsedRealtime() - manualRefreshStartedAt
@@ -136,26 +162,35 @@ fun AppConfigScreen(
         }
     }
 
-    LaunchedEffect(refreshTrigger) {
-        if (refreshTrigger > 0) {
+    LaunchedEffect(isActive, refreshTrigger, manualRefreshRequest) {
+        if (!workPolicy.refreshData) return@LaunchedEffect
+
+        val refreshTriggered = refreshTrigger > 0 && refreshTrigger != handledRefreshTrigger
+        val manualRefreshTriggered = manualRefreshRequest != handledManualRefreshRequest
+        if (refreshTriggered) {
+            handledRefreshTrigger = refreshTrigger
+        }
+        if (manualRefreshTriggered) {
+            handledManualRefreshRequest = manualRefreshRequest
+        }
+        val forceRefresh = refreshTriggered || manualRefreshTriggered
+        if (forceRefresh) {
             manualRefreshStartedAt = SystemClock.elapsedRealtime()
             manualRefreshing = true
-            viewModel.refreshData(force = true)
         }
+        viewModel.refreshData(force = forceRefresh)
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.refreshData()
-    }
-
-    LaunchedEffect(apps, targetIconPx) {
+    LaunchedEffect(isActive, apps, targetIconPx) {
+        if (!workPolicy.preloadIcons) return@LaunchedEffect
         viewModel.preloadAppIcons(
             packageNames = apps.map { it.packageName },
             sizePx = targetIconPx,
         )
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(isActive, viewModel) {
+        if (!workPolicy.collectEvents) return@LaunchedEffect
         viewModel.events.collect { event ->
             when (event) {
                 is AppConfigViewModel.AppConfigEvent.Error -> {
@@ -174,9 +209,13 @@ fun AppConfigScreen(
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val pullToRefreshState = rememberPullToRefreshState()
     val defaultTopPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 156.dp
-    val bottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 80.dp
+    val navigationBarPadding = WindowInsets.navigationBars
+        .asPaddingValues()
+        .calculateBottomPadding()
+    val effectiveBottomPadding = maxOf(bottomContentPadding, navigationBarPadding)
 
-    LaunchedEffect(listState, apps.size, hasMoreApps, manualRefreshing, showLoading) {
+    LaunchedEffect(isActive, listState, apps.size, hasMoreApps, manualRefreshing, showLoading) {
+        if (!workPolicy.paginate) return@LaunchedEffect
         if (manualRefreshing || showLoading) return@LaunchedEffect
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1 }
             .distinctUntilChanged()
@@ -191,7 +230,7 @@ fun AppConfigScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         OverlayHeaderScaffold(
             fallbackTopPadding = defaultTopPadding,
-            bottomPadding = bottomPadding,
+            bottomPadding = effectiveBottomPadding,
             headerOffsetY = scrollChromeState?.animatedHeaderOffsetY ?: 0f,
             onHeaderHeightChanged = { scrollChromeState?.headerHeightPx = it.toFloat() },
             overlayModifier = Modifier
@@ -286,9 +325,9 @@ fun AppConfigScreen(
                     state = pullToRefreshState,
                     isRefreshing = manualRefreshing,
                     onRefresh = {
-                        manualRefreshStartedAt = SystemClock.elapsedRealtime()
-                        manualRefreshing = true
-                        viewModel.refreshData(force = true)
+                        if (workPolicy.refreshData) {
+                            manualRefreshRequest++
+                        }
                     },
                     indicator = {
                         PullToRefreshDefaults.LoadingIndicator(
@@ -313,7 +352,13 @@ fun AppConfigScreen(
                         LazyColumn(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .testTag(BENCHMARK_APPS_LIST)
+                                .then(
+                                    if (benchmarkTagsEnabled) {
+                                        Modifier.testTag(BENCHMARK_APPS_LIST)
+                                    } else {
+                                        Modifier
+                                    },
+                                )
                                 .nestedScroll(scrollBehavior.nestedScrollConnection),
                             state = listState,
                             contentPadding = PaddingValues(
@@ -347,7 +392,7 @@ fun AppConfigScreen(
             hostState = snackbarHostState,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .navigationBarsPadding(),
+                .padding(bottom = effectiveBottomPadding),
         )
     }
 

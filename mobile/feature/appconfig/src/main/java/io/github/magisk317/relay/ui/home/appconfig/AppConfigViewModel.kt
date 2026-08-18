@@ -27,16 +27,22 @@ import io.github.magisk317.relay.ui.common.AppIconCache
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -68,9 +74,13 @@ class AppConfigViewModel(
     private val _queryState = MutableStateFlow(AppConfigQueryState())
     private val _appIcons = MutableStateFlow<Map<String, Bitmap>>(emptyMap())
     private val loadingIconPackages = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+    private val refreshGeneration = AppConfigRequestGeneration()
+    private val localMutations = AppConfigMutationTracker()
+    private val iconPreloadMutex = Mutex()
+    private val pendingPersistJobs = java.util.concurrent.ConcurrentHashMap.newKeySet<Job>()
 
-    private val _events = MutableSharedFlow<AppConfigEvent>()
-    val events: SharedFlow<AppConfigEvent> = _events.asSharedFlow()
+    private val eventQueue = Channel<AppConfigEvent>(capacity = Channel.UNLIMITED)
+    val events: Flow<AppConfigEvent> = eventQueue.receiveAsFlow()
     val notifySenderListFlow: StateFlow<List<Sender>> = configRepository.getAllSendersFlow()
         .map { list -> list.map(SenderSettingSanitizer::sanitizeSenderLenient) }
         .stateIn(
@@ -87,7 +97,7 @@ class AppConfigViewModel(
         }
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
+            started = SharingStarted.WhileSubscribed(),
             initialValue = emptyMap(),
         )
     val uiState: StateFlow<AppConfigUiState> = _queryState
@@ -116,7 +126,7 @@ class AppConfigViewModel(
         }
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
+            started = SharingStarted.WhileSubscribed(),
             initialValue = AppConfigUiState(),
         )
 
@@ -135,28 +145,72 @@ class AppConfigViewModel(
         SELECTION,
     }
 
-    fun refreshData(force: Boolean = false) {
+    suspend fun refreshData(force: Boolean = false) {
+        val generation = refreshGeneration.next()
+        val mutationGeneration = localMutations.currentGeneration()
         if (_queryState.value.hasLoaded && !force) {
-            _queryState.update {
-                it.copy(
-                    visibleCount = visibleAppCountAfterFilter(
-                        previousVisibleCount = it.visibleCount,
-                        resetVisibleWindow = true,
-                    ),
-                )
+            try {
+                awaitPendingPersistence()
+                val configs = withContext(Dispatchers.IO) {
+                    persistMutex.withLock {
+                        configRepository.getAllAppInfo().map { it.toEntity() }
+                    }
+                }
+                currentCoroutineContext().ensureActive()
+                if (
+                    refreshGeneration.isCurrent(generation) &&
+                    localMutations.currentGeneration() == mutationGeneration
+                ) {
+                    _queryState.update { current ->
+                        current.copy(
+                            sourceApps = applyPersistedAppConfigs(current.sourceApps, configs),
+                            isLoading = false,
+                        )
+                    }
+                }
+            } catch (cancelled: CancellationException) {
+                if (refreshGeneration.invalidate(generation)) {
+                    _queryState.update { current ->
+                        if (current.isLoading) current.copy(isLoading = false) else current
+                    }
+                }
+                throw cancelled
+            } catch (t: Throwable) {
+                if (refreshGeneration.isCurrent(generation)) {
+                    XLog.e("Unified AppConfig config refresh failed", t)
+                    _queryState.update { current ->
+                        if (current.isLoading) current.copy(isLoading = false) else current
+                    }
+                    eventQueue.send(AppConfigEvent.Error(t))
+                }
+            } finally {
+                if (refreshGeneration.isCurrent(generation)) {
+                    _queryState.update { current ->
+                        if (current.isLoading) current.copy(isLoading = false) else current
+                    }
+                }
             }
             return
         }
 
-        viewModelScope.launch {
-            _queryState.update { it.copy(isLoading = true) }
-            try {
-                val usageStatsByPackage = loadUsageStats()
-                val appCatalog = loadInstalledAppCatalog()
+        _queryState.update { it.copy(isLoading = true) }
+        try {
+            awaitPendingPersistence()
+            val (usageStatsByPackage, appCatalog) = coroutineScope {
+                val usageStats = async { loadUsageStats() }
+                val installedApps = async { loadInstalledAppCatalog() }
+                usageStats.await() to installedApps.await()
+            }
 
+            if (refreshGeneration.isCurrent(generation)) {
                 _queryState.update { current ->
+                    val sourceApps = if (localMutations.currentGeneration() == mutationGeneration) {
+                        appCatalog.apps
+                    } else {
+                        preserveCurrentAppConfigs(appCatalog.apps, current.sourceApps)
+                    }
                     current.copy(
-                        sourceApps = appCatalog.apps,
+                        sourceApps = sourceApps,
                         systemPackages = appCatalog.systemPackages,
                         usageStatsByPackage = usageStatsByPackage,
                         visibleCount = visibleAppCountAfterFilter(
@@ -167,10 +221,25 @@ class AppConfigViewModel(
                         isLoading = false,
                     )
                 }
-            } catch (t: Throwable) {
+            }
+        } catch (cancelled: CancellationException) {
+            if (refreshGeneration.invalidate(generation)) {
+                _queryState.update { current ->
+                    if (current.isLoading) current.copy(isLoading = false) else current
+                }
+            }
+            throw cancelled
+        } catch (t: Throwable) {
+            if (refreshGeneration.isCurrent(generation)) {
                 XLog.e("Unified AppConfig load failed", t)
                 _queryState.update { it.copy(isLoading = false) }
-                _events.emit(AppConfigEvent.Error(t))
+                eventQueue.send(AppConfigEvent.Error(t))
+            }
+        } finally {
+            if (refreshGeneration.isCurrent(generation)) {
+                _queryState.update { current ->
+                    if (current.isLoading) current.copy(isLoading = false) else current
+                }
             }
         }
     }
@@ -191,8 +260,9 @@ class AppConfigViewModel(
             } else {
                 stats.mapValues { (_, usage) -> usage.totalTimeInForeground }
             }
-        }.getOrElse { ignored ->
-            XLog.e("Failed to load usage stats", ignored)
+        }.getOrElse { throwable ->
+            if (throwable is CancellationException) throw throwable
+            XLog.e("Failed to load usage stats", throwable)
             emptyMap()
         }
     }
@@ -212,7 +282,7 @@ class AppConfigViewModel(
     fun setSortOption(option: SortOption) {
         if (option == SortOption.USAGE) {
             if (!hasUsageStatsPermission()) {
-                viewModelScope.launch { _events.emit(AppConfigEvent.ShowUsageStatsPermission) }
+                viewModelScope.launch { eventQueue.send(AppConfigEvent.ShowUsageStatsPermission) }
                 return
             }
         }
@@ -274,37 +344,42 @@ class AppConfigViewModel(
         }
     }
 
-    fun preloadAppIcons(packageNames: Collection<String>, sizePx: Int) {
-        val normalizedPackages = packageNames
-            .asSequence()
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .distinct()
-            .filter { packageName ->
-                !_appIcons.value.containsKey(packageName) && loadingIconPackages.add(packageName)
-            }
-            .toList()
-        if (normalizedPackages.isEmpty()) return
-
-        viewModelScope.launch(Dispatchers.IO) {
-            val context = getApplication<Application>().applicationContext
-            val loaded = mutableMapOf<String, Bitmap>()
-            for (packageName in normalizedPackages) {
-                try {
-                    val bitmap = AppIconCache.load(
-                        context = context,
-                        packageName = packageName,
-                        sizePx = sizePx,
-                    )
-                    if (bitmap != null) {
-                        loaded[packageName] = bitmap
-                    }
-                } finally {
-                    loadingIconPackages.remove(packageName)
+    suspend fun preloadAppIcons(packageNames: Collection<String>, sizePx: Int) {
+        iconPreloadMutex.withLock {
+            val normalizedPackages = packageNames
+                .asSequence()
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .distinct()
+                .filter { packageName ->
+                    !_appIcons.value.containsKey(packageName) && loadingIconPackages.add(packageName)
                 }
-            }
-            if (loaded.isNotEmpty()) {
-                _appIcons.update { current -> current + loaded }
+                .toList()
+            if (normalizedPackages.isEmpty()) return
+
+            try {
+                val loaded = withContext(Dispatchers.IO) {
+                    val context = getApplication<Application>().applicationContext
+                    buildMap {
+                        for (packageName in normalizedPackages) {
+                            currentCoroutineContext().ensureActive()
+                            val bitmap = AppIconCache.load(
+                                context = context,
+                                packageName = packageName,
+                                sizePx = sizePx,
+                            )
+                            if (bitmap != null) {
+                                put(packageName, bitmap)
+                            }
+                        }
+                    }
+                }
+                currentCoroutineContext().ensureActive()
+                if (loaded.isNotEmpty()) {
+                    _appIcons.update { current -> current + loaded }
+                }
+            } finally {
+                normalizedPackages.forEach(loadingIconPackages::remove)
             }
         }
     }
@@ -450,35 +525,45 @@ class AppConfigViewModel(
     }
 
     private fun updateApp(packageName: String, updater: (AppInfo) -> AppInfo) {
+        val mutation = localMutations.record(packageName)
+        var updatedTarget: AppInfo? = null
         _queryState.update { state ->
+            updatedTarget = null
+            val updatedApps = state.sourceApps.map { app ->
+                if (app.packageName == packageName) {
+                    updater(app).also { updatedTarget = it }
+                } else {
+                    app
+                }
+            }.toImmutableList()
             state.copy(
-                sourceApps = state.sourceApps.map { app ->
-                    if (app.packageName == packageName) updater(app) else app
-                }.toImmutableList(),
+                sourceApps = updatedApps,
                 visibleCount = visibleAppCountAfterFilter(
                     previousVisibleCount = state.visibleCount,
                     resetVisibleWindow = false,
                 ),
             )
         }
-        persistAppConfig(packageName)
+        updatedTarget?.let { persistAppConfig(packageName, it, mutation) }
     }
 
-    private fun persistAppConfig(packageName: String) {
-        val latestApps = _queryState.value.sourceApps
-        val target = latestApps.firstOrNull { it.packageName == packageName }
-        val changedConfigs = latestApps.filter(::appInfoHasEffectiveConfig)
-        viewModelScope.launch {
+    private fun persistAppConfig(packageName: String, target: AppInfo, mutation: Long) {
+        val job = viewModelScope.launch(start = CoroutineStart.LAZY) {
             try {
                 withContext(Dispatchers.IO) {
                     persistMutex.withLock {
-                        if (target != null) {
-                            if (appInfoHasEffectiveConfig(target)) {
-                                configRepository.upsertAppInfo(target)
-                            } else {
-                                configRepository.removeAppInfosByPackage(listOf(target.packageName))
-                            }
+                        if (!localMutations.isLatest(packageName, mutation)) return@withLock
+                        // The package sequence makes stale writers no-ops. Build the shared mirror
+                        // from the committed repository snapshot so another package's optimistic
+                        // in-memory edit cannot leak into the hook file after a failed write.
+                        if (appInfoHasEffectiveConfig(target)) {
+                            configRepository.upsertAppInfo(target)
+                        } else {
+                            configRepository.removeAppInfosByPackage(listOf(target.packageName))
                         }
+                        val changedConfigs = configRepository.getAllAppInfo()
+                            .map { it.toEntity() }
+                            .filter(::appInfoHasEffectiveConfig)
                         EntityStoreManager.storeEntitiesToFile(
                             getApplication(),
                             EntityType.APP_CONFIG,
@@ -487,29 +572,50 @@ class AppConfigViewModel(
                         )
                     }
                 }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (t: Throwable) {
                 XLog.e("Failed to persist app config: $packageName", t)
-                _events.emit(AppConfigEvent.Error(t))
+                eventQueue.send(AppConfigEvent.Error(t))
             }
+        }
+        pendingPersistJobs += job
+        job.invokeOnCompletion { pendingPersistJobs -= job }
+        job.start()
+    }
+
+    private suspend fun awaitPendingPersistence() {
+        while (true) {
+            val pending = pendingPersistJobs.toList()
+            if (pending.isEmpty()) return
+            pending.forEach { it.join() }
         }
     }
 
     private suspend fun loadInstalledAppCatalog(): LoadedAppCatalog = withContext(Dispatchers.IO) {
         val context = getApplication<Application>()
         val pm = getApplication<Application>().packageManager
-        val configs = configRepository.getAllAppInfo().map { it.toEntity() }
-        EntityStoreManager.storeEntitiesToFile(
-            context,
-            EntityType.APP_CONFIG,
-            configs.filter(::appInfoHasEffectiveConfig),
-            AppInfo::class.java,
-        )
+        val configs = persistMutex.withLock {
+            val latestConfigs = configRepository.getAllAppInfo().map { it.toEntity() }
+            currentCoroutineContext().ensureActive()
+            // The entity mirror and interactive writes share one writer boundary. Whichever
+            // operation acquires the mutex last always publishes the newest repository snapshot.
+            EntityStoreManager.storeEntitiesToFile(
+                context,
+                EntityType.APP_CONFIG,
+                latestConfigs.filter(::appInfoHasEffectiveConfig),
+                AppInfo::class.java,
+            )
+            latestConfigs
+        }
 
         val configMap = configs.associateBy { it.packageName }
         val systemPackages = linkedSetOf<String>()
+        val scanJob = currentCoroutineContext()[Job]
         val apps = pm.getInstalledApplications(PackageManager.MATCH_ALL)
             .asSequence()
             .map { applicationInfo ->
+                scanJob?.ensureActive()
                 val appInfoBase = AppInfoHelper.getAppInfo(pm, applicationInfo)
                 val isSystemApp = (applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 ||
                     (applicationInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
@@ -536,6 +642,31 @@ class AppConfigViewModel(
         )
     }
 }
+
+private fun applyPersistedAppConfigs(
+    apps: ImmutableList<AppInfo>,
+    configs: List<AppInfo>,
+): ImmutableList<AppInfo> {
+    val configByPackage = configs.associateBy(AppInfo::packageName)
+    return apps.map { app -> app.withAppConfig(configByPackage[app.packageName]) }.toImmutableList()
+}
+
+private fun preserveCurrentAppConfigs(
+    refreshedApps: ImmutableList<AppInfo>,
+    currentApps: ImmutableList<AppInfo>,
+): ImmutableList<AppInfo> {
+    val currentByPackage = currentApps.associateBy(AppInfo::packageName)
+    return refreshedApps.map { app ->
+        currentByPackage[app.packageName]?.let { current -> app.withAppConfig(current) } ?: app
+    }.toImmutableList()
+}
+
+private fun AppInfo.withAppConfig(config: AppInfo?): AppInfo = copy(
+    blocked = config?.blocked ?: false,
+    forwarding = config?.forwarding ?: false,
+    forwardingConfigured = config?.forwardingConfigured ?: false,
+    notifyTemplate = config?.notifyTemplate.orEmpty(),
+)
 
 private data class LoadedAppCatalog(
     val apps: ImmutableList<AppInfo>,

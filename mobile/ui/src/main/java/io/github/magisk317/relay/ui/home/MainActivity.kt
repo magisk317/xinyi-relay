@@ -20,10 +20,14 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -62,7 +66,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.metrics.performance.JankStats
 import androidx.navigation.compose.rememberNavController
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.runtime.CompositionLocalProvider
 import io.github.magisk317.relay.mobileui.BuildConfig
 import io.github.magisk317.relay.core.R
@@ -94,11 +97,13 @@ import io.github.magisk317.uikit.theme.UiKitStyle
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import org.koin.android.ext.android.inject
 import org.koin.androidx.compose.koinViewModel
 import java.io.File
@@ -113,6 +118,7 @@ class MainActivity : ComponentActivity() {
     private var autoUpdateChecked = false
     private var jankStats: JankStats? = null
     private val snackbarMessages = MutableSharedFlow<String>(extraBufferCapacity = 8)
+    private val newIntents = Channel<Intent>(capacity = Channel.BUFFERED)
     private val settingsRepository: SettingsPreferencesRepository by inject()
 
     private fun enqueueSnackbar(message: String) {
@@ -121,7 +127,30 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        setIntent(intent)
+        val incoming = Intent(intent)
+        // Keep the latest Intent (including data) attached to the Activity until Compose has
+        // handed it to the durable Settings queue. This remains a recovery source if enqueueing
+        // into the transient Activity channel fails.
+        setIntent(incoming)
+        val enqueueResult = newIntents.trySend(incoming)
+        if (enqueueResult.isFailure) {
+            XLog.w(
+                "Incoming intent channel rejected event: reason=%s",
+                enqueueResult.exceptionOrNull()?.javaClass?.simpleName ?: "buffer_full",
+            )
+            lifecycleScope.launch {
+                try {
+                    newIntents.send(incoming)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (failure: Throwable) {
+                    XLog.w(
+                        "Incoming intent channel fallback failed: reason=%s",
+                        failure.javaClass.simpleName,
+                    )
+                }
+            }
+        }
     }
 
     @Suppress("CyclomaticComplexMethod")
@@ -156,6 +185,11 @@ class MainActivity : ComponentActivity() {
             val navController = rememberNavController()
             val scope = rememberCoroutineScope()
             val appSnackbarHostState = remember { SnackbarHostState() }
+            var mainContentBottomPadding by remember { mutableStateOf(0.dp) }
+            val navigationBarPadding = WindowInsets.navigationBars
+                .asPaddingValues()
+                .calculateBottomPadding()
+            val snackbarBottomPadding = maxOf(mainContentBottomPadding, navigationBarPadding)
             var privacyAccepted by remember { mutableStateOf<Boolean?>(null) }
             var showPrivacyPolicyDialog by remember { mutableStateOf(false) }
             var showPrivacyPolicyPage by remember { mutableStateOf(false) }
@@ -226,6 +260,33 @@ class MainActivity : ComponentActivity() {
             var animationCenter by remember { mutableStateOf(Offset.Zero) }
             val view = LocalView.current
             var requestedTab by remember { mutableStateOf<Any?>(null) }
+            val launchIntent = remember { intent?.let(::Intent) }
+
+            fun handleIncomingIntent(incoming: Intent?): Boolean {
+                viewModel.handleArguments(incoming?.extras)
+                val backupUri = incoming?.data ?: return true
+                return if (viewModel.handleBackupArguments(backupUri)) {
+                    requestedTab = io.github.magisk317.relay.ui.nav.SettingsRoute
+                    true
+                } else {
+                    false
+                }
+            }
+
+            fun clearHandledIntentData(incoming: Intent, allowEquivalentIntent: Boolean) {
+                val handledData = incoming.data
+                val currentIntent = this@MainActivity.intent
+                if (handledData != null && currentIntent != null) {
+                    val matchesHandledIntent = currentIntent === incoming ||
+                        (allowEquivalentIntent && currentIntent.data == handledData)
+                    if (matchesHandledIntent) {
+                        // Mutate the current object as well as setting it back on the Activity.
+                        // Keeping the same object helps relaunches observe consumed data.
+                        currentIntent.data = null
+                        setIntent(currentIntent)
+                    }
+                }
+            }
 
             fun clearScreenshotBitmap() {
                 screenshotBitmap?.let { bitmap ->
@@ -364,7 +425,6 @@ class MainActivity : ComponentActivity() {
                         is SettingsEvent.ShowSnackbar -> {
                             scope.launch { appSnackbarHostState.showLatestSnackbar(event.message) }
                         }
-                        else -> {}
                     }
                 }
             }
@@ -374,6 +434,7 @@ class MainActivity : ComponentActivity() {
                 LocalSnackbarHostState provides appSnackbarHostState,
                 LocalContext provides localizedContext,
                 LocalConfiguration provides configuration,
+                androidx.activity.compose.LocalActivity provides activity,
                 androidx.activity.compose.LocalActivityResultRegistryOwner provides activity,
                 androidx.activity.compose.LocalOnBackPressedDispatcherOwner provides activity,
             ) {
@@ -382,10 +443,22 @@ class MainActivity : ComponentActivity() {
                         LaunchedEffect(Unit) {
                             viewModel.setInternalFilesWritable()
                         }
-                        LaunchedEffect(intent) {
-                            viewModel.handleArguments(intent.extras)
-                            if (intent?.data != null) {
-                                requestedTab = io.github.magisk317.relay.ui.nav.SettingsRoute
+                        LaunchedEffect(viewModel, launchIntent) {
+                            if (launchIntent != null && handleIncomingIntent(launchIntent)) {
+                                clearHandledIntentData(
+                                    incoming = launchIntent,
+                                    allowEquivalentIntent = true,
+                                )
+                            }
+                        }
+                        LaunchedEffect(viewModel) {
+                            newIntents.receiveAsFlow().collect { incoming ->
+                                if (handleIncomingIntent(incoming)) {
+                                    clearHandledIntentData(
+                                        incoming = incoming,
+                                        allowEquivalentIntent = false,
+                                    )
+                                }
                             }
                         }
 
@@ -395,6 +468,7 @@ class MainActivity : ComponentActivity() {
                                 onBack = { finish() },
                                 initialTab = requestedTab,
                                 onInitialTabConsumed = { requestedTab = null },
+                                onBottomContentPaddingChanged = { mainContentBottomPadding = it },
                                 modifier = Modifier,
                             )
 
@@ -703,7 +777,7 @@ class MainActivity : ComponentActivity() {
                                 hostState = appSnackbarHostState,
                                 modifier = Modifier
                                     .align(Alignment.BottomCenter)
-                                    .navigationBarsPadding(),
+                                    .padding(bottom = snackbarBottomPadding),
                             )
                         }
                     }

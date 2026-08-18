@@ -12,6 +12,8 @@ import io.github.magisk317.relay.engine.service.RuntimeAnalyticsProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -32,8 +34,26 @@ class OverviewViewModel(
     internal val events: SharedFlow<OverviewEvent> = _events.asSharedFlow()
     private var statusTapCount = 0
     private var statusTapStartedAtMs = 0L
+    private var pageActive = true
+    private var settingsGeneration = 0L
+    private var runtimeRefreshGeneration = 0L
+
+    internal fun setPageActive(active: Boolean) {
+        if (pageActive == active) return
+        pageActive = active
+        if (!active) {
+            settingsGeneration++
+            runtimeRefreshGeneration++
+        }
+    }
+
+    internal fun invalidateRuntimeRefresh() {
+        runtimeRefreshGeneration++
+    }
 
     internal suspend fun loadSettings() {
+        if (!pageActive) return
+        val generation = ++settingsGeneration
         val overviewSettings = settingsRepository.getOverviewSettings()
         val storedOrder = overviewSettings.cardOrder
         val parsedOrder = if (storedOrder.isBlank()) DEFAULT_OVERVIEW_CARD_ORDER else parseCardList(storedOrder)
@@ -53,12 +73,15 @@ class OverviewViewModel(
         val storedChartWindow = overviewSettings.chartWindow
         val parsedChartWindow = HomeChartWindow.fromId(storedChartWindow) ?: HomeChartWindow.ALL
 
-        _uiState.value = OverviewUiState(
-            cardOrder = normalizedOrder,
-            enabledCardIds = normalizedEnabled,
-            chartType = parsedChartType,
-            chartWindow = parsedChartWindow,
-        )
+        if (!pageActive || generation != settingsGeneration) return
+        _uiState.update { current ->
+            current.copy(
+                cardOrder = normalizedOrder,
+                enabledCardIds = normalizedEnabled,
+                chartType = parsedChartType,
+                chartWindow = parsedChartWindow,
+            )
+        }
 
         if (normalizedOrder != parsedOrder || storedOrder.isBlank()) {
             settingsRepository.updateOverviewSettings(
@@ -87,6 +110,8 @@ class OverviewViewModel(
         analyticsRepository: RuntimeAnalyticsProvider,
         analyticsEnabled: Boolean,
     ) {
+        if (!pageActive) return
+        val generation = ++runtimeRefreshGeneration
         val chartWindow = _uiState.value.chartWindow
         val runtimeSnapshot = loadOverviewRuntimeUiState(
             context = context,
@@ -94,6 +119,8 @@ class OverviewViewModel(
             chartWindow = chartWindow,
             analyticsEnabled = analyticsEnabled,
         )
+        currentCoroutineContext().ensureActive()
+        if (!pageActive || generation != runtimeRefreshGeneration) return
         _uiState.update { it.copy(runtimeSnapshot = runtimeSnapshot) }
     }
 

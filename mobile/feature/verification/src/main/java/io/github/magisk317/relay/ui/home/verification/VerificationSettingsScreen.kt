@@ -19,6 +19,7 @@ import android.os.Build
 import android.provider.Settings
 import android.view.accessibility.AccessibilityManager
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -98,7 +99,7 @@ fun VerificationSettingsScreen(
     val repository: SettingsPreferencesRepository = koinInject()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val activityOwner = context as? ComponentActivity
+    val activityOwner = LocalActivity.current as? ComponentActivity
     val lifecycleOwner = LocalLifecycleOwner.current
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
     val snackbarHostState = remember { SnackbarHostState() }

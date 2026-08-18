@@ -3,6 +3,7 @@
 package io.github.magisk317.relay.ui.record
 
 import io.github.magisk317.relay.ui.common.rememberBlacklistHitDateFormat
+import android.graphics.Bitmap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -73,11 +74,13 @@ import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.surface.chromeSurfaceColor
 import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.contract.util.AppIconEncoder
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.RecordSettingsUpdate
 import io.github.magisk317.relay.engine.model.ReadSmsBlacklistHitData
 import io.github.magisk317.relay.engine.service.MessageRecordRepository
 import io.github.magisk317.relay.ui.common.Item
+import io.github.magisk317.relay.ui.common.AppIconCache
 import io.github.magisk317.relay.ui.common.RetentionDialog
 import io.github.magisk317.uikit.preference.SectionHeader
 import io.github.magisk317.relay.ui.common.StateSwitchItem
@@ -86,8 +89,9 @@ import io.github.magisk317.uikit.common.DismissibleSnackbarHost
 import io.github.magisk317.uikit.common.showLatestSnackbar
 import io.github.magisk317.uikit.surface.WorkspaceEmptyState
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
-import org.koin.compose.viewmodel.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -96,11 +100,8 @@ import java.util.Locale
 @Composable
 fun BlacklistHitListScreen(
     onBack: () -> Unit,
-    viewModel: CodeRecordViewModel = koinViewModel(),
 ) {
     val context = LocalContext.current
-    val recordEnvironment by viewModel.recordEnvironment.collectAsStateWithLifecycle()
-    val recordIcons by viewModel.recordIcons.collectAsStateWithLifecycle()
     val recordRepository: MessageRecordRepository = koinInject()
     val settingsRepository: SettingsPreferencesRepository = koinInject()
     var recordEnabled by remember { mutableStateOf(true) }
@@ -118,6 +119,7 @@ fun BlacklistHitListScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
+    var defaultSmsIcon by remember { mutableStateOf<Bitmap?>(null) }
     var fixedTopHeightPx by remember { mutableIntStateOf(0) }
     var detailHit by remember { mutableStateOf<ReadSmsBlacklistHitData?>(null) }
     var showClearDialog by remember { mutableStateOf(false) }
@@ -133,9 +135,18 @@ fun BlacklistHitListScreen(
     val bottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 24.dp
     val savedSnackbarText = remember(context) { context.getString(R.string.pref_sync_snackbar) }
 
-    LaunchedEffect(recordEnvironment.defaultSmsPackage, density) {
+    LaunchedEffect(context, density) {
         val targetIconPx = with(density) { 40.dp.roundToPx() }
-        viewModel.preloadRecordIcons(listOf(recordEnvironment.defaultSmsPackage), targetIconPx)
+        defaultSmsIcon = withContext(Dispatchers.IO) {
+            val packageName = AppIconEncoder.resolveDefaultSmsPackage(context)
+            packageName?.let {
+                AppIconCache.load(
+                    context = context.applicationContext,
+                    packageName = it,
+                    sizePx = targetIconPx,
+                )
+            }
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -330,8 +341,7 @@ fun BlacklistHitListScreen(
                             BlacklistHitSwipeItem(
                                 hit = hit,
                                 dateFormat = dateFormat,
-                                defaultSmsIcon = recordEnvironment.defaultSmsPackage
-                                    ?.let(recordIcons::get),
+                                defaultSmsIcon = defaultSmsIcon,
                                 onDelete = deleteAndUndo,
                                 onClick = { detailHit = hit },
                             )

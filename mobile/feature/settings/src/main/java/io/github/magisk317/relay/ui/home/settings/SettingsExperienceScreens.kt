@@ -8,9 +8,11 @@ import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -34,6 +36,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.android.common.utils.XLog
@@ -64,7 +67,10 @@ fun SettingsHomeScreen(
     onOpenAdvancedRelay: () -> Unit,
     onOpenCloudBackup: (io.github.magisk317.relay.backup.BackupSource?, Boolean) -> Unit = { _, _ -> },
     onBack: (() -> Unit)? = null,
+    isActive: Boolean = true,
+    bottomContentPadding: Dp = 0.dp,
 ) {
+    val workPolicy = settingsPageWorkPolicy(isActive)
     val repository: SettingsPreferencesRepository = koinInject()
     val preferenceDataSource: PreferenceDataSource = koinInject()
     val context = LocalContext.current
@@ -89,6 +95,7 @@ fun SettingsHomeScreen(
     val backupRestoreActions = rememberSettingsBackupRestoreActions(
         settingsViewModel = settingsViewModel,
         snackbarHostState = snackbarHostState,
+        isActive = isActive,
         onNavigateToCloudBackup = { source, backupNow ->
             val typedSource = when (source) {
                 BackupSourceType.GOOGLE_DRIVE -> io.github.magisk317.relay.backup.BackupSource.GOOGLE_DRIVE
@@ -102,7 +109,7 @@ fun SettingsHomeScreen(
     var verification by remember { mutableStateOf<VerificationSettingsSnapshot?>(null) }
     var relay by remember { mutableStateOf<RelaySettingsSnapshot?>(null) }
     var diagnostics by remember { mutableStateOf<DiagnosticsSettingsSnapshot?>(null) }
-    var launcherIconVisible by remember { mutableStateOf(settingsViewModel.isLauncherIconVisible()) }
+    var launcherIconVisible by remember { mutableStateOf(true) }
     val runtimeLogActions = rememberSettingsRuntimeLogActions(
         diagnostics = diagnostics,
         repository = repository,
@@ -114,21 +121,31 @@ fun SettingsHomeScreen(
     var expandFeatures by rememberSaveable { mutableStateOf(false) }
     var expandBackupRestore by rememberSaveable { mutableStateOf(false) }
     var expandOthers by rememberSaveable { mutableStateOf(false) }
+    val navigationBarPadding = WindowInsets.navigationBars
+        .asPaddingValues()
+        .calculateBottomPadding()
+    val effectiveBottomPadding = maxOf(bottomContentPadding, navigationBarPadding)
 
-    LaunchedEffect(context) {
+    LaunchedEffect(context, workPolicy) {
+        if (!workPolicy.loadSnapshots) return@LaunchedEffect
         general = repository.getGeneralSettings()
         verification = repository.getVerificationSettings()
         relay = repository.getRelaySettings()
         diagnostics = repository.getDiagnosticsSettings()
-        val visible = settingsViewModel.isLauncherIconVisible()
-        launcherIconVisible = visible
-        if (preferenceDataSource.getBoolean(PrefConst.KEY_SHOW_LAUNCHER_ICON, true) != visible) {
-            preferenceDataSource.setBoolean(PrefConst.KEY_SHOW_LAUNCHER_ICON, visible)
-            HookPreferenceMirror.publish(context)
+        if (workPolicy.inspectLauncherIcon) {
+            val visible = settingsViewModel.isLauncherIconVisible()
+            launcherIconVisible = visible
+            if (preferenceDataSource.getBoolean(PrefConst.KEY_SHOW_LAUNCHER_ICON, true) != visible) {
+                preferenceDataSource.setBoolean(PrefConst.KEY_SHOW_LAUNCHER_ICON, visible)
+                if (workPolicy.publishLauncherMirror) {
+                    HookPreferenceMirror.publish(context)
+                }
+            }
         }
     }
 
-    LaunchedEffect(general?.accordionMode) {
+    LaunchedEffect(isActive, general?.accordionMode) {
+        if (!isActive) return@LaunchedEffect
         val accordionEnabled = general?.accordionMode ?: return@LaunchedEffect
         val expanded = !accordionEnabled
         expandGeneral = expanded
@@ -156,9 +173,10 @@ fun SettingsHomeScreen(
         snackbarHost = {
             io.github.magisk317.uikit.common.DismissibleSnackbarHost(
                 hostState = snackbarHostState,
-                modifier = Modifier.navigationBarsPadding(),
+                modifier = Modifier.padding(bottom = effectiveBottomPadding),
             )
         },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) { padding ->
         val generalSnapshot = general ?: return@Scaffold
         val verificationSnapshot = verification ?: return@Scaffold
@@ -297,7 +315,7 @@ fun SettingsHomeScreen(
                     }
                 },
             )
-            Spacer(modifier = Modifier.height(Const.PADDING_SMALL.dp))
+            Spacer(modifier = Modifier.height(Const.PADDING_SMALL.dp + effectiveBottomPadding))
         }
     }
 }

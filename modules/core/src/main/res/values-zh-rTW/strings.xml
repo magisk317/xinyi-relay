@@ -339,6 +339,7 @@
     <string name="scheduled_task_entry_summary">配置定時發送簡訊任務</string>
     <string name="settings_group_verification_features">驗證碼功能</string>
     <string name="settings_group_features">功能設定</string>
+    <string name="settings_group_features_summary">驗證碼辨識與訊息轉發</string>
     <string name="pref_verification_features_title">驗證碼功能</string>
     <string name="pref_verification_features_summary">統一控制驗證碼識別、通知、複製與自動輸入能力</string>
     <string name="pref_verification_settings_title">驗證碼功能設定</string>
@@ -814,12 +815,14 @@
     <string name="app_notify_template_placeholder">請輸入該應用專屬模板...</string>
     <string name="app_config_detail_save_tip">詳情頁修改會先存於記憶體，請返回應用控制頁點擊完成後再儲存。</string>
     <string name="settings_group_general">通用設定</string>
+    <string name="settings_group_general_summary">應用行為、外觀與語言</string>
     <string name="settings_group_message_types">訊息類型</string>
     <string name="settings_group_relay">驗證碼設定</string>
     <string name="settings_group_auto_input">自動輸入</string>
     <string name="settings_group_notification">通知設定</string>
     <string name="settings_group_experimental">實驗性功能</string>
     <string name="settings_group_others">其他</string>
+    <string name="settings_group_others_summary">裝置啟用、日誌、更新與診斷</string>
     <string name="settings_group_background_keepalive">背景保活</string>
     <string name="pref_msg_type_sms_code_title">驗證碼簡訊</string>
     <string name="pref_msg_type_sms_code_summary">控制驗證碼簡訊是否進入主處理流程</string>
@@ -872,6 +875,7 @@
 
     <!-- backup and restore -->
     <string name="pref_backup_restore_title">備份與還原</string>
+    <string name="settings_group_backup_restore_summary">匯出或還原設定、規則與記錄</string>
     <string name="pref_backup_title">備份</string>
     <string name="pref_backup_summary">匯出設定、規則和記錄</string>
     <string name="pref_restore_title">還原</string>

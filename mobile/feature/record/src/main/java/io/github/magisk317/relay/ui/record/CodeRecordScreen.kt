@@ -101,6 +101,9 @@ private const val BENCHMARK_RECORDS_LIST = "xinyi_benchmark_records_list"
 private val RECORD_ICON_SIZE = 40.dp
 private val APP_NOTIFY_ICON_SIZE = 48.dp
 
+private fun Modifier.recordBenchmarkTag(enabled: Boolean): Modifier =
+    if (enabled) testTag(BENCHMARK_RECORDS_LIST) else this
+
 private fun recordEnableTitleRes(tab: Int): Int = when (tab) {
     0 -> R.string.pref_enable_code_records_title
     1 -> R.string.pref_enable_plain_sms_records_title
@@ -149,7 +152,17 @@ fun CodeRecordScreen(
     refreshTrigger: Int = 0,
     viewModel: CodeRecordViewModel = koinViewModel(),
     scrollChromeState: ScrollChromeState? = null,
+    isActive: Boolean = true,
+    bottomContentPadding: androidx.compose.ui.unit.Dp = 0.dp,
+    benchmarkTagsEnabled: Boolean = true,
 ) {
+    DisposableEffect(viewModel, isActive) {
+        viewModel.setPageActive(isActive)
+        onDispose {
+            if (isActive) viewModel.setPageActive(false)
+        }
+    }
+
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val smsList = uiState.smsList
     val queryState = uiState.queryState
@@ -162,8 +175,10 @@ fun CodeRecordScreen(
     var initialLoadingStarted by remember { mutableStateOf(false) }
     var manualRefreshing by remember { mutableStateOf(false) }
     var manualRefreshStartedAt by remember { mutableLongStateOf(0L) }
+    // Do not replay an old top-level reselect when a new scoped Records screen is created later.
+    var handledRefreshTrigger by rememberSaveable { mutableIntStateOf(refreshTrigger) }
     val showLoading = rememberMinDurationLoading(
-        actualLoading = isLoading && shouldShowInitialLoading,
+        actualLoading = isActive && isLoading && shouldShowInitialLoading,
         minDurationMillis = LoadingIndicatorTokens.MIN_VISIBLE_DURATION_MILLIS,
     )
     val snackbarHostState = remember { SnackbarHostState() }
@@ -176,7 +191,8 @@ fun CodeRecordScreen(
     val settingsRepository: SettingsPreferencesRepository = koinInject()
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
 
-    LaunchedEffect(isLoading, shouldShowInitialLoading, initialLoadingStarted) {
+    LaunchedEffect(isActive, isLoading, shouldShowInitialLoading, initialLoadingStarted) {
+        if (!isActive) return@LaunchedEffect
         if (!shouldShowInitialLoading) return@LaunchedEffect
         if (isLoading) {
             initialLoadingStarted = true
@@ -185,7 +201,12 @@ fun CodeRecordScreen(
         }
     }
 
-    LaunchedEffect(isLoading, manualRefreshing) {
+    LaunchedEffect(isActive, isLoading, manualRefreshing) {
+        if (!isActive) {
+            manualRefreshing = false
+            manualRefreshStartedAt = 0L
+            return@LaunchedEffect
+        }
         if (manualRefreshing && !isLoading) {
             val elapsed = if (manualRefreshStartedAt > 0L) {
                 SystemClock.elapsedRealtime() - manualRefreshStartedAt
@@ -199,12 +220,14 @@ fun CodeRecordScreen(
         }
     }
 
-    LaunchedEffect(refreshTrigger) {
-        if (refreshTrigger > 0) {
-            manualRefreshStartedAt = SystemClock.elapsedRealtime()
-            manualRefreshing = true
-            viewModel.refreshData()
+    LaunchedEffect(isActive, refreshTrigger) {
+        if (!isActive || refreshTrigger <= 0 || refreshTrigger == handledRefreshTrigger) {
+            return@LaunchedEffect
         }
+        handledRefreshTrigger = refreshTrigger
+        manualRefreshStartedAt = SystemClock.elapsedRealtime()
+        manualRefreshing = true
+        viewModel.refreshData()
     }
 
     val clipboard = LocalClipboard.current
@@ -217,8 +240,8 @@ fun CodeRecordScreen(
     }
 
     // Initial Load
-    LaunchedEffect(Unit) {
-        viewModel.loadData()
+    LaunchedEffect(isActive) {
+        if (isActive) viewModel.loadData()
     }
 
     // Selection State
@@ -244,7 +267,8 @@ fun CodeRecordScreen(
     var showHistoryLimitDialog by remember { mutableStateOf(false) }
     var showHistoryLimitInput by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(isActive) {
+        if (!isActive) return@LaunchedEffect
         val settings = settingsRepository.getRecordSettings()
         codeRecordEnabled = settings.codeRecordEnabled
         plainRecordEnabled = settings.plainSmsRecordEnabled
@@ -274,7 +298,7 @@ fun CodeRecordScreen(
     }
 
     // Back Handler
-    BackHandler(enabled = isSelectionMode) {
+    BackHandler(enabled = recordSelectionBackEnabled(isActive, isSelectionMode)) {
         isSelectionMode = false
         selectedIds = emptySet()
     }
@@ -528,6 +552,10 @@ fun CodeRecordScreen(
     val headerOffset = with(density) {
         (scrollChromeState?.animatedHeaderOffsetY ?: 0f).coerceAtMost(0f).toDp()
     }
+    val navigationBarPadding = WindowInsets.navigationBars
+        .asPaddingValues()
+        .calculateBottomPadding()
+    val effectiveBottomPadding = maxOf(bottomContentPadding, navigationBarPadding)
 
     val codeSmsList = queryState.codeRecords
     val plainSmsList = queryState.plainSmsRecords
@@ -535,7 +563,15 @@ fun CodeRecordScreen(
     val callNotifyList = queryState.callNotifyRecords
     val activeSmsList = queryState.recordsForTab(selectedRecordTab)
 
-    LaunchedEffect(activeSmsList, selectedRecordTab, defaultSmsPackage, defaultDialerPackage, targetRecordIconPx) {
+    LaunchedEffect(
+        isActive,
+        activeSmsList,
+        selectedRecordTab,
+        defaultSmsPackage,
+        defaultDialerPackage,
+        targetRecordIconPx,
+    ) {
+        if (!isActive) return@LaunchedEffect
         val packages = buildList {
             if (selectedRecordTab == 0) {
                 addAll(activeSmsList.mapNotNull { it.packageName?.takeIf(String::isNotBlank) })
@@ -604,15 +640,17 @@ fun CodeRecordScreen(
         val defaultTopPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 120.dp
         val measuredTopHeight = if (fixedTopHeightPx > 0) with(density) { fixedTopHeightPx.toDp() } else defaultTopPadding
         val fixedTopHeight = (measuredTopHeight + headerOffset).coerceAtLeast(0.dp)
-        val bottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 80.dp
+        val bottomPadding = effectiveBottomPadding + 16.dp
 
         PullToRefreshBox(
             state = pullToRefreshState,
             isRefreshing = manualRefreshing,
             onRefresh = {
-                manualRefreshStartedAt = SystemClock.elapsedRealtime()
-                manualRefreshing = true
-                viewModel.refreshData()
+                if (isActive) {
+                    manualRefreshStartedAt = SystemClock.elapsedRealtime()
+                    manualRefreshing = true
+                    viewModel.refreshData()
+                }
             },
             indicator = {
                 PullToRefreshDefaults.LoadingIndicator(
@@ -687,6 +725,8 @@ fun CodeRecordScreen(
                             showHeader = false,
                             listContentPadding = PaddingValues(top = fixedTopHeight, bottom = bottomPadding),
                             scrollChromeState = scrollChromeState,
+                            isActive = isActive,
+                            benchmarkTagsEnabled = benchmarkTagsEnabled,
                         )
                     }
                 }
@@ -871,7 +911,9 @@ fun CodeRecordScreen(
 
         io.github.magisk317.uikit.common.DismissibleSnackbarHost(
             hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding(),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = effectiveBottomPadding),
         )
     }
 }
@@ -1401,6 +1443,8 @@ private fun RecordSplitColumn(
     showHeader: Boolean = true,
     listContentPadding: PaddingValues = PaddingValues(0.dp),
     scrollChromeState: ScrollChromeState? = null,
+    isActive: Boolean = true,
+    benchmarkTagsEnabled: Boolean = true,
 ) {
     val listState = rememberLazyListState()
     ReportLazyListScrollToChrome(listState, scrollChromeState)
@@ -1438,7 +1482,7 @@ private fun RecordSplitColumn(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .testTag(BENCHMARK_RECORDS_LIST)
+                        .recordBenchmarkTag(benchmarkTagsEnabled)
                         .padding(horizontal = 12.dp),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -1452,7 +1496,7 @@ private fun RecordSplitColumn(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .testTag(BENCHMARK_RECORDS_LIST)
+                        .recordBenchmarkTag(benchmarkTagsEnabled)
                         .nestedScroll(scrollBehavior.nestedScrollConnection),
                     state = listState,
                     contentPadding = listContentPadding,
@@ -1490,15 +1534,15 @@ private fun RecordSplitColumn(
                             }
                         } else {
                             val dismissState = rememberSwipeToDismissBoxState()
-                            LaunchedEffect(dismissState.currentValue) {
-                                if (dismissState.currentValue != SwipeToDismissBoxValue.Settled) {
+                            LaunchedEffect(isActive, dismissState.currentValue) {
+                                if (isActive && dismissState.currentValue != SwipeToDismissBoxValue.Settled) {
                                     onDelete(smsMsg)
                                 }
                             }
                             SwipeToDismissBox(
                                 state = dismissState,
-                                enableDismissFromStartToEnd = true,
-                                enableDismissFromEndToStart = true,
+                                enableDismissFromStartToEnd = recordRowDismissEnabled(isActive, isSelectionMode),
+                                enableDismissFromEndToStart = recordRowDismissEnabled(isActive, isSelectionMode),
                                 backgroundContent = {
                                     Box(
                                         modifier = Modifier

@@ -42,10 +42,12 @@ import androidx.compose.ui.window.DialogProperties
 fun rememberPrefBoolean(
     key: String,
     defaultValue: Boolean,
+    isActive: Boolean = true,
 ): MutableState<Boolean> {
     val preferenceDataSource: PreferenceDataSource = koinInject()
     val state = remember(key) { mutableStateOf(defaultValue) }
-    LaunchedEffect(preferenceDataSource, key, defaultValue) {
+    LaunchedEffect(preferenceDataSource, key, defaultValue, isActive) {
+        if (!isActive) return@LaunchedEffect
         state.value = preferenceDataSource.getBoolean(key, defaultValue)
     }
     return state

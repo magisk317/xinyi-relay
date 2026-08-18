@@ -344,6 +344,7 @@
     <string name="scheduled_task_entry_summary">配置定时发送短信任务</string>
     <string name="settings_group_verification_features">验证码功能</string>
     <string name="settings_group_features">功能设置</string>
+    <string name="settings_group_features_summary">验证码识别与消息转发</string>
     <string name="pref_verification_features_title">验证码功能</string>
     <string name="pref_verification_features_summary">统一控制验证码识别、通知、复制与自动输入能力</string>
     <string name="pref_verification_settings_title">验证码功能设置</string>
@@ -821,6 +822,7 @@
     <string name="app_notify_template_placeholder">请输入该应用专属模板...</string>
     <string name="app_config_detail_save_tip">详情页修改会先保存在内存中，请返回应用控制页点击完成后落库。</string>
     <string name="settings_group_general">通用设置</string>
+    <string name="settings_group_general_summary">应用行为、外观与语言</string>
     <string name="settings_group_message_types">消息类型</string>
     <string name="settings_group_relay">验证码设置</string>
     <string name="settings_group_auto_input">自动输入</string>
@@ -828,6 +830,7 @@
     <string name="settings_group_background_keepalive">后台保活</string>
     <string name="settings_group_experimental">实验性功能</string>
     <string name="settings_group_others">其他</string>
+    <string name="settings_group_others_summary">设备激活、日志、更新与诊断</string>
     <string name="mobile_entitlement_settings_title">设备激活状态</string>
     <string name="mobile_entitlement_settings_summary">查看状态或激活此设备</string>
     <string name="mobile_entitlement_title">设备激活状态</string>
@@ -899,6 +902,7 @@
 
     <!-- backup and restore -->
     <string name="pref_backup_restore_title">备份与恢复</string>
+    <string name="settings_group_backup_restore_summary">导出或恢复设置、规则与记录</string>
     <string name="pref_backup_title">备份</string>
     <string name="pref_backup_summary">导出设置、规则和记录</string>
     <string name="pref_restore_title">恢复</string>

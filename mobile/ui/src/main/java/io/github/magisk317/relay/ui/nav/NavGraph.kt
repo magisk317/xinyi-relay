@@ -2,6 +2,7 @@ package io.github.magisk317.relay.ui.nav
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -149,6 +150,7 @@ fun SmsCodeNavHost(
     onBack: () -> Unit,
     initialTab: Any? = null,
     onInitialTabConsumed: (() -> Unit)? = null,
+    onBottomContentPaddingChanged: (Dp) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     NavHost(
@@ -160,6 +162,7 @@ fun SmsCodeNavHost(
             MainScreen(
                 initialTab = initialTab,
                 onInitialTabConsumed = onInitialTabConsumed,
+                onBottomContentPaddingChanged = onBottomContentPaddingChanged,
             )
         }
     }

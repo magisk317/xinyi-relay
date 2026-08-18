@@ -45,6 +45,7 @@ internal fun SettingsGeneralSection(
 ) {
     SectionCard(
         title = stringResource(id = R.string.settings_group_general),
+        summary = stringResource(id = R.string.settings_group_general_summary),
         sectionExpanded = expanded,
         onExpandedChange = onExpandedChange,
         accordionMode = true,
@@ -93,6 +94,7 @@ internal fun SettingsFeaturesSection(
 ) {
     SectionCard(
         title = stringResource(id = R.string.settings_group_features),
+        summary = stringResource(id = R.string.settings_group_features_summary),
         sectionExpanded = expanded,
         onExpandedChange = onExpandedChange,
         accordionMode = true,
@@ -123,6 +125,7 @@ internal fun SettingsBackupRestoreSection(
 ) {
     SectionCard(
         title = stringResource(id = R.string.pref_backup_restore_title),
+        summary = stringResource(id = R.string.settings_group_backup_restore_summary),
         sectionExpanded = expanded,
         onExpandedChange = onExpandedChange,
         accordionMode = true,
@@ -166,6 +169,7 @@ internal fun SettingsDiagnosticsSection(
 ) {
     SectionCard(
         title = stringResource(id = R.string.settings_group_others),
+        summary = stringResource(id = R.string.settings_group_others_summary),
         sectionExpanded = expanded,
         onExpandedChange = onExpandedChange,
         accordionMode = true,

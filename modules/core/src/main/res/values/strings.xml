@@ -342,6 +342,7 @@
     <string name="scheduled_task_entry_summary">Configure scheduled outgoing SMS tasks</string>
     <string name="settings_group_verification_features">Verification features</string>
     <string name="settings_group_features">Feature settings</string>
+    <string name="settings_group_features_summary">Verification and message relay controls</string>
     <string name="pref_verification_features_title">Verification features</string>
     <string name="pref_verification_features_summary">Control code recognition, notifications, copy, and auto-fill in one place</string>
     <string name="pref_verification_settings_title">Verification settings</string>
@@ -811,6 +812,7 @@
     <string name="app_notify_template_placeholder">Enter per-app template...</string>
     <string name="app_config_detail_save_tip">Changes are kept in memory. Return to App Control and tap Done to save.</string>
     <string name="settings_group_general">General</string>
+    <string name="settings_group_general_summary">App behavior, appearance, and language</string>
     <string name="settings_group_message_types">Message types</string>
     <string name="settings_group_relay">SMS Code</string>
     <string name="settings_group_auto_input">Auto Input</string>
@@ -818,6 +820,7 @@
     <string name="settings_group_background_keepalive">Background Keep-alive</string>
     <string name="settings_group_experimental">Experimental</string>
     <string name="settings_group_others">Others</string>
+    <string name="settings_group_others_summary">Device activation, logs, updates, and diagnostics</string>
     <string name="mobile_entitlement_settings_title">Device activation status</string>
     <string name="mobile_entitlement_settings_summary">Check status or activate this device</string>
     <string name="mobile_entitlement_title">Device activation status</string>
@@ -889,6 +892,7 @@
 
     <!-- backup and restore -->
     <string name="pref_backup_restore_title">Backup &amp; Restore</string>
+    <string name="settings_group_backup_restore_summary">Export or restore settings, rules, and records</string>
     <string name="pref_backup_title">Backup</string>
     <string name="pref_backup_summary">Export settings, rules and records</string>
     <string name="pref_restore_title">Restore</string>
