@@ -6,7 +6,6 @@ import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
 import io.github.magisk317.smscode.verification.SmsHookConstructorInitializer as SharedSmsHookConstructorInitializer
-import io.github.magisk317.smscode.xposed.utils.ModuleActivationStore
 
 internal class SmsHookConstructorInitializer(
     private val runtimeInitializer: (Context) -> SmsHookRuntimeContext?,
@@ -18,7 +17,8 @@ internal class SmsHookConstructorInitializer(
     private val showNotificationReader: (Context) -> Boolean = XpPrefs::showCodeNotification,
     private val notificationChannelInitializer: (SmsHookRuntimeContext) -> Unit = {},
     private val copyCodeRegistrar: (SmsHookRuntimeContext) -> Unit = {},
-    private val activationMarker: (Context) -> Unit = ModuleActivationStore::markActivated,
+    // The following heartbeat is the canonical hook-to-app activation signal.
+    private val activationMarker: (Context) -> Unit = {},
     private val heartbeatRecorder: (String) -> Unit = {},
     private val suppressionLogger: (String) -> Unit = {},
     private val inboxObserverRegistrar: (SmsHookRuntimeContext) -> Unit = {},

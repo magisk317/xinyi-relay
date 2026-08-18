@@ -150,7 +150,13 @@ class XpRecordFacade(
     suspend fun insertSmsRecord(
         smsMsg: SmsMsg,
         isCodeSms: Boolean,
-    ): Long? = bridge.insertSmsRecord(context = appContext, smsMsg = smsMsg.toRecord(), isCodeSms = isCodeSms)
+        deduplicate: Boolean = true,
+    ): Long? = bridge.insertSmsRecord(
+        context = appContext,
+        smsMsg = smsMsg.toRecord(),
+        isCodeSms = isCodeSms,
+        deduplicate = deduplicate,
+    )
 
     suspend fun insertSmsBlacklistHit(hit: XpSmsBlacklistHitRecord): Long? = bridge.insertSmsBlacklistHit(
         context = appContext,

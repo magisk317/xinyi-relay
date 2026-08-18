@@ -90,6 +90,7 @@ interface XpRecordRuntimeBridge {
         context: Context,
         smsMsg: XpSmsRecord,
         isCodeSms: Boolean,
+        deduplicate: Boolean = true,
     ): Long?
 
     suspend fun insertSmsBlacklistHit(
@@ -203,6 +204,7 @@ object NoopXpRecordRuntimeBridge : XpRecordRuntimeBridge {
         context: Context,
         smsMsg: XpSmsRecord,
         isCodeSms: Boolean,
+        deduplicate: Boolean,
     ): Long? = null
 
     override suspend fun insertSmsBlacklistHit(

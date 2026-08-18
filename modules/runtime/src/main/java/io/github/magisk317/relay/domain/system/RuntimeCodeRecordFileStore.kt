@@ -1,6 +1,5 @@
 package io.github.magisk317.relay.domain.system
 
-import android.annotation.SuppressLint
 import android.content.Context
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
@@ -19,7 +18,6 @@ import java.nio.charset.StandardCharsets
 object RuntimeCodeRecordFileStore {
     private const val RECORD_FILE_PREFIX = "CodeRecord_"
 
-    @SuppressLint("SetWorldWritable", "SetWorldReadable")
     @JvmStatic
     fun exportToFile(context: Context, smsMsg: SmsMsg): Boolean {
         var osw: OutputStreamWriter? = null
@@ -28,7 +26,6 @@ object RuntimeCodeRecordFileStore {
             val recordFile = File(StorageUtils.getFilesDir(context), filename)
             osw = OutputStreamWriter(FileOutputStream(recordFile), StandardCharsets.UTF_8)
             JsonUtils.toJson(smsMsg, osw, true)
-            StorageUtils.setFileWorldWritable(recordFile, 0)
             true
         } catch (e: IOException) {
             XLog.e("Export code record to file failed", e)

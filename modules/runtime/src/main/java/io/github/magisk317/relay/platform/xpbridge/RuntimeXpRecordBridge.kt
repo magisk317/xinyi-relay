@@ -1,11 +1,12 @@
 package io.github.magisk317.relay.platform.xpbridge
 
+import android.content.ContentValues
 import android.content.Context
+import io.github.magisk317.relay.android.data.db.DBProvider
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.contract.xpbridge.XpRecordRuntimeBridge
 import io.github.magisk317.relay.contract.xpbridge.XpSmsBlacklistHitRecord
 import io.github.magisk317.relay.contract.xpbridge.XpSmsRecord
-import io.github.magisk317.relay.domain.system.RuntimeCodeRecordFileStore
 import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
 import io.github.magisk317.relay.platform.ipc.BlacklistHitBroadcast
 
@@ -145,8 +146,14 @@ object RuntimeXpRecordBridge : XpRecordRuntimeBridge {
         context: Context,
         smsMsg: XpSmsRecord,
         isCodeSms: Boolean,
+        deduplicate: Boolean,
     ): Long? {
-        return RuntimeRecordFacade(context).insertSmsRecord(smsMsg.toRuntimeSmsMsg(), isCodeSms)
+        val record = smsMsg.toRuntimeSmsMsg()
+        val inserted = context.contentResolver.insert(
+            DBProvider.smsMsgContentUri(context),
+            record.toContentValues(deduplicate),
+        )
+        return inserted?.lastPathSegment?.toLongOrNull()
     }
 
     override suspend fun insertSmsBlacklistHit(
@@ -182,7 +189,8 @@ object RuntimeXpRecordBridge : XpRecordRuntimeBridge {
     }
 
     override fun exportCodeRecordToFile(context: Context, smsMsg: XpSmsRecord): Boolean {
-        return RuntimeCodeRecordFileStore.exportToFile(context, smsMsg.toRuntimeSmsMsg())
+        // Hook-side persistence is provider-only. External files are not an IPC transport.
+        return false
     }
 
     private fun toXpSmsRecord(smsMsg: SmsMsg): XpSmsRecord {
@@ -233,5 +241,28 @@ object RuntimeXpRecordBridge : XpRecordRuntimeBridge {
             msgType = msgType,
             callType = callType,
         )
+    }
+
+    private fun SmsMsg.toContentValues(deduplicate: Boolean): ContentValues = ContentValues().apply {
+        put("sender", sender)
+        put("body", body)
+        put("date", date)
+        put("processed_time", processedTime.takeIf { it > 0L } ?: System.currentTimeMillis())
+        put("company", company)
+        put("sms_code", smsCode)
+        put("package_name", packageName)
+        put("notify_channel_id", notifyChannelId)
+        put("sim_slot", simSlot)
+        put("sub_id", subId)
+        put("contact_name", contactName)
+        put("phone_area", phoneArea)
+        put("msg_type", msgType)
+        put("call_type", callType)
+        put("session_key", sessionKey)
+        put("forward_status", forwardStatus)
+        put("forward_target", forwardTarget)
+        put("forward_message", forwardMessage)
+        put("forward_time", forwardTime)
+        put("deduplicate", deduplicate)
     }
 }

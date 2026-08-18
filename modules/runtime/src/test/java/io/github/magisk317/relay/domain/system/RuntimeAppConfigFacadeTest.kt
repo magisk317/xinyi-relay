@@ -7,6 +7,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 
 class RuntimeAppConfigFacadeTest {
 
@@ -22,7 +23,6 @@ class RuntimeAppConfigFacadeTest {
                     blocked = true,
                 )
             },
-            appConfigFallbackLoader = { emptyList() },
         )
 
         assertTrue(facade.isPackageBlocked("com.bank.app"))
@@ -35,29 +35,22 @@ class RuntimeAppConfigFacadeTest {
         val facade = RuntimeAppConfigFacade(
             context = context,
             appInfoLookup = { null },
-            appConfigFallbackLoader = {
-                listOf(AppInfo(packageName = "com.unknown.app", blocked = true))
-            },
         )
 
         assertFalse(facade.isPackageBlocked("com.unknown.app"))
     }
 
     @Test
-    fun isPackageBlocked_fallsBackToFileWhenRepositoryFails() = runBlocking {
+    fun isPackageBlocked_propagatesProviderFailureForFailClosedCaller() {
         val context = mockk<Context>(relaxed = true)
 
         val facade = RuntimeAppConfigFacade(
             context = context,
             appInfoLookup = { throw IllegalStateException("db unavailable") },
-            appConfigFallbackLoader = {
-                listOf(
-                    AppInfo(packageName = "com.bank.app", blocked = true),
-                    AppInfo(packageName = "com.other.app", blocked = false),
-                )
-            },
         )
 
-        assertTrue(facade.isPackageBlocked("com.bank.app"))
+        assertThrows<IllegalStateException> {
+            runBlocking { facade.isPackageBlocked("com.bank.app") }
+        }
     }
 }

@@ -1,11 +1,8 @@
 package io.github.magisk317.relay.domain.system
 
 import android.content.Context
-import io.github.magisk317.relay.bootstrap.RuntimeDependencies
+import io.github.magisk317.relay.android.data.db.DBProvider
 import io.github.magisk317.relay.android.data.db.entity.AppInfo
-import io.github.magisk317.relay.engine.service.AppConfigRepository
-import io.github.magisk317.relay.android.data.store.EntityStoreManager
-import io.github.magisk317.relay.android.data.store.EntityType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -13,30 +10,39 @@ import kotlinx.coroutines.withContext
  * Runtime-side app config reads for hook / receiver entrypoints.
  */
 class RuntimeAppConfigFacade(
-    context: Context,
-    configRepository: AppConfigRepository? = null,
-    private val appInfoLookup: (suspend (String) -> AppInfo?)? = null,
-    private val appConfigFallbackLoader: () -> List<AppInfo> = {
-        EntityStoreManager.loadEntitiesFromFile(context, EntityType.APP_CONFIG, AppInfo::class.java)
+    private val context: Context,
+    private val appInfoLookup: suspend (String) -> AppInfo? = { packageName ->
+        queryAppInfo(context, packageName)
     },
 ) {
-    private val configRepository: AppConfigRepository by lazy {
-        configRepository ?: RuntimeDependencies.get().configRepository
+    suspend fun isPackageBlocked(packageName: String): Boolean = withContext(Dispatchers.IO) {
+        appInfoLookup(packageName)?.blocked ?: false
     }
 
-    suspend fun isPackageBlocked(packageName: String): Boolean = withContext(Dispatchers.IO) {
-        val dbResult = runCatching {
-            if (appInfoLookup != null) {
-                appInfoLookup.invoke(packageName)
-            } else {
-                configRepository.getAppInfoByPackage(packageName)
+    private companion object {
+        private const val COLUMN_PACKAGE_NAME = "package_name"
+        private const val COLUMN_BLOCKED = "blocked"
+
+        fun queryAppInfo(context: Context, packageName: String): AppInfo? {
+            if (packageName.isBlank()) return null
+            val uri = DBProvider.appInfoContentUri(context)
+                .buildUpon()
+                .appendPath(packageName)
+                .build()
+            val cursor = context.contentResolver.query(
+                uri,
+                arrayOf(COLUMN_PACKAGE_NAME, COLUMN_BLOCKED),
+                null,
+                null,
+                null,
+            ) ?: error("App-config provider unavailable")
+            return cursor.use {
+                if (!it.moveToFirst()) return@use null
+                AppInfo(
+                    packageName = it.getString(it.getColumnIndexOrThrow(COLUMN_PACKAGE_NAME)),
+                    blocked = it.getInt(it.getColumnIndexOrThrow(COLUMN_BLOCKED)) != 0,
+                )
             }
         }
-        dbResult.getOrNull()?.let { appInfo -> return@withContext appInfo.blocked }
-        if (dbResult.isSuccess) {
-            return@withContext false
-        }
-
-        appConfigFallbackLoader().any { it.packageName == packageName && it.blocked }
     }
 }

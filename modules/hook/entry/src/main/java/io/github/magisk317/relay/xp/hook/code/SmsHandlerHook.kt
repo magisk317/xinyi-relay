@@ -11,6 +11,7 @@ import io.github.magisk317.smscode.xposed.utils.ModuleActivationStore
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
 import io.github.magisk317.relay.xpbridge.XpPrefs
+import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
 import io.github.magisk317.smscode.verification.SmsDispatchChainBlockDeduplicator
 import io.github.magisk317.smscode.verification.SmsDispatchIntentDeduplicator
 import io.github.magisk317.smscode.verification.SmsIntentHookSupport
@@ -30,7 +31,6 @@ import io.github.magisk317.xposed.LoadParam
 import io.github.magisk317.xposed.MethodHookParam
 import io.github.magisk317.xposed.logging.MagiskOtel
 import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
-import java.io.File
 import java.lang.reflect.Method
 import java.util.Collections
 import java.util.concurrent.Executors
@@ -531,27 +531,24 @@ class SmsHandlerHook : BaseHook() {
         }
 
         val key = result.key ?: return false
-        val timestampMs = result.timestampMs ?: return false
-        smsOperationExecutor.execute {
-            syncSharedDedupToFile(pluginContext, key, timestampMs)
+        val shared = XpSharedRuntimeGate.claimWithinWindow(
+            context = pluginContext,
+            fileName = SmsDispatchIntentDeduplicator.DEFAULT_FILE_NAME,
+            key = key,
+            windowMs = SmsDispatchIntentDeduplicator.DEFAULT_WINDOW_MS,
+            maxEntries = SmsDispatchIntentDeduplicator.DEFAULT_MAX_ENTRIES,
+        )
+        if (!shared.claimed) {
+            XLog.d(
+                "Diag SMS dispatch duplicate skip (provider): event_id=%s action=%s ageMs=%d",
+                eventId,
+                action,
+                shared.ageMs ?: 0L,
+            )
+            return true
         }
 
         return false
-    }
-
-    private fun syncSharedDedupToFile(pluginContext: Context, key: String, timestampMs: Long) {
-        runCatching {
-            val file = File(
-                pluginContext.getExternalFilesDir(null) ?: pluginContext.filesDir,
-                SmsDispatchIntentDeduplicator.DEFAULT_FILE_NAME,
-            )
-            dispatchIntentDeduplicator.syncFileIfLockAvailable(file, key, timestampMs)
-        }.onFailure {
-            XLog.d(
-                "Diag SMS dispatch dedup background sync failed: %s",
-                it.message ?: it.javaClass.simpleName,
-            )
-        }
     }
 
     private fun logSuppressedOnce(stage: String) {

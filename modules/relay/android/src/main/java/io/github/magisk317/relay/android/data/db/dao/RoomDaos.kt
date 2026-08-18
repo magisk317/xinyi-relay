@@ -163,6 +163,9 @@ interface SmsMsgDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(msg: SmsMsg): Long
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertIfAbsent(msg: SmsMsg): Long
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(msgs: List<SmsMsg>)
 

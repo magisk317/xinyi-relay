@@ -3,12 +3,8 @@ package io.github.magisk317.relay.xp.hook.code.action.impl
 import android.content.Context
 import android.os.Bundle
 import io.github.magisk317.relay.xpbridge.XpRecordFacade
-import io.github.magisk317.relay.xpbridge.XpCodeRecordExporter
 import io.github.magisk317.relay.xpbridge.SmsMsg
-import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
-import io.github.magisk317.smscode.domain.utils.CodeRecordSimilarityUtils
-import io.github.magisk317.smscode.verification.RecordSmsDedupHelper
 import io.github.magisk317.smscode.verification.RecordSmsActionHelper
 import io.github.magisk317.smscode.verification.RecordSmsInsertResultHelper
 import kotlinx.coroutines.runBlocking
@@ -34,12 +30,13 @@ class RecordSmsAction(
             eventId = eventId,
             enabled = enabled,
             deduplicateEnabled = deduplicateEnabled,
-            withFileLock = { context, fileName, block ->
-                XpSharedRuntimeGate.withFileLock(context, fileName) { block() }
-            },
-            shouldSkipByDedup = ::shouldSkipByDedup,
+            // The provider performs the fingerprint merge atomically in the app process.
+            withFileLock = { _, _, block -> block() },
+            // Do not query Room from a foreign hook UID before the provider call. The app-owned
+            // provider applies the same window rules inside one database transaction.
+            shouldSkipByDedup = { _, _ -> false },
             primaryInserter = ::insertPrimary,
-            fallbackExporter = ::exportFallback,
+            fallbackExporter = { false },
         ).run()
     }
 
@@ -49,6 +46,7 @@ class RecordSmsAction(
                 runtimeRecordFacade.insertSmsRecord(
                     smsMsg = smsMsg,
                     isCodeSms = true,
+                    deduplicate = deduplicateEnabled,
                 )
             }
             if (recordId != null) {
@@ -56,66 +54,5 @@ class RecordSmsAction(
             }
             RecordSmsInsertResultHelper.failure("insert_returned_null")
         }
-    }
-
-    private fun exportFallback(smsMsg: SmsMsg): Boolean {
-        return XpCodeRecordExporter.exportToFile(mPluginContext, smsMsg)
-    }
-
-    private fun shouldSkipByDedup(smsMsg: SmsMsg, eventLabel: String): Boolean {
-        return RecordSmsDedupHelper.shouldSkipByWindow(
-            smsMsg = smsMsg,
-            eventLabel = eventLabel,
-            hasFingerprintDuplicate = { sender, body, from, to ->
-                runBlocking {
-                    runCatching {
-                        runtimeRecordFacade.hasSmsDuplicateInRange(
-                            sender = sender,
-                            body = body,
-                            dateFrom = from,
-                            dateTo = to,
-                            msgType = SmsMsg.MSG_TYPE_SMS,
-                        )
-                    }.getOrDefault(false)
-                }
-            },
-            hasCodeDuplicateInWindow = { code, from, to ->
-                runBlocking {
-                    runCatching {
-                        val candidates = runtimeRecordFacade.querySmsRecordsByCodeInRange(code, from, to)
-                        RecordSmsDedupHelper.hasCrossSourceCodeDuplicate(
-                            incoming = smsMsg,
-                            candidates = candidates,
-                            scorer = { existing, incoming ->
-                                CodeRecordSimilarityUtils.crossSourceMatchScore(
-                                    existingCode = existing.smsCode,
-                                    existingBody = existing.body,
-                                    existingCompany = existing.company,
-                                    existingSender = existing.sender,
-                                    incomingCode = incoming.smsCode,
-                                    incomingBody = incoming.body,
-                                    incomingCompany = incoming.company,
-                                    incomingSender = incoming.sender,
-                                )
-                            }
-                        )
-                    }.getOrDefault(false)
-                }
-            },
-            hasCodeDuplicateByPackage = { code, pkg, from, to ->
-                runBlocking {
-                    runCatching {
-                        runtimeRecordFacade.hasSmsCodeDuplicateByPackageInRange(code, pkg, from, to)
-                    }.getOrDefault(false)
-                }
-            },
-            hasCodeDuplicateByCompany = { code, company, from, to ->
-                runBlocking {
-                    runCatching {
-                        runtimeRecordFacade.hasSmsCodeDuplicateByCompanyInRange(code, company, from, to)
-                    }.getOrDefault(false)
-                }
-            },
-        )
     }
 }

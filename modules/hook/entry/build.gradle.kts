@@ -3,6 +3,11 @@ plugins {
     id("relay.android.common")
 }
 
+val allowConflictBypass = findProperty("allowConflictBypass")
+    ?.toString()
+    ?.toBooleanStrictOrNull()
+    ?: false
+
 android {
     namespace = "io.github.magisk317.relay.hookentry"
     buildFeatures {
@@ -17,7 +22,7 @@ android {
         buildConfigField("String", "VERSION_NAME", "\"${libs.versions.versionName.get()}\"")
         buildConfigField("int", "VERSION_CODE", libs.versions.versionCode.get())
         buildConfigField("int", "MODULE_VERSION", libs.versions.versionCode.get())
-        buildConfigField("boolean", "ALLOW_CONFLICT_BYPASS", "false")
+        buildConfigField("boolean", "ALLOW_CONFLICT_BYPASS", allowConflictBypass.toString())
     }
 }
 

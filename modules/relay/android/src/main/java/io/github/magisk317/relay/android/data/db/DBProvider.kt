@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.android.data.db
 
 import android.content.ContentProvider
+import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
 import android.content.UriMatcher
@@ -8,12 +9,21 @@ import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
 import android.os.Binder
+import android.os.Bundle
+import androidx.room.withTransaction
 import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.relay.android.data.db.dao.SmsMsgDao
 import io.github.magisk317.relay.android.data.db.entity.AppInfo
 import io.github.magisk317.relay.android.data.db.entity.SmsCodeRule
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.android.platform.ipc.ProviderCallerPolicy
+import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
+import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
+import io.github.magisk317.smscode.runtime.common.ipc.RuntimeStateProviderContract
 import io.github.magisk317.smscode.runtime.common.record.SmsMsgCursorContract
+import io.github.magisk317.smscode.runtime.common.utils.SharedRuntimeGate
+import io.github.magisk317.smscode.runtime.common.utils.StorageUtils
+import io.github.magisk317.smscode.domain.utils.CodeRecordSimilarityUtils
 import kotlinx.coroutines.runBlocking
 
 class DBProvider : ContentProvider() {
@@ -24,6 +34,7 @@ class DBProvider : ContentProvider() {
     override fun onCreate(): Boolean {
         context?.let {
             mDatabase = AppDatabase.getInstance(it)
+            StorageUtils.repairExternalAppDataPermissions(it)
             authority = "${it.packageName}.db.provider"
             uriMatcher = UriMatcher(UriMatcher.NO_MATCH).apply {
                 addURI(authority, PATH_SMS_MSG, SMS_MSG_DIR)
@@ -39,14 +50,26 @@ class DBProvider : ContentProvider() {
 
     override fun getType(uri: Uri): String? = null
 
+    override fun call(method: String, arg: String?, extras: Bundle?): Bundle? {
+        val ctx = context ?: return null
+        if (!isCallerAllowedForRuntimeState(ctx)) {
+            XLog.w("DBProvider: deny call uid=%d method=%s", Binder.getCallingUid(), method)
+            return null
+        }
+        return when (method) {
+            RuntimeStateProviderContract.METHOD_CLAIM_RUNTIME_GATE -> claimRuntimeGate(ctx, arg, extras)
+            RuntimeStateProviderContract.METHOD_RECORD_HOOK_HEARTBEAT -> recordHookHeartbeat(ctx, extras)
+            else -> super.call(method, arg, extras)
+        }
+    }
+
     override fun insert(uri: Uri, values: ContentValues?): Uri? {
         val ctx = context ?: return null
         val uriType = uriMatcher.match(uri)
-        if (!isCallerAllowedForMutation(ctx)) {
+        if (!isCallerAllowedForInsert(ctx, uriType)) {
             XLog.w("DBProvider: deny insert uid=%d uri=%s", Binder.getCallingUid(), uri)
             return null
         }
-        val path: String
         when (uriType) {
             SMS_MSG_DIR -> {
                 val msg = SmsMsg(
@@ -58,37 +81,44 @@ class DBProvider : ContentProvider() {
                     smsCode = values?.getAsString("sms_code"),
                     packageName = values?.getAsString("package_name"),
                     notifyChannelId = values?.getAsString("notify_channel_id").orEmpty(),
+                    simSlot = values?.getAsInteger("sim_slot") ?: -1,
+                    subId = values?.getAsInteger("sub_id") ?: 0,
+                    contactName = values?.getAsString("contact_name").orEmpty(),
+                    phoneArea = values?.getAsString("phone_area").orEmpty(),
                     msgType = values?.getAsInteger("msg_type") ?: SmsMsg.MSG_TYPE_SMS,
                     callType = values?.getAsInteger("call_type") ?: 0,
+                    sessionKey = values?.getAsString("session_key").orEmpty(),
                     forwardStatus = values?.getAsInteger("forward_status") ?: SmsMsg.FORWARD_STATUS_NONE,
                     forwardTarget = values?.getAsString("forward_target"),
                     forwardMessage = values?.getAsString("forward_message"),
                     forwardTime = values?.getAsLong("forward_time") ?: 0L,
                 )
-                val dao = mDatabase!!.smsMsgDao()
-                val id = synchronized(dao) {
-                    runBlocking {
-                        val existing = dao.getByFingerprint(
-                            sender = msg.sender,
-                            body = msg.body,
-                            date = msg.date,
-                            msgType = msg.msgType,
+                val database = mDatabase ?: return null
+                val outcome = runBlocking {
+                    database.withTransaction {
+                        insertSmsMsgOrGetExisting(
+                            dao = database.smsMsgDao(),
+                            incoming = msg,
+                            deduplicate = parseBooleanValue(values, KEY_DEDUPLICATE, true),
                         )
-                        if (existing != null) {
-                            dao.update(mergeSmsMsgForInsert(existing, msg))
-                            existing.id
-                        } else {
-                            dao.insert(msg)
-                        }
                     }
                 }
-                path = "$PATH_SMS_MSG/$id"
+                val resultUri = ContentUris.withAppendedId(uri, outcome.id)
+                    .buildUpon()
+                    .apply {
+                        if (outcome.duplicate) appendQueryParameter(QUERY_DUPLICATE, "true")
+                    }
+                    .build()
+                // This is also the app-owned signal used by RemoteAgentInitializer to restore
+                // RelayRecordRepository's record-upload scheduling after hook writes moved to
+                // the provider process. Notify accepted duplicates too, matching the old
+                // repository path which scheduled after duplicate resolution.
+                context?.contentResolver?.notifyChange(resultUri, null)
+                return resultUri
             }
 
             else -> throw IllegalArgumentException("Unsupported URI: $uri")
         }
-        context?.contentResolver?.notifyChange(uri, null)
-        return Uri.parse(path)
     }
 
     override fun query(
@@ -151,6 +181,80 @@ class DBProvider : ContentProvider() {
         val msg = dao.getById(id) ?: return@runBlocking 0
         dao.delete(msg)
         1
+    }
+
+    private suspend fun insertSmsMsgOrGetExisting(
+        dao: SmsMsgDao,
+        incoming: SmsMsg,
+        deduplicate: Boolean,
+    ): SmsMsgInsertOutcome {
+        dao.getByFingerprint(
+            sender = incoming.sender,
+            body = incoming.body,
+            date = incoming.date,
+            msgType = incoming.msgType,
+        )?.let { existing ->
+            dao.update(mergeSmsMsgForInsert(existing, incoming))
+            return SmsMsgInsertOutcome(id = existing.id, duplicate = true)
+        }
+
+        if (deduplicate) {
+            findWindowDuplicate(dao, incoming)?.let { existing ->
+                return SmsMsgInsertOutcome(id = existing.id, duplicate = true)
+            }
+        }
+
+        val insertedId = dao.insertIfAbsent(incoming)
+        if (insertedId > 0L) {
+            return SmsMsgInsertOutcome(id = insertedId, duplicate = false)
+        }
+
+        val raced = dao.getByFingerprint(
+            sender = incoming.sender,
+            body = incoming.body,
+            date = incoming.date,
+            msgType = incoming.msgType,
+        ) ?: error("SMS fingerprint conflict without an existing row")
+        dao.update(mergeSmsMsgForInsert(raced, incoming))
+        return SmsMsgInsertOutcome(id = raced.id, duplicate = true)
+    }
+
+    private suspend fun findWindowDuplicate(dao: SmsMsgDao, incoming: SmsMsg): SmsMsg? {
+        val timestamp = incoming.date.takeIf { it > 0L } ?: System.currentTimeMillis()
+        val from = (timestamp - CodeRecordSimilarityUtils.DEFAULT_WINDOW_MS).coerceAtLeast(0L)
+        val to = timestamp + CodeRecordSimilarityUtils.DEFAULT_WINDOW_MS
+        val code = incoming.smsCode
+        if (!code.isNullOrBlank()) {
+            dao.getByCodeInRange(code, incoming.msgType, from, to)
+                .firstOrNull { existing ->
+                    CodeRecordSimilarityUtils.crossSourceMatchScore(
+                        existingCode = existing.smsCode,
+                        existingBody = existing.body,
+                        existingCompany = existing.company,
+                        existingSender = existing.sender,
+                        incomingCode = incoming.smsCode,
+                        incomingBody = incoming.body,
+                        incomingCompany = incoming.company,
+                        incomingSender = incoming.sender,
+                    ) > 0
+                }
+                ?.let { return it }
+
+            incoming.packageName?.takeIf(String::isNotBlank)?.let { packageName ->
+                dao.getByCodeAndPackageInRange(code, packageName, incoming.msgType, from, to)
+                    ?.let { return it }
+            }
+            incoming.company?.takeIf(String::isNotBlank)?.let { company ->
+                dao.getByCodeAndCompanyInRange(code, company, incoming.msgType, from, to)
+                    ?.let { return it }
+            }
+        }
+
+        if (!incoming.sender.isNullOrBlank() && !incoming.body.isNullOrBlank()) {
+            dao.getByFingerprintInRange(incoming.sender, incoming.body, incoming.msgType, from, to)
+                ?.let { return it }
+        }
+        return null
     }
 
     private fun querySmsCodeRules(projection: Array<String>?): Cursor = runBlocking {
@@ -303,6 +407,95 @@ class DBProvider : ContentProvider() {
     private fun isCallerAllowedForMutation(ctx: Context): Boolean =
         ProviderCallerPolicy.isSelf(ctx)
 
+    private fun isCallerAllowedForInsert(ctx: Context, uriType: Int): Boolean =
+        when (uriType) {
+            SMS_MSG_DIR -> ProviderCallerPolicy.isSelf(ctx) || ProviderCallerPolicy.isSelfOrSystemScope(ctx)
+            else -> ProviderCallerPolicy.isSelf(ctx)
+        }
+
+    private fun isCallerAllowedForRuntimeState(ctx: Context): Boolean =
+        ProviderCallerPolicy.isSelf(ctx) || ProviderCallerPolicy.isSelfOrSystemScope(ctx)
+
+    private fun claimRuntimeGate(ctx: Context, fileName: String?, extras: Bundle?): Bundle? {
+        val resolvedFileName = fileName?.takeIf(String::isNotBlank) ?: return null
+        val keys = extras?.getStringArrayList(RuntimeStateProviderContract.EXTRA_KEYS).orEmpty()
+        val windowMs = extras?.getLong(RuntimeStateProviderContract.EXTRA_WINDOW_MS, 0L) ?: 0L
+        val maxEntries = extras?.getInt(
+            RuntimeStateProviderContract.EXTRA_MAX_ENTRIES,
+            RuntimeStateProviderContract.DEFAULT_MAX_ENTRIES,
+        ) ?: RuntimeStateProviderContract.DEFAULT_MAX_ENTRIES
+        if (windowMs <= 0L || maxEntries !in 1..MAX_RUNTIME_GATE_ENTRIES) return null
+
+        val result = runCatching {
+            SharedRuntimeGate.claimAllWithinWindow(
+                file = SharedRuntimeGate.internalGateFile(ctx, resolvedFileName),
+                keys = keys,
+                windowMs = windowMs,
+                maxEntries = maxEntries,
+            )
+        }.onFailure { error ->
+            XLog.w(
+                "DBProvider: runtime gate failed file=%s err=%s",
+                resolvedFileName,
+                error.message ?: error.javaClass.simpleName,
+            )
+        }.getOrNull() ?: return null
+
+        return Bundle().apply {
+            putBoolean(RuntimeStateProviderContract.RESULT_OK, true)
+            putBoolean(RuntimeStateProviderContract.RESULT_CLAIMED, result.claimed)
+            putLong(
+                RuntimeStateProviderContract.RESULT_AGE_MS,
+                result.ageMs ?: RuntimeStateProviderContract.NO_AGE_MS,
+            )
+            result.key?.let { putString(RuntimeStateProviderContract.RESULT_BLOCKED_KEY, it) }
+        }
+    }
+
+    private fun recordHookHeartbeat(ctx: Context, extras: Bundle?): Bundle? {
+        val packageName = extras
+            ?.getString(RuntimeStateProviderContract.EXTRA_PACKAGE_NAME)
+            ?.toRuntimeStateValue()
+            .orEmpty()
+        val processName = extras
+            ?.getString(RuntimeStateProviderContract.EXTRA_PROCESS_NAME)
+            ?.toRuntimeStateValue()
+            .orEmpty()
+        val source = extras
+            ?.getString(RuntimeStateProviderContract.EXTRA_SOURCE)
+            ?.toRuntimeStateValue()
+            .orEmpty()
+        if (packageName.isBlank() || processName.isBlank() || source.isBlank()) return null
+
+        val ok = runCatching {
+            ActivationDiagnosticsStore.recordHookHeartbeat(
+                context = ctx.applicationContext ?: ctx,
+                packageName = packageName,
+                processName = processName,
+                source = source,
+                verboseLogging = extras?.getBoolean(
+                    RuntimeStateProviderContract.EXTRA_VERBOSE_LOGGING,
+                    false,
+                ) ?: false,
+                route = extras
+                    ?.getString(RuntimeStateProviderContract.EXTRA_ROUTE)
+                    ?.toRuntimeStateValue()
+                    ?.takeIf(String::isNotBlank)
+                    ?: RuntimeLogStore.ROUTE_SMS_HOOK,
+            )
+        }.onFailure { error ->
+            XLog.w(
+                "DBProvider: hook heartbeat failed source=%s err=%s",
+                source,
+                error.message ?: error.javaClass.simpleName,
+            )
+        }.isSuccess
+        return Bundle().apply { putBoolean(RuntimeStateProviderContract.RESULT_OK, ok) }
+    }
+
+    private fun String.toRuntimeStateValue(): String =
+        replace('\n', ' ').replace('\r', ' ').take(MAX_RUNTIME_STATE_VALUE_LENGTH)
+
     private fun updateSmsMsgByUriId(uri: Uri, values: ContentValues?): Int {
         val id = uri.lastPathSegment?.toLongOrNull() ?: return 0
         return updateSmsMsgById(id, values)
@@ -438,6 +631,8 @@ class DBProvider : ContentProvider() {
         private const val PATH_SMS_MSG = "sms_msg"
         private const val PATH_SMS_CODE_RULE = "sms_code_rule"
         private const val PATH_APP_INFO = "app_info"
+        private const val KEY_DEDUPLICATE = "deduplicate"
+        private const val QUERY_DUPLICATE = "duplicate"
 
         private const val SMS_MSG_DIR = 0
         private const val SMS_MSG_ID = 1
@@ -445,6 +640,8 @@ class DBProvider : ContentProvider() {
         private const val SMS_CODE_RULE_ID = 3
         private const val APP_INFO_DIR = 4
         private const val APP_INFO_ITEM = 5
+        private const val MAX_RUNTIME_GATE_ENTRIES = 4_096
+        private const val MAX_RUNTIME_STATE_VALUE_LENGTH = 256
 
         fun authority(context: Context): String = "${context.packageName}.db.provider"
 
@@ -457,6 +654,11 @@ class DBProvider : ContentProvider() {
         fun appInfoContentUri(context: Context): Uri =
             Uri.parse("content://${context.packageName}.db.provider/$PATH_APP_INFO")
     }
+
+    private data class SmsMsgInsertOutcome(
+        val id: Long,
+        val duplicate: Boolean,
+    )
 }
 
 fun mergeSmsMsgForInsert(existing: SmsMsg, incoming: SmsMsg): SmsMsg {

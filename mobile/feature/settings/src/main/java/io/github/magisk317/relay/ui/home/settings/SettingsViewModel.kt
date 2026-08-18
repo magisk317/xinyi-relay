@@ -270,7 +270,9 @@ class SettingsViewModel(
     }
 
     fun setInternalFilesWritable() {
-        StorageUtils.setFileWorldWritable(StorageUtils.getFilesDir(getApplication()), 1)
+        // Older releases widened Android/data/<package> to 0777. Hook runtime
+        // state now goes through DBProvider, so only normalize the legacy tree.
+        StorageUtils.repairExternalAppDataPermissions(getApplication())
         viewModelScope.launch {
             HookPreferenceMirror.publish(getApplication())
         }
