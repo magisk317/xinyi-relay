@@ -7,6 +7,7 @@ import androidx.benchmark.macro.StartupMode
 import androidx.benchmark.macro.StartupTimingMetric
 import androidx.benchmark.macro.junit4.MacrobenchmarkRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.Direction
 import androidx.test.uiautomator.UiDevice
@@ -21,11 +22,26 @@ class XinyiMacrobenchmark {
     @get:Rule
     val benchmarkRule = MacrobenchmarkRule()
 
+    private val compilationMode: CompilationMode by lazy {
+        when (
+            InstrumentationRegistry.getArguments()
+                .getString(COMPILATION_MODE_ARGUMENT)
+                ?.lowercase()
+        ) {
+            null, "", "partial" -> CompilationMode.Partial()
+            "none" -> CompilationMode.None()
+            "full" -> CompilationMode.Full()
+            else -> error(
+                "Unsupported $COMPILATION_MODE_ARGUMENT; expected none, partial, or full",
+            )
+        }
+    }
+
     @Test
     fun coldStartup() = benchmarkRule.measureRepeated(
         packageName = APP_PACKAGE,
         metrics = listOf(StartupTimingMetric()),
-        compilationMode = CompilationMode.Partial(),
+        compilationMode = compilationMode,
         startupMode = StartupMode.COLD,
         iterations = ITERATIONS,
         setupBlock = {
@@ -40,7 +56,7 @@ class XinyiMacrobenchmark {
     fun topLevelTabSwitching() = benchmarkRule.measureRepeated(
         packageName = APP_PACKAGE,
         metrics = listOf(FrameTimingMetric()),
-        compilationMode = CompilationMode.Partial(),
+        compilationMode = compilationMode,
         iterations = ITERATIONS,
         setupBlock = {
             startActivityAndWait()
@@ -55,10 +71,41 @@ class XinyiMacrobenchmark {
     }
 
     @Test
+    fun topLevelSwipeNavigation() = benchmarkRule.measureRepeated(
+        packageName = APP_PACKAGE,
+        metrics = listOf(FrameTimingMetric()),
+        compilationMode = compilationMode,
+        iterations = ITERATIONS,
+        setupBlock = {
+            startActivityAndWait()
+            device.waitForResource(BENCHMARK_TAB_OVERVIEW)
+        },
+    ) {
+        device.swipeTopLevel(left = true, expectedPageResource = BENCHMARK_TAB_APPS)
+        device.swipeTopLevel(left = true, expectedPageResource = BENCHMARK_TAB_RECORDS)
+        // The swipe starts in the Records header/non-row area. Record rows retain their own
+        // horizontal dismiss gesture while the surrounding page remains pager-owned.
+        device.swipeTopLevel(
+            left = true,
+            expectedPageResource = BENCHMARK_TAB_ADVANCED,
+            swipeZoneResource = BENCHMARK_RECORDS_SWIPE_ZONE,
+        )
+        device.swipeTopLevel(left = true, expectedPageResource = BENCHMARK_TAB_SETTINGS)
+        device.swipeTopLevel(left = false, expectedPageResource = BENCHMARK_TAB_ADVANCED)
+        device.swipeTopLevel(left = false, expectedPageResource = BENCHMARK_TAB_RECORDS)
+        device.swipeTopLevel(
+            left = false,
+            expectedPageResource = BENCHMARK_TAB_APPS,
+            swipeZoneResource = BENCHMARK_RECORDS_SWIPE_ZONE,
+        )
+        device.swipeTopLevel(left = false, expectedPageResource = BENCHMARK_TAB_OVERVIEW)
+    }
+
+    @Test
     fun appsListScroll() = benchmarkRule.measureRepeated(
         packageName = APP_PACKAGE,
         metrics = listOf(FrameTimingMetric()),
-        compilationMode = CompilationMode.Partial(),
+        compilationMode = compilationMode,
         iterations = ITERATIONS,
         setupBlock = {
             startActivityAndWait()
@@ -73,7 +120,7 @@ class XinyiMacrobenchmark {
     fun recordsListScroll() = benchmarkRule.measureRepeated(
         packageName = APP_PACKAGE,
         metrics = listOf(FrameTimingMetric()),
-        compilationMode = CompilationMode.Partial(),
+        compilationMode = compilationMode,
         iterations = ITERATIONS,
         setupBlock = {
             startActivityAndWait()
@@ -88,7 +135,7 @@ class XinyiMacrobenchmark {
     fun sendersOpenAndScroll() = benchmarkRule.measureRepeated(
         packageName = APP_PACKAGE,
         metrics = listOf(FrameTimingMetric()),
-        compilationMode = CompilationMode.Partial(),
+        compilationMode = compilationMode,
         iterations = ITERATIONS,
         setupBlock = {
             startActivityAndWait()
@@ -130,11 +177,36 @@ class XinyiMacrobenchmark {
         }
     }
 
+    private fun UiDevice.swipeTopLevel(
+        left: Boolean,
+        expectedPageResource: String,
+        swipeZoneResource: String? = null,
+    ) {
+        val swipeZoneBounds = swipeZoneResource
+            ?.let { resource -> waitForResource(resource).visibleBounds }
+        val leftX = swipeZoneBounds
+            ?.let { bounds -> bounds.left + bounds.width() / 5 }
+            ?: displayWidth / 5
+        val rightX = swipeZoneBounds
+            ?.let { bounds -> bounds.right - bounds.width() / 5 }
+            ?: displayWidth * 4 / 5
+        val startX = if (left) rightX else leftX
+        val endX = if (left) leftX else rightX
+        val y = swipeZoneBounds?.centerY() ?: displayHeight / 5
+        check(swipe(startX, y, endX, y, SWIPE_STEPS)) {
+            "Top-level swipe was not injected"
+        }
+        waitForResource(expectedPageResource)
+        waitForIdle()
+    }
+
     private companion object {
         const val APP_PACKAGE = "io.github.magisk317.xinyi.relay"
         const val ITERATIONS = 5
         const val SCROLL_REPETITIONS = 2
+        const val SWIPE_STEPS = 20
         const val UI_TIMEOUT_MS = 10_000L
+        const val COMPILATION_MODE_ARGUMENT = "compilationMode"
 
         const val BENCHMARK_NAV_OVERVIEW = "xinyi_benchmark_nav_overview"
         const val BENCHMARK_NAV_APPS = "xinyi_benchmark_nav_apps"
@@ -146,6 +218,7 @@ class XinyiMacrobenchmark {
         const val BENCHMARK_TAB_RECORDS = "xinyi_benchmark_tab_records"
         const val BENCHMARK_TAB_ADVANCED = "xinyi_benchmark_tab_advanced"
         const val BENCHMARK_TAB_SETTINGS = "xinyi_benchmark_tab_settings"
+        const val BENCHMARK_RECORDS_SWIPE_ZONE = "xinyi_benchmark_records_swipe_zone"
         const val BENCHMARK_APPS_LIST = "xinyi_benchmark_apps_list"
         const val BENCHMARK_RECORDS_LIST = "xinyi_benchmark_records_list"
         const val BENCHMARK_ADVANCED_RELAY_CONFIG = "xinyi_benchmark_advanced_relay_config"

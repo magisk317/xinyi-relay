@@ -457,8 +457,8 @@ android:check:
     - when: never
   variables:
     MAGISK_ANDROID_BUILD_TASKS: >-
-      :app:compileGithubNoE2eeDebug
-      :app:compileGithubWithE2eeDebug
+      :app:compileGithubNoE2eeDebugKotlin
+      :app:compileGithubWithE2eeDebugKotlin
       -PskipGoogleServices=true
 
 cancel:older:mr:pipelines:
