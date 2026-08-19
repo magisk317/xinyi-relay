@@ -1,18 +1,18 @@
 include:
   - project: magisk3171/magisk-ci-toolkit
-    ref: 134287ebdc07cb1784dc7b931ebc22190d5404d2
+    ref: 3755740dbef9de07beffd1391f98e6e844ab1bef
     file: /.gitlab/ci/android.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: 134287ebdc07cb1784dc7b931ebc22190d5404d2
+    ref: 3755740dbef9de07beffd1391f98e6e844ab1bef
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: 134287ebdc07cb1784dc7b931ebc22190d5404d2
+    ref: 3755740dbef9de07beffd1391f98e6e844ab1bef
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: 134287ebdc07cb1784dc7b931ebc22190d5404d2
+    ref: 3755740dbef9de07beffd1391f98e6e844ab1bef
     file: /.gitlab/ci/renovate.yml
   - project: magisk3171/magisk-ci-toolkit
-    ref: 134287ebdc07cb1784dc7b931ebc22190d5404d2
+    ref: 3755740dbef9de07beffd1391f98e6e844ab1bef
     file: /.gitlab/ci/cancel-mr-pipelines.yml
 
 workflow:
@@ -41,7 +41,7 @@ stages:
   - maintenance
 
 variables:
-  MAGISK_CI_TOOLKIT_REF: "134287ebdc07cb1784dc7b931ebc22190d5404d2"
+  MAGISK_CI_TOOLKIT_REF: "3755740dbef9de07beffd1391f98e6e844ab1bef"
   MAGISK_CANCEL_OLDER_MR_PIPELINES: "true"
   GIT_DEPTH: "0"
   GIT_SUBMODULE_STRATEGY: recursive
