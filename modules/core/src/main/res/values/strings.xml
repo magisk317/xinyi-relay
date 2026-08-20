@@ -95,7 +95,7 @@
     <!-- preference code notification -->
     <string name="pref_notification_title">Notification</string>
     <string name="pref_show_code_notification_title">Show status bar notification</string>
-    <string name="pref_show_code_notification_summary">Show a status bar notification when an SMS code is extracted (some systems may label it as Phone Services)</string>
+    <string name="pref_show_code_notification_summary">Show a status bar notification when an SMS code is extracted (shown as Phone Services when background is unavailable)</string>
     <string name="pref_code_notification_owner_title">Notification owner</string>
     <string name="pref_code_notification_owner_summary">Current: %1$s. App owner shows your module name; Phone Services may be steadier in some scenarios, but it will be shown as Phone Services.</string>
     <string name="pref_code_notification_owner_app">App</string>
@@ -1450,4 +1450,9 @@
 
     <string name="sender_custom_template_render_error">Failed to render custom template: %1$s</string>
 
+    <string name="status_module_activated">Module status: Activated</string>
+    <string name="status_module_not_activated">Module status: Not Activated</string>
+    <string name="status_entitlement_verified">Entitlement: Verified</string>
+    <string name="status_entitlement_unverified">Entitlement: Unverified</string>
+    <string name="status_activate_hint">Please enable module and scope in LSPosed</string>
 </resources>

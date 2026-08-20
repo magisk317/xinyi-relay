@@ -16,8 +16,11 @@ import io.github.magisk317.relay.android.data.db.dao.SmsMsgDao
 import io.github.magisk317.relay.android.data.db.entity.AppInfo
 import io.github.magisk317.relay.android.data.db.entity.SmsCodeRule
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
+import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.android.platform.ipc.ProviderCallerPolicy
+import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
+import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeDiagnosticsPreferences
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
 import io.github.magisk317.smscode.runtime.common.ipc.RuntimeStateProviderContract
 import io.github.magisk317.smscode.runtime.common.record.SmsMsgCursorContract
@@ -59,6 +62,7 @@ class DBProvider : ContentProvider() {
         return when (method) {
             RuntimeStateProviderContract.METHOD_CLAIM_RUNTIME_GATE -> claimRuntimeGate(ctx, arg, extras)
             RuntimeStateProviderContract.METHOD_RECORD_HOOK_HEARTBEAT -> recordHookHeartbeat(ctx, extras)
+            RuntimeStateProviderContract.METHOD_GET_RETENTION_DAYS -> getRetentionDays(ctx)
             else -> super.call(method, arg, extras)
         }
     }
@@ -96,11 +100,13 @@ class DBProvider : ContentProvider() {
                 val database = mDatabase ?: return null
                 val outcome = runBlocking {
                     database.withTransaction {
-                        insertSmsMsgOrGetExisting(
+                        val result = insertSmsMsgOrGetExisting(
                             dao = database.smsMsgDao(),
                             incoming = msg,
                             deduplicate = parseBooleanValue(values, KEY_DEDUPLICATE, true),
                         )
+                        trimOldRecordsIfNeeded(ctx, database.smsMsgDao(), msg)
+                        result
                     }
                 }
                 val resultUri = ContentUris.withAppendedId(uri, outcome.id)
@@ -625,6 +631,44 @@ class DBProvider : ContentProvider() {
         val app = dao.getByPackageName(packageName) ?: return@runBlocking 0
         dao.delete(app)
         1
+    }
+
+    private fun getRetentionDays(ctx: Context): Bundle? {
+        val days = RuntimeDiagnosticsPreferences.readInt(
+            context = ctx,
+            preferencesName = "xposed_prefs",
+            key = "pref_runtime_log_retention_days",
+            defaultValue = 7,
+            minimumValue = 1,
+        )
+        return Bundle().apply {
+            putInt(RuntimeStateProviderContract.RESULT_RETENTION_DAYS, days)
+        }
+    }
+
+    private suspend fun trimOldRecordsIfNeeded(ctx: Context, dao: SmsMsgDao, msg: SmsMsg) {
+        val isCodeSms = !msg.smsCode.isNullOrBlank()
+        val limitKey = when (msg.msgType) {
+            SmsMsg.MSG_TYPE_APP_NOTIFY -> RelayPrefConst.KEY_HISTORY_LIMIT_APP_NOTIFY
+            SmsMsg.MSG_TYPE_CALL_NOTIFY -> RelayPrefConst.KEY_HISTORY_LIMIT_CALL_NOTIFY
+            SmsMsg.MSG_TYPE_SMS -> if (isCodeSms) RelayPrefConst.KEY_HISTORY_LIMIT_CODE else RelayPrefConst.KEY_HISTORY_LIMIT_PLAIN_SMS
+            else -> RelayPrefConst.KEY_HISTORY_LIMIT_CODE
+        }
+        val defaultLimit = AppPreferencesDataStore.getString(ctx, RelayPrefConst.KEY_HISTORY_LIMIT, "0")
+        val limit = AppPreferencesDataStore.getString(ctx, limitKey, defaultLimit).toIntOrNull() ?: 0
+        if (limit <= 0) return
+
+        val all = dao.getAll()
+        val matching = all.asSequence()
+            .filter { record ->
+                record.msgType == msg.msgType &&
+                    (msg.msgType != SmsMsg.MSG_TYPE_SMS || (!record.smsCode.isNullOrBlank()) == isCodeSms)
+            }
+            .sortedBy { it.date }
+            .toList()
+        if (matching.size < limit) return
+        val deleteCount = matching.size - limit + 1
+        dao.deleteInTx(matching.take(deleteCount))
     }
 
     companion object {

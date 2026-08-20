@@ -551,6 +551,7 @@ private fun OverviewCardItem(
                 StatusCard(
                     isEnhancedModeEnabled = isEnabled,
                     isStandardModeEnabled = isStandardEnabled,
+                    isEntitled = runtimeConnected,
                     showBatteryOptimizationHint = showBatteryOptimizationHint,
                     showDiagnostics = showStatusDiagnostics,
                     diagnostics = buildStatusDiagnostics(
@@ -591,6 +592,7 @@ private fun OverviewCardItem(
                 io.github.magisk317.uikit.surface.OverviewAppInfoCard(
                     appVersionName = appVersionName,
                     appVersionCode = appVersionCode,
+                    appVersionCodeLabel = androidx.compose.ui.res.stringResource(id = UiKitR.string.uikit_version_code),
                     frameworkType = frameworkType,
                     frameworkVersion = frameworkVersion,
                     interactive = !editMode,

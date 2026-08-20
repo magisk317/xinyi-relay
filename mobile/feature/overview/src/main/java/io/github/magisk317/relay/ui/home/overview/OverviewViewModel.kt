@@ -285,8 +285,9 @@ private suspend fun loadOverviewRuntimeUiState(
             hasRootAccess = hasRootAccessDeferred.await(),
             appVersionName = appVersion?.first?.takeIf { it.isNotBlank() }
                 ?: context.getString(io.github.magisk317.relay.core.R.string.unknown),
-            appVersionCode = appVersion?.second?.toString()
-                ?: context.getString(io.github.magisk317.relay.core.R.string.unknown),
+            appVersionCode = io.github.magisk317.relay.core.BuildConfig.COMMIT_HASH.takeIf { it.isNotBlank() && it != "unknown" }
+                ?: (appVersion?.second?.toString()
+                ?: context.getString(io.github.magisk317.relay.core.R.string.unknown)),
             chartSnapshot = chartSnapshotDeferred.await(),
         )
     }

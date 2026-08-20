@@ -14,10 +14,15 @@ val allowConflictBypass = findProperty("allowConflictBypass")
 android {
     namespace = "io.github.magisk317.relay.core"
 
+    val gitCommitHash = providers.exec {
+        commandLine("git", "-C", projectDir, "rev-parse", "--short", "HEAD")
+    }.standardOutput.asText.get().trim()
+
     defaultConfig {
         minSdk = minSdkInt
         buildConfigField("int", "VERSION_CODE", libs.versions.versionCode.get())
         buildConfigField("String", "VERSION_NAME", "\"${libs.versions.versionName.get()}\"")
+        buildConfigField("String", "COMMIT_HASH", "\"$gitCommitHash\"")
         buildConfigField("boolean", "ALLOW_CONFLICT_BYPASS", allowConflictBypass.toString())
     }
 

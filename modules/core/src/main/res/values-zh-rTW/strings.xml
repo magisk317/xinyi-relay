@@ -1408,4 +1408,11 @@
     <string name="cloud_backup_delete_failed">刪除失敗</string>
     <string name="cloud_backup_drive_authorization_canceled">已取消 Google Drive 授權</string>
     <!-- translation audit end -->
+    <string name="status_module_activated">模組啟用：已啟用</string>
+    <string name="status_module_not_activated">模組啟用：未啟用</string>
+    <string name="status_entitlement_verified">服務鑑權：已通過</string>
+    <string name="status_entitlement_unverified">服務鑑權：未通過</string>
+    <string name="status_activate_hint">請嘗試在 LSPosed 中啟用並勾選作用域</string>
+    <string name="mobile_entitlement_settings_title">設備啟用狀態</string>
+    <string name="mobile_entitlement_settings_summary">查看目前設備啟用與服務鑑權狀態</string>
 </resources>

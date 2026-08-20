@@ -92,6 +92,10 @@ android {
         localeFilters.addAll(listOf("en", "zh-rCN", "zh-rTW"))
     }
 
+    val gitCommitHash = providers.exec {
+        commandLine("git", "-C", projectDir, "rev-parse", "--short", "HEAD")
+    }.standardOutput.asText.get().trim()
+
     defaultConfig {
         applicationId = "io.github.magisk317.xinyi.relay"
 
@@ -99,6 +103,7 @@ android {
         versionName = versionNameStr
 
         buildConfigField("String", "LOG_TAG", "\"relay\"")
+        buildConfigField("String", "COMMIT_HASH", "\"$gitCommitHash\"")
         buildConfigField("int", "MODULE_VERSION", "$versionCodeInt")
         buildConfigField("boolean", "ALLOW_CONFLICT_BYPASS", allowConflictBypass.toString())
         buildConfigField("boolean", "MOBILE_ENTITLEMENT_ENFORCED", mobileEntitlementEnforced.toString())

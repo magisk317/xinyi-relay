@@ -60,6 +60,7 @@ import kotlinx.coroutines.launch
 fun StatusCard(
     isEnhancedModeEnabled: Boolean,
     isStandardModeEnabled: Boolean,
+    isEntitled: Boolean = false,
     showBatteryOptimizationHint: Boolean = false,
     showDiagnostics: Boolean,
     diagnostics: List<Pair<String, String>>,
@@ -67,8 +68,9 @@ fun StatusCard(
     onBatteryOptimizationClick: (() -> Unit)? = null,
 ) {
     val isWorking = isEnhancedModeEnabled || isStandardModeEnabled
-    val containerColor = if (isWorking) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.errorContainer
-    val contentColor = if (isWorking) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onErrorContainer
+    val isAllOk = isWorking && isEntitled
+    val containerColor = if (isAllOk) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.errorContainer
+    val contentColor = if (isAllOk) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onErrorContainer
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -86,23 +88,34 @@ fun StatusCard(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Icon(
-                    imageVector = if (isWorking) Icons.Default.CheckCircle else Icons.Default.Warning,
+                    imageVector = if (isAllOk) Icons.Default.CheckCircle else Icons.Default.Warning,
                     contentDescription = null,
                     modifier = Modifier.size(48.dp),
                 )
                 Column {
+                    val moduleStatusText = when {
+                        isEnhancedModeEnabled -> stringResource(id = R.string.status_module_activated)
+                        isStandardModeEnabled -> stringResource(id = R.string.status_module_activated)
+                        else -> stringResource(id = R.string.status_module_not_activated)
+                    }
+                    val entitlementStatusText = if (isEntitled) {
+                        stringResource(id = R.string.status_entitlement_verified)
+                    } else {
+                        stringResource(id = R.string.status_entitlement_unverified)
+                    }
                     Text(
-                        text = when {
-                            isEnhancedModeEnabled -> stringResource(id = R.string.status_working_enhanced)
-                            isStandardModeEnabled -> stringResource(id = R.string.status_working_standard)
-                            else -> stringResource(id = R.string.status_not_active)
-                        },
-                        style = MaterialTheme.typography.titleLarge,
+                        text = moduleStatusText,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = entitlementStatusText,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
                     if (!isWorking) {
                         Text(
-                            text = stringResource(id = R.string.status_tip),
+                            text = stringResource(id = R.string.status_activate_hint),
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     } else if (isStandardModeEnabled) {

@@ -95,7 +95,7 @@
     <!-- preference code notification -->
     <string name="pref_notification_title">通知</string>
     <string name="pref_show_code_notification_title">显示状态栏通知</string>
-    <string name="pref_show_code_notification_summary">提取到验证码时显示状态栏通知（部分系统显示为电话服务）</string>
+    <string name="pref_show_code_notification_summary">提取到验证码时显示状态栏通知（后台不可用时显示为电话服务）</string>
     <string name="pref_code_notification_owner_title">通知归属</string>
     <string name="pref_code_notification_owner_summary">当前：%1$s。模块自身会显示为本应用；电话服务在部分场景更稳，但会显示为电话服务。</string>
     <string name="pref_code_notification_owner_app">模块自身</string>
@@ -1449,4 +1449,9 @@
 
     <string name="sender_custom_template_render_error">通道自定义模板渲染失败: %1$s</string>
 
+    <string name="status_module_activated">模块激活：已激活</string>
+    <string name="status_module_not_activated">模块激活：未激活</string>
+    <string name="status_entitlement_verified">服务鉴权：已通过</string>
+    <string name="status_entitlement_unverified">服务鉴权：未通过</string>
+    <string name="status_activate_hint">请尝试在 LSPosed 中激活并勾选作用域</string>
 </resources>

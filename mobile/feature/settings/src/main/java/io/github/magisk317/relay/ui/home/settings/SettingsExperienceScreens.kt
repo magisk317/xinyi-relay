@@ -1,8 +1,12 @@
 package io.github.magisk317.relay.ui.home.settings
 
 import android.content.Intent
+import io.github.magisk317.relay.android.diagnostics.RuntimeActivationState
 import io.github.magisk317.relay.android.diagnostics.RuntimeDiagnosticsBridge
 import io.github.magisk317.uikit.common.showLatestSnackbar
+import io.github.magisk317.uikit.surface.ActivationStatus
+import io.github.magisk317.uikit.surface.ActivationStatusCard
+import io.github.magisk317.uikit.surface.VersionInfoCard
 
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
@@ -21,6 +26,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -189,7 +195,26 @@ fun SettingsHomeScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Const.SPACING_SMALL.dp),
         ) {
-            Spacer(modifier = Modifier.height(Const.PADDING_SMALL.dp))
+            Spacer(modifier = Modifier.height(Const.SPACING_SMALL.dp))
+
+            // Device entitlement entry (top-level)
+            androidx.compose.material3.Card(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = Const.PADDING_SMALL.dp),
+                shape = MaterialTheme.shapes.large,
+            ) {
+                io.github.magisk317.relay.ui.common.Item(
+                    title = stringResource(id = R.string.mobile_entitlement_settings_title),
+                    summary = stringResource(id = R.string.mobile_entitlement_settings_summary),
+                ) {
+                    context.startActivity(
+                        Intent().setClassName(
+                            context,
+                            "io.github.magisk317.relay.entitlement.MobileEntitlementActivity",
+                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                    )
+                }
+            }
+
             SettingsGeneralSection(
                 general = generalSnapshot,
                 themeSummary = themeModeSummary(themeState.mode),
