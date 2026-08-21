@@ -210,7 +210,7 @@ variables:
 
 backend:go:
   extends: .xinyi_backend_validation_rules
-  image: "golang:1.26.6-bookworm"
+  image: "golang:1.27.0-bookworm"
   stage: build
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
