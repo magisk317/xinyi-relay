@@ -29,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -83,20 +84,52 @@ private fun MobileEntitlementScreen(
     val scope = rememberCoroutineScope()
     var evaluation by remember { mutableStateOf<MobileEntitlementEvaluation?>(null) }
     var challenge by remember { mutableStateOf<MobileEntitlementChallenge?>(null) }
-    var busy by remember { mutableStateOf(false) }
+    var busyAction by remember { mutableStateOf<ActivationAction?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
+    var licenseCodeInput by remember { mutableStateOf("") }
+    var savedLicenseCode by remember { mutableStateOf<String?>(null) }
+
+    fun maskLicenseCode(code: String): String {
+        val trimmed = code.trim()
+        if (trimmed.length != 32) return trimmed
+        return trimmed.take(4) + "*".repeat(24) + trimmed.takeLast(4)
+    }
 
     fun refreshStatus() {
         scope.launch {
-            busy = true
+            busyAction = ActivationAction.REFRESH
             message = null
             runCatching {
                 withContext(Dispatchers.IO) {
                     MobileEntitlementCoordinator.refresh(context)
                 }
-            }.onSuccess { evaluation = it }
-                .onFailure { message = it.message ?: it.javaClass.simpleName }
-            busy = false
+            }.onSuccess {
+                evaluation = it
+                savedLicenseCode = MobileEntitlementCoordinator.readSavedLicenseCode(context)
+            }.onFailure { message = it.message ?: it.javaClass.simpleName }
+            busyAction = null
+        }
+    }
+
+    fun activateWithCode() {
+        val trimmed = licenseCodeInput.trim()
+        if (trimmed.length != 32) {
+            message = context.getString(R.string.mobile_entitlement_license_code_invalid)
+            return
+        }
+        scope.launch {
+            busyAction = ActivationAction.LICENSE_CODE
+            message = null
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    MobileEntitlementCoordinator.activateWithLicenseCode(context, trimmed)
+                }
+            }.onSuccess {
+                evaluation = it
+                savedLicenseCode = MobileEntitlementCoordinator.readSavedLicenseCode(context)
+                licenseCodeInput = ""
+            }.onFailure { message = it.message ?: it.javaClass.simpleName }
+            busyAction = null
         }
     }
 
@@ -108,7 +141,7 @@ private fun MobileEntitlementScreen(
 
     fun createChallenge() {
         scope.launch {
-            busy = true
+            busyAction = ActivationAction.TELEGRAM
             message = null
             runCatching {
                 withContext(Dispatchers.IO) {
@@ -118,35 +151,36 @@ private fun MobileEntitlementScreen(
                 challenge = it
                 openTelegram(it.botUrl)
             }.onFailure { message = it.message ?: it.javaClass.simpleName }
-            busy = false
+            busyAction = null
         }
     }
 
     fun activateWithGoogle() {
         scope.launch {
-            busy = true
+            busyAction = ActivationAction.GOOGLE
             message = null
             var googleBotUrl: String? = null
             runCatching {
-                val challenge = withContext(Dispatchers.IO) {
+                val currentChallenge = withContext(Dispatchers.IO) {
                     MobileEntitlementCoordinator.createGoogleChallenge(context)
                 }
-                googleBotUrl = challenge.botUrl
+                googleBotUrl = currentChallenge.botUrl
                 val idToken = googleSignIn.getIdToken(
                     activity = activity,
                     serverClientId = BuildConfig.MOBILE_ENTITLEMENT_GOOGLE_WEB_CLIENT_ID,
-                    nonce = challenge.nonce,
+                    nonce = currentChallenge.nonce,
                 )
                 withContext(Dispatchers.IO) {
                     MobileEntitlementCoordinator.activateWithGoogleIdToken(
                         context = context,
-                        challengeId = challenge.id,
+                        challengeId = currentChallenge.id,
                         idToken = idToken,
                     )
                 }
             }.onSuccess { state ->
                 if (state.status == MobileEntitlementActivationStatus.APPROVED) {
                     evaluation = state.evaluation
+                    challenge = null
                 } else {
                     val botUrl = googleBotUrl ?: state.botUrl
                     if (botUrl.isNullOrBlank()) {
@@ -162,11 +196,14 @@ private fun MobileEntitlementScreen(
                 }
             }
                 .onFailure { message = it.message ?: it.javaClass.simpleName }
-            busy = false
+            busyAction = null
         }
     }
 
     LaunchedEffect(Unit) {
+        savedLicenseCode = withContext(Dispatchers.IO) {
+            MobileEntitlementCoordinator.readSavedLicenseCode(context)
+        }
         val pendingChallengeId = withContext(Dispatchers.IO) {
             MobileEntitlementCoordinator.readPendingChallenge(context)
         }
@@ -271,32 +308,89 @@ private fun MobileEntitlementScreen(
                     }
                 }
             }
-            Button(
-                onClick = ::createChallenge,
-                enabled = !busy,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (busy) {
-                    CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp), strokeWidth = 2.dp)
-                }
-                Text(stringResource(R.string.mobile_entitlement_activate_telegram))
-            }
-            if (BuildConfig.MOBILE_ENTITLEMENT_CHANNEL == "play") {
-                if (BuildConfig.MOBILE_ENTITLEMENT_GOOGLE_WEB_CLIENT_ID.isBlank()) {
+
+            val isActivated = evaluation?.status == MobileEntitlementStatus.ACTIVE
+            val displayCode = savedLicenseCode ?: ""
+
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     Text(
-                        text = stringResource(R.string.mobile_entitlement_play_flow),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = stringResource(R.string.mobile_entitlement_license_code_label),
+                        style = MaterialTheme.typography.titleMedium,
                     )
-                } else {
-                    Button(
-                        onClick = ::activateWithGoogle,
-                        enabled = !busy,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        if (busy) {
-                            CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp), strokeWidth = 2.dp)
+                    if (isActivated && displayCode.isNotBlank()) {
+                        OutlinedTextField(
+                            value = maskLicenseCode(displayCode),
+                            onValueChange = {},
+                            readOnly = true,
+                            enabled = false,
+                            label = { Text(stringResource(R.string.mobile_entitlement_license_code_label)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                        )
+                    } else {
+                        OutlinedTextField(
+                            value = licenseCodeInput,
+                            onValueChange = { licenseCodeInput = it.trim().uppercase() },
+                            label = { Text(stringResource(R.string.mobile_entitlement_license_code_hint)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            enabled = busyAction == null,
+                        )
+                        Button(
+                            onClick = ::activateWithCode,
+                            enabled = busyAction == null && licenseCodeInput.trim().length == 32,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            if (busyAction == ActivationAction.LICENSE_CODE) {
+                                CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp), strokeWidth = 2.dp)
+                            }
+                            Text(stringResource(R.string.mobile_entitlement_license_code_confirm))
                         }
-                        Text(stringResource(R.string.mobile_entitlement_activate_google))
+                        Text(
+                            text = stringResource(R.string.mobile_entitlement_license_code_get_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
+            val currentEvaluation = evaluation
+            val showActivationActions = currentEvaluation == null ||
+                currentEvaluation.status != MobileEntitlementStatus.ACTIVE ||
+                currentEvaluation.renewDue
+            if (showActivationActions) {
+                Button(
+                    onClick = ::createChallenge,
+                    enabled = busyAction == null,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (busyAction == ActivationAction.TELEGRAM) {
+                        CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp), strokeWidth = 2.dp)
+                    }
+                    Text(stringResource(R.string.mobile_entitlement_activate_telegram))
+                }
+                if (BuildConfig.MOBILE_ENTITLEMENT_CHANNEL == "play") {
+                    if (BuildConfig.MOBILE_ENTITLEMENT_GOOGLE_WEB_CLIENT_ID.isBlank()) {
+                        Text(
+                            text = stringResource(R.string.mobile_entitlement_play_flow),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        Button(
+                            onClick = ::activateWithGoogle,
+                            enabled = busyAction == null,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            if (busyAction == ActivationAction.GOOGLE) {
+                                CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp), strokeWidth = 2.dp)
+                            }
+                            Text(stringResource(R.string.mobile_entitlement_activate_google))
+                        }
                     }
                 }
             }
@@ -315,7 +409,7 @@ private fun MobileEntitlementScreen(
             }
             OutlinedButton(
                 onClick = ::refreshStatus,
-                enabled = !busy,
+                enabled = busyAction == null,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Icon(Icons.Default.Refresh, contentDescription = null)
@@ -331,6 +425,13 @@ private fun MobileEntitlementScreen(
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
+}
+
+private enum class ActivationAction {
+    REFRESH,
+    LICENSE_CODE,
+    TELEGRAM,
+    GOOGLE,
 }
 
 private fun formatEpoch(epochSeconds: Long): String =

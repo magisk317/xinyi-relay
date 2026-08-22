@@ -37,6 +37,18 @@ object MobileEntitlementCoordinator {
     ): MobileEntitlementActivationState =
         PrivateMobileEntitlementCoordinator.pollTelegramChallenge(context, challengeId)
 
+    suspend fun activateWithLicenseCode(
+        context: Context,
+        licenseCode: String,
+    ): MobileEntitlementEvaluation =
+        PrivateMobileEntitlementCoordinator.activateWithLicenseCode(context, licenseCode)
+
+    fun readSavedLicenseCode(context: Context): String? =
+        PrivateMobileEntitlementCoordinator.readSavedLicenseCode(context)
+
+    fun clearSavedLicenseCode(context: Context) =
+        PrivateMobileEntitlementCoordinator.clearSavedLicenseCode(context)
+
     suspend fun activateWithGoogleIdToken(
         context: Context,
         challengeId: String,
