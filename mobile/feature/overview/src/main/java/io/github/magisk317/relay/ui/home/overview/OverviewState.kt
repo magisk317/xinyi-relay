@@ -40,6 +40,7 @@ internal data class OverviewUiState(
 
 internal data class OverviewRuntimeUiState(
     val runtimeConnected: Boolean = false,
+    val mobileAutomationAllowed: Boolean = false,
     val activationDiagnostics: ActivationDiagnosticsSnapshot = ActivationDiagnosticsSnapshot(),
     val frameworkType: String = "",
     val frameworkVersion: String = "",

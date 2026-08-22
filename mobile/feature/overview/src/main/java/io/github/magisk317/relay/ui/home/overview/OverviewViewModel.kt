@@ -279,6 +279,7 @@ private suspend fun loadOverviewRuntimeUiState(
         val appVersion = appVersionDeferred.await()
         OverviewRuntimeUiState(
             runtimeConnected = ActivationDiagnosticsStore.isRuntimeConnected(),
+            mobileAutomationAllowed = io.github.magisk317.relay.android.prefs.PrefsReader.mobileAutomationAllowed(context),
             activationDiagnostics = ActivationDiagnosticsStore.snapshot(context),
             frameworkType = frameworkType,
             frameworkVersion = frameworkVersion,
