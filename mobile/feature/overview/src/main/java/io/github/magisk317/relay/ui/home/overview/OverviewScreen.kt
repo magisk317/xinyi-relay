@@ -123,6 +123,11 @@ fun OverviewScreen(
         isActive = isActive,
     )
     val effectiveAnalyticsEnabled = MagiskOtelBootstrap.isEffectivelyEnabled(analyticsEnabled.value)
+    val mobileAutomationAllowedPref = rememberPrefBoolean(
+        PrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+        PrefConst.DEFAULT_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+        isActive = isActive,
+    )
 
     val workMode by WorkModeResolver.mode.collectAsStateWithLifecycle()
     val isEnabled = workMode == WorkMode.Enhanced
@@ -214,6 +219,7 @@ fun OverviewScreen(
         lifecycleOwner,
         isActive,
         effectiveAnalyticsEnabled,
+        mobileAutomationAllowedPref.value,
         overviewUiState.chartWindow,
     ) {
         if (!isActive) {
@@ -279,7 +285,7 @@ fun OverviewScreen(
         frameworkVersion = runtimeUiState.frameworkVersion,
         hasRootAccess = runtimeUiState.hasRootAccess,
         runtimeConnected = runtimeUiState.runtimeConnected,
-        mobileAutomationAllowed = runtimeUiState.mobileAutomationAllowed,
+        mobileAutomationAllowed = mobileAutomationAllowedPref.value || runtimeUiState.mobileAutomationAllowed,
         activationDiagnostics = runtimeUiState.activationDiagnostics,
         showStatusDiagnostics = overviewUiState.showStatusDiagnostics,
         draggingCardId = overviewUiState.draggingCardId,
