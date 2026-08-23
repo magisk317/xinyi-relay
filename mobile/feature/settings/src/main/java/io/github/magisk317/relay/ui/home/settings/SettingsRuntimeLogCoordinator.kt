@@ -14,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import io.github.magisk317.smscode.runtime.common.diagnostics.LogBundleExporter
+import io.github.magisk317.xposed.diagnostics.DiagnosticExportMode
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsUpdate
@@ -45,7 +46,11 @@ internal fun rememberSettingsRuntimeLogActions(
         scope.launch {
             val result = withContext(Dispatchers.IO) {
                 RuntimeDiagnosticsBridge.ensureInstalled()
-                LogBundleExporter.buildLogBundle(context)
+                val debugLoggingEnabled = repository.getDiagnosticsSettings().verboseLogMode
+                LogBundleExporter.buildLogBundle(
+                    context = context,
+                    mode = DiagnosticExportMode.fromDebugLogging(debugLoggingEnabled),
+                )
             }
             val file = result.file
             if (file == null) {

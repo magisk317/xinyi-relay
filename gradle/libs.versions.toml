@@ -46,6 +46,7 @@ jose4j = "0.9.6"
 junit-platform = "6.1.3"
 junit5 = "6.1.3"
 koin = "4.2.2"
+kermit = "2.1.0"
 kotest = "6.2.4"
 kotlin = "2.4.10"
 kotlin-ktor = "3.5.2"
@@ -131,6 +132,7 @@ jakarta-mail = { module = "com.sun.mail:jakarta.mail", version.ref = "jakarta-ma
 jdom2 = { module = "org.jdom:jdom2", version.ref = "jdom2" }
 jose4j = { module = "org.bitbucket.b_c:jose4j", version.ref = "jose4j" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit5" }
+kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
 koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koin" }

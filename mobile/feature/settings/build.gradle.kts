@@ -34,6 +34,7 @@ dependencies {
     implementation(project(":policy"))
     implementation(project(":core"))
     implementation(project(":magisk-ui-kit"))
+    implementation(project(":magisk-xposed-kit:diagnostics"))
     implementation(project(":mobile:feature:common"))
     implementation(project(":smscode-core:runtime"))
     implementation(platform(libs.androidx.compose.bom))
