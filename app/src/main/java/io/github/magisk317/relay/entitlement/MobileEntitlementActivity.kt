@@ -19,7 +19,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -43,29 +42,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.ui.theme.AppTheme
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.koin.android.ext.android.inject
 
 class MobileEntitlementActivity : ComponentActivity() {
-    private val googleSignIn: MobileEntitlementGoogleSignIn by inject()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             AppTheme(themeMode = 0) {
                 MobileEntitlementScreen(
                     activity = this@MobileEntitlementActivity,
-                    googleSignIn = googleSignIn,
                     onBack = ::finish,
                 )
             }
@@ -77,13 +69,11 @@ class MobileEntitlementActivity : ComponentActivity() {
 @Composable
 private fun MobileEntitlementScreen(
     activity: Activity,
-    googleSignIn: MobileEntitlementGoogleSignIn,
     onBack: () -> Unit,
 ) {
     val context: Context = activity
     val scope = rememberCoroutineScope()
     var evaluation by remember { mutableStateOf<MobileEntitlementEvaluation?>(null) }
-    var challenge by remember { mutableStateOf<MobileEntitlementChallenge?>(null) }
     var busyAction by remember { mutableStateOf<ActivationAction?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
     var licenseCodeInput by remember { mutableStateOf("") }
@@ -122,11 +112,10 @@ private fun MobileEntitlementScreen(
             message = null
             runCatching {
                 withContext(Dispatchers.IO) {
-                    MobileEntitlementCoordinator.activateWithLicenseCode(context, trimmed)
+                    MobileEntitlementCoordinator.activateByToken(context, trimmed)
                 }
             }.onSuccess {
                 evaluation = it
-                savedLicenseCode = MobileEntitlementCoordinator.readSavedLicenseCode(context)
                 licenseCodeInput = ""
             }.onFailure { message = it.message ?: it.javaClass.simpleName }
             busyAction = null
@@ -139,63 +128,16 @@ private fun MobileEntitlementScreen(
         }.onFailure { message = it.message ?: it.javaClass.simpleName }
     }
 
-    fun createChallenge() {
+    fun openTelegramBot() {
         scope.launch {
             busyAction = ActivationAction.TELEGRAM
             message = null
             runCatching {
-                withContext(Dispatchers.IO) {
+                val challenge = withContext(Dispatchers.IO) {
                     MobileEntitlementCoordinator.createTelegramChallenge(context)
                 }
-            }.onSuccess {
-                challenge = it
-                openTelegram(it.botUrl)
+                openTelegram(challenge.botUrl)
             }.onFailure { message = it.message ?: it.javaClass.simpleName }
-            busyAction = null
-        }
-    }
-
-    fun activateWithGoogle() {
-        scope.launch {
-            busyAction = ActivationAction.GOOGLE
-            message = null
-            var googleBotUrl: String? = null
-            runCatching {
-                val currentChallenge = withContext(Dispatchers.IO) {
-                    MobileEntitlementCoordinator.createGoogleChallenge(context)
-                }
-                googleBotUrl = currentChallenge.botUrl
-                val idToken = googleSignIn.getIdToken(
-                    activity = activity,
-                    serverClientId = BuildConfig.MOBILE_ENTITLEMENT_GOOGLE_WEB_CLIENT_ID,
-                    nonce = currentChallenge.nonce,
-                )
-                withContext(Dispatchers.IO) {
-                    MobileEntitlementCoordinator.activateWithGoogleIdToken(
-                        context = context,
-                        challengeId = currentChallenge.id,
-                        idToken = idToken,
-                    )
-                }
-            }.onSuccess { state ->
-                if (state.status == MobileEntitlementActivationStatus.APPROVED) {
-                    evaluation = state.evaluation
-                    challenge = null
-                } else {
-                    val botUrl = googleBotUrl ?: state.botUrl
-                    if (botUrl.isNullOrBlank()) {
-                        message = context.getString(R.string.mobile_entitlement_telegram_required)
-                    } else {
-                        challenge = MobileEntitlementChallenge(
-                            id = state.challengeId,
-                            expiresAt = state.expiresAt ?: 0L,
-                            botUrl = botUrl,
-                        )
-                        openTelegram(botUrl)
-                    }
-                }
-            }
-                .onFailure { message = it.message ?: it.javaClass.simpleName }
             busyAction = null
         }
     }
@@ -204,54 +146,7 @@ private fun MobileEntitlementScreen(
         savedLicenseCode = withContext(Dispatchers.IO) {
             MobileEntitlementCoordinator.readSavedLicenseCode(context)
         }
-        val pendingChallengeId = withContext(Dispatchers.IO) {
-            MobileEntitlementCoordinator.readPendingChallenge(context)
-        }
-        if (!pendingChallengeId.isNullOrBlank()) {
-            challenge = MobileEntitlementChallenge(
-                id = pendingChallengeId,
-                expiresAt = 0L,
-                botUrl = "",
-            )
-        }
         refreshStatus()
-    }
-
-    LaunchedEffect(challenge?.id) {
-        val activeChallenge = challenge ?: return@LaunchedEffect
-        while (isActive) {
-            delay(3_000)
-            val state = runCatching {
-                withContext(Dispatchers.IO) {
-                    MobileEntitlementCoordinator.pollTelegramChallenge(context, activeChallenge.id)
-                }
-            }.getOrNull()
-            if (state == null) {
-                message = context.getString(R.string.mobile_entitlement_poll_failed)
-                continue
-            }
-            when (state.status) {
-                MobileEntitlementActivationStatus.PENDING -> Unit
-                MobileEntitlementActivationStatus.APPROVED -> {
-                    evaluation = state.evaluation
-                    MobileEntitlementCoordinator.clearPendingChallenge(context)
-                    challenge = null
-                    break
-                }
-                MobileEntitlementActivationStatus.EXPIRED -> {
-                    message = context.getString(R.string.mobile_entitlement_challenge_expired)
-                    MobileEntitlementCoordinator.clearPendingChallenge(context)
-                    challenge = null
-                    break
-                }
-                MobileEntitlementActivationStatus.CLAIMED -> {
-                    message = "授权请求已领取，请重新发起激活。"
-                    MobileEntitlementCoordinator.clearPendingChallenge(context)
-                    challenge = null
-                    break
-                }
-            }
-        }
     }
 
     Scaffold(
@@ -364,8 +259,8 @@ private fun MobileEntitlementScreen(
                 currentEvaluation.status != MobileEntitlementStatus.ACTIVE ||
                 currentEvaluation.renewDue
             if (showActivationActions) {
-                Button(
-                    onClick = ::createChallenge,
+                OutlinedButton(
+                    onClick = ::openTelegramBot,
                     enabled = busyAction == null,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -373,38 +268,6 @@ private fun MobileEntitlementScreen(
                         CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp), strokeWidth = 2.dp)
                     }
                     Text(stringResource(R.string.mobile_entitlement_activate_telegram))
-                }
-                if (BuildConfig.MOBILE_ENTITLEMENT_CHANNEL == "play") {
-                    if (BuildConfig.MOBILE_ENTITLEMENT_GOOGLE_WEB_CLIENT_ID.isBlank()) {
-                        Text(
-                            text = stringResource(R.string.mobile_entitlement_play_flow),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    } else {
-                        Button(
-                            onClick = ::activateWithGoogle,
-                            enabled = busyAction == null,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            if (busyAction == ActivationAction.GOOGLE) {
-                                CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp), strokeWidth = 2.dp)
-                            }
-                            Text(stringResource(R.string.mobile_entitlement_activate_google))
-                        }
-                    }
-                }
-            }
-            challenge?.let { pendingChallenge ->
-                Text(stringResource(R.string.mobile_entitlement_pending))
-                if (pendingChallenge.botUrl.isNotBlank()) {
-                    OutlinedButton(
-                        onClick = { openTelegram(pendingChallenge.botUrl) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.mobile_entitlement_open_telegram))
-                    }
                 }
             }
             OutlinedButton(
@@ -431,7 +294,6 @@ private enum class ActivationAction {
     REFRESH,
     LICENSE_CODE,
     TELEGRAM,
-    GOOGLE,
 }
 
 private fun formatEpoch(epochSeconds: Long): String =

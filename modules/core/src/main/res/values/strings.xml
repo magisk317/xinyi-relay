@@ -831,7 +831,7 @@
     <string name="mobile_entitlement_expires">Expires: %1$s</string>
     <string name="mobile_entitlement_renew_due">Activation status can be updated.</string>
     <string name="mobile_entitlement_refresh">Refresh status</string>
-    <string name="mobile_entitlement_activate_telegram">Activate with Telegram</string>
+    <string name="mobile_entitlement_activate_telegram">Open Telegram</string>
     <string name="mobile_entitlement_activate_google">Activate with Google</string>
     <string name="mobile_entitlement_telegram_required">Google activation also requires Telegram channel membership.</string>
     <string name="mobile_entitlement_open_telegram">Open Telegram</string>
@@ -842,10 +842,10 @@
     <string name="mobile_entitlement_challenge_expired">The activation request expired.</string>
     <string name="mobile_entitlement_error">Request failed: %1$s</string>
     <string name="mobile_entitlement_license_code_label">License Code</string>
-    <string name="mobile_entitlement_license_code_hint">Enter 32-character license code</string>
+    <string name="mobile_entitlement_license_code_hint">Enter 32-character activation code</string>
     <string name="mobile_entitlement_license_code_confirm">Activate</string>
-    <string name="mobile_entitlement_license_code_get_hint">Send /start to the official Telegram bot to get your 32-character license code</string>
-    <string name="mobile_entitlement_license_code_invalid">Please enter a valid 32-character license code</string>
+    <string name="mobile_entitlement_license_code_get_hint">Send /start to the official Telegram bot to get your 32-character activation code</string>
+    <string name="mobile_entitlement_license_code_invalid">Please enter a valid 32-character activation code</string>
     <string name="mobile_entitlement_or">Or</string>
     <string name="pref_msg_type_sms_code_title">Verification code SMS</string>
     <string name="pref_msg_type_sms_code_summary">Control whether verification code SMS enters the main pipeline</string>
