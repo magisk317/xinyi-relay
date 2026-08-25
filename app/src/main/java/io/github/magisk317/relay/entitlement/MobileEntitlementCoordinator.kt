@@ -43,6 +43,12 @@ object MobileEntitlementCoordinator {
     ): MobileEntitlementEvaluation =
         PrivateMobileEntitlementCoordinator.activateWithLicenseCode(context, licenseCode)
 
+    suspend fun activateByToken(
+        context: Context,
+        token: String,
+    ): MobileEntitlementEvaluation =
+        PrivateMobileEntitlementCoordinator.activateByToken(context, token)
+
     fun readSavedLicenseCode(context: Context): String? =
         PrivateMobileEntitlementCoordinator.readSavedLicenseCode(context)
 
