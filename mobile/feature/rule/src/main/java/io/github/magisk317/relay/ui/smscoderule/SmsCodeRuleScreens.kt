@@ -60,7 +60,7 @@ import io.github.magisk317.relay.android.sms.SmsCodeUtils as RelaySmsCodeUtils
 import io.github.magisk317.relay.engine.service.AppConfigRepository
 import io.github.magisk317.smscode.rule.model.BuiltinSmsCodeRuleSpec
 import io.github.magisk317.smscode.rule.model.BuiltinSmsCodeRules
-import io.github.magisk317.smscode.runtime.common.rules.OfficialSmsCodeRule
+import io.github.magisk317.smscode.rule.catalog.OfficialSmsCodeRule
 import io.github.magisk317.smscode.runtime.common.rules.SmsCodeRuleCatalogSnapshot
 import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import io.github.magisk317.uikit.preference.UrlSourceSettingsScreen
