@@ -53,7 +53,6 @@ sealed class SettingsEvent {
     data object NavigateToRules : SettingsEvent()
     data object NavigateToRecords : SettingsEvent()
     data object StartPlayUpdate : SettingsEvent()
-    data object StartGithubUpdateCheck : SettingsEvent()
     data class ShowSnackbar(val message: String) : SettingsEvent()
 }
 
@@ -112,8 +111,8 @@ internal class SettingsBackupEventQueue {
     }
 }
 
-fun resolvePreferredUpdateEvent(installedFromPlay: Boolean): SettingsEvent =
-    if (installedFromPlay) SettingsEvent.StartPlayUpdate else SettingsEvent.StartGithubUpdateCheck
+fun resolvePreferredUpdateEvent(isPlayFlavor: Boolean): SettingsEvent? =
+    SettingsEvent.StartPlayUpdate.takeIf { isPlayFlavor }
 
 class SettingsViewModel(
     application: Application,
@@ -333,8 +332,8 @@ class SettingsViewModel(
 
     fun requestPreferredUpdate() {
         viewModelScope.launch {
-            val event = resolvePreferredUpdateEvent(PackageUtils.isInstalledFromPlay(getApplication()))
-            _eventsFlow.tryEmit(event)
+            val event = resolvePreferredUpdateEvent(BuildConfig.HAS_BILLING)
+            event?.let(_eventsFlow::tryEmit)
         }
     }
 

@@ -6,12 +6,8 @@ import org.junit.jupiter.api.Test
 class SettingsViewModelPolicyTest {
 
     @Test
-    fun resolvePreferredUpdateEvent_returnsPlayForPlayInstall() {
-        assertEquals(SettingsEvent.StartPlayUpdate, resolvePreferredUpdateEvent(installedFromPlay = true))
-    }
-
-    @Test
-    fun resolvePreferredUpdateEvent_returnsGithubForNonPlayInstall() {
-        assertEquals(SettingsEvent.StartGithubUpdateCheck, resolvePreferredUpdateEvent(installedFromPlay = false))
+    fun resolvePreferredUpdateEvent_usesPlayOnlyForPlayFlavor() {
+        assertEquals(SettingsEvent.StartPlayUpdate, resolvePreferredUpdateEvent(isPlayFlavor = true))
+        assertEquals(null, resolvePreferredUpdateEvent(isPlayFlavor = false))
     }
 }

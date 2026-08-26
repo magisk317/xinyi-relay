@@ -440,7 +440,6 @@ fun MainScreen(
                         .then(benchmarkModifier(pageActive, BENCHMARK_TAB_OVERVIEW)),
                 ) {
                     OverviewScreen(
-                        onCheckUpdate = { settingsViewModel.requestPreferredUpdate() },
                         isActive = pageActive,
                         bottomContentPadding = contentBottomPadding,
                     )

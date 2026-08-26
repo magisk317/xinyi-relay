@@ -91,7 +91,6 @@ internal data class HomeCardSpec(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OverviewScreen(
-    onCheckUpdate: () -> Unit,
     isActive: Boolean = true,
     bottomContentPadding: androidx.compose.ui.unit.Dp = 0.dp,
 ) {
@@ -306,7 +305,6 @@ fun OverviewScreen(
         onChartWindowChange = { next ->
             viewModel.setChartWindow(next)
         },
-        onCheckUpdate = onCheckUpdate,
         onShowDonate = { showDonateDialog = true },
         onBatteryOptimizationClick = {
             runCatching {
@@ -376,7 +374,6 @@ private fun OverviewContent(
     onDragStateChange: (String?, Float) -> Unit,
     onChartTypeChange: (HomeChartType) -> Unit,
     onChartWindowChange: (HomeChartWindow) -> Unit,
-    onCheckUpdate: () -> Unit,
     onShowDonate: () -> Unit,
     onBatteryOptimizationClick: () -> Unit,
     onStatusCardTap: () -> Unit,
@@ -436,8 +433,7 @@ private fun OverviewContent(
                     onDragStateChange = onDragStateChange,
                     onChartTypeChange = onChartTypeChange,
                     onChartWindowChange = onChartWindowChange,
-                    onCheckUpdate = onCheckUpdate,
-                    onShowDonate = onShowDonate,
+                                onShowDonate = onShowDonate,
                     onBatteryOptimizationClick = onBatteryOptimizationClick,
                     onStatusCardTap = onStatusCardTap,
                 )
@@ -509,7 +505,6 @@ private fun OverviewCardItem(
     onDragStateChange: (String?, Float) -> Unit,
     onChartTypeChange: (HomeChartType) -> Unit,
     onChartWindowChange: (HomeChartWindow) -> Unit,
-    onCheckUpdate: () -> Unit,
     onShowDonate: () -> Unit,
     onBatteryOptimizationClick: () -> Unit,
     onStatusCardTap: () -> Unit,
@@ -620,11 +615,6 @@ private fun OverviewCardItem(
             CARD_DEVICE_INFO -> io.github.magisk317.uikit.surface.OverviewDeviceInfoCard()
             CARD_LINKS -> {
                 io.github.magisk317.uikit.surface.OverviewLinksCard(
-                    onCheckUpdate = if (editMode) {
-                        {}
-                    } else {
-                        onCheckUpdate
-                    },
                     onDonate = if (editMode) {
                         {}
                     } else {
