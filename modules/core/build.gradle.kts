@@ -5,7 +5,6 @@ plugins {
     id(libs.plugins.kotlin.parcelize.get().pluginId)
 }
 
-val minSdkInt = libs.versions.minSdk.get().toInt()
 val allowConflictBypass = findProperty("allowConflictBypass")
     ?.toString()
     ?.toBooleanStrictOrNull()
@@ -19,7 +18,6 @@ android {
     }.standardOutput.asText.get().trim()
 
     defaultConfig {
-        minSdk = minSdkInt
         buildConfigField("int", "VERSION_CODE", libs.versions.versionCode.get())
         buildConfigField("String", "VERSION_NAME", "\"${libs.versions.versionName.get()}\"")
         buildConfigField("String", "COMMIT_HASH", "\"$gitCommitHash\"")
@@ -41,19 +39,13 @@ android {
             java.directories.add("src/xposed/java")
             kotlin.directories.add("src/xposed/java")
         }
-        getByName("githubNoE2ee") {
-            setRoot("src/github")
-            java.directories.add("src/xposed/java")
-            kotlin.directories.add("src/xposed/java")
-        }
-        getByName("githubWithE2ee") {
-            setRoot("src/github")
-            java.directories.add("src/xposed/java")
-            kotlin.directories.add("src/xposed/java")
-        }
-        getByName("fdroid") {
-            java.directories.add("src/xposed/java")
-            kotlin.directories.add("src/xposed/java")
+        listOf("githubNoE2ee", "githubWithE2ee", "fdroid").forEach { flavor ->
+            getByName(flavor) {
+                java.directories.add("src/nonPlay/java")
+                kotlin.directories.add("src/nonPlay/java")
+                java.directories.add("src/xposed/java")
+                kotlin.directories.add("src/xposed/java")
+            }
         }
     }
 

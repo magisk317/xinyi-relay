@@ -9,7 +9,6 @@ android {
     namespace = "io.github.magisk317.relay.sender"
 
     defaultConfig {
-        minSdk = libs.versions.minSdk.get().toInt()
         consumerProguardFiles("consumer-rules.pro")
     }
 
@@ -28,8 +27,11 @@ android {
         listOf("fdroid", "githubNoE2ee", "githubWithE2ee").forEach { flavor ->
             getByName(flavor).kotlin.directories.add("src/nonPlaySms/java")
         }
-        listOf("githubNoE2ee", "play").forEach { flavor ->
+        listOf("fdroid", "githubNoE2ee", "play").forEach { flavor ->
             getByName(flavor).kotlin.directories.add("src/matrixE2eeStub/java")
+        }
+        listOf("fdroid", "githubNoE2ee").forEach { flavor ->
+            getByName(flavor).kotlin.directories.add("src/noE2ee/java")
         }
     }
 }

@@ -6,10 +6,6 @@ plugins {
 android {
     namespace = "io.github.magisk317.relay.matrix.e2ee"
 
-    defaultConfig {
-        minSdk = libs.versions.minSdk.get().toInt()
-    }
-
     buildFeatures {
         buildConfig = true
     }

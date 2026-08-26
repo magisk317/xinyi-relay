@@ -6,10 +6,6 @@ plugins {
 android {
     namespace = "io.github.magisk317.relay.net"
 
-    defaultConfig {
-        minSdk = libs.versions.minSdk.get().toInt()
-    }
-
     buildFeatures {
         buildConfig = true
     }

@@ -4,14 +4,8 @@ plugins {
     id("relay.android.common")
 }
 
-val minSdkInt = libs.versions.minSdk.get().toInt()
-
 android {
     namespace = "io.github.magisk317.relay.mobilefeature.common"
-
-    defaultConfig {
-        minSdk = minSdkInt
-    }
 
     buildFeatures {
         compose = true
@@ -31,13 +25,8 @@ dependencies {
     implementation(project(":relay:engine:api"))
     implementation(project(":relay:contract"))
     implementation(project(":magisk-ui-kit"))
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.material.icons.core)
     implementation(libs.androidx.material.icons.extended)
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
     implementation(libs.kotlinx.coroutines.core)

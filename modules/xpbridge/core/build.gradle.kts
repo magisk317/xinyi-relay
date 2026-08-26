@@ -4,14 +4,8 @@ plugins {
     id("relay.android.common")
 }
 
-val minSdkInt = libs.versions.minSdk.get().toInt()
-
 android {
     namespace = "io.github.magisk317.relay.xpbridgecore"
-
-    defaultConfig {
-        minSdk = minSdkInt
-    }
 
     buildFeatures {
         buildConfig = true

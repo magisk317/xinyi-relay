@@ -10,9 +10,6 @@ android {
         buildConfig = true
     }
 
-    defaultConfig {
-        minSdk = libs.versions.minSdk.get().toInt()
-    }
 }
 
 dependencies {

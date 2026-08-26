@@ -35,13 +35,13 @@ class NoE2eeVariantBehaviorTest {
     }
 
     @Test
-    fun `GithubFeatureLoader isAvailable returns false`() {
-        assertFalse(GithubFeatureLoader.isAvailable)
+    fun `NoE2eeFeatureLoader isAvailable returns false`() {
+        assertFalse(NoE2eeFeatureLoader.isAvailable)
     }
 
     @Test
-    fun `GithubFeatureLoader status is NOT_APPLICABLE`() {
-        assertEquals(E2eeModuleStatus.NOT_APPLICABLE, GithubFeatureLoader.status)
+    fun `NoE2eeFeatureLoader status is NOT_APPLICABLE`() {
+        assertEquals(E2eeModuleStatus.NOT_APPLICABLE, NoE2eeFeatureLoader.status)
     }
 
     @Test

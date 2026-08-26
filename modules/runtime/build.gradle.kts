@@ -21,7 +21,6 @@ android {
     }
 
     defaultConfig {
-        minSdk = libs.versions.minSdk.get().toInt()
         buildConfigField("String", "LOG_TAG", "\"relay\"")
         buildConfigField("String", "APPLICATION_ID", "\"io.github.magisk317.xinyi.relay\"")
         consumerProguardFiles("consumer-rules.pro")

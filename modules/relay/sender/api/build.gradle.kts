@@ -8,10 +8,6 @@ plugins {
 android {
     namespace = "io.github.magisk317.relay.sender.api"
 
-    defaultConfig {
-        minSdk = libs.versions.minSdk.get().toInt()
-    }
-
     buildFeatures {
         buildConfig = true
     }
