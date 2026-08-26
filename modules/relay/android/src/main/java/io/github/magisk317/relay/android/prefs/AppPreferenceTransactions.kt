@@ -2,12 +2,12 @@ package io.github.magisk317.relay.android.prefs
 
 import android.content.Context
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
-import io.github.magisk317.smscode.runtime.common.prefs.AtomicPreferencePersistence
+import io.github.magisk317.smscode.runtime.contract.prefs.AtomicPreferencePersistence
 import io.github.magisk317.smscode.runtime.common.prefs.PreferenceCommitCoordinator
-import io.github.magisk317.smscode.runtime.common.prefs.PreferenceCommitResult
-import io.github.magisk317.smscode.runtime.common.prefs.PreferenceEditScope
-import io.github.magisk317.smscode.runtime.common.prefs.PreferencePostCommitHooks
-import io.github.magisk317.smscode.runtime.common.prefs.PreferenceSpec
+import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceCommitResult
+import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceEditScope
+import io.github.magisk317.smscode.runtime.contract.prefs.PreferencePostCommitHooks
+import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceSpec
 
 /** Parent-owned keys and defaults for the high-value auto-input settings transaction. */
 object HookPreferenceSpecs {

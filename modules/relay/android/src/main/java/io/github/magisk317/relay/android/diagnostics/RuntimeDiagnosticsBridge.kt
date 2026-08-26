@@ -2,8 +2,8 @@ package io.github.magisk317.relay.android.diagnostics
 
 import android.content.Context
 import io.github.magisk317.relay.android.BuildConfig
-import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsSnapshot
-import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationStatusInputs
+import io.github.magisk317.smscode.runtime.contract.diagnostics.ActivationDiagnosticsSnapshot
+import io.github.magisk317.smscode.runtime.contract.diagnostics.ActivationStatusInputs
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeDiagnosticsConfig
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeDiagnosticsInstaller
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeDiagnosticsPreferences

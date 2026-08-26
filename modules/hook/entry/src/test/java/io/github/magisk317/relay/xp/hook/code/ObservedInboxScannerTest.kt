@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.xp.hook.code
 
 import io.github.magisk317.relay.testing.strictHookContexts
-import io.github.magisk317.smscode.verification.ObservedInboxScanner
+import io.github.magisk317.smscode.runtime.verification.ObservedInboxScanner
 import io.github.magisk317.smscode.verification.SmsInboxSeenTracker
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue

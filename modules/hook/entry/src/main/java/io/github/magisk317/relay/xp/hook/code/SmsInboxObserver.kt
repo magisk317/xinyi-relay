@@ -10,9 +10,9 @@ import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.XpSmsCodeParser
 import io.github.magisk317.relay.xpbridge.XpStringEscaper
 import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
-import io.github.magisk317.smscode.verification.ObservedInboxScanner
+import io.github.magisk317.smscode.runtime.verification.ObservedInboxScanner
 import io.github.magisk317.smscode.verification.SmsInboxSeenTracker
-import io.github.magisk317.smscode.verification.SmsRoleStateResolver
+import io.github.magisk317.smscode.runtime.verification.SmsRoleStateResolver
 import io.github.magisk317.smscode.xposed.utils.XLog
 import io.github.magisk317.xposed.logging.MagiskOtel
 import java.util.concurrent.Executors

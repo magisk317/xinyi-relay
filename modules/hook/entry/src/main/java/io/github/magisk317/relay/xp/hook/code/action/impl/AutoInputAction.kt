@@ -9,8 +9,8 @@ import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 import io.github.magisk317.relay.xp.hook.code.helper.InputHelper
-import io.github.magisk317.smscode.verification.AutoInputActionHelper
-import io.github.magisk317.smscode.verification.AutoInputBlockedPackageHelper
+import io.github.magisk317.smscode.runtime.verification.AutoInputActionHelper
+import io.github.magisk317.smscode.runtime.verification.AutoInputBlockedPackageHelper
 import io.github.magisk317.smscode.xposed.utils.XLog
 import kotlinx.coroutines.runBlocking
 

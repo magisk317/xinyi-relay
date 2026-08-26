@@ -9,8 +9,8 @@ import io.github.magisk317.relay.xp.hook.code.CodeNotificationBroadcastContract
 import io.github.magisk317.relay.xp.hook.code.CopyCodeReceiver
 import io.github.magisk317.relay.xpbridge.XpNotificationBridge
 import io.github.magisk317.relay.xpbridge.XpPrefs
-import io.github.magisk317.smscode.verification.CodeNotificationDeliveryHelper
-import io.github.magisk317.smscode.verification.CodeNotificationReceiverHandler
+import io.github.magisk317.smscode.runtime.verification.CodeNotificationDeliveryHelper
+import io.github.magisk317.smscode.runtime.verification.CodeNotificationReceiverHandler
 
 class CodeNotificationReceiver : BroadcastReceiver() {
 

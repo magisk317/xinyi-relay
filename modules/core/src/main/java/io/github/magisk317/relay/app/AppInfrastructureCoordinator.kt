@@ -11,8 +11,8 @@ import io.github.magisk317.relay.android.platform.sender.SenderLogBridge
 import io.github.magisk317.relay.android.platform.sender.SenderRuntimeBridge
 import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.di.RuntimeDependenciesImpl
-import io.github.magisk317.smscode.verification.VerificationLogSink
-import io.github.magisk317.smscode.verification.VerificationLogSinkHolder
+import io.github.magisk317.smscode.runtime.verification.VerificationLogSink
+import io.github.magisk317.smscode.runtime.verification.VerificationLogSinkHolder
 import org.koin.core.context.GlobalContext
 import timber.log.Timber
 

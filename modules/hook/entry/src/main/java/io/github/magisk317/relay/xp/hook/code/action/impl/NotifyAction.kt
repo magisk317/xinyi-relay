@@ -10,12 +10,12 @@ import io.github.magisk317.relay.hookentry.R
 import io.github.magisk317.relay.xp.hook.code.CodeNotificationBroadcastContract
 import io.github.magisk317.relay.xp.hook.code.CopyCodeReceiver
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
-import io.github.magisk317.smscode.verification.CodeNotificationPayload
+import io.github.magisk317.smscode.runtime.verification.CodeNotificationPayload
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpNotificationBridge
 import io.github.magisk317.relay.xpbridge.XpPrefs
-import io.github.magisk317.smscode.verification.CodeNotificationDeliveryHelper
-import io.github.magisk317.smscode.verification.NotifyActionHelper
+import io.github.magisk317.smscode.runtime.verification.CodeNotificationDeliveryHelper
+import io.github.magisk317.smscode.runtime.verification.NotifyActionHelper
 import io.github.magisk317.smscode.xposed.utils.XLog
 
 /**

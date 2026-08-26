@@ -6,7 +6,7 @@ import io.mockk.mockk
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
 import io.github.magisk317.smscode.verification.BlacklistMatchResult
-import io.github.magisk317.smscode.verification.SmsHandlerDispatchDecision
+import io.github.magisk317.smscode.runtime.verification.SmsHandlerDispatchDecision
 import io.github.magisk317.smscode.xposed.utils.XLog
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals

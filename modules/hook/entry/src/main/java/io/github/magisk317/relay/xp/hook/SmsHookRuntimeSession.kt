@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.xp.hook
 
 import android.content.Context
-import io.github.magisk317.smscode.verification.VerificationRuntimeContext
+import io.github.magisk317.smscode.runtime.verification.VerificationRuntimeContext
 import io.github.magisk317.smscode.xposed.utils.XLog
 
 internal data class SmsHookRuntimeContext(

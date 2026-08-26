@@ -8,7 +8,7 @@ import io.github.magisk317.relay.hookentry.BuildConfig
 import io.github.magisk317.relay.hookentry.R
 import io.github.magisk317.relay.xpbridge.XpNotificationBridge
 import io.github.magisk317.relay.xp.hook.code.helper.InputHelper
-import io.github.magisk317.smscode.verification.ConflictNotificationHelper
+import io.github.magisk317.smscode.runtime.verification.ConflictNotificationHelper
 import io.github.magisk317.smscode.verification.RecentEventIdTracker
 import io.github.magisk317.smscode.xposed.utils.XLog
 

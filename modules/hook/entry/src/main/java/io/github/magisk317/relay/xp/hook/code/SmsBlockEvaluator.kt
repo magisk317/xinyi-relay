@@ -7,8 +7,8 @@ import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.XpSmsCodeParser
 import io.github.magisk317.relay.xpbridge.XpSmsBlacklist
 import io.github.magisk317.smscode.verification.BlacklistMatchResult
-import io.github.magisk317.smscode.verification.SmsHandlerDispatchDecision
-import io.github.magisk317.smscode.verification.SmsBlockEvaluator as SharedSmsBlockEvaluator
+import io.github.magisk317.smscode.runtime.verification.SmsHandlerDispatchDecision
+import io.github.magisk317.smscode.runtime.verification.SmsBlockEvaluator as SharedSmsBlockEvaluator
 
 internal object SmsBlockEvaluator {
     const val BLOCK_REASON_BLACKLIST = "blacklist_block"

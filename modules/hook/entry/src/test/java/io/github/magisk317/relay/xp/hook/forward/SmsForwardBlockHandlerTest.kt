@@ -10,7 +10,7 @@ import io.github.magisk317.relay.testing.relaxedIntent
 import io.github.magisk317.relay.xp.hook.code.SmsBlockEvaluator
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.smscode.verification.BlacklistMatchResult
-import io.github.magisk317.smscode.verification.SmsHandlerDispatchDecision
+import io.github.magisk317.smscode.runtime.verification.SmsHandlerDispatchDecision
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse

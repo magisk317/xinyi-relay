@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.xp.hook.code
 
-import io.github.magisk317.smscode.verification.SmsCodePostParseCoordinator
+import io.github.magisk317.smscode.runtime.verification.SmsCodePostParseCoordinator
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -17,6 +17,7 @@ class SmsCodePostParseCoordinatorTest {
             notificationRetentionMs = 5_000L,
             autoInputEnabled = true,
             autoInputDelayMs = 1_500L,
+            inputIntervalMs = 0L,
             copyToClipboardEnabled = true,
             showToast = true,
             recordSmsEnabled = true,
@@ -48,6 +49,7 @@ class SmsCodePostParseCoordinatorTest {
             notificationRetentionMs = 9_000L,
             autoInputEnabled = false,
             autoInputDelayMs = 2_000L,
+            inputIntervalMs = 0L,
             copyToClipboardEnabled = false,
             showToast = false,
             recordSmsEnabled = false,
@@ -78,6 +80,7 @@ class SmsCodePostParseCoordinatorTest {
             notificationRetentionMs = 5_000L,
             autoInputEnabled = true,
             autoInputDelayMs = 1_000L,
+            inputIntervalMs = 0L,
             copyToClipboardEnabled = true,
             showToast = true,
             recordSmsEnabled = true,

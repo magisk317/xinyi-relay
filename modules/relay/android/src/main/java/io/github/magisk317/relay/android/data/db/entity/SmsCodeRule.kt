@@ -2,7 +2,7 @@ package io.github.magisk317.relay.android.data.db.entity
 
 import android.os.Parcelable
 import androidx.room.*
-import io.github.magisk317.smscode.runtime.common.backup.BackupConst
+import io.github.magisk317.smscode.runtime.contract.backup.BackupConst
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.SerialName
 import io.github.magisk317.relay.engine.model.SmsCodeRuleData

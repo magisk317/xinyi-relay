@@ -9,8 +9,8 @@ import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.XpSmsBlacklist
 import io.github.magisk317.smscode.verification.BlacklistMatchResult
-import io.github.magisk317.smscode.verification.SmsDispatchIntentProcessor as SharedSmsDispatchIntentProcessor
-import io.github.magisk317.smscode.verification.SmsHandlerDispatchDecision
+import io.github.magisk317.smscode.runtime.verification.SmsDispatchIntentProcessor as SharedSmsDispatchIntentProcessor
+import io.github.magisk317.smscode.runtime.verification.SmsHandlerDispatchDecision
 import io.github.magisk317.smscode.xposed.utils.XLog
 
 internal class SmsDispatchIntentProcessor(

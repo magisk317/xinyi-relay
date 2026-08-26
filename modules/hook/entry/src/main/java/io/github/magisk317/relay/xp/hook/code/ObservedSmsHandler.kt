@@ -8,8 +8,8 @@ import io.github.magisk317.relay.xpbridge.XpRecordFacade
 import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.smscode.verification.ObservedInboxScanRecord
-import io.github.magisk317.smscode.verification.ObservedSmsHandler as SharedObservedSmsHandler
-import io.github.magisk317.smscode.verification.SmsCodePostParseCoordinator
+import io.github.magisk317.smscode.runtime.verification.ObservedSmsHandler as SharedObservedSmsHandler
+import io.github.magisk317.smscode.runtime.verification.SmsCodePostParseCoordinator
 import io.github.magisk317.smscode.verification.SmsInboxObserverDecision
 import kotlinx.coroutines.runBlocking
 import java.util.concurrent.ScheduledExecutorService

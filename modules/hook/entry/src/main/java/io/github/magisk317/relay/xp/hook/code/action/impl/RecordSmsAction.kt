@@ -5,8 +5,8 @@ import android.os.Bundle
 import io.github.magisk317.relay.xpbridge.XpRecordFacade
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
-import io.github.magisk317.smscode.verification.RecordSmsActionHelper
-import io.github.magisk317.smscode.verification.RecordSmsInsertResultHelper
+import io.github.magisk317.smscode.runtime.verification.RecordSmsActionHelper
+import io.github.magisk317.smscode.runtime.verification.RecordSmsInsertResultHelper
 import kotlinx.coroutines.runBlocking
 
 /**

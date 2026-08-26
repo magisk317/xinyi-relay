@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.ui.home.overview
 
-import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsSnapshot
+import io.github.magisk317.smscode.runtime.contract.diagnostics.ActivationDiagnosticsSnapshot
 
 internal const val CARD_STATUS = "status"
 internal const val CARD_CHART = "chart"

@@ -7,7 +7,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import io.github.magisk317.smscode.runtime.common.sms.SmsIntentDecoder
 import io.github.magisk317.relay.engine.model.ReadRecordData
-import io.github.magisk317.smscode.runtime.common.record.SmsMsgRecord
+import io.github.magisk317.smscode.runtime.contract.record.SmsMsgRecord
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

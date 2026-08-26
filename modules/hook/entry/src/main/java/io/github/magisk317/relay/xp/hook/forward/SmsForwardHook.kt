@@ -22,7 +22,7 @@ import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
 import io.github.magisk317.smscode.rule.utils.RecentEventDeduplicator
 import io.github.magisk317.smscode.rule.utils.SmsForwardDedupKeyFactory
 import io.github.magisk317.smscode.rule.utils.SmsForwardDedupSpec
-import io.github.magisk317.smscode.verification.SmsIntentHookSupport
+import io.github.magisk317.smscode.runtime.verification.SmsIntentHookSupport
 import io.github.magisk317.xposed.HookHelpers
 import io.github.magisk317.xposed.BaseHook
 import io.github.magisk317.xposed.HookEnv

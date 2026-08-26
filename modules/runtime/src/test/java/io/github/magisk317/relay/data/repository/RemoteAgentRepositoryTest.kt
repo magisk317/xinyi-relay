@@ -24,8 +24,8 @@ import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
 import io.github.magisk317.relay.data.remote.RemoteAgentApi
 import io.github.magisk317.relay.data.remote.DeviceTokenExpiredException
 import io.github.magisk317.relay.testing.relaxedContext
-import io.github.magisk317.smscode.runtime.common.prefs.PreferenceChange
-import io.github.magisk317.smscode.runtime.common.prefs.PreferenceChangeSet
+import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceChange
+import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceChangeSet
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every

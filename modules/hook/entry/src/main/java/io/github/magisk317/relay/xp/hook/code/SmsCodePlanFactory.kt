@@ -2,8 +2,8 @@ package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
 import io.github.magisk317.relay.xpbridge.XpPrefs
-import io.github.magisk317.smscode.verification.SmsCodePlanFactory as SharedSmsCodePlanFactory
-import io.github.magisk317.smscode.verification.SmsCodePostParseCoordinator
+import io.github.magisk317.smscode.runtime.verification.SmsCodePlanFactory as SharedSmsCodePlanFactory
+import io.github.magisk317.smscode.runtime.verification.SmsCodePostParseCoordinator
 import io.github.magisk317.smscode.verification.VerificationPrefs
 
 internal object SmsCodePlanFactory {

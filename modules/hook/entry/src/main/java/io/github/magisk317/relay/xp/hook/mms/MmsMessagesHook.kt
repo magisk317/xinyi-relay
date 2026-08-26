@@ -12,7 +12,7 @@ import io.github.magisk317.relay.xp.hook.code.action.impl.OperateSmsAction
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpHookDiagnostics
 import io.github.magisk317.relay.xpbridge.XpPrefs
-import io.github.magisk317.smscode.verification.SmsIntentHookSupport
+import io.github.magisk317.smscode.runtime.verification.SmsIntentHookSupport
 import io.github.magisk317.smscode.xposed.hook.telephony.MmsEntryPointHookInstaller
 import io.github.magisk317.xposed.BaseHook
 import io.github.magisk317.xposed.LoadParam

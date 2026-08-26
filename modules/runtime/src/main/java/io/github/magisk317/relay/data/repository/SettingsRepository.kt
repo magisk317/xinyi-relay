@@ -19,9 +19,9 @@ import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
 import io.github.magisk317.relay.android.prefs.HookPreferenceSpecs
 import io.github.magisk317.relay.engine.schedule.ForwardSilentPeriodEvaluator
 import io.github.magisk317.smscode.rule.constant.SmsCodeConst
-import io.github.magisk317.smscode.runtime.common.prefs.AtomicPreferencePersistence
-import io.github.magisk317.smscode.runtime.common.prefs.PreferenceCommitResult
-import io.github.magisk317.smscode.runtime.common.prefs.PreferenceSpec
+import io.github.magisk317.smscode.runtime.contract.prefs.AtomicPreferencePersistence
+import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceCommitResult
+import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceSpec
 import kotlinx.coroutines.flow.Flow
 
 class SettingsRepository(

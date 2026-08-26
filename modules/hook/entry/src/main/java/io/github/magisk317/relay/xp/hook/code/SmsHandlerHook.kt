@@ -12,9 +12,9 @@ import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
-import io.github.magisk317.smscode.verification.SmsDispatchChainBlockDeduplicator
-import io.github.magisk317.smscode.verification.SmsDispatchIntentDeduplicator
-import io.github.magisk317.smscode.verification.SmsIntentHookSupport
+import io.github.magisk317.smscode.runtime.verification.SmsDispatchChainBlockDeduplicator
+import io.github.magisk317.smscode.runtime.verification.SmsDispatchIntentDeduplicator
+import io.github.magisk317.smscode.runtime.verification.SmsIntentHookSupport
 import io.github.magisk317.smscode.xposed.hook.telephony.InboundSmsBlocker
 import io.github.magisk317.relay.xp.hook.PhoneHookTargetPackages
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext

@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.android.data.datasource
 
-import io.github.magisk317.smscode.runtime.common.prefs.PreferenceChangeSet
+import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceChangeSet
 import kotlinx.coroutines.flow.Flow
 
 interface PreferenceDataSource {

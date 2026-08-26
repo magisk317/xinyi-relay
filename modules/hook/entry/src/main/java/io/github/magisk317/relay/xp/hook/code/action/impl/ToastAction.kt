@@ -7,7 +7,7 @@ import io.github.magisk317.relay.hookentry.R
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xp.hook.code.action.RunnableAction
 import io.github.magisk317.relay.xp.hook.code.helper.InputHelper
-import io.github.magisk317.smscode.verification.ToastActionHelper
+import io.github.magisk317.smscode.runtime.verification.ToastActionHelper
 
 /**
  * 显示验证码 Toast（唯一保留的 Toast 入口）

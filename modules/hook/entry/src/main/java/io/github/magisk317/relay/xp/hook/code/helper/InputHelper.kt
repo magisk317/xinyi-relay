@@ -4,7 +4,7 @@ import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
 import io.github.magisk317.smscode.runtime.contract.autoinput.AutoInputBroadcastContract
-import io.github.magisk317.smscode.verification.AutoInputBroadcastHelper
+import io.github.magisk317.smscode.runtime.verification.AutoInputBroadcastHelper
 import io.github.magisk317.smscode.xposed.prefs.CorePrefs
 import io.github.magisk317.smscode.xposed.utils.XLog
 

@@ -5,7 +5,7 @@ import io.github.magisk317.relay.contract.xpbridge.XpSmsBlacklistHitRecord
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpRecordFacade
 import io.github.magisk317.smscode.verification.BlacklistMatchResult
-import io.github.magisk317.smscode.verification.SmsHandlerDispatchDecision
+import io.github.magisk317.smscode.runtime.verification.SmsHandlerDispatchDecision
 import io.github.magisk317.smscode.xposed.utils.XLog
 import kotlinx.coroutines.runBlocking
 

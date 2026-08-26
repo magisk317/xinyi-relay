@@ -27,10 +27,10 @@ import io.github.magisk317.relay.engine.service.AppConfigRepository
 import io.github.magisk317.relay.engine.service.MessageRecordRepository
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
-import io.github.magisk317.smscode.runtime.common.backup.BackupImportResult
-import io.github.magisk317.smscode.runtime.common.backup.BackupRule
-import io.github.magisk317.smscode.runtime.common.backup.BackupSmsRecord
-import io.github.magisk317.smscode.runtime.common.backup.ExportResult
+import io.github.magisk317.smscode.runtime.contract.backup.BackupImportResult
+import io.github.magisk317.smscode.runtime.contract.backup.BackupRule
+import io.github.magisk317.smscode.runtime.contract.backup.BackupSmsRecord
+import io.github.magisk317.smscode.runtime.contract.backup.ExportResult
 import io.github.magisk317.uikit.theme.UiKitStyle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
@@ -503,7 +503,7 @@ class SettingsViewModel(
                     importResult.warning?.name ?: "none",
                 )
 
-                if (importResult.result == io.github.magisk317.smscode.runtime.common.backup.ImportResult.SUCCESS) {
+                if (importResult.result == io.github.magisk317.smscode.runtime.contract.backup.ImportResult.SUCCESS) {
                     withContext(Dispatchers.IO) {
                         if (restoreDatabase) {
                             val restored = RelayBackupManager.restoreDatabaseFromBackup(context, uri)
@@ -532,7 +532,7 @@ class SettingsViewModel(
                 XLog.e("Restore failed", e)
                 backupEventQueue.emit(
                     SettingsBackupEvent.RestoreResult(
-                        BackupImportResult(io.github.magisk317.smscode.runtime.common.backup.ImportResult.READ_FAILED),
+                        BackupImportResult(io.github.magisk317.smscode.runtime.contract.backup.ImportResult.READ_FAILED),
                     ),
                 )
             }

@@ -8,8 +8,8 @@ import io.github.magisk317.relay.contract.repository.LocalConfigMirrorRejectedEx
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.engine.service.AppConfigRepository
 import io.github.magisk317.relay.testing.relaxedContext
-import io.github.magisk317.smscode.runtime.common.prefs.PreferenceChange
-import io.github.magisk317.smscode.runtime.common.prefs.PreferenceChangeSet
+import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceChange
+import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceChangeSet
 import io.mockk.mockk
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf

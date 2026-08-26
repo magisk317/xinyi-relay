@@ -11,10 +11,10 @@ import io.github.magisk317.relay.xp.hook.code.action.impl.NotifyAction
 import io.github.magisk317.relay.xp.hook.code.action.impl.OperateSmsAction
 import io.github.magisk317.relay.xp.hook.code.action.impl.RecordSmsAction
 import io.github.magisk317.relay.xp.hook.code.action.impl.ToastAction
-import io.github.magisk317.smscode.verification.AutoInputDispatchGuard
-import io.github.magisk317.smscode.verification.SmsCodeActionScheduler
-import io.github.magisk317.smscode.verification.SmsCodeActionDispatcher as SharedSmsCodeActionDispatcher
-import io.github.magisk317.smscode.verification.SmsCodePostParseCoordinator
+import io.github.magisk317.smscode.runtime.verification.AutoInputDispatchGuard
+import io.github.magisk317.smscode.runtime.verification.SmsCodeActionScheduler
+import io.github.magisk317.smscode.runtime.verification.SmsCodeActionDispatcher as SharedSmsCodeActionDispatcher
+import io.github.magisk317.smscode.runtime.verification.SmsCodePostParseCoordinator
 import java.util.concurrent.Callable
 import java.util.concurrent.ScheduledExecutorService
 

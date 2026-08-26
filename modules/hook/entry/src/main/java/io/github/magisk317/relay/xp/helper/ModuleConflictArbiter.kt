@@ -3,7 +3,7 @@ package io.github.magisk317.relay.xp.helper
 import android.content.Context
 import io.github.magisk317.relay.hookentry.BuildConfig
 import io.github.magisk317.relay.xpbridge.XpRelayTarget
-import io.github.magisk317.smscode.verification.ModuleConflictArbiterCore
+import io.github.magisk317.smscode.runtime.verification.ModuleConflictArbiterCore
 
 object ModuleConflictArbiter {
     val SUPPRESSION_REASON: String = ModuleConflictArbiterCore.SUPPRESSION_REASON

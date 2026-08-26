@@ -5,7 +5,7 @@ import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
-import io.github.magisk317.smscode.verification.SmsHookConstructorInitializer as SharedSmsHookConstructorInitializer
+import io.github.magisk317.smscode.runtime.verification.SmsHookConstructorInitializer as SharedSmsHookConstructorInitializer
 
 internal class SmsHookConstructorInitializer(
     private val runtimeInitializer: (Context) -> SmsHookRuntimeContext?,

@@ -5,7 +5,7 @@ import io.github.magisk317.relay.testing.installSilentXpLogSink
 import io.github.magisk317.relay.testing.relaxedHookContexts
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
-import io.github.magisk317.smscode.verification.SmsCodePostParseCoordinator
+import io.github.magisk317.smscode.runtime.verification.SmsCodePostParseCoordinator
 import io.github.magisk317.smscode.verification.SmsInboxObserverDecision
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -209,6 +209,7 @@ class ObservedSmsHandlerTest {
             notificationRetentionMs = 0L,
             autoInputEnabled = true,
             autoInputDelayMs = 0L,
+            inputIntervalMs = 0L,
             copyToClipboardEnabled = false,
             showToast = false,
             recordSmsEnabled = recordSmsEnabled,

@@ -22,8 +22,8 @@ import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeDiagnosticsPreferences
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
-import io.github.magisk317.smscode.runtime.common.ipc.RuntimeStateProviderContract
-import io.github.magisk317.smscode.runtime.common.record.SmsMsgCursorContract
+import io.github.magisk317.smscode.runtime.contract.ipc.RuntimeStateProviderContract
+import io.github.magisk317.smscode.runtime.contract.record.SmsMsgCursorContract
 import io.github.magisk317.smscode.runtime.common.utils.SharedRuntimeGate
 import io.github.magisk317.smscode.runtime.common.utils.StorageUtils
 import io.github.magisk317.smscode.rule.utils.CodeRecordSimilarityUtils

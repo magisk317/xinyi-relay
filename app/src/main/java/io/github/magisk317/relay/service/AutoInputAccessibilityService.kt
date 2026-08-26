@@ -17,10 +17,10 @@ import androidx.core.content.ContextCompat
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.prefs.PrefsReader
 import io.github.magisk317.relay.receiver.AutoInputActions
-import io.github.magisk317.smscode.verification.AutoInputFallbackPolicy
-import io.github.magisk317.smscode.verification.AutoInputAccessibilityNodeHelper
-import io.github.magisk317.smscode.verification.AutoInputAccessibilityNodeHelper.Result as AutoInputResult
-import io.github.magisk317.smscode.verification.AutoInputAccessibilityRequestHandler
+import io.github.magisk317.smscode.runtime.contract.autoinput.AutoInputFallbackPolicy
+import io.github.magisk317.smscode.runtime.verification.AutoInputAccessibilityNodeHelper
+import io.github.magisk317.smscode.runtime.verification.AutoInputAccessibilityNodeHelper.Result as AutoInputResult
+import io.github.magisk317.smscode.runtime.verification.AutoInputAccessibilityRequestHandler
 import io.github.magisk317.xposed.logging.MagiskOtel
 
 class AutoInputAccessibilityService : AccessibilityService() {

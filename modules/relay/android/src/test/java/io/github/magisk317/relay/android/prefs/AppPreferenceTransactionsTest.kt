@@ -4,10 +4,10 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
-import io.github.magisk317.smscode.runtime.common.prefs.AtomicPreferencePersistence
-import io.github.magisk317.smscode.runtime.common.prefs.PreferenceCommitResult
-import io.github.magisk317.smscode.runtime.common.prefs.PreferenceSpec
-import io.github.magisk317.smscode.runtime.common.prefs.preferenceChangeSet
+import io.github.magisk317.smscode.runtime.contract.prefs.AtomicPreferencePersistence
+import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceCommitResult
+import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceSpec
+import io.github.magisk317.smscode.runtime.contract.prefs.preferenceChangeSet
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse

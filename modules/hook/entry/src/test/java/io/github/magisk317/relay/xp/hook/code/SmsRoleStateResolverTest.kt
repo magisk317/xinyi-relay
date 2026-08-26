@@ -2,7 +2,7 @@ package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
 import io.mockk.mockk
-import io.github.magisk317.smscode.verification.SmsRoleStateResolver
+import io.github.magisk317.smscode.runtime.verification.SmsRoleStateResolver
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 

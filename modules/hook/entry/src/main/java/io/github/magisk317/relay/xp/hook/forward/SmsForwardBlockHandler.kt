@@ -5,7 +5,7 @@ import android.content.Intent
 import io.github.magisk317.relay.xp.hook.code.SmsBlacklistHitRecorder
 import io.github.magisk317.relay.xp.hook.code.SmsBlockEvaluator
 import io.github.magisk317.relay.xpbridge.SmsMsg
-import io.github.magisk317.smscode.verification.SmsIntentHookSupport
+import io.github.magisk317.smscode.runtime.verification.SmsIntentHookSupport
 import io.github.magisk317.smscode.xposed.utils.XLog
 import io.github.magisk317.xposed.logging.MagiskOtel
 
@@ -16,7 +16,7 @@ internal class SmsForwardBlockHandler(
         Context,
         SmsMsg?,
         io.github.magisk317.smscode.verification.BlacklistMatchResult,
-        io.github.magisk317.smscode.verification.SmsHandlerDispatchDecision.Decision,
+        io.github.magisk317.smscode.runtime.verification.SmsHandlerDispatchDecision.Decision,
         String,
         String,
     ) -> Unit = SmsBlacklistHitRecorder::record,

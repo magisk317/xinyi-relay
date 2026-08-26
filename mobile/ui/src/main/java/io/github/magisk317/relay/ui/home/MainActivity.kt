@@ -78,12 +78,12 @@ import io.github.magisk317.smscode.runtime.common.utils.BrowserUtils
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.smscode.runtime.common.update.ApkSecurityVerifier
 import io.github.magisk317.relay.update.GithubUpdateChecker
-import io.github.magisk317.smscode.runtime.common.update.UpgradeApkAsset
+import io.github.magisk317.smscode.runtime.contract.update.UpgradeApkAsset
 import io.github.magisk317.relay.update.UpgradeDownloader
 import io.github.magisk317.relay.update.UpgradeInstaller
-import io.github.magisk317.smscode.runtime.common.update.GithubReleaseInfo
-import io.github.magisk317.smscode.runtime.common.update.UpgradeCheckResult
-import io.github.magisk317.smscode.runtime.common.update.UpgradeInfo
+import io.github.magisk317.smscode.runtime.contract.update.GithubReleaseInfo
+import io.github.magisk317.smscode.runtime.contract.update.UpgradeCheckResult
+import io.github.magisk317.smscode.runtime.contract.update.UpgradeInfo
 import io.github.magisk317.smscode.runtime.common.update.UpdatePolicy
 import io.github.magisk317.uikit.theme.UpdateSystemBars
 import io.github.magisk317.uikit.theme.applyEdgeToEdge

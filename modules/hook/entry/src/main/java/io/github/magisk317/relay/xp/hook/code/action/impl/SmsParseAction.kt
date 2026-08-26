@@ -11,7 +11,7 @@ import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.XpRecordFacade
 import io.github.magisk317.relay.xpbridge.XpStringEscaper
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
-import io.github.magisk317.smscode.verification.SmsParseAction as SharedSmsParseAction
+import io.github.magisk317.smscode.runtime.verification.SmsParseAction as SharedSmsParseAction
 import io.github.magisk317.smscode.xposed.utils.XLog
 
 /**

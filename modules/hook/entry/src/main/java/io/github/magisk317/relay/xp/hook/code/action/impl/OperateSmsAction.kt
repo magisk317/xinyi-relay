@@ -6,7 +6,7 @@ import androidx.annotation.IntDef
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpPrefs
-import io.github.magisk317.smscode.verification.OperateSmsActionHelper
+import io.github.magisk317.smscode.runtime.verification.OperateSmsActionHelper
 
 class OperateSmsAction(pluginContext: Context, phoneContext: Context, smsMsg: SmsMsg) :
     CallableAction(pluginContext, phoneContext, smsMsg) {

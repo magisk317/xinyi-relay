@@ -17,8 +17,8 @@ import io.github.magisk317.relay.contract.constant.PrefValueType
 import io.github.magisk317.smscode.runtime.common.utils.StorageUtils
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.smscode.rule.constant.SmsCodeConst
-import io.github.magisk317.smscode.runtime.common.prefs.PreferenceChange
-import io.github.magisk317.smscode.runtime.common.prefs.PreferenceChangeSet
+import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceChange
+import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceChangeSet
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map

@@ -2,7 +2,7 @@ package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Intent
 import io.github.magisk317.relay.hookentry.BuildConfig
-import io.github.magisk317.smscode.verification.CodeNotificationPayload
+import io.github.magisk317.smscode.runtime.verification.CodeNotificationPayload
 
 object CodeNotificationBroadcastContract {
     private val sharedContract = CodeNotificationPayload.BroadcastContract(
