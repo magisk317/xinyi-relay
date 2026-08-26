@@ -11,7 +11,7 @@ import io.github.magisk317.relay.contract.prefs.PrefsSource
 import io.github.magisk317.relay.contract.prefs.XpRuntimeBridge
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.android.BuildConfig
-import io.github.magisk317.smscode.domain.constant.SmsCodeConst
+import io.github.magisk317.smscode.rule.constant.SmsCodeConst
 import io.github.magisk317.smscode.runtime.common.prefs.PrefsResolver
 import java.util.concurrent.atomic.AtomicBoolean
 import io.github.magisk317.xposed.logging.AnonymousInstallationId

@@ -26,7 +26,7 @@ import io.github.magisk317.smscode.runtime.common.ipc.RuntimeStateProviderContra
 import io.github.magisk317.smscode.runtime.common.record.SmsMsgCursorContract
 import io.github.magisk317.smscode.runtime.common.utils.SharedRuntimeGate
 import io.github.magisk317.smscode.runtime.common.utils.StorageUtils
-import io.github.magisk317.smscode.domain.utils.CodeRecordSimilarityUtils
+import io.github.magisk317.smscode.rule.utils.CodeRecordSimilarityUtils
 import kotlinx.coroutines.runBlocking
 
 class DBProvider : ContentProvider() {

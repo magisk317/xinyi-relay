@@ -76,9 +76,9 @@ import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
 import io.github.magisk317.relay.ui.common.normalizeIntegerInput
 import io.github.magisk317.relay.ui.common.parseNonNegativeLongInput
 import io.github.magisk317.relay.android.sms.SmsCodeUtils as RelaySmsCodeUtils
-import io.github.magisk317.smscode.domain.constant.SmsCodeConst
-import io.github.magisk317.smscode.domain.model.SmsCodeMatchedRule
-import io.github.magisk317.smscode.domain.model.SmsCodeMatchedRuleSource
+import io.github.magisk317.smscode.rule.constant.SmsCodeConst
+import io.github.magisk317.smscode.rule.model.SmsCodeMatchedRule
+import io.github.magisk317.smscode.rule.model.SmsCodeMatchedRuleSource
 import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.Dispatchers

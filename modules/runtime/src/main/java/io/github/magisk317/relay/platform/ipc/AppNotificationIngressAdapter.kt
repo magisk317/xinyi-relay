@@ -6,8 +6,8 @@ import android.content.pm.PackageManager
 import android.service.notification.StatusBarNotification
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.sms.SmsCodeUtils
-import io.github.magisk317.smscode.domain.model.SmsCodeParseSource
-import io.github.magisk317.smscode.domain.model.SmsCodeParseSourceKind
+import io.github.magisk317.smscode.rule.model.SmsCodeParseSource
+import io.github.magisk317.smscode.rule.model.SmsCodeParseSourceKind
 import io.github.magisk317.xposed.logging.MagiskOtel
 
 object AppNotificationIngressAdapter {

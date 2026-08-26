@@ -19,9 +19,9 @@ import io.github.magisk317.relay.xp.hook.PhoneHookTargetPackages
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
-import io.github.magisk317.smscode.domain.utils.RecentEventDeduplicator
-import io.github.magisk317.smscode.domain.utils.SmsForwardDedupKeyFactory
-import io.github.magisk317.smscode.domain.utils.SmsForwardDedupSpec
+import io.github.magisk317.smscode.rule.utils.RecentEventDeduplicator
+import io.github.magisk317.smscode.rule.utils.SmsForwardDedupKeyFactory
+import io.github.magisk317.smscode.rule.utils.SmsForwardDedupSpec
 import io.github.magisk317.smscode.verification.SmsIntentHookSupport
 import io.github.magisk317.xposed.HookHelpers
 import io.github.magisk317.xposed.BaseHook

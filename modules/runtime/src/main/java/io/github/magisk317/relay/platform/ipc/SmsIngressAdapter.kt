@@ -5,7 +5,7 @@ import android.content.Intent
 import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.android.sms.SmsCodeUtils
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
-import io.github.magisk317.smscode.domain.utils.SmsCodeParsedMetadataResolver
+import io.github.magisk317.smscode.rule.utils.SmsCodeParsedMetadataResolver
 import io.github.magisk317.xposed.logging.MagiskOtel
 
 object SmsIngressAdapter {

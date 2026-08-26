@@ -9,7 +9,7 @@ import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.entity.SmsBlacklistHit
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.android.data.db.mergeSmsMsgForInsert
-import io.github.magisk317.smscode.domain.utils.CodeRecordSimilarityUtils
+import io.github.magisk317.smscode.rule.utils.CodeRecordSimilarityUtils
 import io.github.magisk317.relay.engine.model.ReadRecordData
 import io.github.magisk317.relay.engine.model.ReadSmsBlacklistHitData
 import io.github.magisk317.relay.engine.sender.SenderType

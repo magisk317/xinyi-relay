@@ -53,6 +53,7 @@ dependencies {
     implementation(project(":relay:net"))
     implementation(project(":relay:android"))
     implementation(project(":smscode-core:domain"))
+    implementation(project(":smscode-core:rule"))
     implementation(project(":smscode-core:runtime"))
     implementation(project(":smscode-core:contract"))
 

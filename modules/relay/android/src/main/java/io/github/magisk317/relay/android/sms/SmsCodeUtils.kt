@@ -10,9 +10,9 @@ import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.android.prefs.PrefsReader
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
-import io.github.magisk317.smscode.domain.model.SmsCodeParseResult
-import io.github.magisk317.smscode.domain.model.SmsCodeParseSource
-import io.github.magisk317.smscode.domain.model.SmsCodeRuleSpec
+import io.github.magisk317.smscode.rule.model.SmsCodeParseResult
+import io.github.magisk317.smscode.rule.model.SmsCodeParseSource
+import io.github.magisk317.smscode.rule.model.SmsCodeRuleSpec
 import io.github.magisk317.smscode.runtime.common.rules.SmsCodeRuleCatalogRefreshResult
 import io.github.magisk317.smscode.runtime.common.rules.SmsCodeRuleCatalogRepository
 import io.github.magisk317.smscode.runtime.common.rules.SmsCodeRuleCatalogSnapshot

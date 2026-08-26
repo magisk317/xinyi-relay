@@ -35,6 +35,7 @@ dependencies {
     implementation(project(":relay:android"))
     implementation(project(":relay:contract"))
     implementation(project(":smscode-core:domain"))
+    implementation(project(":smscode-core:rule"))
     implementation(project(":smscode-core:runtime"))
     implementation(project(":smscode-core:verification"))
     implementation(project(":magisk-xposed-kit:logging"))

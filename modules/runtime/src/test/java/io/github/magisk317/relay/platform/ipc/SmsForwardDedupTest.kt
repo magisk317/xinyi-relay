@@ -1,8 +1,8 @@
 package io.github.magisk317.relay.platform.ipc
 
-import io.github.magisk317.smscode.domain.utils.RecentEventDeduplicator
-import io.github.magisk317.smscode.domain.utils.SmsForwardDedupKeyFactory
-import io.github.magisk317.smscode.domain.utils.SmsForwardDedupSpec
+import io.github.magisk317.smscode.rule.utils.RecentEventDeduplicator
+import io.github.magisk317.smscode.rule.utils.SmsForwardDedupKeyFactory
+import io.github.magisk317.smscode.rule.utils.SmsForwardDedupSpec
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue

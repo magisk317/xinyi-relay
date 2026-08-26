@@ -13,9 +13,9 @@ import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.relay.android.platform.metadata.SourceMetadataResolver
 import io.github.magisk317.relay.android.sms.SmsCodeUtils
-import io.github.magisk317.smscode.domain.utils.RecentEventDeduplicator
-import io.github.magisk317.smscode.domain.utils.SmsForwardDedupKeyFactory
-import io.github.magisk317.smscode.domain.utils.SmsForwardDedupSpec
+import io.github.magisk317.smscode.rule.utils.RecentEventDeduplicator
+import io.github.magisk317.smscode.rule.utils.SmsForwardDedupKeyFactory
+import io.github.magisk317.smscode.rule.utils.SmsForwardDedupSpec
 import io.github.magisk317.smscode.runtime.contract.ipc.IpcTokenMatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

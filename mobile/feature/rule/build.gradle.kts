@@ -30,6 +30,7 @@ dependencies {
     implementation(project(":mobile:feature:common"))
     implementation(project(":magisk-ui-kit"))
     implementation(project(":smscode-core:domain"))
+    implementation(project(":smscode-core:rule"))
     implementation(project(":smscode-core:runtime"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

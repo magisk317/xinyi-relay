@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.platform.ipc
 
 import io.github.magisk317.relay.contract.constant.MessageType
-import io.github.magisk317.smscode.domain.utils.CodeRecordSimilarityUtils
+import io.github.magisk317.smscode.rule.utils.CodeRecordSimilarityUtils
 import io.github.magisk317.smscode.runtime.contract.sim.SmsRoutingMetadata
 import io.github.magisk317.xposed.logging.MagiskOtel
 

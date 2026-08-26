@@ -27,6 +27,7 @@ dependencies {
     implementation(project(":mobile:feature:common"))
     implementation(project(":core"))
     implementation(project(":smscode-core:domain"))
+    implementation(project(":smscode-core:rule"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
