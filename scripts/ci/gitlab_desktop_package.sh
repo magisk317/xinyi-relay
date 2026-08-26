@@ -195,27 +195,25 @@ collect_artifacts() {
 install_linux_dependencies
 install_node24
 install_rust
-# Install pnpm via the shared toolkit helper (single source of truth: the
-# packageManager field in frontend/desktop/package.json). Avoids corepack,
-# which is unbundled from Node 25+.
+# Bun is the single JavaScript package manager; the toolkit resolves the exact
+# version from frontend/desktop/package.json without the legacy runtime shim.
 toolkit_dir="$(bash "$root_dir/scripts/resolve_ci_toolkit.sh")"
 if [[ "${MAGISK_LINUX_USE_MIRROR:-true}" == "true" ]]; then
-  export PNPM_CONFIG_REGISTRY="${PNPM_CONFIG_REGISTRY:-https://registry.npmmirror.com}"
+  export BUN_CONFIG_REGISTRY="${BUN_CONFIG_REGISTRY:-https://registry.npmmirror.com}"
 else
-  export PNPM_CONFIG_REGISTRY="https://registry.npmjs.org"
+  export BUN_CONFIG_REGISTRY="https://registry.npmjs.org"
 fi
-bash "$toolkit_dir/ci/ensure_pnpm.sh" "$desktop_dir/package.json"
+bash "$toolkit_dir/ci/ensure_bun.sh" "$desktop_dir/package.json"
 
 cd "$desktop_dir"
-pnpm config set registry "$PNPM_CONFIG_REGISTRY"
 sync_and_strip_desktop_version
-pnpm install --frozen-lockfile
-pnpm build
+bun install --frozen-lockfile
+bun run build
 export PKG_CONFIG="${PKG_CONFIG:-}"
 if [[ "$os_name" == "linux" ]]; then
   export PKG_CONFIG="${PKG_CONFIG:-/usr/bin/pkg-config}"
   export TAURI_LINUX_AYATANA_APPINDICATOR="${TAURI_LINUX_AYATANA_APPINDICATOR:-1}"
 fi
 # shellcheck disable=SC2086
-pnpm exec node ./scripts/with-system-pkg-config.mjs tauri build $bundle_args
+bun ./scripts/with-system-pkg-config.mjs tauri build $bundle_args
 collect_artifacts

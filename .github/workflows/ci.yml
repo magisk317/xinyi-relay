@@ -38,24 +38,22 @@ jobs:
         uses: ./.magisk-ci-toolkit/.github/actions/setup-android-ci
         with:
           checkout: 'false'
-      - name: Resolve WebUI toolchain
-        id: webui_toolchain
+      - name: Set up Bun
         shell: bash
-        run: python scripts/ci/resolve_package_toolchain.py frontend/webui/package.json --require-node >> "$GITHUB_OUTPUT"
-      - uses: actions/setup-node@v6
-        with:
-          node-version: ${{ steps.webui_toolchain.outputs.node_version }}
-      - uses: pnpm/action-setup@v6
-        with:
-          version: ${{ steps.webui_toolchain.outputs.pnpm_version }}
-      - name: WebUI Install
-        run: pnpm -C frontend/webui install --frozen-lockfile --ignore-scripts
-      - name: WebUI Lint + Typecheck + Test + Build
         run: |
-          pnpm -C frontend/webui lint
-          pnpm -C frontend/webui typecheck
-          pnpm -C frontend/webui test
-          pnpm -C frontend/webui build
+          set -euo pipefail
+          bash .magisk-ci-toolkit/ci/ensure_bun.sh frontend/webui/package.json
+          echo "BUN_INSTALL_CACHE_DIR=${RUNNER_TEMP}/bun-cache" >> "$GITHUB_ENV"
+      - name: WebUI Install
+        working-directory: frontend/webui
+        run: bun install --frozen-lockfile --ignore-scripts --cache-dir "$RUNNER_TEMP/bun-cache"
+      - name: WebUI Lint + Typecheck + Test + Build
+        working-directory: frontend/webui
+        run: |
+          bun run lint
+          bun run typecheck
+          bun run test
+          bun run build
       - name: Decode Keystore
         if: env.HAS_RELEASE_SIGNING == 'true'
         run: echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > app/release.jks

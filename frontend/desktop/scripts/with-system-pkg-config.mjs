@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync, spawn } from "node:child_process";
+import { delimiter, join } from "node:path";
 import { existsSync } from "node:fs";
 
 const args = process.argv.slice(2);
@@ -36,9 +37,14 @@ if (process.platform === "linux" && existsSync("/usr/bin/pkg-config")) {
   }
 }
 
-// npm scripts on Windows resolve local CLIs like `tauri` through cmd shim files
-// (for example `tauri.cmd`). Keep direct exec on Unix, but opt into shell
-// resolution on Windows so local package binaries continue to work.
+// Resolve local package binaries without relying on a package-manager exec shim. Bun,
+// npm, and direct Node invocations all use this helper, while Windows still needs shell
+// resolution for .cmd shims such as tauri.cmd.
+const localBin = join(process.cwd(), "node_modules", ".bin");
+if (existsSync(localBin)) {
+  env.PATH = `${localBin}${delimiter}${env.PATH || ""}`;
+}
+
 const child = spawn(args[0], args.slice(1), {
   env,
   shell: process.platform === "win32",

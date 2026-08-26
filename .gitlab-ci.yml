@@ -380,7 +380,7 @@ desktop:release:gitlab:
 
 webui:check:
   extends: .xinyi_android_rules
-  image: "node:24-bookworm"
+  image: "oven/bun:1.4-alpine"
   stage: quality
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
@@ -389,37 +389,33 @@ webui:check:
     key:
       files:
         - frontend/webui/package.json
-        - frontend/webui/pnpm-lock.yaml
+        - frontend/webui/bun.lock
     paths:
-      - .pnpm-store/
+      - .bun-cache/
   script:
+    - apk add --no-cache bash ca-certificates git
+    - export MAGISK_CI_TOOLKIT_DIR="$(bash scripts/resolve_ci_toolkit.sh)"
+    - export BUN_CONFIG_REGISTRY="${BUN_CONFIG_REGISTRY:-https://registry.npmmirror.com}"
+    - bash "$MAGISK_CI_TOOLKIT_DIR/ci/ensure_bun.sh" frontend/webui/package.json
     - |
-      set -euo pipefail
-      # Install pnpm via the shared toolkit helper (single source of truth is
-      # frontend/webui/package.json's packageManager field). Avoids corepack,
-      # which is unbundled from Node 25+.
-      if [[ "${MAGISK_LINUX_USE_MIRROR:-true}" == "true" ]]; then
-        export PNPM_CONFIG_REGISTRY="${PNPM_CONFIG_REGISTRY:-https://registry.npmmirror.com}"
+      if [ -x "$MAGISK_CI_TOOLKIT_DIR/ci/frontend_build.sh" ]; then
+        MAGISK_FRONTEND_DIR="$CI_PROJECT_DIR/frontend/webui" \
+          MAGISK_FRONTEND_PACKAGE_JSON="$CI_PROJECT_DIR/frontend/webui/package.json" \
+          MAGISK_FRONTEND_INSTALL_COMMAND="bun install --frozen-lockfile --ignore-scripts --cache-dir '$CI_PROJECT_DIR/.bun-cache' --registry '$BUN_CONFIG_REGISTRY'" \
+          MAGISK_FRONTEND_LINT_COMMAND="bun run lint" \
+          MAGISK_FRONTEND_TYPECHECK_COMMAND="bun run typecheck" \
+          MAGISK_FRONTEND_TEST_COMMAND="bun run test" \
+          MAGISK_FRONTEND_BUILD_COMMAND="bun run build" \
+          MAGISK_FRONTEND_DIST_DIR="$CI_PROJECT_DIR/frontend/webui/dist" \
+          bash "$MAGISK_CI_TOOLKIT_DIR/ci/frontend_build.sh"
       else
-        export PNPM_CONFIG_REGISTRY="https://registry.npmjs.org"
+        cd frontend/webui
+        bun install --frozen-lockfile --ignore-scripts --cache-dir "$CI_PROJECT_DIR/.bun-cache" --registry "$BUN_CONFIG_REGISTRY"
+        bun run lint
+        bun run typecheck
+        bun run test
+        bun run build
       fi
-      toolkit_dir="$(bash scripts/resolve_ci_toolkit.sh)"
-      bash "$toolkit_dir/ci/ensure_pnpm.sh" frontend/webui/package.json
-      pnpm -C frontend/webui config set store-dir "$CI_PROJECT_DIR/.pnpm-store"
-      pnpm -C frontend/webui config set registry "$PNPM_CONFIG_REGISTRY"
-      if [[ "${MAGISK_LINUX_USE_MIRROR:-true}" == "true" ]]; then
-        if ! pnpm -C frontend/webui install --frozen-lockfile --ignore-scripts; then
-          echo "Mirror npm registry failed, falling back to official registry" >&2
-          pnpm -C frontend/webui config set registry https://registry.npmjs.org
-          pnpm -C frontend/webui install --frozen-lockfile --ignore-scripts
-        fi
-      else
-        pnpm -C frontend/webui install --frozen-lockfile --ignore-scripts
-      fi
-      pnpm -C frontend/webui lint
-      pnpm -C frontend/webui typecheck
-      pnpm -C frontend/webui test
-      pnpm -C frontend/webui build
   artifacts:
     name: "XinyiRelay-webui-$CI_COMMIT_REF_SLUG"
     when: always

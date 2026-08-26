@@ -63,23 +63,13 @@ jobs:
         with:
           checkout: 'false'
 
-      - name: Resolve WebUI toolchain
-        id: webui_toolchain
+      - name: Set up Bun
         shell: bash
-        run: python scripts/ci/resolve_package_toolchain.py frontend/webui/package.json --require-node >> "$GITHUB_OUTPUT"
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ steps.webui_toolchain.outputs.node_version }}
-
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          version: ${{ steps.webui_toolchain.outputs.pnpm_version }}
-
+        run: |
+          set -euo pipefail
+          bash .magisk-ci-toolkit/ci/ensure_bun.sh frontend/webui/package.json
       - name: Install WebUI dependencies
-        run: pnpm -C frontend/webui install --frozen-lockfile --ignore-scripts
+        run: bun -C frontend/webui install --frozen-lockfile --ignore-scripts
 
       - name: Decode Keystore
         if: env.HAS_RELEASE_KEYSTORE == 'true'
@@ -158,23 +148,13 @@ jobs:
         with:
           checkout: 'false'
 
-      - name: Resolve WebUI toolchain
-        id: webui_toolchain
+      - name: Set up Bun
         shell: bash
-        run: python scripts/ci/resolve_package_toolchain.py frontend/webui/package.json --require-node >> "$GITHUB_OUTPUT"
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ steps.webui_toolchain.outputs.node_version }}
-
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          version: ${{ steps.webui_toolchain.outputs.pnpm_version }}
-
+        run: |
+          set -euo pipefail
+          bash .magisk-ci-toolkit/ci/ensure_bun.sh frontend/webui/package.json
       - name: Install WebUI dependencies
-        run: pnpm -C frontend/webui install --frozen-lockfile --ignore-scripts
+        run: bun -C frontend/webui install --frozen-lockfile --ignore-scripts
 
       - name: Decode Keystore
         if: env.HAS_RELEASE_KEYSTORE == 'true'

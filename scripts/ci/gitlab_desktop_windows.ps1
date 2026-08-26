@@ -102,29 +102,27 @@ function Collect-Artifacts {
 Install-Node24
 Install-Rust
 
-# Single source of truth: pnpm version follows the desktop package.json
-# packageManager field. Mirrors magisk-ci-toolkit's ci/ensure_pnpm.sh, inlined
-# here because Windows runners execute PowerShell and cannot invoke the bash
-# toolkit helpers. corepack was removed from Node 25+, so install pnpm directly.
+# Single source of truth: Bun version follows the desktop package.json
+# packageManager field. The Windows runner uses this PowerShell equivalent of
+# magisk-ci-toolkit's ci/ensure_bun.sh.
 $packageManager = node -p "require('$($DesktopDir.Replace('\', '\\'))/package.json').packageManager"
-if ($packageManager -notmatch '^pnpm@') {
-  throw "packageManager in desktop package.json is not pnpm@x.y.z (got '$packageManager')"
+if ($packageManager -notmatch '^bun@') {
+  throw "packageManager in desktop package.json is not bun@x.y.z (got '$packageManager')"
 }
-# Strip the "pnpm@" prefix and any corepack integrity suffix ("+sha512...").
-$pnpmVersion = ($packageManager -replace '^pnpm@', '') -replace '\+.*$', ''
-$currentPnpm = $null
-try { $currentPnpm = (pnpm --version) 2>$null } catch { $currentPnpm = $null }
-if ($currentPnpm -ne $pnpmVersion) {
-  npm install --global --no-audit --no-fund "pnpm@$pnpmVersion"
+$bunVersion = ($packageManager -replace '^bun@', '') -replace '\+.*$', ''
+$currentBun = $null
+try { $currentBun = (bun --version) 2>$null } catch { $currentBun = $null }
+if ($currentBun -ne $bunVersion) {
+  npm install --global --no-audit --no-fund "bun@$bunVersion"
 }
-if ((pnpm --version) -ne $pnpmVersion) {
-  throw "Expected pnpm $pnpmVersion, got $(pnpm --version)"
+if ((bun --version) -ne $bunVersion) {
+  throw "Expected Bun $bunVersion, got $(bun --version)"
 }
 
 Sync-DesktopVersion
 Set-Location $DesktopDir
-pnpm install --frozen-lockfile
-pnpm build
+bun install --frozen-lockfile
+bun run build
 $buildArgs = $BundleArgs -split "\s+"
-& pnpm exec node ./scripts/with-system-pkg-config.mjs tauri build @buildArgs
+& bun ./scripts/with-system-pkg-config.mjs tauri build @buildArgs
 Collect-Artifacts

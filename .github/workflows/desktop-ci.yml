@@ -82,20 +82,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: "24"
-
-      - name: Resolve desktop package manager
-        id: desktop_toolchain
+      - name: Resolve CI toolkit
+        run: bash scripts/resolve_ci_toolkit.sh
+      - name: Set up Bun
         shell: bash
-        run: python scripts/ci/resolve_package_toolchain.py frontend/desktop/package.json >> "$GITHUB_OUTPUT"
-
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          version: ${{ steps.desktop_toolchain.outputs.pnpm_version }}
+        run: bash .magisk-ci-toolkit/ci/ensure_bun.sh frontend/desktop/package.json
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -123,15 +114,15 @@ jobs:
         shell: bash
         run: bash scripts/release/sync_desktop_version.sh
 
-      - name: Install desktop pnpm dependencies
+      - name: Install desktop Bun dependencies
         run: |
           cd frontend/desktop
-          pnpm install --frozen-lockfile
+          bun install --frozen-lockfile
 
       - name: Build desktop frontend
         run: |
           cd frontend/desktop
-          pnpm build
+          bun run build
 
       - name: Build desktop bundles
         shell: bash
@@ -142,8 +133,8 @@ jobs:
           WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         run: |
           cd frontend/desktop
-          node -e "const fs=require('fs'); let c=fs.readFileSync('src-tauri/tauri.conf.json','utf8'); fs.writeFileSync('src-tauri/tauri.conf.json', c.replace(/\"version\":\s*\"([0-9]+\\.[0-9]+\\.[0-9]+)-[a-zA-Z0-9]+\"/, '\"version\": \"\$1\"'));"
-          pnpm exec node ./scripts/with-system-pkg-config.mjs tauri build ${{ matrix.bundle_args }}
+          bun -e "const fs=require('fs'); let c=fs.readFileSync('src-tauri/tauri.conf.json','utf8'); fs.writeFileSync('src-tauri/tauri.conf.json', c.replace(/\"version\":\s*\"([0-9]+\\.[0-9]+\\.[0-9]+)-[a-zA-Z0-9]+\"/, '\"version\": \"\\$1\"'));"
+          bun ./scripts/with-system-pkg-config.mjs tauri build ${{ matrix.bundle_args }}
 
       - name: Upload AppImage artifact
         if: matrix.os_name == 'linux'

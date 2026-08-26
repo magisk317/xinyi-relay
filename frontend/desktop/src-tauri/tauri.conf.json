@@ -4,8 +4,8 @@
   "version": "0.2.1",
   "identifier": "io.github.magisk317.relay.desktop",
   "build": {
-    "beforeBuildCommand": "npm run build",
-    "beforeDevCommand": "npm run dev -- --host 127.0.0.1 --port 1420",
+    "beforeBuildCommand": "bun run build",
+    "beforeDevCommand": "bun run dev -- --host 127.0.0.1 --port 1420",
     "devUrl": "http://127.0.0.1:1420",
     "frontendDist": "../dist"
   },

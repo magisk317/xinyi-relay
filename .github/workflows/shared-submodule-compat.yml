@@ -59,18 +59,11 @@ jobs:
         uses: ./.magisk-ci-toolkit/.github/actions/setup-android-ci
         with:
           checkout: 'false'
-      - name: Resolve WebUI toolchain
-        id: webui_toolchain
+      - name: Set up Bun
         shell: bash
-        run: python scripts/ci/resolve_package_toolchain.py frontend/webui/package.json --require-node >> "$GITHUB_OUTPUT"
-      - uses: actions/setup-node@v6
-        with:
-          node-version: ${{ steps.webui_toolchain.outputs.node_version }}
-      - uses: pnpm/action-setup@v6
-        with:
-          version: ${{ steps.webui_toolchain.outputs.pnpm_version }}
+        run: bash .magisk-ci-toolkit/ci/ensure_bun.sh frontend/webui/package.json
       - name: WebUI Install
-        run: pnpm -C frontend/webui install --frozen-lockfile --ignore-scripts
+        run: bun -C frontend/webui install --frozen-lockfile --ignore-scripts
       - name: Decode Google Services
         if: env.HAS_GOOGLE_SERVICES_JSON == 'true'
         run: |
