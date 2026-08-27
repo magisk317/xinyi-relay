@@ -105,6 +105,26 @@ class OverviewViewModelTest {
             eventDeferred.await(),
         )
     }
+
+    @Test
+    fun runtimeSnapshotCache_reusesSameInputs_andInvalidatesWhenInputsChange() {
+        val cache = OverviewRuntimeSnapshotCache()
+        val initial = OverviewRuntimeRefreshKey(HomeChartWindow.ALL, analyticsEnabled = true)
+
+        assertTrue(cache.needsRefresh(initial))
+        cache.markRefreshed(initial)
+        assertFalse(cache.needsRefresh(initial))
+        assertTrue(
+            cache.needsRefresh(
+                OverviewRuntimeRefreshKey(HomeChartWindow.LAST_7_DAYS, analyticsEnabled = true),
+            ),
+        )
+        assertTrue(
+            cache.needsRefresh(
+                OverviewRuntimeRefreshKey(HomeChartWindow.ALL, analyticsEnabled = false),
+            ),
+        )
+    }
 }
 
 private class FakeOverviewSettingsRepository(

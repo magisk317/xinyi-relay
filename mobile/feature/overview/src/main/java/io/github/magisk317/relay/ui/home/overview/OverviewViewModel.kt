@@ -3,7 +3,6 @@ package io.github.magisk317.relay.ui.home.overview
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
 import io.github.magisk317.relay.common.utils.PackageUtils
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
@@ -22,7 +21,24 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+
+internal data class OverviewRuntimeRefreshKey(
+    val chartWindow: HomeChartWindow,
+    val analyticsEnabled: Boolean,
+)
+
+internal class OverviewRuntimeSnapshotCache {
+    private var completedKey: OverviewRuntimeRefreshKey? = null
+
+    fun needsRefresh(key: OverviewRuntimeRefreshKey): Boolean = completedKey != key
+
+    fun markRefreshed(key: OverviewRuntimeRefreshKey) {
+        completedKey = key
+    }
+}
 
 class OverviewViewModel(
     private val settingsRepository: SettingsPreferencesRepository,
@@ -37,6 +53,8 @@ class OverviewViewModel(
     private var pageActive = true
     private var settingsGeneration = 0L
     private var runtimeRefreshGeneration = 0L
+    private val runtimeRefreshMutex = Mutex()
+    private val runtimeSnapshotCache = OverviewRuntimeSnapshotCache()
 
     internal fun setPageActive(active: Boolean) {
         if (pageActive == active) return
@@ -111,17 +129,25 @@ class OverviewViewModel(
         analyticsEnabled: Boolean,
     ) {
         if (!pageActive) return
-        val generation = ++runtimeRefreshGeneration
-        val chartWindow = _uiState.value.chartWindow
-        val runtimeSnapshot = loadOverviewRuntimeUiState(
-            context = context,
-            analyticsRepository = analyticsRepository,
-            chartWindow = chartWindow,
+        val refreshKey = OverviewRuntimeRefreshKey(
+            chartWindow = _uiState.value.chartWindow,
             analyticsEnabled = analyticsEnabled,
         )
-        currentCoroutineContext().ensureActive()
-        if (!pageActive || generation != runtimeRefreshGeneration) return
-        _uiState.update { it.copy(runtimeSnapshot = runtimeSnapshot) }
+        if (!runtimeSnapshotCache.needsRefresh(refreshKey)) return
+        runtimeRefreshMutex.withLock {
+            if (!pageActive || !runtimeSnapshotCache.needsRefresh(refreshKey)) return@withLock
+            val generation = ++runtimeRefreshGeneration
+            val runtimeSnapshot = loadOverviewRuntimeUiState(
+                context = context,
+                analyticsRepository = analyticsRepository,
+                chartWindow = refreshKey.chartWindow,
+                analyticsEnabled = analyticsEnabled,
+            )
+            currentCoroutineContext().ensureActive()
+            if (!pageActive || generation != runtimeRefreshGeneration) return@withLock
+            runtimeSnapshotCache.markRefreshed(refreshKey)
+            _uiState.update { it.copy(runtimeSnapshot = runtimeSnapshot) }
+        }
     }
 
     internal fun updateCardOrderLocally(newOrder: List<String>) {
@@ -278,9 +304,6 @@ private suspend fun loadOverviewRuntimeUiState(
         }
         val appVersion = appVersionDeferred.await()
         OverviewRuntimeUiState(
-            runtimeConnected = ActivationDiagnosticsStore.isRuntimeConnected(),
-            mobileAutomationAllowed = io.github.magisk317.relay.android.prefs.PrefsReader.mobileAutomationAllowed(context),
-            activationDiagnostics = ActivationDiagnosticsStore.snapshot(context),
             frameworkType = frameworkType,
             frameworkVersion = frameworkVersion,
             hasRootAccess = hasRootAccessDeferred.await(),

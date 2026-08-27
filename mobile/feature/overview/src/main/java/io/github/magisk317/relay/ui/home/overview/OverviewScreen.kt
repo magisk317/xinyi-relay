@@ -75,6 +75,7 @@ import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import io.github.magisk317.relay.engine.service.RuntimeAnalyticsProvider
 import io.github.magisk317.relay.billing.BillingProvider
+import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -156,6 +157,10 @@ fun OverviewScreen(
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
+    val activationStatusFlow = remember(context) {
+        ActivationDiagnosticsStore.observeStatus(context.applicationContext)
+    }
+    val activationStatus by activationStatusFlow.collectAsStateWithLifecycle()
 
     val listState = rememberLazyListState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -218,7 +223,6 @@ fun OverviewScreen(
         lifecycleOwner,
         isActive,
         effectiveAnalyticsEnabled,
-        mobileAutomationAllowedPref.value,
         overviewUiState.chartWindow,
     ) {
         if (!isActive) {
@@ -283,9 +287,9 @@ fun OverviewScreen(
         frameworkType = runtimeUiState.frameworkType,
         frameworkVersion = runtimeUiState.frameworkVersion,
         hasRootAccess = runtimeUiState.hasRootAccess,
-        runtimeConnected = runtimeUiState.runtimeConnected,
-        mobileAutomationAllowed = mobileAutomationAllowedPref.value || runtimeUiState.mobileAutomationAllowed,
-        activationDiagnostics = runtimeUiState.activationDiagnostics,
+        runtimeConnected = activationStatus.runtimeConnected,
+        mobileAutomationAllowed = mobileAutomationAllowedPref.value,
+        activationDiagnostics = activationStatus.diagnostics,
         showStatusDiagnostics = overviewUiState.showStatusDiagnostics,
         draggingCardId = overviewUiState.draggingCardId,
         dragOffsetY = overviewUiState.dragOffsetY,

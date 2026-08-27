@@ -558,6 +558,7 @@ fun MainScreen(
                 chromeController = chromeController,
                 onTabSelected = ::navigateToTab,
                 onTabReselected = { index -> triggerRefreshForIndex(index) },
+                showSystemBarsScrim = false,
                 railHeader = {
                     Icon(
                         imageVector = Icons.Default.Email,

@@ -635,7 +635,9 @@ fun CodeRecordScreen(
     }
 
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
     ) {
         val defaultTopPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 120.dp
         val measuredTopHeight = if (fixedTopHeightPx > 0) with(density) { fixedTopHeightPx.toDp() } else defaultTopPadding

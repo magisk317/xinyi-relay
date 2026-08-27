@@ -38,6 +38,9 @@ import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import androidx.compose.ui.window.DialogProperties
 
+private val booleanPreferenceStateCache =
+    io.github.magisk317.uikit.state.RetainedValueCache<String, Boolean>()
+
 @Composable
 fun rememberPrefBoolean(
     key: String,
@@ -45,12 +48,16 @@ fun rememberPrefBoolean(
     isActive: Boolean = true,
 ): MutableState<Boolean> {
     val preferenceDataSource: PreferenceDataSource = koinInject()
-    val state = remember(key) { mutableStateOf(defaultValue) }
-    LaunchedEffect(preferenceDataSource, key, defaultValue, isActive) {
-        if (!isActive) return@LaunchedEffect
-        state.value = preferenceDataSource.getBoolean(key, defaultValue)
+    val flow = remember(preferenceDataSource, key, defaultValue) {
+        preferenceDataSource.getBooleanFlow(key, defaultValue)
     }
-    return state
+    return io.github.magisk317.uikit.state.rememberRetainedFlowState(
+        cache = booleanPreferenceStateCache,
+        key = key,
+        initialValue = defaultValue,
+        isActive = isActive,
+        flow = flow,
+    )
 }
 
 @Composable

@@ -6,6 +6,7 @@ import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import android.graphics.Bitmap
 import android.os.SystemClock
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -227,7 +228,11 @@ fun AppConfigScreen(
             }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+    ) {
         OverlayHeaderScaffold(
             fallbackTopPadding = defaultTopPadding,
             bottomPadding = effectiveBottomPadding,

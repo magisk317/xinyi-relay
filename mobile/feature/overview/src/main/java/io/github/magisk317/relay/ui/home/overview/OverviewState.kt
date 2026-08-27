@@ -1,7 +1,5 @@
 package io.github.magisk317.relay.ui.home.overview
 
-import io.github.magisk317.smscode.runtime.contract.diagnostics.ActivationDiagnosticsSnapshot
-
 internal const val CARD_STATUS = "status"
 internal const val CARD_CHART = "chart"
 internal const val CARD_APP_INFO = "app_info"
@@ -39,9 +37,6 @@ internal data class OverviewUiState(
 )
 
 internal data class OverviewRuntimeUiState(
-    val runtimeConnected: Boolean = false,
-    val mobileAutomationAllowed: Boolean = false,
-    val activationDiagnostics: ActivationDiagnosticsSnapshot = ActivationDiagnosticsSnapshot(),
     val frameworkType: String = "",
     val frameworkVersion: String = "",
     val hasRootAccess: Boolean = false,
