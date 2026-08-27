@@ -846,6 +846,7 @@
     <string name="mobile_entitlement_license_code_confirm">Activate</string>
     <string name="mobile_entitlement_license_code_get_hint">Send /start to the official Telegram bot to get your 32-character activation code</string>
     <string name="mobile_entitlement_license_code_invalid">Please enter a valid 32-character activation code</string>
+    <string name="mobile_entitlement_license_code_sync_pending">Refresh status to sync the activation code display.</string>
     <string name="mobile_entitlement_or">Or</string>
     <string name="pref_msg_type_sms_code_title">Verification code SMS</string>
     <string name="pref_msg_type_sms_code_summary">Control whether verification code SMS enters the main pipeline</string>

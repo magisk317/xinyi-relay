@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -73,31 +74,30 @@ private fun MobileEntitlementScreen(
 ) {
     val context: Context = activity
     val scope = rememberCoroutineScope()
-    var evaluation by remember { mutableStateOf<MobileEntitlementEvaluation?>(null) }
+    var evaluation by remember {
+        mutableStateOf(MobileEntitlementCoordinator.readCachedEvaluation())
+    }
     var busyAction by remember { mutableStateOf<ActivationAction?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
     var licenseCodeInput by remember { mutableStateOf("") }
     var savedLicenseCode by remember { mutableStateOf<String?>(null) }
 
-    fun maskLicenseCode(code: String): String {
-        val trimmed = code.trim()
-        if (trimmed.length != 32) return trimmed
-        return trimmed.take(4) + "*".repeat(24) + trimmed.takeLast(4)
-    }
-
-    fun refreshStatus() {
+    fun refreshStatus(
+        force: Boolean = true,
+        showProgress: Boolean = true,
+    ) {
         scope.launch {
-            busyAction = ActivationAction.REFRESH
+            if (showProgress) busyAction = ActivationAction.REFRESH
             message = null
             runCatching {
                 withContext(Dispatchers.IO) {
-                    MobileEntitlementCoordinator.refresh(context)
+                    MobileEntitlementCoordinator.refresh(context, force = force)
                 }
             }.onSuccess {
                 evaluation = it
                 savedLicenseCode = MobileEntitlementCoordinator.readSavedLicenseCode(context)
             }.onFailure { message = it.message ?: it.javaClass.simpleName }
-            busyAction = null
+            if (showProgress) busyAction = null
         }
     }
 
@@ -117,6 +117,9 @@ private fun MobileEntitlementScreen(
             }.onSuccess {
                 evaluation = it
                 licenseCodeInput = ""
+                savedLicenseCode = withContext(Dispatchers.IO) {
+                    MobileEntitlementCoordinator.readSavedLicenseCode(context)
+                }
             }.onFailure { message = it.message ?: it.javaClass.simpleName }
             busyAction = null
         }
@@ -146,7 +149,9 @@ private fun MobileEntitlementScreen(
         savedLicenseCode = withContext(Dispatchers.IO) {
             MobileEntitlementCoordinator.readSavedLicenseCode(context)
         }
-        refreshStatus()
+        val cached = MobileEntitlementCoordinator.readCachedEvaluation()
+        if (cached != null) evaluation = cached
+        refreshStatus(force = false, showProgress = cached == null)
     }
 
     Scaffold(
@@ -178,7 +183,7 @@ private fun MobileEntitlementScreen(
                     Text(
                         text = stringResource(
                             R.string.mobile_entitlement_status,
-                            evaluation?.status?.name ?: stringResource(R.string.mobile_entitlement_not_loaded),
+                            stringResource(mobileEntitlementStatusStringRes(evaluation?.status)),
                         ),
                         style = MaterialTheme.typography.titleMedium,
                     )
@@ -204,8 +209,12 @@ private fun MobileEntitlementScreen(
                 }
             }
 
-            val isActivated = evaluation?.status == MobileEntitlementStatus.ACTIVE
-            val displayCode = savedLicenseCode ?: ""
+            val isActivated = isMobileEntitlementActivated(evaluation?.status)
+            val maskedLicenseCode = io.github.magisk317.uikit.text.maskSensitiveIdentifier(
+                value = savedLicenseCode?.trim()?.uppercase(),
+                expectedLength = 32,
+                maskLength = 4,
+            )
 
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(
@@ -216,16 +225,26 @@ private fun MobileEntitlementScreen(
                         text = stringResource(R.string.mobile_entitlement_license_code_label),
                         style = MaterialTheme.typography.titleMedium,
                     )
-                    if (isActivated && displayCode.isNotBlank()) {
+                    if (isActivated) {
                         OutlinedTextField(
-                            value = maskLicenseCode(displayCode),
+                            value = maskedLicenseCode.orEmpty(),
                             onValueChange = {},
                             readOnly = true,
                             enabled = false,
                             label = { Text(stringResource(R.string.mobile_entitlement_license_code_label)) },
                             modifier = Modifier.fillMaxWidth(),
+                            textStyle = androidx.compose.material3.LocalTextStyle.current.copy(
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            ),
                             singleLine = true,
                         )
+                        if (maskedLicenseCode == null) {
+                            Text(
+                                text = stringResource(R.string.mobile_entitlement_license_code_sync_pending),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     } else {
                         OutlinedTextField(
                             value = licenseCodeInput,
@@ -256,7 +275,7 @@ private fun MobileEntitlementScreen(
 
             val currentEvaluation = evaluation
             val showActivationActions = currentEvaluation == null ||
-                currentEvaluation.status != MobileEntitlementStatus.ACTIVE ||
+                !isMobileEntitlementActivated(currentEvaluation.status) ||
                 currentEvaluation.renewDue
             if (showActivationActions) {
                 OutlinedButton(
@@ -271,7 +290,7 @@ private fun MobileEntitlementScreen(
                 }
             }
             OutlinedButton(
-                onClick = ::refreshStatus,
+                onClick = { refreshStatus(force = true) },
                 enabled = busyAction == null,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -294,6 +313,16 @@ private enum class ActivationAction {
     REFRESH,
     LICENSE_CODE,
     TELEGRAM,
+}
+
+internal fun isMobileEntitlementActivated(status: MobileEntitlementStatus?): Boolean =
+    status == MobileEntitlementStatus.ACTIVE || status == MobileEntitlementStatus.GRACE
+
+@StringRes
+internal fun mobileEntitlementStatusStringRes(status: MobileEntitlementStatus?): Int = when {
+    status == null -> R.string.mobile_entitlement_not_loaded
+    isMobileEntitlementActivated(status) -> R.string.module_status_active
+    else -> R.string.module_status_inactive
 }
 
 private fun formatEpoch(epochSeconds: Long): String =

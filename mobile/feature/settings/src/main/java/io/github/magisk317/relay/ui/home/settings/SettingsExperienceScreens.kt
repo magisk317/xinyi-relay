@@ -284,14 +284,6 @@ fun SettingsHomeScreen(
                 diagnostics = diagnosticsSnapshot,
                 expanded = expandOthers,
                 onExpandedChange = { expandOthers = !expandOthers },
-                onOpenMobileEntitlement = {
-                    context.startActivity(
-                        Intent().setClassName(
-                            context,
-                            "io.github.magisk317.relay.entitlement.MobileEntitlementActivity",
-                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                    )
-                },
                 onRuntimeLogTitleClick = runtimeLogActions.onRuntimeLogTitleClick,
                 onVerboseLogModeChange = { enabled ->
                     scope.launch {

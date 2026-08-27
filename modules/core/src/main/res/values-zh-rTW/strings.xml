@@ -847,6 +847,7 @@
     <string name="forward_filter_msg_type_call_notify">通話</string>
     <string name="forward_filter_action_add">新增</string>
     <string name="forward_filter_action_edit">編輯</string>
+    <string name="mobile_entitlement_license_code_sync_pending">請重新整理狀態以同步啟用碼顯示資訊。</string>
     <string name="forward_filter_empty">暫無規則</string>
     <string name="forward_filter_global_title">關鍵詞過濾（全域）</string>
     <string name="forward_filter_sender_title">通道關鍵詞過濾</string>

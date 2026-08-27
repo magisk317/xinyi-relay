@@ -856,6 +856,7 @@
     <string name="mobile_entitlement_license_code_confirm">确认激活</string>
     <string name="mobile_entitlement_license_code_get_hint">在官方 Telegram 机器人发送 /start 即可获取你的 32 位专属激活码</string>
     <string name="mobile_entitlement_license_code_invalid">请输入有效的 32 位激活码</string>
+    <string name="mobile_entitlement_license_code_sync_pending">请刷新状态以同步激活码显示信息。</string>
     <string name="mobile_entitlement_or">或者</string>
     <string name="pref_msg_type_sms_code_title">验证码短信</string>
     <string name="pref_msg_type_sms_code_summary">控制验证码短信是否进入主处理管线</string>
