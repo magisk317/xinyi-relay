@@ -1,6 +1,6 @@
 # 系统架构与代码分层
 
-最后更新：2026-07-26
+最后更新：2026-08-27
 
 ## 总览
 
@@ -31,6 +31,7 @@
 | `:relay:sender:api` / `relay/sender/api` | `modules/relay/sender/api/` |
 | `:relay:matrix-e2ee` / `relay/matrix-e2ee` | `modules/relay/matrix-e2ee/` |
 | `:xpbridge:core` / `xpbridge/core` | `modules/xpbridge/core/` |
+| `:xpbridge:android:api` / `xpbridge/android/api` | `modules/xpbridge/android/api/` |
 | `:mobile:ui` / `mobile/ui` | `mobile/ui/` |
 | `:mobile:feature:*` / `mobile/feature/*` | `mobile/feature/*/` |
 | `:features:matrix_e2ee` | `features/matrix-e2ee/` |
@@ -57,13 +58,21 @@ Xposed/libxposed 入口和 hook 调度。hook 侧负责采集/解析/拦截，�
 
 ### `xpbridge/core`
 
-Xposed/runtime 之间的 facade、DTO 和桥接接口。各 facade 收敛至 `relay/contract` 合同，实现放 `runtime` / `relay/android`。
+Xposed hook 侧 facade 与协调器。通过 `:xpbridge:android:api` 消费 runtime bridge，不拥有 runtime 实现。
 
+- 允许：`xpbridge/android/api`、`relay/contract`、共享 hook/runtime contract
 - 禁止：`runtime`、`relay/android`、`relay/engine` 实现、`smscode-core/domain`、Compose
+
+### `xpbridge/android/api`
+
+Xposed/runtime 之间的 Android API 边界，当前拥有 `XpSmsDispatchRuntimeBridge` 与 Noop。方法签名复用 `relay/contract` 中的平台中立 DTO；实现位于 `runtime`。
+
+- 允许：Android SDK、`relay/contract`
+- 禁止：`runtime`、`xpbridge/core`、`relay/android` 及 data/domain/platform 实现包
 
 ### `relay/contract`
 
-项目级稳定 contract：常量、设置模型、repository 接口、远程同步接口、JSON codec、设备 mirror DTO、sender active schedule 真源。`RelayJson` 是业务 JSON 首选入口。
+项目级稳定 contract：常量、设置模型、repository 接口、远程同步接口、JSON codec、设备 mirror DTO、sender active schedule 真源。`RelayJson` 是业务 JSON 首选入口。Android 图标编码等平台实现归 `relay/android`；Xposed Android runtime bridge API 归 `xpbridge/android/api`。
 
 ### `relay/engine/api`
 
@@ -96,7 +105,7 @@ sender 配置模型、发送实现、发送结果模型。通过 `SenderRuntimeI
 
 ### `relay/android`
 
-Android 平台数据源：Room、DataStore、PrefsReader、DBProvider、诊断、日志落地。
+Android 平台数据源与 adapter：Room、DataStore、PrefsReader、DBProvider、诊断、日志落地，以及应用图标解析/编码等 PackageManager/graphics 能力。
 
 - 允许：`relay/engine/api`、`relay/sender`（implementation，不传递暴露）、`relay/contract`、`smscode-core/domain`、`smscode-core/runtime`
 - 禁止：`relay/engine` 实现

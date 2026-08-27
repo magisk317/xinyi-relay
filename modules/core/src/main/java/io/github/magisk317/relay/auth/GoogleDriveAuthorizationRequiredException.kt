@@ -1,8 +1,7 @@
 package io.github.magisk317.relay.auth
 
-import android.content.Intent
+import android.app.PendingIntent
 
 class GoogleDriveAuthorizationRequiredException(
-    val authorizationIntent: Intent,
-    cause: Throwable? = null,
-) : Exception("Google Drive authorization required", cause)
+    val pendingIntent: PendingIntent,
+) : Exception("Google Drive authorization required")

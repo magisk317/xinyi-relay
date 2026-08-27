@@ -93,6 +93,9 @@ dependencies {
     add("playImplementation", platform(libs.firebase.bom))
     add("playImplementation", libs.firebase.auth)
     add("playImplementation", libs.play.services.auth)
+    add("playImplementation", libs.androidx.credential.core)
+    add("playImplementation", libs.androidx.credential.play.services.auth)
+    add("playImplementation", libs.google.id)
     add("playImplementation", libs.kotlinx.coroutines.play.services)
     add("playImplementation", project(":magisk-ui-kit:billing"))
 

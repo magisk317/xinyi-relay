@@ -2,9 +2,9 @@ package io.github.magisk317.relay.xpbridge
 
 import android.content.Context
 import android.content.Intent
-import io.github.magisk317.relay.contract.xpbridge.NoopXpSmsDispatchRuntimeBridge
+import io.github.magisk317.relay.xpbridge.android.api.NoopXpSmsDispatchRuntimeBridge
 import io.github.magisk317.relay.contract.xpbridge.XpPreparedSmsHookDispatch
-import io.github.magisk317.relay.contract.xpbridge.XpSmsDispatchRuntimeBridge
+import io.github.magisk317.relay.xpbridge.android.api.XpSmsDispatchRuntimeBridge
 
 object XpDispatchCoordinator {
     @Volatile

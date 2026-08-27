@@ -1,7 +1,11 @@
-package io.github.magisk317.relay.contract.xpbridge
+package io.github.magisk317.relay.xpbridge.android.api
 
 import android.content.Context
 import android.content.Intent
+import io.github.magisk317.relay.contract.xpbridge.XpForwardPayload
+import io.github.magisk317.relay.contract.xpbridge.XpPreparedSmsHookDispatch
+import io.github.magisk317.relay.contract.xpbridge.XpSmsHookDispatchResult
+import io.github.magisk317.relay.contract.xpbridge.XpSmsRecord
 import kotlin.math.abs
 
 interface XpSmsDispatchRuntimeBridge {

@@ -2,7 +2,8 @@ package io.github.magisk317.relay.ui.backup
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
 
-import android.app.Activity
+import androidx.activity.compose.LocalActivity
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -64,6 +65,7 @@ fun CloudBackupScreen(
     viewModel: CloudBackupViewModel = viewModel(),
 ) {
     val coroutineScope = rememberCoroutineScope()
+    val activity = checkNotNull(LocalActivity.current) { "CloudBackupScreen requires an Activity context" }
     val snackbarHostState = LocalSnackbarHostState.current
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val autoBackupEnabled by viewModel.autoBackupEnabled.collectAsStateWithLifecycle()
@@ -79,16 +81,10 @@ fun CloudBackupScreen(
     val loadingBackupsMessage = stringResource(id = R.string.cloud_backup_loading_backups)
     val backupsTitle = stringResource(id = R.string.cloud_backup_list_title)
 
-    val googleSignInLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        viewModel.handleGoogleSignInResult(result.data)
-    }
-
     val googleDriveAuthorizationLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
+        contract = ActivityResultContracts.StartIntentSenderForResult(),
     ) { result ->
-        viewModel.handleGoogleDriveAuthorizationResult(result.resultCode == Activity.RESULT_OK)
+        viewModel.handleGoogleDriveAuthorizationResult(result.data)
     }
 
     var showWebDavConfig by remember { mutableStateOf(false) }
@@ -106,8 +102,7 @@ fun CloudBackupScreen(
     val isWebDavPasswordMissing = hasAttemptedWebDavSubmit && webDavPassword.isBlank()
 
     fun requestGoogleDriveLogin(action: CloudBackupViewModel.AfterLoginAction? = null) {
-        action?.let(viewModel::setPendingAfterLoginAction)
-        googleSignInLauncher.launch(viewModel.getGoogleSignInIntent())
+        viewModel.signInWithGoogle(activity, action)
     }
 
     fun showMessage(message: String) {
@@ -166,7 +161,9 @@ fun CloudBackupScreen(
                     // Handled automatically by view model loading backups
                 }
                 is CloudBackupViewModel.CloudBackupEvent.GoogleDriveAuthorizationRequired -> {
-                    googleDriveAuthorizationLauncher.launch(event.intent)
+                    googleDriveAuthorizationLauncher.launch(
+                        IntentSenderRequest.Builder(event.pendingIntent).build(),
+                    )
                 }
                 is CloudBackupViewModel.CloudBackupEvent.Error -> {
                     showMessage(event.message)

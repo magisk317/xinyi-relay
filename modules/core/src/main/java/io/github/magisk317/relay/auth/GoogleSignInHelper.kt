@@ -1,9 +1,10 @@
 package io.github.magisk317.relay.auth
 
-import android.content.Intent
+import android.app.Activity
 
 interface GoogleSignInHelper {
-    fun getSignInIntent(): Intent
-    fun handleSignInResult(data: Intent?): Any?
-    fun signOut()
+    suspend fun signIn(activity: Activity): String
+    suspend fun signOut()
 }
+
+class GoogleSignInCancelledException(cause: Throwable) : Exception("Google sign-in was cancelled", cause)

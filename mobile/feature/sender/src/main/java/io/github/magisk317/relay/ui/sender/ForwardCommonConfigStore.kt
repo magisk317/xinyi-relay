@@ -11,7 +11,7 @@ import android.net.NetworkCapabilities
 import android.os.BatteryManager
 import android.os.Build
 import io.github.magisk317.relay.contract.constant.MessageType
-import io.github.magisk317.relay.contract.util.AppIconEncoder
+import io.github.magisk317.relay.android.platform.icon.AppIconEncoder
 import io.github.magisk317.smscode.runtime.contract.sim.SimSlotLabelFormatter
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.engine.model.MsgInfo

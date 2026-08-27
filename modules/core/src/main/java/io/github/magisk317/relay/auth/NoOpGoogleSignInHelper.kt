@@ -1,10 +1,11 @@
 package io.github.magisk317.relay.auth
 
+import android.app.Activity
 import android.content.Context
-import android.content.Intent
 
-class NoOpGoogleSignInHelper(context: Context) : GoogleSignInHelper {
-    override fun getSignInIntent(): Intent = Intent()
-    override fun handleSignInResult(data: Intent?): Nothing? = null
-    override fun signOut() {}
+class NoOpGoogleSignInHelper(@Suppress("UNUSED_PARAMETER") context: Context) : GoogleSignInHelper {
+    override suspend fun signIn(activity: Activity): Nothing =
+        throw UnsupportedOperationException("Google sign-in is not available")
+
+    override suspend fun signOut() = Unit
 }

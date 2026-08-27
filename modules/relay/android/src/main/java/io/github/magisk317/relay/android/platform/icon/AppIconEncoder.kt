@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.contract.util
+package io.github.magisk317.relay.android.platform.icon
 
 import android.content.Context
 import android.content.Intent

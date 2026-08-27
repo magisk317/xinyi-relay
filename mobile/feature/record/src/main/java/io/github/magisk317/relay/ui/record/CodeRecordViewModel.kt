@@ -15,7 +15,7 @@ import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.engine.model.ReadRecordData
 import io.github.magisk317.relay.engine.service.MessageRecordRepository
-import io.github.magisk317.relay.contract.util.AppIconEncoder
+import io.github.magisk317.relay.android.platform.icon.AppIconEncoder
 import io.github.magisk317.relay.ui.common.AppIconCache
 import kotlinx.serialization.Serializable
 import kotlinx.collections.immutable.ImmutableList

@@ -1,39 +1,42 @@
-@file:Suppress("DEPRECATION")
-
 package io.github.magisk317.relay.auth
 
+import android.app.Activity
 import android.content.Context
-import android.content.Intent
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount
-import com.google.android.gms.auth.api.signin.GoogleSignInClient
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.api.ApiException
-import com.google.android.gms.tasks.Task
+import androidx.credentials.ClearCredentialStateRequest
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 
 class GoogleSignInHelperImpl(context: Context) : GoogleSignInHelper {
 
-    private val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-        .requestScopes(com.google.android.gms.common.api.Scope(com.google.android.gms.common.Scopes.DRIVE_APPFOLDER))
-        .requestIdToken(WEB_CLIENT_ID)
-        .requestEmail()
-        .build()
+    private val credentialManager = CredentialManager.create(context.applicationContext)
 
-    private val client: GoogleSignInClient = GoogleSignIn.getClient(context.applicationContext, gso)
-
-    override fun getSignInIntent(): Intent = client.signInIntent
-
-    override fun handleSignInResult(data: Intent?): GoogleSignInAccount? {
-        val task: Task<GoogleSignInAccount> = GoogleSignIn.getSignedInAccountFromIntent(data)
-        return try {
-            task.getResult(ApiException::class.java)
-        } catch (_: ApiException) {
-            null
+    override suspend fun signIn(activity: Activity): String {
+        val googleIdOption = GetGoogleIdOption.Builder()
+            .setFilterByAuthorizedAccounts(false)
+            .setAutoSelectEnabled(false)
+            .setServerClientId(WEB_CLIENT_ID)
+            .build()
+        val request = GetCredentialRequest(listOf(googleIdOption))
+        val credential = try {
+            credentialManager.getCredential(activity, request).credential
+        } catch (error: GetCredentialCancellationException) {
+            throw GoogleSignInCancelledException(error)
         }
+
+        check(
+            credential is CustomCredential &&
+                credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL,
+        ) { "Unsupported Google credential type: ${credential.type}" }
+
+        return GoogleIdTokenCredential.createFrom(credential.data).idToken
     }
 
-    override fun signOut() {
-        client.signOut()
+    override suspend fun signOut() {
+        credentialManager.clearCredentialState(ClearCredentialStateRequest())
     }
 
     companion object {

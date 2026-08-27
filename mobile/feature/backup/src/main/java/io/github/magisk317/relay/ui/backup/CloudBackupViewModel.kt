@@ -1,11 +1,14 @@
 package io.github.magisk317.relay.ui.backup
 
+import android.app.Activity
 import android.app.Application
+import android.app.PendingIntent
 import android.content.Intent
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.magisk317.relay.auth.AuthManager
 import io.github.magisk317.relay.auth.GoogleDriveAuthorizationRequiredException
+import io.github.magisk317.relay.auth.GoogleSignInCancelledException
 import io.github.magisk317.relay.auth.GoogleSignInHelper
 import io.github.magisk317.relay.backup.BackupSource
 import io.github.magisk317.relay.backup.CloudBackupMeta
@@ -19,6 +22,7 @@ import io.github.magisk317.relay.backup.webdav.WebDavConfig
 import io.github.magisk317.relay.backup.webdav.WebDavConfigStore
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.mobilefeature.backup.BuildConfig
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -60,7 +64,6 @@ class CloudBackupViewModel(application: Application) : AndroidViewModel(applicat
     private val _events = MutableSharedFlow<CloudBackupEvent>(extraBufferCapacity = 1)
     val events: SharedFlow<CloudBackupEvent> = _events.asSharedFlow()
 
-    private var pendingAfterLoginAction: AfterLoginAction? = null
     private var pendingDriveAction: DriveAction? = null
 
     fun isAvailable(): Boolean = true
@@ -76,37 +79,30 @@ class CloudBackupViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
-    fun getGoogleSignInIntent(): Intent {
-        return googleSignInHelper.getSignInIntent()
-    }
-
-    fun setPendingAfterLoginAction(action: AfterLoginAction) {
-        pendingAfterLoginAction = action
-    }
-
-    fun handleGoogleSignInResult(data: Intent?) {
+    fun signInWithGoogle(activity: Activity, action: AfterLoginAction? = null) {
         viewModelScope.launch {
             _isLoading.value = true
-            val account = googleSignInHelper.handleSignInResult(data)
-            if (account != null) {
-                val nextAction = pendingAfterLoginAction
-                pendingAfterLoginAction = null
-                val result = authManager.signInWithGoogle(account)
+            try {
+                val idToken = googleSignInHelper.signIn(activity)
+                val result = authManager.signInWithGoogle(idToken)
                 if (result.isSuccess) {
                     _events.emit(CloudBackupEvent.LoginSuccess)
-                    _isLoading.value = false
-                    when (nextAction) {
+                    when (action) {
                         AfterLoginAction.BackupNow -> backupNow()
                         null -> loadBackups()
                     }
-                    return@launch
+                } else {
+                    _events.emit(CloudBackupEvent.Error(string(R.string.cloud_backup_login_failed)))
                 }
-                _events.emit(CloudBackupEvent.Error(string(R.string.cloud_backup_login_failed)))
-            } else {
-                pendingAfterLoginAction = null
+            } catch (error: GoogleSignInCancelledException) {
                 _events.emit(CloudBackupEvent.Error(string(R.string.cloud_backup_login_canceled)))
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                _events.emit(CloudBackupEvent.Error(string(R.string.cloud_backup_login_failed)))
+            } finally {
+                _isLoading.value = false
             }
-            _isLoading.value = false
         }
     }
 
@@ -265,21 +261,34 @@ class CloudBackupViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
-    fun handleGoogleDriveAuthorizationResult(granted: Boolean) {
+    fun handleGoogleDriveAuthorizationResult(data: Intent?) {
         val action = pendingDriveAction
         pendingDriveAction = null
-        if (!granted) {
+        if (data == null) {
             viewModelScope.launch {
                 _events.emit(CloudBackupEvent.Error(string(R.string.cloud_backup_drive_authorization_canceled)))
             }
             return
         }
-        when (action) {
-            DriveAction.BackupNow -> backupNow()
-            DriveAction.LoadBackups -> loadBackups()
-            is DriveAction.Restore -> restoreBackup(action.backupId)
-            is DriveAction.Delete -> deleteBackup(action.backupId)
-            null -> loadBackups()
+        viewModelScope.launch {
+            try {
+                authManager.completeGoogleDriveAuthorization(data)
+                when (action) {
+                    DriveAction.BackupNow -> backupNow()
+                    DriveAction.LoadBackups -> loadBackups()
+                    is DriveAction.Restore -> restoreBackup(action.backupId)
+                    is DriveAction.Delete -> deleteBackup(action.backupId)
+                    null -> loadBackups()
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                _events.emit(
+                    CloudBackupEvent.Error(
+                        userMessage(error, string(R.string.cloud_backup_drive_authorization_canceled)),
+                    ),
+                )
+            }
         }
     }
 
@@ -293,7 +302,7 @@ class CloudBackupViewModel(application: Application) : AndroidViewModel(applicat
     private suspend fun handleDriveFailure(error: Throwable?, retryAction: DriveAction, fallbackMessage: String) {
         if (_selectedSource.value == BackupSource.GOOGLE_DRIVE && error is GoogleDriveAuthorizationRequiredException) {
             pendingDriveAction = retryAction
-            _events.emit(CloudBackupEvent.GoogleDriveAuthorizationRequired(error.authorizationIntent))
+            _events.emit(CloudBackupEvent.GoogleDriveAuthorizationRequired(error.pendingIntent))
         } else {
             _events.emit(CloudBackupEvent.Error(userMessage(error, fallbackMessage)))
         }
@@ -359,7 +368,7 @@ class CloudBackupViewModel(application: Application) : AndroidViewModel(applicat
         data object RestoreSuccess : CloudBackupEvent()
         data object WebDavConnectionSuccess : CloudBackupEvent()
         data object LoginSuccess : CloudBackupEvent()
-        data class GoogleDriveAuthorizationRequired(val intent: Intent) : CloudBackupEvent()
+        data class GoogleDriveAuthorizationRequired(val pendingIntent: PendingIntent) : CloudBackupEvent()
         data class Error(val message: String) : CloudBackupEvent()
     }
 

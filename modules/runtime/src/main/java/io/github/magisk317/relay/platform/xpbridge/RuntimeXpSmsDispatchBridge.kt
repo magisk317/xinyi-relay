@@ -7,7 +7,7 @@ import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.contract.xpbridge.XpForwardPayload
 import io.github.magisk317.relay.contract.xpbridge.XpMessageType
 import io.github.magisk317.relay.contract.xpbridge.XpPreparedSmsHookDispatch
-import io.github.magisk317.relay.contract.xpbridge.XpSmsDispatchRuntimeBridge
+import io.github.magisk317.relay.xpbridge.android.api.XpSmsDispatchRuntimeBridge
 import io.github.magisk317.relay.contract.xpbridge.XpSmsHookDispatchResult
 import io.github.magisk317.relay.contract.xpbridge.XpSmsRecord
 import io.github.magisk317.relay.platform.ipc.ForwardBroadcastContract

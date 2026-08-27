@@ -13,12 +13,15 @@ MOBILE_SOURCE_DIRS=("$ROOT_DIR/mobile" "$ROOT_DIR/modules/relay/android/src" "$R
 RUNTIME_BUILD="$ROOT_DIR/modules/runtime/build.gradle.kts"
 RUNTIME_SRC="$ROOT_DIR/modules/runtime/src"
 RELAY_ANDROID_BUILD="$ROOT_DIR/modules/relay/android/build.gradle.kts"
+RELAY_CONTRACT_SRC="$ROOT_DIR/modules/relay/contract/src"
 RELAY_MATRIX_E2EE_BUILD="$ROOT_DIR/modules/relay/matrix-e2ee/build.gradle.kts"
 RELAY_SENDER_BUILD="$ROOT_DIR/modules/relay/sender/build.gradle.kts"
 RELAY_SENDER_SRC="$ROOT_DIR/modules/relay/sender/src"
 MATRIX_FEATURE_BUILD="$ROOT_DIR/features/matrix-e2ee/build.gradle.kts"
 MATRIX_FEATURE_SRC="$ROOT_DIR/features/matrix-e2ee/src"
 XPBRIDGE_CORE_BUILD="$ROOT_DIR/modules/xpbridge/core/build.gradle.kts"
+XPBRIDGE_ANDROID_API_BUILD="$ROOT_DIR/modules/xpbridge/android/api/build.gradle.kts"
+XPBRIDGE_ANDROID_API_SRC="$ROOT_DIR/modules/xpbridge/android/api/src"
 VERSION_CATALOG="$ROOT_DIR/gradle/libs.versions.toml"
 
 violations=()
@@ -133,6 +136,18 @@ forbid_pattern "$XPBRIDGE_CORE_BUILD" 'project\(":smscode-core:domain"\)' \
   "xpbridge/core must not depend on :smscode-core:domain directly"
 forbid_pattern "$XPBRIDGE_CORE_BUILD" 'androidx\.compose' \
   "xpbridge/core must not depend on Compose runtime"
+require_pattern "$XPBRIDGE_CORE_BUILD" 'api\(project\(":xpbridge:android:api"\)\)' \
+  "xpbridge/core must expose the Xposed runtime bridge contract through :xpbridge:android:api"
+require_pattern "$XPBRIDGE_ANDROID_API_BUILD" 'api\(project\(":relay:contract"\)\)' \
+  "xpbridge/android/api must expose relay contract models used by its bridge signatures"
+forbid_pattern "$XPBRIDGE_ANDROID_API_BUILD" 'project\(":runtime"\)|project\(":xpbridge:core"\)|project\(":relay:android"\)' \
+  "xpbridge/android/api must remain independent from runtime and adapter implementations"
+forbid_pattern "$XPBRIDGE_ANDROID_API_SRC" '^\s*import\s+io\.github\.magisk317\.relay\.(data|domain|platform|xpbridge)\.' \
+  "xpbridge/android/api must depend only on stable relay contract models, not implementation packages"
+forbid_pattern "$RELAY_CONTRACT_SRC" '\b(AppIconEncoder|XpSmsDispatchRuntimeBridge|NoopXpSmsDispatchRuntimeBridge)\b' \
+  "relay/contract must not regain Android icon encoding or the Xposed SMS runtime bridge API"
+require_pattern "$RUNTIME_BUILD" 'implementation\(project\(":xpbridge:android:api"\)\)' \
+  "runtime must implement the Xposed SMS bridge through :xpbridge:android:api"
 
 forbid_pattern "$MOBILE_UI_BUILD" 'project\(":xpbridge:core"\)' \
   "mobile/ui must not depend on :xpbridge:core directly"

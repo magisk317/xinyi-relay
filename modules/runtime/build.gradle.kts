@@ -51,6 +51,7 @@ dependencies {
     implementation(project(":relay:engine"))
     implementation(project(":relay:net"))
     implementation(project(":relay:android"))
+    implementation(project(":xpbridge:android:api"))
     implementation(project(":smscode-core:domain"))
     implementation(project(":smscode-core:rule"))
     implementation(project(":smscode-core:runtime"))

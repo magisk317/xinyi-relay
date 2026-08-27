@@ -141,6 +141,7 @@ include(
     ":relay:engine",
     ":relay:engine:api",
     ":xpbridge:core",
+    ":xpbridge:android:api",
     ":smscode-core:hook",
     ":smscode-core:rule",
     ":smscode-core:domain",
@@ -181,9 +182,11 @@ project(":relay:engine").projectDir = file("modules/relay/engine")
 project(":relay:engine:api").projectDir = file("modules/relay/engine/api")
 project(":runtime").projectDir = file("modules/runtime")
 project(":xpbridge:core").projectDir = file("modules/xpbridge/core")
+project(":xpbridge:android:api").projectDir = file("modules/xpbridge/android/api")
 project(":features:matrix_e2ee").projectDir = file("features/matrix-e2ee")
 
 // Map intermediate projects so Gradle knows their directories
 project(":hook").projectDir = file("modules/hook")
 project(":relay").projectDir = file("modules/relay")
 project(":xpbridge").projectDir = file("modules/xpbridge")
+project(":xpbridge:android").projectDir = file("modules/xpbridge/android")
