@@ -554,7 +554,7 @@ android:release:github-apk:
       : "${KEY_PASSWORD:?KEY_PASSWORD is required}"
 
       printf '%s' "$RELEASE_KEYSTORE" | base64 --decode > app/release.jks
-      KEYSTORE_FILE="release.jks" \
+      KEYSTORE_FILE="app/release.jks" \
       STORE_PASSWORD="$STORE_PASSWORD" \
       KEY_ALIAS="$KEY_ALIAS" \
       KEY_PASSWORD="$KEY_PASSWORD" \
@@ -600,7 +600,7 @@ android:release:play-bundle:
         --version-file "$CI_PROJECT_DIR/gradle/libs.versions.toml" \
         --output "$CI_PROJECT_DIR/play-release.env"
       source "$CI_PROJECT_DIR/play-release.env"
-      KEYSTORE_FILE="release.jks" \
+      KEYSTORE_FILE="app/release.jks" \
       STORE_PASSWORD="$STORE_PASSWORD" \
       KEY_ALIAS="$KEY_ALIAS" \
       KEY_PASSWORD="$KEY_PASSWORD" \
@@ -665,7 +665,7 @@ android:ci:play-alpha-bundle:
         --version-file "$CI_PROJECT_DIR/gradle/libs.versions.toml" \
         --output "$CI_PROJECT_DIR/play-release.env"
       source "$CI_PROJECT_DIR/play-release.env"
-      KEYSTORE_FILE=release.jks STORE_PASSWORD="$STORE_PASSWORD" KEY_ALIAS="$KEY_ALIAS" KEY_PASSWORD="$KEY_PASSWORD" \
+      KEYSTORE_FILE=app/release.jks STORE_PASSWORD="$STORE_PASSWORD" KEY_ALIAS="$KEY_ALIAS" KEY_PASSWORD="$KEY_PASSWORD" \
         bash "$MAGISK_CI_TOOLKIT_DIR/gradle/run_gradle_with_retry.sh" $MAGISK_GRADLE_ARGS :app:bundlePlayRelease \
           -PversionName="$MAGISK_PLAY_VERSION_NAME" -PversionCode="$MAGISK_PLAY_VERSION_CODE"
   artifacts:
