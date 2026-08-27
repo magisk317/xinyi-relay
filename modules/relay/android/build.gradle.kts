@@ -1,6 +1,6 @@
 plugins {
     id("magisk.android.library")
-    alias(libs.plugins.ksp)
+    id("magisk.android.room")
     id(libs.plugins.kotlin.serialization.get().pluginId)
     id(libs.plugins.kotlin.parcelize.get().pluginId)
     id("relay.android.common")
@@ -65,9 +65,6 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.okhttp)
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
-    ksp(libs.androidx.room.compiler)
     implementation(libs.timber)
 
     listOf("play", "githubNoE2ee", "githubWithE2ee", "fdroid").forEach { flavor ->

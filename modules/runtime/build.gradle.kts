@@ -2,7 +2,7 @@ plugins {
     id("magisk.android.library")
     id(libs.plugins.kotlin.serialization.get().pluginId)
     id(libs.plugins.kotlin.parcelize.get().pluginId)
-    alias(libs.plugins.ksp)
+    id("magisk.android.room")
     id("relay.android.common")
 }
 
@@ -64,9 +64,6 @@ dependencies {
     implementation(libs.okhttp)
     
     // Database (Room)
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
-    ksp(libs.androidx.room.compiler)
     
     implementation(libs.timber)
 

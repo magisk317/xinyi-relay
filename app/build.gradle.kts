@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.google.services)
     id("magisk.app.signing")
     id("magisk.app.packaging")
-    id(libs.plugins.kotlin.compose.get().pluginId)
+    id("magisk.android.compose")
 }
 
 val versionNameStr = providers.gradleProperty("versionName")
@@ -190,10 +190,6 @@ dependencies {
     implementation(project(":relay:engine"))
 
     implementation(libs.androidx.core.ktx)
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.material.icons.core)
     implementation(libs.androidx.lifecycle.process)
 
@@ -263,9 +259,4 @@ val verifyNoRuntimePipelineLeak = tasks.register("verifyNoRuntimePipelineLeak") 
 
 tasks.named("check").configure {
     dependsOn(verifyNoRuntimePipelineLeak)
-}
-
-// Fix JUnit 5 test discovery
-tasks.withType<Test> {
-    useJUnitPlatform()
 }

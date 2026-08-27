@@ -14,7 +14,6 @@ android {
         buildConfig = true
     }
     defaultConfig {
-        minSdk = 26
         buildConfigField("String", "APPLICATION_ID", "\"io.github.magisk317.xinyi.relay\"")
         buildConfigField("String", "LOG_TAG", "\"relay\"")
         buildConfigField("int", "LOG_LEVEL", "2")
