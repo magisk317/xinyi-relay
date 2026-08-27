@@ -3,6 +3,8 @@ package io.github.magisk317.relay.ui.home.settings
 import io.github.magisk317.relay.android.diagnostics.RuntimeDiagnosticsBridge
 import io.github.magisk317.uikit.common.showLatestSnackbar
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.SnackbarHostState
 import io.github.magisk317.uikit.surface.ConfirmActionDialog
 import androidx.compose.runtime.Composable
@@ -42,35 +44,37 @@ internal fun rememberSettingsRuntimeLogActions(
     var showRetentionDialog by remember { mutableStateOf(false) }
     var showClearConfirmDialog by remember { mutableStateOf(false) }
 
-    fun shareLog() {
+    val saveRuntimeLogLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/zip"),
+    ) { destination ->
+        if (destination == null) return@rememberLauncherForActivityResult
         scope.launch {
-            val result = withContext(Dispatchers.IO) {
+            val failure = withContext(Dispatchers.IO) {
                 RuntimeDiagnosticsBridge.ensureInstalled()
-                val debugLoggingEnabled = repository.getDiagnosticsSettings().verboseLogMode
-                LogBundleExporter.buildLogBundle(
+                val bundle = LogBundleExporter.buildLogBundle(
                     context = context,
-                    mode = DiagnosticExportMode.fromDebugLogging(debugLoggingEnabled),
-                )
-            }
-            val file = result.file
-            if (file == null) {
-                snackbarHostState.showLatestSnackbar(
-                    context.getString(R.string.runtime_log_export_failed, result.details),
-                )
-                return@launch
-            }
-            runCatching {
-                RuntimeDiagnosticsBridge.ensureInstalled()
-                LogBundleExporter.shareLogBundle(context, file)
-            }.onFailure {
-                snackbarHostState.showLatestSnackbar(
-                    context.getString(
-                        R.string.runtime_log_share_failed,
-                        it.message ?: it.javaClass.simpleName,
+                    mode = DiagnosticExportMode.fromDebugLogging(
+                        repository.getDiagnosticsSettings().verboseLogMode,
                     ),
+                )
+                val file = bundle.file ?: return@withContext bundle.details
+                context.contentResolver.openOutputStream(destination, "wt")?.use { output ->
+                    file.inputStream().use { input -> input.copyTo(output) }
+                } ?: return@withContext "log_export_destination_open_failed"
+                ""
+            }
+            if (failure.isNotBlank()) {
+                snackbarHostState.showLatestSnackbar(
+                    context.getString(R.string.runtime_log_export_failed, failure),
                 )
             }
         }
+    }
+
+    fun saveLog() {
+        val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", java.util.Locale.US)
+            .format(java.util.Date())
+        saveRuntimeLogLauncher.launch("xinyi_logs_$timestamp.zip")
     }
 
     fun clearLog() {
@@ -123,7 +127,7 @@ internal fun rememberSettingsRuntimeLogActions(
 
     return remember {
         SettingsRuntimeLogActions(
-            onRuntimeLogTitleClick = { shareLog() },
+            onRuntimeLogTitleClick = { saveLog() },
             onRuntimeLogRetentionClick = { showRetentionDialog = true },
             onClearLog = { showClearConfirmDialog = true },
         )
