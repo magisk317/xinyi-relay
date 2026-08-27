@@ -1,6 +1,5 @@
 package io.github.magisk317.relay.backup.webdav
 
-import java.security.SecureRandom
 import java.util.Base64
 import javax.crypto.spec.SecretKeySpec
 import kotlinx.serialization.encodeToString
@@ -16,7 +15,6 @@ class WebDavConfigCryptoTest {
     private val key = SecretKeySpec(ByteArray(32) { index -> (index + 1).toByte() }, "AES")
     private val cipher = AesGcmWebDavConfigCipher(
         keyProvider = WebDavSecretKeyProvider { key },
-        secureRandom = SecureRandom(byteArrayOf(1, 2, 3, 4)),
     )
     private val aad = "test.package|webdav_config_prefs|webdav_config|v2".toByteArray()
 

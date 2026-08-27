@@ -3,7 +3,6 @@ package io.github.magisk317.relay.backup.webdav
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import java.security.KeyStore
-import java.security.SecureRandom
 import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -24,14 +23,16 @@ internal fun interface WebDavSecretKeyProvider {
 
 internal class AesGcmWebDavConfigCipher(
     private val keyProvider: WebDavSecretKeyProvider,
-    private val secureRandom: SecureRandom = SecureRandom(),
 ) : WebDavConfigCipher {
     override fun encrypt(plaintext: String, aad: ByteArray): String {
-        val nonce = ByteArray(NONCE_BYTES).also(secureRandom::nextBytes)
         val cipher = Cipher.getInstance(TRANSFORMATION)
-        cipher.init(Cipher.ENCRYPT_MODE, keyProvider.getOrCreate(), GCMParameterSpec(TAG_BITS, nonce))
+        // The Keystore key requires randomized encryption, so the nonce must come from the
+        // provider instead of the caller; supplying one is rejected as CALLER_NONCE_PROHIBITED.
+        cipher.init(Cipher.ENCRYPT_MODE, keyProvider.getOrCreate())
         cipher.updateAAD(aad)
         val ciphertext = cipher.doFinal(plaintext.toByteArray(Charsets.UTF_8))
+        val nonce = cipher.iv
+        require(nonce != null && nonce.size == NONCE_BYTES) { "Unexpected WebDAV config nonce size" }
         return listOf(
             ENVELOPE_VERSION,
             Base64.getEncoder().encodeToString(nonce),

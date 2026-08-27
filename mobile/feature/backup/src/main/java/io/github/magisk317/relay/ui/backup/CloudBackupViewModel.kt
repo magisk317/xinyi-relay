@@ -94,11 +94,11 @@ class CloudBackupViewModel(application: Application) : AndroidViewModel(applicat
                 } else {
                     _events.emit(CloudBackupEvent.Error(string(R.string.cloud_backup_login_failed)))
                 }
-            } catch (error: GoogleSignInCancelledException) {
+            } catch (_: GoogleSignInCancelledException) {
                 _events.emit(CloudBackupEvent.Error(string(R.string.cloud_backup_login_canceled)))
             } catch (error: CancellationException) {
                 throw error
-            } catch (error: Exception) {
+            } catch (_: Exception) {
                 _events.emit(CloudBackupEvent.Error(string(R.string.cloud_backup_login_failed)))
             } finally {
                 _isLoading.value = false
