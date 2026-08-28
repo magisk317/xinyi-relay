@@ -780,7 +780,7 @@ telegram:ci:
 
 renovate:gitlab:
   extends: .magisk_renovate_gitlab
-  interruptible: false
+  interruptible: true
   stage: maintenance
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
