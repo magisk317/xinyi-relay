@@ -1,18 +1,18 @@
 include:
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: e4c4a9105025ee4d3ba6d97733850134dc5dac37
+    ref: efb141b766502035982af8342f97ee93e46f996b
     file: /.gitlab/ci/android.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: e4c4a9105025ee4d3ba6d97733850134dc5dac37
+    ref: efb141b766502035982af8342f97ee93e46f996b
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: e4c4a9105025ee4d3ba6d97733850134dc5dac37
+    ref: efb141b766502035982af8342f97ee93e46f996b
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: e4c4a9105025ee4d3ba6d97733850134dc5dac37
+    ref: efb141b766502035982af8342f97ee93e46f996b
     file: /.gitlab/ci/renovate.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: e4c4a9105025ee4d3ba6d97733850134dc5dac37
+    ref: efb141b766502035982af8342f97ee93e46f996b
     file: /.gitlab/ci/cancel-mr-pipelines.yml
 
 workflow:
@@ -41,7 +41,7 @@ stages:
   - maintenance
 
 variables:
-  MAGISK_CI_TOOLKIT_REF: "e4c4a9105025ee4d3ba6d97733850134dc5dac37"
+  MAGISK_CI_TOOLKIT_REF: "efb141b766502035982af8342f97ee93e46f996b"
   MAGISK_CANCEL_OLDER_MR_PIPELINES: "true"
   GIT_DEPTH: "0"
   GIT_SUBMODULE_STRATEGY: recursive
@@ -579,7 +579,7 @@ android:release:play-bundle:
   resource_group: xinyi-android-release-play
   stage: release-build
   rules:
-    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+[.][0-9]+[.][0-9]+.*$/ && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true"'
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+[.][0-9]+[.][0-9]+$/ && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true"'
     - when: never
   needs:
     - job: android:release:guard
@@ -588,6 +588,7 @@ android:release:play-bundle:
     - *xinyi_decode_google_services
     - |
       set -euo pipefail
+      export MAGISK_PLAY_TRACK_OVERRIDE=production
       : "${MAGISK_GRADLE_ARGS:=--warning-mode all}"
       : "${RELEASE_KEYSTORE:?RELEASE_KEYSTORE is required}"
       : "${STORE_PASSWORD:?STORE_PASSWORD is required}"
@@ -633,6 +634,11 @@ android:release:play:
   extends: .magisk_android_publish_play
   resource_group: xinyi-android-release-play
   stage: release-publish
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+[.][0-9]+[.][0-9]+$/ && $RELEASE_OWNER == "gitlab" && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
+    - when: never
+  variables:
+    MAGISK_PLAY_TRACK_OVERRIDE: "production"
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
@@ -646,7 +652,7 @@ android:release:play:
     when: always
     expire_in: 1 day
 
-android:ci:play-alpha-bundle:
+android:ci:play-beta-bundle:
   extends: .magisk_android_base
   resource_group: xinyi-android-release-play
   stage: release-build
@@ -659,6 +665,7 @@ android:ci:play-alpha-bundle:
     - *xinyi_decode_google_services
     - |
       set -euo pipefail
+      export MAGISK_PLAY_TRACK_OVERRIDE=beta
       printf '%s' "$RELEASE_KEYSTORE" | base64 --decode > app/release.jks
       bash "$MAGISK_CI_TOOLKIT_DIR/release/resolve_play_release.sh" \
         --package-name "$MAGISK_ANDROID_RELEASE_PACKAGE_NAME" \
@@ -677,7 +684,7 @@ android:ci:play-alpha-bundle:
       - app/build/outputs/native-debug-symbols/**/native-debug-symbols.zip
       - play-release.env
 
-android:ci:play-alpha:
+android:ci:play-beta:
   extends: .magisk_android_base
   resource_group: xinyi-android-release-play
   stage: release-publish
@@ -687,7 +694,7 @@ android:ci:play-alpha:
     - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
     - when: never
   needs:
-    - job: android:ci:play-alpha-bundle
+    - job: android:ci:play-beta-bundle
       artifacts: true
   script:
     - |
@@ -774,7 +781,7 @@ telegram:ci:
     - job: android:build
       artifacts: true
       optional: true
-    - job: android:ci:play-alpha
+    - job: android:ci:play-beta
       artifacts: false
       optional: true
 
