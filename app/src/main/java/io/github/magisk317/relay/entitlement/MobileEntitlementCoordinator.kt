@@ -75,32 +75,11 @@ object MobileEntitlementCoordinator {
             state.evaluation?.let(::updateCache)
         }
 
-    suspend fun activateWithLicenseCode(
-        context: Context,
-        licenseCode: String,
-    ): MobileEntitlementEvaluation =
-        PrivateMobileEntitlementCoordinator.activateWithLicenseCode(context, licenseCode).also(::updateCache)
-
     suspend fun activateByToken(
         context: Context,
         token: String,
     ): MobileEntitlementEvaluation =
         PrivateMobileEntitlementCoordinator.activateByToken(context, token).also(::updateCache)
-
-    fun readSavedLicenseCode(context: Context): String? =
-        PrivateMobileEntitlementCoordinator.readSavedLicenseCode(context)
-
-    fun clearSavedLicenseCode(context: Context) =
-        PrivateMobileEntitlementCoordinator.clearSavedLicenseCode(context)
-
-    suspend fun activateWithGoogleIdToken(
-        context: Context,
-        challengeId: String,
-        idToken: String,
-    ): MobileEntitlementActivationState =
-        PrivateMobileEntitlementCoordinator.activateWithGoogleIdToken(context, challengeId, idToken).also { state ->
-            state.evaluation?.let(::updateCache)
-        }
 
     private fun updateCache(evaluation: MobileEntitlementEvaluation) {
         evaluationCache.put(evaluation)
