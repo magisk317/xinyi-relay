@@ -12,6 +12,7 @@ import io.github.magisk317.relay.xp.hook.code.action.impl.OperateSmsAction
 import io.github.magisk317.relay.xp.hook.code.action.impl.RecordSmsAction
 import io.github.magisk317.relay.xp.hook.code.action.impl.ToastAction
 import io.github.magisk317.smscode.runtime.verification.AutoInputDispatchGuard
+import io.github.magisk317.smscode.runtime.verification.NotificationDispatchGuard
 import io.github.magisk317.smscode.runtime.verification.SmsCodeActionScheduler
 import io.github.magisk317.smscode.runtime.verification.SmsCodeActionDispatcher as SharedSmsCodeActionDispatcher
 import io.github.magisk317.smscode.runtime.verification.SmsCodePostParseCoordinator
@@ -241,6 +242,7 @@ internal object SmsCodeActionDispatcher {
         plan: SmsCodePostParseCoordinator.NotificationPlan,
     ) {
         if (!mobileAutomationAllowed(pluginContext)) return
+        if (XpPrefs.deduplicateSms(pluginContext) && !claimNotificationDispatch(pluginContext, smsMsg)) return
         SmsCodeActionScheduler.scheduleNow(executor) {
             NotifyAction(
                 pluginContext = pluginContext,
@@ -268,6 +270,30 @@ internal object SmsCodeActionDispatcher {
                 if (mobileAutomationAllowed(pluginContext)) {
                     OperateSmsAction(pluginContext, phoneContext, smsMsg).call()
                 }
+            }
+        }
+    }
+
+    private fun claimNotificationDispatch(
+        pluginContext: Context,
+        smsMsg: SmsMsg,
+    ): Boolean {
+        return NotificationDispatchGuard.claim(
+            pluginContext = pluginContext,
+            smsMsg = smsMsg,
+        ) { context, fileName, keys, windowMs, maxEntries ->
+            XpSharedRuntimeGate.claimAllWithinWindow(
+                context = context,
+                fileName = fileName,
+                keys = keys,
+                windowMs = windowMs,
+                maxEntries = maxEntries,
+            ).let { result ->
+                NotificationDispatchGuard.ClaimResult(
+                    claimed = result.claimed,
+                    ageMs = result.ageMs,
+                    key = result.key,
+                )
             }
         }
     }
