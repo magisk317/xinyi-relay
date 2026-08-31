@@ -5,6 +5,8 @@ usage() {
   cat >&2 <<'EOF'
 Usage:
   gitlab_backend_container.sh build-arch <amd64|arm64>
+  gitlab_backend_container.sh build-arch-export <amd64>
+  gitlab_backend_container.sh publish-arch-archive <amd64>
   gitlab_backend_container.sh publish-manifests
   gitlab_backend_container.sh list-images
 EOF
@@ -147,6 +149,141 @@ build_target() {
     .
 }
 
+archive_path() {
+  local arch=$1
+  printf '%s\n' "${XINYI_BACKEND_IMAGE_ARCHIVE:-backend-image-${arch}.tar.gz}"
+}
+
+build_target_local() {
+  local image=$1
+  local arch=$2
+  shift 2
+  local build_args=("$@")
+  local tag_args=()
+  while IFS= read -r tag; do
+    [[ -z "$tag" ]] && continue
+    tag_args+=(--tag "${image}:${tag}-${arch}")
+  done < <(release_tags)
+
+  if [[ ${#tag_args[@]} -eq 0 ]]; then
+    echo "ERROR: no backend image tags resolved" >&2
+    return 1
+  fi
+
+  # Build with the runner's default Docker builder. This avoids pulling a
+  # docker-container BuildKit image on the unreliable amd64 runner; the
+  # resulting image is exported and published from the ARM64 runner.
+  docker build \
+    --platform "linux/${arch}" \
+    --file backend/api/Dockerfile \
+    "${build_args[@]}" \
+    "${tag_args[@]}" \
+    .
+}
+
+build_arch_export() {
+  local arch=${1:-}
+  case "$arch" in
+    amd64) ;;
+    *)
+      usage
+      exit 2
+      ;;
+  esac
+
+  docker version
+
+  local gitlab_image source_url revision ref_name
+  gitlab_image="$(gitlab_image)"
+  source_url="${CI_PROJECT_URL:-https://gitlab.com/magisk3171/xinyi-relay}"
+  revision="${CI_COMMIT_SHA:-unknown}"
+  ref_name="${CI_COMMIT_REF_NAME:-${CI_COMMIT_TAG:-unknown}}"
+
+  local build_args=(
+    --build-arg "GOPROXY=$(go_proxy)"
+    --build-arg "BUN_CONFIG_REGISTRY=$(bun_registry)"
+  )
+  append_proxy_build_arg build_args HTTP_PROXY RELAY_BUILD_HTTP_PROXY HTTP_PROXY
+  append_proxy_build_arg build_args HTTPS_PROXY RELAY_BUILD_HTTPS_PROXY HTTPS_PROXY
+  append_proxy_build_arg build_args ALL_PROXY RELAY_BUILD_ALL_PROXY ALL_PROXY
+  append_proxy_build_arg build_args NO_PROXY RELAY_BUILD_NO_PROXY NO_PROXY
+  append_proxy_build_arg build_args http_proxy RELAY_BUILD_HTTP_PROXY http_proxy HTTP_PROXY
+  append_proxy_build_arg build_args https_proxy RELAY_BUILD_HTTPS_PROXY https_proxy HTTPS_PROXY
+  append_proxy_build_arg build_args all_proxy RELAY_BUILD_ALL_PROXY all_proxy ALL_PROXY
+  append_proxy_build_arg build_args no_proxy RELAY_BUILD_NO_PROXY no_proxy NO_PROXY
+
+  local labels=(
+    --label "org.opencontainers.image.title=xinyi-relay-backend" \
+    --label "org.opencontainers.image.description=Remote backend for Xinyi Relay" \
+    --label "org.opencontainers.image.source=${source_url}" \
+    --label "org.opencontainers.image.revision=${revision}" \
+    --label "org.opencontainers.image.ref.name=${ref_name}"
+  )
+
+  build_target_local "$gitlab_image" "$arch" "${build_args[@]}" "${labels[@]}"
+
+  local refs=()
+  while IFS= read -r tag; do
+    [[ -z "$tag" ]] && continue
+    refs+=("${gitlab_image}:${tag}-${arch}")
+  done < <(release_tags)
+
+  local archive
+  archive="$(archive_path "$arch")"
+  rm -f "$archive"
+  docker save "${refs[@]}" | gzip -1 > "$archive"
+  test -s "$archive"
+  echo "Exported ${arch} backend image archive: ${archive}"
+}
+
+push_loaded_target() {
+  local source_image=$1
+  local target_image=$2
+  local arch=$3
+  while IFS= read -r tag; do
+    [[ -z "$tag" ]] && continue
+    local source_ref="${source_image}:${tag}-${arch}"
+    local target_ref="${target_image}:${tag}-${arch}"
+    if [[ "$source_ref" != "$target_ref" ]]; then
+      docker tag "$source_ref" "$target_ref"
+    fi
+    docker push "$target_ref"
+  done < <(release_tags)
+}
+
+publish_arch_archive() {
+  local arch=${1:-}
+  case "$arch" in
+    amd64) ;;
+    *)
+      usage
+      exit 2
+      ;;
+  esac
+
+  local archive
+  archive="$(archive_path "$arch")"
+  if [[ ! -s "$archive" ]]; then
+    echo "ERROR: backend image archive missing or empty: $archive" >&2
+    exit 1
+  fi
+
+  docker_login_gitlab
+  gzip -dc "$archive" | docker load
+
+  local gitlab_image
+  gitlab_image="$(gitlab_image)"
+  push_loaded_target "$gitlab_image" "$gitlab_image" "$arch"
+
+  magisk_publish_optional_registry \
+    "${XINYI_DOCKERHUB_PUBLISH:-true}" \
+    "Docker Hub" \
+    docker.io \
+    "${DOCKERHUB_USERNAME:-}" \
+    "${DOCKERHUB_TOKEN:-}" \
+    push_loaded_target "$gitlab_image" "$(dockerhub_image)" "$arch"
+}
+
 build_arch() {
   local arch=${1:-}
   case "$arch" in
@@ -254,6 +391,12 @@ command=${1:-}
 case "$command" in
   build-arch)
     build_arch "${2:-}"
+    ;;
+  build-arch-export)
+    build_arch_export "${2:-}"
+    ;;
+  publish-arch-archive)
+    publish_arch_archive "${2:-}"
     ;;
   publish-manifests)
     publish_manifests

@@ -11,6 +11,11 @@ require_env() {
 
 require_env CI_COMMIT_TAG
 
+sanitize_asset_name() {
+  local name="$1"
+  printf '%s\n' "$name" | sed -E 's/[^A-Za-z0-9._-]+/-/g'
+}
+
 eval "$(bash scripts/release/release_ref.sh parse-ref tag "$CI_COMMIT_TAG")"
 
 asset_root="${XINYI_DESKTOP_RELEASE_ASSET_ROOT:-desktop-artifacts}"
@@ -41,7 +46,7 @@ mkdir -p "$prepared_asset_dir"
 declare -A used_names=()
 for source_file in "${source_files[@]}"; do
   platform="$(basename "$(dirname "$source_file")")"
-  asset_name="${platform}-$(basename "$source_file")"
+  asset_name="$(sanitize_asset_name "${platform}-$(basename "$source_file")")"
   if [[ -n "${used_names[$asset_name]:-}" ]]; then
     echo "ERROR: duplicate desktop release asset name: $asset_name" >&2
     exit 1
