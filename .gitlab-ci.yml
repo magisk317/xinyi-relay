@@ -1,18 +1,18 @@
 include:
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: efb141b766502035982af8342f97ee93e46f996b
+    ref: 849fb490d96bf447e2fb89624cd2dcfab1ca828a
     file: /.gitlab/ci/android.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: efb141b766502035982af8342f97ee93e46f996b
+    ref: 849fb490d96bf447e2fb89624cd2dcfab1ca828a
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: efb141b766502035982af8342f97ee93e46f996b
+    ref: 849fb490d96bf447e2fb89624cd2dcfab1ca828a
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: efb141b766502035982af8342f97ee93e46f996b
+    ref: 849fb490d96bf447e2fb89624cd2dcfab1ca828a
     file: /.gitlab/ci/renovate.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: efb141b766502035982af8342f97ee93e46f996b
+    ref: 849fb490d96bf447e2fb89624cd2dcfab1ca828a
     file: /.gitlab/ci/cancel-mr-pipelines.yml
 
 workflow:
@@ -41,7 +41,7 @@ stages:
   - maintenance
 
 variables:
-  MAGISK_CI_TOOLKIT_REF: "efb141b766502035982af8342f97ee93e46f996b"
+  MAGISK_CI_TOOLKIT_REF: "849fb490d96bf447e2fb89624cd2dcfab1ca828a"
   MAGISK_CANCEL_OLDER_MR_PIPELINES: "true"
   GIT_DEPTH: "0"
   GIT_SUBMODULE_STRATEGY: recursive
@@ -52,6 +52,7 @@ variables:
   MAGISK_ANDROID_SDK_PACKAGES: "platform-tools build-tools;37.0.0"
   MAGISK_GRADLE_ARGS: "--warning-mode all"
   MAGISK_ANDROID_RELEASE_PACKAGE_NAME: "io.github.magisk317.xinyi.relay"
+  MAGISK_ANDROID_RELEASE_PLAY_URL: "https://play.google.com/store/apps/details?id=io.github.magisk317.xinyi.relay"
   MAGISK_ANDROID_RELEASE_GITHUB_REPOSITORY: ""
   MAGISK_ANDROID_RELEASE_MODULES_REPO: ""
   MAGISK_ANDROID_RELEASE_PUBLISH_PLAY: "true"
