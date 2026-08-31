@@ -2,6 +2,14 @@
 
 本日志记录了项目近期的主要变更。 
 
+---
+## [v0.2.4] - WIP
+- 版本：`versionCode 46` / `versionName 0.2.4`。
+- `[TODO]` 准备下一阶段开发。
+
+> Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.2.3...v0.2.4
+
+---
 
 ## [v0.2.3] - 2026-08-31
 - 版本：`versionCode 45` / `versionName 0.2.3`。
