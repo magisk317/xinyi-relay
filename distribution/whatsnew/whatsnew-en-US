@@ -1,3 +1,6 @@
 - Updated to 0.2.3 (45).
-- Development build; release notes will be updated before publishing.
+- Added one-time activation and automation gates.
+- Improved SMS parsing, notification deduplication, and code auto-input.
+- Improved navigation, page state, and log export.
+- Hardened WebDAV encryption and updated the toolchain.
 - https://gitlab.com/magisk3171/xinyi-relay/-/releases

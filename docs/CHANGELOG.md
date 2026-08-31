@@ -3,11 +3,15 @@
 本日志记录了项目近期的主要变更。 
 
 
-## [v0.2.3] - Unreleased
+## [v0.2.3] - 2026-08-31
 - 版本：`versionCode 45` / `versionName 0.2.3`。
-- 下一轮开发占位，发布前补充具体变更。
+- `[activation]` 新增一次性设备激活与自动化门控。
+- `[sms]` 优化短信解析、通知去重与验证码自动输入。
+- `[ui]` 改进分页导航、页面状态与日志导出。
+- `[security]` 加固 WebDAV 加密与更新检查。
+- `[build]` 收敛平台边界并更新 Java、Bun、依赖与 CI。
 
-> Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.2.2...v0.2.3
+> Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/c14076ef3dd983f1b4b968fd501f64d58f3718cb...v0.2.3
 
 ---
 
