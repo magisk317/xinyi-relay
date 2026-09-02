@@ -3,7 +3,7 @@
 compileSdk = "37"
 minSdk = "26"
 targetSdk = "37"
-ndk = "30.0.14904198"
+ndk = "30.0.16138531"
 
 # JVM versions
 java = "26"
