@@ -19,12 +19,13 @@ import io.github.magisk317.xposed.logging.AnonymousInstallationId
 // Phase3 complete: PrefsReader is runtime/Xposed/跨进程只读 only.
 // Source-chain resolution lives in PrefsSourceChain; do not add more business getters here.
 object PrefsReader {
-    internal const val PREFS_NAME = "xposed_prefs"
+    internal const val REMOTE_PREFS_GROUP = PrefConst.REMOTE_PREFS_GROUP
     private const val MISSING_LONG_VALUE = "-9223372036854775808"
     private data class BooleanReadTrace(val value: Boolean, val source: String)
     private data class StringReadTrace(val value: String, val source: String)
     private val runtimeBridgeLogOnce = AtomicBoolean(false)
-    private const val CACHE_TTL_MS = 10_000L
+    /** Remote provider availability can change without a bridge callback; never serve stale hits. */
+    private const val CACHE_TTL_MS = 0L
     private val prefsResolver = PrefsResolver(
         cacheTtlMs = CACHE_TTL_MS,
         missFallsThrough = true,
@@ -40,17 +41,6 @@ object PrefsReader {
         runtimeBridgeLogOnce.set(false)
         invalidateCache()
         logRuntimeBridgeOnce()
-    }
-
-    /**
-     * Set the hook process context for local SharedPreferences fallback.
-     * Call once when pluginContext becomes available in hook process.
-     * Mirrors XposedSmsCode's PrefsReader.setHookContext().
-     */
-    @JvmStatic
-    fun setHookContext(context: Context) {
-        PrefsSourceChain.setHookContext(context)
-        invalidateCache()
     }
 
     @JvmStatic
@@ -92,6 +82,7 @@ object PrefsReader {
         defaultValue: Boolean,
         sources: List<PrefsSource> = resolveSources(),
     ): PrefReadResult<Boolean> {
+        prefsResolver.invalidate()
         logRuntimeBridgeOnce()
         return prefsResolver.resolveBoolean(key, defaultValue, sources)
     }
@@ -102,6 +93,7 @@ object PrefsReader {
         defaultValue: String,
         sources: List<PrefsSource> = resolveSources(),
     ): PrefReadResult<String> {
+        prefsResolver.invalidate()
         logRuntimeBridgeOnce()
         return prefsResolver.resolveString(key, defaultValue, sources)
     }
@@ -112,6 +104,7 @@ object PrefsReader {
         defaultValue: Int,
         sources: List<PrefsSource> = resolveSources(),
     ): PrefReadResult<Int> {
+        prefsResolver.invalidate()
         logRuntimeBridgeOnce()
         return prefsResolver.resolveInt(key, defaultValue, sources)
     }

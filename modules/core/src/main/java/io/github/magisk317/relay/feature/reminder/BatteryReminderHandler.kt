@@ -2,10 +2,10 @@ package io.github.magisk317.relay.feature.reminder
 
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.os.BatteryManager
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.event.RelayEvent
 import io.github.magisk317.relay.domain.pipeline.EventPipeline
@@ -16,14 +16,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import java.util.Locale
 import io.github.magisk317.xposed.logging.MagiskOtel
 
 /**
  * 电量提醒处理器。
  *
- * 内部状态位（KEY_INTERNAL_LOW_BATTERY_BELOW / KEY_INTERNAL_FULL_BATTERY_ABOVE）使用同步
- * SharedPreferences 读写，避免在非协程上下文中调用 DataStore 引发 runBlocking。
+ * 内部状态位与用户设置统一保存在应用私有 DataStore 中。
  */
 class BatteryReminderHandler(
     private val context: Context,
@@ -73,21 +71,26 @@ class BatteryReminderHandler(
         }
         val percent = (level * 100f / scale).toInt()
 
-        // 同步读写内部状态位，避免在普通函数中嵌套 runBlocking 操作 DataStore
-        val prefs = context.getSharedPreferences("xposed_prefs", Context.MODE_PRIVATE)
-
         val threshold = if (lowEnabled) settings.lowBatteryThreshold else 0
-        val wasBelow = if (lowEnabled) prefs.safeGetBoolean(PrefConst.KEY_INTERNAL_LOW_BATTERY_BELOW, false) else false
-        val wasFull = if (fullEnabled) prefs.safeGetBoolean(PrefConst.KEY_INTERNAL_FULL_BATTERY_ABOVE, false) else false
+        val wasBelow = if (lowEnabled) {
+            AppPreferencesDataStore.getBoolean(context, PrefConst.KEY_INTERNAL_LOW_BATTERY_BELOW, false)
+        } else {
+            false
+        }
+        val wasFull = if (fullEnabled) {
+            AppPreferencesDataStore.getBoolean(context, PrefConst.KEY_INTERNAL_FULL_BATTERY_ABOVE, false)
+        } else {
+            false
+        }
 
         if (lowEnabled) {
             if (percent <= threshold) {
                 if (!wasBelow) {
                     sendLowReminder(percent, threshold)
-                    prefs.edit().putBoolean(PrefConst.KEY_INTERNAL_LOW_BATTERY_BELOW, true).apply()
+                    AppPreferencesDataStore.setBoolean(context, PrefConst.KEY_INTERNAL_LOW_BATTERY_BELOW, true)
                 }
             } else if (wasBelow) {
-                prefs.edit().putBoolean(PrefConst.KEY_INTERNAL_LOW_BATTERY_BELOW, false).apply()
+                AppPreferencesDataStore.setBoolean(context, PrefConst.KEY_INTERNAL_LOW_BATTERY_BELOW, false)
             }
         }
 
@@ -96,20 +99,20 @@ class BatteryReminderHandler(
             if (isFull) {
                 if (!wasFull) {
                     sendFullReminder(percent)
-                    prefs.edit().putBoolean(PrefConst.KEY_INTERNAL_FULL_BATTERY_ABOVE, true).apply()
+                    AppPreferencesDataStore.setBoolean(context, PrefConst.KEY_INTERNAL_FULL_BATTERY_ABOVE, true)
                 }
             } else if (wasFull) {
-                prefs.edit().putBoolean(PrefConst.KEY_INTERNAL_FULL_BATTERY_ABOVE, false).apply()
+                AppPreferencesDataStore.setBoolean(context, PrefConst.KEY_INTERNAL_FULL_BATTERY_ABOVE, false)
             }
         }
 
         if (chargingChangeEnabled) {
             val plugged = batteryIntent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0)
-            val wasPlugged = prefs.getInt(PrefConst.KEY_INTERNAL_CHARGING_STATE, -1)
+            val wasPlugged = AppPreferencesDataStore.getInt(context, PrefConst.KEY_INTERNAL_CHARGING_STATE, -1)
             if (wasPlugged >= 0 && plugged != wasPlugged) {
                 sendChargingChangeReminder(percent, plugged != 0)
             }
-            prefs.edit().putInt(PrefConst.KEY_INTERNAL_CHARGING_STATE, plugged).apply()
+            AppPreferencesDataStore.setInt(context, PrefConst.KEY_INTERNAL_CHARGING_STATE, plugged)
         }
 
         if (scheduleNext) {
@@ -243,24 +246,6 @@ class BatteryReminderHandler(
 
     companion object {
         private val reminderScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
-        private fun SharedPreferences.safeGetBoolean(key: String, defaultValue: Boolean): Boolean {
-            val rawValue = all[key] ?: return defaultValue
-            return when (rawValue) {
-                is Boolean -> rawValue
-                is Number -> rawValue.toInt() != 0
-                is String -> parseBoolean(rawValue) ?: defaultValue
-                else -> defaultValue
-            }
-        }
-
-        private fun parseBoolean(rawValue: String): Boolean? {
-            return when (rawValue.trim().lowercase(Locale.ROOT)) {
-                "1", "true", "yes", "y", "on" -> true
-                "0", "false", "no", "n", "off" -> false
-                else -> null
-            }
-        }
 
         fun handleAsync(
             context: Context,

@@ -5,6 +5,7 @@ import android.content.Intent
 import android.provider.Telephony
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
+import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.feature.mode.WorkMode
 import io.github.magisk317.relay.feature.mode.WorkModeResolver
@@ -29,7 +30,7 @@ object StandardMessageIngressHandler {
         return intent.type.isNullOrBlank() || intent.type == MMS_MIME_TYPE
     }
 
-    fun shouldHandleStandardMode(context: Context, source: String): Boolean {
+    suspend fun shouldHandleStandardMode(context: Context, source: String): Boolean {
         if (!isMobileAutomationAllowed(context)) {
             XLog.i("%s: mobile entitlement unavailable, skipping standard ingress", source)
             emitIngest(
@@ -223,13 +224,12 @@ object StandardMessageIngressHandler {
         return ((System.nanoTime() - startedAt) / NANOS_PER_MILLI).coerceAtLeast(0L)
     }
 
-    private fun isMobileAutomationAllowed(context: Context): Boolean {
-        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getBoolean(
-            PrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
-            PrefConst.DEFAULT_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+    private suspend fun isMobileAutomationAllowed(context: Context): Boolean =
+        AppPreferencesDataStore.getBoolean(
+            context = context,
+            key = PrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+            defaultValue = PrefConst.DEFAULT_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
         )
-    }
 
     private const val MMS_MIME_TYPE = "application/vnd.wap.mms-message"
-    private const val PREFS_NAME = "xposed_prefs"
 }

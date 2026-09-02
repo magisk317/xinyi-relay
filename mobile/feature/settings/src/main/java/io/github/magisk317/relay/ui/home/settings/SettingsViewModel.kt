@@ -399,18 +399,7 @@ class SettingsViewModel(
 
                 val prefs = if (includeConfig) {
                     withContext(Dispatchers.IO) {
-                        ensureDataStoreLoaded(context)
-                        val sharedPrefs = context.getSharedPreferences(
-                            "xposed_prefs",
-                            android.content.Context.MODE_PRIVATE,
-                        )
-                        val allPrefs = sharedPrefs.all
-                        val map = HashMap<String, String?>()
-                        for ((k, v) in allPrefs) {
-                            if (k.startsWith("internal_")) continue
-                            map[k] = v?.toString()
-                        }
-                        map
+                        io.github.magisk317.relay.android.prefs.AppPreferencesDataStore.snapshotForBackup(context)
                     }
                 } else {
                     null
@@ -621,10 +610,6 @@ class SettingsViewModel(
             }
         }
         HookPreferenceMirror.publish(getApplication())
-    }
-
-    private suspend fun ensureDataStoreLoaded(_context: android.content.Context) {
-        // Trigger read to ensure in-memory cache if needed; keep no-op for now.
     }
 
     suspend fun inspectBackup(uri: android.net.Uri): RelayBackupManager.BackupInspection? {

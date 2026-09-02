@@ -2,10 +2,11 @@ package io.github.magisk317.relay.android.otel
 
 import android.content.Context
 import io.github.magisk317.relay.android.BuildConfig
-import io.github.magisk317.relay.android.prefs.PrefsReader
 import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
+import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.xposed.logging.AnonymousInstallationId
 import io.github.magisk317.xposed.logging.MagiskOtel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 
 /**
@@ -23,8 +24,15 @@ object MagiskOtelBootstrap {
     fun isEffectivelyEnabled(userPrefEnabled: Boolean): Boolean =
         BuildConfig.DEBUG || userPrefEnabled
 
-    fun isEnabled(context: Context): Boolean =
-        isEffectivelyEnabled(PrefsReader.analyticsEnabled(context))
+    fun isEnabled(context: Context): Boolean = runBlocking(Dispatchers.IO) {
+        isEffectivelyEnabled(
+            AppPreferencesDataStore.getBoolean(
+                context,
+                RelayPrefConst.KEY_ENABLE_ANALYTICS,
+                true,
+            ),
+        )
+    }
 
     fun install(context: Context, serviceVersion: String? = null) {
         configure(
@@ -72,5 +80,5 @@ object MagiskOtelBootstrap {
         }.getOrNull()?.takeIf { it.isNotBlank() } ?: "unknown"
     }
 
-    private const val TELEMETRY_PREFS_NAME = "xposed_prefs"
+    private const val TELEMETRY_PREFS_NAME = "relay_telemetry_prefs"
 }

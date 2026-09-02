@@ -139,7 +139,6 @@ class MmsMessagesHook : BaseHook() {
         }
         val resolvedPluginContext = pluginContext ?: return
         val verboseLogging = XpPrefs.isVerboseLogMode(resolvedPluginContext)
-        SmsHookBridgeHelper.ensureHookProcessPrefs(resolvedPluginContext)
         XpHookDiagnostics.bindRuntimeLogContext(
             context = resolvedPluginContext,
             verboseLogging = verboseLogging,

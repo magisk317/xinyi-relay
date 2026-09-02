@@ -12,9 +12,6 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
-import io.github.magisk317.relay.contract.constant.PrefRestoreTypeRegistry
-import io.github.magisk317.relay.contract.constant.PrefValueType
-import io.github.magisk317.smscode.runtime.common.utils.StorageUtils
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.smscode.rule.constant.SmsCodeConst
 import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceChange
@@ -23,13 +20,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.io.File
-import java.util.Locale
 
 object AppPreferencesDataStore {
     private val backupCompatTipShownKey = booleanPreferencesKey(PrefConst.KEY_BACKUP_COMPAT_TIP_SHOWN)
     private const val DATASTORE_FILE_NAME = "app_preferences.preferences_pb"
-    private const val SHARED_PREFS_FILE_NAME = "xposed_prefs"
-
     @Volatile
     private var INSTANCE: DataStore<Preferences>? = null
     @Volatile
@@ -44,177 +38,11 @@ object AppPreferencesDataStore {
         }
     }
 
-    private fun getDataStoreFile(context: Context): File = resolveDataStoreFile(context)
-
-    private fun getSharedPrefsFile(context: Context): File =
-        File(context.dataDir, "shared_prefs/$SHARED_PREFS_FILE_NAME.xml")
-
-    private fun getSharedPrefs(context: Context): SharedPreferences =
-        context.getSharedPreferences(SHARED_PREFS_FILE_NAME, Context.MODE_PRIVATE)
-
     private fun coerceBooleanValue(key: String, value: Boolean): Boolean {
         if (key == PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE && !PrefsReader.isSensitiveDebugLogSupported()) {
             return false
         }
         return value
-    }
-
-    fun normalizeTypedPrefValue(key: String, rawValue: Any?): Any? {
-        return when (PrefRestoreTypeRegistry.typeOf(key)) {
-            PrefValueType.BOOLEAN -> normalizeBooleanRawValue(rawValue)
-            PrefValueType.INT -> normalizeIntRawValue(rawValue)
-            PrefValueType.FLOAT -> normalizeFloatRawValue(rawValue)
-            PrefValueType.STRING -> null
-        }
-    }
-
-    private fun normalizeBooleanRawValue(rawValue: Any?): Boolean? {
-        return when (rawValue) {
-            is Boolean -> rawValue
-            is Number -> rawValue.toInt() != 0
-            is String -> parseBooleanRawValue(rawValue)
-            else -> null
-        }
-    }
-
-    private fun normalizeIntRawValue(rawValue: Any?): Int? {
-        return when (rawValue) {
-            is Int -> rawValue
-            is Long -> rawValue.toInt()
-            is Number -> rawValue.toInt()
-            is String -> rawValue.trim().toIntOrNull()
-            else -> null
-        }
-    }
-
-    private fun normalizeFloatRawValue(rawValue: Any?): Float? {
-        return when (rawValue) {
-            is Float -> rawValue
-            is Double -> rawValue.toFloat()
-            is Number -> rawValue.toFloat()
-            is String -> rawValue.trim().toFloatOrNull()
-            else -> null
-        }
-    }
-
-    private fun parseBooleanRawValue(rawValue: String): Boolean? {
-        return when (rawValue.trim().lowercase(Locale.ROOT)) {
-            "1", "true", "yes", "y", "on" -> true
-            "0", "false", "no", "n", "off" -> false
-            else -> null
-        }
-    }
-
-    private fun isCanonicalTypedValue(type: PrefValueType, rawValue: Any?): Boolean {
-        return when (type) {
-            PrefValueType.BOOLEAN -> rawValue is Boolean
-            PrefValueType.INT -> rawValue is Int
-            PrefValueType.FLOAT -> rawValue is Float
-            PrefValueType.STRING -> rawValue is String
-        }
-    }
-
-    private fun ensureSharedPrefsReadable(context: Context) {
-        val file = getSharedPrefsFile(context)
-        StorageUtils.setFileWorldReadable(file, 3)
-    }
-
-    suspend fun repairKnownTypedPrefs(context: Context): Int {
-        val sharedPrefs = getSharedPrefs(context)
-        val snapshot = sharedPrefs.all
-        if (snapshot.isEmpty()) return 0
-
-        val repairedValues = linkedMapOf<String, Any>()
-        val removedKeys = linkedSetOf<String>()
-
-        snapshot.forEach { (key, rawValue) ->
-            val type = PrefRestoreTypeRegistry.typeOf(key)
-            if (type == PrefValueType.STRING) return@forEach
-
-            val normalized = normalizeTypedPrefValue(key, rawValue)
-            when {
-                normalized == null -> removedKeys += key
-                !isCanonicalTypedValue(type, rawValue) -> repairedValues[key] = normalized
-            }
-        }
-
-        if (repairedValues.isEmpty() && removedKeys.isEmpty()) {
-            return 0
-        }
-
-        sharedPrefs.edit().apply {
-            removedKeys.forEach(::remove)
-            repairedValues.forEach { (key, value) ->
-                when (value) {
-                    is Boolean -> putBoolean(key, coerceBooleanValue(key, value))
-                    is Int -> putInt(key, value)
-                    is Float -> putFloat(key, value)
-                }
-            }
-        }.apply()
-        ensureSharedPrefsReadable(context)
-
-        getInstance(context).edit { prefs ->
-            (removedKeys + repairedValues.keys).forEach { key ->
-                prefs.remove(booleanPreferencesKey(key))
-                prefs.remove(intPreferencesKey(key))
-                prefs.remove(floatPreferencesKey(key))
-                prefs.remove(stringPreferencesKey(key))
-            }
-            repairedValues.forEach { (key, value) ->
-                when (value) {
-                    is Boolean -> prefs[booleanPreferencesKey(key)] = coerceBooleanValue(key, value)
-                    is Int -> prefs[intPreferencesKey(key)] = value
-                    is Float -> prefs[floatPreferencesKey(key)] = value
-                }
-            }
-        }
-        remotePrefsPublishPending = true
-        remotePrefsPublishPendingLogged = false
-
-        val changedKeys = (removedKeys + repairedValues.keys).joinToString(",")
-        XLog.w(
-            "Typed prefs repaired: repaired=%d removed=%d keys=%s",
-            repairedValues.size,
-            removedKeys.size,
-            changedKeys,
-        )
-        return repairedValues.size + removedKeys.size
-    }
-
-    suspend fun importMissingSharedPrefsIntoDataStore(context: Context): Int {
-        val snapshot = getSharedPrefs(context).all
-        if (snapshot.isEmpty()) return 0
-
-        val existingKeys = getInstance(context).data.first().asMap().keys.map { it.name }.toSet()
-        val imported = linkedMapOf<String, Any>()
-
-        snapshot.forEach { (key, rawValue) ->
-            if (existingKeys.contains(key)) return@forEach
-            normalizeLegacySnapshotValue(key, rawValue)?.let { imported[key] = it }
-        }
-
-        if (imported.isEmpty()) return 0
-
-        getInstance(context).edit { prefs ->
-            imported.forEach { (key, value) ->
-                when (value) {
-                    is Boolean -> prefs[booleanPreferencesKey(key)] = coerceBooleanValue(key, value)
-                    is Int -> prefs[intPreferencesKey(key)] = value
-                    is Float -> prefs[floatPreferencesKey(key)] = value
-                    is String -> prefs[stringPreferencesKey(key)] = value
-                }
-            }
-        }
-
-        remotePrefsPublishPending = true
-        remotePrefsPublishPendingLogged = false
-        XLog.w(
-            "Imported missing shared prefs into DataStore: count=%d keys=%s",
-            imported.size,
-            imported.keys.joinToString(","),
-        )
-        return imported.size
     }
 
     private fun resolveDataStoreFile(context: Context): File {
@@ -753,18 +581,11 @@ object AppPreferencesDataStore {
             .map { prefs: Preferences -> safeRead(prefs, prefKey, defaultValue) }
     }
 
-    private fun normalizeLegacySnapshotValue(key: String, rawValue: Any?): Any? {
-        return when (PrefRestoreTypeRegistry.typeOf(key)) {
-            PrefValueType.BOOLEAN, PrefValueType.INT, PrefValueType.FLOAT ->
-                normalizeTypedPrefValue(key, rawValue)
-
-            PrefValueType.STRING -> when (rawValue) {
-                null -> null
-                is String -> rawValue
-                else -> rawValue.toString()
-            }
-        }
-    }
+    suspend fun snapshotForBackup(context: Context): Map<String, String?> =
+        getInstance(context).data.first().asMap()
+            .asSequence()
+            .filterNot { (key, _) -> key.name.startsWith("internal_") }
+            .associate { (key, value) -> key.name to value.toString() }
 
     private fun <T> safeRead(
         prefs: Preferences,

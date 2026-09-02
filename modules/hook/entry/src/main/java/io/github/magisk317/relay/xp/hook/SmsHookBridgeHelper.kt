@@ -27,7 +27,6 @@ internal object SmsHookBridgeHelper {
         source: String,
     ) {
         val verboseLogging = XpPrefs.isVerboseLogMode(pluginContext)
-        ensureHookProcessPrefs(pluginContext)
         XpHookDiagnostics.bindRuntimeLogContext(
             context = pluginContext,
             verboseLogging = verboseLogging,
@@ -41,11 +40,4 @@ internal object SmsHookBridgeHelper {
         )
     }
 
-    /**
-     * Ensure local SharedPreferences fallback is available in hook process.
-     * Mirrors XposedSmsCode's ensureHookProcessLogging → PrefsReader.setHookContext().
-     */
-    fun ensureHookProcessPrefs(context: Context) {
-        PrefsReader.setHookContext(context)
-    }
 }

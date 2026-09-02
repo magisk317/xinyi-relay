@@ -15,7 +15,7 @@ import io.github.magisk317.relay.contract.prefs.XpRuntimeBridge as RuntimeXpRunt
 import io.github.magisk317.smscode.runtime.contract.prefs.PrefRead
 
 object XpPrefs {
-    private const val PREFS_NAME = "xposed_prefs"
+    private const val REMOTE_PREFS_GROUP = PrefConst.REMOTE_PREFS_GROUP
     @Volatile
     private var prefsBridge: XpPrefsRuntimeBridge = NoopXpPrefsRuntimeBridge
 
@@ -80,15 +80,15 @@ object XpPrefs {
     }
 
     private fun CoreXpRuntimeBridge.getBooleanPref(key: String, defaultValue: Boolean): Boolean {
-        return remotePrefsSource(PREFS_NAME).readBoolean(key, defaultValue).valueOr(defaultValue)
+        return remotePrefsSource(REMOTE_PREFS_GROUP).readBoolean(key, defaultValue).valueOr(defaultValue)
     }
 
     private fun CoreXpRuntimeBridge.getStringPref(key: String, defaultValue: String): String {
-        return remotePrefsSource(PREFS_NAME).readString(key, defaultValue).valueOr(defaultValue)
+        return remotePrefsSource(REMOTE_PREFS_GROUP).readString(key, defaultValue).valueOr(defaultValue)
     }
 
     private fun CoreXpRuntimeBridge.getIntPref(key: String, defaultValue: Int): Int {
-        return remotePrefsSource(PREFS_NAME).readInt(key, defaultValue).valueOr(defaultValue)
+        return remotePrefsSource(REMOTE_PREFS_GROUP).readInt(key, defaultValue).valueOr(defaultValue)
     }
 
     private fun CoreXpRuntimeBridge.toCorePrefsAccess(): CorePrefsAccess {

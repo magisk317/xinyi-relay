@@ -14,12 +14,12 @@ class StandardSmsReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) return
         if (!StandardMessageIngressHandler.isSmsReceived(intent)) return
-        if (!StandardMessageIngressHandler.shouldHandleStandardMode(context, "StandardSmsReceiver")) return
-
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                StandardMessageIngressHandler.dispatchSms(context, intent)
+                if (StandardMessageIngressHandler.shouldHandleStandardMode(context, "StandardSmsReceiver")) {
+                    StandardMessageIngressHandler.dispatchSms(context, intent)
+                }
             } catch (error: Throwable) {
                 XLog.e("StandardSmsReceiver: Error dispatching SMS", error)
             } finally {

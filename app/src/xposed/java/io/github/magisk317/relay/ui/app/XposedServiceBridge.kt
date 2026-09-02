@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.ui.app
 
+import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
 import io.github.magisk317.relay.app.InfrastructureInitializer
@@ -16,7 +17,7 @@ internal object XposedServiceBridge {
                         val mode = XposedServiceRuntimeCoordinator.handleServiceBound(
                             application = application,
                             applicationScope = applicationScope,
-                            remotePrefsProvider = { service.getRemotePreferences("xposed_prefs") },
+                            remotePrefsProvider = { service.getRemotePreferences(RelayPrefConst.REMOTE_PREFS_GROUP) },
                             frameworkName = service.frameworkName,
                             frameworkVersion = service.frameworkVersion,
                         )

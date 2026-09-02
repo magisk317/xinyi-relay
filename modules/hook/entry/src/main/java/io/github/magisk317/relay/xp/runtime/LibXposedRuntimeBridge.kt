@@ -5,8 +5,10 @@ import io.github.magisk317.relay.xpbridge.bridge.NoopRemotePrefsSource
 import io.github.magisk317.relay.xpbridge.bridge.PrefsSource
 import io.github.magisk317.relay.xpbridge.bridge.XpCapabilities
 import io.github.magisk317.relay.xpbridge.bridge.XpRuntimeBridge
-import io.github.magisk317.smscode.runtime.common.prefs.SharedPrefsSource
 import io.github.magisk317.smscode.runtime.contract.prefs.PrefRead
+import io.github.magisk317.xposed.preferences.PreferenceRead
+import io.github.magisk317.xposed.preferences.PreferenceSource
+import io.github.magisk317.xposed.preferences.SharedPreferencesSource
 
 class LibXposedRuntimeBridge(
     private val runtimeHandle: Any?,
@@ -17,14 +19,9 @@ class LibXposedRuntimeBridge(
 
     override fun remotePrefsSource(group: String): PrefsSource {
         val handle = runtimeHandle ?: return NoopRemotePrefsSource
-        val remotePrefs = callMethod(handle, "getRemotePreferences", group) ?: return NoopRemotePrefsSource
-        if (remotePrefs is SharedPreferences) {
-            return SharedPrefsSource(
-                sourceName = REMOTE_PREFS_SOURCE_NAME,
-                provider = { remotePrefs },
-            )
+        return LibXposedRemotePrefsSource {
+            callMethod(handle, "getRemotePreferences", group)
         }
-        return LibXposedRemotePrefsSource(remotePrefs)
     }
 
     private fun resolveCapabilities(): XpCapabilities {
@@ -96,18 +93,54 @@ class LibXposedRuntimeBridge(
     }
 
     private class LibXposedRemotePrefsSource(
-        private val remotePrefs: Any,
+        private val remotePrefsProvider: () -> Any?,
     ) : PrefsSource {
         override val sourceName: String = REMOTE_PREFS_SOURCE_NAME
 
+        override fun readBoolean(key: String, defaultValue: Boolean): PrefRead<Boolean> {
+            return currentSource()?.readBoolean(key, defaultValue) ?: PrefRead.Unavailable
+        }
+
+        override fun readString(key: String, defaultValue: String): PrefRead<String> {
+            return currentSource()?.readString(key, defaultValue) ?: PrefRead.Unavailable
+        }
+
+        override fun readInt(key: String, defaultValue: Int): PrefRead<Int> {
+            return currentSource()?.readInt(key, defaultValue) ?: PrefRead.Unavailable
+        }
+
+        private fun currentSource(): PrefsSource? {
+            val remotePrefs = runCatching { remotePrefsProvider.invoke() }.getOrNull() ?: return null
+            return if (remotePrefs is SharedPreferences) {
+                KitPreferenceSourceAdapter(
+                    SharedPreferencesSource(
+                        sourceName = sourceName,
+                        provider = { remotePrefs },
+                    ),
+                )
+            } else {
+                LibXposedReflectivePrefsSource(remotePrefs, sourceName)
+            }
+        }
+    }
+
+    /** Compatibility path for framework implementations that return a proxy rather than SharedPreferences. */
+    private class LibXposedReflectivePrefsSource(
+        private val remotePrefs: Any,
+        override val sourceName: String,
+    ) : PrefsSource {
         override fun readBoolean(key: String, defaultValue: Boolean): PrefRead<Boolean> {
             return when (val value = readValue(key)) {
                 is PrefRead.Hit -> {
                     val normalized = when (val raw = value.value) {
                         is Boolean -> raw
                         is Number -> raw.toInt() != 0
-                        is String -> raw == "1" || raw.equals("true", ignoreCase = true)
-                        else -> defaultValue
+                        is String -> when (raw.trim().lowercase()) {
+                            "1", "true", "yes", "y", "on" -> true
+                            "0", "false", "no", "n", "off" -> false
+                            else -> return PrefRead.Unavailable
+                        }
+                        else -> return PrefRead.Unavailable
                     }
                     PrefRead.Hit(normalized, sourceName)
                 }
@@ -138,8 +171,8 @@ class LibXposedRuntimeBridge(
                         is Int -> raw
                         is Long -> raw.toInt()
                         is Number -> raw.toInt()
-                        is String -> raw.toIntOrNull() ?: defaultValue
-                        else -> defaultValue
+                        is String -> raw.toIntOrNull() ?: return PrefRead.Unavailable
+                        else -> return PrefRead.Unavailable
                     }
                     PrefRead.Hit(normalized, sourceName)
                 }
@@ -161,6 +194,28 @@ class LibXposedRuntimeBridge(
             method.isAccessible = true
             method.invoke(remotePrefs)
         }.getOrNull()
+    }
+
+    private class KitPreferenceSourceAdapter(
+        private val delegate: PreferenceSource,
+    ) : PrefsSource {
+        override val sourceName: String
+            get() = delegate.sourceName
+
+        override fun readBoolean(key: String, defaultValue: Boolean): PrefRead<Boolean> =
+            delegate.readBoolean(key, defaultValue).toCoreResult()
+
+        override fun readString(key: String, defaultValue: String): PrefRead<String> =
+            delegate.readString(key, defaultValue).toCoreResult()
+
+        override fun readInt(key: String, defaultValue: Int): PrefRead<Int> =
+            delegate.readInt(key, defaultValue).toCoreResult()
+
+        private fun <T> PreferenceRead<T>.toCoreResult(): PrefRead<T> = when (this) {
+            is PreferenceRead.Hit -> PrefRead.Hit(value, source)
+            PreferenceRead.Missing -> PrefRead.Miss
+            PreferenceRead.Unavailable -> PrefRead.Unavailable
+        }
     }
 
     companion object {

@@ -19,12 +19,12 @@ class StandardMmsReceiver : BroadcastReceiver() {
             )
         ) return
         if (!StandardMessageIngressHandler.isMmsWapPush(intent)) return
-        if (!StandardMessageIngressHandler.shouldHandleStandardMode(context, "StandardMmsReceiver")) return
-
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                StandardMessageIngressHandler.dispatchMms(context, intent)
+                if (StandardMessageIngressHandler.shouldHandleStandardMode(context, "StandardMmsReceiver")) {
+                    StandardMessageIngressHandler.dispatchMms(context, intent)
+                }
             } catch (error: Throwable) {
                 XLog.e("StandardMmsReceiver: Error dispatching MMS", error)
             } finally {

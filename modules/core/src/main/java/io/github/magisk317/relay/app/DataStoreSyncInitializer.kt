@@ -7,7 +7,6 @@ import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
-import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
 import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 import kotlinx.coroutines.CoroutineScope
@@ -20,14 +19,6 @@ class DataStoreSyncInitializer : AppInitializer {
 
     override fun init(application: Application) {
         AppInitExecution.runWhenUserUnlocked(application, scope, "DataStoreSyncInitializer") {
-            val repaired = AppPreferencesDataStore.repairKnownTypedPrefs(application)
-            if (repaired > 0) {
-                RelayLogger.w(LogRoute.APP, "Startup pref repair applied: count=%d", repaired)
-            }
-            val imported = AppPreferencesDataStore.importMissingSharedPrefsIntoDataStore(application)
-            if (imported > 0) {
-                RelayLogger.w(LogRoute.APP, "Startup shared-pref import applied: count=%d", imported)
-            }
             HookPreferenceMirror.publish(application)
 
             val preferenceDataSource = RuntimeGraph.from(application).preferenceDataSource
@@ -58,7 +49,7 @@ class DataStoreSyncInitializer : AppInitializer {
                     "process" to "app",
                     "stage" to "startup_sync",
                     "reason" to "user_unlocked",
-                    "change_count" to (repaired + imported).toString(),
+                    "change_count" to "0",
                 ),
                 statusOk = true,
             )

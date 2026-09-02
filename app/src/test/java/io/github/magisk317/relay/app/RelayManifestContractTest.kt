@@ -371,7 +371,7 @@ class RelayManifestContractTest {
             }
         }
         add("sharedpref" to "internal_secret_prefs.xml")
-        add("sharedpref" to "xposed_prefs.xml")
+        add("sharedpref" to "relay_telemetry_prefs.xml")
         add("sharedpref" to "webdav_config_prefs.xml")
         add("sharedpref" to "webdav_crypto_prefs.xml")
         add("sharedpref" to "google_drive_backup_config_prefs.xml")

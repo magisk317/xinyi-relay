@@ -14,7 +14,7 @@
     <exclude domain="database" path="xsmscode_room.db-wal" />
     <exclude domain="database" path="xsmscode_room.db-journal" />
     <exclude domain="sharedpref" path="internal_secret_prefs.xml" />
-    <exclude domain="sharedpref" path="xposed_prefs.xml" />
+    <exclude domain="sharedpref" path="relay_telemetry_prefs.xml" />
     <exclude domain="sharedpref" path="webdav_config_prefs.xml" />
     <exclude domain="sharedpref" path="webdav_crypto_prefs.xml" />
     <exclude domain="sharedpref" path="google_drive_backup_config_prefs.xml" />

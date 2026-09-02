@@ -15,19 +15,30 @@ import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import androidx.core.content.ContextCompat
 import io.github.magisk317.relay.android.common.utils.XLog
-import io.github.magisk317.relay.android.prefs.PrefsReader
+import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
+import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.relay.receiver.AutoInputActions
 import io.github.magisk317.smscode.runtime.contract.autoinput.AutoInputFallbackPolicy
 import io.github.magisk317.smscode.runtime.verification.AutoInputAccessibilityNodeHelper
 import io.github.magisk317.smscode.runtime.verification.AutoInputAccessibilityNodeHelper.Result as AutoInputResult
 import io.github.magisk317.smscode.runtime.verification.AutoInputAccessibilityRequestHandler
 import io.github.magisk317.xposed.logging.MagiskOtel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 class AutoInputAccessibilityService : AccessibilityService() {
 
     private var receiverRegistered = false
     private val heartbeatHandler = Handler(Looper.getMainLooper())
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var heartbeatRunning = false
+
+    @Volatile
+    private var keepAliveHeartbeatEnabled = false
 
     private val heartbeatRunnable = object : Runnable {
         override fun run() {
@@ -48,7 +59,7 @@ class AutoInputAccessibilityService : AccessibilityService() {
 
     private val autoInputReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            if (!PrefsReader.mobileAutomationAllowed(this@AutoInputAccessibilityService)) {
+            if (!isMobileAutomationAllowed()) {
                 XLog.i("Mobile entitlement gate skipped accessibility auto-input")
                 return
             }
@@ -67,7 +78,22 @@ class AutoInputAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         registerAutoInputReceiver()
-        startHeartbeat()
+        serviceScope.launch {
+            AppPreferencesDataStore.getBooleanFlow(
+                applicationContext,
+                RelayPrefConst.KEY_KEEPALIVE_ACCESSIBILITY_HEARTBEAT,
+                false,
+            ).collect { enabled ->
+                keepAliveHeartbeatEnabled = enabled
+                heartbeatHandler.post {
+                    if (enabled) {
+                        startHeartbeat()
+                    } else {
+                        stopHeartbeat()
+                    }
+                }
+            }
+        }
         XLog.w("Accessibility auto input service connected")
         emitA11y(stage = "connected")
     }
@@ -75,6 +101,7 @@ class AutoInputAccessibilityService : AccessibilityService() {
     override fun onDestroy() {
         stopHeartbeat()
         unregisterAutoInputReceiver()
+        serviceScope.cancel()
         XLog.w("Accessibility auto input service destroyed")
         emitA11y(stage = "destroy")
         super.onDestroy()
@@ -108,7 +135,7 @@ class AutoInputAccessibilityService : AccessibilityService() {
         code: String,
         autoEnter: Boolean,
     ): AutoInputResult {
-        if (!PrefsReader.mobileAutomationAllowed(this)) {
+        if (!isMobileAutomationAllowed()) {
             XLog.i("Mobile entitlement gate skipped accessibility execution")
             return AutoInputResult(false, "none", "mobile_entitlement", packageName)
         }
@@ -161,6 +188,15 @@ class AutoInputAccessibilityService : AccessibilityService() {
     ): AutoInputResult {
         return AutoInputAccessibilityNodeHelper.performAutoInput(rootInActiveWindow, code, autoEnter)
     }
+
+    private fun isMobileAutomationAllowed(): Boolean =
+        kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+            AppPreferencesDataStore.getBoolean(
+                applicationContext,
+                RelayPrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+                RelayPrefConst.DEFAULT_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+            )
+        }
 
     private fun shouldWaitForTargetWindow(
         result: AutoInputResult,
@@ -216,10 +252,7 @@ class AutoInputAccessibilityService : AccessibilityService() {
     }
 
     private fun isKeepAliveHeartbeatEnabled(): Boolean {
-        return runCatching {
-            val prefs = getSharedPreferences("xposed_prefs", Context.MODE_PRIVATE)
-            prefs.getBoolean("pref_keepalive_accessibility_heartbeat", false)
-        }.getOrDefault(false)
+        return keepAliveHeartbeatEnabled
     }
 
     private fun isMainProcessAlive(): Boolean {

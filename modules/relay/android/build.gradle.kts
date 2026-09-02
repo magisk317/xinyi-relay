@@ -55,6 +55,7 @@ android {
 
 dependencies {
     implementation(project(":magisk-xposed-kit:logging"))
+    implementation(project(":magisk-xposed-kit"))
     implementation(project(":relay:contract"))
     implementation(project(":relay:engine:api"))
     implementation(project(":relay:sender"))
@@ -66,10 +67,6 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.okhttp)
     implementation(libs.timber)
-
-    listOf("play", "githubNoE2ee", "githubWithE2ee", "fdroid").forEach { flavor ->
-        add("${flavor}Implementation", project(":magisk-xposed-kit"))
-    }
 
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)

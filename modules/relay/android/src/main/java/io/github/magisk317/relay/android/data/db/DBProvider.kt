@@ -20,7 +20,6 @@ import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.android.platform.ipc.ProviderCallerPolicy
 import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
-import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeDiagnosticsPreferences
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
 import io.github.magisk317.smscode.runtime.contract.ipc.RuntimeStateProviderContract
 import io.github.magisk317.smscode.runtime.contract.record.SmsMsgCursorContract
@@ -634,13 +633,13 @@ class DBProvider : ContentProvider() {
     }
 
     private fun getRetentionDays(ctx: Context): Bundle? {
-        val days = RuntimeDiagnosticsPreferences.readInt(
-            context = ctx,
-            preferencesName = "xposed_prefs",
-            key = "pref_runtime_log_retention_days",
-            defaultValue = 7,
-            minimumValue = 1,
-        )
+        val days = runBlocking {
+            AppPreferencesDataStore.getInt(
+                ctx,
+                RelayPrefConst.KEY_RUNTIME_LOG_RETENTION_DAYS,
+                RelayPrefConst.RUNTIME_LOG_RETENTION_DAYS_DEFAULT,
+            )
+        }.coerceAtLeast(RelayPrefConst.RUNTIME_LOG_RETENTION_DAYS_MIN)
         return Bundle().apply {
             putInt(RuntimeStateProviderContract.RESULT_RETENTION_DAYS, days)
         }

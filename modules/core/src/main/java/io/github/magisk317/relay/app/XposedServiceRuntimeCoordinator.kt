@@ -7,12 +7,14 @@ import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnost
 import io.github.magisk317.relay.android.diagnostics.RuntimeActivationState
 import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
-import io.github.magisk317.relay.android.prefs.PrefsReader
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.feature.mode.WorkMode
 import io.github.magisk317.relay.feature.mode.WorkModeResolver
 import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import io.github.magisk317.xposed.logging.MagiskOtel
 
 object XposedServiceRuntimeCoordinator {
@@ -32,7 +34,7 @@ object XposedServiceRuntimeCoordinator {
                 AppPreferencesDataStore.syncToRemotePrefs(application)
             }
         }
-        val verboseLogEnabled = PrefsReader.isVerboseLogMode(application)
+        val verboseLogEnabled = readVerboseLogMode(application)
         RuntimeActivationState.setRuntimeActivated(true)
         ActivationDiagnosticsStore.recordServiceBind(
             context = application,
@@ -65,7 +67,7 @@ object XposedServiceRuntimeCoordinator {
         RuntimeActivationState.setRuntimeActivated(false)
         ActivationDiagnosticsStore.recordServiceDied(
             context = application,
-            verboseLogging = PrefsReader.isVerboseLogMode(application),
+            verboseLogging = readVerboseLogMode(application),
         )
         RelayLogger.w(LogRoute.APP, "Xposed service disconnected")
         MagiskOtel.event(
@@ -94,5 +96,9 @@ object XposedServiceRuntimeCoordinator {
             ),
             statusOk = false,
         )
+    }
+
+    private fun readVerboseLogMode(application: Application): Boolean = runBlocking(Dispatchers.IO) {
+        AppPreferencesDataStore.getBoolean(application, PrefConst.KEY_VERBOSE_LOG_MODE, false)
     }
 }

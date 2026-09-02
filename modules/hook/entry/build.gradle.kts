@@ -38,6 +38,7 @@ dependencies {
     implementation(project(":smscode-core:runtime"))
     implementation(project(":smscode-core:verification"))
     implementation(project(":magisk-xposed-kit:logging"))
+    implementation(project(":magisk-xposed-kit"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.libxposed.service)
     implementation(libs.timber)

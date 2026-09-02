@@ -31,7 +31,7 @@ class PrefsReaderSourceChainTest {
     }
 
     @Test
-    fun resolveBoolean_prefersRemoteThenProviderThenSharedThenDefault() {
+    fun resolveBoolean_prefersTheFirstAvailableProvidedSource() {
         val context = mockk<Context>(relaxed = true)
         val remote = fakeSource(
             name = "remote",
@@ -41,16 +41,11 @@ class PrefsReaderSourceChainTest {
             name = "provider",
             boolResult = PrefRead.Hit(false, "provider"),
         )
-        val shared = fakeSource(
-            name = "shared_prefs",
-            boolResult = PrefRead.Hit(false, "shared_prefs"),
-        )
-
         val result = PrefsReader.resolveBooleanWithSourcesForTest(
             context = context,
             key = "pref_key_remote_bool",
             defaultValue = false,
-            sources = listOf(remote, provider, shared),
+            sources = listOf(remote, provider),
         )
 
         assertTrue(result.value)
@@ -86,23 +81,23 @@ class PrefsReaderSourceChainTest {
     }
 
     @Test
-    fun resolveBoolean_fallbacksWhenRemoteMisses() {
+    fun resolveBoolean_fallsThroughAfterRemoteMiss() {
         val context = mockk<Context>(relaxed = true)
         val remoteMiss = fakeSource(name = "remote", boolResult = PrefRead.Miss)
-        val local = fakeSource(
-            name = "local_hook_prefs",
-            boolResult = PrefRead.Hit(true, "local_hook_prefs"),
+        val fallback = fakeSource(
+            name = "fallback",
+            boolResult = PrefRead.Hit(true, "fallback"),
         )
 
         val result = PrefsReader.resolveBooleanWithSourcesForTest(
             context = context,
-            key = "pref_key_remote_miss_local_bool",
+            key = "pref_key_remote_miss_fallback_bool",
             defaultValue = false,
-            sources = listOf(remoteMiss, local),
+            sources = listOf(remoteMiss, fallback),
         )
 
         assertTrue(result.value)
-        assertEquals("local_hook_prefs", result.source)
+        assertEquals("fallback", result.source)
     }
 
     @Test
@@ -130,13 +125,11 @@ class PrefsReaderSourceChainTest {
         val context = mockk<Context>(relaxed = true)
         val remote = fakeSource(name = "remote", intResult = PrefRead.Miss)
         val provider = fakeSource(name = "provider", intResult = PrefRead.Miss)
-        val shared = fakeSource(name = "shared_prefs", intResult = PrefRead.Miss)
-
         val result = PrefsReader.resolveIntWithSourcesForTest(
             context = context,
             key = "pref_key_default_int",
             defaultValue = 7,
-            sources = listOf(remote, provider, shared),
+            sources = listOf(remote, provider),
         )
 
         assertEquals(7, result.value)

@@ -2,6 +2,9 @@ package io.github.magisk317.relay.contract.constant
 
 object RelayPrefConst {
 
+    /** Xposed RemotePreferences group shared by the app and hook processes. */
+    const val REMOTE_PREFS_GROUP = "relay_runtime_preferences"
+
     // General
     const val KEY_ENABLE = "pref_enable"
     const val KEY_HIDE_LAUNCHER_ICON = "pref_hide_launcher_icon"
