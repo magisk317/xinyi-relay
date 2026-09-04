@@ -19,6 +19,7 @@
     <exclude domain="sharedpref" path="webdav_crypto_prefs.xml" />
     <exclude domain="sharedpref" path="google_drive_backup_config_prefs.xml" />
     <exclude domain="sharedpref" path="cloud_backup_settings_prefs.xml" />
+    <exclude domain="sharedpref" path="mobile_entitlement.xml" />
     <exclude domain="file" path="webui_tls_keystore.p12" />
     <exclude domain="file" path="log/" />
     <exclude domain="file" path="crash/" />

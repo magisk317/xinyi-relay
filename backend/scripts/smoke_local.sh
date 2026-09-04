@@ -10,6 +10,12 @@ COOKIE_JAR="$(mktemp)"
 POSTGRES_DATA_DIR="$(mktemp -d)"
 SMOKE_IMAGE="${RELAY_SMOKE_API_IMAGE:-relay-backend-smoke:local}"
 
+smoke_curl() {
+  # The smoke target is an internal Docker service and must not go through the
+  # runner's outbound proxy.
+  curl -kfsS --noproxy '*' "$@"
+}
+
 append_proxy_build_args() {
   local -n build_args_ref=$1
   local build_arg_name=$2
@@ -124,7 +130,7 @@ docker compose up -d api >/dev/null
 
 echo "[smoke] backend health"
 for attempt in $(seq 1 30); do
-  if curl -kfsS "$BASE_URL/healthz" >/tmp/relay_health.json 2>/tmp/relay_health.err; then
+  if smoke_curl "$BASE_URL/healthz" >/tmp/relay_health.json 2>/tmp/relay_health.err; then
     cat /tmp/relay_health.json | jq .
     break
   fi
@@ -146,40 +152,60 @@ for attempt in $(seq 1 30); do
 done
 
 echo "[smoke] bootstrap admin if needed"
-curl -kfsS -X POST "$BASE_URL/api/v1/bootstrap/admin" \
+smoke_curl -X POST "$BASE_URL/api/v1/bootstrap/admin" \
   -H 'Content-Type: application/json' \
   -d "{\"username\":\"$USERNAME\",\"password\":\"$PASSWORD\"}" >/tmp/relay_bootstrap.json || true
 
 echo "[smoke] login"
-curl -kfsS -c "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/auth/login" \
+smoke_curl -c "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/auth/login" \
   -H 'Content-Type: application/json' \
   -d "{\"username\":\"$USERNAME\",\"password\":\"$PASSWORD\"}" >/tmp/relay_login.json
-CSRF_TOKEN="$(jq -r '.csrfToken' /tmp/relay_login.json)"
+CSRF_TOKEN="$(jq -er '.csrfToken | strings | select(length > 0)' /tmp/relay_login.json)"
+SESSION_TOKEN="$(awk '$6 == "relay_session" { print $7; exit }' "$COOKIE_JAR")"
+if [[ -z "$SESSION_TOKEN" ]]; then
+  echo "Login did not return a relay session cookie" >&2
+  exit 1
+fi
+
+# curl 8.22+ applies public-suffix validation when reloading Netscape cookie
+# files. The CI service hostname is the single-label name "docker", which is
+# treated as a public suffix by libpsl. Passing the extracted cookie explicitly
+# keeps the smoke test compatible with both old and new curl versions.
+WEB_COOKIE="relay_session=$SESSION_TOKEN"
+web_curl() {
+  smoke_curl -b "$WEB_COOKIE" "$@"
+}
+
+echo "[smoke] verify web session"
+web_curl "$BASE_URL/api/v1/auth/me" >/tmp/relay_me.json
+jq -e --arg username "$USERNAME" \
+  '.authenticated == true and .username == $username and (.csrfToken | strings | length > 0)' \
+  /tmp/relay_me.json >/dev/null
 
 echo "[smoke] create bind code"
-curl -kfsS -b "$COOKIE_JAR" -H "X-CSRF-Token: $CSRF_TOKEN" -X POST \
+web_curl -H "X-CSRF-Token: $CSRF_TOKEN" -X POST \
   "$BASE_URL/api/v1/devices/bind-codes" >/tmp/relay_bind.json
 BIND_CODE="$(jq -r '.code' /tmp/relay_bind.json)"
 
 echo "[smoke] register device"
-curl -kfsS -X POST "$BASE_URL/api/v1/agent/register" \
+smoke_curl -X POST "$BASE_URL/api/v1/agent/register" \
   -H 'Content-Type: application/json' \
   -d "{\"bindCode\":\"$BIND_CODE\",\"deviceName\":\"Smoke Device\",\"deviceModel\":\"CLI\",\"platform\":\"android\",\"appVersion\":\"0.0.4\"}" >/tmp/relay_register.json
 DEVICE_TOKEN="$(jq -r '.deviceToken' /tmp/relay_register.json)"
 DEVICE_ID="$(jq -r '.deviceId' /tmp/relay_register.json)"
 
 echo "[smoke] heartbeat"
-curl -kfsS -X POST "$BASE_URL/api/v1/agent/heartbeat" \
+smoke_curl -X POST "$BASE_URL/api/v1/agent/heartbeat" \
   -H "Authorization: Bearer $DEVICE_TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"appVersion":"0.0.4","localAddresses":["https://192.168.1.2:8443"],"capabilities":{"remoteConfig":true,"recordUpload":true}}' | jq .
 
 echo "[smoke] fetch device config mirror"
-curl -kfsS -b "$COOKIE_JAR" "$BASE_URL/api/v1/devices/$DEVICE_ID/config" >/tmp/relay_device_config.json
+web_curl "$BASE_URL/api/v1/devices/$DEVICE_ID/config" >/tmp/relay_device_config.json
 BASE_REVISION="$(jq -r '.revision' /tmp/relay_device_config.json)"
 
 echo "[smoke] queue device config command"
-curl -kfsS -b "$COOKIE_JAR" -H "X-CSRF-Token: $CSRF_TOKEN" -X POST \
+web_curl -H "X-CSRF-Token: $CSRF_TOKEN" -X POST \
   "$BASE_URL/api/v1/devices/$DEVICE_ID/config/commands" \
   -H 'Content-Type: application/json' \
   -d "{\"baseRevision\":$BASE_REVISION,\"summary\":\"smoke:update\",\"mutation\":{\"operations\":[{\"type\":\"replace_senders\",\"senders\":[]},{\"type\":\"replace_device_apps\",\"deviceId\":$DEVICE_ID,\"apps\":[]}]}}" >/tmp/relay_device_command.json
@@ -188,19 +214,19 @@ TARGET_REVISION="$(jq -r '.targetRevision' /tmp/relay_device_command.json)"
 cat /tmp/relay_device_command.json | jq .
 
 echo "[smoke] agent pulls pending commands"
-curl -kfsS -X POST "$BASE_URL/api/v1/agent/config/commands:pull" \
+smoke_curl -X POST "$BASE_URL/api/v1/agent/config/commands:pull" \
   -H "Authorization: Bearer $DEVICE_TOKEN" \
   -H 'Content-Type: application/json' \
   -d "{\"localRevision\":$BASE_REVISION}" >/tmp/relay_agent_pull.json
 cat /tmp/relay_agent_pull.json | jq .
 
 echo "[smoke] agent acknowledges command"
-curl -kfsS -X POST "$BASE_URL/api/v1/agent/config/commands:ack" \
+smoke_curl -X POST "$BASE_URL/api/v1/agent/config/commands:ack" \
   -H "Authorization: Bearer $DEVICE_TOKEN" \
   -H 'Content-Type: application/json' \
   -d "{\"commandId\":$COMMAND_ID,\"status\":\"applied\",\"appliedRevision\":$TARGET_REVISION,\"failureReason\":\"\",\"mirrorContent\":{\"senders\":[],\"deviceAppInfos\":{\"$DEVICE_ID\":[]},\"rules\":[],\"smsCodeRules\":[],\"notifyRoutes\":[],\"forwardFilters\":[]}}" | jq .
 
 echo "[smoke] device config audit"
-curl -kfsS -b "$COOKIE_JAR" "$BASE_URL/api/v1/devices/$DEVICE_ID/config/audit" | jq .
+web_curl "$BASE_URL/api/v1/devices/$DEVICE_ID/config/audit" | jq .
 
 echo "[smoke] done"

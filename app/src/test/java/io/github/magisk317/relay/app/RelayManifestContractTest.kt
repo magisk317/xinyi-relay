@@ -376,6 +376,7 @@ class RelayManifestContractTest {
         add("sharedpref" to "webdav_crypto_prefs.xml")
         add("sharedpref" to "google_drive_backup_config_prefs.xml")
         add("sharedpref" to "cloud_backup_settings_prefs.xml")
+        add("sharedpref" to "mobile_entitlement.xml")
     }
 
     private fun excludesUnder(element: Element): Set<Pair<String, String>> =

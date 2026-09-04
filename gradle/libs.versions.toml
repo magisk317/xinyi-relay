@@ -58,6 +58,7 @@ libxposed-api = "102.0.0"
 libxposed-service = "102.0.0"
 lifecycle = "2.11.0"
 miuix = "0.8.8"
+mobile-entitlement = "0.1.16"
 mockk = "1.14.11"
 matrix-sdk-android = "26.06.27"
 metrics-performance = "1.0.0"
@@ -151,6 +152,7 @@ ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "kotlin-
 libxposed-api = { module = "io.github.libxposed:api", version.ref = "libxposed-api" }
 libxposed-service = { module = "io.github.libxposed:service", version.ref = "libxposed-service" }
 miuix = { module = "top.yukonga.miuix.kmp:miuix", version.ref = "miuix" }
+mobile-entitlement-android = { module = "com.magisk317.mobile:entitlement-android", version.ref = "mobile-entitlement" }
 matrix-sdk-android = { module = "org.matrix.rustcomponents:sdk-android", version.ref = "matrix-sdk-android" }
 androidx-metrics-performance = { module = "androidx.metrics:metrics-performance", version.ref = "metrics-performance" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
