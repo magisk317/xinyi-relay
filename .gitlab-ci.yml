@@ -433,6 +433,8 @@ android:build:
   extends:
     - .magisk_android_build
     - .xinyi_signed_android_rules
+  tags:
+    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
@@ -471,6 +473,8 @@ cancel:older:mr:pipelines:
     - .magisk_android_base
     - .xinyi_android_rules
   stage: quality
+  tags:
+    - $XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG
   needs: []
   script:
     - |
@@ -517,7 +521,7 @@ android:detekt:
     - .xinyi_android_rules
   stage: quality
   tags:
-    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
+    - $XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG
   needs: []
   allow_failure: true
   variables:
@@ -683,7 +687,7 @@ android:ci:play-beta-bundle:
           -PversionName="$MAGISK_PLAY_VERSION_NAME" -PversionCode="$MAGISK_PLAY_VERSION_CODE"
   artifacts:
     when: always
-    expire_in: 1 day
+    expire_in: 7 days
     paths:
       - app/build/outputs/bundle/**/*.aab
       - app/build/outputs/mapping/**/mapping.txt
@@ -698,6 +702,8 @@ android:ci:play-beta:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   rules:
     - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
+      when: manual
+      allow_failure: true
     - when: never
   needs:
     - job: android:ci:play-beta-bundle
@@ -776,6 +782,8 @@ telegram:ci:
   allow_failure: true
   rules:
     - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != ""'
+      when: manual
+      allow_failure: true
     - when: never
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
@@ -786,9 +794,6 @@ telegram:ci:
   needs:
     - job: android:build
       artifacts: true
-      optional: true
-    - job: android:ci:play-beta
-      artifacts: false
       optional: true
 
 renovate:gitlab:
