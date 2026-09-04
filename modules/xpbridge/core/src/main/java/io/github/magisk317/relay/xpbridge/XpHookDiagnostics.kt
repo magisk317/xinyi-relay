@@ -15,7 +15,7 @@ object XpHookDiagnostics {
         runtimeBridge = bridge ?: NoopXpDiagnosticsRuntimeBridge
     }
 
-    fun configureLogClient(authority: String, source: String = "Relay") {
+    fun configureLogClient(authority: String, source: String = "xinyi") {
         XposedLogClient.configure(authority = authority, source = source)
     }
 
@@ -28,8 +28,9 @@ object XpHookDiagnostics {
                 force: Boolean,
                 route: String?,
                 sensitive: Boolean,
+                throwableText: String?,
             ) {
-                XposedLogClient.append(priority, tag, message, force, route, sensitive)
+                XposedLogClient.append(priority, tag, message, force, route, sensitive, throwableText)
             }
         })
     }

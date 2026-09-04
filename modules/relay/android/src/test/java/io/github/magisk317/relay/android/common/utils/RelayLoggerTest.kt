@@ -59,6 +59,7 @@ class RelayLoggerTest {
                     message: String,
                     force: Boolean,
                     route: String?,
+                    throwableText: String?,
                 ) {
                     captured = CapturedRuntimeLog(priority, tag, message, force, route)
                 }
@@ -68,7 +69,7 @@ class RelayLoggerTest {
         RelayLogger.e("sender=13800138000")
 
         assertEquals(6, captured?.priority)
-        assertEquals("relay", captured?.tag)
+        assertEquals("xinyi", captured?.tag)
         assertFalse(captured?.message.orEmpty().contains("13800138000"))
         assertTrue(captured?.force ?: false)
         assertEquals(RuntimeLogStore.ROUTE_APP, captured?.route)
@@ -86,6 +87,7 @@ class RelayLoggerTest {
                     message: String,
                     force: Boolean,
                     route: String?,
+                    throwableText: String?,
                 ) {
                     captured = CapturedRuntimeLog(priority, tag, message, force, route)
                 }
@@ -133,6 +135,7 @@ class RelayLoggerTest {
                     message: String,
                     force: Boolean,
                     route: String?,
+                    throwableText: String?,
                 ) {
                     captured = CapturedRuntimeLog(priority, tag, message, force, route)
                 }

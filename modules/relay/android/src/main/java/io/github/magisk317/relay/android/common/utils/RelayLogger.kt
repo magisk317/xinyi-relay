@@ -106,6 +106,7 @@ object RelayLogger {
         if (priority < logLevel) return
 
         val formattedMessage = LogFormatter.formatArgs(message, args)
+        val throwableText = (args.lastOrNull() as? Throwable)?.stackTraceToString()
         val logMessage = if (sensitive) {
             SensitiveLogPolicy.sanitizeLogMessage(formattedMessage)
         } else {
@@ -122,13 +123,14 @@ object RelayLogger {
             runCatching { Log.println(priority, "LSPosed-Bridge", "$LOG_TAG: $logMessage") }
         }
 
-        val resolvedRoute = route ?: RuntimeLogStore.routeFromCallerClassName(resolveCallerClassName())
+        val resolvedRoute = route ?: RuntimeLogStore.ROUTE_APP
         runtimeSink.append(
             priority = priority,
             tag = LOG_TAG,
             message = logMessage,
             force = force,
             route = resolvedRoute,
+            throwableText = throwableText,
         )
     }
 
@@ -158,18 +160,6 @@ object RelayLogger {
         log(priority, route, defaultForceFor(priority), true, message, *args)
     }
 
-    private fun resolveCallerClassName(): String? {
-        return Throwable().stackTrace
-            .mapNotNull { it.className }
-            .firstOrNull { className ->
-                className != RelayLogger::class.java.name &&
-                    !className.startsWith("${RelayLogger::class.java.name}\$") &&
-                    className != XLog::class.java.name &&
-                    !className.startsWith("${XLog::class.java.name}\$") &&
-                    !className.startsWith("timber.log.")
-            }
-    }
-
     internal interface RuntimeSink {
         fun append(
             priority: Int,
@@ -177,6 +167,7 @@ object RelayLogger {
             message: String,
             force: Boolean,
             route: String?,
+            throwableText: String?,
         )
     }
 
@@ -187,6 +178,7 @@ object RelayLogger {
             message: String,
             force: Boolean,
             route: String?,
+            throwableText: String?,
         ) {
             RuntimeDiagnosticsBridge.ensureInstalled()
             RuntimeLogStore.append(
@@ -197,6 +189,7 @@ object RelayLogger {
                     route = route,
                     force = force,
                     sensitive = false,
+                    throwableText = throwableText,
                 ),
             )
         }

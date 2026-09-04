@@ -102,7 +102,7 @@ android {
         versionCode = versionCodeInt
         versionName = versionNameStr
 
-        buildConfigField("String", "LOG_TAG", "\"relay\"")
+        buildConfigField("String", "LOG_TAG", "\"xinyi\"")
         buildConfigField("String", "COMMIT_HASH", "\"$gitCommitHash\"")
         buildConfigField("int", "MODULE_VERSION", "$versionCodeInt")
         buildConfigField("boolean", "ALLOW_CONFLICT_BYPASS", allowConflictBypass.toString())

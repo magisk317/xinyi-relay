@@ -21,7 +21,7 @@ android {
     }
 
     defaultConfig {
-        buildConfigField("String", "LOG_TAG", "\"relay\"")
+        buildConfigField("String", "LOG_TAG", "\"xinyi\"")
         buildConfigField("String", "APPLICATION_ID", "\"io.github.magisk317.xinyi.relay\"")
         consumerProguardFiles("consumer-rules.pro")
     }

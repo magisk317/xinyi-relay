@@ -65,7 +65,7 @@ class LibXposedEntry : BaseLibXposedEntry {
         XpHookDiagnostics.installRuntimeBridge(AndroidXpDiagnosticsBridge)
         XpHookDiagnostics.configureLogClient(
             authority = "${BuildConfig.APPLICATION_ID}.xposed.log",
-            source = "Relay",
+            source = "xinyi",
         )
         XpHookDiagnostics.installXposedRuntimeLogSink()
         XpAppConfigFacade.installRuntimeBridge(RuntimeXpAppConfigBridge)

@@ -4,19 +4,23 @@ import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
 import android.os.Binder
-import android.os.SystemClock
 import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
 import io.github.magisk317.relay.android.diagnostics.RuntimeDiagnosticsBridge
 import io.github.magisk317.relay.android.platform.ipc.ProviderCallerPolicy
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
 import io.github.magisk317.xposed.logging.BaseXposedLogProvider
-import io.github.magisk317.xposed.logging.FixedWindowIngressLimiter
+import io.github.magisk317.xposed.logging.LogProviderQuotaConfig
+import io.github.magisk317.xposed.logging.LogProviderQuotaPolicy
 import io.github.magisk317.xposed.logging.XposedLogEvent
 
 class RelayXposedLogProvider : BaseXposedLogProvider() {
-    private val rateLimiter = FixedWindowIngressLimiter(
-        maxEvents = MAX_EVENTS_PER_MINUTE,
-        windowMs = RATE_LIMIT_WINDOW_MILLIS,
+    override val ingressPolicy: LogProviderQuotaPolicy = LogProviderQuotaPolicy(
+        LogProviderQuotaConfig(
+            maxEventsPerWindow = MAX_EVENTS_PER_MINUTE,
+            windowMs = RATE_LIMIT_WINDOW_MILLIS,
+            maxBytesPerDay = Long.MAX_VALUE,
+            maxEventsPerDay = Long.MAX_VALUE,
+        ),
     )
     private var quota: PersistentUidQuota? = null
 
@@ -42,10 +46,8 @@ class RelayXposedLogProvider : BaseXposedLogProvider() {
         val ctx = context?.applicationContext ?: return null
         if (uri.authority != authority || uri.lastPathSegment != "entry") return null
 
-        val callingUid = Binder.getCallingUid()
-        if (!isCallerAllowed(ctx)) return null
         val raw = values ?: return null
-        if (!rateLimiter.tryAcquire(callingUid, SystemClock.elapsedRealtime())) return null
+        val callingUid = Binder.getCallingUid()
         val activeQuota = quota ?: return null
         val payloadBytes = runCatching { raw.payloadBytes() }.getOrNull() ?: return null
         if (!activeQuota.tryConsume(callingUid, payloadBytes)) return null
@@ -72,6 +74,7 @@ class RelayXposedLogProvider : BaseXposedLogProvider() {
             force = event.force || event.level in FORCE_LEVELS,
             route = event.route?.ifBlank { RuntimeLogStore.ROUTE_APP }
                 ?: event.source.ifBlank { RuntimeLogStore.ROUTE_APP },
+            throwable = event.throwable,
         )
     }
 

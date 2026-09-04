@@ -59,10 +59,11 @@ object SmsCodeXposedRuntimeBridge {
                 force: Boolean,
                 route: String?,
                 sensitive: Boolean,
+                throwableText: String?,
             ) {
                 val safeMessage = if (sensitive) SensitiveLogPolicy.sanitizeLogMessage(message) else message
                 RuntimeDiagnosticsBridge.ensureInstalled()
-                RuntimeLogStore.append(priority, tag, safeMessage, force, route)
+                RuntimeLogStore.append(priority, tag, safeMessage, force, route, throwableText)
             }
         })
         CoreHookPolicyHolder.install(object : CoreHookPolicy {

@@ -15,7 +15,7 @@ android {
     }
     defaultConfig {
         buildConfigField("String", "APPLICATION_ID", "\"io.github.magisk317.xinyi.relay\"")
-        buildConfigField("String", "LOG_TAG", "\"relay\"")
+        buildConfigField("String", "LOG_TAG", "\"xinyi\"")
         buildConfigField("int", "LOG_LEVEL", "2")
         buildConfigField("boolean", "LOG_TO_XPOSED", "true")
         buildConfigField("String", "VERSION_NAME", "\"${libs.versions.versionName.get()}\"")
