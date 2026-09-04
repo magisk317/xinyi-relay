@@ -303,6 +303,10 @@ object AppPreferencesDataStore {
                     PrefConst.DEFAULT_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
                 ),
             )
+            editor.putString(
+                PrefConst.KEY_MOBILE_ENTITLEMENT_TOKEN,
+                getString(context, PrefConst.KEY_MOBILE_ENTITLEMENT_TOKEN, ""),
+            )
             editor.putBoolean(
                 PrefConst.KEY_SETTINGS_ACCORDION_MODE,
                 getBoolean(context, PrefConst.KEY_SETTINGS_ACCORDION_MODE, true),
@@ -584,7 +588,11 @@ object AppPreferencesDataStore {
     suspend fun snapshotForBackup(context: Context): Map<String, String?> =
         getInstance(context).data.first().asMap()
             .asSequence()
-            .filterNot { (key, _) -> key.name.startsWith("internal_") }
+            .filterNot { (key, _) ->
+                key.name.startsWith("internal_") ||
+                    key.name == PrefConst.KEY_MOBILE_ENTITLEMENT_TOKEN ||
+                    key.name == PrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED
+            }
             .associate { (key, value) -> key.name to value.toString() }
 
     private fun <T> safeRead(

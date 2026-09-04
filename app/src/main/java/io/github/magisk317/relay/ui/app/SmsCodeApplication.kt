@@ -10,10 +10,11 @@ import io.github.magisk317.relay.di.appDependencyModule
 import io.github.magisk317.relay.di.billingModule
 import io.github.magisk317.relay.di.coreModule
 import io.github.magisk317.relay.di.uiModule
-import io.github.magisk317.relay.entitlement.MobileEntitlementCoordinator
 import io.github.magisk317.relay.entitlement.mobileEntitlementGoogleSignInModule
 import com.magisk317.mobile.entitlement.MobileEntitlementBridge
 import com.magisk317.mobile.entitlement.MobileEntitlementConfig
+import com.magisk317.mobile.entitlement.MobileEntitlementCoordinator
+import com.magisk317.mobile.entitlement.MobileEntitlementPublishedState
 import com.magisk317.mobile.entitlement.MobileEntitlementRuntime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -32,6 +33,7 @@ class SmsCodeApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        configureMobileEntitlement()
 
         startKoin {
             androidLogger()
@@ -45,6 +47,11 @@ class SmsCodeApplication : Application() {
         koin.get<InfrastructureInitializer>().init(this)
         val initializers = koin.getAll<AppInitializer>().filterNot { it is InfrastructureInitializer }
         initializers.forEach { it.init(this) }
+        MobileEntitlementCoordinator.initialize(this, applicationScope)
+        registerEntitlementForegroundRefresh()
+    }
+
+    private fun configureMobileEntitlement() {
         MobileEntitlementRuntime.configure(
             MobileEntitlementConfig(
                 apiOrigin = BuildConfig.MOBILE_ENTITLEMENT_API_ORIGIN,
@@ -54,24 +61,27 @@ class SmsCodeApplication : Application() {
                 enforced = BuildConfig.MOBILE_ENTITLEMENT_ENFORCED,
             ),
             bridge = object : MobileEntitlementBridge {
-                override fun publish(context: android.content.Context, allowed: Boolean) {
+                override fun publish(context: android.content.Context, state: MobileEntitlementPublishedState): Boolean =
                     kotlinx.coroutines.runBlocking {
-                        io.github.magisk317.relay.android.prefs.AppPreferencesDataStore.setBoolean(
-                            context,
-                            io.github.magisk317.relay.contract.constant.RelayPrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
-                            allowed,
-                        )
+                        io.github.magisk317.relay.android.prefs.AppPreferencesDataStore.batchEdit(context) {
+                            setBoolean(
+                                io.github.magisk317.relay.contract.constant.RelayPrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+                                state.automationAllowed,
+                            )
+                            setString(
+                                io.github.magisk317.relay.contract.constant.RelayPrefConst.KEY_MOBILE_ENTITLEMENT_TOKEN,
+                                state.entitlementToken.orEmpty(),
+                            )
+                        }
                         io.github.magisk317.relay.android.prefs.HookPreferenceMirror.publish(context)
                     }
-                }
 
                 override fun log(message: String, vararg args: Any?) {
                     io.github.magisk317.relay.android.common.utils.XLog.i(message, *args)
                 }
             },
         )
-        MobileEntitlementCoordinator.initialize(this, applicationScope)
-        registerEntitlementForegroundRefresh()
+        MobileEntitlementCoordinator.publishFailClosed(this)
     }
 
     private fun registerEntitlementForegroundRefresh() {

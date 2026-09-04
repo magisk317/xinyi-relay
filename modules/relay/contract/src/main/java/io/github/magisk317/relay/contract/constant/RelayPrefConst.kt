@@ -17,6 +17,7 @@ object RelayPrefConst {
 
     /** Derived by the parent app's entitlement coordinator and mirrored to hook processes. */
     const val KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED = "mobile_entitlement_automation_allowed"
+    const val KEY_MOBILE_ENTITLEMENT_TOKEN = "entitlement_token"
     const val DEFAULT_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED = false
 
     // SMS Code

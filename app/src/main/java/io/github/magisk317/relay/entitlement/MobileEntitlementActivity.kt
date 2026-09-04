@@ -43,6 +43,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.magisk317.mobile.entitlement.MobileEntitlementCoordinator
+import com.magisk317.mobile.entitlement.MobileEntitlementStatus
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.ui.theme.AppTheme
 import java.time.Instant

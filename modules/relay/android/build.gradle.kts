@@ -6,6 +6,15 @@ plugins {
     id("relay.android.common")
 }
 
+val mobileEntitlementApiOrigin = providers.gradleProperty("mobileEntitlementApiOrigin")
+    .orElse("https://activate.magisk317.qzz.io")
+    .get()
+val mobileEntitlementSigningPublicJwk = providers.gradleProperty("mobileEntitlementSigningPublicJwk")
+    .orElse("""{"kty":"EC","x":"4kPpwUt1wFRuF3EqGq6q57J3YmANf7wyiNH90FNkAbI","y":"U4-E1XK6LjWIXMFNEoSAoik7nD1S07BDb7qAipQd4Ts","crv":"P-256","alg":"ES256","use":"sig","kid":"mobile-entitlement-1"}""")
+    .get()
+fun buildConfigString(value: String): String =
+    "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
+
 android {
     namespace = "io.github.magisk317.relay.android"
 
@@ -25,6 +34,8 @@ android {
         buildConfigField("String", "APPLICATION_ID", "\"io.github.magisk317.xinyi.relay\"")
         buildConfigField("int", "LOG_LEVEL", "2")
         buildConfigField("boolean", "LOG_TO_XPOSED", "true")
+        buildConfigField("String", "MOBILE_ENTITLEMENT_API_ORIGIN", buildConfigString(mobileEntitlementApiOrigin))
+        buildConfigField("String", "MOBILE_ENTITLEMENT_SIGNING_PUBLIC_JWK", buildConfigString(mobileEntitlementSigningPublicJwk))
         consumerProguardFiles("consumer-rules.pro")
     }
 
@@ -54,6 +65,7 @@ android {
 }
 
 dependencies {
+    implementation("com.magisk317.mobile:entitlement-android:0.1.15")
     implementation(project(":magisk-xposed-kit:logging"))
     implementation(project(":magisk-xposed-kit"))
     implementation(project(":relay:contract"))

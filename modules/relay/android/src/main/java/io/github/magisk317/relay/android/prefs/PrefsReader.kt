@@ -13,6 +13,9 @@ import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.android.BuildConfig
 import io.github.magisk317.smscode.rule.constant.SmsCodeConst
 import io.github.magisk317.smscode.runtime.common.prefs.PrefsResolver
+import com.magisk317.mobile.entitlement.MobileEntitlementGate
+import com.magisk317.mobile.entitlement.MobileEntitlementPublishedState
+import com.magisk317.mobile.entitlement.MobileEntitlementVerificationPolicy
 import java.util.concurrent.atomic.AtomicBoolean
 import io.github.magisk317.xposed.logging.AnonymousInstallationId
 
@@ -30,6 +33,14 @@ object PrefsReader {
         cacheTtlMs = CACHE_TTL_MS,
         missFallsThrough = true,
     )
+
+    private val mobileEntitlementPolicy
+        get() = MobileEntitlementVerificationPolicy(
+            signingPublicJwk = BuildConfig.MOBILE_ENTITLEMENT_SIGNING_PUBLIC_JWK,
+            issuer = BuildConfig.MOBILE_ENTITLEMENT_API_ORIGIN,
+            appId = "xinyi-relay",
+            enforced = true,
+        )
 
     @Volatile
     private var runtimeBridge: XpRuntimeBridge = NoopXpRuntimeBridge
@@ -196,11 +207,19 @@ object PrefsReader {
     }
 
     fun mobileAutomationAllowed(context: Context): Boolean {
-        return getBooleanViaProvider(
-            context,
-            PrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
-            PrefConst.DEFAULT_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+        val state = MobileEntitlementPublishedState(
+            automationAllowed = getBooleanViaProvider(
+                context,
+                PrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+                PrefConst.DEFAULT_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+            ),
+            entitlementToken = getStringViaProvider(
+                context,
+                PrefConst.KEY_MOBILE_ENTITLEMENT_TOKEN,
+                "",
+            ).takeIf(String::isNotBlank),
         )
+        return MobileEntitlementGate.isAllowed(state, mobileEntitlementPolicy)
     }
 
     @JvmStatic

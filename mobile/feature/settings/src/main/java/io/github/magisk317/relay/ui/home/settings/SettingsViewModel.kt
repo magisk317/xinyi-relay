@@ -573,6 +573,12 @@ class SettingsViewModel(
     private suspend fun restorePreferences(context: Context, prefsMap: Map<String, String?>) {
         if (prefsMap.isEmpty()) return
         for ((k, v) in prefsMap) {
+            if (k == io.github.magisk317.relay.contract.constant.RelayPrefConst.KEY_MOBILE_ENTITLEMENT_TOKEN ||
+                k == io.github.magisk317.relay.contract.constant.RelayPrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED
+            ) {
+                XLog.w("Restore preference skipped: entitlement state is runtime-derived")
+                continue
+            }
             if (v == null) continue
             val strV = v
             val coerced = coerceRestoreValue(k, strV)
