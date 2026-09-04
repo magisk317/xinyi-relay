@@ -65,7 +65,7 @@ android {
 }
 
 dependencies {
-    implementation("com.magisk317.mobile:entitlement-android:0.1.15")
+    implementation("com.magisk317.mobile:entitlement-android:0.1.16")
     implementation(project(":magisk-xposed-kit:logging"))
     implementation(project(":magisk-xposed-kit"))
     implementation(project(":relay:contract"))
