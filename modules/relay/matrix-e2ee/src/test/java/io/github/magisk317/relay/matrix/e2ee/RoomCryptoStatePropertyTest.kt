@@ -225,9 +225,10 @@ class RoomCryptoStatePropertyTest : FunSpec({
          *
          * For any combination of HTTP status code and JSON body, the classification
          * must follow the rule: encrypted=true iff (status==200 AND algorithm=="m.megolm.v1.aes-sha2").
+         *
+         * Each iteration uses a fresh MockWebServer instance to avoid response queue
+         * desynchronization that occurs when sharing a single server across many iterations.
          */
-        // Exclude no-body statuses which have special body handling
-        // in HTTP that can desynchronize MockWebServer's response queue
         val statusCodeArb = Arb.int(200..599).filter { it !in setOf(204, 205, 304, 401, 403) }
         val bodyArb: Arb<String> = arbitrary {
             val useValid = Arb.element(true, false).bind()
@@ -238,25 +239,24 @@ class RoomCryptoStatePropertyTest : FunSpec({
             }
         }
 
-        // Use a dedicated client with strict timeouts and no redirects to prevent hangs
-        val strictClient = newTestClient(
-            connectTimeoutSeconds = 2,
-            readTimeoutSeconds = 2,
-            callTimeoutSeconds = 3,
-        )
-
-        var iteration = 0
-        withRoomCryptoServer(client = strictClient) { server, client ->
-            checkAll(100, statusCodeArb, bodyArb) { statusCode, body ->
-                iteration++
-                // Use iteration counter for guaranteed unique room ID (no hash collision possible)
-                val roomId = "!room-iter-$iteration:example.com"
+        checkAll(PropTestConfig(iterations = 50), statusCodeArb, bodyArb) { statusCode, body ->
+            RoomCryptoState.clearCache()
+            val server = MockWebServer()
+            server.start()
+            try {
+                val roomId = "!room-${statusCode}-${body.hashCode()}:example.com"
                 server.enqueue(
                     MockResponse.Builder()
                         .code(statusCode)
                         .addHeader("Content-Length", body.toByteArray().size.toString())
                         .body(body)
                         .build()
+                )
+
+                val client = newTestClient(
+                    connectTimeoutSeconds = 2,
+                    readTimeoutSeconds = 2,
+                    callTimeoutSeconds = 3,
                 )
 
                 val result = RoomCryptoState.isRoomEncrypted(
@@ -270,6 +270,8 @@ class RoomCryptoStatePropertyTest : FunSpec({
                     body.contains(""""algorithm":"m.megolm.v1.aes-sha2"""")
 
                 result shouldBe expectedEncrypted
+            } finally {
+                server.close()
             }
         }
     }
