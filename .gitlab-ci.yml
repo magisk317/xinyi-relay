@@ -1,18 +1,18 @@
 include:
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: 335b36dbc9127e082f30a659d699de22b0445faf
+    ref: 17be8de5d44e6860725fcca1660cb005f6fa643e
     file: /.gitlab/ci/android.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: 335b36dbc9127e082f30a659d699de22b0445faf
+    ref: 17be8de5d44e6860725fcca1660cb005f6fa643e
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: 335b36dbc9127e082f30a659d699de22b0445faf
+    ref: 17be8de5d44e6860725fcca1660cb005f6fa643e
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: 335b36dbc9127e082f30a659d699de22b0445faf
+    ref: 17be8de5d44e6860725fcca1660cb005f6fa643e
     file: /.gitlab/ci/renovate.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: 335b36dbc9127e082f30a659d699de22b0445faf
+    ref: 17be8de5d44e6860725fcca1660cb005f6fa643e
     file: /.gitlab/ci/cancel-mr-pipelines.yml
 
 workflow:
@@ -41,7 +41,7 @@ stages:
   - maintenance
 
 variables:
-  MAGISK_CI_TOOLKIT_REF: "335b36dbc9127e082f30a659d699de22b0445faf"
+  MAGISK_CI_TOOLKIT_REF: "17be8de5d44e6860725fcca1660cb005f6fa643e"
   MAGISK_CANCEL_OLDER_MR_PIPELINES: "true"
   GIT_DEPTH: "0"
   GIT_SUBMODULE_STRATEGY: recursive
@@ -703,6 +703,8 @@ android:ci:play-beta:
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   rules:
+    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TITLE =~ /^Merge branch .renovate\// && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
+      when: on_success
     - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
       when: manual
       allow_failure: true
@@ -785,6 +787,8 @@ telegram:ci:
   stage: notify
   allow_failure: true
   rules:
+    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TITLE =~ /^Merge branch .renovate\// && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != ""'
+      when: on_success
     - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != ""'
       when: manual
       allow_failure: true
