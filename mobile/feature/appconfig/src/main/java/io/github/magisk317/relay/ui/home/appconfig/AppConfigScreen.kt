@@ -214,6 +214,7 @@ fun AppConfigScreen(
 
     val listState = rememberLazyListState()
     ReportLazyListScrollToChrome(listState, scrollChromeState)
+    io.github.magisk317.uikit.surface.ScrollToTopEffect(listState, refreshTrigger)
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val pullToRefreshState = rememberPullToRefreshState()
     val defaultTopPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 156.dp

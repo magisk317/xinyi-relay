@@ -728,6 +728,7 @@ fun CodeRecordScreen(
                             listContentPadding = PaddingValues(top = fixedTopHeight, bottom = bottomPadding),
                             scrollChromeState = scrollChromeState,
                             isActive = isActive,
+                            scrollToTopSignal = refreshTrigger,
                             benchmarkTagsEnabled = benchmarkTagsEnabled,
                         )
                     }
@@ -1446,10 +1447,12 @@ private fun RecordSplitColumn(
     listContentPadding: PaddingValues = PaddingValues(0.dp),
     scrollChromeState: ScrollChromeState? = null,
     isActive: Boolean = true,
+    scrollToTopSignal: Int = 0,
     benchmarkTagsEnabled: Boolean = true,
 ) {
     val listState = rememberLazyListState()
     ReportLazyListScrollToChrome(listState, scrollChromeState)
+    io.github.magisk317.uikit.surface.ScrollToTopEffect(listState, scrollToTopSignal)
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
