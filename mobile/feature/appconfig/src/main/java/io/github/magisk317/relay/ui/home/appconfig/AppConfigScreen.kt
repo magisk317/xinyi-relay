@@ -6,6 +6,7 @@ import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import android.graphics.Bitmap
 import android.os.SystemClock
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -69,8 +70,9 @@ import io.github.magisk317.uikit.foundation.rememberMinDurationLoading
 import io.github.magisk317.uikit.scroll.ReportLazyListScrollToChrome
 import io.github.magisk317.uikit.scroll.ScrollChromeState
 import io.github.magisk317.uikit.surface.OverlayHeaderScaffold
+import io.github.magisk317.uikit.surface.SearchOverlayContent
 import io.github.magisk317.uikit.surface.WorkspaceListItem
-import io.github.magisk317.uikit.surface.WorkspaceTopBarSearchOverlay
+import io.github.magisk317.uikit.surface.rememberSearchOverlayState
 import io.github.magisk317.uikit.surface.WorkspaceTrailingIcon
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -126,8 +128,13 @@ fun AppConfigScreen(
     // the current counter so it does not replay a top-level reselect that happened in the past.
     var handledRefreshTrigger by rememberSaveable { mutableIntStateOf(refreshTrigger) }
     var showUsagePermissionDialog by remember { mutableStateOf(false) }
-    val searchQuery = uiState.searchQuery
+    val searchState = rememberSearchOverlayState(
+        onSearchChange = { viewModel.doFilter(it) },
+    )
     var showSettingsMenu by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = searchState.expanded) { searchState.close() }
+    LaunchedEffect(isActive) { if (!isActive) searchState.close() }
 
     val showLoading = rememberMinDurationLoading(
         actualLoading = isActive && isLoading && shouldShowInitialLoading,
@@ -242,9 +249,9 @@ fun AppConfigScreen(
                 .align(Alignment.TopCenter)
                 .fillMaxWidth(),
             overlay = {
-                WorkspaceTopBarSearchOverlay(
+                SearchOverlayContent(
+                    state = searchState,
                     title = stringResource(R.string.app_config_settings),
-                    searchQuery = searchQuery,
                     searchPlaceholder = stringResource(R.string.action_search),
                     navigationIcon = if (onBack != null) {
                         {
@@ -320,8 +327,6 @@ fun AppConfigScreen(
                             }
                         }
                     },
-                    scrollBehavior = scrollBehavior,
-                    onSearchChange = { viewModel.doFilter(it) },
                 )
             },
             content = { overlayPadding ->

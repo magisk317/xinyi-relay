@@ -81,7 +81,6 @@ class SmsCodeApplication : Application() {
                 }
             },
         )
-        MobileEntitlementCoordinator.publishFailClosed(this)
     }
 
     private fun registerEntitlementForegroundRefresh() {

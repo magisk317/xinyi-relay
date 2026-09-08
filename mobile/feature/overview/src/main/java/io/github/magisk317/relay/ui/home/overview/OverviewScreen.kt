@@ -76,7 +76,7 @@ import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import io.github.magisk317.relay.engine.service.RuntimeAnalyticsProvider
 import io.github.magisk317.relay.billing.BillingProvider
 import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
-import com.magisk317.mobile.entitlement.MobileEntitlementCoordinator
+import io.github.magisk317.uikit.entitlement.rememberEntitlementState
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -118,23 +118,13 @@ fun OverviewScreen(
         }
     }
 
-    LaunchedEffect(isActive) {
-        if (isActive) {
-            runCatching { MobileEntitlementCoordinator.refresh(context) }
-        }
-    }
-
     val analyticsEnabled = rememberPrefBoolean(
         PrefConst.KEY_ENABLE_ANALYTICS,
         true,
         isActive = isActive,
     )
     val effectiveAnalyticsEnabled = MagiskOtelBootstrap.isEffectivelyEnabled(analyticsEnabled.value)
-    val mobileAutomationAllowedPref = rememberPrefBoolean(
-        PrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
-        PrefConst.DEFAULT_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
-        isActive = isActive,
-    )
+    val mobileAutomationAllowed = rememberEntitlementState(isActive = isActive)
 
     val workMode by WorkModeResolver.mode.collectAsStateWithLifecycle()
     val isEnabled = workMode == WorkMode.Enhanced
@@ -295,7 +285,7 @@ fun OverviewScreen(
         frameworkVersion = runtimeUiState.frameworkVersion,
         hasRootAccess = runtimeUiState.hasRootAccess,
         runtimeConnected = activationStatus.runtimeConnected,
-        mobileAutomationAllowed = mobileAutomationAllowedPref.value,
+        mobileAutomationAllowed = mobileAutomationAllowed,
         activationDiagnostics = activationStatus.diagnostics,
         showStatusDiagnostics = overviewUiState.showStatusDiagnostics,
         draggingCardId = overviewUiState.draggingCardId,
