@@ -68,12 +68,18 @@ internal fun rememberSettingsRuntimeLogActions(
                 snackbarHostState.showLatestSnackbar(
                     context.getString(R.string.runtime_log_export_failed, failure),
                 )
+            } else {
+                snackbarHostState.showLatestSnackbar(
+                    context.getString(R.string.runtime_log_saved),
+                )
             }
         }
     }
 
     fun saveLog() {
-        val blockReason = LogBundleExporter.checkPreExport(diagnostics?.verboseLogMode == true)
+        val blockReason = LogBundleExporter.checkPreExport(
+            kotlinx.coroutines.runBlocking { repository.getDiagnosticsSettings().verboseLogMode }
+        )
         if (blockReason != null) {
             val resId = context.resources.getIdentifier(blockReason, "string", context.packageName)
             val message = if (resId != 0) context.getString(resId) else blockReason

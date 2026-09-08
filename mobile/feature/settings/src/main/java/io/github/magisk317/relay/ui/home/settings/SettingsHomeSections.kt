@@ -160,7 +160,7 @@ internal fun SettingsDiagnosticsSection(
     onExpandedChange: () -> Unit,
     onRuntimeLogTitleClick: () -> Unit,
     onVerboseLogModeChange: (Boolean) -> Unit,
-    onSensitiveDebugLogModeChange: (Boolean) -> Unit,
+    onSensitiveDebugLogModeChange: (Boolean) -> Unit = {},
     onRuntimeLogRetentionClick: () -> Unit,
     onClearLog: () -> Unit,
     onAutoUpdateOnStartChange: (Boolean) -> Unit,
@@ -187,12 +187,9 @@ internal fun SettingsDiagnosticsSection(
                 ),
                 clearLogTitle = stringResource(id = R.string.runtime_log_clear_confirm_title),
                 clearLogSummary = stringResource(id = R.string.runtime_log_clear_summary),
-                sensitiveLogTitle = stringResource(id = R.string.pref_log_sanitization_title),
-                sensitiveLogSummary = stringResource(id = R.string.pref_log_sanitization_summary),
             ),
             state = RuntimeLogDiagnosticsState(
                 verboseLogEnabled = diagnostics.verboseLogMode,
-                sensitiveLogEnabled = diagnostics.sensitiveDebugLogMode,
             ),
             callbacks = RuntimeLogDiagnosticsCallbacks(
                 onShareLog = onRuntimeLogTitleClick,

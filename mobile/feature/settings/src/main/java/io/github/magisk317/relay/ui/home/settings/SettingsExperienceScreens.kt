@@ -288,6 +288,8 @@ fun SettingsHomeScreen(
                 onRuntimeLogTitleClick = runtimeLogActions.onRuntimeLogTitleClick,
                 onVerboseLogModeChange = { enabled ->
                     VerboseLogEnableTracker.onVerboseLogToggled(enabled)
+                    SensitiveLogPolicy.setEnabled(enabled)
+                    diagnostics = diagnostics?.copy(verboseLogMode = enabled)
                     scope.launch {
                         diagnostics = repository.updateDiagnosticsSettings(
                             DiagnosticsSettingsUpdate(verboseLogMode = enabled),
@@ -298,15 +300,7 @@ fun SettingsHomeScreen(
                         notifySaved()
                     }
                 },
-                onSensitiveDebugLogModeChange = { enabled ->
-                    scope.launch {
-                        diagnostics = repository.updateDiagnosticsSettings(
-                            DiagnosticsSettingsUpdate(sensitiveDebugLogMode = enabled),
-                        )
-                        SensitiveLogPolicy.setEnabled(enabled)
-                        notifySaved()
-                    }
-                },
+
                 onRuntimeLogRetentionClick = runtimeLogActions.onRuntimeLogRetentionClick,
                 onClearLog = runtimeLogActions.onClearLog,
                 onAutoUpdateOnStartChange = { enabled ->

@@ -1015,6 +1015,7 @@
     <!-- translation audit -->
     <string name="record_empty_summary">等待新的转发记录，或先触发一次已关联的捕获链路。</string>
     <string name="runtime_log_export_failed">导出失败：%1$s</string>
+    <string name="runtime_log_saved">日志已保存</string>
     <string name="runtime_log_share_failed">分享失败：%1$s</string>
     <string name="runtime_log_cleared">日志与崩溃文件已清空</string>
     <string name="runtime_log_clear_partial_failed">部分清空失败：%1$s</string>

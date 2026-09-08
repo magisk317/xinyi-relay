@@ -1004,6 +1004,7 @@
 
     <!-- translation audit -->
     <string name="runtime_log_export_failed">Export failed: %1$s</string>
+    <string name="runtime_log_saved">Logs saved</string>
     <string name="runtime_log_share_failed">Share failed: %1$s</string>
     <string name="runtime_log_cleared">Logs and crash files cleared</string>
     <string name="runtime_log_clear_partial_failed">Partially cleared: %1$s</string>
