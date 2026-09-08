@@ -76,6 +76,7 @@ import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import io.github.magisk317.relay.engine.service.RuntimeAnalyticsProvider
 import io.github.magisk317.relay.billing.BillingProvider
 import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
+import com.magisk317.mobile.entitlement.MobileEntitlementCoordinator
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -114,6 +115,12 @@ fun OverviewScreen(
         viewModel.setPageActive(isActive)
         onDispose {
             if (isActive) viewModel.setPageActive(false)
+        }
+    }
+
+    LaunchedEffect(isActive) {
+        if (isActive) {
+            runCatching { MobileEntitlementCoordinator.refresh(context) }
         }
     }
 
