@@ -110,11 +110,6 @@ dependencyResolutionManagement {
             }
         }
     }
-    versionCatalogs {
-        create("libs") {
-            from(files("gradle/libs-shared.versions.toml", "gradle/libs.versions.toml"))
-        }
-    }
 }
 
 include(
