@@ -16,6 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import io.github.magisk317.smscode.runtime.common.diagnostics.LogBundleExporter
+import io.github.magisk317.smscode.runtime.common.diagnostics.VerboseLogEnableTracker
 import io.github.magisk317.xposed.diagnostics.DiagnosticExportMode
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsSnapshot
@@ -72,6 +73,13 @@ internal fun rememberSettingsRuntimeLogActions(
     }
 
     fun saveLog() {
+        val blockReason = LogBundleExporter.checkPreExport(diagnostics?.verboseLogMode == true)
+        if (blockReason != null) {
+            val resId = context.resources.getIdentifier(blockReason, "string", context.packageName)
+            val message = if (resId != 0) context.getString(resId) else blockReason
+            scope.launch { snackbarHostState.showLatestSnackbar(message) }
+            return
+        }
         val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", java.util.Locale.US)
             .format(java.util.Date())
         saveRuntimeLogLauncher.launch("xinyi_logs_$timestamp.zip")

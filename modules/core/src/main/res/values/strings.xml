@@ -322,10 +322,14 @@
 
     <!-- preference others -->
     <string name="pref_others_title">Others</string>
+    <string name="pref_share_log_title">Save logs</string>
+    <string name="pref_share_log_summary">Save log bundle for debugging</string>
     <string name="pref_verbose_log_mode_title">Detailed log</string>
-    <string name="pref_verbose_log_mode_summary">Tap title to share logs</string>
+    <string name="pref_verbose_log_mode_summary">Print verbose runtime logs</string>
     <string name="pref_sensitive_debug_log_mode_title">Sensitive debug log</string>
     <string name="pref_sensitive_debug_log_mode_summary">Debug builds only. Allows plaintext sender, body, and code in logs.</string>
+    <string name="pref_log_sanitization_title">Sanitize logs</string>
+    <string name="pref_log_sanitization_summary">Hide sensitive information in logs</string>
     <string name="pref_runtime_log_retention_days_title">Runtime log retention</string>
     <string name="pref_runtime_log_retention_days_summary">Daily rotation, keep the last %1$d days</string>
     <string name="pref_runtime_log_retention_days_hint">Retention in days, minimum 1. Default is 7.</string>

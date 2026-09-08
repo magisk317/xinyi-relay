@@ -319,10 +319,14 @@
 
     <!-- preference others -->
     <string name="pref_others_title">其他設定</string>
+    <string name="pref_share_log_title">儲存日誌</string>
+    <string name="pref_share_log_summary">儲存日誌包用於除錯</string>
     <string name="pref_verbose_log_mode_title">詳細日誌</string>
-    <string name="pref_verbose_log_mode_summary">點擊查看、分享或清空日誌</string>
+    <string name="pref_verbose_log_mode_summary">列印詳細運行日誌</string>
     <string name="pref_sensitive_debug_log_mode_title">敏感除錯日誌</string>
     <string name="pref_sensitive_debug_log_mode_summary">僅 Debug 版本提供。開啟後日誌可輸出手機號、簡訊正文與驗證碼明文。</string>
+    <string name="pref_log_sanitization_title">脫敏日誌</string>
+    <string name="pref_log_sanitization_summary">開啟後隱藏日誌中的敏感資訊</string>
     <string name="pref_runtime_log_retention_days_title">日誌保留天數</string>
     <string name="pref_runtime_log_retention_days_summary">按天輪轉，保留最近 %1$d 天日誌</string>
     <string name="pref_runtime_log_retention_days_hint">單位：天，最小值 1，預設 7。</string>

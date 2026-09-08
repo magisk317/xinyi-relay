@@ -324,10 +324,14 @@
 
     <!-- preference others -->
     <string name="pref_others_title">其他</string>
+    <string name="pref_share_log_title">保存日志</string>
+    <string name="pref_share_log_summary">保存日志包用于调试</string>
     <string name="pref_verbose_log_mode_title">详细日志</string>
-    <string name="pref_verbose_log_mode_summary">点击标题分享日志</string>
+    <string name="pref_verbose_log_mode_summary">打印详细运行日志</string>
     <string name="pref_sensitive_debug_log_mode_title">敏感调试日志</string>
     <string name="pref_sensitive_debug_log_mode_summary">仅 Debug 版本提供。开启后日志可输出手机号、短信正文和验证码明文。</string>
+    <string name="pref_log_sanitization_title">脱敏日志</string>
+    <string name="pref_log_sanitization_summary">开启后隐藏日志中的敏感信息</string>
     <string name="pref_runtime_log_retention_days_title">日志保留天数</string>
     <string name="pref_runtime_log_retention_days_summary">按天轮转，保留最近 %1$d 天日志</string>
     <string name="pref_runtime_log_retention_days_hint">单位：天，最小值 1，默认 7。</string>

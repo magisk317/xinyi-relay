@@ -25,6 +25,7 @@ import io.github.magisk317.relay.mobilefeature.settings.BuildConfig
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsCallbacks
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsItem
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsItems
+import io.github.magisk317.uikit.preference.RuntimeLogShareEntryMode
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsLabels
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsLayout
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsState
@@ -175,6 +176,8 @@ internal fun SettingsDiagnosticsSection(
     ) {
         RuntimeLogDiagnosticsItems(
             labels = RuntimeLogDiagnosticsLabels(
+                shareLogTitle = stringResource(id = R.string.pref_share_log_title),
+                shareLogSummary = stringResource(id = R.string.pref_share_log_summary),
                 verboseLogTitle = stringResource(id = R.string.pref_verbose_log_mode_title),
                 verboseLogSummary = stringResource(id = R.string.pref_verbose_log_mode_summary),
                 retentionTitle = stringResource(id = R.string.pref_runtime_log_retention_days_title),
@@ -184,16 +187,8 @@ internal fun SettingsDiagnosticsSection(
                 ),
                 clearLogTitle = stringResource(id = R.string.runtime_log_clear_confirm_title),
                 clearLogSummary = stringResource(id = R.string.runtime_log_clear_summary),
-                sensitiveLogTitle = if (BuildConfig.DEBUG) {
-                    stringResource(id = R.string.pref_sensitive_debug_log_mode_title)
-                } else {
-                    null
-                },
-                sensitiveLogSummary = if (BuildConfig.DEBUG) {
-                    stringResource(id = R.string.pref_sensitive_debug_log_mode_summary)
-                } else {
-                    ""
-                },
+                sensitiveLogTitle = stringResource(id = R.string.pref_log_sanitization_title),
+                sensitiveLogSummary = stringResource(id = R.string.pref_log_sanitization_summary),
             ),
             state = RuntimeLogDiagnosticsState(
                 verboseLogEnabled = diagnostics.verboseLogMode,
@@ -204,14 +199,12 @@ internal fun SettingsDiagnosticsSection(
                 onVerboseLogEnabledChange = onVerboseLogModeChange,
                 onRetentionClick = onRuntimeLogRetentionClick,
                 onClearLogClick = onClearLog,
-                onSensitiveLogEnabledChange = if (BuildConfig.DEBUG) {
-                    onSensitiveDebugLogModeChange
-                } else {
-                    null
-                },
+                onSensitiveLogEnabledChange = onSensitiveDebugLogModeChange,
             ),
             layout = RuntimeLogDiagnosticsLayout(
+                shareEntryMode = RuntimeLogShareEntryMode.SEPARATE_ITEM,
                 itemOrder = listOf(
+                    RuntimeLogDiagnosticsItem.SHARE_LOG,
                     RuntimeLogDiagnosticsItem.VERBOSE_LOG,
                     RuntimeLogDiagnosticsItem.SENSITIVE_LOG,
                     RuntimeLogDiagnosticsItem.RETENTION,
