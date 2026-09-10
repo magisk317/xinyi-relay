@@ -23,7 +23,7 @@ jobs:
       startsWith(github.event.pull_request.title, 'chore(release): bump versionCode for ')
     steps:
       - name: Enable auto-merge for release retry PR
-        run: gh pr merge --auto --merge --delete-branch "$PR_URL"
+        run: gh pr merge --auto --squash --delete-branch "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
