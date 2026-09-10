@@ -69,6 +69,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
 import io.github.magisk317.smscode.runtime.contract.diagnostics.ActivationDiagnosticsSnapshot
 import io.github.magisk317.smscode.runtime.common.utils.BrowserUtils
 import io.github.magisk317.relay.core.R
@@ -81,6 +82,13 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+
+private suspend fun readEntitlementAutomationAllowed(context: Context): Boolean =
+    AppPreferencesDataStore.getBoolean(
+        context,
+        PrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+        false,
+    )
 
 internal data class HomeCardSpec(
     val id: String,
@@ -124,7 +132,10 @@ fun OverviewScreen(
         isActive = isActive,
     )
     val effectiveAnalyticsEnabled = MagiskOtelBootstrap.isEffectivelyEnabled(analyticsEnabled.value)
-    val mobileAutomationAllowed = rememberEntitlementState(isActive = isActive)
+    val mobileAutomationAllowed = rememberEntitlementState(
+        isActive = isActive,
+        dataStoreReader = ::readEntitlementAutomationAllowed,
+    )
 
     val workMode by WorkModeResolver.mode.collectAsStateWithLifecycle()
     val isEnabled = workMode == WorkMode.Enhanced
