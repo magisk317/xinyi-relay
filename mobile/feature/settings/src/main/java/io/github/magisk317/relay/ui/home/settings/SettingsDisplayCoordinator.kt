@@ -1,79 +1,30 @@
 package io.github.magisk317.relay.ui.home.settings
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 
 internal data class SettingsDisplayActions(
-    val onThemeClick: () -> Unit,
-    val onLanguageClick: () -> Unit,
+    val onThemeSelected: (Int, Float, Float) -> Unit,
+    val onLanguageSelected: (String) -> Unit,
 )
 
+/**
+ * Wires the UI Kit general-settings section's theme/language selections into
+ * the view model. The dialogs themselves (and per-app locale persistence)
+ * live inside the UI Kit GeneralSettingsSection.
+ */
 @Composable
 internal fun rememberSettingsDisplayActions(
     settingsViewModel: SettingsViewModel,
-    themeMode: Int,
-    languageTag: String,
     notifySaved: () -> Unit,
 ): SettingsDisplayActions {
-    var showThemeDialog by remember { mutableStateOf(false) }
-    var showLanguageDialog by remember { mutableStateOf(false) }
-    var themeDialogInitialMode by remember { mutableStateOf(0) }
-    var themeDialogSelectedMode by remember { mutableStateOf(0) }
-    var languageDialogInitialTag by remember { mutableStateOf("") }
-    var languageDialogSelectedTag by remember { mutableStateOf("") }
-
-    if (showThemeDialog) {
-        SettingsThemeDialog(
-            selectedMode = themeDialogSelectedMode,
-            onDismiss = {
-                settingsViewModel.previewThemeMode(themeDialogInitialMode)
-                showThemeDialog = false
-            },
-            onSelectionChange = { index ->
-                themeDialogSelectedMode = index
-                settingsViewModel.previewThemeMode(index)
-            },
-            onConfirm = { index ->
-                showThemeDialog = false
-                themeDialogSelectedMode = index
-                settingsViewModel.persistThemeMode(index)
-                notifySaved()
-            },
-        )
-    }
-    if (showLanguageDialog) {
-        SettingsLanguageDialog(
-            selectedTag = languageDialogSelectedTag,
-            onDismiss = {
-                settingsViewModel.previewLanguageTag(languageDialogInitialTag)
-                showLanguageDialog = false
-            },
-            onSelectionChange = { tag ->
-                languageDialogSelectedTag = tag
-                settingsViewModel.previewLanguageTag(tag)
-            },
-            onConfirm = { tag ->
-                showLanguageDialog = false
-                languageDialogSelectedTag = tag
-                settingsViewModel.persistLanguageTag(tag)
-                notifySaved()
-            },
-        )
-    }
-
     return SettingsDisplayActions(
-        onThemeClick = {
-            themeDialogInitialMode = themeMode
-            themeDialogSelectedMode = themeMode
-            showThemeDialog = true
+        onThemeSelected = { index, x, y ->
+            settingsViewModel.persistThemeMode(index, x, y)
+            notifySaved()
         },
-        onLanguageClick = {
-            languageDialogInitialTag = languageTag
-            languageDialogSelectedTag = languageTag
-            showLanguageDialog = true
+        onLanguageSelected = { tag ->
+            settingsViewModel.persistLanguageTag(tag)
+            notifySaved()
         },
     )
 }

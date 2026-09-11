@@ -2,7 +2,6 @@ package io.github.magisk317.relay.ui.home.settings
 
 import io.github.magisk317.relay.ui.common.StateSwitchItem
 import io.github.magisk317.relay.ui.common.ActionSwitchItem
-import io.github.magisk317.relay.ui.common.Item
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,30 +32,30 @@ import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsState
 @Composable
 internal fun SettingsGeneralSection(
     general: GeneralSettingsSnapshot,
-    themeSummary: String,
-    languageSummary: String,
+    themeMode: Int,
     expanded: Boolean,
     onExpandedChange: () -> Unit,
     onModuleEnabledChange: (Boolean) -> Unit,
     onAccordionModeChange: (Boolean) -> Unit,
     launcherIconVisible: Boolean,
     onLauncherIconVisibleChange: (Boolean) -> Unit,
-    onThemeClick: () -> Unit,
-    onLanguageClick: () -> Unit,
+    onThemeSelected: (Int, Float, Float) -> Unit,
+    onLanguageSelected: (String) -> Unit,
 ) {
-    SectionCard(
+    io.github.magisk317.uikit.preference.GeneralSettingsSection(
         title = stringResource(id = R.string.settings_group_general),
         summary = stringResource(id = R.string.settings_group_general_summary),
-        sectionExpanded = expanded,
+        expanded = expanded,
         onExpandedChange = onExpandedChange,
         accordionMode = true,
+        moduleEnabled = general.moduleEnabled,
+        onModuleEnabledChange = onModuleEnabledChange,
+        moduleTitle = stringResource(id = R.string.pref_enable_title),
+        moduleSummary = stringResource(id = R.string.pref_enable_summary),
+        themeMode = themeMode,
+        onThemeSelected = onThemeSelected,
+        onLanguageSelected = onLanguageSelected,
     ) {
-        StateSwitchItem(
-            title = stringResource(id = R.string.pref_enable_title),
-            summary = stringResource(id = R.string.pref_enable_summary),
-            checked = general.moduleEnabled,
-            onCheckedChange = onModuleEnabledChange,
-        )
         StateSwitchItem(
             title = stringResource(id = R.string.pref_settings_display_mode_title),
             summary = stringResource(id = R.string.pref_settings_display_mode_summary),
@@ -68,16 +67,6 @@ internal fun SettingsGeneralSection(
             summary = stringResource(id = R.string.pref_show_launcher_icon_summary),
             checked = launcherIconVisible,
             onCheckedChange = onLauncherIconVisibleChange,
-        )
-        Item(
-            title = stringResource(id = R.string.pref_choose_theme_title),
-            summary = themeSummary,
-            onClick = onThemeClick,
-        )
-        Item(
-            title = stringResource(id = R.string.pref_language_title),
-            summary = languageSummary,
-            onClick = onLanguageClick,
         )
     }
 }

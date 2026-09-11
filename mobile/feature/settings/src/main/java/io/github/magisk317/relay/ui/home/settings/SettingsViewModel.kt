@@ -182,10 +182,6 @@ class SettingsViewModel(
         persistThemeMode(mode, x, y)
     }
 
-    fun previewThemeMode(mode: Int, x: Float = -1f, y: Float = -1f) {
-        sharedThemeState.value = sharedThemeState.value.copy(mode = mode, centerX = x, centerY = y)
-    }
-
     fun persistThemeMode(mode: Int, x: Float = -1f, y: Float = -1f) {
         viewModelScope.launch {
             settingsRepository.setThemeMode(mode)

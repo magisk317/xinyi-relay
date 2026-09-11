@@ -92,11 +92,8 @@ fun SettingsHomeScreen(
         }
     }
     val themeState by settingsViewModel.themeState.collectAsStateWithLifecycle()
-    val languageState by settingsViewModel.languageState.collectAsStateWithLifecycle()
     val displayActions = rememberSettingsDisplayActions(
         settingsViewModel = settingsViewModel,
-        themeMode = themeState.mode,
-        languageTag = languageState.languageTag,
         notifySaved = notifySaved,
     )
     val backupRestoreActions = rememberSettingsBackupRestoreActions(
@@ -218,8 +215,7 @@ fun SettingsHomeScreen(
 
             SettingsGeneralSection(
                 general = generalSnapshot,
-                themeSummary = themeModeSummary(themeState.mode),
-                languageSummary = languageSummary(languageState.languageTag),
+                themeMode = themeState.mode,
                 expanded = expandGeneral,
                 onExpandedChange = { expandGeneral = !expandGeneral },
                 onModuleEnabledChange = { enabled ->
@@ -250,8 +246,8 @@ fun SettingsHomeScreen(
                         }
                     }
                 },
-                onThemeClick = displayActions.onThemeClick,
-                onLanguageClick = displayActions.onLanguageClick,
+                onThemeSelected = displayActions.onThemeSelected,
+                onLanguageSelected = displayActions.onLanguageSelected,
             )
             SettingsFeaturesSection(
                 verification = verificationSnapshot,
