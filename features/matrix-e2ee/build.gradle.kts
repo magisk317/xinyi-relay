@@ -35,7 +35,12 @@ androidComponents {
         }
         checkNotNull(setTargetSdk) {
             "AGP DynamicFeatureVariantBuilder does not expose setTargetSdk"
-        }.invoke(variantBuilder, libs.versions.targetSdk.get().toInt())
+        }.invoke(
+            variantBuilder,
+            // The platform spec may be a beta string ("37.2-beta3") when the shared
+            // catalog wins; targetSdk must be the integer API level.
+            libs.versions.targetSdk.get().substringBefore(".").toInt(),
+        )
     }
 }
 
