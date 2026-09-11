@@ -14,6 +14,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.OutputTransformation
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -39,14 +43,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.model.Sender
@@ -64,6 +68,8 @@ import io.github.magisk317.relay.ui.sender.SenderViewModel
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import java.util.Date
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
 
@@ -128,6 +134,10 @@ private fun SenderSettingDraft.normalizedStructuredFields(): SenderSettingDraft 
         }
     }
     return nextDraft
+}
+
+private val PasswordOutputTransformation = OutputTransformation {
+    replace(0, length, "•".repeat(length))
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -435,17 +445,32 @@ private fun SchemaSenderField(
     }
 
     var passwordVisible by remember { mutableStateOf(false) }
+    val textFieldState = rememberTextFieldState(initialText = value)
+    val currentDraft = rememberUpdatedState(draft)
+    val currentOnDraftChange = rememberUpdatedState(onDraftChange)
+
+    LaunchedEffect(value) {
+        if (textFieldState.text.toString() != value) {
+            textFieldState.setTextAndPlaceCursorAtEnd(value)
+        }
+    }
+    LaunchedEffect(textFieldState) {
+        snapshotFlow { textFieldState.text.toString() }
+            .distinctUntilChanged()
+            .collect { next ->
+                val nextDraft = when (metadata.type) {
+                    SenderSettingFieldType.INTEGER -> currentDraft.value.withInt(
+                        spec.name,
+                        next.toIntOrNull() ?: 0,
+                    )
+                    else -> currentDraft.value.withString(spec.name, next)
+                }
+                currentOnDraftChange.value(nextDraft)
+            }
+    }
 
     OutlinedTextField(
-        value = value,
-        onValueChange = { next ->
-            onDraftChange(
-                when (metadata.type) {
-                    SenderSettingFieldType.INTEGER -> draft.withInt(spec.name, next.toIntOrNull() ?: 0)
-                    else -> draft.withString(spec.name, next)
-                },
-            )
-        },
+        state = textFieldState,
         label = { Text(stringResource(spec.labelRes)) },
         placeholder = spec.placeholderRes?.let { placeholderRes ->
             { Text(stringResource(placeholderRes)) }
@@ -453,11 +478,14 @@ private fun SchemaSenderField(
         supportingText = spec.supportingTextRes?.let { supportingTextRes ->
             { Text(stringResource(supportingTextRes)) }
         },
-        minLines = spec.minLines,
-        visualTransformation = if (spec.isSecret && !passwordVisible) {
-            PasswordVisualTransformation()
+        lineLimits = TextFieldLineLimits.MultiLine(
+            minHeightInLines = spec.minLines,
+            maxHeightInLines = Int.MAX_VALUE,
+        ),
+        outputTransformation = if (spec.isSecret && !passwordVisible) {
+            PasswordOutputTransformation
         } else {
-            VisualTransformation.None
+            null
         },
         trailingIcon = if (spec.isSecret) {
             {

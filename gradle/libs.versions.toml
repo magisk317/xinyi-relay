@@ -1,7 +1,7 @@
 [versions]
 compileSdk = "37.2"
 minSdk = "28"
-targetSdk = "37.2-beta3"
+targetSdk = "37"
 java = "26"
 javaBytecode = "26"
 kotlin = "2.4.20"
@@ -47,7 +47,9 @@ google-services = "4.5.0"
 coil3 = "3.6.2"
 koin = "4.2.2"
 hilt = "2.59.2"
-miuix = "0.8.8"
+miuix = "0.9.4-rc01"
+miuix-blur = "0.9.4-rc01"
+material-kolor = "5.0.0"
 billing = "9.1.0"
 kermit = "2.2.0"
 timber = "5.0.1"
@@ -168,7 +170,10 @@ libsu-core = { module = "com.github.topjohnwu.libsu:core", version.ref = "libsu"
 libxposed-api = { module = "io.github.libxposed:api", version.ref = "libxposed-api" }
 libxposed-service = { module = "io.github.libxposed:service", version.ref = "libxposed-service" }
 markdown = { module = "org.jetbrains:markdown", version.ref = "markdown" }
-miuix = { module = "top.yukonga.miuix.kmp:miuix", version.ref = "miuix" }
+miuix = { module = "top.yukonga.miuix.kmp:miuix-ui", version.ref = "miuix" }
+miuixBlur = { module = "top.yukonga.miuix.kmp:miuix-blur", version.ref = "miuix-blur" }
+miuixPreference = { module = "top.yukonga.miuix.kmp:miuix-preference", version.ref = "miuix" }
+materialKolor = { module = "com.materialkolor:material-kolor", version.ref = "material-kolor" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 mobile-entitlement-android = { module = "com.magisk317.mobile:entitlement-android", version.ref = "mobile-entitlement" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }

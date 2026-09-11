@@ -16,6 +16,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.input.OutputTransformation
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Visibility
@@ -42,8 +46,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -54,6 +56,8 @@ import io.github.magisk317.relay.backup.webdav.WebDavConfig
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
 import io.github.magisk317.uikit.surface.chromeTopAppBarColors
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -558,6 +562,10 @@ private fun RequiredTextField(
     Spacer(modifier = Modifier.height(8.dp))
 }
 
+private val PasswordOutputTransformation = OutputTransformation {
+    replace(0, length, "•".repeat(length))
+}
+
 @Composable
 private fun PasswordTextField(
     value: String,
@@ -566,11 +574,21 @@ private fun PasswordTextField(
     isError: Boolean,
     onToggleVisibility: () -> Unit,
 ) {
+    val state = rememberTextFieldState(initialText = value)
+    LaunchedEffect(value) {
+        if (state.text.toString() != value) {
+            state.setTextAndPlaceCursorAtEnd(value)
+        }
+    }
+    LaunchedEffect(state) {
+        snapshotFlow { state.text.toString() }
+            .distinctUntilChanged()
+            .collect(onValueChange)
+    }
     OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
+        state = state,
         label = { Text(stringResource(id = R.string.cloud_backup_webdav_password)) },
-        visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
+        outputTransformation = if (visible) null else PasswordOutputTransformation,
         trailingIcon = {
             IconButton(onClick = onToggleVisibility) {
                 Icon(
