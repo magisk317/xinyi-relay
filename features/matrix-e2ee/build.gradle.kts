@@ -28,6 +28,17 @@ android {
     }
 }
 
+androidComponents {
+    beforeVariants { variantBuilder ->
+        val setTargetSdk = variantBuilder.javaClass.methods.firstOrNull {
+            it.name == "setTargetSdk" && it.parameterTypes.contentEquals(arrayOf(Int::class.javaObjectType))
+        }
+        checkNotNull(setTargetSdk) {
+            "AGP DynamicFeatureVariantBuilder does not expose setTargetSdk"
+        }.invoke(variantBuilder, libs.versions.targetSdk.get().toInt())
+    }
+}
+
 dependencies {
     implementation(project(":app"))
     implementation(project(":relay:sender:api"))
