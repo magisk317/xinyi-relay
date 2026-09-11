@@ -1,7 +1,7 @@
 [versions]
-compileSdk = "37"
+compileSdk = "37.2"
 minSdk = "28"
-targetSdk = "37"
+targetSdk = "37.2-beta3"
 java = "26"
 javaBytecode = "26"
 kotlin = "2.4.20"
@@ -80,7 +80,7 @@ version-catalog-update = "1.1.1"
 ndk = "30.0.16138531"
 versionCode = "46"
 versionName = "0.2.4"
-matrix-sdk-android = "26.06.27"
+matrix-sdk-android = "26.09.9"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }

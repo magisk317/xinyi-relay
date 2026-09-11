@@ -1377,6 +1377,9 @@
     <string name="matrix_e2ee_verification_status_sas_ready">请在两端对比短认证码。</string>
     <string name="matrix_e2ee_verification_status_verified">Matrix 设备已验证。</string>
     <string name="matrix_e2ee_verification_status_cancelled">验证已取消。</string>
+    <string name="matrix_e2ee_verification_status_cancelled_with_reason">验证已取消（%1$s）：%2$s</string>
+    <string name="matrix_e2ee_verification_cancelled_by_us">由本机取消</string>
+    <string name="matrix_e2ee_verification_cancelled_by_them">由对端设备取消</string>
     <string name="matrix_e2ee_verification_status_failed">验证失败。</string>
     <string name="matrix_e2ee_verification_status_failed_with_reason">验证失败：%1$s</string>
     <string name="matrix_e2ee_verification_status_unavailable">当前构建不支持 Matrix E2EE。</string>

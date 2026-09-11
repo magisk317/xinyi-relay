@@ -1,18 +1,18 @@
 include:
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: a064cd7a15b0f746626d7c890694ea40ba789386
+    ref: d3cf3d9d14c2fe83dd0cb6e2dd6e8be8c4c8140d
     file: /.gitlab/ci/android.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: a064cd7a15b0f746626d7c890694ea40ba789386
+    ref: d3cf3d9d14c2fe83dd0cb6e2dd6e8be8c4c8140d
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: a064cd7a15b0f746626d7c890694ea40ba789386
+    ref: d3cf3d9d14c2fe83dd0cb6e2dd6e8be8c4c8140d
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: a064cd7a15b0f746626d7c890694ea40ba789386
+    ref: d3cf3d9d14c2fe83dd0cb6e2dd6e8be8c4c8140d
     file: /.gitlab/ci/renovate.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: a064cd7a15b0f746626d7c890694ea40ba789386
+    ref: d3cf3d9d14c2fe83dd0cb6e2dd6e8be8c4c8140d
     file: /.gitlab/ci/cancel-mr-pipelines.yml
 
 workflow:
@@ -41,14 +41,14 @@ stages:
   - maintenance
 
 variables:
-  MAGISK_CI_TOOLKIT_REF: "a064cd7a15b0f746626d7c890694ea40ba789386"
+  MAGISK_CI_TOOLKIT_REF: "d3cf3d9d14c2fe83dd0cb6e2dd6e8be8c4c8140d"
   MAGISK_CANCEL_OLDER_MR_PIPELINES: "true"
   GIT_DEPTH: "0"
   GIT_SUBMODULE_STRATEGY: recursive
   GIT_SUBMODULE_DEPTH: "0"
   MAGISK_ANDROID_SDKMANAGER_CHANNEL: "3"
-  MAGISK_ANDROID_COMPILE_SDK: "37"
-  MAGISK_ANDROID_COMPILE_SDK_PACKAGE: "platforms;android-37.0"
+  MAGISK_ANDROID_COMPILE_SDK: "37.2"
+  MAGISK_ANDROID_COMPILE_SDK_PACKAGE: "platforms;android-37.2"
   MAGISK_ANDROID_SDK_PACKAGES: "platform-tools build-tools;37.0.0"
   MAGISK_GRADLE_ARGS: "--warning-mode all"
   MAGISK_ANDROID_RELEASE_PACKAGE_NAME: "io.github.magisk317.xinyi.relay"
@@ -703,7 +703,7 @@ android:ci:play-beta:
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   rules:
-    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TITLE =~ /^Merge branch .renovate\// && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
+    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && ($CI_COMMIT_TITLE =~ /^Merge branch .renovate\// || $CI_COMMIT_TITLE =~ /\[renovate\]$/) && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
       when: on_success
     - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
       when: manual
@@ -787,7 +787,7 @@ telegram:ci:
   stage: notify
   allow_failure: true
   rules:
-    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TITLE =~ /^Merge branch .renovate\// && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != ""'
+    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && ($CI_COMMIT_TITLE =~ /^Merge branch .renovate\// || $CI_COMMIT_TITLE =~ /\[renovate\]$/) && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != ""'
       when: on_success
     - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != ""'
       when: manual

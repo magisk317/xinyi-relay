@@ -594,7 +594,23 @@ private fun matrixVerificationStatusMessage(state: MatrixE2eeVerificationState):
         MatrixE2eeVerificationStatus.SAS_STARTED -> R.string.matrix_e2ee_verification_status_sas_started
         MatrixE2eeVerificationStatus.SAS_READY -> R.string.matrix_e2ee_verification_status_sas_ready
         MatrixE2eeVerificationStatus.VERIFIED -> R.string.matrix_e2ee_verification_status_verified
-        MatrixE2eeVerificationStatus.CANCELLED -> R.string.matrix_e2ee_verification_status_cancelled
+        MatrixE2eeVerificationStatus.CANCELLED -> {
+            val info = state.cancelInfo
+            if (info != null && (info.reason.isNotBlank() || info.code.isNotBlank())) {
+                return stringResource(
+                    R.string.matrix_e2ee_verification_status_cancelled_with_reason,
+                    stringResource(
+                        if (info.cancelledByUs) {
+                            R.string.matrix_e2ee_verification_cancelled_by_us
+                        } else {
+                            R.string.matrix_e2ee_verification_cancelled_by_them
+                        },
+                    ),
+                    listOf(info.code, info.reason).filter { it.isNotBlank() }.joinToString(" - "),
+                )
+            }
+            R.string.matrix_e2ee_verification_status_cancelled
+        }
         MatrixE2eeVerificationStatus.FAILED -> R.string.matrix_e2ee_verification_status_failed
         MatrixE2eeVerificationStatus.UNAVAILABLE -> R.string.matrix_e2ee_verification_status_unavailable
         MatrixE2eeVerificationStatus.UNSUPPORTED_AUTH -> R.string.matrix_e2ee_verification_status_unsupported_auth

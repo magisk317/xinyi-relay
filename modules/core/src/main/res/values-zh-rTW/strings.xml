@@ -1338,6 +1338,9 @@
     <string name="matrix_e2ee_verification_status_sas_ready">請在兩端比對短認證碼。</string>
     <string name="matrix_e2ee_verification_status_verified">Matrix 裝置已驗證。</string>
     <string name="matrix_e2ee_verification_status_cancelled">驗證已取消。</string>
+    <string name="matrix_e2ee_verification_status_cancelled_with_reason">驗證已取消（%1$s）：%2$s</string>
+    <string name="matrix_e2ee_verification_cancelled_by_us">由本機取消</string>
+    <string name="matrix_e2ee_verification_cancelled_by_them">由對端裝置取消</string>
     <string name="matrix_e2ee_verification_status_failed">驗證失敗。</string>
     <string name="matrix_e2ee_verification_status_failed_with_reason">驗證失敗：%1$s</string>
     <string name="matrix_e2ee_verification_status_unavailable">目前構建不支援 Matrix E2EE。</string>

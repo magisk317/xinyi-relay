@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace = "io.github.magisk317.relay.benchmark"
-    compileSdk = libs.versions.compileSdk.get().toInt()
+    compileSdk(project.magiskCompileSdk())
 
     defaultConfig {
         minSdk = libs.versions.minSdk.get().toInt()

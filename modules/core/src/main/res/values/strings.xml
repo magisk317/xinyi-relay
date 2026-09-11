@@ -1367,6 +1367,9 @@
     <string name="matrix_e2ee_verification_status_sas_ready">Compare the short auth string on both sessions.</string>
     <string name="matrix_e2ee_verification_status_verified">Matrix device verified.</string>
     <string name="matrix_e2ee_verification_status_cancelled">Verification cancelled.</string>
+    <string name="matrix_e2ee_verification_status_cancelled_with_reason">Verification cancelled (%1$s): %2$s</string>
+    <string name="matrix_e2ee_verification_cancelled_by_us">by this device</string>
+    <string name="matrix_e2ee_verification_cancelled_by_them">by the other device</string>
     <string name="matrix_e2ee_verification_status_failed">Verification failed.</string>
     <string name="matrix_e2ee_verification_status_failed_with_reason">Verification failed: %1$s</string>
     <string name="matrix_e2ee_verification_status_unavailable">Matrix E2EE is not available in this build.</string>

@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.matrix.e2ee
 
 import android.content.Context
+import io.github.magisk317.relay.sender.MatrixE2eeCancelInfo
 import io.github.magisk317.relay.sender.MatrixE2eeVerification
 import io.github.magisk317.relay.sender.MatrixE2eeVerificationEmoji
 import io.github.magisk317.relay.sender.MatrixE2eeVerificationState
@@ -221,11 +222,17 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
     override suspend fun decline() {
         runControllerAction(MatrixE2eeVerificationStatus.CANCELLED, "declineVerification") {
             declineVerification()
+            val sdkCancelInfo = controller?.requestCancelInfo() ?: controller?.sasCancelInfo()
             SLog.d(TAG, "Matrix verification declined: pending=${summarizePendingRequest()}")
             updateState {
                 it.copy(
                     status = MatrixE2eeVerificationStatus.CANCELLED,
                     message = null,
+                    cancelInfo = MatrixE2eeCancelInfo(
+                        reason = sdkCancelInfo?.reason.orEmpty(),
+                        code = sdkCancelInfo?.cancelCode.orEmpty(),
+                        cancelledByUs = sdkCancelInfo?.cancelledByUs ?: true,
+                    ),
                 )
             }
             logLocalSnapshot("declineVerification-completed")
@@ -236,11 +243,17 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
     override suspend fun cancel() {
         runControllerAction(MatrixE2eeVerificationStatus.CANCELLED, "cancelVerification") {
             cancelVerification()
+            val sdkCancelInfo = controller?.requestCancelInfo() ?: controller?.sasCancelInfo()
             SLog.d(TAG, "Matrix verification cancelled by local action: pending=${summarizePendingRequest()}")
             updateState {
                 it.copy(
                     status = MatrixE2eeVerificationStatus.CANCELLED,
                     message = null,
+                    cancelInfo = MatrixE2eeCancelInfo(
+                        reason = sdkCancelInfo?.reason.orEmpty(),
+                        code = sdkCancelInfo?.cancelCode.orEmpty(),
+                        cancelledByUs = sdkCancelInfo?.cancelledByUs ?: true,
+                    ),
                 )
             }
             logLocalSnapshot("cancelVerification-completed")
@@ -752,6 +765,7 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
                         requestDeviceId = details.deviceId,
                         requestDeviceDisplayName = details.deviceDisplayName.orEmpty(),
                         message = null,
+                        cancelInfo = null,
                     )
                 }
                 logLocalSnapshot("callback-didReceiveVerificationRequest")
@@ -825,12 +839,24 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
             }
 
             override fun didCancel() {
-                SLog.d(TAG, "Matrix verification callback didCancel: pending=${summarizePendingRequest()}")
+                val sdkCancelInfo = controller?.requestCancelInfo() ?: controller?.sasCancelInfo()
+                SLog.d(
+                    TAG,
+                    "Matrix verification callback didCancel: pending=${summarizePendingRequest()} " +
+                        "cancelInfo=${sdkCancelInfo?.let { "code=${it.cancelCode} byUs=${it.cancelledByUs}" } ?: "n/a"}",
+                )
                 stopOutgoingSasStart()
                 updateState {
                     it.copy(
                         status = MatrixE2eeVerificationStatus.CANCELLED,
                         message = null,
+                        cancelInfo = sdkCancelInfo?.let {
+                            MatrixE2eeCancelInfo(
+                                reason = it.reason,
+                                code = it.cancelCode,
+                                cancelledByUs = it.cancelledByUs,
+                            )
+                        },
                     )
                 }
                 logLocalSnapshot("callback-didCancel")

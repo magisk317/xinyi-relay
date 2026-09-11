@@ -35,11 +35,22 @@ data class MatrixE2eeVerificationState(
     val sasEmojis: List<MatrixE2eeVerificationEmoji> = emptyList(),
     val sasDecimals: List<String> = emptyList(),
     val message: String? = null,
+    val cancelInfo: MatrixE2eeCancelInfo? = null,
 ) {
     val isBusy: Boolean
         get() = status == MatrixE2eeVerificationStatus.PREPARING ||
             status == MatrixE2eeVerificationStatus.REQUESTING
 }
+
+/**
+ * Details of a cancelled session-verification flow, sourced from the Matrix SDK's
+ * SessionVerificationCancelInfo (fork extension: code + initiator).
+ */
+data class MatrixE2eeCancelInfo(
+    val reason: String,
+    val code: String,
+    val cancelledByUs: Boolean,
+)
 
 data class MatrixE2eeVerificationEmoji(
     val symbol: String,

@@ -14,8 +14,16 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         mavenLocal()
-        google()
-        mavenCentral()
+        // The fork registry below is the only source for
+        // org.matrix.rustcomponents: the fork shares GAVs with Maven
+        // Central, so public repos must exclude the group or resolution
+        // depends on repository order.
+        google {
+            content { excludeGroup("org.matrix.rustcomponents") }
+        }
+        mavenCentral {
+            content { excludeGroup("org.matrix.rustcomponents") }
+        }
         maven("https://jitpack.io") {
             name = "JitPack"
             content {
@@ -34,6 +42,56 @@ dependencyResolutionManagement {
                 providers.gradleProperty("gitlab.maven.url").orNull
                     ?: System.getenv("GITLAB_MAVEN_URL")
                     ?: "https://gitlab.com/api/v4/projects/84113188/packages/maven",
+            )
+
+            val jobToken = System.getenv("CI_JOB_TOKEN")
+            val privateToken = System.getenv("GITLAB_TOKEN")
+                ?: System.getenv("GITLAB_PRIVATE_TOKEN")
+                ?: providers.gradleProperty("gitlab.token").orNull
+            val deployToken = System.getenv("GITLAB_DEPLOY_TOKEN")
+                ?: System.getenv("gitlab.deployToken")
+
+            when {
+                !jobToken.isNullOrBlank() -> {
+                    credentials(HttpHeaderCredentials::class) {
+                        name = "Job-Token"
+                        value = jobToken
+                    }
+                    authentication {
+                        create<HttpHeaderAuthentication>("header")
+                    }
+                }
+                !privateToken.isNullOrBlank() -> {
+                    credentials(HttpHeaderCredentials::class) {
+                        name = "Private-Token"
+                        value = privateToken
+                    }
+                    authentication {
+                        create<HttpHeaderAuthentication>("header")
+                    }
+                }
+                !deployToken.isNullOrBlank() -> {
+                    credentials(HttpHeaderCredentials::class) {
+                        name = "Deploy-Token"
+                        value = deployToken
+                    }
+                    authentication {
+                        create<HttpHeaderAuthentication>("header")
+                    }
+                }
+            }
+
+            content {
+                includeGroup("rustls")
+            }
+        }
+        // matrix-rustcomponents sdk-android fork releases: built+published by the
+        // shared/matrix-rust-components-kotlin CI on fork-v tags into its own registry.
+        maven {
+            name = "GitLabMatrixSdkPackages"
+            url = uri(
+                providers.gradleProperty("matrix.sdk.maven.url").orNull
+                    ?: "https://gitlab.com/api/v4/projects/86330038/packages/maven",
             )
 
             val jobToken = System.getenv("CI_JOB_TOKEN")
@@ -75,7 +133,6 @@ dependencyResolutionManagement {
 
             content {
                 includeGroup("org.matrix.rustcomponents")
-                includeGroup("rustls")
             }
         }
         maven {
