@@ -833,6 +833,10 @@
     <string name="mobile_entitlement_allowed">available</string>
     <string name="mobile_entitlement_paused">paused</string>
     <string name="mobile_entitlement_expires">Expires: %1$s</string>
+    <string name="mobile_entitlement_issued_at">Activated: %1$s</string>
+    <string name="mobile_entitlement_device_id">Activation ID: %1$s</string>
+    <string name="mobile_entitlement_copy">Copy</string>
+    <string name="mobile_entitlement_copied">Copied to clipboard</string>
     <string name="mobile_entitlement_renew_due">Activation status can be updated.</string>
     <string name="mobile_entitlement_refresh">Refresh status</string>
     <string name="mobile_entitlement_activate_telegram">Open Telegram</string>
