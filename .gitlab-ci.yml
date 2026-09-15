@@ -670,7 +670,7 @@ android:ci:play-beta-bundle:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   rules:
     - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != "" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
-    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "schedule" && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != "" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
+    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "schedule" && ($CI_COMMIT_TITLE =~ /^Merge branch .renovate\// || $CI_COMMIT_TITLE =~ /\[renovate\]$/) && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != "" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
       when: on_success
     - when: never
   script:
@@ -708,7 +708,7 @@ android:ci:play-beta:
     - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
       when: manual
       allow_failure: true
-    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "schedule" && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
+    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "schedule" && ($CI_COMMIT_TITLE =~ /^Merge branch .renovate\// || $CI_COMMIT_TITLE =~ /\[renovate\]$/) && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
       when: on_success
     - when: never
   needs:
