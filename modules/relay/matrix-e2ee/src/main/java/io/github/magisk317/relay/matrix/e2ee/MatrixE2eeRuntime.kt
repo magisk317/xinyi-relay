@@ -705,12 +705,61 @@ object MatrixE2eeRuntime : MatrixE2eeSender {
         initialSyncDone = true
     }
 
-    private suspend fun getOrCreateClient(context: Context, setting: MatrixSetting): Client {
+    internal fun isAuthError(e: Throwable): Boolean {
+        val messageLower = (e.message ?: "").lowercase() + (e.cause?.message ?: "").lowercase()
+        return messageLower.contains("m_unknown_token") ||
+            messageLower.contains("token is not active") ||
+            messageLower.contains("unauthorized") ||
+            messageLower.contains("authentication") ||
+            messageLower.contains("401")
+    }
+
+    internal suspend fun invalidateClientAndSession(context: Context, setting: MatrixSetting) {
+        val safeSetting = SenderSettingSanitizer.sanitizeMatrixSetting(setting)
+        val useLoginMode = safeSetting.username.isNotBlank() && safeSetting.password.isNotBlank()
+        clientMutex.withLock {
+            cachedClient?.let { client ->
+                closeClientSafely(client)
+                cachedClient = null
+            }
+            cachedAccessToken = null
+            initialSyncDone = false
+            val cacheKey = if (useLoginMode) safeSetting.username.trim() else safeSetting.accessToken.trim()
+            if (cacheKey.isNotBlank()) {
+                val storeDir = getStoreDir(context, cacheKey)
+                val sessionFile = File(storeDir, LOGIN_SESSION_FILENAME)
+                if (sessionFile.exists()) {
+                    sessionFile.delete()
+                    SLog.w(TAG, "Deleted stale session file after 401 auth error: ${sessionFile.absolutePath}")
+                }
+            }
+        }
+    }
+
+    private suspend fun getOrCreateClient(
+        context: Context,
+        setting: MatrixSetting,
+        forceRefresh: Boolean = false,
+    ): Client {
         // In login mode, cache key is username; in token mode, it's accessToken
         val useLoginMode = setting.username.isNotBlank() && setting.password.isNotBlank()
         val cacheKey = if (useLoginMode) setting.username.trim() else setting.accessToken.trim()
         val token = setting.accessToken.trim()
         clientMutex.withLock {
+            if (forceRefresh) {
+                cachedClient?.let { closeClientSafely(it) }
+                cachedClient = null
+                cachedAccessToken = null
+                initialSyncDone = false
+                if (useLoginMode) {
+                    val storeDir = getStoreDir(context, cacheKey)
+                    val sessionFile = File(storeDir, LOGIN_SESSION_FILENAME)
+                    if (sessionFile.exists()) {
+                        sessionFile.delete()
+                    }
+                }
+            }
+
             // Return cached client if credentials haven't changed
             cachedClient?.let { client ->
                 if (cachedAccessToken == cacheKey) return client
@@ -738,9 +787,13 @@ object MatrixE2eeRuntime : MatrixE2eeSender {
         }
     }
 
-    internal suspend fun getClientForVerification(context: Context, setting: MatrixSetting): Client {
+    internal suspend fun getClientForVerification(
+        context: Context,
+        setting: MatrixSetting,
+        forceRefresh: Boolean = false,
+    ): Client {
         val safeSetting = SenderSettingSanitizer.sanitizeMatrixSetting(setting)
-        return getOrCreateClient(context, safeSetting)
+        return getOrCreateClient(context, safeSetting, forceRefresh)
     }
 
     /**

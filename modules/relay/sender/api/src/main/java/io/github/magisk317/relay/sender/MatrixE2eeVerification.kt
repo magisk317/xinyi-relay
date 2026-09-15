@@ -21,6 +21,7 @@ interface MatrixE2eeVerification {
     suspend fun cancel()
     suspend fun revokeDevice(context: android.content.Context, setting: io.github.magisk317.relay.sender.config.MatrixSetting)
     fun reset()
+    fun stop() {}
 }
 
 data class MatrixE2eeVerificationState(

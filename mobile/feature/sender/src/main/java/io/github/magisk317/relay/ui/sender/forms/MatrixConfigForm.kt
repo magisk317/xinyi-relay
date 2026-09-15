@@ -431,7 +431,10 @@ private fun MatrixE2eeVerificationSection(
                 runCatching { verification.prepare(context, setting) }
             }
         }
-        onDispose { verification.reset() }
+        onDispose {
+            // Clean up listeners and active sync, but avoid blowing away verified state if already established
+            verification.stop()
+        }
     }
 
     fun launchVerification(block: suspend () -> Unit) {

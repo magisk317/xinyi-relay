@@ -63,6 +63,8 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
     private var pendingRequestAckJob: Job? = null
     private var pendingRequestAckFlowId: String? = null
     private var acknowledgedRequestFlowId: String? = null
+    private var lastContext: Context? = null
+    private var lastSetting: MatrixSetting? = null
 
     override suspend fun prepare(context: Context, setting: MatrixSetting) {
         val safeSetting = SenderSettingSanitizer.sanitizeMatrixSetting(setting)
@@ -82,15 +84,22 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
         }
 
         operationMutex.withLock {
+            lastContext = context.applicationContext
+            lastSetting = safeSetting
             SLog.d(
                 TAG,
                 "Matrix verification prepare started: " +
                     "roomIdPresent=${safeSetting.roomId.isNotBlank()}",
             )
             resetPendingRequestAcknowledgement(cancelActiveJob = true)
-            updateState {
-                it.copy(
-                    status = MatrixE2eeVerificationStatus.PREPARING,
+            updateState { current ->
+                val nextStatus = if (current.status == MatrixE2eeVerificationStatus.VERIFIED || current.verificationState == "VERIFIED") {
+                    MatrixE2eeVerificationStatus.VERIFIED
+                } else {
+                    MatrixE2eeVerificationStatus.PREPARING
+                }
+                current.copy(
+                    status = nextStatus,
                     message = null,
                     requestUserId = "",
                     requestDeviceId = "",
@@ -128,6 +137,33 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
                 logLocalSnapshot("prepare-completed")
                 logSdkSnapshot("prepare-completed")
             } catch (e: Exception) {
+                if (MatrixE2eeRuntime.isAuthError(e)) {
+                    SLog.w(TAG, "Matrix verification prepare auth expired, auto-refreshing: ${e.message}")
+                    try {
+                        MatrixE2eeRuntime.invalidateClientAndSession(context.applicationContext, safeSetting)
+                        val refreshedClient = withContext(Dispatchers.IO) {
+                            MatrixE2eeRuntime.getClientForVerification(context.applicationContext, safeSetting, forceRefresh = true)
+                        }
+                        client = refreshedClient
+                        stopSync()
+                        waitForE2eeInitialization(refreshedClient)
+                        ensureOwnIdentityAvailable(refreshedClient)
+                        installController(refreshedClient)
+                        refreshDeviceKeysForVerification(refreshedClient, safeSetting)
+                        runInitialVerificationSync(refreshedClient)
+                        val readyState = mergeReadyState(buildReadyState(refreshedClient))
+                        if (readyState.status == MatrixE2eeVerificationStatus.VERIFIED) {
+                            stopSync()
+                        } else {
+                            startSync(refreshedClient)
+                        }
+                        updateState { readyState }
+                        logLocalSnapshot("prepare-completed-after-auth-refresh")
+                        return@withLock
+                    } catch (refreshErr: Exception) {
+                        SLog.w(TAG, "Matrix verification prepare retry after auth error failed: ${refreshErr.message}")
+                    }
+                }
                 SLog.w(TAG, "Matrix verification prepare failed: ${e.javaClass.simpleName}: ${e.message}")
                 updateFailure(e.message.orEmpty(), e)
                 logLocalSnapshot("prepare-failed")
@@ -302,6 +338,34 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
         logLocalSnapshot("reset")
     }
 
+    override fun stop() {
+        SLog.d(TAG, "Matrix verification stop requested: ${summarizeClientSession(client)}")
+        stopOutgoingSasStart()
+        stopSync()
+        stopVerificationStateListener()
+        controller?.setDelegate(null)
+        runCatching { controller?.close() }
+        controller = null
+        delegate = null
+        resetPendingRequestAcknowledgement(cancelActiveJob = true)
+        // Keep verified state if it was verified, so returning to the page doesn't flash unverified
+        updateState { current ->
+            if (current.status == MatrixE2eeVerificationStatus.VERIFIED || current.verificationState == "VERIFIED") {
+                current.copy(
+                    status = MatrixE2eeVerificationStatus.VERIFIED,
+                    verificationState = "VERIFIED",
+                    message = null,
+                )
+            } else {
+                current.copy(
+                    status = MatrixE2eeVerificationStatus.READY,
+                    message = null,
+                )
+            }
+        }
+        logLocalSnapshot("stop")
+    }
+
     private suspend fun waitForE2eeInitialization(client: Client) {
         try {
             SLog.d(TAG, "Matrix verification waiting for E2EE init: ${summarizeClientSession(client)}")
@@ -430,16 +494,24 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
         val session = client.session()
         val encryption = client.encryption()
         val verificationState = runCatching { encryption.verificationState().name }.getOrDefault("UNKNOWN")
+        val isIdentityVerified = runCatching {
+            encryption.userIdentity(session.userId, true)?.isVerified() == true
+        }.getOrDefault(false)
         val hasDevices = runCatching { encryption.hasDevicesToVerifyAgainst() }.getOrDefault(false)
+        val currentStatus = _state.value.status
+        val currentVerificationState = _state.value.verificationState
+        val isVerified = verificationState == "VERIFIED" || isIdentityVerified ||
+            currentStatus == MatrixE2eeVerificationStatus.VERIFIED || currentVerificationState == "VERIFIED"
+
         return MatrixE2eeVerificationState(
-            status = if (verificationState == "VERIFIED") {
+            status = if (isVerified) {
                 MatrixE2eeVerificationStatus.VERIFIED
             } else {
                 MatrixE2eeVerificationStatus.READY
             },
             userId = session.userId,
             deviceId = session.deviceId,
-            verificationState = verificationState,
+            verificationState = if (isVerified) "VERIFIED" else verificationState,
             hasDevicesToVerifyAgainst = hasDevices,
             message = null,
         )
@@ -473,8 +545,16 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
             object : VerificationStateListener {
                 override fun onUpdate(status: org.matrix.rustcomponents.sdk.VerificationState) {
                     SLog.d(TAG, "Matrix verification state listener update: ${status.name}")
-                    updateState {
-                        it.copy(verificationState = status.name)
+                    updateState { current ->
+                        val nextStatus = if (status == org.matrix.rustcomponents.sdk.VerificationState.VERIFIED) {
+                            MatrixE2eeVerificationStatus.VERIFIED
+                        } else {
+                            current.status
+                        }
+                        current.copy(
+                            verificationState = status.name,
+                            status = nextStatus,
+                        )
                     }
                 }
             },
@@ -927,6 +1007,42 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
                 logLocalSnapshot("action-complete:$actionName")
                 logSdkSnapshot("action-complete:$actionName")
             } catch (e: Exception) {
+                val ctx = lastContext
+                val setting = lastSetting
+                if (MatrixE2eeRuntime.isAuthError(e) && ctx != null && setting != null) {
+                    SLog.w(
+                        TAG,
+                        "Matrix verification action auth expired ($actionName): ${e.message}. Auto-refreshing session and retrying...",
+                    )
+                    try {
+                        MatrixE2eeRuntime.invalidateClientAndSession(ctx, setting)
+                        val refreshedClient = withContext(Dispatchers.IO) {
+                            MatrixE2eeRuntime.getClientForVerification(ctx, setting, forceRefresh = true)
+                        }
+                        client = refreshedClient
+                        stopSync()
+                        waitForE2eeInitialization(refreshedClient)
+                        ensureOwnIdentityAvailable(refreshedClient)
+                        installController(refreshedClient)
+                        refreshDeviceKeysForVerification(refreshedClient, setting)
+                        runInitialVerificationSync(refreshedClient)
+                        startSync(refreshedClient)
+
+                        val retriedController = controller
+                        if (retriedController != null) {
+                            withContext(Dispatchers.IO) {
+                                retriedController.block()
+                            }
+                            SLog.d(TAG, "Matrix verification action retry succeeded after auth refresh: action=$actionName")
+                            logLocalSnapshot("action-complete-after-auth-refresh:$actionName")
+                            logSdkSnapshot("action-complete-after-auth-refresh:$actionName")
+                            return@withLock
+                        }
+                    } catch (retryErr: Exception) {
+                        SLog.w(TAG, "Matrix verification action retry failed after auth error: ${retryErr.message}")
+                    }
+                }
+
                 SLog.w(
                     TAG,
                     "Matrix verification action failed: action=$actionName " +
