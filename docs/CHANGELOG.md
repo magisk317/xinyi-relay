@@ -3,9 +3,14 @@
 本日志记录了项目近期的主要变更。 
 
 ---
-## [v0.2.4] - WIP
+## [v0.2.4] - 2026-09-15
 - 版本：`versionCode 46` / `versionName 0.2.4`。
-- `[TODO]` 准备下一阶段开发。
+- `[matrix-e2ee]` 修复 Token 轮转 401 自动重连与页面重入验证状态闪烁。
+- `[activation]` 改进激活界面显示、设备 ID 复制与 DataStore 读取优先。
+- `[ui]` 双击标签页回顶、共享设置页与激活状态组件抽取。
+- `[log]` 统一日志导出与运行时集成，移除冗余脱敏。
+- `[build]` 升级 Kotlin 2.4.20、AGP 9.4、NDK 30，集中版本目录与 SDK 平台。
+- `[ci]` 门控 Play Beta 发布、优化流水线与工具链升级。
 
 > Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.2.3...v0.2.4
 

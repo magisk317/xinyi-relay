@@ -1,3 +1,6 @@
 - Updated to 0.2.4 (46).
-- Preparing the next development cycle.
+- Fixed Matrix E2EE token rotation 401 auto-recovery.
+- Improved activation UI and device ID copy.
+- Unified log export and runtime integration.
+- Upgraded Kotlin, AGP, NDK and toolchain.
 - https://gitlab.com/magisk3171/xinyi-relay/-/releases

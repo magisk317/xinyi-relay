@@ -1,3 +1,6 @@
 - 升级至 0.2.4（46）。
-- 准备下一阶段开发。
+- 修复 Matrix E2EE Token 轮转 401 自动重连。
+- 改进激活界面与设备 ID 复制。
+- 统一日志导出与运行时集成。
+- 升级 Kotlin、AGP、NDK 与工具链。
 - https://gitlab.com/magisk3171/xinyi-relay/-/releases
