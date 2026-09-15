@@ -20,6 +20,7 @@ import io.github.magisk317.relay.contract.settings.GeneralSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.RelaySettingsSnapshot
 import io.github.magisk317.relay.contract.settings.VerificationSettingsSnapshot
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.contract.constant.RelayAppConst
 import io.github.magisk317.relay.mobilefeature.settings.BuildConfig
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsCallbacks
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsItem
@@ -42,32 +43,38 @@ internal fun SettingsGeneralSection(
     onThemeSelected: (Int, Float, Float) -> Unit,
     onLanguageSelected: (String) -> Unit,
 ) {
-    io.github.magisk317.uikit.preference.GeneralSettingsSection(
-        title = stringResource(id = R.string.settings_group_general),
-        summary = stringResource(id = R.string.settings_group_general_summary),
-        expanded = expanded,
-        onExpandedChange = onExpandedChange,
-        accordionMode = true,
-        moduleEnabled = general.moduleEnabled,
-        onModuleEnabledChange = onModuleEnabledChange,
-        moduleTitle = stringResource(id = R.string.pref_enable_title),
-        moduleSummary = stringResource(id = R.string.pref_enable_summary),
-        themeMode = themeMode,
-        onThemeSelected = onThemeSelected,
-        onLanguageSelected = onLanguageSelected,
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = RelayAppConst.PADDING_SMALL.dp),
     ) {
-        StateSwitchItem(
-            title = stringResource(id = R.string.pref_settings_display_mode_title),
-            summary = stringResource(id = R.string.pref_settings_display_mode_summary),
-            checked = general.accordionMode,
-            onCheckedChange = onAccordionModeChange,
-        )
-        StateSwitchItem(
-            title = stringResource(id = R.string.pref_show_launcher_icon_title),
-            summary = stringResource(id = R.string.pref_show_launcher_icon_summary),
-            checked = launcherIconVisible,
-            onCheckedChange = onLauncherIconVisibleChange,
-        )
+        io.github.magisk317.uikit.preference.GeneralSettingsSection(
+            title = stringResource(id = R.string.settings_group_general),
+            summary = stringResource(id = R.string.settings_group_general_summary),
+            expanded = expanded,
+            onExpandedChange = onExpandedChange,
+            accordionMode = true,
+            moduleEnabled = general.moduleEnabled,
+            onModuleEnabledChange = onModuleEnabledChange,
+            moduleTitle = stringResource(id = R.string.pref_enable_title),
+            moduleSummary = stringResource(id = R.string.pref_enable_summary),
+            themeMode = themeMode,
+            onThemeSelected = onThemeSelected,
+            onLanguageSelected = onLanguageSelected,
+        ) {
+            StateSwitchItem(
+                title = stringResource(id = R.string.pref_settings_display_mode_title),
+                summary = stringResource(id = R.string.pref_settings_display_mode_summary),
+                checked = general.accordionMode,
+                onCheckedChange = onAccordionModeChange,
+            )
+            StateSwitchItem(
+                title = stringResource(id = R.string.pref_show_launcher_icon_title),
+                summary = stringResource(id = R.string.pref_show_launcher_icon_summary),
+                checked = launcherIconVisible,
+                onCheckedChange = onLauncherIconVisibleChange,
+            )
+        }
     }
 }
 
