@@ -3,6 +3,17 @@
 本日志记录了项目近期的主要变更。 
 
 ---
+## [v0.2.5] - 2026-09-18
+- 版本：`versionCode 47` / `versionName 0.2.5`。
+- 账号解封，恢复模块仓库更新。
+- `[entitlement]` 调整激活方式。
+- `[ui]` 新增 QQ 频道入口。
+- `[deps]` 刷新版本目录与工具链镜像。
+- `[ci]` 收敛依赖自动化，对齐共享工具链。
+
+> Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.2.4...v0.2.5
+
+---
 ## [v0.2.4] - 2026-09-15
 - 版本：`versionCode 46` / `versionName 0.2.4`。
 - `[matrix-e2ee]` 修复 Token 轮转 401 自动重连与页面重入验证状态闪烁。
