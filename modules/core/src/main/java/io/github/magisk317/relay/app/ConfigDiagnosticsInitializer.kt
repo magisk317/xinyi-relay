@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.app
 
+import io.github.magisk317.relay.android.platform.compat.PlatformCompat
 import android.app.Application
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
@@ -64,15 +65,6 @@ class ConfigDiagnosticsInitializer : AppInitializer {
         )
     }
 
-    private fun getSelfPackageInfo(application: Application): PackageInfo {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            application.packageManager.getPackageInfo(
-                application.packageName,
-                PackageManager.PackageInfoFlags.of(0),
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            application.packageManager.getPackageInfo(application.packageName, 0)
-        }
-    }
+    private fun getSelfPackageInfo(application: Application): PackageInfo =
+        PlatformCompat.getPackageInfo(application.packageManager, application.packageName)
 }

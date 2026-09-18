@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.data.backup
 
+import io.github.magisk317.relay.android.platform.compat.PlatformCompat
 import android.content.Context
 import android.content.Intent
 import android.database.sqlite.SQLiteDatabase
@@ -260,12 +261,7 @@ object BackupManager {
     private fun resolveAppVersion(context: Context): String {
         val pm = context.packageManager
         return runCatching {
-            val pkgInfo = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                pm.getPackageInfo(context.packageName, android.content.pm.PackageManager.PackageInfoFlags.of(0))
-            } else {
-                @Suppress("DEPRECATION")
-                pm.getPackageInfo(context.packageName, 0)
-            }
+            val pkgInfo = PlatformCompat.getPackageInfo(pm, context.packageName)
             pkgInfo.versionName.orEmpty()
         }.getOrDefault("")
     }

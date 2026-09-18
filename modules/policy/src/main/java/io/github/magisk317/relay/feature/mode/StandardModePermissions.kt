@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.feature.mode
 
+import io.github.magisk317.relay.android.platform.compat.PlatformCompat
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -32,16 +33,11 @@ object StandardModePermissions {
      */
     fun requiredPermissions(context: Context): List<String> {
         val declaredPermissions = runCatching {
-            val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                context.packageManager.getPackageInfo(
-                    context.packageName,
-                    PackageManager.PackageInfoFlags.of(PackageManager.GET_PERMISSIONS.toLong()),
-                )
-            } else {
-                @Suppress("DEPRECATION")
-                context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_PERMISSIONS)
-            }
-            packageInfo.requestedPermissions?.toSet().orEmpty()
+            PlatformCompat.getPackageInfo(
+                context.packageManager,
+                context.packageName,
+                PackageManager.GET_PERMISSIONS.toLong(),
+            ).requestedPermissions?.toSet().orEmpty()
         }.getOrNull()
         return requiredPermissionsFromDeclared(declaredPermissions)
     }

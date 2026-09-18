@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.data.repository
 
+import io.github.magisk317.relay.android.platform.compat.PlatformCompat
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -650,15 +651,7 @@ class RemoteAgentRepository(
 
     private fun resolveAppVersion(): String {
         return runCatching {
-            val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                appContext.packageManager.getPackageInfo(
-                    appContext.packageName,
-                    PackageManager.PackageInfoFlags.of(0),
-                )
-            } else {
-                @Suppress("DEPRECATION")
-                appContext.packageManager.getPackageInfo(appContext.packageName, 0)
-            }
+            val packageInfo = PlatformCompat.getPackageInfo(appContext.packageManager, appContext.packageName)
             packageInfo.versionName ?: PackageInfoCompat.getLongVersionCode(packageInfo).toString()
         }.getOrDefault("unknown")
     }

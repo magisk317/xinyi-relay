@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.app
 
+import io.github.magisk317.relay.android.platform.compat.PlatformCompat
 import android.app.Application
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -59,7 +60,6 @@ object AppInitExecution {
     }
 
     private fun isUserUnlocked(context: Context): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return true
         val userManager = context.getSystemService(UserManager::class.java) ?: return true
         return userManager.isUserUnlocked
     }
@@ -69,12 +69,7 @@ object AppInitExecution {
         receiver: BroadcastReceiver,
     ) {
         val filter = IntentFilter(Intent.ACTION_USER_UNLOCKED)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            application.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            @Suppress("DEPRECATION")
-            application.registerReceiver(receiver, filter)
-        }
+        PlatformCompat.registerReceiverNotExported(application, receiver, filter)
     }
 
     private fun unregisterReceiverSafely(
