@@ -28,7 +28,7 @@ RUN CI=true bun install --frozen-lockfile --registry "${BUN_CONFIG_REGISTRY}" ||
 RUN bun run build
 
 # Stage 2: Build backend
-FROM --platform=$BUILDPLATFORM golang:1.27.0-alpine3.23 AS build
+FROM --platform=$BUILDPLATFORM golang:1.27.1-alpine3.23 AS build
 WORKDIR /src
 ARG GOPROXY=https://proxy.golang.org,direct
 ARG HTTP_PROXY
