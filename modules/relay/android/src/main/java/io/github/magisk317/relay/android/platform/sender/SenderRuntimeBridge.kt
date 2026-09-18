@@ -8,6 +8,9 @@ import io.github.magisk317.relay.sender.SenderRuntimeInstaller
  */
 object SenderRuntimeBridge {
     fun install(context: Context? = null) {
+        if (context != null) {
+            SenderRuntimeInstaller.installEmailOAuth(context)
+        }
         SenderRuntimeInstaller.install()
         if (context != null) {
             SenderRuntimeInstaller.initE2eeAvailability(context)

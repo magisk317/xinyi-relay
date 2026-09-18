@@ -20,12 +20,23 @@ interface ScheduledSmsSender {
     )
 }
 
+/**
+ * Runtime services shared across the sender subsystem.
+ *
+ * [emailOAuthService] is optional and provided by relay/sender when available.
+ * It lives here (rather than behind an interface) so that the engine module
+ * does not need a hard dependency on relay/sender's OAuth2 types.
+ */
 data class SenderRuntimeServices(
     val dispatcherFactory: (Context) -> SenderDispatcher,
     val configSanitizer: SenderConfigSanitizer,
     val scheduledSmsSender: ScheduledSmsSender,
+    val emailOAuthService: Any? = null,
 ) {
     fun createDispatcher(context: Context): SenderDispatcher = dispatcherFactory(context)
+
+    /** Accessor for the optional OAuth2 service; returns null if not installed. */
+    fun emailOAuth(): Any? = emailOAuthService
 }
 
 object SenderRuntimeServiceRegistry {

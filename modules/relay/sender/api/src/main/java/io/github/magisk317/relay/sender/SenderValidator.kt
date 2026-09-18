@@ -48,9 +48,19 @@ object SenderValidator {
                 SenderType.EMAIL -> {
                     val setting = SenderSettingJson.decode(EmailSetting.serializer(), safeSender.jsonSetting)
                     val hasRecipient = setting.toEmail.isNotBlank() || setting.recipients.isNotEmpty()
-                    if (setting.fromEmail.isBlank() || setting.pwd.isBlank() || !hasRecipient) {
-                        invalid("邮件通道信息不完整（发件人/密码/收件人）")
-                    } else ok()
+                    if (setting.fromEmail.isBlank() || !hasRecipient) {
+                        invalid("邮件通道信息不完整（发件人/收件人）")
+                    } else if (setting.authMethod == "oauth2") {
+                        if (setting.oauth2ClientId.isBlank() || setting.oauth2TenantId.isBlank() ||
+                            setting.oauth2CredentialId.isBlank()
+                        ) {
+                            invalid("OAuth2 凭据不完整（应用ID/租户ID/授权凭证）")
+                        } else ok()
+                    } else {
+                        if (setting.pwd.isBlank()) {
+                            invalid("请输入授权码/密码，或切换到 OAuth2 身份验证")
+                        } else ok()
+                    }
                 }
 
                 SenderType.BARK -> {

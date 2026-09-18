@@ -65,6 +65,15 @@ object SenderSettingSchemas {
             field("password", SenderSettingFieldType.SECRET, "B"),
             field("encryptionProtocol", aliases = arrayOf("C")),
             field("fromEmailAlias", aliases = arrayOf("D")),
+            field(
+                "authMethod",
+                aliases = arrayOf("E"),
+                defaultValue = "password",
+                options = arrayOf("password", "oauth2"),
+            ),
+            field("oauth2ClientId", aliases = arrayOf("F")),
+            field("oauth2TenantId", aliases = arrayOf("H")),
+            field("oauth2CredentialId", SenderSettingFieldType.SECRET, aliases = arrayOf("J")),
         ),
         schema(
             SenderType.BARK,

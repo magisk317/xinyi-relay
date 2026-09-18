@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.sender
 
 import io.github.magisk317.relay.engine.model.MsgInfo
+import io.github.magisk317.relay.engine.service.SenderRuntimeServiceRegistry
 import io.github.magisk317.relay.sender.config.EmailSetting
 import io.github.magisk317.relay.sender.SenderSettingSanitizer
 import com.sun.mail.smtp.SMTPTransport
@@ -20,6 +21,25 @@ import io.github.magisk317.xposed.logging.MagiskOtel
 
 object EmailUtils {
     private const val TAG = "EmailUtils"
+
+    class OAuth2Exception(message: String) : RuntimeException(message)
+
+    /** Whether the setting is configured for OAuth2 authentication. */
+    private fun isOAuth2Configured(setting: EmailSetting): Boolean =
+        setting.authMethod == "oauth2" && setting.oauth2CredentialId.isNotBlank()
+
+    /**
+     * Ensure a valid OAuth2 access token is available for the given credential.
+     * Refreshes if missing or near expiry. Returns the access token.
+     *
+     * Token rotation is persisted through [OAuth2Service], so subsequent sends
+     * see the updated refresh token.
+     */
+    private suspend fun ensureValidAccessToken(credentialId: String, nowMs: Long): String {
+        val oauth = SenderRuntimeServiceRegistry.installedOrNull()?.emailOAuth() as? OAuth2Service
+            ?: throw OAuth2Exception("OAuth2 服务未初始化")
+        return oauth.ensureValidAccessToken(credentialId, nowMs)
+    }
 
     private fun emitForward(
         result: String,
@@ -41,7 +61,6 @@ object EmailUtils {
         )
     }
 
-
     suspend fun sendMsg(setting: EmailSetting, msgInfo: MsgInfo, traceId: String? = null) = withContext(Dispatchers.IO) {
         fun t(message: String): String = if (traceId.isNullOrBlank()) message else "[trace=$traceId] $message"
         val startedAt = System.nanoTime()
@@ -51,15 +70,21 @@ object EmailUtils {
 
             val fromEmail = safeSetting.fromEmail
             val authEmail = safeSetting.authEmail.ifBlank { fromEmail }
-            val password = safeSetting.pwd
             val host = safeSetting.host
             val port = safeSetting.port.ifBlank { "465" }
             val portInt = port.toIntOrNull() ?: 465
             val recipients = buildRecipients(safeSetting)
 
-            if (fromEmail.isBlank() || password.isBlank() || host.isBlank() || recipients.isEmpty()) {
+            val useOAuth2 = isOAuth2Configured(safeSetting)
+            val password = safeSetting.pwd
+
+            if (fromEmail.isBlank() || host.isBlank() || recipients.isEmpty()) {
                 SLog.e(TAG, t("Email config invalid"))
                 throw IllegalArgumentException("邮箱配置不完整")
+            }
+            if (!useOAuth2 && password.isBlank()) {
+                SLog.e(TAG, t("Email config invalid: password required for basic auth"))
+                throw IllegalArgumentException("请输入授权码/密码，或切换到 OAuth2 身份验证")
             }
 
             val props = Properties().apply {
@@ -70,11 +95,26 @@ object EmailUtils {
                 put("mail.smtp.starttls.enable", safeSetting.startTls.toString())
             }
 
-            val session = Session.getInstance(props, object : jakarta.mail.Authenticator() {
-                override fun getPasswordAuthentication(): PasswordAuthentication {
-                    return PasswordAuthentication(authEmail, password)
-                }
-            })
+            // For OAuth2, the access token is obtained via the service and used
+            // both for the authenticator and the transport fallback path.
+            var oauthAccessToken: String? = null
+            val session = if (useOAuth2) {
+                val accessToken = ensureValidAccessToken(safeSetting.oauth2CredentialId, System.currentTimeMillis())
+                oauthAccessToken = accessToken
+                props.put("mail.smtp.auth.mechanisms", "xoauth2")
+                SLog.i(TAG, t("Using XOAUTH2 authentication"))
+                Session.getInstance(props, object : jakarta.mail.Authenticator() {
+                    override fun getPasswordAuthentication(): PasswordAuthentication {
+                        return PasswordAuthentication(authEmail, accessToken)
+                    }
+                })
+            } else {
+                Session.getInstance(props, object : jakarta.mail.Authenticator() {
+                    override fun getPasswordAuthentication(): PasswordAuthentication {
+                        return PasswordAuthentication(authEmail, password)
+                    }
+                })
+            }
 
             val message = MimeMessage(session)
             message.setFrom(
@@ -89,7 +129,8 @@ object EmailUtils {
             message.subject = SenderTemplateRenderer.renderTitle(safeSetting.title, msgInfo)
             message.setText(msgInfo.content)
 
-            sendByTransport(session, message, host, portInt, authEmail, password)
+            val transportPassword = oauthAccessToken ?: password
+            sendByTransport(session, message, host, portInt, authEmail, transportPassword)
             SLog.i(TAG, t("Email send success"))
             emitForward(
                 result = "ok",

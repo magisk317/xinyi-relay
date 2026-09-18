@@ -33,8 +33,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
@@ -403,6 +401,7 @@ fun MainScreen(
             isCompact = isCompact,
             chromeController = chromeController,
             onTabReselected = { index -> triggerRefreshForIndex(index) },
+            pagerVisible = isTopLevelRoute,
             beyondViewportPageCount = 1,
             userScrollEnabled = isTopLevelRoute,
             reserveCompactBottomBarSpace = true,
@@ -414,9 +413,7 @@ fun MainScreen(
                     modifier = Modifier.padding(vertical = 12.dp),
                 )
             },
-            modifier = Modifier
-                .fillMaxSize()
-                .blockUnderlyingPager(blocked = !isTopLevelRoute),
+            modifier = Modifier.fillMaxSize(),
         ) { page, contentPadding ->
             val contentBottomPadding = contentPadding.calculateBottomPadding()
             SideEffect {
@@ -908,18 +905,6 @@ fun MainScreen(
 private fun benchmarkModifier(enabled: Boolean, tag: String): Modifier =
     Modifier.then(if (enabled) Modifier.testTag(tag) else Modifier)
 
-private fun Modifier.blockUnderlyingPager(blocked: Boolean): Modifier {
-    if (!blocked) return this
-    return pointerInput(Unit) {
-        awaitPointerEventScope {
-            while (true) {
-                awaitPointerEvent(PointerEventPass.Initial).changes.forEach { change ->
-                    change.consume()
-                }
-            }
-        }
-    }.clearAndSetSemantics { }
-}
 
 private fun parseBackupSource(rawSource: String): BackupSource? {
     return BackupSource.entries.firstOrNull { it.name == rawSource }

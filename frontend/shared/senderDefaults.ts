@@ -109,6 +109,13 @@ const SENDER_FIELD_SCHEMAS: Record<number, SenderFieldSchema[]> = {
     field('keystore', 'textarea', '证书内容', 'Keystore / certificate', { rows: 3 }),
     field('password', 'text', '证书密码', 'Certificate password'),
     field('recipients', 'json', '收件人映射 JSON', 'Recipients JSON', { rows: 5, fullWidth: true }),
+    field('authMethod', 'select', '验证方式', 'Auth method', { options: [
+      { value: 'password', label: { en: 'password', 'zh-CN': '密码', 'zh-TW': '密碼' } },
+      { value: 'oauth2', label: { en: 'oauth2', 'zh-CN': 'OAuth2', 'zh-TW': 'OAuth2' } },
+    ] }),
+    field('oauth2ClientId', 'text', 'OAuth2 客户端 ID', 'OAuth2 client ID'),
+    field('oauth2TenantId', 'text', 'OAuth2 租户 ID', 'OAuth2 tenant ID'),
+    field('oauth2CredentialId', 'text', 'OAuth2 凭据 ID', 'OAuth2 credential ID'),
   ],
   2: [
     field('server', 'text', 'Bark 地址', 'Bark server'),

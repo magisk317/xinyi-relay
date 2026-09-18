@@ -11,6 +11,18 @@ import io.github.magisk317.relay.sender.config.SmsSetting
 import io.github.magisk317.xposed.logging.MagiskOtel
 
 object SenderRuntimeInstaller {
+    @Volatile
+    private var oauthService: OAuth2Service? = null
+
+    /**
+     * Install the OAuth2 service with the given credential store. Must be called
+     * before [install] so that the service is available to senders.
+     */
+    fun installEmailOAuth(context: Context) {
+        if (oauthService != null) return
+       oauthService = OAuth2Service(AndroidEmailOAuthCredentialStore(context))
+    }
+
     fun install(): SenderRuntimeServices {
         val startedAt = System.nanoTime()
         return runCatching {
@@ -19,6 +31,7 @@ object SenderRuntimeInstaller {
                     dispatcherFactory = { context -> DefaultSenderDispatcher(context) },
                     configSanitizer = DefaultSenderConfigSanitizer,
                     scheduledSmsSender = DefaultScheduledSmsSender,
+                    emailOAuthService = oauthService,
                 ),
             )
         }.fold(

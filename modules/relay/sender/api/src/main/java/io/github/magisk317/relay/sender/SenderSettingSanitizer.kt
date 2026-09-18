@@ -241,6 +241,11 @@ object SenderSettingSanitizer {
             encryptionProtocol = safeString(resolveValue(raw?.encryptionProtocol, rawJson, "encryptionProtocol"))
                 .ifBlank { defaults.encryptionProtocol },
             fromEmailAlias = alias,
+            authMethod = safeString(resolveValue(raw?.authMethod, rawJson, "authMethod"))
+                .ifBlank { defaults.authMethod },
+            oauth2ClientId = safeString(resolveValue(raw?.oauth2ClientId, rawJson, "oauth2ClientId")),
+            oauth2TenantId = safeString(resolveValue(raw?.oauth2TenantId, rawJson, "oauth2TenantId")),
+            oauth2CredentialId = safeString(resolveValue(raw?.oauth2CredentialId, rawJson, "oauth2CredentialId")),
         )
         val repaired = repairFields(
             "authEmail" to setting.authEmail,
@@ -251,6 +256,7 @@ object SenderSettingSanitizer {
             "startTls" to setting.startTls,
             "toEmail" to setting.toEmail,
             "encryptionProtocol" to setting.encryptionProtocol,
+            "authMethod" to setting.authMethod,
         )
         return setting.copy(
             authEmail = repaired.string("authEmail"),
@@ -261,6 +267,10 @@ object SenderSettingSanitizer {
             startTls = repaired.boolean("startTls", defaults.startTls),
             toEmail = repaired.string("toEmail"),
             encryptionProtocol = repaired.enumString("encryptionProtocol", defaults.encryptionProtocol),
+            authMethod = repaired.enumString("authMethod", defaults.authMethod),
+            oauth2ClientId = repaired.string("oauth2ClientId"),
+            oauth2TenantId = repaired.string("oauth2TenantId"),
+            oauth2CredentialId = repaired.string("oauth2CredentialId"),
         )
     }
 

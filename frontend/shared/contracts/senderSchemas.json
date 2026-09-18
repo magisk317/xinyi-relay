@@ -202,6 +202,47 @@
           "D"
         ],
         "requiredForEnable": false
+      },
+      {
+        "name": "authMethod",
+        "type": "TEXT",
+        "aliases": [
+          "E"
+        ],
+        "requiredForEnable": false,
+        "defaultValue": "password",
+        "options": [
+          {
+            "value": "password"
+          },
+          {
+            "value": "oauth2"
+          }
+        ]
+      },
+      {
+        "name": "oauth2ClientId",
+        "type": "TEXT",
+        "aliases": [
+          "F"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "oauth2TenantId",
+        "type": "TEXT",
+        "aliases": [
+          "H"
+        ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "oauth2CredentialId",
+        "type": "SECRET",
+        "aliases": [
+          "J"
+        ],
+        "requiredForEnable": false
       }
     ]
   },
