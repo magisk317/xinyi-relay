@@ -3,6 +3,12 @@
 本日志记录了项目近期的主要变更。 
 
 ---
+## [v0.2.6] - 2026-09-18
+- 版本：`versionCode 48` / `versionName 0.2.6`。
+
+> Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.2.5...v0.2.6
+
+---
 ## [v0.2.5] - 2026-09-18
 - 版本：`versionCode 47` / `versionName 0.2.5`。
 - 账号解封，恢复模块仓库更新。
