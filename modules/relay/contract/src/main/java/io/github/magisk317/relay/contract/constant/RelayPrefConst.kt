@@ -111,10 +111,6 @@ object RelayPrefConst {
     const val KEY_RUNTIME_LOG_RETENTION_DAYS = "pref_runtime_log_retention_days"
     const val RUNTIME_LOG_RETENTION_DAYS_DEFAULT = 7
     const val RUNTIME_LOG_RETENTION_DAYS_MIN = 1
-    @Deprecated("Runtime logs now rotate by day; use KEY_RUNTIME_LOG_RETENTION_DAYS.")
-    const val KEY_RUNTIME_LOG_FILE_SIZE_MB = "pref_runtime_log_file_size_mb"
-    @Deprecated("Runtime logs now rotate by day; use RUNTIME_LOG_RETENTION_DAYS_DEFAULT.")
-    const val RUNTIME_LOG_FILE_SIZE_MB_DEFAULT = 1
     @Deprecated("Runtime logs now rotate by day; use RUNTIME_LOG_RETENTION_DAYS_MIN.")
     const val RUNTIME_LOG_FILE_SIZE_MB_MIN = 1
     const val KEY_ENABLE_ANALYTICS = "pref_enable_analytics"
