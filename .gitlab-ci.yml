@@ -1,18 +1,18 @@
 include:
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: 6b69c4d59eae02655a3d445884c605efe596acf4
+    ref: v1
     file: /.gitlab/ci/android.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: 6b69c4d59eae02655a3d445884c605efe596acf4
+    ref: v1
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: 6b69c4d59eae02655a3d445884c605efe596acf4
+    ref: v1
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: 6b69c4d59eae02655a3d445884c605efe596acf4
+    ref: v1
     file: /.gitlab/ci/renovate.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: 6b69c4d59eae02655a3d445884c605efe596acf4
+    ref: v1
     file: /.gitlab/ci/cancel-mr-pipelines.yml
 
 workflow:
@@ -35,13 +35,17 @@ stages:
   - package
   - release-validate
   - release-build
+  # sync must precede release-publish: android:release:github declares
+  # `needs: sync:github`, and `needs` may only target the same or an earlier stage.
+  - sync
   - release-publish
   - notify
   - quality
   - maintenance
 
 variables:
-  MAGISK_CI_TOOLKIT_REF: "617a52e75324b5726998f07d504948b7657027a9"
+  MAGISK_CI_TOOLKIT_REPOSITORY: "https://gitlab.com/magisk3171/shared/magisk-ci-toolkit.git"
+  MAGISK_CI_TOOLKIT_REF: "v1"
   MAGISK_CANCEL_OLDER_MR_PIPELINES: "true"
   GIT_DEPTH: "0"
   GIT_SUBMODULE_STRATEGY: recursive
@@ -53,12 +57,15 @@ variables:
   MAGISK_GRADLE_ARGS: "--warning-mode all"
   MAGISK_ANDROID_RELEASE_PACKAGE_NAME: "io.github.magisk317.xinyi.relay"
   MAGISK_ANDROID_RELEASE_PLAY_URL: "https://play.google.com/store/apps/details?id=io.github.magisk317.xinyi.relay"
-  MAGISK_ANDROID_RELEASE_GITHUB_REPOSITORY: ""
-  MAGISK_ANDROID_RELEASE_MODULES_REPO: ""
+  MAGISK_ANDROID_RELEASE_GITHUB_REPOSITORY: "magisk317/xinyi-relay"
+  MAGISK_ANDROID_RELEASE_MODULES_REPO: "Xposed-Modules-Repo/io.github.magisk317.xinyi.relay"
   MAGISK_ANDROID_RELEASE_PUBLISH_PLAY: "true"
-  MAGISK_ANDROID_RELEASE_PLAY_TRACK: "production"
   # Public SHA-256 fingerprint of the production APK signing certificate.
-  MAGISK_ANDROID_RELEASE_CERT_SHA256: "a064cd7a15b0f746626d7c890694ea40ba789386588c4a9fbe8311e2c54f103a"
+  MAGISK_ANDROID_RELEASE_CERT_SHA256: "027b936e1d82a606d83599548b8b11e49a2c8ae2588c4a9fbe8311e2c54f103a"
+  # Floor for the derived Play versionCode. Must stay at (or above) the highest
+  # versionCode already live on Play so that, when the Play API cannot be queried,
+  # resolve_play_release.sh never derives a code Play would reject as a downgrade.
+  MAGISK_PLAY_INITIAL_VERSION_CODE: "46"
   MAGISK_RENOVATE_REPOSITORY: "magisk3171/xinyi-relay"
   XINYI_DOCKERHUB_PUBLISH: "true"
   XINYI_BACKEND_ARCHES: "amd64 arm64"
@@ -211,7 +218,7 @@ variables:
 
 backend:go:
   extends: .xinyi_backend_validation_rules
-  image: "golang:1.27.0-bookworm"
+  image: "golang:1.27.1-bookworm"
   stage: build
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
@@ -545,42 +552,33 @@ android:release:guard:
   needs: []
 
 android:release:github-apk:
-  extends:
-    - .magisk_android_base
-    - .magisk_android_release_tag_rules
+  # Driven by the shared template. The project only declares what is
+  # project-specific: the GitHub flavours and the split flag. Keystore
+  # decoding, version resolution and signature validation are the template's
+  # job now, and play-release.env carries the version decision downstream so
+  # android:release:modules-repo does not have to re-derive it.
+  extends: .magisk_android_release_apk
+  variables:
+    MAGISK_ANDROID_RELEASE_APK_TASKS: ":app:assembleGithubNoE2eeRelease :app:assembleGithubWithE2eeRelease"
+    MAGISK_ANDROID_RELEASE_GRADLE_EXTRA_ARGS: "-PbuildSplits"
+  before_script:
+    - !reference [.magisk_android_base, before_script]
+    - *xinyi_decode_google_services
   resource_group: xinyi-android-release-apk
   stage: release-build
+  tags:
+    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
     - job: android:release:guard
       artifacts: false
-  script:
-    - *xinyi_decode_google_services
-    - |
-      set -euo pipefail
-      : "${MAGISK_GRADLE_ARGS:=--warning-mode all}"
-      : "${RELEASE_KEYSTORE:?RELEASE_KEYSTORE is required}"
-      : "${STORE_PASSWORD:?STORE_PASSWORD is required}"
-      : "${KEY_ALIAS:?KEY_ALIAS is required}"
-      : "${KEY_PASSWORD:?KEY_PASSWORD is required}"
-
-      printf '%s' "$RELEASE_KEYSTORE" | base64 --decode > app/release.jks
-      KEYSTORE_FILE="app/release.jks" \
-      STORE_PASSWORD="$STORE_PASSWORD" \
-      KEY_ALIAS="$KEY_ALIAS" \
-      KEY_PASSWORD="$KEY_PASSWORD" \
-        bash "$MAGISK_CI_TOOLKIT_DIR/gradle/run_gradle_with_retry.sh" $MAGISK_GRADLE_ARGS \
-          :app:assembleGithubNoE2eeRelease \
-          :app:assembleGithubWithE2eeRelease \
-          -PbuildSplits
-      chmod +x "$MAGISK_CI_TOOLKIT_DIR/release/validate_android_apk_signatures.sh"
-      bash "$MAGISK_CI_TOOLKIT_DIR/release/validate_android_apk_signatures.sh" app/build/outputs/apk
   artifacts:
     name: "XinyiRelay-release-apks-$CI_COMMIT_TAG"
     when: always
     expire_in: 30 days
     paths:
       - app/build/outputs/apk/**/release/*.apk
-      - app/build/outputs/native-debug-symbols/**/native-debug-symbols.zip
+      - app/build/outputs/mapping/**/mapping.txt
+      - play-release.env
 
 android:release:play-bundle:
   extends:
@@ -588,17 +586,25 @@ android:release:play-bundle:
     - .magisk_android_release_tag_rules
   resource_group: xinyi-android-release-play
   stage: release-build
+  tags:
+    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v[0-9]+[.][0-9]+[.][0-9]+$/ && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true"'
     - when: never
   needs:
     - job: android:release:guard
       artifacts: false
+  variables:
+    # Declared so the contract assertion below fails fast if it is ever emptied,
+    # mirroring the shared .magisk_android_release_aab template. xinyi cannot use
+    # that template directly because it must decode google-services.json first.
+    MAGISK_ANDROID_RELEASE_AAB_TASKS: ":app:bundlePlayRelease"
+    MAGISK_PLAY_TRACK_OVERRIDE: "production"
   script:
     - *xinyi_decode_google_services
     - |
       set -euo pipefail
-      export MAGISK_PLAY_TRACK_OVERRIDE=production
+      : "${MAGISK_ANDROID_RELEASE_AAB_TASKS:?MAGISK_ANDROID_RELEASE_AAB_TASKS is required (the gradle task list, e.g. ':app:bundlePlayRelease')}"
       : "${MAGISK_GRADLE_ARGS:=--warning-mode all}"
       : "${RELEASE_KEYSTORE:?RELEASE_KEYSTORE is required}"
       : "${STORE_PASSWORD:?STORE_PASSWORD is required}"
@@ -609,13 +615,14 @@ android:release:play-bundle:
       bash "$MAGISK_CI_TOOLKIT_DIR/release/resolve_play_release.sh" \
         --package-name "$MAGISK_ANDROID_RELEASE_PACKAGE_NAME" \
         --version-file "$CI_PROJECT_DIR/gradle/libs.versions.toml" \
-        --output "$CI_PROJECT_DIR/play-release.env"
+        --output "$CI_PROJECT_DIR/play-release.env" \
+        --initial-version-code "$MAGISK_PLAY_INITIAL_VERSION_CODE"
       source "$CI_PROJECT_DIR/play-release.env"
       KEYSTORE_FILE="app/release.jks" \
       STORE_PASSWORD="$STORE_PASSWORD" \
       KEY_ALIAS="$KEY_ALIAS" \
       KEY_PASSWORD="$KEY_PASSWORD" \
-        bash "$MAGISK_CI_TOOLKIT_DIR/gradle/run_gradle_with_retry.sh" $MAGISK_GRADLE_ARGS :app:bundlePlayRelease \
+        bash "$MAGISK_CI_TOOLKIT_DIR/gradle/run_gradle_with_retry.sh" $MAGISK_GRADLE_ARGS ${MAGISK_ANDROID_RELEASE_AAB_TASKS} \
           -PversionName="$MAGISK_PLAY_VERSION_NAME" -PversionCode="$MAGISK_PLAY_VERSION_CODE"
   artifacts:
     name: "XinyiRelay-release-bundle-$CI_COMMIT_TAG"
@@ -624,7 +631,6 @@ android:release:play-bundle:
     paths:
       - app/build/outputs/bundle/**/*.aab
       - app/build/outputs/mapping/**/mapping.txt
-      - app/build/outputs/native-debug-symbols/**/native-debug-symbols.zip
       - play-release.env
 
 android:release:gitlab:
@@ -670,7 +676,7 @@ android:ci:play-beta-bundle:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   rules:
     - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != "" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
-    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "schedule" && ($CI_COMMIT_TITLE =~ /^Merge branch .renovate\// || $CI_COMMIT_TITLE =~ /\[renovate\]$/) && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != "" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
+    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_AUTHOR =~ /Renovate317@users.noreply/ && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != "" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
       when: on_success
     - when: never
   script:
@@ -682,7 +688,8 @@ android:ci:play-beta-bundle:
       bash "$MAGISK_CI_TOOLKIT_DIR/release/resolve_play_release.sh" \
         --package-name "$MAGISK_ANDROID_RELEASE_PACKAGE_NAME" \
         --version-file "$CI_PROJECT_DIR/gradle/libs.versions.toml" \
-        --output "$CI_PROJECT_DIR/play-release.env"
+        --output "$CI_PROJECT_DIR/play-release.env" \
+        --initial-version-code "$MAGISK_PLAY_INITIAL_VERSION_CODE"
       source "$CI_PROJECT_DIR/play-release.env"
       KEYSTORE_FILE=app/release.jks STORE_PASSWORD="$STORE_PASSWORD" KEY_ALIAS="$KEY_ALIAS" KEY_PASSWORD="$KEY_PASSWORD" \
         bash "$MAGISK_CI_TOOLKIT_DIR/gradle/run_gradle_with_retry.sh" $MAGISK_GRADLE_ARGS :app:bundlePlayRelease \
@@ -693,7 +700,6 @@ android:ci:play-beta-bundle:
     paths:
       - app/build/outputs/bundle/**/*.aab
       - app/build/outputs/mapping/**/mapping.txt
-      - app/build/outputs/native-debug-symbols/**/native-debug-symbols.zip
       - play-release.env
 
 android:ci:play-beta:
@@ -703,12 +709,12 @@ android:ci:play-beta:
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   rules:
-    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && ($CI_COMMIT_TITLE =~ /^Merge branch .renovate\// || $CI_COMMIT_TITLE =~ /\[renovate\]$/) && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
+    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_AUTHOR =~ /Renovate317@users.noreply/ && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
       when: on_success
     - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
       when: manual
       allow_failure: true
-    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "schedule" && ($CI_COMMIT_TITLE =~ /^Merge branch .renovate\// || $CI_COMMIT_TITLE =~ /\[renovate\]$/) && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
+    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_AUTHOR =~ /Renovate317@users.noreply/ && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
       when: on_success
     - when: never
   needs:
@@ -734,6 +740,9 @@ android:ci:play-beta:
       - play-release-status.env
 
 android:release:modules-repo:
+  # The modules repo publishes release APKs, and only android:release:github-apk
+  # produces them (play-bundle emits an AAB). Pointing this at play-bundle made
+  # the template's APK lookup fail with "no release APK files found".
   extends: .magisk_android_publish_modules_repo
   resource_group: xinyi-android-release-publish
   stage: release-publish
@@ -787,7 +796,7 @@ telegram:ci:
   stage: notify
   allow_failure: true
   rules:
-    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && ($CI_COMMIT_TITLE =~ /^Merge branch .renovate\// || $CI_COMMIT_TITLE =~ /\[renovate\]$/) && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != ""'
+    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_AUTHOR =~ /Renovate317@users.noreply/ && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != ""'
       when: on_success
     - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != ""'
       when: manual
@@ -810,3 +819,56 @@ renovate:gitlab:
   stage: maintenance
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
+
+# Mirrors the GitLab-owned release to GitHub (tag, notes, release APKs).
+# Inert unless GITHUB_RELEASE_TOKEN is configured for the project.
+android:release:github:
+  extends: .magisk_android_release_github
+  resource_group: xinyi-android-release-publish
+  stage: release-publish
+  tags:
+    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
+  variables:
+    # Must stay job-level: the toolkit template pins the same key at job level
+    # to "*arm64-v8a*.apk", and job variables outrank the global variables
+    # block, so a global override here would be silently ignored.
+    MAGISK_ANDROID_RELEASE_GITHUB_ASSET_PATTERN: "*.apk"
+  needs:
+    - job: android:release:github-apk
+      artifacts: true
+    # gh release create would otherwise invent the tag at the GitHub default
+    # branch HEAD while the mirror has not published it yet.
+    - job: sync:github
+
+# Keeps the public GitHub mirror in step with GitLab. GITHUB_PAT is a
+# group-level protected variable, so it is only injected on protected branches;
+# tag pipelines fall back to the project-level GITHUB_RELEASE_TOKEN.
+sync:github:
+  stage: sync
+  needs:
+    - job: android:release:guard
+      optional: true
+  image: alpine:latest
+  tags:
+    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_COMMIT_TAG'
+    - when: never
+  before_script:
+    - apk add --no-cache git
+  script:
+    - |
+      set -euo pipefail
+      sync_token="${GITHUB_PAT:-${GITHUB_RELEASE_TOKEN:-}}"
+      if [ -z "$sync_token" ]; then
+        echo "ERROR: neither GITHUB_PAT nor GITHUB_RELEASE_TOKEN is available on $CI_COMMIT_REF_NAME" >&2
+        exit 1
+      fi
+      git remote add github "https://magisk317:${sync_token}@github.com/magisk317/${CI_PROJECT_NAME}.git" || true
+      if [ -n "${CI_COMMIT_TAG:-}" ]; then
+        git push github "$CI_COMMIT_TAG" --force
+        git push github --tags --force
+      else
+        git push github "HEAD:refs/heads/$CI_COMMIT_BRANCH" --force
+      fi
