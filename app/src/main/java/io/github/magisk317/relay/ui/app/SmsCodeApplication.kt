@@ -10,7 +10,6 @@ import io.github.magisk317.relay.di.appDependencyModule
 import io.github.magisk317.relay.di.billingModule
 import io.github.magisk317.relay.di.coreModule
 import io.github.magisk317.relay.di.uiModule
-import io.github.magisk317.relay.entitlement.mobileEntitlementGoogleSignInModule
 import com.magisk317.mobile.entitlement.MobileEntitlementBridge
 import com.magisk317.mobile.entitlement.MobileEntitlementConfig
 import com.magisk317.mobile.entitlement.MobileEntitlementCoordinator
@@ -38,7 +37,7 @@ class SmsCodeApplication : Application() {
         startKoin {
             androidLogger()
             androidContext(this@SmsCodeApplication)
-            modules(coreModule, billingModule, uiModule, appDependencyModule, mobileEntitlementGoogleSignInModule)
+            modules(coreModule, billingModule, uiModule, appDependencyModule)
         }
 
         val koin = getKoin()
