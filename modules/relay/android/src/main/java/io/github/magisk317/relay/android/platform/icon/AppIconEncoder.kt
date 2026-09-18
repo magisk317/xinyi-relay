@@ -93,12 +93,10 @@ object AppIconEncoder {
 
     fun resolveDefaultDialerPackage(context: Context): String? {
         val pm = context.packageManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            context.getSystemService(TelecomManager::class.java)
-                ?.defaultDialerPackage
-                ?.takeIf { it.isNotBlank() }
-                ?.let { return it }
-        }
+        context.getSystemService(TelecomManager::class.java)
+            ?.defaultDialerPackage
+            ?.takeIf { it.isNotBlank() }
+            ?.let { return it }
         return resolveDialIntentPackage(pm)
     }
 

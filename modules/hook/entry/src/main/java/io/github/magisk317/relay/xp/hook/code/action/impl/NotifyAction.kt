@@ -138,7 +138,6 @@ class NotifyAction(
     }
 
     private fun ensureNotificationChannel(manager: NotificationManager) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val channelId = XpNotificationBridge.CHANNEL_ID_RELAY_NOTIFICATION
         if (manager.getNotificationChannel(channelId) != null) return
         val channel = NotificationChannel(
