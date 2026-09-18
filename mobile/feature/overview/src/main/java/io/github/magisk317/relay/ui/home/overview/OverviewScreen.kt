@@ -642,6 +642,15 @@ private fun OverviewCardItem(
                             scope.launch { snackbarHostState.showLatestSnackbar(it) }
                         }
                     },
+                    onJoinQqChannel = {
+                        BrowserUtils.openWebPage(
+                            context,
+                            Const.QQ_CHANNEL_URL,
+                            R.string.browser_install_or_enable_prompt,
+                        )?.let {
+                            scope.launch { snackbarHostState.showLatestSnackbar(it) }
+                        }
+                    },
                     onSourceCode = {
                         BrowserUtils.openWebPage(
                             context,
