@@ -71,6 +71,7 @@ dependencies {
     implementation(project(":relay:engine:api"))
     implementation(project(":relay:android"))
     implementation(project(":relay:contract"))
+    implementation(project(":relay:security"))
     api(project(":magisk-ui-kit"))
     implementation(project(":smscode-core:domain"))
     implementation(project(":smscode-core:runtime"))

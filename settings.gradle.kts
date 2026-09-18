@@ -190,6 +190,7 @@ include(
     ":mobile:feature:rule",
     ":mobile:feature:backup",
     ":relay:android",
+    ":relay:security",
     ":relay:sender:api",
     ":relay:sender",
     ":relay:matrix-e2ee",
@@ -231,6 +232,7 @@ project(":policy").projectDir = file("modules/policy")
 project(":hook:entry").projectDir = file("modules/hook/entry")
 project(":relay:android").projectDir = file("modules/relay/android")
 project(":relay:sender:api").projectDir = file("modules/relay/sender/api")
+project(":relay:security").projectDir = file("modules/relay/security")
 project(":relay:sender").projectDir = file("modules/relay/sender")
 project(":relay:matrix-e2ee").projectDir = file("modules/relay/matrix-e2ee")
 project(":relay:contract").projectDir = file("modules/relay/contract")
