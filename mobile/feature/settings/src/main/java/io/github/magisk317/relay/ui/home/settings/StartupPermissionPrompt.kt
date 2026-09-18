@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.ui.home.settings
 
+import io.github.magisk317.relay.platform.permission.PermissionBridge
 import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import android.Manifest
@@ -107,6 +108,23 @@ fun StartupPermissionPrompt(enabled: Boolean) {
     }
 
     LaunchedEffect(enabled) {
+        runCatching {
+            PermissionBridge.runRoot(
+                PermissionBridge.bridgeCommands(
+                    context = context,
+                    notificationListenerEnabled = context.isNotificationListenerEnabled(),
+                    accessibilityServices = Settings.Secure.getString(
+                        context.contentResolver,
+                        Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+                    ),
+                    accessibilityComponent = if (BuildConfig.ENABLE_ACCESSIBILITY_AUTO_INPUT) {
+                        "${context.packageName}/$AUTO_INPUT_ACCESSIBILITY_SERVICE_CLASS_NAME"
+                    } else {
+                        null
+                    },
+                ),
+            )
+        }
         startPromptIfNeeded()
     }
 }
