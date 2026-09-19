@@ -1,7 +1,11 @@
 package io.github.magisk317.relay.ui.home.settings
 
-import io.github.magisk317.relay.platform.permission.PermissionBridge
+import io.github.magisk317.xposed.permission.PermissionBridge
+import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.uikit.common.showLatestSnackbar
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 import android.Manifest
 import android.app.AlarmManager
@@ -109,25 +113,31 @@ fun StartupPermissionPrompt(enabled: Boolean) {
 
     LaunchedEffect(enabled) {
         runCatching {
-            PermissionBridge.runRoot(
-                PermissionBridge.bridgeCommands(
-                    context = context,
-                    notificationListenerEnabled = context.isNotificationListenerEnabled(),
-                    accessibilityServices = Settings.Secure.getString(
-                        context.contentResolver,
-                        Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+            withContext(Dispatchers.IO) {
+                PermissionBridge.runRoot(
+                    PermissionBridge.bridgeCommands(
+                        context = context,
+                        notificationListenerComponent = NOTIFICATION_LISTENER_COMPONENT,
+                        notificationListenerEnabled = context.isNotificationListenerEnabled(),
+                        accessibilityServices = Settings.Secure.getString(
+                            context.contentResolver,
+                            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+                        ),
+                        accessibilityComponent = if (BuildConfig.ENABLE_ACCESSIBILITY_AUTO_INPUT) {
+                            "${context.packageName}/$AUTO_INPUT_ACCESSIBILITY_SERVICE_CLASS_NAME"
+                        } else {
+                            null
+                        },
                     ),
-                    accessibilityComponent = if (BuildConfig.ENABLE_ACCESSIBILITY_AUTO_INPUT) {
-                        "${context.packageName}/$AUTO_INPUT_ACCESSIBILITY_SERVICE_CLASS_NAME"
-                    } else {
-                        null
-                    },
-                ),
-            )
+                ) { message -> XLog.w("PermissionBridge", message) }
+            }
         }
         startPromptIfNeeded()
     }
 }
+
+private const val NOTIFICATION_LISTENER_COMPONENT =
+    "io.github.magisk317.xinyi.relay/io.github.magisk317.relay.service.AppNotificationListenerService"
 
 private enum class StartupSpecialPermission(@param:StringRes val labelRes: Int) {
     EXACT_ALARM(R.string.startup_permission_exact_alarm),
