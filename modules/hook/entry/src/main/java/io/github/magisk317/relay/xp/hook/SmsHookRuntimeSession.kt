@@ -3,6 +3,7 @@ package io.github.magisk317.relay.xp.hook
 import android.content.Context
 import io.github.magisk317.smscode.runtime.verification.VerificationRuntimeContext
 import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.relay.android.prefs.PrefsReader
 
 internal data class SmsHookRuntimeContext(
     override val phoneContext: Context,
@@ -37,6 +38,7 @@ internal class SmsHookRuntimeSession(
     fun initialize(context: Context): SmsHookRuntimeContext? = synchronized(this) {
         if (phoneContext == null) {
             phoneContext = context
+            PrefsReader.installSnapshot(context)
         }
         currentOrResolveLocked()
     }
