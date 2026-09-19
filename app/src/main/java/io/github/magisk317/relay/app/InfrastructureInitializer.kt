@@ -6,10 +6,8 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.android.common.utils.XLog
-import io.github.magisk317.relay.feature.call.CallStateMonitor
 import io.github.magisk317.relay.feature.mode.WorkMode
 import io.github.magisk317.relay.feature.mode.WorkModeResolver
-import io.github.magisk317.relay.service.StandardModeService
 import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
 import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap
 import io.github.magisk317.xposed.logging.MagiskOtel
@@ -36,16 +34,13 @@ class InfrastructureInitializer : AppInitializer {
 
         FlavorXposedRuntimeInitializer.installPlatformBridges()
         WorkModeResolver.resolve(application)
-        CallStateMonitor.init(application)
         AppInfrastructureCoordinator.initialize(
             application = application,
             shouldSuppressSystemHooks = FlavorXposedRuntimeInitializer::shouldSuppressSystemHooks,
         )
 
-        // Design: detect environment first, then run only that mode.
-        // Enhanced (Xposed) must never start StandardModeService.
         // Activation can lag ~tens-hundreds of ms after process start (LSPosed bind),
-        // so wait for Enhanced or a short timeout before the first reconcile.
+        // so wait for Enhanced or a short timeout before settling the work mode.
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         scope.launch {
             settleAndReconcile(application, reason = "app_init_settled")
@@ -84,7 +79,6 @@ class InfrastructureInitializer : AppInitializer {
                 reason,
                 ActivationDiagnosticsStore.isModuleActivated(application),
             )
-            StandardModeService.reconcile(application, mode, reason)
         }
 
         fun markEnvironmentSettled() {
@@ -98,7 +92,6 @@ class InfrastructureInitializer : AppInitializer {
                 XLog.i("WorkMode reconcile deferred until settle: reason=%s mode=%s", reason, mode)
                 return
             }
-            StandardModeService.reconcile(application, mode, reason)
         }
     }
 }

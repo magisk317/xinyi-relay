@@ -15,7 +15,6 @@ import io.github.magisk317.uikit.common.showLatestSnackbar
 import android.content.Context
 import androidx.activity.compose.LocalActivity
 import io.github.magisk317.relay.feature.mode.BatteryOptimizationHelper
-import io.github.magisk317.relay.feature.mode.StandardModePermissions
 import io.github.magisk317.relay.feature.mode.WorkMode
 import io.github.magisk317.relay.feature.mode.WorkModeResolver
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
@@ -116,7 +115,6 @@ fun OverviewScreen(
     }
     var showDonateDialog by remember { mutableStateOf(false) }
     var showQRCodeDialog by remember { mutableStateOf<Pair<Int, String>?>(null) }
-    var standardPermissionPromptHandled by rememberSaveable { mutableStateOf(false) }
     var batteryOptimizationHintShown by rememberSaveable { mutableStateOf(false) }
 
     DisposableEffect(viewModel, isActive) {
@@ -139,29 +137,11 @@ fun OverviewScreen(
 
     val workMode by WorkModeResolver.mode.collectAsStateWithLifecycle()
     val isEnabled = workMode == WorkMode.Enhanced
-    val isStandardEnabled = workMode == WorkMode.Standard
 
     fun refreshBatteryOptimizationExemption(): Boolean {
-        val exempted = !isStandardEnabled || BatteryOptimizationHelper.isExempted(context)
+        val exempted = BatteryOptimizationHelper.isExempted(context)
         viewModel.updateBatteryOptimizationExempted(exempted)
         return exempted
-    }
-
-    LaunchedEffect(isActive, isStandardEnabled, activity) {
-        if (isActive && isStandardEnabled && !standardPermissionPromptHandled) {
-            // Standard mode remains active while individual capabilities request their permissions.
-            val missing = StandardModePermissions.missingPermissions(context)
-            if (missing.isEmpty()) {
-                standardPermissionPromptHandled = true
-            } else if (activity != null) {
-                showMessage(context.getString(R.string.standard_mode_missing_permissions_hint))
-                activity.requestPermissions(
-                    missing.toTypedArray(),
-                    Const.REQUEST_CODE_STANDARD_PERMISSIONS,
-                )
-                standardPermissionPromptHandled = true
-            }
-        }
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -285,8 +265,7 @@ fun OverviewScreen(
         enabledCardIds = enabledCardIds,
         editMode = overviewUiState.editMode,
         isEnabled = isEnabled,
-        isStandardEnabled = isStandardEnabled,
-        showBatteryOptimizationHint = isStandardEnabled && !overviewUiState.batteryOptimizationExempted,
+        showBatteryOptimizationHint = !overviewUiState.batteryOptimizationExempted,
         chartType = chartType,
         chartWindow = chartWindow,
         chartSnapshot = runtimeUiState.chartSnapshot,
@@ -358,7 +337,6 @@ private fun OverviewContent(
     enabledCardIds: Set<String>,
     editMode: Boolean,
     isEnabled: Boolean,
-    isStandardEnabled: Boolean,
     showBatteryOptimizationHint: Boolean,
     chartType: HomeChartType,
     chartWindow: HomeChartWindow,
@@ -420,7 +398,6 @@ private fun OverviewContent(
                     enabledCardIds = enabledCardIds,
                     editMode = editMode,
                     isEnabled = isEnabled,
-                    isStandardEnabled = isStandardEnabled,
                     showBatteryOptimizationHint = showBatteryOptimizationHint,
                     chartType = chartType,
                     chartWindow = chartWindow,
@@ -492,7 +469,6 @@ private fun OverviewCardItem(
     enabledCardIds: Set<String>,
     editMode: Boolean,
     isEnabled: Boolean,
-    isStandardEnabled: Boolean,
     showBatteryOptimizationHint: Boolean,
     chartType: HomeChartType,
     chartWindow: HomeChartWindow,
@@ -567,7 +543,7 @@ private fun OverviewCardItem(
             CARD_STATUS -> {
                 StatusCard(
                     isEnhancedModeEnabled = isEnabled,
-                    isStandardModeEnabled = isStandardEnabled,
+                    isStandardModeEnabled = false,
                     isEntitled = mobileAutomationAllowed,
                     showBatteryOptimizationHint = showBatteryOptimizationHint,
                     showDiagnostics = showStatusDiagnostics,

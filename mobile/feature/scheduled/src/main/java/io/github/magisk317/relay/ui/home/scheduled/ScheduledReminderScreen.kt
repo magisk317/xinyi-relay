@@ -177,7 +177,6 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
     ) { granted ->
         callPermissionGranted.value = granted
         if (granted) {
-            context.sendBroadcast(Intent(PrefConst.ACTION_CALL_ALERT_MONITOR_REFRESH).setPackage(context.packageName))
         }
     }
 
@@ -413,7 +412,6 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                         settings = repository.updateSpecialAlertSettings(
                             SpecialAlertSettingsUpdate(callAlertLocalEnabled = enabled),
                         )
-                        context.sendBroadcast(Intent(PrefConst.ACTION_CALL_ALERT_MONITOR_REFRESH).setPackage(context.packageName))
                         notifySaved()
                     }
                 }
