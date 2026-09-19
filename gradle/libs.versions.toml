@@ -2,7 +2,7 @@
 compileSdk = "37.2"
 minSdk = "28"
 targetSdk = "37"
-java = "26"
+java = "27"
 javaBytecode = "26"
 kotlin = "2.4.20"
 ksp = "2.3.12"
