@@ -753,24 +753,6 @@ android:release:modules-repo:
       artifacts: true
 
 
-telegram:images:
-  extends:
-    - .magisk_telegram_images
-    - .xinyi_backend_publish_rules
-  stage: notify
-  allow_failure: true
-  tags:
-    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
-  needs:
-    - job: backend:container:manifest
-      artifacts: true
-  variables:
-    MAGISK_TELEGRAM_PROJECT_TAG: "#XinyiRelay"
-    MAGISK_TELEGRAM_PROJECT_NAME: "XinyiRelay"
-    MAGISK_TELEGRAM_IMAGE_EVENT: "backend-docker"
-    MAGISK_TELEGRAM_PLATFORMS: "linux/amd64,linux/arm64"
-    MAGISK_TELEGRAM_IMAGE_LIST_COMMAND: "scripts/ci/gitlab_backend_container.sh list-images"
-
 telegram:release:
   extends: .magisk_telegram_release
   stage: notify
@@ -780,8 +762,11 @@ telegram:release:
   variables:
     MAGISK_TELEGRAM_PROJECT_TAG: "#XinyiRelay"
     MAGISK_TELEGRAM_PROJECT_NAME: "XinyiRelay"
+    MAGISK_TELEGRAM_IMAGE_LIST_COMMAND: "bash scripts/ci/gitlab_backend_container.sh list-images"
   needs:
     - job: android:release:github-apk
+      artifacts: true
+    - job: backend:container:manifest
       artifacts: true
     - job: android:release:gitlab
       artifacts: false
