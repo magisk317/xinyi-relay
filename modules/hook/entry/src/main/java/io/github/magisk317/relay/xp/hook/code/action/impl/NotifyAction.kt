@@ -1,10 +1,8 @@
 package io.github.magisk317.relay.xp.hook.code.action.impl
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
+import android.app.Notification
 import android.app.PendingIntent
 import android.content.Context
-import android.os.Build
 import android.os.Bundle
 import io.github.magisk317.relay.hookentry.R
 import io.github.magisk317.relay.xp.hook.code.CodeNotificationBroadcastContract
@@ -16,6 +14,7 @@ import io.github.magisk317.relay.xpbridge.XpNotificationBridge
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.smscode.runtime.verification.CodeNotificationDeliveryHelper
 import io.github.magisk317.smscode.runtime.verification.NotifyActionHelper
+import io.github.magisk317.smscode.runtime.verification.PhoneOwnedNotificationDispatcher
 import io.github.magisk317.smscode.xposed.utils.XLog
 
 /**
@@ -24,6 +23,13 @@ import io.github.magisk317.smscode.xposed.utils.XLog
  * 优先使用 app-owned 通知（归属于模块应用进程，前台时体验更好）。
  * 当 app-owned 通知失败时（应用在后台/被杀等），自动 fallback 到
  * phone-owned 通知（直接从 hook 进程发送，不受后台活动限制）。
+ *
+ * phone-owned 路径的实现已下沉到共享库的 [PhoneOwnedNotificationDispatcher]（渠道解析与轮换、
+ * 按投递包自检、投递后反查系统是否接受）。本类只负责选择路径并提供通知本体。
+ *
+ * 注意：诊断必须走 [PhoneOwnedNotificationDispatcher.deliveryDiagnostics]，不能把
+ * channelId + notificationBridge 交给 [NotifyActionHelper] —— 后者会按 pluginContext（模块包）
+ * 解析渠道，而 phone-owned 实际投递到 phone 包的同名渠道，两个包的同名渠道互不相干。
  */
 class NotifyAction(
     pluginContext: Context,
@@ -35,17 +41,26 @@ class NotifyAction(
 ) :
     CallableAction(pluginContext, phoneContext, smsMsg) {
 
+    private val phoneOwned = PhoneOwnedNotificationDispatcher(
+        phoneContext = mPhoneContext,
+        bridge = XpNotificationBridge,
+        modulePackageName = modulePackageName(),
+        primaryChannelId = XpNotificationBridge.CHANNEL_ID_RELAY_NOTIFICATION,
+        fallbackChannelId = XpNotificationBridge.CHANNEL_ID_RELAY_NOTIFICATION_FALLBACK,
+        channelName = mPhoneContext.getString(R.string.channel_name_relay_notification),
+    )
+
     override fun action(): Bundle? {
-        val result = NotifyActionHelper(
+        val phoneChannelId = phoneOwned.resolveChannelId().channelId
+        val result = NotifyActionHelper<SmsMsg, CodeNotificationPayload.DeliveryResult>(
             pluginContext = mPluginContext,
             smsMsg = mSmsMsg,
             enabled = enabled,
             autoCancelEnabledProvider = { autoCancelEnabled },
             retentionTimeMsProvider = { retentionTimeMs },
             tokenProvider = { XpPrefs.getIpcToken(it).takeIf(String::isNotBlank) },
-            channelId = XpNotificationBridge.CHANNEL_ID_RELAY_NOTIFICATION,
-            notificationBridge = XpNotificationBridge,
-            notifier = ::showAppOwnedNotification,
+            diagnostics = { phoneOwned.deliveryDiagnostics(phoneChannelId) },
+            notifier = { request -> notifyCode(request, phoneChannelId) },
         ).run()
         return result?.let {
             Bundle().apply {
@@ -55,41 +70,50 @@ class NotifyAction(
         }
     }
 
-    private fun showAppOwnedNotification(
+    private fun notifyCode(
         request: NotifyActionHelper.AppOwnedNotificationRequest<SmsMsg>,
+        phoneChannelId: String,
     ): CodeNotificationPayload.DeliveryResult {
-        val appResult = CodeNotificationDeliveryHelper.requestAppOwnedNotification(
-            context = mPhoneContext,
-            smsMsg = request.smsMsg,
-            notificationId = request.notificationId,
-            autoCancelEnabled = request.autoCancelEnabled,
-            retentionTimeMs = request.retentionTimeMs,
-            token = request.token,
-            intentFactory = CodeNotificationBroadcastContract::createIntent,
-        )
-        if (appResult.success) return appResult
+        if (PhoneOwnedNotificationDispatcher.isPackageAllowedToPost(mPhoneContext, modulePackageName())) {
+            val appResult = CodeNotificationDeliveryHelper.requestAppOwnedNotification(
+                context = mPhoneContext,
+                smsMsg = request.smsMsg,
+                notificationId = request.notificationId,
+                autoCancelEnabled = request.autoCancelEnabled,
+                retentionTimeMs = request.retentionTimeMs,
+                token = request.token,
+                intentFactory = CodeNotificationBroadcastContract::createIntent,
+            )
+            if (appResult.success) return appResult
 
-        // App-owned notification failed (app background/killed, broadcast timeout, etc.).
-        // Fallback to phone-owned notification from the hook process directly.
-        XLog.w(
-            "App-owned code notification failed (reason=%s), falling back to phone-owned",
-            appResult.reason,
+            // App-owned notification failed (app background/killed, broadcast timeout, etc.).
+            // Fallback to phone-owned notification from the hook process directly.
+            XLog.w(
+                "App-owned code notification failed (reason=%s), falling back to phone-owned",
+                appResult.reason,
+            )
+        } else {
+            XLog.w(
+                "Skipping app-owned code notification: POST_NOTIFICATIONS is not granted to %s",
+                modulePackageName(),
+            )
+        }
+
+        val outcome = phoneOwned.post(
+            notificationId = request.notificationId,
+            channelId = phoneChannelId,
+            build = { channelId -> buildPhoneOwnedNotification(channelId, request) },
         )
-        return showPhoneOwnedNotification(request)
+        return CodeNotificationPayload.DeliveryResult(
+            success = outcome.delivered,
+            reason = outcome.id,
+        )
     }
 
-    private fun showPhoneOwnedNotification(
+    private fun buildPhoneOwnedNotification(
+        channelId: String,
         request: NotifyActionHelper.AppOwnedNotificationRequest<SmsMsg>,
-    ): CodeNotificationPayload.DeliveryResult {
-        val manager = mPhoneContext.getSystemService(Context.NOTIFICATION_SERVICE)
-            as? NotificationManager
-            ?: return CodeNotificationPayload.DeliveryResult(
-                success = false,
-                reason = "no_notification_manager",
-            )
-
-        ensureNotificationChannel(manager)
-
+    ): Notification {
         val copyIntent = CopyCodeReceiver.createIntent(
             mPhoneContext,
             request.smsMsg.smsCode,
@@ -102,10 +126,10 @@ class NotifyAction(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        val notification = CodeNotificationDeliveryHelper.buildCodeNotification(
+        return CodeNotificationDeliveryHelper.buildCodeNotification(
             context = mPhoneContext,
             visualConfig = CodeNotificationDeliveryHelper.VisualConfig(
-                channelId = XpNotificationBridge.CHANNEL_ID_RELAY_NOTIFICATION,
+                channelId = channelId,
                 groupKey = XpNotificationBridge.GROUP_KEY_RELAY_NOTIFICATION,
                 smallIconResId = R.drawable.ic_app_icon,
                 largeIconResId = R.drawable.ic_app_icon,
@@ -120,31 +144,8 @@ class NotifyAction(
             autoCancelEnabled = request.autoCancelEnabled,
             retentionTimeMs = request.retentionTimeMs,
         )
-
-        return try {
-            manager.notify(request.notificationId, notification)
-            XLog.i("Phone-owned code notification posted id=%d", request.notificationId)
-            CodeNotificationPayload.DeliveryResult(
-                success = true,
-                reason = "phone_owned",
-            )
-        } catch (e: Exception) {
-            XLog.w("Phone-owned notification failed: %s", e.message)
-            CodeNotificationPayload.DeliveryResult(
-                success = false,
-                reason = "phone_notify_exception",
-            )
-        }
     }
 
-    private fun ensureNotificationChannel(manager: NotificationManager) {
-        val channelId = XpNotificationBridge.CHANNEL_ID_RELAY_NOTIFICATION
-        if (manager.getNotificationChannel(channelId) != null) return
-        val channel = NotificationChannel(
-            channelId,
-            mPhoneContext.getString(R.string.channel_name_relay_notification),
-            NotificationManager.IMPORTANCE_DEFAULT,
-        )
-        manager.createNotificationChannel(channel)
-    }
+    private fun modulePackageName(): String =
+        runCatching { mPluginContext.packageName }.getOrDefault("unknown")
 }

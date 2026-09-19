@@ -9,6 +9,8 @@ import io.github.magisk317.smscode.runtime.contract.notification.NotificationPla
 
 object XpNotificationBridge : NotificationPlatformBridge {
     const val CHANNEL_ID_RELAY_NOTIFICATION: String = NotificationConst.CHANNEL_ID_RELAY_NOTIFICATION
+    const val CHANNEL_ID_RELAY_NOTIFICATION_FALLBACK: String =
+        NotificationConst.CHANNEL_ID_RELAY_NOTIFICATION_FALLBACK
     const val CHANNEL_ID_SMSCODE_CONFLICT: String = NotificationConst.CHANNEL_ID_SMSCODE_CONFLICT
     const val GROUP_KEY_RELAY_NOTIFICATION: String = NotificationConst.GROUP_KEY_RELAY_NOTIFICATION
     const val NOTIFICATION_ID_SMSCODE_CONFLICT: Int = NotificationConst.NOTIFICATION_ID_SMSCODE_CONFLICT
