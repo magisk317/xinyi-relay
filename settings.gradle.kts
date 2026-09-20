@@ -144,7 +144,8 @@ dependencyResolutionManagement {
             )
             val jobToken = System.getenv("CI_JOB_TOKEN")
             val deployToken = System.getenv("GITLAB_DEPLOY_TOKEN")
-                ?: System.getenv("GITLAB_TOKEN")
+            val privateToken = System.getenv("GITLAB_TOKEN")
+                ?: System.getenv("GITLAB_PRIVATE_TOKEN")
             if (!jobToken.isNullOrBlank()) {
                 credentials(HttpHeaderCredentials::class) {
                     name = "Job-Token"
@@ -157,6 +158,14 @@ dependencyResolutionManagement {
                 credentials(HttpHeaderCredentials::class) {
                     name = "Deploy-Token"
                     value = deployToken
+                }
+                authentication {
+                    create<HttpHeaderAuthentication>("header")
+                }
+            } else if (!privateToken.isNullOrBlank()) {
+                credentials(HttpHeaderCredentials::class) {
+                    name = "Private-Token"
+                    value = privateToken
                 }
                 authentication {
                     create<HttpHeaderAuthentication>("header")
@@ -190,6 +199,7 @@ include(
     ":mobile:feature:rule",
     ":mobile:feature:backup",
     ":relay:android",
+    ":relay:security",
     ":relay:sender:api",
     ":relay:sender",
     ":relay:matrix-e2ee",
@@ -210,6 +220,7 @@ include(
     ":magisk-xposed-kit",
     ":magisk-xposed-kit:logging",
     ":magisk-xposed-kit:diagnostics",
+    ":magisk-xposed-kit:permission",
     ":features:matrix_e2ee",
 )
 
@@ -223,6 +234,7 @@ project(":smscode-core:verification").projectDir = file("smscode/core/verificati
 project(":smscode-core").projectDir = file("smscode/core")
 project(":magisk-xposed-kit:logging").projectDir = file("magisk-xposed-kit/logging")
 project(":magisk-xposed-kit:diagnostics").projectDir = file("magisk-xposed-kit/diagnostics")
+project(":magisk-xposed-kit:permission").projectDir = file("magisk-xposed-kit/permission")
 project(":magisk-ui-kit:billing").projectDir = file("magisk-ui-kit/billing")
 
 // Explicitly remap moved android libraries physical paths to 'modules/'
@@ -231,6 +243,7 @@ project(":policy").projectDir = file("modules/policy")
 project(":hook:entry").projectDir = file("modules/hook/entry")
 project(":relay:android").projectDir = file("modules/relay/android")
 project(":relay:sender:api").projectDir = file("modules/relay/sender/api")
+project(":relay:security").projectDir = file("modules/relay/security")
 project(":relay:sender").projectDir = file("modules/relay/sender")
 project(":relay:matrix-e2ee").projectDir = file("modules/relay/matrix-e2ee")
 project(":relay:contract").projectDir = file("modules/relay/contract")
