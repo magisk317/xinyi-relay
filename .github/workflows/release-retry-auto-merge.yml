@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   auto-merge:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     if: |
       github.event.pull_request.base.ref == 'beta' &&
       github.event.pull_request.head.repo.full_name == github.repository &&

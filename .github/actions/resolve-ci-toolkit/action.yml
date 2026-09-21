@@ -35,9 +35,13 @@ runs:
         git -C "$TOOLKIT_DIR" fetch --depth 1 origin "$TOOLKIT_REF"
         git -C "$TOOLKIT_DIR" checkout --detach --force FETCH_HEAD
 
+        # Only full commit SHAs can be verified this way; tag refs like v1 resolve
+        # to whatever the tag points at, which never equals the tag name.
+        if [[ "$TOOLKIT_REF" =~ ^[0-9a-fA-F]{40}$ ]]; then
         resolved_ref="$(git -C "$TOOLKIT_DIR" rev-parse HEAD)"
         expected_ref="$(printf '%s' "$TOOLKIT_REF" | tr '[:upper:]' '[:lower:]')"
         if [[ "$resolved_ref" != "$expected_ref" ]]; then
           echo "ERROR: resolved toolkit commit $resolved_ref does not match pinned ref $TOOLKIT_REF" >&2
           exit 1
+        fi
         fi

@@ -1,21 +1,6 @@
 name: Desktop CI
 
-on:
-  pull_request:
-    branches:
-      - beta
-    paths:
-      - "frontend/desktop/**"
-      - "scripts/ci/resolve_package_toolchain.py"
-      - ".github/workflows/desktop-ci.yml"
-  push:
-    branches:
-      - beta
-    paths:
-      - "frontend/desktop/**"
-      - "scripts/ci/resolve_package_toolchain.py"
-      - ".github/workflows/desktop-ci.yml"
-  workflow_dispatch:
+on: workflow_dispatch
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -31,14 +16,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: ubuntu-latest
+          - runner: ubuntu-26.04
             job_label: Linux-x64
             os_name: linux
             arch_name: x64
             rust_target: x86_64-unknown-linux-gnu
             bundle_args: "--target x86_64-unknown-linux-gnu --bundles appimage,deb,rpm"
             bundle_dir: frontend/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle
-          - runner: ubuntu-24.04-arm
+          - runner: ubuntu-26.04-arm
             job_label: Linux-arm64
             os_name: linux
             arch_name: arm64

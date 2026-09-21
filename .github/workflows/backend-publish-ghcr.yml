@@ -25,7 +25,7 @@ concurrency:
 jobs:
   prepare:
     name: Prepare backend publish
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     outputs:
       ghcr_image: ${{ steps.vars.outputs.ghcr_image }}
       tags_json: ${{ steps.vars.outputs.tags_json }}
@@ -89,7 +89,7 @@ jobs:
   build_amd64:
     name: Build backend image (amd64)
     needs: prepare
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -145,7 +145,7 @@ jobs:
   build_arm64:
     name: Build backend image (arm64)
     needs: prepare
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-26.04-arm
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -204,7 +204,7 @@ jobs:
       - prepare
       - build_amd64
       - build_arm64
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     outputs:
       dockerhub_published: ${{ steps.dockerhub_mirror.outcome == 'success' }}
     steps:
@@ -285,7 +285,7 @@ jobs:
       - build_amd64
       - build_arm64
       - publish_manifests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - name: Checkout
         uses: actions/checkout@v7

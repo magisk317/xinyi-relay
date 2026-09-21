@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   recover-versioncode:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     if: github.event.workflow_run.conclusion == 'failure'
     steps:
       - name: Filter non-tag release failures

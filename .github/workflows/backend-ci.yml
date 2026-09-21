@@ -1,21 +1,6 @@
 name: Backend CI
 
-on:
-  pull_request:
-    branches:
-      - beta
-    paths:
-      - "backend/**"
-      - "docs/ARCHITECTURE.md"
-      - ".github/workflows/backend-ci.yml"
-  push:
-    branches:
-      - beta
-    paths:
-      - "backend/**"
-      - "docs/ARCHITECTURE.md"
-      - ".github/workflows/backend-ci.yml"
-  workflow_dispatch:
+on: workflow_dispatch
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -26,7 +11,7 @@ permissions:
 
 jobs:
   backend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
         with:

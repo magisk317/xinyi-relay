@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   retag-release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     if: |
       github.event.pull_request.merged == true &&
       startsWith(github.event.pull_request.head.ref, 'chore/release-versioncode-')

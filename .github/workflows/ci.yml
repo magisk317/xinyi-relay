@@ -7,27 +7,30 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-on:
-  pull_request:
-    branches:
-      - beta
-  push:
-    branches:
-      - beta
-  workflow_dispatch:
+on: workflow_dispatch
 
 env:
   GITHUB_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || secrets.GITHUB_TOKEN }}
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     if: github.actor != 'dependabot[bot]'
     env:
       GRADLE_OPTS: -Dorg.gradle.warning.mode=all
       HAS_RELEASE_SIGNING: ${{ secrets.RELEASE_KEYSTORE != '' && secrets.STORE_PASSWORD != '' && secrets.KEY_ALIAS != '' && secrets.KEY_PASSWORD != '' }}
       HAS_GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
     steps:
+      - name: Configure GitLab submodule credentials
+        env:
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+        run: |
+          if [[ -z "$GITLAB_TOKEN" ]]; then
+            echo "::error::GITLAB_TOKEN secret is not set; cannot clone gitlab.com submodules"
+            exit 1
+          fi
+          git config --global http.https://gitlab.com/.extraheader "AUTHORIZATION: basic $(printf 'oauth2:%s' "$GITLAB_TOKEN" | base64 -w0)"
+          echo "GITLAB_TOKEN=$GITLAB_TOKEN" >> "$GITHUB_ENV"
       - uses: actions/checkout@v7
         with:
           submodules: recursive
@@ -55,7 +58,7 @@ jobs:
           bun run build
       - name: Decode Keystore
         if: env.HAS_RELEASE_SIGNING == 'true'
-        run: echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > app/release.jks
+        run: echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > release.jks
       - name: Decode Google Services
         if: env.HAS_GOOGLE_SERVICES_JSON == 'true'
         run: |
@@ -84,6 +87,7 @@ jobs:
             --warning-mode all
             app:assembleGithubNoE2eeDebug app:assembleGithubWithE2eeDebug
             -PbuildSplits
+            -PminifyDebug
             -PskipGoogleServices=${{ env.HAS_GOOGLE_SERVICES_JSON == 'false' }}
         env:
           KEYSTORE_FILE: release.jks
@@ -124,7 +128,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: XinyiRelay-debug-github-x86
-          path: app/build/outputs/apk/github*/debug/*x86*.apk
+          path: app/build/outputs/apk/github*/debug/*x86_[!6]*.apk
       - name: Upload Debug APK - GitHub x86_64
         if: always() && env.HAS_RELEASE_SIGNING == 'true'
         uses: actions/upload-artifact@v7
