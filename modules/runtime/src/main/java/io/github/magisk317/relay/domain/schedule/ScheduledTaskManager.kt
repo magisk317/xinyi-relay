@@ -133,15 +133,11 @@ class ScheduledTaskManager(
         val pendingIntent = PendingIntent.getBroadcast(context, requestCodeFor(task.id), intent, flags)
 
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
-                    XLog.w("Cannot schedule exact alarms, lacking permission")
-                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextRun, pendingIntent)
-                } else {
-                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextRun, pendingIntent)
-                }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+                XLog.w("Cannot schedule exact alarms, lacking permission")
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextRun, pendingIntent)
             } else {
-                alarmManager.setExact(AlarmManager.RTC_WAKEUP, nextRun, pendingIntent)
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextRun, pendingIntent)
             }
             XLog.i("Scheduled task ${task.id} at $nextRun")
         } catch (e: SecurityException) {

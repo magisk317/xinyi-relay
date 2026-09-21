@@ -156,17 +156,6 @@ object SpecialAlertNotifier {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(category)
             .setAutoCancel(true)
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            if (soundEnabled) {
-                builder.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
-            }
-            if (vibrateEnabled) {
-                builder.setVibrate(legacyVibrationPattern)
-            }
-            if (!notifyEnabled) {
-                builder.setSilent(true)
-            }
-        }
         if (
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
@@ -207,9 +196,6 @@ object SpecialAlertNotifier {
             soundEnabled -> NotificationConst.CHANNEL_ID_SPECIAL_ALERT_SOUND
             vibrateEnabled -> NotificationConst.CHANNEL_ID_SPECIAL_ALERT_VIBRATE
             else -> NotificationConst.CHANNEL_ID_SPECIAL_ALERT_SILENT
-        }
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            return channelId
         }
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager? ?: return channelId
         if (manager.getNotificationChannel(channelId) != null) {
