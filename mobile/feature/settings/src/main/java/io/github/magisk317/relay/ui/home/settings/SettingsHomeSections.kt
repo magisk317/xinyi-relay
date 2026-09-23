@@ -29,19 +29,19 @@ import io.github.magisk317.uikit.preference.RuntimeLogShareEntryMode
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsLabels
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsLayout
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsState
+import io.github.magisk317.uikit.preference.Item
 
 @Composable
 internal fun SettingsGeneralSection(
     general: GeneralSettingsSnapshot,
-    themeMode: Int,
     expanded: Boolean,
     onExpandedChange: () -> Unit,
     onModuleEnabledChange: (Boolean) -> Unit,
     onAccordionModeChange: (Boolean) -> Unit,
     launcherIconVisible: Boolean,
     onLauncherIconVisibleChange: (Boolean) -> Unit,
-    onThemeSelected: (Int, Float, Float) -> Unit,
     onLanguageSelected: (String) -> Unit,
+    onOpenThemeSettings: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -58,8 +58,7 @@ internal fun SettingsGeneralSection(
             onModuleEnabledChange = onModuleEnabledChange,
             moduleTitle = stringResource(id = R.string.pref_enable_title),
             moduleSummary = stringResource(id = R.string.pref_enable_summary),
-            themeMode = themeMode,
-            onThemeSelected = onThemeSelected,
+            themeMode = null,
             onLanguageSelected = onLanguageSelected,
         ) {
             StateSwitchItem(
@@ -73,6 +72,11 @@ internal fun SettingsGeneralSection(
                 summary = stringResource(id = R.string.pref_show_launcher_icon_summary),
                 checked = launcherIconVisible,
                 onCheckedChange = onLauncherIconVisibleChange,
+            )
+            Item(
+                title = stringResource(id = R.string.pref_theme_settings_title),
+                summary = stringResource(id = R.string.pref_theme_settings_summary),
+                onClick = onOpenThemeSettings,
             )
         }
     }

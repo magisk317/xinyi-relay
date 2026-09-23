@@ -20,25 +20,20 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SnackbarDuration
@@ -49,12 +44,10 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -62,7 +55,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringArrayResource
@@ -71,8 +63,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.uikit.surface.chromeSurfaceColor
-import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.platform.icon.AppIconEncoder
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
@@ -82,19 +72,20 @@ import io.github.magisk317.relay.engine.service.MessageRecordRepository
 import io.github.magisk317.relay.ui.common.Item
 import io.github.magisk317.relay.ui.common.AppIconCache
 import io.github.magisk317.relay.ui.common.RetentionDialog
-import io.github.magisk317.uikit.preference.SectionHeader
 import io.github.magisk317.relay.ui.common.StateSwitchItem
 import io.github.magisk317.uikit.preference.TextInputDialog
 import io.github.magisk317.uikit.common.DismissibleSnackbarHost
 import io.github.magisk317.uikit.common.showLatestSnackbar
 import io.github.magisk317.uikit.surface.WorkspaceEmptyState
+import io.github.magisk317.uikit.surface.WorkspaceListDivider
+import io.github.magisk317.uikit.theme.UiKitStyle
+import io.github.magisk317.uikit.theme.currentUiKitStyle
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -115,23 +106,16 @@ fun BlacklistHitListScreen(
         .collectAsStateWithLifecycle(initialValue = emptyList())
     val listState = rememberLazyListState()
     val dateFormat = rememberBlacklistHitDateFormat()
-    val detailDateFormat = remember { SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.getDefault()) }
+    val detailDateFormat = rememberBlacklistHitDateFormat()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     var defaultSmsIcon by remember { mutableStateOf<Bitmap?>(null) }
-    var fixedTopHeightPx by remember { mutableIntStateOf(0) }
     var detailHit by remember { mutableStateOf<ReadSmsBlacklistHitData?>(null) }
     var showClearDialog by remember { mutableStateOf(false) }
     var showSettingsSheet by remember { mutableStateOf(false) }
     var showHistoryLimitDialog by remember { mutableStateOf(false) }
     var showHistoryLimitInput by remember { mutableStateOf(false) }
-    val defaultTopPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 64.dp
-    val fixedTopHeight = if (fixedTopHeightPx > 0) {
-        with(density) { fixedTopHeightPx.toDp() }
-    } else {
-        defaultTopPadding
-    }
     val bottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 24.dp
     val savedSnackbarText = remember(context) { context.getString(R.string.pref_sync_snackbar) }
 
@@ -221,12 +205,6 @@ fun BlacklistHitListScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                SectionHeader(
-                    text = stringResource(
-                        R.string.record_settings_title_with_target,
-                        stringResource(R.string.sms_blacklist_hit_list_title),
-                    ),
-                )
                 StateSwitchItem(
                     title = stringResource(R.string.pref_enable_sms_blacklist_hit_records_title),
                     summary = "",
@@ -297,10 +275,8 @@ fun BlacklistHitListScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-        ) {
+    val hitListBody: @Composable (PaddingValues) -> Unit = { listPadding ->
+        Box(modifier = Modifier.fillMaxSize()) {
             if (hits.isEmpty()) {
                 WorkspaceEmptyState(
                     title = stringResource(R.string.sms_blacklist_hit_list_title),
@@ -329,7 +305,7 @@ fun BlacklistHitListScreen(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(
-                            top = fixedTopHeight,
+                            top = listPadding.calculateTopPadding(),
                             bottom = bottomPadding,
                         ),
                         verticalArrangement = Arrangement.spacedBy(0.dp),
@@ -345,70 +321,53 @@ fun BlacklistHitListScreen(
                                 onDelete = deleteAndUndo,
                                 onClick = { detailHit = hit },
                             )
-                            HorizontalDivider()
+                            WorkspaceListDivider()
                         }
                     }
                 }
             }
-        }
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.TopCenter)
-                .onSizeChanged { fixedTopHeightPx = it.height }
-                .background(chromeSurfaceColor()),
-        ) {
-            TopAppBar(
-                title = { Text(stringResource(R.string.sms_blacklist_hit_list_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.action_back),
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = { showClearDialog = true },
-                        enabled = hits.isNotEmpty(),
-                    ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = stringResource(R.string.action_clear_records_content_description),
-                        )
-                    }
-                    IconButton(onClick = { showSettingsSheet = true }) {
-                        Icon(
-                            Icons.Default.Settings,
-                            contentDescription = stringResource(R.string.pref_code_records_title),
-                        )
-                    }
-                },
-                colors = chromeTopAppBarColors(),
-                windowInsets = WindowInsets.statusBars,
+            DismissibleSnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding(),
             )
         }
+    }
 
-        DismissibleSnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding(),
+    when (currentUiKitStyle()) {
+        UiKitStyle.Miuix -> BlacklistHitListScreenMiuix(
+            title = stringResource(R.string.sms_blacklist_hit_list_title),
+            onBack = onBack,
+            onOpenClear = { showClearDialog = true },
+            onOpenSettings = { showSettingsSheet = true },
+            clearActionEnabled = hits.isNotEmpty(),
+            listState = listState,
+            body = hitListBody,
         )
 
-        detailHit?.let { hit ->
-            BlacklistHitDetailDialog(
-                hit = hit,
-                dateFormat = detailDateFormat,
-                onDismiss = { detailHit = null },
-                onDelete = {
-                    deleteAndUndo(hit)
-                    detailHit = null
-                },
-            )
-        }
+        UiKitStyle.Expressive -> BlacklistHitListScreenMaterial(
+            title = stringResource(R.string.sms_blacklist_hit_list_title),
+            onBack = onBack,
+            onOpenClear = { showClearDialog = true },
+            onOpenSettings = { showSettingsSheet = true },
+            clearActionEnabled = hits.isNotEmpty(),
+            listState = listState,
+            body = hitListBody,
+        )
+    }
+
+    detailHit?.let { hit ->
+        BlacklistHitDetailDialog(
+            hit = hit,
+            dateFormat = detailDateFormat,
+            onDismiss = { detailHit = null },
+            onDelete = {
+                deleteAndUndo(hit)
+                detailHit = null
+            },
+        )
     }
 }
 

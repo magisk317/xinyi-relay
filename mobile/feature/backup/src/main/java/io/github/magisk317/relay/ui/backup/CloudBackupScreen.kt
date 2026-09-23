@@ -14,28 +14,27 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.input.OutputTransformation
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,13 +53,13 @@ import io.github.magisk317.relay.backup.CloudBackupMeta
 import io.github.magisk317.relay.backup.drive.GoogleDriveBackupConfig
 import io.github.magisk317.relay.backup.webdav.WebDavConfig
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.uikit.theme.UiKitStyle
+import io.github.magisk317.uikit.theme.currentUiKitStyle
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
-import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CloudBackupScreen(
     onBack: () -> Unit,
@@ -204,100 +203,107 @@ fun CloudBackupScreen(
         viewModel.loadBackups()
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(id = R.string.cloud_backup_screen_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+    val backupListState = rememberLazyListState()
+
+    val cloudBackupBody: @Composable (PaddingValues) -> Unit = { padding ->
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)
+            .padding(16.dp),
+    ) {
+        BackupSourceSelector(
+            selectedSource = selectedSource,
+            hasGoogleDriveBackup = hasGoogleDriveBackup,
+            canUseGoogleDrive = selectedSource == BackupSource.GOOGLE_DRIVE && viewModel.canUseCloudBackup(),
+            onLoadBackups = viewModel::loadBackups,
+            onSwitchSource = viewModel::switchBackupSource,
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (selectedSource == BackupSource.GOOGLE_DRIVE && hasGoogleDriveBackup) {
+            GoogleDriveConfigSection(
+                showConfig = showGoogleDriveConfig,
+                folderPath = googleDrivePath,
+                savedFolderPath = googleDriveConfig.folderPath,
+                onFolderPathChange = { googleDrivePath = it },
+                onEdit = { showGoogleDriveConfig = true },
+                onSave = {
+                    if (saveGoogleDriveConfig()) {
+                        showGoogleDriveConfig = false
+                        viewModel.loadBackups()
                     }
                 },
-                colors = chromeTopAppBarColors(),
-            )
-        },
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-        ) {
-            BackupSourceSelector(
-                selectedSource = selectedSource,
-                hasGoogleDriveBackup = hasGoogleDriveBackup,
-                canUseGoogleDrive = selectedSource == BackupSource.GOOGLE_DRIVE && viewModel.canUseCloudBackup(),
-                onLoadBackups = viewModel::loadBackups,
-                onSwitchSource = viewModel::switchBackupSource,
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (selectedSource == BackupSource.GOOGLE_DRIVE && hasGoogleDriveBackup) {
-                GoogleDriveConfigSection(
-                    showConfig = showGoogleDriveConfig,
-                    folderPath = googleDrivePath,
-                    savedFolderPath = googleDriveConfig.folderPath,
-                    onFolderPathChange = { googleDrivePath = it },
-                    onEdit = { showGoogleDriveConfig = true },
-                    onSave = {
-                        if (saveGoogleDriveConfig()) {
-                            showGoogleDriveConfig = false
-                            viewModel.loadBackups()
-                        }
-                    },
-                )
-            }
-
-            if (selectedSource == BackupSource.WEBDAV) {
-                WebDavConfigSection(
-                    showConfig = showWebDavConfig || webDavConfig == null,
-                    server = webDavServer,
-                    username = webDavUsername,
-                    password = webDavPassword,
-                    passwordVisible = webDavPasswordVisible,
-                    remotePath = webDavPath,
-                    isServerMissing = isWebDavServerMissing,
-                    isUsernameMissing = isWebDavUsernameMissing,
-                    isPasswordMissing = isWebDavPasswordMissing,
-                    isLoading = isLoading,
-                    onServerChange = { webDavServer = it },
-                    onUsernameChange = { webDavUsername = it },
-                    onPasswordChange = { webDavPassword = it },
-                    onTogglePasswordVisibility = { webDavPasswordVisible = !webDavPasswordVisible },
-                    onRemotePathChange = { webDavPath = it },
-                    onEdit = { showWebDavConfig = true },
-                    onRemove = viewModel::removeWebDavConfig,
-                    onSave = {
-                        if (saveWebDavConfig(testConnection = false)) {
-                            showWebDavConfig = false
-                        }
-                    },
-                    onTestConnection = { saveWebDavConfig(testConnection = true) },
-                )
-            }
-
-            val canUseSelectedBackup = viewModel.canUseCloudBackup()
-            CloudBackupControls(
-                selectedSource = selectedSource,
-                hasGoogleDriveBackup = hasGoogleDriveBackup,
-                canUseSelectedBackup = canUseSelectedBackup,
-                isLoading = isLoading,
-                autoBackupEnabled = autoBackupEnabled,
-                onBackupNow = ::requestBackupNow,
-                onAutoBackupChange = viewModel::setAutoBackup,
-            )
-
-            BackupListSection(
-                title = backupsTitle,
-                loadingMessage = loadingBackupsMessage,
-                isLoading = isLoading,
-                backups = backups,
-                message = backupListMessage,
-                onRestore = viewModel::restoreBackup,
-                onDelete = viewModel::deleteBackup,
             )
         }
+
+        if (selectedSource == BackupSource.WEBDAV) {
+            WebDavConfigSection(
+                showConfig = showWebDavConfig || webDavConfig == null,
+                server = webDavServer,
+                username = webDavUsername,
+                password = webDavPassword,
+                passwordVisible = webDavPasswordVisible,
+                remotePath = webDavPath,
+                isServerMissing = isWebDavServerMissing,
+                isUsernameMissing = isWebDavUsernameMissing,
+                isPasswordMissing = isWebDavPasswordMissing,
+                isLoading = isLoading,
+                onServerChange = { webDavServer = it },
+                onUsernameChange = { webDavUsername = it },
+                onPasswordChange = { webDavPassword = it },
+                onTogglePasswordVisibility = { webDavPasswordVisible = !webDavPasswordVisible },
+                onRemotePathChange = { webDavPath = it },
+                onEdit = { showWebDavConfig = true },
+                onRemove = viewModel::removeWebDavConfig,
+                onSave = {
+                    if (saveWebDavConfig(testConnection = false)) {
+                        showWebDavConfig = false
+                    }
+                },
+                onTestConnection = { saveWebDavConfig(testConnection = true) },
+            )
+        }
+
+        val canUseSelectedBackup = viewModel.canUseCloudBackup()
+        CloudBackupControls(
+            selectedSource = selectedSource,
+            hasGoogleDriveBackup = hasGoogleDriveBackup,
+            canUseSelectedBackup = canUseSelectedBackup,
+            isLoading = isLoading,
+            autoBackupEnabled = autoBackupEnabled,
+            onBackupNow = ::requestBackupNow,
+            onAutoBackupChange = viewModel::setAutoBackup,
+        )
+
+        BackupListSection(
+            title = backupsTitle,
+            listState = backupListState,
+            loadingMessage = loadingBackupsMessage,
+            isLoading = isLoading,
+            backups = backups,
+            message = backupListMessage,
+            onRestore = viewModel::restoreBackup,
+            onDelete = viewModel::deleteBackup,
+        )
+    }
+    }
+
+    when (currentUiKitStyle()) {
+        UiKitStyle.Miuix -> CloudBackupScreenMiuix(
+            title = stringResource(R.string.cloud_backup_screen_title),
+            onBack = onBack,
+            listState = backupListState,
+            body = cloudBackupBody,
+        )
+
+        UiKitStyle.Expressive -> CloudBackupScreenMaterial(
+            title = stringResource(R.string.cloud_backup_screen_title),
+            onBack = onBack,
+            listState = backupListState,
+            body = cloudBackupBody,
+        )
     }
 }
 
@@ -665,6 +671,7 @@ private fun CloudBackupControls(
 @Composable
 private fun BackupListSection(
     title: String,
+    listState: LazyListState,
     loadingMessage: String,
     isLoading: Boolean,
     backups: List<CloudBackupMeta>,
@@ -681,7 +688,7 @@ private fun BackupListSection(
             text = message ?: stringResource(id = R.string.cloud_backup_no_backups),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        else -> BackupList(backups, message, onRestore, onDelete)
+        else -> BackupList(backups, listState, message, onRestore, onDelete)
     }
 }
 
@@ -702,6 +709,7 @@ private fun LoadingBackupList(message: String) {
 @Composable
 private fun BackupList(
     backups: List<CloudBackupMeta>,
+    listState: LazyListState,
     message: String?,
     onRestore: (String) -> Unit,
     onDelete: (String) -> Unit,
@@ -714,7 +722,10 @@ private fun BackupList(
         )
         Spacer(modifier = Modifier.height(8.dp))
     }
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    LazyColumn(
+        state = listState,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         items(backups) { backup ->
             BackupListItem(
                 backup = backup,

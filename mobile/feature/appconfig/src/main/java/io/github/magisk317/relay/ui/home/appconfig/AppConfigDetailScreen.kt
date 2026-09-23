@@ -7,22 +7,16 @@ import io.github.magisk317.uikit.common.showLatestSnackbar
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -35,14 +29,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.uikit.theme.UiKitStyle
+import io.github.magisk317.uikit.theme.currentUiKitStyle
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
-import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import org.koin.compose.viewmodel.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppConfigDetailScreen(
     packageName: String,
@@ -59,122 +53,117 @@ fun AppConfigDetailScreen(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = app?.label ?: packageName,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.action_back),
-                        )
-                    }
-                },
-                windowInsets = WindowInsets.statusBars,
-                colors = chromeTopAppBarColors(),
-            )
-        },
-        snackbarHost = {
-            io.github.magisk317.uikit.common.DismissibleSnackbarHost(
-                hostState = snackbarHostState,
-                modifier = Modifier.navigationBarsPadding(),
-            )
-        },
-    ) { innerPadding ->
-        if (app == null) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Text(text = stringResource(R.string.app_config_detail_not_found))
-            }
-            return@Scaffold
-        }
+    val appConfigDetailBody: @Composable (PaddingValues) -> Unit = { listPadding ->
+if (app == null) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(listPadding)
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(text = stringResource(R.string.app_config_detail_not_found))
+    }
+} else {
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(listPadding)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
         ) {
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
-            ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    ConfigToggleRow(
-                        title = stringResource(R.string.label_blocked),
-                        checked = app.blocked,
-                        onCheckedChange = {
-                            viewModel.setBlocked(app.packageName, it)
-                            scope.launch {
-                                snackbarHostState.showLatestSnackbar(context.getString(R.string.pref_sync_snackbar))
-                            }
-                        },
-                    )
-                    HorizontalDivider()
-                    ConfigToggleRow(
-                        title = stringResource(R.string.label_app_notify_source_enabled),
-                        checked = app.forwarding,
-                        onCheckedChange = {
-                            viewModel.setForwarding(app.packageName, it)
-                            scope.launch {
-                                snackbarHostState.showLatestSnackbar(context.getString(R.string.pref_sync_snackbar))
-                            }
-                        },
-                    )
-                    HorizontalDivider()
-                    androidx.compose.material3.ListItem(
-                        supportingContent = {
-                            val count = viewModel.getAppNotifyBindingCount(app.packageName)
-                            Text(
-                                text = if (count <= 0) {
-                                    stringResource(R.string.app_notify_channel_global_summary)
-                                } else {
-                                    stringResource(R.string.app_notify_channel_bound_count, count)
-                                },
-                            )
-                        },
-                        trailingContent = {
-                            TextButton(onClick = onConfigureNotifyChannels) {
-                                Text(text = stringResource(R.string.item_config))
-                            }
-                        },
-                    ) {
-                        Text(text = stringResource(R.string.app_notify_channel_config_title))
-                    }
-                    HorizontalDivider()
-                    androidx.compose.material3.ListItem(
-                        supportingContent = {
-                            Text(text = stringResource(R.string.app_detail_forward_filter_summary))
-                        },
-                        trailingContent = {
-                            TextButton(onClick = onConfigureForwardFilters) {
-                                Text(text = stringResource(R.string.item_config))
-                            }
-                        },
-                    ) {
-                        Text(text = stringResource(R.string.app_detail_forward_filter_title))
-                    }
+            Column(modifier = Modifier.fillMaxWidth()) {
+                ConfigToggleRow(
+                    title = stringResource(R.string.label_blocked),
+                    checked = app.blocked,
+                    onCheckedChange = {
+                        viewModel.setBlocked(app.packageName, it)
+                        scope.launch {
+                            snackbarHostState.showLatestSnackbar(context.getString(R.string.pref_sync_snackbar))
+                        }
+                    },
+                )
+                HorizontalDivider()
+                ConfigToggleRow(
+                    title = stringResource(R.string.label_app_notify_source_enabled),
+                    checked = app.forwarding,
+                    onCheckedChange = {
+                        viewModel.setForwarding(app.packageName, it)
+                        scope.launch {
+                            snackbarHostState.showLatestSnackbar(context.getString(R.string.pref_sync_snackbar))
+                        }
+                    },
+                )
+                HorizontalDivider()
+                androidx.compose.material3.ListItem(
+                    supportingContent = {
+                        val count = viewModel.getAppNotifyBindingCount(app.packageName)
+                        Text(
+                            text = if (count <= 0) {
+                                stringResource(R.string.app_notify_channel_global_summary)
+                            } else {
+                                stringResource(R.string.app_notify_channel_bound_count, count)
+                            },
+                        )
+                    },
+                    trailingContent = {
+                        TextButton(onClick = onConfigureNotifyChannels) {
+                            Text(text = stringResource(R.string.item_config))
+                        }
+                    },
+                ) {
+                    Text(text = stringResource(R.string.app_notify_channel_config_title))
+                }
+                HorizontalDivider()
+                androidx.compose.material3.ListItem(
+                    supportingContent = {
+                        Text(text = stringResource(R.string.app_detail_forward_filter_summary))
+                    },
+                    trailingContent = {
+                        TextButton(onClick = onConfigureForwardFilters) {
+                            Text(text = stringResource(R.string.item_config))
+                        }
+                    },
+                ) {
+                    Text(text = stringResource(R.string.app_detail_forward_filter_title))
                 }
             }
-
-            AppRecentLogCard(logs = appLogs)
         }
+
+        AppRecentLogCard(logs = appLogs)
+    }
+    }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        when (currentUiKitStyle()) {
+            UiKitStyle.Miuix -> AppConfigDetailScreenMiuix(
+                title = app?.label ?: packageName,
+                onBack = onBack,
+                body = appConfigDetailBody,
+            )
+
+            UiKitStyle.Expressive -> AppConfigDetailScreenMaterial(
+                title = app?.label ?: packageName,
+                onBack = onBack,
+                body = appConfigDetailBody,
+            )
+        }
+
+        io.github.magisk317.uikit.common.DismissibleSnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding(),
+        )
     }
 }
 

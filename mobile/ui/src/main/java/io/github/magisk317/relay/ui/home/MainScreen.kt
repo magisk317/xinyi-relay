@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.activity.compose.PredictiveBackHandler
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -98,6 +99,7 @@ import io.github.magisk317.relay.ui.nav.SettingsRoute
 import io.github.magisk317.relay.ui.nav.SmsCodeRuleEditorRoute
 import io.github.magisk317.relay.ui.nav.SmsCodeRuleSourceRoute
 import io.github.magisk317.relay.ui.nav.SmsCodeRulesRoute
+import io.github.magisk317.relay.ui.nav.ThemeSettingsRoute
 import io.github.magisk317.relay.ui.nav.VerificationSettingsRoute
 import io.github.magisk317.relay.ui.record.BlacklistHitListScreen
 import io.github.magisk317.relay.ui.record.CodeRecordScreen
@@ -148,6 +150,7 @@ fun MainScreen(
     val navController = rememberNavController()
     val appConfigViewModel: AppConfigViewModel = koinViewModel()
     val settingsViewModel = io.github.magisk317.relay.ui.home.settings.rememberSharedSettingsViewModel()
+    val themeState by settingsViewModel.themeState.collectAsStateWithLifecycle()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
@@ -203,6 +206,7 @@ fun MainScreen(
             destination.hasRoute(RecordsRoute::class) -> NavigationSection.RECORDS
             destination.hasRoute(AdvancedRoute::class) -> NavigationSection.ADVANCED
             destination.hasRoute(SettingsRoute::class) -> NavigationSection.SETTINGS
+            destination.hasRoute(ThemeSettingsRoute::class) -> NavigationSection.SETTINGS
             destination.hasRoute(VerificationSettingsRoute::class) -> NavigationSection.SETTINGS
             destination.hasRoute(RemoteAgentRoute::class) -> NavigationSection.SETTINGS
             destination.hasRoute(InterceptRoute::class) -> NavigationSection.ADVANCED
@@ -405,6 +409,9 @@ fun MainScreen(
             beyondViewportPageCount = 1,
             userScrollEnabled = isTopLevelRoute,
             reserveCompactBottomBarSpace = true,
+            floatingBottomBar = themeState.floatingBottomBar,
+            bottomBarBlur = themeState.bottomBarBlur,
+            bottomBarBackdrop = themeState.bottomBarBackdrop,
             retainPageContentAfterFirstFrame = true,
             railHeader = {
                 Icon(
@@ -529,6 +536,7 @@ fun MainScreen(
                         isActive = pageActive,
                         bottomContentPadding = contentBottomPadding,
                         onOpenVerification = { navController.navigate(VerificationSettingsRoute) },
+                        onOpenThemeSettings = { navController.navigate(ThemeSettingsRoute) },
                         onOpenAdvancedRelay = {
                             navController.navigate(RelayConfigRoute(origin = ROUTE_ORIGIN_SETTINGS))
                         },
@@ -555,6 +563,9 @@ fun MainScreen(
                 chromeController = chromeController,
                 onTabSelected = ::navigateToTab,
                 onTabReselected = { index -> triggerRefreshForIndex(index) },
+                floatingBottomBar = themeState.floatingBottomBar,
+                bottomBarBlur = themeState.bottomBarBlur,
+                bottomBarBackdrop = themeState.bottomBarBackdrop,
                 showSystemBarsScrim = false,
                 railHeader = {
                     Icon(
@@ -885,6 +896,11 @@ fun MainScreen(
                     }
                     composable<RemoteAgentRoute> {
                         RemoteAgentScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable<ThemeSettingsRoute> {
+                        io.github.magisk317.relay.ui.home.settings.ThemeSettingsPage(
+                            onBack = { navController.popBackStack() },
+                        )
                     }
                     composable<CloudBackupRoute> { backStackEntry ->
                         val route = backStackEntry.toRoute<CloudBackupRoute>()

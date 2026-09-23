@@ -1,7 +1,6 @@
 package io.github.magisk317.relay.ui.home.appconfig
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,20 +8,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,14 +30,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.ui.sender.displayName
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.uikit.surface.WorkspaceEmptyState
 import io.github.magisk317.uikit.surface.WorkspaceSearchField
-import io.github.magisk317.uikit.surface.chromeTopAppBarColors
+import io.github.magisk317.uikit.theme.UiKitStyle
+import io.github.magisk317.uikit.theme.currentUiKitStyle
 import org.koin.compose.viewmodel.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNotifySenderBindingScreen(
     packageName: String,
@@ -77,157 +71,148 @@ fun AppNotifySenderBindingScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(R.string.app_notify_channel_config_title),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.action_back),
-                        )
-                    }
-                },
-                actions = {
-                    TextButton(
-                        onClick = {
-                            viewModel.saveAppNotifySenderBindings(
-                                packageName = packageName,
-                                senderIds = draftSelectedIds,
-                            )
-                            onBack()
-                        },
-                    ) {
-                        Text(stringResource(R.string.save))
-                    }
-                },
-                colors = chromeTopAppBarColors(),
-            )
-        },
-    ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+    val saveLabel = stringResource(R.string.save)
+
+    val appNotifyBindingBody: @Composable (PaddingValues) -> Unit = { listPadding ->
+LazyColumn(
+    modifier = Modifier
+        .fillMaxSize()
+        .padding(listPadding),
+    contentPadding = PaddingValues(16.dp),
+    verticalArrangement = Arrangement.spacedBy(10.dp),
+) {
+    item(key = "search") {
+        WorkspaceSearchField(
+            query = searchText,
+            onValueChange = { searchText = it },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = stringResource(R.string.action_search),
+        )
+    }
+    item(key = "tip") {
+        OutlinedCard(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.outlinedCardColors(containerColor = Color.Transparent),
         ) {
-            item(key = "search") {
-                WorkspaceSearchField(
-                    query = searchText,
-                    onValueChange = { searchText = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = stringResource(R.string.action_search),
+            Column(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = if (draftSelectedIds.isEmpty()) {
+                        stringResource(R.string.app_notify_channel_global_summary)
+                    } else {
+                        stringResource(
+                            R.string.app_notify_channel_bound_count,
+                            draftSelectedIds.size,
+                        )
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
                 )
-            }
-            item(key = "tip") {
-                OutlinedCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.outlinedCardColors(containerColor = Color.Transparent),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Text(
-                            text = if (draftSelectedIds.isEmpty()) {
-                                stringResource(R.string.app_notify_channel_global_summary)
-                            } else {
-                                stringResource(
-                                    R.string.app_notify_channel_bound_count,
-                                    draftSelectedIds.size,
-                                )
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        Text(
-                            text = stringResource(R.string.app_notify_channel_tip),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        RowEnd {
-                            TextButton(onClick = { draftSelectedIds = emptySet() }) {
-                                Text(stringResource(R.string.sender_notify_scope_clear_whitelist))
-                            }
-                        }
-                    }
-                }
-            }
-            items(filteredSenders, key = { it.id }) { sender ->
-                val checked = sender.id in draftSelectedIds
-                val denied = sender.id in deniedBySenderIds
-                OutlinedCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.outlinedCardColors(containerColor = Color.Transparent),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        androidx.compose.material3.ListItem(
-                            supportingContent = {
-                                Text(
-                                    text = stringResource(
-                                        R.string.sender_notify_scope_sender_id,
-                                        sender.id,
-                                    ),
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                            },
-                            trailingContent = {
-                                Checkbox(
-                                    checked = checked,
-                                    onCheckedChange = { isChecked ->
-                                        draftSelectedIds = if (isChecked) {
-                                            draftSelectedIds + sender.id
-                                        } else {
-                                            draftSelectedIds - sender.id
-                                        }
-                                    },
-                                )
-                            },
-                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        ) {
-                            Text(
-                                text = senderDisplayName(sender, context),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                        if (checked && denied) {
-                            Text(
-                                text = stringResource(R.string.app_notify_channel_deny_hint),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                        }
-                    }
-                }
-            }
-            if (filteredSenders.isEmpty()) {
-                item(key = "empty") {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 36.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.list_empty_prompt),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                Text(
+                    text = stringResource(R.string.app_notify_channel_tip),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                RowEnd {
+                    TextButton(onClick = { draftSelectedIds = emptySet() }) {
+                        Text(stringResource(R.string.sender_notify_scope_clear_whitelist))
                     }
                 }
             }
         }
+    }
+    items(filteredSenders, key = { it.id }) { sender ->
+        val checked = sender.id in draftSelectedIds
+        val denied = sender.id in deniedBySenderIds
+        OutlinedCard(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.outlinedCardColors(containerColor = Color.Transparent),
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                androidx.compose.material3.ListItem(
+                    supportingContent = {
+                        Text(
+                            text = stringResource(
+                                R.string.sender_notify_scope_sender_id,
+                                sender.id,
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    },
+                    trailingContent = {
+                        Checkbox(
+                            checked = checked,
+                            onCheckedChange = { isChecked ->
+                                draftSelectedIds = if (isChecked) {
+                                    draftSelectedIds + sender.id
+                                } else {
+                                    draftSelectedIds - sender.id
+                                }
+                            },
+                        )
+                    },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                ) {
+                    Text(
+                        text = senderDisplayName(sender, context),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (checked && denied) {
+                    Text(
+                        text = stringResource(R.string.app_notify_channel_deny_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+        }
+    }
+    if (filteredSenders.isEmpty()) {
+        item(key = "empty") {
+            WorkspaceEmptyState(
+                title = stringResource(R.string.list_empty_prompt),
+                summary = "",
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+    }
+
+    when (currentUiKitStyle()) {
+        UiKitStyle.Miuix -> AppNotifySenderBindingScreenMiuix(
+            title = stringResource(R.string.app_notify_channel_config_title),
+            onBack = onBack,
+            onSave = {
+                viewModel.saveAppNotifySenderBindings(
+                    packageName = packageName,
+                    senderIds = draftSelectedIds,
+                )
+                onBack()
+            },
+            saveLabel = saveLabel,
+            body = appNotifyBindingBody,
+        )
+
+        UiKitStyle.Expressive -> AppNotifySenderBindingScreenMaterial(
+            title = stringResource(R.string.app_notify_channel_config_title),
+            onBack = onBack,
+            onSave = {
+                viewModel.saveAppNotifySenderBindings(
+                    packageName = packageName,
+                    senderIds = draftSelectedIds,
+                )
+                onBack()
+            },
+            saveLabel = saveLabel,
+            body = appNotifyBindingBody,
+        )
     }
 }
 

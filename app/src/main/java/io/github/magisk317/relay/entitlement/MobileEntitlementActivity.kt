@@ -27,15 +27,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import io.github.magisk317.uikit.surface.AppIcon
+import io.github.magisk317.uikit.surface.AppIconButton
+import io.github.magisk317.uikit.surface.AppScaffold
+import io.github.magisk317.uikit.surface.AppTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,13 +44,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.magisk317.mobile.entitlement.MobileEntitlementCoordinator
 import com.magisk317.mobile.entitlement.MobileEntitlementStatus
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.ui.home.settings.SettingsViewModel
 import io.github.magisk317.relay.ui.theme.AppTheme
+import org.koin.compose.viewmodel.koinViewModel
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -61,7 +65,22 @@ class MobileEntitlementActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            AppTheme(themeMode = 0) {
+            // Theme must follow the user's saved appearance preferences (MainActivity parity):
+            // a hard-coded themeMode = 0 pinned this page to the system default and it read as
+            // dark in a light app (or vice versa).
+            val settingsViewModel: SettingsViewModel = koinViewModel()
+            val themeState by settingsViewModel.themeState.collectAsStateWithLifecycle()
+            AppTheme(
+                themeMode = themeState.mode,
+                uiKitStyle = themeState.uiKitStyle,
+                layoutScale = themeState.layoutScale,
+                paletteStyle = themeState.paletteStyle,
+                colorSpec = themeState.colorSpec,
+                monetEnabled = themeState.monetEnabled,
+                surfaceBlur = themeState.surfaceBlur,
+                dynamicColor = themeState.dynamicColor,
+                accentColor = themeState.accentColor,
+            ) {
                 MobileEntitlementScreen(
                     activity = this@MobileEntitlementActivity,
                     onBack = ::finish,
@@ -71,7 +90,6 @@ class MobileEntitlementActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MobileEntitlementScreen(
     activity: Activity,
@@ -151,13 +169,16 @@ private fun MobileEntitlementScreen(
         refreshStatus(force = false, showProgress = cached == null)
     }
 
-    Scaffold(
+    AppScaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.mobile_entitlement_title)) },
+            AppTopBar(
+                title = stringResource(R.string.mobile_entitlement_title),
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                    AppIconButton(onClick = onBack) {
+                        AppIcon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = null,
+                        )
                     }
                 },
             )

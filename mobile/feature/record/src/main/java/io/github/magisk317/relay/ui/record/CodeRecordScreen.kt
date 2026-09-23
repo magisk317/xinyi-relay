@@ -13,9 +13,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -34,16 +32,11 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -69,18 +62,27 @@ import io.github.magisk317.relay.ui.common.AppIconBitmapImage
 import io.github.magisk317.uikit.foundation.LoadingIndicatorTokens
 import io.github.magisk317.uikit.foundation.PolygonMorphLoadingIndicator
 import io.github.magisk317.uikit.scroll.ReportLazyListScrollToChrome
+import androidx.compose.foundation.lazy.LazyListState
 import io.github.magisk317.uikit.scroll.ScrollChromeState
+import io.github.magisk317.uikit.surface.AppIcon
+import io.github.magisk317.uikit.surface.AppIconButton
+import io.github.magisk317.uikit.surface.AppPullToRefresh
+import io.github.magisk317.uikit.theme.UiKitStyle
+import io.github.magisk317.uikit.theme.currentUiKitStyle
 import io.github.magisk317.uikit.surface.chromeSurfaceColor
-import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import io.github.magisk317.uikit.foundation.SessionLoadingRegistry
+import io.github.magisk317.uikit.preference.AppCheckbox
 import io.github.magisk317.uikit.preference.SingleChoiceConfirmDialog
 import io.github.magisk317.uikit.foundation.rememberMinDurationLoading
 import io.github.magisk317.relay.ui.common.Item
 import io.github.magisk317.relay.ui.common.RetentionDialog
-import io.github.magisk317.uikit.preference.SectionHeader
 import io.github.magisk317.relay.ui.common.StateSwitchItem
 import io.github.magisk317.uikit.preference.TextInputDialog
 import io.github.magisk317.uikit.surface.WorkspaceEmptyState
+import io.github.magisk317.uikit.surface.WorkspaceListItem
+import io.github.magisk317.uikit.surface.WorkspaceListItemDefaults
+import io.github.magisk317.uikit.surface.WorkspaceListDivider
+import io.github.magisk317.uikit.surface.swipeRevealSurface
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -98,8 +100,9 @@ private val FORWARD_FAILED_COLOR = Color(AndroidColor.parseColor("#C62828"))
 private val FORWARD_WARNING_COLOR = Color(AndroidColor.parseColor("#B26A00"))
 private val RECORD_TAB_ITEM_HEIGHT = 60.dp
 private const val BENCHMARK_RECORDS_LIST = "xinyi_benchmark_records_list"
+private const val RECORD_DATE_FORMAT = "yyyy.MM.dd HH:mm:ss"
 private val RECORD_ICON_SIZE = 40.dp
-private val APP_NOTIFY_ICON_SIZE = 48.dp
+private val APP_NOTIFY_ICON_SIZE = 40.dp
 
 private fun Modifier.recordBenchmarkTag(enabled: Boolean): Modifier =
     if (enabled) testTag(BENCHMARK_RECORDS_LIST) else this
@@ -251,7 +254,6 @@ fun CodeRecordScreen(
     var showExportDialog by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
     var selectedRecordTab by rememberSaveable { mutableIntStateOf(0) } // 0: code, 1: plain, 2: app_notify, 3: call_notify
-    var fixedTopHeightPx by remember { mutableIntStateOf(0) }
     var exportScope by remember { mutableStateOf(RecordExportScope.CURRENT_TAB) }
     var pendingExportScope by remember { mutableStateOf(RecordExportScope.CURRENT_TAB) }
     var pendingExportTab by remember { mutableIntStateOf(0) }
@@ -375,12 +377,6 @@ fun CodeRecordScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                SectionHeader(
-                    text = stringResource(
-                        id = R.string.record_settings_title_with_target,
-                        currentTabName,
-                    ),
-                )
                 StateSwitchItem(
                     title = stringResource(id = recordEnableTitleRes(selectedRecordTab)),
                     summary = "",
@@ -421,6 +417,20 @@ fun CodeRecordScreen(
                         }
                     },
                 ) { showHistoryLimitDialog = true }
+
+                Item(
+                    title = stringResource(id = R.string.record_settings_clear_current_tab),
+                    summary = currentTabName,
+                    enabled = queryState.recordsForTab(selectedRecordTab).isNotEmpty(),
+                ) { showClearDialog = true }
+
+                Item(
+                    title = stringResource(id = R.string.record_export_dialog_title),
+                    summary = "",
+                ) {
+                    exportScope = RecordExportScope.CURRENT_TAB
+                    showExportDialog = true
+                }
 
                 Spacer(modifier = Modifier.height(12.dp))
             }
@@ -546,16 +556,11 @@ fun CodeRecordScreen(
         )
     }
 
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-    val pullToRefreshState = rememberPullToRefreshState()
-    val density = LocalDensity.current
-    val headerOffset = with(density) {
-        (scrollChromeState?.animatedHeaderOffsetY ?: 0f).coerceAtMost(0f).toDp()
-    }
     val navigationBarPadding = WindowInsets.navigationBars
         .asPaddingValues()
         .calculateBottomPadding()
     val effectiveBottomPadding = maxOf(bottomContentPadding, navigationBarPadding)
+    val recordListState = rememberLazyListState()
 
     val codeSmsList = queryState.codeRecords
     val plainSmsList = queryState.plainSmsRecords
@@ -634,194 +639,18 @@ fun CodeRecordScreen(
         )
     }
 
+    // No explicit background: the theme's own backdrop shows through, matching XSC
+    // (a hard-coded M3 background token would fight the miuix colour scheme).
     Box(
         modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .fillMaxSize(),
     ) {
-        val defaultTopPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 120.dp
-        val measuredTopHeight = if (fixedTopHeightPx > 0) with(density) { fixedTopHeightPx.toDp() } else defaultTopPadding
-        val fixedTopHeight = (measuredTopHeight + headerOffset).coerceAtLeast(0.dp)
-        val bottomPadding = effectiveBottomPadding + 16.dp
-
-        PullToRefreshBox(
-            state = pullToRefreshState,
-            isRefreshing = manualRefreshing,
-            onRefresh = {
-                if (isActive) {
-                    manualRefreshStartedAt = SystemClock.elapsedRealtime()
-                    manualRefreshing = true
-                    viewModel.refreshData()
-                }
-            },
-            indicator = {
-                PullToRefreshDefaults.LoadingIndicator(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = fixedTopHeight + LoadingIndicatorTokens.OverlayTopSpacing),
-                    isRefreshing = manualRefreshing,
-                    state = pullToRefreshState,
-                )
-            },
-            modifier = Modifier
-                .fillMaxSize(),
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                when {
-                    showLoading && !manualRefreshing && smsList.isEmpty() -> {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            PolygonMorphLoadingIndicator(
-                                modifier = Modifier
-                                    .align(Alignment.TopCenter)
-                                    .padding(top = fixedTopHeight + LoadingIndicatorTokens.OverlayTopSpacing),
-                            )
-                        }
-                    }
-                    activeSmsList.isEmpty() && !showLoading -> {
-                        WorkspaceEmptyState(
-                            title = stringResource(R.string.list_empty_prompt),
-                            summary = activeEmptyHint,
-                            modifier = Modifier.fillMaxSize(),
-                            icon = {
-                                Icon(
-                                    imageVector = Icons.Default.Email,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(64.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            },
-                        )
-                    }
-                    else -> {
-                        RecordSplitColumn(
-                            title = activeTitle,
-                            emptyHint = activeEmptyHint,
-                            list = activeSmsList,
-                            recordTab = selectedRecordTab,
-                            packageLabels = packageLabels,
-                            recordIcons = recordIcons,
-                            defaultSmsPackage = defaultSmsPackage,
-                            defaultDialerPackage = defaultDialerPackage,
-                            isSelectionMode = isSelectionMode,
-                            selectedIds = selectedIds,
-                            onToggleSelection = { toggleSelection(it) },
-                            onActivateSelection = {
-                                isSelectionMode = true
-                                toggleSelection(it)
-                            },
-                            onCopyCode = { smsMsg ->
-                                val code = smsMsg.smsCode
-                                if (!code.isNullOrEmpty()) {
-                                    val message = context.getString(R.string.prompt_sms_code_copied, code)
-                                    copyWithFeedback("sms_code", code, message)
-                                }
-                            },
-                            onShowDetail = { detailSmsMsg = it },
-                            onDelete = { deleteAndUndo(it) },
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 12.dp),
-                            scrollBehavior = scrollBehavior,
-                            showHeader = false,
-                            listContentPadding = PaddingValues(top = fixedTopHeight, bottom = bottomPadding),
-                            scrollChromeState = scrollChromeState,
-                            isActive = isActive,
-                            scrollToTopSignal = refreshTrigger,
-                            benchmarkTagsEnabled = benchmarkTagsEnabled,
-                        )
-                    }
-                }
-            }
+        val chromeTitle = if (isSelectionMode) {
+            stringResource(R.string.selected_count, selectedIds.size)
+        } else {
+            stringResource(R.string.tab_records)
         }
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.TopCenter)
-                .offset(y = headerOffset)
-                .onSizeChanged {
-                    fixedTopHeightPx = it.height
-                    scrollChromeState?.headerHeightPx = it.height.toFloat()
-                },
-        ) {
-            TopAppBar(
-                title = {
-                    if (isSelectionMode) {
-                        Text(stringResource(R.string.selected_count, selectedIds.size))
-                    } else {
-                        Text(stringResource(R.string.tab_records))
-                    }
-                },
-                navigationIcon = {
-                    if (isSelectionMode) {
-                        IconButton(onClick = {
-                            isSelectionMode = false
-                            selectedIds = emptySet()
-                        }) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.action_back),
-                            )
-                        }
-                    } else if (onBack != null) {
-                        IconButton(onClick = onBack) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.action_back),
-                            )
-                        }
-                    }
-                },
-                actions = {
-                    if (isSelectionMode) {
-                        IconButton(onClick = {
-                            val visibleIds = activeSmsList.mapNotNull { it.id }.toSet()
-                            if (visibleIds.isEmpty()) return@IconButton
-                            val allVisibleSelected = visibleIds.all { selectedIds.contains(it) }
-                            selectedIds = if (allVisibleSelected) {
-                                selectedIds - visibleIds
-                            } else {
-                                selectedIds + visibleIds
-                            }
-                        }) {
-                            Icon(Icons.Default.Check, contentDescription = stringResource(R.string.action_select_all))
-                        }
-                        IconButton(onClick = { deleteSelected() }) {
-                            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.action_delete))
-                        }
-                    } else {
-                        IconButton(
-                            onClick = { showClearDialog = true },
-                            enabled = activeSmsList.isNotEmpty(),
-                        ) {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = stringResource(R.string.action_clear_records_content_description),
-                            )
-                        }
-                        IconButton(onClick = { showSettingsSheet = true }) {
-                            Icon(
-                                Icons.Default.Settings,
-                                contentDescription = stringResource(R.string.pref_code_records_title),
-                            )
-                        }
-                        IconButton(onClick = {
-                            exportScope = RecordExportScope.CURRENT_TAB
-                            showExportDialog = true
-                        }) {
-                            Icon(
-                                painterResource(R.drawable.ic_export),
-                                contentDescription = stringResource(R.string.action_export_rules),
-                            )
-                        }
-                    }
-                },
-                colors = chromeTopAppBarColors(),
-                scrollBehavior = scrollBehavior,
-                windowInsets = WindowInsets.statusBars,
-            )
+        val recordTabRow: @Composable () -> Unit = {
             if (smsList.isNotEmpty()) {
                 val tabCounts = listOf(
                     codeSmsList.size,
@@ -887,6 +716,155 @@ fun CodeRecordScreen(
                 }
             }
         }
+        val recordBody: @Composable (PaddingValues, Modifier) -> Unit =
+            { listPadding, listScrollModifier ->
+                AppPullToRefresh(
+                    isRefreshing = manualRefreshing,
+                    onRefresh = {
+                        if (isActive) {
+                            manualRefreshStartedAt = SystemClock.elapsedRealtime()
+                            manualRefreshing = true
+                            viewModel.refreshData()
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        top = listPadding.calculateTopPadding(),
+                    ),
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        when {
+                            showLoading && !manualRefreshing && smsList.isEmpty() -> {
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    PolygonMorphLoadingIndicator(
+                                        modifier = Modifier
+                                            .align(Alignment.TopCenter)
+                                            .padding(
+                                                top = listPadding.calculateTopPadding() +
+                                                    LoadingIndicatorTokens.OverlayTopSpacing,
+                                            ),
+                                    )
+                                }
+                            }
+                            activeSmsList.isEmpty() && !showLoading -> {
+                                WorkspaceEmptyState(
+                                    title = stringResource(R.string.list_empty_prompt),
+                                    summary = activeEmptyHint,
+                                    modifier = Modifier.fillMaxSize(),
+                                    icon = {
+                                        Icon(
+                                            imageVector = Icons.Default.Email,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(64.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    },
+                                )
+                            }
+                            else -> {
+                                RecordSplitColumn(
+                                    title = activeTitle,
+                                    emptyHint = activeEmptyHint,
+                                    list = activeSmsList,
+                                    recordTab = selectedRecordTab,
+                                    packageLabels = packageLabels,
+                                    recordIcons = recordIcons,
+                                    defaultSmsPackage = defaultSmsPackage,
+                                    defaultDialerPackage = defaultDialerPackage,
+                                    isSelectionMode = isSelectionMode,
+                                    selectedIds = selectedIds,
+                                    onToggleSelection = { toggleSelection(it) },
+                                    onActivateSelection = {
+                                        isSelectionMode = true
+                                        toggleSelection(it)
+                                    },
+                                    onCopyCode = { smsMsg ->
+                                        val code = smsMsg.smsCode
+                                        if (!code.isNullOrEmpty()) {
+                                            val message = context.getString(R.string.prompt_sms_code_copied, code)
+                                            copyWithFeedback("sms_code", code, message)
+                                        }
+                                    },
+                                    onShowDetail = { detailSmsMsg = it },
+                                    onDelete = { deleteAndUndo(it) },
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 12.dp),
+                                    listScrollModifier = listScrollModifier,
+                                    listState = recordListState,
+                                    showHeader = false,
+                                    listContentPadding = listPadding,
+                                    scrollChromeState = scrollChromeState,
+                                    isActive = isActive,
+                                    scrollToTopSignal = refreshTrigger,
+                                    benchmarkTagsEnabled = benchmarkTagsEnabled,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+        when (currentUiKitStyle()) {
+            UiKitStyle.Miuix -> CodeRecordScreenMiuix(
+                title = chromeTitle,
+                isSelectionMode = isSelectionMode,
+                onBack = onBack,
+                onExitSelectionMode = {
+                    isSelectionMode = false
+                    selectedIds = emptySet()
+                },
+                onSelectAllVisible = {
+                    val visibleIds = activeSmsList.mapNotNull { it.id }.toSet()
+                    if (visibleIds.isNotEmpty()) {
+                        val allVisibleSelected = visibleIds.all { selectedIds.contains(it) }
+                        selectedIds = if (allVisibleSelected) {
+                            selectedIds - visibleIds
+                        } else {
+                            selectedIds + visibleIds
+                        }
+                    }
+                },
+                onDeleteSelected = { deleteSelected() },
+                onOpenSettings = { showSettingsSheet = true },
+                tabRow = recordTabRow,
+                scrollChromeState = scrollChromeState,
+                listState = recordListState,
+                bottomContentPadding = effectiveBottomPadding,
+                body = recordBody,
+            )
+
+            UiKitStyle.Expressive -> CodeRecordScreenMaterial(
+                title = chromeTitle,
+                isSelectionMode = isSelectionMode,
+                onBack = onBack,
+                onExitSelectionMode = {
+                    isSelectionMode = false
+                    selectedIds = emptySet()
+                },
+                onSelectAllVisible = {
+                    val visibleIds = activeSmsList.mapNotNull { it.id }.toSet()
+                    if (visibleIds.isNotEmpty()) {
+                        val allVisibleSelected = visibleIds.all { selectedIds.contains(it) }
+                        selectedIds = if (allVisibleSelected) {
+                            selectedIds - visibleIds
+                        } else {
+                            selectedIds + visibleIds
+                        }
+                    }
+                },
+                onDeleteSelected = { deleteSelected() },
+                onOpenSettings = { showSettingsSheet = true },
+                tabRow = recordTabRow,
+                scrollChromeState = scrollChromeState,
+                listState = recordListState,
+                bottomContentPadding = effectiveBottomPadding,
+                body = recordBody,
+            )
+        }
 
         val sms = detailSmsMsg
         if (sms != null) {
@@ -933,7 +911,7 @@ private fun RecordDetailOverlay(
 ) {
     val context = LocalContext.current
     val isAppNotification = sms.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY
-    val detailDateFormatter = remember { SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.getDefault()) }
+    val detailDateFormatter = remember { SimpleDateFormat(RECORD_DATE_FORMAT, Locale.getDefault()) }
     val sender = sms.sender ?: sms.company ?: context.getString(R.string.unknown)
     val originalTime = formatDetailTime(detailDateFormatter, sms.date)
     val processedTime = formatDetailTime(detailDateFormatter, sms.processedTime)
@@ -1164,7 +1142,7 @@ private fun RecordDetailOverlay(
                     )
                 }
                 }
-                HorizontalDivider()
+                WorkspaceListDivider()
                 ButtonGroup(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1442,17 +1420,18 @@ private fun RecordSplitColumn(
     onShowDetail: (SmsMsg) -> Unit,
     onDelete: (SmsMsg) -> Unit,
     modifier: Modifier = Modifier,
-    scrollBehavior: TopAppBarScrollBehavior,
     showHeader: Boolean = true,
     listContentPadding: PaddingValues = PaddingValues(0.dp),
+    listScrollModifier: Modifier = Modifier,
+    listState: LazyListState,
     scrollChromeState: ScrollChromeState? = null,
     isActive: Boolean = true,
     scrollToTopSignal: Int = 0,
     benchmarkTagsEnabled: Boolean = true,
 ) {
-    val listState = rememberLazyListState()
     ReportLazyListScrollToChrome(listState, scrollChromeState)
     io.github.magisk317.uikit.surface.ScrollToTopEffect(listState, scrollToTopSignal)
+    val isMiuix = currentUiKitStyle() == UiKitStyle.Miuix
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
@@ -1481,7 +1460,7 @@ private fun RecordSplitColumn(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                HorizontalDivider()
+                WorkspaceListDivider()
             }
             if (list.isEmpty()) {
                 Box(
@@ -1502,8 +1481,9 @@ private fun RecordSplitColumn(
                     modifier = Modifier
                         .fillMaxSize()
                         .recordBenchmarkTag(benchmarkTagsEnabled)
-                        .nestedScroll(scrollBehavior.nestedScrollConnection),
+                        .then(listScrollModifier),
                     state = listState,
+                    verticalArrangement = Arrangement.spacedBy(if (isMiuix) 12.dp else 0.dp),
                     contentPadding = listContentPadding,
                 ) {
                     items(list, key = { it.id }) { smsMsg ->
@@ -1532,7 +1512,6 @@ private fun RecordSplitColumn(
                                     onClick = { onToggleSelection(smsMsg.id) },
                                     onLongClick = {},
                                     onDetailClick = { onShowDetail(smsMsg) },
-                                    packageLabels = packageLabels,
                                     recordIcons = recordIcons,
                                     modifier = Modifier.animateItem(),
                                 )
@@ -1551,8 +1530,11 @@ private fun RecordSplitColumn(
                                 backgroundContent = {
                                     Box(
                                         modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(MaterialTheme.colorScheme.errorContainer)
+                                            .then(
+                                                swipeRevealSurface(
+                                                    color = MaterialTheme.colorScheme.errorContainer,
+                                                ),
+                                            )
                                             .padding(horizontal = 24.dp),
                                         contentAlignment = if (dismissState.dismissDirection ==
                                             SwipeToDismissBoxValue.StartToEnd
@@ -1593,7 +1575,6 @@ private fun RecordSplitColumn(
                                             onClick = { onCopyCode(smsMsg) },
                                             onLongClick = { onActivateSelection(smsMsg.id) },
                                             onDetailClick = { onShowDetail(smsMsg) },
-                                            packageLabels = packageLabels,
                                             recordIcons = recordIcons,
                                             modifier = Modifier.animateItem(),
                                         )
@@ -1601,7 +1582,11 @@ private fun RecordSplitColumn(
                                 },
                             )
                         }
-                        HorizontalDivider()
+                        // Miuix rows are gapped cards (MiPush/XSC rhythm); dividers belong to
+                        // the Expressive full-bleed rows only.
+                        if (!isMiuix) {
+                            WorkspaceListDivider()
+                        }
                     }
                 }
             }
@@ -1609,7 +1594,6 @@ private fun RecordSplitColumn(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CodeRecordItem(
     smsMsg: SmsMsg,
@@ -1621,61 +1605,41 @@ fun CodeRecordItem(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     onDetailClick: () -> Unit,
-    packageLabels: Map<String, String>,
     recordIcons: Map<String, Bitmap>,
     modifier: Modifier = Modifier,
 ) {
-    val dateFormatter = remember { SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.getDefault()) }
+    val dateFormatter = remember { SimpleDateFormat(RECORD_DATE_FORMAT, Locale.getDefault()) }
     val showAppIcon = recordTab == 0 && !smsMsg.packageName.isNullOrBlank()
-    val showIconLabel = false
 
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick,
-            )
-            .background(
-                if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-            )
-            .padding(vertical = 12.dp, horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    val fallbackLabel = (smsMsg.company ?: smsMsg.sender ?: stringResource(R.string.unknown))
+        .trim()
+        .trim('【', '】', '[', ']')
+    val iconPackageName = remember(
+        smsMsg.packageName,
+        smsMsg.msgType,
+        showAppIcon,
+        defaultSmsPackage,
+        defaultDialerPackage,
     ) {
-        if (isSelectionMode) {
-            Checkbox(
-                checked = isSelected,
-                onCheckedChange = { onClick() },
-                modifier = Modifier.padding(end = 16.dp),
-            )
+        when {
+            showAppIcon && !smsMsg.packageName.isNullOrBlank() -> smsMsg.packageName
+            smsMsg.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY -> defaultDialerPackage
+            smsMsg.msgType == SmsMsg.MSG_TYPE_SMS -> defaultSmsPackage
+            else -> null
         }
+    }
 
-        val fallbackLabel = (smsMsg.company ?: smsMsg.sender ?: stringResource(R.string.unknown))
-            .trim()
-            .trim('【', '】', '[', ']')
-        val appLabel = smsMsg.packageName?.let(packageLabels::get)
-        val displayLabel = appLabel ?: fallbackLabel
-        val iconPackageName = remember(
-            smsMsg.packageName,
-            smsMsg.msgType,
-            showAppIcon,
-            defaultSmsPackage,
-            defaultDialerPackage,
-        ) {
-            when {
-                showAppIcon && !smsMsg.packageName.isNullOrBlank() -> smsMsg.packageName
-                smsMsg.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY -> defaultDialerPackage
-                smsMsg.msgType == SmsMsg.MSG_TYPE_SMS -> defaultSmsPackage
-                else -> null
-            }
-        }
-
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .width(56.dp)
-                .padding(end = 16.dp),
-        ) {
+    WorkspaceListItem(
+        modifier = modifier,
+        containerColor = if (isSelected) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            Color.Transparent
+        },
+        onClick = onClick,
+        onLongClick = onLongClick,
+        leadingWidth = WorkspaceListItemDefaults.iconColumnWidth,
+        leadingContent = {
             AppIconBitmapImage(
                 bitmap = iconPackageName?.let(recordIcons::get),
                 size = RECORD_ICON_SIZE,
@@ -1685,62 +1649,16 @@ fun CodeRecordItem(
                     else -> Icons.Default.Email
                 },
             )
-            if (showIconLabel) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = displayLabel,
-                    style = MaterialTheme.typography.labelMedium,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .basicMarquee(),
-                )
-            }
-        }
-
-        Column(modifier = Modifier.weight(1f)) {
-            val hasCode = !smsMsg.smsCode.isNullOrBlank()
-            val codeOrSender = when {
-                hasCode -> smsMsg.smsCode.orEmpty()
-                else -> compactSenderTitle(smsMsg.sender, fallbackLabel)
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = codeOrSender,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 8.dp),
-                )
-                Text(
-                    text = dateFormatter.format(Date(smsMsg.date)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    textAlign = TextAlign.End,
-                )
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-            val body = smsMsg.body
-            if (!body.isNullOrEmpty()) {
-                Text(
-                    text = body,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.clickable { onDetailClick() },
-                )
-            }
-            Spacer(modifier = Modifier.height(2.dp))
+        },
+        selected = isSelected,
+        selectionMode = isSelectionMode,
+        selectionContent = {
+            AppCheckbox(
+                checked = isSelected,
+                onCheckedChange = { onClick() },
+            )
+        },
+        supportingContent = {
             val forwardStatusAnnotated = resolveForwardStatusAnnotated(smsMsg)
             Text(
                 text = buildAnnotatedString {
@@ -1751,11 +1669,49 @@ fun CodeRecordItem(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+        },
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            val hasCode = !smsMsg.smsCode.isNullOrBlank()
+            val codeOrSender = when {
+                hasCode -> smsMsg.smsCode.orEmpty()
+                else -> compactSenderTitle(smsMsg.sender, fallbackLabel)
+            }
+            Text(
+                text = codeOrSender,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 8.dp),
+            )
+            Text(
+                text = dateFormatter.format(Date(smsMsg.date)),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                textAlign = TextAlign.End,
+            )
+        }
+        val body = smsMsg.body
+        if (!body.isNullOrEmpty()) {
+            Text(
+                text = body,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.clickable { onDetailClick() },
+            )
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AppNotificationItem(
     smsMsg: SmsMsg,
@@ -1768,82 +1724,40 @@ fun AppNotificationItem(
     recordIcons: Map<String, Bitmap>,
     modifier: Modifier = Modifier,
 ) {
-    val dateFormatter = remember { SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()) }
+    val dateFormatter = remember { SimpleDateFormat(RECORD_DATE_FORMAT, Locale.getDefault()) }
 
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick,
+    val fallbackLabel = (smsMsg.company ?: smsMsg.sender ?: stringResource(R.string.unknown))
+        .trim()
+        .trim('【', '】', '[', ']')
+    val appLabel = smsMsg.packageName?.let(packageLabels::get)
+    val displayLabel = appLabel ?: fallbackLabel
+
+    WorkspaceListItem(
+        modifier = modifier,
+        containerColor = if (isSelected) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            Color.Transparent
+        },
+        onClick = onClick,
+        onLongClick = onLongClick,
+        leadingWidth = WorkspaceListItemDefaults.iconColumnWidth,
+        leadingContent = {
+            AppIconBitmapImage(
+                bitmap = smsMsg.packageName?.let(recordIcons::get),
+                size = APP_NOTIFY_ICON_SIZE,
+                contentDescription = stringResource(R.string.sms_icon_description),
             )
-            .background(
-                if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-            )
-            .padding(vertical = 12.dp, horizontal = 16.dp),
-        verticalAlignment = Alignment.Top,
-    ) {
-        if (isSelectionMode) {
-            Checkbox(
+        },
+        selected = isSelected,
+        selectionMode = isSelectionMode,
+        selectionContent = {
+            AppCheckbox(
                 checked = isSelected,
                 onCheckedChange = { onClick() },
-                modifier = Modifier.padding(end = 16.dp).align(Alignment.CenterVertically),
             )
-        }
-
-        val fallbackLabel = (smsMsg.company ?: smsMsg.sender ?: stringResource(R.string.unknown))
-            .trim()
-            .trim('【', '】', '[', ']')
-        val appLabel = smsMsg.packageName?.let(packageLabels::get)
-        val displayLabel = appLabel ?: fallbackLabel
-
-        AppIconBitmapImage(
-            bitmap = smsMsg.packageName?.let(recordIcons::get),
-            size = APP_NOTIFY_ICON_SIZE,
-            contentDescription = stringResource(R.string.sms_icon_description),
-            modifier = Modifier.size(APP_NOTIFY_ICON_SIZE),
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top
-            ) {
-                Text(
-                    text = displayLabel,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    modifier = Modifier.weight(1f).padding(end = 8.dp)
-                )
-                Text(
-                    text = dateFormatter.format(Date(smsMsg.date)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = smsMsg.sender ?: "",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            val body = smsMsg.body
-            if (!body.isNullOrEmpty()) {
-                Text(
-                    text = body,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.clickable { onDetailClick() },
-                )
-            }
-            Spacer(modifier = Modifier.height(4.dp))
+        },
+        supportingContent = {
             val forwardStatusAnnotated = resolveForwardStatusAnnotated(smsMsg)
             Text(
                 text = buildAnnotatedString {
@@ -1853,6 +1767,42 @@ fun AppNotificationItem(
                 style = MaterialTheme.typography.labelSmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+            )
+        },
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Text(
+                text = displayLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                modifier = Modifier.weight(1f).padding(end = 8.dp)
+            )
+            Text(
+                text = dateFormatter.format(Date(smsMsg.date)),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Text(
+            text = smsMsg.sender ?: "",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        val body = smsMsg.body
+        if (!body.isNullOrEmpty()) {
+            Text(
+                text = body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.clickable { onDetailClick() },
             )
         }
     }

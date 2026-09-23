@@ -7,23 +7,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,10 +28,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.uikit.theme.UiKitStyle
+import io.github.magisk317.uikit.theme.currentUiKitStyle
 import io.github.magisk317.relay.engine.model.ForwardFilterRule
 import io.github.magisk317.relay.engine.filter.ForwardFilterConst
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterMsgTypeTabs
@@ -46,7 +41,6 @@ import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterRuleList
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterEditorState
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterScreenScaffold
 import io.github.magisk317.relay.ui.forwardfilter.toEditorState
-import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -123,7 +117,6 @@ fun GlobalForwardFilterScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppForwardFilterScreen(
     packageName: String,
@@ -159,122 +152,116 @@ fun AppForwardFilterScreen(
     var showPackageEditor by remember { mutableStateOf(false) }
     var showChannelEditor by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = appLabel,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+    val appForwardFilterListState = rememberLazyListState()
+
+    val appForwardFilterBody: @Composable (PaddingValues) -> Unit = { innerPadding ->
+    LazyColumn(
+        state = appForwardFilterListState,
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(innerPadding),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item(key = "package_rules") {
+            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    SectionHeaderRow(
+                        title = stringResource(id = R.string.forward_filter_app_rules_title),
+                        onAddClick = {
+                            editingPackageRule = null
+                            showPackageEditor = true
+                        },
                     )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(id = R.string.action_back),
-                        )
-                    }
-                },
-                colors = chromeTopAppBarColors(),
-            )
-        },
-        snackbarHost = {
-            io.github.magisk317.uikit.common.DismissibleSnackbarHost(
-                hostState = snackbarHostState,
-                modifier = Modifier.navigationBarsPadding(),
-            )
-        },
-    ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            item(key = "package_rules") {
-                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        SectionHeaderRow(
-                            title = stringResource(id = R.string.forward_filter_app_rules_title),
-                            onAddClick = {
-                                editingPackageRule = null
-                                showPackageEditor = true
-                            },
-                        )
-                        HorizontalDivider()
-                        ForwardFilterRuleList(
-                            rules = packageRules,
-                            emptyText = stringResource(id = R.string.forward_filter_empty),
-                            onToggleEnabled = { id, enabled ->
-                                viewModel.setForwardFilterRuleEnabled(id, enabled)
-                                scope.launch {
-                                    snackbarHostState.showLatestSnackbar(savedSnackbarText)
-                                }
-                            },
-                            onEdit = { rule ->
-                                editingPackageRule = rule.toEditorState()
-                                showPackageEditor = true
-                            },
-                            onDelete = { id -> viewModel.deleteForwardFilterRule(id) },
-                        )
-                    }
-                }
-            }
-
-            item(key = "channel_rules") {
-                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        SectionHeaderRow(
-                            title = stringResource(id = R.string.forward_filter_channel_rules_title),
-                            onAddClick = {
-                                editingChannelRule = null
-                                showChannelEditor = true
-                            },
-                        )
-                        HorizontalDivider()
-                        ForwardFilterRuleList(
-                            rules = channelRules,
-                            emptyText = stringResource(id = R.string.forward_filter_empty),
-                            channelIdLabelProvider = { rule ->
-                                ForwardFilterConst.extractNotifyChannelId(rule.scopeKey, normalizedPackageName)
-                            },
-                            onToggleEnabled = { id, enabled ->
-                                viewModel.setForwardFilterRuleEnabled(id, enabled)
-                                scope.launch {
-                                    snackbarHostState.showLatestSnackbar(savedSnackbarText)
-                                }
-                            },
-                            onEdit = { rule ->
-                                editingChannelRule = rule.toEditorState(
-                                    channelId = ForwardFilterConst.extractNotifyChannelId(rule.scopeKey, normalizedPackageName),
-                                )
-                                showChannelEditor = true
-                            },
-                            onDelete = { id -> viewModel.deleteForwardFilterRule(id) },
-                        )
-                    }
-                }
-            }
-
-            if (channelCandidates.isNotEmpty()) {
-                item(key = "channel_hint") {
-                    Text(
-                        text = stringResource(id = R.string.forward_filter_channel_history_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    HorizontalDivider()
+                    ForwardFilterRuleList(
+                        rules = packageRules,
+                        emptyText = stringResource(id = R.string.forward_filter_empty),
+                        onToggleEnabled = { id, enabled ->
+                            viewModel.setForwardFilterRuleEnabled(id, enabled)
+                            scope.launch {
+                                snackbarHostState.showLatestSnackbar(savedSnackbarText)
+                            }
+                        },
+                        onEdit = { rule ->
+                            editingPackageRule = rule.toEditorState()
+                            showPackageEditor = true
+                        },
+                        onDelete = { id -> viewModel.deleteForwardFilterRule(id) },
                     )
                 }
             }
         }
+
+        item(key = "channel_rules") {
+            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    SectionHeaderRow(
+                        title = stringResource(id = R.string.forward_filter_channel_rules_title),
+                        onAddClick = {
+                            editingChannelRule = null
+                            showChannelEditor = true
+                        },
+                    )
+                    HorizontalDivider()
+                    ForwardFilterRuleList(
+                        rules = channelRules,
+                        emptyText = stringResource(id = R.string.forward_filter_empty),
+                        channelIdLabelProvider = { rule ->
+                            ForwardFilterConst.extractNotifyChannelId(rule.scopeKey, normalizedPackageName)
+                        },
+                        onToggleEnabled = { id, enabled ->
+                            viewModel.setForwardFilterRuleEnabled(id, enabled)
+                            scope.launch {
+                                snackbarHostState.showLatestSnackbar(savedSnackbarText)
+                            }
+                        },
+                        onEdit = { rule ->
+                            editingChannelRule = rule.toEditorState(
+                                channelId = ForwardFilterConst.extractNotifyChannelId(rule.scopeKey, normalizedPackageName),
+                            )
+                            showChannelEditor = true
+                        },
+                        onDelete = { id -> viewModel.deleteForwardFilterRule(id) },
+                    )
+                }
+            }
+        }
+
+        if (channelCandidates.isNotEmpty()) {
+            item(key = "channel_hint") {
+                Text(
+                    text = stringResource(id = R.string.forward_filter_channel_history_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+    }
+
+    when (currentUiKitStyle()) {
+        UiKitStyle.Miuix -> AppForwardFilterScreenMiuix(
+            title = appLabel,
+            onBack = onBack,
+            snackbarHostState = snackbarHostState,
+            listState = appForwardFilterListState,
+            body = appForwardFilterBody,
+        )
+
+        UiKitStyle.Expressive -> AppForwardFilterScreenMaterial(
+            title = appLabel,
+            onBack = onBack,
+            snackbarHostState = snackbarHostState,
+            listState = appForwardFilterListState,
+            body = appForwardFilterBody,
+        )
     }
 
     if (showPackageEditor) {

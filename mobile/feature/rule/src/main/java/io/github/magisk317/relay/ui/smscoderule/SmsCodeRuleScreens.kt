@@ -17,26 +17,19 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -62,9 +55,10 @@ import io.github.magisk317.smscode.rule.model.BuiltinSmsCodeRuleSpec
 import io.github.magisk317.smscode.rule.model.BuiltinSmsCodeRules
 import io.github.magisk317.smscode.rule.catalog.OfficialSmsCodeRule
 import io.github.magisk317.smscode.runtime.common.rules.SmsCodeRuleCatalogSnapshot
-import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import io.github.magisk317.uikit.preference.UrlSourceSettingsScreen
 import org.koin.compose.koinInject
+import io.github.magisk317.uikit.theme.UiKitStyle
+import io.github.magisk317.uikit.theme.currentUiKitStyle
 import java.util.regex.Pattern
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -89,7 +83,6 @@ private fun builtinRuleByEditorId(ruleId: Long): BuiltinSmsCodeRuleSpec? = when 
     else -> null
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SmsCodeRuleListScreen(
     onBack: () -> Unit,
@@ -101,6 +94,7 @@ fun SmsCodeRuleListScreen(
     val repository: AppConfigRepository = koinInject()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val listState = rememberLazyListState()
     val removedLabel = stringResource(id = R.string.removed)
     val emptyPrompt = stringResource(id = R.string.rule_list_empty_prompt)
     val officialTitle = stringResource(id = R.string.official_code_rules_title)
@@ -146,129 +140,124 @@ fun SmsCodeRuleListScreen(
         loadOfficialRules(refresh = false)
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(id = R.string.rule_list)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+    val smsCodeRuleListBody: @Composable (PaddingValues) -> Unit = { listPadding ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(listPadding),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    top = 16.dp,
+                    end = 16.dp,
+                    bottom = 144.dp,
+                ),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                item {
+                    RuleSectionHeader(
+                        title = officialTitle,
+                        summary = officialSummary,
+                    )
+                }
+                if (officialRules.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp, bottom = 12.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = officialEmptyPrompt,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
-                },
-                actions = {
-                    IconButton(onClick = onSourceSettingsClick) {
-                        Icon(
-                            Icons.Filled.Settings,
-                            contentDescription = stringResource(id = R.string.action_rule_source_settings),
+                } else {
+                    itemsIndexed(officialRules, key = { index, rule -> "${rule.sourcePath}:${rule.id}:$index" }) { index, rule ->
+                        OfficialSmsCodeRuleCard(
+                            rule = rule,
+                            ordinal = index + 1,
                         )
                     }
-                    IconButton(
-                        enabled = !officialLoading,
-                        onClick = { loadOfficialRules(refresh = true) },
-                    ) {
-                        Icon(Icons.Filled.Refresh, contentDescription = stringResource(id = R.string.action_refresh))
+                }
+                item {
+                    RuleSectionHeader(
+                        title = userTitle,
+                        summary = userSummary,
+                    )
+                }
+                if (rules.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp, bottom = 12.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = emptyPrompt,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
-                },
-                colors = chromeTopAppBarColors(),
-            )
-        },
-        snackbarHost = {
+                } else {
+                    itemsIndexed(rules, key = { _, rule -> rule.id }) { index, rule ->
+                        SmsCodeRuleCard(
+                            rule = rule as SmsCodeRule,
+                            ordinal = index + 1,
+                            onEdit = { onEditClick(rule.id) },
+                            onDelete = {
+                                scope.launch {
+                                    repository.deleteSmsCodeRule(rule)
+                                    repository.checkpoint()
+                                    snackbarHostState.showLatestSnackbar("$removedLabel: ${rule.codeKeyword}")
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+
             io.github.magisk317.uikit.common.DismissibleSnackbarHost(
                 hostState = snackbarHostState,
-                modifier = Modifier.navigationBarsPadding(),
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
                 modifier = Modifier
-                    .navigationBarsPadding()
-                    .padding(bottom = 56.dp),
-                onClick = onAddClick,
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = stringResource(id = R.string.create_rule))
-            }
-        },
-    ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(
-                start = 16.dp,
-                top = 16.dp,
-                end = 16.dp,
-                bottom = 144.dp,
-            ),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            item {
-                RuleSectionHeader(
-                    title = officialTitle,
-                    summary = officialSummary,
-                )
-            }
-            if (officialRules.isEmpty()) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp, bottom = 12.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = officialEmptyPrompt,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            } else {
-                itemsIndexed(officialRules, key = { index, rule -> "${rule.sourcePath}:${rule.id}:$index" }) { index, rule ->
-                    OfficialSmsCodeRuleCard(
-                        rule = rule,
-                        ordinal = index + 1,
-                    )
-                }
-            }
-            item {
-                RuleSectionHeader(
-                    title = userTitle,
-                    summary = userSummary,
-                )
-            }
-            if (rules.isEmpty()) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp, bottom = 12.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = emptyPrompt,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            } else {
-                itemsIndexed(rules, key = { _, rule -> rule.id }) { index, rule ->
-                    SmsCodeRuleCard(
-                        rule = rule as SmsCodeRule,
-                        ordinal = index + 1,
-                        onEdit = { onEditClick(rule.id) },
-                        onDelete = {
-                            scope.launch {
-                                repository.deleteSmsCodeRule(rule)
-                                repository.checkpoint()
-                                snackbarHostState.showLatestSnackbar("$removedLabel: ${rule.codeKeyword}")
-                            }
-                        },
-                    )
-                }
-            }
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding(),
+            )
         }
     }
+
+    when (currentUiKitStyle()) {
+        UiKitStyle.Miuix -> SmsCodeRuleListScreenMiuix(
+            title = stringResource(id = R.string.rule_list),
+            onBack = onBack,
+            onSourceSettingsClick = onSourceSettingsClick,
+            onRefresh = { loadOfficialRules(refresh = true) },
+            refreshEnabled = !officialLoading,
+            onAddClick = onAddClick,
+            fabContentDescription = stringResource(id = R.string.create_rule),
+            listState = listState,
+            body = smsCodeRuleListBody,
+        )
+
+        UiKitStyle.Expressive -> SmsCodeRuleListScreenMaterial(
+            title = stringResource(id = R.string.rule_list),
+            onBack = onBack,
+            onSourceSettingsClick = onSourceSettingsClick,
+            onRefresh = { loadOfficialRules(refresh = true) },
+            refreshEnabled = !officialLoading,
+            onAddClick = onAddClick,
+            fabContentDescription = stringResource(id = R.string.create_rule),
+            listState = listState,
+            body = smsCodeRuleListBody,
+        )
+    }
+
 }
 
 @Composable
@@ -398,7 +387,6 @@ private fun SmsCodeRuleCard(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SmsCodeRuleEditorScreen(
     ruleId: Long,
@@ -515,113 +503,114 @@ fun SmsCodeRuleEditorScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        if (isBuiltinRule) builtinTitle else {
-                            stringResource(
-                                id = if (ruleId == 0L) R.string.create_rule else R.string.edit_rule,
-                            )
-                        },
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                    }
-                },
-                actions = {
-                    if (!isBuiltinRule) {
-                        TextButton(
-                            enabled = !loading,
-                            onClick = ::saveRule,
-                        ) {
-                            Text(confirmLabel)
+    val smsCodeRuleEditorBody: @Composable (PaddingValues) -> Unit = { listPadding ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(listPadding)
+                    .padding(horizontal = 16.dp, vertical = 20.dp)
+                    .navigationBarsPadding(),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                OutlinedTextField(
+                    value = company,
+                    onValueChange = { company = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(companyLabel) },
+                    placeholder = { Text(stringResource(id = R.string.rule_company_placeholder)) },
+                    supportingText = { Text(if (isBuiltinRule) builtinSummary else rulesSummary) },
+                    readOnly = isBuiltinRule,
+                    enabled = !loading,
+                    trailingIcon = if (isBuiltinRule && company.isNotBlank()) {
+                        {
+                            IconButton(onClick = { copyField(companyLabel, company) }) {
+                                Icon(Icons.Filled.ContentCopy, contentDescription = copyLabel)
+                            }
                         }
-                    }
-                },
-                colors = chromeTopAppBarColors(),
-            )
-        },
-        snackbarHost = {
+                    } else {
+                        null
+                    },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = keyword,
+                    onValueChange = { keyword = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(keywordLabel) },
+                    readOnly = isBuiltinRule,
+                    enabled = !loading,
+                    trailingIcon = if (isBuiltinRule && keyword.isNotBlank()) {
+                        {
+                            IconButton(onClick = { copyField(keywordLabel, keyword) }) {
+                                Icon(Icons.Filled.ContentCopy, contentDescription = copyLabel)
+                            }
+                        }
+                    } else {
+                        null
+                    },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = regex,
+                    onValueChange = { regex = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(regexLabel) },
+                    readOnly = isBuiltinRule,
+                    enabled = !loading,
+                    trailingIcon = if (isBuiltinRule && regex.isNotBlank()) {
+                        {
+                            IconButton(onClick = { copyField(regexLabel, regex) }) {
+                                Icon(Icons.Filled.ContentCopy, contentDescription = copyLabel)
+                            }
+                        }
+                    } else {
+                        null
+                    },
+                    minLines = 3,
+                    singleLine = false,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = testGuidance,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
             io.github.magisk317.uikit.common.DismissibleSnackbarHost(
                 hostState = snackbarHostState,
-                modifier = Modifier.navigationBarsPadding(),
-            )
-        },
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            OutlinedTextField(
-                value = company,
-                onValueChange = { company = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(companyLabel) },
-                placeholder = { Text(stringResource(id = R.string.rule_company_placeholder)) },
-                supportingText = { Text(if (isBuiltinRule) builtinSummary else rulesSummary) },
-                readOnly = isBuiltinRule,
-                enabled = !loading,
-                trailingIcon = if (isBuiltinRule && company.isNotBlank()) {
-                    {
-                        IconButton(onClick = { copyField(companyLabel, company) }) {
-                            Icon(Icons.Filled.ContentCopy, contentDescription = copyLabel)
-                        }
-                    }
-                } else {
-                    null
-                },
-                singleLine = true,
-            )
-            OutlinedTextField(
-                value = keyword,
-                onValueChange = { keyword = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(keywordLabel) },
-                readOnly = isBuiltinRule,
-                enabled = !loading,
-                trailingIcon = if (isBuiltinRule && keyword.isNotBlank()) {
-                    {
-                        IconButton(onClick = { copyField(keywordLabel, keyword) }) {
-                            Icon(Icons.Filled.ContentCopy, contentDescription = copyLabel)
-                        }
-                    }
-                } else {
-                    null
-                },
-                singleLine = true,
-            )
-            OutlinedTextField(
-                value = regex,
-                onValueChange = { regex = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(regexLabel) },
-                readOnly = isBuiltinRule,
-                enabled = !loading,
-                trailingIcon = if (isBuiltinRule && regex.isNotBlank()) {
-                    {
-                        IconButton(onClick = { copyField(regexLabel, regex) }) {
-                            Icon(Icons.Filled.ContentCopy, contentDescription = copyLabel)
-                        }
-                    }
-                } else {
-                    null
-                },
-                minLines = 3,
-                singleLine = false,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = testGuidance,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding(),
             )
         }
     }
+
+    when (currentUiKitStyle()) {
+        UiKitStyle.Miuix -> SmsCodeRuleEditorScreenMiuix(
+            title = if (isBuiltinRule) builtinTitle else {
+                stringResource(id = if (ruleId == 0L) R.string.create_rule else R.string.edit_rule)
+            },
+            onBack = onBack,
+            confirmLabel = confirmLabel,
+            saveEnabled = !loading,
+            saveActionVisible = !isBuiltinRule,
+            onSave = { saveRule() },
+            body = smsCodeRuleEditorBody,
+        )
+
+        UiKitStyle.Expressive -> SmsCodeRuleEditorScreenMaterial(
+            title = if (isBuiltinRule) builtinTitle else {
+                stringResource(id = if (ruleId == 0L) R.string.create_rule else R.string.edit_rule)
+            },
+            onBack = onBack,
+            confirmLabel = confirmLabel,
+            saveEnabled = !loading,
+            saveActionVisible = !isBuiltinRule,
+            onSave = { saveRule() },
+            body = smsCodeRuleEditorBody,
+        )
+    }
+
 }

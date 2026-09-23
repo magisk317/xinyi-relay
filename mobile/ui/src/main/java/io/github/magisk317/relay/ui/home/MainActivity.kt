@@ -330,7 +330,15 @@ class MainActivity : ComponentActivity() {
                         currentUiKitStyle = themeState.uiKitStyle
                     }
                 } else if (themeState.uiKitStyle != currentUiKitStyle) {
-                    currentUiKitStyle = themeState.uiKitStyle
+                    // A UI-kit style swap replaces the whole UI tree, so it deserves the
+                    // same reveal treatment as a theme-mode change. No tap origin is
+                    // attached to a style change, so the reveal grows from the center.
+                    val animated = themeRevealState.animateThemeChange(view = view) {
+                        currentUiKitStyle = themeState.uiKitStyle
+                    }
+                    if (!animated) {
+                        currentUiKitStyle = themeState.uiKitStyle
+                    }
                 } else {
                     // Initial load
                     currentThemeMode = themeState.mode
@@ -364,7 +372,17 @@ class MainActivity : ComponentActivity() {
                 androidx.activity.compose.LocalActivityResultRegistryOwner provides activity,
                 androidx.activity.compose.LocalOnBackPressedDispatcherOwner provides activity,
             ) {
-                AppTheme(themeMode = currentThemeMode, uiKitStyle = currentUiKitStyle) {
+                AppTheme(
+                    themeMode = currentThemeMode,
+                    uiKitStyle = currentUiKitStyle,
+                    layoutScale = themeState.layoutScale,
+                    paletteStyle = themeState.paletteStyle,
+                    colorSpec = themeState.colorSpec,
+                    monetEnabled = themeState.monetEnabled,
+                    surfaceBlur = themeState.surfaceBlur,
+                    dynamicColor = themeState.dynamicColor,
+                    accentColor = themeState.accentColor,
+                ) {
                     Surface(color = MaterialTheme.colorScheme.background) {
                         LaunchedEffect(Unit) {
                             viewModel.setInternalFilesWritable()

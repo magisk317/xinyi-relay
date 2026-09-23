@@ -10,20 +10,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,20 +35,21 @@ import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsUpdate
+import io.github.magisk317.relay.mobilefeature.forward.BuildConfig
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.uikit.theme.UiKitStyle
+import io.github.magisk317.uikit.theme.currentUiKitStyle
 import io.github.magisk317.relay.feature.mode.StandardModeFeatureGate
 import io.github.magisk317.relay.feature.mode.StandardModeFeatureGate.Feature.*
 import io.github.magisk317.relay.feature.mode.WorkModeResolver
 import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
 import io.github.magisk317.relay.ui.common.normalizeIntegerInput
 import io.github.magisk317.relay.ui.common.parseIntInRangeInput
-import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ForwardKeepAliveScreen(onBack: () -> Unit) {
     val repository: SettingsPreferencesRepository = koinInject()
@@ -82,26 +76,9 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
         settings = repository.getDiagnosticsSettings()
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(id = R.string.settings_group_background_keepalive)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                    }
-                },
-                colors = chromeTopAppBarColors(),
-            )
-        },
-        snackbarHost = {
-            io.github.magisk317.uikit.common.DismissibleSnackbarHost(
-                hostState = snackbarHostState,
-                modifier = Modifier.navigationBarsPadding(),
-            )
-        },
-    ) { padding ->
-        val current = settings ?: return@Scaffold
+    val forwardKeepAliveBody: @Composable (PaddingValues) -> Unit = { padding ->
+    val current = settings
+    if (current != null) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -303,16 +280,18 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
                 sectionExpanded = true,
                 onExpandedChange = {},
             ) {
-                StateSwitchItem(
-                    title = stringResource(id = R.string.pref_keepalive_accessibility_heartbeat_title),
-                    summary = stringResource(id = R.string.pref_keepalive_accessibility_heartbeat_summary),
-                    checked = current.keepAliveAccessibilityHeartbeat,
-                ) { enabled ->
-                    scope.launch {
-                        settings = repository.updateDiagnosticsSettings(
-                            DiagnosticsSettingsUpdate(keepAliveAccessibilityHeartbeat = enabled),
-                        )
-                        notifySaved()
+                if (BuildConfig.ENABLE_ACCESSIBILITY_AUTO_INPUT) {
+                    StateSwitchItem(
+                        title = stringResource(id = R.string.pref_keepalive_accessibility_heartbeat_title),
+                        summary = stringResource(id = R.string.pref_keepalive_accessibility_heartbeat_summary),
+                        checked = current.keepAliveAccessibilityHeartbeat,
+                    ) { enabled ->
+                        scope.launch {
+                            settings = repository.updateDiagnosticsSettings(
+                                DiagnosticsSettingsUpdate(keepAliveAccessibilityHeartbeat = enabled),
+                            )
+                            notifySaved()
+                        }
                     }
                 }
                 StateSwitchItem(
@@ -329,6 +308,23 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
                 }
             }
         }
+    }
+    }
+
+    when (currentUiKitStyle()) {
+        UiKitStyle.Miuix -> ForwardKeepAliveScreenMiuix(
+            title = stringResource(R.string.settings_group_background_keepalive),
+            onBack = onBack,
+            snackbarHostState = snackbarHostState,
+            body = forwardKeepAliveBody,
+        )
+
+        UiKitStyle.Expressive -> ForwardKeepAliveScreenMaterial(
+            title = stringResource(R.string.settings_group_background_keepalive),
+            onBack = onBack,
+            snackbarHostState = snackbarHostState,
+            body = forwardKeepAliveBody,
+        )
     }
 
     val current = settings

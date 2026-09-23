@@ -11,24 +11,16 @@ import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,6 +34,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.uikit.theme.UiKitStyle
+import io.github.magisk317.uikit.theme.currentUiKitStyle
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.SmsBlacklistSettingsUpdate
@@ -51,12 +45,10 @@ import io.github.magisk317.relay.feature.mode.StandardModeFeatureGate
 import io.github.magisk317.relay.feature.mode.StandardModeFeatureGate.Feature.*
 import io.github.magisk317.relay.feature.mode.WorkMode
 import io.github.magisk317.relay.feature.mode.WorkModeResolver
-import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import java.util.Date
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InterceptScreen(
     refreshTrigger: Int = 0,
@@ -143,119 +135,116 @@ fun InterceptScreen(
         if (count == 0) notSetText else context.getString(R.string.blacklist_rule_count, count)
     }
 
-    Scaffold(
-        contentWindowInsets = WindowInsets.safeDrawing.only(
-            WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
-        ),
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.advanced_filter_title)) },
-                colors = chromeTopAppBarColors(),
-                windowInsets = WindowInsets.statusBars,
-            )
-        },
-        snackbarHost = {
-            io.github.magisk317.uikit.common.DismissibleSnackbarHost(
-                hostState = snackbarHostState,
-                modifier = Modifier.navigationBarsPadding(),
-            )
-        },
-    ) { padding ->
-        Box(
+    val interceptBody: @Composable (PaddingValues) -> Unit = { padding ->
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)
+            .consumeWindowInsets(padding),
+    ) {
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .consumeWindowInsets(padding),
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = 80.dp),
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(bottom = 80.dp),
-            ) {
+            StateSwitchItem(
+                title = stringResource(R.string.pref_enable_sms_blacklist_title),
+                summary = stringResource(R.string.pref_enable_sms_blacklist_summary),
+                checked = smsBlacklistEnabled,
+            ) { enabled ->
+                smsBlacklistEnabled = enabled
+                saveSettingsIfChanged(SmsBlacklistSettingsUpdate(enabled = enabled))
+            }
+            if (smsBlacklistEnabled) {
+                val canDelete = isXposedFeatureAvailable(SMS_BLACKLIST_DELETE)
                 StateSwitchItem(
-                    title = stringResource(R.string.pref_enable_sms_blacklist_title),
-                    summary = stringResource(R.string.pref_enable_sms_blacklist_summary),
-                    checked = smsBlacklistEnabled,
+                    title = stringResource(R.string.pref_sms_blacklist_action_delete_title),
+                    summary = if (canDelete) {
+                        stringResource(R.string.pref_sms_blacklist_action_delete_summary)
+                    } else {
+                        stringResource(R.string.pref_sms_blacklist_action_delete_summary) + "\n" + xposedDisabledHint
+                    },
+                    checked = deleteBlockedSms && canDelete,
+                    enabled = canDelete,
                 ) { enabled ->
-                    smsBlacklistEnabled = enabled
-                    saveSettingsIfChanged(SmsBlacklistSettingsUpdate(enabled = enabled))
+                    deleteBlockedSms = enabled
+                    saveSettingsIfChanged(SmsBlacklistSettingsUpdate(deleteBlockedSms = enabled))
                 }
-                if (smsBlacklistEnabled) {
-                    val canDelete = isXposedFeatureAvailable(SMS_BLACKLIST_DELETE)
-                    StateSwitchItem(
-                        title = stringResource(R.string.pref_sms_blacklist_action_delete_title),
-                        summary = if (canDelete) {
-                            stringResource(R.string.pref_sms_blacklist_action_delete_summary)
-                        } else {
-                            stringResource(R.string.pref_sms_blacklist_action_delete_summary) + "\n" + xposedDisabledHint
-                        },
-                        checked = deleteBlockedSms && canDelete,
-                        enabled = canDelete,
-                    ) { enabled ->
-                        deleteBlockedSms = enabled
-                        saveSettingsIfChanged(SmsBlacklistSettingsUpdate(deleteBlockedSms = enabled))
-                    }
-                    val canBlock = isXposedFeatureAvailable(SMS_BLACKLIST_BLOCK)
-                    StateSwitchItem(
-                        title = stringResource(R.string.pref_sms_blacklist_action_block_title),
-                        summary = if (canBlock) {
-                            stringResource(R.string.pref_sms_blacklist_action_block_summary)
-                        } else {
-                            stringResource(R.string.pref_sms_blacklist_action_block_summary) + "\n" + xposedDisabledHint
-                        },
-                        checked = blockIncomingSms && canBlock,
-                        enabled = canBlock,
-                    ) { enabled ->
-                        blockIncomingSms = enabled
-                        saveSettingsIfChanged(SmsBlacklistSettingsUpdate(blockIncomingSms = enabled))
-                    }
-                    Item(
-                        title = stringResource(R.string.pref_sms_blacklist_numbers_title),
-                        summary = buildString {
-                            append(formatSummary(smsBlacklistNumbers))
-                            append('\n')
-                            append(stringResource(R.string.pref_sms_blacklist_numbers_summary))
-                        },
-                    ) { showSmsBlacklistNumbersDialog = true }
-                    Item(
-                        title = stringResource(R.string.pref_sms_blacklist_prefixes_title),
-                        summary = buildString {
-                            append(formatSummary(smsBlacklistPrefixes))
-                            append('\n')
-                            append(stringResource(R.string.pref_sms_blacklist_prefixes_summary))
-                        },
-                    ) { showSmsBlacklistPrefixesDialog = true }
-                    Item(
-                        title = stringResource(R.string.pref_sms_blacklist_regex_title),
-                        summary = buildString {
-                            append(formatSummary(smsBlacklistRegex))
-                            append('\n')
-                            append(stringResource(R.string.pref_sms_blacklist_regex_hint))
-                        },
-                    ) { showSmsBlacklistRegexDialog = true }
-                    Item(
-                        title = stringResource(R.string.pref_sms_blacklist_content_title),
-                        summary = buildString {
-                            append(formatSummary(smsBlacklistContent))
-                            append('\n')
-                            append(stringResource(R.string.pref_sms_blacklist_content_summary))
-                        },
-                    ) { showSmsBlacklistContentDialog = true }
+                val canBlock = isXposedFeatureAvailable(SMS_BLACKLIST_BLOCK)
+                StateSwitchItem(
+                    title = stringResource(R.string.pref_sms_blacklist_action_block_title),
+                    summary = if (canBlock) {
+                        stringResource(R.string.pref_sms_blacklist_action_block_summary)
+                    } else {
+                        stringResource(R.string.pref_sms_blacklist_action_block_summary) + "\n" + xposedDisabledHint
+                    },
+                    checked = blockIncomingSms && canBlock,
+                    enabled = canBlock,
+                ) { enabled ->
+                    blockIncomingSms = enabled
+                    saveSettingsIfChanged(SmsBlacklistSettingsUpdate(blockIncomingSms = enabled))
                 }
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = Const.SPACING_SMALL.dp))
                 Item(
-                    title = stringResource(R.string.sms_blacklist_hit_list_title),
-                    summary = blacklistHitSummary(
-                        hits = blacklistHits,
-                        dateFormat = dateFormat,
-                    ),
-                ) {
-                    onOpenBlacklistHits()
-                }
+                    title = stringResource(R.string.pref_sms_blacklist_numbers_title),
+                    summary = buildString {
+                        append(formatSummary(smsBlacklistNumbers))
+                        append('\n')
+                        append(stringResource(R.string.pref_sms_blacklist_numbers_summary))
+                    },
+                ) { showSmsBlacklistNumbersDialog = true }
+                Item(
+                    title = stringResource(R.string.pref_sms_blacklist_prefixes_title),
+                    summary = buildString {
+                        append(formatSummary(smsBlacklistPrefixes))
+                        append('\n')
+                        append(stringResource(R.string.pref_sms_blacklist_prefixes_summary))
+                    },
+                ) { showSmsBlacklistPrefixesDialog = true }
+                Item(
+                    title = stringResource(R.string.pref_sms_blacklist_regex_title),
+                    summary = buildString {
+                        append(formatSummary(smsBlacklistRegex))
+                        append('\n')
+                        append(stringResource(R.string.pref_sms_blacklist_regex_hint))
+                    },
+                ) { showSmsBlacklistRegexDialog = true }
+                Item(
+                    title = stringResource(R.string.pref_sms_blacklist_content_title),
+                    summary = buildString {
+                        append(formatSummary(smsBlacklistContent))
+                        append('\n')
+                        append(stringResource(R.string.pref_sms_blacklist_content_summary))
+                    },
+                ) { showSmsBlacklistContentDialog = true }
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = Const.SPACING_SMALL.dp))
+            Item(
+                title = stringResource(R.string.sms_blacklist_hit_list_title),
+                summary = blacklistHitSummary(
+                    hits = blacklistHits,
+                    dateFormat = dateFormat,
+                ),
+            ) {
+                onOpenBlacklistHits()
             }
         }
+    }
+    }
+
+    when (currentUiKitStyle()) {
+        UiKitStyle.Miuix -> InterceptScreenMiuix(
+            title = stringResource(R.string.advanced_filter_title),
+            snackbarHostState = snackbarHostState,
+            body = interceptBody,
+        )
+
+        UiKitStyle.Expressive -> InterceptScreenMaterial(
+            title = stringResource(R.string.advanced_filter_title),
+            snackbarHostState = snackbarHostState,
+            body = interceptBody,
+        )
     }
 
     val separatorHint = stringResource(id = R.string.pref_sms_blacklist_separator_hint)

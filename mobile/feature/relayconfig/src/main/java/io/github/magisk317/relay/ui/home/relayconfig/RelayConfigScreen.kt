@@ -10,20 +10,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,15 +35,15 @@ import io.github.magisk317.relay.contract.repository.SettingsPreferencesReposito
 import io.github.magisk317.relay.contract.settings.RelaySettingsSnapshot
 import io.github.magisk317.relay.contract.settings.RelaySettingsUpdate
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.uikit.theme.UiKitStyle
+import io.github.magisk317.uikit.theme.currentUiKitStyle
 import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
 import io.github.magisk317.relay.ui.common.parseIntInRangeInput
-import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 private const val BENCHMARK_RELAY_SENDERS = "xinyi_benchmark_relay_senders"
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RelayConfigScreen(
     onBack: () -> Unit,
@@ -75,26 +68,9 @@ fun RelayConfigScreen(
         relay = repository.getRelaySettings()
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(id = R.string.pref_relay_config_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                    }
-                },
-                colors = chromeTopAppBarColors(),
-            )
-        },
-        snackbarHost = {
-            io.github.magisk317.uikit.common.DismissibleSnackbarHost(
-                hostState = snackbarHostState,
-                modifier = Modifier.navigationBarsPadding(),
-            )
-        },
-    ) { padding ->
-        val current = relay ?: return@Scaffold
+    val relayConfigBody: @Composable (PaddingValues) -> Unit = { padding ->
+    val current = relay
+    if (current != null) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -148,6 +124,23 @@ fun RelayConfigScreen(
                 }
             }
         }
+    }
+    }
+
+    when (currentUiKitStyle()) {
+        UiKitStyle.Miuix -> RelayConfigScreenMiuix(
+            title = stringResource(R.string.pref_relay_config_title),
+            onBack = onBack,
+            snackbarHostState = snackbarHostState,
+            body = relayConfigBody,
+        )
+
+        UiKitStyle.Expressive -> RelayConfigScreenMaterial(
+            title = stringResource(R.string.pref_relay_config_title),
+            onBack = onBack,
+            snackbarHostState = snackbarHostState,
+            body = relayConfigBody,
+        )
     }
 
     val current = relay

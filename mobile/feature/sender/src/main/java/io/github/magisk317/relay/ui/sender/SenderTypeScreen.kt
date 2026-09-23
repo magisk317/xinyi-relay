@@ -9,15 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -26,9 +19,9 @@ import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.mobilefeature.sender.BuildConfig
-import io.github.magisk317.uikit.surface.chromeTopAppBarColors
+import io.github.magisk317.uikit.theme.UiKitStyle
+import io.github.magisk317.uikit.theme.currentUiKitStyle
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SenderTypeScreen(
     onBack: () -> Unit,
@@ -60,43 +53,42 @@ fun SenderTypeScreen(
         supportedTypes.add(1, SenderType.SMS to getSenderTypeName(context, SenderType.SMS))
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.sender_add_type_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.action_back),
-                        )
-                    }
-                },
-                colors = chromeTopAppBarColors(),
-            )
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+    val senderTypeBody: @Composable (PaddingValues) -> Unit = { paddingValues ->
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+    ) {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(supportedTypes, key = { it.first }) { (type, name) ->
-                    Button(
-                        onClick = { onAddClick(type) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(name)
-                    }
+            items(supportedTypes, key = { it.first }) { (type, name) ->
+                Button(
+                    onClick = { onAddClick(type) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(name)
                 }
             }
         }
+    }
+    }
+
+    when (currentUiKitStyle()) {
+        UiKitStyle.Miuix -> SenderTypeScreenMiuix(
+            title = stringResource(R.string.sender_add_type_title),
+            onBack = onBack,
+            body = senderTypeBody,
+        )
+
+        UiKitStyle.Expressive -> SenderTypeScreenMaterial(
+            title = stringResource(R.string.sender_add_type_title),
+            onBack = onBack,
+            body = senderTypeBody,
+        )
     }
 }

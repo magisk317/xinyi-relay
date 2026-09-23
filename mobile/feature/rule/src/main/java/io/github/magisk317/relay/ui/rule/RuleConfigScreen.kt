@@ -3,8 +3,6 @@ package io.github.magisk317.relay.ui.rule
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -18,12 +16,12 @@ import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.displayName
-import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
+import io.github.magisk317.uikit.theme.UiKitStyle
+import io.github.magisk317.uikit.theme.currentUiKitStyle
 import java.util.Date
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RuleConfigScreen(
     ruleId: Long,
@@ -66,25 +64,14 @@ fun RuleConfigScreen(
         return
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(if (ruleId == 0L) R.string.create_rule else R.string.edit_rule)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
-                    }
-                },
-                colors = chromeTopAppBarColors(),
-            )
-        }
-    ) { paddingValues ->
+    val ruleConfigBody: @Composable (PaddingValues) -> Unit = { listPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(listPadding)
                 .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Spacer(modifier = Modifier.height(4.dp))
@@ -188,6 +175,21 @@ fun RuleConfigScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
+
+    when (currentUiKitStyle()) {
+        UiKitStyle.Miuix -> RuleConfigScreenMiuix(
+            title = stringResource(if (ruleId == 0L) R.string.create_rule else R.string.edit_rule),
+            onBack = onBack,
+            body = ruleConfigBody,
+        )
+
+        UiKitStyle.Expressive -> RuleConfigScreenMaterial(
+            title = stringResource(if (ruleId == 0L) R.string.create_rule else R.string.edit_rule),
+            onBack = onBack,
+            body = ruleConfigBody,
+        )
+    }
+
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

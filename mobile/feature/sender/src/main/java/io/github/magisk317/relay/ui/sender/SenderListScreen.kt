@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,7 +20,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.magisk317.relay.mobilefeature.sender.BuildConfig
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.contract.settings.ForwardTypeGateSnapshot
 import io.github.magisk317.relay.contract.settings.ForwardTypeGateUpdate
@@ -31,18 +28,18 @@ import io.github.magisk317.relay.contract.settings.MessageTypeGateUpdate
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.compose.koinInject
+import io.github.magisk317.uikit.theme.UiKitStyle
+import io.github.magisk317.uikit.theme.currentUiKitStyle
 
 private const val DRAG_EDGE_SCROLL_THRESHOLD_PX = 96
 private const val DRAG_EDGE_SCROLL_STEP_PX = 36f
 private const val BENCHMARK_SENDERS_LIST = "xinyi_benchmark_senders_list"
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SenderListScreen(
     viewModel: SenderViewModel = koinViewModel(),
@@ -226,143 +223,120 @@ fun SenderListScreen(
         return true
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.sender_config_title)) },
-                colors = chromeTopAppBarColors(),
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                modifier = Modifier
-                    .navigationBarsPadding()
-                    .padding(bottom = 56.dp),
-                onClick = onAddClick,
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.sender_add_sender_content_description))
-            }
-        }
-    ) { paddingValues ->
-        val listBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 120.dp
-        Box(
+    val senderListBody: @Composable (PaddingValues) -> Unit = { paddingValues ->
+    val listBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 120.dp
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues),
+    ) {
+        LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
+                .testTag(BENCHMARK_SENDERS_LIST),
+            contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = listBottomPadding),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .testTag(BENCHMARK_SENDERS_LIST),
-                contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = listBottomPadding),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                item(key = "top_config_cards") {
-                    Column(
+            item(key = "top_config_cards") {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            GeneralConfigCard(
-                                modifier = Modifier.weight(1f),
-                                deviceName = commonConfig.deviceName,
-                                simSlot1Remark = simSlot1Remark,
-                                simSlot2Remark = simSlot2Remark,
-                                onEdit = { showGeneralConfigDialog = true },
-                            )
-                            SmsConfigCard(
-                                modifier = Modifier.weight(1f),
-                                onEdit = { showCommonConfigDialog = true },
-                            )
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            AppNotifyConfigCard(
-                                modifier = Modifier.weight(1f),
-                                onEdit = { showAppNotifyConfigDialog = true },
-                            )
-                            CallNotifyConfigCard(
-                                modifier = Modifier.weight(1f),
-                                onEdit = { showCallNotifyConfigDialog = true },
-                            )
-                        }
+                        GeneralConfigCard(
+                            modifier = Modifier.weight(1f),
+                            deviceName = commonConfig.deviceName,
+                            simSlot1Remark = simSlot1Remark,
+                            simSlot2Remark = simSlot2Remark,
+                            onEdit = { showGeneralConfigDialog = true },
+                        )
+                        SmsConfigCard(
+                            modifier = Modifier.weight(1f),
+                            onEdit = { showCommonConfigDialog = true },
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        AppNotifyConfigCard(
+                            modifier = Modifier.weight(1f),
+                            onEdit = { showAppNotifyConfigDialog = true },
+                        )
+                        CallNotifyConfigCard(
+                            modifier = Modifier.weight(1f),
+                            onEdit = { showCallNotifyConfigDialog = true },
+                        )
                     }
                 }
+            }
 
-                if (displayedSenders.isEmpty()) {
-                    item(key = "no_sender_hint") {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 48.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(stringResource(R.string.sender_empty_message))
-                        }
+            if (displayedSenders.isEmpty()) {
+                item(key = "no_sender_hint") {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 48.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(stringResource(R.string.sender_empty_message))
                     }
-                } else {
-                    items(displayedSenders, key = { it.id }) { sender ->
-                        var dragOffset by remember(sender.id) { mutableFloatStateOf(0f) }
-                        val senderDragModifier = Modifier.pointerInput(sender.id) {
-                            detectVerticalDragGestures(
-                                onDragStart = {
-                                    draggingSenderId = sender.id
-                                    dragOffset = 0f
-                                },
-                                onDragCancel = {
-                                    draggingSenderId = null
-                                    displayedSenders = senders
-                                    dragOffset = 0f
-                                },
-                                onDragEnd = {
-                                    draggingSenderId = null
-                                    dragOffset = 0f
-                                    viewModel.updateSenderPriorities(priorityMapForOrder(latestDisplayedSenders))
-                                },
-                                onVerticalDrag = { change, dragAmount ->
-                                    change.consume()
-                                    dragOffset += dragAmount
-                                    val viewportEnd = listState.layoutInfo.viewportEndOffset
-                                    when {
-                                        change.position.y < DRAG_EDGE_SCROLL_THRESHOLD_PX -> {
-                                            scope.launch { listState.scrollBy(-DRAG_EDGE_SCROLL_STEP_PX) }
-                                        }
-                                        change.position.y > viewportEnd - DRAG_EDGE_SCROLL_THRESHOLD_PX -> {
-                                            scope.launch { listState.scrollBy(DRAG_EDGE_SCROLL_STEP_PX) }
-                                        }
+                }
+            } else {
+                items(displayedSenders, key = { it.id }) { sender ->
+                    var dragOffset by remember(sender.id) { mutableFloatStateOf(0f) }
+                    val senderDragModifier = Modifier.pointerInput(sender.id) {
+                        detectVerticalDragGestures(
+                            onDragStart = {
+                                draggingSenderId = sender.id
+                                dragOffset = 0f
+                            },
+                            onDragCancel = {
+                                draggingSenderId = null
+                                displayedSenders = senders
+                                dragOffset = 0f
+                            },
+                            onDragEnd = {
+                                draggingSenderId = null
+                                dragOffset = 0f
+                                viewModel.updateSenderPriorities(priorityMapForOrder(latestDisplayedSenders))
+                            },
+                            onVerticalDrag = { change, dragAmount ->
+                                change.consume()
+                                dragOffset += dragAmount
+                                val viewportEnd = listState.layoutInfo.viewportEndOffset
+                                when {
+                                    change.position.y < DRAG_EDGE_SCROLL_THRESHOLD_PX -> {
+                                        scope.launch { listState.scrollBy(-DRAG_EDGE_SCROLL_STEP_PX) }
                                     }
-                                    if (moveDraggedSender(sender.id, dragOffset)) {
-                                        dragOffset = 0f
+                                    change.position.y > viewportEnd - DRAG_EDGE_SCROLL_THRESHOLD_PX -> {
+                                        scope.launch { listState.scrollBy(DRAG_EDGE_SCROLL_STEP_PX) }
                                     }
-                                },
-                            )
-                        }
-                        SenderCard(
-                            sender = sender,
-                            displayPriority = displayedSenders.indexOfFirst { it.id == sender.id }.coerceAtLeast(0),
-                            dragModifier = senderDragModifier,
-                            onEdit = { onEditClick(sender.id) },
-                            onPriorityClick = { priorityEditingSender = sender },
-                            onToggle = { enabled ->
-                                if (enabled) {
-                                    val result = viewModel.validateSenderForEnable(sender)
-                                    if (!result.valid) {
-                                        scope.launch {
-                                            snackbarHostState.showLatestSnackbar(
-                                                context.getString(R.string.sender_enable_failed, result.message),
-                                            )
-                                        }
-                                    } else {
-                                        viewModel.toggleSenderStatus(sender, enabled)
-                                        scope.launch {
-                                            snackbarHostState.showLatestSnackbar(context.getString(R.string.pref_sync_snackbar))
-                                        }
+                                }
+                                if (moveDraggedSender(sender.id, dragOffset)) {
+                                    dragOffset = 0f
+                                }
+                            },
+                        )
+                    }
+                    SenderCard(
+                        sender = sender,
+                        displayPriority = displayedSenders.indexOfFirst { it.id == sender.id }.coerceAtLeast(0),
+                        dragModifier = senderDragModifier,
+                        onEdit = { onEditClick(sender.id) },
+                        onPriorityClick = { priorityEditingSender = sender },
+                        onToggle = { enabled ->
+                            if (enabled) {
+                                val result = viewModel.validateSenderForEnable(sender)
+                                if (!result.valid) {
+                                    scope.launch {
+                                        snackbarHostState.showLatestSnackbar(
+                                            context.getString(R.string.sender_enable_failed, result.message),
+                                        )
                                     }
                                 } else {
                                     viewModel.toggleSenderStatus(sender, enabled)
@@ -370,47 +344,70 @@ fun SenderListScreen(
                                         snackbarHostState.showLatestSnackbar(context.getString(R.string.pref_sync_snackbar))
                                     }
                                 }
-                            },
-                            onDelete = {
-                                val removedSender = sender.copy()
-                                viewModel.deleteSender(removedSender)
+                            } else {
+                                viewModel.toggleSenderStatus(sender, enabled)
                                 scope.launch {
-                                    val resultDeferred = async {
-                                        snackbarHostState.showLatestSnackbar(
-                                            message = context.getString(
-                                                R.string.sender_removed_with_undo,
-                                                removedSender.name.ifBlank { getSenderTypeName(context, removedSender.type) },
-                                            ),
-                                            actionLabel = context.getString(R.string.revoke),
-                                            duration = SnackbarDuration.Indefinite,
-                                        )
-                                    }
-                                    delay(SENDER_UNDO_SNACKBAR_DURATION_MS)
-                                    snackbarHostState.currentSnackbarData?.dismiss()
-                                    val result = runCatching { resultDeferred.await() }.getOrNull()
-                                    if (result == SnackbarResult.ActionPerformed) {
-                                        viewModel.restoreSender(removedSender)
-                                    }
+                                    snackbarHostState.showLatestSnackbar(context.getString(R.string.pref_sync_snackbar))
                                 }
                             }
-                        )
-                    }
+                        },
+                        onDelete = {
+                            val removedSender = sender.copy()
+                            viewModel.deleteSender(removedSender)
+                            scope.launch {
+                                val resultDeferred = async {
+                                    snackbarHostState.showLatestSnackbar(
+                                        message = context.getString(
+                                            R.string.sender_removed_with_undo,
+                                            removedSender.name.ifBlank { getSenderTypeName(context, removedSender.type) },
+                                        ),
+                                        actionLabel = context.getString(R.string.revoke),
+                                        duration = SnackbarDuration.Indefinite,
+                                    )
+                                }
+                                delay(SENDER_UNDO_SNACKBAR_DURATION_MS)
+                                snackbarHostState.currentSnackbarData?.dismiss()
+                                val result = runCatching { resultDeferred.await() }.getOrNull()
+                                if (result == SnackbarResult.ActionPerformed) {
+                                    viewModel.restoreSender(removedSender)
+                                }
+                            }
+                        }
+                    )
                 }
             }
-            io.github.magisk317.uikit.common.DismissibleSnackbarHost(
-                hostState = snackbarHostState,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
-                snackbar = { data ->
-                    UndoCountdownSnackbar(
-                        data = data,
-                        totalDurationMs = SENDER_UNDO_SNACKBAR_DURATION_MS,
-                    )
-                },
-            )
         }
+        io.github.magisk317.uikit.common.DismissibleSnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+            snackbar = { data ->
+                UndoCountdownSnackbar(
+                    data = data,
+                    totalDurationMs = SENDER_UNDO_SNACKBAR_DURATION_MS,
+                )
+            },
+        )
+    }
+    }
 
+    when (currentUiKitStyle()) {
+        UiKitStyle.Miuix -> SenderListScreenMiuix(
+            title = stringResource(R.string.sender_config_title),
+            onAddClick = onAddClick,
+            fabContentDescription = stringResource(R.string.sender_add_sender_content_description),
+            listState = listState,
+            body = senderListBody,
+        )
+
+        UiKitStyle.Expressive -> SenderListScreenMaterial(
+            title = stringResource(R.string.sender_config_title),
+            onAddClick = onAddClick,
+            fabContentDescription = stringResource(R.string.sender_add_sender_content_description),
+            listState = listState,
+            body = senderListBody,
+        )
     }
 }

@@ -6,6 +6,7 @@ import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,7 +21,6 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.DropdownMenuItem
@@ -32,11 +32,8 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -66,7 +63,8 @@ import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
-import io.github.magisk317.uikit.surface.chromeTopAppBarColors
+import io.github.magisk317.uikit.theme.UiKitStyle
+import io.github.magisk317.uikit.theme.currentUiKitStyle
 import java.util.Date
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -140,7 +138,6 @@ private val PasswordOutputTransformation = OutputTransformation {
     replace(0, length, "•".repeat(length))
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SchemaSenderConfigForm(
     senderId: Long,
@@ -274,40 +271,8 @@ internal fun SchemaSenderConfigForm(
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        context.getString(
-                            if (senderId == 0L) R.string.sender_form_create_title else R.string.sender_form_edit_title,
-                            getSenderTypeName(context, senderType),
-                        ),
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { showExitDialog = true }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                    }
-                },
-                actions = {
-                    TextButton(
-                        onClick = {
-                            save(status = 1) {
-                                showMessage(context.getString(R.string.sender_form_save_success))
-                                onBack()
-                            }
-                        },
-                    ) {
-                        Text(stringResource(R.string.save))
-                    }
-                },
-                colors = chromeTopAppBarColors(),
-            )
-        },
-    ) { padding ->
-        if (!isLoaded) return@Scaffold
-
+    val schemaSenderConfigBody: @Composable (PaddingValues) -> Unit = { padding ->
+        if (isLoaded) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -357,6 +322,39 @@ internal fun SchemaSenderConfigForm(
                 buildSender(status = 1)
             }
         }
+        }
+    }
+
+    val schemaSenderFormTitle = context.getString(
+        if (senderId == 0L) R.string.sender_form_create_title else R.string.sender_form_edit_title,
+        getSenderTypeName(context, senderType),
+    )
+    when (currentUiKitStyle()) {
+        UiKitStyle.Miuix -> SchemaSenderConfigFormMiuix(
+            title = schemaSenderFormTitle,
+            onBack = { showExitDialog = true },
+            onSave = {
+                save(status = 1) {
+                    showMessage(context.getString(R.string.sender_form_save_success))
+                    onBack()
+                }
+            },
+            saveLabel = stringResource(R.string.save),
+            body = schemaSenderConfigBody,
+        )
+
+        UiKitStyle.Expressive -> SchemaSenderConfigFormMaterial(
+            title = schemaSenderFormTitle,
+            onBack = { showExitDialog = true },
+            onSave = {
+                save(status = 1) {
+                    showMessage(context.getString(R.string.sender_form_save_success))
+                    onBack()
+                }
+            },
+            saveLabel = stringResource(R.string.save),
+            body = schemaSenderConfigBody,
+        )
     }
 }
 

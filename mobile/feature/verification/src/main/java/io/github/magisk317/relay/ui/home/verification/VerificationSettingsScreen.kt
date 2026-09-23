@@ -27,20 +27,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -67,6 +60,8 @@ import io.github.magisk317.relay.contract.settings.RecordSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.VerificationSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.VerificationSettingsUpdate
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.uikit.theme.UiKitStyle
+import io.github.magisk317.uikit.theme.currentUiKitStyle
 import io.github.magisk317.relay.mobilefeature.verification.BuildConfig
 import io.github.magisk317.relay.feature.mode.StandardModeFeatureGate
 import io.github.magisk317.relay.feature.mode.StandardModeFeatureGate.Feature.*
@@ -79,7 +74,6 @@ import io.github.magisk317.relay.android.sms.SmsCodeUtils as RelaySmsCodeUtils
 import io.github.magisk317.smscode.rule.constant.SmsCodeConst
 import io.github.magisk317.smscode.rule.model.SmsCodeMatchedRule
 import io.github.magisk317.smscode.rule.model.SmsCodeMatchedRuleSource
-import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -88,7 +82,6 @@ import org.koin.compose.koinInject
 import java.io.DataOutputStream
 import java.io.IOException
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Suppress("CyclomaticComplexMethod")
 @Composable
 fun VerificationSettingsScreen(
@@ -385,27 +378,10 @@ fun VerificationSettingsScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(id = R.string.pref_verification_settings_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                    }
-                },
-                colors = chromeTopAppBarColors(),
-            )
-        },
-        snackbarHost = {
-            io.github.magisk317.uikit.common.DismissibleSnackbarHost(
-                hostState = snackbarHostState,
-                modifier = Modifier.navigationBarsPadding(),
-            )
-        },
-    ) { padding ->
-        val current = settings ?: return@Scaffold
-        val currentRecordSettings = recordSettings ?: return@Scaffold
+    val verificationSettingsBody: @Composable (PaddingValues) -> Unit = { padding ->
+    val current = settings
+    val currentRecordSettings = recordSettings
+    if (current != null && currentRecordSettings != null) {
         val historyEntries = stringArrayResource(id = R.array.history_limit_entry_list)
         val historyValues = stringArrayResource(id = R.array.history_limit_value_list)
         val retentionEntries = stringArrayResource(id = R.array.notification_retention_time_entry_list)
@@ -628,6 +604,23 @@ fun VerificationSettingsScreen(
             }
             Spacer(modifier = Modifier.height(Const.PADDING_SMALL.dp))
         }
+    }
+    }
+
+    when (currentUiKitStyle()) {
+        UiKitStyle.Miuix -> VerificationSettingsScreenMiuix(
+            title = stringResource(R.string.pref_verification_settings_title),
+            onBack = onBack,
+            snackbarHostState = snackbarHostState,
+            body = verificationSettingsBody,
+        )
+
+        UiKitStyle.Expressive -> VerificationSettingsScreenMaterial(
+            title = stringResource(R.string.pref_verification_settings_title),
+            onBack = onBack,
+            snackbarHostState = snackbarHostState,
+            body = verificationSettingsBody,
+        )
     }
 
     val current = settings
