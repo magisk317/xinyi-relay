@@ -168,7 +168,7 @@ Donation list and details: [Donations](docs/DONATIONS.md).
 
 | Alipay Receipt | WeChat Appreciation | WeChat Collect |
 | :---: | :---: | :---: |
-| ![Alipay](./docs/assets/sponsorship/alipay.png) | ![WeChat Appreciation](./docs/assets/sponsorship/wx.png) | ![WeChat Collect](./docs/assets/sponsorship/wx_collect.png) |
+| ![Alipay](./art/sponsorship/alipay.png) | ![WeChat Appreciation](./art/sponsorship/wx.png) | ![WeChat Collect](./art/sponsorship/wx_collect.png) |
 
 # Star History
 ![Star History Chart](https://api.star-history.com/svg?repos=magisk317/xinyi-relay&type=Date)
