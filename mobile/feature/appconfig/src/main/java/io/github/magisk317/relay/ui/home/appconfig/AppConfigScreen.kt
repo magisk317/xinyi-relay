@@ -7,36 +7,17 @@ import io.github.magisk317.uikit.common.showLatestSnackbar
 import android.graphics.Bitmap
 import android.os.SystemClock
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,7 +31,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -69,11 +49,21 @@ import io.github.magisk317.uikit.foundation.SessionLoadingRegistry
 import io.github.magisk317.uikit.foundation.rememberMinDurationLoading
 import io.github.magisk317.uikit.scroll.ReportLazyListScrollToChrome
 import io.github.magisk317.uikit.scroll.ScrollChromeState
-import io.github.magisk317.uikit.surface.OverlayHeaderScaffold
-import io.github.magisk317.uikit.surface.SearchOverlayContent
+import io.github.magisk317.uikit.surface.WorkspaceEmptyState
+import io.github.magisk317.uikit.surface.WorkspaceListDivider
 import io.github.magisk317.uikit.surface.WorkspaceListItem
 import io.github.magisk317.uikit.surface.rememberSearchOverlayState
 import io.github.magisk317.uikit.surface.WorkspaceTrailingIcon
+import io.github.magisk317.uikit.preference.ActionSwitchItem
+import io.github.magisk317.uikit.preference.AppDropdownMenu
+import io.github.magisk317.uikit.preference.Item
+import io.github.magisk317.uikit.surface.AppAlertDialog
+import io.github.magisk317.uikit.surface.AppBottomSheet
+import io.github.magisk317.uikit.surface.AppPrimaryButton
+import io.github.magisk317.uikit.surface.AppPullToRefresh
+import io.github.magisk317.uikit.surface.AppSecondaryButton
+import io.github.magisk317.uikit.theme.UiKitStyle
+import io.github.magisk317.uikit.theme.currentUiKitStyle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import org.koin.compose.viewmodel.koinViewModel
@@ -132,6 +122,19 @@ fun AppConfigScreen(
         onSearchChange = { viewModel.doFilter(it) },
     )
     var showSettingsMenu by remember { mutableStateOf(false) }
+    // Sort options offered in the settings sheet. The dropdown keeps the same three choices the
+    // radio row used to expose (PACKAGE stays internal), in the same order.
+    val sortOptions = listOf(
+        AppConfigViewModel.SortOption.LABEL,
+        AppConfigViewModel.SortOption.SELECTION,
+        AppConfigViewModel.SortOption.USAGE,
+    )
+    val sortOptionLabels = listOf(
+        stringResource(R.string.action_sort_by_label),
+        stringResource(R.string.action_sort_by_selection),
+        stringResource(R.string.action_sort_by_usage),
+    )
+    var sortMenuExpanded by remember { mutableStateOf(false) }
 
     BackHandler(enabled = searchState.expanded) { searchState.close() }
     LaunchedEffect(isActive) { if (!isActive) searchState.close() }
@@ -215,9 +218,7 @@ fun AppConfigScreen(
     val listState = rememberLazyListState()
     ReportLazyListScrollToChrome(listState, scrollChromeState)
     io.github.magisk317.uikit.surface.ScrollToTopEffect(listState, refreshTrigger)
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-    val pullToRefreshState = rememberPullToRefreshState()
-    val defaultTopPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 156.dp
+    val isMiuix = currentUiKitStyle() == UiKitStyle.Miuix
     val navigationBarPadding = WindowInsets.navigationBars
         .asPaddingValues()
         .calculateBottomPadding()
@@ -236,168 +237,138 @@ fun AppConfigScreen(
             }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-    ) {
-        OverlayHeaderScaffold(
-            fallbackTopPadding = defaultTopPadding,
-            bottomPadding = effectiveBottomPadding,
-            headerOffsetY = scrollChromeState?.animatedHeaderOffsetY ?: 0f,
-            onHeaderHeightChanged = { scrollChromeState?.headerHeightPx = it.toFloat() },
-            overlayModifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth(),
-            overlay = {
-                SearchOverlayContent(
-                    state = searchState,
-                    title = stringResource(R.string.app_config_settings),
-                    searchPlaceholder = stringResource(R.string.action_search),
-                    navigationIcon = if (onBack != null) {
-                        {
-                            IconButton(onClick = onBack) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = stringResource(R.string.action_back),
-                                )
-                            }
-                        }
-                    } else {
-                        null
-                    },
-                    actions = {
-                        Box {
-                            IconButton(onClick = { showSettingsMenu = true }) {
-                                Icon(Icons.Default.MoreVert, contentDescription = null)
-                            }
-                            DropdownMenu(
-                                expanded = showSettingsMenu,
-                                onDismissRequest = { showSettingsMenu = false },
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.action_sort_by_label)) },
-                                    trailingIcon = {
-                                        RadioButton(
-                                            selected = currentSortOption == AppConfigViewModel.SortOption.LABEL,
-                                            onClick = null,
-                                        )
-                                    },
-                                    onClick = {
-                                        viewModel.setSortOption(AppConfigViewModel.SortOption.LABEL)
-                                        showSettingsMenu = false
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.action_sort_by_selection)) },
-                                    trailingIcon = {
-                                        RadioButton(
-                                            selected = currentSortOption == AppConfigViewModel.SortOption.SELECTION,
-                                            onClick = null,
-                                        )
-                                    },
-                                    onClick = {
-                                        viewModel.setSortOption(AppConfigViewModel.SortOption.SELECTION)
-                                        showSettingsMenu = false
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.action_sort_by_usage)) },
-                                    trailingIcon = {
-                                        RadioButton(
-                                            selected = currentSortOption == AppConfigViewModel.SortOption.USAGE,
-                                            onClick = null,
-                                        )
-                                    },
-                                    onClick = {
-                                        viewModel.setSortOption(AppConfigViewModel.SortOption.USAGE)
-                                        showSettingsMenu = false
-                                    },
-                                )
-                                HorizontalDivider()
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.action_hide_system_apps)) },
-                                    trailingIcon = {
-                                        Checkbox(checked = hideSystemApps, onCheckedChange = null)
-                                    },
-                                    onClick = {
-                                        viewModel.setHideSystemApps(!hideSystemApps)
-                                        showSettingsMenu = false
-                                    },
-                                )
-                            }
-                        }
-                    },
-                )
+    val appConfigBody: @Composable (PaddingValues, Modifier) -> Unit = { listPadding, scrollModifier ->
+        val overlayTopPadding = listPadding.calculateTopPadding()
+        AppPullToRefresh(
+            isRefreshing = manualRefreshing,
+            onRefresh = {
+                if (workPolicy.refreshData) {
+                    manualRefreshRequest++
+                }
             },
-            content = { overlayPadding ->
-                val overlayTopPadding = overlayPadding.calculateTopPadding()
-                PullToRefreshBox(
-                    state = pullToRefreshState,
-                    isRefreshing = manualRefreshing,
-                    onRefresh = {
-                        if (workPolicy.refreshData) {
-                            manualRefreshRequest++
-                        }
-                    },
-                    indicator = {
-                        PullToRefreshDefaults.LoadingIndicator(
-                            modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .padding(top = overlayTopPadding + LoadingIndicatorTokens.OverlayTopSpacing),
-                            isRefreshing = manualRefreshing,
-                            state = pullToRefreshState,
-                        )
-                    },
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(top = overlayTopPadding),
+        ) {
+            if (showLoading && !manualRefreshing) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    PolygonMorphLoadingIndicator(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = overlayTopPadding + LoadingIndicatorTokens.OverlayTopSpacing),
+                    )
+                }
+            } else if (apps.isEmpty()) {
+                WorkspaceEmptyState(
+                    title = stringResource(R.string.list_empty_prompt),
+                    summary = "",
                     modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .then(
+                            if (benchmarkTagsEnabled) {
+                                Modifier.testTag(BENCHMARK_APPS_LIST)
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .then(scrollModifier),
+                    state = listState,
+                    verticalArrangement = Arrangement.spacedBy(if (isMiuix) 12.dp else 0.dp),
+                    contentPadding = PaddingValues(
+                        start = 12.dp,
+                        end = 12.dp,
+                        top = overlayTopPadding,
+                        bottom = listPadding.calculateBottomPadding(),
+                    ),
                 ) {
-                    if (showLoading && !manualRefreshing) {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            PolygonMorphLoadingIndicator(
-                                modifier = Modifier
-                                    .align(Alignment.TopCenter)
-                                    .padding(top = overlayTopPadding + LoadingIndicatorTokens.OverlayTopSpacing),
-                            )
-                        }
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .then(
-                                    if (benchmarkTagsEnabled) {
-                                        Modifier.testTag(BENCHMARK_APPS_LIST)
-                                    } else {
-                                        Modifier
-                                    },
-                                )
-                                .nestedScroll(scrollBehavior.nestedScrollConnection),
-                            state = listState,
-                            contentPadding = PaddingValues(
-                                top = overlayTopPadding,
-                                bottom = overlayPadding.calculateBottomPadding(),
-                            ),
-                        ) {
-                            items(
-                                items = apps,
-                                key = { app -> app.packageName },
-                            ) { app ->
-                                AppConfigItem(
-                                    app = app,
-                                    appBoundSenderCount = appNotifyBindingCount[app.packageName] ?: 0,
-                                    appIcon = appIcons[app.packageName],
-                                    onClick = { onAppClick?.invoke(app) },
-                                )
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(horizontal = 16.dp),
-                                    thickness = 0.5.dp,
-                                    color = MaterialTheme.colorScheme.outlineVariant,
-                                )
-                            }
+                    items(
+                        items = apps,
+                        key = { app -> app.packageName },
+                    ) { app ->
+                        AppConfigItem(
+                            app = app,
+                            appBoundSenderCount = appNotifyBindingCount[app.packageName] ?: 0,
+                            appIcon = appIcons[app.packageName],
+                            onClick = { onAppClick?.invoke(app) },
+                        )
+                        // Miuix rows are gapped cards (MiPush/XSC rhythm); dividers belong to the
+                        // Expressive full-bleed rows only.
+                        if (!isMiuix) {
+                            WorkspaceListDivider()
                         }
                     }
                 }
-            },
-        )
+            }
+        }
+    }
+
+    // No explicit background: the theme's own backdrop shows through, matching XSC/MiPush
+    // (a hard-coded M3 background token would fight the miuix colour scheme).
+    Box(
+        modifier = Modifier
+            .fillMaxSize(),
+    ) {
+        when (currentUiKitStyle()) {
+            UiKitStyle.Miuix -> AppConfigScreenMiuix(
+                onBack = onBack,
+                onOpenSettings = { showSettingsMenu = true },
+                scrollChromeState = scrollChromeState,
+                searchState = searchState,
+                listState = listState,
+                bottomPadding = effectiveBottomPadding,
+                body = appConfigBody,
+            )
+
+            UiKitStyle.Expressive -> AppConfigScreenMaterial(
+                onBack = onBack,
+                onOpenSettings = { showSettingsMenu = true },
+                scrollChromeState = scrollChromeState,
+                searchState = searchState,
+                listState = listState,
+                bottomPadding = effectiveBottomPadding,
+                body = appConfigBody,
+            )
+        }
+
+        AppBottomSheet(
+            show = showSettingsMenu,
+            onDismissRequest = { showSettingsMenu = false },
+        ) {
+            Item(
+                title = stringResource(R.string.app_config_sort_mode),
+                summary = sortOptionLabels[
+                    sortOptions.indexOf(currentSortOption).coerceAtLeast(0),
+                ],
+            ) {
+                sortMenuExpanded = true
+            }
+            AppDropdownMenu(
+                expanded = sortMenuExpanded,
+                onDismissRequest = { sortMenuExpanded = false },
+                title = stringResource(R.string.app_config_sort_mode),
+                options = sortOptionLabels,
+                selectedIndex = sortOptions.indexOf(currentSortOption).coerceAtLeast(0),
+                onSelectionChange = { index ->
+                    viewModel.setSortOption(sortOptions[index])
+                    sortMenuExpanded = false
+                },
+            )
+            ActionSwitchItem(
+                title = stringResource(R.string.action_hide_system_apps),
+                summary = "",
+                checked = hideSystemApps,
+                onClick = {
+                    viewModel.setHideSystemApps(!hideSystemApps)
+                    showSettingsMenu = false
+                },
+                onCheckedChange = {
+                    viewModel.setHideSystemApps(it)
+                },
+            )
+        }
 
         io.github.magisk317.uikit.common.DismissibleSnackbarHost(
             hostState = snackbarHostState,
@@ -408,26 +379,10 @@ fun AppConfigScreen(
     }
 
     if (showUsagePermissionDialog) {
-        AlertDialog(
-            onDismissRequest = { showUsagePermissionDialog = false },
-            title = { Text(stringResource(R.string.action_sort_by_usage)) },
-            text = { Text(stringResource(R.string.usage_permission_prompt)) },
-            confirmButton = {
-                Button(onClick = {
-                    showUsagePermissionDialog = false
-                    try {
-                        context.startActivity(android.content.Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS))
-                    } catch (_: Exception) {
-                    }
-                }) {
-                    Text(stringResource(R.string.confirm))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showUsagePermissionDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
+        UsageStatsPermissionDialog(
+            packageName = context.packageName,
+            onGrant = { viewModel.grantUsageStatsPermission(it) },
+            onDismiss = { showUsagePermissionDialog = false },
         )
     }
 }

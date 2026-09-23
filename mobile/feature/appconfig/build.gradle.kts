@@ -20,6 +20,7 @@ dependencies {
     implementation(project(":magisk-ui-kit"))
     implementation(project(":mobile:feature:common"))
     implementation(project(":core"))
+    implementation(project(":runtime"))
     implementation(project(":smscode-core:contract"))
     implementation(project(":relay:sender:api"))
     implementation(libs.androidx.material.icons.core)

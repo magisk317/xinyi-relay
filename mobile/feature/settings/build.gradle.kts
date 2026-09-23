@@ -4,6 +4,11 @@ plugins {
     id("relay.android.common")
 }
 
+val enableUiKitStyleSwitch = findProperty("enableUiKitStyleSwitch")
+    ?.toString()
+    ?.toBooleanStrictOrNull()
+    ?: true
+
 
 android {
     namespace = "io.github.magisk317.relay.mobilefeature.settings"
@@ -11,6 +16,7 @@ android {
     defaultConfig {
         buildConfigField("int", "VERSION_CODE", libs.versions.versionCode.get())
         buildConfigField("String", "VERSION_NAME", "\"${libs.versions.versionName.get()}\"")
+        buildConfigField("boolean", "ENABLE_UI_KIT_STYLE_SWITCH", enableUiKitStyleSwitch.toString())
     }
 
     buildFeatures {
@@ -33,6 +39,7 @@ dependencies {
     implementation(project(":core"))
     implementation(project(":magisk-ui-kit"))
     implementation(project(":magisk-xposed-kit:diagnostics"))
+    implementation(project(":magisk-xposed-kit:permission"))
     implementation(project(":mobile:feature:common"))
     implementation(project(":smscode-core:runtime"))
     implementation(libs.androidx.material.icons.core)

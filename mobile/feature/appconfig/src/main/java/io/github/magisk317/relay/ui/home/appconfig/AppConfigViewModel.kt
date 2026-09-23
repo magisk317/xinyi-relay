@@ -22,7 +22,7 @@ import io.github.magisk317.relay.engine.service.MessageRecordRepository
 import io.github.magisk317.relay.engine.routing.NotifyRouteScope
 import io.github.magisk317.relay.android.data.store.EntityStoreManager
 import io.github.magisk317.relay.android.data.store.EntityType
-import io.github.magisk317.relay.ui.block.AppInfoHelper
+import io.github.magisk317.uikit.shell.AppInfoHelper as UiKitAppInfoHelper
 import io.github.magisk317.relay.ui.common.AppIconCache
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
@@ -285,6 +285,11 @@ class AppConfigViewModel(
                 viewModelScope.launch { eventQueue.send(AppConfigEvent.ShowUsageStatsPermission) }
                 return
             }
+            // Usage stats are fetched once per load pipeline; a late grant (system settings
+            // or root) leaves the map empty, so refresh it before the sort applies.
+            if (_queryState.value.usageStatsByPackage.isEmpty()) {
+                viewModelScope.launch { refreshUsageStats() }
+            }
         }
 
         if (_queryState.value.sortOption != option) {
@@ -297,6 +302,42 @@ class AppConfigViewModel(
                         resetVisibleWindow = true,
                     ),
                 )
+            }
+        }
+    }
+
+
+    private val usageStatsPermissionGranter = UsageStatsPermissionGranter()
+
+    /**
+     * Grant usage access through a root shell (primary appops, fallback cmd appops).
+     * Returns true only when AppOps reports MODE_ALLOWED; false when the command layer
+     * fails, the permission check still denies, or an unexpected error occurs.
+     */
+    suspend fun grantUsageStatsPermission(packageName: String): Boolean {
+        try {
+            val commandExecuted = usageStatsPermissionGranter.grantUsageStats(packageName)
+            if (!commandExecuted || !hasUsageStatsPermission()) {
+                return false
+            }
+            refreshUsageStats()
+            setSortOption(SortOption.USAGE)
+            return true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            XLog.e("Failed to grant usage stats permission", e)
+            return false
+        }
+    }
+
+    private suspend fun refreshUsageStats() {
+        val freshUsageStats = loadUsageStats()
+        _queryState.update { current ->
+            if (current.usageStatsByPackage == freshUsageStats) {
+                current
+            } else {
+                current.copy(usageStatsByPackage = freshUsageStats)
             }
         }
     }
@@ -616,7 +657,8 @@ class AppConfigViewModel(
             .asSequence()
             .map { applicationInfo ->
                 scanJob?.ensureActive()
-                val appInfoBase = AppInfoHelper.getAppInfo(pm, applicationInfo)
+                val uiKitAppInfo = UiKitAppInfoHelper.getAppInfo(pm, applicationInfo)
+                val appInfoBase = AppInfo(uiKitAppInfo.packageName, uiKitAppInfo.label)
                 val isSystemApp = (applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 ||
                     (applicationInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
                 if (isSystemApp) {
