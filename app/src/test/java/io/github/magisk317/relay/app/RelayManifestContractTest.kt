@@ -118,110 +118,78 @@ class RelayManifestContractTest {
     }
 
     @Test
-    fun `base manifest declares standard mode receive permissions only`() {
+    fun `base manifest drops the standard relay ingress permissions`() {
         val permissions = permissionNames("app/src/main/AndroidManifest.xml")
         val features = featureNames("app/src/main/AndroidManifest.xml")
 
         assertFalse("android.permission.SEND_SMS" in permissions)
-        assertTrue("android.permission.RECEIVE_SMS" in permissions)
-        assertTrue("android.permission.RECEIVE_MMS" in permissions)
-        assertTrue("android.permission.READ_PHONE_STATE" in permissions)
-        assertTrue("android.permission.READ_CALL_LOG" in permissions)
+        assertFalse("android.permission.RECEIVE_SMS" in permissions)
+        assertFalse("android.permission.RECEIVE_MMS" in permissions)
+        assertFalse("android.permission.READ_PHONE_STATE" in permissions)
+        assertFalse("android.permission.READ_CALL_LOG" in permissions)
+        assertTrue("android.permission.READ_CONTACTS" in permissions)
         assertTrue("android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" in permissions)
         assertTrue("android.hardware.telephony" in features)
     }
 
     @Test
-    fun `standard mode foreground service uses remote messaging contract`() {
+    fun `foreground service permissions track declared service types`() {
         val document = parseManifest("app/src/main/AndroidManifest.xml")
-        val permissions = permissionNames("app/src/main/AndroidManifest.xml")
-        val services = document.getElementsByTagName("service")
-            .asElements()
-            .associateBy { it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue.orEmpty() }
-        val standardModeService = services.getValue(
-            "io.github.magisk317.relay.service.StandardModeService",
+        val permissions = document.getElementsByTagName("uses-permission").asElements()
+        val services = document.getElementsByTagName("service").asElements()
+
+        fun permissionDeclared(name: String) =
+            permissions.any {
+                it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue == name &&
+                    it.attributes.getNamedItemNS(TOOLS_NS, "node")?.nodeValue != "remove"
+            }
+
+        assertTrue(
+            permissionDeclared("android.permission.FOREGROUND_SERVICE"),
+            "app/src/main/AndroidManifest.xml must keep the base foreground service permission",
+        )
+        assertFalse(
+            permissionDeclared("android.permission.FOREGROUND_SERVICE_DATA_SYNC"),
+            "app/src/main/AndroidManifest.xml must not add the dataSync foreground-service permission",
         )
 
-        assertTrue("android.permission.FOREGROUND_SERVICE" in permissions)
-        assertTrue("android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" in permissions)
-        assertFalse("android.permission.FOREGROUND_SERVICE_DATA_SYNC" in permissions)
-        assertEquals(
-            "remoteMessaging",
-            standardModeService.attributes.getNamedItemNS(ANDROID_NS, "foregroundServiceType")?.nodeValue,
-        )
-        assertEquals(
-            "false",
-            standardModeService.attributes.getNamedItemNS(ANDROID_NS, "exported")?.nodeValue,
+        val declaresRemoteMessagingService = services.any { service ->
+            service.attributes.getNamedItemNS(ANDROID_NS, "foregroundServiceType")
+                ?.nodeValue
+                ?.split(",")
+                ?.map { it.trim() }
+                ?.contains("remoteMessaging") == true
+        }
+        assertTrue(
+            permissionDeclared("android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING") == declaresRemoteMessagingService,
+            "app/src/main/AndroidManifest.xml remoteMessaging permission must match its service declarations",
         )
     }
 
     @Test
-    fun `non play distribution manifests preserve remote messaging foreground service`() {
-        listOf(
-            "app/src/github/AndroidManifest.xml",
-            "app/src/fdroid/AndroidManifest.xml",
-        ).forEach { manifestPath ->
-            val document = parseManifest(manifestPath)
-            val permissions = document.getElementsByTagName("uses-permission").asElements()
-            val standardModeServices = document.getElementsByTagName("service")
-                .asElements()
-                .filter {
-                    it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue ==
-                        "io.github.magisk317.relay.service.StandardModeService"
-                }
+    fun `auto input accessibility service ships only outside play`() {
+        val mainServices = parseManifest("app/src/main/AndroidManifest.xml")
+            .getElementsByTagName("service").asElements()
+            .map { it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue }
+        assertFalse(AUTO_INPUT_SERVICE in mainServices)
 
-            assertFalse(
-                permissions.any {
-                    it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue ==
-                        "android.permission.FOREGROUND_SERVICE_DATA_SYNC" &&
-                        it.attributes.getNamedItemNS(TOOLS_NS, "node")?.nodeValue != "remove"
-                },
-                "$manifestPath must not add the dataSync foreground-service permission",
-            )
-            assertFalse(
-                permissions.any {
-                    it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue ==
-                        "android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" &&
-                        it.attributes.getNamedItemNS(TOOLS_NS, "node")?.nodeValue == "remove"
-                },
-                "$manifestPath must not remove the remoteMessaging foreground-service permission",
-            )
-            standardModeServices.forEach { service ->
-                assertFalse(
-                    service.attributes.getNamedItemNS(TOOLS_NS, "node")?.nodeValue == "remove",
-                    "$manifestPath must not remove StandardModeService",
-                )
-                val foregroundServiceType = service.attributes
-                    .getNamedItemNS(ANDROID_NS, "foregroundServiceType")
-                    ?.nodeValue
-                assertTrue(
-                    foregroundServiceType == null || foregroundServiceType == "remoteMessaging",
-                    "$manifestPath must not override StandardModeService with a different type",
-                )
-            }
+        listOf("app/src/github/AndroidManifest.xml", "app/src/fdroid/AndroidManifest.xml").forEach { path ->
+            val services = parseManifest(path)
+                .getElementsByTagName("service").asElements()
+                .map { it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue }
+            assertTrue(AUTO_INPUT_SERVICE in services, "$path must declare the auto input service")
         }
     }
 
     @Test
-    fun `play manifest removes standard mode services and telephony permissions`() {
+    fun `play manifest stays free of sms and telephony declarations`() {
         val permissions = permissionNames("app/src/play/AndroidManifest.xml")
-        val removedPermissions = removedPermissionNames("app/src/play/AndroidManifest.xml")
-        val removedReceivers = removedReceiverNames("app/src/play/AndroidManifest.xml")
-        val removedServices = removedServiceNames("app/src/play/AndroidManifest.xml")
         val features = featureNames("app/src/play/AndroidManifest.xml")
 
         assertFalse("android.permission.SEND_SMS" in permissions)
-        assertTrue("android.permission.RECEIVE_SMS" in removedPermissions)
-        assertTrue("android.permission.RECEIVE_MMS" in removedPermissions)
-        assertTrue("android.permission.READ_SMS" in removedPermissions)
-        assertTrue("android.permission.READ_PHONE_STATE" in removedPermissions)
-        assertTrue("android.permission.READ_CALL_LOG" in removedPermissions)
-        assertTrue("android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" in removedPermissions)
-        assertTrue("android.permission.FOREGROUND_SERVICE" in removedPermissions)
-        assertTrue("android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" in removedPermissions)
-        assertTrue("io.github.magisk317.relay.receiver.StandardSmsReceiver" in removedReceivers)
-        assertTrue("io.github.magisk317.relay.receiver.StandardMmsReceiver" in removedReceivers)
-        assertTrue("io.github.magisk317.relay.service.StandardModeService" in removedServices)
+        assertFalse("android.permission.RECEIVE_SMS" in permissions)
+        assertFalse("android.permission.RECEIVE_MMS" in permissions)
+        assertFalse("android.permission.READ_PHONE_STATE" in permissions)
         assertFalse("android.hardware.telephony" in features)
     }
 
@@ -235,28 +203,6 @@ class RelayManifestContractTest {
             assertTrue("android.permission.READ_PHONE_STATE" in permissions)
             assertTrue("android.hardware.telephony" in features)
         }
-    }
-
-    @Test
-    fun `standard mode sms and mms receivers are declared`() {
-        val document = parseManifest("app/src/main/AndroidManifest.xml")
-        val receivers = document.getElementsByTagName("receiver")
-            .asElements()
-            .associateBy { it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue.orEmpty() }
-
-        val smsReceiver = receivers.getValue("io.github.magisk317.relay.receiver.StandardSmsReceiver")
-        assertEquals("android.permission.BROADCAST_SMS", smsReceiver.attributes.getNamedItemNS(ANDROID_NS, "permission")?.nodeValue)
-        assertReceiverAction(smsReceiver, "android.provider.Telephony.SMS_RECEIVED")
-
-        val mmsReceiver = receivers.getValue("io.github.magisk317.relay.receiver.StandardMmsReceiver")
-        assertEquals("android.permission.BROADCAST_WAP_PUSH", mmsReceiver.attributes.getNamedItemNS(ANDROID_NS, "permission")?.nodeValue)
-        assertReceiverAction(mmsReceiver, "android.provider.Telephony.WAP_PUSH_RECEIVED")
-        assertReceiverAction(mmsReceiver, "android.provider.Telephony.WAP_PUSH_DELIVER")
-        val mimeTypes = mmsReceiver.getElementsByTagName("data")
-            .asElements()
-            .mapNotNull { it.attributes.getNamedItemNS(ANDROID_NS, "mimeType")?.nodeValue }
-            .toSet()
-        assertTrue("application/vnd.wap.mms-message" in mimeTypes)
     }
 
     @Test
@@ -320,47 +266,12 @@ class RelayManifestContractTest {
             .toSet()
     }
 
-    private fun removedPermissionNames(relativePath: String): Set<String> {
-        return parseManifest(relativePath)
-            .getElementsByTagName("uses-permission")
-            .asElements()
-            .filter { it.attributes.getNamedItemNS(TOOLS_NS, "node")?.nodeValue == "remove" }
-            .mapNotNull { it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue }
-            .toSet()
-    }
-
-    private fun removedReceiverNames(relativePath: String): Set<String> {
-        return parseManifest(relativePath)
-            .getElementsByTagName("receiver")
-            .asElements()
-            .filter { it.attributes.getNamedItemNS(TOOLS_NS, "node")?.nodeValue == "remove" }
-            .mapNotNull { it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue }
-            .toSet()
-    }
-
-    private fun removedServiceNames(relativePath: String): Set<String> {
-        return parseManifest(relativePath)
-            .getElementsByTagName("service")
-            .asElements()
-            .filter { it.attributes.getNamedItemNS(TOOLS_NS, "node")?.nodeValue == "remove" }
-            .mapNotNull { it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue }
-            .toSet()
-    }
-
     private fun featureNames(relativePath: String): Set<String> {
         return parseManifest(relativePath)
             .getElementsByTagName("uses-feature")
             .asElements()
             .mapNotNull { it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue }
             .toSet()
-    }
-
-    private fun assertReceiverAction(receiver: Element, expectedAction: String) {
-        val actions = receiver.getElementsByTagName("action")
-            .asElements()
-            .mapNotNull { it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue }
-            .toSet()
-        assertTrue(expectedAction in actions)
     }
 
     private fun requiredSensitiveBackupExcludes(): Set<Pair<String, String>> = buildSet {
@@ -392,5 +303,6 @@ class RelayManifestContractTest {
     private companion object {
         const val ANDROID_NS = "http://schemas.android.com/apk/res/android"
         const val TOOLS_NS = "http://schemas.android.com/tools"
+        const val AUTO_INPUT_SERVICE = "io.github.magisk317.relay.service.AutoInputAccessibilityService"
     }
 }

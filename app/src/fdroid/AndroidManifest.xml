@@ -8,6 +8,22 @@
         android:name="android.hardware.telephony"
         android:required="false" />
 
-    <application android:usesCleartextTraffic="false" />
+    <application android:usesCleartextTraffic="false">
+
+        <service
+            android:name="io.github.magisk317.relay.service.AutoInputAccessibilityService"
+            android:exported="false"
+            android:label="@string/accessibility_service_merged_title"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/auto_input_accessibility_service" />
+        </service>
+
+    </application>
 
 </manifest>

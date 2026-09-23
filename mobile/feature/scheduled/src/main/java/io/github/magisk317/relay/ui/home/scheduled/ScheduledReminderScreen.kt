@@ -18,28 +18,21 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -58,6 +51,8 @@ import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.mobilefeature.scheduled.BuildConfig
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.uikit.theme.UiKitStyle
+import io.github.magisk317.uikit.theme.currentUiKitStyle
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.SpecialAlertSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.SpecialAlertSettingsUpdate
@@ -65,7 +60,6 @@ import io.github.magisk317.relay.feature.reminder.BatteryReminderSchedulerFacade
 import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
 import io.github.magisk317.relay.ui.common.parseIntInRangeInput
 import io.github.magisk317.relay.ui.sender.displayName
-import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -139,7 +133,6 @@ private fun ChannelDropdown(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduledReminderScreen(onBack: () -> Unit) {
     val context = LocalContext.current
@@ -177,7 +170,6 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
     ) { granted ->
         callPermissionGranted.value = granted
         if (granted) {
-            context.sendBroadcast(Intent(PrefConst.ACTION_CALL_ALERT_MONITOR_REFRESH).setPackage(context.packageName))
         }
     }
 
@@ -233,26 +225,9 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(id = R.string.scheduled_reminder_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                    }
-                },
-                colors = chromeTopAppBarColors(),
-            )
-        },
-        snackbarHost = {
-            io.github.magisk317.uikit.common.DismissibleSnackbarHost(
-                hostState = snackbarHostState,
-                modifier = Modifier.navigationBarsPadding(),
-            )
-        },
-    ) { padding ->
-        val current = settings ?: return@Scaffold
+    val scheduledReminderBody: @Composable (PaddingValues) -> Unit = { padding ->
+    val current = settings
+    if (current != null) {
         val lowChannelLabel = channelOptions.firstOrNull { it.id == current.lowBatteryChannelId }?.label
             ?: current.lowBatteryChannelId
         val fullChannelLabel = channelOptions.firstOrNull { it.id == current.fullBatteryChannelId }?.label
@@ -413,7 +388,6 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                         settings = repository.updateSpecialAlertSettings(
                             SpecialAlertSettingsUpdate(callAlertLocalEnabled = enabled),
                         )
-                        context.sendBroadcast(Intent(PrefConst.ACTION_CALL_ALERT_MONITOR_REFRESH).setPackage(context.packageName))
                         notifySaved()
                     }
                 }
@@ -574,6 +548,23 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
 
             Spacer(modifier = Modifier.height(Const.PADDING_SMALL.dp))
         }
+    }
+    }
+
+    when (currentUiKitStyle()) {
+        UiKitStyle.Miuix -> ScheduledReminderScreenMiuix(
+            title = stringResource(R.string.scheduled_reminder_title),
+            onBack = onBack,
+            snackbarHostState = snackbarHostState,
+            body = scheduledReminderBody,
+        )
+
+        UiKitStyle.Expressive -> ScheduledReminderScreenMaterial(
+            title = stringResource(R.string.scheduled_reminder_title),
+            onBack = onBack,
+            snackbarHostState = snackbarHostState,
+            body = scheduledReminderBody,
+        )
     }
 
     val current = settings

@@ -8,8 +8,8 @@ import kotlinx.coroutines.flow.asStateFlow
 
 enum class WorkMode {
     Enhanced,   // Xposed hooks active
-    Standard,   // System APIs only
-    Inactive    // Reserved for an explicit global disable state
+    Standard,   // Legacy: system-API-only channel, no longer resolved
+    Inactive    // No active runtime (module not activated)
 }
 
 object WorkModeResolver {
@@ -18,7 +18,9 @@ object WorkModeResolver {
 
     fun resolve(context: Context): WorkMode {
         val xposedActive = ActivationDiagnosticsStore.isModuleActivated(context)
-        val resolved = if (xposedActive) WorkMode.Enhanced else WorkMode.Standard
+        // The standard (system-API-only) channel is gone: without an active Xposed
+        // runtime there is nothing to forward through.
+        val resolved = if (xposedActive) WorkMode.Enhanced else WorkMode.Inactive
         _mode.value = resolved
         return resolved
     }

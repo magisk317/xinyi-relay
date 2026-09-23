@@ -21,12 +21,11 @@ class XposedServiceBridgeContractTest {
             .substringBefore("}", missingDelimiterValue = source)
         val restartCall = "PhoneProcessRestartCoordinator.requestAfterInstallOrUpdate"
         val handleBindCall = "XposedServiceRuntimeCoordinator.handleServiceBound"
-        val reconcileCall = "StandardModeService.reconcile"
 
         assertFalse(restartCall in beforeBind)
         assertEquals(1, bindCallback.windowed(restartCall.length).count { it == restartCall })
-        assertTrue(bindCallback.indexOf(handleBindCall) < bindCallback.indexOf(reconcileCall))
-        assertTrue(bindCallback.indexOf(reconcileCall) < bindCallback.indexOf(restartCall))
+        assertTrue(handleBindCall in bindCallback)
+        assertTrue(bindCallback.indexOf(handleBindCall) < bindCallback.indexOf(restartCall))
         assertFalse(restartCall in diedCallback)
     }
 

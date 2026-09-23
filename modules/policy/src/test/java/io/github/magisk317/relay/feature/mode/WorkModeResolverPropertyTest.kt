@@ -20,9 +20,7 @@ import io.mockk.unmockkObject
  * For either Xposed activation state, permissions do not select the app-wide mode:
  * the WorkModeResolver SHALL produce:
  * - Enhanced when isModuleActivated = true
- * - Standard when isModuleActivated = false
- *
- * Individual Standard capabilities enforce their own permissions.
+ * - Inactive when isModuleActivated = false
  */
 class WorkModeResolverPropertyTest : FunSpec({
 
@@ -44,19 +42,19 @@ class WorkModeResolverPropertyTest : FunSpec({
 
             val resolved = WorkModeResolver.resolve(context)
 
-            val expected = if (xposedActive) WorkMode.Enhanced else WorkMode.Standard
+            val expected = if (xposedActive) WorkMode.Enhanced else WorkMode.Inactive
 
             resolved shouldBe expected
             WorkModeResolver.mode.value shouldBe expected
         }
     }
 
-    test("runtime activation transitions Standard to Enhanced and back immediately") {
+    test("runtime activation transitions Inactive to Enhanced and back immediately") {
         every { ActivationDiagnosticsStore.isModuleActivated(context) } returnsMany
             listOf(false, true, false)
 
-        WorkModeResolver.resolve(context) shouldBe WorkMode.Standard
+        WorkModeResolver.resolve(context) shouldBe WorkMode.Inactive
         WorkModeResolver.resolve(context) shouldBe WorkMode.Enhanced
-        WorkModeResolver.resolve(context) shouldBe WorkMode.Standard
+        WorkModeResolver.resolve(context) shouldBe WorkMode.Inactive
     }
 })

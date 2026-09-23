@@ -13,18 +13,17 @@ import io.github.magisk317.uikit.R as UiKitR
 import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import android.content.Context
+import android.content.Intent
 import androidx.activity.compose.LocalActivity
 import io.github.magisk317.relay.feature.mode.BatteryOptimizationHelper
-import io.github.magisk317.relay.feature.mode.StandardModePermissions
 import io.github.magisk317.relay.feature.mode.WorkMode
 import io.github.magisk317.relay.feature.mode.WorkModeResolver
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -40,12 +39,6 @@ import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -55,13 +48,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.Lifecycle
@@ -69,15 +62,18 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
-import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
+import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.smscode.runtime.contract.diagnostics.ActivationDiagnosticsSnapshot
 import io.github.magisk317.smscode.runtime.common.utils.BrowserUtils
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.uikit.surface.chromeTopAppBarColors
 import io.github.magisk317.relay.engine.service.RuntimeAnalyticsProvider
 import io.github.magisk317.relay.billing.BillingProvider
 import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
 import io.github.magisk317.uikit.entitlement.rememberEntitlementState
+import io.github.magisk317.uikit.surface.AppIcon
+import io.github.magisk317.uikit.surface.AppIconButton
+import io.github.magisk317.uikit.theme.UiKitStyle
+import io.github.magisk317.uikit.theme.currentUiKitStyle
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -98,7 +94,6 @@ internal data class HomeCardSpec(
     val available: Boolean = true,
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OverviewScreen(
     isActive: Boolean = true,
@@ -116,7 +111,6 @@ fun OverviewScreen(
     }
     var showDonateDialog by remember { mutableStateOf(false) }
     var showQRCodeDialog by remember { mutableStateOf<Pair<Int, String>?>(null) }
-    var standardPermissionPromptHandled by rememberSaveable { mutableStateOf(false) }
     var batteryOptimizationHintShown by rememberSaveable { mutableStateOf(false) }
 
     DisposableEffect(viewModel, isActive) {
@@ -139,29 +133,11 @@ fun OverviewScreen(
 
     val workMode by WorkModeResolver.mode.collectAsStateWithLifecycle()
     val isEnabled = workMode == WorkMode.Enhanced
-    val isStandardEnabled = workMode == WorkMode.Standard
 
     fun refreshBatteryOptimizationExemption(): Boolean {
-        val exempted = !isStandardEnabled || BatteryOptimizationHelper.isExempted(context)
+        val exempted = BatteryOptimizationHelper.isExempted(context)
         viewModel.updateBatteryOptimizationExempted(exempted)
         return exempted
-    }
-
-    LaunchedEffect(isActive, isStandardEnabled, activity) {
-        if (isActive && isStandardEnabled && !standardPermissionPromptHandled) {
-            // Standard mode remains active while individual capabilities request their permissions.
-            val missing = StandardModePermissions.missingPermissions(context)
-            if (missing.isEmpty()) {
-                standardPermissionPromptHandled = true
-            } else if (activity != null) {
-                showMessage(context.getString(R.string.standard_mode_missing_permissions_hint))
-                activity.requestPermissions(
-                    missing.toTypedArray(),
-                    Const.REQUEST_CODE_STANDARD_PERMISSIONS,
-                )
-                standardPermissionPromptHandled = true
-            }
-        }
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -171,7 +147,6 @@ fun OverviewScreen(
     val activationStatus by activationStatusFlow.collectAsStateWithLifecycle()
 
     val listState = rememberLazyListState()
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val density = LocalDensity.current
     val dragThresholdPx = remember(density) { with(density) { 72.dp.toPx() } }
     val overviewUiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -258,6 +233,7 @@ fun OverviewScreen(
     val chartType = overviewUiState.chartType
     val chartWindow = overviewUiState.chartWindow
     val runtimeUiState = overviewUiState.runtimeSnapshot
+    val editMode = overviewUiState.editMode
 
     val visibleCardIds = remember(cardOrder, enabledCardIds, effectiveAnalyticsEnabled) {
         cardOrder.filter { id ->
@@ -277,57 +253,108 @@ fun OverviewScreen(
         .calculateBottomPadding()
     val effectiveBottomPadding = maxOf(bottomContentPadding, navigationBarPadding)
 
-    OverviewContent(
-        listState = listState,
-        scrollBehavior = scrollBehavior,
-        visibleCardSpecs = visibleCardSpecs,
-        cardOrder = cardOrder,
-        enabledCardIds = enabledCardIds,
-        editMode = overviewUiState.editMode,
-        isEnabled = isEnabled,
-        isStandardEnabled = isStandardEnabled,
-        showBatteryOptimizationHint = isStandardEnabled && !overviewUiState.batteryOptimizationExempted,
-        chartType = chartType,
-        chartWindow = chartWindow,
-        chartSnapshot = runtimeUiState.chartSnapshot,
-        appVersionName = runtimeUiState.appVersionName,
-        appVersionCode = runtimeUiState.appVersionCode,
-        frameworkType = runtimeUiState.frameworkType,
-        frameworkVersion = runtimeUiState.frameworkVersion,
-        hasRootAccess = runtimeUiState.hasRootAccess,
-        runtimeConnected = activationStatus.runtimeConnected,
-        mobileAutomationAllowed = mobileAutomationAllowed,
-        activationDiagnostics = activationStatus.diagnostics,
-        showStatusDiagnostics = overviewUiState.showStatusDiagnostics,
-        draggingCardId = overviewUiState.draggingCardId,
-        dragOffsetY = overviewUiState.dragOffsetY,
-        dragThresholdPx = dragThresholdPx,
-        showAddAction = overviewUiState.editMode && addableCardSpecs.isNotEmpty(),
-        onToggleEditMode = viewModel::toggleEditMode,
-        onShowAddSheet = { viewModel.setAddCardSheetVisible(true) },
-        onRequestEnableEditMode = {},
-        onCardOrderChange = viewModel::updateCardOrderLocally,
-        onPersistCardOrder = viewModel::persistCardOrder,
-        onEnabledCardIdsChange = viewModel::updateEnabledCardIdsLocally,
-        onPersistEnabledCardIds = viewModel::persistEnabledCardIds,
-        onDragStateChange = viewModel::updateDragState,
-        onChartTypeChange = { next ->
-            viewModel.setChartType(next)
-        },
-        onChartWindowChange = { next ->
-            viewModel.setChartWindow(next)
-        },
-        onShowDonate = { showDonateDialog = true },
-        onBatteryOptimizationClick = {
-            runCatching {
-                BatteryOptimizationHelper.requestExemption(context)
-            }.onFailure { error ->
-                showMessage(error.message ?: context.getString(R.string.standard_mode_battery_optimization_hint))
+    val showAddAction = editMode && addableCardSpecs.isNotEmpty()
+    val topBarActions: @Composable RowScope.() -> Unit = {
+        if (showAddAction) {
+            AppIconButton(onClick = { viewModel.setAddCardSheetVisible(true) }) {
+                AppIcon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = stringResource(id = R.string.forward_filter_action_add),
+                )
             }
-        },
-        onStatusCardTap = { viewModel.onStatusCardTapped(android.os.SystemClock.uptimeMillis()) },
-        bottomContentPadding = effectiveBottomPadding,
-    )
+        }
+        AppIconButton(onClick = viewModel::toggleEditMode) {
+            AppIcon(
+                imageVector = if (editMode) Icons.Default.Done else Icons.Default.Edit,
+                contentDescription = if (editMode) {
+                    stringResource(id = R.string.action_rule_edit_done)
+                } else {
+                    stringResource(id = R.string.edit)
+                },
+            )
+        }
+    }
+    val overviewBody: @Composable (Dp, NestedScrollConnection) -> Unit =
+        { topContentPadding, nestedScrollConnection ->
+            OverviewContent(
+                listState = listState,
+                nestedScrollConnection = nestedScrollConnection,
+                topContentPadding = topContentPadding,
+                visibleCardSpecs = visibleCardSpecs,
+                cardOrder = cardOrder,
+                enabledCardIds = enabledCardIds,
+                editMode = editMode,
+                isEnabled = isEnabled,
+                showBatteryOptimizationHint = !overviewUiState.batteryOptimizationExempted,
+                chartType = chartType,
+                chartWindow = chartWindow,
+                chartSnapshot = runtimeUiState.chartSnapshot,
+                appVersionName = runtimeUiState.appVersionName,
+                appVersionCode = runtimeUiState.appVersionCode,
+                frameworkType = runtimeUiState.frameworkType,
+                frameworkVersion = runtimeUiState.frameworkVersion,
+                hasRootAccess = runtimeUiState.hasRootAccess,
+                runtimeConnected = activationStatus.runtimeConnected,
+                mobileAutomationAllowed = mobileAutomationAllowed,
+                activationDiagnostics = activationStatus.diagnostics,
+                showStatusDiagnostics = overviewUiState.showStatusDiagnostics,
+                draggingCardId = overviewUiState.draggingCardId,
+                dragOffsetY = overviewUiState.dragOffsetY,
+                dragThresholdPx = dragThresholdPx,
+                showAddAction = showAddAction,
+                onToggleEditMode = viewModel::toggleEditMode,
+                onShowAddSheet = { viewModel.setAddCardSheetVisible(true) },
+                onRequestEnableEditMode = {},
+                onCardOrderChange = viewModel::updateCardOrderLocally,
+                onPersistCardOrder = viewModel::persistCardOrder,
+                onEnabledCardIdsChange = viewModel::updateEnabledCardIdsLocally,
+                onPersistEnabledCardIds = viewModel::persistEnabledCardIds,
+                onDragStateChange = viewModel::updateDragState,
+                onChartTypeChange = { next ->
+                    viewModel.setChartType(next)
+                },
+                onChartWindowChange = { next ->
+                    viewModel.setChartWindow(next)
+                },
+                onShowDonate = { showDonateDialog = true },
+                onBatteryOptimizationClick = {
+                    runCatching {
+                        BatteryOptimizationHelper.requestExemption(context)
+                    }.onFailure { error ->
+                        showMessage(error.message ?: context.getString(R.string.standard_mode_battery_optimization_hint))
+                    }
+                },
+                onActivateClick = {
+                    runCatching {
+                        context.startActivity(
+                            Intent()
+                                .setClassName(context, "io.github.magisk317.relay.entitlement.MobileEntitlementActivity")
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                        )
+                    }.onFailure { error ->
+                        showMessage(
+                            error.message ?: context.getString(R.string.status_activate_hint),
+                        )
+                    }
+                },
+                onDiagnosticsToggle = { viewModel.toggleStatusDiagnostics() },
+                bottomContentPadding = effectiveBottomPadding,
+            )
+        }
+
+    when (currentUiKitStyle()) {
+        UiKitStyle.Miuix -> OverviewScreenMiuix(
+            title = stringResource(id = R.string.app_name),
+            actions = topBarActions,
+            body = overviewBody,
+        )
+
+        UiKitStyle.Expressive -> OverviewScreenMaterial(
+            title = stringResource(id = R.string.app_name),
+            actions = topBarActions,
+            body = overviewBody,
+        )
+    }
 
     OverviewDialogs(
         context = context,
@@ -348,17 +375,16 @@ fun OverviewScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun OverviewContent(
     listState: androidx.compose.foundation.lazy.LazyListState,
-    scrollBehavior: androidx.compose.material3.TopAppBarScrollBehavior,
+    nestedScrollConnection: NestedScrollConnection,
+    topContentPadding: Dp,
     visibleCardSpecs: List<HomeCardSpec>,
     cardOrder: List<String>,
     enabledCardIds: Set<String>,
     editMode: Boolean,
     isEnabled: Boolean,
-    isStandardEnabled: Boolean,
     showBatteryOptimizationHint: Boolean,
     chartType: HomeChartType,
     chartWindow: HomeChartWindow,
@@ -388,7 +414,8 @@ private fun OverviewContent(
     onChartWindowChange: (HomeChartWindow) -> Unit,
     onShowDonate: () -> Unit,
     onBatteryOptimizationClick: () -> Unit,
-    onStatusCardTap: () -> Unit,
+    onActivateClick: () -> Unit,
+    onDiagnosticsToggle: () -> Unit,
     bottomContentPadding: androidx.compose.ui.unit.Dp,
 ) {
     val context = LocalContext.current
@@ -397,89 +424,57 @@ private fun OverviewContent(
     val showMessage: (String) -> Unit = { message ->
         scope.launch { snackbarHostState.showLatestSnackbar(message) }
     }
-    Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .nestedScroll(scrollBehavior.nestedScrollConnection)
-                .padding(horizontal = 16.dp),
-            state = listState,
-            userScrollEnabled = draggingCardId == null,
-            contentPadding = PaddingValues(
-                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 64.dp + 8.dp,
-                bottom = bottomContentPadding + 16.dp,
-            ),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            items(visibleCardSpecs, key = { it.id }) { spec ->
-                OverviewCardItem(
-                    context = context,
-                    spec = spec,
-                    visibleCardIds = visibleCardSpecs.map { it.id },
-                    cardOrder = cardOrder,
-                    enabledCardIds = enabledCardIds,
-                    editMode = editMode,
-                    isEnabled = isEnabled,
-                    isStandardEnabled = isStandardEnabled,
-                    showBatteryOptimizationHint = showBatteryOptimizationHint,
-                    chartType = chartType,
-                    chartWindow = chartWindow,
-                    chartSnapshot = chartSnapshot,
-                    appVersionName = appVersionName,
-                    appVersionCode = appVersionCode,
-                    frameworkType = frameworkType,
-                    frameworkVersion = frameworkVersion,
-                    hasRootAccess = hasRootAccess,
-                    runtimeConnected = runtimeConnected,
-                    mobileAutomationAllowed = mobileAutomationAllowed,
-                    activationDiagnostics = activationDiagnostics,
-                    showStatusDiagnostics = showStatusDiagnostics,
-                    draggingCardId = draggingCardId,
-                    dragOffsetY = dragOffsetY,
-                    dragThresholdPx = dragThresholdPx,
-                    onRequestEnableEditMode = onRequestEnableEditMode,
-                    onCardOrderChange = onCardOrderChange,
-                    onPersistCardOrder = onPersistCardOrder,
-                    onEnabledCardIdsChange = onEnabledCardIdsChange,
-                    onPersistEnabledCardIds = onPersistEnabledCardIds,
-                    onDragStateChange = onDragStateChange,
-                    onChartTypeChange = onChartTypeChange,
-                    onChartWindowChange = onChartWindowChange,
-                                onShowDonate = onShowDonate,
-                    onBatteryOptimizationClick = onBatteryOptimizationClick,
-                    onStatusCardTap = onStatusCardTap,
-                )
-            }
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        state = listState,
+        userScrollEnabled = draggingCardId == null,
+        contentPadding = PaddingValues(
+            top = topContentPadding,
+            bottom = bottomContentPadding + 16.dp,
+        ),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        items(visibleCardSpecs, key = { it.id }) { spec ->
+            OverviewCardItem(
+                context = context,
+                spec = spec,
+                visibleCardIds = visibleCardSpecs.map { it.id },
+                cardOrder = cardOrder,
+                enabledCardIds = enabledCardIds,
+                editMode = editMode,
+                isEnabled = isEnabled,
+                showBatteryOptimizationHint = showBatteryOptimizationHint,
+                chartType = chartType,
+                chartWindow = chartWindow,
+                chartSnapshot = chartSnapshot,
+                appVersionName = appVersionName,
+                appVersionCode = appVersionCode,
+                frameworkType = frameworkType,
+                frameworkVersion = frameworkVersion,
+                hasRootAccess = hasRootAccess,
+                runtimeConnected = runtimeConnected,
+                mobileAutomationAllowed = mobileAutomationAllowed,
+                activationDiagnostics = activationDiagnostics,
+                showStatusDiagnostics = showStatusDiagnostics,
+                draggingCardId = draggingCardId,
+                dragOffsetY = dragOffsetY,
+                dragThresholdPx = dragThresholdPx,
+                onRequestEnableEditMode = onRequestEnableEditMode,
+                onCardOrderChange = onCardOrderChange,
+                onPersistCardOrder = onPersistCardOrder,
+                onEnabledCardIdsChange = onEnabledCardIdsChange,
+                onPersistEnabledCardIds = onPersistEnabledCardIds,
+                onDragStateChange = onDragStateChange,
+                onChartTypeChange = onChartTypeChange,
+                onChartWindowChange = onChartWindowChange,
+                onShowDonate = onShowDonate,
+                onBatteryOptimizationClick = onBatteryOptimizationClick,
+                onActivateClick = onActivateClick,
+                onDiagnosticsToggle = onDiagnosticsToggle,
+            )
         }
-
-        TopAppBar(
-            title = { Text(text = stringResource(id = R.string.app_name)) },
-            scrollBehavior = scrollBehavior,
-            windowInsets = WindowInsets.statusBars,
-            modifier = Modifier
-                .align(Alignment.TopCenter),
-            colors = chromeTopAppBarColors(),
-            actions = {
-                if (showAddAction) {
-                    IconButton(onClick = onShowAddSheet) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = stringResource(id = R.string.forward_filter_action_add),
-                        )
-                    }
-                }
-                IconButton(onClick = onToggleEditMode) {
-                    Icon(
-                        imageVector = if (editMode) Icons.Default.Done else Icons.Default.Edit,
-                        contentDescription = if (editMode) {
-                            stringResource(id = R.string.action_rule_edit_done)
-                        } else {
-                            stringResource(id = R.string.edit)
-                        },
-                    )
-                }
-            },
-        )
     }
 }
 
@@ -492,7 +487,6 @@ private fun OverviewCardItem(
     enabledCardIds: Set<String>,
     editMode: Boolean,
     isEnabled: Boolean,
-    isStandardEnabled: Boolean,
     showBatteryOptimizationHint: Boolean,
     chartType: HomeChartType,
     chartWindow: HomeChartWindow,
@@ -519,7 +513,8 @@ private fun OverviewCardItem(
     onChartWindowChange: (HomeChartWindow) -> Unit,
     onShowDonate: () -> Unit,
     onBatteryOptimizationClick: () -> Unit,
-    onStatusCardTap: () -> Unit,
+    onActivateClick: () -> Unit,
+    onDiagnosticsToggle: () -> Unit,
 ) {
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val snackbarHostState = io.github.magisk317.relay.ui.common.LocalSnackbarHostState.current
@@ -567,7 +562,7 @@ private fun OverviewCardItem(
             CARD_STATUS -> {
                 StatusCard(
                     isEnhancedModeEnabled = isEnabled,
-                    isStandardModeEnabled = isStandardEnabled,
+                    isStandardModeEnabled = false,
                     isEntitled = mobileAutomationAllowed,
                     showBatteryOptimizationHint = showBatteryOptimizationHint,
                     showDiagnostics = showStatusDiagnostics,
@@ -576,10 +571,15 @@ private fun OverviewCardItem(
                         snapshot = activationDiagnostics,
                         runtimeConnected = runtimeConnected,
                     ),
-                    onClick = if (editMode) {
+                    onActivateClick = if (editMode) {
                         null
                     } else {
-                        onStatusCardTap
+                        onActivateClick
+                    },
+                    onDiagnosticsToggle = if (editMode) {
+                        null
+                    } else {
+                        onDiagnosticsToggle
                     },
                     onBatteryOptimizationClick = if (editMode) {
                         null
