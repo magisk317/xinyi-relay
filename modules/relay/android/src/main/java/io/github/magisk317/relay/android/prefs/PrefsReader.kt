@@ -13,10 +13,15 @@ import io.github.magisk317.relay.android.data.db.entity.SmsMsg
 import io.github.magisk317.relay.android.BuildConfig
 import io.github.magisk317.smscode.rule.constant.SmsCodeConst
 import io.github.magisk317.smscode.runtime.common.prefs.PrefsResolver
+import io.github.magisk317.smscode.runtime.common.prefs.PrefsSnapshot
+import io.github.magisk317.smscode.runtime.common.prefs.SnapshotPrefsSource
+import io.github.magisk317.smscode.runtime.common.prefs.sharedPrefsSnapshot
+import io.github.magisk317.smscode.runtime.contract.prefs.PrefSources
 import com.magisk317.mobile.entitlement.MobileEntitlementGate
 import com.magisk317.mobile.entitlement.MobileEntitlementPublishedState
 import com.magisk317.mobile.entitlement.MobileEntitlementVerificationPolicy
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.Collections
 import io.github.magisk317.xposed.logging.AnonymousInstallationId
 
 // Phase3 complete: PrefsReader is runtime/Xposed/跨进程只读 only.
@@ -29,10 +34,22 @@ object PrefsReader {
     private val runtimeBridgeLogOnce = AtomicBoolean(false)
     /** Remote provider availability can change without a bridge callback; never serve stale hits. */
     private const val CACHE_TTL_MS = 0L
+    private const val SNAPSHOT_PREFS_NAME = "hook_prefs_snapshot"
     private val prefsResolver = PrefsResolver(
         cacheTtlMs = CACHE_TTL_MS,
         missFallsThrough = true,
     )
+
+    /**
+     * Last values the remote source actually served, persisted in this process so a frozen module
+     * app cannot make a switch the user turned off read back as on. Installed from the hosted
+     * process context because the module package's own storage is not writable from here.
+     */
+    @Volatile
+    private var prefsSnapshot: PrefsSnapshot? = null
+    @Volatile
+    private var snapshotInstalled = false
+    private val fallbackTraceLoggedKeys = Collections.synchronizedSet(mutableSetOf<String>())
 
     private val mobileEntitlementPolicy
         get() = MobileEntitlementVerificationPolicy(
@@ -59,6 +76,34 @@ object PrefsReader {
         prefsResolver.invalidate()
     }
 
+    /**
+     * Only a value a real source served may be remembered. A snapshot hit or a bare default means
+     * the real setting was unreachable, which is exactly the state that used to be invisible.
+     */
+    private fun onResolved(key: String, source: String, remember: () -> Unit) {
+        if (source == PrefsSnapshot.SOURCE_SNAPSHOT || source == PrefSources.SOURCE_DEFAULT) {
+            logFallbackOnce(key, source)
+            return
+        }
+        remember()
+    }
+
+    private fun logFallbackOnce(key: String, source: String) {
+        if (fallbackTraceLoggedKeys.add("$key@$source")) {
+            safeWarn("Diag prefs fallback: key=%s source=%s (remote provider unreachable)", key, source)
+        }
+    }
+
+    @JvmStatic
+    fun installSnapshot(context: Context?) {
+        if (context == null || snapshotInstalled) return
+        runCatching {
+            val target = context.getSharedPreferences(SNAPSHOT_PREFS_NAME, Context.MODE_PRIVATE)
+            prefsSnapshot = sharedPrefsSnapshot(prefs = { target })
+            snapshotInstalled = true
+        }.onFailure { safeWarn("PrefsReader snapshot install failed", it) }
+    }
+
     private fun logRuntimeBridgeOnce() {
         if (!BuildConfig.DEBUG || !runtimeBridgeLogOnce.compareAndSet(false, true)) {
             return
@@ -81,10 +126,12 @@ object PrefsReader {
     }
 
     private fun resolveSources(): List<PrefsSource> {
-        return PrefsSourceChain.resolveSources(
+        val chain = PrefsSourceChain.resolveSources(
             runtimeBridge = runtimeBridge,
             warn = ::safeWarn,
         )
+        val snapshotSource = prefsSnapshot?.let(::SnapshotPrefsSource)
+        return if (snapshotSource == null) chain else chain + snapshotSource
     }
 
     private fun resolveBoolean(
@@ -95,7 +142,9 @@ object PrefsReader {
     ): PrefReadResult<Boolean> {
         prefsResolver.invalidate()
         logRuntimeBridgeOnce()
-        return prefsResolver.resolveBoolean(key, defaultValue, sources)
+        val result = prefsResolver.resolveBoolean(key, defaultValue, sources)
+        onResolved(key, result.source) { prefsSnapshot?.recordBoolean(key, result.value) }
+        return result
     }
 
     private fun resolveString(
@@ -106,7 +155,9 @@ object PrefsReader {
     ): PrefReadResult<String> {
         prefsResolver.invalidate()
         logRuntimeBridgeOnce()
-        return prefsResolver.resolveString(key, defaultValue, sources)
+        val result = prefsResolver.resolveString(key, defaultValue, sources)
+        onResolved(key, result.source) { prefsSnapshot?.recordString(key, result.value) }
+        return result
     }
 
     private fun resolveInt(
@@ -117,7 +168,9 @@ object PrefsReader {
     ): PrefReadResult<Int> {
         prefsResolver.invalidate()
         logRuntimeBridgeOnce()
-        return prefsResolver.resolveInt(key, defaultValue, sources)
+        val result = prefsResolver.resolveInt(key, defaultValue, sources)
+        onResolved(key, result.source) { prefsSnapshot?.recordInt(key, result.value) }
+        return result
     }
 
     private fun safeWarn(message: String, vararg args: Any?) {

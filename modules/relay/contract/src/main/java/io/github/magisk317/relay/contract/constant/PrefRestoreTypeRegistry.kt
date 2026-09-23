@@ -83,10 +83,9 @@ object PrefRestoreTypeRegistry {
 
     val INT_KEYS: Set<String> = setOf(
         RelayPrefConst.KEY_CHOOSE_THEME,
+        RelayPrefConst.KEY_UI_KIT_STYLE,
         RelayPrefConst.KEY_LOW_BATTERY_THRESHOLD,
         RelayPrefConst.KEY_RUNTIME_LOG_RETENTION_DAYS,
-        @Suppress("DEPRECATION")
-        RelayPrefConst.KEY_RUNTIME_LOG_FILE_SIZE_MB,
         RelayPrefConst.KEY_FORWARD_COMMON_DISPATCH_STRATEGY,
         "local_version_code",
     )

@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.android.prefs
 
+import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.mutablePreferencesOf

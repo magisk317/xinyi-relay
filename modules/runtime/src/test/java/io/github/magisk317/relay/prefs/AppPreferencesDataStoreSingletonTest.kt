@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.prefs
 
-import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
+import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import android.content.Context
 import io.mockk.every
 import io.mockk.mockk

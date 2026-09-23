@@ -37,12 +37,6 @@ class PrefRestoreTypeRegistryTest {
     }
 
     @Test
-    fun typeOf_legacyRuntimeLogSize_isInt() {
-        @Suppress("DEPRECATION")
-        assertEquals(PrefValueType.INT, PrefRestoreTypeRegistry.typeOf(PrefConst.KEY_RUNTIME_LOG_FILE_SIZE_MB))
-    }
-
-    @Test
     fun typeOf_dispatchStrategy_isInt() {
         assertEquals(PrefValueType.INT, PrefRestoreTypeRegistry.typeOf(PrefConst.KEY_FORWARD_COMMON_DISPATCH_STRATEGY))
     }

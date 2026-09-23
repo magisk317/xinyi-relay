@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.service
 
+import io.github.magisk317.relay.android.platform.compat.PlatformCompat
 import android.accessibilityservice.AccessibilityService
 import android.app.ActivityManager
 import android.content.BroadcastReceiver
@@ -15,7 +16,7 @@ import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import androidx.core.content.ContextCompat
 import io.github.magisk317.relay.android.common.utils.XLog
-import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
+import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.relay.receiver.AutoInputActions
 import io.github.magisk317.smscode.runtime.contract.autoinput.AutoInputFallbackPolicy
@@ -225,15 +226,11 @@ class AutoInputAccessibilityService : AccessibilityService() {
     private fun resolveHomePackages(): Set<String> {
         val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
         return runCatching {
-            val infos = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                packageManager.queryIntentActivities(
-                    intent,
-                    PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_DEFAULT_ONLY.toLong()),
-                )
-            } else {
-                @Suppress("DEPRECATION")
-                packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
-            }
+            val infos = PlatformCompat.queryIntentActivities(
+                packageManager,
+                intent,
+                PackageManager.MATCH_DEFAULT_ONLY,
+            )
             infos.mapNotNull { it.activityInfo?.packageName?.takeIf(String::isNotBlank) }.toSet()
         }.getOrDefault(emptySet())
     }

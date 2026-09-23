@@ -31,6 +31,8 @@ import io.github.magisk317.smscode.runtime.contract.backup.BackupImportResult
 import io.github.magisk317.smscode.runtime.contract.backup.BackupRule
 import io.github.magisk317.smscode.runtime.contract.backup.BackupSmsRecord
 import io.github.magisk317.smscode.runtime.contract.backup.ExportResult
+import io.github.magisk317.smscode.runtime.common.prefs.AppearancePreferences
+import io.github.magisk317.smscode.runtime.common.prefs.SharedPreferenceKeys
 import io.github.magisk317.uikit.theme.UiKitStyle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
@@ -154,6 +156,16 @@ class SettingsViewModel(
         val uiKitStyle: Int = UiKitStyle.Expressive.value,
         val centerX: Float = -1f,
         val centerY: Float = -1f,
+        val layoutScale: Int = SharedPreferenceKeys.Appearance.DEFAULT_LAYOUT_SCALE,
+        val paletteStyle: Int = SharedPreferenceKeys.Appearance.DEFAULT_PALETTE_STYLE,
+        val colorSpec: Int = SharedPreferenceKeys.Appearance.DEFAULT_COLOR_SPEC,
+        val accentColor: Int = SharedPreferenceKeys.Appearance.DEFAULT_ACCENT_COLOR,
+        val monetEnabled: Boolean = SharedPreferenceKeys.Appearance.DEFAULT_MONET_ENABLED,
+        val surfaceBlur: Boolean = SharedPreferenceKeys.Appearance.DEFAULT_SURFACE_BLUR,
+        val dynamicColor: Boolean = SharedPreferenceKeys.Appearance.DEFAULT_DYNAMIC_COLOR,
+        val floatingBottomBar: Boolean = SharedPreferenceKeys.Appearance.DEFAULT_FLOATING_BOTTOM_BAR,
+        val bottomBarBlur: Boolean = SharedPreferenceKeys.Appearance.DEFAULT_BOTTOM_BAR_BLUR,
+        val bottomBarBackdrop: Boolean = SharedPreferenceKeys.Appearance.DEFAULT_BOTTOM_BAR_BACKDROP,
     )
     data class LanguageState(val languageTag: String = "")
 
@@ -171,7 +183,21 @@ class SettingsViewModel(
         viewModelScope.launch {
             val mode = settingsRepository.getThemeMode()
             val uiKitStyle = settingsRepository.getUiKitStyle()
-            sharedThemeState.value = ThemeState(mode, uiKitStyle)
+            val app = getApplication<Application>()
+            sharedThemeState.value = ThemeState(
+                mode = mode,
+                uiKitStyle = uiKitStyle,
+                layoutScale = AppearancePreferences.layoutScale(app),
+                paletteStyle = AppearancePreferences.paletteStyle(app),
+                colorSpec = AppearancePreferences.colorSpec(app),
+                accentColor = AppearancePreferences.accentColor(app),
+                monetEnabled = AppearancePreferences.monetEnabled(app),
+                surfaceBlur = AppearancePreferences.surfaceBlurEnabled(app),
+                dynamicColor = AppearancePreferences.dynamicColorEnabled(app),
+                floatingBottomBar = AppearancePreferences.floatingBottomBarEnabled(app),
+                bottomBarBlur = AppearancePreferences.bottomBarBlurEnabled(app),
+                bottomBarBackdrop = AppearancePreferences.bottomBarBackdropEnabled(app),
+            )
         }
         viewModelScope.launch {
             sharedLanguageState.value = LanguageState(settingsRepository.getLanguageTag())
@@ -189,14 +215,80 @@ class SettingsViewModel(
         }
     }
 
-    fun previewUiKitStyle(style: Int) {
-        sharedThemeState.value = sharedThemeState.value.copy(uiKitStyle = style)
-    }
-
     fun persistUiKitStyle(style: Int) {
         viewModelScope.launch {
             settingsRepository.setUiKitStyle(style)
             sharedThemeState.value = sharedThemeState.value.copy(uiKitStyle = style)
+        }
+    }
+
+    fun setLayoutScale(value: Int) {
+        viewModelScope.launch {
+            AppearancePreferences.setLayoutScale(getApplication(), value)
+            sharedThemeState.value = sharedThemeState.value.copy(layoutScale = value)
+        }
+    }
+
+    fun setPaletteStyle(value: Int) {
+        viewModelScope.launch {
+            AppearancePreferences.setPaletteStyle(getApplication(), value)
+            sharedThemeState.value = sharedThemeState.value.copy(paletteStyle = value)
+        }
+    }
+
+    fun setColorSpec(value: Int) {
+        viewModelScope.launch {
+            AppearancePreferences.setColorSpec(getApplication(), value)
+            sharedThemeState.value = sharedThemeState.value.copy(colorSpec = value)
+        }
+    }
+
+    fun setAccentColor(argb: Int) {
+        viewModelScope.launch {
+            AppearancePreferences.setAccentColor(getApplication(), argb)
+            sharedThemeState.value = sharedThemeState.value.copy(accentColor = argb)
+        }
+    }
+
+    fun setMonetEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            AppearancePreferences.setMonetEnabled(getApplication(), enabled)
+            sharedThemeState.value = sharedThemeState.value.copy(monetEnabled = enabled)
+        }
+    }
+
+    fun setSurfaceBlurEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            AppearancePreferences.setSurfaceBlurEnabled(getApplication(), enabled)
+            sharedThemeState.value = sharedThemeState.value.copy(surfaceBlur = enabled)
+        }
+    }
+
+    fun setDynamicColorEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            AppearancePreferences.setDynamicColorEnabled(getApplication(), enabled)
+            sharedThemeState.value = sharedThemeState.value.copy(dynamicColor = enabled)
+        }
+    }
+
+    fun setFloatingBottomBarEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            AppearancePreferences.setFloatingBottomBarEnabled(getApplication(), enabled)
+            sharedThemeState.value = sharedThemeState.value.copy(floatingBottomBar = enabled)
+        }
+    }
+
+    fun setBottomBarBlurEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            AppearancePreferences.setBottomBarBlurEnabled(getApplication(), enabled)
+            sharedThemeState.value = sharedThemeState.value.copy(bottomBarBlur = enabled)
+        }
+    }
+
+    fun setBottomBarBackdropEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            AppearancePreferences.setBottomBarBackdropEnabled(getApplication(), enabled)
+            sharedThemeState.value = sharedThemeState.value.copy(bottomBarBackdrop = enabled)
         }
     }
 
@@ -395,7 +487,7 @@ class SettingsViewModel(
 
                 val prefs = if (includeConfig) {
                     withContext(Dispatchers.IO) {
-                        io.github.magisk317.relay.android.prefs.AppPreferencesDataStore.snapshotForBackup(context)
+                        io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore.snapshotForBackup(context)
                     }
                 } else {
                     null

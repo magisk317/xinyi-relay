@@ -16,7 +16,7 @@ import io.github.magisk317.relay.android.data.db.dao.SmsMsgDao
 import io.github.magisk317.relay.android.data.db.entity.AppInfo
 import io.github.magisk317.relay.android.data.db.entity.SmsCodeRule
 import io.github.magisk317.relay.android.data.db.entity.SmsMsg
-import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
+import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.android.platform.ipc.ProviderCallerPolicy
 import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore

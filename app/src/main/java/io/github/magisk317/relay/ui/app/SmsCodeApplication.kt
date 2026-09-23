@@ -1,5 +1,7 @@
 package io.github.magisk317.relay.ui.app
 
+import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
+import io.github.magisk317.relay.android.prefs.RelayPreferenceHooks
 import android.app.Application
 import android.app.Activity
 import android.os.Bundle
@@ -32,6 +34,7 @@ class SmsCodeApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        AppPreferencesDataStore.install(RelayPreferenceHooks)
         configureMobileEntitlement()
 
         startKoin {
@@ -62,7 +65,7 @@ class SmsCodeApplication : Application() {
             bridge = object : MobileEntitlementBridge {
                 override fun publish(context: android.content.Context, state: MobileEntitlementPublishedState): Boolean =
                     kotlinx.coroutines.runBlocking {
-                        io.github.magisk317.relay.android.prefs.AppPreferencesDataStore.batchEdit(context) {
+                        io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore.batchEdit(context) {
                             setBoolean(
                                 io.github.magisk317.relay.contract.constant.RelayPrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
                                 state.automationAllowed,

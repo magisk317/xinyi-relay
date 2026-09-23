@@ -1,8 +1,9 @@
 package io.github.magisk317.relay.android.otel
 
+import io.github.magisk317.relay.android.platform.compat.PlatformCompat
 import android.content.Context
 import io.github.magisk317.relay.android.BuildConfig
-import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
+import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.xposed.logging.AnonymousInstallationId
 import io.github.magisk317.xposed.logging.MagiskOtel
@@ -75,8 +76,7 @@ object MagiskOtelBootstrap {
 
     private fun resolveVersion(context: Context): String {
         return runCatching {
-            @Suppress("DEPRECATION")
-            context.packageManager.getPackageInfo(context.packageName, 0).versionName
+            PlatformCompat.getPackageInfo(context.packageManager, context.packageName).versionName
         }.getOrNull()?.takeIf { it.isNotBlank() } ?: "unknown"
     }
 

@@ -6,7 +6,7 @@ import io.github.magisk317.smscode.runtime.contract.diagnostics.ActivationDiagno
 import io.github.magisk317.smscode.runtime.contract.diagnostics.ActivationStatusInputs
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeDiagnosticsConfig
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeDiagnosticsInstaller
-import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
+import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
 
 object RuntimeDiagnosticsBridge {

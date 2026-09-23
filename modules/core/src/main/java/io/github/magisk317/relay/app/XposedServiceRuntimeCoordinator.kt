@@ -5,7 +5,7 @@ import android.content.SharedPreferences
 import io.github.magisk317.relay.android.common.utils.RelayLogger
 import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
 import io.github.magisk317.relay.android.diagnostics.RuntimeActivationState
-import io.github.magisk317.relay.android.prefs.AppPreferencesDataStore
+import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.feature.mode.WorkMode
