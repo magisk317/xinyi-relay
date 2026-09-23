@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.android.service
 
+import io.github.magisk317.relay.android.platform.compat.PlatformCompat
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
@@ -31,12 +32,7 @@ class SystemInfoProviderImpl(private val context: Context) : SystemInfoProvider 
         if (packageName.isBlank()) return ""
         val pm = context.packageManager
         return runCatching {
-            val appInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                pm.getApplicationInfo(packageName, android.content.pm.PackageManager.ApplicationInfoFlags.of(0))
-            } else {
-                @Suppress("DEPRECATION")
-                pm.getApplicationInfo(packageName, 0)
-            }
+            val appInfo = PlatformCompat.getApplicationInfo(pm, packageName)
             pm.getApplicationLabel(appInfo).toString()
         }.getOrDefault("")
     }
@@ -44,12 +40,7 @@ class SystemInfoProviderImpl(private val context: Context) : SystemInfoProvider 
     private fun resolveAppVersion(): String {
         val pm = context.packageManager
         return runCatching {
-            val pkgInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                pm.getPackageInfo(context.packageName, android.content.pm.PackageManager.PackageInfoFlags.of(0))
-            } else {
-                @Suppress("DEPRECATION")
-                pm.getPackageInfo(context.packageName, 0)
-            }
+            val pkgInfo = PlatformCompat.getPackageInfo(pm, context.packageName)
             pkgInfo.versionName.orEmpty()
         }.getOrDefault("")
     }

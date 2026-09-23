@@ -101,21 +101,11 @@ internal object SmsSendBackend {
             val targetInfo = subscriptionManager.activeSubscriptionInfoList
                 ?.find { it.simSlotIndex == simSlot - 1 }
                 ?: throw IllegalArgumentException("未找到 SIM 卡槽 $simSlot")
-            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                context.getSystemService(SmsManager::class.java)
-                    ?.createForSubscriptionId(targetInfo.subscriptionId)
-                    ?: throw IllegalStateException("系统短信服务不可用")
-            } else {
-                @Suppress("DEPRECATION")
-                SmsManager.getSmsManagerForSubscriptionId(targetInfo.subscriptionId)
-            }
+            return SmsManagerCompat.forSubscriptionId(context, targetInfo.subscriptionId)
+                ?: throw IllegalStateException("系统短信服务不可用")
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            context.getSystemService(SmsManager::class.java)?.let { return it }
-        }
-        @Suppress("DEPRECATION")
-        return SmsManager.getDefault()
+        return SmsManagerCompat.default(context)
     }
 
     private suspend fun sendAndAwaitSentResult(

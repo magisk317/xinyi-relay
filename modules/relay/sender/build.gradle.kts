@@ -39,6 +39,7 @@ android {
 dependencies {
     api(project(":magisk-xposed-kit:logging"))
     implementation(project(":relay:sender:api"))
+    implementation(project(":relay:security"))
     implementation(project(":relay:contract"))
     implementation(project(":relay:engine:api"))
     implementation(project(":relay:net"))

@@ -2,12 +2,14 @@ package io.github.magisk317.relay.sender
 
 import android.content.Context
 import android.content.SharedPreferences
+import io.github.magisk317.relay.security.AndroidKeystoreKeyProvider
+import io.github.magisk317.relay.security.AesGcmEnvelopeCipher
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 /**
  * Android-backed [EmailOAuthCredentialStore]. Each value is an AES-256-GCM
- * envelope ([AesGcmEmailOAuthCredentialCipher]) sealed by a non-exportable
+ * envelope ([AesGcmEnvelopeCipher]) sealed by a non-exportable
  * AndroidKeyStore key, so secrets never appear in plaintext at rest. Preference
  * keys carry only the non-secret [EmailOAuthCredentials.credentialId].
  */
@@ -20,7 +22,10 @@ class AndroidEmailOAuthCredentialStore(
         ignoreUnknownKeys = true
         encodeDefaults = true
     }
-    private val cipher = AesGcmEmailOAuthCredentialCipher(AndroidKeystoreEmailOAuthKeyProvider)
+    private val cipher = AesGcmEnvelopeCipher(
+        keyProvider = AndroidKeystoreKeyProvider(EMAIL_OAUTH2_KEY_ALIAS),
+        envelopeVersion = "v1",
+    )
     // Domain-separates ciphertexts so envelopes cannot be transplanted between
     // preference files or replayed for another purpose.
     private val aad = "${context.packageName}|$PREFS_FILE|oauth2_cred|v1".toByteArray()
@@ -72,6 +77,7 @@ class AndroidEmailOAuthCredentialStore(
 
     companion object {
         private const val PREFS_FILE = "xinyi_oauth2_credentials"
+        private const val EMAIL_OAUTH2_KEY_ALIAS = "io.github.magisk317.xinyi.relay.email_oauth2.v1"
 
         fun createDefaultPrefs(context: Context): SharedPreferences =
             context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)

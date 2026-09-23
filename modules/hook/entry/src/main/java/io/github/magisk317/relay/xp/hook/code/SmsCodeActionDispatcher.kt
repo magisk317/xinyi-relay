@@ -16,6 +16,7 @@ import io.github.magisk317.smscode.runtime.verification.NotificationDispatchGuar
 import io.github.magisk317.smscode.runtime.verification.SmsCodeActionScheduler
 import io.github.magisk317.smscode.runtime.verification.SmsCodeActionDispatcher as SharedSmsCodeActionDispatcher
 import io.github.magisk317.smscode.runtime.verification.SmsCodePostParseCoordinator
+import io.github.magisk317.smscode.xposed.utils.XLog
 import java.util.concurrent.Callable
 import java.util.concurrent.ScheduledExecutorService
 
@@ -126,7 +127,10 @@ internal object SmsCodeActionDispatcher {
         smsMsg: SmsMsg,
         uiPlan: SmsCodePostParseCoordinator.UiPlan,
     ) {
-        if (!mobileAutomationAllowed(pluginContext)) return
+        if (!mobileAutomationAllowed(pluginContext)) {
+            XLog.i("Mobile entitlement gate skipped UI actions")
+            return
+        }
         uiHandler.post(
             CopyToClipboardAction(
                 pluginContext = pluginContext,
@@ -241,7 +245,10 @@ internal object SmsCodeActionDispatcher {
         smsMsg: SmsMsg,
         plan: SmsCodePostParseCoordinator.NotificationPlan,
     ) {
-        if (!mobileAutomationAllowed(pluginContext)) return
+        if (!mobileAutomationAllowed(pluginContext)) {
+            XLog.i("Mobile entitlement gate skipped code notification")
+            return
+        }
         if (XpPrefs.deduplicateSms(pluginContext) && !claimNotificationDispatch(pluginContext, smsMsg)) return
         SmsCodeActionScheduler.scheduleNow(executor) {
             NotifyAction(
@@ -269,6 +276,8 @@ internal object SmsCodeActionDispatcher {
             Callable {
                 if (mobileAutomationAllowed(pluginContext)) {
                     OperateSmsAction(pluginContext, phoneContext, smsMsg).call()
+                } else {
+                    XLog.i("Mobile entitlement gate skipped SMS operations")
                 }
             }
         }
@@ -313,7 +322,10 @@ internal object SmsCodeActionDispatcher {
                 )
             },
     ): Boolean {
-        if (!mobileAutomationAllowed(pluginContext)) return false
+        if (!mobileAutomationAllowed(pluginContext)) {
+            XLog.i("Mobile entitlement gate skipped auto-input dispatch")
+            return false
+        }
         return AutoInputDispatchGuard.claim(
             pluginContext = pluginContext,
             smsMsg = smsMsg,
