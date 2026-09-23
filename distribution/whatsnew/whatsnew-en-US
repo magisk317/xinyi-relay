@@ -1,6 +1,7 @@
-- Updated to 0.2.5 (47).
-- Email sender gains the OAuth2 device-code flow.
-- Mobile entitlement drops Google sign-in for one-time tokens.
-- QQ channel entry on the overview page.
-- Refreshed dependencies and release toolchain.
+- Updated to 0.2.6 (48).
+- Ten screens now adapt to both Material and Miuix UI kits.
+- New in-app UI kit style switch and theme settings page.
+- Usage-based sort now supports root authorization.
+- The legacy non-Xposed relay channel is retired.
+- Refreshed dependencies and hardened release pipelines.
 - https://gitlab.com/magisk3171/xinyi-relay/-/releases

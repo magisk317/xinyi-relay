@@ -1,0 +1,7 @@
+- 升级至 0.2.6（48）。
+- 十大页面完成 Material / Miuix 双 chrome 适配。
+- 新增应用内 UI 套件风格开关与主题设置页。
+- 使用频率排序支持 Root 授权。
+- 移除标准（非 Xposed）转发通道。
+- 刷新依赖并加固发布流水线。
+- https://gitlab.com/magisk3171/xinyi-relay/-/releases

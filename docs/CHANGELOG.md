@@ -3,8 +3,13 @@
 本日志记录了项目近期的主要变更。 
 
 ---
-## [v0.2.6] - 2026-09-18
+## [v0.2.6] - 2026-09-23
 - 版本：`versionCode 48` / `versionName 0.2.6`。
+- `[ui]` 主要页面完成双主题适配。
+- `[ui]` 新增 UI 套件风格开关与主题设置页。
+- `[feature]` 使用Root授权支持频率排序。
+- `[core]` 偏好与权限迁移共享组件。
+- `[build]` 刷新依赖并加固构建产物。
 
 > Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.2.5...v0.2.6
 

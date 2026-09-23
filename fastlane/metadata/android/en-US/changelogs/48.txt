@@ -1,0 +1,7 @@
+- Updated to 0.2.6 (48).
+- Ten screens now adapt to both Material and Miuix UI kits.
+- New in-app UI kit style switch and theme settings page.
+- Usage-based sort now supports root authorization.
+- The legacy non-Xposed relay channel is retired.
+- Refreshed dependencies and hardened release pipelines.
+- https://gitlab.com/magisk3171/xinyi-relay/-/releases
