@@ -3,6 +3,12 @@
 本日志记录了项目近期的主要变更。 
 
 ---
+## [v0.2.7] - 2026-09-23
+- 版本：`versionCode 49` / `versionName 0.2.7`。
+
+> Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.2.6...v0.2.7
+
+---
 ## [v0.2.6] - 2026-09-23
 - 版本：`versionCode 48` / `versionName 0.2.6`。
 - `[ui]` 主要页面完成双主题适配。
