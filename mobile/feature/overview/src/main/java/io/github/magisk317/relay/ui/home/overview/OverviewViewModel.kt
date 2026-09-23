@@ -48,8 +48,6 @@ class OverviewViewModel(
     internal val uiState: StateFlow<OverviewUiState> = _uiState.asStateFlow()
     private val _events = MutableSharedFlow<OverviewEvent>(extraBufferCapacity = 4)
     internal val events: SharedFlow<OverviewEvent> = _events.asSharedFlow()
-    private var statusTapCount = 0
-    private var statusTapStartedAtMs = 0L
     private var pageActive = true
     private var settingsGeneration = 0L
     private var runtimeRefreshGeneration = 0L
@@ -242,17 +240,9 @@ class OverviewViewModel(
         _uiState.update { it.copy(batteryOptimizationExempted = exempted) }
     }
 
-    internal fun onStatusCardTapped(nowMs: Long) {
-        val withinWindow = nowMs - statusTapStartedAtMs <= 1800L
-        statusTapCount = if (withinWindow) statusTapCount + 1 else 1
-        statusTapStartedAtMs = nowMs
-        if (statusTapCount < 5) {
-            return
-        }
+    internal fun toggleStatusDiagnostics() {
         val nextVisible = !_uiState.value.showStatusDiagnostics
         _uiState.update { it.copy(showStatusDiagnostics = nextVisible) }
-        statusTapCount = 0
-        statusTapStartedAtMs = 0L
         _events.tryEmit(OverviewEvent.StatusDiagnosticsVisibilityChanged(nextVisible))
     }
 }

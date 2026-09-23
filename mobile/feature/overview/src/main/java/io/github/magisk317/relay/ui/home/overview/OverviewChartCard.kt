@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,6 +27,7 @@ import io.github.magisk317.relay.engine.model.SenderDispatchStat
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
+import io.github.magisk317.uikit.surface.SummarySectionCard
 
 internal data class HomeAnalyticsSnapshot(
     val totalMessages: Long,
@@ -95,13 +94,7 @@ internal fun HomeChartCard(
     onChartTypeChange: (HomeChartType) -> Unit,
     onChartWindowChange: (HomeChartWindow) -> Unit,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        ),
-    ) {
+    SummarySectionCard(modifier = Modifier.fillMaxWidth()) {
         HomeChartBody(
             chartType = chartType,
             chartWindow = chartWindow,
@@ -109,7 +102,7 @@ internal fun HomeChartCard(
             onChartTypeChange = onChartTypeChange,
             onChartWindowChange = onChartWindowChange,
             showTitle = true,
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(horizontal = 16.dp),
         )
     }
 }

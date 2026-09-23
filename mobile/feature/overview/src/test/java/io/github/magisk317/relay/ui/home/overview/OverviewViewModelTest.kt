@@ -82,7 +82,7 @@ class OverviewViewModelTest {
     }
 
     @Test
-    fun onStatusCardTapped_togglesDiagnosticsAfterFiveTaps_andEmitsEvent() = runBlocking {
+    fun toggleStatusDiagnostics_flipsVisibility_andEmitsEvent() = runBlocking {
         val viewModel = OverviewViewModel(
             FakeOverviewSettingsRepository(
                 overviewSettings = OverviewSettingsSnapshot(
@@ -93,16 +93,23 @@ class OverviewViewModelTest {
                 ),
             ),
         )
-        val eventDeferred = async(start = CoroutineStart.UNDISPATCHED) { viewModel.events.first() }
+        val showEvent = async(start = CoroutineStart.UNDISPATCHED) { viewModel.events.first() }
 
-        repeat(5) { index ->
-            viewModel.onStatusCardTapped(1000L + index * 100L)
-        }
+        viewModel.toggleStatusDiagnostics()
 
         assertTrue(viewModel.uiState.value.showStatusDiagnostics)
         assertEquals(
             OverviewEvent.StatusDiagnosticsVisibilityChanged(true),
-            eventDeferred.await(),
+            showEvent.await(),
+        )
+
+        val hideEvent = async(start = CoroutineStart.UNDISPATCHED) { viewModel.events.first() }
+        viewModel.toggleStatusDiagnostics()
+
+        assertFalse(viewModel.uiState.value.showStatusDiagnostics)
+        assertEquals(
+            OverviewEvent.StatusDiagnosticsVisibilityChanged(false),
+            hideEvent.await(),
         )
     }
 

@@ -2,15 +2,9 @@ package io.github.magisk317.relay.ui.record
 
 import android.graphics.Bitmap
 import io.github.magisk317.relay.ui.common.rememberBlacklistHitDateFormat
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.MaterialTheme
@@ -26,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.model.ReadSmsBlacklistHitData
 import io.github.magisk317.relay.ui.common.AppIconBitmapImage
+import io.github.magisk317.uikit.surface.WorkspaceListItem
+import io.github.magisk317.uikit.surface.WorkspaceListItemDefaults
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -66,65 +62,55 @@ internal fun SmsBlacklistHitListItem(
         append(" · ")
         append(sourceText)
     }
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp, horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .width(56.dp)
-                .padding(end = 16.dp),
-        ) {
+    WorkspaceListItem(
+        modifier = modifier,
+        onClick = onClick,
+        leadingWidth = WorkspaceListItemDefaults.iconColumnWidth,
+        leadingContent = {
             AppIconBitmapImage(
                 bitmap = defaultSmsIcon,
+                size = WorkspaceListItemDefaults.iconSize,
                 contentDescription = stringResource(R.string.sms_icon_description),
                 fallbackIcon = Icons.Default.Email,
             )
-        }
-
-        Column(modifier = Modifier.weight(1f)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = senderTitle,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 8.dp),
-                )
-                Text(
-                    text = dateFormat.format(Date(hit.createdAt)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    textAlign = TextAlign.End,
-                )
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-            if (body.isNotBlank()) {
-                Text(
-                    text = body,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Spacer(modifier = Modifier.height(2.dp))
+        },
+        supportingContent = {
             Text(
                 text = status,
                 style = MaterialTheme.typography.labelSmall,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = senderTitle,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 8.dp),
+            )
+            Text(
+                text = dateFormat.format(Date(hit.createdAt)),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                textAlign = TextAlign.End,
+            )
+        }
+        if (body.isNotBlank()) {
+            Text(
+                text = body,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
         }

@@ -1,6 +1,10 @@
 package io.github.magisk317.relay.ui.home.overview
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
+import io.github.magisk317.uikit.surface.MiuixStatusCheckCard
+import io.github.magisk317.uikit.surface.rememberStatusCardClickHandler
+import io.github.magisk317.uikit.theme.UiKitStyle
+import io.github.magisk317.uikit.theme.currentUiKitStyle
 
 import android.os.Build
 import androidx.compose.foundation.background
@@ -64,11 +68,48 @@ fun StatusCard(
     showBatteryOptimizationHint: Boolean = false,
     showDiagnostics: Boolean,
     diagnostics: List<Pair<String, String>>,
-    onClick: (() -> Unit)? = null,
+    onActivateClick: (() -> Unit)? = null,
+    onDiagnosticsToggle: (() -> Unit)? = null,
     onBatteryOptimizationClick: (() -> Unit)? = null,
 ) {
     val isWorking = isEnhancedModeEnabled || isStandardModeEnabled
     val isAllOk = isWorking && isEntitled
+    val moduleStatusText = when {
+        isEnhancedModeEnabled -> stringResource(id = R.string.status_module_activated)
+        isStandardModeEnabled -> stringResource(id = R.string.status_module_activated)
+        else -> stringResource(id = R.string.status_module_not_activated)
+    }
+    val entitlementStatusText = if (isEntitled) {
+        stringResource(id = R.string.status_entitlement_verified)
+    } else {
+        stringResource(id = R.string.status_entitlement_unverified)
+    }
+    val resolvedOnClick = rememberStatusCardClickHandler(
+        isEntitled = isEntitled,
+        onActivateClick = onActivateClick,
+        onDiagnosticsToggle = onDiagnosticsToggle,
+    )
+
+    // Miuix hero card adopts the KernelSU-style oversized corner check mark shared via ui-kit
+    // (MiPush OverviewMiuix lineage). The auth state (mobile automation entitlement) drives the
+    // pass branch: entitled shows the check mark, otherwise the error mark; a single tap opens
+    // MobileEntitlementActivity while entitlement is missing.
+    if (currentUiKitStyle() == UiKitStyle.Miuix) {
+        MiuixStatusCheckCard(
+            passed = isEntitled,
+            title = entitlementStatusText,
+            badge = moduleStatusText,
+            summary = when {
+                !isWorking -> stringResource(id = R.string.status_activate_hint)
+                isStandardModeEnabled -> stringResource(id = R.string.standard_mode_service_notification_text)
+                else -> null
+            },
+            diagnostics = if (showDiagnostics) diagnostics else emptyList(),
+            onClick = { resolvedOnClick?.invoke() },
+        )
+        return
+    }
+
     val containerColor = if (isAllOk) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.errorContainer
     val contentColor = if (isAllOk) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onErrorContainer
 
@@ -79,7 +120,7 @@ fun StatusCard(
             containerColor = containerColor,
             contentColor = contentColor,
         ),
-        onClick = { onClick?.invoke() },
+        onClick = { resolvedOnClick?.invoke() },
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
             Row(
@@ -93,16 +134,6 @@ fun StatusCard(
                     modifier = Modifier.size(48.dp),
                 )
                 Column {
-                    val moduleStatusText = when {
-                        isEnhancedModeEnabled -> stringResource(id = R.string.status_module_activated)
-                        isStandardModeEnabled -> stringResource(id = R.string.status_module_activated)
-                        else -> stringResource(id = R.string.status_module_not_activated)
-                    }
-                    val entitlementStatusText = if (isEntitled) {
-                        stringResource(id = R.string.status_entitlement_verified)
-                    } else {
-                        stringResource(id = R.string.status_entitlement_unverified)
-                    }
                     Text(
                         text = moduleStatusText,
                         style = MaterialTheme.typography.titleMedium,

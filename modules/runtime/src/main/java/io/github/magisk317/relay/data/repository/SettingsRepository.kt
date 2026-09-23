@@ -672,11 +672,11 @@ class SettingsRepository(
     }
 
     override suspend fun getUiKitStyle(): Int {
-        return UI_KIT_STYLE_EXPRESSIVE
+        return preferenceDataSource.getInt(PrefConst.KEY_UI_KIT_STYLE, UI_KIT_STYLE_EXPRESSIVE)
     }
 
     override suspend fun setUiKitStyle(style: Int) {
-        preferenceDataSource.setInt(PrefConst.KEY_UI_KIT_STYLE, UI_KIT_STYLE_EXPRESSIVE)
+        preferenceDataSource.setInt(PrefConst.KEY_UI_KIT_STYLE, style)
         publishHookPrefsAndScheduleAutoBackup("settings.ui_kit_style")
     }
 
