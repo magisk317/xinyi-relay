@@ -12,6 +12,11 @@ val mobileEntitlementApiOrigin = providers.gradleProperty("mobileEntitlementApiO
 val mobileEntitlementSigningPublicJwk = providers.gradleProperty("mobileEntitlementSigningPublicJwk")
     .orElse("""{"kty":"EC","x":"4kPpwUt1wFRuF3EqGq6q57J3YmANf7wyiNH90FNkAbI","y":"U4-E1XK6LjWIXMFNEoSAoik7nD1S07BDb7qAipQd4Ts","crv":"P-256","alg":"ES256","use":"sig","kid":"mobile-entitlement-1"}""")
     .get()
+
+val gitCommitHash = providers.exec {
+    commandLine("git", "-C", projectDir, "rev-parse", "--short", "HEAD")
+}.standardOutput.asText.get().trim()
+
 fun buildConfigString(value: String): String =
     "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
@@ -34,6 +39,7 @@ android {
         buildConfigField("String", "APPLICATION_ID", "\"io.github.magisk317.xinyi.relay\"")
         buildConfigField("int", "LOG_LEVEL", "2")
         buildConfigField("boolean", "LOG_TO_XPOSED", "true")
+        buildConfigField("String", "COMMIT_HASH", "\"$gitCommitHash\"")
         buildConfigField("String", "MOBILE_ENTITLEMENT_API_ORIGIN", buildConfigString(mobileEntitlementApiOrigin))
         buildConfigField("String", "MOBILE_ENTITLEMENT_SIGNING_PUBLIC_JWK", buildConfigString(mobileEntitlementSigningPublicJwk))
         consumerProguardFiles("consumer-rules.pro")
