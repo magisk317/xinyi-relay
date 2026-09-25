@@ -82,7 +82,7 @@ mobile-entitlement = "0.2.1"
 ndk = "30.0.16248370"
 versionCode = "49"
 versionName = "0.2.7"
-matrix-sdk-android = "26.09.9"
+matrix-sdk-android = "26.09.26"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
