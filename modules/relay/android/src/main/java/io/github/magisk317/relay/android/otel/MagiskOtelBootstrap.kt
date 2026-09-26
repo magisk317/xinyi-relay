@@ -69,6 +69,7 @@ object MagiskOtelBootstrap {
                 projectId = PROJECT_ID,
                 projectName = PROJECT_NAME,
                 environment = if (BuildConfig.DEBUG) "debug" else "release",
+                suppressedResultValues = SUPPRESSED_RESULT_VALUES,
             ),
             TELEMETRY_PREFS_NAME,
         )
@@ -79,6 +80,12 @@ object MagiskOtelBootstrap {
             PlatformCompat.getPackageInfo(context.packageManager, context.packageName).versionName
         }.getOrNull()?.takeIf { it.isNotBlank() } ?: "unknown"
     }
+
+    /**
+     * Skip dominates this service (~82% of every span): an ingest path that had nothing to
+     * relay. Dropping it keeps ok / error readable.
+     */
+    val SUPPRESSED_RESULT_VALUES: Set<String> = setOf("skip")
 
     private const val TELEMETRY_PREFS_NAME = "relay_telemetry_prefs"
 }

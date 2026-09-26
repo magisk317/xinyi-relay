@@ -561,10 +561,22 @@ object MatrixE2eeRuntime : MatrixE2eeSender {
         return try {
             client.subscribeToSendQueueStatus(object : SendQueueRoomErrorListener {
                 override fun onError(roomId: String, error: org.matrix.rustcomponents.sdk.ClientException) {
-                    SLog.w(
-                        TAG,
-                        "Matrix client send queue room error: roomId=$roomId " +
-                            "error=${error.javaClass.simpleName}: ${error.message}",
+                    val summary = "${error.javaClass.simpleName}: ${error.message}"
+                    SLog.w(TAG, "Matrix client send queue room error: roomId=$roomId error=$summary")
+                    // Room-level send queue errors are the wedge surface of the SDK send queue.
+                    // Since matrix-sdk 0.19 a wedged request blocks everything queued behind it
+                    // in the same room (intentional: ordering over progress), so surface it as a
+                    // failed observable event instead of a log line only.
+                    MagiskOtel.event(
+                        name = "matrix.send_queue_room_error",
+                        attributes = mapOf(
+                            "process" to "app",
+                            "stage" to "matrix_e2ee",
+                            "sender_type" to "matrix",
+                            "room_id" to roomId,
+                            "error" to summary,
+                        ),
+                        statusOk = false,
                     )
                 }
             })

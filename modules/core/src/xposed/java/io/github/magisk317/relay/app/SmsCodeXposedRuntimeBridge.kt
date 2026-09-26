@@ -41,6 +41,7 @@ object SmsCodeXposedRuntimeBridge {
                 serviceInstanceId = hookContext?.let {
                     io.github.magisk317.relay.android.prefs.PrefsReader.installationId(it)
                 }.orEmpty(),
+                suppressedResultValues = MagiskOtelBootstrap.SUPPRESSED_RESULT_VALUES,
             ),
         )
         CoreRuntime.install(object : CoreRuntimeAccess {
