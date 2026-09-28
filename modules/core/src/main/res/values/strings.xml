@@ -383,6 +383,8 @@
     <string name="settings_group_verification_features">Verification features</string>
     <string name="settings_group_features">Feature settings</string>
     <string name="settings_group_features_summary">Verification and message relay controls</string>
+    <string name="settings_group_advanced">Advanced options</string>
+    <string name="settings_group_advanced_summary">Verification, relay, keep-alive, schedule, remote agent, and interception entries</string>
     <string name="pref_verification_features_title">Verification features</string>
     <string name="pref_verification_features_summary">Control code recognition, notifications, copy, and auto-fill in one place</string>
     <string name="pref_verification_settings_title">Verification settings</string>

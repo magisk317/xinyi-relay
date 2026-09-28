@@ -1,39 +1,27 @@
 package io.github.magisk317.relay.ui.home.settings
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import io.github.magisk317.relay.contract.constant.RelayAppConst
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.ui.common.Item
+import io.github.magisk317.relay.ui.common.SectionCard
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
 
@@ -61,68 +49,69 @@ fun AdvancedScreen(
         .calculateBottomPadding()
     val effectiveBottomPadding = maxOf(bottomContentPadding, navigationBarPadding)
     val advancedBody: @Composable (PaddingValues) -> Unit = { listPadding ->
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(listPadding)
-            .verticalScroll(
-                state = rememberScrollState(),
-                enabled = workPolicy.enableScrolling,
-            )
-            .padding(
-                start = 16.dp,
-                top = 16.dp,
-                end = 16.dp,
-                bottom = 16.dp + effectiveBottomPadding,
-            ),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        AdvancedEntryCard(
-            title = stringResource(id = R.string.pref_verification_config_title),
-            subtitle = stringResource(id = R.string.pref_verification_config_summary),
-            icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-            onClick = onVerificationConfigClick,
-        )
-        AdvancedEntryCard(
-            title = stringResource(id = R.string.pref_relay_config_title),
-            subtitle = stringResource(id = R.string.pref_relay_config_summary),
-            icon = { Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null) },
-            modifier = Modifier.advancedBenchmarkTag(workPolicy.exposeBenchmarkTags),
-            onClick = onRelayConfigClick,
-        )
-        AdvancedEntryCard(
-            title = stringResource(id = R.string.settings_group_background_keepalive),
-            subtitle = stringResource(id = R.string.advanced_keepalive_summary),
-            icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-            onClick = onForwardKeepAliveClick,
-        )
-        AdvancedEntryCard(
-            title = stringResource(id = R.string.scheduled_reminder_entry_title),
-            subtitle = stringResource(id = R.string.scheduled_reminder_entry_summary),
-            icon = { Icon(Icons.Default.DateRange, contentDescription = null) },
-            onClick = onScheduledReminderClick,
-        )
-        onNavigateToScheduledTasks?.let {
-            AdvancedEntryCard(
-                title = stringResource(id = R.string.scheduled_task_entry_title),
-                subtitle = stringResource(id = R.string.scheduled_task_entry_summary),
-                icon = { Icon(Icons.Default.Schedule, contentDescription = null) },
-                onClick = it,
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(listPadding)
+                .verticalScroll(
+                    state = rememberScrollState(),
+                    enabled = workPolicy.enableScrolling,
+                ),
+            verticalArrangement = Arrangement.spacedBy(RelayAppConst.SPACING_SMALL.dp),
+        ) {
+            Spacer(modifier = Modifier.height(RelayAppConst.SPACING_SMALL.dp))
+            SectionCard(
+                title = stringResource(id = R.string.settings_group_advanced),
+                summary = stringResource(id = R.string.settings_group_advanced_summary),
+                accordionMode = false,
+                sectionExpanded = true,
+                onExpandedChange = {},
+            ) {
+                Item(
+                    title = stringResource(id = R.string.pref_verification_config_title),
+                    summary = stringResource(id = R.string.pref_verification_config_summary),
+                    onClick = onVerificationConfigClick,
+                )
+                Item(
+                    title = stringResource(id = R.string.pref_relay_config_title),
+                    summary = stringResource(id = R.string.pref_relay_config_summary),
+                    modifier = Modifier.advancedBenchmarkTag(workPolicy.exposeBenchmarkTags),
+                    onClick = onRelayConfigClick,
+                )
+                Item(
+                    title = stringResource(id = R.string.settings_group_background_keepalive),
+                    summary = stringResource(id = R.string.advanced_keepalive_summary),
+                    onClick = onForwardKeepAliveClick,
+                )
+                Item(
+                    title = stringResource(id = R.string.scheduled_reminder_entry_title),
+                    summary = stringResource(id = R.string.scheduled_reminder_entry_summary),
+                    onClick = onScheduledReminderClick,
+                )
+                onNavigateToScheduledTasks?.let { navigate ->
+                    Item(
+                        title = stringResource(id = R.string.scheduled_task_entry_title),
+                        summary = stringResource(id = R.string.scheduled_task_entry_summary),
+                        onClick = navigate,
+                    )
+                }
+                Item(
+                    title = stringResource(id = R.string.pref_remote_agent_title),
+                    summary = stringResource(id = R.string.pref_remote_agent_summary),
+                    onClick = onRemoteAgentClick,
+                )
+                Item(
+                    title = stringResource(id = R.string.advanced_filter_title),
+                    summary = stringResource(id = R.string.advanced_filter_summary),
+                    onClick = onInterceptClick,
+                )
+            }
+            Spacer(
+                modifier = Modifier.height(
+                    RelayAppConst.PADDING_SMALL.dp + effectiveBottomPadding,
+                ),
             )
         }
-        AdvancedEntryCard(
-            title = stringResource(id = R.string.pref_remote_agent_title),
-            subtitle = stringResource(id = R.string.pref_remote_agent_summary),
-            icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-            onClick = onRemoteAgentClick,
-        )
-        AdvancedEntryCard(
-            title = stringResource(id = R.string.advanced_filter_title),
-            subtitle = stringResource(id = R.string.advanced_filter_summary),
-            icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = null) },
-            onClick = onInterceptClick,
-        )
-    }
     }
 
     when (currentUiKitStyle()) {
@@ -135,60 +124,5 @@ fun AdvancedScreen(
             title = stringResource(id = R.string.tab_advanced),
             body = advancedBody,
         )
-    }
-}
-
-
-@Composable
-private fun AdvancedEntryCard(
-    title: String,
-    subtitle: String,
-    icon: @Composable () -> Unit,
-    modifier: Modifier = Modifier,
-    trailingContent: @Composable (() -> Unit)? = null,
-    showChevron: Boolean = true,
-    onClick: (() -> Unit)? = null,
-) {
-    Card(
-        modifier = modifier.fillMaxWidth().let { base ->
-            if (onClick != null) {
-                base.clickable(onClick = onClick)
-            } else {
-                base
-            }
-        },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        ),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            icon()
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(text = title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                    trailingContent?.invoke()
-                }
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            if (showChevron) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
-            }
-        }
     }
 }

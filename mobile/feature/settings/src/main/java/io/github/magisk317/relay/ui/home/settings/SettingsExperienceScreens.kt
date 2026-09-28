@@ -13,13 +13,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -55,6 +53,7 @@ import io.github.magisk317.relay.contract.settings.RelaySettingsUpdate
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.VerificationSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.VerificationSettingsUpdate
+import io.github.magisk317.uikit.preference.StatusSettingsSection
 import io.github.magisk317.smscode.runtime.common.diagnostics.VerboseLogEnableTracker
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -165,21 +164,17 @@ fun SettingsHomeScreen(
             Spacer(modifier = Modifier.height(Const.SPACING_SMALL.dp))
 
             // Device entitlement entry (top-level)
-            androidx.compose.material3.Card(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = Const.PADDING_SMALL.dp),
-                shape = MaterialTheme.shapes.large,
+            StatusSettingsSection(
+                modifier = Modifier.padding(horizontal = Const.PADDING_SMALL.dp),
+                title = stringResource(id = R.string.mobile_entitlement_settings_title),
+                summary = stringResource(id = R.string.mobile_entitlement_settings_summary),
             ) {
-                io.github.magisk317.relay.ui.common.Item(
-                    title = stringResource(id = R.string.mobile_entitlement_settings_title),
-                    summary = stringResource(id = R.string.mobile_entitlement_settings_summary),
-                ) {
-                    context.startActivity(
-                        Intent().setClassName(
-                            context,
-                            "io.github.magisk317.relay.entitlement.MobileEntitlementActivity",
-                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                    )
-                }
+                context.startActivity(
+                    Intent().setClassName(
+                        context,
+                        "io.github.magisk317.relay.entitlement.MobileEntitlementActivity",
+                    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                )
             }
 
             SettingsGeneralSection(

@@ -385,6 +385,8 @@
     <string name="settings_group_verification_features">验证码功能</string>
     <string name="settings_group_features">功能设置</string>
     <string name="settings_group_features_summary">验证码识别与消息转发</string>
+    <string name="settings_group_advanced">高级选项</string>
+    <string name="settings_group_advanced_summary">验证、转发、保活、定时、远程代理与拦截入口</string>
     <string name="pref_verification_features_title">验证码功能</string>
     <string name="pref_verification_features_summary">统一控制验证码识别、通知、复制与自动输入能力</string>
     <string name="pref_verification_settings_title">验证码功能设置</string>

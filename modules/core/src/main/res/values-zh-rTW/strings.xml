@@ -380,6 +380,8 @@
     <string name="settings_group_verification_features">驗證碼功能</string>
     <string name="settings_group_features">功能設定</string>
     <string name="settings_group_features_summary">驗證碼辨識與訊息轉發</string>
+    <string name="settings_group_advanced">進階選項</string>
+    <string name="settings_group_advanced_summary">驗證、轉發、保活、定時、網頁協作與攔截入口</string>
     <string name="pref_verification_features_title">驗證碼功能</string>
     <string name="pref_verification_features_summary">統一控制驗證碼識別、通知、複製與自動輸入能力</string>
     <string name="pref_verification_settings_title">驗證碼功能設定</string>
