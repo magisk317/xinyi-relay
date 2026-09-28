@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.2.5",
   "type": "module",
-  "packageManager": "bun@1.4.0",
+  "packageManager": "bun@1.4.2",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 1420",
     "build": "tsc --noEmit && vite build",
@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "@tauri-apps/api": "2.11.1",
-    "@tauri-apps/plugin-notification": "2.4.0",
+    "@tauri-apps/plugin-notification": "2.5.0",
     "@tauri-apps/plugin-shell": "2.3.6",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.0",
