@@ -12,8 +12,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,6 +39,7 @@ import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
 import io.github.magisk317.uikit.surface.AppAlertDialog
+import io.github.magisk317.uikit.surface.AppSecondaryButton
 import io.github.magisk317.uikit.surface.AppTextButton
 import io.github.magisk317.uikit.surface.AppTextField
 import io.github.magisk317.uikit.surface.rememberSaveableTextFieldState
@@ -302,13 +301,16 @@ fun SenderCustomTemplateDialog(
                 ) {
                     items(forwardTemplateVariables.size) { index ->
                         val variable = forwardTemplateVariables[index]
-                        OutlinedButton(
-                            onClick = { insertToken(variable.token) },
-                            modifier = Modifier.fillMaxWidth(),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
-                        ) {
-                            Text(stringResource(variable.labelRes), style = MaterialTheme.typography.labelSmall)
-                        }
+                AppSecondaryButton(
+                    onClick = { insertToken(variable.token) },
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                ) {
+                    AppText(
+                        text = stringResource(variable.labelRes),
+                        role = AppTextRole.Footnote,
+                    )
+                }
                     }
                 }
             }

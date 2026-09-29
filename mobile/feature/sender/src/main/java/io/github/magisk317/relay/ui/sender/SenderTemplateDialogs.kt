@@ -13,11 +13,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -35,6 +32,7 @@ import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.contract.settings.SimRemarkSettingsSnapshot
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.surface.AppAlertDialog
+import io.github.magisk317.uikit.surface.AppSecondaryButton
 import io.github.magisk317.uikit.surface.AppTextButton
 import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
@@ -160,19 +158,18 @@ internal fun ForwardCommonConfigDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
                 ) {
-                    TextButton(
+                    AppTextButton(
+                        text = stringResource(R.string.sender_template_fill_default),
                         onClick = {
                             if (suppressNextClick) {
                                 suppressNextClick = false
-                                return@TextButton
+                                return@AppTextButton
                             }
                             val defaultTemplate = ForwardCommonConfigStore.defaultTemplate()
                             templateState.replaceTemplate(defaultTemplate)
                         },
                         interactionSource = fillTemplateInteractionSource,
-                    ) {
-                        Text(stringResource(R.string.sender_template_fill_default))
-                    }
+                    )
                 }
                 HorizontalDivider()
                 LazyVerticalGrid(
@@ -185,12 +182,15 @@ internal fun ForwardCommonConfigDialog(
                 ) {
                     items(forwardTemplateVariables.size) { index ->
                         val variable = forwardTemplateVariables[index]
-                        OutlinedButton(
+                        AppSecondaryButton(
                             onClick = { templateState.insertToken(variable.token) },
                             modifier = Modifier.fillMaxWidth(),
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
                         ) {
-                            Text(stringResource(variable.labelRes), style = MaterialTheme.typography.labelSmall)
+                            AppText(
+                                text = stringResource(variable.labelRes),
+                                role = AppTextRole.Footnote,
+                            )
                         }
                     }
                 }
@@ -317,19 +317,18 @@ internal fun AppNotifyTemplateDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
                 ) {
-                    TextButton(
+                    AppTextButton(
+                        text = stringResource(R.string.sender_template_fill_default),
                         onClick = {
                             if (suppressNextClick) {
                                 suppressNextClick = false
-                                return@TextButton
+                                return@AppTextButton
                             }
                             val defaultTemplate = appNotifyDefaultTemplate()
                             templateState.replaceTemplate(defaultTemplate)
                         },
                         interactionSource = fillTemplateInteractionSource,
-                    ) {
-                        Text(stringResource(R.string.sender_template_fill_default))
-                    }
+                    )
                 }
                 HorizontalDivider()
                 LazyVerticalGrid(
@@ -342,12 +341,15 @@ internal fun AppNotifyTemplateDialog(
                 ) {
                     items(appNotifyTemplateVariables.size) { index ->
                         val variable = appNotifyTemplateVariables[index]
-                        OutlinedButton(
+                        AppSecondaryButton(
                             onClick = { templateState.insertToken(variable.token) },
                             modifier = Modifier.fillMaxWidth(),
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
                         ) {
-                            Text(stringResource(variable.labelRes), style = MaterialTheme.typography.labelSmall)
+                            AppText(
+                                text = stringResource(variable.labelRes),
+                                role = AppTextRole.Footnote,
+                            )
                         }
                     }
                 }
@@ -476,19 +478,18 @@ internal fun CallNotifyTemplateDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
                 ) {
-                    TextButton(
+                    AppTextButton(
+                        text = stringResource(R.string.sender_template_fill_default),
                         onClick = {
                             if (suppressNextClick) {
                                 suppressNextClick = false
-                                return@TextButton
+                                return@AppTextButton
                             }
                             val defaultTemplate = callNotifyDefaultTemplate()
                             templateState.replaceTemplate(defaultTemplate)
                         },
                         interactionSource = fillTemplateInteractionSource,
-                    ) {
-                        Text(stringResource(R.string.sender_template_fill_default))
-                    }
+                    )
                 }
                 HorizontalDivider()
                 LazyVerticalGrid(
@@ -501,12 +502,15 @@ internal fun CallNotifyTemplateDialog(
                 ) {
                     items(callNotifyTemplateVariables.size) { index ->
                         val variable = callNotifyTemplateVariables[index]
-                        OutlinedButton(
+                        AppSecondaryButton(
                             onClick = { templateState.insertToken(variable.token) },
                             modifier = Modifier.fillMaxWidth(),
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
                         ) {
-                            Text(stringResource(variable.labelRes), style = MaterialTheme.typography.labelSmall)
+                            AppText(
+                                text = stringResource(variable.labelRes),
+                                role = AppTextRole.Footnote,
+                            )
                         }
                     }
                 }
