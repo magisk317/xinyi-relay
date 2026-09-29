@@ -619,6 +619,16 @@ android:detekt:
       - merged-sarif/detekt.sarif
       - "**/build/reports/detekt/**"
 
+security:gitleaks:
+  extends: .xinyi_ci_rules
+  image:
+    name: ghcr.io/gitleaks/gitleaks:v8.30.1
+    entrypoint: [""]
+  stage: quality
+  needs: []
+  script:
+    - gitleaks detect --source . --redact --no-banner
+
 android:release:guard:
   extends: .magisk_android_release_guard
   stage: release-validate
