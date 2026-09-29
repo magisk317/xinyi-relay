@@ -17,11 +17,9 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
@@ -41,6 +40,12 @@ import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
 import io.github.magisk317.uikit.surface.AppAlertDialog
+import io.github.magisk317.uikit.preference.AppSwitch
+import io.github.magisk317.uikit.surface.AppTextButton
+import io.github.magisk317.uikit.surface.AppTextField
+import io.github.magisk317.uikit.surface.rememberSaveableTextFieldState
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
 
 data class ForwardFilterEditorState(
     val id: Long,
@@ -243,15 +248,16 @@ fun ForwardFilterRuleEditorDialog(
 ) {
     var policy by remember(initialPolicy) { mutableStateOf(initialPolicy) }
     var matchMode by remember(initialMatchMode) { mutableStateOf(initialMatchMode) }
-    var pattern by remember(initialPattern) { mutableStateOf(initialPattern) }
     var enabled by remember(initialEnabled) { mutableStateOf(initialEnabled) }
-    var channelId by remember(initialChannelId) { mutableStateOf(initialChannelId) }
+    val patternState = rememberSaveableTextFieldState(initialPattern)
+    val channelIdState = rememberSaveableTextFieldState(initialChannelId)
 
-    val canSave = pattern.trim().isNotEmpty() && (!showChannelInput || channelId.trim().isNotEmpty())
+    val canSave = patternState.text.toString().trim().isNotEmpty() &&
+        (!showChannelInput || channelIdState.text.toString().trim().isNotEmpty())
 
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
+        title = { AppText(text = title) },
         text = {
             Column(
                 modifier = Modifier
@@ -260,7 +266,10 @@ fun ForwardFilterRuleEditorDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text(stringResource(id = R.string.forward_filter_strategy), style = MaterialTheme.typography.labelMedium)
+                AppText(
+                    text = stringResource(id = R.string.forward_filter_strategy),
+                    role = AppTextRole.Footnote,
+                )
                 SingleChoiceSegmentedSelector(
                     options = listOf(
                         SegmentedOption(
@@ -276,7 +285,10 @@ fun ForwardFilterRuleEditorDialog(
                     onSelect = { policy = it },
                 )
 
-                Text(stringResource(id = R.string.forward_filter_match_mode), style = MaterialTheme.typography.labelMedium)
+                AppText(
+                    text = stringResource(id = R.string.forward_filter_match_mode),
+                    role = AppTextRole.Footnote,
+                )
                 SingleChoiceSegmentedSelector(
                     options = listOf(
                         SegmentedOption(
@@ -292,11 +304,10 @@ fun ForwardFilterRuleEditorDialog(
                     onSelect = { matchMode = it },
                 )
 
-                OutlinedTextField(
-                    value = pattern,
-                    onValueChange = { pattern = it },
+                AppTextField(
+                    state = patternState,
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(id = R.string.forward_filter_pattern_label)) },
+                    label = stringResource(id = R.string.forward_filter_pattern_label),
                     supportingText = {
                         Text(
                             if (matchMode == ForwardFilterConst.MATCH_REGEX) {
@@ -311,19 +322,26 @@ fun ForwardFilterRuleEditorDialog(
                 )
 
                 if (showChannelInput) {
-                    OutlinedTextField(
-                        value = channelId,
-                        onValueChange = { channelId = it },
+                    AppTextField(
+                        state = channelIdState,
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text(stringResource(id = R.string.forward_filter_channel_id_label)) },
+                        label = stringResource(id = R.string.forward_filter_channel_id_label),
                         singleLine = true,
                     )
                     if (channelCandidates.isNotEmpty()) {
-                        Text(stringResource(id = R.string.forward_filter_channel_history), style = MaterialTheme.typography.labelMedium)
+                        AppText(
+                            text = stringResource(id = R.string.forward_filter_channel_history),
+                            role = AppTextRole.Footnote,
+                        )
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             channelCandidates.take(6).forEach { candidate ->
                                 AssistChip(
-                                    onClick = { channelId = candidate },
+                                    onClick = {
+                                        channelIdState.edit {
+                                            replace(0, length, candidate)
+                                            selection = TextRange(candidate.length)
+                                        }
+                                    },
                                     label = { CenteredChipText(candidate) },
                                 )
                             }
@@ -336,31 +354,28 @@ fun ForwardFilterRuleEditorDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text(stringResource(id = R.string.forward_filter_enabled))
-                    Switch(checked = enabled, onCheckedChange = { enabled = it })
+                    AppText(text = stringResource(id = R.string.forward_filter_enabled))
+                    AppSwitch(checked = enabled, onCheckedChange = { enabled = it })
                 }
             }
         },
         confirmButton = {
-            TextButton(
+            AppTextButton(
+                text = stringResource(id = R.string.save),
                 enabled = canSave,
                 onClick = {
                     onConfirm(
                         policy.trim(),
                         matchMode.trim(),
-                        pattern.trim(),
+                        patternState.text.toString().trim(),
                         enabled,
-                        channelId.trim(),
+                        channelIdState.text.toString().trim(),
                     )
                 },
-            ) {
-                Text(stringResource(id = R.string.save))
-            }
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(id = R.string.cancel))
-            }
+            AppTextButton(text = stringResource(id = R.string.cancel), onClick = onDismiss)
         },
     )
 }

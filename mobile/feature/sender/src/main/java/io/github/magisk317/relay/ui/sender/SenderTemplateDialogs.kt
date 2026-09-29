@@ -35,6 +35,9 @@ import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.contract.settings.SimRemarkSettingsSnapshot
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.surface.AppAlertDialog
+import io.github.magisk317.uikit.surface.AppTextButton
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
 import kotlinx.coroutines.delay
 
 private const val DIALOG_WIDTH_FRACTION = 0.92f
@@ -89,7 +92,7 @@ internal fun ForwardCommonConfigDialog(
         modifier = Modifier.fillMaxWidth(DIALOG_WIDTH_FRACTION),
         properties = DialogProperties(usePlatformDefaultWidth = false),
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.sender_sms_config_title)) },
+        title = { AppText(text = stringResource(R.string.sender_sms_config_title)) },
         text = {
             Column(
                 modifier = Modifier
@@ -98,14 +101,13 @@ internal fun ForwardCommonConfigDialog(
                     .verticalScroll(scrollState),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(
+                AppText(
                     text = stringResource(R.string.sender_gate_ingress_title),
-                    style = MaterialTheme.typography.titleSmall,
+                    role = AppTextRole.Subtitle,
                 )
-                Text(
+                AppText(
                     text = stringResource(R.string.sender_gate_ingress_summary_sms),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    role = AppTextRole.BodySmall,
                 )
                 ConfigGateToggle(
                     title = stringResource(id = R.string.pref_msg_type_sms_code_title),
@@ -120,9 +122,9 @@ internal fun ForwardCommonConfigDialog(
                     onCheckedChange = onSmsPlainToggle,
                 )
                 HorizontalDivider()
-                Text(
+                AppText(
                     text = stringResource(R.string.sender_gate_forwarding_title),
-                    style = MaterialTheme.typography.titleSmall,
+                    role = AppTextRole.Subtitle,
                 )
                 ConfigGateToggle(
                     title = stringResource(id = R.string.pref_forward_sms_code_title),
@@ -150,10 +152,9 @@ internal fun ForwardCommonConfigDialog(
                     placeholder = { Text(stringResource(R.string.sender_template_placeholder)) },
                     supportingText = { Text(stringResource(R.string.sender_template_supporting)) },
                 )
-                Text(
+                AppText(
                     text = stringResource(R.string.sender_template_preview, templateState.preview),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    role = AppTextRole.BodySmall,
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -196,7 +197,8 @@ internal fun ForwardCommonConfigDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            AppTextButton(
+                text = stringResource(R.string.save),
                 onClick = {
                     onSave(
                         currentConfig.copy(
@@ -204,14 +206,10 @@ internal fun ForwardCommonConfigDialog(
                         ),
                     )
                 },
-            ) {
-                Text(stringResource(R.string.save))
-            }
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
-            }
+            AppTextButton(text = stringResource(R.string.cancel), onClick = onDismiss)
         },
     )
 }
@@ -263,7 +261,7 @@ internal fun AppNotifyTemplateDialog(
         modifier = Modifier.fillMaxWidth(DIALOG_WIDTH_FRACTION),
         properties = DialogProperties(usePlatformDefaultWidth = false),
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.sender_app_config_title)) },
+        title = { AppText(text = stringResource(R.string.sender_app_config_title)) },
         text = {
             Column(
                 modifier = Modifier
@@ -272,14 +270,13 @@ internal fun AppNotifyTemplateDialog(
                     .verticalScroll(scrollState),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(
+                AppText(
                     text = stringResource(R.string.sender_gate_ingress_title),
-                    style = MaterialTheme.typography.titleSmall,
+                    role = AppTextRole.Subtitle,
                 )
-                Text(
+                AppText(
                     text = stringResource(R.string.sender_gate_ingress_summary_event),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    role = AppTextRole.BodySmall,
                 )
                 ConfigGateToggle(
                     title = stringResource(id = R.string.pref_msg_type_app_notify_title),
@@ -288,9 +285,9 @@ internal fun AppNotifyTemplateDialog(
                     onCheckedChange = onAppNotifyToggle,
                 )
                 HorizontalDivider()
-                Text(
+                AppText(
                     text = stringResource(R.string.sender_gate_forwarding_title),
-                    style = MaterialTheme.typography.titleSmall,
+                    role = AppTextRole.Subtitle,
                 )
                 ConfigGateToggle(
                     title = stringResource(id = R.string.pref_forward_app_notify_title),
@@ -312,10 +309,9 @@ internal fun AppNotifyTemplateDialog(
                     placeholder = { Text(stringResource(R.string.sender_template_placeholder)) },
                     supportingText = { Text(stringResource(R.string.sender_template_supporting)) },
                 )
-                Text(
+                AppText(
                     text = stringResource(R.string.sender_template_preview, templateState.preview),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    role = AppTextRole.BodySmall,
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -358,14 +354,13 @@ internal fun AppNotifyTemplateDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(templateState.value.text) }) {
-                Text(stringResource(R.string.save))
-            }
+            AppTextButton(
+                text = stringResource(R.string.save),
+                onClick = { onSave(templateState.value.text) },
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
-            }
+            AppTextButton(text = stringResource(R.string.cancel), onClick = onDismiss)
         },
     )
 }
@@ -419,7 +414,7 @@ internal fun CallNotifyTemplateDialog(
         modifier = Modifier.fillMaxWidth(DIALOG_WIDTH_FRACTION),
         properties = DialogProperties(usePlatformDefaultWidth = false),
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.sender_call_config_title)) },
+        title = { AppText(text = stringResource(R.string.sender_call_config_title)) },
         text = {
             Column(
                 modifier = Modifier
@@ -428,14 +423,13 @@ internal fun CallNotifyTemplateDialog(
                     .verticalScroll(scrollState),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(
+                AppText(
                     text = stringResource(R.string.sender_gate_ingress_title),
-                    style = MaterialTheme.typography.titleSmall,
+                    role = AppTextRole.Subtitle,
                 )
-                Text(
+                AppText(
                     text = stringResource(R.string.sender_gate_ingress_summary_event),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    role = AppTextRole.BodySmall,
                 )
                 ConfigGateToggle(
                     title = stringResource(id = R.string.pref_msg_type_call_notify_title),
@@ -444,9 +438,9 @@ internal fun CallNotifyTemplateDialog(
                     onCheckedChange = onCallNotifyToggle,
                 )
                 HorizontalDivider()
-                Text(
+                AppText(
                     text = stringResource(R.string.sender_gate_forwarding_title),
-                    style = MaterialTheme.typography.titleSmall,
+                    role = AppTextRole.Subtitle,
                 )
                 ConfigGateToggle(
                     title = stringResource(id = R.string.pref_forward_call_notify_title),
@@ -474,10 +468,9 @@ internal fun CallNotifyTemplateDialog(
                     placeholder = { Text(stringResource(R.string.sender_template_placeholder)) },
                     supportingText = { Text(stringResource(R.string.sender_template_supporting)) },
                 )
-                Text(
+                AppText(
                     text = stringResource(R.string.sender_template_preview, templateState.preview),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    role = AppTextRole.BodySmall,
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -520,14 +513,13 @@ internal fun CallNotifyTemplateDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(templateState.value.text) }) {
-                Text(stringResource(R.string.save))
-            }
+            AppTextButton(
+                text = stringResource(R.string.save),
+                onClick = { onSave(templateState.value.text) },
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
-            }
+            AppTextButton(text = stringResource(R.string.cancel), onClick = onDismiss)
         },
     )
 }

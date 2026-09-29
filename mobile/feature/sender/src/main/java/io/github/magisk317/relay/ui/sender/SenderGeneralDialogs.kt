@@ -2,33 +2,32 @@ package io.github.magisk317.relay.ui.sender
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.contract.constant.DispatchStrategy
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
@@ -42,6 +41,11 @@ import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
 import io.github.magisk317.uikit.surface.AppAlertDialog
+import io.github.magisk317.uikit.surface.AppTextButton
+import io.github.magisk317.uikit.surface.AppTextField
+import io.github.magisk317.uikit.surface.rememberSaveableTextFieldState
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
 
 @Composable
 internal fun GeneralConfigDialog(
@@ -51,12 +55,12 @@ internal fun GeneralConfigDialog(
     onDismiss: () -> Unit,
     onSave: (ForwardCommonConfig, String, String) -> Unit,
 ) {
-    var deviceName by remember(currentConfig.deviceName) { mutableStateOf(currentConfig.deviceName) }
+    val deviceNameState = rememberSaveableTextFieldState(currentConfig.deviceName)
     var dispatchStrategy by remember(currentConfig.dispatchStrategy) {
         mutableIntStateOf(normalizeDispatchStrategy(currentConfig.dispatchStrategy))
     }
-    var simSlot1Remark by remember(currentSimSlot1Remark) { mutableStateOf(currentSimSlot1Remark) }
-    var simSlot2Remark by remember(currentSimSlot2Remark) { mutableStateOf(currentSimSlot2Remark) }
+    val simSlot1RemarkState = rememberSaveableTextFieldState(currentSimSlot1Remark)
+    val simSlot2RemarkState = rememberSaveableTextFieldState(currentSimSlot2Remark)
     var silentPeriod by remember(currentConfig.silentPeriod) {
         mutableStateOf(ForwardSilentPeriodEvaluator.sanitize(currentConfig.silentPeriod))
     }
@@ -72,7 +76,7 @@ internal fun GeneralConfigDialog(
     }
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.sender_general_config_title)) },
+        title = { AppText(text = stringResource(R.string.sender_general_config_title)) },
         text = {
             Column(
                 modifier = Modifier
@@ -80,17 +84,16 @@ internal fun GeneralConfigDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                OutlinedTextField(
-                    value = deviceName,
-                    onValueChange = { deviceName = it },
+                AppTextField(
+                    state = deviceNameState,
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.sender_dialog_device_name_label)) },
-                    placeholder = { Text(stringResource(R.string.sender_dialog_device_name_placeholder)) },
+                    label = stringResource(R.string.sender_dialog_device_name_label),
+                    placeholderText = stringResource(R.string.sender_dialog_device_name_placeholder),
                     singleLine = true,
                 )
-                Text(
+                AppText(
                     text = stringResource(R.string.dispatch_strategy),
-                    style = MaterialTheme.typography.titleSmall,
+                    role = AppTextRole.Subtitle,
                 )
                 SingleChoiceSegmentedSelector(
                     options = listOf(
@@ -120,9 +123,9 @@ internal fun GeneralConfigDialog(
                     },
                 )
                 if (silentPeriod.enabled) {
-                    Text(
+                    AppText(
                         text = stringResource(R.string.forward_silent_period_weekdays),
-                        style = MaterialTheme.typography.titleSmall,
+                        role = AppTextRole.Subtitle,
                     )
                     ActiveScheduleWeekdayRow(
                         weekdays = listOf(1, 2, 3, 4),
@@ -134,9 +137,9 @@ internal fun GeneralConfigDialog(
                         selectedWeekdays = silentPeriod.weekdays,
                         onWeekdayToggle = ::toggleSilentWeekday,
                     )
-                    Text(
+                    AppText(
                         text = stringResource(R.string.forward_silent_period_range),
-                        style = MaterialTheme.typography.titleSmall,
+                        role = AppTextRole.Subtitle,
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -159,45 +162,40 @@ internal fun GeneralConfigDialog(
                     }
                 }
                 HorizontalDivider()
-                OutlinedTextField(
-                    value = simSlot1Remark,
-                    onValueChange = { simSlot1Remark = it },
+                AppTextField(
+                    state = simSlot1RemarkState,
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.sender_dialog_sim1_note_label)) },
-                    placeholder = { Text(stringResource(R.string.sender_dialog_sim_note_placeholder)) },
+                    label = stringResource(R.string.sender_dialog_sim1_note_label),
+                    placeholderText = stringResource(R.string.sender_dialog_sim_note_placeholder),
                     singleLine = true,
                 )
-                OutlinedTextField(
-                    value = simSlot2Remark,
-                    onValueChange = { simSlot2Remark = it },
+                AppTextField(
+                    state = simSlot2RemarkState,
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.sender_dialog_sim2_note_label)) },
-                    placeholder = { Text(stringResource(R.string.sender_dialog_sim_note_placeholder)) },
+                    label = stringResource(R.string.sender_dialog_sim2_note_label),
+                    placeholderText = stringResource(R.string.sender_dialog_sim_note_placeholder),
                     singleLine = true,
                 )
             }
         },
         confirmButton = {
-            TextButton(
+            AppTextButton(
+                text = stringResource(R.string.save),
                 onClick = {
                     onSave(
                         currentConfig.copy(
-                            deviceName = deviceName.trim(),
+                            deviceName = deviceNameState.text.toString().trim(),
                             dispatchStrategy = dispatchStrategy,
                             silentPeriod = ForwardSilentPeriodEvaluator.sanitize(silentPeriod),
                         ),
-                        simSlot1Remark.trim(),
-                        simSlot2Remark.trim(),
+                        simSlot1RemarkState.text.toString().trim(),
+                        simSlot2RemarkState.text.toString().trim(),
                     )
                 },
-            ) {
-                Text(stringResource(R.string.save))
-            }
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
-            }
+            AppTextButton(text = stringResource(R.string.cancel), onClick = onDismiss)
         },
     )
 }
@@ -219,8 +217,8 @@ internal fun SenderPriorityDialog(
     AppAlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(
-                stringResource(
+            AppText(
+                text = stringResource(
                     R.string.sender_priority_dialog_title,
                     sender.name.ifBlank { getSenderTypeName(context, sender.type) },
                 ),
@@ -240,19 +238,16 @@ internal fun SenderPriorityDialog(
             )
         },
         confirmButton = {
-            TextButton(
+            AppTextButton(
+                text = stringResource(R.string.save),
                 enabled = validPriority,
                 onClick = {
                     onSave((parsedPriority ?: currentPriority).coerceIn(0, maxPriority))
                 },
-            ) {
-                Text(stringResource(R.string.save))
-            }
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
-            }
+            AppTextButton(text = stringResource(R.string.cancel), onClick = onDismiss)
         },
     )
 }
@@ -279,7 +274,7 @@ fun SenderCustomTemplateDialog(
 
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(io.github.magisk317.relay.core.R.string.sender_custom_template_dialog_title)) },
+        title = { AppText(text = stringResource(io.github.magisk317.relay.core.R.string.sender_custom_template_dialog_title)) },
         text = {
             Column(
                 modifier = Modifier
@@ -319,14 +314,16 @@ fun SenderCustomTemplateDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(templateValue.text) }) {
-                Text(stringResource(io.github.magisk317.relay.core.R.string.save))
-            }
+            AppTextButton(
+                text = stringResource(io.github.magisk317.relay.core.R.string.save),
+                onClick = { onSave(templateValue.text) },
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(io.github.magisk317.relay.core.R.string.cancel))
-            }
+            AppTextButton(
+                text = stringResource(io.github.magisk317.relay.core.R.string.cancel),
+                onClick = onDismiss,
+            )
         },
     )
 }
