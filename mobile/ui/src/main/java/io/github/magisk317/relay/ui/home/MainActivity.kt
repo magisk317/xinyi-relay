@@ -40,7 +40,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -954,8 +953,8 @@ private fun ExitOnlyConflictDialog(
 ) {
     AppAlertDialog(
         onDismissRequest = {},
-        title = { Text(title) },
-        text = { Text(text) },
+        title = { AppText(text = title) },
+        text = { AppText(text = text) },
         confirmButton = {
             AppPrimaryButton(text = confirmText, onClick = onExit)
         },
