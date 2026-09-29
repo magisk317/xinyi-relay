@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +32,7 @@ import io.github.magisk317.relay.core.R
 import io.github.magisk317.smscode.runtime.contract.backup.BackupImportResult
 import io.github.magisk317.smscode.runtime.contract.backup.ImportResult
 import io.github.magisk317.smscode.runtime.contract.backup.ImportWarning
+import io.github.magisk317.uikit.surface.AppAlertDialog
 
 internal data class BackupSelection(
     val includeConfig: Boolean = true,
@@ -65,7 +65,7 @@ internal fun BackupSourceDialog(
         add(BackupSourceType.WEBDAV to stringResource(id = R.string.backup_source_webdav))
     }
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = title) },
         text = {
@@ -155,7 +155,7 @@ internal fun BackupRestoreOptionsDialog(
         includeDatabase = includeDatabase,
     )
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = title) },
         text = {
@@ -212,7 +212,7 @@ internal fun BackupInspectionResultDialog(
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = stringResource(id = R.string.backup_success)) },
         text = {

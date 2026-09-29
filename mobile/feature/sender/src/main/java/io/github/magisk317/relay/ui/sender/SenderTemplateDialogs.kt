@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -35,6 +34,7 @@ import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.contract.settings.SimRemarkSettingsSnapshot
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.uikit.surface.AppAlertDialog
 import kotlinx.coroutines.delay
 
 private const val DIALOG_WIDTH_FRACTION = 0.92f
@@ -85,7 +85,7 @@ internal fun ForwardCommonConfigDialog(
         }
     }
 
-    AlertDialog(
+    AppAlertDialog(
         modifier = Modifier.fillMaxWidth(DIALOG_WIDTH_FRACTION),
         properties = DialogProperties(usePlatformDefaultWidth = false),
         onDismissRequest = onDismiss,
@@ -259,7 +259,7 @@ internal fun AppNotifyTemplateDialog(
         }
     }
 
-    AlertDialog(
+    AppAlertDialog(
         modifier = Modifier.fillMaxWidth(DIALOG_WIDTH_FRACTION),
         properties = DialogProperties(usePlatformDefaultWidth = false),
         onDismissRequest = onDismiss,
@@ -415,7 +415,7 @@ internal fun CallNotifyTemplateDialog(
         }
     }
 
-    AlertDialog(
+    AppAlertDialog(
         modifier = Modifier.fillMaxWidth(DIALOG_WIDTH_FRACTION),
         properties = DialogProperties(usePlatformDefaultWidth = false),
         onDismissRequest = onDismiss,

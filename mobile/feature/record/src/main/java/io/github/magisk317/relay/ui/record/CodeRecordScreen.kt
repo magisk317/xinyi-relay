@@ -83,6 +83,7 @@ import io.github.magisk317.uikit.surface.WorkspaceListItem
 import io.github.magisk317.uikit.surface.WorkspaceListItemDefaults
 import io.github.magisk317.uikit.surface.WorkspaceListDivider
 import io.github.magisk317.uikit.surface.swipeRevealSurface
+import io.github.magisk317.uikit.surface.AppAlertDialog
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -604,7 +605,7 @@ fun CodeRecordScreen(
 
     if (showClearDialog) {
         val currentTabName = stringResource(recordTabNameRes(selectedRecordTab))
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = { showClearDialog = false },
             title = { Text(stringResource(R.string.record_clear_dialog_title)) },
             text = { Text(stringResource(R.string.record_clear_dialog_message, currentTabName)) },

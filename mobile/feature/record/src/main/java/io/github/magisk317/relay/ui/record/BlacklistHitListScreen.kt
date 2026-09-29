@@ -28,7 +28,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
@@ -80,6 +79,7 @@ import io.github.magisk317.uikit.surface.WorkspaceEmptyState
 import io.github.magisk317.uikit.surface.WorkspaceListDivider
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
+import io.github.magisk317.uikit.surface.AppAlertDialog
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -160,7 +160,7 @@ fun BlacklistHitListScreen(
     }
 
     if (showClearDialog) {
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = { showClearDialog = false },
             title = { Text(stringResource(R.string.sms_blacklist_hit_clear_dialog_title)) },
             text = { Text(stringResource(R.string.sms_blacklist_hit_clear_dialog_message)) },
@@ -440,7 +440,7 @@ private fun BlacklistHitDetailDialog(
         ?.let { blacklistHitBlockReasonText(it) }
         .orEmpty()
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.sms_blacklist_hit_detail_title)) },
         text = {

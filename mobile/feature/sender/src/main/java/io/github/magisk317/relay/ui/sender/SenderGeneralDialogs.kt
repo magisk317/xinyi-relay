@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -42,6 +41,7 @@ import io.github.magisk317.relay.ui.common.ActiveScheduleWeekdayRow
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
+import io.github.magisk317.uikit.surface.AppAlertDialog
 
 @Composable
 internal fun GeneralConfigDialog(
@@ -70,7 +70,7 @@ internal fun GeneralConfigDialog(
             weekdays = nextWeekdays.ifEmpty { ForwardSilentPeriodConfig.ALL_WEEKDAYS },
         )
     }
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.sender_general_config_title)) },
         text = {
@@ -216,7 +216,7 @@ internal fun SenderPriorityDialog(
     var priorityText by remember(sender.id, currentPriority) { mutableStateOf(currentPriority.toString()) }
     val parsedPriority = priorityText.toIntOrNull()
     val validPriority = parsedPriority != null && parsedPriority >= 0
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
@@ -277,7 +277,7 @@ fun SenderCustomTemplateDialog(
         templateValue = templateValue.copy(text = newText, selection = TextRange(cursor))
     }
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(io.github.magisk317.relay.core.R.string.sender_custom_template_dialog_title)) },
         text = {

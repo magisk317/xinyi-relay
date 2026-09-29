@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -30,6 +29,7 @@ import io.github.magisk317.relay.engine.model.ForwardFilterRule
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterMsgTypeTabs
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterRuleEditorDialog
 import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterRuleList
+import io.github.magisk317.uikit.surface.AppAlertDialog
 
 private data class SenderDialogEditingRule(
     val id: Long,
@@ -53,7 +53,7 @@ fun SenderForwardFilterDialog(
     var editing by remember { mutableStateOf<SenderDialogEditingRule?>(null) }
     var showEditor by remember { mutableStateOf(false) }
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(

@@ -3,7 +3,6 @@ package io.github.magisk317.relay.ui.common
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -22,6 +21,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.sender.SenderActiveScheduleConst
+import io.github.magisk317.uikit.surface.AppAlertDialog
 import java.time.DayOfWeek
 import java.time.format.TextStyle
 import java.util.Locale
@@ -100,7 +100,7 @@ private fun TimeRangePickerDialog(
         is24Hour = true,
     )
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.sender_active_schedule_pick_time)) },
         text = {

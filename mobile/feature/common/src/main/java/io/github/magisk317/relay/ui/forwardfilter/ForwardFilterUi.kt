@@ -13,7 +13,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,6 +40,7 @@ import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
+import io.github.magisk317.uikit.surface.AppAlertDialog
 
 data class ForwardFilterEditorState(
     val id: Long,
@@ -249,7 +249,7 @@ fun ForwardFilterRuleEditorDialog(
 
     val canSave = pattern.trim().isNotEmpty() && (!showChannelInput || channelId.trim().isNotEmpty())
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {

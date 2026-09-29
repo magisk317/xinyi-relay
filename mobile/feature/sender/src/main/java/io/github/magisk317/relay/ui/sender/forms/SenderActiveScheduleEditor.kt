@@ -10,7 +10,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +38,7 @@ import io.github.magisk317.relay.ui.common.ActiveScheduleWeekdayRow
 import io.github.magisk317.relay.ui.common.CenteredChipText
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
+import io.github.magisk317.uikit.surface.AppAlertDialog
 
 enum class SenderScheduleSection {
     SMS,
@@ -73,7 +73,7 @@ fun SenderActiveScheduleDialog(
     var draft by remember(schedule) { mutableStateOf(SenderActiveScheduleEvaluator.sanitize(schedule)) }
     var section by remember { mutableStateOf(SenderScheduleSection.SMS) }
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.sender_active_schedule_editor_title)) },
         text = {

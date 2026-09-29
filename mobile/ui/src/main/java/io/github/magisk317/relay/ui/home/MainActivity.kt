@@ -4,6 +4,11 @@ package io.github.magisk317.relay.ui.home
 import io.github.magisk317.relay.ui.common.PrivacyPolicyDialog
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
+import io.github.magisk317.uikit.surface.AppAlertDialog
+import io.github.magisk317.uikit.surface.AppLinearProgressIndicator
+import io.github.magisk317.uikit.surface.AppPrimaryButton
+import io.github.magisk317.uikit.surface.AppSecondaryButton
+import io.github.magisk317.uikit.surface.AppTextButton
 
 import android.content.Intent
 import android.os.Build
@@ -28,18 +33,13 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -519,7 +519,7 @@ class MainActivity : ComponentActivity() {
 
                         if (blockingStartupDialog == null) {
                             githubUpdateUiState?.let { updateState ->
-                            AlertDialog(
+                            AppAlertDialog(
                                 onDismissRequest = { githubUpdateUiState = null },
                                 title = { Text(getString(R.string.github_update_dialog_title)) },
                                 text = {
@@ -532,7 +532,8 @@ class MainActivity : ComponentActivity() {
                                     )
                                 },
                                 confirmButton = {
-                                    FilledTonalButton(
+                                    AppPrimaryButton(
+                                        text = getString(R.string.github_update_download),
                                         onClick = {
                                             when (updateState) {
                                                 is GithubUpdateUiState.ReleaseLink -> {
@@ -551,13 +552,12 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             }
                                         },
-                                    ) {
-                                        Text(getString(R.string.github_update_download))
-                                    }
+                                    )
                                 },
                                 dismissButton = {
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        OutlinedButton(
+                                        AppSecondaryButton(
+                                            text = getString(R.string.github_update_ignore_this_version),
                                             onClick = {
                                                 val versionName = when (updateState) {
                                                     is GithubUpdateUiState.ReleaseLink -> updateState.release.versionName
@@ -568,12 +568,11 @@ class MainActivity : ComponentActivity() {
                                                 }
                                                 githubUpdateUiState = null
                                             },
-                                        ) {
-                                            Text(getString(R.string.github_update_ignore_this_version))
-                                        }
-                                        OutlinedButton(onClick = { githubUpdateUiState = null }) {
-                                            Text(getString(R.string.cancel))
-                                        }
+                                        )
+                                        AppSecondaryButton(
+                                            text = getString(R.string.cancel),
+                                            onClick = { githubUpdateUiState = null },
+                                        )
                                     }
                                 },
                             )
@@ -582,67 +581,70 @@ class MainActivity : ComponentActivity() {
 
                         when (val state = downloadState) {
                             is UpdateDownloadState.Downloading -> {
-                                AlertDialog(
+                                AppAlertDialog(
                                     onDismissRequest = {},
                                     title = { Text(getString(R.string.update_download_in_progress_title)) },
                                     text = {
                                         Column {
-                                            LinearProgressIndicator(
-                                                progress = { state.progress },
+                                            AppLinearProgressIndicator(
+                                                progress = state.progress,
                                                 modifier = Modifier.fillMaxWidth(),
                                             )
                                             Text(state.progressText)
                                         }
                                     },
                                     confirmButton = {
-                                        TextButton(
+                                        AppTextButton(
+                                            text = getString(R.string.update_download_cancel),
                                             onClick = {
                                                 downloadJob?.cancel()
                                                 downloadState = UpdateDownloadState.Idle
                                             },
-                                        ) {
-                                            Text(getString(R.string.update_download_cancel))
-                                        }
+                                        )
                                     },
                                 )
                             }
 
                             is UpdateDownloadState.Failed -> {
-                                AlertDialog(
+                                AppAlertDialog(
                                     onDismissRequest = { downloadState = UpdateDownloadState.Idle },
                                     title = { Text(getString(R.string.update_download_failed_title)) },
                                     text = { Text(state.message) },
                                     dismissButton = {
-                                        OutlinedButton(onClick = { downloadState = UpdateDownloadState.Idle }) {
-                                            Text(getString(R.string.cancel))
-                                        }
+                                        AppSecondaryButton(
+                                            text = getString(R.string.cancel),
+                                            onClick = { downloadState = UpdateDownloadState.Idle },
+                                        )
                                     },
                                     confirmButton = {
                                         if (state.retry != null) {
-                                            FilledTonalButton(onClick = { startStructuredDownload(state.retry) }) {
-                                                Text(getString(R.string.update_retry))
-                                            }
+                                            AppPrimaryButton(
+                                                text = getString(R.string.update_retry),
+                                                onClick = { startStructuredDownload(state.retry) },
+                                            )
                                         }
                                     },
                                 )
                             }
 
                             is UpdateDownloadState.Downloaded -> {
-                                AlertDialog(
+                                AppAlertDialog(
                                     onDismissRequest = {},
                                     title = { Text(getString(R.string.update_download_completed_title)) },
                                     text = { Text(getString(R.string.update_download_completed_message)) },
                                     dismissButton = {
-                                        OutlinedButton(onClick = { downloadState = UpdateDownloadState.Idle }) {
-                                            Text(getString(R.string.cancel))
-                                        }
+                                        AppSecondaryButton(
+                                            text = getString(R.string.cancel),
+                                            onClick = { downloadState = UpdateDownloadState.Idle },
+                                        )
                                     },
                                     confirmButton = {
-                                        FilledTonalButton(
+                                        AppPrimaryButton(
+                                            text = getString(R.string.update_install),
                                             onClick = {
                                                 if (!UpgradeInstaller.canRequestPackageInstalls(this@MainActivity)) {
                                                     unknownSourceApk = state.file
-                                                    return@FilledTonalButton
+                                                    return@AppPrimaryButton
                                                 }
                                                 val installResult = UpgradeInstaller.installApk(this@MainActivity, state.file)
                                                 if (installResult.isSuccess) {
@@ -655,9 +657,7 @@ class MainActivity : ComponentActivity() {
                                                     )
                                                 }
                                             },
-                                        ) {
-                                            Text(getString(R.string.update_install))
-                                        }
+                                        )
                                     },
                                 )
                             }
@@ -666,24 +666,24 @@ class MainActivity : ComponentActivity() {
                         }
 
                         unknownSourceApk?.let {
-                            AlertDialog(
+                            AppAlertDialog(
                                 onDismissRequest = { unknownSourceApk = null },
                                 title = { Text(getString(R.string.update_unknown_source_title)) },
                                 text = { Text(getString(R.string.update_unknown_source_message)) },
                                 dismissButton = {
-                                    OutlinedButton(onClick = { unknownSourceApk = null }) {
-                                        Text(getString(R.string.cancel))
-                                    }
+                                    AppSecondaryButton(
+                                        text = getString(R.string.cancel),
+                                        onClick = { unknownSourceApk = null },
+                                    )
                                 },
                                 confirmButton = {
-                                    FilledTonalButton(
+                                    AppPrimaryButton(
+                                        text = getString(R.string.update_open_settings),
                                         onClick = {
                                             startActivity(UpgradeInstaller.buildUnknownSourceSettingsIntent(this@MainActivity))
                                             unknownSourceApk = null
                                         },
-                                    ) {
-                                        Text(getString(R.string.update_open_settings))
-                                    }
+                                    )
                                 },
                             )
                         }
@@ -951,14 +951,12 @@ private fun ExitOnlyConflictDialog(
     confirmText: String,
     onExit: () -> Unit,
 ) {
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = {},
         title = { Text(title) },
         text = { Text(text) },
         confirmButton = {
-            FilledTonalButton(onClick = onExit) {
-                Text(confirmText)
-            }
+            AppPrimaryButton(text = confirmText, onClick = onExit)
         },
     )
 }

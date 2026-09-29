@@ -16,6 +16,7 @@ import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
 import io.github.magisk317.relay.engine.model.ScheduledTask
+import io.github.magisk317.uikit.surface.AppAlertDialog
 
 @Composable
 fun ScheduledTasksScreen(
@@ -117,7 +118,7 @@ fun ScheduledTasksScreen(
 
     // Delete confirmation dialog
     taskToDelete?.let { taskId ->
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = { taskToDelete = null },
             title = { Text(stringResource(id = R.string.scheduled_task_delete_dialog_title)) },
             text = { Text(stringResource(id = R.string.scheduled_task_delete_dialog_message)) },
