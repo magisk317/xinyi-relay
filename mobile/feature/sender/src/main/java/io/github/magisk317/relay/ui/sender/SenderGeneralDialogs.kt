@@ -7,13 +7,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -25,7 +24,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.contract.constant.DispatchStrategy
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
@@ -210,7 +208,13 @@ internal fun SenderPriorityDialog(
     onSave: (Int) -> Unit,
 ) {
     val context = LocalContext.current
-    var priorityText by remember(sender.id, currentPriority) { mutableStateOf(currentPriority.toString()) }
+    val priorityState = rememberSaveableTextFieldState(
+        currentPriority.toString(),
+        TextRange(currentPriority.toString().length),
+        sender.id,
+        currentPriority,
+    )
+    val priorityText = priorityState.text.toString()
     val parsedPriority = priorityText.toIntOrNull()
     val validPriority = parsedPriority != null && parsedPriority >= 0
     AppAlertDialog(
@@ -224,16 +228,20 @@ internal fun SenderPriorityDialog(
             )
         },
         text = {
-            OutlinedTextField(
-                value = priorityText,
-                onValueChange = { input ->
-                    priorityText = filterNonNegativeIntegerInput(input).take(3)
-                },
+            AppTextField(
+                state = priorityState,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.sender_priority_order)) },
+                label = stringResource(R.string.sender_priority_order),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                isError = priorityText.isNotBlank() && !validPriority,
+                inputTransformation = InputTransformation {
+                    val original = toString()
+                    val filtered = filterNonNegativeIntegerInput(original).take(3)
+                    if (filtered != original) {
+                        replace(0, length, filtered)
+                        selection = TextRange(filtered.length)
+                    }
+                },
             )
         },
         confirmButton = {
@@ -257,18 +265,15 @@ fun SenderCustomTemplateDialog(
     onDismiss: () -> Unit,
     onSave: (String) -> Unit,
 ) {
-    var templateValue by remember { mutableStateOf(TextFieldValue(template)) }
+    val templateState = rememberSaveableTextFieldState(template)
 
     fun insertToken(token: String) {
-        val start = templateValue.selection.start.coerceIn(0, templateValue.text.length)
-        val end = templateValue.selection.end.coerceIn(0, templateValue.text.length)
-        val newText = buildString {
-            append(templateValue.text.substring(0, start))
-            append(token)
-            append(templateValue.text.substring(end))
+        templateState.edit {
+            val start = selection.start.coerceIn(0, length)
+            val end = selection.end.coerceIn(0, length)
+            replace(start, end, token)
+            selection = TextRange(start + token.length)
         }
-        val cursor = start + token.length
-        templateValue = templateValue.copy(text = newText, selection = TextRange(cursor))
     }
 
     AppAlertDialog(
@@ -281,14 +286,13 @@ fun SenderCustomTemplateDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                OutlinedTextField(
-                    value = templateValue,
-                    onValueChange = { templateValue = it },
+                AppTextField(
+                    state = templateState,
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 140.dp),
-                    label = { Text(stringResource(io.github.magisk317.relay.core.R.string.sender_custom_template_label)) },
-                    placeholder = { Text(stringResource(io.github.magisk317.relay.core.R.string.sender_custom_template_placeholder)) },
+                    label = stringResource(io.github.magisk317.relay.core.R.string.sender_custom_template_label),
+                    placeholderText = stringResource(io.github.magisk317.relay.core.R.string.sender_custom_template_placeholder),
                 )
                 
                 LazyVerticalGrid(
@@ -318,7 +322,7 @@ fun SenderCustomTemplateDialog(
         confirmButton = {
             AppTextButton(
                 text = stringResource(io.github.magisk317.relay.core.R.string.save),
-                onClick = { onSave(templateValue.text) },
+                onClick = { onSave(templateState.text.toString()) },
             )
         },
         dismissButton = {

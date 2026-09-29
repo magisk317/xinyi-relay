@@ -13,8 +13,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,6 +31,7 @@ import io.github.magisk317.relay.contract.settings.SimRemarkSettingsSnapshot
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.surface.AppAlertDialog
 import io.github.magisk317.uikit.surface.AppSecondaryButton
+import io.github.magisk317.uikit.surface.AppTextField
 import io.github.magisk317.uikit.surface.AppTextButton
 import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
@@ -137,18 +136,23 @@ internal fun ForwardCommonConfigDialog(
                     onCheckedChange = onForwardSmsPlainToggle,
                 )
                 HorizontalDivider()
-                OutlinedTextField(
-                    value = templateState.value,
-                    onValueChange = templateState::onValueChange,
+                AppTextField(
+                    state = templateState.state,
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 140.dp)
                         .onFocusChanged { focusState ->
                             templateState.onFocusChanged(focusState.isFocused)
                         },
-                    label = { Text(stringResource(R.string.sender_template_sms_label)) },
-                    placeholder = { Text(stringResource(R.string.sender_template_placeholder)) },
-                    supportingText = { Text(stringResource(R.string.sender_template_supporting)) },
+                    label = stringResource(R.string.sender_template_sms_label),
+                    placeholderText = stringResource(R.string.sender_template_placeholder),
+                    supportingText = {
+                        AppText(
+                            text = stringResource(R.string.sender_template_supporting),
+                            role = AppTextRole.BodySmall,
+                        )
+                    },
+                    inputTransformation = templateState.inputTransformation,
                 )
                 AppText(
                     text = stringResource(R.string.sender_template_preview, templateState.preview),
@@ -202,7 +206,7 @@ internal fun ForwardCommonConfigDialog(
                 onClick = {
                     onSave(
                         currentConfig.copy(
-                            messageTemplate = templateState.value.text,
+                            messageTemplate = templateState.text,
                         ),
                     )
                 },
@@ -296,18 +300,23 @@ internal fun AppNotifyTemplateDialog(
                     onCheckedChange = onForwardAppNotifyToggle,
                 )
                 HorizontalDivider()
-                OutlinedTextField(
-                    value = templateState.value,
-                    onValueChange = templateState::onValueChange,
+                AppTextField(
+                    state = templateState.state,
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 140.dp)
                         .onFocusChanged { focusState ->
                             templateState.onFocusChanged(focusState.isFocused)
                         },
-                    label = { Text(stringResource(R.string.sender_template_app_label)) },
-                    placeholder = { Text(stringResource(R.string.sender_template_placeholder)) },
-                    supportingText = { Text(stringResource(R.string.sender_template_supporting)) },
+                    label = stringResource(R.string.sender_template_app_label),
+                    placeholderText = stringResource(R.string.sender_template_placeholder),
+                    supportingText = {
+                        AppText(
+                            text = stringResource(R.string.sender_template_supporting),
+                            role = AppTextRole.BodySmall,
+                        )
+                    },
+                    inputTransformation = templateState.inputTransformation,
                 )
                 AppText(
                     text = stringResource(R.string.sender_template_preview, templateState.preview),
@@ -358,7 +367,7 @@ internal fun AppNotifyTemplateDialog(
         confirmButton = {
             AppTextButton(
                 text = stringResource(R.string.save),
-                onClick = { onSave(templateState.value.text) },
+                onClick = { onSave(templateState.text) },
             )
         },
         dismissButton = {
@@ -457,18 +466,23 @@ internal fun CallNotifyTemplateDialog(
                     onCheckedChange = onForwardCallNotifyFinalToggle,
                 )
                 HorizontalDivider()
-                OutlinedTextField(
-                    value = templateState.value,
-                    onValueChange = templateState::onValueChange,
+                AppTextField(
+                    state = templateState.state,
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 140.dp)
                         .onFocusChanged { focusState ->
                             templateState.onFocusChanged(focusState.isFocused)
                         },
-                    label = { Text(stringResource(R.string.sender_template_call_label)) },
-                    placeholder = { Text(stringResource(R.string.sender_template_placeholder)) },
-                    supportingText = { Text(stringResource(R.string.sender_template_supporting)) },
+                    label = stringResource(R.string.sender_template_call_label),
+                    placeholderText = stringResource(R.string.sender_template_placeholder),
+                    supportingText = {
+                        AppText(
+                            text = stringResource(R.string.sender_template_supporting),
+                            role = AppTextRole.BodySmall,
+                        )
+                    },
+                    inputTransformation = templateState.inputTransformation,
                 )
                 AppText(
                     text = stringResource(R.string.sender_template_preview, templateState.preview),
@@ -519,7 +533,7 @@ internal fun CallNotifyTemplateDialog(
         confirmButton = {
             AppTextButton(
                 text = stringResource(R.string.save),
-                onClick = { onSave(templateState.value.text) },
+                onClick = { onSave(templateState.text) },
             )
         },
         dismissButton = {
