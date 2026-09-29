@@ -2,6 +2,7 @@ package io.github.magisk317.relay.android.otel
 
 import io.github.magisk317.relay.android.platform.compat.PlatformCompat
 import android.content.Context
+import android.os.Build
 import io.github.magisk317.relay.android.BuildConfig
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.contract.constant.RelayPrefConst
@@ -82,6 +83,14 @@ object MagiskOtelBootstrap {
                 projectId = PROJECT_ID,
                 projectName = PROJECT_NAME,
                 environment = if (BuildConfig.DEBUG) "debug" else "release",
+                deviceAttributes =
+                    mapOf(
+                        "device.manufacturer" to Build.MANUFACTURER,
+                        "device.model" to Build.MODEL,
+                        "os.name" to "android",
+                        "os.version" to Build.VERSION.RELEASE,
+                        "os.api_level" to Build.VERSION.SDK_INT.toString(),
+                    ),
                 suppressedResultValues = SUPPRESSED_RESULT_VALUES,
             ),
             TELEMETRY_PREFS_NAME,
