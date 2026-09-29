@@ -9,6 +9,7 @@ import io.github.magisk317.uikit.surface.AppLinearProgressIndicator
 import io.github.magisk317.uikit.surface.AppPrimaryButton
 import io.github.magisk317.uikit.surface.AppSecondaryButton
 import io.github.magisk317.uikit.surface.AppTextButton
+import io.github.magisk317.uikit.text.AppText
 
 import android.content.Intent
 import android.os.Build
@@ -521,9 +522,9 @@ class MainActivity : ComponentActivity() {
                             githubUpdateUiState?.let { updateState ->
                             AppAlertDialog(
                                 onDismissRequest = { githubUpdateUiState = null },
-                                title = { Text(getString(R.string.github_update_dialog_title)) },
+                                title = { AppText(text = getString(R.string.github_update_dialog_title)) },
                                 text = {
-                                    Text(
+                                    AppText(
                                         text = buildUpdateDialogText(updateState),
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -583,14 +584,14 @@ class MainActivity : ComponentActivity() {
                             is UpdateDownloadState.Downloading -> {
                                 AppAlertDialog(
                                     onDismissRequest = {},
-                                    title = { Text(getString(R.string.update_download_in_progress_title)) },
+                                    title = { AppText(text = getString(R.string.update_download_in_progress_title)) },
                                     text = {
                                         Column {
                                             AppLinearProgressIndicator(
                                                 progress = state.progress,
                                                 modifier = Modifier.fillMaxWidth(),
                                             )
-                                            Text(state.progressText)
+                                            AppText(text = state.progressText)
                                         }
                                     },
                                     confirmButton = {
@@ -608,8 +609,8 @@ class MainActivity : ComponentActivity() {
                             is UpdateDownloadState.Failed -> {
                                 AppAlertDialog(
                                     onDismissRequest = { downloadState = UpdateDownloadState.Idle },
-                                    title = { Text(getString(R.string.update_download_failed_title)) },
-                                    text = { Text(state.message) },
+                                    title = { AppText(text = getString(R.string.update_download_failed_title)) },
+                                    text = { AppText(text = state.message) },
                                     dismissButton = {
                                         AppSecondaryButton(
                                             text = getString(R.string.cancel),
@@ -630,8 +631,8 @@ class MainActivity : ComponentActivity() {
                             is UpdateDownloadState.Downloaded -> {
                                 AppAlertDialog(
                                     onDismissRequest = {},
-                                    title = { Text(getString(R.string.update_download_completed_title)) },
-                                    text = { Text(getString(R.string.update_download_completed_message)) },
+                                    title = { AppText(text = getString(R.string.update_download_completed_title)) },
+                                    text = { AppText(text = getString(R.string.update_download_completed_message)) },
                                     dismissButton = {
                                         AppSecondaryButton(
                                             text = getString(R.string.cancel),
@@ -668,8 +669,8 @@ class MainActivity : ComponentActivity() {
                         unknownSourceApk?.let {
                             AppAlertDialog(
                                 onDismissRequest = { unknownSourceApk = null },
-                                title = { Text(getString(R.string.update_unknown_source_title)) },
-                                text = { Text(getString(R.string.update_unknown_source_message)) },
+                                title = { AppText(text = getString(R.string.update_unknown_source_title)) },
+                                text = { AppText(text = getString(R.string.update_unknown_source_message)) },
                                 dismissButton = {
                                     AppSecondaryButton(
                                         text = getString(R.string.cancel),
