@@ -30,6 +30,7 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 import io.github.magisk317.uikit.preference.AppSwitch
 import io.github.magisk317.uikit.surface.AppTextField
+import io.github.magisk317.uikit.surface.AppDropdownField
 import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.theme.appColor
 import io.github.magisk317.uikit.theme.AppColorRole
@@ -67,7 +68,6 @@ fun ScheduledTaskConfigScreen(
     var simSlot by remember(taskId) { mutableStateOf("0") }
     var status by remember(taskId) { mutableStateOf(ScheduledTask.STATUS_ENABLED) }
     var queryPresetId by remember(taskId) { mutableStateOf(SCHEDULED_TASK_QUERY_PRESET_CUSTOM_ID) }
-    var queryPresetExpanded by remember(taskId) { mutableStateOf(false) }
     var loadedTaskId by remember(taskId) { mutableStateOf<Long?>(null) }
     var smsTestRunning by remember(taskId) { mutableStateOf(false) }
     var shortCodeConfirmationBypassed by remember { mutableStateOf(false) }
@@ -93,6 +93,8 @@ fun ScheduledTaskConfigScreen(
     val queryPresetCustomLabel = stringResource(id = R.string.scheduled_task_query_preset_custom)
     val selectedQueryPreset = SCHEDULED_TASK_QUERY_PRESETS.firstOrNull { it.id == queryPresetId }
     val selectedQueryPresetLabel = selectedQueryPreset?.label() ?: queryPresetCustomLabel
+    val queryPresetIndex = SCHEDULED_TASK_QUERY_PRESETS.indexOfFirst { it.id == queryPresetId }
+        .let { if (it < 0) 0 else it + 1 }
     val smsTestStartedText = stringResource(id = R.string.scheduled_task_test_started)
     val smsTestSucceededText = stringResource(id = R.string.scheduled_task_test_succeeded)
     val smsTestFailedFormat = stringResource(id = R.string.scheduled_task_test_failed)
@@ -380,55 +382,25 @@ fun ScheduledTaskConfigScreen(
             )
         }
 
-        AppText(
-            text = stringResource(id = R.string.scheduled_task_query_preset_label),
-            role = AppTextRole.Subtitle,
-            modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
-        )
-        ExposedDropdownMenuBox(
-            expanded = queryPresetExpanded,
-            onExpandedChange = { queryPresetExpanded = !queryPresetExpanded },
-            modifier = Modifier.padding(bottom = 8.dp),
-        ) {
-            OutlinedTextField(
-                value = selectedQueryPresetLabel,
-                onValueChange = {},
-                readOnly = true,
-                label = { AppText(stringResource(id = R.string.scheduled_task_query_preset_label)) },
-                trailingIcon = {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = queryPresetExpanded)
-                },
-                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                modifier = Modifier
-                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-                    .fillMaxWidth(),
-            )
-            ExposedDropdownMenu(
-                expanded = queryPresetExpanded,
-                onDismissRequest = { queryPresetExpanded = false },
-            ) {
-                DropdownMenuItem(
-                    text = { AppText(queryPresetCustomLabel) },
-                    onClick = {
-                        queryPresetId = SCHEDULED_TASK_QUERY_PRESET_CUSTOM_ID
-                        queryPresetExpanded = false
-                    },
-                )
-                SCHEDULED_TASK_QUERY_PRESETS.forEach { preset ->
-                    DropdownMenuItem(
-                        text = { AppText(preset.label()) },
-                        onClick = {
-                            queryPresetId = preset.id
-                            mobiles = preset.target
-                            content = preset.content
-                            mobilesError = null
-                            contentError = null
-                            queryPresetExpanded = false
-                        },
-                    )
+        AppDropdownField(
+            title = stringResource(id = R.string.scheduled_task_query_preset_label),
+            value = selectedQueryPresetLabel,
+            options = listOf(queryPresetCustomLabel) + SCHEDULED_TASK_QUERY_PRESETS.map { it.label() },
+            selectedIndex = queryPresetIndex,
+            onSelect = { index ->
+                if (index == 0) {
+                    queryPresetId = SCHEDULED_TASK_QUERY_PRESET_CUSTOM_ID
+                } else {
+                    val preset = SCHEDULED_TASK_QUERY_PRESETS[index - 1]
+                    queryPresetId = preset.id
+                    mobiles = preset.target
+                    content = preset.content
+                    mobilesError = null
+                    contentError = null
                 }
-            }
-        }
+            },
+            modifier = Modifier.padding(bottom = 8.dp),
+        )
         AppText(
             text = stringResource(id = R.string.scheduled_task_query_preset_reference_notice),
             color = appColor(AppColorRole.OnSurfaceVariant),

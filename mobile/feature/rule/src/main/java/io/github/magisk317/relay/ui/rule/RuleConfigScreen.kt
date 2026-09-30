@@ -22,6 +22,7 @@ import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
 import java.util.Date
 import io.github.magisk317.uikit.surface.AppTextField
+import io.github.magisk317.uikit.surface.AppDropdownField
 import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
 
@@ -88,8 +89,8 @@ fun RuleConfigScreen(
             )
 
             // 目标通道选择
-            AppText(stringResource(R.string.rule_config_sender_target_label), role = AppTextRole.Footnote)
             SenderDropdown(
+                title = stringResource(R.string.rule_config_sender_target_label),
                 senders = senders,
                 selectedId = selectedSenderId,
                 context = context,
@@ -191,43 +192,26 @@ fun RuleConfigScreen(
 
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SenderDropdown(
+    title: String,
     senders: List<Sender>,
     selectedId: Long,
     context: android.content.Context,
     onSelect: (Long) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    val selectedName = senders.find { it.id == selectedId }?.displayName(context)
-        ?: context.getString(R.string.rule_config_sender_placeholder)
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it }
-    ) {
-        OutlinedTextField(
-            value = selectedName,
-            onValueChange = {},
-            readOnly = true,
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            senders.forEach { sender ->
-                DropdownMenuItem(
-                    text = { AppText(sender.displayName(context)) },
-                    onClick = {
-                        onSelect(sender.id)
-                        expanded = false
-                    }
-                )
-            }
-        }
-    }
+    val selectedIndex = senders.indexOfFirst { it.id == selectedId }
+    AppDropdownField(
+        title = title,
+        value = senders.getOrNull(selectedIndex)?.displayName(context) ?: "",
+        options = senders.map { it.displayName(context) },
+        selectedIndex = selectedIndex,
+        onSelect = { index ->
+            onSelect(senders[index].id)
+        },
+        placeholderText = context.getString(R.string.rule_config_sender_placeholder),
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 @Composable

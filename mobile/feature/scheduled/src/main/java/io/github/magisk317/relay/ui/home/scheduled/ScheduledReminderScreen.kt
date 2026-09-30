@@ -22,16 +22,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenu
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ListItem
-import androidx.compose.material3.MaterialTheme
 import io.github.magisk317.uikit.common.AppSnackbarHostState
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -58,6 +50,7 @@ import io.github.magisk317.relay.contract.settings.SpecialAlertSettingsUpdate
 import io.github.magisk317.relay.feature.reminder.BatteryReminderSchedulerFacade
 import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
 import io.github.magisk317.relay.ui.common.parseIntInRangeInput
+import io.github.magisk317.uikit.surface.AppDropdownField
 import io.github.magisk317.relay.ui.sender.displayName
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -79,57 +72,25 @@ private fun countKeywords(raw: String): Int {
         .size
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ChannelDropdown(
     title: String,
     value: String,
-    expanded: Boolean,
-    onExpandedChange: (Boolean) -> Unit,
     options: List<ChannelOption>,
     onSelect: (ChannelOption) -> Unit,
 ) {
-    AppText(
-        text = title,
-        role = AppTextRole.Body,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(
-            horizontal = Const.PADDING_MEDIUM.dp,
-            vertical = 6.dp,
-        ),
-    )
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = onExpandedChange,
+    AppDropdownField(
+        title = title,
+        value = value,
+        options = options.map { it.label },
+        selectedIndex = options.indexOfFirst { it.label == value },
+        onSelect = { index ->
+            onSelect(options[index])
+        },
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Const.PADDING_MEDIUM.dp),
-    ) {
-        TextField(
-            value = value,
-            onValueChange = {},
-            readOnly = true,
-            singleLine = true,
-            trailingIcon = {
-                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-            },
-            colors = ExposedDropdownMenuDefaults.textFieldColors(),
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { onExpandedChange(false) },
-        ) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { AppText(option.label) },
-                    onClick = { onSelect(option) },
-                )
-            }
-        }
-    }
+    )
 }
 
 @Composable
@@ -148,10 +109,6 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
     var showThresholdDialog by remember { mutableStateOf(false) }
     var showSmsKeywordDialog by remember { mutableStateOf(false) }
     var showAppKeywordDialog by remember { mutableStateOf(false) }
-    var lowExpanded by remember { mutableStateOf(false) }
-    var fullExpanded by remember { mutableStateOf(false) }
-    var chargingExpanded by remember { mutableStateOf(false) }
-    var callExpanded by remember { mutableStateOf(false) }
     var expandBatterySection by remember { mutableStateOf(true) }
     var expandCallSection by remember { mutableStateOf(true) }
     var expandKeywordSection by remember { mutableStateOf(true) }
@@ -278,12 +235,9 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                     ) { showThresholdDialog = true }
                     ChannelDropdown(
                         title = stringResource(id = R.string.scheduled_reminder_channel_title),
-                        value = lowChannelLabel,
-                        expanded = lowExpanded,
-                        onExpandedChange = { lowExpanded = it },
+                        value = lowChannelLabel.orEmpty(),
                         options = channelOptions,
                     ) { option ->
-                        lowExpanded = false
                         scope.launch {
                             settings = repository.updateSpecialAlertSettings(
                                 SpecialAlertSettingsUpdate(lowBatteryChannelId = option.id),
@@ -313,12 +267,9 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                 if (current.fullBatteryReminderEnabled) {
                     ChannelDropdown(
                         title = stringResource(id = R.string.scheduled_reminder_channel_title),
-                        value = fullChannelLabel,
-                        expanded = fullExpanded,
-                        onExpandedChange = { fullExpanded = it },
+                        value = fullChannelLabel.orEmpty(),
                         options = channelOptions,
                     ) { option ->
-                        fullExpanded = false
                         scope.launch {
                             settings = repository.updateSpecialAlertSettings(
                                 SpecialAlertSettingsUpdate(fullBatteryChannelId = option.id),
@@ -348,12 +299,9 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                 if (current.chargingChangeReminderEnabled) {
                     ChannelDropdown(
                         title = stringResource(id = R.string.scheduled_reminder_channel_title),
-                        value = chargingChannelLabel,
-                        expanded = chargingExpanded,
-                        onExpandedChange = { chargingExpanded = it },
+                        value = chargingChannelLabel.orEmpty(),
                         options = channelOptions,
                     ) { option ->
-                        chargingExpanded = false
                         scope.launch {
                             settings = repository.updateSpecialAlertSettings(
                                 SpecialAlertSettingsUpdate(chargingChangeChannelId = option.id),
@@ -393,12 +341,9 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                 if (current.callAlertLocalEnabled) {
                     ChannelDropdown(
                         title = stringResource(id = R.string.scheduled_reminder_channel_title),
-                        value = callChannelLabel,
-                        expanded = callExpanded,
-                        onExpandedChange = { callExpanded = it },
+                        value = callChannelLabel.orEmpty(),
                         options = channelOptions,
                     ) { option ->
-                        callExpanded = false
                         scope.launch {
                             settings = repository.updateSpecialAlertSettings(
                                 SpecialAlertSettingsUpdate(callAlertChannelId = option.id),
