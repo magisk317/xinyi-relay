@@ -6,7 +6,7 @@ import android.app.Activity
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material3.SnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,7 +48,7 @@ internal data class SettingsBackupDialogEventBindings(
 @Composable
 internal fun rememberSettingsBackupRestoreActions(
     settingsViewModel: SettingsViewModel,
-    snackbarHostState: SnackbarHostState,
+    snackbarHostState: AppSnackbarHostState,
     onNavigateToCloudBackup: (BackupSourceType, Boolean) -> Unit,
     isActive: Boolean = true,
 ): SettingsBackupRestoreActions {

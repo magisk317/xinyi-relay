@@ -12,11 +12,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,7 +27,14 @@ import io.github.magisk317.relay.core.R
 import io.github.magisk317.smscode.runtime.contract.backup.BackupImportResult
 import io.github.magisk317.smscode.runtime.contract.backup.ImportResult
 import io.github.magisk317.smscode.runtime.contract.backup.ImportWarning
+import io.github.magisk317.uikit.preference.AppCheckbox
 import io.github.magisk317.uikit.surface.AppAlertDialog
+import io.github.magisk317.uikit.surface.AppPrimaryButton
+import io.github.magisk317.uikit.surface.AppTextButton
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 
 internal data class BackupSelection(
     val includeConfig: Boolean = true,
@@ -67,7 +69,7 @@ internal fun BackupSourceDialog(
 
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = title) },
+        title = { AppText(text = title, role = AppTextRole.Title) },
         text = {
             Column(
                 modifier = Modifier
@@ -76,19 +78,16 @@ internal fun BackupSourceDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 options.forEach { (type, name) ->
-                    Button(
+                    AppPrimaryButton(
+                        text = name,
                         onClick = { onSourceSelected(type) },
                         modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(name)
-                    }
+                    )
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = stringResource(R.string.cancel))
-            }
+            AppTextButton(text = stringResource(R.string.cancel), onClick = onDismiss)
         },
     )
 }
@@ -157,10 +156,10 @@ internal fun BackupRestoreOptionsDialog(
 
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = title) },
+        title = { AppText(text = title, role = AppTextRole.Title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(text = message)
+                AppText(text = message)
                 BackupRestoreOptionRow(
                     label = stringResource(id = R.string.item_config),
                     checked = includeConfig,
@@ -182,26 +181,23 @@ internal fun BackupRestoreOptionsDialog(
                     onCheckedChange = { includeDatabase = it },
                 )
                 warningMessage?.takeIf { it.isNotBlank() }?.let {
-                    Text(
+                    AppText(
                         text = it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        role = AppTextRole.BodySmall,
+                        color = appColor(AppColorRole.OnSurfaceVariant),
                     )
                 }
             }
         },
         confirmButton = {
-            TextButton(
+            AppTextButton(
+                text = stringResource(R.string.okay),
                 onClick = { onConfirm(selection) },
                 enabled = selection.hasSelection() && confirmEnabled,
-            ) {
-                Text(text = stringResource(R.string.okay))
-            }
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = stringResource(R.string.cancel))
-            }
+            AppTextButton(text = stringResource(R.string.cancel), onClick = onDismiss)
         },
     )
 }
@@ -214,14 +210,14 @@ internal fun BackupInspectionResultDialog(
     val context = LocalContext.current
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = stringResource(id = R.string.backup_success)) },
+        title = { AppText(text = stringResource(id = R.string.backup_success), role = AppTextRole.Title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
+                AppText(
                     text = stringResource(id = R.string.backup_inspect_title),
-                    style = MaterialTheme.typography.titleMedium,
+                    role = AppTextRole.Subtitle,
                 )
-                Text(
+                AppText(
                     text = backupInspectionDialogMessage(
                         context = context,
                         inspection = inspection,
@@ -230,9 +226,7 @@ internal fun BackupInspectionResultDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = stringResource(R.string.okay))
-            }
+            AppTextButton(text = stringResource(R.string.okay), onClick = onDismiss)
         },
     )
 }
@@ -251,13 +245,13 @@ private fun BackupRestoreOptionRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Checkbox(
+        AppCheckbox(
             checked = checked,
             onCheckedChange = onCheckedChange,
         )
-        Text(
+        AppText(
             text = label,
-            style = MaterialTheme.typography.bodyMedium,
+            role = AppTextRole.Body,
             modifier = Modifier.weight(1f),
         )
     }

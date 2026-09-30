@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -30,6 +28,7 @@ import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsLabels
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsLayout
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsState
 import io.github.magisk317.uikit.preference.Item
+import io.github.magisk317.uikit.surface.AppPrimaryButton
 
 @Composable
 internal fun SettingsGeneralSection(
@@ -137,18 +136,16 @@ internal fun SettingsBackupRestoreSection(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Button(
+            AppPrimaryButton(
+                text = stringResource(id = R.string.pref_backup_title),
                 onClick = onBackupClick,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(stringResource(id = R.string.pref_backup_title))
-            }
-            Button(
+                modifier = Modifier.weight(1f),
+            )
+            AppPrimaryButton(
+                text = stringResource(id = R.string.pref_restore_title),
                 onClick = onRestoreClick,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(stringResource(id = R.string.pref_restore_title))
-            }
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }

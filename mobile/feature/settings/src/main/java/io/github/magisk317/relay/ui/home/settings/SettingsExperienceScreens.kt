@@ -2,6 +2,8 @@ package io.github.magisk317.relay.ui.home.settings
 
 import android.content.Intent
 import io.github.magisk317.relay.android.diagnostics.RuntimeDiagnosticsBridge
+import io.github.magisk317.uikit.common.AppSnackbarHost
+import io.github.magisk317.uikit.common.AppSnackbarHostState
 import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import android.util.Log
@@ -18,8 +20,6 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,7 +28,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
@@ -75,7 +74,7 @@ fun SettingsHomeScreen(
     val scope = rememberCoroutineScope()
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
     val launcherIconFailedText = stringResource(id = R.string.pref_show_launcher_icon_failed)
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     val settingsViewModel = rememberSharedSettingsViewModel()
     val notifySaved: () -> Unit = {
         scope.launch {
@@ -308,11 +307,9 @@ fun SettingsHomeScreen(
             )
         }
 
-        io.github.magisk317.uikit.common.DismissibleSnackbarHost(
+        AppSnackbarHost(
             hostState = snackbarHostState,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = effectiveBottomPadding),
+            modifier = Modifier.padding(bottom = effectiveBottomPadding),
         )
     }
 }
