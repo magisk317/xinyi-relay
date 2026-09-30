@@ -1,0 +1,26 @@
+name: Dual Track
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+  push:
+    branches:
+      - beta
+      - master
+      - main
+  workflow_dispatch:
+
+jobs:
+  dual-track:
+    name: Dual-track contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check dual-track contract
+        run: python3 scripts/checks/dual_track_check.py --root .
