@@ -30,7 +30,6 @@ import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import io.github.magisk317.uikit.common.AppSnackbarDuration
 import io.github.magisk317.uikit.common.AppSnackbarHostState
 import io.github.magisk317.uikit.common.AppSnackbarResult
@@ -86,6 +85,7 @@ import io.github.magisk317.uikit.surface.AppPrimaryButton
 import io.github.magisk317.uikit.surface.AppSecondaryButton
 import io.github.magisk317.uikit.surface.AppSurface
 import io.github.magisk317.uikit.surface.AppTextButton
+import io.github.magisk317.uikit.surface.AppBottomSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -189,40 +189,39 @@ fun BlacklistHitListScreen(
         )
     }
 
-    if (showSettingsSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showSettingsSheet = false },
+    AppBottomSheet(
+        show = showSettingsSheet,
+        onDismissRequest = { showSettingsSheet = false },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                StateSwitchItem(
-                    title = stringResource(R.string.pref_enable_sms_blacklist_hit_records_title),
-                    summary = "",
-                    checked = recordEnabled,
-                ) { enabled ->
-                    recordEnabled = enabled
-                    scope.launch {
-                        settingsRepository.updateRecordSettings(
-                            RecordSettingsUpdate(smsBlacklistHitRecordEnabled = enabled),
-                        )
-                        snackbarHostState.showLatestSnackbar(savedSnackbarText)
-                    }
+            StateSwitchItem(
+                title = stringResource(R.string.pref_enable_sms_blacklist_hit_records_title),
+                summary = "",
+                checked = recordEnabled,
+            ) { enabled ->
+                recordEnabled = enabled
+                scope.launch {
+                    settingsRepository.updateRecordSettings(
+                        RecordSettingsUpdate(smsBlacklistHitRecordEnabled = enabled),
+                    )
+                    snackbarHostState.showLatestSnackbar(savedSnackbarText)
                 }
-                AppArrowItem(
-                    title = stringResource(
-                        R.string.pref_history_limit_title_with_target,
-                        stringResource(R.string.sms_blacklist_hit_list_title),
-                    ),
-                    summary = blacklistHitHistoryLimitSummary(historyLimit),
-                ) {
-                    showHistoryLimitDialog = true
-                }
-                Spacer(modifier = Modifier.height(12.dp))
             }
+            AppArrowItem(
+                title = stringResource(
+                    R.string.pref_history_limit_title_with_target,
+                    stringResource(R.string.sms_blacklist_hit_list_title),
+                ),
+                summary = blacklistHitHistoryLimitSummary(historyLimit),
+            ) {
+                showHistoryLimitDialog = true
+            }
+            Spacer(modifier = Modifier.height(12.dp))
         }
     }
 

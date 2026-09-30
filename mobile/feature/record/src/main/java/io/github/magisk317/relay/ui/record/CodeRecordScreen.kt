@@ -100,6 +100,7 @@ import io.github.magisk317.uikit.surface.AppPrimaryButton
 import io.github.magisk317.uikit.surface.AppSecondaryButton
 import io.github.magisk317.uikit.surface.AppSurface
 import io.github.magisk317.uikit.surface.AppTextButton
+import io.github.magisk317.uikit.surface.AppBottomSheet
 import java.util.*
 
 private enum class RecordExportScope {
@@ -366,86 +367,85 @@ fun CodeRecordScreen(
             }
         }
 
-    if (showSettingsSheet) {
-        val currentTabName = stringResource(recordTabNameRes(selectedRecordTab))
-        val currentRecordEnabled = when (selectedRecordTab) {
-            0 -> codeRecordEnabled
-            1 -> plainRecordEnabled
-            2 -> appNotifyRecordEnabled
-            else -> callNotifyRecordEnabled
-        }
-        val currentHistoryLimit = when (selectedRecordTab) {
-            0 -> historyLimitCode
-            1 -> historyLimitPlain
-            2 -> historyLimitAppNotify
-            else -> historyLimitCallNotify
-        }
-        ModalBottomSheet(
-            onDismissRequest = { showSettingsSheet = false },
+    val currentTabName = stringResource(recordTabNameRes(selectedRecordTab))
+    val currentRecordEnabled = when (selectedRecordTab) {
+        0 -> codeRecordEnabled
+        1 -> plainRecordEnabled
+        2 -> appNotifyRecordEnabled
+        else -> callNotifyRecordEnabled
+    }
+    val currentHistoryLimit = when (selectedRecordTab) {
+        0 -> historyLimitCode
+        1 -> historyLimitPlain
+        2 -> historyLimitAppNotify
+        else -> historyLimitCallNotify
+    }
+    AppBottomSheet(
+        show = showSettingsSheet,
+        onDismissRequest = { showSettingsSheet = false },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                StateSwitchItem(
-                    title = stringResource(id = recordEnableTitleRes(selectedRecordTab)),
-                    summary = "",
-                    checked = currentRecordEnabled,
-                ) { enabled ->
-                    when (selectedRecordTab) {
-                        0 -> codeRecordEnabled = enabled
-                        1 -> plainRecordEnabled = enabled
-                        2 -> appNotifyRecordEnabled = enabled
-                        else -> callNotifyRecordEnabled = enabled
-                    }
-                    scope.launch {
-                        settingsRepository.updateRecordSettings(
-                            when (selectedRecordTab) {
-                                0 -> RecordSettingsUpdate(codeRecordEnabled = enabled)
-                                1 -> RecordSettingsUpdate(plainSmsRecordEnabled = enabled)
-                                2 -> RecordSettingsUpdate(appNotifyRecordEnabled = enabled)
-                                else -> RecordSettingsUpdate(callNotifyRecordEnabled = enabled)
-                            },
-                        )
-                        snackbarHostState.showLatestSnackbar(savedSnackbarText)
-                    }
+            StateSwitchItem(
+                title = stringResource(id = recordEnableTitleRes(selectedRecordTab)),
+                summary = "",
+                checked = currentRecordEnabled,
+            ) { enabled ->
+                when (selectedRecordTab) {
+                    0 -> codeRecordEnabled = enabled
+                    1 -> plainRecordEnabled = enabled
+                    2 -> appNotifyRecordEnabled = enabled
+                    else -> callNotifyRecordEnabled = enabled
                 }
-
-                AppArrowItem(
-                    title = stringResource(
-                        id = R.string.pref_history_limit_title_with_target,
-                        currentTabName,
-                    ),
-                    summary = run {
-                        val entries = stringArrayResource(id = R.array.history_limit_entry_list)
-                        val values = stringArrayResource(id = R.array.history_limit_value_list)
-                        val index = values.indexOf(currentHistoryLimit)
-                        if (index >= 0) {
-                            entries[index]
-                        } else {
-                            "$currentHistoryLimit ${stringResource(recordTabNameRes(selectedRecordTab))}"
-                        }
-                    },
-                ) { showHistoryLimitDialog = true }
-
-                AppArrowItem(
-                    title = stringResource(id = R.string.record_settings_clear_current_tab),
-                    summary = currentTabName,
-                    enabled = queryState.recordsForTab(selectedRecordTab).isNotEmpty(),
-                ) { showClearDialog = true }
-
-                AppArrowItem(
-                    title = stringResource(id = R.string.record_export_dialog_title),
-                    summary = "",
-                ) {
-                    exportScope = RecordExportScope.CURRENT_TAB
-                    showExportDialog = true
+                scope.launch {
+                    settingsRepository.updateRecordSettings(
+                        when (selectedRecordTab) {
+                            0 -> RecordSettingsUpdate(codeRecordEnabled = enabled)
+                            1 -> RecordSettingsUpdate(plainSmsRecordEnabled = enabled)
+                            2 -> RecordSettingsUpdate(appNotifyRecordEnabled = enabled)
+                            else -> RecordSettingsUpdate(callNotifyRecordEnabled = enabled)
+                        },
+                    )
+                    snackbarHostState.showLatestSnackbar(savedSnackbarText)
                 }
-
-                Spacer(modifier = Modifier.height(12.dp))
             }
+
+            AppArrowItem(
+                title = stringResource(
+                    id = R.string.pref_history_limit_title_with_target,
+                    currentTabName,
+                ),
+                summary = run {
+                    val entries = stringArrayResource(id = R.array.history_limit_entry_list)
+                    val values = stringArrayResource(id = R.array.history_limit_value_list)
+                    val index = values.indexOf(currentHistoryLimit)
+                    if (index >= 0) {
+                        entries[index]
+                    } else {
+                        "$currentHistoryLimit ${stringResource(recordTabNameRes(selectedRecordTab))}"
+                    }
+                },
+            ) { showHistoryLimitDialog = true }
+
+            AppArrowItem(
+                title = stringResource(id = R.string.record_settings_clear_current_tab),
+                summary = currentTabName,
+                enabled = queryState.recordsForTab(selectedRecordTab).isNotEmpty(),
+            ) { showClearDialog = true }
+
+            AppArrowItem(
+                title = stringResource(id = R.string.record_export_dialog_title),
+                summary = "",
+            ) {
+                exportScope = RecordExportScope.CURRENT_TAB
+                showExportDialog = true
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
         }
     }
 

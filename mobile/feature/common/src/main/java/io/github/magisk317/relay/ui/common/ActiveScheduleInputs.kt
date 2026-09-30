@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
@@ -26,6 +25,7 @@ import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
 import io.github.magisk317.uikit.surface.AppSecondaryButton
 import io.github.magisk317.uikit.surface.AppTextButton
+import io.github.magisk317.uikit.surface.AppFilterChip
 
 @Composable
 fun ActiveScheduleWeekdayRow(
@@ -38,17 +38,13 @@ fun ActiveScheduleWeekdayRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         weekdays.forEach { weekday ->
-            FilterChip(
+            AppFilterChip(
+                label = DayOfWeek.of(weekday).getDisplayName(
+                    TextStyle.SHORT,
+                    Locale.getDefault(),
+                ),
                 selected = weekday in selectedWeekdays,
                 onClick = { onWeekdayToggle(weekday) },
-                label = {
-                    CenteredChipText(
-                        text = DayOfWeek.of(weekday).getDisplayName(
-                            TextStyle.SHORT,
-                            Locale.getDefault(),
-                        ),
-                    )
-                },
                 modifier = Modifier.weight(1f),
             )
         }

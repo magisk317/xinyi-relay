@@ -13,7 +13,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.MaterialTheme
 import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.runtime.Composable
@@ -30,7 +29,6 @@ import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.model.ForwardFilterRule
 import io.github.magisk317.relay.engine.filter.ForwardFilterConst
-import io.github.magisk317.relay.ui.common.CenteredChipText
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.uikit.theme.UiKitStyle
@@ -44,6 +42,7 @@ import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
+import io.github.magisk317.uikit.surface.AppAssistChip
 
 data class ForwardFilterEditorState(
     val id: Long,
@@ -333,14 +332,14 @@ fun ForwardFilterRuleEditorDialog(
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             channelCandidates.take(6).forEach { candidate ->
-                                AssistChip(
+                                AppAssistChip(
+                                    label = candidate,
                                     onClick = {
                                         channelIdState.edit {
                                             replace(0, length, candidate)
                                             selection = TextRange(candidate.length)
                                         }
                                     },
-                                    label = { CenteredChipText(candidate) },
                                 )
                             }
                         }

@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ListItem
 import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -57,6 +56,7 @@ import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppListItem
 
 private data class ChannelOption(
     val id: String,
@@ -317,15 +317,10 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                 sectionExpanded = expandCallSection,
                 onExpandedChange = { expandCallSection = !expandCallSection },
             ) {
-                ListItem(
-                    supportingContent = {
-                        AppText(
-                            text = stringResource(id = R.string.call_alert_forward_summary_from_relay),
-                        )
-                    },
-                ) {
-                    AppText(text = stringResource(id = R.string.call_alert_forward_title))
-                }
+                AppListItem(
+                    title = stringResource(id = R.string.call_alert_forward_title),
+                    summary = stringResource(id = R.string.call_alert_forward_summary_from_relay),
+                )
                 StateSwitchItem(
                     title = stringResource(id = R.string.call_alert_local_title),
                     summary = stringResource(id = R.string.call_alert_local_summary),
