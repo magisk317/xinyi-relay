@@ -135,6 +135,8 @@ private fun SenderSettingDraft.normalizedStructuredFields(): SenderSettingDraft 
     return nextDraft
 }
 
+private const val DROPDOWN_CHEVRON_ROTATION_EXPANDED_DEGREES = 180f
+
 private val PasswordOutputTransformation = OutputTransformation {
     replace(0, length, "•".repeat(length))
 }
@@ -404,7 +406,9 @@ private fun SchemaSenderField(
                         AppIcon(
                             imageVector = Icons.Filled.ArrowDropDown,
                             contentDescription = null,
-                            modifier = Modifier.rotate(if (expanded) 180f else 0f),
+                            modifier = Modifier.rotate(
+                                if (expanded) DROPDOWN_CHEVRON_ROTATION_EXPANDED_DEGREES else 0f,
+                            ),
                             tint = appColor(AppColorRole.OnSurfaceVariant),
                         )
                     },
