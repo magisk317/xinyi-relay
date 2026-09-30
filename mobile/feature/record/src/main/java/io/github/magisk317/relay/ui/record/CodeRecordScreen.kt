@@ -941,7 +941,7 @@ private fun RecordDetailOverlay(
             ) { onDismiss() },
         contentAlignment = Alignment.Center,
     ) {
-        Surface(
+        AppSurface(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
