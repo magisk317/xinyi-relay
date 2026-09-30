@@ -18,6 +18,8 @@ import io.github.magisk317.uikit.theme.currentUiKitStyle
 import io.github.magisk317.relay.engine.model.ScheduledTask
 import io.github.magisk317.uikit.surface.AppAlertDialog
 import io.github.magisk317.uikit.preference.AppSwitch
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
 
 @Composable
 fun ScheduledTasksScreen(
@@ -48,7 +50,7 @@ fun ScheduledTasksScreen(
                 )
             }
             tasks.isEmpty() -> {
-                Text(
+                AppText(
                     text = stringResource(id = R.string.scheduled_task_empty),
                     modifier = Modifier.align(androidx.compose.ui.Alignment.Center)
                 )
@@ -65,27 +67,27 @@ fun ScheduledTasksScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(text = task.name, style = MaterialTheme.typography.titleMedium)
+                                    AppText(text = task.name, role = AppTextRole.Subtitle)
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
+                                    AppText(
                                         text = stringResource(
                                             id = R.string.scheduled_task_line_cron,
                                             task.cronExpression,
                                         ),
-                                        style = MaterialTheme.typography.bodyMedium,
+                                        role = AppTextRole.Body,
                                     )
                                     val statusText = if (task.status == ScheduledTask.STATUS_ENABLED) {
                                         stringResource(id = R.string.scheduled_task_status_enabled)
                                     } else {
                                         stringResource(id = R.string.scheduled_task_status_disabled)
                                     }
-                                    Text(
+                                    AppText(
                                         text = stringResource(
                                             id = R.string.scheduled_task_line_sim_status,
                                             task.simSlot,
                                             statusText,
                                         ),
-                                        style = MaterialTheme.typography.bodySmall,
+                                        role = AppTextRole.BodySmall,
                                     )
                                 }
                                 Column {
@@ -121,8 +123,8 @@ fun ScheduledTasksScreen(
     taskToDelete?.let { taskId ->
         AppAlertDialog(
             onDismissRequest = { taskToDelete = null },
-            title = { Text(stringResource(id = R.string.scheduled_task_delete_dialog_title)) },
-            text = { Text(stringResource(id = R.string.scheduled_task_delete_dialog_message)) },
+            title = { AppText(stringResource(id = R.string.scheduled_task_delete_dialog_title)) },
+            text = { AppText(stringResource(id = R.string.scheduled_task_delete_dialog_message)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -133,12 +135,12 @@ fun ScheduledTasksScreen(
                         )
                     }
                 ) {
-                    Text(stringResource(id = R.string.action_delete))
+                    AppText(stringResource(id = R.string.action_delete))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { taskToDelete = null }) {
-                    Text(stringResource(id = R.string.cancel))
+                    AppText(stringResource(id = R.string.cancel))
                 }
             }
         )
@@ -150,11 +152,11 @@ fun ScheduledTasksScreen(
             modifier = Modifier.padding(16.dp),
             action = {
                 TextButton(onClick = { viewModel.clearError() }) {
-                    Text(stringResource(id = R.string.action_close))
+                    AppText(stringResource(id = R.string.action_close))
                 }
             }
         ) {
-            Text(error)
+            AppText(error)
         }
     }
     }

@@ -22,6 +22,8 @@ import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
 import java.util.Date
 import io.github.magisk317.uikit.surface.AppTextField
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
 
 @Composable
 fun RuleConfigScreen(
@@ -86,7 +88,7 @@ fun RuleConfigScreen(
             )
 
             // 目标通道选择
-            Text(stringResource(R.string.rule_config_sender_target_label), style = MaterialTheme.typography.labelMedium)
+            AppText(stringResource(R.string.rule_config_sender_target_label), role = AppTextRole.Footnote)
             SenderDropdown(
                 senders = senders,
                 selectedId = selectedSenderId,
@@ -95,7 +97,7 @@ fun RuleConfigScreen(
             )
 
             // 匹配字段
-            Text(stringResource(R.string.rule_config_match_field_label), style = MaterialTheme.typography.labelMedium)
+            AppText(stringResource(R.string.rule_config_match_field_label), role = AppTextRole.Footnote)
             SegmentedPicker(
                 options = listOf(
                     "transpond_all" to stringResource(R.string.rule_config_match_all),
@@ -109,7 +111,7 @@ fun RuleConfigScreen(
             // 仅在内容/发件人匹配时显示
             if (filed != "transpond_all") {
                 // 匹配方式
-                Text(stringResource(R.string.rule_config_match_mode_label), style = MaterialTheme.typography.labelMedium)
+                AppText(stringResource(R.string.rule_config_match_mode_label), role = AppTextRole.Footnote)
                 SegmentedPicker(
                     options = listOf(
                         "contains" to stringResource(R.string.rule_config_match_contains),
@@ -166,7 +168,7 @@ fun RuleConfigScreen(
                 enabled = selectedSenderId != 0L,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(stringResource(if (ruleId == 0L) R.string.rule_config_save_new else R.string.rule_config_save_update))
+                AppText(stringResource(if (ruleId == 0L) R.string.rule_config_save_new else R.string.rule_config_save_update))
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -217,7 +219,7 @@ fun SenderDropdown(
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             senders.forEach { sender ->
                 DropdownMenuItem(
-                    text = { Text(sender.displayName(context)) },
+                    text = { AppText(sender.displayName(context)) },
                     onClick = {
                         onSelect(sender.id)
                         expanded = false
