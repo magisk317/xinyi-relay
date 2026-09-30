@@ -10,13 +10,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,7 +31,16 @@ import io.github.magisk317.relay.ui.common.ActiveScheduleWeekdayRow
 import io.github.magisk317.relay.ui.common.CenteredChipText
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
+import io.github.magisk317.uikit.preference.AppSwitch
 import io.github.magisk317.uikit.surface.AppAlertDialog
+import io.github.magisk317.uikit.surface.AppIcon
+import io.github.magisk317.uikit.surface.AppIconButton
+import io.github.magisk317.uikit.surface.AppSecondaryButton
+import io.github.magisk317.uikit.surface.AppTextButton
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 
 enum class SenderScheduleSection {
     SMS,
@@ -75,7 +77,7 @@ fun SenderActiveScheduleDialog(
 
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.sender_active_schedule_editor_title)) },
+        title = { AppText(text = stringResource(R.string.sender_active_schedule_editor_title)) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -92,14 +94,13 @@ fun SenderActiveScheduleDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(SenderActiveScheduleEvaluator.sanitize(draft)) }) {
-                Text(stringResource(R.string.save))
-            }
+            AppTextButton(
+                text = stringResource(R.string.save),
+                onClick = { onConfirm(SenderActiveScheduleEvaluator.sanitize(draft)) },
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
-            }
+            AppTextButton(text = stringResource(R.string.cancel), onClick = onDismiss)
         },
     )
 }
@@ -118,19 +119,19 @@ private fun SenderActiveScheduleRuleEditor(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
+                AppText(
                     text = stringResource(R.string.sender_active_schedule_switch_title),
-                    style = MaterialTheme.typography.titleSmall,
+                    role = AppTextRole.Subtitle,
                 )
-                Text(
+                AppText(
                     text = buildRuleSummary(rule),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    role = AppTextRole.BodySmall,
+                    color = appColor(AppColorRole.OnSurfaceVariant),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Switch(
+            AppSwitch(
                 checked = rule.enabled,
                 onCheckedChange = { enabled ->
                     onRuleChange(
@@ -167,9 +168,9 @@ private fun SenderActiveScheduleRuleEditor(
             onSelect = { nextMode -> onRuleChange(rule.copy(mode = nextMode)) },
         )
 
-        Text(
+        AppText(
             text = stringResource(R.string.sender_active_schedule_weekdays_title),
-            style = MaterialTheme.typography.titleSmall,
+            role = AppTextRole.Subtitle,
         )
         ActiveScheduleWeekdayRow(
             weekdays = listOf(1, 2, 3, 4),
@@ -204,9 +205,9 @@ private fun SenderActiveScheduleRuleEditor(
             },
         )
 
-        Text(
+        AppText(
             text = stringResource(R.string.sender_active_schedule_ranges_title),
-            style = MaterialTheme.typography.titleSmall,
+            role = AppTextRole.Subtitle,
         )
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -246,7 +247,7 @@ private fun SenderActiveScheduleRuleEditor(
                             onRuleChange(rule.withRange(index, range.copy(end = value)))
                         },
                     )
-                    IconButton(
+                    AppIconButton(
                         modifier = Modifier.weight(SENDER_ACTIVE_SCHEDULE_ACTION_WEIGHT),
                         onClick = {
                             val nextRanges = rule.ranges.filterIndexed { i, _ -> i != index }
@@ -258,7 +259,7 @@ private fun SenderActiveScheduleRuleEditor(
                             )
                         },
                     ) {
-                        Icon(
+                        AppIcon(
                             imageVector = Icons.Default.Close,
                             contentDescription = stringResource(R.string.sender_active_schedule_remove_range),
                         )
@@ -267,13 +268,12 @@ private fun SenderActiveScheduleRuleEditor(
             }
         }
 
-        OutlinedButton(
+        AppSecondaryButton(
+            text = stringResource(R.string.sender_active_schedule_add_range),
             onClick = {
                 onRuleChange(rule.copy(ranges = rule.ranges + SenderScheduleStarterRange))
             },
-        ) {
-            Text(stringResource(R.string.sender_active_schedule_add_range))
-        }
+        )
     }
 }
 

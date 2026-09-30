@@ -7,11 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -23,6 +18,13 @@ import io.github.magisk317.relay.sender.AesUtils
 import io.github.magisk317.relay.sender.SenderSettingDraft
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
 import io.github.magisk317.relay.ui.sender.SenderViewModel
+import io.github.magisk317.uikit.surface.AppIcon
+import io.github.magisk317.uikit.surface.AppIconButton
+import io.github.magisk317.uikit.surface.AppTextField
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 import kotlinx.coroutines.launch
 
 private val BarkVisibleFields = listOf(
@@ -85,30 +87,30 @@ private fun BarkEncryptionFields(
     val keyGeneratedLabel = stringResource(R.string.sender_form_label_bark_encryption_key_generated)
     val ivGeneratedLabel = stringResource(R.string.sender_form_label_bark_encryption_iv_generated)
 
-    Text(
+    AppText(
         text = stringResource(R.string.sender_form_label_bark_encryption),
-        style = MaterialTheme.typography.titleMedium,
+        role = AppTextRole.Subtitle,
     )
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        OutlinedTextField(
+        AppTextField(
             value = draft.string("key"),
             onValueChange = { onDraftChange(draft.withString("key", it)) },
-            label = { Text(stringResource(R.string.sender_form_label_bark_encryption_key)) },
-            placeholder = { Text(stringResource(R.string.sender_form_label_bark_encryption_key_hint)) },
+            label = stringResource(R.string.sender_form_label_bark_encryption_key),
+            placeholderText = stringResource(R.string.sender_form_label_bark_encryption_key_hint),
             modifier = Modifier.weight(1f),
             singleLine = true,
         )
-        IconButton(
+        AppIconButton(
             onClick = {
                 onDraftChange(draft.withString("key", AesUtils.generateKey()))
                 coroutineScope.launch { snackbarHostState.showLatestSnackbar(keyGeneratedLabel) }
             },
         ) {
-            Icon(
-                Icons.Default.Refresh,
+            AppIcon(
+                imageVector = Icons.Default.Refresh,
                 contentDescription = stringResource(R.string.sender_form_label_bark_encryption_key),
             )
         }
@@ -119,35 +121,35 @@ private fun BarkEncryptionFields(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            OutlinedTextField(
+            AppTextField(
                 value = draft.string("iv"),
                 onValueChange = { onDraftChange(draft.withString("iv", it)) },
-                label = { Text(stringResource(R.string.sender_form_label_bark_encryption_iv)) },
-                placeholder = { Text(stringResource(R.string.sender_form_label_bark_encryption_iv_hint)) },
+                label = stringResource(R.string.sender_form_label_bark_encryption_iv),
+                placeholderText = stringResource(R.string.sender_form_label_bark_encryption_iv_hint),
                 modifier = Modifier.weight(1f),
                 singleLine = true,
             )
-            IconButton(
+            AppIconButton(
                 onClick = {
                     onDraftChange(draft.withString("iv", AesUtils.generateIv(transformation)))
                     coroutineScope.launch { snackbarHostState.showLatestSnackbar(ivGeneratedLabel) }
                 },
             ) {
-                Icon(
-                    Icons.Default.Refresh,
+                AppIcon(
+                    imageVector = Icons.Default.Refresh,
                     contentDescription = stringResource(R.string.sender_form_label_bark_encryption_iv),
                 )
             }
         }
     }
 
-    Text(
+    AppText(
         text = when (transformation) {
             "AES/GCM/NoPadding" -> stringResource(R.string.sender_form_label_bark_encryption_gcm_desc)
             "AES/CBC/PKCS5Padding" -> stringResource(R.string.sender_form_label_bark_encryption_cbc_desc)
             else -> ""
         },
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        role = AppTextRole.BodySmall,
+        color = appColor(AppColorRole.OnSurfaceVariant),
     )
 }
