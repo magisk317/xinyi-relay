@@ -21,6 +21,10 @@ core_test_tasks=(
   :smscode-core:verification:test
   :smscode-core:rule:test
 )
+kit_test_tasks=(
+  :magisk-ui-kit:testDebugUnitTest
+  :magisk-ui-kit:billing:testDebugUnitTest
+)
 full_tasks=(
   :app:testGithubNoE2eeDebugUnitTest
   :app:koverHtmlReportGithubNoE2eeDebug
@@ -29,6 +33,7 @@ full_tasks=(
   :app:koverHtmlReportGithubWithE2eeDebug
   "${mobile_test_tasks[@]}"
   "${core_test_tasks[@]}"
+  "${kit_test_tasks[@]}"
 )
 if [[ -n "${CI_COMMIT_TAG:-}" || "${GITHUB_REF_TYPE:-}" == tag || "${CI_COMMIT_BRANCH:-}" == beta || "${CI_COMMIT_BRANCH:-}" == master || "${GITHUB_REF_NAME:-}" == beta || "${GITHUB_REF_NAME:-}" == master ]]; then printf '%s\n' "${full_tasks[@]}"; exit 0; fi
 if [[ -z "$paths_file" ]]; then paths_file="$(mktemp)"; trap 'rm -f "$paths_file"' EXIT; bash "$toolkit_dir/ci/changed_paths.sh" "$paths_file"; fi
@@ -42,7 +47,9 @@ while IFS= read -r path; do
     build.gradle*|settings.gradle*|gradle.properties|gradle/*|build-logic/*|.gitmodules|scripts/*|.magisk-ci-toolkit/*) printf '%s\n' "${full_tasks[@]}"; exit 0 ;;
     smscode/*)
       for task in "${core_test_tasks[@]}"; do select_task "$task"; done ;;
-    app/*|modules/*|mobile/*|features/*|magisk-ui-kit/*|magisk-xposed-kit/*)
+    magisk-ui-kit/*)
+      for task in "${kit_test_tasks[@]}"; do select_task "$task"; done ;;
+    app/*|modules/*|mobile/*|features/*|magisk-xposed-kit/*)
       select_task :app:testGithubNoE2eeDebugUnitTest; select_task :app:koverHtmlReportGithubNoE2eeDebug
       select_task verifyStructureBoundaries; select_task :app:testGithubWithE2eeDebugUnitTest
       select_task :app:koverHtmlReportGithubWithE2eeDebug

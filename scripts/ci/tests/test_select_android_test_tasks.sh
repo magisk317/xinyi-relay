@@ -24,5 +24,9 @@ assert_contains ':mobile:feature:sender:testGithubNoE2eeDebugUnitTest' "$tmp_dir
 printf 'impact\nfrontend/webui/src/App.tsx\n' > "$tmp_dir/web"
 bash "$selector" /dev/null "$tmp_dir/web" > "$tmp_dir/out"; assert_empty "$tmp_dir/out"
 printf 'full\n' > "$tmp_dir/full"
-bash "$selector" /dev/null "$tmp_dir/full" > "$tmp_dir/out"; assert_contains 'verifyStructureBoundaries' "$tmp_dir/out"; assert_contains ':mobile:ui:testGithubNoE2eeDebugUnitTest' "$tmp_dir/out"
+bash "$selector" /dev/null "$tmp_dir/full" > "$tmp_dir/out"; assert_contains 'verifyStructureBoundaries' "$tmp_dir/out"; assert_contains ':mobile:ui:testGithubNoE2eeDebugUnitTest' "$tmp_dir/out"; assert_contains ':magisk-ui-kit:testDebugUnitTest' "$tmp_dir/out"
+printf 'impact\nmagisk-ui-kit/src/main.kt\n' > "$tmp_dir/kit"
+bash "$selector" /dev/null "$tmp_dir/kit" > "$tmp_dir/out"
+assert_contains ':magisk-ui-kit:testDebugUnitTest' "$tmp_dir/out"
+assert_contains ':magisk-ui-kit:billing:testDebugUnitTest' "$tmp_dir/out"
 echo 'xinyi selector tests passed'
