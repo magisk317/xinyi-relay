@@ -17,7 +17,7 @@ import io.github.magisk317.uikit.theme.UiKitStyle
 @Composable
 fun AppTheme(
     themeMode: Int,
-    uiKitStyle: Int = UiKitStyle.Expressive.value,
+    uiKitStyle: Int = UiKitStyle.Default.value,
     layoutScale: Int = UiKitLayoutScale.Standard.value,
     paletteStyle: Int = UiKitPaletteStyle.TonalSpot.value,
     colorSpec: Int = UiKitColorSpec.Spec2025.value,

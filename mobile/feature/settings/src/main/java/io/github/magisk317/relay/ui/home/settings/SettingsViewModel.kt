@@ -153,7 +153,7 @@ class SettingsViewModel(
 
     data class ThemeState(
         val mode: Int,
-        val uiKitStyle: Int = UiKitStyle.Expressive.value,
+        val uiKitStyle: Int = UiKitStyle.Default.value,
         val centerX: Float = -1f,
         val centerY: Float = -1f,
         val layoutScale: Int = SharedPreferenceKeys.Appearance.DEFAULT_LAYOUT_SCALE,
@@ -721,7 +721,7 @@ class SettingsViewModel(
     }
 
     companion object {
-        private val sharedThemeState = MutableStateFlow(ThemeState(0, UiKitStyle.Expressive.value))
+        private val sharedThemeState = MutableStateFlow(ThemeState(0, UiKitStyle.Default.value))
         private val sharedLanguageState = MutableStateFlow(LanguageState())
 
         @JvmStatic
