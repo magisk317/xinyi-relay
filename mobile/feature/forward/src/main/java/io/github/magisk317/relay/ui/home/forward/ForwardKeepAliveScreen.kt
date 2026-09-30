@@ -2,7 +2,7 @@ package io.github.magisk317.relay.ui.home.forward
 
 import io.github.magisk317.relay.ui.common.SectionCard
 import io.github.magisk317.relay.ui.common.StateSwitchItem
-import io.github.magisk317.relay.ui.common.Item
+import io.github.magisk317.uikit.preference.AppArrowItem
 import io.github.magisk317.uikit.preference.TextInputDialog
 import io.github.magisk317.uikit.common.showLatestSnackbar
 import androidx.compose.foundation.layout.Arrangement
@@ -130,7 +130,7 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
                         notifySaved()
                     }
                 }
-                Item(
+                AppArrowItem(
                     title = stringResource(id = R.string.pref_root_db_catchup_interval_title),
                     summary = stringResource(
                         id = R.string.pref_root_db_catchup_interval_summary,

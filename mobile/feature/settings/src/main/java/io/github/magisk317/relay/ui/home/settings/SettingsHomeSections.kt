@@ -27,7 +27,7 @@ import io.github.magisk317.uikit.preference.RuntimeLogShareEntryMode
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsLabels
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsLayout
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsState
-import io.github.magisk317.uikit.preference.Item
+import io.github.magisk317.uikit.preference.AppArrowItem
 import io.github.magisk317.uikit.surface.AppPrimaryButton
 
 @Composable
@@ -72,7 +72,7 @@ internal fun SettingsGeneralSection(
                 checked = launcherIconVisible,
                 onCheckedChange = onLauncherIconVisibleChange,
             )
-            Item(
+            AppArrowItem(
                 title = stringResource(id = R.string.pref_theme_settings_title),
                 summary = stringResource(id = R.string.pref_theme_settings_summary),
                 onClick = onOpenThemeSettings,

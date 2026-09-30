@@ -54,7 +54,7 @@ import io.github.magisk317.uikit.surface.rememberSearchOverlayState
 import io.github.magisk317.uikit.surface.WorkspaceTrailingIcon
 import io.github.magisk317.uikit.preference.ActionSwitchItem
 import io.github.magisk317.uikit.preference.AppDropdownMenu
-import io.github.magisk317.uikit.preference.Item
+import io.github.magisk317.uikit.preference.AppArrowItem
 import io.github.magisk317.uikit.surface.AppAlertDialog
 import io.github.magisk317.uikit.surface.AppBottomSheet
 import io.github.magisk317.uikit.surface.AppPrimaryButton
@@ -337,7 +337,7 @@ fun AppConfigScreen(
             show = showSettingsMenu,
             onDismissRequest = { showSettingsMenu = false },
         ) {
-            Item(
+            AppArrowItem(
                 title = stringResource(R.string.app_config_sort_mode),
                 summary = sortOptionLabels[
                     sortOptions.indexOf(currentSortOption).coerceAtLeast(0),

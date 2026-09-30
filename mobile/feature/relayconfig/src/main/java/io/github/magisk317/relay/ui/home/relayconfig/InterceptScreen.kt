@@ -3,7 +3,7 @@
 package io.github.magisk317.relay.ui.home.relayconfig
 
 import io.github.magisk317.relay.ui.common.StateSwitchItem
-import io.github.magisk317.relay.ui.common.Item
+import io.github.magisk317.uikit.preference.AppArrowItem
 import io.github.magisk317.uikit.preference.TextInputDialog
 import io.github.magisk317.relay.ui.common.rememberBlacklistHitDateFormat
 
@@ -185,7 +185,7 @@ fun InterceptScreen(
                     blockIncomingSms = enabled
                     saveSettingsIfChanged(SmsBlacklistSettingsUpdate(blockIncomingSms = enabled))
                 }
-                Item(
+                AppArrowItem(
                     title = stringResource(R.string.pref_sms_blacklist_numbers_title),
                     summary = buildString {
                         append(formatSummary(smsBlacklistNumbers))
@@ -193,7 +193,7 @@ fun InterceptScreen(
                         append(stringResource(R.string.pref_sms_blacklist_numbers_summary))
                     },
                 ) { showSmsBlacklistNumbersDialog = true }
-                Item(
+                AppArrowItem(
                     title = stringResource(R.string.pref_sms_blacklist_prefixes_title),
                     summary = buildString {
                         append(formatSummary(smsBlacklistPrefixes))
@@ -201,7 +201,7 @@ fun InterceptScreen(
                         append(stringResource(R.string.pref_sms_blacklist_prefixes_summary))
                     },
                 ) { showSmsBlacklistPrefixesDialog = true }
-                Item(
+                AppArrowItem(
                     title = stringResource(R.string.pref_sms_blacklist_regex_title),
                     summary = buildString {
                         append(formatSummary(smsBlacklistRegex))
@@ -209,7 +209,7 @@ fun InterceptScreen(
                         append(stringResource(R.string.pref_sms_blacklist_regex_hint))
                     },
                 ) { showSmsBlacklistRegexDialog = true }
-                Item(
+                AppArrowItem(
                     title = stringResource(R.string.pref_sms_blacklist_content_title),
                     summary = buildString {
                         append(formatSummary(smsBlacklistContent))
@@ -220,7 +220,7 @@ fun InterceptScreen(
             }
 
             AppHorizontalDivider(modifier = Modifier.padding(vertical = Const.SPACING_SMALL.dp))
-            Item(
+            AppArrowItem(
                 title = stringResource(R.string.sms_blacklist_hit_list_title),
                 summary = blacklistHitSummary(
                     hits = blacklistHits,

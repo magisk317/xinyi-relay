@@ -61,7 +61,7 @@ import io.github.magisk317.relay.contract.repository.SettingsPreferencesReposito
 import io.github.magisk317.relay.contract.settings.RecordSettingsUpdate
 import io.github.magisk317.relay.engine.model.ReadSmsBlacklistHitData
 import io.github.magisk317.relay.engine.service.MessageRecordRepository
-import io.github.magisk317.relay.ui.common.Item
+import io.github.magisk317.uikit.preference.AppArrowItem
 import io.github.magisk317.relay.ui.common.AppIconCache
 import io.github.magisk317.relay.ui.common.RetentionDialog
 import io.github.magisk317.relay.ui.common.StateSwitchItem
@@ -212,7 +212,7 @@ fun BlacklistHitListScreen(
                         snackbarHostState.showLatestSnackbar(savedSnackbarText)
                     }
                 }
-                Item(
+                AppArrowItem(
                     title = stringResource(
                         R.string.pref_history_limit_title_with_target,
                         stringResource(R.string.sms_blacklist_hit_list_title),

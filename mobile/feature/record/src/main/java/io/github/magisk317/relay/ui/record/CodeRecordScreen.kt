@@ -76,7 +76,7 @@ import io.github.magisk317.uikit.foundation.SessionLoadingRegistry
 import io.github.magisk317.uikit.preference.AppCheckbox
 import io.github.magisk317.uikit.preference.SingleChoiceConfirmDialog
 import io.github.magisk317.uikit.foundation.rememberMinDurationLoading
-import io.github.magisk317.relay.ui.common.Item
+import io.github.magisk317.uikit.preference.AppArrowItem
 import io.github.magisk317.relay.ui.common.RetentionDialog
 import io.github.magisk317.relay.ui.common.StateSwitchItem
 import io.github.magisk317.uikit.preference.TextInputDialog
@@ -413,7 +413,7 @@ fun CodeRecordScreen(
                     }
                 }
 
-                Item(
+                AppArrowItem(
                     title = stringResource(
                         id = R.string.pref_history_limit_title_with_target,
                         currentTabName,
@@ -430,13 +430,13 @@ fun CodeRecordScreen(
                     },
                 ) { showHistoryLimitDialog = true }
 
-                Item(
+                AppArrowItem(
                     title = stringResource(id = R.string.record_settings_clear_current_tab),
                     summary = currentTabName,
                     enabled = queryState.recordsForTab(selectedRecordTab).isNotEmpty(),
                 ) { showClearDialog = true }
 
-                Item(
+                AppArrowItem(
                     title = stringResource(id = R.string.record_export_dialog_title),
                     summary = "",
                 ) {

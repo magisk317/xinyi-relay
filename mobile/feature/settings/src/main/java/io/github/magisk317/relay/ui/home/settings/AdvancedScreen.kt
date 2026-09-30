@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.contract.constant.RelayAppConst
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.ui.common.Item
+import io.github.magisk317.uikit.preference.AppArrowItem
 import io.github.magisk317.relay.ui.common.SectionCard
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
@@ -67,40 +67,40 @@ fun AdvancedScreen(
                 sectionExpanded = true,
                 onExpandedChange = {},
             ) {
-                Item(
+                AppArrowItem(
                     title = stringResource(id = R.string.pref_verification_config_title),
                     summary = stringResource(id = R.string.pref_verification_config_summary),
                     onClick = onVerificationConfigClick,
                 )
-                Item(
+                AppArrowItem(
                     title = stringResource(id = R.string.pref_relay_config_title),
                     summary = stringResource(id = R.string.pref_relay_config_summary),
                     modifier = Modifier.advancedBenchmarkTag(workPolicy.exposeBenchmarkTags),
                     onClick = onRelayConfigClick,
                 )
-                Item(
+                AppArrowItem(
                     title = stringResource(id = R.string.settings_group_background_keepalive),
                     summary = stringResource(id = R.string.advanced_keepalive_summary),
                     onClick = onForwardKeepAliveClick,
                 )
-                Item(
+                AppArrowItem(
                     title = stringResource(id = R.string.scheduled_reminder_entry_title),
                     summary = stringResource(id = R.string.scheduled_reminder_entry_summary),
                     onClick = onScheduledReminderClick,
                 )
                 onNavigateToScheduledTasks?.let { navigate ->
-                    Item(
+                    AppArrowItem(
                         title = stringResource(id = R.string.scheduled_task_entry_title),
                         summary = stringResource(id = R.string.scheduled_task_entry_summary),
                         onClick = navigate,
                     )
                 }
-                Item(
+                AppArrowItem(
                     title = stringResource(id = R.string.pref_remote_agent_title),
                     summary = stringResource(id = R.string.pref_remote_agent_summary),
                     onClick = onRemoteAgentClick,
                 )
-                Item(
+                AppArrowItem(
                     title = stringResource(id = R.string.advanced_filter_title),
                     summary = stringResource(id = R.string.advanced_filter_summary),
                     onClick = onInterceptClick,

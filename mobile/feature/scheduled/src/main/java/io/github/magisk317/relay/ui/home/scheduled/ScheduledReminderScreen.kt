@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.ui.home.scheduled
 import io.github.magisk317.relay.ui.common.StateSwitchItem
-import io.github.magisk317.relay.ui.common.Item
+import io.github.magisk317.uikit.preference.AppArrowItem
 import io.github.magisk317.uikit.preference.TextInputDialog
 import io.github.magisk317.relay.ui.common.SectionCard
 import io.github.magisk317.uikit.common.showLatestSnackbar
@@ -226,7 +226,7 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                     }
                 }
                 if (current.lowBatteryReminderEnabled) {
-                    Item(
+                    AppArrowItem(
                         title = stringResource(id = R.string.scheduled_reminder_threshold_title),
                         summary = stringResource(
                             id = R.string.scheduled_reminder_threshold_summary,
@@ -352,7 +352,7 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                     }
                 }
                 if (isGithubFlavor) {
-                    Item(
+                    AppArrowItem(
                         title = stringResource(id = R.string.call_alert_permission_title),
                         summary = stringResource(
                             id = if (callPermissionGranted.value) {
@@ -386,7 +386,7 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                     }
                 }
                 if (current.smsKeywordEnabled) {
-                    Item(
+                    AppArrowItem(
                         title = stringResource(id = R.string.special_alert_keywords_title),
                         summary = stringResource(
                             id = R.string.special_alert_keyword_summary,
@@ -444,7 +444,7 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                     }
                 }
                 if (current.appKeywordEnabled) {
-                    Item(
+                    AppArrowItem(
                         title = stringResource(id = R.string.special_alert_keywords_title),
                         summary = stringResource(
                             id = R.string.special_alert_keyword_summary,

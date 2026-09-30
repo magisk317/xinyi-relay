@@ -102,23 +102,6 @@ fun ActionSwitchItem(
 }
 
 @Composable
-fun Item(
-    title: String,
-    summary: String,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    onClick: () -> Unit,
-) {
-    io.github.magisk317.uikit.preference.Item(
-        title = title,
-        summary = summary,
-        modifier = modifier,
-        enabled = enabled,
-        onClick = onClick,
-    )
-}
-
-@Composable
 fun SwitchItem(
     title: String,
     summary: String,
