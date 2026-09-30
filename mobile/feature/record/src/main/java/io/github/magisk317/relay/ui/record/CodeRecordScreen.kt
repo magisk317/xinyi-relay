@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -101,6 +102,8 @@ import io.github.magisk317.uikit.surface.AppSecondaryButton
 import io.github.magisk317.uikit.surface.AppSurface
 import io.github.magisk317.uikit.surface.AppTextButton
 import io.github.magisk317.uikit.surface.AppBottomSheet
+import io.github.magisk317.uikit.surface.AppListPopup
+import io.github.magisk317.uikit.surface.AppListPopupItem
 import java.util.*
 
 private enum class RecordExportScope {
@@ -1148,60 +1151,55 @@ private fun RecordDetailOverlay(
                 }
                 }
                 WorkspaceListDivider()
-                ButtonGroup(
+                var showOverflowMenu by remember { mutableStateOf(false) }
+                val refundLabel = stringResource(if (isAppNotification) R.string.refund_notification else R.string.refund_sms)
+                Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    overflowIndicator = { menuState ->
-                        ButtonGroupDefaults.OverflowIndicator(menuState = menuState)
-                    },
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    customItem(
-                        buttonGroupContent = {
-                            AppSecondaryButton(
-                                modifier = Modifier.weight(1f),
-                                onClick = {
+                    AppSecondaryButton(
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            onRefund()
+                            onDismiss()
+                        },
+                    ) {
+                        AppText(refundLabel)
+                    }
+                    AppPrimaryButton(
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            onDelete()
+                            onDismiss()
+                        },
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    ) {
+                        AppText(stringResource(deleteTextRes))
+                    }
+                    Box {
+                        AppIconButton(onClick = { showOverflowMenu = true }) {
+                            AppIcon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = stringResource(R.string.more_options),
+                            )
+                        }
+                        AppListPopup(
+                            show = showOverflowMenu,
+                            onDismissRequest = { showOverflowMenu = false },
+                            items = listOf(
+                                AppListPopupItem(label = refundLabel) {
                                     onRefund()
                                     onDismiss()
                                 },
-                            ) {
-                                AppText(stringResource(if (isAppNotification) R.string.refund_notification else R.string.refund_sms))
-                            }
-                        },
-                        menuContent = { menuState ->
-                            DropdownMenuItem(
-                                text = { AppText(stringResource(if (isAppNotification) R.string.refund_notification else R.string.refund_sms)) },
-                                onClick = {
-                                    onRefund()
-                                    menuState.dismiss()
-                                    onDismiss()
-                                },
-                            )
-                        },
-                    )
-                    customItem(
-                        buttonGroupContent = {
-                            AppPrimaryButton(
-                                modifier = Modifier.weight(1f),
-                                onClick = {
+                                AppListPopupItem(label = stringResource(deleteTextRes)) {
                                     onDelete()
                                     onDismiss()
                                 },
-                                containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                            ) {
-                                AppText(stringResource(deleteTextRes))
-                            }
-                        },
-                        menuContent = { menuState ->
-                            DropdownMenuItem(
-                                text = { AppText(stringResource(deleteTextRes)) },
-                                onClick = {
-                                    onDelete()
-                                    menuState.dismiss()
-                                    onDismiss()
-                                },
-                            )
-                        },
-                    )
+                            ),
+                        )
+                    }
                 }
             }
         }

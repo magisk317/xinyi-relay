@@ -1552,4 +1552,5 @@
     <string name="pref_bottom_bar_blur_summary">悬浮导航栏的折射模糊、随重力高光与拖拽指示器（需 Android 13+）。</string>
     <string name="pref_bottom_bar_backdrop_title">导航栏背景捕获</string>
     <string name="pref_bottom_bar_backdrop_summary">在设备支持时捕获悬浮栏下方页面，呈现静态液态玻璃效果。</string>
+    <string name="more_options">更多选项</string>
 </resources>

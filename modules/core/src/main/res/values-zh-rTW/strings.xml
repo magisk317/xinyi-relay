@@ -1502,4 +1502,5 @@
     <string name="pref_bottom_bar_blur_summary">懸浮導航欄的折射模糊、隨重力高光與拖曳指示器（需 Android 13+）。</string>
     <string name="pref_bottom_bar_backdrop_title">導航欄背景捕獲</string>
     <string name="pref_bottom_bar_backdrop_summary">在裝置支援時捕獲懸浮欄下方頁面，呈現靜態液態玻璃效果。</string>
+    <string name="more_options">更多選項</string>
 </resources>
