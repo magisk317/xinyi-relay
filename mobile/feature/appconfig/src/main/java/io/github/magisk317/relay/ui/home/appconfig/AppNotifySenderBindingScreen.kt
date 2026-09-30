@@ -14,7 +14,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,6 +37,8 @@ import io.github.magisk317.uikit.surface.WorkspaceSearchField
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
 import org.koin.compose.viewmodel.koinViewModel
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
 
 @Composable
 fun AppNotifySenderBindingScreen(
@@ -98,7 +99,7 @@ LazyColumn(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Text(
+                AppText(
                     text = if (draftSelectedIds.isEmpty()) {
                         stringResource(R.string.app_notify_channel_global_summary)
                     } else {
@@ -107,16 +108,16 @@ LazyColumn(
                             draftSelectedIds.size,
                         )
                     },
-                    style = MaterialTheme.typography.bodyMedium,
+                    role = AppTextRole.Body,
                 )
-                Text(
+                AppText(
                     text = stringResource(R.string.app_notify_channel_tip),
-                    style = MaterialTheme.typography.bodySmall,
+                    role = AppTextRole.BodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 RowEnd {
                     TextButton(onClick = { draftSelectedIds = emptySet() }) {
-                        Text(stringResource(R.string.sender_notify_scope_clear_whitelist))
+                        AppText(stringResource(R.string.sender_notify_scope_clear_whitelist))
                     }
                 }
             }
@@ -135,12 +136,12 @@ LazyColumn(
             ) {
                 androidx.compose.material3.ListItem(
                     supportingContent = {
-                        Text(
+                        AppText(
                             text = stringResource(
                                 R.string.sender_notify_scope_sender_id,
                                 sender.id,
                             ),
-                            style = MaterialTheme.typography.bodySmall,
+                            role = AppTextRole.BodySmall,
                         )
                     },
                     trailingContent = {
@@ -157,16 +158,16 @@ LazyColumn(
                     },
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 ) {
-                    Text(
+                    AppText(
                         text = senderDisplayName(sender, context),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
                 if (checked && denied) {
-                    Text(
+                    AppText(
                         text = stringResource(R.string.app_notify_channel_deny_hint),
-                        style = MaterialTheme.typography.bodySmall,
+                        role = AppTextRole.BodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )
                 }

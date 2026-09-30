@@ -31,7 +31,6 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import io.github.magisk317.uikit.common.AppSnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -63,6 +62,8 @@ import io.github.magisk317.relay.ui.sender.displayName
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
 
 private data class ChannelOption(
     val id: String,
@@ -78,8 +79,6 @@ private fun countKeywords(raw: String): Int {
         .size
 }
 
-
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ChannelDropdown(
@@ -90,9 +89,9 @@ private fun ChannelDropdown(
     options: List<ChannelOption>,
     onSelect: (ChannelOption) -> Unit,
 ) {
-    Text(
+    AppText(
         text = title,
-        style = MaterialTheme.typography.bodyMedium,
+        role = AppTextRole.Body,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(
             horizontal = Const.PADDING_MEDIUM.dp,
@@ -125,7 +124,7 @@ private fun ChannelDropdown(
         ) {
             options.forEach { option ->
                 DropdownMenuItem(
-                    text = { Text(option.label) },
+                    text = { AppText(option.label) },
                     onClick = { onSelect(option) },
                 )
             }
@@ -372,12 +371,12 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
             ) {
                 ListItem(
                     supportingContent = {
-                        Text(
+                        AppText(
                             text = stringResource(id = R.string.call_alert_forward_summary_from_relay),
                         )
                     },
                 ) {
-                    Text(text = stringResource(id = R.string.call_alert_forward_title))
+                    AppText(text = stringResource(id = R.string.call_alert_forward_title))
                 }
                 StateSwitchItem(
                     title = stringResource(id = R.string.call_alert_local_title),

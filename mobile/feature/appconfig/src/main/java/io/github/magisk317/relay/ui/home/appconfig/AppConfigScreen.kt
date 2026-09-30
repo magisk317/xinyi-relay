@@ -3,7 +3,6 @@
 package io.github.magisk317.relay.ui.home.appconfig
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
-
 import android.graphics.Bitmap
 import android.os.SystemClock
 import androidx.activity.compose.BackHandler
@@ -17,7 +16,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import io.github.magisk317.uikit.common.AppSnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -67,6 +65,8 @@ import io.github.magisk317.uikit.theme.currentUiKitStyle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import org.koin.compose.viewmodel.koinViewModel
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
 
 private const val APP_LIST_PREFETCH_DISTANCE = 12
 private const val BENCHMARK_APPS_LIST = "xinyi_benchmark_apps_list"
@@ -427,19 +427,19 @@ fun AppConfigItem(
             WorkspaceTrailingIcon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight)
         },
     ) {
-        Text(
+        AppText(
             text = app.label ?: app.packageName,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             fontWeight = FontWeight.Bold,
         )
-        Text(
+        AppText(
             text = app.packageName,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.bodySmall,
+            role = AppTextRole.BodySmall,
         )
-        Text(
+        AppText(
             text = stringResource(
                 R.string.app_notify_summary_line,
                 if (app.blocked) {
@@ -458,7 +458,7 @@ fun AppConfigItem(
                     stringResource(R.string.app_notify_channel_bound_count_short, appBoundSenderCount)
                 },
             ),
-            style = MaterialTheme.typography.bodySmall,
+            role = AppTextRole.BodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

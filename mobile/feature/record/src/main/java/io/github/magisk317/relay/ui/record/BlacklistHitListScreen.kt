@@ -41,7 +41,6 @@ import io.github.magisk317.uikit.common.AppSnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
@@ -86,6 +85,8 @@ import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 import java.text.SimpleDateFormat
 import java.util.Date
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -162,8 +163,8 @@ fun BlacklistHitListScreen(
     if (showClearDialog) {
         AppAlertDialog(
             onDismissRequest = { showClearDialog = false },
-            title = { Text(stringResource(R.string.sms_blacklist_hit_clear_dialog_title)) },
-            text = { Text(stringResource(R.string.sms_blacklist_hit_clear_dialog_message)) },
+            title = { AppText(stringResource(R.string.sms_blacklist_hit_clear_dialog_title)) },
+            text = { AppText(stringResource(R.string.sms_blacklist_hit_clear_dialog_message)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -184,12 +185,12 @@ fun BlacklistHitListScreen(
                         }
                     },
                 ) {
-                    Text(stringResource(R.string.action_clear_records))
+                    AppText(stringResource(R.string.action_clear_records))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showClearDialog = false }) {
-                    Text(stringResource(R.string.cancel))
+                    AppText(stringResource(R.string.cancel))
                 }
             },
         )
@@ -441,7 +442,7 @@ private fun BlacklistHitDetailDialog(
 
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.sms_blacklist_hit_detail_title)) },
+        title = { AppText(stringResource(R.string.sms_blacklist_hit_detail_title)) },
         text = {
             Column(
                 modifier = Modifier
@@ -471,7 +472,7 @@ private fun BlacklistHitDetailDialog(
                     modifier = Modifier.weight(1f),
                     onClick = onDismiss,
                 ) {
-                    Text(stringResource(R.string.action_close))
+                    AppText(stringResource(R.string.action_close))
                 }
                 Button(
                     modifier = Modifier.weight(1f),
@@ -484,7 +485,7 @@ private fun BlacklistHitDetailDialog(
                         contentColor = MaterialTheme.colorScheme.onErrorContainer,
                     ),
                 ) {
-                    Text(stringResource(R.string.action_delete))
+                    AppText(stringResource(R.string.action_delete))
                 }
             }
         },
@@ -497,15 +498,15 @@ private fun BlacklistHitDetailField(
     value: String,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(
+        AppText(
             text = label,
-            style = MaterialTheme.typography.labelMedium,
+            role = AppTextRole.Footnote,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Bold,
         )
-        Text(
+        AppText(
             text = value,
-            style = MaterialTheme.typography.bodyMedium,
+            role = AppTextRole.Body,
             color = MaterialTheme.colorScheme.onSurface,
         )
     }

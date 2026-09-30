@@ -7,7 +7,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.material3.Text
+import io.github.magisk317.uikit.text.AppText
 
 @Composable
 fun CenteredChipText(
@@ -19,7 +19,7 @@ fun CenteredChipText(
         modifier = modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
+        AppText(
             text = text,
             maxLines = maxLines,
             overflow = TextOverflow.Ellipsis,

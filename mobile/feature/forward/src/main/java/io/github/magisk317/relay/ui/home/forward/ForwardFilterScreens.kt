@@ -1,7 +1,6 @@
 package io.github.magisk317.relay.ui.home.forward
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,7 +15,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import io.github.magisk317.uikit.common.AppSnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -43,6 +41,8 @@ import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterScreenScaffold
 import io.github.magisk317.relay.ui.forwardfilter.toEditorState
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -236,9 +236,9 @@ fun AppForwardFilterScreen(
 
         if (channelCandidates.isNotEmpty()) {
             item(key = "channel_hint") {
-                Text(
+                AppText(
                     text = stringResource(id = R.string.forward_filter_channel_history_hint),
-                    style = MaterialTheme.typography.bodySmall,
+                    role = AppTextRole.BodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -348,9 +348,9 @@ private fun SectionHeaderRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
     ) {
-        Text(text = title, style = MaterialTheme.typography.titleSmall)
+        AppText(text = title, role = AppTextRole.Subtitle)
         TextButton(onClick = onAddClick) {
-            Text(stringResource(id = R.string.forward_filter_action_add))
+            AppText(stringResource(id = R.string.forward_filter_action_add))
         }
     }
 }

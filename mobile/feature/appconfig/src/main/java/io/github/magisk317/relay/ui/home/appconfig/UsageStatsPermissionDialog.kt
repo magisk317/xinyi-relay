@@ -1,7 +1,6 @@
 package io.github.magisk317.relay.ui.home.appconfig
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -16,6 +15,7 @@ import io.github.magisk317.uikit.surface.AppAlertDialog
 import io.github.magisk317.uikit.surface.AppPrimaryButton
 import io.github.magisk317.uikit.surface.AppSecondaryButton
 import kotlinx.coroutines.launch
+import io.github.magisk317.uikit.text.AppText
 
 /**
  * Dual-channel dialog for the usage access permission.
@@ -53,12 +53,12 @@ fun UsageStatsPermissionDialog(
 
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.usage_permission_title)) },
+        title = { AppText(stringResource(R.string.usage_permission_title)) },
         text = {
             Column {
-                Text(stringResource(R.string.usage_permission_prompt))
+                AppText(stringResource(R.string.usage_permission_prompt))
                 if (grantFailed) {
-                    Text(stringResource(R.string.usage_permission_grant_failed))
+                    AppText(stringResource(R.string.usage_permission_grant_failed))
                 }
             }
         },

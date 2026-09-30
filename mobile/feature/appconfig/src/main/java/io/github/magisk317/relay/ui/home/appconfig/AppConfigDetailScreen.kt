@@ -3,7 +3,6 @@
 package io.github.magisk317.relay.ui.home.appconfig
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
-
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -15,7 +14,6 @@ import androidx.compose.material3.MaterialTheme
 import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -35,6 +33,8 @@ import org.koin.compose.viewmodel.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlinx.coroutines.launch
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
 
 @Composable
 fun AppConfigDetailScreen(
@@ -62,7 +62,7 @@ if (app == null) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(text = stringResource(R.string.app_config_detail_not_found))
+        AppText(text = stringResource(R.string.app_config_detail_not_found))
     }
 } else {
 
@@ -105,7 +105,7 @@ if (app == null) {
                 androidx.compose.material3.ListItem(
                     supportingContent = {
                         val count = viewModel.getAppNotifyBindingCount(app.packageName)
-                        Text(
+                        AppText(
                             text = if (count <= 0) {
                                 stringResource(R.string.app_notify_channel_global_summary)
                             } else {
@@ -115,24 +115,24 @@ if (app == null) {
                     },
                     trailingContent = {
                         TextButton(onClick = onConfigureNotifyChannels) {
-                            Text(text = stringResource(R.string.item_config))
+                            AppText(text = stringResource(R.string.item_config))
                         }
                     },
                 ) {
-                    Text(text = stringResource(R.string.app_notify_channel_config_title))
+                    AppText(text = stringResource(R.string.app_notify_channel_config_title))
                 }
                 HorizontalDivider()
                 androidx.compose.material3.ListItem(
                     supportingContent = {
-                        Text(text = stringResource(R.string.app_detail_forward_filter_summary))
+                        AppText(text = stringResource(R.string.app_detail_forward_filter_summary))
                     },
                     trailingContent = {
                         TextButton(onClick = onConfigureForwardFilters) {
-                            Text(text = stringResource(R.string.item_config))
+                            AppText(text = stringResource(R.string.item_config))
                         }
                     },
                 ) {
-                    Text(text = stringResource(R.string.app_detail_forward_filter_title))
+                    AppText(text = stringResource(R.string.app_detail_forward_filter_title))
                 }
             }
         }
@@ -179,15 +179,15 @@ private fun AppRecentLogCard(logs: List<SmsMsg>) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
+            AppText(
                 text = stringResource(R.string.app_detail_recent_logs_title),
-                style = MaterialTheme.typography.titleSmall,
+                role = AppTextRole.Subtitle,
                 fontWeight = FontWeight.SemiBold,
             )
             if (logs.isEmpty()) {
-                Text(
+                AppText(
                     text = stringResource(R.string.app_detail_recent_logs_empty),
-                    style = MaterialTheme.typography.bodySmall,
+                    role = AppTextRole.BodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 return@Column
@@ -203,25 +203,25 @@ private fun AppRecentLogCard(logs: List<SmsMsg>) {
                     else -> stringResource(R.string.forward_status_none)
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
+                    AppText(
                         text = stringResource(R.string.app_detail_recent_logs_time, dateFormat.format(java.util.Date(log.date))),
-                        style = MaterialTheme.typography.labelSmall,
+                        role = AppTextRole.Footnote,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Text(
+                    AppText(
                         text = stringResource(R.string.app_detail_recent_logs_content, log.body.orEmpty()),
-                        style = MaterialTheme.typography.bodySmall,
+                        role = AppTextRole.BodySmall,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Text(
+                    AppText(
                         text = stringResource(R.string.app_detail_recent_logs_status, statusText, log.forwardTarget ?: "-"),
-                        style = MaterialTheme.typography.bodySmall,
+                        role = AppTextRole.BodySmall,
                     )
                     if (forwardMessage.isNotBlank()) {
-                        Text(
+                        AppText(
                             text = stringResource(R.string.app_detail_recent_logs_result, forwardMessage),
-                            style = MaterialTheme.typography.labelSmall,
+                            role = AppTextRole.Footnote,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
@@ -250,6 +250,6 @@ private fun ConfigToggleRow(
             )
         },
     ) {
-        Text(text = title)
+        AppText(text = title)
     }
 }

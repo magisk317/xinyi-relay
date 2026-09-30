@@ -32,7 +32,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
 import io.github.magisk317.uikit.surface.AppScaffold
@@ -60,6 +59,8 @@ import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
 
 class MobileEntitlementActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -198,14 +199,14 @@ private fun MobileEntitlementScreen(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text(
+                    AppText(
                         text = stringResource(
                             R.string.mobile_entitlement_status,
                             stringResource(mobileEntitlementStatusStringRes(evaluation?.status)),
                         ),
-                        style = MaterialTheme.typography.titleMedium,
+                        role = AppTextRole.Subtitle,
                     )
-                    Text(
+                    AppText(
                         text = stringResource(
                             R.string.mobile_entitlement_automation,
                             if (evaluation?.automationAllowed == true) {
@@ -216,7 +217,7 @@ private fun MobileEntitlementScreen(
                         ),
                     )
                     evaluation?.claims?.issuedAt?.takeIf { it > 0 }?.let { issuedAt ->
-                        Text(stringResource(R.string.mobile_entitlement_issued_at, formatEpoch(issuedAt)))
+                        AppText(stringResource(R.string.mobile_entitlement_issued_at, formatEpoch(issuedAt)))
                     }
                     evaluation?.claims?.deviceId?.takeIf { it.isNotBlank() }?.let { deviceId ->
                         Row(
@@ -224,7 +225,7 @@ private fun MobileEntitlementScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(
+                            AppText(
                                 text = stringResource(R.string.mobile_entitlement_device_id, deviceId),
                                 modifier = Modifier.weight(1f, fill = false),
                             )
@@ -259,14 +260,14 @@ private fun MobileEntitlementScreen(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text(
+                        AppText(
                             text = stringResource(R.string.mobile_entitlement_activation_token_label),
-                            style = MaterialTheme.typography.titleMedium,
+                            role = AppTextRole.Subtitle,
                         )
                         OutlinedTextField(
                             value = activationTokenInput,
                             onValueChange = { activationTokenInput = it.trim().uppercase() },
-                            label = { Text(stringResource(R.string.mobile_entitlement_activation_token_hint)) },
+                            label = { AppText(stringResource(R.string.mobile_entitlement_activation_token_hint)) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             enabled = busyAction == null,
@@ -279,11 +280,11 @@ private fun MobileEntitlementScreen(
                             if (busyAction == ActivationAction.TOKEN) {
                                 CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp), strokeWidth = 2.dp)
                             }
-                            Text(stringResource(R.string.mobile_entitlement_activation_token_confirm))
+                            AppText(stringResource(R.string.mobile_entitlement_activation_token_confirm))
                         }
-                        Text(
+                        AppText(
                             text = stringResource(R.string.mobile_entitlement_activation_token_get_hint),
-                            style = MaterialTheme.typography.bodySmall,
+                            role = AppTextRole.BodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -303,7 +304,7 @@ private fun MobileEntitlementScreen(
                     if (busyAction == ActivationAction.TELEGRAM) {
                         CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp), strokeWidth = 2.dp)
                     }
-                    Text(stringResource(R.string.mobile_entitlement_activate_telegram))
+                    AppText(stringResource(R.string.mobile_entitlement_activate_telegram))
                 }
             }
             OutlinedButton(
@@ -313,10 +314,10 @@ private fun MobileEntitlementScreen(
             ) {
                 Icon(Icons.Default.Refresh, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.mobile_entitlement_refresh))
+                AppText(stringResource(R.string.mobile_entitlement_refresh))
             }
             message?.let {
-                Text(
+                AppText(
                     text = stringResource(R.string.mobile_entitlement_error, it),
                     color = MaterialTheme.colorScheme.error,
                 )

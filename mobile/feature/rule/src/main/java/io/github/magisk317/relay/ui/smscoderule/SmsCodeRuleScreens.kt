@@ -3,7 +3,6 @@
 package io.github.magisk317.relay.ui.smscoderule
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
-
 import android.content.ClipData
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,7 +27,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import io.github.magisk317.uikit.common.AppSnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -63,6 +61,8 @@ import java.util.regex.Pattern
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
 
 private const val BUILTIN_RULE_EDITOR_ID_ALPHANUMERIC = -101L
 private const val BUILTIN_RULE_EDITOR_ID_DIGITS = -102L
@@ -169,9 +169,9 @@ fun SmsCodeRuleListScreen(
                                 .padding(top = 8.dp, bottom = 12.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Text(
+                            AppText(
                                 text = officialEmptyPrompt,
-                                style = MaterialTheme.typography.bodyMedium,
+                                role = AppTextRole.Body,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
@@ -198,9 +198,9 @@ fun SmsCodeRuleListScreen(
                                 .padding(top = 8.dp, bottom = 12.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Text(
+                            AppText(
                                 text = emptyPrompt,
-                                style = MaterialTheme.typography.bodyMedium,
+                                role = AppTextRole.Body,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
@@ -285,13 +285,13 @@ private fun RuleSectionHeader(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text(
+        AppText(
             text = title,
-            style = MaterialTheme.typography.titleMedium,
+            role = AppTextRole.Subtitle,
         )
-        Text(
+        AppText(
             text = summary,
-            style = MaterialTheme.typography.bodySmall,
+            role = AppTextRole.BodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
@@ -308,22 +308,22 @@ private fun OfficialSmsCodeRuleCard(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text(
+            AppText(
                 text = rule.company?.takeIf { it.isNotBlank() } ?: rule.setName,
-                style = MaterialTheme.typography.titleMedium,
+                role = AppTextRole.Subtitle,
             )
-            Text(
+            AppText(
                 text = officialBadge,
-                style = MaterialTheme.typography.labelSmall,
+                role = AppTextRole.Footnote,
                 color = MaterialTheme.colorScheme.primary,
             )
-            Text(
+            AppText(
                 text = rule.codeKeyword,
-                style = MaterialTheme.typography.bodyMedium,
+                role = AppTextRole.Body,
             )
-            Text(
+            AppText(
                 text = rule.codeRegex,
-                style = MaterialTheme.typography.bodySmall,
+                role = AppTextRole.BodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
@@ -350,23 +350,23 @@ private fun SmsCodeRuleCard(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             rule.company?.takeIf { it.isNotBlank() }?.let { company ->
-                Text(
+                AppText(
                     text = company,
-                    style = MaterialTheme.typography.titleMedium,
+                    role = AppTextRole.Subtitle,
                 )
             }
-            Text(
+            AppText(
                 text = userBadge,
-                style = MaterialTheme.typography.labelSmall,
+                role = AppTextRole.Footnote,
                 color = MaterialTheme.colorScheme.primary,
             )
-            Text(
+            AppText(
                 text = rule.codeKeyword,
-                style = MaterialTheme.typography.bodyLarge,
+                role = AppTextRole.Body,
             )
-            Text(
+            AppText(
                 text = rule.codeRegex,
-                style = MaterialTheme.typography.bodySmall,
+                role = AppTextRole.BodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
@@ -376,10 +376,10 @@ private fun SmsCodeRuleCard(
                 horizontalArrangement = Arrangement.End,
             ) {
                 TextButton(onClick = onEdit) {
-                    Text(stringResource(id = R.string.edit))
+                    AppText(stringResource(id = R.string.edit))
                 }
                 TextButton(onClick = onDelete) {
-                    Text(stringResource(id = R.string.remove), color = MaterialTheme.colorScheme.error)
+                    AppText(stringResource(id = R.string.remove), color = MaterialTheme.colorScheme.error)
                 }
             }
         }
@@ -516,9 +516,9 @@ fun SmsCodeRuleEditorScreen(
                     value = company,
                     onValueChange = { company = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text(companyLabel) },
-                    placeholder = { Text(stringResource(id = R.string.rule_company_placeholder)) },
-                    supportingText = { Text(if (isBuiltinRule) builtinSummary else rulesSummary) },
+                    label = { AppText(companyLabel) },
+                    placeholder = { AppText(stringResource(id = R.string.rule_company_placeholder)) },
+                    supportingText = { AppText(if (isBuiltinRule) builtinSummary else rulesSummary) },
                     readOnly = isBuiltinRule,
                     enabled = !loading,
                     trailingIcon = if (isBuiltinRule && company.isNotBlank()) {
@@ -536,7 +536,7 @@ fun SmsCodeRuleEditorScreen(
                     value = keyword,
                     onValueChange = { keyword = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text(keywordLabel) },
+                    label = { AppText(keywordLabel) },
                     readOnly = isBuiltinRule,
                     enabled = !loading,
                     trailingIcon = if (isBuiltinRule && keyword.isNotBlank()) {
@@ -554,7 +554,7 @@ fun SmsCodeRuleEditorScreen(
                     value = regex,
                     onValueChange = { regex = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text(regexLabel) },
+                    label = { AppText(regexLabel) },
                     readOnly = isBuiltinRule,
                     enabled = !loading,
                     trailingIcon = if (isBuiltinRule && regex.isNotBlank()) {
@@ -570,9 +570,9 @@ fun SmsCodeRuleEditorScreen(
                     singleLine = false,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
+                AppText(
                     text = testGuidance,
-                    style = MaterialTheme.typography.bodySmall,
+                    role = AppTextRole.BodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }

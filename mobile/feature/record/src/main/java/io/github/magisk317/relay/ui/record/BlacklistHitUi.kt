@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,6 +24,8 @@ import io.github.magisk317.uikit.surface.WorkspaceListItemDefaults
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
 
 internal const val SMS_BLOCK_REASON_BLACKLIST = "blacklist_block"
 internal const val SMS_BLOCK_REASON_PREF = "pref_block_sms"
@@ -75,9 +76,9 @@ internal fun SmsBlacklistHitListItem(
             )
         },
         supportingContent = {
-            Text(
+            AppText(
                 text = status,
-                style = MaterialTheme.typography.labelSmall,
+                role = AppTextRole.Footnote,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -87,9 +88,9 @@ internal fun SmsBlacklistHitListItem(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
+            AppText(
                 text = senderTitle,
-                style = MaterialTheme.typography.titleLarge,
+                role = AppTextRole.Title,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
@@ -98,18 +99,18 @@ internal fun SmsBlacklistHitListItem(
                     .weight(1f)
                     .padding(end = 8.dp),
             )
-            Text(
+            AppText(
                 text = dateFormat.format(Date(hit.createdAt)),
-                style = MaterialTheme.typography.bodySmall,
+                role = AppTextRole.BodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 textAlign = TextAlign.End,
             )
         }
         if (body.isNotBlank()) {
-            Text(
+            AppText(
                 text = body,
-                style = MaterialTheme.typography.bodyMedium,
+                role = AppTextRole.Body,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )

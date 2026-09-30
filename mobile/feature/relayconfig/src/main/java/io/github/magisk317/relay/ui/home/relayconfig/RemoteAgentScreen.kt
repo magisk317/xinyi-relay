@@ -1,7 +1,6 @@
 package io.github.magisk317.relay.ui.home.relayconfig
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
-
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -21,7 +20,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import io.github.magisk317.uikit.common.AppSnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -45,6 +43,8 @@ import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import java.text.DateFormat
 import java.util.Date
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
 
 @Composable
 fun RemoteAgentScreen(onBack: () -> Unit) {
@@ -80,8 +80,6 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
         baseUrl = next.backendBaseUrl
     }
 
-
-
     LaunchedEffect(Unit) {
         refresh()
     }
@@ -100,8 +98,8 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
             value = baseUrl,
             onValueChange = { baseUrl = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text(stringResource(id = R.string.pref_remote_agent_base_url_title)) },
-            supportingText = { Text(stringResource(id = R.string.pref_remote_agent_base_url_summary)) },
+            label = { AppText(stringResource(id = R.string.pref_remote_agent_base_url_title)) },
+            supportingText = { AppText(stringResource(id = R.string.pref_remote_agent_base_url_summary)) },
             singleLine = true,
         )
 
@@ -109,8 +107,8 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
             value = bindCode,
             onValueChange = { bindCode = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text(stringResource(id = R.string.pref_remote_agent_bind_code_title)) },
-            supportingText = { Text(stringResource(id = R.string.pref_remote_agent_bind_code_summary)) },
+            label = { AppText(stringResource(id = R.string.pref_remote_agent_bind_code_title)) },
+            supportingText = { AppText(stringResource(id = R.string.pref_remote_agent_bind_code_summary)) },
             singleLine = true,
         )
 
@@ -136,7 +134,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                     }
                 },
             ) {
-                Text(bindActionText)
+                AppText(bindActionText)
             }
             Button(
                 onClick = {
@@ -180,7 +178,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                         }
                 },
             ) {
-                Text(scanActionText)
+                AppText(scanActionText)
             }
             Button(
                 onClick = {
@@ -196,7 +194,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                     }
                 },
             ) {
-                Text(saveText)
+                AppText(saveText)
             }
         }
 
@@ -220,7 +218,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                 },
                 enabled = current?.bound == true,
             ) {
-                Text(heartbeatActionText)
+                AppText(heartbeatActionText)
             }
             Button(
                 onClick = {
@@ -240,7 +238,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                 },
                 enabled = current?.bound == true,
             ) {
-                Text(pullActionText)
+                AppText(pullActionText)
             }
         }
 
@@ -264,7 +262,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                 },
                 enabled = current?.bound == true,
             ) {
-                Text(pushActionText)
+                AppText(pushActionText)
             }
             Button(
                 onClick = {
@@ -282,7 +280,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                 },
                 enabled = current?.bound == true,
             ) {
-                Text(recordsActionText)
+                AppText(recordsActionText)
             }
         }
 
@@ -301,7 +299,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                 },
                 enabled = current?.bound == true,
             ) {
-                Text(unbindActionText)
+                AppText(unbindActionText)
             }
         }
 
@@ -402,8 +400,8 @@ private fun StatusCard(title: String, value: String) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text(text = title, style = MaterialTheme.typography.titleMedium)
-            Text(text = value, style = MaterialTheme.typography.bodyMedium)
+            AppText(text = title, role = AppTextRole.Subtitle)
+            AppText(text = value, role = AppTextRole.Body)
         }
     }
 }

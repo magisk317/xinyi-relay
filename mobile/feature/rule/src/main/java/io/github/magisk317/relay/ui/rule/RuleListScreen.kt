@@ -3,7 +3,6 @@
 package io.github.magisk317.relay.ui.rule
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
-
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,7 +11,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -30,6 +28,8 @@ import org.koin.compose.viewmodel.koinViewModel
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
 import kotlinx.coroutines.launch
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
 
 @Composable
 fun RuleListScreen(
@@ -62,9 +62,9 @@ fun RuleListScreen(
                         .padding(listPadding),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
+                    AppText(
                         stringResource(R.string.rule_list_empty_message),
-                        style = MaterialTheme.typography.bodyMedium,
+                        role = AppTextRole.Body,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -150,9 +150,9 @@ fun RuleCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
+                AppText(
                     text = rule.title.ifEmpty { stringResource(R.string.rule_unnamed) },
-                    style = MaterialTheme.typography.titleMedium
+                    role = AppTextRole.Subtitle
                 )
                 Switch(
                     checked = rule.status == 1,
@@ -166,14 +166,14 @@ fun RuleCard(
                 "sender" -> stringResource(R.string.rule_match_sender, rule.value)
                 else -> "${rule.filed} ${rule.check} ${rule.value}"
             }
-            Text(
+            AppText(
                 text = matchDesc,
-                style = MaterialTheme.typography.bodySmall,
+                role = AppTextRole.BodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Text(
+            AppText(
                 text = stringResource(R.string.rule_sender_channel_format, senderName),
-                style = MaterialTheme.typography.bodySmall,
+                role = AppTextRole.BodySmall,
                 color = MaterialTheme.colorScheme.primary
             )
             Row(
@@ -181,7 +181,7 @@ fun RuleCard(
                 horizontalArrangement = Arrangement.End
             ) {
                 TextButton(onClick = onDelete) {
-                    Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error)
+                    AppText(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error)
                 }
             }
         }

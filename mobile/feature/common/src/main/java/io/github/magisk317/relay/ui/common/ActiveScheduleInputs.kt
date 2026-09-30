@@ -7,7 +7,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
@@ -25,6 +24,8 @@ import io.github.magisk317.uikit.surface.AppAlertDialog
 import java.time.DayOfWeek
 import java.time.format.TextStyle
 import java.util.Locale
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
 
 @Composable
 fun ActiveScheduleWeekdayRow(
@@ -65,9 +66,9 @@ fun ActiveScheduleTimeValueButton(
         onClick = { showPicker = true },
         modifier = modifier.fillMaxWidth(),
     ) {
-        Text(
+        AppText(
             text = value,
-            style = MaterialTheme.typography.titleMedium,
+            role = AppTextRole.Subtitle,
             maxLines = 1,
             softWrap = false,
         )
@@ -102,7 +103,7 @@ private fun TimeRangePickerDialog(
 
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.sender_active_schedule_pick_time)) },
+        title = { AppText(stringResource(R.string.sender_active_schedule_pick_time)) },
         text = {
             TimePicker(state = pickerState)
         },
@@ -119,12 +120,12 @@ private fun TimeRangePickerDialog(
                     )
                 },
             ) {
-                Text(stringResource(R.string.confirm))
+                AppText(stringResource(R.string.confirm))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
+                AppText(stringResource(R.string.cancel))
             }
         },
     )

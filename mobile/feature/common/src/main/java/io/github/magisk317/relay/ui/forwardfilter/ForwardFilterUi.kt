@@ -19,7 +19,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -146,9 +145,9 @@ fun ForwardFilterRuleList(
     onDelete: (Long) -> Unit,
 ) {
     if (rules.isEmpty()) {
-        Text(
+        AppText(
             text = emptyText,
-            style = MaterialTheme.typography.bodySmall,
+            role = AppTextRole.BodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
         )
@@ -174,16 +173,16 @@ fun ForwardFilterRuleList(
                     } else {
                         stringResource(id = R.string.forward_filter_rule_contains)
                     }
-                Text(
+                AppText(
                     text = "[$policyLabel][$modeLabel] ${rule.pattern}",
-                    style = MaterialTheme.typography.bodyMedium,
+                    role = AppTextRole.Body,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 channelIdLabelProvider(rule)?.takeIf { it.isNotBlank() }?.let { channelId ->
-                    Text(
+                    AppText(
                         text = stringResource(id = R.string.forward_filter_rule_channel_id, channelId),
-                        style = MaterialTheme.typography.bodySmall,
+                        role = AppTextRole.BodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -197,13 +196,13 @@ fun ForwardFilterRuleList(
                             checked = rule.enabled == 1,
                             onCheckedChange = { onToggleEnabled(rule.id, it) },
                         )
-                        Text(
+                        AppText(
                             text = if (rule.enabled == 1) {
                                 stringResource(id = R.string.forward_filter_rule_enabled)
                             } else {
                                 stringResource(id = R.string.forward_filter_rule_disabled)
                             },
-                            style = MaterialTheme.typography.bodySmall,
+                            role = AppTextRole.BodySmall,
                             modifier = Modifier.padding(start = 8.dp),
                         )
                     }
@@ -309,7 +308,7 @@ fun ForwardFilterRuleEditorDialog(
                     modifier = Modifier.fillMaxWidth(),
                     label = stringResource(id = R.string.forward_filter_pattern_label),
                     supportingText = {
-                        Text(
+                        AppText(
                             if (matchMode == ForwardFilterConst.MATCH_REGEX) {
                                 stringResource(id = R.string.forward_filter_pattern_regex_hint)
                             } else {
