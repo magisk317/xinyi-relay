@@ -1,9 +1,16 @@
 package io.github.magisk317.relay.ui.home.overview
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
+import io.github.magisk317.uikit.surface.AppCard
+import io.github.magisk317.uikit.surface.AppIcon
+import io.github.magisk317.uikit.surface.AppSurface
 import io.github.magisk317.uikit.surface.MiuixStatusCheckCard
 import io.github.magisk317.uikit.surface.rememberStatusCardClickHandler
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.theme.AppColorRole
 import io.github.magisk317.uikit.theme.UiKitStyle
+import io.github.magisk317.uikit.theme.appColor
 import io.github.magisk317.uikit.theme.currentUiKitStyle
 
 import android.os.Build
@@ -28,13 +35,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -44,8 +45,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.smscode.runtime.contract.diagnostics.ActivationDiagnosticsSnapshot
 import io.github.magisk317.relay.common.utils.PackageUtils
@@ -110,16 +109,14 @@ fun StatusCard(
         return
     }
 
-    val containerColor = if (isAllOk) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.errorContainer
-    val contentColor = if (isAllOk) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onErrorContainer
+    val containerColor = if (isAllOk) appColor(AppColorRole.Primary) else appColor(AppColorRole.ErrorContainer)
+    val contentColor = if (isAllOk) appColor(AppColorRole.OnPrimary) else appColor(AppColorRole.OnErrorContainer)
 
-    Card(
+    AppCard(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
-        colors = CardDefaults.cardColors(
-            containerColor = containerColor,
-            contentColor = contentColor,
-        ),
+        color = containerColor,
+        contentColor = contentColor,
         onClick = { resolvedOnClick?.invoke() },
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
@@ -128,31 +125,29 @@ fun StatusCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Icon(
+                AppIcon(
                     imageVector = if (isAllOk) Icons.Default.CheckCircle else Icons.Default.Warning,
                     contentDescription = null,
                     modifier = Modifier.size(48.dp),
                 )
                 Column {
-                    Text(
+                    AppText(
                         text = moduleStatusText,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                        role = AppTextRole.Subtitle,
                     )
-                    Text(
+                    AppText(
                         text = entitlementStatusText,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                        role = AppTextRole.Subtitle,
                     )
                     if (!isWorking) {
-                        Text(
+                        AppText(
                             text = stringResource(id = R.string.status_activate_hint),
-                            style = MaterialTheme.typography.bodyMedium,
+                            role = AppTextRole.Body,
                         )
                     } else if (isStandardModeEnabled) {
-                        Text(
+                        AppText(
                             text = stringResource(id = R.string.standard_mode_service_notification_text),
-                            style = MaterialTheme.typography.bodyMedium,
+                            role = AppTextRole.Body,
                             color = contentColor.copy(alpha = 0.82f),
                         )
                     }
@@ -170,15 +165,14 @@ fun StatusCard(
                 ) {
                     diagnostics.forEach { (label, value) ->
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(
+                            AppText(
                                 text = label,
-                                style = MaterialTheme.typography.labelMedium,
+                                role = AppTextRole.Footnote,
                                 color = contentColor.copy(alpha = 0.8f),
                             )
-                            Text(
+                            AppText(
                                 text = value,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium,
+                                role = AppTextRole.Body,
                             )
                         }
                     }
@@ -200,15 +194,15 @@ fun StatusCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Icon(
+                        AppIcon(
                             imageVector = Icons.Default.Warning,
                             contentDescription = null,
-                            modifier = Modifier.size(22.dp),
                             tint = contentColor.copy(alpha = 0.85f),
+                            modifier = Modifier.size(22.dp),
                         )
-                        Text(
+                        AppText(
                             text = stringResource(R.string.standard_mode_battery_optimization_hint),
-                            style = MaterialTheme.typography.bodySmall,
+                            role = AppTextRole.BodySmall,
                             color = contentColor.copy(alpha = 0.82f),
                             modifier = Modifier.weight(1f),
                         )
@@ -238,14 +232,14 @@ fun StatusCard(
                             .fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        Text(
+                        AppText(
                             text = stringResource(R.string.standard_mode_limitations_title),
-                            style = MaterialTheme.typography.labelMedium,
+                            role = AppTextRole.Footnote,
                             color = contentColor.copy(alpha = 0.7f),
                         )
-                        Text(
+                        AppText(
                             text = disabledFeatureLabels.joinToString("\n"),
-                            style = MaterialTheme.typography.bodySmall,
+                            role = AppTextRole.BodySmall,
                             color = contentColor.copy(alpha = 0.7f),
                         )
                     }
@@ -312,26 +306,32 @@ private fun formatStatusDiagnosticTime(timestampMs: Long): String {
 
 @Composable
 fun InfoItem(icon: ImageVector, label: String, value: String, onClick: (() -> Unit)? = null) {
-    ListItem(
-        leadingContent = { Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-        modifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier,
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+    AppSurface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        color = Color.Transparent,
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
+            AppIcon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = appColor(AppColorRole.Primary),
+            )
+            AppText(
                 text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.outline,
+                role = AppTextRole.Body,
+                color = appColor(AppColorRole.Outline),
                 modifier = Modifier.weight(1f),
             )
-            Text(
+            AppText(
                 text = value,
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.End,
+                role = AppTextRole.Body,
                 modifier = Modifier.weight(1f),
             )
         }

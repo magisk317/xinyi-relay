@@ -31,15 +31,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,10 +48,18 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.core.R
+import io.github.magisk317.uikit.surface.AppBottomSheet
+import io.github.magisk317.uikit.surface.AppCard
+import io.github.magisk317.uikit.surface.AppIcon
+import io.github.magisk317.uikit.surface.AppIconButton
+import io.github.magisk317.uikit.surface.AppSurface
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 import kotlin.math.PI
 import kotlinx.coroutines.launch
 
@@ -186,7 +186,7 @@ internal fun HomeCardContainer(
                     .shadow(3.dp, CircleShape, clip = false)
                     .size(24.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .background(appColor(AppColorRole.PrimaryContainer))
                     .clickable(enabled = onRemove != null) {
                         if (removing || onRemove == null) return@clickable
                         removing = true
@@ -207,10 +207,10 @@ internal fun HomeCardContainer(
                     .padding(2.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(
+                AppIcon(
                     imageVector = Icons.Default.Close,
                     contentDescription = stringResource(id = R.string.remove),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    tint = appColor(AppColorRole.OnPrimaryContainer),
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -223,44 +223,34 @@ private data class WiggleParams(
     val startOffsetMs: Int,
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun AddOverviewCardSheet(
     specs: List<HomeCardSpec>,
     onDismiss: () -> Unit,
     onAdd: (String) -> Unit,
 ) {
-    ModalBottomSheet(
+    AppBottomSheet(
+        show = true,
         onDismissRequest = onDismiss,
+        title = stringResource(id = R.string.home_add_card_title),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(
-                text = stringResource(id = R.string.home_add_card_title),
-                style = MaterialTheme.typography.titleLarge,
+        if (specs.isEmpty()) {
+            AppText(
+                text = stringResource(id = R.string.home_add_card_empty),
+                role = AppTextRole.Body,
+                color = appColor(AppColorRole.OnSurfaceVariant),
+                modifier = Modifier.padding(bottom = 24.dp),
             )
-            if (specs.isEmpty()) {
-                Text(
-                    text = stringResource(id = R.string.home_add_card_empty),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 24.dp),
-                )
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(bottom = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    items(specs, key = { it.id }) { spec ->
-                        AddOverviewCardItem(
-                            spec = spec,
-                            onAdd = { onAdd(spec.id) },
-                        )
-                    }
+        } else {
+            LazyColumn(
+                contentPadding = PaddingValues(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                items(specs, key = { it.id }) { spec ->
+                    AddOverviewCardItem(
+                        spec = spec,
+                        onAdd = { onAdd(spec.id) },
+                    )
                 }
             }
         }
@@ -275,12 +265,10 @@ private fun AddOverviewCardItem(
     Box(
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Card(
+        AppCard(
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.extraLarge,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            ),
+            color = appColor(AppColorRole.SurfaceContainer),
         ) {
             Row(
                 modifier = Modifier
@@ -289,18 +277,18 @@ private fun AddOverviewCardItem(
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Surface(
+                AppSurface(
                     shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primaryContainer,
+                    color = appColor(AppColorRole.PrimaryContainer),
                 ) {
                     Box(
                         modifier = Modifier.size(42.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(
+                        AppIcon(
                             imageVector = spec.icon,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            tint = appColor(AppColorRole.OnPrimaryContainer),
                         )
                     }
                 }
@@ -308,27 +296,26 @@ private fun AddOverviewCardItem(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text(
+                    AppText(
                         text = stringResource(id = spec.titleRes),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
+                        role = AppTextRole.Subtitle,
                     )
-                    Text(
+                    AppText(
                         text = stringResource(id = R.string.home_add_card_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        role = AppTextRole.BodySmall,
+                        color = appColor(AppColorRole.OnSurfaceVariant),
                     )
                 }
             }
         }
-        FilledTonalIconButton(
+        AppIconButton(
             onClick = onAdd,
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(10.dp)
                 .size(32.dp),
         ) {
-            Icon(
+            AppIcon(
                 imageVector = Icons.Default.Add,
                 contentDescription = stringResource(id = R.string.forward_filter_action_add),
             )
