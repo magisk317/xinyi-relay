@@ -86,6 +86,8 @@ import io.github.magisk317.uikit.surface.AppSecondaryButton
 import io.github.magisk317.uikit.surface.AppSurface
 import io.github.magisk317.uikit.surface.AppTextButton
 import io.github.magisk317.uikit.surface.AppBottomSheet
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -280,7 +282,7 @@ fun BlacklistHitListScreen(
                             imageVector = Icons.Default.Block,
                             contentDescription = null,
                             modifier = Modifier.padding(bottom = 8.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = appColor(AppColorRole.OnSurfaceVariant),
                         )
                     },
                 )
@@ -386,14 +388,14 @@ private fun BlacklistHitSwipeItem(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.errorContainer)
+                    .background(appColor(AppColorRole.ErrorContainer))
                     .padding(horizontal = 24.dp),
                 contentAlignment = if (fromStart) Alignment.CenterStart else Alignment.CenterEnd,
             ) {
                 AppIcon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = stringResource(R.string.remove),
-                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                    tint = appColor(AppColorRole.OnErrorContainer),
                 )
             }
         },
@@ -471,7 +473,7 @@ private fun BlacklistHitDetailDialog(
                         onDelete()
                         onDismiss()
                     },
-                    containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    containerColor = appColor(AppColorRole.ErrorContainer), contentColor = appColor(AppColorRole.OnErrorContainer),
                 ) {
                     AppText(stringResource(R.string.action_delete))
                 }
@@ -489,13 +491,13 @@ private fun BlacklistHitDetailField(
         AppText(
             text = label,
             role = AppTextRole.Footnote,
-            color = MaterialTheme.colorScheme.primary,
+            color = appColor(AppColorRole.Primary),
             fontWeight = FontWeight.Bold,
         )
         AppText(
             text = value,
             role = AppTextRole.Body,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = appColor(AppColorRole.OnSurface),
         )
     }
 }

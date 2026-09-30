@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import io.github.magisk317.uikit.common.AppSnackbarHostState
 import io.github.magisk317.uikit.preference.AppSwitch
 import androidx.compose.runtime.Composable
@@ -34,6 +33,8 @@ import io.github.magisk317.uikit.text.AppTextRole
 import io.github.magisk317.uikit.surface.AppCard
 import io.github.magisk317.uikit.surface.AppHorizontalDivider
 import io.github.magisk317.uikit.surface.AppTextButton
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 
 @Composable
 fun AppConfigDetailScreen(
@@ -74,7 +75,7 @@ if (app == null) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         AppCard(
-            color = MaterialTheme.colorScheme.surfaceContainer,
+            color = appColor(AppColorRole.SurfaceContainer),
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 ConfigToggleRow(
@@ -162,7 +163,7 @@ if (app == null) {
 private fun AppRecentLogCard(logs: List<SmsMsg>) {
     val dateFormat = remember { SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.getDefault()) }
     AppCard(
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        color = appColor(AppColorRole.SurfaceContainer),
     ) {
         Column(
             modifier = Modifier
@@ -179,7 +180,7 @@ private fun AppRecentLogCard(logs: List<SmsMsg>) {
                 AppText(
                     text = stringResource(R.string.app_detail_recent_logs_empty),
                     role = AppTextRole.BodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = appColor(AppColorRole.OnSurfaceVariant),
                 )
                 return@Column
             }
@@ -197,7 +198,7 @@ private fun AppRecentLogCard(logs: List<SmsMsg>) {
                     AppText(
                         text = stringResource(R.string.app_detail_recent_logs_time, dateFormat.format(java.util.Date(log.date))),
                         role = AppTextRole.Footnote,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = appColor(AppColorRole.OnSurfaceVariant),
                     )
                     AppText(
                         text = stringResource(R.string.app_detail_recent_logs_content, log.body.orEmpty()),
@@ -213,7 +214,7 @@ private fun AppRecentLogCard(logs: List<SmsMsg>) {
                         AppText(
                             text = stringResource(R.string.app_detail_recent_logs_result, forwardMessage),
                             role = AppTextRole.Footnote,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = appColor(AppColorRole.OnSurfaceVariant),
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )

@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -43,6 +42,8 @@ import io.github.magisk317.uikit.text.AppTextRole
 import io.github.magisk317.uikit.surface.AppCard
 import io.github.magisk317.uikit.surface.AppHorizontalDivider
 import io.github.magisk317.uikit.surface.AppTextButton
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -239,7 +240,7 @@ fun AppForwardFilterScreen(
                 AppText(
                     text = stringResource(id = R.string.forward_filter_channel_history_hint),
                     role = AppTextRole.BodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = appColor(AppColorRole.OnSurfaceVariant),
                 )
             }
         }

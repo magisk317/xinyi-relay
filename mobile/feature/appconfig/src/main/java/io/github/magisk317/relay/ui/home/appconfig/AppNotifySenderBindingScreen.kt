@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.items
 import io.github.magisk317.uikit.preference.AppCheckbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItemDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,6 +37,8 @@ import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
 import io.github.magisk317.uikit.surface.AppCard
 import io.github.magisk317.uikit.surface.AppTextButton
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 
 @Composable
 fun AppNotifySenderBindingScreen(
@@ -112,7 +113,7 @@ LazyColumn(
                 AppText(
                     text = stringResource(R.string.app_notify_channel_tip),
                     role = AppTextRole.BodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = appColor(AppColorRole.OnSurfaceVariant),
                 )
                 RowEnd {
                     AppTextButton(text = stringResource(R.string.sender_notify_scope_clear_whitelist), onClick = { draftSelectedIds = emptySet() })
@@ -165,7 +166,7 @@ LazyColumn(
                     AppText(
                         text = stringResource(R.string.app_notify_channel_deny_hint),
                         role = AppTextRole.BodySmall,
-                        color = MaterialTheme.colorScheme.error,
+                        color = appColor(AppColorRole.Error),
                     )
                 }
             }

@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material3.MaterialTheme
 import io.github.magisk317.uikit.surface.AppTextField
 import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.runtime.Composable
@@ -63,6 +62,8 @@ import io.github.magisk317.uikit.surface.AppCard
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
 import io.github.magisk317.uikit.surface.AppTextButton
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 
 private const val BUILTIN_RULE_EDITOR_ID_ALPHANUMERIC = -101L
 private const val BUILTIN_RULE_EDITOR_ID_DIGITS = -102L
@@ -172,7 +173,7 @@ fun SmsCodeRuleListScreen(
                             AppText(
                                 text = officialEmptyPrompt,
                                 role = AppTextRole.Body,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = appColor(AppColorRole.OnSurfaceVariant),
                             )
                         }
                     }
@@ -201,7 +202,7 @@ fun SmsCodeRuleListScreen(
                             AppText(
                                 text = emptyPrompt,
                                 role = AppTextRole.Body,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = appColor(AppColorRole.OnSurfaceVariant),
                             )
                         }
                     }
@@ -292,7 +293,7 @@ private fun RuleSectionHeader(
         AppText(
             text = summary,
             role = AppTextRole.BodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = appColor(AppColorRole.OnSurfaceVariant),
         )
     }
 }
@@ -315,7 +316,7 @@ private fun OfficialSmsCodeRuleCard(
             AppText(
                 text = officialBadge,
                 role = AppTextRole.Footnote,
-                color = MaterialTheme.colorScheme.primary,
+                color = appColor(AppColorRole.Primary),
             )
             AppText(
                 text = rule.codeKeyword,
@@ -324,7 +325,7 @@ private fun OfficialSmsCodeRuleCard(
             AppText(
                 text = rule.codeRegex,
                 role = AppTextRole.BodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = appColor(AppColorRole.OnSurfaceVariant),
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -358,7 +359,7 @@ private fun SmsCodeRuleCard(
             AppText(
                 text = userBadge,
                 role = AppTextRole.Footnote,
-                color = MaterialTheme.colorScheme.primary,
+                color = appColor(AppColorRole.Primary),
             )
             AppText(
                 text = rule.codeKeyword,
@@ -367,7 +368,7 @@ private fun SmsCodeRuleCard(
             AppText(
                 text = rule.codeRegex,
                 role = AppTextRole.BodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = appColor(AppColorRole.OnSurfaceVariant),
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -376,7 +377,7 @@ private fun SmsCodeRuleCard(
                 horizontalArrangement = Arrangement.End,
             ) {
                 AppTextButton(text = stringResource(id = R.string.edit), onClick = onEdit)
-                AppTextButton(text = stringResource(id = R.string.remove), color = MaterialTheme.colorScheme.error, onClick = onDelete)
+                AppTextButton(text = stringResource(id = R.string.remove), color = appColor(AppColorRole.Error), onClick = onDelete)
             }
         }
     }
@@ -569,7 +570,7 @@ fun SmsCodeRuleEditorScreen(
                 AppText(
                     text = testGuidance,
                     role = AppTextRole.BodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = appColor(AppColorRole.OnSurfaceVariant),
                 )
             }
 

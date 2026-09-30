@@ -14,6 +14,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.uikit.surface.AppIcon
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 
 @Composable
 fun AppIconBitmapImage(
@@ -28,7 +30,7 @@ fun AppIconBitmapImage(
             imageVector = fallbackIcon,
             contentDescription = contentDescription,
             modifier = modifier.size(size),
-            tint = MaterialTheme.colorScheme.outline,
+            tint = appColor(AppColorRole.Outline),
         )
     } else {
         Image(

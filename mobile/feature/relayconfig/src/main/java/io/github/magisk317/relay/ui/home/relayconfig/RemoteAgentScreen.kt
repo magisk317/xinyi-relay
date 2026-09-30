@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.compose.material3.MaterialTheme
 import io.github.magisk317.uikit.surface.AppTextField
 import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.runtime.Composable
@@ -44,6 +43,8 @@ import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
 import io.github.magisk317.uikit.surface.AppCard
 import io.github.magisk317.uikit.surface.AppPrimaryButton
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 
 @Composable
 fun RemoteAgentScreen(onBack: () -> Unit) {
@@ -391,7 +392,7 @@ private fun parseBindPayload(raw: String): ParsedBindPayload {
 private fun StatusCard(title: String, value: String) {
     AppCard(
         modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        color = appColor(AppColorRole.SurfaceContainer),
     ) {
         Column(
             modifier = Modifier

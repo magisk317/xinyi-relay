@@ -14,7 +14,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.MaterialTheme
 import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -67,6 +66,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import org.koin.compose.viewmodel.koinViewModel
 import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 
 private const val APP_LIST_PREFETCH_DISTANCE = 12
 private const val BENCHMARK_APPS_LIST = "xinyi_benchmark_apps_list"
@@ -396,17 +397,17 @@ fun AppConfigItem(
     val isDark = androidx.compose.foundation.isSystemInDarkTheme()
     val bgColor = when {
         app.blocked && app.forwarding -> {
-            val base = MaterialTheme.colorScheme.secondaryContainer
+            val base = appColor(AppColorRole.SecondaryContainer)
             if (isDark) base.copy(alpha = 0.25f) else base.copy(alpha = 0.4f)
         }
 
         app.blocked -> {
-            val base = MaterialTheme.colorScheme.errorContainer
+            val base = appColor(AppColorRole.ErrorContainer)
             if (isDark) base.copy(alpha = 0.25f) else base.copy(alpha = 0.4f)
         }
 
         app.forwarding -> {
-            val base = MaterialTheme.colorScheme.primaryContainer
+            val base = appColor(AppColorRole.PrimaryContainer)
             if (isDark) base.copy(alpha = 0.25f) else base.copy(alpha = 0.4f)
         }
 
@@ -459,7 +460,7 @@ fun AppConfigItem(
                 },
             ),
             role = AppTextRole.BodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = appColor(AppColorRole.OnSurfaceVariant),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

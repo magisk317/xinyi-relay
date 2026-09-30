@@ -26,7 +26,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import io.github.magisk317.uikit.preference.AppCheckbox
-import androidx.compose.material3.MaterialTheme
 import io.github.magisk317.uikit.surface.AppTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -59,6 +58,8 @@ import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
 import io.github.magisk317.uikit.surface.AppPrimaryButton
 import io.github.magisk317.uikit.surface.AppSecondaryButton
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 
 @Composable
 fun CloudBackupScreen(
@@ -408,7 +409,7 @@ private fun GoogleDriveConfigSection(
                 AppText(
                     text = stringResource(id = R.string.cloud_backup_google_drive_visible_hint),
                     role = AppTextRole.BodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = appColor(AppColorRole.OnSurfaceVariant),
                 )
             }
             AppSecondaryButton(onClick = onEdit) {
@@ -660,7 +661,7 @@ private fun CloudBackupControls(
                 AppText(
                     text = stringResource(id = R.string.cloud_backup_auto_summary),
                     role = AppTextRole.BodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = appColor(AppColorRole.OnSurfaceVariant),
                 )
             }
         }
@@ -686,7 +687,7 @@ private fun BackupListSection(
         isLoading && backups.isEmpty() -> LoadingBackupList(loadingMessage)
         backups.isEmpty() -> AppText(
             text = message ?: stringResource(id = R.string.cloud_backup_no_backups),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = appColor(AppColorRole.OnSurfaceVariant),
         )
         else -> BackupList(backups, listState, message, onRestore, onDelete)
     }
@@ -718,7 +719,7 @@ private fun BackupList(
         AppText(
             text = it,
             role = AppTextRole.BodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = appColor(AppColorRole.OnSurfaceVariant),
         )
         Spacer(modifier = Modifier.height(8.dp))
     }
@@ -753,7 +754,7 @@ private fun BackupListItem(
             AppText(
                 text = backup.source.displayName(),
                 role = AppTextRole.Footnote,
-                color = MaterialTheme.colorScheme.primary,
+                color = appColor(AppColorRole.Primary),
             )
             AppText(backup.name)
             AppText(

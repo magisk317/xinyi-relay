@@ -13,7 +13,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.MaterialTheme
 import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -43,6 +42,8 @@ import io.github.magisk317.uikit.text.AppTextRole
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
 import io.github.magisk317.uikit.surface.AppAssistChip
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 
 data class ForwardFilterEditorState(
     val id: Long,
@@ -146,7 +147,7 @@ fun ForwardFilterRuleList(
         AppText(
             text = emptyText,
             role = AppTextRole.BodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = appColor(AppColorRole.OnSurfaceVariant),
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
         )
         return
@@ -181,7 +182,7 @@ fun ForwardFilterRuleList(
                     AppText(
                         text = stringResource(id = R.string.forward_filter_rule_channel_id, channelId),
                         role = AppTextRole.BodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = appColor(AppColorRole.OnSurfaceVariant),
                     )
                 }
                 Row(

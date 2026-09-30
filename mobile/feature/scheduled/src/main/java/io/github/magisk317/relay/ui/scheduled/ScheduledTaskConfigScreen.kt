@@ -492,7 +492,7 @@ fun ScheduledTaskConfigScreen(
         saveError?.let { error ->
             AppCard(
                 modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                color = MaterialTheme.colorScheme.errorContainer) {
+                color = appColor(AppColorRole.ErrorContainer)) {
                 AppText(
                     text = error,
                     modifier = Modifier.padding(16.dp),
@@ -724,7 +724,7 @@ private fun ScheduledTaskDebugSection(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        color = appColor(AppColorRole.SurfaceContainer),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),

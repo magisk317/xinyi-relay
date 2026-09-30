@@ -702,9 +702,9 @@ fun CodeRecordScreen(
                                     imageVector = icon,
                                     contentDescription = null,
                                     tint = if (selected) {
-                                        MaterialTheme.colorScheme.primary
+                                        appColor(AppColorRole.Primary)
                                     } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                        appColor(AppColorRole.OnSurfaceVariant)
                                     },
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
@@ -768,7 +768,7 @@ fun CodeRecordScreen(
                                             imageVector = Icons.Default.Email,
                                             contentDescription = null,
                                             modifier = Modifier.size(64.dp),
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            tint = appColor(AppColorRole.OnSurfaceVariant),
                                         )
                                     },
                                 )
@@ -937,7 +937,7 @@ private fun RecordDetailOverlay(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.28f))
+            .background(appColor(AppColorRole.Scrim).copy(alpha = 0.28f))
             .clickable(
                 interactionSource = dismissInteraction,
                 indication = null,
@@ -955,7 +955,7 @@ private fun RecordDetailOverlay(
             shape = MaterialTheme.shapes.extraLarge,
             tonalElevation = 6.dp,
             shadowElevation = 12.dp,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            color = appColor(AppColorRole.SurfaceContainerHigh),
         ) {
             Column(
                 modifier = Modifier.padding(20.dp),
@@ -1173,8 +1173,8 @@ private fun RecordDetailOverlay(
                             onDelete()
                             onDismiss()
                         },
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                        containerColor = appColor(AppColorRole.ErrorContainer),
+                        contentColor = appColor(AppColorRole.OnErrorContainer),
                     ) {
                         AppText(stringResource(deleteTextRes))
                     }
@@ -1289,7 +1289,7 @@ private fun resolveForwardMessageAnnotated(rawMessage: String?): AnnotatedString
             val color = when {
                 line.contains(successLabel) -> FORWARD_SUCCESS_COLOR
                 line.contains(failedLabel) -> FORWARD_FAILED_COLOR
-                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                else -> appColor(AppColorRole.OnSurfaceVariant)
             }
             pushStyle(SpanStyle(color = color))
             append("${index + 1}. $line")
@@ -1531,7 +1531,7 @@ private fun RecordSplitColumn(
                                         modifier = Modifier
                                             .then(
                                                 swipeRevealSurface(
-                                                    color = MaterialTheme.colorScheme.errorContainer,
+                                                    color = appColor(AppColorRole.ErrorContainer),
                                                 ),
                                             )
                                             .padding(horizontal = 24.dp),
@@ -1546,7 +1546,7 @@ private fun RecordSplitColumn(
                                         AppIcon(
                                             imageVector = Icons.Default.Delete,
                                             contentDescription = stringResource(R.string.remove),
-                                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                                            tint = appColor(AppColorRole.OnErrorContainer),
                                         )
                                     }
                                 },
@@ -1631,7 +1631,7 @@ fun CodeRecordItem(
     WorkspaceListItem(
         modifier = modifier,
         containerColor = if (isSelected) {
-            MaterialTheme.colorScheme.primaryContainer
+            appColor(AppColorRole.PrimaryContainer)
         } else {
             Color.Transparent
         },
@@ -1734,7 +1734,7 @@ fun AppNotificationItem(
     WorkspaceListItem(
         modifier = modifier,
         containerColor = if (isSelected) {
-            MaterialTheme.colorScheme.primaryContainer
+            appColor(AppColorRole.PrimaryContainer)
         } else {
             Color.Transparent
         },

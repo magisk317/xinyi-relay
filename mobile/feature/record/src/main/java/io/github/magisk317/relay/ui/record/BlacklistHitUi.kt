@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,6 +25,8 @@ import java.util.Date
 import java.util.Locale
 import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 
 internal const val SMS_BLOCK_REASON_BLACKLIST = "blacklist_block"
 internal const val SMS_BLOCK_REASON_PREF = "pref_block_sms"
@@ -91,7 +92,7 @@ internal fun SmsBlacklistHitListItem(
             AppText(
                 text = senderTitle,
                 role = AppTextRole.Title,
-                color = MaterialTheme.colorScheme.primary,
+                color = appColor(AppColorRole.Primary),
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -102,7 +103,7 @@ internal fun SmsBlacklistHitListItem(
             AppText(
                 text = dateFormat.format(Date(hit.createdAt)),
                 role = AppTextRole.BodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = appColor(AppColorRole.OnSurfaceVariant),
                 maxLines = 1,
                 textAlign = TextAlign.End,
             )

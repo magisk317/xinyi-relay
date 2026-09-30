@@ -24,7 +24,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.ui.Alignment
-import androidx.compose.material3.MaterialTheme
 import io.github.magisk317.uikit.surface.AppTextField
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
@@ -59,6 +58,8 @@ import io.github.magisk317.uikit.surface.AppCard
 import io.github.magisk317.uikit.surface.AppCircularProgressIndicator
 import io.github.magisk317.uikit.surface.AppPrimaryButton
 import io.github.magisk317.uikit.surface.AppSecondaryButton
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 
 class MobileEntitlementActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -283,7 +284,7 @@ private fun MobileEntitlementScreen(
                         AppText(
                             text = stringResource(R.string.mobile_entitlement_activation_token_get_hint),
                             role = AppTextRole.BodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = appColor(AppColorRole.OnSurfaceVariant),
                         )
                     }
                 }
@@ -317,7 +318,7 @@ private fun MobileEntitlementScreen(
             message?.let {
                 AppText(
                     text = stringResource(R.string.mobile_entitlement_error, it),
-                    color = MaterialTheme.colorScheme.error,
+                    color = appColor(AppColorRole.Error),
                 )
             }
             Spacer(modifier = Modifier.height(24.dp))

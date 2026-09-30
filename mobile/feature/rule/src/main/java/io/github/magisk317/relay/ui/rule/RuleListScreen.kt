@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.MaterialTheme
 import io.github.magisk317.uikit.common.AppSnackbarHostState
 import io.github.magisk317.uikit.preference.AppSwitch
 import androidx.compose.runtime.*
@@ -29,6 +28,8 @@ import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
 import io.github.magisk317.uikit.surface.AppTextButton
 import io.github.magisk317.uikit.surface.AppCard
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 
 @Composable
 fun RuleListScreen(
@@ -64,7 +65,7 @@ fun RuleListScreen(
                     AppText(
                         stringResource(R.string.rule_list_empty_message),
                         role = AppTextRole.Body,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = appColor(AppColorRole.OnSurfaceVariant),
                     )
                 }
             } else {
@@ -168,18 +169,18 @@ fun RuleCard(
             AppText(
                 text = matchDesc,
                 role = AppTextRole.BodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = appColor(AppColorRole.OnSurfaceVariant)
             )
             AppText(
                 text = stringResource(R.string.rule_sender_channel_format, senderName),
                 role = AppTextRole.BodySmall,
-                color = MaterialTheme.colorScheme.primary
+                color = appColor(AppColorRole.Primary)
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                AppTextButton(text = stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error, onClick = onDelete)
+                AppTextButton(text = stringResource(R.string.action_delete), color = appColor(AppColorRole.Error), onClick = onDelete)
             }
         }
     }
