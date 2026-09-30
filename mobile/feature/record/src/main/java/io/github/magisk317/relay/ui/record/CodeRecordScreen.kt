@@ -96,6 +96,10 @@ import io.github.magisk317.uikit.text.AppTextRole
 
 import io.github.magisk317.uikit.theme.appColor
 import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.surface.AppPrimaryButton
+import io.github.magisk317.uikit.surface.AppSecondaryButton
+import io.github.magisk317.uikit.surface.AppSurface
+import io.github.magisk317.uikit.surface.AppTextButton
 import java.util.*
 
 private enum class RecordExportScope {
@@ -617,8 +621,7 @@ fun CodeRecordScreen(
             title = { AppText(stringResource(R.string.record_clear_dialog_title)) },
             text = { AppText(stringResource(R.string.record_clear_dialog_message, currentTabName)) },
             confirmButton = {
-                TextButton(
-                    onClick = {
+                AppTextButton(text = stringResource(R.string.action_clear_records), onClick = {
                         val deleteList = activeSmsList.toList()
                         if (deleteList.isNotEmpty()) {
                             viewModel.removeSmsMsg(deleteList)
@@ -634,15 +637,10 @@ fun CodeRecordScreen(
                             }
                         }
                         showClearDialog = false
-                    },
-                ) {
-                    AppText(stringResource(R.string.action_clear_records))
-                }
+                    })
             },
             dismissButton = {
-                TextButton(onClick = { showClearDialog = false }) {
-                    AppText(stringResource(R.string.cancel))
-                }
+                AppTextButton(text = stringResource(R.string.cancel), onClick = { showClearDialog = false })
             },
         )
     }
@@ -697,7 +695,7 @@ fun CodeRecordScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center,
                             ) {
-                                Icon(
+                                AppIcon(
                                     imageVector = icon,
                                     contentDescription = null,
                                     tint = if (selected) {
@@ -763,7 +761,7 @@ fun CodeRecordScreen(
                                     summary = activeEmptyHint,
                                     modifier = Modifier.fillMaxSize(),
                                     icon = {
-                                        Icon(
+                                        AppIcon(
                                             imageVector = Icons.Default.Email,
                                             contentDescription = null,
                                             modifier = Modifier.size(64.dp),
@@ -1159,7 +1157,7 @@ private fun RecordDetailOverlay(
                 ) {
                     customItem(
                         buttonGroupContent = {
-                            OutlinedButton(
+                            AppSecondaryButton(
                                 modifier = Modifier.weight(1f),
                                 onClick = {
                                     onRefund()
@@ -1182,16 +1180,13 @@ private fun RecordDetailOverlay(
                     )
                     customItem(
                         buttonGroupContent = {
-                            Button(
+                            AppPrimaryButton(
                                 modifier = Modifier.weight(1f),
                                 onClick = {
                                     onDelete()
                                     onDismiss()
                                 },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                                ),
+                                containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer,
                             ) {
                                 AppText(stringResource(deleteTextRes))
                             }
@@ -1439,12 +1434,11 @@ private fun RecordSplitColumn(
     ReportLazyListScrollToChrome(listState, scrollChromeState)
     io.github.magisk317.uikit.surface.ScrollToTopEffect(listState, scrollToTopSignal)
     val isMiuix = currentUiKitStyle() == UiKitStyle.Miuix
-    Surface(
+    AppSurface(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
         tonalElevation = 2.dp,
         color = Color.Transparent,
-        shadowElevation = 0.dp,
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             if (showHeader) {
@@ -1551,7 +1545,7 @@ private fun RecordSplitColumn(
                                             Alignment.CenterEnd
                                         },
                                     ) {
-                                        Icon(
+                                        AppIcon(
                                             imageVector = Icons.Default.Delete,
                                             contentDescription = stringResource(R.string.remove),
                                             tint = MaterialTheme.colorScheme.onErrorContainer,

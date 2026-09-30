@@ -37,7 +37,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -85,6 +84,7 @@ import io.github.magisk317.relay.ui.nav.SmsCodeNavHost
 import io.github.magisk317.relay.ui.privacy.PrivacyPolicyPage
 import io.github.magisk317.relay.ui.theme.AppTheme
 import io.github.magisk317.uikit.theme.UiKitStyle
+import io.github.magisk317.uikit.surface.AppSurface
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -381,7 +381,7 @@ class MainActivity : ComponentActivity() {
                     dynamicColor = themeState.dynamicColor,
                     accentColor = themeState.accentColor,
                 ) {
-                    Surface(color = MaterialTheme.colorScheme.background) {
+                    AppSurface(color = MaterialTheme.colorScheme.background) {
                         LaunchedEffect(Unit) {
                             viewModel.setInternalFilesWritable()
                         }

@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import io.github.magisk317.uikit.common.AppSnackbarHostState
 import io.github.magisk317.uikit.preference.AppSwitch
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.*
@@ -30,6 +29,7 @@ import io.github.magisk317.uikit.theme.currentUiKitStyle
 import kotlinx.coroutines.launch
 import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppTextButton
 
 @Composable
 fun RuleListScreen(
@@ -180,9 +180,7 @@ fun RuleCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                TextButton(onClick = onDelete) {
-                    AppText(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error)
-                }
+                AppTextButton(text = stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error, onClick = onDelete)
             }
         }
     }

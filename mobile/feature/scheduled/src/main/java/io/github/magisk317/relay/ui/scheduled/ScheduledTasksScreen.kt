@@ -20,6 +20,11 @@ import io.github.magisk317.uikit.surface.AppAlertDialog
 import io.github.magisk317.uikit.preference.AppSwitch
 import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppCard
+import io.github.magisk317.uikit.surface.AppCircularProgressIndicator
+import io.github.magisk317.uikit.surface.AppIcon
+import io.github.magisk317.uikit.surface.AppIconButton
+import io.github.magisk317.uikit.surface.AppTextButton
 
 @Composable
 fun ScheduledTasksScreen(
@@ -45,7 +50,7 @@ fun ScheduledTasksScreen(
     Box(modifier = Modifier.fillMaxSize().padding(padding)) {
         when {
             isLoading -> {
-                CircularProgressIndicator(
+                AppCircularProgressIndicator(
                     modifier = Modifier.align(androidx.compose.ui.Alignment.Center)
                 )
             }
@@ -58,7 +63,7 @@ fun ScheduledTasksScreen(
             else -> {
                 LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
                     items(tasks, key = { it.id }) { task ->
-                        Card(
+                        AppCard(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                             onClick = { onNavigateToConfig(task.id) }
                         ) {
@@ -104,8 +109,8 @@ fun ScheduledTasksScreen(
                                             }
                                         }
                                     )
-                                    IconButton(onClick = { taskToDelete = task.id }) {
-                                        Icon(
+                                    AppIconButton(onClick = { taskToDelete = task.id }) {
+                                        AppIcon(
                                             Icons.Default.Delete,
                                             contentDescription = stringResource(id = R.string.action_delete),
                                         )
@@ -126,22 +131,16 @@ fun ScheduledTasksScreen(
             title = { AppText(stringResource(id = R.string.scheduled_task_delete_dialog_title)) },
             text = { AppText(stringResource(id = R.string.scheduled_task_delete_dialog_message)) },
             confirmButton = {
-                TextButton(
-                    onClick = {
+                AppTextButton(text = stringResource(id = R.string.action_delete), onClick = {
                         viewModel.deleteTask(
                             taskId = taskId,
                             onSuccess = { taskToDelete = null },
                             onError = { taskToDelete = null }
                         )
-                    }
-                ) {
-                    AppText(stringResource(id = R.string.action_delete))
-                }
+                    })
             },
             dismissButton = {
-                TextButton(onClick = { taskToDelete = null }) {
-                    AppText(stringResource(id = R.string.cancel))
-                }
+                AppTextButton(text = stringResource(id = R.string.cancel), onClick = { taskToDelete = null })
             }
         )
     }
@@ -151,9 +150,7 @@ fun ScheduledTasksScreen(
         Snackbar(
             modifier = Modifier.padding(16.dp),
             action = {
-                TextButton(onClick = { viewModel.clearError() }) {
-                    AppText(stringResource(id = R.string.action_close))
-                }
+                AppTextButton(text = stringResource(id = R.string.action_close), onClick = { viewModel.clearError() })
             }
         ) {
             AppText(error)

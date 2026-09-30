@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
 import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,6 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
+import io.github.magisk317.uikit.surface.AppHorizontalDivider
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.SmsBlacklistSettingsUpdate
@@ -219,7 +219,7 @@ fun InterceptScreen(
                 ) { showSmsBlacklistContentDialog = true }
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = Const.SPACING_SMALL.dp))
+            AppHorizontalDivider(modifier = Modifier.padding(vertical = Const.SPACING_SMALL.dp))
             Item(
                 title = stringResource(R.string.sms_blacklist_hit_list_title),
                 summary = blacklistHitSummary(

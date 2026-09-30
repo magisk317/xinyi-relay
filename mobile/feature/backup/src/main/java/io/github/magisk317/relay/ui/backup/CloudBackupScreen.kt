@@ -25,13 +25,8 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Button
 import io.github.magisk317.uikit.preference.AppCheckbox
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import io.github.magisk317.uikit.surface.AppTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -59,6 +54,11 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppCircularProgressIndicator
+import io.github.magisk317.uikit.surface.AppIcon
+import io.github.magisk317.uikit.surface.AppIconButton
+import io.github.magisk317.uikit.surface.AppPrimaryButton
+import io.github.magisk317.uikit.surface.AppSecondaryButton
 
 @Composable
 fun CloudBackupScreen(
@@ -359,11 +359,11 @@ private fun BackupSourceButton(
     modifier: Modifier = Modifier,
 ) {
     if (selected) {
-        Button(onClick = onClick, modifier = modifier) {
+        AppPrimaryButton(onClick = onClick, modifier = modifier) {
             AppText(text)
         }
     } else {
-        OutlinedButton(onClick = onClick, modifier = modifier) {
+        AppSecondaryButton(onClick = onClick, modifier = modifier) {
             AppText(text)
         }
     }
@@ -391,7 +391,7 @@ private fun GoogleDriveConfigSection(
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(modifier = Modifier.height(8.dp))
-        Button(onClick = onSave, modifier = Modifier.fillMaxWidth()) {
+        AppPrimaryButton(onClick = onSave, modifier = Modifier.fillMaxWidth()) {
             AppText(stringResource(id = R.string.cloud_backup_save))
         }
     } else {
@@ -411,7 +411,7 @@ private fun GoogleDriveConfigSection(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            OutlinedButton(onClick = onEdit) {
+            AppSecondaryButton(onClick = onEdit) {
                 AppText(stringResource(id = R.string.cloud_backup_edit_config))
             }
         }
@@ -465,10 +465,10 @@ private fun WebDavConfigSection(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Button(onClick = onEdit, modifier = Modifier.weight(1f)) {
+            AppPrimaryButton(onClick = onEdit, modifier = Modifier.weight(1f)) {
                 AppText(stringResource(id = R.string.cloud_backup_edit_config))
             }
-            Button(onClick = onRemove, modifier = Modifier.weight(1f)) {
+            AppPrimaryButton(onClick = onRemove, modifier = Modifier.weight(1f)) {
                 AppText(stringResource(id = R.string.cloud_backup_remove_config))
             }
         }
@@ -530,16 +530,16 @@ private fun WebDavConfigForm(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Button(onClick = onSave, modifier = Modifier.weight(1f)) {
+        AppPrimaryButton(onClick = onSave, modifier = Modifier.weight(1f)) {
             AppText(stringResource(id = R.string.cloud_backup_save))
         }
-        Button(
+        AppPrimaryButton(
             onClick = onTestConnection,
             enabled = !isLoading,
             modifier = Modifier.weight(1f),
         ) {
             if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
+                AppCircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
             }
             AppText(stringResource(id = R.string.cloud_backup_test_connection))
         }
@@ -596,8 +596,8 @@ private fun PasswordTextField(
         label = stringResource(id = R.string.cloud_backup_webdav_password),
         outputTransformation = if (visible) null else PasswordOutputTransformation,
         trailingIcon = {
-            IconButton(onClick = onToggleVisibility) {
-                Icon(
+            AppIconButton(onClick = onToggleVisibility) {
+                AppIcon(
                     imageVector = if (visible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
                     contentDescription = stringResource(
                         id = if (visible) {
@@ -631,13 +631,13 @@ private fun CloudBackupControls(
     onAutoBackupChange: (Boolean) -> Unit,
 ) {
     if ((selectedSource == BackupSource.GOOGLE_DRIVE && hasGoogleDriveBackup) || canUseSelectedBackup) {
-        Button(
+        AppPrimaryButton(
             onClick = onBackupNow,
             enabled = !isLoading,
             modifier = Modifier.fillMaxWidth(),
         ) {
             if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
+                AppCircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
             }
             AppText(stringResource(id = R.string.cloud_backup_manual_backup))
         }
@@ -701,7 +701,7 @@ private fun LoadingBackupList(message: String) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        CircularProgressIndicator()
+        AppCircularProgressIndicator()
         AppText(message)
     }
 }
@@ -762,10 +762,10 @@ private fun BackupListItem(
             )
         }
         Row {
-            Button(onClick = onRestore) {
+            AppPrimaryButton(onClick = onRestore) {
                 AppText(stringResource(id = R.string.cloud_backup_restore))
             }
-            Button(onClick = onDelete) {
+            AppPrimaryButton(onClick = onDelete) {
                 AppText(stringResource(id = R.string.cloud_backup_delete))
             }
         }

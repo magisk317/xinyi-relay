@@ -35,6 +35,9 @@ import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.theme.appColor
 import io.github.magisk317.uikit.theme.AppColorRole
 import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppCard
+import io.github.magisk317.uikit.surface.AppCircularProgressIndicator
+import io.github.magisk317.uikit.surface.AppPrimaryButton
 
 private enum class ScheduledTaskScheduleMode {
     SIMPLE,
@@ -487,12 +490,9 @@ fun ScheduledTaskConfigScreen(
         }
 
         saveError?.let { error ->
-            Card(
+            AppCard(
                 modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
-                )
-            ) {
+                color = MaterialTheme.colorScheme.errorContainer) {
                 AppText(
                     text = error,
                     modifier = Modifier.padding(16.dp),
@@ -720,13 +720,11 @@ private fun ScheduledTaskDebugSection(
     onTestClick: () -> Unit,
     onShortCodeConfirmationBypassChange: (Boolean) -> Unit,
 ) {
-    Card(
+    AppCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        ),
+        color = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -736,13 +734,13 @@ private fun ScheduledTaskDebugSection(
                 text = stringResource(id = R.string.scheduled_task_debug_section_title),
                 role = AppTextRole.Subtitle,
             )
-            Button(
+            AppPrimaryButton(
                 onClick = onTestClick,
                 enabled = !testRunning,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 if (testRunning) {
-                    CircularProgressIndicator(
+                    AppCircularProgressIndicator(
                         modifier = Modifier.size(18.dp),
                         strokeWidth = 2.dp,
                     )

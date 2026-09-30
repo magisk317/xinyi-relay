@@ -10,12 +10,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import io.github.magisk317.uikit.common.AppSnackbarHostState
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,6 +40,9 @@ import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppCard
+import io.github.magisk317.uikit.surface.AppHorizontalDivider
+import io.github.magisk317.uikit.surface.AppTextButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -164,7 +164,7 @@ fun AppForwardFilterScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item(key = "package_rules") {
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -176,7 +176,7 @@ fun AppForwardFilterScreen(
                             showPackageEditor = true
                         },
                     )
-                    HorizontalDivider()
+                    AppHorizontalDivider()
                     ForwardFilterRuleList(
                         rules = packageRules,
                         emptyText = stringResource(id = R.string.forward_filter_empty),
@@ -197,7 +197,7 @@ fun AppForwardFilterScreen(
         }
 
         item(key = "channel_rules") {
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -209,7 +209,7 @@ fun AppForwardFilterScreen(
                             showChannelEditor = true
                         },
                     )
-                    HorizontalDivider()
+                    AppHorizontalDivider()
                     ForwardFilterRuleList(
                         rules = channelRules,
                         emptyText = stringResource(id = R.string.forward_filter_empty),
@@ -349,8 +349,6 @@ private fun SectionHeaderRow(
         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
     ) {
         AppText(text = title, role = AppTextRole.Subtitle)
-        TextButton(onClick = onAddClick) {
-            AppText(stringResource(id = R.string.forward_filter_action_add))
-        }
+        AppTextButton(text = stringResource(id = R.string.forward_filter_action_add), onClick = onAddClick)
     }
 }

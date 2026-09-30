@@ -21,13 +21,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import io.github.magisk317.uikit.surface.AppTextField
 import io.github.magisk317.uikit.common.AppSnackbarHostState
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -63,6 +59,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppCard
+import io.github.magisk317.uikit.surface.AppIcon
+import io.github.magisk317.uikit.surface.AppIconButton
+import io.github.magisk317.uikit.surface.AppTextButton
 
 private const val BUILTIN_RULE_EDITOR_ID_ALPHANUMERIC = -101L
 private const val BUILTIN_RULE_EDITOR_ID_DIGITS = -102L
@@ -303,7 +303,7 @@ private fun OfficialSmsCodeRuleCard(
     ordinal: Int,
 ) {
     val officialBadge = stringResource(id = R.string.official_rule_badge_format, ordinal)
-    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+    AppCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -340,7 +340,7 @@ private fun SmsCodeRuleCard(
     onDelete: () -> Unit,
 ) {
     val userBadge = stringResource(id = R.string.user_rule_badge_format, ordinal)
-    OutlinedCard(
+    AppCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onEdit),
@@ -375,12 +375,8 @@ private fun SmsCodeRuleCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
             ) {
-                TextButton(onClick = onEdit) {
-                    AppText(stringResource(id = R.string.edit))
-                }
-                TextButton(onClick = onDelete) {
-                    AppText(stringResource(id = R.string.remove), color = MaterialTheme.colorScheme.error)
-                }
+                AppTextButton(text = stringResource(id = R.string.edit), onClick = onEdit)
+                AppTextButton(text = stringResource(id = R.string.remove), color = MaterialTheme.colorScheme.error, onClick = onDelete)
             }
         }
     }
@@ -523,8 +519,8 @@ fun SmsCodeRuleEditorScreen(
                     enabled = !loading,
                     trailingIcon = if (isBuiltinRule && company.isNotBlank()) {
                         {
-                            IconButton(onClick = { copyField(companyLabel, company) }) {
-                                Icon(Icons.Filled.ContentCopy, contentDescription = copyLabel)
+                            AppIconButton(onClick = { copyField(companyLabel, company) }) {
+                                AppIcon(Icons.Filled.ContentCopy, contentDescription = copyLabel)
                             }
                         }
                     } else {
@@ -541,8 +537,8 @@ fun SmsCodeRuleEditorScreen(
                     enabled = !loading,
                     trailingIcon = if (isBuiltinRule && keyword.isNotBlank()) {
                         {
-                            IconButton(onClick = { copyField(keywordLabel, keyword) }) {
-                                Icon(Icons.Filled.ContentCopy, contentDescription = copyLabel)
+                            AppIconButton(onClick = { copyField(keywordLabel, keyword) }) {
+                                AppIcon(Icons.Filled.ContentCopy, contentDescription = copyLabel)
                             }
                         }
                     } else {
@@ -559,8 +555,8 @@ fun SmsCodeRuleEditorScreen(
                     enabled = !loading,
                     trailingIcon = if (isBuiltinRule && regex.isNotBlank()) {
                         {
-                            IconButton(onClick = { copyField(regexLabel, regex) }) {
-                                Icon(Icons.Filled.ContentCopy, contentDescription = copyLabel)
+                            AppIconButton(onClick = { copyField(regexLabel, regex) }) {
+                                AppIcon(Icons.Filled.ContentCopy, contentDescription = copyLabel)
                             }
                         }
                     } else {

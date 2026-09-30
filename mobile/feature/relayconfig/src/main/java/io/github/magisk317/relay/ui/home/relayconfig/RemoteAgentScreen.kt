@@ -14,9 +14,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import io.github.magisk317.uikit.surface.AppTextField
 import io.github.magisk317.uikit.common.AppSnackbarHostState
@@ -45,6 +42,8 @@ import java.text.DateFormat
 import java.util.Date
 import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppCard
+import io.github.magisk317.uikit.surface.AppPrimaryButton
 
 @Composable
 fun RemoteAgentScreen(onBack: () -> Unit) {
@@ -116,7 +115,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Button(
+            AppPrimaryButton(
                 onClick = {
                     scope.launch {
                         runCatching {
@@ -136,7 +135,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
             ) {
                 AppText(bindActionText)
             }
-            Button(
+            AppPrimaryButton(
                 onClick = {
                     val options = GmsBarcodeScannerOptions.Builder()
                         .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
@@ -180,7 +179,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
             ) {
                 AppText(scanActionText)
             }
-            Button(
+            AppPrimaryButton(
                 onClick = {
                     scope.launch {
                         runCatching {
@@ -202,7 +201,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Button(
+            AppPrimaryButton(
                 onClick = {
                     scope.launch {
                         runCatching { repository.sendHeartbeat() }
@@ -220,7 +219,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
             ) {
                 AppText(heartbeatActionText)
             }
-            Button(
+            AppPrimaryButton(
                 onClick = {
                     scope.launch {
                         runCatching { repository.pullPendingCommands() }
@@ -246,7 +245,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Button(
+            AppPrimaryButton(
                 onClick = {
                     scope.launch {
                         runCatching { repository.pushLocalMirror() }
@@ -264,7 +263,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
             ) {
                 AppText(pushActionText)
             }
-            Button(
+            AppPrimaryButton(
                 onClick = {
                     scope.launch {
                         runCatching { repository.uploadRecentRecords() }
@@ -288,7 +287,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Button(
+            AppPrimaryButton(
                 onClick = {
                     scope.launch {
                         repository.clearBinding()
@@ -390,9 +389,9 @@ private fun parseBindPayload(raw: String): ParsedBindPayload {
 
 @Composable
 private fun StatusCard(title: String, value: String) {
-    Card(
+    AppCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        color = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Column(
             modifier = Modifier

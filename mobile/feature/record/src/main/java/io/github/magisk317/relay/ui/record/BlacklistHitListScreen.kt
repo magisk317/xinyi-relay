@@ -28,20 +28,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import io.github.magisk317.uikit.common.AppSnackbarDuration
 import io.github.magisk317.uikit.common.AppSnackbarHostState
 import io.github.magisk317.uikit.common.AppSnackbarResult
-import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -87,6 +81,11 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppIcon
+import io.github.magisk317.uikit.surface.AppPrimaryButton
+import io.github.magisk317.uikit.surface.AppSecondaryButton
+import io.github.magisk317.uikit.surface.AppSurface
+import io.github.magisk317.uikit.surface.AppTextButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -166,8 +165,7 @@ fun BlacklistHitListScreen(
             title = { AppText(stringResource(R.string.sms_blacklist_hit_clear_dialog_title)) },
             text = { AppText(stringResource(R.string.sms_blacklist_hit_clear_dialog_message)) },
             confirmButton = {
-                TextButton(
-                    onClick = {
+                AppTextButton(text = stringResource(R.string.action_clear_records), onClick = {
                         showClearDialog = false
                         scope.launch {
                             val deleted = recordRepository.listSmsBlacklistHits(Int.MAX_VALUE)
@@ -183,15 +181,10 @@ fun BlacklistHitListScreen(
                                 }
                             }
                         }
-                    },
-                ) {
-                    AppText(stringResource(R.string.action_clear_records))
-                }
+                    })
             },
             dismissButton = {
-                TextButton(onClick = { showClearDialog = false }) {
-                    AppText(stringResource(R.string.cancel))
-                }
+                AppTextButton(text = stringResource(R.string.cancel), onClick = { showClearDialog = false })
             },
         )
     }
@@ -284,7 +277,7 @@ fun BlacklistHitListScreen(
                     summary = stringResource(R.string.sms_blacklist_hit_recent_empty),
                     modifier = Modifier.fillMaxSize(),
                     icon = {
-                        Icon(
+                        AppIcon(
                             imageVector = Icons.Default.Block,
                             contentDescription = null,
                             modifier = Modifier.padding(bottom = 8.dp),
@@ -293,14 +286,13 @@ fun BlacklistHitListScreen(
                     },
                 )
             } else {
-                Surface(
+                AppSurface(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 12.dp),
                     shape = MaterialTheme.shapes.large,
                     tonalElevation = 2.dp,
                     color = Color.Transparent,
-                    shadowElevation = 0.dp,
                 ) {
                     LazyColumn(
                         state = listState,
@@ -399,7 +391,7 @@ private fun BlacklistHitSwipeItem(
                     .padding(horizontal = 24.dp),
                 contentAlignment = if (fromStart) Alignment.CenterStart else Alignment.CenterEnd,
             ) {
-                Icon(
+                AppIcon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = stringResource(R.string.remove),
                     tint = MaterialTheme.colorScheme.onErrorContainer,
@@ -468,22 +460,19 @@ private fun BlacklistHitDetailDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                OutlinedButton(
+                AppSecondaryButton(
                     modifier = Modifier.weight(1f),
                     onClick = onDismiss,
                 ) {
                     AppText(stringResource(R.string.action_close))
                 }
-                Button(
+                AppPrimaryButton(
                     modifier = Modifier.weight(1f),
                     onClick = {
                         onDelete()
                         onDismiss()
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                    ),
+                    containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer,
                 ) {
                     AppText(stringResource(R.string.action_delete))
                 }

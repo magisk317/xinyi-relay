@@ -9,12 +9,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import io.github.magisk317.uikit.preference.AppCheckbox
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,6 +36,8 @@ import io.github.magisk317.uikit.theme.currentUiKitStyle
 import org.koin.compose.viewmodel.koinViewModel
 import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppCard
+import io.github.magisk317.uikit.surface.AppTextButton
 
 @Composable
 fun AppNotifySenderBindingScreen(
@@ -91,9 +90,9 @@ LazyColumn(
         )
     }
     item(key = "tip") {
-        OutlinedCard(
+        AppCard(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.outlinedCardColors(containerColor = Color.Transparent),
+            color = Color.Transparent,
         ) {
             Column(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -116,9 +115,7 @@ LazyColumn(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 RowEnd {
-                    TextButton(onClick = { draftSelectedIds = emptySet() }) {
-                        AppText(stringResource(R.string.sender_notify_scope_clear_whitelist))
-                    }
+                    AppTextButton(text = stringResource(R.string.sender_notify_scope_clear_whitelist), onClick = { draftSelectedIds = emptySet() })
                 }
             }
         }
@@ -126,9 +123,9 @@ LazyColumn(
     items(filteredSenders, key = { it.id }) { sender ->
         val checked = sender.id in draftSelectedIds
         val denied = sender.id in deniedBySenderIds
-        OutlinedCard(
+        AppCard(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.outlinedCardColors(containerColor = Color.Transparent),
+            color = Color.Transparent,
         ) {
             Column(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),

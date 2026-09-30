@@ -14,8 +14,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.runtime.Composable
@@ -44,6 +42,8 @@ import io.github.magisk317.uikit.surface.AppTextField
 import io.github.magisk317.uikit.surface.rememberSaveableTextFieldState
 import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppIcon
+import io.github.magisk317.uikit.surface.AppIconButton
 
 data class ForwardFilterEditorState(
     val id: Long,
@@ -206,14 +206,14 @@ fun ForwardFilterRuleList(
                         )
                     }
                     Row {
-                        IconButton(onClick = { onEdit(rule) }) {
-                            Icon(
+                        AppIconButton(onClick = { onEdit(rule) }) {
+                            AppIcon(
                                 imageVector = Icons.Filled.Edit,
                                 contentDescription = stringResource(id = R.string.forward_filter_action_edit),
                             )
                         }
-                        IconButton(onClick = { onDelete(rule.id) }) {
-                            Icon(
+                        AppIconButton(onClick = { onDelete(rule.id) }) {
+                            AppIcon(
                                 imageVector = Icons.Filled.Delete,
                                 contentDescription = stringResource(id = R.string.action_delete),
                             )

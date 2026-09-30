@@ -4,10 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -26,6 +24,8 @@ import java.time.format.TextStyle
 import java.util.Locale
 import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppSecondaryButton
+import io.github.magisk317.uikit.surface.AppTextButton
 
 @Composable
 fun ActiveScheduleWeekdayRow(
@@ -62,7 +62,7 @@ fun ActiveScheduleTimeValueButton(
     onValueChange: (String) -> Unit,
 ) {
     var showPicker by remember { mutableStateOf(false) }
-    FilledTonalButton(
+    AppSecondaryButton(
         onClick = { showPicker = true },
         modifier = modifier.fillMaxWidth(),
     ) {
@@ -108,8 +108,7 @@ private fun TimeRangePickerDialog(
             TimePicker(state = pickerState)
         },
         confirmButton = {
-            TextButton(
-                onClick = {
+            AppTextButton(text = stringResource(R.string.confirm), onClick = {
                     onConfirm(
                         String.format(
                             Locale.US,
@@ -118,15 +117,10 @@ private fun TimeRangePickerDialog(
                             pickerState.minute,
                         ),
                     )
-                },
-            ) {
-                AppText(stringResource(R.string.confirm))
-            }
+                })
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                AppText(stringResource(R.string.cancel))
-            }
+            AppTextButton(text = stringResource(R.string.cancel), onClick = onDismiss)
         },
     )
 }

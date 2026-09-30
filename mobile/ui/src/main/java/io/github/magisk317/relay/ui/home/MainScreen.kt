@@ -22,7 +22,6 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -116,6 +115,7 @@ import io.github.magisk317.uikit.surface.tabTransitionDirection
 import io.github.magisk317.uikit.surface.MainTabSpec
 import io.github.magisk317.uikit.surface.rememberIsCompactWidth
 import io.github.magisk317.uikit.surface.rememberMainChromeController
+import io.github.magisk317.uikit.surface.AppIcon
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.collect
 import org.koin.compose.viewmodel.koinViewModel
@@ -414,7 +414,7 @@ fun MainScreen(
             bottomBarBackdrop = themeState.bottomBarBackdrop,
             retainPageContentAfterFirstFrame = true,
             railHeader = {
-                Icon(
+                AppIcon(
                     imageVector = Icons.Default.Email,
                     contentDescription = null,
                     modifier = Modifier.padding(vertical = 12.dp),
@@ -568,7 +568,7 @@ fun MainScreen(
                 bottomBarBackdrop = themeState.bottomBarBackdrop,
                 showSystemBarsScrim = false,
                 railHeader = {
-                    Icon(
+                    AppIcon(
                         imageVector = Icons.Default.Email,
                         contentDescription = null,
                         modifier = Modifier.padding(vertical = 12.dp),

@@ -6,13 +6,9 @@ import io.github.magisk317.uikit.common.showLatestSnackbar
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import io.github.magisk317.uikit.common.AppSnackbarHostState
-import androidx.compose.material3.TextButton
 import io.github.magisk317.uikit.preference.AppSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,6 +31,9 @@ import java.util.Locale
 import kotlinx.coroutines.launch
 import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppCard
+import io.github.magisk317.uikit.surface.AppHorizontalDivider
+import io.github.magisk317.uikit.surface.AppTextButton
 
 @Composable
 fun AppConfigDetailScreen(
@@ -74,10 +73,8 @@ if (app == null) {
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            ),
+        AppCard(
+            color = MaterialTheme.colorScheme.surfaceContainer,
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 ConfigToggleRow(
@@ -90,7 +87,7 @@ if (app == null) {
                         }
                     },
                 )
-                HorizontalDivider()
+                AppHorizontalDivider()
                 ConfigToggleRow(
                     title = stringResource(R.string.label_app_notify_source_enabled),
                     checked = app.forwarding,
@@ -101,7 +98,7 @@ if (app == null) {
                         }
                     },
                 )
-                HorizontalDivider()
+                AppHorizontalDivider()
                 androidx.compose.material3.ListItem(
                     supportingContent = {
                         val count = viewModel.getAppNotifyBindingCount(app.packageName)
@@ -114,22 +111,18 @@ if (app == null) {
                         )
                     },
                     trailingContent = {
-                        TextButton(onClick = onConfigureNotifyChannels) {
-                            AppText(text = stringResource(R.string.item_config))
-                        }
+                        AppTextButton(text = stringResource(R.string.item_config), onClick = onConfigureNotifyChannels)
                     },
                 ) {
                     AppText(text = stringResource(R.string.app_notify_channel_config_title))
                 }
-                HorizontalDivider()
+                AppHorizontalDivider()
                 androidx.compose.material3.ListItem(
                     supportingContent = {
                         AppText(text = stringResource(R.string.app_detail_forward_filter_summary))
                     },
                     trailingContent = {
-                        TextButton(onClick = onConfigureForwardFilters) {
-                            AppText(text = stringResource(R.string.item_config))
-                        }
+                        AppTextButton(text = stringResource(R.string.item_config), onClick = onConfigureForwardFilters)
                     },
                 ) {
                     AppText(text = stringResource(R.string.app_detail_forward_filter_title))
@@ -168,10 +161,8 @@ if (app == null) {
 @Composable
 private fun AppRecentLogCard(logs: List<SmsMsg>) {
     val dateFormat = remember { SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.getDefault()) }
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        ),
+    AppCard(
+        color = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Column(
             modifier = Modifier
@@ -229,7 +220,7 @@ private fun AppRecentLogCard(logs: List<SmsMsg>) {
                     }
                 }
                 if (index != logs.lastIndex) {
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                    AppHorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                 }
             }
         }

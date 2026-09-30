@@ -25,6 +25,8 @@ import io.github.magisk317.uikit.surface.AppTextField
 import io.github.magisk317.uikit.surface.AppDropdownField
 import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppCircularProgressIndicator
+import io.github.magisk317.uikit.surface.AppPrimaryButton
 
 @Composable
 fun RuleConfigScreen(
@@ -63,7 +65,7 @@ fun RuleConfigScreen(
 
     if (!isLoaded) {
         Box(modifier = Modifier.fillMaxSize()) {
-            CircularProgressIndicator(modifier = Modifier.align(androidx.compose.ui.Alignment.Center))
+            AppCircularProgressIndicator(modifier = Modifier.align(androidx.compose.ui.Alignment.Center))
         }
         return
     }
@@ -147,7 +149,7 @@ fun RuleConfigScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Button(
+            AppPrimaryButton(
                 onClick = {
                     val rule = Rule(
                         id = ruleId,
