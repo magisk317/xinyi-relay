@@ -30,7 +30,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -138,7 +138,7 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val repository: SettingsPreferencesRepository = koinInject()
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
     val notifySaved = {
         scope.launch {

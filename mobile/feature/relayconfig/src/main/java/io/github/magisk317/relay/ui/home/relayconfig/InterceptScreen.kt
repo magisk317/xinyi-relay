@@ -19,7 +19,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.SnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -60,7 +60,7 @@ fun InterceptScreen(
     val recordRepository: MessageRecordRepository = koinInject()
     val blacklistHits by recordRepository.observeSmsBlacklistHits(BLACKLIST_HIT_DISPLAY_LIMIT)
         .collectAsStateWithLifecycle(initialValue = emptyList())
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     val workMode by WorkModeResolver.mode.collectAsStateWithLifecycle()
     val isXposedFeatureAvailable = { feature: StandardModeFeatureGate.Feature ->
         StandardModeFeatureGate.isAvailable(feature, workMode)

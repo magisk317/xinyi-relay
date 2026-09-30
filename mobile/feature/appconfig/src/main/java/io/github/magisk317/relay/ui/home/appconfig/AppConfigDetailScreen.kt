@@ -12,8 +12,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -51,7 +50,7 @@ fun AppConfigDetailScreen(
         .collectAsStateWithLifecycle(initialValue = emptyList())
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
 
     val appConfigDetailBody: @Composable (PaddingValues) -> Unit = { listPadding ->
 if (app == null) {
@@ -158,10 +157,9 @@ if (app == null) {
             )
         }
 
-        io.github.magisk317.uikit.common.DismissibleSnackbarHost(
+        io.github.magisk317.uikit.common.AppSnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
-                .align(Alignment.BottomCenter)
                 .navigationBarsPadding(),
         )
     }

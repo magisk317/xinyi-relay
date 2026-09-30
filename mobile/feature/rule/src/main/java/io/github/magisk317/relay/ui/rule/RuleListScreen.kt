@@ -10,7 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -41,7 +41,7 @@ fun RuleListScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     val rules by viewModel.ruleList.collectAsStateWithLifecycle()
     val senders by viewModel.senderList.collectAsStateWithLifecycle()
     val senderName = if (senderId != 0L) senders.find { it.id == senderId }?.displayName(context) else null
@@ -100,10 +100,9 @@ fun RuleListScreen(
                 }
             }
 
-            io.github.magisk317.uikit.common.DismissibleSnackbarHost(
+            io.github.magisk317.uikit.common.AppSnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
                     .navigationBarsPadding(),
             )
         }

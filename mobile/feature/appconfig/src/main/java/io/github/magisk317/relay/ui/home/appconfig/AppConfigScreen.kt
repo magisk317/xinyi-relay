@@ -16,7 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -107,7 +107,7 @@ fun AppConfigScreen(
         with(density) { APP_CONFIG_ICON_SIZE.roundToPx() }
     }
     val shouldShowInitialLoading = remember { SessionLoadingRegistry.shouldShowInitial("app_config") }
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
 
     var initialLoadingStarted by remember { mutableStateOf(false) }
     var manualRefreshing by remember { mutableStateOf(false) }
@@ -370,10 +370,9 @@ fun AppConfigScreen(
             )
         }
 
-        io.github.magisk317.uikit.common.DismissibleSnackbarHost(
+        io.github.magisk317.uikit.common.AppSnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
-                .align(Alignment.BottomCenter)
                 .padding(bottom = effectiveBottomPadding),
         )
     }

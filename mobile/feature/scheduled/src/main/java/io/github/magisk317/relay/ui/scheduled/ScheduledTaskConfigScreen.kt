@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.ui.scheduled
 
+import io.github.magisk317.uikit.common.AppSnackbarHostState
 import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import android.provider.Settings
@@ -50,7 +51,7 @@ fun ScheduledTaskConfigScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     var name by remember(taskId) { mutableStateOf("") }
     var scheduleMode by remember(taskId) { mutableStateOf(ScheduledTaskScheduleMode.SIMPLE) }
     var simpleWeekdays by remember(taskId) { mutableStateOf(SCHEDULED_TASK_ALL_WEEKDAYS) }

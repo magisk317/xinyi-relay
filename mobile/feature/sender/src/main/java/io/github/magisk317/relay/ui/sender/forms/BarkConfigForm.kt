@@ -16,7 +16,7 @@ import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.sender.AesUtils
 import io.github.magisk317.relay.sender.SenderSettingDraft
-import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
+import io.github.magisk317.uikit.foundation.LocalSnackbarHostState
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton

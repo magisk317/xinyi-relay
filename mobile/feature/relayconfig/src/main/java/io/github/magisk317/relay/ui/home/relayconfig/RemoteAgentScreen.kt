@@ -20,7 +20,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -51,7 +51,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
     val repository: ConfigSyncCoordinator = koinInject()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     var snapshot by remember { mutableStateOf<RemoteAgentSnapshot?>(null) }
     var baseUrl by remember { mutableStateOf("") }
     var bindCode by remember { mutableStateOf("") }

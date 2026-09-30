@@ -34,8 +34,8 @@ import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.material3.SnackbarHostState
-import io.github.magisk317.uikit.common.DismissibleSnackbarHost
+import io.github.magisk317.uikit.common.AppSnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarHost
 
 /**
  * Expressive/Material chrome for the app-scoped forward-filter
@@ -48,7 +48,7 @@ import io.github.magisk317.uikit.common.DismissibleSnackbarHost
 internal fun AppForwardFilterScreenMaterial(
     title: String,
     onBack: () -> Unit,
-    snackbarHostState: SnackbarHostState,
+    snackbarHostState: AppSnackbarHostState,
     listState: LazyListState,
     body: @Composable (PaddingValues) -> Unit
 ) {
@@ -87,7 +87,7 @@ internal fun AppForwardFilterScreenMaterial(
             }
         },
         snackbarHost = {
-            DismissibleSnackbarHost(
+            AppSnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier.navigationBarsPadding(),
             )

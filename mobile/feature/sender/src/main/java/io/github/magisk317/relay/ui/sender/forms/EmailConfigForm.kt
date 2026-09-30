@@ -21,7 +21,7 @@ import io.github.magisk317.relay.engine.service.SenderRuntimeServiceRegistry
 import io.github.magisk317.relay.sender.DeviceCodePollResult
 import io.github.magisk317.relay.sender.EmailOAuthService
 import io.github.magisk317.relay.sender.SenderSettingDraft
-import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
+import io.github.magisk317.uikit.foundation.LocalSnackbarHostState
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import io.github.magisk317.uikit.common.showLatestSnackbar
 import io.github.magisk317.uikit.surface.AppPrimaryButton

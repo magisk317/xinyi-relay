@@ -2,6 +2,9 @@
 
 package io.github.magisk317.relay.ui.record
 
+import io.github.magisk317.uikit.common.AppSnackbarDuration
+import io.github.magisk317.uikit.common.AppSnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarResult
 import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import android.graphics.Color as AndroidColor
@@ -185,7 +188,7 @@ fun CodeRecordScreen(
         actualLoading = isActive && isLoading && shouldShowInitialLoading,
         minDurationMillis = LoadingIndicatorTokens.MIN_VISIBLE_DURATION_MILLIS,
     )
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val iconDensity = LocalDensity.current
@@ -314,9 +317,9 @@ fun CodeRecordScreen(
                 val result = snackbarHostState.showLatestSnackbar(
                     message = context.getString(R.string.some_items_removed, 1),
                     actionLabel = context.getString(R.string.revoke),
-                    duration = SnackbarDuration.Long,
+                    duration = AppSnackbarDuration.Long,
                 )
-                if (result == SnackbarResult.ActionPerformed) {
+                if (result == AppSnackbarResult.ActionPerformed) {
                     viewModel.restoreSmsMsgList(listOf(target))
                 }
             }
@@ -335,9 +338,9 @@ fun CodeRecordScreen(
             val result = snackbarHostState.showLatestSnackbar(
                 message = context.getString(R.string.some_items_removed, deleteList.size),
                 actionLabel = context.getString(R.string.revoke),
-                duration = SnackbarDuration.Long,
+                duration = AppSnackbarDuration.Long,
             )
-            if (result == SnackbarResult.ActionPerformed) {
+            if (result == AppSnackbarResult.ActionPerformed) {
                 viewModel.restoreSmsMsgList(deleteList)
             }
         }
@@ -619,9 +622,9 @@ fun CodeRecordScreen(
                                 val result = snackbarHostState.showLatestSnackbar(
                                     message = context.getString(R.string.some_items_removed, deleteList.size),
                                     actionLabel = context.getString(R.string.revoke),
-                                    duration = SnackbarDuration.Long,
+                                    duration = AppSnackbarDuration.Long,
                                 )
-                                if (result == SnackbarResult.ActionPerformed) {
+                                if (result == AppSnackbarResult.ActionPerformed) {
                                     viewModel.restoreSmsMsgList(deleteList)
                                 }
                             }
@@ -891,10 +894,9 @@ fun CodeRecordScreen(
             )
         }
 
-        io.github.magisk317.uikit.common.DismissibleSnackbarHost(
+        io.github.magisk317.uikit.common.AppSnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
-                .align(Alignment.BottomCenter)
                 .padding(bottom = effectiveBottomPadding),
         )
     }

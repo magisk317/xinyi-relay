@@ -35,9 +35,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
+import io.github.magisk317.uikit.common.AppSnackbarDuration
+import io.github.magisk317.uikit.common.AppSnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
@@ -73,7 +73,7 @@ import io.github.magisk317.relay.ui.common.AppIconCache
 import io.github.magisk317.relay.ui.common.RetentionDialog
 import io.github.magisk317.relay.ui.common.StateSwitchItem
 import io.github.magisk317.uikit.preference.TextInputDialog
-import io.github.magisk317.uikit.common.DismissibleSnackbarHost
+import io.github.magisk317.uikit.common.AppSnackbarHost
 import io.github.magisk317.uikit.common.showLatestSnackbar
 import io.github.magisk317.uikit.surface.WorkspaceEmptyState
 import io.github.magisk317.uikit.surface.WorkspaceListDivider
@@ -107,7 +107,7 @@ fun BlacklistHitListScreen(
     val listState = rememberLazyListState()
     val dateFormat = rememberBlacklistHitDateFormat()
     val detailDateFormat = rememberBlacklistHitDateFormat()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     var defaultSmsIcon by remember { mutableStateOf<Bitmap?>(null) }
@@ -150,9 +150,9 @@ fun BlacklistHitListScreen(
                 val result = snackbarHostState.showLatestSnackbar(
                     message = context.getString(R.string.some_items_removed, 1),
                     actionLabel = context.getString(R.string.revoke),
-                    duration = SnackbarDuration.Long,
+                    duration = AppSnackbarDuration.Long,
                 )
-                if (result == SnackbarResult.ActionPerformed) {
+                if (result == AppSnackbarResult.ActionPerformed) {
                     recordRepository.restoreSmsBlacklistHits(listOf(hit))
                 }
             }
@@ -175,9 +175,9 @@ fun BlacklistHitListScreen(
                                 val result = snackbarHostState.showLatestSnackbar(
                                     message = context.getString(R.string.some_items_removed, deleted.size),
                                     actionLabel = context.getString(R.string.revoke),
-                                    duration = SnackbarDuration.Long,
+                                    duration = AppSnackbarDuration.Long,
                                 )
-                                if (result == SnackbarResult.ActionPerformed) {
+                                if (result == AppSnackbarResult.ActionPerformed) {
                                     recordRepository.restoreSmsBlacklistHits(deleted)
                                 }
                             }
@@ -327,10 +327,9 @@ fun BlacklistHitListScreen(
                 }
             }
 
-            DismissibleSnackbarHost(
+            AppSnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
                     .navigationBarsPadding(),
             )
         }

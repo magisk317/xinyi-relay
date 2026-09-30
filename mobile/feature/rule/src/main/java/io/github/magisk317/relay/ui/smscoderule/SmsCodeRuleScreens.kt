@@ -27,7 +27,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -93,7 +93,7 @@ fun SmsCodeRuleListScreen(
     val context = LocalContext.current
     val repository: AppConfigRepository = koinInject()
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     val listState = rememberLazyListState()
     val removedLabel = stringResource(id = R.string.removed)
     val emptyPrompt = stringResource(id = R.string.rule_list_empty_prompt)
@@ -223,10 +223,9 @@ fun SmsCodeRuleListScreen(
                 }
             }
 
-            io.github.magisk317.uikit.common.DismissibleSnackbarHost(
+            io.github.magisk317.uikit.common.AppSnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
                     .navigationBarsPadding(),
             )
         }
@@ -396,7 +395,7 @@ fun SmsCodeRuleEditorScreen(
     val clipboard = LocalClipboard.current
     val repository: AppConfigRepository = koinInject()
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     val builtinRule = remember(ruleId) { builtinRuleByEditorId(ruleId) }
     val isBuiltinRule = builtinRule != null
     val loadFailedText = stringResource(id = R.string.load_failed)
@@ -578,10 +577,9 @@ fun SmsCodeRuleEditorScreen(
                 )
             }
 
-            io.github.magisk317.uikit.common.DismissibleSnackbarHost(
+            io.github.magisk317.uikit.common.AppSnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
                     .navigationBarsPadding(),
             )
         }

@@ -22,7 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.model.ScheduledTask
-import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
+import io.github.magisk317.uikit.foundation.LocalSnackbarHostState
 import kotlinx.coroutines.launch
 
 internal fun ScheduledTask.permissionWarningMessage(context: Context): String? {

@@ -17,7 +17,7 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -70,7 +70,7 @@ fun ForwardFilterRule.toEditorState(channelId: String = ""): ForwardFilterEditor
 fun ForwardFilterScreenScaffold(
     title: String,
     onBack: () -> Unit,
-    snackbarHostState: SnackbarHostState,
+    snackbarHostState: AppSnackbarHostState,
     selectedMsgType: String,
     onSelectMsgType: (String) -> Unit,
     rules: List<ForwardFilterRule>,

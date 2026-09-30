@@ -15,7 +15,7 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -52,7 +52,7 @@ fun GlobalForwardFilterScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     val savedSnackbarText = context.getString(R.string.pref_sync_snackbar)
     var msgType by remember { mutableStateOf(ForwardFilterConst.MSG_TYPE_SMS) }
     val rulesFlow = remember(msgType) { viewModel.globalForwardRulesFlow(msgType) }
@@ -126,7 +126,7 @@ fun AppForwardFilterScreen(
     val normalizedPackageName = remember(packageName) { packageName.trim() }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     val savedSnackbarText = context.getString(R.string.pref_sync_snackbar)
     val headerState by viewModel.appForwardFilterUiState.collectAsStateWithLifecycle()
     val appLabel = if (headerState.packageName == normalizedPackageName) {

@@ -50,7 +50,7 @@ import io.github.magisk317.smscode.runtime.contract.diagnostics.ActivationDiagno
 import io.github.magisk317.relay.common.utils.PackageUtils
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.core.R
-import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
+import io.github.magisk317.uikit.foundation.LocalSnackbarHostState
 import io.github.magisk317.relay.feature.mode.StandardModeFeatureGate
 import io.github.magisk317.relay.feature.mode.StandardModeFeatureGate.Feature.*
 import io.github.magisk317.relay.feature.mode.WorkMode

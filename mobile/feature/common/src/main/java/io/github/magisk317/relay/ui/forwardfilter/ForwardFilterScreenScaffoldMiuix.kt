@@ -26,8 +26,8 @@ import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.material3.SnackbarHostState
-import io.github.magisk317.uikit.common.DismissibleSnackbarHost
+import io.github.magisk317.uikit.common.AppSnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarHost
 import top.yukonga.miuix.kmp.basic.TextButton
 
 /**
@@ -42,7 +42,7 @@ import top.yukonga.miuix.kmp.basic.TextButton
 internal fun ForwardFilterScreenScaffoldMiuix(
     title: String,
     onBack: () -> Unit,
-    snackbarHostState: SnackbarHostState,
+    snackbarHostState: AppSnackbarHostState,
     onAdd: () -> Unit,
     body: @Composable (PaddingValues) -> Unit
 ) {
@@ -69,7 +69,7 @@ internal fun ForwardFilterScreenScaffoldMiuix(
             )
         },
         snackbarHost = {
-            DismissibleSnackbarHost(
+            AppSnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier.navigationBarsPadding(),
             )
