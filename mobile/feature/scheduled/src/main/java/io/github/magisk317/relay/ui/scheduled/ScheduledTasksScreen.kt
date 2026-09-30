@@ -17,6 +17,7 @@ import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
 import io.github.magisk317.relay.engine.model.ScheduledTask
 import io.github.magisk317.uikit.surface.AppAlertDialog
+import io.github.magisk317.uikit.preference.AppSwitch
 
 @Composable
 fun ScheduledTasksScreen(
@@ -88,7 +89,7 @@ fun ScheduledTasksScreen(
                                     )
                                 }
                                 Column {
-                                    Switch(
+                                    AppSwitch(
                                         checked = task.status == ScheduledTask.STATUS_ENABLED,
                                         onCheckedChange = { enabled ->
                                             if (enabled) {

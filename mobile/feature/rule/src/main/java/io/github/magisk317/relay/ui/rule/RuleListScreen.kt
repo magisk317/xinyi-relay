@@ -10,7 +10,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import io.github.magisk317.uikit.common.AppSnackbarHostState
-import androidx.compose.material3.Switch
+import io.github.magisk317.uikit.preference.AppSwitch
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -154,7 +154,7 @@ fun RuleCard(
                     text = rule.title.ifEmpty { stringResource(R.string.rule_unnamed) },
                     role = AppTextRole.Subtitle
                 )
-                Switch(
+                AppSwitch(
                     checked = rule.status == 1,
                     onCheckedChange = { onToggle(it) }
                 )

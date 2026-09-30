@@ -26,7 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
+import io.github.magisk317.uikit.preference.AppCheckbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -651,7 +651,7 @@ private fun CloudBackupControls(
                 .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Checkbox(
+            AppCheckbox(
                 checked = autoBackupEnabled,
                 onCheckedChange = onAutoBackupChange,
             )

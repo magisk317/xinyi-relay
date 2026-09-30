@@ -13,7 +13,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.Switch
+import io.github.magisk317.uikit.preference.AppSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -244,7 +244,7 @@ private fun ConfigToggleRow(
 ) {
     androidx.compose.material3.ListItem(
         trailingContent = {
-            Switch(
+            AppSwitch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
             )

@@ -29,6 +29,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.util.concurrent.TimeUnit
+import io.github.magisk317.uikit.preference.AppSwitch
 
 private enum class ScheduledTaskScheduleMode {
     SIMPLE,
@@ -498,7 +499,7 @@ fun ScheduledTaskConfigScreen(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(stringResource(id = R.string.scheduled_task_enable_label), style = MaterialTheme.typography.bodyLarge)
-            Switch(
+            AppSwitch(
                 checked = status == ScheduledTask.STATUS_ENABLED,
                 onCheckedChange = {
                     status = if (it) {
@@ -795,7 +796,7 @@ private fun ScheduledTaskDebugSection(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Switch(
+                AppSwitch(
                     checked = shortCodeConfirmationBypassed,
                     enabled = shortCodeConfirmationEnabled,
                     onCheckedChange = onShortCodeConfirmationBypassChange,
