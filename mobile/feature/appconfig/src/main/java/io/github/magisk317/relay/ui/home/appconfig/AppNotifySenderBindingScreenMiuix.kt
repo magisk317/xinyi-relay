@@ -18,14 +18,14 @@ import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
-import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Scaffold as MiuixScaffold
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.res.stringResource
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
-import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
 
 /**
  * Miuix chrome for the app-notify sender binding screen of the same name:
@@ -42,7 +42,7 @@ internal fun AppNotifySenderBindingScreenMiuix(
 ) {
     val topGlass = rememberUiKitGlassTopBar()
     val glassOn = LocalUiKitSurfaceBlur.current.usesBackdrop
-    Scaffold(
+    MiuixScaffold(
         topBar = {
             AppTopBar(
                 modifier = Modifier.uiKitSurfaceGlassSample(topGlass),
@@ -57,7 +57,7 @@ internal fun AppNotifySenderBindingScreenMiuix(
                     }
                 },
                 actions = {
-                    TextButton(text = saveLabel, onClick = onSave)
+                    MiuixTextButton(text = saveLabel, onClick = onSave)
                 },
                 windowInsets = WindowInsets.statusBars,
             )

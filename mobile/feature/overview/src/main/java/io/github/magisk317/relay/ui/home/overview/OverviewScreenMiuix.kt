@@ -21,8 +21,8 @@ import io.github.magisk317.uikit.surface.rememberUiKitGlassTopBar
 import io.github.magisk317.uikit.surface.uiKitSurfaceGlassSample
 import io.github.magisk317.uikit.theme.LocalUiKitSurfaceBlur
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.TopAppBar
+import top.yukonga.miuix.kmp.basic.Scaffold as MiuixScaffold
+import top.yukonga.miuix.kmp.basic.TopAppBar as MiuixTopAppBar
 
 /**
  * Miuix implementation of the Overview page. Follows the XSC
@@ -41,9 +41,9 @@ internal fun OverviewScreenMiuix(
 
     val topGlass = rememberUiKitGlassTopBar()
     val glassOn = LocalUiKitSurfaceBlur.current.usesBackdrop
-    Scaffold(
+    MiuixScaffold(
         topBar = {
-            TopAppBar(
+            MiuixTopAppBar(
                 modifier = Modifier.uiKitSurfaceGlassSample(topGlass),
                 title = title,
                 actions = actions,

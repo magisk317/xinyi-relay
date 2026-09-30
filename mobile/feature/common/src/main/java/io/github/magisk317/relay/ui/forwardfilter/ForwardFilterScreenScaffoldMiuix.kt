@@ -18,7 +18,7 @@ import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
-import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Scaffold as MiuixScaffold
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.res.stringResource
@@ -28,7 +28,7 @@ import io.github.magisk317.uikit.surface.AppIconButton
 import androidx.compose.foundation.layout.navigationBarsPadding
 import io.github.magisk317.uikit.common.AppSnackbarHostState
 import io.github.magisk317.uikit.common.AppSnackbarHost
-import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
 
 /**
  * Miuix chrome for the forward-filter rule screen of the same name
@@ -48,7 +48,7 @@ internal fun ForwardFilterScreenScaffoldMiuix(
 ) {
     val topGlass = rememberUiKitGlassTopBar()
     val glassOn = LocalUiKitSurfaceBlur.current.usesBackdrop
-    Scaffold(
+    MiuixScaffold(
         topBar = {
             AppTopBar(
                 modifier = Modifier.uiKitSurfaceGlassSample(topGlass),
@@ -63,7 +63,7 @@ internal fun ForwardFilterScreenScaffoldMiuix(
                     }
                 },
                 actions = {
-                    TextButton(text = stringResource(id = R.string.forward_filter_action_add), onClick = onAdd)
+                    MiuixTextButton(text = stringResource(id = R.string.forward_filter_action_add), onClick = onAdd)
                 },
                 windowInsets = WindowInsets.statusBars,
             )
