@@ -4,9 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -25,6 +22,10 @@ import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.sender.SenderActiveSchedule
 import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.ui.sender.forms.*
+import io.github.magisk317.uikit.surface.AppCircularProgressIndicator
+import io.github.magisk317.uikit.surface.AppTextButton
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
 import kotlinx.coroutines.flow.flowOf
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -103,7 +104,7 @@ fun SenderConfigScreen(
 
     if (!isLoaded) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+            AppCircularProgressIndicator()
         }
         return
     }
@@ -164,19 +165,17 @@ private fun SmsChannelDisabledScreen(onBack: () -> Unit) {
             .fillMaxSize()
             .padding(24.dp),
     ) {
-        Text(
+        AppText(
             text = stringResource(R.string.sender_channel_disabled_title),
-            style = MaterialTheme.typography.titleMedium,
+            role = AppTextRole.Subtitle,
         )
-        Text(
+        AppText(
             text = stringResource(R.string.sender_channel_disabled_summary),
-            style = MaterialTheme.typography.bodyMedium,
+            role = AppTextRole.Body,
             modifier = Modifier.padding(top = 8.dp),
         )
         Box(modifier = Modifier.padding(top = 16.dp)) {
-            androidx.compose.material3.TextButton(onClick = onBack) {
-                Text(stringResource(R.string.action_back))
-            }
+            AppTextButton(text = stringResource(R.string.action_back), onClick = onBack)
         }
     }
 }

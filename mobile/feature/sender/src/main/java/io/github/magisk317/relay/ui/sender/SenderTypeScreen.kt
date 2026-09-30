@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -19,6 +17,8 @@ import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.mobilefeature.sender.BuildConfig
+import io.github.magisk317.uikit.surface.AppPrimaryButton
+import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
 
@@ -67,11 +67,11 @@ fun SenderTypeScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(supportedTypes, key = { it.first }) { (type, name) ->
-                Button(
+                AppPrimaryButton(
                     onClick = { onAddClick(type) },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(name)
+                    AppText(text = name)
                 }
             }
         }

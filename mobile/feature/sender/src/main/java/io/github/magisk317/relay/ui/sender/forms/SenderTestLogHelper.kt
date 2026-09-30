@@ -9,9 +9,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -26,6 +23,9 @@ import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
+import io.github.magisk317.uikit.surface.AppPrimaryButton
+import io.github.magisk317.uikit.surface.AppSecondaryButton
+import io.github.magisk317.uikit.text.AppText
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -129,7 +129,7 @@ internal fun SenderTestActionRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Button(
+        AppPrimaryButton(
             onClick = {
                 scope.launch {
                     logSenderTest(channel, context.getString(R.string.sender_test_started))
@@ -158,10 +158,10 @@ internal fun SenderTestActionRow(
             },
             modifier = Modifier.weight(1f),
         ) {
-            Text(stringResource(R.string.sender_test_send))
+            AppText(stringResource(R.string.sender_test_send))
         }
 
-        OutlinedButton(
+        AppSecondaryButton(
             onClick = {
                 copySenderContextLog(context, channel)
                 scope.launch {
@@ -172,7 +172,7 @@ internal fun SenderTestActionRow(
                 .weight(1f)
                 .widthIn(min = 120.dp),
         ) {
-            Text(stringResource(R.string.sender_copy_log))
+            AppText(stringResource(R.string.sender_copy_log))
         }
     }
 }

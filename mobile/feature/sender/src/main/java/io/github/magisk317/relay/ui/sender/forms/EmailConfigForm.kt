@@ -5,10 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,6 +24,12 @@ import io.github.magisk317.relay.sender.SenderSettingDraft
 import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import io.github.magisk317.uikit.common.showLatestSnackbar
+import io.github.magisk317.uikit.surface.AppPrimaryButton
+import io.github.magisk317.uikit.surface.AppSecondaryButton
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -149,19 +151,19 @@ private fun OAuth2DeviceAuthSection(
         (oauthService?.hasCredentials(credentialId) ?: false)
 
     Spacer(modifier = Modifier.height(8.dp))
-    Text(
+    AppText(
         text = stringResource(R.string.sender_form_oauth2_device_auth_section),
-        style = MaterialTheme.typography.titleSmall,
+        role = AppTextRole.Subtitle,
     )
 
     if (hasCredentials) {
-        Text(
+        AppText(
             text = stringResource(R.string.sender_form_oauth2_status_authorized),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.primary,
+            role = AppTextRole.Body,
+            color = appColor(AppColorRole.Primary),
         )
         Spacer(modifier = Modifier.height(4.dp))
-        OutlinedButton(
+        AppSecondaryButton(
             onClick = {
                 coroutineScope.launch {
                     runCatching {
@@ -175,34 +177,34 @@ private fun OAuth2DeviceAuthSection(
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(stringResource(R.string.sender_form_oauth2_revoke))
+            AppText(stringResource(R.string.sender_form_oauth2_revoke))
         }
     } else {
-        Text(
+        AppText(
             text = stringResource(R.string.sender_form_oauth2_status_not_authorized),
-            style = MaterialTheme.typography.bodyMedium,
+            role = AppTextRole.Body,
         )
         Spacer(modifier = Modifier.height(4.dp))
         val pendingUserCode = userCode
         val pendingUri = verificationUri
         if (pendingUserCode != null && pendingUri != null) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
+                AppText(
                     text = stringResource(
                         R.string.sender_form_oauth2_user_code_instruction,
                         pendingUserCode,
                     ),
-                    style = MaterialTheme.typography.bodyMedium,
+                    role = AppTextRole.Body,
                 )
-                Text(
+                AppText(
                     text = pendingUri,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
+                    role = AppTextRole.BodySmall,
+                    color = appColor(AppColorRole.Primary),
                 )
             }
             Spacer(modifier = Modifier.height(4.dp))
         }
-        Button(
+        AppPrimaryButton(
             onClick = {
                 if (clientId.isBlank() || tenantId.isBlank()) {
                     coroutineScope.launch {
@@ -210,7 +212,7 @@ private fun OAuth2DeviceAuthSection(
                             context.getString(R.string.sender_form_oauth2_missing_config),
                         )
                     }
-                    return@Button
+                    return@AppPrimaryButton
                 }
                 if (oauthService == null) {
                     coroutineScope.launch {
@@ -218,7 +220,7 @@ private fun OAuth2DeviceAuthSection(
                             context.getString(R.string.sender_form_oauth2_service_unavailable),
                         )
                     }
-                    return@Button
+                    return@AppPrimaryButton
                 }
                 isAuthorizing = true
                 coroutineScope.launch {
@@ -284,7 +286,7 @@ private fun OAuth2DeviceAuthSection(
             enabled = !isAuthorizing,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(
+            AppText(
                 text = if (isAuthorizing) {
                     stringResource(R.string.sender_form_oauth2_authorizing)
                 } else {
