@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -37,6 +36,7 @@ import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
 import io.github.magisk317.uikit.surface.AppAlertDialog
+import io.github.magisk317.uikit.surface.AppHorizontalDivider
 import io.github.magisk317.uikit.surface.AppSecondaryButton
 import io.github.magisk317.uikit.surface.AppTextButton
 import io.github.magisk317.uikit.surface.AppTextField
@@ -110,7 +110,7 @@ internal fun GeneralConfigDialog(
                     selected = dispatchStrategy,
                     onSelect = { dispatchStrategy = it },
                 )
-                HorizontalDivider()
+                AppHorizontalDivider()
                 ConfigGateToggle(
                     title = stringResource(R.string.forward_silent_period_title),
                     summary = stringResource(R.string.forward_silent_period_summary),
@@ -158,7 +158,7 @@ internal fun GeneralConfigDialog(
                         )
                     }
                 }
-                HorizontalDivider()
+                AppHorizontalDivider()
                 AppTextField(
                     state = simSlot1RemarkState,
                     modifier = Modifier.fillMaxWidth(),

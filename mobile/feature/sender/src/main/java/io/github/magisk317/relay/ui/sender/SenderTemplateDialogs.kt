@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -30,6 +29,7 @@ import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.contract.settings.SimRemarkSettingsSnapshot
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.surface.AppAlertDialog
+import io.github.magisk317.uikit.surface.AppHorizontalDivider
 import io.github.magisk317.uikit.surface.AppSecondaryButton
 import io.github.magisk317.uikit.surface.AppTextField
 import io.github.magisk317.uikit.surface.AppTextButton
@@ -118,7 +118,7 @@ internal fun ForwardCommonConfigDialog(
                     checked = smsPlainEnabled,
                     onCheckedChange = onSmsPlainToggle,
                 )
-                HorizontalDivider()
+                AppHorizontalDivider()
                 AppText(
                     text = stringResource(R.string.sender_gate_forwarding_title),
                     role = AppTextRole.Subtitle,
@@ -135,7 +135,7 @@ internal fun ForwardCommonConfigDialog(
                     checked = forwardSmsPlainEnabled,
                     onCheckedChange = onForwardSmsPlainToggle,
                 )
-                HorizontalDivider()
+                AppHorizontalDivider()
                 AppTextField(
                     state = templateState.state,
                     modifier = Modifier
@@ -175,7 +175,7 @@ internal fun ForwardCommonConfigDialog(
                         interactionSource = fillTemplateInteractionSource,
                     )
                 }
-                HorizontalDivider()
+                AppHorizontalDivider()
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(4),
                     modifier = Modifier
@@ -288,7 +288,7 @@ internal fun AppNotifyTemplateDialog(
                     checked = appNotifyEnabled,
                     onCheckedChange = onAppNotifyToggle,
                 )
-                HorizontalDivider()
+                AppHorizontalDivider()
                 AppText(
                     text = stringResource(R.string.sender_gate_forwarding_title),
                     role = AppTextRole.Subtitle,
@@ -299,7 +299,7 @@ internal fun AppNotifyTemplateDialog(
                     checked = forwardAppNotifyEnabled,
                     onCheckedChange = onForwardAppNotifyToggle,
                 )
-                HorizontalDivider()
+                AppHorizontalDivider()
                 AppTextField(
                     state = templateState.state,
                     modifier = Modifier
@@ -339,7 +339,7 @@ internal fun AppNotifyTemplateDialog(
                         interactionSource = fillTemplateInteractionSource,
                     )
                 }
-                HorizontalDivider()
+                AppHorizontalDivider()
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(4),
                     modifier = Modifier
@@ -448,7 +448,7 @@ internal fun CallNotifyTemplateDialog(
                     checked = callNotifyEnabled,
                     onCheckedChange = onCallNotifyToggle,
                 )
-                HorizontalDivider()
+                AppHorizontalDivider()
                 AppText(
                     text = stringResource(R.string.sender_gate_forwarding_title),
                     role = AppTextRole.Subtitle,
@@ -465,7 +465,7 @@ internal fun CallNotifyTemplateDialog(
                     checked = forwardCallNotifyFinalEnabled,
                     onCheckedChange = onForwardCallNotifyFinalToggle,
                 )
-                HorizontalDivider()
+                AppHorizontalDivider()
                 AppTextField(
                     state = templateState.state,
                     modifier = Modifier
@@ -505,7 +505,7 @@ internal fun CallNotifyTemplateDialog(
                         interactionSource = fillTemplateInteractionSource,
                     )
                 }
-                HorizontalDivider()
+                AppHorizontalDivider()
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(4),
                     modifier = Modifier
