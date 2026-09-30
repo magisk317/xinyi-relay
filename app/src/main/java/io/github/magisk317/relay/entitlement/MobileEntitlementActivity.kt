@@ -31,7 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import io.github.magisk317.uikit.surface.AppTextField
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
 import io.github.magisk317.uikit.surface.AppScaffold
@@ -264,10 +264,10 @@ private fun MobileEntitlementScreen(
                             text = stringResource(R.string.mobile_entitlement_activation_token_label),
                             role = AppTextRole.Subtitle,
                         )
-                        OutlinedTextField(
+                        AppTextField(
                             value = activationTokenInput,
                             onValueChange = { activationTokenInput = it.trim().uppercase() },
-                            label = { AppText(stringResource(R.string.mobile_entitlement_activation_token_hint)) },
+                            label = stringResource(R.string.mobile_entitlement_activation_token_hint),
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             enabled = busyAction == null,

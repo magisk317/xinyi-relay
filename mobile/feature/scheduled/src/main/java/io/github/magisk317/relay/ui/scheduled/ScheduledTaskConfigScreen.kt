@@ -30,6 +30,10 @@ import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import io.github.magisk317.uikit.preference.AppSwitch
+import io.github.magisk317.uikit.surface.AppTextField
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.theme.appColor
+import io.github.magisk317.uikit.theme.AppColorRole
 
 private enum class ScheduledTaskScheduleMode {
     SIMPLE,
@@ -251,13 +255,12 @@ fun ScheduledTaskConfigScreen(
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        OutlinedTextField(
+        AppTextField(
             value = name,
             onValueChange = { name = it },
-            label = { Text(stringResource(id = R.string.scheduled_task_name_label)) },
+            label = stringResource(id = R.string.scheduled_task_name_label),
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-            placeholder = { Text(stringResource(id = R.string.scheduled_task_name_placeholder)) }
-        )
+            placeholderText = stringResource(id = R.string.scheduled_task_name_placeholder))
 
         Text(
             text = stringResource(id = R.string.scheduled_task_schedule_mode_label),
@@ -355,22 +358,22 @@ fun ScheduledTaskConfigScreen(
                 modifier = Modifier.padding(top = 8.dp, bottom = 12.dp),
             )
         } else {
-            OutlinedTextField(
+            AppTextField(
                 value = cron,
                 onValueChange = {
                     cron = it
                     cronError = null
                 },
-                label = { Text(stringResource(id = R.string.scheduled_task_cron_label)) },
+                label = stringResource(id = R.string.scheduled_task_cron_label),
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 isError = cronError != null,
                 supportingText = {
-                    Text(
+                    AppText(
                         cronError ?: stringResource(id = R.string.scheduled_task_cron_hint),
                         color = if (cronError != null) {
-                            MaterialTheme.colorScheme.error
+                            appColor(AppColorRole.Error)
                         } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            appColor(AppColorRole.OnSurfaceVariant)
                         }
                     )
                 }
@@ -433,54 +436,54 @@ fun ScheduledTaskConfigScreen(
             modifier = Modifier.padding(bottom = 12.dp),
         )
 
-        OutlinedTextField(
+        AppTextField(
             value = simSlot,
             onValueChange = {
                 simSlot = it
                 simSlotError = null
             },
-            label = { Text(stringResource(id = R.string.scheduled_task_sim_slot_label)) },
+            label = stringResource(id = R.string.scheduled_task_sim_slot_label),
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
             isError = simSlotError != null,
             supportingText = {
-                Text(
+                AppText(
                     simSlotError ?: stringResource(id = R.string.scheduled_task_sim_slot_hint),
-                    color = if (simSlotError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (simSlotError != null) appColor(AppColorRole.Error) else appColor(AppColorRole.OnSurfaceVariant)
                 )
             }
         )
 
-        OutlinedTextField(
+        AppTextField(
             value = mobiles,
             onValueChange = {
                 mobiles = it
                 queryPresetId = SCHEDULED_TASK_QUERY_PRESET_CUSTOM_ID
                 mobilesError = null
             },
-            label = { Text(stringResource(id = R.string.scheduled_task_mobiles_label)) },
+            label = stringResource(id = R.string.scheduled_task_mobiles_label),
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
             isError = mobilesError != null,
             supportingText = {
-                Text(
+                AppText(
                     mobilesError ?: stringResource(id = R.string.scheduled_task_mobiles_hint),
-                    color = if (mobilesError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (mobilesError != null) appColor(AppColorRole.Error) else appColor(AppColorRole.OnSurfaceVariant)
                 )
             }
         )
 
-        OutlinedTextField(
+        AppTextField(
             value = content,
             onValueChange = {
                 content = it
                 queryPresetId = SCHEDULED_TASK_QUERY_PRESET_CUSTOM_ID
                 contentError = null
             },
-            label = { Text(stringResource(id = R.string.scheduled_task_content_label)) },
+            label = stringResource(id = R.string.scheduled_task_content_label),
             modifier = Modifier.fillMaxWidth().height(120.dp).padding(bottom = 8.dp),
             isError = contentError != null,
             supportingText = {
                 contentError?.let { error ->
-                    Text(error, color = MaterialTheme.colorScheme.error)
+                    AppText(error, color = appColor(AppColorRole.Error))
                 }
             },
             maxLines = 5

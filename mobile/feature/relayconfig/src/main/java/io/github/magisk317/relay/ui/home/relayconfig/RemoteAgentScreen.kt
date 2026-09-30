@@ -18,7 +18,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import io.github.magisk317.uikit.surface.AppTextField
 import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -94,20 +94,20 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        OutlinedTextField(
+        AppTextField(
             value = baseUrl,
             onValueChange = { baseUrl = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { AppText(stringResource(id = R.string.pref_remote_agent_base_url_title)) },
+            label = stringResource(id = R.string.pref_remote_agent_base_url_title),
             supportingText = { AppText(stringResource(id = R.string.pref_remote_agent_base_url_summary)) },
             singleLine = true,
         )
 
-        OutlinedTextField(
+        AppTextField(
             value = bindCode,
             onValueChange = { bindCode = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { AppText(stringResource(id = R.string.pref_remote_agent_bind_code_title)) },
+            label = stringResource(id = R.string.pref_remote_agent_bind_code_title),
             supportingText = { AppText(stringResource(id = R.string.pref_remote_agent_bind_code_summary)) },
             singleLine = true,
         )

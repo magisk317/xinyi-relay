@@ -21,6 +21,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
 import java.util.Date
+import io.github.magisk317.uikit.surface.AppTextField
 
 @Composable
 fun RuleConfigScreen(
@@ -77,10 +78,10 @@ fun RuleConfigScreen(
             Spacer(modifier = Modifier.height(4.dp))
 
             // 规则备注
-            OutlinedTextField(
+            AppTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text(stringResource(R.string.rule_config_name_label)) },
+                label = stringResource(R.string.rule_config_name_label),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -120,27 +121,23 @@ fun RuleConfigScreen(
                 )
 
                 // 匹配值
-                OutlinedTextField(
+                AppTextField(
                     value = value,
                     onValueChange = { value = it },
-                    label = {
-                        Text(
-                            stringResource(
-                                if (filed == "content") R.string.rule_config_content_value_label
-                                else R.string.rule_config_sender_value_label,
-                            ),
-                        )
-                    },
+                    label = stringResource(
+                        if (filed == "content") R.string.rule_config_content_value_label
+                        else R.string.rule_config_sender_value_label,
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
 
             // 消息模板（选填）
-            OutlinedTextField(
+            AppTextField(
                 value = smsTemplate,
                 onValueChange = { smsTemplate = it },
-                label = { Text(stringResource(R.string.rule_config_template_label)) },
-                placeholder = { Text(stringResource(R.string.rule_config_template_placeholder)) },
+                label = stringResource(R.string.rule_config_template_label),
+                placeholderText = stringResource(R.string.rule_config_template_placeholder),
                 minLines = 2,
                 modifier = Modifier.fillMaxWidth()
             )

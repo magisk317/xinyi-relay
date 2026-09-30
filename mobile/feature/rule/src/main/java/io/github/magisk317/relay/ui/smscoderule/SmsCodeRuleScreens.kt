@@ -25,7 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.OutlinedTextField
+import io.github.magisk317.uikit.surface.AppTextField
 import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -512,12 +512,12 @@ fun SmsCodeRuleEditorScreen(
                     .navigationBarsPadding(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                OutlinedTextField(
+                AppTextField(
                     value = company,
                     onValueChange = { company = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { AppText(companyLabel) },
-                    placeholder = { AppText(stringResource(id = R.string.rule_company_placeholder)) },
+                    label = companyLabel,
+                    placeholderText = stringResource(id = R.string.rule_company_placeholder),
                     supportingText = { AppText(if (isBuiltinRule) builtinSummary else rulesSummary) },
                     readOnly = isBuiltinRule,
                     enabled = !loading,
@@ -532,11 +532,11 @@ fun SmsCodeRuleEditorScreen(
                     },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                AppTextField(
                     value = keyword,
                     onValueChange = { keyword = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { AppText(keywordLabel) },
+                    label = keywordLabel,
                     readOnly = isBuiltinRule,
                     enabled = !loading,
                     trailingIcon = if (isBuiltinRule && keyword.isNotBlank()) {
@@ -550,11 +550,11 @@ fun SmsCodeRuleEditorScreen(
                     },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                AppTextField(
                     value = regex,
                     onValueChange = { regex = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { AppText(regexLabel) },
+                    label = regexLabel,
                     readOnly = isBuiltinRule,
                     enabled = !loading,
                     trailingIcon = if (isBuiltinRule && regex.isNotBlank()) {

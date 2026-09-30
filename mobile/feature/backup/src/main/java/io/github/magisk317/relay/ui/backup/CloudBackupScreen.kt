@@ -32,7 +32,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import io.github.magisk317.uikit.surface.AppTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -384,10 +384,10 @@ private fun GoogleDriveConfigSection(
             role = AppTextRole.Subtitle,
         )
         Spacer(modifier = Modifier.height(8.dp))
-        OutlinedTextField(
+        AppTextField(
             value = folderPath,
             onValueChange = onFolderPathChange,
-            label = { AppText(stringResource(id = R.string.cloud_backup_google_drive_folder_path)) },
+            label = stringResource(id = R.string.cloud_backup_google_drive_folder_path),
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(modifier = Modifier.height(8.dp))
@@ -519,10 +519,10 @@ private fun WebDavConfigForm(
         isError = isPasswordMissing,
         onToggleVisibility = onTogglePasswordVisibility,
     )
-    OutlinedTextField(
+    AppTextField(
         value = remotePath,
         onValueChange = onRemotePathChange,
-        label = { AppText(stringResource(id = R.string.cloud_backup_webdav_remote_path)) },
+        label = stringResource(id = R.string.cloud_backup_webdav_remote_path),
         modifier = Modifier.fillMaxWidth(),
     )
     Spacer(modifier = Modifier.height(8.dp))
@@ -553,10 +553,10 @@ private fun RequiredTextField(
     label: String,
     isError: Boolean,
 ) {
-    OutlinedTextField(
+    AppTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { AppText(label) },
+        label = label,
         isError = isError,
         supportingText = {
             if (isError) {
@@ -591,9 +591,9 @@ private fun PasswordTextField(
             .distinctUntilChanged()
             .collect(onValueChange)
     }
-    OutlinedTextField(
+    AppTextField(
         state = state,
-        label = { AppText(stringResource(id = R.string.cloud_backup_webdav_password)) },
+        label = stringResource(id = R.string.cloud_backup_webdav_password),
         outputTransformation = if (visible) null else PasswordOutputTransformation,
         trailingIcon = {
             IconButton(onClick = onToggleVisibility) {
