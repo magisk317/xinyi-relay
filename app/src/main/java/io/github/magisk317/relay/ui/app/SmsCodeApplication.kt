@@ -43,17 +43,16 @@ class SmsCodeApplication : Application() {
             // always-allowed snapshot so every gate reader (app, hook, pipeline)
             // sees the open state, including installs cached as unactivated.
             MobileGate.publishAlwaysAllowed(
-                applicationContext,
-                persist = { ctx ->
-                    AppPreferencesDataStore.batchEdit(ctx) {
+                persist = {
+                    AppPreferencesDataStore.batchEdit(applicationContext) {
                         setBoolean(
                             io.github.magisk317.relay.contract.constant.RelayPrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
                             true,
                         )
                     }
                 },
-                mirror = { ctx ->
-                    io.github.magisk317.relay.android.prefs.HookPreferenceMirror.publish(ctx)
+                mirror = {
+                    io.github.magisk317.relay.android.prefs.HookPreferenceMirror.publish(applicationContext)
                 },
             )
         }

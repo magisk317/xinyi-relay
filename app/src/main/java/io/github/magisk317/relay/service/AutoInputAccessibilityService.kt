@@ -193,10 +193,9 @@ class AutoInputAccessibilityService : AccessibilityService() {
     private fun isMobileAutomationAllowed(): Boolean =
         io.github.magisk317.uikit.entitlement.MobileGate.isAutomationAllowed(
             io.github.magisk317.relay.BuildConfig.ENABLE_MOBILE_ENTITLEMENT,
-            applicationContext,
-        ) { ctx ->
+        ) {
             AppPreferencesDataStore.getBoolean(
-                ctx,
+                applicationContext,
                 RelayPrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
                 RelayPrefConst.DEFAULT_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
             )
