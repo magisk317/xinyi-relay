@@ -20,15 +20,13 @@ import io.github.magisk317.uikit.billing.BillingInitializer
 import io.github.magisk317.uikit.billing.BillingManager
 import io.github.magisk317.relay.billing.BillingProvider
 import io.github.magisk317.relay.billing.PlayBillingProvider
-import io.github.magisk317.relay.billing.SubscriptionManager
 import io.github.magisk317.relay.contract.backup.AutoBackupTrigger
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
 val billingModule = module {
     single { BillingManager(get()) }
-    single { SubscriptionManager(get(), get(), get()) }
-    single<BillingProvider> { PlayBillingProvider(get(), get()) }
+    single<BillingProvider> { PlayBillingProvider(get()) }
     single { BillingInitializer(get()) } bind AppInitializer::class
 
     // Auth — Firebase 构造失败时降级为 NoOp
