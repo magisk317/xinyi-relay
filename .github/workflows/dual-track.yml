@@ -1,0 +1,42 @@
+name: Dual Track
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+  push:
+    branches:
+      - beta
+      - master
+      - main
+  workflow_dispatch:
+
+jobs:
+  dual-track:
+    name: Dual-track contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - name: Configure GitLab credentials for toolkit
+        env:
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+        run: |
+          if [[ -z "$GITLAB_TOKEN" ]]; then
+            echo "::error::GITLAB_TOKEN secret is not set; cannot fetch the CI toolkit"
+            exit 1
+          fi
+          git config --global http.https://gitlab.com/.extraheader "AUTHORIZATION: basic $(printf 'oauth2:%s' "$GITLAB_TOKEN" | base64 -w0)"
+      - name: Check dual-track contract
+        run: python3 scripts/checks/dual_track_check.py --root .
+      - name: Check CI bootstrap freshness
+        run: |
+          TOOLKIT_DIR="$(bash scripts/resolve_ci_toolkit.sh)"
+          bash "$TOOLKIT_DIR/codegen/sync_consumer_bootstrap.sh" --check "$PWD" v1

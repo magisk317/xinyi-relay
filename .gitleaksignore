@@ -1,0 +1,15 @@
+# Known false positives in imported history. Fingerprint-specific so new
+# instances of the same rules are still reported. Mirrors NapGram's baseline
+# (2026-09-29): SharedPreferences key-name constants and the app-local legacy WebDAV obfuscation key.
+13ab77f433ff39b13248ac99ed3b8312326df520:storage/src/main/java/com/github/magisk317/smscode/common/constant/PrefConst.kt:generic-api-key:105
+13ab77f433ff39b13248ac99ed3b8312326df520:storage/src/main/java/com/github/magisk317/smscode/common/constant/PrefConst.kt:generic-api-key:106
+28911e6b0978f8a5d87b60dbb3fb640c0850bbd7:modules/core/src/main/java/io/github/magisk317/relay/backup/webdav/WebDavConfigStore.kt:generic-api-key:116
+28911e6b0978f8a5d87b60dbb3fb640c0850bbd7:modules/core/src/test/java/io/github/magisk317/relay/backup/webdav/WebDavConfigCryptoTest.kt:generic-api-key:112
+4bb36a8701ce97c0bf5f23709efcd3fe22dfbeb6:modules/core/src/main/java/io/github/magisk317/relay/backup/webdav/WebDavConfigStore.kt:generic-api-key:116
+4bb36a8701ce97c0bf5f23709efcd3fe22dfbeb6:modules/core/src/test/java/io/github/magisk317/relay/backup/webdav/WebDavConfigCryptoTest.kt:generic-api-key:112
+68a36f3989d89ce59b8c3b6d27a72572eaf9ebee:storage/src/main/java/com/github/magisk317/smscode/common/constant/PrefConst.kt:generic-api-key:105
+68a36f3989d89ce59b8c3b6d27a72572eaf9ebee:storage/src/main/java/com/github/magisk317/smscode/common/constant/PrefConst.kt:generic-api-key:106
+a4e9737a5b73d7af0ed168d9b45cd5b7c7c6117f:modules/core/src/main/java/io/github/magisk317/relay/backup/webdav/WebDavConfigStore.kt:generic-api-key:116
+a4e9737a5b73d7af0ed168d9b45cd5b7c7c6117f:modules/core/src/test/java/io/github/magisk317/relay/backup/webdav/WebDavConfigCryptoTest.kt:generic-api-key:112
+e41627873f7684957093e581e5a9bcbadeecb887:storage/src/main/java/com/github/magisk317/smscode/common/constant/PrefConst.kt:generic-api-key:105
+e41627873f7684957093e581e5a9bcbadeecb887:storage/src/main/java/com/github/magisk317/smscode/common/constant/PrefConst.kt:generic-api-key:106

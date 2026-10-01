@@ -14,6 +14,12 @@ include:
   - project: magisk3171/shared/magisk-ci-toolkit
     ref: v1
     file: /.gitlab/ci/cancel-mr-pipelines.yml
+  # Utility-job anchor (alpine, pinned): sync:github extends it instead of
+  # pinning its own image. Language-tool jobs (backend:go, webui:check, the
+  # docker/node jobs) keep their own pinned tool images by design.
+  - project: magisk3171/shared/magisk-ci-toolkit
+    ref: v1
+    file: /.gitlab/ci/utility.yml
 
 workflow:
   auto_cancel:
@@ -223,6 +229,27 @@ backend:go:
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs: []
+  # Restates .xinyi_backend_validation_rules (job-level rules replace the
+  # inherited ones) and gates the MR/branch cases on backend/** changes, so
+  # Android- or frontend-only MRs no longer queue a Go job on the shared
+  # arm64 runner. Release tag pipelines stay ungated (first rule).
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+[.][0-9]+[.][0-9]+.*$/'
+    - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "web"'
+      when: never
+    - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "api"'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^renovate\//'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - backend/**/*
+    - if: '$CI_COMMIT_BRANCH'
+      changes:
+        - backend/**/*
+    - when: never
   script:
     - |
       set -euo pipefail
@@ -250,6 +277,25 @@ backend:smoke:
   needs:
     - job: backend:go
       artifacts: false
+  # Same restatement as backend:go: tag pipelines ungated, MR/branch gated on
+  # backend/** changes.
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+[.][0-9]+[.][0-9]+.*$/'
+    - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "web"'
+      when: never
+    - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "api"'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^renovate\//'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - backend/**/*
+    - if: '$CI_COMMIT_BRANCH'
+      changes:
+        - backend/**/*
+    - when: never
   script:
     - |
       set -euo pipefail
@@ -398,6 +444,25 @@ webui:check:
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs: []
+  # Restates .xinyi_ci_rules (job-level rules replace the inherited ones)
+  # and gates the MR/branch cases on frontend/** changes, so backend- or
+  # app-only MRs no longer queue a bun job on the shared arm64 runner.
+  rules:
+    - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "web"'
+      when: never
+    - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "api"'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^renovate\//'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - frontend/**/*
+    - if: '$CI_COMMIT_BRANCH'
+      changes:
+        - frontend/**/*
+    - when: never
   cache:
     key:
       files:
@@ -444,6 +509,15 @@ android:build:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+    # Job-level rules replace the ones inherited via extends, so the
+    # renovate/schedule exclusions from .xinyi_ci_rules must be restated
+    # here. Without them every renovate branch push and every scheduled
+    # pipeline burned a full ~20min android:build on the shared arm64
+    # runner, even for webui-only dependency bumps.
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^renovate\//'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
       when: never
     - if: '$CI_COMMIT_BRANCH && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != ""'
     - when: never
@@ -544,6 +618,16 @@ android:detekt:
     paths:
       - merged-sarif/detekt.sarif
       - "**/build/reports/detekt/**"
+
+security:gitleaks:
+  extends: .xinyi_ci_rules
+  image:
+    name: ghcr.io/gitleaks/gitleaks:v8.30.1
+    entrypoint: [""]
+  stage: quality
+  needs: []
+  script:
+    - gitleaks detect --source . --redact --no-banner
 
 android:release:guard:
   extends: .magisk_android_release_guard
@@ -831,19 +915,17 @@ android:release:github:
 # group-level protected variable, so it is only injected on protected branches;
 # tag pipelines fall back to the project-level GITHUB_RELEASE_TOKEN.
 sync:github:
+  extends: .magisk_utility_base
   stage: sync
   needs:
     - job: android:release:guard
       optional: true
-  image: alpine:latest
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"'
     - if: '$CI_COMMIT_TAG'
     - when: never
-  before_script:
-    - apk add --no-cache git
   script:
     - |
       set -euo pipefail

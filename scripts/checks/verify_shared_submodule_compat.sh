@@ -17,8 +17,10 @@ bash "$TOOLKIT_DIR/gradle/run_gradle_with_retry.sh" \
   verifyModuleBoundaries \
   verifyStructureBoundaries \
   :app:verifyBundledSmsCodeRules \
-  :smscode-core:domain:testDebugUnitTest \
-  :smscode-core:verification:testDebugUnitTest \
+  :smscode-core:contract:test \
+  :smscode-core:domain:test \
+  :smscode-core:verification:test \
+  :smscode-core:rule:test \
   :smscode-core:verification:detekt \
   :smscode-core:hook:lintDebug \
   :smscode-core:runtime:lintDebug \

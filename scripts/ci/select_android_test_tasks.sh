@@ -14,6 +14,17 @@ mobile_test_tasks=(
   :mobile:feature:verification:testGithubNoE2eeDebugUnitTest
   :mobile:ui:testGithubNoE2eeDebugUnitTest
 )
+core_test_tasks=(
+  :smscode-core:contract:test
+  :smscode-core:domain:test
+  :smscode-core:verification:detekt
+  :smscode-core:verification:test
+  :smscode-core:rule:test
+)
+kit_test_tasks=(
+  :magisk-ui-kit:testDebugUnitTest
+  :magisk-ui-kit:billing:testDebugUnitTest
+)
 full_tasks=(
   :app:testGithubNoE2eeDebugUnitTest
   :app:koverHtmlReportGithubNoE2eeDebug
@@ -21,6 +32,8 @@ full_tasks=(
   :app:testGithubWithE2eeDebugUnitTest
   :app:koverHtmlReportGithubWithE2eeDebug
   "${mobile_test_tasks[@]}"
+  "${core_test_tasks[@]}"
+  "${kit_test_tasks[@]}"
 )
 if [[ -n "${CI_COMMIT_TAG:-}" || "${GITHUB_REF_TYPE:-}" == tag || "${CI_COMMIT_BRANCH:-}" == beta || "${CI_COMMIT_BRANCH:-}" == master || "${GITHUB_REF_NAME:-}" == beta || "${GITHUB_REF_NAME:-}" == master ]]; then printf '%s\n' "${full_tasks[@]}"; exit 0; fi
 if [[ -z "$paths_file" ]]; then paths_file="$(mktemp)"; trap 'rm -f "$paths_file"' EXIT; bash "$toolkit_dir/ci/changed_paths.sh" "$paths_file"; fi
@@ -32,7 +45,11 @@ while IFS= read -r path; do
   case "$path" in
     impact|.gitlab-ci.yml|.github/workflows/*|docs/*|README*|LICENSE*|CHANGELOG*|frontend/*|backend/*) continue ;;
     build.gradle*|settings.gradle*|gradle.properties|gradle/*|build-logic/*|.gitmodules|scripts/*|.magisk-ci-toolkit/*) printf '%s\n' "${full_tasks[@]}"; exit 0 ;;
-    app/*|modules/*|mobile/*|features/*|smscode/*|magisk-ui-kit/*|magisk-xposed-kit/*)
+    smscode/*)
+      for task in "${core_test_tasks[@]}"; do select_task "$task"; done ;;
+    magisk-ui-kit/*)
+      for task in "${kit_test_tasks[@]}"; do select_task "$task"; done ;;
+    app/*|modules/*|mobile/*|features/*|magisk-xposed-kit/*)
       select_task :app:testGithubNoE2eeDebugUnitTest; select_task :app:koverHtmlReportGithubNoE2eeDebug
       select_task verifyStructureBoundaries; select_task :app:testGithubWithE2eeDebugUnitTest
       select_task :app:koverHtmlReportGithubWithE2eeDebug
