@@ -35,7 +35,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.uikit.surface.AppFloatingActionButton
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.Text
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
 import io.github.magisk317.uikit.preview.MagiskMultiPreview
 
 /**
@@ -115,6 +115,6 @@ private fun SenderListScreenMiuixPreview() {
         onAddClick = {},
         fabContentDescription = "Add sender",
         listState = rememberLazyListState(),
-        body = { Text("Sender body") },
+        body = { MiuixText("Sender body") },
     )
 }

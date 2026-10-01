@@ -47,7 +47,7 @@ import io.github.magisk317.uikit.theme.LocalUiKitSurfaceBlur
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.Text
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
 import io.github.magisk317.uikit.preview.MagiskMultiPreview
 
 /**
@@ -212,6 +212,6 @@ private fun CodeRecordScreenMiuixPreview() {
         scrollChromeState = null,
         listState = rememberLazyListState(),
         bottomContentPadding = 0.dp,
-        body = { _, _ -> Text("Record body") },
+        body = { _, _ -> MiuixText("Record body") },
     )
 }

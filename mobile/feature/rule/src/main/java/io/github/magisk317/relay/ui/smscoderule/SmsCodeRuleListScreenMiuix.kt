@@ -42,7 +42,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.uikit.surface.AppFloatingActionButton
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.Text
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
 import io.github.magisk317.uikit.preview.MagiskMultiPreview
 
 /**
@@ -151,6 +151,6 @@ private fun SmsCodeRuleListScreenMiuixPreview() {
         onAddClick = {},
         fabContentDescription = "Add rule",
         listState = rememberLazyListState(),
-        body = { Text("Rule body") },
+        body = { MiuixText("Rule body") },
     )
 }

@@ -9,7 +9,7 @@ import io.github.magisk317.uikit.surface.PageScaffoldExpressive
 
 /** Expressive/Material chrome for [ThemeSettingsPage]. */
 @Composable
-internal fun ThemeSettingsExpressive(
+internal fun ThemeSettingsMaterial(
     onBack: () -> Unit,
     body: @Composable (PaddingValues, Modifier) -> Unit,
 ) {

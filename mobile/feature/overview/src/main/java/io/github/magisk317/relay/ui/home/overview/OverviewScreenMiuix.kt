@@ -23,7 +23,7 @@ import io.github.magisk317.uikit.theme.LocalUiKitSurfaceBlur
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold as MiuixScaffold
 import top.yukonga.miuix.kmp.basic.TopAppBar as MiuixTopAppBar
-import androidx.compose.material3.Text
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
 import io.github.magisk317.uikit.preview.MagiskMultiPreview
 
 /**
@@ -79,6 +79,6 @@ private fun OverviewScreenMiuixPreview() {
     OverviewScreenMiuix(
         title = "Overview",
         actions = {},
-        body = { _, _ -> Text("Overview body") },
+        body = { _, _ -> MiuixText("Overview body") },
     )
 }
