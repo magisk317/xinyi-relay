@@ -41,6 +41,8 @@ plugins {
     id("magisk.android.application") apply false
     id("magisk.android.library") apply false
     alias(libs.plugins.kotlin.android) apply false
+    alias(libs.plugins.kotlin.multiplatform) apply false
+    alias(libs.plugins.android.kotlin.multiplatform.library) apply false
     alias(libs.plugins.kotlin.parcelize) apply false
     id("magisk.android.compose") apply false
     alias(libs.plugins.kotlin.serialization) apply false

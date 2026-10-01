@@ -1,25 +1,34 @@
 plugins {
-    id("magisk.android.library")
+    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.kotlin.serialization)
     id(libs.plugins.kotlin.parcelize.get().pluginId)
-    id("relay.android.common")
 }
 
-android {
-    namespace = "io.github.magisk317.relay.sender.api"
+kotlin {
+    jvm()
 
-    buildFeatures {
-        buildConfig = true
+    android {
+        namespace = "io.github.magisk317.relay.sender.api"
+        compileSdk(project.magiskCompileSdk())
+        minSdk = libs.versions.minSdk.get().toInt()
+    }
+
+    sourceSets {
+        commonMain.dependencies {
+            api(project(":relay:contract"))
+            api(project(":relay:engine:api"))
+            api(libs.kotlinx.serialization.json)
+            api(libs.kotlinx.coroutines.core)
+        }
+        androidMain.dependencies {
+            implementation(project(":magisk-xposed-kit:logging"))
+            implementation(libs.androidx.core.ktx)
+        }
     }
 }
 
 dependencies {
-    implementation(project(":magisk-xposed-kit:logging"))
-    api(project(":relay:contract"))
-    api(project(":relay:engine:api"))
-    api(libs.kotlinx.serialization.json)
-    api(libs.kotlinx.coroutines.core)
-    implementation(libs.androidx.core.ktx)
-    testImplementation(libs.junit.jupiter)
-    testRuntimeOnly(libs.junit.platform.launcher)
+    add("jvmTestImplementation", libs.junit.jupiter)
+    add("jvmTestRuntimeOnly", libs.junit.platform.launcher)
 }

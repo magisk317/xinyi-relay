@@ -1,25 +1,38 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
-    id("magisk.android.library")
-    id(libs.plugins.kotlin.serialization.get().pluginId)
-    id(libs.plugins.kotlin.parcelize.get().pluginId)
-    id("relay.android.common")
+    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.android.kotlin.multiplatform.library)
+    alias(libs.plugins.kotlin.serialization)
 }
 
-android {
-    namespace = "io.github.magisk317.relay.contract"
+kotlin {
+    jvm()
 
-    buildFeatures {
-        buildConfig = true
+    android {
+        namespace = "io.github.magisk317.relay.contract"
+        compileSdk(project.magiskCompileSdk())
+        minSdk = libs.versions.minSdk.get().toInt()
     }
 
+    sourceSets {
+        commonMain.dependencies {
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.serialization.json)
+        }
+        androidMain.dependencies {
+            api(project(":smscode-core:contract"))
+            api(project(":smscode-core:runtime"))
+            implementation(libs.androidx.core.ktx)
+        }
+    }
 }
 
 dependencies {
-    api(project(":smscode-core:contract"))
-    api(project(":smscode-core:runtime"))
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.kotlinx.serialization.json)
-    testImplementation(libs.junit.jupiter)
-    testRuntimeOnly(libs.junit.platform.launcher)
+    add("jvmTestImplementation", libs.junit.jupiter)
+    add("jvmTestRuntimeOnly", libs.junit.platform.launcher)
+}
+
+tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+    useJUnitPlatform()
 }
