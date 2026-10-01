@@ -126,6 +126,7 @@ mavenCentral()
 
 include(
     ":app",
+    ":desktop",
     ":benchmark:macro",
     ":hook:entry",
     ":runtime",
