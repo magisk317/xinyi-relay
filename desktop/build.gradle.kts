@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.jetbrains.compose)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
@@ -16,8 +17,18 @@ kotlin {
             implementation(project(":relay:contract"))
             implementation(project(":relay:net"))
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.okhttp)
+        }
+        jvmTest.dependencies {
+            implementation(libs.junit.jupiter)
+            runtimeOnly(libs.junit.platform.launcher)
         }
     }
+}
+
+tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+    useJUnitPlatform()
 }
 
 compose.desktop {
