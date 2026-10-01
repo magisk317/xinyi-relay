@@ -20,6 +20,18 @@ buildscript {
             force("org.bouncycastle:bcprov-jdk18on:1.85")
             force("org.jdom:jdom2:2.0.6.1")
             // END AUTO FORCED DEPENDENCIES (managed by workflow)
+
+            // Java 27 bytecode target: AGP 9.4.1 bundles ASM 9.9 (V26 max) and
+            // rejects major 71. ASM 9.10.1 adds V27; force the family here because
+            // this is the classpath AGP actually runs on (project-level forces do
+            // not reach the plugin classpath). Deliberately outside the managed
+            // block: the dependency-force workflow rewrites that block wholesale
+            // and would drop the comment on its next run.
+            force("org.ow2.asm:asm:9.10.1")
+            force("org.ow2.asm:asm-analysis:9.10.1")
+            force("org.ow2.asm:asm-commons:9.10.1")
+            force("org.ow2.asm:asm-tree:9.10.1")
+            force("org.ow2.asm:asm-util:9.10.1")
         }
     }
 }
@@ -72,7 +84,7 @@ allprojects {
             force("org.jdom:jdom2:2.0.6.1")
             // END AUTO FORCED DEPENDENCIES (managed by workflow)
 
-            // Custom migration overrides for Java 26 compatibility
+            // Custom migration overrides for Java 27 compatibility
             force("org.jetbrains.kotlin:kotlin-metadata-jvm:$forcedKotlinVersion")
             force("org.ow2.asm:asm:9.10.1")
             force("org.ow2.asm:asm-commons:9.10.1")
@@ -95,6 +107,16 @@ subprojects {
         }
         dependencies {
             "detektPlugins"(catalog.detekt.rules.ktlint)
+        }
+        // detekt CLI whitelists JVM targets and 2.0.0-alpha.6 caps at 26, so the
+        // analysis target must not exceed that ceiling even though we emit Java 27
+        // bytecode (the compile target tracks the Gradle daemon JVM, which can be
+        // newer than the bytecode we emit). Revisit when detekt ships V27 support.
+        tasks.withType<dev.detekt.gradle.Detekt>().configureEach {
+            jvmTarget.set(minOf(catalog.versions.javaBytecode.get().toInt(), 26).toString())
+        }
+        tasks.withType<dev.detekt.gradle.DetektCreateBaselineTask>().configureEach {
+            jvmTarget.set(minOf(catalog.versions.javaBytecode.get().toInt(), 26).toString())
         }
     }
 
