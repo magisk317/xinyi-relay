@@ -2,6 +2,7 @@ package io.github.magisk317.relay.app
 
 import io.github.magisk317.relay.android.diagnostics.RuntimeDiagnosticsBridge
 import android.content.Context
+import android.os.Build
 import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.receiver.AutoInputActions
@@ -35,12 +36,22 @@ object SmsCodeXposedRuntimeBridge {
                 enabled = otelEnabled,
                 serviceName = "xinyi-relay",
                 serviceVersion = io.github.magisk317.relay.core.BuildConfig.VERSION_NAME,
+                serviceCommit = io.github.magisk317.relay.core.BuildConfig.COMMIT_HASH,
                 projectId = "84113188",
                 projectName = "xinyi-relay",
                 environment = if (io.github.magisk317.relay.runtime.BuildConfig.DEBUG) "debug" else "release",
                 serviceInstanceId = hookContext?.let {
                     io.github.magisk317.relay.android.prefs.PrefsReader.installationId(it)
                 }.orEmpty(),
+                suppressedResultValues = MagiskOtelBootstrap.SUPPRESSED_RESULT_VALUES,
+                deviceAttributes =
+                    mapOf(
+                        "device.manufacturer" to Build.MANUFACTURER,
+                        "device.model" to Build.MODEL,
+                        "os.name" to "android",
+                        "os.version" to Build.VERSION.RELEASE,
+                        "os.api_level" to Build.VERSION.SDK_INT.toString(),
+                    ),
             ),
         )
         CoreRuntime.install(object : CoreRuntimeAccess {
