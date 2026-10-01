@@ -3,6 +3,12 @@
 本日志记录了项目近期的主要变更。 
 
 ---
+---
+## [v0.2.8] - 2026-10-02
+- 版本：`versionCode 50` / `versionName 0.2.8`。
+
+> Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.2.7...v0.2.8
+
 ## [v0.2.7] - 2026-10-01
 - 版本：`versionCode 49` / `versionName 0.2.7`。
 - `[ui]` 共享页面全面收敛至双轨 UI 套件。
