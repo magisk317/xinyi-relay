@@ -104,6 +104,8 @@ import io.github.magisk317.uikit.surface.AppTextButton
 import io.github.magisk317.uikit.surface.AppBottomSheet
 import io.github.magisk317.uikit.surface.AppListPopup
 import io.github.magisk317.uikit.surface.AppListPopupItem
+import io.github.magisk317.uikit.theme.AppShapeRole
+import io.github.magisk317.uikit.theme.appShape
 import java.util.*
 
 private enum class RecordExportScope {
@@ -952,7 +954,7 @@ private fun RecordDetailOverlay(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
                 ) {},
-            shape = MaterialTheme.shapes.extraLarge,
+            shape = appShape(AppShapeRole.ExtraLarge),
             tonalElevation = 6.dp,
             shadowElevation = 12.dp,
             color = appColor(AppColorRole.SurfaceContainerHigh),
@@ -1434,7 +1436,7 @@ private fun RecordSplitColumn(
     val isMiuix = currentUiKitStyle() == UiKitStyle.Miuix
     AppSurface(
         modifier = modifier,
-        shape = MaterialTheme.shapes.large,
+        shape = appShape(AppShapeRole.Large),
         tonalElevation = 2.dp,
         color = Color.Transparent,
     ) {

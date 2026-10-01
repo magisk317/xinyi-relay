@@ -29,7 +29,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import io.github.magisk317.uikit.common.AppSnackbarDuration
 import io.github.magisk317.uikit.common.AppSnackbarHostState
 import io.github.magisk317.uikit.common.AppSnackbarResult
@@ -88,6 +87,8 @@ import io.github.magisk317.uikit.surface.AppTextButton
 import io.github.magisk317.uikit.surface.AppBottomSheet
 import io.github.magisk317.uikit.theme.AppColorRole
 import io.github.magisk317.uikit.theme.appColor
+import io.github.magisk317.uikit.theme.AppShapeRole
+import io.github.magisk317.uikit.theme.appShape
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -291,7 +292,7 @@ fun BlacklistHitListScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 12.dp),
-                    shape = MaterialTheme.shapes.large,
+                    shape = appShape(AppShapeRole.Large),
                     tonalElevation = 2.dp,
                     color = Color.Transparent,
                 ) {

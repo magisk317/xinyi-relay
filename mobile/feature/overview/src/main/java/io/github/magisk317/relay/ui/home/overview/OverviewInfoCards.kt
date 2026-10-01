@@ -35,7 +35,6 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -51,6 +50,8 @@ import io.github.magisk317.relay.common.utils.PackageUtils
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.foundation.LocalSnackbarHostState
+import io.github.magisk317.uikit.theme.AppShapeRole
+import io.github.magisk317.uikit.theme.appShape
 import io.github.magisk317.relay.feature.mode.StandardModeFeatureGate
 import io.github.magisk317.relay.feature.mode.StandardModeFeatureGate.Feature.*
 import io.github.magisk317.relay.feature.mode.WorkMode
@@ -114,7 +115,7 @@ fun StatusCard(
 
     AppCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
+        shape = appShape(AppShapeRole.ExtraLarge),
         color = containerColor,
         contentColor = contentColor,
         onClick = { resolvedOnClick?.invoke() },

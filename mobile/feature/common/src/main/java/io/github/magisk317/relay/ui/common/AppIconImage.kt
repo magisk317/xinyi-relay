@@ -5,7 +5,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -16,6 +15,8 @@ import androidx.compose.ui.unit.dp
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.theme.AppColorRole
 import io.github.magisk317.uikit.theme.appColor
+import io.github.magisk317.uikit.theme.AppShapeRole
+import io.github.magisk317.uikit.theme.appShape
 
 @Composable
 fun AppIconBitmapImage(
@@ -38,7 +39,7 @@ fun AppIconBitmapImage(
             contentDescription = contentDescription,
             modifier = modifier
                 .size(size)
-                .clip(MaterialTheme.shapes.small),
+                .clip(appShape(AppShapeRole.Small)),
         )
     }
 }

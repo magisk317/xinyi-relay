@@ -6,10 +6,11 @@ Fails when a Kotlin source file breaks the M3/Miuix track contract:
   * shared file calls a bare Material 3 / Material 2 component leaf   (DEBT)
   * *Miuix.kt file calls a bare Material 3 component leaf             (SEVERE)
   * shared file imports a miuix native component                      (WEIRD-SHARED)
-  * shared file reads MaterialTheme.colorScheme / .typography         (THEME-API)
+  * shared file reads MaterialTheme.colorScheme / .typography / .shapes (THEME-API)
 
-`MaterialTheme.shapes` in a shared file is reported as ADVISORY only: miuix
-0.9.4 exposes no shape tokens, so there is no dual-track counterpart to move to.
+`MaterialTheme.shapes` in a shared file is also a hard finding since kit 0.7:
+`appShape(AppShapeRole.*)` now maps every Material shape to a fixed miuix
+corner radius (miuix 0.9.4 exposes no shape tokens).
 
 Track rules:
   *Material.kt / *Expressive.kt -> M track (M3 is the intended half)
@@ -215,7 +216,6 @@ def main():
     root = os.path.abspath(args.root)
 
     findings = []
-    advisory = []
 
     for fp in sorted(walk(root)):
         rel = os.path.relpath(fp, root).replace(os.sep, "/")
@@ -248,20 +248,15 @@ def main():
                         findings.append(("shared uses miuix native", rel, ln, name))
 
         if track == "shared":
-            for m in re.finditer(r"MaterialTheme\.(colorScheme|typography)\.", src):
+            for m in re.finditer(r"MaterialTheme\.(colorScheme|typography|shapes)\.", src):
                 ln = src[:m.start()].count("\n") + 1
                 findings.append(("shared uses M3 theme API (%s)" % m.group(1), rel, ln, m.group(0)))
-            for m in re.finditer(r"MaterialTheme\.shapes\.", src):
-                ln = src[:m.start()].count("\n") + 1
-                advisory.append((rel, ln))
 
     if not args.quiet:
         print("== dual-track check: %s ==" % root)
         for kind, rel, ln, name in findings:
             print("FAIL  %-34s %s:%d  %s" % (kind, rel, ln, name))
-        for rel, ln in advisory:
-            print("ADV   MaterialTheme.shapes (no miuix counterpart)  %s:%d" % (rel, ln))
-    print("SUMMARY fail=%d advisory=%d" % (len(findings), len(advisory)))
+    print("SUMMARY fail=%d" % len(findings))
     return 1 if findings else 0
 
 
