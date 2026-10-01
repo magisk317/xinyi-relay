@@ -3,6 +3,16 @@
 本日志记录了项目近期的主要变更。 
 
 ---
+## [v0.2.7] - 2026-10-01
+- 版本：`versionCode 49` / `versionName 0.2.7`。
+- `[ui]` 共享页面全面收敛至双轨 UI 套件。
+- `[build]` 工具链升级 Gradle 9.8.0、Kotlin 2.5.0-Beta1、字节码 27。
+- `[ci]` 对齐共享流水线，削减冗余负载并收紧密钥扫描。
+- `[deps]` Matrix SDK 切换上游 26.09.28，刷新依赖。
+
+> Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.2.6...v0.2.7
+
+---
 ## [v0.2.6] - 2026-09-23
 - 版本：`versionCode 48` / `versionName 0.2.6`。
 - `[ui]` 主要页面完成双主题适配。

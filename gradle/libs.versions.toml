@@ -80,8 +80,8 @@ material-kolor = "5.0.1"
 google-id = "1.2.1"
 mobile-entitlement = "0.2.1"
 ndk = "30.0.16248370"
-versionCode = "48"
-versionName = "0.2.6"
+versionCode = "49"
+versionName = "0.2.7"
 matrix-sdk-android = "26.09.28"
 
 [libraries]
