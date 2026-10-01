@@ -34,6 +34,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.uikit.surface.AppFloatingActionButton
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.Text
+import io.github.magisk317.uikit.preview.MagiskMultiPreview
 
 /**
  * Miuix chrome for the sender list screen of the same name: static
@@ -101,4 +104,17 @@ internal fun SenderListScreenMiuix(
             )
         }
     }
+}
+
+
+@MagiskMultiPreview
+@Composable
+private fun SenderListScreenMiuixPreview() {
+    SenderListScreenMiuix(
+        title = "Senders",
+        onAddClick = {},
+        fabContentDescription = "Add sender",
+        listState = rememberLazyListState(),
+        body = { Text("Sender body") },
+    )
 }

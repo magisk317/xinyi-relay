@@ -23,6 +23,8 @@ import io.github.magisk317.uikit.theme.LocalUiKitSurfaceBlur
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold as MiuixScaffold
 import top.yukonga.miuix.kmp.basic.TopAppBar as MiuixTopAppBar
+import androidx.compose.material3.Text
+import io.github.magisk317.uikit.preview.MagiskMultiPreview
 
 /**
  * Miuix implementation of the Overview page. Follows the XSC
@@ -68,4 +70,15 @@ internal fun OverviewScreenMiuix(
             )
         }
     }
+}
+
+
+@MagiskMultiPreview
+@Composable
+private fun OverviewScreenMiuixPreview() {
+    OverviewScreenMiuix(
+        title = "Overview",
+        actions = {},
+        body = { _, _ -> Text("Overview body") },
+    )
 }

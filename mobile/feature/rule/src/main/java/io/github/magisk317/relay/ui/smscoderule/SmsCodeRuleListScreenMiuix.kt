@@ -41,6 +41,9 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.uikit.surface.AppFloatingActionButton
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.Text
+import io.github.magisk317.uikit.preview.MagiskMultiPreview
 
 /**
  * Miuix chrome for the rule screen of the same name:
@@ -133,4 +136,21 @@ internal fun SmsCodeRuleListScreenMiuix(
             )
         }
     }
+}
+
+
+@MagiskMultiPreview
+@Composable
+private fun SmsCodeRuleListScreenMiuixPreview() {
+    SmsCodeRuleListScreenMiuix(
+        title = "SMS code rules",
+        onBack = {},
+        onSourceSettingsClick = {},
+        onRefresh = {},
+        refreshEnabled = true,
+        onAddClick = {},
+        fabContentDescription = "Add rule",
+        listState = rememberLazyListState(),
+        body = { Text("Rule body") },
+    )
 }
