@@ -35,7 +35,14 @@ class SmsCodeApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         AppPreferencesDataStore.install(RelayPreferenceHooks)
-        configureMobileEntitlement()
+        if (BuildConfig.ENABLE_MOBILE_ENTITLEMENT) {
+            configureMobileEntitlement()
+        } else {
+            // Play distribution ships without the activation gate; publish an
+            // always-allowed snapshot so every gate reader (app, hook, pipeline)
+            // sees the open state, including installs cached as unactivated.
+            publishAutomationAlwaysAllowed()
+        }
 
         startKoin {
             androidLogger()
@@ -49,8 +56,22 @@ class SmsCodeApplication : Application() {
         koin.get<InfrastructureInitializer>().init(this)
         val initializers = koin.getAll<AppInitializer>().filterNot { it is InfrastructureInitializer }
         initializers.forEach { it.init(this) }
-        MobileEntitlementCoordinator.initialize(this, applicationScope)
-        registerEntitlementForegroundRefresh()
+        if (BuildConfig.ENABLE_MOBILE_ENTITLEMENT) {
+            MobileEntitlementCoordinator.initialize(this, applicationScope)
+            registerEntitlementForegroundRefresh()
+        }
+    }
+
+    private fun publishAutomationAlwaysAllowed() {
+        kotlinx.coroutines.runBlocking {
+            AppPreferencesDataStore.batchEdit(applicationContext) {
+                setBoolean(
+                    io.github.magisk317.relay.contract.constant.RelayPrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+                    true,
+                )
+            }
+            io.github.magisk317.relay.android.prefs.HookPreferenceMirror.publish(applicationContext)
+        }
     }
 
     private fun configureMobileEntitlement() {

@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.ui.home.settings
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import io.github.magisk317.relay.android.diagnostics.RuntimeDiagnosticsBridge
 import io.github.magisk317.uikit.common.AppSnackbarHost
 import io.github.magisk317.uikit.common.AppSnackbarHostState
@@ -162,18 +163,30 @@ fun SettingsHomeScreen(
         ) {
             Spacer(modifier = Modifier.height(Const.SPACING_SMALL.dp))
 
-            // Device entitlement entry (top-level)
-            StatusSettingsSection(
-                modifier = Modifier.padding(horizontal = Const.PADDING_SMALL.dp),
-                title = stringResource(id = R.string.mobile_entitlement_settings_title),
-                summary = stringResource(id = R.string.mobile_entitlement_settings_summary),
-            ) {
-                context.startActivity(
+            // Device entitlement entry (top-level); hidden where the
+            // activation flow is absent (play drops the gate entirely).
+            val entitlementActivityResolvable = remember(context) {
+                context.packageManager.resolveActivity(
                     Intent().setClassName(
                         context,
                         "io.github.magisk317.relay.entitlement.MobileEntitlementActivity",
-                    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                )
+                    ),
+                    PackageManager.MATCH_DEFAULT_ONLY,
+                ) != null
+            }
+            if (entitlementActivityResolvable) {
+                StatusSettingsSection(
+                    modifier = Modifier.padding(horizontal = Const.PADDING_SMALL.dp),
+                    title = stringResource(id = R.string.mobile_entitlement_settings_title),
+                    summary = stringResource(id = R.string.mobile_entitlement_settings_summary),
+                ) {
+                    context.startActivity(
+                        Intent().setClassName(
+                            context,
+                            "io.github.magisk317.relay.entitlement.MobileEntitlementActivity",
+                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                    )
+                }
             }
 
             SettingsGeneralSection(

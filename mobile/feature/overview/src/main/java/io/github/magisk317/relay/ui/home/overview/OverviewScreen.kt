@@ -14,6 +14,7 @@ import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import androidx.activity.compose.LocalActivity
 import io.github.magisk317.relay.feature.mode.BatteryOptimizationHelper
 import io.github.magisk317.relay.feature.mode.WorkMode
@@ -145,6 +146,18 @@ fun OverviewScreen(
         ActivationDiagnosticsStore.observeStatus(context.applicationContext)
     }
     val activationStatus by activationStatusFlow.collectAsStateWithLifecycle()
+
+    // The activation flow is absent on play, which drops the gate entirely;
+    // resolveActivity doubles as the runtime probe for that flavor decision.
+    val entitlementUiAvailable = remember(context) {
+        context.packageManager.resolveActivity(
+            Intent().setClassName(
+                context,
+                "io.github.magisk317.relay.entitlement.MobileEntitlementActivity",
+            ),
+            PackageManager.MATCH_DEFAULT_ONLY,
+        ) != null
+    }
 
     val listState = rememberLazyListState()
     val density = LocalDensity.current
@@ -296,6 +309,7 @@ fun OverviewScreen(
                 hasRootAccess = runtimeUiState.hasRootAccess,
                 runtimeConnected = activationStatus.runtimeConnected,
                 mobileAutomationAllowed = mobileAutomationAllowed,
+                showEntitlement = entitlementUiAvailable,
                 activationDiagnostics = activationStatus.diagnostics,
                 showStatusDiagnostics = overviewUiState.showStatusDiagnostics,
                 draggingCardId = overviewUiState.draggingCardId,
@@ -396,6 +410,7 @@ private fun OverviewContent(
     hasRootAccess: Boolean,
     runtimeConnected: Boolean,
     mobileAutomationAllowed: Boolean,
+    showEntitlement: Boolean,
     activationDiagnostics: ActivationDiagnosticsSnapshot,
     showStatusDiagnostics: Boolean,
     draggingCardId: String?,
@@ -456,6 +471,7 @@ private fun OverviewContent(
                 hasRootAccess = hasRootAccess,
                 runtimeConnected = runtimeConnected,
                 mobileAutomationAllowed = mobileAutomationAllowed,
+                showEntitlement = showEntitlement,
                 activationDiagnostics = activationDiagnostics,
                 showStatusDiagnostics = showStatusDiagnostics,
                 draggingCardId = draggingCardId,
@@ -498,6 +514,7 @@ private fun OverviewCardItem(
     hasRootAccess: Boolean,
     runtimeConnected: Boolean,
     mobileAutomationAllowed: Boolean,
+    showEntitlement: Boolean,
     activationDiagnostics: ActivationDiagnosticsSnapshot,
     showStatusDiagnostics: Boolean,
     draggingCardId: String?,
@@ -564,6 +581,7 @@ private fun OverviewCardItem(
                     isEnhancedModeEnabled = isEnabled,
                     isStandardModeEnabled = false,
                     isEntitled = mobileAutomationAllowed,
+                    showEntitlement = showEntitlement,
                     showBatteryOptimizationHint = showBatteryOptimizationHint,
                     showDiagnostics = showStatusDiagnostics,
                     diagnostics = buildStatusDiagnostics(

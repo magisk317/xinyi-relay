@@ -65,6 +65,7 @@ fun StatusCard(
     isEnhancedModeEnabled: Boolean,
     isStandardModeEnabled: Boolean,
     isEntitled: Boolean = false,
+    showEntitlement: Boolean = true,
     showBatteryOptimizationHint: Boolean = false,
     showDiagnostics: Boolean,
     diagnostics: List<Pair<String, String>>,
@@ -79,7 +80,9 @@ fun StatusCard(
         isStandardModeEnabled -> stringResource(id = R.string.status_module_activated)
         else -> stringResource(id = R.string.status_module_not_activated)
     }
-    val entitlementStatusText = if (isEntitled) {
+    val entitlementStatusText = if (!showEntitlement) {
+        ""
+    } else if (isEntitled) {
         stringResource(id = R.string.status_entitlement_verified)
     } else {
         stringResource(id = R.string.status_entitlement_unverified)
@@ -97,8 +100,8 @@ fun StatusCard(
     if (currentUiKitStyle() == UiKitStyle.Miuix) {
         MiuixStatusCheckCard(
             passed = isEntitled,
-            title = entitlementStatusText,
-            badge = moduleStatusText,
+            title = if (showEntitlement) entitlementStatusText else moduleStatusText,
+            badge = if (showEntitlement) moduleStatusText else "",
             summary = when {
                 !isWorking -> stringResource(id = R.string.status_activate_hint)
                 isStandardModeEnabled -> stringResource(id = R.string.standard_mode_service_notification_text)
@@ -136,10 +139,12 @@ fun StatusCard(
                         text = moduleStatusText,
                         role = AppTextRole.Subtitle,
                     )
-                    AppText(
-                        text = entitlementStatusText,
-                        role = AppTextRole.Subtitle,
-                    )
+                    if (showEntitlement) {
+                        AppText(
+                            text = entitlementStatusText,
+                            role = AppTextRole.Subtitle,
+                        )
+                    }
                     if (!isWorking) {
                         AppText(
                             text = stringResource(id = R.string.status_activate_hint),

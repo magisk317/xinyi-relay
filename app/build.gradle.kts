@@ -113,11 +113,13 @@ android {
         getByName("play") {
             buildConfigField("boolean", "ENABLE_STANDARD_MODE_SERVICE", "false")
             buildConfigField("String", "MOBILE_ENTITLEMENT_CHANNEL", "\"play\"")
+            buildConfigField("boolean", "ENABLE_MOBILE_ENTITLEMENT", "false")
         }
         listOf("githubNoE2ee", "githubWithE2ee", "fdroid").forEach { flavorName ->
             getByName(flavorName) {
                 buildConfigField("boolean", "ENABLE_STANDARD_MODE_SERVICE", "true")
                 buildConfigField("String", "MOBILE_ENTITLEMENT_CHANNEL", "\"sideload\"")
+                buildConfigField("boolean", "ENABLE_MOBILE_ENTITLEMENT", "true")
             }
         }
     }
