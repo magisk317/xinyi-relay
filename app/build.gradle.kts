@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.google.services)
     id("magisk.app.signing")
     id("magisk.app.packaging")
+    id("magisk.mobile.gate")
     id("magisk.android.compose")
 }
 
@@ -113,13 +114,11 @@ android {
         getByName("play") {
             buildConfigField("boolean", "ENABLE_STANDARD_MODE_SERVICE", "false")
             buildConfigField("String", "MOBILE_ENTITLEMENT_CHANNEL", "\"play\"")
-            buildConfigField("boolean", "ENABLE_MOBILE_ENTITLEMENT", "false")
         }
         listOf("githubNoE2ee", "githubWithE2ee", "fdroid").forEach { flavorName ->
             getByName(flavorName) {
                 buildConfigField("boolean", "ENABLE_STANDARD_MODE_SERVICE", "true")
                 buildConfigField("String", "MOBILE_ENTITLEMENT_CHANNEL", "\"sideload\"")
-                buildConfigField("boolean", "ENABLE_MOBILE_ENTITLEMENT", "true")
             }
         }
     }

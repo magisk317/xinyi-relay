@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.ui.app
 
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
+import io.github.magisk317.uikit.entitlement.MobileGate
 import io.github.magisk317.relay.android.prefs.RelayPreferenceHooks
 import android.app.Application
 import android.app.Activity
@@ -41,7 +42,20 @@ class SmsCodeApplication : Application() {
             // Play distribution ships without the activation gate; publish an
             // always-allowed snapshot so every gate reader (app, hook, pipeline)
             // sees the open state, including installs cached as unactivated.
-            publishAutomationAlwaysAllowed()
+            MobileGate.publishAlwaysAllowed(
+                applicationContext,
+                persist = { ctx ->
+                    AppPreferencesDataStore.batchEdit(ctx) {
+                        setBoolean(
+                            io.github.magisk317.relay.contract.constant.RelayPrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+                            true,
+                        )
+                    }
+                },
+                mirror = { ctx ->
+                    io.github.magisk317.relay.android.prefs.HookPreferenceMirror.publish(ctx)
+                },
+            )
         }
 
         startKoin {
@@ -62,17 +76,6 @@ class SmsCodeApplication : Application() {
         }
     }
 
-    private fun publishAutomationAlwaysAllowed() {
-        kotlinx.coroutines.runBlocking {
-            AppPreferencesDataStore.batchEdit(applicationContext) {
-                setBoolean(
-                    io.github.magisk317.relay.contract.constant.RelayPrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
-                    true,
-                )
-            }
-            io.github.magisk317.relay.android.prefs.HookPreferenceMirror.publish(applicationContext)
-        }
-    }
 
     private fun configureMobileEntitlement() {
         MobileEntitlementRuntime.configure(

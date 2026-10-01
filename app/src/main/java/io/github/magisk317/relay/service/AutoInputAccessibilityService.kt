@@ -191,9 +191,12 @@ class AutoInputAccessibilityService : AccessibilityService() {
     }
 
     private fun isMobileAutomationAllowed(): Boolean =
-        kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+        io.github.magisk317.uikit.entitlement.MobileGate.isAutomationAllowed(
+            io.github.magisk317.relay.BuildConfig.ENABLE_MOBILE_ENTITLEMENT,
+            applicationContext,
+        ) { ctx ->
             AppPreferencesDataStore.getBoolean(
-                applicationContext,
+                ctx,
                 RelayPrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
                 RelayPrefConst.DEFAULT_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
             )
