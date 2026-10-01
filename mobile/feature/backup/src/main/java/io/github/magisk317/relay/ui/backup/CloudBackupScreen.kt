@@ -1,7 +1,6 @@
 package io.github.magisk317.relay.ui.backup
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
-
 import androidx.activity.compose.LocalActivity
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -26,15 +25,8 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
+import io.github.magisk317.uikit.preference.AppCheckbox
+import io.github.magisk317.uikit.surface.AppTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -55,10 +47,19 @@ import io.github.magisk317.relay.backup.webdav.WebDavConfig
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
-import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
+import io.github.magisk317.uikit.foundation.LocalSnackbarHostState
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppCircularProgressIndicator
+import io.github.magisk317.uikit.surface.AppIcon
+import io.github.magisk317.uikit.surface.AppIconButton
+import io.github.magisk317.uikit.surface.AppPrimaryButton
+import io.github.magisk317.uikit.surface.AppSecondaryButton
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 
 @Composable
 fun CloudBackupScreen(
@@ -315,9 +316,9 @@ private fun BackupSourceSelector(
     onLoadBackups: () -> Unit,
     onSwitchSource: (BackupSource) -> Unit,
 ) {
-    Text(
+    AppText(
         text = stringResource(id = R.string.cloud_backup_source_title),
-        style = MaterialTheme.typography.titleMedium,
+        role = AppTextRole.Subtitle,
     )
     Spacer(modifier = Modifier.height(8.dp))
     Row(
@@ -359,12 +360,12 @@ private fun BackupSourceButton(
     modifier: Modifier = Modifier,
 ) {
     if (selected) {
-        Button(onClick = onClick, modifier = modifier) {
-            Text(text)
+        AppPrimaryButton(onClick = onClick, modifier = modifier) {
+            AppText(text)
         }
     } else {
-        OutlinedButton(onClick = onClick, modifier = modifier) {
-            Text(text)
+        AppSecondaryButton(onClick = onClick, modifier = modifier) {
+            AppText(text)
         }
     }
 }
@@ -379,20 +380,20 @@ private fun GoogleDriveConfigSection(
     onSave: () -> Unit,
 ) {
     if (showConfig) {
-        Text(
+        AppText(
             text = stringResource(id = R.string.cloud_backup_google_drive_config_title),
-            style = MaterialTheme.typography.titleMedium,
+            role = AppTextRole.Subtitle,
         )
         Spacer(modifier = Modifier.height(8.dp))
-        OutlinedTextField(
+        AppTextField(
             value = folderPath,
             onValueChange = onFolderPathChange,
-            label = { Text(stringResource(id = R.string.cloud_backup_google_drive_folder_path)) },
+            label = stringResource(id = R.string.cloud_backup_google_drive_folder_path),
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(modifier = Modifier.height(8.dp))
-        Button(onClick = onSave, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(id = R.string.cloud_backup_save))
+        AppPrimaryButton(onClick = onSave, modifier = Modifier.fillMaxWidth()) {
+            AppText(stringResource(id = R.string.cloud_backup_save))
         }
     } else {
         Row(
@@ -401,18 +402,18 @@ private fun GoogleDriveConfigSection(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
+                AppText(
                     text = stringResource(id = R.string.cloud_backup_google_drive_location, savedFolderPath),
-                    style = MaterialTheme.typography.bodyMedium,
+                    role = AppTextRole.Body,
                 )
-                Text(
+                AppText(
                     text = stringResource(id = R.string.cloud_backup_google_drive_visible_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    role = AppTextRole.BodySmall,
+                    color = appColor(AppColorRole.OnSurfaceVariant),
                 )
             }
-            OutlinedButton(onClick = onEdit) {
-                Text(stringResource(id = R.string.cloud_backup_edit_config))
+            AppSecondaryButton(onClick = onEdit) {
+                AppText(stringResource(id = R.string.cloud_backup_edit_config))
             }
         }
     }
@@ -465,11 +466,11 @@ private fun WebDavConfigSection(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Button(onClick = onEdit, modifier = Modifier.weight(1f)) {
-                Text(stringResource(id = R.string.cloud_backup_edit_config))
+            AppPrimaryButton(onClick = onEdit, modifier = Modifier.weight(1f)) {
+                AppText(stringResource(id = R.string.cloud_backup_edit_config))
             }
-            Button(onClick = onRemove, modifier = Modifier.weight(1f)) {
-                Text(stringResource(id = R.string.cloud_backup_remove_config))
+            AppPrimaryButton(onClick = onRemove, modifier = Modifier.weight(1f)) {
+                AppText(stringResource(id = R.string.cloud_backup_remove_config))
             }
         }
     }
@@ -495,9 +496,9 @@ private fun WebDavConfigForm(
     onSave: () -> Unit,
     onTestConnection: () -> Unit,
 ) {
-    Text(
+    AppText(
         text = stringResource(id = R.string.cloud_backup_webdav_config_title),
-        style = MaterialTheme.typography.titleMedium,
+        role = AppTextRole.Subtitle,
     )
     Spacer(modifier = Modifier.height(8.dp))
     RequiredTextField(
@@ -519,10 +520,10 @@ private fun WebDavConfigForm(
         isError = isPasswordMissing,
         onToggleVisibility = onTogglePasswordVisibility,
     )
-    OutlinedTextField(
+    AppTextField(
         value = remotePath,
         onValueChange = onRemotePathChange,
-        label = { Text(stringResource(id = R.string.cloud_backup_webdav_remote_path)) },
+        label = stringResource(id = R.string.cloud_backup_webdav_remote_path),
         modifier = Modifier.fillMaxWidth(),
     )
     Spacer(modifier = Modifier.height(8.dp))
@@ -530,18 +531,18 @@ private fun WebDavConfigForm(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Button(onClick = onSave, modifier = Modifier.weight(1f)) {
-            Text(stringResource(id = R.string.cloud_backup_save))
+        AppPrimaryButton(onClick = onSave, modifier = Modifier.weight(1f)) {
+            AppText(stringResource(id = R.string.cloud_backup_save))
         }
-        Button(
+        AppPrimaryButton(
             onClick = onTestConnection,
             enabled = !isLoading,
             modifier = Modifier.weight(1f),
         ) {
             if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
+                AppCircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
             }
-            Text(stringResource(id = R.string.cloud_backup_test_connection))
+            AppText(stringResource(id = R.string.cloud_backup_test_connection))
         }
     }
 }
@@ -553,14 +554,14 @@ private fun RequiredTextField(
     label: String,
     isError: Boolean,
 ) {
-    OutlinedTextField(
+    AppTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(label) },
+        label = label,
         isError = isError,
         supportingText = {
             if (isError) {
-                Text(stringResource(id = R.string.cloud_backup_field_required))
+                AppText(stringResource(id = R.string.cloud_backup_field_required))
             }
         },
         modifier = Modifier.fillMaxWidth(),
@@ -591,13 +592,13 @@ private fun PasswordTextField(
             .distinctUntilChanged()
             .collect(onValueChange)
     }
-    OutlinedTextField(
+    AppTextField(
         state = state,
-        label = { Text(stringResource(id = R.string.cloud_backup_webdav_password)) },
+        label = stringResource(id = R.string.cloud_backup_webdav_password),
         outputTransformation = if (visible) null else PasswordOutputTransformation,
         trailingIcon = {
-            IconButton(onClick = onToggleVisibility) {
-                Icon(
+            AppIconButton(onClick = onToggleVisibility) {
+                AppIcon(
                     imageVector = if (visible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
                     contentDescription = stringResource(
                         id = if (visible) {
@@ -612,7 +613,7 @@ private fun PasswordTextField(
         isError = isError,
         supportingText = {
             if (isError) {
-                Text(stringResource(id = R.string.cloud_backup_field_required))
+                AppText(stringResource(id = R.string.cloud_backup_field_required))
             }
         },
         modifier = Modifier.fillMaxWidth(),
@@ -631,15 +632,15 @@ private fun CloudBackupControls(
     onAutoBackupChange: (Boolean) -> Unit,
 ) {
     if ((selectedSource == BackupSource.GOOGLE_DRIVE && hasGoogleDriveBackup) || canUseSelectedBackup) {
-        Button(
+        AppPrimaryButton(
             onClick = onBackupNow,
             enabled = !isLoading,
             modifier = Modifier.fillMaxWidth(),
         ) {
             if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
+                AppCircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
             }
-            Text(stringResource(id = R.string.cloud_backup_manual_backup))
+            AppText(stringResource(id = R.string.cloud_backup_manual_backup))
         }
         Spacer(modifier = Modifier.height(16.dp))
     }
@@ -651,16 +652,16 @@ private fun CloudBackupControls(
                 .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Checkbox(
+            AppCheckbox(
                 checked = autoBackupEnabled,
                 onCheckedChange = onAutoBackupChange,
             )
             Column {
-                Text(stringResource(id = R.string.cloud_backup_auto_enable))
-                Text(
+                AppText(stringResource(id = R.string.cloud_backup_auto_enable))
+                AppText(
                     text = stringResource(id = R.string.cloud_backup_auto_summary),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    role = AppTextRole.BodySmall,
+                    color = appColor(AppColorRole.OnSurfaceVariant),
                 )
             }
         }
@@ -679,14 +680,14 @@ private fun BackupListSection(
     onRestore: (String) -> Unit,
     onDelete: (String) -> Unit,
 ) {
-    Text(text = title, style = MaterialTheme.typography.titleMedium)
+    AppText(text = title, role = AppTextRole.Subtitle)
     Spacer(modifier = Modifier.height(8.dp))
 
     when {
         isLoading && backups.isEmpty() -> LoadingBackupList(loadingMessage)
-        backups.isEmpty() -> Text(
+        backups.isEmpty() -> AppText(
             text = message ?: stringResource(id = R.string.cloud_backup_no_backups),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = appColor(AppColorRole.OnSurfaceVariant),
         )
         else -> BackupList(backups, listState, message, onRestore, onDelete)
     }
@@ -701,8 +702,8 @@ private fun LoadingBackupList(message: String) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        CircularProgressIndicator()
-        Text(message)
+        AppCircularProgressIndicator()
+        AppText(message)
     }
 }
 
@@ -715,10 +716,10 @@ private fun BackupList(
     onDelete: (String) -> Unit,
 ) {
     message?.let {
-        Text(
+        AppText(
             text = it,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            role = AppTextRole.BodySmall,
+            color = appColor(AppColorRole.OnSurfaceVariant),
         )
         Spacer(modifier = Modifier.height(8.dp))
     }
@@ -750,23 +751,23 @@ private fun BackupListItem(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(
+            AppText(
                 text = backup.source.displayName(),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
+                role = AppTextRole.Footnote,
+                color = appColor(AppColorRole.Primary),
             )
-            Text(backup.name)
-            Text(
+            AppText(backup.name)
+            AppText(
                 text = stringResource(id = R.string.cloud_backup_item_size, backup.size.readableSize()),
-                style = MaterialTheme.typography.bodySmall,
+                role = AppTextRole.BodySmall,
             )
         }
         Row {
-            Button(onClick = onRestore) {
-                Text(stringResource(id = R.string.cloud_backup_restore))
+            AppPrimaryButton(onClick = onRestore) {
+                AppText(stringResource(id = R.string.cloud_backup_restore))
             }
-            Button(onClick = onDelete) {
-                Text(stringResource(id = R.string.cloud_backup_delete))
+            AppPrimaryButton(onClick = onDelete) {
+                AppText(stringResource(id = R.string.cloud_backup_delete))
             }
         }
     }

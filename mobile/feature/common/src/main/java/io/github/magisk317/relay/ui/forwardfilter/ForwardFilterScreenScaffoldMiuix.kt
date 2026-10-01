@@ -18,7 +18,7 @@ import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
-import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Scaffold as MiuixScaffold
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.res.stringResource
@@ -26,9 +26,11 @@ import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.material3.SnackbarHostState
-import io.github.magisk317.uikit.common.DismissibleSnackbarHost
-import top.yukonga.miuix.kmp.basic.TextButton
+import io.github.magisk317.uikit.common.AppSnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarHost
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
+import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
+import io.github.magisk317.uikit.preview.MagiskMultiPreview
 
 /**
  * Miuix chrome for the forward-filter rule screen of the same name
@@ -42,13 +44,13 @@ import top.yukonga.miuix.kmp.basic.TextButton
 internal fun ForwardFilterScreenScaffoldMiuix(
     title: String,
     onBack: () -> Unit,
-    snackbarHostState: SnackbarHostState,
+    snackbarHostState: AppSnackbarHostState,
     onAdd: () -> Unit,
     body: @Composable (PaddingValues) -> Unit
 ) {
     val topGlass = rememberUiKitGlassTopBar()
     val glassOn = LocalUiKitSurfaceBlur.current.usesBackdrop
-    Scaffold(
+    MiuixScaffold(
         topBar = {
             AppTopBar(
                 modifier = Modifier.uiKitSurfaceGlassSample(topGlass),
@@ -63,13 +65,13 @@ internal fun ForwardFilterScreenScaffoldMiuix(
                     }
                 },
                 actions = {
-                    TextButton(text = stringResource(id = R.string.forward_filter_action_add), onClick = onAdd)
+                    MiuixTextButton(text = stringResource(id = R.string.forward_filter_action_add), onClick = onAdd)
                 },
                 windowInsets = WindowInsets.statusBars,
             )
         },
         snackbarHost = {
-            DismissibleSnackbarHost(
+            AppSnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier.navigationBarsPadding(),
             )
@@ -86,4 +88,17 @@ internal fun ForwardFilterScreenScaffoldMiuix(
             body(PaddingValues(top = innerPadding.calculateTopPadding()))
         }
     }
+}
+
+
+@MagiskMultiPreview
+@Composable
+private fun ForwardFilterScreenScaffoldMiuixPreview() {
+    ForwardFilterScreenScaffoldMiuix(
+        title = "Sample",
+        onBack = {},
+        snackbarHostState = AppSnackbarHostState(),
+        onAdd = {},
+        body = { _ -> MiuixText("Preview") },
+    )
 }

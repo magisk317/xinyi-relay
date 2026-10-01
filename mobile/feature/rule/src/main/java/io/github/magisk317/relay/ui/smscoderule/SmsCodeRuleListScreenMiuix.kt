@@ -27,7 +27,7 @@ import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
-import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Scaffold as MiuixScaffold
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.res.stringResource
@@ -41,6 +41,9 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.uikit.surface.AppFloatingActionButton
+import androidx.compose.foundation.lazy.rememberLazyListState
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
+import io.github.magisk317.uikit.preview.MagiskMultiPreview
 
 /**
  * Miuix chrome for the rule screen of the same name:
@@ -64,7 +67,7 @@ internal fun SmsCodeRuleListScreenMiuix(
     val glassOn = LocalUiKitSurfaceBlur.current.usesBackdrop
     val scrollScope = rememberCoroutineScope()
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    Scaffold(
+    MiuixScaffold(
         topBar = {
             Box {
                     AppTopBar(
@@ -133,4 +136,21 @@ internal fun SmsCodeRuleListScreenMiuix(
             )
         }
     }
+}
+
+
+@MagiskMultiPreview
+@Composable
+private fun SmsCodeRuleListScreenMiuixPreview() {
+    SmsCodeRuleListScreenMiuix(
+        title = "SMS code rules",
+        onBack = {},
+        onSourceSettingsClick = {},
+        onRefresh = {},
+        refreshEnabled = true,
+        onAddClick = {},
+        fabContentDescription = "Add rule",
+        listState = rememberLazyListState(),
+        body = { MiuixText("Rule body") },
+    )
 }

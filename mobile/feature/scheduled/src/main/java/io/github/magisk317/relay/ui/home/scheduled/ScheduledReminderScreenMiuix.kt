@@ -13,7 +13,7 @@ import io.github.magisk317.uikit.surface.chromeSurfaceColor
 import io.github.magisk317.uikit.surface.rememberUiKitGlassTopBar
 import io.github.magisk317.uikit.surface.uiKitSurfaceGlassSample
 import io.github.magisk317.uikit.theme.LocalUiKitSurfaceBlur
-import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Scaffold as MiuixScaffold
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.only
@@ -26,8 +26,10 @@ import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.material3.SnackbarHostState
-import io.github.magisk317.uikit.common.DismissibleSnackbarHost
+import io.github.magisk317.uikit.common.AppSnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarHost
+import io.github.magisk317.uikit.preview.MagiskMultiPreview
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
 
 /**
  * Miuix chrome for the scheduled-reminder settings screen of the
@@ -40,12 +42,12 @@ import io.github.magisk317.uikit.common.DismissibleSnackbarHost
 internal fun ScheduledReminderScreenMiuix(
     title: String,
     onBack: () -> Unit,
-    snackbarHostState: SnackbarHostState,
+    snackbarHostState: AppSnackbarHostState,
     body: @Composable (PaddingValues) -> Unit
 ) {
     val topGlass = rememberUiKitGlassTopBar()
     val glassOn = LocalUiKitSurfaceBlur.current.usesBackdrop
-    Scaffold(
+    MiuixScaffold(
         topBar = {
             AppTopBar(
                 modifier = Modifier.uiKitSurfaceGlassSample(topGlass),
@@ -63,7 +65,7 @@ internal fun ScheduledReminderScreenMiuix(
             )
         },
         snackbarHost = {
-            DismissibleSnackbarHost(
+            AppSnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier.navigationBarsPadding(),
             )
@@ -80,4 +82,16 @@ internal fun ScheduledReminderScreenMiuix(
             body(PaddingValues(top = innerPadding.calculateTopPadding()))
         }
     }
+}
+
+
+@MagiskMultiPreview
+@Composable
+private fun ScheduledReminderScreenMiuixPreview() {
+    ScheduledReminderScreenMiuix(
+        title = "Sample",
+        onBack = {},
+        snackbarHostState = AppSnackbarHostState(),
+        body = { _ -> MiuixText("Preview") },
+    )
 }

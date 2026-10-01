@@ -8,14 +8,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CardDefaults
+import io.github.magisk317.uikit.preference.AppCheckbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItemDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,6 +33,12 @@ import io.github.magisk317.uikit.surface.WorkspaceSearchField
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
 import org.koin.compose.viewmodel.koinViewModel
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppCard
+import io.github.magisk317.uikit.surface.AppTextButton
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 
 @Composable
 fun AppNotifySenderBindingScreen(
@@ -90,15 +91,15 @@ LazyColumn(
         )
     }
     item(key = "tip") {
-        OutlinedCard(
+        AppCard(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.outlinedCardColors(containerColor = Color.Transparent),
+            color = Color.Transparent,
         ) {
             Column(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Text(
+                AppText(
                     text = if (draftSelectedIds.isEmpty()) {
                         stringResource(R.string.app_notify_channel_global_summary)
                     } else {
@@ -107,17 +108,15 @@ LazyColumn(
                             draftSelectedIds.size,
                         )
                     },
-                    style = MaterialTheme.typography.bodyMedium,
+                    role = AppTextRole.Body,
                 )
-                Text(
+                AppText(
                     text = stringResource(R.string.app_notify_channel_tip),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    role = AppTextRole.BodySmall,
+                    color = appColor(AppColorRole.OnSurfaceVariant),
                 )
                 RowEnd {
-                    TextButton(onClick = { draftSelectedIds = emptySet() }) {
-                        Text(stringResource(R.string.sender_notify_scope_clear_whitelist))
-                    }
+                    AppTextButton(text = stringResource(R.string.sender_notify_scope_clear_whitelist), onClick = { draftSelectedIds = emptySet() })
                 }
             }
         }
@@ -125,9 +124,9 @@ LazyColumn(
     items(filteredSenders, key = { it.id }) { sender ->
         val checked = sender.id in draftSelectedIds
         val denied = sender.id in deniedBySenderIds
-        OutlinedCard(
+        AppCard(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.outlinedCardColors(containerColor = Color.Transparent),
+            color = Color.Transparent,
         ) {
             Column(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -135,16 +134,16 @@ LazyColumn(
             ) {
                 androidx.compose.material3.ListItem(
                     supportingContent = {
-                        Text(
+                        AppText(
                             text = stringResource(
                                 R.string.sender_notify_scope_sender_id,
                                 sender.id,
                             ),
-                            style = MaterialTheme.typography.bodySmall,
+                            role = AppTextRole.BodySmall,
                         )
                     },
                     trailingContent = {
-                        Checkbox(
+                        AppCheckbox(
                             checked = checked,
                             onCheckedChange = { isChecked ->
                                 draftSelectedIds = if (isChecked) {
@@ -157,17 +156,17 @@ LazyColumn(
                     },
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 ) {
-                    Text(
+                    AppText(
                         text = senderDisplayName(sender, context),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
                 if (checked && denied) {
-                    Text(
+                    AppText(
                         text = stringResource(R.string.app_notify_channel_deny_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
+                        role = AppTextRole.BodySmall,
+                        color = appColor(AppColorRole.Error),
                     )
                 }
             }

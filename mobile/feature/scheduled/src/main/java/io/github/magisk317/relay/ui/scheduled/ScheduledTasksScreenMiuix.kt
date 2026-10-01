@@ -22,7 +22,7 @@ import io.github.magisk317.uikit.surface.chromeSurfaceColor
 import io.github.magisk317.uikit.surface.rememberUiKitGlassTopBar
 import io.github.magisk317.uikit.surface.uiKitSurfaceGlassSample
 import io.github.magisk317.uikit.theme.LocalUiKitSurfaceBlur
-import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Scaffold as MiuixScaffold
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.only
@@ -39,6 +39,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.uikit.surface.AppFloatingActionButton
+import io.github.magisk317.uikit.preview.MagiskMultiPreview
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
+import androidx.compose.foundation.lazy.rememberLazyListState
 
 /**
  * Miuix chrome for the scheduled-task list screen of the same
@@ -60,7 +63,7 @@ internal fun ScheduledTasksScreenMiuix(
     val glassOn = LocalUiKitSurfaceBlur.current.usesBackdrop
     val scrollScope = rememberCoroutineScope()
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    Scaffold(
+    MiuixScaffold(
         topBar = {
             Box {
                 AppTopBar(
@@ -115,4 +118,18 @@ internal fun ScheduledTasksScreenMiuix(
             )
         }
     }
+}
+
+
+@MagiskMultiPreview
+@Composable
+private fun ScheduledTasksScreenMiuixPreview() {
+    ScheduledTasksScreenMiuix(
+        title = "Sample",
+        onBack = {},
+        onAddClick = {},
+        fabContentDescription = "Sample",
+        listState = rememberLazyListState(),
+        body = { _ -> MiuixText("Preview") },
+    )
 }

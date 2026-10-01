@@ -3,7 +3,6 @@
 package io.github.magisk317.relay.ui.smscoderule
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
-
 import android.content.ClipData
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -22,14 +21,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import io.github.magisk317.uikit.surface.AppTextField
+import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -63,6 +56,14 @@ import java.util.regex.Pattern
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppCard
+import io.github.magisk317.uikit.surface.AppIcon
+import io.github.magisk317.uikit.surface.AppIconButton
+import io.github.magisk317.uikit.surface.AppTextButton
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 
 private const val BUILTIN_RULE_EDITOR_ID_ALPHANUMERIC = -101L
 private const val BUILTIN_RULE_EDITOR_ID_DIGITS = -102L
@@ -93,7 +94,7 @@ fun SmsCodeRuleListScreen(
     val context = LocalContext.current
     val repository: AppConfigRepository = koinInject()
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     val listState = rememberLazyListState()
     val removedLabel = stringResource(id = R.string.removed)
     val emptyPrompt = stringResource(id = R.string.rule_list_empty_prompt)
@@ -169,10 +170,10 @@ fun SmsCodeRuleListScreen(
                                 .padding(top = 8.dp, bottom = 12.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Text(
+                            AppText(
                                 text = officialEmptyPrompt,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                role = AppTextRole.Body,
+                                color = appColor(AppColorRole.OnSurfaceVariant),
                             )
                         }
                     }
@@ -198,10 +199,10 @@ fun SmsCodeRuleListScreen(
                                 .padding(top = 8.dp, bottom = 12.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Text(
+                            AppText(
                                 text = emptyPrompt,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                role = AppTextRole.Body,
+                                color = appColor(AppColorRole.OnSurfaceVariant),
                             )
                         }
                     }
@@ -223,10 +224,9 @@ fun SmsCodeRuleListScreen(
                 }
             }
 
-            io.github.magisk317.uikit.common.DismissibleSnackbarHost(
+            io.github.magisk317.uikit.common.AppSnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
                     .navigationBarsPadding(),
             )
         }
@@ -286,14 +286,14 @@ private fun RuleSectionHeader(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text(
+        AppText(
             text = title,
-            style = MaterialTheme.typography.titleMedium,
+            role = AppTextRole.Subtitle,
         )
-        Text(
+        AppText(
             text = summary,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            role = AppTextRole.BodySmall,
+            color = appColor(AppColorRole.OnSurfaceVariant),
         )
     }
 }
@@ -304,28 +304,28 @@ private fun OfficialSmsCodeRuleCard(
     ordinal: Int,
 ) {
     val officialBadge = stringResource(id = R.string.official_rule_badge_format, ordinal)
-    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+    AppCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text(
+            AppText(
                 text = rule.company?.takeIf { it.isNotBlank() } ?: rule.setName,
-                style = MaterialTheme.typography.titleMedium,
+                role = AppTextRole.Subtitle,
             )
-            Text(
+            AppText(
                 text = officialBadge,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
+                role = AppTextRole.Footnote,
+                color = appColor(AppColorRole.Primary),
             )
-            Text(
+            AppText(
                 text = rule.codeKeyword,
-                style = MaterialTheme.typography.bodyMedium,
+                role = AppTextRole.Body,
             )
-            Text(
+            AppText(
                 text = rule.codeRegex,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                role = AppTextRole.BodySmall,
+                color = appColor(AppColorRole.OnSurfaceVariant),
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -341,7 +341,7 @@ private fun SmsCodeRuleCard(
     onDelete: () -> Unit,
 ) {
     val userBadge = stringResource(id = R.string.user_rule_badge_format, ordinal)
-    OutlinedCard(
+    AppCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onEdit),
@@ -351,24 +351,24 @@ private fun SmsCodeRuleCard(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             rule.company?.takeIf { it.isNotBlank() }?.let { company ->
-                Text(
+                AppText(
                     text = company,
-                    style = MaterialTheme.typography.titleMedium,
+                    role = AppTextRole.Subtitle,
                 )
             }
-            Text(
+            AppText(
                 text = userBadge,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
+                role = AppTextRole.Footnote,
+                color = appColor(AppColorRole.Primary),
             )
-            Text(
+            AppText(
                 text = rule.codeKeyword,
-                style = MaterialTheme.typography.bodyLarge,
+                role = AppTextRole.Body,
             )
-            Text(
+            AppText(
                 text = rule.codeRegex,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                role = AppTextRole.BodySmall,
+                color = appColor(AppColorRole.OnSurfaceVariant),
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -376,12 +376,8 @@ private fun SmsCodeRuleCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
             ) {
-                TextButton(onClick = onEdit) {
-                    Text(stringResource(id = R.string.edit))
-                }
-                TextButton(onClick = onDelete) {
-                    Text(stringResource(id = R.string.remove), color = MaterialTheme.colorScheme.error)
-                }
+                AppTextButton(text = stringResource(id = R.string.edit), onClick = onEdit)
+                AppTextButton(text = stringResource(id = R.string.remove), color = appColor(AppColorRole.Error), onClick = onDelete)
             }
         }
     }
@@ -396,7 +392,7 @@ fun SmsCodeRuleEditorScreen(
     val clipboard = LocalClipboard.current
     val repository: AppConfigRepository = koinInject()
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     val builtinRule = remember(ruleId) { builtinRuleByEditorId(ruleId) }
     val isBuiltinRule = builtinRule != null
     val loadFailedText = stringResource(id = R.string.load_failed)
@@ -513,19 +509,19 @@ fun SmsCodeRuleEditorScreen(
                     .navigationBarsPadding(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                OutlinedTextField(
+                AppTextField(
                     value = company,
                     onValueChange = { company = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text(companyLabel) },
-                    placeholder = { Text(stringResource(id = R.string.rule_company_placeholder)) },
-                    supportingText = { Text(if (isBuiltinRule) builtinSummary else rulesSummary) },
+                    label = companyLabel,
+                    placeholderText = stringResource(id = R.string.rule_company_placeholder),
+                    supportingText = { AppText(if (isBuiltinRule) builtinSummary else rulesSummary) },
                     readOnly = isBuiltinRule,
                     enabled = !loading,
                     trailingIcon = if (isBuiltinRule && company.isNotBlank()) {
                         {
-                            IconButton(onClick = { copyField(companyLabel, company) }) {
-                                Icon(Icons.Filled.ContentCopy, contentDescription = copyLabel)
+                            AppIconButton(onClick = { copyField(companyLabel, company) }) {
+                                AppIcon(Icons.Filled.ContentCopy, contentDescription = copyLabel)
                             }
                         }
                     } else {
@@ -533,17 +529,17 @@ fun SmsCodeRuleEditorScreen(
                     },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                AppTextField(
                     value = keyword,
                     onValueChange = { keyword = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text(keywordLabel) },
+                    label = keywordLabel,
                     readOnly = isBuiltinRule,
                     enabled = !loading,
                     trailingIcon = if (isBuiltinRule && keyword.isNotBlank()) {
                         {
-                            IconButton(onClick = { copyField(keywordLabel, keyword) }) {
-                                Icon(Icons.Filled.ContentCopy, contentDescription = copyLabel)
+                            AppIconButton(onClick = { copyField(keywordLabel, keyword) }) {
+                                AppIcon(Icons.Filled.ContentCopy, contentDescription = copyLabel)
                             }
                         }
                     } else {
@@ -551,17 +547,17 @@ fun SmsCodeRuleEditorScreen(
                     },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                AppTextField(
                     value = regex,
                     onValueChange = { regex = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text(regexLabel) },
+                    label = regexLabel,
                     readOnly = isBuiltinRule,
                     enabled = !loading,
                     trailingIcon = if (isBuiltinRule && regex.isNotBlank()) {
                         {
-                            IconButton(onClick = { copyField(regexLabel, regex) }) {
-                                Icon(Icons.Filled.ContentCopy, contentDescription = copyLabel)
+                            AppIconButton(onClick = { copyField(regexLabel, regex) }) {
+                                AppIcon(Icons.Filled.ContentCopy, contentDescription = copyLabel)
                             }
                         }
                     } else {
@@ -571,17 +567,16 @@ fun SmsCodeRuleEditorScreen(
                     singleLine = false,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
+                AppText(
                     text = testGuidance,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    role = AppTextRole.BodySmall,
+                    color = appColor(AppColorRole.OnSurfaceVariant),
                 )
             }
 
-            io.github.magisk317.uikit.common.DismissibleSnackbarHost(
+            io.github.magisk317.uikit.common.AppSnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
                     .navigationBarsPadding(),
             )
         }

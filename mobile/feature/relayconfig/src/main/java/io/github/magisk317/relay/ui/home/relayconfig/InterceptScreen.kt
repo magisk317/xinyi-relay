@@ -3,7 +3,7 @@
 package io.github.magisk317.relay.ui.home.relayconfig
 
 import io.github.magisk317.relay.ui.common.StateSwitchItem
-import io.github.magisk317.relay.ui.common.Item
+import io.github.magisk317.uikit.preference.AppArrowItem
 import io.github.magisk317.uikit.preference.TextInputDialog
 import io.github.magisk317.relay.ui.common.rememberBlacklistHitDateFormat
 
@@ -18,8 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.SnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,6 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
+import io.github.magisk317.uikit.surface.AppHorizontalDivider
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.SmsBlacklistSettingsUpdate
@@ -60,7 +60,7 @@ fun InterceptScreen(
     val recordRepository: MessageRecordRepository = koinInject()
     val blacklistHits by recordRepository.observeSmsBlacklistHits(BLACKLIST_HIT_DISPLAY_LIMIT)
         .collectAsStateWithLifecycle(initialValue = emptyList())
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     val workMode by WorkModeResolver.mode.collectAsStateWithLifecycle()
     val isXposedFeatureAvailable = { feature: StandardModeFeatureGate.Feature ->
         StandardModeFeatureGate.isAvailable(feature, workMode)
@@ -185,7 +185,7 @@ fun InterceptScreen(
                     blockIncomingSms = enabled
                     saveSettingsIfChanged(SmsBlacklistSettingsUpdate(blockIncomingSms = enabled))
                 }
-                Item(
+                AppArrowItem(
                     title = stringResource(R.string.pref_sms_blacklist_numbers_title),
                     summary = buildString {
                         append(formatSummary(smsBlacklistNumbers))
@@ -193,7 +193,7 @@ fun InterceptScreen(
                         append(stringResource(R.string.pref_sms_blacklist_numbers_summary))
                     },
                 ) { showSmsBlacklistNumbersDialog = true }
-                Item(
+                AppArrowItem(
                     title = stringResource(R.string.pref_sms_blacklist_prefixes_title),
                     summary = buildString {
                         append(formatSummary(smsBlacklistPrefixes))
@@ -201,7 +201,7 @@ fun InterceptScreen(
                         append(stringResource(R.string.pref_sms_blacklist_prefixes_summary))
                     },
                 ) { showSmsBlacklistPrefixesDialog = true }
-                Item(
+                AppArrowItem(
                     title = stringResource(R.string.pref_sms_blacklist_regex_title),
                     summary = buildString {
                         append(formatSummary(smsBlacklistRegex))
@@ -209,7 +209,7 @@ fun InterceptScreen(
                         append(stringResource(R.string.pref_sms_blacklist_regex_hint))
                     },
                 ) { showSmsBlacklistRegexDialog = true }
-                Item(
+                AppArrowItem(
                     title = stringResource(R.string.pref_sms_blacklist_content_title),
                     summary = buildString {
                         append(formatSummary(smsBlacklistContent))
@@ -219,8 +219,8 @@ fun InterceptScreen(
                 ) { showSmsBlacklistContentDialog = true }
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = Const.SPACING_SMALL.dp))
-            Item(
+            AppHorizontalDivider(modifier = Modifier.padding(vertical = Const.SPACING_SMALL.dp))
+            AppArrowItem(
                 title = stringResource(R.string.sms_blacklist_hit_list_title),
                 summary = blacklistHitSummary(
                     hits = blacklistHits,

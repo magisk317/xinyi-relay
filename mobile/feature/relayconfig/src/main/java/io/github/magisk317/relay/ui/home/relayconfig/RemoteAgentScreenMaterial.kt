@@ -23,8 +23,8 @@ import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.material3.SnackbarHostState
-import io.github.magisk317.uikit.common.DismissibleSnackbarHost
+import io.github.magisk317.uikit.common.AppSnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarHost
 
 /**
  * Expressive/Material chrome for the remote-agent binding screen
@@ -38,7 +38,7 @@ import io.github.magisk317.uikit.common.DismissibleSnackbarHost
 internal fun RemoteAgentScreenMaterial(
     title: String,
     onBack: () -> Unit,
-    snackbarHostState: SnackbarHostState,
+    snackbarHostState: AppSnackbarHostState,
     body: @Composable (PaddingValues) -> Unit
 ) {
     val topGlass = rememberUiKitGlassTopBar()
@@ -62,7 +62,7 @@ internal fun RemoteAgentScreenMaterial(
             )
         },
         snackbarHost = {
-            DismissibleSnackbarHost(
+            AppSnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier.navigationBarsPadding(),
             )

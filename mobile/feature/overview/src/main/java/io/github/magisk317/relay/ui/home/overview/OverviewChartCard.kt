@@ -11,16 +11,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.model.SenderDispatchStat
@@ -28,6 +24,10 @@ import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.uikit.surface.SummarySectionCard
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 
 internal data class HomeAnalyticsSnapshot(
     val totalMessages: Long,
@@ -119,12 +119,12 @@ private fun HomeChartBody(
 ) {
     val context = LocalContext.current
     val colors = listOf(
-        MaterialTheme.colorScheme.primary,
-        MaterialTheme.colorScheme.tertiary,
-        MaterialTheme.colorScheme.secondary,
-        MaterialTheme.colorScheme.error,
-        MaterialTheme.colorScheme.primaryContainer,
-        MaterialTheme.colorScheme.secondaryContainer,
+        appColor(AppColorRole.Primary),
+        appColor(AppColorRole.Tertiary),
+        appColor(AppColorRole.Secondary),
+        appColor(AppColorRole.Error),
+        appColor(AppColorRole.PrimaryContainer),
+        appColor(AppColorRole.SecondaryContainer),
     )
 
     Column(
@@ -132,10 +132,9 @@ private fun HomeChartBody(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (showTitle) {
-            Text(
+            AppText(
                 text = stringResource(id = R.string.home_card_chart_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+                role = AppTextRole.Subtitle,
             )
         }
 
@@ -240,7 +239,11 @@ private fun PieChart(
                 .height(160.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = emptyText, color = MaterialTheme.colorScheme.outline)
+            AppText(
+                text = emptyText,
+                role = AppTextRole.Body,
+                color = appColor(AppColorRole.Outline),
+            )
         }
         return
     }
@@ -271,11 +274,11 @@ private fun PieChart(
                             .size(10.dp)
                             .background(slice.color, CircleShape),
                     )
-                    Text(text = slice.label, style = MaterialTheme.typography.bodySmall)
-                    Text(
+                    AppText(text = slice.label, role = AppTextRole.BodySmall)
+                    AppText(
                         text = slice.value.toString(),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        role = AppTextRole.BodySmall,
+                        color = appColor(AppColorRole.Outline),
                     )
                 }
             }
@@ -289,7 +292,7 @@ private fun StatLine(label: String, value: Long) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(text = label, style = MaterialTheme.typography.bodyMedium)
-        Text(text = value.toString(), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.End)
+        AppText(text = label, role = AppTextRole.Body)
+        AppText(text = value.toString(), role = AppTextRole.Body)
     }
 }

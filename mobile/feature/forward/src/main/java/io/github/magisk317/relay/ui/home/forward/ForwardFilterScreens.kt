@@ -1,7 +1,6 @@
 package io.github.magisk317.relay.ui.home.forward
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -11,13 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,6 +37,13 @@ import io.github.magisk317.relay.ui.forwardfilter.ForwardFilterScreenScaffold
 import io.github.magisk317.relay.ui.forwardfilter.toEditorState
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppCard
+import io.github.magisk317.uikit.surface.AppHorizontalDivider
+import io.github.magisk317.uikit.surface.AppTextButton
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +53,7 @@ fun GlobalForwardFilterScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     val savedSnackbarText = context.getString(R.string.pref_sync_snackbar)
     var msgType by remember { mutableStateOf(ForwardFilterConst.MSG_TYPE_SMS) }
     val rulesFlow = remember(msgType) { viewModel.globalForwardRulesFlow(msgType) }
@@ -126,7 +127,7 @@ fun AppForwardFilterScreen(
     val normalizedPackageName = remember(packageName) { packageName.trim() }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     val savedSnackbarText = context.getString(R.string.pref_sync_snackbar)
     val headerState by viewModel.appForwardFilterUiState.collectAsStateWithLifecycle()
     val appLabel = if (headerState.packageName == normalizedPackageName) {
@@ -164,7 +165,7 @@ fun AppForwardFilterScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item(key = "package_rules") {
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -176,7 +177,7 @@ fun AppForwardFilterScreen(
                             showPackageEditor = true
                         },
                     )
-                    HorizontalDivider()
+                    AppHorizontalDivider()
                     ForwardFilterRuleList(
                         rules = packageRules,
                         emptyText = stringResource(id = R.string.forward_filter_empty),
@@ -197,7 +198,7 @@ fun AppForwardFilterScreen(
         }
 
         item(key = "channel_rules") {
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -209,7 +210,7 @@ fun AppForwardFilterScreen(
                             showChannelEditor = true
                         },
                     )
-                    HorizontalDivider()
+                    AppHorizontalDivider()
                     ForwardFilterRuleList(
                         rules = channelRules,
                         emptyText = stringResource(id = R.string.forward_filter_empty),
@@ -236,10 +237,10 @@ fun AppForwardFilterScreen(
 
         if (channelCandidates.isNotEmpty()) {
             item(key = "channel_hint") {
-                Text(
+                AppText(
                     text = stringResource(id = R.string.forward_filter_channel_history_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    role = AppTextRole.BodySmall,
+                    color = appColor(AppColorRole.OnSurfaceVariant),
                 )
             }
         }
@@ -348,9 +349,7 @@ private fun SectionHeaderRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
     ) {
-        Text(text = title, style = MaterialTheme.typography.titleSmall)
-        TextButton(onClick = onAddClick) {
-            Text(stringResource(id = R.string.forward_filter_action_add))
-        }
+        AppText(text = title, role = AppTextRole.Subtitle)
+        AppTextButton(text = stringResource(id = R.string.forward_filter_action_add), onClick = onAddClick)
     }
 }

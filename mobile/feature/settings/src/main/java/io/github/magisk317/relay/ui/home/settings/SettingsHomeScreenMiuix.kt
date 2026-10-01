@@ -18,13 +18,15 @@ import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
-import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Scaffold as MiuixScaffold
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.res.stringResource
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
+import io.github.magisk317.uikit.preview.MagiskMultiPreview
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
 
 /**
  * Miuix chrome for the Settings tab of the same name: static top bar
@@ -41,7 +43,7 @@ internal fun SettingsHomeScreenMiuix(
 ) {
     val topGlass = rememberUiKitGlassTopBar()
     val glassOn = LocalUiKitSurfaceBlur.current.usesBackdrop
-    Scaffold(
+    MiuixScaffold(
         topBar = {
             AppTopBar(
                 modifier = Modifier.uiKitSurfaceGlassSample(topGlass),
@@ -74,4 +76,15 @@ internal fun SettingsHomeScreenMiuix(
             body(PaddingValues(top = innerPadding.calculateTopPadding()))
         }
     }
+}
+
+
+@MagiskMultiPreview
+@Composable
+private fun SettingsHomeScreenMiuixPreview() {
+    SettingsHomeScreenMiuix(
+        title = "Sample",
+        onBack = {},
+        body = { _ -> MiuixText("Preview") },
+    )
 }

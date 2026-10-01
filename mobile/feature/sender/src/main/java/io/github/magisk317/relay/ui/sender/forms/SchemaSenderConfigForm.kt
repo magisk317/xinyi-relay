@@ -4,7 +4,9 @@ import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -16,24 +18,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.OutputTransformation
-import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenu
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -45,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -58,11 +50,20 @@ import io.github.magisk317.relay.sender.SenderSettingFieldMetadata
 import io.github.magisk317.relay.sender.SenderSettingFieldType
 import io.github.magisk317.relay.sender.SenderSettingJson
 import io.github.magisk317.relay.sender.SenderSettingSchemas
-import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
+import io.github.magisk317.uikit.foundation.LocalSnackbarHostState
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
+import io.github.magisk317.uikit.preference.AppDropdownMenu
+import io.github.magisk317.uikit.preference.AppSwitch
+import io.github.magisk317.uikit.surface.AppIcon
+import io.github.magisk317.uikit.surface.AppIconButton
+import io.github.magisk317.uikit.surface.AppTextField
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
 import java.util.Date
@@ -133,6 +134,8 @@ private fun SenderSettingDraft.normalizedStructuredFields(): SenderSettingDraft 
     }
     return nextDraft
 }
+
+private const val DROPDOWN_CHEVRON_ROTATION_EXPANDED_DEGREES = 180f
 
 private val PasswordOutputTransformation = OutputTransformation {
     replace(0, length, "•".repeat(length))
@@ -281,10 +284,10 @@ internal fun SchemaSenderConfigForm(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            OutlinedTextField(
+            AppTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text(stringResource(R.string.sender_form_name_label)) },
+                label = stringResource(R.string.sender_form_name_label),
                 modifier = Modifier.fillMaxWidth(),
             )
             fields.forEach { spec ->
@@ -358,7 +361,6 @@ internal fun SchemaSenderConfigForm(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SchemaSenderField(
     spec: SchemaSenderFormFieldSpec,
@@ -383,34 +385,45 @@ private fun SchemaSenderField(
     if (metadata.options.isNotEmpty()) {
         if (metadata.options.size > 3) {
             var expanded by remember { mutableStateOf(false) }
-            val selectedOptionLabel = spec.optionLabelRes[value]?.let { stringResource(it) } ?: value
+            val label = stringResource(spec.labelRes)
+            val optionLabels = metadata.options.map { option ->
+                spec.optionLabelRes[option.value]?.let { stringResource(it) } ?: option.value
+            }
+            val selectedIndex = metadata.options.indexOfFirst { it.value == value }.coerceAtLeast(0)
 
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = it }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded },
             ) {
-                OutlinedTextField(
-                    value = selectedOptionLabel,
+                AppTextField(
+                    value = optionLabels[selectedIndex],
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text(stringResource(spec.labelRes)) },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-                )
-                ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    metadata.options.forEach { option ->
-                        val optionLabel = spec.optionLabelRes[option.value]?.let { stringResource(it) } ?: option.value
-                        DropdownMenuItem(
-                            text = { Text(optionLabel) },
-                            onClick = {
-                                onDraftChange(draft.withString(spec.name, option.value))
-                                expanded = false
-                            }
+                    label = label,
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = {
+                        AppIcon(
+                            imageVector = Icons.Filled.ArrowDropDown,
+                            contentDescription = null,
+                            modifier = Modifier.rotate(
+                                if (expanded) DROPDOWN_CHEVRON_ROTATION_EXPANDED_DEGREES else 0f,
+                            ),
+                            tint = appColor(AppColorRole.OnSurfaceVariant),
                         )
-                    }
-                }
+                    },
+                )
+                AppDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    title = label,
+                    options = optionLabels,
+                    selectedIndex = selectedIndex,
+                    onSelectionChange = { index ->
+                        onDraftChange(draft.withString(spec.name, metadata.options[index].value))
+                        expanded = false
+                    },
+                )
             }
         } else {
             SingleChoiceSegmentedSelector(
@@ -433,8 +446,8 @@ private fun SchemaSenderField(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(stringResource(spec.labelRes))
-            Switch(
+            AppText(stringResource(spec.labelRes), role = AppTextRole.Body)
+            AppSwitch(
                 checked = draft.boolean(spec.name),
                 onCheckedChange = { onDraftChange(draft.withBoolean(spec.name, it)) },
             )
@@ -467,19 +480,22 @@ private fun SchemaSenderField(
             }
     }
 
-    OutlinedTextField(
+    AppTextField(
         state = textFieldState,
-        label = { Text(stringResource(spec.labelRes)) },
-        placeholder = spec.placeholderRes?.let { placeholderRes ->
-            { Text(stringResource(placeholderRes)) }
+        label = stringResource(spec.labelRes),
+        placeholderText = spec.placeholderRes?.let { placeholderRes ->
+            stringResource(placeholderRes)
         },
         supportingText = spec.supportingTextRes?.let { supportingTextRes ->
-            { Text(stringResource(supportingTextRes)) }
+            {
+                AppText(
+                    text = stringResource(supportingTextRes),
+                    role = AppTextRole.BodySmall,
+                    color = appColor(AppColorRole.OnSurfaceVariant),
+                )
+            }
         },
-        lineLimits = TextFieldLineLimits.MultiLine(
-            minHeightInLines = spec.minLines,
-            maxHeightInLines = Int.MAX_VALUE,
-        ),
+        minLines = spec.minLines,
         outputTransformation = if (spec.isSecret && !passwordVisible) {
             PasswordOutputTransformation
         } else {
@@ -487,9 +503,13 @@ private fun SchemaSenderField(
         },
         trailingIcon = if (spec.isSecret) {
             {
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(
-                        imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                AppIconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    AppIcon(
+                        imageVector = if (passwordVisible) {
+                            Icons.Filled.VisibilityOff
+                        } else {
+                            Icons.Filled.Visibility
+                        },
                         contentDescription = null,
                     )
                 }

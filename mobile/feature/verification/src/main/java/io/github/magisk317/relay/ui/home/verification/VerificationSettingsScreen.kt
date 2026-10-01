@@ -2,11 +2,11 @@
 
 package io.github.magisk317.relay.ui.home.verification
 
-import io.github.magisk317.relay.ui.common.SectionCard
+import io.github.magisk317.uikit.preference.SectionCard
 import io.github.magisk317.uikit.preference.SingleChoiceConfirmDialog
 import io.github.magisk317.relay.ui.common.rememberPrefBoolean
 import io.github.magisk317.relay.ui.common.StateSwitchItem
-import io.github.magisk317.relay.ui.common.Item
+import io.github.magisk317.uikit.preference.AppArrowItem
 import io.github.magisk317.uikit.preference.TextInputDialog
 import io.github.magisk317.uikit.common.showLatestSnackbar
 import android.Manifest
@@ -32,7 +32,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.SnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -95,7 +95,7 @@ fun VerificationSettingsScreen(
     val activityOwner = LocalActivity.current as? ComponentActivity
     val lifecycleOwner = LocalLifecycleOwner.current
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     val notifySaved = {
         scope.launch {
             snackbarHostState.showLatestSnackbar(savedSnackbarText)
@@ -428,19 +428,19 @@ fun VerificationSettingsScreen(
                         notifySaved()
                     }
                 }
-                Item(
+                AppArrowItem(
                     title = stringResource(id = R.string.pref_relay_keywords_title),
                     summary = stringResource(id = R.string.pref_relay_keywords_summary),
                 ) { showKeywordsDialog = true }
-                Item(
+                AppArrowItem(
                     title = stringResource(id = R.string.pref_relay_test_title),
                     summary = stringResource(id = R.string.pref_relay_test_summary),
                 ) { showSmsTestDialog = true }
-                Item(
+                AppArrowItem(
                     title = stringResource(id = R.string.pref_code_rules_title),
                     summary = stringResource(id = R.string.pref_code_rules_summary),
                 ) { onOpenRules() }
-                Item(
+                AppArrowItem(
                     title = stringResource(
                         id = R.string.pref_history_limit_title_with_target,
                         stringResource(id = R.string.record_settings_target_code),
@@ -509,11 +509,11 @@ fun VerificationSettingsScreen(
                         notifySaved()
                     }
                 }
-                Item(
+                AppArrowItem(
                     title = stringResource(id = R.string.pref_auto_input_code_delay_title),
                     summary = stringResource(id = R.string.pref_auto_input_code_delay_summary, current.autoInputDelay),
                 ) { showDelayDialog = true }
-                Item(
+                AppArrowItem(
                     title = stringResource(id = R.string.pref_auto_input_code_interval_title),
                     summary = stringResource(id = R.string.pref_auto_input_code_interval_summary, current.autoInputInterval),
                 ) { showIntervalDialog = true }
@@ -570,7 +570,7 @@ fun VerificationSettingsScreen(
                         notifySaved()
                     }
                 }
-                Item(
+                AppArrowItem(
                     title = stringResource(id = R.string.pref_notification_retention_time_title),
                     summary = notificationRetentionEntryLabel(
                         current.notificationRetentionTime,

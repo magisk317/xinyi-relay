@@ -9,5 +9,3 @@ typealias ImmutableListWrapper<T> = io.github.magisk317.uikit.foundation.Immutab
 fun AppLinearLoadingIndicator(modifier: Modifier = Modifier) {
     io.github.magisk317.uikit.foundation.AppLinearLoadingIndicator(modifier = modifier)
 }
-
-val LocalSnackbarHostState = io.github.magisk317.uikit.foundation.LocalSnackbarHostState

@@ -2,8 +2,10 @@
 
 package io.github.magisk317.relay.ui.record
 
+import io.github.magisk317.uikit.common.AppSnackbarDuration
+import io.github.magisk317.uikit.common.AppSnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarResult
 import io.github.magisk317.uikit.common.showLatestSnackbar
-
 import android.graphics.Color as AndroidColor
 import android.content.ClipData
 import android.graphics.Bitmap
@@ -31,6 +33,7 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -74,7 +77,7 @@ import io.github.magisk317.uikit.foundation.SessionLoadingRegistry
 import io.github.magisk317.uikit.preference.AppCheckbox
 import io.github.magisk317.uikit.preference.SingleChoiceConfirmDialog
 import io.github.magisk317.uikit.foundation.rememberMinDurationLoading
-import io.github.magisk317.relay.ui.common.Item
+import io.github.magisk317.uikit.preference.AppArrowItem
 import io.github.magisk317.relay.ui.common.RetentionDialog
 import io.github.magisk317.relay.ui.common.StateSwitchItem
 import io.github.magisk317.uikit.preference.TextInputDialog
@@ -83,11 +86,26 @@ import io.github.magisk317.uikit.surface.WorkspaceListItem
 import io.github.magisk317.uikit.surface.WorkspaceListItemDefaults
 import io.github.magisk317.uikit.surface.WorkspaceListDivider
 import io.github.magisk317.uikit.surface.swipeRevealSurface
+import io.github.magisk317.uikit.surface.AppAlertDialog
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import java.text.SimpleDateFormat
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
+
+import io.github.magisk317.uikit.theme.appColor
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.surface.AppPrimaryButton
+import io.github.magisk317.uikit.surface.AppSecondaryButton
+import io.github.magisk317.uikit.surface.AppSurface
+import io.github.magisk317.uikit.surface.AppTextButton
+import io.github.magisk317.uikit.surface.AppBottomSheet
+import io.github.magisk317.uikit.surface.AppListPopup
+import io.github.magisk317.uikit.surface.AppListPopupItem
+import io.github.magisk317.uikit.theme.AppShapeRole
+import io.github.magisk317.uikit.theme.appShape
 import java.util.*
 
 private enum class RecordExportScope {
@@ -184,7 +202,7 @@ fun CodeRecordScreen(
         actualLoading = isActive && isLoading && shouldShowInitialLoading,
         minDurationMillis = LoadingIndicatorTokens.MIN_VISIBLE_DURATION_MILLIS,
     )
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val iconDensity = LocalDensity.current
@@ -313,9 +331,9 @@ fun CodeRecordScreen(
                 val result = snackbarHostState.showLatestSnackbar(
                     message = context.getString(R.string.some_items_removed, 1),
                     actionLabel = context.getString(R.string.revoke),
-                    duration = SnackbarDuration.Long,
+                    duration = AppSnackbarDuration.Long,
                 )
-                if (result == SnackbarResult.ActionPerformed) {
+                if (result == AppSnackbarResult.ActionPerformed) {
                     viewModel.restoreSmsMsgList(listOf(target))
                 }
             }
@@ -334,9 +352,9 @@ fun CodeRecordScreen(
             val result = snackbarHostState.showLatestSnackbar(
                 message = context.getString(R.string.some_items_removed, deleteList.size),
                 actionLabel = context.getString(R.string.revoke),
-                duration = SnackbarDuration.Long,
+                duration = AppSnackbarDuration.Long,
             )
-            if (result == SnackbarResult.ActionPerformed) {
+            if (result == AppSnackbarResult.ActionPerformed) {
                 viewModel.restoreSmsMsgList(deleteList)
             }
         }
@@ -354,86 +372,85 @@ fun CodeRecordScreen(
             }
         }
 
-    if (showSettingsSheet) {
-        val currentTabName = stringResource(recordTabNameRes(selectedRecordTab))
-        val currentRecordEnabled = when (selectedRecordTab) {
-            0 -> codeRecordEnabled
-            1 -> plainRecordEnabled
-            2 -> appNotifyRecordEnabled
-            else -> callNotifyRecordEnabled
-        }
-        val currentHistoryLimit = when (selectedRecordTab) {
-            0 -> historyLimitCode
-            1 -> historyLimitPlain
-            2 -> historyLimitAppNotify
-            else -> historyLimitCallNotify
-        }
-        ModalBottomSheet(
-            onDismissRequest = { showSettingsSheet = false },
+    val currentTabName = stringResource(recordTabNameRes(selectedRecordTab))
+    val currentRecordEnabled = when (selectedRecordTab) {
+        0 -> codeRecordEnabled
+        1 -> plainRecordEnabled
+        2 -> appNotifyRecordEnabled
+        else -> callNotifyRecordEnabled
+    }
+    val currentHistoryLimit = when (selectedRecordTab) {
+        0 -> historyLimitCode
+        1 -> historyLimitPlain
+        2 -> historyLimitAppNotify
+        else -> historyLimitCallNotify
+    }
+    AppBottomSheet(
+        show = showSettingsSheet,
+        onDismissRequest = { showSettingsSheet = false },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                StateSwitchItem(
-                    title = stringResource(id = recordEnableTitleRes(selectedRecordTab)),
-                    summary = "",
-                    checked = currentRecordEnabled,
-                ) { enabled ->
-                    when (selectedRecordTab) {
-                        0 -> codeRecordEnabled = enabled
-                        1 -> plainRecordEnabled = enabled
-                        2 -> appNotifyRecordEnabled = enabled
-                        else -> callNotifyRecordEnabled = enabled
-                    }
-                    scope.launch {
-                        settingsRepository.updateRecordSettings(
-                            when (selectedRecordTab) {
-                                0 -> RecordSettingsUpdate(codeRecordEnabled = enabled)
-                                1 -> RecordSettingsUpdate(plainSmsRecordEnabled = enabled)
-                                2 -> RecordSettingsUpdate(appNotifyRecordEnabled = enabled)
-                                else -> RecordSettingsUpdate(callNotifyRecordEnabled = enabled)
-                            },
-                        )
-                        snackbarHostState.showLatestSnackbar(savedSnackbarText)
-                    }
+            StateSwitchItem(
+                title = stringResource(id = recordEnableTitleRes(selectedRecordTab)),
+                summary = "",
+                checked = currentRecordEnabled,
+            ) { enabled ->
+                when (selectedRecordTab) {
+                    0 -> codeRecordEnabled = enabled
+                    1 -> plainRecordEnabled = enabled
+                    2 -> appNotifyRecordEnabled = enabled
+                    else -> callNotifyRecordEnabled = enabled
                 }
-
-                Item(
-                    title = stringResource(
-                        id = R.string.pref_history_limit_title_with_target,
-                        currentTabName,
-                    ),
-                    summary = run {
-                        val entries = stringArrayResource(id = R.array.history_limit_entry_list)
-                        val values = stringArrayResource(id = R.array.history_limit_value_list)
-                        val index = values.indexOf(currentHistoryLimit)
-                        if (index >= 0) {
-                            entries[index]
-                        } else {
-                            "$currentHistoryLimit ${stringResource(recordTabNameRes(selectedRecordTab))}"
-                        }
-                    },
-                ) { showHistoryLimitDialog = true }
-
-                Item(
-                    title = stringResource(id = R.string.record_settings_clear_current_tab),
-                    summary = currentTabName,
-                    enabled = queryState.recordsForTab(selectedRecordTab).isNotEmpty(),
-                ) { showClearDialog = true }
-
-                Item(
-                    title = stringResource(id = R.string.record_export_dialog_title),
-                    summary = "",
-                ) {
-                    exportScope = RecordExportScope.CURRENT_TAB
-                    showExportDialog = true
+                scope.launch {
+                    settingsRepository.updateRecordSettings(
+                        when (selectedRecordTab) {
+                            0 -> RecordSettingsUpdate(codeRecordEnabled = enabled)
+                            1 -> RecordSettingsUpdate(plainSmsRecordEnabled = enabled)
+                            2 -> RecordSettingsUpdate(appNotifyRecordEnabled = enabled)
+                            else -> RecordSettingsUpdate(callNotifyRecordEnabled = enabled)
+                        },
+                    )
+                    snackbarHostState.showLatestSnackbar(savedSnackbarText)
                 }
-
-                Spacer(modifier = Modifier.height(12.dp))
             }
+
+            AppArrowItem(
+                title = stringResource(
+                    id = R.string.pref_history_limit_title_with_target,
+                    currentTabName,
+                ),
+                summary = run {
+                    val entries = stringArrayResource(id = R.array.history_limit_entry_list)
+                    val values = stringArrayResource(id = R.array.history_limit_value_list)
+                    val index = values.indexOf(currentHistoryLimit)
+                    if (index >= 0) {
+                        entries[index]
+                    } else {
+                        "$currentHistoryLimit ${stringResource(recordTabNameRes(selectedRecordTab))}"
+                    }
+                },
+            ) { showHistoryLimitDialog = true }
+
+            AppArrowItem(
+                title = stringResource(id = R.string.record_settings_clear_current_tab),
+                summary = currentTabName,
+                enabled = queryState.recordsForTab(selectedRecordTab).isNotEmpty(),
+            ) { showClearDialog = true }
+
+            AppArrowItem(
+                title = stringResource(id = R.string.record_export_dialog_title),
+                summary = "",
+            ) {
+                exportScope = RecordExportScope.CURRENT_TAB
+                showExportDialog = true
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
         }
     }
 
@@ -604,13 +621,12 @@ fun CodeRecordScreen(
 
     if (showClearDialog) {
         val currentTabName = stringResource(recordTabNameRes(selectedRecordTab))
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = { showClearDialog = false },
-            title = { Text(stringResource(R.string.record_clear_dialog_title)) },
-            text = { Text(stringResource(R.string.record_clear_dialog_message, currentTabName)) },
+            title = { AppText(stringResource(R.string.record_clear_dialog_title)) },
+            text = { AppText(stringResource(R.string.record_clear_dialog_message, currentTabName)) },
             confirmButton = {
-                TextButton(
-                    onClick = {
+                AppTextButton(text = stringResource(R.string.action_clear_records), onClick = {
                         val deleteList = activeSmsList.toList()
                         if (deleteList.isNotEmpty()) {
                             viewModel.removeSmsMsg(deleteList)
@@ -618,23 +634,18 @@ fun CodeRecordScreen(
                                 val result = snackbarHostState.showLatestSnackbar(
                                     message = context.getString(R.string.some_items_removed, deleteList.size),
                                     actionLabel = context.getString(R.string.revoke),
-                                    duration = SnackbarDuration.Long,
+                                    duration = AppSnackbarDuration.Long,
                                 )
-                                if (result == SnackbarResult.ActionPerformed) {
+                                if (result == AppSnackbarResult.ActionPerformed) {
                                     viewModel.restoreSmsMsgList(deleteList)
                                 }
                             }
                         }
                         showClearDialog = false
-                    },
-                ) {
-                    Text(stringResource(R.string.action_clear_records))
-                }
+                    })
             },
             dismissButton = {
-                TextButton(onClick = { showClearDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
+                AppTextButton(text = stringResource(R.string.cancel), onClick = { showClearDialog = false })
             },
         )
     }
@@ -689,23 +700,23 @@ fun CodeRecordScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center,
                             ) {
-                                Icon(
+                                AppIcon(
                                     imageVector = icon,
                                     contentDescription = null,
                                     tint = if (selected) {
-                                        MaterialTheme.colorScheme.primary
+                                        appColor(AppColorRole.Primary)
                                     } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                        appColor(AppColorRole.OnSurfaceVariant)
                                     },
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text(
+                                AppText(
                                     text = text,
-                                    style = MaterialTheme.typography.labelMedium,
+                                    role = AppTextRole.Footnote,
                                     color = if (selected) {
-                                        MaterialTheme.colorScheme.primary
+                                        appColor(AppColorRole.Primary)
                                     } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                        appColor(AppColorRole.OnSurfaceVariant)
                                     },
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
@@ -755,11 +766,11 @@ fun CodeRecordScreen(
                                     summary = activeEmptyHint,
                                     modifier = Modifier.fillMaxSize(),
                                     icon = {
-                                        Icon(
+                                        AppIcon(
                                             imageVector = Icons.Default.Email,
                                             contentDescription = null,
                                             modifier = Modifier.size(64.dp),
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            tint = appColor(AppColorRole.OnSurfaceVariant),
                                         )
                                     },
                                 )
@@ -890,10 +901,9 @@ fun CodeRecordScreen(
             )
         }
 
-        io.github.magisk317.uikit.common.DismissibleSnackbarHost(
+        io.github.magisk317.uikit.common.AppSnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
-                .align(Alignment.BottomCenter)
                 .padding(bottom = effectiveBottomPadding),
         )
     }
@@ -929,14 +939,14 @@ private fun RecordDetailOverlay(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.28f))
+            .background(appColor(AppColorRole.Scrim).copy(alpha = 0.28f))
             .clickable(
                 interactionSource = dismissInteraction,
                 indication = null,
             ) { onDismiss() },
         contentAlignment = Alignment.Center,
     ) {
-        Surface(
+        AppSurface(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
@@ -944,10 +954,10 @@ private fun RecordDetailOverlay(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
                 ) {},
-            shape = MaterialTheme.shapes.extraLarge,
+            shape = appShape(AppShapeRole.ExtraLarge),
             tonalElevation = 6.dp,
             shadowElevation = 12.dp,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            color = appColor(AppColorRole.SurfaceContainerHigh),
         ) {
             Column(
                 modifier = Modifier.padding(20.dp),
@@ -958,14 +968,14 @@ private fun RecordDetailOverlay(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
+                    AppText(
                         text = stringResource(detailTitleRes),
-                        style = MaterialTheme.typography.titleLarge,
+                        role = AppTextRole.Title,
                     )
-                    Text(
+                    AppText(
                         text = stringResource(R.string.detail_click_copy_hint),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        role = AppTextRole.Footnote,
+                        color = appColor(AppColorRole.OnSurfaceVariant),
                     )
                 }
                 Column(
@@ -980,14 +990,14 @@ private fun RecordDetailOverlay(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        Text(
+                        AppText(
                             text = "${stringResource(R.string.detail_app)}:",
-                            style = MaterialTheme.typography.bodyMedium,
+                            role = AppTextRole.Body,
                         )
-                        Text(
+                        AppText(
                             text = appDisplayName,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary,
+                            role = AppTextRole.Body,
+                            color = appColor(AppColorRole.Primary),
                             modifier = Modifier.clickable {
                                 val message = context.getString(
                                     R.string.prompt_field_copied,
@@ -1002,14 +1012,14 @@ private fun RecordDetailOverlay(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text(
+                    AppText(
                         text = "${stringResource(R.string.detail_sender)}:",
-                        style = MaterialTheme.typography.bodyMedium,
+                        role = AppTextRole.Body,
                     )
-                    Text(
+                    AppText(
                         text = sender,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                        role = AppTextRole.Body,
+                        color = appColor(AppColorRole.Primary),
                         modifier = Modifier.clickable {
                             val message = context.getString(
                                 R.string.prompt_field_copied,
@@ -1023,14 +1033,14 @@ private fun RecordDetailOverlay(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text(
+                    AppText(
                         text = "${stringResource(R.string.detail_original_time)}:",
-                        style = MaterialTheme.typography.bodyMedium,
+                        role = AppTextRole.Body,
                     )
-                    Text(
+                    AppText(
                         text = originalTime,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                        role = AppTextRole.Body,
+                        color = appColor(AppColorRole.Primary),
                         modifier = if (sms.date > 0L) {
                             Modifier.clickable {
                                 val message = context.getString(
@@ -1048,14 +1058,14 @@ private fun RecordDetailOverlay(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text(
+                    AppText(
                         text = "${stringResource(R.string.detail_processed_time)}:",
-                        style = MaterialTheme.typography.bodyMedium,
+                        role = AppTextRole.Body,
                     )
-                    Text(
+                    AppText(
                         text = processedTime,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                        role = AppTextRole.Body,
+                        color = appColor(AppColorRole.Primary),
                         modifier = if (sms.processedTime > 0L) {
                             Modifier.clickable {
                                 val message = context.getString(
@@ -1069,14 +1079,14 @@ private fun RecordDetailOverlay(
                         },
                     )
                 }
-                Text(
+                AppText(
                     text = "${stringResource(R.string.detail_content)}:",
-                    style = MaterialTheme.typography.bodyMedium,
+                    role = AppTextRole.Body,
                 )
-                Text(
+                AppText(
                     text = content,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    role = AppTextRole.Body,
+                    color = appColor(AppColorRole.Primary),
                     modifier = Modifier.clickable {
                         if (content.isNotEmpty()) {
                             val message = context.getString(
@@ -1091,115 +1101,107 @@ private fun RecordDetailOverlay(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text(
+                    AppText(
                         text = "${stringResource(R.string.detail_forward_status)}:",
-                        style = MaterialTheme.typography.bodyMedium,
+                        role = AppTextRole.Body,
                     )
-                    Text(
+                    AppText(
                         text = forwardStatusAnnotated,
-                        style = MaterialTheme.typography.bodyMedium,
+                        role = AppTextRole.Body,
                     )
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text(
+                    AppText(
                         text = "${stringResource(R.string.detail_forward_target)}:",
-                        style = MaterialTheme.typography.bodyMedium,
+                        role = AppTextRole.Body,
                     )
-                    Text(
+                    AppText(
                         text = forwardTarget,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                        role = AppTextRole.Body,
+                        color = appColor(AppColorRole.Primary),
                     )
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text(
+                    AppText(
                         text = "${stringResource(R.string.detail_forward_time)}:",
-                        style = MaterialTheme.typography.bodyMedium,
+                        role = AppTextRole.Body,
                     )
-                    Text(
+                    AppText(
                         text = forwardTime,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                        role = AppTextRole.Body,
+                        color = appColor(AppColorRole.Primary),
                     )
                 }
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text(
+                    AppText(
                         text = "${stringResource(R.string.detail_forward_message)}:",
-                        style = MaterialTheme.typography.bodyMedium,
+                        role = AppTextRole.Body,
                     )
-                    Text(
+                    AppText(
                         text = forwardMessageAnnotated,
-                        style = MaterialTheme.typography.bodyMedium,
+                        role = AppTextRole.Body,
                     )
                 }
                 }
                 WorkspaceListDivider()
-                ButtonGroup(
+                var showOverflowMenu by remember { mutableStateOf(false) }
+                val refundLabel = stringResource(if (isAppNotification) R.string.refund_notification else R.string.refund_sms)
+                Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    overflowIndicator = { menuState ->
-                        ButtonGroupDefaults.OverflowIndicator(menuState = menuState)
-                    },
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    customItem(
-                        buttonGroupContent = {
-                            OutlinedButton(
-                                modifier = Modifier.weight(1f),
-                                onClick = {
+                    AppSecondaryButton(
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            onRefund()
+                            onDismiss()
+                        },
+                    ) {
+                        AppText(refundLabel)
+                    }
+                    AppPrimaryButton(
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            onDelete()
+                            onDismiss()
+                        },
+                        containerColor = appColor(AppColorRole.ErrorContainer),
+                        contentColor = appColor(AppColorRole.OnErrorContainer),
+                    ) {
+                        AppText(stringResource(deleteTextRes))
+                    }
+                    Box {
+                        AppIconButton(onClick = { showOverflowMenu = true }) {
+                            AppIcon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = stringResource(R.string.more_options),
+                            )
+                        }
+                        AppListPopup(
+                            show = showOverflowMenu,
+                            onDismissRequest = { showOverflowMenu = false },
+                            items = listOf(
+                                AppListPopupItem(label = refundLabel) {
                                     onRefund()
                                     onDismiss()
                                 },
-                            ) {
-                                Text(stringResource(if (isAppNotification) R.string.refund_notification else R.string.refund_sms))
-                            }
-                        },
-                        menuContent = { menuState ->
-                            DropdownMenuItem(
-                                text = { Text(stringResource(if (isAppNotification) R.string.refund_notification else R.string.refund_sms)) },
-                                onClick = {
-                                    onRefund()
-                                    menuState.dismiss()
-                                    onDismiss()
-                                },
-                            )
-                        },
-                    )
-                    customItem(
-                        buttonGroupContent = {
-                            Button(
-                                modifier = Modifier.weight(1f),
-                                onClick = {
+                                AppListPopupItem(label = stringResource(deleteTextRes)) {
                                     onDelete()
                                     onDismiss()
                                 },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                                ),
-                            ) {
-                                Text(stringResource(deleteTextRes))
-                            }
-                        },
-                        menuContent = { menuState ->
-                            DropdownMenuItem(
-                                text = { Text(stringResource(deleteTextRes)) },
-                                onClick = {
-                                    onDelete()
-                                    menuState.dismiss()
-                                    onDismiss()
-                                },
-                            )
-                        },
-                    )
+                            ),
+                        )
+                    }
                 }
             }
         }
@@ -1289,7 +1291,7 @@ private fun resolveForwardMessageAnnotated(rawMessage: String?): AnnotatedString
             val color = when {
                 line.contains(successLabel) -> FORWARD_SUCCESS_COLOR
                 line.contains(failedLabel) -> FORWARD_FAILED_COLOR
-                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                else -> appColor(AppColorRole.OnSurfaceVariant)
             }
             pushStyle(SpanStyle(color = color))
             append("${index + 1}. $line")
@@ -1432,12 +1434,11 @@ private fun RecordSplitColumn(
     ReportLazyListScrollToChrome(listState, scrollChromeState)
     io.github.magisk317.uikit.surface.ScrollToTopEffect(listState, scrollToTopSignal)
     val isMiuix = currentUiKitStyle() == UiKitStyle.Miuix
-    Surface(
+    AppSurface(
         modifier = modifier,
-        shape = MaterialTheme.shapes.large,
+        shape = appShape(AppShapeRole.Large),
         tonalElevation = 2.dp,
         color = Color.Transparent,
-        shadowElevation = 0.dp,
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             if (showHeader) {
@@ -1448,16 +1449,16 @@ private fun RecordSplitColumn(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
+                    AppText(
                         text = title,
-                        style = MaterialTheme.typography.titleSmall,
+                        role = AppTextRole.Subtitle,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Text(
+                    AppText(
                         text = list.size.toString(),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        role = AppTextRole.Footnote,
+                        color = appColor(AppColorRole.OnSurfaceVariant),
                     )
                 }
                 WorkspaceListDivider()
@@ -1470,10 +1471,10 @@ private fun RecordSplitColumn(
                         .padding(horizontal = 12.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(
+                    AppText(
                         text = emptyHint,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        role = AppTextRole.Body,
+                        color = appColor(AppColorRole.OnSurfaceVariant),
                     )
                 }
             } else {
@@ -1532,7 +1533,7 @@ private fun RecordSplitColumn(
                                         modifier = Modifier
                                             .then(
                                                 swipeRevealSurface(
-                                                    color = MaterialTheme.colorScheme.errorContainer,
+                                                    color = appColor(AppColorRole.ErrorContainer),
                                                 ),
                                             )
                                             .padding(horizontal = 24.dp),
@@ -1544,10 +1545,10 @@ private fun RecordSplitColumn(
                                             Alignment.CenterEnd
                                         },
                                     ) {
-                                        Icon(
+                                        AppIcon(
                                             imageVector = Icons.Default.Delete,
                                             contentDescription = stringResource(R.string.remove),
-                                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                                            tint = appColor(AppColorRole.OnErrorContainer),
                                         )
                                     }
                                 },
@@ -1632,7 +1633,7 @@ fun CodeRecordItem(
     WorkspaceListItem(
         modifier = modifier,
         containerColor = if (isSelected) {
-            MaterialTheme.colorScheme.primaryContainer
+            appColor(AppColorRole.PrimaryContainer)
         } else {
             Color.Transparent
         },
@@ -1660,12 +1661,12 @@ fun CodeRecordItem(
         },
         supportingContent = {
             val forwardStatusAnnotated = resolveForwardStatusAnnotated(smsMsg)
-            Text(
+            AppText(
                 text = buildAnnotatedString {
                     append("${stringResource(R.string.detail_forward_status)}: ")
                     append(forwardStatusAnnotated)
                 },
-                style = MaterialTheme.typography.labelSmall,
+                role = AppTextRole.Footnote,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -1680,10 +1681,10 @@ fun CodeRecordItem(
                 hasCode -> smsMsg.smsCode.orEmpty()
                 else -> compactSenderTitle(smsMsg.sender, fallbackLabel)
             }
-            Text(
+            AppText(
                 text = codeOrSender,
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.primary,
+                role = AppTextRole.Title,
+                color = appColor(AppColorRole.Primary),
                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -1691,19 +1692,19 @@ fun CodeRecordItem(
                     .weight(1f)
                     .padding(end = 8.dp),
             )
-            Text(
+            AppText(
                 text = dateFormatter.format(Date(smsMsg.date)),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                role = AppTextRole.BodySmall,
+                color = appColor(AppColorRole.OnSurfaceVariant),
                 maxLines = 1,
                 textAlign = TextAlign.End,
             )
         }
         val body = smsMsg.body
         if (!body.isNullOrEmpty()) {
-            Text(
+            AppText(
                 text = body,
-                style = MaterialTheme.typography.bodyMedium,
+                role = AppTextRole.Body,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.clickable { onDetailClick() },
@@ -1735,7 +1736,7 @@ fun AppNotificationItem(
     WorkspaceListItem(
         modifier = modifier,
         containerColor = if (isSelected) {
-            MaterialTheme.colorScheme.primaryContainer
+            appColor(AppColorRole.PrimaryContainer)
         } else {
             Color.Transparent
         },
@@ -1759,12 +1760,12 @@ fun AppNotificationItem(
         },
         supportingContent = {
             val forwardStatusAnnotated = resolveForwardStatusAnnotated(smsMsg)
-            Text(
+            AppText(
                 text = buildAnnotatedString {
                     append("${stringResource(R.string.detail_forward_status)}: ")
                     append(forwardStatusAnnotated)
                 },
-                style = MaterialTheme.typography.labelSmall,
+                role = AppTextRole.Footnote,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -1774,32 +1775,32 @@ fun AppNotificationItem(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Top,
         ) {
-            Text(
+            AppText(
                 text = displayLabel,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                role = AppTextRole.BodySmall,
+                color = appColor(AppColorRole.OnSurfaceVariant),
                 maxLines = 1,
                 modifier = Modifier.weight(1f).padding(end = 8.dp)
             )
-            Text(
+            AppText(
                 text = dateFormatter.format(Date(smsMsg.date)),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                role = AppTextRole.BodySmall,
+                color = appColor(AppColorRole.OnSurfaceVariant),
             )
         }
-        Text(
+        AppText(
             text = smsMsg.sender ?: "",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
+            role = AppTextRole.Body,
+            color = appColor(AppColorRole.OnSurface),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
         val body = smsMsg.body
         if (!body.isNullOrEmpty()) {
-            Text(
+            AppText(
                 text = body,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                role = AppTextRole.Body,
+                color = appColor(AppColorRole.OnSurfaceVariant),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.clickable { onDetailClick() },

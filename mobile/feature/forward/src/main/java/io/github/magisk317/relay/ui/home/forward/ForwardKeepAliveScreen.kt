@@ -1,8 +1,8 @@
 package io.github.magisk317.relay.ui.home.forward
 
-import io.github.magisk317.relay.ui.common.SectionCard
+import io.github.magisk317.uikit.preference.SectionCard
 import io.github.magisk317.relay.ui.common.StateSwitchItem
-import io.github.magisk317.relay.ui.common.Item
+import io.github.magisk317.uikit.preference.AppArrowItem
 import io.github.magisk317.uikit.preference.TextInputDialog
 import io.github.magisk317.uikit.common.showLatestSnackbar
 import androidx.compose.foundation.layout.Arrangement
@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.SnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -55,7 +55,7 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
     val repository: SettingsPreferencesRepository = koinInject()
     val scope = rememberCoroutineScope()
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     val notifySaved = {
         scope.launch {
             snackbarHostState.showLatestSnackbar(savedSnackbarText)
@@ -130,7 +130,7 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
                         notifySaved()
                     }
                 }
-                Item(
+                AppArrowItem(
                     title = stringResource(id = R.string.pref_root_db_catchup_interval_title),
                     summary = stringResource(
                         id = R.string.pref_root_db_catchup_interval_summary,

@@ -27,13 +27,16 @@ import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
-import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Scaffold as MiuixScaffold
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.uikit.surface.AppFloatingActionButton
+import io.github.magisk317.uikit.preview.MagiskMultiPreview
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
+import androidx.compose.foundation.lazy.rememberLazyListState
 
 /**
  * Miuix chrome for the rule screen of the same name:
@@ -53,7 +56,7 @@ internal fun RuleListScreenMiuix(
     val glassOn = LocalUiKitSurfaceBlur.current.usesBackdrop
     val scrollScope = rememberCoroutineScope()
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    Scaffold(
+    MiuixScaffold(
         topBar = {
             Box {
                     AppTopBar(
@@ -100,4 +103,17 @@ internal fun RuleListScreenMiuix(
             )
         }
     }
+}
+
+
+@MagiskMultiPreview
+@Composable
+private fun RuleListScreenMiuixPreview() {
+    RuleListScreenMiuix(
+        title = "Sample",
+        onAddClick = {},
+        fabContentDescription = "Sample",
+        listState = rememberLazyListState(),
+        body = { _ -> MiuixText("Preview") },
+    )
 }

@@ -18,7 +18,7 @@ import androidx.activity.compose.LocalActivity
 import io.github.magisk317.relay.feature.mode.BatteryOptimizationHelper
 import io.github.magisk317.relay.feature.mode.WorkMode
 import io.github.magisk317.relay.feature.mode.WorkModeResolver
-import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
+import io.github.magisk317.uikit.foundation.LocalSnackbarHostState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
@@ -517,7 +517,7 @@ private fun OverviewCardItem(
     onDiagnosticsToggle: () -> Unit,
 ) {
     val scope = androidx.compose.runtime.rememberCoroutineScope()
-    val snackbarHostState = io.github.magisk317.relay.ui.common.LocalSnackbarHostState.current
+    val snackbarHostState = io.github.magisk317.uikit.foundation.LocalSnackbarHostState.current
     val dragEnabled = editMode
     HomeCardContainer(
         editMode = editMode,

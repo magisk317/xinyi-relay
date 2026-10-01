@@ -13,7 +13,7 @@ import io.github.magisk317.uikit.surface.chromeSurfaceColor
 import io.github.magisk317.uikit.surface.rememberUiKitGlassTopBar
 import io.github.magisk317.uikit.surface.uiKitSurfaceGlassSample
 import io.github.magisk317.uikit.theme.LocalUiKitSurfaceBlur
-import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Scaffold as MiuixScaffold
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.only
@@ -26,9 +26,11 @@ import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.material3.SnackbarHostState
-import io.github.magisk317.uikit.common.DismissibleSnackbarHost
+import io.github.magisk317.uikit.common.AppSnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarHost
 import androidx.compose.material.icons.filled.Check
+import io.github.magisk317.uikit.preview.MagiskMultiPreview
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
 
 /**
  * Miuix chrome for the scheduled-task config screen of the same
@@ -43,12 +45,12 @@ internal fun ScheduledTaskConfigScreenMiuix(
     title: String,
     onBack: () -> Unit,
     onSave: () -> Unit,
-    snackbarHostState: SnackbarHostState,
+    snackbarHostState: AppSnackbarHostState,
     body: @Composable (PaddingValues) -> Unit
 ) {
     val topGlass = rememberUiKitGlassTopBar()
     val glassOn = LocalUiKitSurfaceBlur.current.usesBackdrop
-    Scaffold(
+    MiuixScaffold(
         topBar = {
             AppTopBar(
                 modifier = Modifier.uiKitSurfaceGlassSample(topGlass),
@@ -74,7 +76,7 @@ internal fun ScheduledTaskConfigScreenMiuix(
             )
         },
         snackbarHost = {
-            DismissibleSnackbarHost(
+            AppSnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier.navigationBarsPadding(),
             )
@@ -91,4 +93,17 @@ internal fun ScheduledTaskConfigScreenMiuix(
             body(PaddingValues(top = innerPadding.calculateTopPadding()))
         }
     }
+}
+
+
+@MagiskMultiPreview
+@Composable
+private fun ScheduledTaskConfigScreenMiuixPreview() {
+    ScheduledTaskConfigScreenMiuix(
+        title = "Sample",
+        onBack = {},
+        onSave = {},
+        snackbarHostState = AppSnackbarHostState(),
+        body = { _ -> MiuixText("Preview") },
+    )
 }

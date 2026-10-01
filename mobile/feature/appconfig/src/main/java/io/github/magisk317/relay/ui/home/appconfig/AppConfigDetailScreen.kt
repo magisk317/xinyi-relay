@@ -3,20 +3,12 @@
 package io.github.magisk317.relay.ui.home.appconfig
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
-
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
+import io.github.magisk317.uikit.common.AppSnackbarHostState
+import io.github.magisk317.uikit.preference.AppSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -36,6 +28,13 @@ import org.koin.compose.viewmodel.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlinx.coroutines.launch
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppCard
+import io.github.magisk317.uikit.surface.AppHorizontalDivider
+import io.github.magisk317.uikit.surface.AppTextButton
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 
 @Composable
 fun AppConfigDetailScreen(
@@ -51,7 +50,7 @@ fun AppConfigDetailScreen(
         .collectAsStateWithLifecycle(initialValue = emptyList())
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
 
     val appConfigDetailBody: @Composable (PaddingValues) -> Unit = { listPadding ->
 if (app == null) {
@@ -63,7 +62,7 @@ if (app == null) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(text = stringResource(R.string.app_config_detail_not_found))
+        AppText(text = stringResource(R.string.app_config_detail_not_found))
     }
 } else {
 
@@ -75,10 +74,8 @@ if (app == null) {
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            ),
+        AppCard(
+            color = appColor(AppColorRole.SurfaceContainer),
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 ConfigToggleRow(
@@ -91,7 +88,7 @@ if (app == null) {
                         }
                     },
                 )
-                HorizontalDivider()
+                AppHorizontalDivider()
                 ConfigToggleRow(
                     title = stringResource(R.string.label_app_notify_source_enabled),
                     checked = app.forwarding,
@@ -102,11 +99,11 @@ if (app == null) {
                         }
                     },
                 )
-                HorizontalDivider()
+                AppHorizontalDivider()
                 androidx.compose.material3.ListItem(
                     supportingContent = {
                         val count = viewModel.getAppNotifyBindingCount(app.packageName)
-                        Text(
+                        AppText(
                             text = if (count <= 0) {
                                 stringResource(R.string.app_notify_channel_global_summary)
                             } else {
@@ -115,25 +112,21 @@ if (app == null) {
                         )
                     },
                     trailingContent = {
-                        TextButton(onClick = onConfigureNotifyChannels) {
-                            Text(text = stringResource(R.string.item_config))
-                        }
+                        AppTextButton(text = stringResource(R.string.item_config), onClick = onConfigureNotifyChannels)
                     },
                 ) {
-                    Text(text = stringResource(R.string.app_notify_channel_config_title))
+                    AppText(text = stringResource(R.string.app_notify_channel_config_title))
                 }
-                HorizontalDivider()
+                AppHorizontalDivider()
                 androidx.compose.material3.ListItem(
                     supportingContent = {
-                        Text(text = stringResource(R.string.app_detail_forward_filter_summary))
+                        AppText(text = stringResource(R.string.app_detail_forward_filter_summary))
                     },
                     trailingContent = {
-                        TextButton(onClick = onConfigureForwardFilters) {
-                            Text(text = stringResource(R.string.item_config))
-                        }
+                        AppTextButton(text = stringResource(R.string.item_config), onClick = onConfigureForwardFilters)
                     },
                 ) {
-                    Text(text = stringResource(R.string.app_detail_forward_filter_title))
+                    AppText(text = stringResource(R.string.app_detail_forward_filter_title))
                 }
             }
         }
@@ -158,10 +151,9 @@ if (app == null) {
             )
         }
 
-        io.github.magisk317.uikit.common.DismissibleSnackbarHost(
+        io.github.magisk317.uikit.common.AppSnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
-                .align(Alignment.BottomCenter)
                 .navigationBarsPadding(),
         )
     }
@@ -170,10 +162,8 @@ if (app == null) {
 @Composable
 private fun AppRecentLogCard(logs: List<SmsMsg>) {
     val dateFormat = remember { SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.getDefault()) }
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        ),
+    AppCard(
+        color = appColor(AppColorRole.SurfaceContainer),
     ) {
         Column(
             modifier = Modifier
@@ -181,16 +171,16 @@ private fun AppRecentLogCard(logs: List<SmsMsg>) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
+            AppText(
                 text = stringResource(R.string.app_detail_recent_logs_title),
-                style = MaterialTheme.typography.titleSmall,
+                role = AppTextRole.Subtitle,
                 fontWeight = FontWeight.SemiBold,
             )
             if (logs.isEmpty()) {
-                Text(
+                AppText(
                     text = stringResource(R.string.app_detail_recent_logs_empty),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    role = AppTextRole.BodySmall,
+                    color = appColor(AppColorRole.OnSurfaceVariant),
                 )
                 return@Column
             }
@@ -205,33 +195,33 @@ private fun AppRecentLogCard(logs: List<SmsMsg>) {
                     else -> stringResource(R.string.forward_status_none)
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
+                    AppText(
                         text = stringResource(R.string.app_detail_recent_logs_time, dateFormat.format(java.util.Date(log.date))),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        role = AppTextRole.Footnote,
+                        color = appColor(AppColorRole.OnSurfaceVariant),
                     )
-                    Text(
+                    AppText(
                         text = stringResource(R.string.app_detail_recent_logs_content, log.body.orEmpty()),
-                        style = MaterialTheme.typography.bodySmall,
+                        role = AppTextRole.BodySmall,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Text(
+                    AppText(
                         text = stringResource(R.string.app_detail_recent_logs_status, statusText, log.forwardTarget ?: "-"),
-                        style = MaterialTheme.typography.bodySmall,
+                        role = AppTextRole.BodySmall,
                     )
                     if (forwardMessage.isNotBlank()) {
-                        Text(
+                        AppText(
                             text = stringResource(R.string.app_detail_recent_logs_result, forwardMessage),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            role = AppTextRole.Footnote,
+                            color = appColor(AppColorRole.OnSurfaceVariant),
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
                 }
                 if (index != logs.lastIndex) {
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                    AppHorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                 }
             }
         }
@@ -246,12 +236,12 @@ private fun ConfigToggleRow(
 ) {
     androidx.compose.material3.ListItem(
         trailingContent = {
-            Switch(
+            AppSwitch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
             )
         },
     ) {
-        Text(text = title)
+        AppText(text = title)
     }
 }

@@ -18,13 +18,15 @@ import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
-import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Scaffold as MiuixScaffold
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.res.stringResource
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
+import io.github.magisk317.uikit.preview.MagiskMultiPreview
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
 
 /**
  * Miuix chrome for the app-config detail screen of the same name:
@@ -40,7 +42,7 @@ internal fun AppConfigDetailScreenMiuix(
 ) {
     val topGlass = rememberUiKitGlassTopBar()
     val glassOn = LocalUiKitSurfaceBlur.current.usesBackdrop
-    Scaffold(
+    MiuixScaffold(
         topBar = {
             AppTopBar(
                 modifier = Modifier.uiKitSurfaceGlassSample(topGlass),
@@ -69,4 +71,15 @@ internal fun AppConfigDetailScreenMiuix(
             body(PaddingValues(top = innerPadding.calculateTopPadding()))
         }
     }
+}
+
+
+@MagiskMultiPreview
+@Composable
+private fun AppConfigDetailScreenMiuixPreview() {
+    AppConfigDetailScreenMiuix(
+        title = "Sample",
+        onBack = {},
+        body = { _ -> MiuixText("Preview") },
+    )
 }

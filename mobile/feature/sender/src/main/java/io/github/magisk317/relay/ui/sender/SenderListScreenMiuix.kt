@@ -27,13 +27,16 @@ import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
-import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Scaffold as MiuixScaffold
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.uikit.surface.AppFloatingActionButton
+import androidx.compose.foundation.lazy.rememberLazyListState
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
+import io.github.magisk317.uikit.preview.MagiskMultiPreview
 
 /**
  * Miuix chrome for the sender list screen of the same name: static
@@ -54,7 +57,7 @@ internal fun SenderListScreenMiuix(
     val glassOn = LocalUiKitSurfaceBlur.current.usesBackdrop
     val scrollScope = rememberCoroutineScope()
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    Scaffold(
+    MiuixScaffold(
         topBar = {
             Box {
                 AppTopBar(
@@ -101,4 +104,17 @@ internal fun SenderListScreenMiuix(
             )
         }
     }
+}
+
+
+@MagiskMultiPreview
+@Composable
+private fun SenderListScreenMiuixPreview() {
+    SenderListScreenMiuix(
+        title = "Senders",
+        onAddClick = {},
+        fabContentDescription = "Add sender",
+        listState = rememberLazyListState(),
+        body = { MiuixText("Sender body") },
+    )
 }

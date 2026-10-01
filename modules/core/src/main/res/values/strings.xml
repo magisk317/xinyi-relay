@@ -383,6 +383,8 @@
     <string name="settings_group_verification_features">Verification features</string>
     <string name="settings_group_features">Feature settings</string>
     <string name="settings_group_features_summary">Verification and message relay controls</string>
+    <string name="settings_group_advanced">Advanced options</string>
+    <string name="settings_group_advanced_summary">Verification, relay, keep-alive, schedule, remote agent, and interception entries</string>
     <string name="pref_verification_features_title">Verification features</string>
     <string name="pref_verification_features_summary">Control code recognition, notifications, copy, and auto-fill in one place</string>
     <string name="pref_verification_settings_title">Verification settings</string>
@@ -1551,4 +1553,5 @@
     <string name="pref_bottom_bar_blur_summary">Refractive blur, gravity-tracked highlights and a drag-follow indicator on the floating bar (Android 13+).</string>
     <string name="pref_bottom_bar_backdrop_title">Navigation backdrop capture</string>
     <string name="pref_bottom_bar_backdrop_summary">Capture the page behind the floating bar for a static liquid-glass effect when supported.</string>
+    <string name="more_options">More options</string>
 </resources>

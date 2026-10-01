@@ -3,13 +3,8 @@ package io.github.magisk317.relay.ui.common
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -22,9 +17,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.sender.SenderActiveScheduleConst
+import io.github.magisk317.uikit.surface.AppAlertDialog
 import java.time.DayOfWeek
 import java.time.format.TextStyle
 import java.util.Locale
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppSecondaryButton
+import io.github.magisk317.uikit.surface.AppTextButton
+import io.github.magisk317.uikit.surface.AppFilterChip
 
 @Composable
 fun ActiveScheduleWeekdayRow(
@@ -37,17 +38,13 @@ fun ActiveScheduleWeekdayRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         weekdays.forEach { weekday ->
-            FilterChip(
+            AppFilterChip(
+                label = DayOfWeek.of(weekday).getDisplayName(
+                    TextStyle.SHORT,
+                    Locale.getDefault(),
+                ),
                 selected = weekday in selectedWeekdays,
                 onClick = { onWeekdayToggle(weekday) },
-                label = {
-                    CenteredChipText(
-                        text = DayOfWeek.of(weekday).getDisplayName(
-                            TextStyle.SHORT,
-                            Locale.getDefault(),
-                        ),
-                    )
-                },
                 modifier = Modifier.weight(1f),
             )
         }
@@ -61,13 +58,13 @@ fun ActiveScheduleTimeValueButton(
     onValueChange: (String) -> Unit,
 ) {
     var showPicker by remember { mutableStateOf(false) }
-    FilledTonalButton(
+    AppSecondaryButton(
         onClick = { showPicker = true },
         modifier = modifier.fillMaxWidth(),
     ) {
-        Text(
+        AppText(
             text = value,
-            style = MaterialTheme.typography.titleMedium,
+            role = AppTextRole.Subtitle,
             maxLines = 1,
             softWrap = false,
         )
@@ -100,15 +97,14 @@ private fun TimeRangePickerDialog(
         is24Hour = true,
     )
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.sender_active_schedule_pick_time)) },
+        title = { AppText(stringResource(R.string.sender_active_schedule_pick_time)) },
         text = {
             TimePicker(state = pickerState)
         },
         confirmButton = {
-            TextButton(
-                onClick = {
+            AppTextButton(text = stringResource(R.string.confirm), onClick = {
                     onConfirm(
                         String.format(
                             Locale.US,
@@ -117,15 +113,10 @@ private fun TimeRangePickerDialog(
                             pickerState.minute,
                         ),
                     )
-                },
-            ) {
-                Text(stringResource(R.string.confirm))
-            }
+                })
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
-            }
+            AppTextButton(text = stringResource(R.string.cancel), onClick = onDismiss)
         },
     )
 }

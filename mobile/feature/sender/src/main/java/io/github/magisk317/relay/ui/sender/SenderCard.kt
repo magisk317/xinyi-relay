@@ -1,6 +1,5 @@
 package io.github.magisk317.relay.ui.sender
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,14 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DragHandle
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,6 +15,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.model.Sender
+import io.github.magisk317.uikit.preference.AppSwitch
+import io.github.magisk317.uikit.surface.AppCard
+import io.github.magisk317.uikit.surface.AppIcon
+import io.github.magisk317.uikit.surface.AppIconButton
+import io.github.magisk317.uikit.surface.AppTextButton
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -38,11 +38,10 @@ fun SenderCard(
     onDelete: () -> Unit,
 ) {
     val context = LocalContext.current
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onEdit),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    AppCard(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onEdit,
+        tonalElevation = 2.dp,
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
@@ -53,46 +52,49 @@ fun SenderCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
+                AppText(
                     text = sender.name.ifEmpty { getSenderTypeName(context, sender.type) },
-                    style = MaterialTheme.typography.titleMedium,
+                    role = AppTextRole.Subtitle,
                     modifier = Modifier.weight(1f),
                 )
-                IconButton(
+                AppIconButton(
                     modifier = dragModifier,
                     onClick = {},
                 ) {
-                    Icon(
-                        Icons.Filled.DragHandle,
+                    AppIcon(
+                        imageVector = Icons.Filled.DragHandle,
                         contentDescription = stringResource(R.string.sender_priority_drag_handle),
                     )
                 }
-                Switch(
+                AppSwitch(
                     checked = sender.status == 1,
                     onCheckedChange = { onToggle(it) },
                 )
             }
             val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-            Text(
+            AppText(
                 text = stringResource(
                     R.string.sender_type_line,
                     getSenderTypeName(context, sender.type),
                     sdf.format(sender.time),
                 ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                role = AppTextRole.BodySmall,
+                color = appColor(AppColorRole.OnSurfaceVariant),
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextButton(onClick = onPriorityClick) {
-                    Text(stringResource(R.string.sender_priority_value, displayPriority))
-                }
-                TextButton(onClick = onDelete) {
-                    Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error)
-                }
+                AppTextButton(
+                    text = stringResource(R.string.sender_priority_value, displayPriority),
+                    onClick = onPriorityClick,
+                )
+                AppTextButton(
+                    text = stringResource(R.string.action_delete),
+                    onClick = onDelete,
+                    color = appColor(AppColorRole.Error),
+                )
             }
         }
     }

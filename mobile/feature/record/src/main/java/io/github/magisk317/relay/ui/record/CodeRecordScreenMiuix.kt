@@ -46,6 +46,9 @@ import io.github.magisk317.uikit.surface.uiKitSurfaceGlassSample
 import io.github.magisk317.uikit.theme.LocalUiKitSurfaceBlur
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import androidx.compose.foundation.lazy.rememberLazyListState
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
+import io.github.magisk317.uikit.preview.MagiskMultiPreview
 
 /**
  * Miuix chrome for [CodeRecordScreen]: collapsing miuix top bar floating over
@@ -191,4 +194,24 @@ internal fun CodeRecordScreenMiuix(
             extraBottomPadding = bottomPadding,
         )
     }
+}
+
+
+@MagiskMultiPreview
+@Composable
+private fun CodeRecordScreenMiuixPreview() {
+    CodeRecordScreenMiuix(
+        title = "Code record",
+        isSelectionMode = false,
+        onBack = null,
+        onExitSelectionMode = {},
+        onSelectAllVisible = {},
+        onDeleteSelected = {},
+        onOpenSettings = {},
+        tabRow = {},
+        scrollChromeState = null,
+        listState = rememberLazyListState(),
+        bottomContentPadding = 0.dp,
+        body = { _, _ -> MiuixText("Record body") },
+    )
 }

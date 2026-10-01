@@ -2,6 +2,8 @@ package io.github.magisk317.relay.ui.home.settings
 
 import android.content.Intent
 import io.github.magisk317.relay.android.diagnostics.RuntimeDiagnosticsBridge
+import io.github.magisk317.uikit.common.AppSnackbarHost
+import io.github.magisk317.uikit.common.AppSnackbarHostState
 import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import android.util.Log
@@ -13,15 +15,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -30,7 +28,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
@@ -55,6 +52,7 @@ import io.github.magisk317.relay.contract.settings.RelaySettingsUpdate
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.VerificationSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.VerificationSettingsUpdate
+import io.github.magisk317.uikit.preference.StatusSettingsSection
 import io.github.magisk317.smscode.runtime.common.diagnostics.VerboseLogEnableTracker
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -76,7 +74,7 @@ fun SettingsHomeScreen(
     val scope = rememberCoroutineScope()
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
     val launcherIconFailedText = stringResource(id = R.string.pref_show_launcher_icon_failed)
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     val settingsViewModel = rememberSharedSettingsViewModel()
     val notifySaved: () -> Unit = {
         scope.launch {
@@ -165,21 +163,17 @@ fun SettingsHomeScreen(
             Spacer(modifier = Modifier.height(Const.SPACING_SMALL.dp))
 
             // Device entitlement entry (top-level)
-            androidx.compose.material3.Card(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = Const.PADDING_SMALL.dp),
-                shape = MaterialTheme.shapes.large,
+            StatusSettingsSection(
+                modifier = Modifier.padding(horizontal = Const.PADDING_SMALL.dp),
+                title = stringResource(id = R.string.mobile_entitlement_settings_title),
+                summary = stringResource(id = R.string.mobile_entitlement_settings_summary),
             ) {
-                io.github.magisk317.relay.ui.common.Item(
-                    title = stringResource(id = R.string.mobile_entitlement_settings_title),
-                    summary = stringResource(id = R.string.mobile_entitlement_settings_summary),
-                ) {
-                    context.startActivity(
-                        Intent().setClassName(
-                            context,
-                            "io.github.magisk317.relay.entitlement.MobileEntitlementActivity",
-                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                    )
-                }
+                context.startActivity(
+                    Intent().setClassName(
+                        context,
+                        "io.github.magisk317.relay.entitlement.MobileEntitlementActivity",
+                    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                )
             }
 
             SettingsGeneralSection(
@@ -313,11 +307,9 @@ fun SettingsHomeScreen(
             )
         }
 
-        io.github.magisk317.uikit.common.DismissibleSnackbarHost(
+        AppSnackbarHost(
             hostState = snackbarHostState,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = effectiveBottomPadding),
+            modifier = Modifier.padding(bottom = effectiveBottomPadding),
         )
     }
 }

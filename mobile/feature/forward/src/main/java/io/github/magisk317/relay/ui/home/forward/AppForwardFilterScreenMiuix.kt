@@ -24,7 +24,7 @@ import io.github.magisk317.uikit.surface.chromeSurfaceColor
 import io.github.magisk317.uikit.surface.rememberUiKitGlassTopBar
 import io.github.magisk317.uikit.surface.uiKitSurfaceGlassSample
 import io.github.magisk317.uikit.theme.LocalUiKitSurfaceBlur
-import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Scaffold as MiuixScaffold
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.only
@@ -37,8 +37,11 @@ import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.material3.SnackbarHostState
-import io.github.magisk317.uikit.common.DismissibleSnackbarHost
+import io.github.magisk317.uikit.common.AppSnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarHost
+import io.github.magisk317.uikit.preview.MagiskMultiPreview
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
+import androidx.compose.foundation.lazy.rememberLazyListState
 
 /**
  * Miuix chrome for the app-scoped forward-filter screen of the
@@ -51,7 +54,7 @@ import io.github.magisk317.uikit.common.DismissibleSnackbarHost
 internal fun AppForwardFilterScreenMiuix(
     title: String,
     onBack: () -> Unit,
-    snackbarHostState: SnackbarHostState,
+    snackbarHostState: AppSnackbarHostState,
     listState: LazyListState,
     body: @Composable (PaddingValues) -> Unit
 ) {
@@ -59,7 +62,7 @@ internal fun AppForwardFilterScreenMiuix(
     val glassOn = LocalUiKitSurfaceBlur.current.usesBackdrop
     val scrollScope = rememberCoroutineScope()
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    Scaffold(
+    MiuixScaffold(
         topBar = {
             Box {
                 AppTopBar(
@@ -89,7 +92,7 @@ internal fun AppForwardFilterScreenMiuix(
             }
         },
         snackbarHost = {
-            DismissibleSnackbarHost(
+            AppSnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier.navigationBarsPadding(),
             )
@@ -107,4 +110,17 @@ internal fun AppForwardFilterScreenMiuix(
             ScrollToTopFAB(listState = listState)
         }
     }
+}
+
+
+@MagiskMultiPreview
+@Composable
+private fun AppForwardFilterScreenMiuixPreview() {
+    AppForwardFilterScreenMiuix(
+        title = "Sample",
+        onBack = {},
+        snackbarHostState = AppSnackbarHostState(),
+        listState = rememberLazyListState(),
+        body = { _ -> MiuixText("Preview") },
+    )
 }

@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.ui.scheduled
 
+import io.github.magisk317.uikit.common.AppSnackbarHostState
 import io.github.magisk317.uikit.common.showLatestSnackbar
-
 import android.provider.Settings
 import androidx.annotation.StringRes
 import androidx.compose.foundation.rememberScrollState
@@ -28,6 +28,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.util.concurrent.TimeUnit
+import io.github.magisk317.uikit.preference.AppSwitch
+import io.github.magisk317.uikit.surface.AppTextField
+import io.github.magisk317.uikit.surface.AppDropdownField
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.theme.appColor
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppCard
+import io.github.magisk317.uikit.surface.AppCircularProgressIndicator
+import io.github.magisk317.uikit.surface.AppPrimaryButton
 
 private enum class ScheduledTaskScheduleMode {
     SIMPLE,
@@ -50,7 +60,7 @@ fun ScheduledTaskConfigScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     var name by remember(taskId) { mutableStateOf("") }
     var scheduleMode by remember(taskId) { mutableStateOf(ScheduledTaskScheduleMode.SIMPLE) }
     var simpleWeekdays by remember(taskId) { mutableStateOf(SCHEDULED_TASK_ALL_WEEKDAYS) }
@@ -61,7 +71,6 @@ fun ScheduledTaskConfigScreen(
     var simSlot by remember(taskId) { mutableStateOf("0") }
     var status by remember(taskId) { mutableStateOf(ScheduledTask.STATUS_ENABLED) }
     var queryPresetId by remember(taskId) { mutableStateOf(SCHEDULED_TASK_QUERY_PRESET_CUSTOM_ID) }
-    var queryPresetExpanded by remember(taskId) { mutableStateOf(false) }
     var loadedTaskId by remember(taskId) { mutableStateOf<Long?>(null) }
     var smsTestRunning by remember(taskId) { mutableStateOf(false) }
     var shortCodeConfirmationBypassed by remember { mutableStateOf(false) }
@@ -87,6 +96,8 @@ fun ScheduledTaskConfigScreen(
     val queryPresetCustomLabel = stringResource(id = R.string.scheduled_task_query_preset_custom)
     val selectedQueryPreset = SCHEDULED_TASK_QUERY_PRESETS.firstOrNull { it.id == queryPresetId }
     val selectedQueryPresetLabel = selectedQueryPreset?.label() ?: queryPresetCustomLabel
+    val queryPresetIndex = SCHEDULED_TASK_QUERY_PRESETS.indexOfFirst { it.id == queryPresetId }
+        .let { if (it < 0) 0 else it + 1 }
     val smsTestStartedText = stringResource(id = R.string.scheduled_task_test_started)
     val smsTestSucceededText = stringResource(id = R.string.scheduled_task_test_succeeded)
     val smsTestFailedFormat = stringResource(id = R.string.scheduled_task_test_failed)
@@ -249,17 +260,16 @@ fun ScheduledTaskConfigScreen(
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        OutlinedTextField(
+        AppTextField(
             value = name,
             onValueChange = { name = it },
-            label = { Text(stringResource(id = R.string.scheduled_task_name_label)) },
+            label = stringResource(id = R.string.scheduled_task_name_label),
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-            placeholder = { Text(stringResource(id = R.string.scheduled_task_name_placeholder)) }
-        )
+            placeholderText = stringResource(id = R.string.scheduled_task_name_placeholder))
 
-        Text(
+        AppText(
             text = stringResource(id = R.string.scheduled_task_schedule_mode_label),
-            style = MaterialTheme.typography.titleSmall,
+            role = AppTextRole.Subtitle,
             modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
         )
         SingleChoiceSegmentedSelector(
@@ -289,9 +299,9 @@ fun ScheduledTaskConfigScreen(
         )
 
         if (scheduleMode == ScheduledTaskScheduleMode.SIMPLE) {
-            Text(
+            AppText(
                 text = stringResource(id = R.string.sender_active_schedule_weekdays_title),
-                style = MaterialTheme.typography.titleSmall,
+                role = AppTextRole.Subtitle,
                 modifier = Modifier.padding(bottom = 8.dp),
             )
             ActiveScheduleWeekdayRow(
@@ -312,17 +322,17 @@ fun ScheduledTaskConfigScreen(
                 },
             )
             simpleWeekdaysError?.let { error ->
-                Text(
+                AppText(
                     text = error,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
+                    color = appColor(AppColorRole.Error),
+                    role = AppTextRole.BodySmall,
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
 
-            Text(
+            AppText(
                 text = stringResource(id = R.string.scheduled_task_simple_time_label),
-                style = MaterialTheme.typography.titleSmall,
+                role = AppTextRole.Subtitle,
                 modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
             )
             ActiveScheduleTimeValueButton(
@@ -334,151 +344,121 @@ fun ScheduledTaskConfigScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
             simpleTimeError?.let { error ->
-                Text(
+                AppText(
                     text = error,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
+                    color = appColor(AppColorRole.Error),
+                    role = AppTextRole.BodySmall,
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
-            Text(
+            AppText(
                 text = stringResource(
                     id = R.string.scheduled_task_generated_cron,
                     runCatching {
                         CronUtils.buildSimpleWeeklyCron(simpleTime, simpleWeekdays)
                     }.getOrDefault(""),
                 ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodySmall,
+                color = appColor(AppColorRole.OnSurfaceVariant),
+                role = AppTextRole.BodySmall,
                 modifier = Modifier.padding(top = 8.dp, bottom = 12.dp),
             )
         } else {
-            OutlinedTextField(
+            AppTextField(
                 value = cron,
                 onValueChange = {
                     cron = it
                     cronError = null
                 },
-                label = { Text(stringResource(id = R.string.scheduled_task_cron_label)) },
+                label = stringResource(id = R.string.scheduled_task_cron_label),
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 isError = cronError != null,
                 supportingText = {
-                    Text(
+                    AppText(
                         cronError ?: stringResource(id = R.string.scheduled_task_cron_hint),
                         color = if (cronError != null) {
-                            MaterialTheme.colorScheme.error
+                            appColor(AppColorRole.Error)
                         } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            appColor(AppColorRole.OnSurfaceVariant)
                         }
                     )
                 }
             )
         }
 
-        Text(
-            text = stringResource(id = R.string.scheduled_task_query_preset_label),
-            style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
-        )
-        ExposedDropdownMenuBox(
-            expanded = queryPresetExpanded,
-            onExpandedChange = { queryPresetExpanded = !queryPresetExpanded },
-            modifier = Modifier.padding(bottom = 8.dp),
-        ) {
-            OutlinedTextField(
-                value = selectedQueryPresetLabel,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text(stringResource(id = R.string.scheduled_task_query_preset_label)) },
-                trailingIcon = {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = queryPresetExpanded)
-                },
-                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                modifier = Modifier
-                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-                    .fillMaxWidth(),
-            )
-            ExposedDropdownMenu(
-                expanded = queryPresetExpanded,
-                onDismissRequest = { queryPresetExpanded = false },
-            ) {
-                DropdownMenuItem(
-                    text = { Text(queryPresetCustomLabel) },
-                    onClick = {
-                        queryPresetId = SCHEDULED_TASK_QUERY_PRESET_CUSTOM_ID
-                        queryPresetExpanded = false
-                    },
-                )
-                SCHEDULED_TASK_QUERY_PRESETS.forEach { preset ->
-                    DropdownMenuItem(
-                        text = { Text(preset.label()) },
-                        onClick = {
-                            queryPresetId = preset.id
-                            mobiles = preset.target
-                            content = preset.content
-                            mobilesError = null
-                            contentError = null
-                            queryPresetExpanded = false
-                        },
-                    )
+        AppDropdownField(
+            title = stringResource(id = R.string.scheduled_task_query_preset_label),
+            value = selectedQueryPresetLabel,
+            options = listOf(queryPresetCustomLabel) + SCHEDULED_TASK_QUERY_PRESETS.map { it.label() },
+            selectedIndex = queryPresetIndex,
+            onSelect = { index ->
+                if (index == 0) {
+                    queryPresetId = SCHEDULED_TASK_QUERY_PRESET_CUSTOM_ID
+                } else {
+                    val preset = SCHEDULED_TASK_QUERY_PRESETS[index - 1]
+                    queryPresetId = preset.id
+                    mobiles = preset.target
+                    content = preset.content
+                    mobilesError = null
+                    contentError = null
                 }
-            }
-        }
-        Text(
+            },
+            modifier = Modifier.padding(bottom = 8.dp),
+        )
+        AppText(
             text = stringResource(id = R.string.scheduled_task_query_preset_reference_notice),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.bodySmall,
+            color = appColor(AppColorRole.OnSurfaceVariant),
+            role = AppTextRole.BodySmall,
             modifier = Modifier.padding(bottom = 12.dp),
         )
 
-        OutlinedTextField(
+        AppTextField(
             value = simSlot,
             onValueChange = {
                 simSlot = it
                 simSlotError = null
             },
-            label = { Text(stringResource(id = R.string.scheduled_task_sim_slot_label)) },
+            label = stringResource(id = R.string.scheduled_task_sim_slot_label),
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
             isError = simSlotError != null,
             supportingText = {
-                Text(
+                AppText(
                     simSlotError ?: stringResource(id = R.string.scheduled_task_sim_slot_hint),
-                    color = if (simSlotError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (simSlotError != null) appColor(AppColorRole.Error) else appColor(AppColorRole.OnSurfaceVariant)
                 )
             }
         )
 
-        OutlinedTextField(
+        AppTextField(
             value = mobiles,
             onValueChange = {
                 mobiles = it
                 queryPresetId = SCHEDULED_TASK_QUERY_PRESET_CUSTOM_ID
                 mobilesError = null
             },
-            label = { Text(stringResource(id = R.string.scheduled_task_mobiles_label)) },
+            label = stringResource(id = R.string.scheduled_task_mobiles_label),
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
             isError = mobilesError != null,
             supportingText = {
-                Text(
+                AppText(
                     mobilesError ?: stringResource(id = R.string.scheduled_task_mobiles_hint),
-                    color = if (mobilesError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (mobilesError != null) appColor(AppColorRole.Error) else appColor(AppColorRole.OnSurfaceVariant)
                 )
             }
         )
 
-        OutlinedTextField(
+        AppTextField(
             value = content,
             onValueChange = {
                 content = it
                 queryPresetId = SCHEDULED_TASK_QUERY_PRESET_CUSTOM_ID
                 contentError = null
             },
-            label = { Text(stringResource(id = R.string.scheduled_task_content_label)) },
+            label = stringResource(id = R.string.scheduled_task_content_label),
             modifier = Modifier.fillMaxWidth().height(120.dp).padding(bottom = 8.dp),
             isError = contentError != null,
             supportingText = {
                 contentError?.let { error ->
-                    Text(error, color = MaterialTheme.colorScheme.error)
+                    AppText(error, color = appColor(AppColorRole.Error))
                 }
             },
             maxLines = 5
@@ -496,8 +476,8 @@ fun ScheduledTaskConfigScreen(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(stringResource(id = R.string.scheduled_task_enable_label), style = MaterialTheme.typography.bodyLarge)
-            Switch(
+            AppText(stringResource(id = R.string.scheduled_task_enable_label), role = AppTextRole.Body)
+            AppSwitch(
                 checked = status == ScheduledTask.STATUS_ENABLED,
                 onCheckedChange = {
                     status = if (it) {
@@ -510,16 +490,13 @@ fun ScheduledTaskConfigScreen(
         }
 
         saveError?.let { error ->
-            Card(
+            AppCard(
                 modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
-                )
-            ) {
-                Text(
+                color = appColor(AppColorRole.ErrorContainer)) {
+                AppText(
                     text = error,
                     modifier = Modifier.padding(16.dp),
-                    color = MaterialTheme.colorScheme.onErrorContainer
+                    color = appColor(AppColorRole.OnErrorContainer)
                 )
             }
         }
@@ -743,35 +720,33 @@ private fun ScheduledTaskDebugSection(
     onTestClick: () -> Unit,
     onShortCodeConfirmationBypassChange: (Boolean) -> Unit,
 ) {
-    Card(
+    AppCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        ),
+        color = appColor(AppColorRole.SurfaceContainer),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
+            AppText(
                 text = stringResource(id = R.string.scheduled_task_debug_section_title),
-                style = MaterialTheme.typography.titleMedium,
+                role = AppTextRole.Subtitle,
             )
-            Button(
+            AppPrimaryButton(
                 onClick = onTestClick,
                 enabled = !testRunning,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 if (testRunning) {
-                    CircularProgressIndicator(
+                    AppCircularProgressIndicator(
                         modifier = Modifier.size(18.dp),
                         strokeWidth = 2.dp,
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
-                Text(text = stringResource(id = R.string.scheduled_task_test_send_button))
+                AppText(text = stringResource(id = R.string.scheduled_task_test_send_button))
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -784,17 +759,17 @@ private fun ScheduledTaskDebugSection(
                         .padding(end = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text(
+                    AppText(
                         text = stringResource(id = R.string.scheduled_task_short_code_bypass_title),
-                        style = MaterialTheme.typography.bodyLarge,
+                        role = AppTextRole.Body,
                     )
-                    Text(
+                    AppText(
                         text = stringResource(id = R.string.scheduled_task_short_code_bypass_summary),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        role = AppTextRole.BodySmall,
+                        color = appColor(AppColorRole.OnSurfaceVariant),
                     )
                 }
-                Switch(
+                AppSwitch(
                     checked = shortCodeConfirmationBypassed,
                     enabled = shortCodeConfirmationEnabled,
                     onCheckedChange = onShortCodeConfirmationBypassChange,

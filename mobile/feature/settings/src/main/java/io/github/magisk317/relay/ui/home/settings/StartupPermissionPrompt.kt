@@ -34,7 +34,7 @@ import androidx.core.content.ContextCompat
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.feature.mode.BatteryOptimizationHelper
 import io.github.magisk317.relay.mobilefeature.settings.BuildConfig
-import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
+import io.github.magisk317.uikit.foundation.LocalSnackbarHostState
 import kotlinx.coroutines.launch
 
 @Composable

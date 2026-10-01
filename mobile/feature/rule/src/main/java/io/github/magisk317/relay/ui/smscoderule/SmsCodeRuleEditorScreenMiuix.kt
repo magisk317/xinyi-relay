@@ -18,14 +18,16 @@ import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
-import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Scaffold as MiuixScaffold
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.res.stringResource
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
-import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
+import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
+import io.github.magisk317.uikit.preview.MagiskMultiPreview
 
 /**
  * Miuix chrome for the rule screen of the same name:
@@ -45,7 +47,7 @@ internal fun SmsCodeRuleEditorScreenMiuix(
 ) {
     val topGlass = rememberUiKitGlassTopBar()
     val glassOn = LocalUiKitSurfaceBlur.current.usesBackdrop
-    Scaffold(
+    MiuixScaffold(
         topBar = {
             AppTopBar(
                 modifier = Modifier.uiKitSurfaceGlassSample(topGlass),
@@ -61,7 +63,7 @@ internal fun SmsCodeRuleEditorScreenMiuix(
                 },
                 actions = {
                     if (saveActionVisible) {
-                        TextButton(text = confirmLabel, onClick = onSave, enabled = saveEnabled)
+                        MiuixTextButton(text = confirmLabel, onClick = onSave, enabled = saveEnabled)
                     }
                 },
                 windowInsets = WindowInsets.statusBars,
@@ -79,4 +81,19 @@ internal fun SmsCodeRuleEditorScreenMiuix(
             body(PaddingValues(top = innerPadding.calculateTopPadding()))
         }
     }
+}
+
+
+@MagiskMultiPreview
+@Composable
+private fun SmsCodeRuleEditorScreenMiuixPreview() {
+    SmsCodeRuleEditorScreenMiuix(
+        title = "Sample",
+        onBack = {},
+        confirmLabel = "Sample",
+        saveEnabled = true,
+        saveActionVisible = true,
+        onSave = {},
+        body = { _ -> MiuixText("Preview") },
+    )
 }

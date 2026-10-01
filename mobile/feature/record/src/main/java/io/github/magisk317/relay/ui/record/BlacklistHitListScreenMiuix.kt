@@ -37,7 +37,10 @@ import io.github.magisk317.uikit.surface.chromeSurfaceColor
 import io.github.magisk317.uikit.surface.rememberUiKitGlassTopBar
 import io.github.magisk317.uikit.surface.uiKitSurfaceGlassSample
 import io.github.magisk317.uikit.theme.LocalUiKitSurfaceBlur
-import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Scaffold as MiuixScaffold
+import io.github.magisk317.uikit.preview.MagiskMultiPreview
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
+import androidx.compose.foundation.lazy.rememberLazyListState
 
 /**
  * Miuix chrome for [BlacklistHitListScreen]: static miuix top bar hosted in a
@@ -60,7 +63,7 @@ internal fun BlacklistHitListScreenMiuix(
     val glassOn = LocalUiKitSurfaceBlur.current.usesBackdrop
     val scrollScope = rememberCoroutineScope()
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    Scaffold(
+    MiuixScaffold(
         topBar = {
             Box {
                 AppTopBar(
@@ -121,4 +124,19 @@ internal fun BlacklistHitListScreenMiuix(
             ScrollToTopFAB(listState = listState)
         }
     }
+}
+
+
+@MagiskMultiPreview
+@Composable
+private fun BlacklistHitListScreenMiuixPreview() {
+    BlacklistHitListScreenMiuix(
+        title = "Sample",
+        onBack = {},
+        onOpenClear = {},
+        onOpenSettings = {},
+        clearActionEnabled = true,
+        listState = rememberLazyListState(),
+        body = { _ -> MiuixText("Preview") },
+    )
 }

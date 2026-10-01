@@ -3,19 +3,13 @@
 package io.github.magisk317.relay.ui.rule
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
-
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import io.github.magisk317.uikit.common.AppSnackbarHostState
+import io.github.magisk317.uikit.preference.AppSwitch
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,6 +24,12 @@ import org.koin.compose.viewmodel.koinViewModel
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
 import kotlinx.coroutines.launch
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppTextButton
+import io.github.magisk317.uikit.surface.AppCard
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 
 @Composable
 fun RuleListScreen(
@@ -41,7 +41,7 @@ fun RuleListScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     val rules by viewModel.ruleList.collectAsStateWithLifecycle()
     val senders by viewModel.senderList.collectAsStateWithLifecycle()
     val senderName = if (senderId != 0L) senders.find { it.id == senderId }?.displayName(context) else null
@@ -62,10 +62,10 @@ fun RuleListScreen(
                         .padding(listPadding),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
+                    AppText(
                         stringResource(R.string.rule_list_empty_message),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        role = AppTextRole.Body,
+                        color = appColor(AppColorRole.OnSurfaceVariant),
                     )
                 }
             } else {
@@ -100,10 +100,9 @@ fun RuleListScreen(
                 }
             }
 
-            io.github.magisk317.uikit.common.DismissibleSnackbarHost(
+            io.github.magisk317.uikit.common.AppSnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
                     .navigationBarsPadding(),
             )
         }
@@ -139,11 +138,11 @@ fun RuleCard(
     onToggle: (Boolean) -> Unit,
     onDelete: () -> Unit
 ) {
-    Card(
+    AppCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onEdit),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        tonalElevation = 2.dp
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -151,11 +150,11 @@ fun RuleCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
+                AppText(
                     text = rule.title.ifEmpty { stringResource(R.string.rule_unnamed) },
-                    style = MaterialTheme.typography.titleMedium
+                    role = AppTextRole.Subtitle
                 )
-                Switch(
+                AppSwitch(
                     checked = rule.status == 1,
                     onCheckedChange = { onToggle(it) }
                 )
@@ -167,23 +166,21 @@ fun RuleCard(
                 "sender" -> stringResource(R.string.rule_match_sender, rule.value)
                 else -> "${rule.filed} ${rule.check} ${rule.value}"
             }
-            Text(
+            AppText(
                 text = matchDesc,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                role = AppTextRole.BodySmall,
+                color = appColor(AppColorRole.OnSurfaceVariant)
             )
-            Text(
+            AppText(
                 text = stringResource(R.string.rule_sender_channel_format, senderName),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary
+                role = AppTextRole.BodySmall,
+                color = appColor(AppColorRole.Primary)
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                TextButton(onClick = onDelete) {
-                    Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error)
-                }
+                AppTextButton(text = stringResource(R.string.action_delete), color = appColor(AppColorRole.Error), onClick = onDelete)
             }
         }
     }

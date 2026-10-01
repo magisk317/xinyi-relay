@@ -3,7 +3,6 @@
 package io.github.magisk317.relay.ui.common
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
-
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,11 +30,12 @@ import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
-import io.github.magisk317.relay.ui.common.LocalSnackbarHostState
+import io.github.magisk317.uikit.foundation.LocalSnackbarHostState
 import io.github.magisk317.uikit.preference.SingleChoiceValueConfirmDialog
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import androidx.compose.ui.window.DialogProperties
+import io.github.magisk317.uikit.text.AppText
 
 private val booleanPreferenceStateCache =
     io.github.magisk317.uikit.state.RetainedValueCache<String, Boolean>()
@@ -103,23 +102,6 @@ fun ActionSwitchItem(
 }
 
 @Composable
-fun Item(
-    title: String,
-    summary: String,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    onClick: () -> Unit,
-) {
-    io.github.magisk317.uikit.preference.Item(
-        title = title,
-        summary = summary,
-        modifier = modifier,
-        enabled = enabled,
-        onClick = onClick,
-    )
-}
-
-@Composable
 fun SwitchItem(
     title: String,
     summary: String,
@@ -167,8 +149,8 @@ fun PrivacyPolicyDialog(
             dismissOnBackPress = dismissOnBackPress,
             dismissOnClickOutside = dismissOnClickOutside,
         ),
-        title = { Text(text = stringResource(id = R.string.pref_privacy_policy_title)) },
-        text = { Text(text = stringResource(id = R.string.privacy_policy_confirm_message)) },
+        title = { AppText(text = stringResource(id = R.string.pref_privacy_policy_title)) },
+        text = { AppText(text = stringResource(id = R.string.privacy_policy_confirm_message)) },
         confirmButton = {
             io.github.magisk317.uikit.surface.AppTextButton(
                 text = stringResource(id = R.string.action_accept),
@@ -189,7 +171,6 @@ fun PrivacyPolicyDialog(
         },
     )
 }
-
 
 @Composable
 fun RetentionDialog(

@@ -28,22 +28,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.Surface
+import io.github.magisk317.uikit.common.AppSnackbarDuration
+import io.github.magisk317.uikit.common.AppSnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -69,23 +59,36 @@ import io.github.magisk317.relay.contract.repository.SettingsPreferencesReposito
 import io.github.magisk317.relay.contract.settings.RecordSettingsUpdate
 import io.github.magisk317.relay.engine.model.ReadSmsBlacklistHitData
 import io.github.magisk317.relay.engine.service.MessageRecordRepository
-import io.github.magisk317.relay.ui.common.Item
+import io.github.magisk317.uikit.preference.AppArrowItem
 import io.github.magisk317.relay.ui.common.AppIconCache
 import io.github.magisk317.relay.ui.common.RetentionDialog
 import io.github.magisk317.relay.ui.common.StateSwitchItem
 import io.github.magisk317.uikit.preference.TextInputDialog
-import io.github.magisk317.uikit.common.DismissibleSnackbarHost
+import io.github.magisk317.uikit.common.AppSnackbarHost
 import io.github.magisk317.uikit.common.showLatestSnackbar
 import io.github.magisk317.uikit.surface.WorkspaceEmptyState
 import io.github.magisk317.uikit.surface.WorkspaceListDivider
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
+import io.github.magisk317.uikit.surface.AppAlertDialog
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 import java.text.SimpleDateFormat
 import java.util.Date
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppIcon
+import io.github.magisk317.uikit.surface.AppPrimaryButton
+import io.github.magisk317.uikit.surface.AppSecondaryButton
+import io.github.magisk317.uikit.surface.AppSurface
+import io.github.magisk317.uikit.surface.AppTextButton
+import io.github.magisk317.uikit.surface.AppBottomSheet
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
+import io.github.magisk317.uikit.theme.AppShapeRole
+import io.github.magisk317.uikit.theme.appShape
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -107,7 +110,7 @@ fun BlacklistHitListScreen(
     val listState = rememberLazyListState()
     val dateFormat = rememberBlacklistHitDateFormat()
     val detailDateFormat = rememberBlacklistHitDateFormat()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     var defaultSmsIcon by remember { mutableStateOf<Bitmap?>(null) }
@@ -150,9 +153,9 @@ fun BlacklistHitListScreen(
                 val result = snackbarHostState.showLatestSnackbar(
                     message = context.getString(R.string.some_items_removed, 1),
                     actionLabel = context.getString(R.string.revoke),
-                    duration = SnackbarDuration.Long,
+                    duration = AppSnackbarDuration.Long,
                 )
-                if (result == SnackbarResult.ActionPerformed) {
+                if (result == AppSnackbarResult.ActionPerformed) {
                     recordRepository.restoreSmsBlacklistHits(listOf(hit))
                 }
             }
@@ -160,13 +163,12 @@ fun BlacklistHitListScreen(
     }
 
     if (showClearDialog) {
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = { showClearDialog = false },
-            title = { Text(stringResource(R.string.sms_blacklist_hit_clear_dialog_title)) },
-            text = { Text(stringResource(R.string.sms_blacklist_hit_clear_dialog_message)) },
+            title = { AppText(stringResource(R.string.sms_blacklist_hit_clear_dialog_title)) },
+            text = { AppText(stringResource(R.string.sms_blacklist_hit_clear_dialog_message)) },
             confirmButton = {
-                TextButton(
-                    onClick = {
+                AppTextButton(text = stringResource(R.string.action_clear_records), onClick = {
                         showClearDialog = false
                         scope.launch {
                             val deleted = recordRepository.listSmsBlacklistHits(Int.MAX_VALUE)
@@ -175,60 +177,54 @@ fun BlacklistHitListScreen(
                                 val result = snackbarHostState.showLatestSnackbar(
                                     message = context.getString(R.string.some_items_removed, deleted.size),
                                     actionLabel = context.getString(R.string.revoke),
-                                    duration = SnackbarDuration.Long,
+                                    duration = AppSnackbarDuration.Long,
                                 )
-                                if (result == SnackbarResult.ActionPerformed) {
+                                if (result == AppSnackbarResult.ActionPerformed) {
                                     recordRepository.restoreSmsBlacklistHits(deleted)
                                 }
                             }
                         }
-                    },
-                ) {
-                    Text(stringResource(R.string.action_clear_records))
-                }
+                    })
             },
             dismissButton = {
-                TextButton(onClick = { showClearDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
+                AppTextButton(text = stringResource(R.string.cancel), onClick = { showClearDialog = false })
             },
         )
     }
 
-    if (showSettingsSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showSettingsSheet = false },
+    AppBottomSheet(
+        show = showSettingsSheet,
+        onDismissRequest = { showSettingsSheet = false },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                StateSwitchItem(
-                    title = stringResource(R.string.pref_enable_sms_blacklist_hit_records_title),
-                    summary = "",
-                    checked = recordEnabled,
-                ) { enabled ->
-                    recordEnabled = enabled
-                    scope.launch {
-                        settingsRepository.updateRecordSettings(
-                            RecordSettingsUpdate(smsBlacklistHitRecordEnabled = enabled),
-                        )
-                        snackbarHostState.showLatestSnackbar(savedSnackbarText)
-                    }
+            StateSwitchItem(
+                title = stringResource(R.string.pref_enable_sms_blacklist_hit_records_title),
+                summary = "",
+                checked = recordEnabled,
+            ) { enabled ->
+                recordEnabled = enabled
+                scope.launch {
+                    settingsRepository.updateRecordSettings(
+                        RecordSettingsUpdate(smsBlacklistHitRecordEnabled = enabled),
+                    )
+                    snackbarHostState.showLatestSnackbar(savedSnackbarText)
                 }
-                Item(
-                    title = stringResource(
-                        R.string.pref_history_limit_title_with_target,
-                        stringResource(R.string.sms_blacklist_hit_list_title),
-                    ),
-                    summary = blacklistHitHistoryLimitSummary(historyLimit),
-                ) {
-                    showHistoryLimitDialog = true
-                }
-                Spacer(modifier = Modifier.height(12.dp))
             }
+            AppArrowItem(
+                title = stringResource(
+                    R.string.pref_history_limit_title_with_target,
+                    stringResource(R.string.sms_blacklist_hit_list_title),
+                ),
+                summary = blacklistHitHistoryLimitSummary(historyLimit),
+            ) {
+                showHistoryLimitDialog = true
+            }
+            Spacer(modifier = Modifier.height(12.dp))
         }
     }
 
@@ -283,23 +279,22 @@ fun BlacklistHitListScreen(
                     summary = stringResource(R.string.sms_blacklist_hit_recent_empty),
                     modifier = Modifier.fillMaxSize(),
                     icon = {
-                        Icon(
+                        AppIcon(
                             imageVector = Icons.Default.Block,
                             contentDescription = null,
                             modifier = Modifier.padding(bottom = 8.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = appColor(AppColorRole.OnSurfaceVariant),
                         )
                     },
                 )
             } else {
-                Surface(
+                AppSurface(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 12.dp),
-                    shape = MaterialTheme.shapes.large,
+                    shape = appShape(AppShapeRole.Large),
                     tonalElevation = 2.dp,
                     color = Color.Transparent,
-                    shadowElevation = 0.dp,
                 ) {
                     LazyColumn(
                         state = listState,
@@ -327,10 +322,9 @@ fun BlacklistHitListScreen(
                 }
             }
 
-            DismissibleSnackbarHost(
+            AppSnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
                     .navigationBarsPadding(),
             )
         }
@@ -395,14 +389,14 @@ private fun BlacklistHitSwipeItem(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.errorContainer)
+                    .background(appColor(AppColorRole.ErrorContainer))
                     .padding(horizontal = 24.dp),
                 contentAlignment = if (fromStart) Alignment.CenterStart else Alignment.CenterEnd,
             ) {
-                Icon(
+                AppIcon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = stringResource(R.string.remove),
-                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                    tint = appColor(AppColorRole.OnErrorContainer),
                 )
             }
         },
@@ -440,9 +434,9 @@ private fun BlacklistHitDetailDialog(
         ?.let { blacklistHitBlockReasonText(it) }
         .orEmpty()
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.sms_blacklist_hit_detail_title)) },
+        title = { AppText(stringResource(R.string.sms_blacklist_hit_detail_title)) },
         text = {
             Column(
                 modifier = Modifier
@@ -468,24 +462,21 @@ private fun BlacklistHitDetailDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                OutlinedButton(
+                AppSecondaryButton(
                     modifier = Modifier.weight(1f),
                     onClick = onDismiss,
                 ) {
-                    Text(stringResource(R.string.action_close))
+                    AppText(stringResource(R.string.action_close))
                 }
-                Button(
+                AppPrimaryButton(
                     modifier = Modifier.weight(1f),
                     onClick = {
                         onDelete()
                         onDismiss()
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                    ),
+                    containerColor = appColor(AppColorRole.ErrorContainer), contentColor = appColor(AppColorRole.OnErrorContainer),
                 ) {
-                    Text(stringResource(R.string.action_delete))
+                    AppText(stringResource(R.string.action_delete))
                 }
             }
         },
@@ -498,16 +489,16 @@ private fun BlacklistHitDetailField(
     value: String,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(
+        AppText(
             text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary,
+            role = AppTextRole.Footnote,
+            color = appColor(AppColorRole.Primary),
             fontWeight = FontWeight.Bold,
         )
-        Text(
+        AppText(
             text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            role = AppTextRole.Body,
+            color = appColor(AppColorRole.OnSurface),
         )
     }
 }

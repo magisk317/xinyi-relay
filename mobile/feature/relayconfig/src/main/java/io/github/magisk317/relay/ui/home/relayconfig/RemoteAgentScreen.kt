@@ -1,7 +1,6 @@
 package io.github.magisk317.relay.ui.home.relayconfig
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
-
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,13 +14,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
+import io.github.magisk317.uikit.surface.AppTextField
+import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -45,13 +39,19 @@ import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import java.text.DateFormat
 import java.util.Date
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppCard
+import io.github.magisk317.uikit.surface.AppPrimaryButton
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 
 @Composable
 fun RemoteAgentScreen(onBack: () -> Unit) {
     val repository: ConfigSyncCoordinator = koinInject()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     var snapshot by remember { mutableStateOf<RemoteAgentSnapshot?>(null) }
     var baseUrl by remember { mutableStateOf("") }
     var bindCode by remember { mutableStateOf("") }
@@ -80,8 +80,6 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
         baseUrl = next.backendBaseUrl
     }
 
-
-
     LaunchedEffect(Unit) {
         refresh()
     }
@@ -96,21 +94,21 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        OutlinedTextField(
+        AppTextField(
             value = baseUrl,
             onValueChange = { baseUrl = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text(stringResource(id = R.string.pref_remote_agent_base_url_title)) },
-            supportingText = { Text(stringResource(id = R.string.pref_remote_agent_base_url_summary)) },
+            label = stringResource(id = R.string.pref_remote_agent_base_url_title),
+            supportingText = { AppText(stringResource(id = R.string.pref_remote_agent_base_url_summary)) },
             singleLine = true,
         )
 
-        OutlinedTextField(
+        AppTextField(
             value = bindCode,
             onValueChange = { bindCode = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text(stringResource(id = R.string.pref_remote_agent_bind_code_title)) },
-            supportingText = { Text(stringResource(id = R.string.pref_remote_agent_bind_code_summary)) },
+            label = stringResource(id = R.string.pref_remote_agent_bind_code_title),
+            supportingText = { AppText(stringResource(id = R.string.pref_remote_agent_bind_code_summary)) },
             singleLine = true,
         )
 
@@ -118,7 +116,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Button(
+            AppPrimaryButton(
                 onClick = {
                     scope.launch {
                         runCatching {
@@ -136,9 +134,9 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                     }
                 },
             ) {
-                Text(bindActionText)
+                AppText(bindActionText)
             }
-            Button(
+            AppPrimaryButton(
                 onClick = {
                     val options = GmsBarcodeScannerOptions.Builder()
                         .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
@@ -180,9 +178,9 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                         }
                 },
             ) {
-                Text(scanActionText)
+                AppText(scanActionText)
             }
-            Button(
+            AppPrimaryButton(
                 onClick = {
                     scope.launch {
                         runCatching {
@@ -196,7 +194,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                     }
                 },
             ) {
-                Text(saveText)
+                AppText(saveText)
             }
         }
 
@@ -204,7 +202,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Button(
+            AppPrimaryButton(
                 onClick = {
                     scope.launch {
                         runCatching { repository.sendHeartbeat() }
@@ -220,9 +218,9 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                 },
                 enabled = current?.bound == true,
             ) {
-                Text(heartbeatActionText)
+                AppText(heartbeatActionText)
             }
-            Button(
+            AppPrimaryButton(
                 onClick = {
                     scope.launch {
                         runCatching { repository.pullPendingCommands() }
@@ -240,7 +238,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                 },
                 enabled = current?.bound == true,
             ) {
-                Text(pullActionText)
+                AppText(pullActionText)
             }
         }
 
@@ -248,7 +246,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Button(
+            AppPrimaryButton(
                 onClick = {
                     scope.launch {
                         runCatching { repository.pushLocalMirror() }
@@ -264,9 +262,9 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                 },
                 enabled = current?.bound == true,
             ) {
-                Text(pushActionText)
+                AppText(pushActionText)
             }
-            Button(
+            AppPrimaryButton(
                 onClick = {
                     scope.launch {
                         runCatching { repository.uploadRecentRecords() }
@@ -282,7 +280,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                 },
                 enabled = current?.bound == true,
             ) {
-                Text(recordsActionText)
+                AppText(recordsActionText)
             }
         }
 
@@ -290,7 +288,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Button(
+            AppPrimaryButton(
                 onClick = {
                     scope.launch {
                         repository.clearBinding()
@@ -301,7 +299,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                 },
                 enabled = current?.bound == true,
             ) {
-                Text(unbindActionText)
+                AppText(unbindActionText)
             }
         }
 
@@ -392,9 +390,9 @@ private fun parseBindPayload(raw: String): ParsedBindPayload {
 
 @Composable
 private fun StatusCard(title: String, value: String) {
-    Card(
+    AppCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        color = appColor(AppColorRole.SurfaceContainer),
     ) {
         Column(
             modifier = Modifier
@@ -402,8 +400,8 @@ private fun StatusCard(title: String, value: String) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text(text = title, style = MaterialTheme.typography.titleMedium)
-            Text(text = value, style = MaterialTheme.typography.bodyMedium)
+            AppText(text = title, role = AppTextRole.Subtitle)
+            AppText(text = value, role = AppTextRole.Body)
         }
     }
 }

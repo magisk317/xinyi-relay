@@ -24,7 +24,7 @@ import io.github.magisk317.uikit.surface.chromeSurfaceColor
 import io.github.magisk317.uikit.surface.rememberUiKitGlassTopBar
 import io.github.magisk317.uikit.surface.uiKitSurfaceGlassSample
 import io.github.magisk317.uikit.theme.LocalUiKitSurfaceBlur
-import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Scaffold as MiuixScaffold
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.only
@@ -36,6 +36,9 @@ import androidx.compose.ui.res.stringResource
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
+import io.github.magisk317.uikit.preview.MagiskMultiPreview
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
+import androidx.compose.foundation.lazy.rememberLazyListState
 
 /**
  * Miuix chrome for the cloud-backup screen of the same name:
@@ -56,7 +59,7 @@ internal fun CloudBackupScreenMiuix(
     val glassOn = LocalUiKitSurfaceBlur.current.usesBackdrop
     val scrollScope = rememberCoroutineScope()
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    Scaffold(
+    MiuixScaffold(
         topBar = {
             Box {
                 AppTopBar(
@@ -98,4 +101,16 @@ internal fun CloudBackupScreenMiuix(
             ScrollToTopFAB(listState = listState)
         }
     }
+}
+
+
+@MagiskMultiPreview
+@Composable
+private fun CloudBackupScreenMiuixPreview() {
+    CloudBackupScreenMiuix(
+        title = "Sample",
+        onBack = {},
+        listState = rememberLazyListState(),
+        body = { _ -> MiuixText("Preview") },
+    )
 }

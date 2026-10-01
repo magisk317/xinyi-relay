@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.ui.sender.forms
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,16 +16,6 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.VerifiedUser
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -41,7 +31,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.sender.SenderType
@@ -55,6 +44,15 @@ import io.github.magisk317.relay.sender.SenderSettingJson
 import io.github.magisk317.relay.sender.SenderSettingDraft
 import io.github.magisk317.relay.sender.config.MatrixSetting
 import io.github.magisk317.relay.ui.sender.SenderViewModel
+import io.github.magisk317.uikit.surface.AppCard
+import io.github.magisk317.uikit.surface.AppIcon
+import io.github.magisk317.uikit.surface.AppLinearProgressIndicator
+import io.github.magisk317.uikit.surface.AppPrimaryButton
+import io.github.magisk317.uikit.surface.AppSecondaryButton
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 import kotlinx.coroutines.launch
 
 private val MatrixVisibleFields = listOf(
@@ -145,12 +143,12 @@ fun MatrixConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMo
 
 /**
  * Displays the appropriate E2EE status indicator based on module availability:
- * - AVAILABLE → green "E2EE Enabled" card
- * - NOT_APPLICABLE (GitHub noE2ee) → info banner suggesting E2EE variant
- * - NOT_INSTALLED (Play) → install button
- * - DOWNLOADING → progress bar with percentage
- * - INSTALL_FAILED → error message + retry button
- * - LOAD_FAILED → error message
+ * - AVAILABLE -> green "E2EE Enabled" card
+ * - NOT_APPLICABLE (GitHub noE2ee) -> info banner suggesting E2EE variant
+ * - NOT_INSTALLED (Play) -> install button
+ * - DOWNLOADING -> progress bar with percentage
+ * - INSTALL_FAILED -> error message + retry button
+ * - LOAD_FAILED -> error message
  */
 @Composable
 internal fun MatrixE2eeStatusSection(
@@ -218,15 +216,16 @@ internal fun MatrixE2eeStatusSection(
 private fun MatrixE2eeEnabledCard() {
     val greenContainer = Color(0xFFD7F5E3)
     val greenContent = Color(0xFF1B5E20)
-    Card(
+    AppCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = greenContainer),
+        color = greenContainer,
+        contentColor = greenContent,
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
+            AppIcon(
                 imageVector = Icons.Filled.Lock,
                 contentDescription = null,
                 tint = greenContent,
@@ -234,16 +233,15 @@ private fun MatrixE2eeEnabledCard() {
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column {
-                Text(
+                AppText(
                     text = stringResource(R.string.matrix_e2ee_status_enabled),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
+                    role = AppTextRole.Subtitle,
                     color = greenContent,
                 )
                 Spacer(modifier = Modifier.height(2.dp))
-                Text(
+                AppText(
                     text = stringResource(R.string.matrix_e2ee_status_enabled_desc),
-                    style = MaterialTheme.typography.bodySmall,
+                    role = AppTextRole.BodySmall,
                     color = greenContent,
                 )
             }
@@ -253,24 +251,22 @@ private fun MatrixE2eeEnabledCard() {
 
 @Composable
 private fun MatrixE2eeInfoBanner() {
-    Card(
+    AppCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-        ),
+        color = appColor(AppColorRole.PrimaryContainer),
+        contentColor = appColor(AppColorRole.OnPrimaryContainer),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
+            AppText(
                 text = stringResource(R.string.matrix_e2ee_banner_title),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                role = AppTextRole.Subtitle,
+                color = appColor(AppColorRole.OnPrimaryContainer),
             )
             Spacer(modifier = Modifier.height(4.dp))
-            Text(
+            AppText(
                 text = stringResource(R.string.matrix_e2ee_banner_message),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                role = AppTextRole.BodySmall,
+                color = appColor(AppColorRole.OnPrimaryContainer),
             )
         }
     }
@@ -278,130 +274,117 @@ private fun MatrixE2eeInfoBanner() {
 
 @Composable
 private fun MatrixE2eeInstallCard(onInstallClick: () -> Unit) {
-    Card(
+    AppCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-        ),
+        color = appColor(AppColorRole.SecondaryContainer),
+        contentColor = appColor(AppColorRole.OnSecondaryContainer),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
+            AppText(
                 text = stringResource(R.string.matrix_e2ee_feature_title),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                role = AppTextRole.Subtitle,
+                color = appColor(AppColorRole.OnSecondaryContainer),
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Button(
+            AppPrimaryButton(
+                text = stringResource(R.string.matrix_e2ee_install_button),
                 onClick = onInstallClick,
                 modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(text = stringResource(R.string.matrix_e2ee_install_button))
-            }
+            )
         }
     }
 }
 
 @Composable
 private fun MatrixE2eeDownloadingCard(progress: Int) {
-    Card(
+    AppCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-        ),
+        color = appColor(AppColorRole.SecondaryContainer),
+        contentColor = appColor(AppColorRole.OnSecondaryContainer),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
+            AppText(
                 text = stringResource(R.string.matrix_e2ee_feature_title),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                role = AppTextRole.Subtitle,
+                color = appColor(AppColorRole.OnSecondaryContainer),
             )
             Spacer(modifier = Modifier.height(8.dp))
-            LinearProgressIndicator(
-                progress = { progress / 100f },
+            AppLinearProgressIndicator(
+                progress = progress / 100f,
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(modifier = Modifier.height(4.dp))
-            Text(
+            AppText(
                 text = stringResource(R.string.matrix_e2ee_downloading, progress),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                role = AppTextRole.BodySmall,
+                color = appColor(AppColorRole.OnSecondaryContainer),
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Button(
+            AppPrimaryButton(
+                text = stringResource(R.string.matrix_e2ee_install_button),
                 onClick = { /* disabled during download */ },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = false,
-            ) {
-                Text(text = stringResource(R.string.matrix_e2ee_install_button))
-            }
+            )
         }
     }
 }
 
 @Composable
 private fun MatrixE2eeInstallFailedCard(errorMessage: String?, onRetryClick: () -> Unit) {
-    Card(
+    AppCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer,
-        ),
+        color = appColor(AppColorRole.ErrorContainer),
+        contentColor = appColor(AppColorRole.OnErrorContainer),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
+            AppText(
                 text = stringResource(R.string.matrix_e2ee_feature_title),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onErrorContainer,
+                role = AppTextRole.Subtitle,
+                color = appColor(AppColorRole.OnErrorContainer),
             )
             Spacer(modifier = Modifier.height(4.dp))
-            Text(
+            AppText(
                 text = stringResource(
                     R.string.matrix_e2ee_install_failed,
                     errorMessage ?: stringResource(R.string.matrix_e2ee_unknown_error),
                 ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onErrorContainer,
+                role = AppTextRole.BodySmall,
+                color = appColor(AppColorRole.OnErrorContainer),
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Button(
+            AppPrimaryButton(
+                text = stringResource(R.string.matrix_e2ee_install_button),
                 onClick = onRetryClick,
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError,
-                ),
-            ) {
-                Text(text = stringResource(R.string.matrix_e2ee_install_button))
-            }
+                containerColor = appColor(AppColorRole.Error),
+                contentColor = appColor(AppColorRole.OnError),
+            )
         }
     }
 }
 
 @Composable
 private fun MatrixE2eeLoadFailedCard() {
-    Card(
+    AppCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer,
-        ),
+        color = appColor(AppColorRole.ErrorContainer),
+        contentColor = appColor(AppColorRole.OnErrorContainer),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
+            AppText(
                 text = stringResource(R.string.matrix_e2ee_feature_title),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onErrorContainer,
+                role = AppTextRole.Subtitle,
+                color = appColor(AppColorRole.OnErrorContainer),
             )
             Spacer(modifier = Modifier.height(4.dp))
-            Text(
+            AppText(
                 text = stringResource(
                     R.string.matrix_e2ee_install_failed,
                     stringResource(R.string.matrix_e2ee_load_failed),
                 ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onErrorContainer,
+                role = AppTextRole.BodySmall,
+                color = appColor(AppColorRole.OnErrorContainer),
             )
         }
     }
@@ -441,28 +424,25 @@ private fun MatrixE2eeVerificationSection(
         scope.launch { block() }
     }
 
-    Card(
+    AppCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
+        color = appColor(AppColorRole.SurfaceVariant),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
+                AppIcon(
                     imageVector = Icons.Filled.VerifiedUser,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = appColor(AppColorRole.Primary),
                     modifier = Modifier.size(24.dp),
                 )
                 Spacer(modifier = Modifier.width(12.dp))
-                Text(
+                AppText(
                     text = stringResource(R.string.matrix_e2ee_verification_title),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
+                    role = AppTextRole.Subtitle,
                 )
             }
 
@@ -470,10 +450,10 @@ private fun MatrixE2eeVerificationSection(
             MatrixVerificationSas(state = state)
 
             if (!credentialsReady) {
-                Text(
+                AppText(
                     text = stringResource(R.string.matrix_e2ee_verification_login_required),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
+                    role = AppTextRole.BodySmall,
+                    color = appColor(AppColorRole.Error),
                 )
             }
 
@@ -525,38 +505,38 @@ private fun MatrixVerificationStateText(
     state: MatrixE2eeVerificationState,
 ) {
     if (state.userId.isNotBlank() || state.deviceId.isNotBlank()) {
-        Text(
+        AppText(
             text = stringResource(
                 R.string.matrix_e2ee_verification_device,
                 state.userId.ifBlank { "-" },
                 state.deviceId.ifBlank { "-" },
             ),
-            style = MaterialTheme.typography.bodySmall,
+            role = AppTextRole.BodySmall,
         )
     }
     if (state.verificationState.isNotBlank()) {
-        Text(
+        AppText(
             text = stringResource(
                 R.string.matrix_e2ee_verification_state,
                 matrixVerificationTrustStateText(state.verificationState),
             ),
-            style = MaterialTheme.typography.bodySmall,
+            role = AppTextRole.BodySmall,
         )
     }
     if (state.status == MatrixE2eeVerificationStatus.REQUEST_RECEIVED) {
-        Text(
+        AppText(
             text = stringResource(
                 R.string.matrix_e2ee_verification_request_from,
                 state.requestUserId.ifBlank { "-" },
                 state.requestDeviceDisplayName.ifBlank { state.requestDeviceId.ifBlank { "-" } },
             ),
-            style = MaterialTheme.typography.bodySmall,
+            role = AppTextRole.BodySmall,
         )
     }
     matrixVerificationStatusMessage(state)?.let { message ->
-        Text(
+        AppText(
             text = message,
-            style = MaterialTheme.typography.bodySmall,
+            role = AppTextRole.BodySmall,
             color = matrixVerificationStatusColor(state.status),
         )
     }
@@ -628,9 +608,9 @@ private fun matrixVerificationStatusColor(
     return when (status) {
         MatrixE2eeVerificationStatus.FAILED,
         MatrixE2eeVerificationStatus.UNAVAILABLE,
-        MatrixE2eeVerificationStatus.UNSUPPORTED_AUTH -> MaterialTheme.colorScheme.error
-        MatrixE2eeVerificationStatus.VERIFIED -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
+        MatrixE2eeVerificationStatus.UNSUPPORTED_AUTH -> appColor(AppColorRole.Error)
+        MatrixE2eeVerificationStatus.VERIFIED -> appColor(AppColorRole.Primary)
+        else -> appColor(AppColorRole.OnSurfaceVariant)
     }
 }
 
@@ -638,24 +618,23 @@ private fun matrixVerificationStatusColor(
 private fun MatrixVerificationSas(state: MatrixE2eeVerificationState) {
     if (state.status != MatrixE2eeVerificationStatus.SAS_READY) return
     if (state.sasDecimals.isNotEmpty()) {
-        Text(
+        AppText(
             text = state.sasDecimals.joinToString(" "),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
+            role = AppTextRole.Subtitle,
         )
     }
     if (state.sasEmojis.isNotEmpty()) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             state.sasEmojis.forEach { emoji ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
+                    AppText(
                         text = emoji.symbol,
-                        style = MaterialTheme.typography.titleMedium,
+                        role = AppTextRole.Subtitle,
                         modifier = Modifier.width(40.dp),
                     )
-                    Text(
+                    AppText(
                         text = emoji.description,
-                        style = MaterialTheme.typography.bodySmall,
+                        role = AppTextRole.BodySmall,
                     )
                 }
             }
@@ -795,33 +774,21 @@ private fun MatrixVerificationButton(
     onClick: () -> Unit,
 ) {
     if (secondary) {
-        FilledTonalButton(
+        AppSecondaryButton(
             onClick = onClick,
-            enabled = enabled,
             modifier = Modifier.fillMaxWidth(),
-            colors = if (isError) {
-                ButtonDefaults.filledTonalButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error,
-                )
-            } else {
-                ButtonDefaults.filledTonalButtonColors()
-            },
+            enabled = enabled,
+            contentColor = if (isError) appColor(AppColorRole.Error) else Color.Unspecified,
         ) {
             MatrixVerificationButtonContent(text = text, icon = icon)
         }
     } else {
-        Button(
+        AppPrimaryButton(
             onClick = onClick,
-            enabled = enabled,
             modifier = Modifier.fillMaxWidth(),
-            colors = if (isError) {
-                ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                )
-            } else {
-                ButtonDefaults.buttonColors()
-            },
+            enabled = enabled,
+            containerColor = if (isError) appColor(AppColorRole.ErrorContainer) else Color.Unspecified,
+            contentColor = if (isError) appColor(AppColorRole.OnErrorContainer) else Color.Unspecified,
         ) {
             MatrixVerificationButtonContent(text = text, icon = icon)
         }
@@ -830,9 +797,9 @@ private fun MatrixVerificationButton(
 
 @Composable
 private fun MatrixVerificationButtonContent(text: String, icon: ImageVector) {
-    Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(18.dp))
+    AppIcon(imageVector = icon, contentDescription = null, modifier = Modifier.size(18.dp))
     Spacer(modifier = Modifier.width(8.dp))
-    Text(text)
+    AppText(text = text)
 }
 
 /**

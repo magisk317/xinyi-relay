@@ -24,15 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.ui.Alignment
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
+import io.github.magisk317.uikit.surface.AppTextField
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
 import io.github.magisk317.uikit.surface.AppScaffold
@@ -60,6 +52,14 @@ import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppCard
+import io.github.magisk317.uikit.surface.AppCircularProgressIndicator
+import io.github.magisk317.uikit.surface.AppPrimaryButton
+import io.github.magisk317.uikit.surface.AppSecondaryButton
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
 
 class MobileEntitlementActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -193,19 +193,19 @@ private fun MobileEntitlementScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Spacer(modifier = Modifier.height(8.dp))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text(
+                    AppText(
                         text = stringResource(
                             R.string.mobile_entitlement_status,
                             stringResource(mobileEntitlementStatusStringRes(evaluation?.status)),
                         ),
-                        style = MaterialTheme.typography.titleMedium,
+                        role = AppTextRole.Subtitle,
                     )
-                    Text(
+                    AppText(
                         text = stringResource(
                             R.string.mobile_entitlement_automation,
                             if (evaluation?.automationAllowed == true) {
@@ -216,7 +216,7 @@ private fun MobileEntitlementScreen(
                         ),
                     )
                     evaluation?.claims?.issuedAt?.takeIf { it > 0 }?.let { issuedAt ->
-                        Text(stringResource(R.string.mobile_entitlement_issued_at, formatEpoch(issuedAt)))
+                        AppText(stringResource(R.string.mobile_entitlement_issued_at, formatEpoch(issuedAt)))
                     }
                     evaluation?.claims?.deviceId?.takeIf { it.isNotBlank() }?.let { deviceId ->
                         Row(
@@ -224,11 +224,11 @@ private fun MobileEntitlementScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(
+                            AppText(
                                 text = stringResource(R.string.mobile_entitlement_device_id, deviceId),
                                 modifier = Modifier.weight(1f, fill = false),
                             )
-                            IconButton(
+                            AppIconButton(
                                 onClick = {
                                     val cm = context.getSystemService(Context.CLIPBOARD_SERVICE)
                                         as? android.content.ClipboardManager
@@ -240,7 +240,7 @@ private fun MobileEntitlementScreen(
                                     ).show()
                                 },
                             ) {
-                                Icon(
+                                AppIcon(
                                     Icons.Default.ContentCopy,
                                     contentDescription = stringResource(R.string.mobile_entitlement_copy),
                                     modifier = Modifier.padding(start = 4.dp),
@@ -254,37 +254,37 @@ private fun MobileEntitlementScreen(
             val isActivated = isMobileEntitlementActivated(evaluation?.status)
 
             if (!isActivated) {
-                Card(modifier = Modifier.fillMaxWidth()) {
+                AppCard(modifier = Modifier.fillMaxWidth()) {
                     Column(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text(
+                        AppText(
                             text = stringResource(R.string.mobile_entitlement_activation_token_label),
-                            style = MaterialTheme.typography.titleMedium,
+                            role = AppTextRole.Subtitle,
                         )
-                        OutlinedTextField(
+                        AppTextField(
                             value = activationTokenInput,
                             onValueChange = { activationTokenInput = it.trim().uppercase() },
-                            label = { Text(stringResource(R.string.mobile_entitlement_activation_token_hint)) },
+                            label = stringResource(R.string.mobile_entitlement_activation_token_hint),
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             enabled = busyAction == null,
                         )
-                        Button(
+                        AppPrimaryButton(
                             onClick = ::activateWithToken,
                             enabled = busyAction == null && activationTokenInput.trim().length == 32,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             if (busyAction == ActivationAction.TOKEN) {
-                                CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp), strokeWidth = 2.dp)
+                                AppCircularProgressIndicator(modifier = Modifier.padding(end = 8.dp), strokeWidth = 2.dp)
                             }
-                            Text(stringResource(R.string.mobile_entitlement_activation_token_confirm))
+                            AppText(stringResource(R.string.mobile_entitlement_activation_token_confirm))
                         }
-                        Text(
+                        AppText(
                             text = stringResource(R.string.mobile_entitlement_activation_token_get_hint),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            role = AppTextRole.BodySmall,
+                            color = appColor(AppColorRole.OnSurfaceVariant),
                         )
                     }
                 }
@@ -295,30 +295,30 @@ private fun MobileEntitlementScreen(
                 !isMobileEntitlementActivated(currentEvaluation.status) ||
                 currentEvaluation.renewDue
             if (showActivationActions) {
-                OutlinedButton(
+                AppSecondaryButton(
                     onClick = ::openTelegramBot,
                     enabled = busyAction == null,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     if (busyAction == ActivationAction.TELEGRAM) {
-                        CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp), strokeWidth = 2.dp)
+                        AppCircularProgressIndicator(modifier = Modifier.padding(end = 8.dp), strokeWidth = 2.dp)
                     }
-                    Text(stringResource(R.string.mobile_entitlement_activate_telegram))
+                    AppText(stringResource(R.string.mobile_entitlement_activate_telegram))
                 }
             }
-            OutlinedButton(
+            AppSecondaryButton(
                 onClick = { refreshStatus(force = true) },
                 enabled = busyAction == null,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Icon(Icons.Default.Refresh, contentDescription = null)
+                AppIcon(Icons.Default.Refresh, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.mobile_entitlement_refresh))
+                AppText(stringResource(R.string.mobile_entitlement_refresh))
             }
             message?.let {
-                Text(
+                AppText(
                     text = stringResource(R.string.mobile_entitlement_error, it),
-                    color = MaterialTheme.colorScheme.error,
+                    color = appColor(AppColorRole.Error),
                 )
             }
             Spacer(modifier = Modifier.height(24.dp))

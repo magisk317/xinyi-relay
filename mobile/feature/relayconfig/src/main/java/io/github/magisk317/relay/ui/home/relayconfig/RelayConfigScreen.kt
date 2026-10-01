@@ -1,8 +1,8 @@
 package io.github.magisk317.relay.ui.home.relayconfig
 
-import io.github.magisk317.relay.ui.common.SectionCard
+import io.github.magisk317.uikit.preference.SectionCard
 import io.github.magisk317.relay.ui.common.StateSwitchItem
-import io.github.magisk317.relay.ui.common.Item
+import io.github.magisk317.uikit.preference.AppArrowItem
 import io.github.magisk317.uikit.preference.TextInputDialog
 import io.github.magisk317.uikit.common.showLatestSnackbar
 import androidx.compose.foundation.layout.Arrangement
@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.SnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -55,7 +55,7 @@ fun RelayConfigScreen(
     val repository: SettingsPreferencesRepository = koinInject()
     val scope = rememberCoroutineScope()
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     val notifySaved = {
         scope.launch {
             snackbarHostState.showLatestSnackbar(savedSnackbarText)
@@ -97,24 +97,24 @@ fun RelayConfigScreen(
                     sectionExpanded = true,
                     onExpandedChange = {},
                 ) {
-                    Item(
+                    AppArrowItem(
                         title = stringResource(id = R.string.tab_senders),
                         summary = stringResource(id = R.string.pref_enable_forward_summary),
                         modifier = Modifier.testTag(BENCHMARK_RELAY_SENDERS),
                     ) { onOpenSenders() }
-                    Item(
+                    AppArrowItem(
                         title = stringResource(id = R.string.title_notification_rules),
                         summary = stringResource(id = R.string.subtitle_notification_rules),
                     ) { onOpenAppRouting() }
-                    Item(
+                    AppArrowItem(
                         title = stringResource(id = R.string.advanced_filter_title),
                         summary = stringResource(id = R.string.advanced_filter_summary),
                     ) { onOpenFilters() }
-                    Item(
+                    AppArrowItem(
                         title = stringResource(id = R.string.pref_relay_records_title),
                         summary = stringResource(id = R.string.pref_relay_records_summary),
                     ) { onOpenRecords() }
-                    Item(
+                    AppArrowItem(
                         title = stringResource(id = R.string.pref_sms_forward_dedup_window_title),
                         summary = stringResource(
                             id = R.string.pref_sms_forward_dedup_window_summary,

@@ -13,13 +13,15 @@ import io.github.magisk317.uikit.surface.chromeSurfaceColor
 import io.github.magisk317.uikit.surface.rememberUiKitGlassTopBar
 import io.github.magisk317.uikit.surface.uiKitSurfaceGlassSample
 import io.github.magisk317.uikit.theme.LocalUiKitSurfaceBlur
-import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Scaffold as MiuixScaffold
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.material3.SnackbarHostState
-import io.github.magisk317.uikit.common.DismissibleSnackbarHost
+import io.github.magisk317.uikit.common.AppSnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarHost
+import io.github.magisk317.uikit.preview.MagiskMultiPreview
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
 
 /**
  * Miuix chrome for the intercept/advanced-filter screen of the
@@ -33,12 +35,12 @@ import io.github.magisk317.uikit.common.DismissibleSnackbarHost
 @Composable
 internal fun InterceptScreenMiuix(
     title: String,
-    snackbarHostState: SnackbarHostState,
+    snackbarHostState: AppSnackbarHostState,
     body: @Composable (PaddingValues) -> Unit
 ) {
     val topGlass = rememberUiKitGlassTopBar()
     val glassOn = LocalUiKitSurfaceBlur.current.usesBackdrop
-    Scaffold(
+    MiuixScaffold(
         topBar = {
             AppTopBar(
                 modifier = Modifier.uiKitSurfaceGlassSample(topGlass),
@@ -48,7 +50,7 @@ internal fun InterceptScreenMiuix(
             )
         },
         snackbarHost = {
-            DismissibleSnackbarHost(
+            AppSnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier.navigationBarsPadding(),
             )
@@ -65,4 +67,15 @@ internal fun InterceptScreenMiuix(
             body(innerPadding)
         }
     }
+}
+
+
+@MagiskMultiPreview
+@Composable
+private fun InterceptScreenMiuixPreview() {
+    InterceptScreenMiuix(
+        title = "Sample",
+        snackbarHostState = AppSnackbarHostState(),
+        body = { _ -> MiuixText("Preview") },
+    )
 }

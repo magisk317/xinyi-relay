@@ -21,6 +21,12 @@ import org.koin.compose.viewmodel.koinViewModel
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
 import java.util.Date
+import io.github.magisk317.uikit.surface.AppTextField
+import io.github.magisk317.uikit.surface.AppDropdownField
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppCircularProgressIndicator
+import io.github.magisk317.uikit.surface.AppPrimaryButton
 
 @Composable
 fun RuleConfigScreen(
@@ -59,7 +65,7 @@ fun RuleConfigScreen(
 
     if (!isLoaded) {
         Box(modifier = Modifier.fillMaxSize()) {
-            CircularProgressIndicator(modifier = Modifier.align(androidx.compose.ui.Alignment.Center))
+            AppCircularProgressIndicator(modifier = Modifier.align(androidx.compose.ui.Alignment.Center))
         }
         return
     }
@@ -77,16 +83,16 @@ fun RuleConfigScreen(
             Spacer(modifier = Modifier.height(4.dp))
 
             // 规则备注
-            OutlinedTextField(
+            AppTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text(stringResource(R.string.rule_config_name_label)) },
+                label = stringResource(R.string.rule_config_name_label),
                 modifier = Modifier.fillMaxWidth()
             )
 
             // 目标通道选择
-            Text(stringResource(R.string.rule_config_sender_target_label), style = MaterialTheme.typography.labelMedium)
             SenderDropdown(
+                title = stringResource(R.string.rule_config_sender_target_label),
                 senders = senders,
                 selectedId = selectedSenderId,
                 context = context,
@@ -94,7 +100,7 @@ fun RuleConfigScreen(
             )
 
             // 匹配字段
-            Text(stringResource(R.string.rule_config_match_field_label), style = MaterialTheme.typography.labelMedium)
+            AppText(stringResource(R.string.rule_config_match_field_label), role = AppTextRole.Footnote)
             SegmentedPicker(
                 options = listOf(
                     "transpond_all" to stringResource(R.string.rule_config_match_all),
@@ -108,7 +114,7 @@ fun RuleConfigScreen(
             // 仅在内容/发件人匹配时显示
             if (filed != "transpond_all") {
                 // 匹配方式
-                Text(stringResource(R.string.rule_config_match_mode_label), style = MaterialTheme.typography.labelMedium)
+                AppText(stringResource(R.string.rule_config_match_mode_label), role = AppTextRole.Footnote)
                 SegmentedPicker(
                     options = listOf(
                         "contains" to stringResource(R.string.rule_config_match_contains),
@@ -120,34 +126,30 @@ fun RuleConfigScreen(
                 )
 
                 // 匹配值
-                OutlinedTextField(
+                AppTextField(
                     value = value,
                     onValueChange = { value = it },
-                    label = {
-                        Text(
-                            stringResource(
-                                if (filed == "content") R.string.rule_config_content_value_label
-                                else R.string.rule_config_sender_value_label,
-                            ),
-                        )
-                    },
+                    label = stringResource(
+                        if (filed == "content") R.string.rule_config_content_value_label
+                        else R.string.rule_config_sender_value_label,
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
 
             // 消息模板（选填）
-            OutlinedTextField(
+            AppTextField(
                 value = smsTemplate,
                 onValueChange = { smsTemplate = it },
-                label = { Text(stringResource(R.string.rule_config_template_label)) },
-                placeholder = { Text(stringResource(R.string.rule_config_template_placeholder)) },
+                label = stringResource(R.string.rule_config_template_label),
+                placeholderText = stringResource(R.string.rule_config_template_placeholder),
                 minLines = 2,
                 modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Button(
+            AppPrimaryButton(
                 onClick = {
                     val rule = Rule(
                         id = ruleId,
@@ -169,7 +171,7 @@ fun RuleConfigScreen(
                 enabled = selectedSenderId != 0L,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(stringResource(if (ruleId == 0L) R.string.rule_config_save_new else R.string.rule_config_save_update))
+                AppText(stringResource(if (ruleId == 0L) R.string.rule_config_save_new else R.string.rule_config_save_update))
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -192,43 +194,26 @@ fun RuleConfigScreen(
 
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SenderDropdown(
+    title: String,
     senders: List<Sender>,
     selectedId: Long,
     context: android.content.Context,
     onSelect: (Long) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    val selectedName = senders.find { it.id == selectedId }?.displayName(context)
-        ?: context.getString(R.string.rule_config_sender_placeholder)
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it }
-    ) {
-        OutlinedTextField(
-            value = selectedName,
-            onValueChange = {},
-            readOnly = true,
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            senders.forEach { sender ->
-                DropdownMenuItem(
-                    text = { Text(sender.displayName(context)) },
-                    onClick = {
-                        onSelect(sender.id)
-                        expanded = false
-                    }
-                )
-            }
-        }
-    }
+    val selectedIndex = senders.indexOfFirst { it.id == selectedId }
+    AppDropdownField(
+        title = title,
+        value = senders.getOrNull(selectedIndex)?.displayName(context) ?: "",
+        options = senders.map { it.displayName(context) },
+        selectedIndex = selectedIndex,
+        onSelect = { index ->
+            onSelect(senders[index].id)
+        },
+        placeholderText = context.getString(R.string.rule_config_sender_placeholder),
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 @Composable

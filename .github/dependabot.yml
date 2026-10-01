@@ -1,0 +1,10 @@
+# Dependency updates are driven by Renovate (renovate/all-minor-patch).
+# GitHub's built-in Dependabot previously snapshotted Gradle dependencies and
+# failed on build-logic `force` coordinates (dependency_not_found). Restrict it
+# to GitHub Actions so the two bots do not overlap and the false failures stop.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

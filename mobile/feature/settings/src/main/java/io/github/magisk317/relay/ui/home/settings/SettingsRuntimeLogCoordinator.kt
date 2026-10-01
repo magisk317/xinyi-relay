@@ -5,7 +5,7 @@ import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material3.SnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarHostState
 import io.github.magisk317.uikit.surface.ConfirmActionDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -36,7 +36,7 @@ internal data class SettingsRuntimeLogActions(
 internal fun rememberSettingsRuntimeLogActions(
     diagnostics: DiagnosticsSettingsSnapshot?,
     repository: SettingsPreferencesRepository,
-    snackbarHostState: SnackbarHostState,
+    snackbarHostState: AppSnackbarHostState,
     onDiagnosticsChanged: (DiagnosticsSettingsSnapshot) -> Unit,
     notifySaved: () -> Unit,
 ): SettingsRuntimeLogActions {

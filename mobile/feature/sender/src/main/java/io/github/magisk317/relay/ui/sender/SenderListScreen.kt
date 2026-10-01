@@ -2,6 +2,11 @@
 
 package io.github.magisk317.relay.ui.sender
 
+import io.github.magisk317.uikit.common.AppSnackbar
+import io.github.magisk317.uikit.common.AppSnackbarDuration
+import io.github.magisk317.uikit.common.AppSnackbarHost
+import io.github.magisk317.uikit.common.AppSnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarResult
 import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -10,7 +15,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +37,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.compose.koinInject
+import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
 
@@ -50,7 +55,7 @@ fun SenderListScreen(
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
     val settingsRepository: SettingsPreferencesRepository = koinInject()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     val senders by viewModel.senderList.collectAsStateWithLifecycle()
     var displayedSenders by remember { mutableStateOf<List<Sender>>(emptyList()) }
     var draggingSenderId by remember { mutableStateOf<Long?>(null) }
@@ -283,7 +288,7 @@ fun SenderListScreen(
                             .padding(vertical = 48.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(stringResource(R.string.sender_empty_message))
+                        AppText(stringResource(R.string.sender_empty_message))
                     }
                 }
             } else {
@@ -362,13 +367,13 @@ fun SenderListScreen(
                                             removedSender.name.ifBlank { getSenderTypeName(context, removedSender.type) },
                                         ),
                                         actionLabel = context.getString(R.string.revoke),
-                                        duration = SnackbarDuration.Indefinite,
+                                        duration = AppSnackbarDuration.Indefinite,
                                     )
                                 }
                                 delay(SENDER_UNDO_SNACKBAR_DURATION_MS)
                                 snackbarHostState.currentSnackbarData?.dismiss()
                                 val result = runCatching { resultDeferred.await() }.getOrNull()
-                                if (result == SnackbarResult.ActionPerformed) {
+                                if (result == AppSnackbarResult.ActionPerformed) {
                                     viewModel.restoreSender(removedSender)
                                 }
                             }
@@ -377,17 +382,21 @@ fun SenderListScreen(
                 }
             }
         }
-        io.github.magisk317.uikit.common.DismissibleSnackbarHost(
+        AppSnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
-                .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
-                .padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+                .padding(start = 16.dp, end = 16.dp),
+            bottomPadding = 12.dp,
             snackbar = { data ->
-                UndoCountdownSnackbar(
-                    data = data,
-                    totalDurationMs = SENDER_UNDO_SNACKBAR_DURATION_MS,
-                )
+                if (data.visuals.actionLabel != null) {
+                    UndoCountdownSnackbar(
+                        data = data,
+                        totalDurationMs = SENDER_UNDO_SNACKBAR_DURATION_MS,
+                    )
+                } else {
+                    AppSnackbar(data = data)
+                }
             },
         )
     }

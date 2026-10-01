@@ -1,8 +1,8 @@
 package io.github.magisk317.relay.ui.home.scheduled
 import io.github.magisk317.relay.ui.common.StateSwitchItem
-import io.github.magisk317.relay.ui.common.Item
+import io.github.magisk317.uikit.preference.AppArrowItem
 import io.github.magisk317.uikit.preference.TextInputDialog
-import io.github.magisk317.relay.ui.common.SectionCard
+import io.github.magisk317.uikit.preference.SectionCard
 import io.github.magisk317.uikit.common.showLatestSnackbar
 import android.Manifest
 import android.content.Intent
@@ -22,17 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenu
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
+import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -59,10 +49,14 @@ import io.github.magisk317.relay.contract.settings.SpecialAlertSettingsUpdate
 import io.github.magisk317.relay.feature.reminder.BatteryReminderSchedulerFacade
 import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
 import io.github.magisk317.relay.ui.common.parseIntInRangeInput
+import io.github.magisk317.uikit.surface.AppDropdownField
 import io.github.magisk317.relay.ui.sender.displayName
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.surface.AppListItem
 
 private data class ChannelOption(
     val id: String,
@@ -78,59 +72,25 @@ private fun countKeywords(raw: String): Int {
         .size
 }
 
-
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ChannelDropdown(
     title: String,
     value: String,
-    expanded: Boolean,
-    onExpandedChange: (Boolean) -> Unit,
     options: List<ChannelOption>,
     onSelect: (ChannelOption) -> Unit,
 ) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(
-            horizontal = Const.PADDING_MEDIUM.dp,
-            vertical = 6.dp,
-        ),
-    )
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = onExpandedChange,
+    AppDropdownField(
+        title = title,
+        value = value,
+        options = options.map { it.label },
+        selectedIndex = options.indexOfFirst { it.label == value },
+        onSelect = { index ->
+            onSelect(options[index])
+        },
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Const.PADDING_MEDIUM.dp),
-    ) {
-        TextField(
-            value = value,
-            onValueChange = {},
-            readOnly = true,
-            singleLine = true,
-            trailingIcon = {
-                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-            },
-            colors = ExposedDropdownMenuDefaults.textFieldColors(),
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { onExpandedChange(false) },
-        ) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option.label) },
-                    onClick = { onSelect(option) },
-                )
-            }
-        }
-    }
+    )
 }
 
 @Composable
@@ -138,7 +98,7 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val repository: SettingsPreferencesRepository = koinInject()
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AppSnackbarHostState() }
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
     val notifySaved = {
         scope.launch {
@@ -149,10 +109,6 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
     var showThresholdDialog by remember { mutableStateOf(false) }
     var showSmsKeywordDialog by remember { mutableStateOf(false) }
     var showAppKeywordDialog by remember { mutableStateOf(false) }
-    var lowExpanded by remember { mutableStateOf(false) }
-    var fullExpanded by remember { mutableStateOf(false) }
-    var chargingExpanded by remember { mutableStateOf(false) }
-    var callExpanded by remember { mutableStateOf(false) }
     var expandBatterySection by remember { mutableStateOf(true) }
     var expandCallSection by remember { mutableStateOf(true) }
     var expandKeywordSection by remember { mutableStateOf(true) }
@@ -270,7 +226,7 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                     }
                 }
                 if (current.lowBatteryReminderEnabled) {
-                    Item(
+                    AppArrowItem(
                         title = stringResource(id = R.string.scheduled_reminder_threshold_title),
                         summary = stringResource(
                             id = R.string.scheduled_reminder_threshold_summary,
@@ -279,12 +235,9 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                     ) { showThresholdDialog = true }
                     ChannelDropdown(
                         title = stringResource(id = R.string.scheduled_reminder_channel_title),
-                        value = lowChannelLabel,
-                        expanded = lowExpanded,
-                        onExpandedChange = { lowExpanded = it },
+                        value = lowChannelLabel.orEmpty(),
                         options = channelOptions,
                     ) { option ->
-                        lowExpanded = false
                         scope.launch {
                             settings = repository.updateSpecialAlertSettings(
                                 SpecialAlertSettingsUpdate(lowBatteryChannelId = option.id),
@@ -314,12 +267,9 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                 if (current.fullBatteryReminderEnabled) {
                     ChannelDropdown(
                         title = stringResource(id = R.string.scheduled_reminder_channel_title),
-                        value = fullChannelLabel,
-                        expanded = fullExpanded,
-                        onExpandedChange = { fullExpanded = it },
+                        value = fullChannelLabel.orEmpty(),
                         options = channelOptions,
                     ) { option ->
-                        fullExpanded = false
                         scope.launch {
                             settings = repository.updateSpecialAlertSettings(
                                 SpecialAlertSettingsUpdate(fullBatteryChannelId = option.id),
@@ -349,12 +299,9 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                 if (current.chargingChangeReminderEnabled) {
                     ChannelDropdown(
                         title = stringResource(id = R.string.scheduled_reminder_channel_title),
-                        value = chargingChannelLabel,
-                        expanded = chargingExpanded,
-                        onExpandedChange = { chargingExpanded = it },
+                        value = chargingChannelLabel.orEmpty(),
                         options = channelOptions,
                     ) { option ->
-                        chargingExpanded = false
                         scope.launch {
                             settings = repository.updateSpecialAlertSettings(
                                 SpecialAlertSettingsUpdate(chargingChangeChannelId = option.id),
@@ -370,15 +317,10 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                 sectionExpanded = expandCallSection,
                 onExpandedChange = { expandCallSection = !expandCallSection },
             ) {
-                ListItem(
-                    supportingContent = {
-                        Text(
-                            text = stringResource(id = R.string.call_alert_forward_summary_from_relay),
-                        )
-                    },
-                ) {
-                    Text(text = stringResource(id = R.string.call_alert_forward_title))
-                }
+                AppListItem(
+                    title = stringResource(id = R.string.call_alert_forward_title),
+                    summary = stringResource(id = R.string.call_alert_forward_summary_from_relay),
+                )
                 StateSwitchItem(
                     title = stringResource(id = R.string.call_alert_local_title),
                     summary = stringResource(id = R.string.call_alert_local_summary),
@@ -394,12 +336,9 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                 if (current.callAlertLocalEnabled) {
                     ChannelDropdown(
                         title = stringResource(id = R.string.scheduled_reminder_channel_title),
-                        value = callChannelLabel,
-                        expanded = callExpanded,
-                        onExpandedChange = { callExpanded = it },
+                        value = callChannelLabel.orEmpty(),
                         options = channelOptions,
                     ) { option ->
-                        callExpanded = false
                         scope.launch {
                             settings = repository.updateSpecialAlertSettings(
                                 SpecialAlertSettingsUpdate(callAlertChannelId = option.id),
@@ -408,7 +347,7 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                     }
                 }
                 if (isGithubFlavor) {
-                    Item(
+                    AppArrowItem(
                         title = stringResource(id = R.string.call_alert_permission_title),
                         summary = stringResource(
                             id = if (callPermissionGranted.value) {
@@ -442,7 +381,7 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                     }
                 }
                 if (current.smsKeywordEnabled) {
-                    Item(
+                    AppArrowItem(
                         title = stringResource(id = R.string.special_alert_keywords_title),
                         summary = stringResource(
                             id = R.string.special_alert_keyword_summary,
@@ -500,7 +439,7 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                     }
                 }
                 if (current.appKeywordEnabled) {
-                    Item(
+                    AppArrowItem(
                         title = stringResource(id = R.string.special_alert_keywords_title),
                         summary = stringResource(
                             id = R.string.special_alert_keyword_summary,
