@@ -13,7 +13,6 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(compose.material3)
             implementation(compose.materialIconsExtended)
-            implementation(project(":magisk-ui-kit"))
             implementation(project(":relay:contract"))
             implementation(project(":relay:sender:api"))
             implementation(project(":relay:net"))

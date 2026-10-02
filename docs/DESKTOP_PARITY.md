@@ -70,6 +70,15 @@ webUI 共 9 个页面，新轨 9 个路由全部有对应实现（`DesktopRoute`
 | 手机端 tab bar | `layout.tsx` 底部导航 | 只有侧边栏 | 桌面窗口宽度恒定 |
 | 响应式网格 | `md:grid-cols-*` 断点 | `MetricRow` 按最小列宽折行 | 桌面端只做窄窗口折行 |
 | 登录页 | webUI 账号密码登录入口 | 只保留浏览器交接登录 | 桌面端沿用 Rust 端的登录方式 |
+| UI 组件语言 | webUI 自建 React 组件 | 直接调用 Compose Multiplatform 的 Material 3 叶子组件，不经 `:magisk-ui-kit` | 见下方「UI 组件语言的取舍」 |
+
+### UI 组件语言的取舍
+
+`desktop/` 此前声明了对 `:magisk-ui-kit` 的依赖，但 41 个源文件中没有任何 `io.github.magisk317.uikit.*` 导入：147 处界面调用全部直接使用 Compose Multiplatform 的 Material 3 叶子组件。2026-10-02 删除该依赖，理由：
+
+- ui-kit 的职责是 Android 双轨合同（M3 与 miuix 两套实现按文件名分流，由 `scripts/checks/dual_track_check.py` 把关），对外 API 大量暴露 miuix 语义；
+- 桌面端是独立的单轨 Compose Desktop 应用，不并入 Android 的 M/X 两轨，双轨门禁已按 `desktop/`、`modules/desktop/` 路径前缀豁免；
+- 让桌面端改用 ui-kit 等于把 miuix 审美搬进桌面端，属于产品决策而非工程欠账；确有需要时把依赖加回来即可，门禁豁免与源集布局都不阻碍这件事。
 
 ## 5. 新轨相对 Tauri 现役端仍缺的能力
 
