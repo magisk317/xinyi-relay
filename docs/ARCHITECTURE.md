@@ -1,15 +1,22 @@
 # 系统架构与代码分层
 
-最后更新：2026-08-27
+最后更新：2026-10-02
 
 ## 总览
 
-四端架构：`Android Agent + Backend + Web Frontend + Tauri Desktop`
+四端架构：`Android Agent + Backend + Web Frontend + KMP Desktop`
 
 - Android 端负责短信/通知/来电采集、验证码自动输入、Xposed hook 能力。
 - 控制台能力由远程 Backend 提供，Web / Desktop 共用同一套 API。
 - 部署策略：本地优先（Docker Compose），可扩展到公网。
 - API 合同中心：`frontend/shared/contracts/openapi.json`；它现在由 backend `internal/http` 的 assembler 生成，但 auth/system/device-config/read-model schema 与 route metadata 已大部分先从 `relay/contract` 生成到 backend，再由 assembler 合并，`frontend/shared/contracts/console.generated.ts` 再由它生成，四端均有 drift test。
+
+### 桌面端的双轨布局
+
+桌面端正从 Rust/Tauri 现役端迁移到 Kotlin Multiplatform 的 Compose Desktop 新轨，迁移期内两轨并存：
+
+- **现役轨**：`frontend/desktop/` 的 Tauri 应用（Tauri 2 + Rust + React + SQLite），`docs/DESKTOP_PARITY.md` 记录它的退役计划与 parity 进度。
+- **新轨**：`:desktop`（Compose Desktop 应用壳）+ `:desktop:core`（store/sync 领域逻辑）+ `:desktop:data`（Room KMP 本地库与旧库导入）。新轨是**单轨** Compose Desktop 应用，不并入 Android 的 M3/miuix 双轨门禁，`scripts/checks/dual_track_check.py` 已按 `desktop/`、`modules/desktop/` 路径前缀豁免；它也不经 `:magisk-ui-kit`（见 `docs/DESKTOP_PARITY.md`「UI 组件语言的取舍」）。
 
 ## Gradle 坐标与物理路径
 
@@ -32,12 +39,35 @@
 | `:relay:matrix-e2ee` / `relay/matrix-e2ee` | `modules/relay/matrix-e2ee/` |
 | `:xpbridge:core` / `xpbridge/core` | `modules/xpbridge/core/` |
 | `:xpbridge:android:api` / `xpbridge/android/api` | `modules/xpbridge/android/api/` |
+| `:desktop` / `desktop` | `desktop/` |
+| `:desktop:core` / `desktop/core` | `modules/desktop/core/` |
+| `:desktop:data` / `desktop/data` | `modules/desktop/data/` |
+| `:magisk-ui-kit` / `magisk-ui-kit` | `magisk-ui-kit/` |
 | `:mobile:ui` / `mobile/ui` | `mobile/ui/` |
 | `:mobile:feature:*` / `mobile/feature/*` | `mobile/feature/*/` |
 | `:features:matrix_e2ee` | `features/matrix-e2ee/` |
 | `:smscode-core:*` | `smscode/core/*`（Git 子模块） |
 
 查找真实路径时以 `settings.gradle.kts` 的 `project(...).projectDir` 为准，不要假设“Gradle 名 = 仓库根下同名目录”。
+
+### Kotlin Multiplatform 源集约定
+
+`:relay:contract`、`:relay:sender:api`、`:policy`、`:relay:net`、`:relay:engine:api`、`:desktop:core`、`:desktop:data` 已迁到 Kotlin Multiplatform，其源码布局与 Android 单平台模块不同：
+
+| 源集 | 编译目标 | 放什么 |
+|---|---|---|
+| `src/commonMain/kotlin` | 所有目标 | 平台中立逻辑：contract DTO、JSON codec、Resolver 策略、sender 设置清洗与草稿 |
+| `src/androidMain/kotlin` | Android | 依赖 Android 框架或 `@Parcelize Parcelable` 模型（如 `Sender`/`Rule`）的入口；以 commonMain 实现的扩展函数形式存在 |
+| `src/jvmMain/kotlin` | JVM | Room KMP 的 driver/transaction 绑定、OkHttp 实现、`expect/actual` 的 actual |
+| `src/jvmTest/kotlin` | JVM 测试 | KMP 模块的单元测试；`jvmTest` 是这些模块唯一实际注册的测试编译 |
+
+新增这类模块代码时的三条硬规则：
+
+- 遗产目录（`src/main/`、`src/test/`）在 KMP 模块里**不参与编译**，文件必须放进带源集名的子目录，否则静默失效（曾造成 `WorkModeResolverPropertyTest` 变成永不执行的死测试）。
+- 跨包调用 commonMain 里的**顶层扩展函数**必须在调用点显式 `import`（object 成员则不需要）；`Type::extFun` 的方法引用同样需要导入。
+- 平台专属入口不要塞进 commonMain 再把调用方改成反射/判空，留在对应 sourceSet 做薄封装，commonMain 只保留可共享的纯逻辑。
+
+`:desktop` 与 `:desktop:core`/`:desktop:data` 只有 `jvm()` 目标，因此它们的 `commonMain` 与 `jvmMain` 在编译产物上等价，但仍按上述布局分层，方便后续追加 `androidMain` 复用同一份 store/sync 逻辑。
 
 
 ## 代码库分层
@@ -172,6 +202,39 @@ Play Feature Delivery 动态下发模块（如 `features/matrix-e2ee`），隔�
 Matrix dynamic feature 只负责 SDK 初始化及 provider 注册，业务实现来自
 `:relay:matrix-e2ee`，不得在 feature 内复制 sender、verification 或 room state。
 
+### `desktop`
+
+Compose Desktop 应用壳（KMP 化新轨的入口层）。承载窗口装配、Compose UI、会话与本
+地 HTTP/远程客户端，并持有唯一的本地运行时组合根 `DesktopLocalRuntime`。
+
+- 允许：`desktop/core`、`relay/contract`、`relay/sender/api`、`relay/net`
+- 禁止：`desktop/data`（经 `:desktop:core` 传递开放）、`:magisk-ui-kit`、Android 双轨组件语言
+
+### `desktop/core`
+
+桌面端 store/sync 领域层，`sqlite_store.rs` 与 `sync.rs` 的一对一 Kotlin 移植。
+
+- 构成：`Store` 接口与 `DesktopLocalStore` 实现、`SyncEngine`（pull/push/initialPull，
+  单飞与 5 分钟节流语义照搬 Rust）、`RemoteStore` 接口与 OkHttp 实现、`Clock`/摘要/随机
+  等平台绑定（`commonMain` 声明 `expect`，jvmMain 提供 actual）
+- 通过 `RemoteStore.asRemoteView()` 把 HTTP 面收窄成 `SyncEngine.RemoteView`，引擎自身的
+  测试不必实现十个 console-only 端点
+- 允许：`desktop/data`（`api`，让上层直接拿到 Room 生成的 DAO 与实体）、OkHttp、协程、序列化
+- 禁止：Compose、App 壳层、Android 框架
+
+### `desktop/data`
+
+Room KMP 本地库与旧库导入。schema 逐列对齐 Rust/Tauri 现役端，使现有
+`local-data.db` 能行对行导入。
+
+- 构成：`DesktopDatabase`（含 Room 无法注解表达的两个部分索引）、四个 DAO 与实体、
+  `DesktopDatabaseFactory`（`open`/`inMemory`/`defaultDirectory`）、
+  `LegacyDatabaseImporter`（`LegacyDatabaseImporterTest` 覆盖旧库搬迁）
+- JVM 侧使用 `BundledSQLiteDriver`，事务经 `useWriterConnection` + `deferredTransaction`
+  完成（room-ktx 的 `withTransaction` 是 Android-only）
+- 允许：Room、androidx.sqlite、KSP room 编译器
+- 禁止：网络、Compose、业务策略（规则与同步语义归 `desktop/core`）
+
 ## 边界守护
 
 ```bash
@@ -180,6 +243,11 @@ bash scripts/checks/verify_shared_submodule_compat.sh  # 共享子模块兼容�
 ```
 
 完整边界规则表见上文各模块的"允许/禁止"列表。守护脚本：`scripts/checks/verify_module_boundaries.sh`。
+
+`verifyModuleBoundaries` 会先重放全部合同生成器（`scripts/codegen/*.py --check`）再做模块
+规则校验；生成器通过 `scripts/codegen/kmp_source.py` 的 `resolve_source()` 按源集定位
+KMP 模块里的 contract 源文件，因此 contract 源在 `commonMain`/`androidMain` 之间搬迁不会
+让门禁拿到陈旧路径。
 
 ## 运行时主链
 
@@ -281,6 +349,8 @@ bash scripts/checks/verify_shared_submodule_compat.sh  # 共享子模块兼容�
 | P4 | Compose UI 大文件拆分 | ✅ |
 | P5 | 日志系统收敛（`LogLevel`/`LogRoute`/`LogEvent`/`LogSink`） | ✅ |
 | P6 | 桌面端独立运行（SQLite Store、双向配置同步、本地服务与管理 UI） | ✅ |
+| P7 | Kotlin Multiplatform 化（`relay/contract`、`relay/sender/api`、`policy`、`relay/net`、`relay/engine:api`、`desktop:core`、`desktop/data` 迁到 commonMain/源集布局；sender 可移植逻辑下沉，`Sender`/`Rule` 等 Parcelize 入口留在 androidMain） | ✅ |
+| P8 | 桌面新轨接线（`:desktop` 经 `DesktopLocalRuntime` 组合根接入 `desktop/core`、`desktop/data`，store/sync/导入测试纳入应用构建） | ✅ |
 
 ## 平台兼容性：Android 17 (API 37)
 
@@ -311,3 +381,6 @@ bash scripts/checks/verify_shared_submodule_compat.sh  # 共享子模块兼容�
 7. `:runtime` 新入口用 `RuntimeDependencies`，不绕过 Koin 边界。
 8. 新远程 API 必须同步 OpenAPI + 四端 drift test。
 9. sender schema 变更必须重新生成 `senderSchemas.json`。
+10. KMP 模块源码必须放 `src/<源集>/kotlin/`，不放 `src/main`、`src/test`（遗产目录不参与编译）。
+11. 平台专属入口放对应 sourceSet 并复用 commonMain 实现，commonMain 只保留可共享纯逻辑。
+12. 桌面新轨不引入 `:magisk-ui-kit`，直接使用 Compose Multiplatform Material 3 叶子组件。
