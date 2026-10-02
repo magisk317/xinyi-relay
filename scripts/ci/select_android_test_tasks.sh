@@ -26,6 +26,10 @@ kit_test_tasks=(
   :magisk-ui-kit:jvmTest
   :magisk-ui-kit:billing:testDebugUnitTest
 )
+desktop_test_tasks=(
+  :desktop:compileKotlinJvm
+  :desktop:jvmTest
+)
 full_tasks=(
   :app:testGithubNoE2eeDebugUnitTest
   :app:koverHtmlReportGithubNoE2eeDebug
@@ -35,6 +39,7 @@ full_tasks=(
   "${mobile_test_tasks[@]}"
   "${core_test_tasks[@]}"
   "${kit_test_tasks[@]}"
+  "${desktop_test_tasks[@]}"
 )
 if [[ -n "${CI_COMMIT_TAG:-}" || "${GITHUB_REF_TYPE:-}" == tag || "${CI_COMMIT_BRANCH:-}" == beta || "${CI_COMMIT_BRANCH:-}" == master || "${GITHUB_REF_NAME:-}" == beta || "${GITHUB_REF_NAME:-}" == master ]]; then printf '%s\n' "${full_tasks[@]}"; exit 0; fi
 if [[ -z "$paths_file" ]]; then paths_file="$(mktemp)"; trap 'rm -f "$paths_file"' EXIT; bash "$toolkit_dir/ci/changed_paths.sh" "$paths_file"; fi
@@ -50,6 +55,8 @@ while IFS= read -r path; do
       for task in "${core_test_tasks[@]}"; do select_task "$task"; done ;;
     magisk-ui-kit/*)
       for task in "${kit_test_tasks[@]}"; do select_task "$task"; done ;;
+    desktop/*)
+      for task in "${desktop_test_tasks[@]}"; do select_task "$task"; done ;;
     app/*|modules/*|mobile/*|features/*|magisk-xposed-kit/*)
       select_task :app:testGithubNoE2eeDebugUnitTest; select_task :app:koverHtmlReportGithubNoE2eeDebug
       select_task verifyStructureBoundaries; select_task :app:testGithubWithE2eeDebugUnitTest
