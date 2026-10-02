@@ -22,7 +22,8 @@ core_test_tasks=(
   :smscode-core:rule:test
 )
 kit_test_tasks=(
-  :magisk-ui-kit:testDebugUnitTest
+  :magisk-ui-kit:testAndroidHostTest
+  :magisk-ui-kit:jvmTest
   :magisk-ui-kit:billing:testDebugUnitTest
 )
 full_tasks=(
