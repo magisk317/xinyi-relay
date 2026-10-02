@@ -20,6 +20,7 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.okhttp)
+            implementation(libs.zxing.core)
         }
         jvmTest.dependencies {
             implementation(libs.junit.jupiter)

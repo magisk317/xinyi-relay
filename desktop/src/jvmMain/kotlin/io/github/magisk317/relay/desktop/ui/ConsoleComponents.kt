@@ -599,6 +599,24 @@ fun LiveBadge(connected: Boolean, locale: DesktopLocale) {
     )
 }
 
+/** Inline informational notice with the webUI's light-green surface and ink. */
+@Composable
+fun NoticeCard(text: String, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        color = Color(0xFFF9FCE9),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFD7E6A6)),
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color(0xFF5F6F47),
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+        )
+    }
+}
+
 /**
  * Scrollable outlet for a ported page; the webUI scrolls the whole content
  * column, so the desktop shell mirrors that instead of scrolling per card.

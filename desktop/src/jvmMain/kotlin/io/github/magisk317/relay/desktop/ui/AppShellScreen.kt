@@ -104,7 +104,14 @@ fun AppShellScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Box(modifier = Modifier.fillMaxSize().weight(1f)) {
-                        RouteContent(route = route, session = session, console = console, feed = feed, locale = locale)
+                        RouteContent(
+                            route = route,
+                            session = session,
+                            console = console,
+                            feed = feed,
+                            locale = locale,
+                            onNavigate = { route = it },
+                        )
                     }
                     Footer(locale = locale)
                 }
@@ -322,6 +329,7 @@ private fun RouteContent(
     console: DesktopConsoleState,
     feed: DesktopRealtimeFeed,
     locale: DesktopLocale,
+    onNavigate: (DesktopRoute) -> Unit = {},
 ) {
     PageOutlet {
         when (route) {
@@ -331,7 +339,13 @@ private fun RouteContent(
             DesktopRoute.RECORDS -> RecordsPage(session, console, feed, locale)
             DesktopRoute.SENDERS -> SendersPage(session, console, feed, locale)
             DesktopRoute.SETTINGS -> SettingsPage(session, console, feed, locale)
-            DesktopRoute.ADVANCED -> AdvancedPage(session, console, feed, locale)
+            DesktopRoute.ADVANCED -> AdvancedPage(
+                session = session,
+                console = console,
+                feed = feed,
+                locale = locale,
+                onOpenScheduledTasks = { onNavigate(DesktopRoute.SCHEDULED_TASKS) },
+            )
             DesktopRoute.SCHEDULED_TASKS -> ScheduledTasksPage(session, console, feed, locale)
         }
     }
