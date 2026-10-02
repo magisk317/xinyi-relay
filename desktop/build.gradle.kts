@@ -16,6 +16,7 @@ kotlin {
             implementation(project(":relay:contract"))
             implementation(project(":relay:sender:api"))
             implementation(project(":relay:net"))
+            implementation(project(":desktop:core"))
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.okhttp)
