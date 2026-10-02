@@ -1,6 +1,5 @@
 package io.github.magisk317.relay.sender
 
-import io.github.magisk317.relay.engine.model.Sender
 import java.util.Locale
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
@@ -147,14 +146,6 @@ object SenderSettingDrafts {
     fun empty(senderType: Int): SenderSettingDraft = SenderSettingDraft(senderType)
 
     fun emptyWithDefaults(senderType: Int): SenderSettingDraft = empty(senderType).withSchemaDefaults()
-
-    fun fromSender(sender: Sender): SenderSettingDraft {
-        return fromJson(sender.type, sender.jsonSetting)
-    }
-
-    fun fromSenderWithDefaults(sender: Sender): SenderSettingDraft {
-        return fromSender(sender).withSchemaDefaults()
-    }
 
     fun fromJson(senderType: Int, rawJson: String): SenderSettingDraft {
         val canonicalJson = SenderSettingSanitizer.sanitizeJsonLenient(senderType, rawJson)

@@ -1,6 +1,5 @@
 package io.github.magisk317.relay.sender
 
-import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.sender.config.BarkSetting
 import io.github.magisk317.relay.sender.config.DingtalkGroupRobotSetting
 import io.github.magisk317.relay.sender.config.DingtalkInnerRobotSetting
@@ -21,7 +20,6 @@ import io.github.magisk317.relay.sender.config.WebhookSetting
 import io.github.magisk317.relay.sender.config.WeworkAgentSetting
 import io.github.magisk317.relay.sender.config.WeworkRobotSetting
 import io.github.magisk317.relay.sender.config.YunhuSetting
-import io.github.magisk317.relay.engine.sender.SenderActiveScheduleEvaluator
 import io.github.magisk317.relay.engine.sender.SenderType
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.JsonArray
@@ -41,16 +39,6 @@ import java.util.Locale
 object SenderSettingSanitizer {
     private const val TELEGRAM_BOT_ID_MIN_LENGTH = 5
     private const val TELEGRAM_BOT_SECRET_MIN_LENGTH = 20
-
-    fun sanitizeSenderLenient(sender: Sender): Sender {
-        val safeJson = sanitizeJsonLenient(sender.type, sender.jsonSetting)
-        val safeSchedule = SenderActiveScheduleEvaluator.sanitize(sender.activeSchedule)
-        return if (safeJson == sender.jsonSetting && safeSchedule == sender.activeSchedule) {
-            sender
-        } else {
-            sender.copy(jsonSetting = safeJson, activeSchedule = safeSchedule)
-        }
-    }
 
     fun sanitizeJsonLenient(type: Int, json: String): String {
         val rawJson = parseSettingJson(json)

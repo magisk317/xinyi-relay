@@ -7,6 +7,7 @@ import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.engine.service.AppConfigRepository
 import io.github.magisk317.relay.mobilefeature.scheduled.BuildConfig
 import io.github.magisk317.relay.sender.SenderSettingSanitizer
+import io.github.magisk317.relay.sender.sanitizeSenderLenient
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map

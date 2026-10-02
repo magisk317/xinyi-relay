@@ -46,6 +46,7 @@ import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.engine.sender.SenderActiveSchedule
 import io.github.magisk317.relay.sender.SenderSettingDraft
 import io.github.magisk317.relay.sender.SenderSettingDrafts
+import io.github.magisk317.relay.sender.fromSenderWithDefaults
 import io.github.magisk317.relay.sender.SenderSettingFieldMetadata
 import io.github.magisk317.relay.sender.SenderSettingFieldType
 import io.github.magisk317.relay.sender.SenderSettingJson

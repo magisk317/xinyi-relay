@@ -12,6 +12,7 @@ import io.github.magisk317.relay.engine.model.ForwardFilterRule
 import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.engine.filter.ForwardFilterConst
 import io.github.magisk317.relay.sender.SenderSettingSanitizer
+import io.github.magisk317.relay.sender.sanitizeSenderLenient
 import io.github.magisk317.relay.android.common.utils.XLog
 import io.github.magisk317.relay.android.data.db.entity.NotifyRouteRule
 import io.github.magisk317.relay.android.data.db.entity.AppInfo

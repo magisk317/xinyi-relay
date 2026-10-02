@@ -12,6 +12,7 @@ import io.github.magisk317.relay.app.sender.SenderTestService
 import io.github.magisk317.relay.engine.filter.ForwardFilterConst
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.sender.SenderSettingSanitizer
+import io.github.magisk317.relay.sender.sanitizeSenderLenient
 import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.sender.SenderValidationResult
 import io.github.magisk317.relay.sender.SenderValidator
