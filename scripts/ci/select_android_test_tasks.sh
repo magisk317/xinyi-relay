@@ -29,11 +29,13 @@ kit_test_tasks=(
 desktop_test_tasks=(
   :desktop:compileKotlinJvm
   :desktop:jvmTest
+  :desktop:core:jvmTest
+  :desktop:data:jvmTest
+  verifyStructureBoundaries
 )
 full_tasks=(
   :app:testGithubNoE2eeDebugUnitTest
   :app:koverHtmlReportGithubNoE2eeDebug
-  verifyStructureBoundaries
   :app:testGithubWithE2eeDebugUnitTest
   :app:koverHtmlReportGithubWithE2eeDebug
   "${mobile_test_tasks[@]}"
@@ -55,7 +57,7 @@ while IFS= read -r path; do
       for task in "${core_test_tasks[@]}"; do select_task "$task"; done ;;
     magisk-ui-kit/*)
       for task in "${kit_test_tasks[@]}"; do select_task "$task"; done ;;
-    desktop/*)
+    desktop/*|modules/desktop/*)
       for task in "${desktop_test_tasks[@]}"; do select_task "$task"; done ;;
     app/*|modules/*|mobile/*|features/*|magisk-xposed-kit/*)
       select_task :app:testGithubNoE2eeDebugUnitTest; select_task :app:koverHtmlReportGithubNoE2eeDebug
