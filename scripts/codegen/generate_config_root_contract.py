@@ -8,13 +8,32 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from kmp_source import resolve_source
+
 
 ROOT = Path(__file__).resolve().parents[2]
+CONTRACT_PACKAGE = "io/github/magisk317/relay/contract"
 SOURCES = [
-    ROOT / "modules/relay/contract/src/main/java/io/github/magisk317/relay/contract/model/LocalConfigMirrorPayload.kt",
-    ROOT / "modules/relay/contract/src/main/java/io/github/magisk317/relay/contract/model/SenderActiveSchedule.kt",
-    ROOT / "modules/relay/contract/src/main/java/io/github/magisk317/relay/contract/model/ForwardCommonConfig.kt",
-    ROOT / "modules/relay/contract/src/main/java/io/github/magisk317/relay/contract/settings/SettingsModels.kt",
+    resolve_source(
+        "modules/relay/contract",
+        f"{CONTRACT_PACKAGE}/model",
+        "LocalConfigMirrorPayload.kt",
+    ),
+    resolve_source(
+        "modules/relay/contract",
+        f"{CONTRACT_PACKAGE}/model",
+        "SenderActiveSchedule.kt",
+    ),
+    resolve_source(
+        "modules/relay/contract",
+        f"{CONTRACT_PACKAGE}/model",
+        "ForwardCommonConfig.kt",
+    ),
+    resolve_source(
+        "modules/relay/contract",
+        f"{CONTRACT_PACKAGE}/settings",
+        "SettingsModels.kt",
+    ),
 ]
 OUTPUT = ROOT / "frontend/shared/contracts/configRoot.generated.ts"
 
