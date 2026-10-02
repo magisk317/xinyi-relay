@@ -7,7 +7,6 @@ import io.github.magisk317.relay.sender.MatrixE2eeSender
 import io.github.magisk317.relay.sender.SenderSettingSanitizer
 import io.github.magisk317.relay.sender.config.MatrixSetting
 import java.io.File
-import java.security.MessageDigest
 import java.util.Collections
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
@@ -50,7 +49,6 @@ object MatrixE2eeRuntime : MatrixE2eeSender {
     private const val WHOAMI_CACHE_FILENAME = "whoami_cache.json"
     private const val LOGIN_SESSION_FILENAME = "session.json"
     private const val LOGIN_DEVICE_DISPLAY_NAME = "XinyiRelay"
-    internal const val LOGIN_DEVICE_ID = "XINYI_RELAY_E2EE"
     private const val CLIENT_INIT_TIMEOUT_MS = 30_000L // 30 seconds
     private const val E2EE_INIT_TIMEOUT_MS = 15_000L
     private const val DEVICE_KEY_QUERY_SYNC_TIMEOUT_MS = 15_000L
@@ -514,7 +512,7 @@ object MatrixE2eeRuntime : MatrixE2eeSender {
                 val buildStartMs = System.currentTimeMillis()
                 syncService = withTimeout(POST_SEND_SYNC_TIMEOUT_MS) {
                     client.syncService()
-                    .withRoomListConnectionId("$SYNC_SERVICE_CONNECTION_ID_PREFIX${sha256Hex(roomId).take(8)}")
+                    .withRoomListConnectionId("$SYNC_SERVICE_CONNECTION_ID_PREFIX${MatrixE2eeSendPolicy.sha256Hex(roomId).take(8)}")
                     .withRoomListTimelineLimit(0u)
                     .withSharePos(false)
                     .finish()
@@ -647,13 +645,18 @@ object MatrixE2eeRuntime : MatrixE2eeSender {
     /**
      * Categorize an exception into a failure reason for logging.
      * Categories: "encryption_timeout", "encryption_error"
+     *
+     * 协程超时由 commonMain 的 [MatrixE2eeSendPolicy.categorizeFailureReason] 判定，socket 读超时
+     * 需要 `java.net.SocketTimeoutException`，只有 Android 侧能引用，所以补在这里。
      */
     internal fun categorizeFailureReason(error: Exception): String {
-        return when (error) {
-            is TimeoutCancellationException -> "encryption_timeout"
-            is java.net.SocketTimeoutException -> "encryption_timeout"
-            else -> "encryption_error"
+        val reason = MatrixE2eeSendPolicy.categorizeFailureReason(error)
+        if (reason == MatrixE2eeSendPolicy.FAILURE_ENCRYPTION_ERROR &&
+            error is java.net.SocketTimeoutException
+        ) {
+            return MatrixE2eeSendPolicy.FAILURE_ENCRYPTION_TIMEOUT
         }
+        return reason
     }
 
     /**
@@ -887,7 +890,7 @@ object MatrixE2eeRuntime : MatrixE2eeSender {
 
         SLog.d(TAG, "Matrix E2EE room key recipient strategy: all_devices")
         val builder = ClientBuilder()
-            .homeserverUrl(normalizeHomeserverForSession(setting.homeserver))
+            .homeserverUrl(MatrixE2eeSendPolicy.normalizeHomeserverForSession(setting.homeserver))
             .sessionPaths(storeDir.absolutePath, storeDir.absolutePath)
             .autoEnableCrossSigning(true)
             // Distribute Megolm session keys to ALL devices in the room,
@@ -947,7 +950,7 @@ object MatrixE2eeRuntime : MatrixE2eeSender {
                     setting.username.trim(),
                     setting.password,
                     LOGIN_DEVICE_DISPLAY_NAME,
-                    LOGIN_DEVICE_ID,
+                    MatrixE2eeSendPolicy.LOGIN_DEVICE_ID,
                 )
                 SLog.i(TAG, "Login successful")
 
@@ -974,7 +977,7 @@ object MatrixE2eeRuntime : MatrixE2eeSender {
                         refreshToken = null,
                         userId = whoami?.userId ?: "",
                         deviceId = whoami?.deviceId ?: "",
-                        homeserverUrl = normalizeHomeserverForSession(setting.homeserver),
+                        homeserverUrl = MatrixE2eeSendPolicy.normalizeHomeserverForSession(setting.homeserver),
                         oauthData = null,
                         slidingSyncVersion = org.matrix.rustcomponents.sdk.SlidingSyncVersion.NONE,
                     )
@@ -1012,11 +1015,12 @@ object MatrixE2eeRuntime : MatrixE2eeSender {
 
         val cachedDeviceId = sessionJson.optString("deviceId", "")
         val cachedHomeserver = sessionJson.optString("homeserverUrl", "")
-        val expectedHomeserver = normalizeHomeserverForSession(setting.homeserver)
-        if (!shouldReuseLoginSession(cachedDeviceId, cachedHomeserver, expectedHomeserver)) {
+        val expectedHomeserver = MatrixE2eeSendPolicy.normalizeHomeserverForSession(setting.homeserver)
+        if (!MatrixE2eeSendPolicy.shouldReuseLoginSession(cachedDeviceId, cachedHomeserver, expectedHomeserver)) {
             val reason = when {
-                cachedDeviceId != LOGIN_DEVICE_ID -> "device_id_mismatch"
-                normalizeHomeserverForSession(cachedHomeserver) != expectedHomeserver -> "homeserver_mismatch"
+                cachedDeviceId != MatrixE2eeSendPolicy.LOGIN_DEVICE_ID -> "device_id_mismatch"
+                MatrixE2eeSendPolicy.normalizeHomeserverForSession(cachedHomeserver) != expectedHomeserver ->
+                    "homeserver_mismatch"
                 else -> "unknown"
             }
             SLog.w(TAG, "Cached Matrix login session does not match expected relay device; clearing store. reason=$reason")
@@ -1028,20 +1032,6 @@ object MatrixE2eeRuntime : MatrixE2eeSender {
         SLog.w(TAG, "Clearing Matrix login crypto store for fresh login: reason=$reason")
         storeDir.deleteRecursively()
         storeDir.mkdirs()
-    }
-
-    internal fun shouldReuseLoginSession(
-        cachedDeviceId: String,
-        cachedHomeserverUrl: String,
-        expectedHomeserverUrl: String,
-    ): Boolean {
-        return cachedDeviceId == LOGIN_DEVICE_ID &&
-            normalizeHomeserverForSession(cachedHomeserverUrl) ==
-            normalizeHomeserverForSession(expectedHomeserverUrl)
-    }
-
-    internal fun normalizeHomeserverForSession(homeserver: String): String {
-        return homeserver.trim().trimEnd('/')
     }
 
     /**
@@ -1137,7 +1127,7 @@ object MatrixE2eeRuntime : MatrixE2eeSender {
      * The cache file stores the accessToken hash so we can validate it matches.
      */
     private fun loadWhoamiCacheByToken(context: Context, accessToken: String): WhoamiInfo? {
-        val tokenHash = sha256Hex(accessToken).take(16)
+        val tokenHash = MatrixE2eeSendPolicy.sha256Hex(accessToken).take(16)
         val cryptoDir = File(context.filesDir, "matrix-crypto")
         if (!cryptoDir.exists()) return null
 
@@ -1170,7 +1160,7 @@ object MatrixE2eeRuntime : MatrixE2eeSender {
      * Includes a token hash so we can validate the cache matches the current token.
      */
     private fun saveWhoamiCache(storeDir: File, whoami: WhoamiInfo, accessToken: String) {
-        val tokenHash = sha256Hex(accessToken).take(16)
+        val tokenHash = MatrixE2eeSendPolicy.sha256Hex(accessToken).take(16)
         val cacheFile = File(storeDir, WHOAMI_CACHE_FILENAME)
         try {
             val json = JSONObject().apply {
@@ -1190,115 +1180,12 @@ object MatrixE2eeRuntime : MatrixE2eeSender {
      * Format: {appFilesDir}/matrix-crypto/{sha256(userId).take(16)}/
      */
     internal fun getStoreDir(context: Context, userId: String): File {
-        val hash = sha256Hex(userId).take(16)
+        val hash = MatrixE2eeSendPolicy.sha256Hex(userId).take(16)
         val dir = File(context.filesDir, "matrix-crypto/$hash")
         if (!dir.exists()) {
             dir.mkdirs()
         }
         return dir
-    }
-
-    /**
-     * Pure routing decision function.
-     *
-     * Determines whether to use the E2EE send path or the plaintext send path
-     * based on two boolean conditions:
-     * - e2eeAvailable: whether the E2EE module is loaded and ready
-     * - roomEncrypted: whether the target room has encryption enabled
-     *
-     * Returns true (use E2EE path) if and only if BOTH conditions are true.
-     * Otherwise returns false (use plaintext path).
-     */
-    internal fun shouldUseE2ee(e2eeAvailable: Boolean, roomEncrypted: Boolean): Boolean {
-        return e2eeAvailable && roomEncrypted
-    }
-
-    /**
-     * Defines the ordered sequence of operations in the E2EE send pipeline.
-     *
-     * This function represents the structural contract that to-device event processing
-     * (via sync) MUST complete before message encryption begins. The ordering is:
-     * 1. "sync_to_device" — poll and process to-device events to update session state
-     * 2. "encrypt_and_send" — encrypt the message using the latest session state and send
-     *
-     * This ordering guarantees that the latest Olm/Megolm session state (including any
-     * new room keys received via to-device messages) is used for encryption.
-     *
-     * @param operations A list of operation names representing the execution plan.
-     *   Valid operations: "sync_to_device", "encrypt_and_send"
-     * @return true if the ordering constraint is satisfied (sync before encrypt),
-     *   false otherwise.
-     */
-    internal fun verifySendOperationOrder(operations: List<String>): Boolean {
-        val syncIndex = operations.indexOf("sync_to_device")
-        val encryptIndex = operations.indexOf("encrypt_and_send")
-
-        // Both operations must be present
-        if (syncIndex == -1 || encryptIndex == -1) return false
-
-        // sync_to_device must come before encrypt_and_send
-        return syncIndex < encryptIndex
-    }
-
-    /**
-     * Returns the canonical operation sequence for an E2EE send pipeline execution.
-     *
-     * The returned list always places "sync_to_device" before "encrypt_and_send",
-     * reflecting the implementation in [sendEncrypted] where [ensureKeySyncReady]
-     * is called before [room.sendRaw()].
-     *
-     * This is the ground-truth ordering that [sendEncrypted] follows.
-     */
-    internal fun getCanonicalSendOperationOrder(): List<String> {
-        return listOf("sync_to_device", "encrypt_and_send")
-    }
-
-    /**
-     * Defines the serialized E2EE send pipeline used around [sendEncrypted].
-     *
-     * Only one Matrix E2EE send may manipulate the shared SDK client, room key,
-     * device-key sync, sendRaw(), and post-send sync at a time.
-     */
-    internal fun getCanonicalSerializedSendOperationOrder(): List<String> {
-        return listOf(
-            "acquire_send_lock",
-            "sync_to_device",
-            "encrypt_and_send",
-            "post_send_sync",
-            "release_send_lock",
-        )
-    }
-
-    internal fun verifySerializedSendOperationOrder(operations: List<String>): Boolean {
-        val acquireIndex = operations.indexOf("acquire_send_lock")
-        val syncIndex = operations.indexOf("sync_to_device")
-        val encryptIndex = operations.indexOf("encrypt_and_send")
-        val postSendIndex = operations.indexOf("post_send_sync")
-        val releaseIndex = operations.indexOf("release_send_lock")
-
-        if (acquireIndex == -1 ||
-            syncIndex == -1 ||
-            encryptIndex == -1 ||
-            postSendIndex == -1 ||
-            releaseIndex == -1
-        ) {
-            return false
-        }
-
-        return acquireIndex < syncIndex &&
-            syncIndex < encryptIndex &&
-            encryptIndex < postSendIndex &&
-            postSendIndex < releaseIndex
-    }
-
-    /**
-     * Compute SHA-256 hex string for a given input.
-     * This is a pure deterministic function.
-     */
-    internal fun sha256Hex(input: String): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        val hashBytes = digest.digest(input.toByteArray(Charsets.UTF_8))
-        return hashBytes.joinToString("") { "%02x".format(it) }
     }
 
     internal suspend fun forceClearDeviceStore(context: Context, setting: MatrixSetting) {

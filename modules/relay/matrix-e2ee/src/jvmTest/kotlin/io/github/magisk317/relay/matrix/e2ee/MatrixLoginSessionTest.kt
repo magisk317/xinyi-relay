@@ -6,15 +6,15 @@ import io.kotest.matchers.shouldBe
 class MatrixLoginSessionTest : FunSpec({
 
     test("login session cache is reused for the fixed relay device on the same homeserver") {
-        MatrixE2eeRuntime.shouldReuseLoginSession(
-            cachedDeviceId = MatrixE2eeRuntime.LOGIN_DEVICE_ID,
+        MatrixE2eeSendPolicy.shouldReuseLoginSession(
+            cachedDeviceId = MatrixE2eeSendPolicy.LOGIN_DEVICE_ID,
             cachedHomeserverUrl = " https://matrix.example.org/ ",
             expectedHomeserverUrl = "https://matrix.example.org",
         ) shouldBe true
     }
 
     test("login session cache is rejected when it belongs to an old Matrix device") {
-        MatrixE2eeRuntime.shouldReuseLoginSession(
+        MatrixE2eeSendPolicy.shouldReuseLoginSession(
             cachedDeviceId = "OLD_DEVICE",
             cachedHomeserverUrl = "https://matrix.example.org",
             expectedHomeserverUrl = "https://matrix.example.org",
@@ -22,8 +22,8 @@ class MatrixLoginSessionTest : FunSpec({
     }
 
     test("login session cache is rejected when homeserver changed") {
-        MatrixE2eeRuntime.shouldReuseLoginSession(
-            cachedDeviceId = MatrixE2eeRuntime.LOGIN_DEVICE_ID,
+        MatrixE2eeSendPolicy.shouldReuseLoginSession(
+            cachedDeviceId = MatrixE2eeSendPolicy.LOGIN_DEVICE_ID,
             cachedHomeserverUrl = "https://matrix.example.org",
             expectedHomeserverUrl = "https://other.example.org",
         ) shouldBe false

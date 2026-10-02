@@ -46,8 +46,8 @@ class ToDeviceBeforeEncryptPropertyTest : FunSpec({
          */
         checkAll(PropTestConfig(iterations = 100), Arb.int(0..100)) {
             // For any invocation, the canonical order must satisfy the constraint
-            val canonicalOrder = MatrixE2eeRuntime.getCanonicalSendOperationOrder()
-            MatrixE2eeRuntime.verifySendOperationOrder(canonicalOrder) shouldBe true
+            val canonicalOrder = MatrixE2eeSendPolicy.getCanonicalSendOperationOrder()
+            MatrixE2eeSendPolicy.verifySendOperationOrder(canonicalOrder) shouldBe true
         }
     }
 
@@ -59,7 +59,7 @@ class ToDeviceBeforeEncryptPropertyTest : FunSpec({
          * ensuring to-device events are processed before any encryption begins.
          */
         checkAll(PropTestConfig(iterations = 100), Arb.int(0..100)) {
-            val order = MatrixE2eeRuntime.getCanonicalSendOperationOrder()
+            val order = MatrixE2eeSendPolicy.getCanonicalSendOperationOrder()
             order.indexOf("sync_to_device") shouldBe 0
             order.indexOf("encrypt_and_send") shouldBe 1
         }
@@ -75,7 +75,7 @@ class ToDeviceBeforeEncryptPropertyTest : FunSpec({
          */
         checkAll(PropTestConfig(iterations = 100), Arb.int(0..100)) {
             val reversedOrder = listOf("encrypt_and_send", "sync_to_device")
-            MatrixE2eeRuntime.verifySendOperationOrder(reversedOrder) shouldBe false
+            MatrixE2eeSendPolicy.verifySendOperationOrder(reversedOrder) shouldBe false
         }
     }
 
@@ -99,7 +99,7 @@ class ToDeviceBeforeEncryptPropertyTest : FunSpec({
         }
 
         checkAll(PropTestConfig(iterations = 100), operationListArb) { operations ->
-            MatrixE2eeRuntime.verifySendOperationOrder(operations) shouldBe true
+            MatrixE2eeSendPolicy.verifySendOperationOrder(operations) shouldBe true
         }
     }
 
@@ -122,7 +122,7 @@ class ToDeviceBeforeEncryptPropertyTest : FunSpec({
         }
 
         checkAll(PropTestConfig(iterations = 100), badOrderListArb) { operations ->
-            MatrixE2eeRuntime.verifySendOperationOrder(operations) shouldBe false
+            MatrixE2eeSendPolicy.verifySendOperationOrder(operations) shouldBe false
         }
     }
 
@@ -148,14 +148,14 @@ class ToDeviceBeforeEncryptPropertyTest : FunSpec({
         }
 
         checkAll(PropTestConfig(iterations = 100), missingOpsArb) { operations ->
-            MatrixE2eeRuntime.verifySendOperationOrder(operations) shouldBe false
+            MatrixE2eeSendPolicy.verifySendOperationOrder(operations) shouldBe false
         }
     }
 
     test("Matrix E2EE serialized send order keeps sync, encrypt, and post-send sync inside the lock") {
         checkAll(PropTestConfig(iterations = 100), Arb.int(0..100)) {
-            val order = MatrixE2eeRuntime.getCanonicalSerializedSendOperationOrder()
-            MatrixE2eeRuntime.verifySerializedSendOperationOrder(order) shouldBe true
+            val order = MatrixE2eeSendPolicy.getCanonicalSerializedSendOperationOrder()
+            MatrixE2eeSendPolicy.verifySerializedSendOperationOrder(order) shouldBe true
             order.indexOf("acquire_send_lock") shouldBe 0
             order.indexOf("release_send_lock") shouldBe order.lastIndex
             order.indexOf("sync_to_device") shouldBe 1
@@ -173,7 +173,7 @@ class ToDeviceBeforeEncryptPropertyTest : FunSpec({
                 "post_send_sync",
                 "release_send_lock",
             )
-            MatrixE2eeRuntime.verifySerializedSendOperationOrder(badOrder) shouldBe false
+            MatrixE2eeSendPolicy.verifySerializedSendOperationOrder(badOrder) shouldBe false
         }
     }
 })

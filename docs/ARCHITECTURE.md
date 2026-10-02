@@ -52,7 +52,7 @@
 
 ### Kotlin Multiplatform 源集约定
 
-`:relay:contract`、`:relay:sender:api`、`:policy`、`:relay:net`、`:relay:engine:api`、`:relay:engine`、`:desktop:core`、`:desktop:data` 已迁到 Kotlin Multiplatform，其源码布局与 Android 单平台模块不同：
+`:relay:contract`、`:relay:sender:api`、`:policy`、`:relay:net`、`:relay:engine:api`、`:relay:engine`、`:relay:matrix-e2ee`、`:desktop:core`、`:desktop:data` 已迁到 Kotlin Multiplatform，其源码布局与 Android 单平台模块不同：
 
 | 源集 | 编译目标 | 放什么 |
 |---|---|---|
@@ -128,6 +128,13 @@ sender 配置模型、发送实现、发送结果模型。通过 `SenderRuntimeI
 产品内 Matrix E2EE 唯一实现，持有 Matrix SDK sender、verification、room crypto state 和
 对应测试。它通过 `relay/sender/api` 的 `MatrixE2eeHost` 端口使用 sender 侧的认证、明文回退、
 格式化与日志策略，避免依赖 `relay/sender` 实现或任一打包入口。
+
+KMP 模块（`jvm()` + `android()`）：`MatrixE2eeSendPolicy`（E2EE 通道选择、发送流水线顺序、
+登录会话复用、失败原因归类、store 路径哈希）、`RoomCryptoState`（房间加密状态查询与缓存）、
+`MatrixE2eeHostAccess`（`MatrixUtils`/`SLog` 端口封装）都在 `src/commonMain`，不碰 Android
+`Context` 与 Matrix SDK；`MatrixE2eeRuntime`、`MatrixE2eeVerificationRuntime`、`MatrixE2eePlatform`
+留在 `src/androidMain`，由它们持有 SDK 客户端与会话。`src/test` 里的 8 个测试已迁到
+`src/jvmTest`，由 CI 的 `:relay:matrix-e2ee:jvmTest` 执行。
 
 - 允许：`relay/sender/api`、`relay/net`、Matrix SDK
 - 禁止：`app`、`features/matrix-e2ee`、`relay/sender` 实现
@@ -352,6 +359,7 @@ KMP 模块里的 contract 源文件，因此 contract 源在 `commonMain`/`andro
 | P7 | Kotlin Multiplatform 化（`relay/contract`、`relay/sender/api`、`policy`、`relay/net`、`relay/engine:api`、`desktop:core`、`desktop/data` 迁到 commonMain/源集布局；sender 可移植逻辑下沉，`Sender`/`Rule` 等 Parcelize 入口留在 androidMain） | ✅ |
 | P8 | 桌面新轨接线（`:desktop` 经 `DesktopLocalRuntime` 组合根接入 `desktop/core`、`desktop/data`，store/sync/导入测试纳入应用构建） | ✅ |
 | P9 | `relay/engine` KMP 化（`ForwardFilterEngine`/`NotifyRoutingResolver` 进 commonMain，路由改为对 `SenderIdentity` 泛型；`ForwardFilterEngineTest`/`NotifyRoutingResolverTest` 从 `runtime` 迁到 `:relay:engine:jvmTest`，纳入 CI KMP 桶） | ✅ |
+| P10 | `relay/matrix-e2ee` KMP 化（`MatrixE2eeSendPolicy` 的纯决策、`RoomCryptoState`、`MatrixE2eeHostAccess` 进 commonMain，Matrix SDK 三件套留 androidMain；`src/test` 的 8 个测试迁到 `:relay:matrix-e2ee:jvmTest` 并纳入 CI KMP 桶） | ✅ |
 
 ## 平台兼容性：Android 17 (API 37)
 

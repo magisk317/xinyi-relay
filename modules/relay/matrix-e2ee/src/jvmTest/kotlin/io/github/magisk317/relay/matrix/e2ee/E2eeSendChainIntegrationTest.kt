@@ -3,7 +3,10 @@
 package io.github.magisk317.relay.matrix.e2ee
 
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import okhttp3.OkHttpClient
@@ -11,6 +14,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.fail
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -75,7 +79,7 @@ class E2eeSendChainIntegrationTest {
 
         assertTrue(isEncrypted)
         // With E2EE available and room encrypted → should route to E2EE
-        assertTrue(MatrixE2eeRuntime.shouldUseE2ee(e2eeAvailable = true, roomEncrypted = isEncrypted))
+        assertTrue(MatrixE2eeSendPolicy.shouldUseE2ee(e2eeAvailable = true, roomEncrypted = isEncrypted))
     }
 
     @Test
@@ -98,7 +102,7 @@ class E2eeSendChainIntegrationTest {
 
         assertFalse(isEncrypted)
         // With E2EE available but room NOT encrypted → should route to plaintext
-        assertFalse(MatrixE2eeRuntime.shouldUseE2ee(e2eeAvailable = true, roomEncrypted = isEncrypted))
+        assertFalse(MatrixE2eeSendPolicy.shouldUseE2ee(e2eeAvailable = true, roomEncrypted = isEncrypted))
     }
 
     // ============================================================
@@ -112,16 +116,16 @@ class E2eeSendChainIntegrationTest {
     @Test
     fun `routing decision is plaintext when E2EE module is unavailable regardless of room state`() {
         // Requirement 5.1, 8.3: E2EE unavailable → always plaintext
-        assertFalse(MatrixE2eeRuntime.shouldUseE2ee(e2eeAvailable = false, roomEncrypted = true))
-        assertFalse(MatrixE2eeRuntime.shouldUseE2ee(e2eeAvailable = false, roomEncrypted = false))
+        assertFalse(MatrixE2eeSendPolicy.shouldUseE2ee(e2eeAvailable = false, roomEncrypted = true))
+        assertFalse(MatrixE2eeSendPolicy.shouldUseE2ee(e2eeAvailable = false, roomEncrypted = false))
     }
 
     @Test
     fun `routing decision is E2EE only when both conditions met`() {
         // Requirement 8.2: E2EE available AND room encrypted → E2EE path
-        assertTrue(MatrixE2eeRuntime.shouldUseE2ee(e2eeAvailable = true, roomEncrypted = true))
+        assertTrue(MatrixE2eeSendPolicy.shouldUseE2ee(e2eeAvailable = true, roomEncrypted = true))
         // Requirement 8.4: room not encrypted → plaintext even if E2EE available
-        assertFalse(MatrixE2eeRuntime.shouldUseE2ee(e2eeAvailable = true, roomEncrypted = false))
+        assertFalse(MatrixE2eeSendPolicy.shouldUseE2ee(e2eeAvailable = true, roomEncrypted = false))
     }
 
     // ============================================================
@@ -225,15 +229,23 @@ class E2eeSendChainIntegrationTest {
     // ============================================================
 
     @Test
-    fun `categorizeFailureReason returns encryption_timeout for timeout exceptions`() {
-        val timeoutError = java.net.SocketTimeoutException("read timed out")
-        assertEquals("encryption_timeout", MatrixE2eeRuntime.categorizeFailureReason(timeoutError))
-    }
+    fun `categorizeFailureReason returns encryption_timeout for timeout exceptions`() = runBlocking {
+        // Mirrors how sendEncrypted aborts: withTimeout throws a TimeoutCancellationException,
+        // which is the only exception type the send policy has to distinguish from real errors.
+        val timeoutError = try {
+            withTimeout(1) {
+                delay(50)
+            }
+            fail("withTimeout must cancel the block")
+        } catch (e: TimeoutCancellationException) {
+            e
+        }
 
-    @Test
+        assertEquals("encryption_timeout", MatrixE2eeSendPolicy.categorizeFailureReason(timeoutError))
+    }    @Test
     fun `categorizeFailureReason returns encryption_error for general exceptions`() {
         val generalError = RuntimeException("something went wrong")
-        assertEquals("encryption_error", MatrixE2eeRuntime.categorizeFailureReason(generalError))
+        assertEquals("encryption_error", MatrixE2eeSendPolicy.categorizeFailureReason(generalError))
     }
 
     @Test
@@ -285,15 +297,15 @@ class E2eeSendChainIntegrationTest {
     @Test
     fun `sha256Hex is deterministic - same userId always produces same hash`() {
         val userId1 = "@alice:matrix.org"
-        val hash1 = MatrixE2eeRuntime.sha256Hex(userId1)
-        val hash2 = MatrixE2eeRuntime.sha256Hex(userId1)
+        val hash1 = MatrixE2eeSendPolicy.sha256Hex(userId1)
+        val hash2 = MatrixE2eeSendPolicy.sha256Hex(userId1)
         assertEquals(hash1, hash2)
     }
 
     @Test
     fun `sha256Hex produces different hashes for different userIds`() {
-        val hash1 = MatrixE2eeRuntime.sha256Hex("@alice:matrix.org")
-        val hash2 = MatrixE2eeRuntime.sha256Hex("@bob:matrix.org")
+        val hash1 = MatrixE2eeSendPolicy.sha256Hex("@alice:matrix.org")
+        val hash2 = MatrixE2eeSendPolicy.sha256Hex("@bob:matrix.org")
         assertTrue(hash1 != hash2)
     }
 }

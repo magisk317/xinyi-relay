@@ -36,7 +36,7 @@ class SendRoutingDecisionPropertyTest : FunSpec({
          * must equal (e2eeAvailable AND roomEncrypted).
          */
         checkAll(PropTestConfig(iterations = 100), Arb.boolean(), Arb.boolean()) { e2eeAvailable, roomEncrypted ->
-            val result = MatrixE2eeRuntime.shouldUseE2ee(e2eeAvailable, roomEncrypted)
+            val result = MatrixE2eeSendPolicy.shouldUseE2ee(e2eeAvailable, roomEncrypted)
             val expected = e2eeAvailable && roomEncrypted
             result shouldBe expected
         }
@@ -50,7 +50,7 @@ class SendRoutingDecisionPropertyTest : FunSpec({
          * regardless of room encryption state.
          */
         checkAll(PropTestConfig(iterations = 100), Arb.boolean()) { roomEncrypted ->
-            val result = MatrixE2eeRuntime.shouldUseE2ee(
+            val result = MatrixE2eeSendPolicy.shouldUseE2ee(
                 e2eeAvailable = false,
                 roomEncrypted = roomEncrypted,
             )
@@ -66,7 +66,7 @@ class SendRoutingDecisionPropertyTest : FunSpec({
          * regardless of E2EE module availability.
          */
         checkAll(PropTestConfig(iterations = 100), Arb.boolean()) { e2eeAvailable ->
-            val result = MatrixE2eeRuntime.shouldUseE2ee(
+            val result = MatrixE2eeSendPolicy.shouldUseE2ee(
                 e2eeAvailable = e2eeAvailable,
                 roomEncrypted = false,
             )
@@ -81,13 +81,13 @@ class SendRoutingDecisionPropertyTest : FunSpec({
          * Exhaustively verify all four combinations of the routing decision.
          */
         // (false, false) → plaintext
-        MatrixE2eeRuntime.shouldUseE2ee(e2eeAvailable = false, roomEncrypted = false) shouldBe false
+        MatrixE2eeSendPolicy.shouldUseE2ee(e2eeAvailable = false, roomEncrypted = false) shouldBe false
         // (false, true) → plaintext
-        MatrixE2eeRuntime.shouldUseE2ee(e2eeAvailable = false, roomEncrypted = true) shouldBe false
+        MatrixE2eeSendPolicy.shouldUseE2ee(e2eeAvailable = false, roomEncrypted = true) shouldBe false
         // (true, false) → plaintext
-        MatrixE2eeRuntime.shouldUseE2ee(e2eeAvailable = true, roomEncrypted = false) shouldBe false
+        MatrixE2eeSendPolicy.shouldUseE2ee(e2eeAvailable = true, roomEncrypted = false) shouldBe false
         // (true, true) → encrypted
-        MatrixE2eeRuntime.shouldUseE2ee(e2eeAvailable = true, roomEncrypted = true) shouldBe true
+        MatrixE2eeSendPolicy.shouldUseE2ee(e2eeAvailable = true, roomEncrypted = true) shouldBe true
     }
 
     test("Property 8: decision is evaluated fresh on each invocation (not cached)") {
@@ -100,11 +100,11 @@ class SendRoutingDecisionPropertyTest : FunSpec({
          */
         checkAll(PropTestConfig(iterations = 100), Arb.boolean(), Arb.boolean()) { e2eeAvailable, roomEncrypted ->
             // First call with one set of inputs
-            val result1 = MatrixE2eeRuntime.shouldUseE2ee(e2eeAvailable, roomEncrypted)
+            val result1 = MatrixE2eeSendPolicy.shouldUseE2ee(e2eeAvailable, roomEncrypted)
             // Second call with inverted inputs
-            val result2 = MatrixE2eeRuntime.shouldUseE2ee(!e2eeAvailable, !roomEncrypted)
+            val result2 = MatrixE2eeSendPolicy.shouldUseE2ee(!e2eeAvailable, !roomEncrypted)
             // Third call with original inputs should still give same result
-            val result3 = MatrixE2eeRuntime.shouldUseE2ee(e2eeAvailable, roomEncrypted)
+            val result3 = MatrixE2eeSendPolicy.shouldUseE2ee(e2eeAvailable, roomEncrypted)
 
             result1 shouldBe (e2eeAvailable && roomEncrypted)
             result2 shouldBe (!e2eeAvailable && !roomEncrypted)
