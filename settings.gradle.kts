@@ -127,6 +127,8 @@ mavenCentral()
 include(
     ":app",
     ":desktop",
+    ":desktop:data",
+    ":desktop:core",
     ":benchmark:macro",
     ":hook:entry",
     ":runtime",
@@ -207,3 +209,5 @@ project(":hook").projectDir = file("modules/hook")
 project(":relay").projectDir = file("modules/relay")
 project(":xpbridge").projectDir = file("modules/xpbridge")
 project(":xpbridge:android").projectDir = file("modules/xpbridge/android")
+project(":desktop:data").projectDir = file("modules/desktop/data")
+project(":desktop:core").projectDir = file("modules/desktop/core")
