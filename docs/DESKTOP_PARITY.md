@@ -61,7 +61,7 @@ webUI 共 9 个页面，新轨 9 个路由全部有对应实现（`DesktopRoute`
 
 | 差异 | React 做法 | 新轨做法 | 原因 |
 |---|---|---|---|
-| 事件上报 | 每页调用 `trackEvent` | 不移植 | 遥测不进入桌面端，也不在文档/提交信息里提及 |
+| 事件上报 | 每页调用 `trackEvent` | 不移植 | 上报链路不进入桌面端 |
 | `window.confirm` | 原生确认框 | `ui/ConsoleComponents.kt` 的 `ConfirmDialog` | 桌面端统一对话框外观 |
 | `window.prompt`（重命名设备） | 原生输入框 | `RenameDeviceDialog` | 同上 |
 | `window.alert`（定时任务提示） | 原生提示 | `NoticeCard` 提示卡 | 同上，沿用 webUI 的内联提示样式 |
