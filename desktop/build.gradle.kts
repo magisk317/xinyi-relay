@@ -15,6 +15,7 @@ kotlin {
             implementation(compose.materialIconsExtended)
             implementation(project(":magisk-ui-kit"))
             implementation(project(":relay:contract"))
+            implementation(project(":relay:sender:api"))
             implementation(project(":relay:net"))
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)

@@ -13,11 +13,6 @@ import io.github.magisk317.relay.desktop.ui.DesktopPage
  * real page as C3.3 lands it, keeping the shell navigable in between.
  */
 @Composable
-fun SendersPage(session: DesktopSessionState, console: DesktopConsoleState, feed: DesktopRealtimeFeed, locale: DesktopLocale) {
-    PageFrame(locale = locale, titleKey = "senders.title", descriptionKey = "senders.description")
-}
-
-@Composable
 fun SettingsPage(session: DesktopSessionState, console: DesktopConsoleState, feed: DesktopRealtimeFeed, locale: DesktopLocale) {
     PageFrame(locale = locale, titleKey = "settings.title", descriptionKey = "settings.description")
 }
