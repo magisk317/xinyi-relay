@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -573,8 +574,29 @@ fun PageOutlet(content: @Composable androidx.compose.foundation.layout.ColumnSco
     }
 }
 
-/** Responsive metric grid: lays the cards out in rows of [minColumnWidth] columns. */
+/** Confirm helper mirroring the webUI's window.confirm before a destructive action. */
 @Composable
+fun ConfirmDialog(
+    message: String,
+    confirmLabel: String,
+    dismissLabel: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = message) },
+        text = null,
+        confirmButton = {
+            ActionButton(text = confirmLabel, onClick = onConfirm, tone = ActionTone.DANGER)
+        },
+        dismissButton = {
+            ActionButton(text = dismissLabel, onClick = onDismiss, tone = ActionTone.NEUTRAL)
+        },
+    )
+}
+
+/** Responsive metric grid: lays the cards out in rows of [minColumnWidth] columns. */@Composable
 fun MetricRow(
     cards: List<@Composable () -> Unit>,
     minColumnWidth: androidx.compose.ui.unit.Dp = 220.dp,

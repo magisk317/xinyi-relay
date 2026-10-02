@@ -50,6 +50,11 @@ class DesktopConsoleState(private val session: DesktopSessionState) {
     var error by mutableStateOf("")
         private set
 
+    /** Surfaces a validation message in the page error banner, like the webUI's setError. */
+    fun showError(message: String) {
+        error = message
+    }
+
     fun bootstrap() {
         scope.launch {
             runCatching { refreshDevicesInternal() }
