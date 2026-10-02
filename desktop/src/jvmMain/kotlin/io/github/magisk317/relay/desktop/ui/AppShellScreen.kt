@@ -42,6 +42,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.desktop.i18n.DesktopMessages
 import io.github.magisk317.relay.desktop.i18n.DesktopLocale
+import io.github.magisk317.relay.desktop.remote.DesktopRealtimeFeed
+import io.github.magisk317.relay.desktop.session.DesktopConsoleState
+import io.github.magisk317.relay.desktop.ui.PageOutlet
+import io.github.magisk317.relay.desktop.ui.pages.AdvancedPage
+import io.github.magisk317.relay.desktop.ui.pages.AnalyticsPage
+import io.github.magisk317.relay.desktop.ui.pages.AppsPage
+import io.github.magisk317.relay.desktop.ui.pages.OverviewPage
+import io.github.magisk317.relay.desktop.ui.pages.RecordsPage
+import io.github.magisk317.relay.desktop.ui.pages.ScheduledTasksPage
+import io.github.magisk317.relay.desktop.ui.pages.SendersPage
+import io.github.magisk317.relay.desktop.ui.pages.SettingsPage
 import io.github.magisk317.relay.desktop.i18n.LocaleSetting
 import io.github.magisk317.relay.desktop.session.DesktopSessionState
 
@@ -65,6 +76,8 @@ enum class DesktopRoute(val labelKey: String, val icon: ImageVector) {
 @Composable
 fun AppShellScreen(
     session: DesktopSessionState,
+    console: DesktopConsoleState,
+    feed: DesktopRealtimeFeed,
     locale: DesktopLocale,
     onLocaleChange: (LocaleSetting) -> Unit,
     selectedLocale: LocaleSetting,
@@ -91,7 +104,7 @@ fun AppShellScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Box(modifier = Modifier.fillMaxSize().weight(1f)) {
-                        RouteContent(route = route, locale = locale)
+                        RouteContent(route = route, session = session, console = console, feed = feed, locale = locale)
                     }
                     Footer(locale = locale)
                 }
@@ -303,98 +316,23 @@ private fun Footer(locale: DesktopLocale) {
 }
 
 @Composable
-private fun RouteContent(route: DesktopRoute, locale: DesktopLocale) {
-    when (route) {
-        DesktopRoute.OVERVIEW -> OverviewPage(locale)
-        DesktopRoute.ANALYTICS -> AnalyticsPage(locale)
-        DesktopRoute.APPS -> AppsPage(locale)
-        DesktopRoute.RECORDS -> RecordsPage(locale)
-        DesktopRoute.SENDERS -> SendersPage(locale)
-        DesktopRoute.SETTINGS -> SettingsPage(locale)
-        DesktopRoute.ADVANCED -> AdvancedPage(locale)
-        DesktopRoute.SCHEDULED_TASKS -> ScheduledTasksPage(locale)
-    }
-}
-
-/** Placeholder pages: frame with title + description until each page is ported. */
-@Composable
-private fun OverviewPage(locale: DesktopLocale) {
-    PageFrame(
-        locale = locale,
-        titleKey = "overview.title",
-        descriptionKey = "overview.description",
-    )
-}
-
-@Composable
-private fun AnalyticsPage(locale: DesktopLocale) {
-    PageFrame(
-        locale = locale,
-        titleKey = "analytics.title",
-        descriptionKey = "analytics.description",
-    )
-}
-
-@Composable
-private fun AppsPage(locale: DesktopLocale) {
-    PageFrame(
-        locale = locale,
-        titleKey = "apps.title",
-        descriptionKey = "apps.description",
-    )
-}
-
-@Composable
-private fun RecordsPage(locale: DesktopLocale) {
-    PageFrame(
-        locale = locale,
-        titleKey = "records.title",
-        descriptionKey = "records.description",
-    )
-}
-
-@Composable
-private fun SendersPage(locale: DesktopLocale) {
-    PageFrame(
-        locale = locale,
-        titleKey = "senders.title",
-        descriptionKey = "senders.description",
-    )
-}
-
-@Composable
-private fun SettingsPage(locale: DesktopLocale) {
-    PageFrame(
-        locale = locale,
-        titleKey = "settings.title",
-        descriptionKey = "settings.description",
-    )
-}
-
-@Composable
-private fun AdvancedPage(locale: DesktopLocale) {
-    PageFrame(
-        locale = locale,
-        titleKey = "advanced.title",
-        descriptionKey = "advanced.description",
-    )
-}
-
-@Composable
-private fun ScheduledTasksPage(locale: DesktopLocale) {
-    PageFrame(
-        locale = locale,
-        titleKey = "scheduledTasks.title",
-        descriptionKey = "scheduledTasks.description",
-    )
-}
-
-@Composable
-private fun PageFrame(locale: DesktopLocale, titleKey: String, descriptionKey: String) {
-    DesktopPage(
-        title = DesktopMessages.t(locale, titleKey),
-        description = DesktopMessages.t(locale, descriptionKey),
-    ) {
-        DesktopPagePlaceholder()
+private fun RouteContent(
+    route: DesktopRoute,
+    session: DesktopSessionState,
+    console: DesktopConsoleState,
+    feed: DesktopRealtimeFeed,
+    locale: DesktopLocale,
+) {
+    PageOutlet {
+        when (route) {
+            DesktopRoute.OVERVIEW -> OverviewPage(session, console, feed, locale)
+            DesktopRoute.ANALYTICS -> AnalyticsPage(session, console, feed, locale)
+            DesktopRoute.APPS -> AppsPage(session, console, feed, locale)
+            DesktopRoute.RECORDS -> RecordsPage(session, console, feed, locale)
+            DesktopRoute.SENDERS -> SendersPage(session, console, feed, locale)
+            DesktopRoute.SETTINGS -> SettingsPage(session, console, feed, locale)
+            DesktopRoute.ADVANCED -> AdvancedPage(session, console, feed, locale)
+            DesktopRoute.SCHEDULED_TASKS -> ScheduledTasksPage(session, console, feed, locale)
+        }
     }
 }

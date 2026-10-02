@@ -1,12 +1,17 @@
 package io.github.magisk317.relay.desktop.remote
 
 import io.github.magisk317.relay.contract.remote.BindCodeResponse
+import io.github.magisk317.relay.contract.remote.BootstrapAdminRequest
+import io.github.magisk317.relay.contract.remote.BootstrapAdminResponse
+import io.github.magisk317.relay.contract.remote.ChangePasswordRequest
+import io.github.magisk317.relay.contract.remote.DeviceConfigCommandResponse
 import io.github.magisk317.relay.contract.remote.DesktopExchangeRequest
 import io.github.magisk317.relay.contract.remote.DesktopLogoutRequest
 import io.github.magisk317.relay.contract.remote.DesktopRefreshRequest
 import io.github.magisk317.relay.contract.remote.DesktopSessionResponse
 import io.github.magisk317.relay.contract.remote.DeviceConfigAuditLogsResponse
 import io.github.magisk317.relay.contract.remote.DeviceConfigCommandRequest
+import io.github.magisk317.relay.contract.remote.SimpleOKResponse
 import io.github.magisk317.relay.contract.remote.DeviceConfigStateResponse
 import io.github.magisk317.relay.contract.remote.DevicesResponse
 import io.github.magisk317.relay.contract.remote.MeResponse
@@ -126,10 +131,11 @@ class ConsoleClient(
         if (e.status == 404) null else throw e
     }
 
+    /** Queues a config command and returns the persisted command (pending until the agent acks it). */
     suspend fun queueDeviceConfigCommand(
         deviceId: Long,
         request: DeviceConfigCommandRequest,
-    ): JsonObject = send(
+    ): DeviceConfigCommandResponse = send(
         "/api/v1/devices/$deviceId/config/commands",
         method = "POST",
         body = json.encodeToString(request),
@@ -140,6 +146,21 @@ class ConsoleClient(
         limit: Int = 50,
         offset: Int = 0,
     ): DeviceConfigAuditLogsResponse = send("/api/v1/devices/$deviceId/config/audit?limit=$limit&offset=$offset")
+
+    /** Creates the first admin account; the backend only accepts this once. */
+    suspend fun bootstrapAdmin(username: String, password: String): BootstrapAdminResponse = send(
+        "/api/v1/bootstrap/admin",
+        method = "POST",
+        body = json.encodeToString(BootstrapAdminRequest(username = username, password = password)),
+    )
+
+    suspend fun changePassword(currentPassword: String, newPassword: String): SimpleOKResponse = send(
+        "/api/v1/auth/password",
+        method = "POST",
+        body = json.encodeToString(
+            ChangePasswordRequest(currentPassword = currentPassword, newPassword = newPassword),
+        ),
+    )
 
     suspend fun records(limit: Int = 50, deviceId: Long? = null): RecordsResponse {
         val query = buildString {
