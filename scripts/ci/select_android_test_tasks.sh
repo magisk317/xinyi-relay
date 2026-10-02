@@ -26,6 +26,12 @@ kit_test_tasks=(
   :magisk-ui-kit:jvmTest
   :magisk-ui-kit:billing:testDebugUnitTest
 )
+kmp_library_test_tasks=(
+  :policy:jvmTest
+  :relay:contract:jvmTest
+  :relay:net:jvmTest
+  :relay:sender:api:jvmTest
+)
 desktop_test_tasks=(
   :desktop:compileKotlinJvm
   :desktop:jvmTest
@@ -41,6 +47,7 @@ full_tasks=(
   "${mobile_test_tasks[@]}"
   "${core_test_tasks[@]}"
   "${kit_test_tasks[@]}"
+  "${kmp_library_test_tasks[@]}"
   "${desktop_test_tasks[@]}"
 )
 if [[ -n "${CI_COMMIT_TAG:-}" || "${GITHUB_REF_TYPE:-}" == tag || "${CI_COMMIT_BRANCH:-}" == beta || "${CI_COMMIT_BRANCH:-}" == master || "${GITHUB_REF_NAME:-}" == beta || "${GITHUB_REF_NAME:-}" == master ]]; then printf '%s\n' "${full_tasks[@]}"; exit 0; fi
@@ -48,6 +55,14 @@ if [[ -z "$paths_file" ]]; then paths_file="$(mktemp)"; trap 'rm -f "$paths_file
 if [[ "$(sed -n '1p' "$paths_file")" == full ]]; then printf '%s\n' "${full_tasks[@]}"; exit 0; fi
 declare -A selected=()
 select_task() { selected["$1"]=1; }
+select_app_bucket() {
+  select_task :app:testGithubNoE2eeDebugUnitTest
+  select_task :app:koverHtmlReportGithubNoE2eeDebug
+  select_task verifyStructureBoundaries
+  select_task :app:testGithubWithE2eeDebugUnitTest
+  select_task :app:koverHtmlReportGithubWithE2eeDebug
+  for task in "${mobile_test_tasks[@]}"; do select_task "$task"; done
+}
 while IFS= read -r path; do
   [[ -z "$path" ]] && continue
   case "$path" in
@@ -59,11 +74,11 @@ while IFS= read -r path; do
       for task in "${kit_test_tasks[@]}"; do select_task "$task"; done ;;
     desktop/*|modules/desktop/*)
       for task in "${desktop_test_tasks[@]}"; do select_task "$task"; done ;;
+    modules/policy/*|modules/relay/contract/*|modules/relay/net/*|modules/relay/sender/api/*)
+      select_app_bucket
+      for task in "${kmp_library_test_tasks[@]}"; do select_task "$task"; done ;;
     app/*|modules/*|mobile/*|features/*|magisk-xposed-kit/*)
-      select_task :app:testGithubNoE2eeDebugUnitTest; select_task :app:koverHtmlReportGithubNoE2eeDebug
-      select_task verifyStructureBoundaries; select_task :app:testGithubWithE2eeDebugUnitTest
-      select_task :app:koverHtmlReportGithubWithE2eeDebug
-      for task in "${mobile_test_tasks[@]}"; do select_task "$task"; done ;;
+      select_app_bucket ;;
     *) printf '%s\n' "${full_tasks[@]}"; exit 0 ;;
   esac
 done < <(sed -n '2,$p' "$paths_file")
