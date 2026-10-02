@@ -79,6 +79,49 @@ enum class ActionTone { PRIMARY, NEUTRAL, WARNING, DANGER }
 
 enum class MetricTone { DEFAULT, SUCCESS, INFO, WARNING }
 
+/** Tones of the clickable facet pills the records page uses as filters. */
+enum class FacetTone { MUTED, ACCENT, WARNING, SUCCESS }
+
+/** Toggleable filter pill; selected pills get the ring the webUI draws for them. */
+@Composable
+fun FacetBadge(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    tone: FacetTone = FacetTone.MUTED,
+    enabled: Boolean = true,
+) {
+    val background = when (tone) {
+        FacetTone.ACCENT -> BadgeAccent
+        FacetTone.WARNING -> MetricWarning
+        FacetTone.SUCCESS -> MetricSuccess
+        FacetTone.MUTED -> BadgeMuted
+    }
+    val content = when (tone) {
+        FacetTone.ACCENT -> Color(0xFF476018)
+        FacetTone.WARNING -> MetricOnWarning
+        FacetTone.SUCCESS -> MetricOnSuccess
+        FacetTone.MUTED -> Color(0xFF566347)
+    }
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = background,
+        border = if (selected) {
+            androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFB8D86B))
+        } else {
+            null
+        },
+        modifier = Modifier.clickable(enabled = enabled, onClick = onClick),
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = content,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+        )
+    }
+}
+
 @Composable
 fun PageShell(
     title: String,
