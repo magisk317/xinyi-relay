@@ -20,6 +20,7 @@ import io.github.magisk317.relay.contract.remote.SystemInfoResponse
 import io.github.magisk317.relay.desktop.i18n.DesktopLocale
 import io.github.magisk317.relay.desktop.i18n.DesktopMessages
 import io.github.magisk317.relay.desktop.remote.DesktopRealtimeFeed
+import io.github.magisk317.relay.desktop.remote.shouldRefreshSummaryOn
 import io.github.magisk317.relay.desktop.session.DesktopConsoleState
 import io.github.magisk317.relay.desktop.session.DesktopSessionState
 import io.github.magisk317.relay.desktop.ui.ActionButton
@@ -72,7 +73,7 @@ fun OverviewPage(
     }
 
     LaunchedEffect(Unit) { load() }
-    LaunchedEffect(feed.lastEvent) { feed.lastEvent?.let { reload() } }
+    LaunchedEffect(feed.lastEvent) { if (shouldRefreshSummaryOn(feed.lastEvent?.type)) reload() }
 
     val actions: @Composable () -> Unit = {
         LiveBadge(connected = feed.connected, locale = locale)

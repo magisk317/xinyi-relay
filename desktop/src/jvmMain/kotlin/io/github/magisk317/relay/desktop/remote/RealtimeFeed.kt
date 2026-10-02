@@ -119,3 +119,20 @@ class DesktopRealtimeFeed(
         const val NORMAL_CLOSURE = 1000
     }
 }
+
+/** Realtime events that invalidate the overview and analytics pages. */
+internal val SUMMARY_PAGE_EVENTS = setOf(
+    "device.registered",
+    "device.updated",
+    "device.heartbeat",
+    "device.revoked",
+    "device.config.updated",
+    "device.config.command.updated",
+    "records.ingested",
+)
+
+/**
+ * True when [eventType] refreshes the overview and analytics pages, mirroring
+ * the webUI filter: those two pages react to device and record mutations only.
+ */
+fun shouldRefreshSummaryOn(eventType: String?): Boolean = eventType in SUMMARY_PAGE_EVENTS
