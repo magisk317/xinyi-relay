@@ -29,6 +29,7 @@ kit_test_tasks=(
 kmp_library_test_tasks=(
   :policy:jvmTest
   :relay:contract:jvmTest
+  :relay:engine:jvmTest
   :relay:net:jvmTest
   :relay:sender:api:jvmTest
 )
@@ -74,7 +75,7 @@ while IFS= read -r path; do
       for task in "${kit_test_tasks[@]}"; do select_task "$task"; done ;;
     desktop/*|modules/desktop/*)
       for task in "${desktop_test_tasks[@]}"; do select_task "$task"; done ;;
-    modules/policy/*|modules/relay/contract/*|modules/relay/net/*|modules/relay/sender/api/*)
+    modules/policy/*|modules/relay/contract/*|modules/relay/engine/*|modules/relay/net/*|modules/relay/sender/api/*)
       select_app_bucket
       for task in "${kmp_library_test_tasks[@]}"; do select_task "$task"; done ;;
     app/*|modules/*|mobile/*|features/*|magisk-xposed-kit/*)

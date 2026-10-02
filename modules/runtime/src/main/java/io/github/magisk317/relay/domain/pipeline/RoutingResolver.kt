@@ -16,7 +16,7 @@ import io.github.magisk317.xposed.logging.MagiskOtel
 
 data class SenderRoutingResolution(
     val senders: List<Sender>,
-    val routingResult: NotifyRoutingResult? = null,
+    val routingResult: NotifyRoutingResult<Sender>? = null,
     val filteredReasonParts: List<String> = emptyList(),
 )
 
@@ -40,7 +40,7 @@ class RoutingResolver(private val db: AppDatabase) {
         } else {
             emptyList()
         }
-        var routingResult: NotifyRoutingResult? = null
+        var routingResult: NotifyRoutingResult<Sender>? = null
         val routedSenders = if (
             event.messageType == MessageType.APP_NOTIFY &&
             event.packageName.isNotBlank()

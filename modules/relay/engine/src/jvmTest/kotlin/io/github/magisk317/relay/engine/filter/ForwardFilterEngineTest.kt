@@ -6,7 +6,6 @@ import io.github.magisk317.relay.engine.model.ForwardFilterRule
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import java.util.Date
 
 class ForwardFilterEngineTest {
 
@@ -241,7 +240,7 @@ class ForwardFilterEngineTest {
         sourceType = "test",
         sender = sender,
         body = body,
-        timestamp = Date().time,
+        timestamp = FIXED_TIMESTAMP,
         packageName = packageName,
         notifyChannelId = notifyChannelId,
         companyOrAppName = companyOrAppName,
@@ -275,7 +274,7 @@ class ForwardFilterEngineTest {
         sourceType = "test",
         sender = title,
         body = body,
-        timestamp = Date().time,
+        timestamp = FIXED_TIMESTAMP,
         packageName = packageName,
         notifyChannelId = notifyChannelId,
         companyOrAppName = appName,
@@ -285,4 +284,8 @@ class ForwardFilterEngineTest {
         simSlot = -1,
         subId = 0,
     )
+
+    private companion object {
+        const val FIXED_TIMESTAMP = 1_700_000_000_000L
+    }
 }

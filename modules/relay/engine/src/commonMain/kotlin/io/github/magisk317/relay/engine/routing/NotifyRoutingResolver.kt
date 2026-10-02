@@ -1,14 +1,14 @@
 package io.github.magisk317.relay.engine.routing
 
-import io.github.magisk317.relay.engine.model.Sender
+import io.github.magisk317.relay.engine.model.SenderIdentity
 
 interface NotifyRouteRuleReader {
     suspend fun getSenderIdsByScopeAndPackage(scope: Int, packageName: String): List<Long>
     suspend fun getDistinctSenderIdsByScopeIn(scope: Int, senderIds: List<Long>): List<Long>
 }
 
-data class NotifyRoutingResult(
-    val senders: List<Sender>,
+data class NotifyRoutingResult<T : SenderIdentity>(
+    val senders: List<T>,
     val appBoundSenderCount: Int,
     val senderAllowConfiguredCount: Int,
     val senderAllowMatchedCount: Int,
@@ -19,12 +19,12 @@ data class NotifyRoutingResult(
 
 object NotifyRoutingResolver {
 
-    suspend fun resolveAppNotifySenders(
-        candidates: List<Sender>,
+    suspend fun <T : SenderIdentity> resolveAppNotifySenders(
+        candidates: List<T>,
         packageName: String,
         rules: NotifyRouteRuleReader,
         onConflict: ((Set<Long>) -> Unit)? = null,
-    ): NotifyRoutingResult {
+    ): NotifyRoutingResult<T> {
         val pkg = packageName.trim()
         if (pkg.isEmpty() || candidates.isEmpty()) {
             return NotifyRoutingResult(

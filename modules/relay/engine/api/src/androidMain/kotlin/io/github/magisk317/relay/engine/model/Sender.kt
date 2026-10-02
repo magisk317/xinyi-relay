@@ -9,7 +9,7 @@ import java.util.Date
 @Parcelize
 @Serializable
 data class Sender(
-    var id: Long = 0,
+    override val id: Long = 0,
     var type: Int = 1,
     var name: String = "",
     var jsonSetting: String = "",
@@ -23,4 +23,4 @@ data class Sender(
     var activeSchedule: SenderActiveSchedule = SenderActiveSchedule(),
     var priority: Int = 0,
     var customTemplate: String = "",
-) : Parcelable
+) : Parcelable, SenderIdentity

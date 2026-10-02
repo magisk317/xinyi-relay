@@ -52,7 +52,7 @@
 
 ### Kotlin Multiplatform 源集约定
 
-`:relay:contract`、`:relay:sender:api`、`:policy`、`:relay:net`、`:relay:engine:api`、`:desktop:core`、`:desktop:data` 已迁到 Kotlin Multiplatform，其源码布局与 Android 单平台模块不同：
+`:relay:contract`、`:relay:sender:api`、`:policy`、`:relay:net`、`:relay:engine:api`、`:relay:engine`、`:desktop:core`、`:desktop:data` 已迁到 Kotlin Multiplatform，其源码布局与 Android 单平台模块不同：
 
 | 源集 | 编译目标 | 放什么 |
 |---|---|---|
@@ -110,7 +110,7 @@ Xposed/runtime 之间的 Android API 边界，当前拥有 `XpSmsDispatchRuntime
 
 ### `relay/engine`
 
-纯领域实现：`ForwardFilterEngine`、`NotifyRoutingResolver`。对外通过 `:relay:engine:api` 暴露。
+纯领域实现：`ForwardFilterEngine`、`NotifyRoutingResolver`。KMP 模块（`jvm()` + `android()`），二者都在 `src/commonMain`；对通道集合只要求 `SenderIdentity { id }`，平台模型 `Sender` 在 `:relay:engine:api` 的 androidMain 里实现该接口。对外通过 `:relay:engine:api` 暴露。`ForwardFilterEngineTest`/`NotifyRoutingResolverTest` 在 `src/jvmTest`，由 CI 的 `:relay:engine:jvmTest` 执行。
 
 ### `relay/net`
 
@@ -351,6 +351,7 @@ KMP 模块里的 contract 源文件，因此 contract 源在 `commonMain`/`andro
 | P6 | 桌面端独立运行（SQLite Store、双向配置同步、本地服务与管理 UI） | ✅ |
 | P7 | Kotlin Multiplatform 化（`relay/contract`、`relay/sender/api`、`policy`、`relay/net`、`relay/engine:api`、`desktop:core`、`desktop/data` 迁到 commonMain/源集布局；sender 可移植逻辑下沉，`Sender`/`Rule` 等 Parcelize 入口留在 androidMain） | ✅ |
 | P8 | 桌面新轨接线（`:desktop` 经 `DesktopLocalRuntime` 组合根接入 `desktop/core`、`desktop/data`，store/sync/导入测试纳入应用构建） | ✅ |
+| P9 | `relay/engine` KMP 化（`ForwardFilterEngine`/`NotifyRoutingResolver` 进 commonMain，路由改为对 `SenderIdentity` 泛型；`ForwardFilterEngineTest`/`NotifyRoutingResolverTest` 从 `runtime` 迁到 `:relay:engine:jvmTest`，纳入 CI KMP 桶） | ✅ |
 
 ## 平台兼容性：Android 17 (API 37)
 
@@ -384,3 +385,4 @@ KMP 模块里的 contract 源文件，因此 contract 源在 `commonMain`/`andro
 10. KMP 模块源码必须放 `src/<源集>/kotlin/`，不放 `src/main`、`src/test`（遗产目录不参与编译）。
 11. 平台专属入口放对应 sourceSet 并复用 commonMain 实现，commonMain 只保留可共享纯逻辑。
 12. 桌面新轨不引入 `:magisk-ui-kit`，直接使用 Compose Multiplatform Material 3 叶子组件。
+13. KMP 模块的测试一律放 `src/jvmTest/kotlin/`，并把对应 `:<模块>:jvmTest` 加进 `scripts/ci/select_android_test_tasks.sh` 的 `kmp_library_test_tasks` 与该模块的路径分支——否则测试不进 CI（`relay/engine` 的两个引擎测试就曾在 `runtime` 的 `src/test` 里长期无人执行）。
