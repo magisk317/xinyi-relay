@@ -64,4 +64,22 @@ interface LocalDeviceDao {
         """,
     )
     suspend fun revokeToken(deviceId: Long, now: String): Int
+
+    // -------------------------------------------- full-table export / import
+    //
+    // Token hashes and bind-code digests never leave the store through the
+    // model layer (the API only counts them), so the snapshot export reads the
+    // rows here and the import clears both tables before re-writing.
+
+    @Query("SELECT * FROM local_device_bind_codes ORDER BY code_hash ASC")
+    suspend fun listAllBindCodes(): List<LocalDeviceBindCodeEntity>
+
+    @Query("DELETE FROM local_device_bind_codes")
+    suspend fun deleteAllBindCodes()
+
+    @Query("SELECT * FROM local_device_tokens ORDER BY device_id ASC")
+    suspend fun listAllTokens(): List<LocalDeviceTokenEntity>
+
+    @Query("DELETE FROM local_device_tokens")
+    suspend fun deleteAllTokens()
 }

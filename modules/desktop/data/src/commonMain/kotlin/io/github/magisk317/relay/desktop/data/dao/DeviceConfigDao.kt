@@ -123,4 +123,30 @@ interface DeviceConfigDao {
         clearPendingCommands(deviceId)
         commands.forEach { insertCommand(it) }
     }
+
+    // -------------------------------------------- full-table export / import
+    //
+    // The snapshot export needs every row of the three config tables (not just
+    // the pending queue, the mirrors of live devices, or the first page of the
+    // audit log), and the import needs to clear each table before re-writing.
+    // Kept next to the per-device queries above so the two access shapes stay
+    // visibly different in call sites.
+
+    @Query("SELECT * FROM device_config_mirrors ORDER BY device_id ASC")
+    suspend fun listAllMirrors(): List<DeviceConfigMirrorEntity>
+
+    @Query("DELETE FROM device_config_mirrors")
+    suspend fun deleteAllMirrors()
+
+    @Query("SELECT * FROM device_config_commands ORDER BY id ASC")
+    suspend fun listAllCommands(): List<DeviceConfigCommandEntity>
+
+    @Query("DELETE FROM device_config_commands")
+    suspend fun deleteAllCommands()
+
+    @Query("SELECT * FROM device_config_audit_logs ORDER BY id ASC")
+    suspend fun listAllAuditLogs(): List<DeviceConfigAuditLogEntity>
+
+    @Query("DELETE FROM device_config_audit_logs")
+    suspend fun deleteAllAuditLogs()
 }

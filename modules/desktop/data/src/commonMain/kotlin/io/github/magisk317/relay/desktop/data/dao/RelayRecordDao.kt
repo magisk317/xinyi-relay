@@ -70,6 +70,10 @@ interface RelayRecordDao {
     suspend fun upsertAll(records: List<RelayRecordEntity>) {
         records.forEach { upsert(it) }
     }
+
+    /** Empties the table; the import path clears before re-writing. */
+    @Query("DELETE FROM relay_records")
+    suspend fun deleteAll()
 }
 
 /**

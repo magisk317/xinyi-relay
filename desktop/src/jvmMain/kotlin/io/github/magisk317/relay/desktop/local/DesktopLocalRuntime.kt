@@ -21,11 +21,19 @@ import io.github.magisk317.relay.desktop.data.DesktopDatabaseFactory
 class DesktopLocalRuntime(
     val store: DesktopLocalStore,
     val sync: SyncEngine,
-    private val database: DesktopDatabase,
+    private val openDatabase: DesktopDatabase,
 ) : AutoCloseable {
 
+    /**
+     * The open mirror, for collaborators that must ride the very same
+     * connection (the database transfer controller). Pages must never open a
+     * database themselves; this is the composition root's only escape hatch,
+     * and it keeps the transfer and the sync engine on one SQLite file.
+     */
+    val database: DesktopDatabase get() = openDatabase
+
     override fun close() {
-        database.close()
+        openDatabase.close()
     }
 
     companion object {
@@ -59,7 +67,7 @@ class DesktopLocalRuntime(
             return DesktopLocalRuntime(
                 store = store,
                 sync = SyncEngine(local = store, remote = remote.asRemoteView()),
-                database = database,
+                openDatabase = database,
             )
         }
     }

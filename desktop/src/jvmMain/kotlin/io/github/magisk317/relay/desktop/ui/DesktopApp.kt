@@ -24,7 +24,9 @@ import io.github.magisk317.relay.desktop.i18n.DesktopMessages
 import io.github.magisk317.relay.desktop.i18n.DesktopLocale
 import io.github.magisk317.relay.desktop.i18n.LocalePreference
 import io.github.magisk317.relay.desktop.i18n.LocaleSetting
+import io.github.magisk317.relay.desktop.local.DatabaseTransferController
 import io.github.magisk317.relay.desktop.local.DesktopLocalSyncController
+import io.github.magisk317.relay.desktop.platform.AwtFileDialog
 import io.github.magisk317.relay.desktop.platform.AwtLinkOpener
 import io.github.magisk317.relay.desktop.platform.AwtNotifier
 import io.github.magisk317.relay.desktop.platform.AwtTray
@@ -121,6 +123,17 @@ fun DesktopApp(window: java.awt.Window, windowState: WindowState, onQuit: () -> 
     }
     DisposableEffect(Unit) { onDispose { localSync.stop() } }
 
+    // Database transfer (parity §5): export/import of the local mirror. It
+    // rides the mirror's connection through [DesktopLocalSyncController], so
+    // the Remote run mode (mirror closed) yields the unavailable state on the
+    // Advanced page instead of a second database.
+    val transfer = remember {
+        DatabaseTransferController(
+            databaseProvider = { localSync.database },
+            fileDialog = AwtFileDialog(),
+        )
+    }
+
     var localeSetting by remember { mutableStateOf(LocalePreference.load()) }
     LaunchedEffect(localeSetting) { LocalePreference.save(localeSetting) }
 
@@ -179,6 +192,7 @@ fun DesktopApp(window: java.awt.Window, windowState: WindowState, onQuit: () -> 
                     feed = feed,
                     linkOpener = linkOpener,
                     localSync = localSync.status,
+                    transfer = transfer,
                     locale = locale,
                     route = route,
                     onNavigate = { route = it },

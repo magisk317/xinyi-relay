@@ -3,7 +3,9 @@ package io.github.magisk317.relay.desktop.data.entity
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 
+@Serializable
 @Entity(
     tableName = "device_config_mirrors",
     indices = [],
@@ -20,6 +22,7 @@ data class DeviceConfigMirrorEntity(
     val updatedAt: String? = null,
 )
 
+@Serializable
 @Entity(
     tableName = "device_config_commands",
     // Pending-target uniqueness is enforced by the PARTIAL index
@@ -59,6 +62,7 @@ data class DeviceConfigCommandEntity(
     val appliedAt: String? = null,
 )
 
+@Serializable
 @Entity(
     tableName = "device_config_audit_logs",
     indices = [],

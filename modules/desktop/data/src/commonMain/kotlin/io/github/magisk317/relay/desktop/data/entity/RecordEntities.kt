@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 
 /**
  * The partial unique index below is the idempotency anchor for record sync.
@@ -20,6 +21,7 @@ import androidx.room.PrimaryKey
  * partial index from its open callback. Rows with a NULL `event_id` are
  * therefore allowed to repeat, exactly as in the legacy store.
  */
+@Serializable
 @Entity(
     tableName = "relay_records",
     indices = [],
@@ -60,6 +62,7 @@ data class RelayRecordEntity(
  * Bind codes are one-shot: the code itself is never persisted, only its
  * SHA-256 digest. `usedAt` non-null means the code has been consumed.
  */
+@Serializable
 @Entity(
     tableName = "local_device_bind_codes",
     indices = [],
@@ -74,6 +77,7 @@ data class LocalDeviceBindCodeEntity(
     val usedAt: String? = null,
 )
 
+@Serializable
 @Entity(
     tableName = "local_device_tokens",
     indices = [],

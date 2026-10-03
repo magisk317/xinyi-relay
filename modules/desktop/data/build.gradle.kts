@@ -14,6 +14,9 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             api(libs.androidx.room.runtime)
             api(libs.androidx.sqlite.bundled)
+            // The snapshot export/import format (DatabaseTransfer) and the
+            // @Serializable entities it round-trips both live in this module.
+            api(libs.kotlinx.serialization.json)
         }
         jvmMain.dependencies {
             implementation(libs.kotlinx.coroutines.core)

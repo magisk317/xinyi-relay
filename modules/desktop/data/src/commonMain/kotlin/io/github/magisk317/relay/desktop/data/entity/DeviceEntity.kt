@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 
 /**
  * Local mirror of the devices table owned by the desktop client.
@@ -12,6 +13,7 @@ import androidx.room.PrimaryKey
  * Rust schema (frontend/desktop/src-tauri/src/sqlite_store.rs) so a legacy
  * database can be imported without rewriting rows.
  */
+@Serializable
 @Entity(
     tableName = "devices",
     indices = [],

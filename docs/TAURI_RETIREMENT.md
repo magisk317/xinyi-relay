@@ -9,7 +9,7 @@
 | 位置 | `frontend/desktop/` | `desktop/`、`modules/desktop/core`、`modules/desktop/data` |
 | 技术栈 | Tauri 2（Rust + React + Vite + SQLite） | Kotlin Multiplatform + Compose Multiplatform（jvm） |
 | 规模 | 65 个受管文件：Rust 6,734 行（`src-tauri/src/`）+ TS/TSX 6,646 行（`src/`，9 个页面） | 控制台 9 个页面已对齐 `frontend/webui`（见 `docs/DESKTOP_PARITY.md`） |
-| 独有本地能力 | 托盘、本地 axum 服务器、SQLite、同步、通知、单实例、系统钥匙串、导出/导入 | 托盘、SQLite + 同步、通知、单实例已接入 `:desktop`（parity §5）；本地 axum 服务器、导出/导入、系统钥匙串仍缺 |
+| 独有本地能力 | 托盘、本地 axum 服务器、SQLite、同步、通知、单实例、系统钥匙串、导出/导入 | 托盘、SQLite + 同步、通知、单实例已接入 `:desktop`（parity §5）；本地 axum 服务器、系统钥匙串仍缺，导出/导入已接入 `:desktop`（Advanced 页卡片 + 文件对话框 + 控制器） |
 | 发布方式 | 六平台矩阵，随 tag `v*.*.*` 出包 | GitLab 线只接 Linux x64/arm64 两个 job；Windows/macOS 未接，GitHub 线未接 |
 
 两轨**共用** `frontend/shared/`（契约与 console 客户端工具），但 `frontend/shared/` 同时被 `frontend/webui` 引用，所以退役 Tauri 端**不删** `frontend/shared/`。
@@ -20,7 +20,7 @@
 
 | # | 判据 | 验证方式 | 现状 |
 |---|---|---|---|
-| 1 | parity 清单 §5 的能力缺口全部补齐：托盘、RunMode + 本地服务器、本地存储接入 `:desktop` UI、通知、数据库导出/导入、诊断导出、打开外链、系统钥匙串、单实例、审计日志页（旧库导入入口已按 §2.2 从清单中划掉） | 逐项在 `:desktop` 里找到落点并有测试或人工走查记录 | 未满足：托盘、本地存储接入、系统通知、打开外链、单实例、审计日志页已补齐（旧库导入入口按 §2.2 不做）；RunMode（切换 UI 已落地，数据读路由待做）+ 本地服务器、数据库导出/导入、诊断导出、系统钥匙串仍缺 |
+| 1 | parity 清单 §5 的能力缺口全部补齐：托盘、RunMode + 本地服务器、本地存储接入 `:desktop` UI、通知、数据库导出/导入、诊断导出、打开外链、系统钥匙串、单实例、审计日志页（旧库导入入口已按 §2.2 从清单中划掉） | 逐项在 `:desktop` 里找到落点并有测试或人工走查记录 | 未满足：托盘、本地存储接入、系统通知、打开外链、单实例、审计日志页、数据库导出/导入已补齐（旧库导入入口按 §2.2 不做）；RunMode（切换 UI 已落地，数据读路由待做）+ 本地服务器、诊断导出、系统钥匙串仍缺 |
 | 2 | KMP 轨有可用的六平台打包流水线 | 连续三个 tag 由 KMP workflow 产出全部平台产物 | 部分满足。GitLab 线只接了 Linux x64/arm64 两个 job，其余四平台既没有 job 也没有 runner 标签。GitHub 线未接。
 
 「连续三个 tag」更无从谈起：流水线刚建，还没有任何 tag 走过它。见 §2.1 |

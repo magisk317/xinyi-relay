@@ -25,10 +25,10 @@
 | P0-1 | 双轨合同门禁把 `desktop/` 的裸 M3 用法记为违约，`dual-track.yml` 每次 push 都红 | 已修复（`db93a237`，按路径前缀豁免 `desktop/`、`modules/desktop/`） |
 | P0-2 | CI 路径过滤把 `modules/desktop/**` 归进 app/mobile 桶，`:desktop:core:jvmTest`、`:desktop:data:jvmTest` 从不执行 | 已修复（`5da2b9a1`，与 `desktop/*` 共用任务集） |
 | P0-3 | KMP 轨没有任何打包/发布流水线 | 部分完成（GitLab 线）：`desktop-kmp:linux:x64`、`desktop-kmp:linux:arm64` 两个 job 已接进 `.gitlab-ci.yml`，产物汇入两轨共用的 `desktop:release:gitlab`。Windows/macOS 未接 |
-| P0-4 | `:desktop:core`（Store + 同步引擎）与 `:desktop:data`（Room schema + 旧库导入）没有接进 `:desktop` UI，新轨仍是纯远端客户端 | 部分完成：本地存储已接入 UI（登录后 initialPull + 5 分钟周期同步 + 页脚状态）；通知、打开外链、单实例、审计流水页面、托盘菜单已补齐；RunMode 模型/持久化/切换 UI 已落地（数据读路由待做）、本地服务器、数据库导出/导入、诊断导出、钥匙串仍缺，见 `docs/DESKTOP_PARITY.md` §5 |
+| P0-4 | `:desktop:core`（Store + 同步引擎）与 `:desktop:data`（Room schema + 旧库导入）没有接进 `:desktop` UI，新轨仍是纯远端客户端 | 部分完成：本地存储已接入 UI（登录后 initialPull + 5 分钟周期同步 + 页脚状态）；通知、打开外链、单实例、审计流水页面、托盘菜单已补齐；RunMode 模型/持久化/切换 UI 已落地（数据读路由待做）、本地服务器、诊断导出、钥匙串仍缺；数据库导出/导入已补齐（快照核心 + 文件对话框 + Advanced 页入口 + 16 个单元用例），见 `docs/DESKTOP_PARITY.md` §5 |
 | P0-5 | KMP 轨没有版本/包名来源，打出来的包与 `versionName` 无关 | 已做：`desktop/build.gradle.kts` 的 `packageVersion` 直接读 `libs.versions.versionName`，发布时用 `-PdesktopVersion` 覆盖以剥掉预发后缀 |
 
-P0-3 与 P0-5 是"能出包"的最小集合；P0-4 里本地存储、通知、单实例、审计页面、托盘菜单已补齐，仍缺本地服务器、数据库导出/导入、诊断导出与钥匙串（RunMode 模型/持久化/切换 UI 已落地、数据读路由待做），见 §5 的门槛表。
+P0-3 与 P0-5 是"能出包"的最小集合；P0-4 里本地存储、通知、单实例、审计页面、托盘菜单已补齐，仍缺本地服务器、诊断导出与钥匙串（RunMode 模型/持久化/切换 UI 已落地、数据读路由待做；数据库导出/导入已补齐，见 §5 的门槛表）。
 
 ## 3. KMP 轨打包流水线（已落地，GitLab 线，仅 Linux）
 
@@ -59,7 +59,7 @@ P0-3 与 P0-5 是"能出包"的最小集合；P0-4 里本地存储、通知、�
 - 托盘图标与菜单（已补齐，见 parity §5）；
 - RunMode 的 Local/Hybrid 数据读路由、局域网本地服务器；
 - `:desktop:core` / `:desktop:data` 接入 `:desktop` UI（旧库导入不做 UI 入口，理由见 `docs/TAURI_RETIREMENT.md` 判据 3）；
-- 系统通知、数据库导出/导入、诊断导出、打开外部链接；
+- 系统通知（已补齐，见 parity §5）、诊断导出、打开外部链接；
 - 系统钥匙串保存 token、单实例锁；
 - 设备配置审计日志页。
 

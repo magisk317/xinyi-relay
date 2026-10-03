@@ -73,4 +73,8 @@ interface DeviceDao {
 
     @Query("SELECT COUNT(*) FROM devices WHERE revoked_at IS NULL")
     suspend fun countActive(): Int
+
+    /** Empties the table; the import path clears before re-writing. */
+    @Query("DELETE FROM devices")
+    suspend fun deleteAll()
 }

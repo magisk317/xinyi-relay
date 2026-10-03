@@ -27,6 +27,8 @@ import io.github.magisk317.relay.contract.remote.DeviceItem
 import io.github.magisk317.relay.contract.remote.PatchDeviceRequest
 import io.github.magisk317.relay.desktop.i18n.DesktopLocale
 import io.github.magisk317.relay.desktop.i18n.DesktopMessages
+import io.github.magisk317.relay.desktop.local.DatabaseTransferController
+import io.github.magisk317.relay.desktop.local.TransferOutcome
 import io.github.magisk317.relay.desktop.remote.DesktopRealtimeFeed
 import io.github.magisk317.relay.desktop.session.DesktopConsoleState
 import io.github.magisk317.relay.desktop.session.DesktopSessionState
@@ -45,7 +47,11 @@ import io.github.magisk317.relay.desktop.ui.RelayTone
 import io.github.magisk317.relay.desktop.ui.SurfaceCard
 import io.github.magisk317.relay.desktop.ui.buildBindQrValue
 import io.github.magisk317.relay.desktop.ui.formatTimestamp
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+/** How long the export/import success hint stays before it self-clears. */
+private const val TRANSFER_HINT_MS = 6_000L
 
 /** Realtime event types that re-fetch the device list, mirroring the webUI list. */
 private val ADVANCED_DEVICE_EVENTS = setOf(
@@ -66,6 +72,7 @@ fun AdvancedPage(
     session: DesktopSessionState,
     console: DesktopConsoleState,
     feed: DesktopRealtimeFeed,
+    transfer: DatabaseTransferController,
     locale: DesktopLocale,
     onOpenScheduledTasks: () -> Unit = {},
 ) {
@@ -75,6 +82,58 @@ fun AdvancedPage(
     var loading by remember { mutableStateOf(true) }
     var renaming by remember { mutableStateOf<DeviceItem?>(null) }
     var revoking by remember { mutableStateOf<DeviceItem?>(null) }
+    var confirmTransfer by remember { mutableStateOf(false) }
+    var transferBusy by remember { mutableStateOf(false) }
+    var transferHint by remember { mutableStateOf<String?>(null) }
+
+    // Success hints self-clear like the header link hint; failures go to the
+    // error banner so they stay until the next action.
+    LaunchedEffect(transferHint) {
+        if (transferHint != null) {
+            delay(TRANSFER_HINT_MS)
+            transferHint = null
+        }
+    }
+
+    fun exportTransfer() {
+        transferBusy = true
+        scope.launch {
+            when (val outcome = transfer.export()) {
+                is TransferOutcome.Exported -> transferHint = DesktopMessages.t(
+                    locale,
+                    "advanced.databaseExportDone",
+                    mapOf("path" to outcome.file.absolutePath),
+                )
+                is TransferOutcome.Imported -> Unit
+                is TransferOutcome.Cancelled -> Unit
+                is TransferOutcome.Failed -> error =
+                    DesktopMessages.t(locale, "advanced.databaseFailed") + outcome.message
+            }
+            transferBusy = false
+        }
+    }
+
+    fun importTransfer() {
+        confirmTransfer = false
+        transferBusy = true
+        scope.launch {
+            when (val outcome = transfer.import()) {
+                is TransferOutcome.Imported -> transferHint = DesktopMessages.t(
+                    locale,
+                    "advanced.databaseImportDone",
+                    mapOf(
+                        "devices" to outcome.snapshot.devices.size,
+                        "records" to outcome.snapshot.records.size,
+                    ),
+                )
+                is TransferOutcome.Exported -> Unit
+                is TransferOutcome.Cancelled -> Unit
+                is TransferOutcome.Failed -> error =
+                    DesktopMessages.t(locale, "advanced.databaseFailed") + outcome.message
+            }
+            transferBusy = false
+        }
+    }
 
     suspend fun load() {
         try {
@@ -163,6 +222,46 @@ fun AdvancedPage(
                 onClick = onOpenScheduledTasks,
                 tone = ActionTone.PRIMARY,
             )
+        }
+
+        // Local database (parity §5): the webUI's export/import buttons. The
+        // card is inert with the mirror closed (Remote run mode), because the
+        // snapshot rides the mirror's own connection.
+        SurfaceCard(
+            title = DesktopMessages.t(locale, "advanced.databaseTitle"),
+            subtitle = DesktopMessages.t(locale, "advanced.databaseSubtitle"),
+        ) {
+            if (!transfer.available) {
+                Text(
+                    text = DesktopMessages.t(locale, "advanced.databaseUnavailable"),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = ConsoleMuted,
+                )
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        ActionButton(
+                            text = DesktopMessages.t(locale, "advanced.databaseExport"),
+                            onClick = { exportTransfer() },
+                            tone = ActionTone.PRIMARY,
+                            enabled = !transferBusy,
+                        )
+                        ActionButton(
+                            text = DesktopMessages.t(locale, "advanced.databaseImport"),
+                            onClick = { confirmTransfer = true },
+                            tone = ActionTone.WARNING,
+                            enabled = !transferBusy,
+                        )
+                    }
+                    transferHint?.let { hint ->
+                        Text(
+                            text = hint,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = ConsoleMuted,
+                        )
+                    }
+                }
+            }
         }
 
         SurfaceCard(
@@ -268,6 +367,16 @@ fun AdvancedPage(
                 renaming = null
                 patch(renameTarget, PatchDeviceRequest(displayName = nextName))
             },
+        )
+    }
+
+    if (confirmTransfer) {
+        ConfirmDialog(
+            message = DesktopMessages.t(locale, "advanced.databaseImportConfirm"),
+            confirmLabel = DesktopMessages.t(locale, "advanced.databaseImport"),
+            dismissLabel = DesktopMessages.t(locale, "common.cancel"),
+            onConfirm = { importTransfer() },
+            onDismiss = { confirmTransfer = false },
         )
     }
 

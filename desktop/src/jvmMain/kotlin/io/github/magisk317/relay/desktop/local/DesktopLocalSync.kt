@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import io.github.magisk317.relay.desktop.core.store.RemoteStore
+import io.github.magisk317.relay.desktop.data.DesktopDatabase
 
 /**
  * Snapshot of the local mirror for the shell footer: the row counts the last
@@ -46,6 +47,13 @@ class DesktopLocalSyncController(
 
     /** True while the mirror is open. */
     val active: Boolean get() = runtime != null
+
+    /**
+     * The open mirror, or null while it is closed (Remote run mode, before
+     * the first successful open). The database transfer controller reads
+     * this to share the sync engine's connection.
+     */
+    val database: DesktopDatabase? get() = runtime?.database
 
     /**
      * Closes any previous runtime (profile switch), opens a fresh one against
