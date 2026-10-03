@@ -86,11 +86,12 @@ fun AppShellScreen(
     linkOpener: DesktopLinkOpener,
     localSync: LocalSyncStatus,
     locale: DesktopLocale,
+    route: DesktopRoute,
+    onNavigate: (DesktopRoute) -> Unit,
     onLocaleChange: (LocaleSetting) -> Unit,
     selectedLocale: LocaleSetting,
     modifier: Modifier = Modifier,
 ) {
-    var route by remember { mutableStateOf(DesktopRoute.OVERVIEW) }
 
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -105,7 +106,7 @@ fun AppShellScreen(
                 Sidebar(
                     route = route,
                     locale = locale,
-                    onSelect = { route = it },
+                    onSelect = onNavigate,
                 )
                 Column(
                     modifier = Modifier.fillMaxSize().padding(start = 16.dp),
@@ -118,7 +119,7 @@ fun AppShellScreen(
                             console = console,
                             feed = feed,
                             locale = locale,
-                            onNavigate = { route = it },
+                            onNavigate = onNavigate,
                         )
                     }
                     Footer(locale = locale, localSync = localSync)

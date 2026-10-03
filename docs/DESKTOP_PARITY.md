@@ -1,6 +1,6 @@
 # 桌面端 Parity 清单（React webUI → KMP Compose Desktop）
 
-最后更新：2026-10-02
+最后更新：2026-10-03
 
 ## 1. 为什么有这份清单
 
@@ -86,13 +86,13 @@ webUI 共 9 个页面，新轨 9 个路由全部有对应实现（`DesktopRoute`
 
 | 能力 | Tauri 落点 | KMP 新轨现状 |
 |---|---|---|
-| 托盘图标与菜单（显示主窗口、跳转页面、触发动作） | `src-tauri/src/tray.rs` | 无 |
+| 托盘图标与菜单（显示主窗口、跳转页面、触发动作） | `src-tauri/src/tray.rs` | 已补齐：`desktop.platform` 的 `DesktopTray`/`AwtTray`（`java.awt.SystemTray`，无托盘时 `install` 返回 false，其余操作全部惰性无抛），`TrayMenu` 按 `tray.rs` 原顺序六行（quit 前分隔符）；菜单跳转与左键唤醒经 `WindowState.isMinimized` 还原并前置窗口，「打开设备」落在 Advanced（绑定码 + 设备列表所在页），「重新连接监控」走 feed stop/start；与 `AwtNotifier` 共享同一托盘图标（全进程只有一个托盘条目），4 个单元用例 |
 | RunMode：Local / Remote / Hybrid | `src-tauri/src/main.rs`（`enum RunMode`，默认 Remote） | 无：`:desktop` 只连远端 |
 | 局域网本地服务器（agent 心跳/上报入口） | `src-tauri/src/local_server.rs`（axum） | 无 |
 | 本地 SQLite 存储 | `src-tauri/src/sqlite_store.rs`、`src-tauri/src/store.rs` | `:desktop:data` 已有等价 Room schema（设备、config mirror/命令/审计、记录、本地设备绑定），`:desktop:core` 已有 Store + 同步引擎，**已接入 `:desktop` UI**：`DesktopApp` 组合根创建 `DesktopLocalRuntime`（`OkHttpRemoteStore` 对活 profile），登录后 initialPull + 5 分钟周期同步，页脚展示设备/记录数与失败态 |
 | 旧库导入（Tauri 期本地数据迁移） | — | 按 `docs/TAURI_RETIREMENT.md` §2.2 改判为不做：桌面轨零发布，没有用户持有旧库。`LegacyDatabaseImporter.kt` 已实现并有测试，保留作为 schema 兼容的证据，不接 UI、不自动触发 |
 | 离线/本地记录同步 | `src-tauri/src/sync.rs` | `:desktop:core/sync/SyncEngine.kt` 已实现并有测试，单飞同步用 `Mutex.tryLock` |
-| 系统通知 | `tauri-plugin-notification`（桌面横幅 + 测试通知） | 已补齐：`desktop.platform` 的 `DesktopNotifier`/`AwtNotifier`（`java.awt.SystemTray`，无托盘时 `notify` 返回 false），`DesktopApp` 在 realtime 事件上触发（`device.heartbeat` 静默），7 个单元用例 |
+| 系统通知 | `tauri-plugin-notification`（桌面横幅 + 测试通知） | 已补齐：`desktop.platform` 的 `DesktopNotifier`/`AwtNotifier`（`java.awt.SystemTray`，无托盘时 `notify` 返回 false），`DesktopApp` 在 realtime 事件上触发（`device.heartbeat` 静默），11 个单元用例 |
 | 数据库导出 / 导入 | `desktop_export_database` / `desktop_import_database` | 无 |
 | 诊断信息导出 | `desktop_export_diagnostics` | 无 |
 | 打开外部链接 | `desktop_open_external_url` | 已补齐：`DesktopLinkOpener`/`AwtLinkOpener`（仅放行 http/https），顶栏「打开控制台」按钮消费，失败闪现 `platform.openLinkFailed` 提示 |
@@ -105,11 +105,11 @@ webUI 共 9 个页面，新轨 9 个路由全部有对应实现（`DesktopRoute`
 
 | 模块 | 测试类 | 用例数 |
 |---|---|---|
-| `:desktop` | 14（auth/config/i18n/local/platform/remote/session/ui + QrCode + RecordMetadata + RealtimeEventFilter） | 81 |
+| `:desktop` | 14（auth/config/i18n/local/platform/remote/session/ui + QrCode + RecordMetadata + RealtimeEventFilter） | 85 |
 | `:desktop:core` | 3（SyncEngine / RecordSync / DeviceConfigQueue） | 15 |
 | `:desktop:data` | 2（DesktopSchema / LegacyDatabaseImporter） | 4 |
 
-合计 19 个测试类 / 100 个用例，2026-10-03 以 `--no-build-cache --rerun-tasks --no-configuration-cache` 在 lzc 上全量通过。
+合计 19 个测试类 / 104 个用例，2026-10-03 以 `--no-build-cache --rerun-tasks --no-configuration-cache` 在 lzc 上全量通过。
 
 本地验证命令（lzc，与 CI 一致）：
 

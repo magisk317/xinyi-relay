@@ -3,6 +3,7 @@ package io.github.magisk317.relay.desktop
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import androidx.compose.ui.window.rememberWindowState
 import io.github.magisk317.relay.desktop.i18n.DesktopMessages
 import io.github.magisk317.relay.desktop.i18n.LocalePreference
 import io.github.magisk317.relay.desktop.platform.FileLockInstanceGuard
@@ -28,13 +29,15 @@ fun main() {
     Runtime.getRuntime().addShutdownHook(Thread { instanceGuard.close() })
 
     application {
+        val windowState = rememberWindowState()
         Window(
             onCloseRequest = ::exitApplication,
+            state = windowState,
             title = "Xinyi Relay Desktop",
         ) {
             window.minimumSize = java.awt.Dimension(960, 640)
             XinyiDesktopTheme {
-                DesktopApp()
+                DesktopApp(window = window, windowState = windowState, onQuit = ::exitApplication)
             }
         }
     }

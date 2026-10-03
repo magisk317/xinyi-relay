@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.WindowState
 import io.github.magisk317.relay.desktop.core.network.OkHttpRemoteStore
 import io.github.magisk317.relay.desktop.i18n.DesktopMessages
 import io.github.magisk317.relay.desktop.i18n.DesktopLocale
@@ -26,6 +27,9 @@ import io.github.magisk317.relay.desktop.i18n.LocaleSetting
 import io.github.magisk317.relay.desktop.local.DesktopLocalSyncController
 import io.github.magisk317.relay.desktop.platform.AwtLinkOpener
 import io.github.magisk317.relay.desktop.platform.AwtNotifier
+import io.github.magisk317.relay.desktop.platform.AwtTray
+import io.github.magisk317.relay.desktop.platform.TrayAction
+import io.github.magisk317.relay.desktop.platform.TrayMenu
 import io.github.magisk317.relay.desktop.remote.DesktopRealtimeFeed
 import io.github.magisk317.relay.desktop.session.DesktopConsoleState
 import io.github.magisk317.relay.desktop.session.DesktopSessionState
@@ -46,7 +50,7 @@ private val QUIET_EVENT_TYPES = setOf("device.heartbeat")
  * between splash, login and the app shell.
  */
 @Composable
-fun DesktopApp() {
+fun DesktopApp(window: java.awt.Window, windowState: WindowState, onQuit: () -> Unit) {
     val session = remember { DesktopSessionState() }
     LaunchedEffect(Unit) { session.bootstrap() }
     val console = remember(session) { DesktopConsoleState(session) }
@@ -66,12 +70,23 @@ fun DesktopApp() {
     }
     DisposableEffect(Unit) { onDispose { feed.stop() } }
 
-    // Platform seams (parity §5): tray delivery for events the user should
-    // notice while the window is in the background, and the OS browser
+    // Shell navigation lives here, hoisted out of the shell, so the tray menu
+    // dispatches page jumps through the same state the sidebar drives.
+    var route by remember { mutableStateOf(DesktopRoute.OVERVIEW) }
+    var trayQuit by remember { mutableStateOf(false) }
+
+    // Platform seams (parity §5): the tray icon (menu, left-click wake, and
+    // the one shared entry balloons are displayed on), plus the OS browser
     // hand-off for console links the UI renders.
-    val notifier = remember { AwtNotifier() }
+    val tray = remember { AwtTray() }
+    val notifier = remember { AwtNotifier(sharedIcon = { tray.trayIcon }) }
     val linkOpener = remember { AwtLinkOpener() }
-    DisposableEffect(Unit) { onDispose { notifier.close() } }
+    DisposableEffect(Unit) {
+        onDispose {
+            notifier.close()
+            tray.close()
+        }
+    }
     LaunchedEffect(feed.lastEvent) {
         val event = feed.lastEvent ?: return@LaunchedEffect
         if (event.type in QUIET_EVENT_TYPES) return@LaunchedEffect
@@ -111,7 +126,47 @@ fun DesktopApp() {
         mutableStateOf(LocalePreference.resolve(localeSetting, session.serverLanguageTag))
     }
 
+    // Tray menu (parity §5): the Tauri tray's rows in its order, installed
+    // once and re-labelled on a locale switch. A machine with no system tray
+    // (no notification area daemon, headless) simply gets no icon - the
+    // window stays the only surface, and [DesktopTray.installed] says so.
+    LaunchedEffect(locale) {
+        val items = TrayMenu.items { action ->
+            DesktopMessages.t(locale, "platform.tray.${action.messageKey}")
+        }
+        if (tray.installed) {
+            tray.updateItems(items)
+        } else {
+            tray.install(
+                items = items,
+                onSelect = { action ->
+                    when (action) {
+                        TrayAction.SHOW -> Unit
+                        TrayAction.OVERVIEW -> route = DesktopRoute.OVERVIEW
+                        // The KMP shell folds the webUI's device page into
+                        // Advanced (pairing code + device list live there).
+                        TrayAction.DEVICES -> route = DesktopRoute.ADVANCED
+                        TrayAction.RECORDS -> route = DesktopRoute.RECORDS
+                        TrayAction.RESTART_MONITOR -> {
+                            feed.stop()
+                            feed.start()
+                        }
+                        TrayAction.QUIT -> trayQuit = true
+                    }
+                    // Page jumps and reconnects are only useful with the
+                    // window in front; quit leaves the machine alone.
+                    if (action != TrayAction.QUIT) wake(window, windowState)
+                },
+                onWake = { wake(window, windowState) },
+            )
+        }
+    }
+
     XinyiDesktopTheme {
+        // The tray's quit row lands here: [onQuit] stops the application
+        // scope during composition, which runs the disposals above (tray icon
+        // removal, feed stop) on the way out.
+        if (trayQuit) onQuit()
         Surface(modifier = Modifier.fillMaxSize()) {
             when {
                 session.loading -> SplashScreen(locale = locale)
@@ -123,6 +178,8 @@ fun DesktopApp() {
                     linkOpener = linkOpener,
                     localSync = localSync.status,
                     locale = locale,
+                    route = route,
+                    onNavigate = { route = it },
                     selectedLocale = localeSetting,
                     onLocaleChange = { localeSetting = it },
                 )
@@ -155,3 +212,15 @@ private fun SplashScreen(locale: DesktopLocale) {
  * just ran.
  */
 private const val LOCAL_SYNC_INTERVAL_MS = 5 * 60 * 1000L
+
+/**
+ * Brings the shell to the front: unhide, un-minimise, focus. The tray's
+ * left-click wake and every menu row except quit land here. The un-minimise
+ * goes through [WindowState.isMinimized] so Compose's own window update path
+ * applies it, rather than poking the underlying frame behind its back.
+ */
+private fun wake(window: java.awt.Window, windowState: WindowState) {
+    window.isVisible = true
+    windowState.isMinimized = false
+    window.toFront()
+}

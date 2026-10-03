@@ -15,6 +15,12 @@ import java.awt.image.BufferedImage
  * `TrayIcon`'s non-null image contract and is unremarkable in any real
  * notification area. When a real tray icon ships, replace [placeholderImage].
  *
+ * [sharedIcon] is how the process keeps exactly one tray entry: when an
+ * [AwtTray] is installed, balloons are displayed on its icon instead of
+ * registering a second one. Without it this class still registers (and owns)
+ * its own icon, which is what the headless-less standalone path and the tests
+ * exercise.
+ *
  * The icon is added once per instance and removed on [close]; leaking tray
  * registrations keeps dead icons alive until the JVM exits, which shows up as
  * a ghost entry after the app closes.
@@ -24,15 +30,16 @@ import java.awt.image.BufferedImage
  * accepted the message.
  */
 class AwtNotifier(
-    private val placeholderImage: Image = defaultPlaceholder(),
+    private val placeholderImage: Image = PlaceholderImages.tray(),
     private val tray: SystemTray? = if (SystemTray.isSupported()) SystemTray.getSystemTray() else null,
+    private val sharedIcon: () -> TrayIcon? = { null },
 ) : DesktopNotifier, AutoCloseable {
 
     private var icon: TrayIcon? = null
 
     override fun notify(title: String, body: String, level: DesktopNotifier.Level): Boolean {
         val tray = tray ?: return false
-        val trayIcon = icon ?: TrayIcon(placeholderImage, "Xinyi Relay").also { created ->
+        val trayIcon = sharedIcon() ?: icon ?: TrayIcon(placeholderImage, TOOLTIP).also { created ->
             created.isImageAutoSize = true
             runCatching { tray.add(created) }
             icon = created
@@ -55,12 +62,7 @@ class AwtNotifier(
         DesktopNotifier.Level.WARNING -> TrayIcon.MessageType.WARNING
     }
 
-    companion object {
-        internal fun defaultPlaceholder(): Image = BufferedImage(16, 16, BufferedImage.TYPE_INT_RGB).also { image ->
-            val g = image.createGraphics()
-            g.color = java.awt.Color(0x1F, 0x6F, 0xEB)
-            g.fillRect(0, 0, 16, 16)
-            g.dispose()
-        }
+    private companion object {
+        const val TOOLTIP = "Xinyi Relay"
     }
 }

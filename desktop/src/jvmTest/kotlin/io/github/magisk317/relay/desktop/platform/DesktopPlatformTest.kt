@@ -70,4 +70,41 @@ class DesktopPlatformTest {
         val lock = FileLockInstanceGuard.defaultLockFile("/home/tester")
         assertEquals("/home/tester/.xinyi-relay/instance.lock", lock.path)
     }
+
+    @Test
+    fun `tray without a system tray does not install`() {
+        val tray = AwtTray(tray = null)
+        val items = TrayMenu.items { action -> action.id }
+        assertFalse(tray.install(items, onSelect = {}, onWake = {}))
+        assertFalse(tray.installed)
+        // The rest of the API must stay inert rather than throw when nothing
+        // is installed - the app runs tray-less on most headless Linux setups.
+        tray.updateItems(items)
+        tray.setTooltip("Xinyi Relay")
+        tray.close()
+    }
+
+    @Test
+    fun `tray menu rows keep the Tauri order`() {
+        val items = TrayMenu.items { action -> action.id }
+        assertEquals(TrayAction.entries.map { it.id }, items.map { it.action.id })
+    }
+
+    @Test
+    fun `only the quit row carries a separator`() {
+        val items = TrayMenu.items { action -> action.id }
+        items.forEach { item ->
+            if (item.action == TrayAction.QUIT) {
+                assertTrue(item.separatorBefore)
+            } else {
+                assertFalse(item.separatorBefore, "${item.action.id} must not carry a separator")
+            }
+        }
+    }
+
+    @Test
+    fun `tray menu labels come from the resolver, not the ids`() {
+        val items = TrayMenu.items { action -> "label-${action.id}" }
+        assertEquals(TrayAction.entries.map { "label-${it.id}" }, items.map { it.label })
+    }
 }
