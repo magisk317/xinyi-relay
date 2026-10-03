@@ -20,6 +20,7 @@ import io.github.magisk317.relay.desktop.i18n.DesktopLocale
 import io.github.magisk317.relay.desktop.i18n.DesktopMessages
 import io.github.magisk317.relay.desktop.remote.DesktopRealtimeFeed
 import io.github.magisk317.relay.desktop.session.DesktopConsoleState
+import io.github.magisk317.relay.desktop.session.DesktopRunMode
 import io.github.magisk317.relay.desktop.session.DesktopSessionState
 import io.github.magisk317.relay.desktop.ui.ActionButton
 import io.github.magisk317.relay.desktop.ui.ActionTone
@@ -29,14 +30,18 @@ import io.github.magisk317.relay.desktop.ui.LiveBadge
 import io.github.magisk317.relay.desktop.ui.LoadingCard
 import io.github.magisk317.relay.desktop.ui.NoticeCard
 import io.github.magisk317.relay.desktop.ui.PageShell
+import io.github.magisk317.relay.desktop.ui.RelayOption
+import io.github.magisk317.relay.desktop.ui.RelaySelect
 import io.github.magisk317.relay.desktop.ui.SurfaceCard
 import io.github.magisk317.relay.desktop.ui.formatTimestamp
 import kotlinx.coroutines.launch
 
 /**
  * Desktop port of the webUI settings page: the config state of the selected
- * device plus the admin password form. The webUI keeps structured editing on
- * the apps and senders pages, so this page only reports status.
+ * device, the desktop run mode selector and the admin password form. The
+ * webUI keeps structured editing on the apps and senders pages, so this page
+ * only reports status; the run mode is a KMP-track addition (the webUI has no
+ * such setting) that gates the local mirror assembly.
  */
 @Composable
 fun SettingsPage(
@@ -137,6 +142,48 @@ fun SettingsPage(
                 )
                 Text(
                     text = DesktopMessages.t(locale, "settings.remoteDescription"),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = ConsoleMuted,
+                )
+            }
+        }
+        // Run mode (parity section 5): the Tauri `RunMode` surface, exposed as a
+        // selector. Switching re-assembles the local mirror in the shell
+        // (Remote closes it, Local/Hybrid open and re-sync) and persists
+        // immediately; the footer's mirror read-out follows the status on its
+        // own. Read routing stays on the remote client for now - the subtitle
+        // says so, and the remaining Local switch-over lives in the parity gap
+        // list.
+        SurfaceCard(
+            title = DesktopMessages.t(locale, "settings.runModeTitle"),
+            subtitle = DesktopMessages.t(locale, "settings.runModeSubtitle"),
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                RelaySelect(
+                    value = session.runMode.name,
+                    options = DesktopRunMode.entries.map { mode ->
+                        RelayOption(
+                            value = mode.name,
+                            label = DesktopMessages.t(locale, mode.labelKey),
+                            description = DesktopMessages.t(locale, mode.descriptionKey),
+                        )
+                    },
+                    onValueChange = { value ->
+                        DesktopRunMode.entries.firstOrNull { it.name == value }
+                            ?.let(session::switchRunMode)
+                    },
+                )
+                Text(
+                    text = DesktopMessages.t(
+                        locale,
+                        "settings.runMode.active",
+                        mapOf(
+                            "mode" to DesktopMessages.t(locale, session.runMode.labelKey),
+                            "effect" to DesktopMessages.t(locale, session.runMode.descriptionKey),
+                        ),
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = ConsoleMuted,
                 )

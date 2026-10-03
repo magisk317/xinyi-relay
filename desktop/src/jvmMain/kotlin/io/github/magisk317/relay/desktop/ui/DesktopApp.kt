@@ -97,15 +97,17 @@ fun DesktopApp(window: java.awt.Window, windowState: WindowState, onQuit: () -> 
     }
 
     // Local mirror (parity §5): the composition root of `:desktop:core` /
-    // `:desktop:data`, opened against the active profile's backend. The console
-    // pages still read through ConsoleClient (Remote mode); the mirror keeps the
-    // local SQLite store in step with the backend and reports its status in the
-    // shell footer. A profile switch or logout closes and re-opens it.
+    // `:desktop:data`, opened against the active profile's backend. The run
+    // mode decides whether it participates at all — Local/Hybrid keep the
+    // local SQLite store in step with the backend and report its status in the
+    // shell footer; Remote (the Rust default) leaves the mirror closed and
+    // every page on ConsoleClient. A profile switch, logout or mode switch
+    // closes and re-opens it.
     val localSync = remember { DesktopLocalSyncController() }
     val mirrorProfile = session.activeProfile
-    LaunchedEffect(session.authenticated, mirrorProfile) {
+    LaunchedEffect(session.authenticated, mirrorProfile, session.runMode) {
         val client = session.currentClient()
-        if (session.authenticated && mirrorProfile != null && client != null) {
+        if (session.runMode.usesLocalMirror && session.authenticated && mirrorProfile != null && client != null) {
             val remote = OkHttpRemoteStore(baseUrl = mirrorProfile.baseUrl)
             client.accessToken?.let { remote.setAccessToken(it) }
             localSync.start(remote)

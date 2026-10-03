@@ -36,6 +36,21 @@ class ProfileStoreTest {
     }
 
     @Test
+    fun `state file predating run mode defaults to Remote`() {
+        Files.writeString(dir.resolve("profiles.json"), """{"profiles":[],"activeProfileId":null}""")
+        assertEquals(DesktopRunMode.Remote, ProfileStore(dir).loadState().runMode)
+    }
+
+    @Test
+    fun `run mode round trips through the store`() {
+        val store = ProfileStore(dir)
+        store.saveState(PersistedDesktopState(runMode = DesktopRunMode.Hybrid))
+        assertEquals(DesktopRunMode.Hybrid, store.loadState().runMode)
+        store.saveState(store.loadState().copy(runMode = DesktopRunMode.Local))
+        assertEquals(DesktopRunMode.Local, store.loadState().runMode)
+    }
+
+    @Test
     fun `session round trips and is private`() {
         val store = ProfileStore(dir)
         store.saveSession(session())

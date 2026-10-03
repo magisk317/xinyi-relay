@@ -44,6 +44,15 @@ class DesktopSessionState(private val store: ProfileStore = ProfileStore()) {
     var activeProfile by mutableStateOf<DesktopProfile?>(null)
         private set
 
+    /**
+     * Which backend the app talks to (Remote / Local / Hybrid), persisted in
+     * the state file; see [DesktopRunMode]. Loaded in [bootstrap] and updated
+     * through [switchRunMode], both off the same `profiles.json` the profiles
+     * live in.
+     */
+    var runMode by mutableStateOf(DesktopRunMode.Default)
+        private set
+
     /** Language tag reported by the backend session; drives "system" locale. */
     var serverLanguageTag by mutableStateOf("")
         private set
@@ -59,6 +68,10 @@ class DesktopSessionState(private val store: ProfileStore = ProfileStore()) {
         scope.launch {
             loading = true
             val state = store.loadState()
+            // Surfaced before the early return below: the mode must be known
+            // even when no session is stored, so the mirror assembly gate
+            // observes it on the login screen too.
+            runMode = state.runMode
             val profile = state.activeProfileId?.let { id -> state.profiles.firstOrNull { it.id == id } }
             val persisted = profile?.let { store.loadSession(it.id) }
             if (profile == null || persisted == null) {
@@ -83,6 +96,18 @@ class DesktopSessionState(private val store: ProfileStore = ProfileStore()) {
             loading = false
             probeAdmin()
         }
+    }
+
+    /**
+     * Switches the run mode and persists it; [runMode] publishes immediately.
+     * The shell re-assembles the local mirror off it (Local/Hybrid open and
+     * sync, Remote closes), the same load-at-boot / save-on-change shape the
+     * locale preference uses.
+     */
+    fun switchRunMode(mode: DesktopRunMode) {
+        if (runMode == mode) return
+        runMode = mode
+        store.saveState(store.loadState().copy(runMode = mode))
     }
 
     private fun applyMe(me: MeResponse) {
