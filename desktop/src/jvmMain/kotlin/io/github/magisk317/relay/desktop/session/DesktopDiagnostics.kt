@@ -138,6 +138,9 @@ fun collectDiagnostics(
         notifications = null,
         connection = ConnectionSection(
             state = when {
+                // The Rust monitor pins "local" with an empty message under
+                // the Local run mode (main.rs, monitor_tick / mode switch).
+                session.runMode == DesktopRunMode.Local -> "local"
                 !session.connected -> "disconnected"
                 session.authenticated -> "connected"
                 else -> "unauthenticated"

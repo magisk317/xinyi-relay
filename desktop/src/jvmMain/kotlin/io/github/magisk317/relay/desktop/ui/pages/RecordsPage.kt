@@ -84,7 +84,7 @@ fun RecordsPage(
         try {
             loading = true
             error = ""
-            records = session.currentClient()?.records(limit = 80, deviceId = console.selectedDeviceId)?.records
+            records = session.dataClient()?.records(limit = 80, deviceId = console.selectedDeviceId)?.records
                 ?: emptyList()
         } catch (failure: Exception) {
             error = failure.message ?: DesktopMessages.t(locale, "common.loadFailed")

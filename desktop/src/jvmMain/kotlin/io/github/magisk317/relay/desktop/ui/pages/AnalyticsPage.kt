@@ -64,9 +64,9 @@ fun AnalyticsPage(
         try {
             loading = true
             error = ""
-            val client = session.currentClient()
+            val client = session.dataClient()
             console.refreshDevices()
-            records = client?.records(limit = 200)?.records ?: emptyList()
+            records = client?.records(limit = 200, deviceId = null)?.records ?: emptyList()
             console.refreshConfig()
             auditLogs = try {
                 val auditDeviceId = console.selectedDeviceId

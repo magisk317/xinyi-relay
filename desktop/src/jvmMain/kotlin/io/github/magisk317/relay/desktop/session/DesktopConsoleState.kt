@@ -67,7 +67,8 @@ class DesktopConsoleState(private val session: DesktopSessionState) {
     }
 
     private suspend fun refreshDevicesInternal() {
-        val client = session.currentClient()
+        // Routed: the Local run mode answers from the mirror (parity §5).
+        val client = session.dataClient()
         if (client == null) {
             loading = false
             return
@@ -98,7 +99,7 @@ class DesktopConsoleState(private val session: DesktopSessionState) {
     }
 
     private suspend fun refreshConfigInternal() {
-        val client = session.currentClient() ?: return
+        val client = session.dataClient() ?: return
         val deviceId = selectedDeviceId
         if (deviceId == null) {
             config = null
@@ -120,7 +121,9 @@ class DesktopConsoleState(private val session: DesktopSessionState) {
 
     /** Queues a config command on the selected device and folds it into the local state. */
     suspend fun queueMutation(mutation: JsonObject, summary: String) {
-        val client = session.currentClient() ?: error("Device config is not loaded yet.")
+        // Routed: Local mode queues against the mirror, the pending row rides
+        // the next sync round (parity §5).
+        val client = session.dataClient() ?: error("Device config is not loaded yet.")
         val current = config ?: error("Device config is not loaded yet.")
         val deviceId = selectedDeviceId ?: error("Device config is not loaded yet.")
         saving = true

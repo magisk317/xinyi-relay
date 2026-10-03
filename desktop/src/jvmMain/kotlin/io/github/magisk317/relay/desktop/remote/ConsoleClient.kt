@@ -44,7 +44,7 @@ class ConsoleApiException(
 class ConsoleClient(
     val baseUrl: String,
     private val client: OkHttpClient = RelayHttpClients.default,
-) {
+) : ConsoleDataClient {
     private val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
@@ -88,7 +88,7 @@ class ConsoleClient(
             "&state=" + URLEncoder.encode(state, "UTF-8") +
             "&client_name=" + URLEncoder.encode(clientName, "UTF-8")
 
-    suspend fun systemInfo(): SystemInfoResponse = send("/api/v1/system/info", auth = false)
+    override suspend fun systemInfo(): SystemInfoResponse = send("/api/v1/system/info", auth = false)
 
     suspend fun me(): MeResponse = send("/api/v1/auth/me")
 
@@ -113,26 +113,26 @@ class ConsoleClient(
         auth = false,
     )
 
-    suspend fun devices(): DevicesResponse = send("/api/v1/devices")
+    override suspend fun devices(): DevicesResponse = send("/api/v1/devices")
 
-    suspend fun patchDevice(deviceId: Long, request: PatchDeviceRequest): JsonObject = send(
+    override suspend fun patchDevice(deviceId: Long, request: PatchDeviceRequest): JsonObject = send(
         "/api/v1/devices/$deviceId",
         method = "PATCH",
         body = json.encodeToString(request),
     )
 
-    suspend fun revokeDevice(deviceId: Long): JsonObject = send("/api/v1/devices/$deviceId/revoke", method = "POST")
+    override suspend fun revokeDevice(deviceId: Long): JsonObject = send("/api/v1/devices/$deviceId/revoke", method = "POST")
 
-    suspend fun createBindCode(): BindCodeResponse = send("/api/v1/devices/bind-codes", method = "POST")
+    override suspend fun createBindCode(): BindCodeResponse = send("/api/v1/devices/bind-codes", method = "POST")
 
-    suspend fun deviceConfig(deviceId: Long): DeviceConfigStateResponse? = try {
+    override suspend fun deviceConfig(deviceId: Long): DeviceConfigStateResponse? = try {
         send("/api/v1/devices/$deviceId/config")
     } catch (e: ConsoleApiException) {
         if (e.status == 404) null else throw e
     }
 
     /** Queues a config command and returns the persisted command (pending until the agent acks it). */
-    suspend fun queueDeviceConfigCommand(
+    override suspend fun queueDeviceConfigCommand(
         deviceId: Long,
         request: DeviceConfigCommandRequest,
     ): DeviceConfigCommandResponse = send(
@@ -141,10 +141,10 @@ class ConsoleClient(
         body = json.encodeToString(request),
     )
 
-    suspend fun deviceConfigAuditLogs(
+    override suspend fun deviceConfigAuditLogs(
         deviceId: Long,
-        limit: Int = 50,
-        offset: Int = 0,
+        limit: Int,
+        offset: Int,
     ): DeviceConfigAuditLogsResponse = send("/api/v1/devices/$deviceId/config/audit?limit=$limit&offset=$offset")
 
     /** Creates the first admin account; the backend only accepts this once. */
@@ -162,7 +162,7 @@ class ConsoleClient(
         ),
     )
 
-    suspend fun records(limit: Int = 50, deviceId: Long? = null): RecordsResponse {
+    override suspend fun records(limit: Int, deviceId: Long?): RecordsResponse {
         val query = buildString {
             append("?limit=").append(limit)
             if (deviceId != null) append("&device_id=").append(deviceId)
@@ -170,5 +170,5 @@ class ConsoleClient(
         return send("/api/v1/records$query")
     }
 
-    suspend fun record(id: Long): RelayRecord = send("/api/v1/records/$id")
+    override suspend fun record(id: Long): RelayRecord = send("/api/v1/records/$id")
 }

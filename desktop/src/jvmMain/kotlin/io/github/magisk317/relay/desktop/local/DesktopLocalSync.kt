@@ -3,6 +3,7 @@ package io.github.magisk317.relay.desktop.local
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import io.github.magisk317.relay.desktop.core.store.DesktopLocalStore
 import io.github.magisk317.relay.desktop.core.store.RemoteStore
 import io.github.magisk317.relay.desktop.data.DesktopDatabase
 
@@ -54,6 +55,12 @@ class DesktopLocalSyncController(
      * this to share the sync engine's connection.
      */
     val database: DesktopDatabase? get() = runtime?.database
+
+    /**
+     * The open mirror store — the data half of the runtime, read by the Local
+     * run mode's read router. Same lifecycle as [database].
+     */
+    val store: DesktopLocalStore? get() = runtime?.store
 
     /**
      * Closes any previous runtime (profile switch), opens a fresh one against

@@ -35,6 +35,7 @@ import io.github.magisk317.relay.desktop.platform.TrayAction
 import io.github.magisk317.relay.desktop.platform.TrayMenu
 import io.github.magisk317.relay.desktop.remote.DesktopRealtimeFeed
 import io.github.magisk317.relay.desktop.session.DesktopConsoleState
+import io.github.magisk317.relay.desktop.session.DesktopRunMode
 import io.github.magisk317.relay.desktop.session.collectDiagnostics
 import io.github.magisk317.relay.desktop.session.DesktopSessionState
 import kotlinx.coroutines.delay
@@ -64,10 +65,14 @@ fun DesktopApp(window: java.awt.Window, windowState: WindowState, onQuit: () -> 
             tokenProvider = { session.currentClient()?.accessToken },
         )
     }
-    LaunchedEffect(session.authenticated) {
+    LaunchedEffect(session.authenticated, session.runMode) {
         if (session.authenticated) {
             console.bootstrap()
-            feed.start()
+            // The Local run mode has no remote monitor: the Rust shell's
+            // monitor_tick returns early before touching the backend
+            // (main.rs), and pages refresh off the mirror after local
+            // writes instead of waiting for realtime events.
+            if (session.runMode == DesktopRunMode.Local) feed.stop() else feed.start()
         } else {
             feed.stop()
         }
@@ -108,6 +113,9 @@ fun DesktopApp(window: java.awt.Window, windowState: WindowState, onQuit: () -> 
     // every page on ConsoleClient. A profile switch, logout or mode switch
     // closes and re-opens it.
     val localSync = remember { DesktopLocalSyncController() }
+    // Read routing (parity §5): the Local run mode answers page reads from
+    // the mirror this controller owns; Remote/Hybrid keep the HTTP client.
+    session.localStoreProvider = { localSync.store }
     val mirrorProfile = session.activeProfile
     LaunchedEffect(session.authenticated, mirrorProfile, session.runMode) {
         val client = session.currentClient()
@@ -115,12 +123,17 @@ fun DesktopApp(window: java.awt.Window, windowState: WindowState, onQuit: () -> 
             val remote = OkHttpRemoteStore(baseUrl = mirrorProfile.baseUrl)
             client.accessToken?.let { remote.setAccessToken(it) }
             localSync.start(remote)
+            // Re-read once the mirror is live: the shell's first bootstrap
+            // may have raced the open, and the Rust shell re-bootstraps on
+            // every mode switch the same way (main.rs, set_run_mode).
+            console.bootstrap()
             while (true) {
                 delay(LOCAL_SYNC_INTERVAL_MS)
                 localSync.sync()
             }
         } else {
             localSync.stop()
+            console.bootstrap()
         }
     }
     DisposableEffect(Unit) { onDispose { localSync.stop() } }

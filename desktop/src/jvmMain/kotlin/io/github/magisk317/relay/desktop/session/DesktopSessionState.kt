@@ -5,7 +5,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import io.github.magisk317.relay.contract.remote.MeResponse
 import io.github.magisk317.relay.desktop.auth.DesktopAuthFlow
+import io.github.magisk317.relay.desktop.core.store.DesktopLocalStore
+import io.github.magisk317.relay.desktop.local.DesktopReadRouter
 import io.github.magisk317.relay.desktop.remote.ConsoleClient
+import io.github.magisk317.relay.desktop.remote.ConsoleDataClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -70,7 +73,32 @@ class DesktopSessionState(private val store: ProfileStore = ProfileStore()) {
 
     private var client: ConsoleClient? = null
 
+    /**
+     * Provider for the open local mirror store, injected by the composition
+     * root (the sync controller owns the runtime). Only the Local run mode's
+     * read path consults it; null before wiring and whenever the mirror is
+     * closed.
+     */
+    var localStoreProvider: (() -> DesktopLocalStore?)? = null
+
+    private val readRouter by lazy {
+        DesktopReadRouter(
+            remoteProvider = { client },
+            storeProvider = { localStoreProvider?.invoke() },
+            modeProvider = { runMode },
+        )
+    }
+
     fun currentClient(): ConsoleClient? = client
+
+    /**
+     * The routed console data client: pages and the console state read and
+     * write through this, and under the Local run mode the SQLite mirror
+     * answers instead of the backend (see
+     * [io.github.magisk317.relay.desktop.local.DesktopReadRouter]). Null
+     * before login, exactly like [currentClient].
+     */
+    fun dataClient(): ConsoleDataClient? = readRouter.route()
 
     fun bootstrap() {
         scope.launch {

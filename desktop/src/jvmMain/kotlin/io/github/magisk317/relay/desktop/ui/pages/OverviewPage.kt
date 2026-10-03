@@ -55,7 +55,7 @@ fun OverviewPage(
     var loading by remember { mutableStateOf(true) }
 
     suspend fun load() {
-        val client = session.currentClient() ?: return
+        val client = session.dataClient() ?: return
         try {
             loading = true
             error = ""

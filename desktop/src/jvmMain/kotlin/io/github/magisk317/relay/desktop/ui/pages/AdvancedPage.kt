@@ -172,7 +172,7 @@ fun AdvancedPage(
     }
 
     fun patch(device: DeviceItem, request: PatchDeviceRequest) {
-        val client = session.currentClient() ?: return
+        val client = session.dataClient() ?: return
         scope.launch {
             runCatching { client.patchDevice(device.id, request) }
                 .onSuccess { reload() }
@@ -183,7 +183,7 @@ fun AdvancedPage(
     }
 
     fun revoke(device: DeviceItem) {
-        val client = session.currentClient() ?: return
+        val client = session.dataClient() ?: return
         scope.launch {
             runCatching { client.revokeDevice(device.id) }
                 .onSuccess { reload() }
@@ -314,7 +314,7 @@ fun AdvancedPage(
                     ActionButton(
                         text = DesktopMessages.t(locale, "advanced.bindGenerate"),
                         onClick = {
-                            val client = session.currentClient()
+                            val client = session.dataClient()
                             if (client == null) {
                                 error = DesktopMessages.t(locale, "common.loadFailed")
                                 return@ActionButton
