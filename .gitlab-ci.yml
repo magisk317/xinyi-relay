@@ -80,6 +80,10 @@ variables:
   XINYI_GITLAB_WINDOWS_AMD64_RUNNER_TAG: "saas-windows-medium-amd64"
   XINYI_GITLAB_MACOS_ARM64_RUNNER_TAG: "saas-macos-medium-m1"
   XINYI_GITLAB_MACOS_ENABLED: "false"
+  # Whether the KMP Linux packaging jobs may fail without failing the pipeline.
+  # The new track is the one under active development; the incumbent Tauri desktop
+  # release must not be taken down by it while the two coexist.
+  XINYI_DESKTOP_KMP_ALLOW_FAILURE: "true"
 
 .xinyi_ci_rules:
   rules:
@@ -221,6 +225,54 @@ variables:
     expire_in: 30 days
     paths:
       - desktop-artifacts/
+
+# KMP desktop track. The desktop modules are pure JVM, so these jobs need a JDK
+# and nothing else: no Android SDK, no Node, no Rust. .magisk_android_base is the
+# only anchor that stages a JDK on these runners, and it drags the SDK and the
+# aapt2 workarounds along with it, so the same Adoptium fetch is restated here
+# through scripts/ci/gitlab_stage_jdk27.sh, which the packaging driver sources for
+# itself -- a child process could not hand JAVA_HOME back to the job.
+#
+# Linux x64 and arm64 only for now: those are the two runners whose packaging has
+# actually been exercised. Windows and macOS jobs are deliberately not wired; see
+# docs/DESKTOP_RELEASE_PLAN.md section 3.
+.xinyi_desktop_kmp_rules:
+  rules:
+    - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "web"'
+      when: never
+    - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "api"'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    # The tag rule is what lets a failure in the new track miss the incumbent Tauri
+    # desktop release while the two coexist; flip XINYI_DESKTOP_KMP_ALLOW_FAILURE
+    # to "false" to make the new track blocking instead. rules:allow_failure only
+    # takes a literal, hence the toggle is expressed as two rules.
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+[.][0-9]+[.][0-9]+.*$/ && $XINYI_DESKTOP_KMP_ALLOW_FAILURE == "true"'
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+[.][0-9]+[.][0-9]+.*$/'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: manual
+      allow_failure: true
+    - when: never
+
+.xinyi_desktop_kmp_base:
+  extends: .xinyi_desktop_kmp_rules
+  stage: package
+  variables:
+    GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+    GRADLE_OPTS: "-Dorg.gradle.warning.mode=all -Dorg.gradle.workers.max=2"
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths:
+      - desktop-artifacts/
+
+.xinyi_desktop_kmp_linux:
+  extends: .xinyi_desktop_kmp_base
+  image: "ubuntu:26.04"
+  before_script:
+    - chmod +x scripts/ci/gitlab_desktop_kmp_package.sh
 
 backend:go:
   extends: .xinyi_backend_validation_rules
@@ -410,6 +462,22 @@ desktop:macos:arm64:
   script:
     - scripts/ci/gitlab_desktop_package.sh macos macos-arm64 aarch64-apple-darwin "--target aarch64-apple-darwin --bundles app,dmg" "frontend/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle"
 
+desktop-kmp:linux:x64:
+  extends: .xinyi_desktop_kmp_linux
+  needs: []
+  tags:
+    - $XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG
+  script:
+    - scripts/ci/gitlab_desktop_kmp_package.sh kmp-linux-x64
+
+desktop-kmp:linux:arm64:
+  extends: .xinyi_desktop_kmp_linux
+  needs: []
+  tags:
+    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
+  script:
+    - scripts/ci/gitlab_desktop_kmp_package.sh kmp-linux-arm64
+
 desktop:release:gitlab:
   extends: .magisk_linux_base
   stage: release-publish
@@ -423,6 +491,10 @@ desktop:release:gitlab:
     - job: desktop:linux:x64
       artifacts: true
     - job: desktop:linux:arm64
+      artifacts: true
+    - job: desktop-kmp:linux:x64
+      artifacts: true
+    - job: desktop-kmp:linux:arm64
       artifacts: true
   script:
     - chmod +x scripts/release/gitlab_desktop_release.sh

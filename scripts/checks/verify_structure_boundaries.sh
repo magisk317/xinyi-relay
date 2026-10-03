@@ -14,6 +14,10 @@ verify_root_directory_layout() {
     "build-logic"
     "magisk-ui-kit"
     "magisk-xposed-kit"
+    # Both desktop tracks collect their release packages here (see
+    # scripts/release/gitlab_desktop_release.sh), so a local packaging run leaves
+    # this directory behind in an otherwise clean checkout.
+    "desktop-artifacts"
   )
 
   local -a allowed_lookup=()

@@ -22,6 +22,11 @@ build/
 /build
 **/dist/
 
+# KMP desktop packaging outputs: the JDK 27 the desktop jobs stage into the
+# checkout, and the packages both desktop tracks collect for the release job.
+.jdk-27.lock
+desktop-artifacts/
+
 # -------------------------------------------------------------------------
 # Configuration & Properties
 # -------------------------------------------------------------------------

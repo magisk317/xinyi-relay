@@ -32,7 +32,7 @@ fi
 
 mapfile -d '' source_files < <(
   find "$asset_root" -type f \
-    \( -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' -o -name '*.exe' -o -name '*.msix' -o -name '*.msi' -o -name '*.dmg' -o -name '*.zip' \) \
+    \( -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' -o -name '*.exe' -o -name '*.msix' -o -name '*.msi' -o -name '*.dmg' -o -name '*.jar' -o -name '*.zip' \) \
     -print0 | sort -z
 )
 if [[ ${#source_files[@]} -eq 0 ]]; then
