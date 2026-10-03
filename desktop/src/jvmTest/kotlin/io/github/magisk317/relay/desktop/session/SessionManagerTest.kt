@@ -23,11 +23,13 @@ class SessionManagerTest {
     private lateinit var server: HttpServer
     private var refreshCalls = 0
     private var logoutCalls = 0
+    private lateinit var credentials: InMemoryDesktopCredentialStore
 
     @BeforeEach
     fun setUp() {
         refreshCalls = 0
         logoutCalls = 0
+        credentials = InMemoryDesktopCredentialStore()
         server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
         server.createContext("/api/v1/auth/desktop/refresh") { exchange ->
             refreshCalls++
@@ -51,7 +53,7 @@ class SessionManagerTest {
 
     private fun profile() = DesktopProfile(id = "p1", name = "prod", baseUrl = "http://127.0.0.1:${server.address.port}")
 
-    private fun store() = ProfileStore(dir)
+    private fun store() = ProfileStore(dir, credentials)
 
     private fun seedSession(expiresAt: Instant) {
         store().saveSession(

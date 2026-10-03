@@ -26,6 +26,14 @@ data class DesktopSession(
 )
 
 @Serializable
+private data class PersistedSessionMetadata(
+    val profileId: String,
+    val username: String,
+    val expiresAt: String,
+    val refreshExpiresAt: String,
+)
+
+@Serializable
 data class PersistedDesktopState(
     val profiles: List<DesktopProfile> = emptyList(),
     val activeProfileId: String? = null,
@@ -33,12 +41,15 @@ data class PersistedDesktopState(
 )
 
 /**
- * File-backed profile/session persistence (~/.xinyi-relay-desktop), the JVM
- * counterpart of the Rust storage.rs + keyring pair. Session files are
- * written 0600; a keyring-backed actual can replace this later without
- * touching callers.
+ * File-backed profile metadata plus native-keyring session persistence
+ * (~/.xinyi-relay-desktop), the JVM counterpart of the Rust storage.rs +
+ * keyring pair. Session files contain only the username and expiry stamps;
+ * bearer tokens live in [DesktopCredentialStore] and never enter JSON.
  */
-class ProfileStore(private val dir: Path = defaultDir()) {
+class ProfileStore(
+    private val dir: Path = defaultDir(),
+    private val credentials: DesktopCredentialStore = SystemCredentialStore(),
+) {
     companion object {
         fun defaultDir(): Path = Paths.get(System.getProperty("user.home"), ".xinyi-relay-desktop")
     }
@@ -65,15 +76,61 @@ class ProfileStore(private val dir: Path = defaultDir()) {
     fun loadSession(profileId: String): DesktopSession? {
         val f = sessionFile(profileId)
         if (!Files.exists(f)) return null
-        return runCatching { json.decodeFromString<DesktopSession>(Files.readString(f)) }.getOrNull()
+        val raw = runCatching { Files.readString(f) }.getOrNull() ?: return null
+
+        // One-time migration for the original plaintext session format. The
+        // old file is only replaced after both secrets have reached the native
+        // store; a keychain failure therefore does not destroy recoverable data.
+        runCatching { json.decodeFromString<DesktopSession>(raw) }.getOrNull()?.let { legacy ->
+            runCatching {
+                credentials.save(
+                    profileId,
+                    DesktopCredentials(legacy.accessToken, legacy.refreshToken),
+                )
+                writeMetadata(legacy)
+            }.onFailure { return null }
+            return legacy
+        }
+
+        val metadata = runCatching { json.decodeFromString<PersistedSessionMetadata>(raw) }.getOrNull()
+            ?: return null
+        val secret = runCatching { credentials.load(profileId) }.getOrNull() ?: return null
+        return DesktopSession(
+            profileId = metadata.profileId,
+            username = metadata.username,
+            accessToken = secret.accessToken,
+            refreshToken = secret.refreshToken,
+            expiresAt = metadata.expiresAt,
+            refreshExpiresAt = metadata.refreshExpiresAt,
+        )
     }
 
     fun saveSession(session: DesktopSession) {
-        writePrivate(sessionFile(session.profileId), json.encodeToString(DesktopSession.serializer(), session))
+        credentials.save(
+            session.profileId,
+            DesktopCredentials(session.accessToken, session.refreshToken),
+        )
+        writeMetadata(session)
     }
 
     fun clearSession(profileId: String) {
+        credentials.clear(profileId)
         runCatching { Files.deleteIfExists(sessionFile(profileId)) }
+    }
+
+    private fun writeMetadata(session: DesktopSession) {
+        writePrivate(
+            sessionFile(session.profileId),
+            json.encodeToString(
+                PersistedSessionMetadata.serializer(),
+                PersistedSessionMetadata(
+                    profileId = session.profileId,
+                    username = session.username,
+                    expiresAt = session.expiresAt,
+                    refreshExpiresAt = session.refreshExpiresAt,
+                ),
+            ),
+        )
     }
 
     private fun writePrivate(path: Path, text: String) {

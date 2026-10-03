@@ -24,6 +24,8 @@ import java.time.Instant
  */
 class DesktopDiagnosticsTest {
 
+    private fun store(dir: Path) = ProfileStore(dir, InMemoryDesktopCredentialStore())
+
     @Test
     fun `report carries no token material`(@TempDir dir: Path) {
         val session = signedInSession(dir, accessToken = "SECRET-ACCESS-TOKEN", refreshToken = "SECRET-REFRESH-TOKEN")
@@ -79,7 +81,7 @@ class DesktopDiagnosticsTest {
 
     @Test
     fun `without a stored session the projection and mirror sections stay empty`(@TempDir dir: Path) {
-        val store = ProfileStore(dir)
+        val store = store(dir)
         val session = DesktopSessionState(store)
         session.saveProfile("https://console.example.com")
 
@@ -128,7 +130,7 @@ class DesktopDiagnosticsTest {
 
     /** Persists a profile plus a session file, so [collectDiagnostics] sees both. */
     private fun signedInSession(dir: Path, accessToken: String, refreshToken: String): DesktopSessionState {
-        val store = ProfileStore(dir)
+        val store = store(dir)
         val session = DesktopSessionState(store)
         // saveProfile is the public path that sets activeProfile; the session
         // file is written directly underneath it (login would need a network).
