@@ -57,6 +57,7 @@ import io.github.magisk317.relay.desktop.ui.pages.SendersPage
 import io.github.magisk317.relay.desktop.ui.pages.SettingsPage
 import io.github.magisk317.relay.desktop.i18n.LocaleSetting
 import io.github.magisk317.relay.desktop.local.DatabaseTransferController
+import io.github.magisk317.relay.desktop.local.DesktopDiagnosticsController
 import io.github.magisk317.relay.desktop.local.LocalSyncStatus
 import io.github.magisk317.relay.desktop.platform.DesktopLinkOpener
 import io.github.magisk317.relay.desktop.session.DesktopSessionState
@@ -87,6 +88,7 @@ fun AppShellScreen(
     linkOpener: DesktopLinkOpener,
     localSync: LocalSyncStatus,
     transfer: DatabaseTransferController,
+    diagnostics: DesktopDiagnosticsController,
     locale: DesktopLocale,
     route: DesktopRoute,
     onNavigate: (DesktopRoute) -> Unit,
@@ -121,6 +123,7 @@ fun AppShellScreen(
                             console = console,
                             feed = feed,
                             transfer = transfer,
+                            diagnostics = diagnostics,
                             locale = locale,
                             onNavigate = onNavigate,
                         )
@@ -349,6 +352,7 @@ private fun RouteContent(
     console: DesktopConsoleState,
     feed: DesktopRealtimeFeed,
     transfer: DatabaseTransferController,
+    diagnostics: DesktopDiagnosticsController,
     locale: DesktopLocale,
     onNavigate: (DesktopRoute) -> Unit = {},
 ) {
@@ -365,6 +369,7 @@ private fun RouteContent(
                 console = console,
                 feed = feed,
                 transfer = transfer,
+                diagnostics = diagnostics,
                 locale = locale,
                 onOpenScheduledTasks = { onNavigate(DesktopRoute.SCHEDULED_TASKS) },
             )

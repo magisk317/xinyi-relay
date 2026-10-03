@@ -94,7 +94,7 @@ webUI 共 9 个页面，新轨 9 个路由全部有对应实现（`DesktopRoute`
 | 离线/本地记录同步 | `src-tauri/src/sync.rs` | `:desktop:core/sync/SyncEngine.kt` 已实现并有测试，单飞同步用 `Mutex.tryLock` |
 | 系统通知 | `tauri-plugin-notification`（桌面横幅 + 测试通知） | 已补齐：`desktop.platform` 的 `DesktopNotifier`/`AwtNotifier`（`java.awt.SystemTray`，无托盘时 `notify` 返回 false），`DesktopApp` 在 realtime 事件上触发（`device.heartbeat` 静默），11 个单元用例 |
 | 数据库导出 / 导入 | `desktop_export_database` / `desktop_import_database` | 已补齐：`:desktop:data` 的 `DatabaseTransfer`（format id + version 的 JSON 快照，7 表全量、记录表翻页读全、导入单事务 replace-all、信封先校验、坏格式 / 版本过新 / 缺表一律具名拒绝且整体回滚）+ `desktop.platform.DesktopFileDialog` / `AwtFileDialog`（AWT 模态框，OS 调用经可注入 lambda、headless 退化为取消、`.json` 过滤放行目录）+ `desktop.local.DatabaseTransferController`（骑本地镜像同一条连接、tmp + rename 原子写、UTC 戳默认名 `xinyi-relay-desktop-<yyyyMMdd-HHmmss>.json`、Exported / Imported / Cancelled / Failed 四态）+ Advanced 页「本地数据库」卡（导出 PRIMARY / 导入 WARNING，导入前 ConfirmDialog，镜像关闭时显示不可用说明，成功提示 6 秒自清，失败进 ErrorBanner）；16 个单元用例（data 11 + desktop 5）；旧 Tauri `local-data.db` 是裸 SQLite 文件，按 §2.2 不兼容、不导入 |
-| 诊断信息导出 | `desktop_export_diagnostics` | 无 |
+| 诊断信息导出 | `desktop_export_diagnostics` | 已补齐：`session/DesktopDiagnostics.kt` 的 `DesktopDiagnostics` 快照，对齐 Tauri payload 的五节——profiles、connection（state/message/lastChangedAt）、session（profileId/username/expiresAt/refreshExpiresAt 脱敏投影，access/refresh token 永不入包，测试断言零泄漏）、notifications（KMP 壳无通知开关，恒为 null）、runMode；另带 KMP 扩展节 app（name/version/os/arch/java 排障必填）与 mirror（active/devices/records/syncing/error）。`DesktopDiagnosticsController` 经 AWT 文件对话框选位置、tmp + rename 原子写、默认名 `xinyi-relay-diagnostics-<UTC yyyyMMdd-HHmmss>.json`；Advanced 页第三张卡常驻可用（镜像坏时正需要它，不门禁 mirror）；4 个单元用例 |
 | 打开外部链接 | `desktop_open_external_url` | 已补齐：`DesktopLinkOpener`/`AwtLinkOpener`（仅放行 http/https），顶栏「打开控制台」按钮消费，失败闪现 `platform.openLinkFailed` 提示 |
 | 系统凭据保存（keyring） | `storage.rs`、`keyring` crate | `ProfileStore` 用 `java.util.prefs`，未用系统钥匙串 |
 | 单实例锁 | `tauri-plugin-single-instance` | 已补齐：`main()` 入口 `FileLockInstanceGuard`（advisory `FileLock`，进程死亡由 OS 释放），第二实例弹本地化对话框后 `exitProcess(1)` |
@@ -105,11 +105,11 @@ webUI 共 9 个页面，新轨 9 个路由全部有对应实现（`DesktopRoute`
 
 | 模块 | 测试类 | 用例数 |
 |---|---|---|
-| `:desktop` | 17（auth/config/i18n/local/platform/remote/session/ui + QrCode + RecordMetadata + RealtimeEventFilter + session state + run mode + DatabaseTransferController） | 99 |
+| `:desktop` | 18（auth/config/i18n/local/platform/remote/session/ui + QrCode + RecordMetadata + RealtimeEventFilter + session state + run mode + DatabaseTransferController + DesktopDiagnostics） | 103 |
 | `:desktop:core` | 3（SyncEngine / RecordSync / DeviceConfigQueue） | 15 |
 | `:desktop:data` | 3（DesktopSchema / LegacyDatabaseImporter / DatabaseTransfer） | 15 |
 
-合计 23 个测试类 / 129 个用例，2026-10-03 以 `--no-build-cache --rerun-tasks --no-configuration-cache` 在 lzc 上全量通过。
+合计 24 个测试类 / 133 个用例，2026-10-03 以 `--no-build-cache --rerun-tasks --no-configuration-cache` 在 lzc 上全量通过。
 
 本地验证命令（lzc，与 CI 一致）：
 

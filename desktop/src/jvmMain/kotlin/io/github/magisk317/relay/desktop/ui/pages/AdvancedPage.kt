@@ -28,6 +28,8 @@ import io.github.magisk317.relay.contract.remote.PatchDeviceRequest
 import io.github.magisk317.relay.desktop.i18n.DesktopLocale
 import io.github.magisk317.relay.desktop.i18n.DesktopMessages
 import io.github.magisk317.relay.desktop.local.DatabaseTransferController
+import io.github.magisk317.relay.desktop.local.DesktopDiagnosticsController
+import io.github.magisk317.relay.desktop.local.DiagnosticsOutcome
 import io.github.magisk317.relay.desktop.local.TransferOutcome
 import io.github.magisk317.relay.desktop.remote.DesktopRealtimeFeed
 import io.github.magisk317.relay.desktop.session.DesktopConsoleState
@@ -73,6 +75,7 @@ fun AdvancedPage(
     console: DesktopConsoleState,
     feed: DesktopRealtimeFeed,
     transfer: DatabaseTransferController,
+    diagnostics: DesktopDiagnosticsController,
     locale: DesktopLocale,
     onOpenScheduledTasks: () -> Unit = {},
 ) {
@@ -85,6 +88,7 @@ fun AdvancedPage(
     var confirmTransfer by remember { mutableStateOf(false) }
     var transferBusy by remember { mutableStateOf(false) }
     var transferHint by remember { mutableStateOf<String?>(null) }
+    var diagnosticsBusy by remember { mutableStateOf(false) }
 
     // Success hints self-clear like the header link hint; failures go to the
     // error banner so they stay until the next action.
@@ -110,6 +114,22 @@ fun AdvancedPage(
                     DesktopMessages.t(locale, "advanced.databaseFailed") + outcome.message
             }
             transferBusy = false
+        }
+    }
+
+    fun exportDiagnostics() {
+        diagnosticsBusy = true
+        scope.launch {
+            when (val outcome = diagnostics.export()) {
+                is DiagnosticsOutcome.Exported -> transferHint = DesktopMessages.t(
+                    locale,
+                    "advanced.databaseExportDone",
+                    mapOf("path" to outcome.file.absolutePath),
+                )
+                is DiagnosticsOutcome.Cancelled -> Unit
+                is DiagnosticsOutcome.Failed -> error = DesktopMessages.t(locale, "advanced.databaseFailed") + outcome.message
+            }
+            diagnosticsBusy = false
         }
     }
 
@@ -261,6 +281,23 @@ fun AdvancedPage(
                         )
                     }
                 }
+            }
+        }
+
+        // Diagnostics (parity §5): token-free support bundle. Always
+        // available - a broken mirror is when it is needed most, so unlike
+        // the database card it does not gate on the mirror being open.
+        SurfaceCard(
+            title = DesktopMessages.t(locale, "advanced.diagnosticsTitle"),
+            subtitle = DesktopMessages.t(locale, "advanced.diagnosticsSubtitle"),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                ActionButton(
+                    text = DesktopMessages.t(locale, "advanced.diagnosticsExport"),
+                    onClick = { exportDiagnostics() },
+                    tone = ActionTone.PRIMARY,
+                    enabled = !diagnosticsBusy,
+                )
             }
         }
 

@@ -4,6 +4,7 @@ import io.github.magisk317.relay.desktop.data.DatabaseSnapshot
 import io.github.magisk317.relay.desktop.data.DatabaseTransfer
 import io.github.magisk317.relay.desktop.data.DesktopDatabase
 import io.github.magisk317.relay.desktop.platform.DesktopFileDialog
+import io.github.magisk317.relay.desktop.platform.writeAtomically
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -101,29 +102,6 @@ class DatabaseTransferController(
             } catch (failure: Exception) {
                 failed(failure.message ?: "cannot apply the snapshot")
             }
-        }
-    }
-
-    /**
-     * Writes [text] beside [target] as a temporary file and renames it into
-     * place, so a half-written file never appears under the chosen name.
-     * Falls back to copy-and-delete where rename across devices is refused.
-     */
-    private fun writeAtomically(target: File, text: String) {
-        val parent = target.parentFile ?: File(".")
-        parent.mkdirs()
-        val temporary = File.createTempFile("xinyi-snapshot-", ".json.tmp", parent)
-        try {
-            temporary.writeText(text)
-            if (target.exists() && !target.delete()) {
-                throw IllegalStateException("cannot replace ${target.name}")
-            }
-            if (!temporary.renameTo(target)) {
-                temporary.copyTo(target, overwrite = true)
-                temporary.delete()
-            }
-        } finally {
-            if (temporary.exists()) temporary.delete()
         }
     }
 

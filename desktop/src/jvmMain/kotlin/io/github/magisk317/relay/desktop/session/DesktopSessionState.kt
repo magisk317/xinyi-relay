@@ -45,6 +45,14 @@ class DesktopSessionState(private val store: ProfileStore = ProfileStore()) {
         private set
 
     /**
+     * Every profile in the state file, read at bootstrap and updated by
+     * [saveProfile]. The diagnostics export needs the full list; reading it
+     * here keeps the store private to this class.
+     */
+    var loadedProfiles by mutableStateOf<List<DesktopProfile>>(emptyList())
+        private set
+
+    /**
      * Which backend the app talks to (Remote / Local / Hybrid), persisted in
      * the state file; see [DesktopRunMode]. Loaded in [bootstrap] and updated
      * through [switchRunMode], both off the same `profiles.json` the profiles
@@ -72,6 +80,7 @@ class DesktopSessionState(private val store: ProfileStore = ProfileStore()) {
             // even when no session is stored, so the mirror assembly gate
             // observes it on the login screen too.
             runMode = state.runMode
+            loadedProfiles = state.profiles
             val profile = state.activeProfileId?.let { id -> state.profiles.firstOrNull { it.id == id } }
             val persisted = profile?.let { store.loadSession(it.id) }
             if (profile == null || persisted == null) {
@@ -110,6 +119,23 @@ class DesktopSessionState(private val store: ProfileStore = ProfileStore()) {
         store.saveState(store.loadState().copy(runMode = mode))
     }
 
+    /**
+     * Token-free projection of the active session, read from the store so the
+     * expiry stamps reflect any refresh that already ran. Returns null before
+     * login or after logout; the diagnostics export refuses to carry tokens,
+     * so the session file's access/refresh tokens never leave this method.
+     */
+    fun currentSessionMeta(): DiagnosticsSession? {
+        val profile = activeProfile ?: return null
+        val session = store.loadSession(profile.id) ?: return null
+        return DiagnosticsSession(
+            profileId = session.profileId,
+            username = session.username,
+            expiresAt = session.expiresAt,
+            refreshExpiresAt = session.refreshExpiresAt,
+        )
+    }
+
     private fun applyMe(me: MeResponse) {
         connected = true
         authenticated = me.authenticated
@@ -135,6 +161,7 @@ class DesktopSessionState(private val store: ProfileStore = ProfileStore()) {
         )
         val profiles = if (existing == null) state.profiles + profile else state.profiles.map { if (it.id == profile.id) profile else it }
         store.saveState(state.copy(profiles = profiles, activeProfileId = profile.id))
+        loadedProfiles = profiles
         activeProfile = profile
         return profile
     }

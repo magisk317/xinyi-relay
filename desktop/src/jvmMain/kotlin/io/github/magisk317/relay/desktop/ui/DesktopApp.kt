@@ -25,6 +25,7 @@ import io.github.magisk317.relay.desktop.i18n.DesktopLocale
 import io.github.magisk317.relay.desktop.i18n.LocalePreference
 import io.github.magisk317.relay.desktop.i18n.LocaleSetting
 import io.github.magisk317.relay.desktop.local.DatabaseTransferController
+import io.github.magisk317.relay.desktop.local.DesktopDiagnosticsController
 import io.github.magisk317.relay.desktop.local.DesktopLocalSyncController
 import io.github.magisk317.relay.desktop.platform.AwtFileDialog
 import io.github.magisk317.relay.desktop.platform.AwtLinkOpener
@@ -34,6 +35,7 @@ import io.github.magisk317.relay.desktop.platform.TrayAction
 import io.github.magisk317.relay.desktop.platform.TrayMenu
 import io.github.magisk317.relay.desktop.remote.DesktopRealtimeFeed
 import io.github.magisk317.relay.desktop.session.DesktopConsoleState
+import io.github.magisk317.relay.desktop.session.collectDiagnostics
 import io.github.magisk317.relay.desktop.session.DesktopSessionState
 import kotlinx.coroutines.delay
 
@@ -134,6 +136,17 @@ fun DesktopApp(window: java.awt.Window, windowState: WindowState, onQuit: () -> 
         )
     }
 
+    // Diagnostics export (parity §5): a token-free snapshot of profiles,
+    // connection, run mode and mirror status for bug reports. Unlike the
+    // database snapshot it needs no open mirror, so it stays usable in
+    // Remote mode and while the mirror is the broken thing.
+    val diagnostics = remember {
+        DesktopDiagnosticsController(
+            report = { collectDiagnostics(session, localSync.status) },
+            fileDialog = AwtFileDialog(),
+        )
+    }
+
     var localeSetting by remember { mutableStateOf(LocalePreference.load()) }
     LaunchedEffect(localeSetting) { LocalePreference.save(localeSetting) }
 
@@ -193,6 +206,7 @@ fun DesktopApp(window: java.awt.Window, windowState: WindowState, onQuit: () -> 
                     linkOpener = linkOpener,
                     localSync = localSync.status,
                     transfer = transfer,
+                    diagnostics = diagnostics,
                     locale = locale,
                     route = route,
                     onNavigate = { route = it },
