@@ -74,7 +74,7 @@ fun StatusCard(
     onBatteryOptimizationClick: (() -> Unit)? = null,
 ) {
     val isWorking = isEnhancedModeEnabled || isStandardModeEnabled
-    val isAllOk = isWorking && isEntitled
+    val isAllOk = if (showEntitlement) isWorking && isEntitled else isWorking
     val moduleStatusText = when {
         isEnhancedModeEnabled -> stringResource(id = R.string.status_module_activated)
         isStandardModeEnabled -> stringResource(id = R.string.status_module_activated)
@@ -88,8 +88,8 @@ fun StatusCard(
         stringResource(id = R.string.status_entitlement_unverified)
     }
     val resolvedOnClick = rememberStatusCardClickHandler(
-        isEntitled = isEntitled,
-        onActivateClick = onActivateClick,
+        isEntitled = if (showEntitlement) isEntitled else true,
+        onActivateClick = onActivateClick.takeIf { showEntitlement },
         onDiagnosticsToggle = onDiagnosticsToggle,
     )
 
@@ -99,7 +99,7 @@ fun StatusCard(
     // MobileEntitlementActivity while entitlement is missing.
     if (currentUiKitStyle() == UiKitStyle.Miuix) {
         MiuixStatusCheckCard(
-            passed = isEntitled,
+            passed = if (showEntitlement) isEntitled else isWorking,
             title = if (showEntitlement) entitlementStatusText else moduleStatusText,
             badge = if (showEntitlement) moduleStatusText else "",
             summary = when {
