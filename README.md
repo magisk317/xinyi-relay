@@ -119,7 +119,9 @@ Backend 和 Desktop 都支持日志文件输出，便于问题排查：
 
 ## 桌面端 (Desktop)
 
-桌面端是基于 Tauri + Rust 构建的跨平台管理应用（支持 macOS / Windows / Linux）。它不再仅是 Backend 的外壳，而是升级为**全功能客户端**，支持以下三种运行模式：
+桌面端正在从 Tauri + Rust 迁移到 Kotlin Multiplatform 的 Compose Desktop。Tauri 轨仍是默认发布的形态，Compose Desktop 新轨目前只出 Linux 包（`kmp-` 前缀资产），两轨并存期间共用同一套 Console API；迁移状态见 [docs/DESKTOP_PARITY.md](docs/DESKTOP_PARITY.md)，退役判据见 [docs/TAURI_RETIREMENT.md](docs/TAURI_RETIREMENT.md)。
+
+下面描述的是 Tauri 轨（现役默认）。它不再仅是 Backend 的外壳，而是升级为**全功能客户端**，支持以下三种运行模式：
 
 - **Local（本地模式）**：完全离线运行，使用自带的内置 SQLite 数据库管理设备、配置与历史记录，最大程度保护隐私。
 - **Remote（远程模式）**：作为传统的控制台端，直接连接并管理你的独立 Backend 云端实例。
@@ -131,6 +133,7 @@ Backend 和 Desktop 都支持日志文件输出，便于问题排查：
 - macOS 当前为 unsigned 发布，首次运行时可能需要用户在系统设置里手动允许。
 - Windows 当前使用仓库自管的自签名证书签名；若系统拦截，可先导入公开证书 [frontend/desktop/certs/windows-codesign.cer](frontend/desktop/certs/windows-codesign.cer) 再运行安装包。
 - 该 Windows 证书仅用于当前项目的小众分发，不是公有 CA 商业签名证书；请仅在你信任本项目 Release 的前提下导入。
+- 两轨都没有自动更新器，换轨需要手动下载对应安装包；桌面端登录凭据保存在系统钥匙串、不随轨迁移，换轨后需要重新登录。
 
 欢迎反馈，欢迎提出意见或建议。
 

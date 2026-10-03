@@ -23,7 +23,24 @@ prepared_asset_dir="${XINYI_DESKTOP_RELEASE_PREPARED_ASSET_DIR:-desktop-release-
 notes_file="${MAGISK_RELEASE_NOTES_FILE:-desktop-release-notes.md}"
 package_name="${XINYI_DESKTOP_RELEASE_PACKAGE_NAME:-desktop-release}"
 release_name="${XINYI_DESKTOP_RELEASE_NAME:-$release_title}"
-release_description="${XINYI_DESKTOP_RELEASE_DESCRIPTION:-Desktop release assets for ${CI_COMMIT_TAG}.}"
+
+# The two migration paragraphs are fixed here on purpose: the desktop tracks
+# have no updater, so a release note is the only place a user can learn that
+# switching tracks is a manual download and that the desktop session must be
+# re-established afterwards. Keeping them in the default (instead of letting
+# every release re-word them) is what makes the statement reviewable.
+default_release_description() {
+  cat <<EOF
+Desktop release assets for ${CI_COMMIT_TAG}.
+
+Neither desktop track has an automatic updater. Moving to another track is a
+manual download, and installing one track's package never removes the other's.
+
+Desktop credentials do not carry over between tracks: each keeps its tokens in
+its own system-keychain entry. Switching tracks requires signing in again.
+EOF
+}
+release_description="${XINYI_DESKTOP_RELEASE_DESCRIPTION:-$(default_release_description)}"
 
 if [[ ! -d "$asset_root" ]]; then
   echo "ERROR: desktop artifact root not found: $asset_root" >&2

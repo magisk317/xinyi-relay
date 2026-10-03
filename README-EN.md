@@ -117,7 +117,9 @@ See each component's README for details.
 
 ## Desktop
 
-The Desktop app is a cross-platform management tool built with Tauri + Rust (available on macOS / Windows / Linux). It has been upgraded to a **fully-featured client**, supporting three distinct modes:
+The desktop app is migrating from Tauri + Rust to Kotlin Multiplatform Compose Desktop. The Tauri track is still what releases ship by default; the Compose Desktop track currently ships Linux packages only (assets prefixed `kmp-`), and both tracks share the same Console API while they coexist. Migration status: [docs/DESKTOP_PARITY.md](docs/DESKTOP_PARITY.md); retirement criteria: [docs/TAURI_RETIREMENT.md](docs/TAURI_RETIREMENT.md).
+
+What follows describes the Tauri track, which is still the default. It has been upgraded to a **fully-featured client**, supporting three distinct modes:
 
 - **Local Mode**: Runs completely offline, using its built-in SQLite database to manage devices, configs, and history records for maximum privacy.
 - **Remote Mode**: Acts as a traditional thin client, connecting directly to your self-hosted Backend instance.
@@ -129,6 +131,7 @@ The Desktop app is a cross-platform management tool built with Tauri + Rust (ava
 - macOS builds are currently distributed unsigned, so first launch may require a manual allow step in system settings.
 - Windows builds are signed with the repository-managed self-signed certificate. If Windows blocks the installer, import the public certificate [frontend/desktop/certs/windows-codesign.cer](frontend/desktop/certs/windows-codesign.cer) first and then retry the installer.
 - This Windows certificate is only intended for niche distribution of this project. It is not a public CA commercial code-signing certificate, so only import it if you trust this project's releases.
+- Neither track has an automatic updater, so switching tracks means downloading the package manually. Desktop credentials live in the system keychain per track and do not carry over, so switching tracks requires signing in again.
 
 Feedback and suggestions are welcome.
 

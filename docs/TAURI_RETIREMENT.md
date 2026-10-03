@@ -21,13 +21,11 @@
 | # | 判据 | 验证方式 | 现状 |
 |---|---|---|---|
 | 1 | parity 清单 §5 的能力缺口全部补齐：托盘、RunMode + 本地服务器、本地存储接入 `:desktop` UI、通知、数据库导出/导入、诊断导出、打开外链、系统钥匙串、单实例、审计日志页（旧库导入入口已按 §2.2 从清单中划掉） | 逐项在 `:desktop` 里找到落点并有测试或人工走查记录 | **已满足**：清单各项全部落地（旧库导入入口按 §2.2 不做），156 个用例在 lzc 无缓存通过；证据见 `docs/DESKTOP_PARITY.md` §5 与 §6 |
-| 2 | KMP 轨有可用的六平台打包流水线 | 连续三个 tag 由 KMP workflow 产出全部平台产物 | 部分满足。GitLab 线只接了 Linux x64/arm64 两个 job，其余四平台既没有 job 也没有 runner 标签。GitHub 线未接。
-
-「连续三个 tag」更无从谈起：流水线刚建，还没有任何 tag 走过它。见 §2.1 |
+| 2 | KMP 轨有可用的六平台打包流水线 | 连续三个 tag 由 KMP workflow 产出全部平台产物 | 部分满足。GitLab 线只接了 Linux x64/arm64 两个 job，其余四平台既没有 job 也没有 runner 标签，GitHub 线未接；「连续三个 tag」更无从谈起——流水线刚建，还没有任何 tag 走过它。见 §2.1 |
 | 3 | 旧数据能被新轨读取，不是让用户手工搬文件 | `LegacyDatabaseImporter` 在真实旧库上跑通一次，且新轨启动时自动导入 | 改判为"迁移义务不存在"。依据见 §2.2：Tauri 桌面轨从未发布过，没有用户持有它的产物，因此不再补自动导入与 UI 入口。`LegacyDatabaseImporter` 与 `LegacyDatabaseImporterTest` 保留，作为 Room schema 与 Tauri SQLite 兼容的证据 |
-| 4 | 用户迁移路径写明：两轨都没有自动更新，换轨的人必须手动下载新轨；token 保存位置不同（keyring → prefs），需要重新登录。按 §2.2，已装 Tauri 桌面版的用户实际为空，但这两段说明仍然要写——它同时是"默认轨从哪个版本起换人"的行为记录 | release note 模板里固定两段说明 | 未满足 |
-| 5 | 双轨并存至少跨越一个 stable 版周期无回归 | release 记录 + issue | 未满足 |
-| 6 | 文档、README、CI 引用全部改口 | `git grep -il tauri` 只剩 §4.2 允许保留的历史条目 | 未满足 |
+| 4 | 用户迁移路径写明：两轨都没有自动更新，换轨的人必须手动下载新轨；token 保存位置不同（keyring → prefs），需要重新登录。按 §2.2，已装 Tauri 桌面版的用户实际为空，但这两段说明仍然要写——它同时是"默认轨从哪个版本起换人"的行为记录 | release note 模板里固定两段说明 | **已满足**：`scripts/release/gitlab_desktop_release.sh` 的默认 release body 固定两段（无自动更新、凭据不随轨迁移需重新登录），`XINYI_DESKTOP_RELEASE_DESCRIPTION` 仍可整体覆盖 |
+| 5 | 双轨并存至少跨越一个 stable 版周期无回归 | release 记录 + issue | 未满足，且**只能在时间上满足**：需要至少一个 stable tag 走完双轨流水线并留下无回归记录。证据台账见 §2.3 |
+| 6 | 文档、README、CI 引用全部改口 | `git grep -il tauri` 只剩 §4.2 允许保留的历史条目 | 未满足，且**被默认轨切换阻塞**：Tauri 轨现在仍是随 tag 出包并在 README 里署名的现役桌面端，删掉这些引用会与事实不符。§4.2 的改口清单要在阶段 3（切换默认）执行 |
 
 ### 2.1 判据 2 的边界：为什么"六平台"在 GitLab 线上凑不齐
 
@@ -52,6 +50,22 @@ Tauri 桌面轨的产物从未到达过用户：
 - **不再做**：启动时自动导入旧库、旧库导入的 UI 入口；
 - **保留**：`LegacyDatabaseImporter` 与 `LegacyDatabaseImporterTest`。它们证明 `:desktop:data` 的 Room schema 与 Tauri 端 SQLite 是同一套结构，将来若发现有用户持有旧库，重新接上导入入口的成本很低；
 - **仍然要做**：§5 里关于凭据和 profile 的兼容说明，那是已装用户重填服务器地址的问题，与旧库无关。
+
+### 2.3 判据 5 的证据台账
+
+判据 5 是六条里唯一无法靠写代码满足的一条：它要求"双轨并存至少跨越一个 stable 版周期"，而周期是时间。为了让这条判据在未来的 tag 上能被客观判定，起点与记账方式固定在这里。
+
+**起点**：`10fefd205be593cc7732579909f0ceb339f36d51`（2026-10-03，`ci(desktop): add GitLab KMP packaging track for the desktop modules`）。这是两轨第一次同时挂在同一条流水线上——在此之前 KMP 轨只有本地构建，谈不上"并存"。
+
+**记账方式**：每有一个 stable tag（`v[0-9]+.[0-9]+.[0-9]+` 且无预发后缀）走完流水线，就在下表加一行。满足判据 5 的条件是该表至少有一行，且该行的"KMP 轨 job"与"Tauri 轨 job"都是通过、没有任何一轨的 job 因对方而失败或被跳过。
+
+| stable tag | 日期 | Tauri 轨 job | KMP 轨 job | 回归 issue |
+|---|---|---|---|---|
+| （待填：起点之后第一个 stable tag） | | | | |
+
+**当前状态**：起点之后还没有任何 tag 被推送——`git tag` 里最新的 stable tag 是 `v0.2.7`（2026-10-02），它在 KMP 流水线存在之前就已发布；当前 `versionName` 是 `0.2.8`，尚未打 tag。所以这张表现在必须留空，任何"已满足"的写法都是不实的。
+
+**一个诚实的说明**：判据 2 的"连续三个 tag 产出全部平台产物"与判据 5 的"一个 stable 周期无回归"共用同一批数据点，可以一起记账。
 
 ## 3. 时间线（按 tag 推进，不绑具体日期）
 
@@ -103,7 +117,7 @@ Tauri 桌面轨的产物从未到达过用户：
 ## 5. 数据与兼容
 
 - **本地数据库**：Tauri 端的 SQLite（`sqlite_store.rs`、`store.rs`）就是 `:desktop:data` 的 schema 来源，`LegacyDatabaseImporter` 已经能读它。原判据要求"退役前必须确认新轨首次启动会自动导入旧库"，已按 §2.2 改判：桌面轨零发布，没有用户持有旧库，自动导入与 UI 入口不再补。导入器本身保留，随时可以接回来。
-- **凭据**：两轨都用系统钥匙串（Tauri 走 `keyring` crate，新轨走 `secret-tool` / `security` 子进程），但服务名与条目命名不同，旧 token 读不出来。切换默认轨意味着已装用户要重新登录一次。
+- **凭据**：两轨都用系统钥匙串（Tauri 走 `keyring` crate，新轨走 `secret-tool` / `security` 子进程），但服务名与条目命名不同，旧 token 读不出来。切换默认轨意味着已装用户要重新登录一次；release body 的固定段落已写明这一点（判据 4）。
 - **没有自动更新**：两轨都没有更新器，已装 Tauri 版的用户不会自动迁移到新轨。删除发布物只影响"新用户能下到什么"，已装用户继续用旧版，直到自己下载新轨。
 - **profile 兼容**：两端的 profile 状态文件格式不同（Tauri 是 app config 目录下的 `desktop-state.json`，新轨是 `~/.xinyi-relay-desktop/profiles.json`），服务器地址要么导入，要么让用户重填。
 
