@@ -16,6 +16,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.github.magisk317.relay.contract.remote.DeviceConfigAuditLogItem
 import io.github.magisk317.relay.contract.remote.DeviceConfigCommandResponse
 import io.github.magisk317.relay.contract.remote.DeviceItem
 import io.github.magisk317.relay.contract.remote.RelayRecord
@@ -57,6 +58,7 @@ fun AnalyticsPage(
     var records by remember { mutableStateOf<List<RelayRecord>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf("") }
+    var auditLogs by remember { mutableStateOf<List<DeviceConfigAuditLogItem>>(emptyList()) }
 
     suspend fun load() {
         try {
@@ -66,6 +68,19 @@ fun AnalyticsPage(
             console.refreshDevices()
             records = client?.records(limit = 200)?.records ?: emptyList()
             console.refreshConfig()
+            auditLogs = try {
+                val auditDeviceId = console.selectedDeviceId
+                if (client != null && auditDeviceId != null) {
+                    client.deviceConfigAuditLogs(auditDeviceId, AUDIT_LOG_LIMIT, 0).logs
+                } else {
+                    emptyList()
+                }
+            } catch (failure: Exception) {
+                // The audit endpoint is best-effort: a failure degrades to an
+                // empty trail (the Tauri page does the same) so the rest of the
+                // page still renders.
+                emptyList()
+            }
         } catch (failure: Exception) {
             error = failure.message ?: DesktopMessages.t(locale, "common.loadFailed")
         } finally {
@@ -187,6 +202,25 @@ fun AnalyticsPage(
                 }
             }
             SurfaceCard(
+                title = DesktopMessages.t(locale, "analytics.auditTrailTitle"),
+                subtitle = console.selectedDeviceId?.let { deviceId ->
+                    DesktopMessages.t(locale, "records.deviceBadge", mapOf("deviceId" to deviceId))
+                },
+            ) {
+                if (auditLogs.isEmpty()) {
+                    EmptyCard(
+                        title = DesktopMessages.t(locale, "analytics.auditEmptyTitle"),
+                        message = DesktopMessages.t(locale, "analytics.auditEmptyMessage"),
+                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        auditLogs.forEach { log ->
+                            AuditLogCard(log = log, locale = locale)
+                        }
+                    }
+                }
+            }
+            SurfaceCard(
                 title = DesktopMessages.t(locale, "analytics.deviceActivityTitle"),
                 subtitle = DesktopMessages.t(
                     locale,
@@ -254,6 +288,50 @@ private fun PendingCommandCard(command: DeviceConfigCommandResponse, locale: Des
     }
 }
 
+
+@Composable
+private fun AuditLogCard(log: DeviceConfigAuditLogItem, locale: DesktopLocale) {
+    SurfaceCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            RelayBadge(text = log.eventType, tone = RelayTone.MUTED)
+            RelayBadge(text = log.actorType)
+            if (log.actorId > 0) {
+                RelayBadge(
+                    text = DesktopMessages.t(
+                        locale,
+                        "analytics.auditActor",
+                        mapOf("actorId" to log.actorId),
+                    ),
+                )
+            }
+        }
+        Text(
+            text = log.summary,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+        Text(
+            text = DesktopMessages.t(
+                locale,
+                "analytics.auditRevision",
+                mapOf("revision" to log.revision),
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+        Text(
+            text = formatTimestamp(log.createdAt),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+    }
+}
+
 @Composable
 private fun DeviceActivityCard(device: DeviceItem, locale: DesktopLocale) {
     SurfaceCard {
@@ -290,3 +368,6 @@ private fun DeviceActivityCard(device: DeviceItem, locale: DesktopLocale) {
         )
     }
 }
+
+/** Audit trail page size, matching the Tauri page's getDeviceConfigAuditLogs(id, 30, 0). */
+private const val AUDIT_LOG_LIMIT = 30

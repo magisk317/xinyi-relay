@@ -55,7 +55,7 @@ webUI 共 9 个页面，新轨 9 个路由全部有对应实现（`DesktopRoute`
 | 后端 profile 管理 | `frontend/desktop` 的 profile 存储 | `session/ProfileStore.kt`、`session/SessionManager.kt` | 多后端 profile + token 持久化 |
 | 控制台 HTTP 客户端 | `src/api/client.ts` | `remote/ConsoleClient.kt` | 合同 DTO 统一来自 `:relay:contract` |
 | 错误提示 | `template.tsx` 的 ErrorBanner | `ui/ConsoleComponents.kt` | 同一套视觉 |
-| 本地存储同步 | — | `modules/desktop/{core,data}`**尚未接入 `:desktop` UI** | 见 §5 |
+| 本地存储同步 | — | `modules/desktop/{core,data}` 已接入 `:desktop` UI（组合根创建 + 登录后 initialPull / 5 分钟周期同步 + 页脚状态展示；页面读取仍走 `ConsoleClient`，即 Remote 模式）| 见 §5 |
 
 ## 4. 有意保留的差异
 
@@ -89,33 +89,45 @@ webUI 共 9 个页面，新轨 9 个路由全部有对应实现（`DesktopRoute`
 | 托盘图标与菜单（显示主窗口、跳转页面、触发动作） | `src-tauri/src/tray.rs` | 无 |
 | RunMode：Local / Remote / Hybrid | `src-tauri/src/main.rs`（`enum RunMode`，默认 Remote） | 无：`:desktop` 只连远端 |
 | 局域网本地服务器（agent 心跳/上报入口） | `src-tauri/src/local_server.rs`（axum） | 无 |
-| 本地 SQLite 存储 | `src-tauri/src/sqlite_store.rs`、`src-tauri/src/store.rs` | `:desktop:data` 已有等价 Room schema（设备、config mirror/命令/审计、记录、本地设备绑定），`:desktop:core` 已有 Store + 同步引擎，**但 `:desktop` UI 未接入** |
-| 旧库导入（Tauri 期本地数据迁移） | — | `:desktop:data/legacy/LegacyDatabaseImporter.kt` 已实现并有测试，缺 UI 入口 |
+| 本地 SQLite 存储 | `src-tauri/src/sqlite_store.rs`、`src-tauri/src/store.rs` | `:desktop:data` 已有等价 Room schema（设备、config mirror/命令/审计、记录、本地设备绑定），`:desktop:core` 已有 Store + 同步引擎，**已接入 `:desktop` UI**：`DesktopApp` 组合根创建 `DesktopLocalRuntime`（`OkHttpRemoteStore` 对活 profile），登录后 initialPull + 5 分钟周期同步，页脚展示设备/记录数与失败态 |
+| 旧库导入（Tauri 期本地数据迁移） | — | 按 `docs/TAURI_RETIREMENT.md` §2.2 改判为不做：桌面轨零发布，没有用户持有旧库。`LegacyDatabaseImporter.kt` 已实现并有测试，保留作为 schema 兼容的证据，不接 UI、不自动触发 |
 | 离线/本地记录同步 | `src-tauri/src/sync.rs` | `:desktop:core/sync/SyncEngine.kt` 已实现并有测试，单飞同步用 `Mutex.tryLock` |
-| 系统通知 | `tauri-plugin-notification`（桌面横幅 + 测试通知） | 无 |
+| 系统通知 | `tauri-plugin-notification`（桌面横幅 + 测试通知） | 已补齐：`desktop.platform` 的 `DesktopNotifier`/`AwtNotifier`（`java.awt.SystemTray`，无托盘时 `notify` 返回 false），`DesktopApp` 在 realtime 事件上触发（`device.heartbeat` 静默），7 个单元用例 |
 | 数据库导出 / 导入 | `desktop_export_database` / `desktop_import_database` | 无 |
 | 诊断信息导出 | `desktop_export_diagnostics` | 无 |
-| 打开外部链接 | `desktop_open_external_url` | 无 |
+| 打开外部链接 | `desktop_open_external_url` | 已补齐：`DesktopLinkOpener`/`AwtLinkOpener`（仅放行 http/https），顶栏「打开控制台」按钮消费，失败闪现 `platform.openLinkFailed` 提示 |
 | 系统凭据保存（keyring） | `storage.rs`、`keyring` crate | `ProfileStore` 用 `java.util.prefs`，未用系统钥匙串 |
-| 单实例锁 | `tauri-plugin-single-instance` | 无 |
+| 单实例锁 | `tauri-plugin-single-instance` | 已补齐：`main()` 入口 `FileLockInstanceGuard`（advisory `FileLock`，进程死亡由 OS 释放），第二实例弹本地化对话框后 `exitProcess(1)` |
 | 设备绑定的本地服务器地址展示 | Tauri 前端 `pages/DevicesPage.tsx` | 无（依赖本地服务器能力） |
-| 设备配置审计日志页 | Tauri 前端 `pages/ConfigPage.tsx` | `ConsoleClient.deviceConfigAuditLogs` 已实现，未做页面 |
+| 设备配置审计日志页 | Tauri 前端 `pages/ConfigPage.tsx` | 已补齐：`AnalyticsPage` 在待执行命令面板之后渲染审计流水（`deviceConfigAuditLogs(id, 30, 0)`：事件类型/操作方/版本/时间，端点失败降级为空列表），`ConsoleClientTest` 覆盖端点解码与查询参数 |
 
 ## 6. 测试覆盖
 
 | 模块 | 测试类 | 用例数 |
 |---|---|---|
-| `:desktop` | 11（auth/config/i18n/remote/session/ui + QrCode + RecordMetadata + RealtimeEventFilter） | 67 |
+| `:desktop` | 14（auth/config/i18n/local/platform/remote/session/ui + QrCode + RecordMetadata + RealtimeEventFilter） | 81 |
 | `:desktop:core` | 3（SyncEngine / RecordSync / DeviceConfigQueue） | 15 |
 | `:desktop:data` | 2（DesktopSchema / LegacyDatabaseImporter） | 4 |
+
+合计 19 个测试类 / 100 个用例，2026-10-03 以 `--no-build-cache --rerun-tasks --no-configuration-cache` 在 lzc 上全量通过。
 
 本地验证命令（lzc，与 CI 一致）：
 
 ```bash
 export ANDROID_HOME=/home/lzc/.gitlab-runner-magisk/android-sdk
 ./gradlew :desktop:compileKotlinJvm :desktop:jvmTest \
-  :desktop:core:jvmTest :desktop:data:jvmTest --no-build-cache --rerun-tasks
+  :desktop:core:jvmTest :desktop:data:jvmTest verifyStructureBoundaries \
+  --no-build-cache --rerun-tasks --no-configuration-cache
 ```
+
+打新轨的包（与 CI 同一个脚本，2026-10-03 在 lzc 上验证：产出 deb + uber jar 各一个）：
+
+```bash
+scripts/ci/gitlab_desktop_kmp_package.sh kmp-linux-x64
+ls -la desktop-artifacts/kmp-linux-x64/
+```
+
+脚本自己会从 Adoptium stage 一份 JDK 27 到 `<repo>/.jdk-27/`（首次约 300 MB，之后复用），产物落在 `<repo>/desktop-artifacts/`，两个目录都已在 `.gitignore` 里。`desktop-artifacts/` 是连字符根目录名，`verifyStructureBoundaries` 的白名单里有它，本地打包后再跑结构检查不会因此失败。
 
 ## 7. 双轨并存的 CI 现状
 
@@ -126,4 +138,4 @@ export ANDROID_HOME=/home/lzc/.gitlab-runner-magisk/android-sdk
 | 双轨合同门禁把 `desktop/` 的裸 M3 叶子组件全部记为 shared 轨违约（274 处） | `.github/workflows/dual-track.yml` 在每次 push 上失败 | `desktop/`、`modules/desktop/` 是单轨 Compose Desktop 应用，不会并入 Android 的 M/X 两轨，按路径前缀豁免（`scripts/checks/dual_track_check.py`） |
 | CI 路径过滤把 `modules/desktop/**` 归入 app/mobile 桶 | `:desktop:core:jvmTest`、`:desktop:data:jvmTest` 从不执行 | 与 `desktop/*` 共用同一组任务，并带上 `verifyStructureBoundaries`（`scripts/ci/select_android_test_tasks.sh`） |
 
-新轨目前**没有打包/发布流水线**（`compose.desktop` 任务存在，但没有对应 workflow，也没有更新器），发布方式与退役判据见 `docs/DESKTOP_RELEASE_PLAN.md` 与 `docs/TAURI_RETIREMENT.md`。
+新轨**已有 GitLab 侧的打包/发布流水线，但只覆盖 Linux**：`.gitlab-ci.yml` 里的 `desktop-kmp:linux:x64`、`desktop-kmp:linux:arm64` 调 `scripts/ci/gitlab_desktop_kmp_package.sh`，产物汇入两轨共用的 `desktop:release:gitlab`。Windows/macOS 的 job 未接，GitHub 线也未接。两轨都没有自动更新器。发布方式细节见 `docs/DESKTOP_RELEASE_PLAN.md`，退役判据见 `docs/TAURI_RETIREMENT.md`。

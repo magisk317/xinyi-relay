@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -31,6 +32,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,7 +56,10 @@ import io.github.magisk317.relay.desktop.ui.pages.ScheduledTasksPage
 import io.github.magisk317.relay.desktop.ui.pages.SendersPage
 import io.github.magisk317.relay.desktop.ui.pages.SettingsPage
 import io.github.magisk317.relay.desktop.i18n.LocaleSetting
+import io.github.magisk317.relay.desktop.local.LocalSyncStatus
+import io.github.magisk317.relay.desktop.platform.DesktopLinkOpener
 import io.github.magisk317.relay.desktop.session.DesktopSessionState
+import kotlinx.coroutines.delay
 
 /** Routes mirroring the webUI router, in sidebar order. */
 enum class DesktopRoute(val labelKey: String, val icon: ImageVector) {
@@ -78,6 +83,8 @@ fun AppShellScreen(
     session: DesktopSessionState,
     console: DesktopConsoleState,
     feed: DesktopRealtimeFeed,
+    linkOpener: DesktopLinkOpener,
+    localSync: LocalSyncStatus,
     locale: DesktopLocale,
     onLocaleChange: (LocaleSetting) -> Unit,
     selectedLocale: LocaleSetting,
@@ -89,6 +96,7 @@ fun AppShellScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             Header(
                 session = session,
+                linkOpener = linkOpener,
                 locale = locale,
                 selectedLocale = selectedLocale,
                 onLocaleChange = onLocaleChange,
@@ -113,7 +121,7 @@ fun AppShellScreen(
                             onNavigate = { route = it },
                         )
                     }
-                    Footer(locale = locale)
+                    Footer(locale = locale, localSync = localSync)
                 }
             }
         }
@@ -123,6 +131,7 @@ fun AppShellScreen(
 @Composable
 private fun Header(
     session: DesktopSessionState,
+    linkOpener: DesktopLinkOpener,
     locale: DesktopLocale,
     selectedLocale: LocaleSetting,
     onLocaleChange: (LocaleSetting) -> Unit,
@@ -160,6 +169,11 @@ private fun Header(
                 )
             }
             Spacer(modifier = Modifier.weight(1f))
+            ConsoleLinkButton(
+                session = session,
+                locale = locale,
+                linkOpener = linkOpener,
+            )
             AccountMenu(
                 session = session,
                 locale = locale,
@@ -301,7 +315,7 @@ private fun AccountMenu(
 }
 
 @Composable
-private fun Footer(locale: DesktopLocale) {
+private fun Footer(locale: DesktopLocale, localSync: LocalSyncStatus? = null) {
     Surface(
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
@@ -318,6 +332,8 @@ private fun Footer(locale: DesktopLocale) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Spacer(modifier = Modifier.weight(1f))
+            localSync?.let { LocalMirrorHint(status = it, locale = locale) }
         }
     }
 }
@@ -350,3 +366,78 @@ private fun RouteContent(
         }
     }
 }
+
+/**
+ * Header affordance for the desktop link-opening seam: the webUI hands link
+ * activation to the browser chrome, the shell has no chrome, so the console
+ * URL goes through [DesktopLinkOpener] (http/https only, everything else is
+ * refused). A failed hand-off surfaces as a transient hint instead of a
+ * silent no-op.
+ */
+@Composable
+private fun ConsoleLinkButton(
+    session: DesktopSessionState,
+    locale: DesktopLocale,
+    linkOpener: DesktopLinkOpener,
+) {
+    var hint by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(hint) {
+        if (hint != null) {
+            delay(LINK_HINT_MS)
+            hint = null
+        }
+    }
+    val consoleUrl = session.activeProfile?.baseUrl?.trim().orEmpty()
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        TextButton(
+            onClick = {
+                hint = if (consoleUrl.isNotEmpty() && linkOpener.open(consoleUrl)) {
+                    null
+                } else {
+                    DesktopMessages.t(locale, "platform.openLinkFailed")
+                }
+            },
+            enabled = consoleUrl.isNotEmpty(),
+            colors = ButtonDefaults.textButtonColors(
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            ),
+        ) {
+            Text(text = DesktopMessages.t(locale, "platform.openConsole"))
+        }
+        hint?.let { message ->
+            Text(
+                text = message,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
+                modifier = Modifier.padding(start = 4.dp),
+            )
+        }
+    }
+}
+
+/**
+ * Footer read-out of the local mirror (parity §5): one line saying whether the
+ * SQLite mirror is syncing, failed, or how many rows the last round touched.
+ * Renders nothing until a round has completed, so pre-login states stay blank.
+ */
+@Composable
+private fun LocalMirrorHint(status: LocalSyncStatus, locale: DesktopLocale) {
+    val text = when {
+        status.error != null -> DesktopMessages.t(locale, "local.mirror.failed")
+        status.syncing -> DesktopMessages.t(locale, "local.mirror.syncing")
+        status.established -> DesktopMessages.t(
+            locale = locale,
+            key = "local.mirror.summary",
+            params = mapOf("devices" to status.devices, "records" to status.records),
+        )
+        else -> return
+    }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = 12.dp),
+    )
+}
+
+private const val LINK_HINT_MS = 3_000L

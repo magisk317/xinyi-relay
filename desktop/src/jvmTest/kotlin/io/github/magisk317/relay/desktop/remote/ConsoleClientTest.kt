@@ -106,4 +106,16 @@ class ConsoleClientTest {
         assertTrue(lastPathWithQuery.contains("limit=10"), lastPathWithQuery)
         assertTrue(lastPathWithQuery.contains("device_id=42"), lastPathWithQuery)
     }
+
+    @Test
+    fun `device config audit logs decode and carry query params`() = runBlocking {
+        responses["/api/v1/devices/9/config/audit"] = 200 to """{"logs":[{"id":5,"deviceId":9,"commandId":4,"revision":12,"eventType":"config.applied","actorType":"user","actorId":3,"summary":"push config","createdAt":"2026-10-01T00:00:00Z"}],"limit":30,"offset":0}"""
+        val logs = ConsoleClient(baseUrl()).deviceConfigAuditLogs(9L, 30, 0)
+        assertEquals(1, logs.logs.size)
+        assertEquals("config.applied", logs.logs[0].eventType)
+        assertEquals(12L, logs.logs[0].revision)
+        assertEquals(3L, logs.logs[0].actorId)
+        assertTrue(lastPathWithQuery.contains("limit=30"), lastPathWithQuery)
+        assertTrue(lastPathWithQuery.contains("offset=0"), lastPathWithQuery)
+    }
 }
