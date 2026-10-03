@@ -376,8 +376,6 @@
     <string name="pref_auto_update_on_start_summary">应用启动时执行一次更新策略</string>
     <string name="pref_auto_update_wifi_only_title">仅 Wi-Fi 自动检查更新</string>
     <string name="pref_auto_update_wifi_only_summary">仅在 Wi-Fi 下执行启动更新检查</string>
-    <string name="pref_enable_analytics_title">统计数据</string>
-    <string name="pref_enable_analytics_summary">允许开发者匿名分析通道使用情况、成功率、崩溃等技术细节</string>
     <string name="scheduled_reminder_entry_title">特殊提醒</string>
     <string name="scheduled_reminder_entry_summary">电量、来电与关键字提醒</string>
     <string name="scheduled_task_entry_title">定时任务</string>

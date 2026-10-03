@@ -187,6 +187,7 @@ internal fun SettingsDiagnosticsSection(
             ),
             state = RuntimeLogDiagnosticsState(
                 verboseLogEnabled = diagnostics.verboseLogMode,
+                analyticsEnabled = diagnostics.analyticsEnabled,
             ),
             callbacks = RuntimeLogDiagnosticsCallbacks(
                 onShareLog = onRuntimeLogTitleClick,
@@ -194,6 +195,7 @@ internal fun SettingsDiagnosticsSection(
                 onRetentionClick = onRuntimeLogRetentionClick,
                 onClearLogClick = onClearLog,
                 onSensitiveLogEnabledChange = onSensitiveDebugLogModeChange,
+                onAnalyticsEnabledChange = if (!BuildConfig.DEBUG) onAnalyticsEnabledChange else null,
             ),
             layout = RuntimeLogDiagnosticsLayout(
                 shareEntryMode = RuntimeLogShareEntryMode.SEPARATE_ITEM,
@@ -203,6 +205,7 @@ internal fun SettingsDiagnosticsSection(
                     RuntimeLogDiagnosticsItem.SENSITIVE_LOG,
                     RuntimeLogDiagnosticsItem.RETENTION,
                     RuntimeLogDiagnosticsItem.CLEAR_LOG,
+                    RuntimeLogDiagnosticsItem.ANALYTICS,
                 ),
             ),
         )
@@ -220,13 +223,6 @@ internal fun SettingsDiagnosticsSection(
                 onCheckedChange = onAutoUpdateWifiOnlyChange,
             )
         }
-        if (!BuildConfig.DEBUG) {
-            StateSwitchItem(
-                title = stringResource(id = R.string.pref_enable_analytics_title),
-                summary = stringResource(id = R.string.pref_enable_analytics_summary),
-                checked = diagnostics.analyticsEnabled,
-                onCheckedChange = onAnalyticsEnabledChange,
-            )
-        }
+
     }
 }
