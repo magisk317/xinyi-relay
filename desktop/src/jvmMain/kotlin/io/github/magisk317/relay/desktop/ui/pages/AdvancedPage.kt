@@ -25,10 +25,13 @@ import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.contract.remote.BindCodeResponse
 import io.github.magisk317.relay.contract.remote.DeviceItem
 import io.github.magisk317.relay.contract.remote.PatchDeviceRequest
+import io.github.magisk317.relay.desktop.core.model.SyncReport
+import io.github.magisk317.relay.desktop.core.model.SyncResult
 import io.github.magisk317.relay.desktop.i18n.DesktopLocale
 import io.github.magisk317.relay.desktop.i18n.DesktopMessages
 import io.github.magisk317.relay.desktop.local.DatabaseTransferController
 import io.github.magisk317.relay.desktop.local.DesktopDiagnosticsController
+import io.github.magisk317.relay.desktop.local.DesktopLocalSyncController
 import io.github.magisk317.relay.desktop.local.DiagnosticsOutcome
 import io.github.magisk317.relay.desktop.local.TransferOutcome
 import io.github.magisk317.relay.desktop.remote.DesktopRealtimeFeed
@@ -76,6 +79,8 @@ fun AdvancedPage(
     feed: DesktopRealtimeFeed,
     transfer: DatabaseTransferController,
     diagnostics: DesktopDiagnosticsController,
+    localSyncController: DesktopLocalSyncController? = null,
+    localServerUrl: String? = null,
     locale: DesktopLocale,
     onOpenScheduledTasks: () -> Unit = {},
 ) {
@@ -89,6 +94,7 @@ fun AdvancedPage(
     var transferBusy by remember { mutableStateOf(false) }
     var transferHint by remember { mutableStateOf<String?>(null) }
     var diagnosticsBusy by remember { mutableStateOf(false) }
+    var syncBusy by remember { mutableStateOf(false) }
 
     // Success hints self-clear like the header link hint; failures go to the
     // error banner so they stay until the next action.
@@ -244,6 +250,75 @@ fun AdvancedPage(
             )
         }
 
+        // Remote sync (parity §5): the Tauri "pull from remote" / "push to
+        // remote" pair, driving the mirror's own engine. The push direction is
+        // what moves config commands queued in Local/Hybrid out of the local
+        // pending queue and onto the backend; without it those edits would
+        // never leave the machine. Both need an authenticated session, so the
+        // card explains itself instead of failing at the click.
+        if (session.runMode.usesLocalMirror) {
+            val canSync = session.authenticated && localSyncController?.active == true
+            SurfaceCard(
+                title = DesktopMessages.t(locale, "advanced.syncTitle"),
+                subtitle = DesktopMessages.t(locale, "advanced.syncSubtitle"),
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (!canSync) {
+                        Text(
+                            text = DesktopMessages.t(locale, "advanced.syncNoSession"),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = ConsoleMuted,
+                        )
+                    } else {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            ActionButton(
+                                text = DesktopMessages.t(
+                                    locale,
+                                    if (syncBusy) "advanced.syncing" else "advanced.pullFromRemote",
+                                ),
+                                onClick = {
+                                    scope.launch {
+                                        syncBusy = true
+                                        try {
+                                            localSyncController?.sync()
+                                            error = ""
+                                        } finally {
+                                            syncBusy = false
+                                        }
+                                    }
+                                },
+                                tone = ActionTone.PRIMARY,
+                                enabled = !syncBusy,
+                            )
+                            ActionButton(
+                                text = DesktopMessages.t(
+                                    locale,
+                                    if (syncBusy) "advanced.syncing" else "advanced.pushToRemote",
+                                ),
+                                onClick = {
+                                    scope.launch {
+                                        syncBusy = true
+                                        try {
+                                            localSyncController?.push()
+                                            error = ""
+                                        } catch (failure: Exception) {
+                                            error = failure.message ?: "sync failed"
+                                        } finally {
+                                            syncBusy = false
+                                        }
+                                    }
+                                },
+                                enabled = !syncBusy,
+                            )
+                        }
+                    }
+                    localSyncController?.lastReport?.let { report ->
+                        SyncResultNotice(report = report, locale = locale)
+                    }
+                }
+            }
+        }
+
         // Local database (parity §5): the webUI's export/import buttons. The
         // card is inert with the mirror closed (Remote run mode), because the
         // snapshot rides the mirror's own connection.
@@ -339,7 +414,11 @@ fun AdvancedPage(
                 if (bindCode != null) {
                     val bindQrValue = buildBindQrValue(
                         code = bindCode?.code.orEmpty(),
-                        baseUrl = session.activeProfile?.baseUrl.orEmpty(),
+                        baseUrl = if (session.runMode == io.github.magisk317.relay.desktop.session.DesktopRunMode.Local) {
+                            localServerUrl.orEmpty()
+                        } else {
+                            session.activeProfile?.baseUrl.orEmpty()
+                        },
                     )
                     Surface(
                         shape = RoundedCornerShape(24.dp),
@@ -546,4 +625,57 @@ private fun RenameDeviceDialog(
             )
         },
     )
+}
+
+/**
+ * Outcome of the most recent manual sync round, the Tauri SyncResultCard in
+ * Compose: the config verdict with its revision, the counts the round moved,
+ * and the conflict hint that says which direction resolves it.
+ */
+@Composable
+private fun SyncResultNotice(report: SyncReport, locale: DesktopLocale) {
+    val config = report.config
+    val tone = if (config is SyncResult.Conflict) RelayTone.DANGER else RelayTone.SUCCESS
+    val title = when (config) {
+        is SyncResult.UpToDate -> DesktopMessages.t(locale, "advanced.syncUpToDate")
+        is SyncResult.Pulled -> DesktopMessages.t(locale, "advanced.syncPulled")
+        is SyncResult.Pushed -> DesktopMessages.t(locale, "advanced.syncPushed")
+        is SyncResult.Conflict -> DesktopMessages.t(locale, "advanced.syncConflict")
+    }
+    val detail = when (config) {
+        is SyncResult.UpToDate -> ""
+        is SyncResult.Pulled -> "revision ${config.newRevision}"
+        is SyncResult.Pushed -> "revision ${config.newRevision}"
+        is SyncResult.Conflict -> "local r${config.localRevision} vs remote r${config.remoteRevision}"
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            RelayBadge(text = DesktopMessages.t(locale, "advanced.syncResult"), tone = tone)
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                color = ConsoleInk,
+            )
+        }
+        if (detail.isNotEmpty()) {
+            Text(
+                text = detail,
+                style = MaterialTheme.typography.bodyMedium,
+                color = ConsoleMuted,
+            )
+        }
+        Text(
+            text = DesktopMessages.t(locale, "advanced.syncDevices") + ": " + report.devicesSynced +
+                "  /  " + DesktopMessages.t(locale, "advanced.syncRecords") + ": " + report.recordsSynced,
+            style = MaterialTheme.typography.bodyMedium,
+            color = ConsoleMuted,
+        )
+        if (config is SyncResult.Conflict) {
+            Text(
+                text = DesktopMessages.t(locale, "advanced.syncConflictHint"),
+                style = MaterialTheme.typography.bodyMedium,
+                color = ConsoleMuted,
+            )
+        }
+    }
 }

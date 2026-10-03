@@ -9,7 +9,7 @@
 | 位置 | `frontend/desktop/` | `desktop/`、`modules/desktop/core`、`modules/desktop/data` |
 | 技术栈 | Tauri 2（Rust + React + Vite + SQLite） | Kotlin Multiplatform + Compose Multiplatform（jvm） |
 | 规模 | 65 个受管文件：Rust 6,734 行（`src-tauri/src/`）+ TS/TSX 6,646 行（`src/`，9 个页面） | 控制台 9 个页面已对齐 `frontend/webui`（见 `docs/DESKTOP_PARITY.md`） |
-| 独有本地能力 | 托盘、本地 axum 服务器、SQLite、同步、通知、单实例、系统钥匙串、导出/导入 | 托盘、SQLite + 同步、通知、单实例已接入 `:desktop`（parity §5）；本地 axum 服务器、系统钥匙串仍缺，导出/导入已接入 `:desktop`（Advanced 页卡片 + 文件对话框 + 控制器） |
+| 独有本地能力 | 托盘、本地 axum 服务器、SQLite、同步、通知、单实例、系统钥匙串、导出/导入 | 全部接入 `:desktop`（parity §5）：托盘、SQLite + 双向同步（含手动 pull/push 与结果卡）、本地服务器（JDK HttpServer 移植 8 路由）、系统钥匙串（macOS security / Linux secret-tool）、通知、单实例、导出/导入（数据库 + 诊断） |
 | 发布方式 | 六平台矩阵，随 tag `v*.*.*` 出包 | GitLab 线只接 Linux x64/arm64 两个 job；Windows/macOS 未接，GitHub 线未接 |
 
 两轨**共用** `frontend/shared/`（契约与 console 客户端工具），但 `frontend/shared/` 同时被 `frontend/webui` 引用，所以退役 Tauri 端**不删** `frontend/shared/`。
@@ -20,7 +20,7 @@
 
 | # | 判据 | 验证方式 | 现状 |
 |---|---|---|---|
-| 1 | parity 清单 §5 的能力缺口全部补齐：托盘、RunMode + 本地服务器、本地存储接入 `:desktop` UI、通知、数据库导出/导入、诊断导出、打开外链、系统钥匙串、单实例、审计日志页（旧库导入入口已按 §2.2 从清单中划掉） | 逐项在 `:desktop` 里找到落点并有测试或人工走查记录 | 未满足：托盘、本地存储接入、系统通知、打开外链、单实例、审计日志页、数据库导出/导入、诊断信息导出已补齐（旧库导入入口按 §2.2 不做）；RunMode（切换 UI 与 Local 数据读路由已落地）+ 本地服务器、系统钥匙串仍缺 |
+| 1 | parity 清单 §5 的能力缺口全部补齐：托盘、RunMode + 本地服务器、本地存储接入 `:desktop` UI、通知、数据库导出/导入、诊断导出、打开外链、系统钥匙串、单实例、审计日志页（旧库导入入口已按 §2.2 从清单中划掉） | 逐项在 `:desktop` 里找到落点并有测试或人工走查记录 | **已满足**：清单各项全部落地（旧库导入入口按 §2.2 不做），156 个用例在 lzc 无缓存通过；证据见 `docs/DESKTOP_PARITY.md` §5 与 §6 |
 | 2 | KMP 轨有可用的六平台打包流水线 | 连续三个 tag 由 KMP workflow 产出全部平台产物 | 部分满足。GitLab 线只接了 Linux x64/arm64 两个 job，其余四平台既没有 job 也没有 runner 标签。GitHub 线未接。
 
 「连续三个 tag」更无从谈起：流水线刚建，还没有任何 tag 走过它。见 §2.1 |
@@ -55,7 +55,7 @@ Tauri 桌面轨的产物从未到达过用户：
 
 ## 3. 时间线（按 tag 推进，不绑具体日期）
 
-- **阶段 0（现在）**：KMP 轨已完成控制台移植，GitLab 线上也有了打包流水线，但只跑 Linux x64/arm64，且能力缺口（判据 1）还很大。桌面端默认形态仍是 Tauri 轨，KMP 产物不宣传。
+- **阶段 0（现在）**：KMP 轨已完成控制台移植，GitLab 线上也有了打包流水线（只覆盖 Linux x64/arm64），判据 1 的能力清单已全部落地。桌面端默认形态仍是 Tauri 轨，KMP 产物不宣传。
 - **阶段 1（建流水线）**：流水线已建于 GitLab 线，只覆盖 Linux。Windows/macOS 要等对应 runner 上真实跑过一轮才补。GitHub 线（`.github/workflows/desktop-kmp-package.yml`）尚未建，要等 GitLab 线跑顺、且 KMP 轨要作为默认桌面端之前再补。Tauri 轨完全不变。
 - **阶段 2（beta 预览）**：从某个 beta tag 起，KMP 轨产物作为预览版附在 release 上，note 里写清缺口；同时集中补 §2 判据 1 的能力。
 - **阶段 3（切换默认）**：某个 stable tag 起，README 与 release note 把 KMP 轨作为默认桌面端；Tauri 轨两个 workflow 保留，但不再随新 tag 触发。
@@ -103,9 +103,9 @@ Tauri 桌面轨的产物从未到达过用户：
 ## 5. 数据与兼容
 
 - **本地数据库**：Tauri 端的 SQLite（`sqlite_store.rs`、`store.rs`）就是 `:desktop:data` 的 schema 来源，`LegacyDatabaseImporter` 已经能读它。原判据要求"退役前必须确认新轨首次启动会自动导入旧库"，已按 §2.2 改判：桌面轨零发布，没有用户持有旧库，自动导入与 UI 入口不再补。导入器本身保留，随时可以接回来。
-- **凭据**：Tauri 端用系统钥匙串（`storage.rs`），新轨 `ProfileStore` 用 `java.util.prefs`。切换默认轨意味着已装用户要重新登录一次；如果阶段 2/3 补齐了钥匙串支持，这段说明也要跟着改。
+- **凭据**：两轨都用系统钥匙串（Tauri 走 `keyring` crate，新轨走 `secret-tool` / `security` 子进程），但服务名与条目命名不同，旧 token 读不出来。切换默认轨意味着已装用户要重新登录一次。
 - **没有自动更新**：两轨都没有更新器，已装 Tauri 版的用户不会自动迁移到新轨。删除发布物只影响"新用户能下到什么"，已装用户继续用旧版，直到自己下载新轨。
-- **profile 兼容**：两端存储 key 不同（Tauri 走 keyring / Rust store，新轨走 prefs），服务器地址要么导入，要么让用户重填。
+- **profile 兼容**：两端的 profile 状态文件格式不同（Tauri 是 app config 目录下的 `desktop-state.json`，新轨是 `~/.xinyi-relay-desktop/profiles.json`），服务器地址要么导入，要么让用户重填。
 
 ## 6. 回滚
 

@@ -119,7 +119,14 @@ fun DesktopApp(window: java.awt.Window, windowState: WindowState, onQuit: () -> 
     val mirrorProfile = session.activeProfile
     LaunchedEffect(session.authenticated, mirrorProfile, session.runMode) {
         val client = session.currentClient()
-        if (session.runMode.usesLocalMirror && session.authenticated && mirrorProfile != null && client != null) {
+        if (session.runMode.usesLocalMirror &&
+            (!session.authenticated || mirrorProfile == null || client == null)
+        ) {
+            localSync.startLocalOnly()
+            // Local mode is useful with an existing mirror even before the
+            // user signs in again; bootstrap the shell from that mirror.
+            if (session.runMode == DesktopRunMode.Local) console.bootstrap()
+        } else if (session.runMode.usesLocalMirror && session.authenticated && mirrorProfile != null && client != null) {
             val remote = OkHttpRemoteStore(baseUrl = mirrorProfile.baseUrl)
             client.accessToken?.let { remote.setAccessToken(it) }
             localSync.start(remote)
@@ -211,13 +218,16 @@ fun DesktopApp(window: java.awt.Window, windowState: WindowState, onQuit: () -> 
         Surface(modifier = Modifier.fillMaxSize()) {
             when {
                 session.loading -> SplashScreen(locale = locale)
-                !session.authenticated -> LoginScreen(session = session, locale = locale)
+                !session.authenticated && !(session.runMode == DesktopRunMode.Local && localSync.active) ->
+                    LoginScreen(session = session, locale = locale)
                 else -> AppShellScreen(
                     session = session,
                     console = console,
                     feed = feed,
                     linkOpener = linkOpener,
                     localSync = localSync.status,
+                    localSyncController = localSync,
+                    localServerUrl = localSync.localServerUrl,
                     transfer = transfer,
                     diagnostics = diagnostics,
                     locale = locale,

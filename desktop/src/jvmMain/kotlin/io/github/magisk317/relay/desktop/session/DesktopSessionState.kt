@@ -110,6 +110,11 @@ class DesktopSessionState(private val store: ProfileStore = ProfileStore()) {
             runMode = state.runMode
             loadedProfiles = state.profiles
             val profile = state.activeProfileId?.let { id -> state.profiles.firstOrNull { it.id == id } }
+            // Local mode can bootstrap from the on-disk mirror without a
+            // valid backend session. Publish the profile independently of the
+            // session probe so the composition root can still open that
+            // mirror and its embedded agent server.
+            activeProfile = profile
             val persisted = profile?.let { store.loadSession(it.id) }
             if (profile == null || persisted == null) {
                 loading = false

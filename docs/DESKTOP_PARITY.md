@@ -82,34 +82,34 @@ webUI 共 9 个页面，新轨 9 个路由全部有对应实现（`DesktopRoute`
 
 ## 5. 新轨相对 Tauri 现役端仍缺的能力
 
-这些是 Tauri 端（`frontend/desktop/`）有、KMP 新轨还没有的能力；退役计划以逐项补齐为前提。
+这些是 Tauri 端（`frontend/desktop/`）有、KMP 新轨还没有的能力；退役计划以逐项补齐为前提。下面逐行给出当前状态：绝大多数已补齐，仅有的例外都写明了原因。
 
 | 能力 | Tauri 落点 | KMP 新轨现状 |
 |---|---|---|
 | 托盘图标与菜单（显示主窗口、跳转页面、触发动作） | `src-tauri/src/tray.rs` | 已补齐：`desktop.platform` 的 `DesktopTray`/`AwtTray`（`java.awt.SystemTray`，无托盘时 `install` 返回 false，其余操作全部惰性无抛），`TrayMenu` 按 `tray.rs` 原顺序六行（quit 前分隔符）；菜单跳转与左键唤醒经 `WindowState.isMinimized` 还原并前置窗口，「打开设备」落在 Advanced（绑定码 + 设备列表所在页），「重新连接监控」走 feed stop/start；与 `AwtNotifier` 共享同一托盘图标（全进程只有一个托盘条目），4 个单元用例 |
-| RunMode：Local / Remote / Hybrid | `src-tauri/src/main.rs`（`enum RunMode`，默认 Remote） | 部分完成：模型、持久化、切换 UI 与 Local 数据读路由已落地——`desktop.session.DesktopRunMode` 枚举 + `profiles.json` 的 `runMode` 字段（旧文件缺失该字段时默认 Remote），设置页「运行模式」`RelaySelect` 三选一（切换即时持久化），`DesktopApp` 按模式装配本地镜像（Remote 关闭，Local/Hybrid 开启并周期同步）。读路由：`remote.ConsoleDataClient` 接口两实现——HTTP 的 `ConsoleClient` 与镜像的 `local.LocalMirrorClient`（core Store → contract DTO 逐字段映射，`patch/revoke` 回声 Rust 的 `{"ok":true}` ack、未知记录 404、本地 queue 先校验 mirror revision 再落 pending 行并写 `command.queued` 审计）——`local.DesktopReadRouter` 逐次调用裁决（Local 读镜像、Remote/Hybrid 读远程、镜像未开时降级远程、切换即时生效），页面与 `DesktopConsoleState` 统一经 `session.dataClient()`；Hybrid 按 Rust 语义保持远程主读、镜像仅热缓存；Local 模式另门禁远程 SSE feed、诊断连接态置 `local`。仅剩局域网本地服务器 |
-| 局域网本地服务器（agent 心跳/上报入口） | `src-tauri/src/local_server.rs`（axum） | 无 |
+| RunMode：Local / Remote / Hybrid | `src-tauri/src/main.rs`（`enum RunMode`，默认 Remote） | 部分完成：模型、持久化、切换 UI 与 Local 数据读路由已落地——`desktop.session.DesktopRunMode` 枚举 + `profiles.json` 的 `runMode` 字段（旧文件缺失该字段时默认 Remote），设置页「运行模式」`RelaySelect` 三选一（切换即时持久化），`DesktopApp` 按模式装配本地镜像（Remote 关闭，Local/Hybrid 开启并周期同步）。读路由：`remote.ConsoleDataClient` 接口两实现——HTTP 的 `ConsoleClient` 与镜像的 `local.LocalMirrorClient`（core Store → contract DTO 逐字段映射，`patch/revoke` 回声 Rust 的 `{"ok":true}` ack、未知记录 404、本地 queue 先校验 mirror revision 再落 pending 行并写 `command.queued` 审计）——`local.DesktopReadRouter` 逐次调用裁决（Local 读镜像、Remote/Hybrid 读远程、镜像未开时降级远程、切换即时生效），页面与 `DesktopConsoleState` 统一经 `session.dataClient()`；Hybrid 按 Rust 语义保持远程主读、镜像仅热缓存；Local 模式另门禁远程 SSE feed、诊断连接态置 `local`；无会话时也可打开镜像并从镜像启动（登录页在 Local+镜像已开时让位于主壳）。局域网本地服务器已补齐（见上行） |
+| 局域网本地服务器（agent 心跳/上报入口） | `src-tauri/src/local_server.rs`（axum） | 已补齐：`local.DesktopLocalServer`（JDK 内置 `com.sun.net.httpserver`，零新依赖）移植 axum 版全部 8 条路由——`/healthz`、`/api/v1/system/info`、agent 注册（绑定码单次使用）、心跳、config mirror、config commands `pull`/`ack`、records batch；Bearer 设备令牌鉴权、绑定码换 token、512 字符截断、200 条/批与 8 MiB 体积上限、`StoreError.Conflict → 409`、`Internal → 500`、方法不符 405、超限 413；绑 127.0.0.1 随机端口（`InetSocketAddress("127.0.0.1", 0)`，与 Rust 同样只回环，不裸露到网络接口），daemon 线程池随 `stop()` 关停。`DesktopLocalSyncController` 在镜像打开时拉起、关闭时停掉，回环 URL 经 `localServerUrl` 供 Advanced 页绑定二维码使用（Local 模式二维码指向本机服务器），5 个单元用例 |
 | 本地 SQLite 存储 | `src-tauri/src/sqlite_store.rs`、`src-tauri/src/store.rs` | `:desktop:data` 已有等价 Room schema（设备、config mirror/命令/审计、记录、本地设备绑定），`:desktop:core` 已有 Store + 同步引擎，**已接入 `:desktop` UI**：`DesktopApp` 组合根创建 `DesktopLocalRuntime`（`OkHttpRemoteStore` 对活 profile），登录后 initialPull + 5 分钟周期同步，页脚展示设备/记录数与失败态 |
 | 旧库导入（Tauri 期本地数据迁移） | — | 按 `docs/TAURI_RETIREMENT.md` §2.2 改判为不做：桌面轨零发布，没有用户持有旧库。`LegacyDatabaseImporter.kt` 已实现并有测试，保留作为 schema 兼容的证据，不接 UI、不自动触发 |
-| 离线/本地记录同步 | `src-tauri/src/sync.rs` | `:desktop:core/sync/SyncEngine.kt` 已实现并有测试，单飞同步用 `Mutex.tryLock` |
+| 离线/本地记录同步 | `src-tauri/src/sync.rs` | 已补齐：`:desktop:core/sync/SyncEngine.kt`（pull/push 双向，单飞用 `Mutex.tryLock`）接入 UI——Advanced 页「远程同步」卡在 Local/Hybrid 下提供「从远程拉取」「推送到远程」两键（对齐 Tauri advanced 页同位置的两键），往返状态经 `DesktopLocalSyncController.lastReport` 渲染为结果卡（已是最新 / 已拉取 / 已推送 / 冲突 + revision 与计数，冲突给方向提示）；未登录或镜像未开时卡片显示说明而非报错 |
 | 系统通知 | `tauri-plugin-notification`（桌面横幅 + 测试通知） | 已补齐：`desktop.platform` 的 `DesktopNotifier`/`AwtNotifier`（`java.awt.SystemTray`，无托盘时 `notify` 返回 false），`DesktopApp` 在 realtime 事件上触发（`device.heartbeat` 静默），11 个单元用例 |
 | 数据库导出 / 导入 | `desktop_export_database` / `desktop_import_database` | 已补齐：`:desktop:data` 的 `DatabaseTransfer`（format id + version 的 JSON 快照，7 表全量、记录表翻页读全、导入单事务 replace-all、信封先校验、坏格式 / 版本过新 / 缺表一律具名拒绝且整体回滚）+ `desktop.platform.DesktopFileDialog` / `AwtFileDialog`（AWT 模态框，OS 调用经可注入 lambda、headless 退化为取消、`.json` 过滤放行目录）+ `desktop.local.DatabaseTransferController`（骑本地镜像同一条连接、tmp + rename 原子写、UTC 戳默认名 `xinyi-relay-desktop-<yyyyMMdd-HHmmss>.json`、Exported / Imported / Cancelled / Failed 四态）+ Advanced 页「本地数据库」卡（导出 PRIMARY / 导入 WARNING，导入前 ConfirmDialog，镜像关闭时显示不可用说明，成功提示 6 秒自清，失败进 ErrorBanner）；16 个单元用例（data 11 + desktop 5）；旧 Tauri `local-data.db` 是裸 SQLite 文件，按 §2.2 不兼容、不导入 |
 | 诊断信息导出 | `desktop_export_diagnostics` | 已补齐：`session/DesktopDiagnostics.kt` 的 `DesktopDiagnostics` 快照，对齐 Tauri payload 的五节——profiles、connection（state/message/lastChangedAt）、session（profileId/username/expiresAt/refreshExpiresAt 脱敏投影，access/refresh token 永不入包，测试断言零泄漏）、notifications（KMP 壳无通知开关，恒为 null）、runMode；另带 KMP 扩展节 app（name/version/os/arch/java 排障必填）与 mirror（active/devices/records/syncing/error）。`DesktopDiagnosticsController` 经 AWT 文件对话框选位置、tmp + rename 原子写、默认名 `xinyi-relay-diagnostics-<UTC yyyyMMdd-HHmmss>.json`；Advanced 页第三张卡常驻可用（镜像坏时正需要它，不门禁 mirror）；4 个单元用例 |
 | 打开外部链接 | `desktop_open_external_url` | 已补齐：`DesktopLinkOpener`/`AwtLinkOpener`（仅放行 http/https），顶栏「打开控制台」按钮消费，失败闪现 `platform.openLinkFailed` 提示 |
-| 系统凭据保存（keyring） | `storage.rs`、`keyring` crate | `ProfileStore` 用 `java.util.prefs`，未用系统钥匙串 |
+| 系统凭据保存（keyring） | `storage.rs`、`keyring` crate | 已补齐：`session.DesktopCredentialStore` 接口 + `SystemCredentialStore`（macOS 走 `/usr/bin/security`，Linux 走 `secret-tool`；Windows/其他平台显式拒绝而非静默降级到明文），`ProfileStore` 的会话文件只留 username 与两个过期戳，access/refresh token 一律走系统钥匙串（测试断言 JSON 里搜不到 token）；旧明文会话文件首次读取时一次性迁移，钥匙串写入失败则保留旧文件不毁数据；钥匙串不可用时该 profile 视为无会话（需重新登录）。`InMemoryDesktopCredentialStore` 供测试注入 |
 | 单实例锁 | `tauri-plugin-single-instance` | 已补齐：`main()` 入口 `FileLockInstanceGuard`（advisory `FileLock`，进程死亡由 OS 释放），第二实例弹本地化对话框后 `exitProcess(1)` |
-| 设备绑定的本地服务器地址展示 | Tauri 前端 `pages/DevicesPage.tsx` | 无（依赖本地服务器能力） |
+| 设备绑定的本地服务器地址展示 | Tauri 前端 `pages/DevicesPage.tsx` | 已补齐：Advanced 页绑定码二维码在 Local 模式取 `localServerUrl`（内嵌服务器回环地址），其余模式仍取远程 profile 的 baseUrl，与 Tauri 端同一分支语义 |
 | 设备配置审计日志页 | Tauri 前端 `pages/ConfigPage.tsx` | 已补齐：`AnalyticsPage` 在待执行命令面板之后渲染审计流水（`deviceConfigAuditLogs(id, 30, 0)`：事件类型/操作方/版本/时间，端点失败降级为空列表），`ConsoleClientTest` 覆盖端点解码与查询参数 |
 
 ## 6. 测试覆盖
 
 | 模块 | 测试类 | 用例数 |
 |---|---|---|
-| `:desktop` | 20（auth/config/i18n/local/platform/remote/session/ui + QrCode + RecordMetadata + RealtimeEventFilter + session state + run mode + DatabaseTransferController + DesktopDiagnostics + LocalMirrorClient + DesktopReadRouter） | 118 |
+| `:desktop` | 21（auth/config/i18n/local/platform/remote/session/ui + QrCode + RecordMetadata + RealtimeEventFilter + session state + run mode + DatabaseTransferController + DesktopDiagnostics + LocalMirrorClient + DesktopReadRouter + DesktopLocalServer） | 126 |
 | `:desktop:core` | 3（SyncEngine / RecordSync / DeviceConfigQueue） | 15 |
 | `:desktop:data` | 3（DesktopSchema / LegacyDatabaseImporter / DatabaseTransfer） | 15 |
 
-合计 26 个测试类 / 148 个用例，2026-10-03 以 `--no-build-cache --rerun-tasks --no-configuration-cache` 在 lzc 上全量通过。
+合计 27 个测试类 / 156 个用例，2026-10-04 以 `--no-build-cache --rerun-tasks` 在 lzc 上全量通过（45 个任务全部执行，0 失败 0 错误）。
 
 本地验证命令（lzc，与 CI 一致）：
 

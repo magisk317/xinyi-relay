@@ -69,6 +69,20 @@ class DesktopReadRouterTest {
     }
 
     @Test
+    fun `local mode reads from the mirror without a remote session`() = runBlocking {
+        val store = seededStore("router-local-no-session-test")
+
+        val routed = DesktopReadRouter(
+            remoteProvider = { null },
+            storeProvider = { store },
+            modeProvider = { DesktopRunMode.Local },
+        ).route()
+
+        assertTrue(routed is LocalMirrorClient)
+        assertEquals(1, routed!!.devices().devices.size)
+    }
+
+    @Test
     fun `the decision is re-evaluated per call so a mode switch lands`() {
         val remote = ConsoleClient("http://console.invalid")
         val store = seededStore("router-switch-test")

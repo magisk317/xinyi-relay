@@ -58,6 +58,7 @@ import io.github.magisk317.relay.desktop.ui.pages.SettingsPage
 import io.github.magisk317.relay.desktop.i18n.LocaleSetting
 import io.github.magisk317.relay.desktop.local.DatabaseTransferController
 import io.github.magisk317.relay.desktop.local.DesktopDiagnosticsController
+import io.github.magisk317.relay.desktop.local.DesktopLocalSyncController
 import io.github.magisk317.relay.desktop.local.LocalSyncStatus
 import io.github.magisk317.relay.desktop.platform.DesktopLinkOpener
 import io.github.magisk317.relay.desktop.session.DesktopSessionState
@@ -87,6 +88,8 @@ fun AppShellScreen(
     feed: DesktopRealtimeFeed,
     linkOpener: DesktopLinkOpener,
     localSync: LocalSyncStatus,
+    localSyncController: DesktopLocalSyncController?,
+    localServerUrl: String?,
     transfer: DatabaseTransferController,
     diagnostics: DesktopDiagnosticsController,
     locale: DesktopLocale,
@@ -124,6 +127,8 @@ fun AppShellScreen(
                             feed = feed,
                             transfer = transfer,
                             diagnostics = diagnostics,
+                            localSyncController = localSyncController,
+                            localServerUrl = localServerUrl,
                             locale = locale,
                             onNavigate = onNavigate,
                         )
@@ -353,6 +358,8 @@ private fun RouteContent(
     feed: DesktopRealtimeFeed,
     transfer: DatabaseTransferController,
     diagnostics: DesktopDiagnosticsController,
+    localSyncController: DesktopLocalSyncController?,
+    localServerUrl: String?,
     locale: DesktopLocale,
     onNavigate: (DesktopRoute) -> Unit = {},
 ) {
@@ -370,6 +377,8 @@ private fun RouteContent(
                 feed = feed,
                 transfer = transfer,
                 diagnostics = diagnostics,
+                localSyncController = localSyncController,
+                localServerUrl = localServerUrl,
                 locale = locale,
                 onOpenScheduledTasks = { onNavigate(DesktopRoute.SCHEDULED_TASKS) },
             )

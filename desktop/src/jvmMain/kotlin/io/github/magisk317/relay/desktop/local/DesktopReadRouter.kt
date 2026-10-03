@@ -35,9 +35,14 @@ class DesktopReadRouter(
 ) {
 
     fun route(): ConsoleDataClient? {
-        val remote = remoteProvider() ?: return null
-        if (modeProvider() != DesktopRunMode.Local) return remote
-        val store = storeProvider() ?: return remote
-        return LocalMirrorClient(store)
+        val mode = modeProvider()
+        if (mode == DesktopRunMode.Local) {
+            // Local mode is deliberately usable without a backend session. The
+            // Rust shell follows the same rule: it can bootstrap from the
+            // mirror and serve the embedded agent API before login. Only fall
+            // back to HTTP when the mirror failed to open.
+            storeProvider()?.let { return LocalMirrorClient(it) }
+        }
+        return remoteProvider()
     }
 }

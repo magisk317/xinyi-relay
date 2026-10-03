@@ -7,6 +7,7 @@ import io.github.magisk317.relay.desktop.core.model.DeviceConfigCommand
 import io.github.magisk317.relay.desktop.core.model.DeviceConfigState
 import io.github.magisk317.relay.desktop.core.model.Paginated
 import io.github.magisk317.relay.desktop.core.model.Record
+import io.github.magisk317.relay.desktop.core.model.SyncResult
 import io.github.magisk317.relay.desktop.core.model.SystemInfo
 import io.github.magisk317.relay.desktop.core.store.RemoteStore
 import kotlinx.coroutines.runBlocking
@@ -82,6 +83,64 @@ class DesktopLocalSyncTest {
     }
 
     @Test
+    fun `push sends queued config commands to the backend`() = runBlocking {
+        val remote = FakeRemoteStore()
+        val controller = controller()
+        controller.start(remote)
+        try {
+            // The Local mode's write path lands a pending row in the mirror;
+            // until push runs, the backend has seen nothing.
+            val local = requireNotNull(controller.store)
+            local.queueDeviceConfigCommand(
+                deviceId = 7L,
+                baseRevision = 4L,
+                summary = "apps:update",
+                mutation = JsonObject(mapOf("apps" to JsonPrimitive("x"))),
+            )
+            assertEquals(0, remote.queued.size)
+
+            val report = controller.push()
+
+            assertNotNull(report)
+            assertEquals(1, remote.queued.size)
+            assertTrue(report!!.config is SyncResult.Pushed)
+            assertEquals(report, controller.lastReport)
+        } finally {
+            controller.stop()
+        }
+    }
+
+    @Test
+    fun `a pushed round clears the mirror's pending queue`() = runBlocking {
+        val remote = FakeRemoteStore()
+        val controller = controller()
+        controller.start(remote)
+        try {
+            val local = requireNotNull(controller.store)
+            local.queueDeviceConfigCommand(
+                deviceId = 7L,
+                baseRevision = 4L,
+                summary = "apps:update",
+                mutation = JsonObject(mapOf("apps" to JsonPrimitive("x"))),
+            )
+            assertFalse(local.getDeviceConfig(7L).pendingCommands.isEmpty())
+
+            controller.push()
+
+            assertTrue(local.getDeviceConfig(7L).pendingCommands.isEmpty())
+        } finally {
+            controller.stop()
+        }
+    }
+
+    @Test
+    fun `push without a started runtime returns null`() = runBlocking {
+        val controller = controller()
+        assertNull(controller.push())
+        assertNull(controller.lastReport)
+    }
+
+    @Test
     fun `sync without a started runtime is a no-op`() = runBlocking {
         val controller = controller()
         controller.sync()
@@ -147,12 +206,26 @@ class DesktopLocalSyncTest {
 
         override suspend fun getSystemInfo(): SystemInfo = error("the pull path never reads system info")
 
+        /** Commands the push direction handed to this fake backend. */
+        val queued = mutableListOf<DeviceConfigCommand>()
+
         override suspend fun queueDeviceConfigCommand(
             deviceId: Long,
             baseRevision: Long,
             summary: String,
             mutation: JsonElement,
-        ): DeviceConfigCommand = error("the pull path never queues commands")
+        ): DeviceConfigCommand {
+            val command = DeviceConfigCommand(
+                id = queued.size + 1L,
+                baseRevision = baseRevision,
+                targetRevision = baseRevision + 1,
+                mutation = mutation,
+                summary = summary,
+                status = "pending",
+            )
+            queued += command
+            return command
+        }
 
         override fun setAccessToken(token: String?) = Unit
     }
