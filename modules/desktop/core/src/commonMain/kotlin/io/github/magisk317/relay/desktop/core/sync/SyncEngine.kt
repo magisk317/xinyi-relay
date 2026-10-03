@@ -120,11 +120,11 @@ class SyncEngine(
 
             val result = when {
                 conflict != null -> SyncResult.Conflict(
-                    localRevision = conflict!!.first,
-                    remoteRevision = conflict!!.second,
+                    localRevision = conflict.first,
+                    remoteRevision = conflict.second,
                 )
 
-                pulledRevision != null -> SyncResult.Pulled(pulledRevision!!)
+                pulledRevision != null -> SyncResult.Pulled(pulledRevision)
 
                 else -> SyncResult.UpToDate
             }
@@ -178,11 +178,11 @@ class SyncEngine(
 
         val result = when {
             conflict != null -> SyncResult.Conflict(
-                localRevision = conflict!!.first,
-                remoteRevision = conflict!!.second,
+                localRevision = conflict.first,
+                remoteRevision = conflict.second,
             )
 
-            pushedRevision != null -> SyncResult.Pushed(pushedRevision!!)
+            pushedRevision != null -> SyncResult.Pushed(pushedRevision)
 
             else -> SyncResult.UpToDate
         }

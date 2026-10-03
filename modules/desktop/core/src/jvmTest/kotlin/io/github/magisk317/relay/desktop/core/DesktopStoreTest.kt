@@ -221,14 +221,14 @@ class RecordSyncTest {
             database.seedDevice(1L)
             val first = store.syncLocalDeviceRecords(
                 deviceId = 1L,
-                incoming = listOf(record("evt-1", "hello"), record("evt-2", "world")),
+                records = listOf(record("evt-1", "hello"), record("evt-2", "world")),
                 replaceExisting = false,
             )
             assertEquals(RecordSyncResultProbe(2, 0, 0), first.probe())
 
             val second = store.syncLocalDeviceRecords(
                 deviceId = 1L,
-                incoming = listOf(record("evt-1", "hello again")),
+                records = listOf(record("evt-1", "hello again")),
                 replaceExisting = false,
             )
             assertEquals(RecordSyncResultProbe(0, 1, 0), second.probe())
@@ -248,12 +248,12 @@ class RecordSyncTest {
             database.seedDevice(1L)
             store.syncLocalDeviceRecords(
                 deviceId = 1L,
-                incoming = listOf(record("evt-1", "a"), record("evt-2", "b")),
+                records = listOf(record("evt-1", "a"), record("evt-2", "b")),
                 replaceExisting = false,
             )
             val result = store.syncLocalDeviceRecords(
                 deviceId = 1L,
-                incoming = listOf(record("evt-1", "a")),
+                records = listOf(record("evt-1", "a")),
                 replaceExisting = true,
             )
             assertEquals(RecordSyncResultProbe(0, 1, 1), result.probe())
@@ -270,7 +270,7 @@ class RecordSyncTest {
             database.seedDevice(1L)
             val result = store.syncLocalDeviceRecords(
                 deviceId = 1L,
-                incoming = listOf(record(null, "a"), record(null, "b")),
+                records = listOf(record(null, "a"), record(null, "b")),
                 replaceExisting = false,
             )
             assertEquals(RecordSyncResultProbe(2, 0, 0), result.probe())

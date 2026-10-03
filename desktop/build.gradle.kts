@@ -11,8 +11,8 @@ kotlin {
     sourceSets {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
-            implementation(compose.material3)
-            implementation(compose.materialIconsExtended)
+            implementation(libs.compose.desktop.material3)
+            implementation(libs.compose.desktop.material.icons.extended)
             implementation(project(":relay:contract"))
             implementation(project(":relay:sender:api"))
             implementation(project(":relay:net"))

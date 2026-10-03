@@ -178,8 +178,8 @@ class DesktopLocalStore(
         localDevices.revokeToken(deviceId, now)
     }
 
-    override suspend fun upsertDevices(items: List<Device>) {
-        devices.upsertAll(items.map { it.toEntity() })
+    override suspend fun upsertDevices(devices: List<Device>) {
+        this.devices.upsertAll(devices.map { it.toEntity() })
     }
 
     // ----------------------------------------------------------------- records
@@ -195,8 +195,8 @@ class DesktopLocalStore(
 
     override suspend fun getRecord(recordId: Long): Record? = records.findById(recordId)?.toModel()
 
-    override suspend fun upsertRecords(items: List<Record>) {
-        records.upsertAll(items.map { it.toEntity() })
+    override suspend fun upsertRecords(records: List<Record>) {
+        this.records.upsertAll(records.map { it.toEntity() })
     }
 
     // ------------------------------------------------------------------ system
@@ -319,34 +319,35 @@ class DesktopLocalStore(
 
     override suspend fun syncLocalDeviceRecords(
         deviceId: Long,
-        incoming: List<Record>,
+        records: List<Record>,
         replaceExisting: Boolean,
     ): RecordSyncResult {
-        val knownEventIds = records.listEventIds(deviceId).toMutableSet()
-        val incomingEventIds = incoming.mapNotNull { it.eventId }.toSet()
+        val knownEventIds = this.records.listEventIds(deviceId).toMutableSet()
+        val incomingEventIds = records.mapNotNull { it.eventId }.toSet()
 
         var deleted = 0
         if (replaceExisting) {
-            val staleIds = records.listIdEventIdPairs(deviceId)
+            val staleIds = this.records.listIdEventIdPairs(deviceId)
                 .filter { pair -> pair.eventId == null || pair.eventId !in incomingEventIds }
                 .map(RelayRecordIdEvent::id)
-            staleIds.forEach { records.deleteById(it) }
+            staleIds.forEach { this.records.deleteById(it) }
             deleted = staleIds.size
         }
 
         var inserted = 0
         var updated = 0
-        incoming.forEach { record ->
+        records.forEach { record ->
             val existingId = record.eventId?.let { eventId ->
                 knownEventIds.takeIf { eventId in it }?.let {
-                    records.listIdEventIdPairs(deviceId).firstOrNull { pair -> pair.eventId == eventId }?.id
+                    this.records.listIdEventIdPairs(deviceId)
+                        .firstOrNull { pair -> pair.eventId == eventId }?.id
                 }
             }
             val wasExisting = existingId != null
             if (existingId == null) {
-                records.insert(record.toEntity(deviceId = deviceId, id = 0L))
+                this.records.insert(record.toEntity(deviceId = deviceId, id = 0L))
             } else {
-                records.update(record.toEntity(deviceId = deviceId, id = existingId))
+                this.records.update(record.toEntity(deviceId = deviceId, id = existingId))
             }
             if (wasExisting) {
                 updated += 1

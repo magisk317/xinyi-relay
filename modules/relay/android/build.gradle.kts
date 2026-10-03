@@ -73,7 +73,11 @@ android {
 dependencies {
     implementation(libs.mobile.entitlement.android)
     implementation(project(":magisk-xposed-kit:logging"))
-    implementation(project(":magisk-xposed-kit"))
+    // The kit is only needed by the flavor-specific Xposed runtime sources, so it is
+    // attached to each distribution flavor instead of to every compilation unit.
+    listOf("play", "githubNoE2ee", "githubWithE2ee", "fdroid").forEach { flavor ->
+        add("${flavor}Implementation", project(":magisk-xposed-kit"))
+    }
     implementation(project(":relay:contract"))
     implementation(project(":relay:engine:api"))
     implementation(project(":relay:sender"))

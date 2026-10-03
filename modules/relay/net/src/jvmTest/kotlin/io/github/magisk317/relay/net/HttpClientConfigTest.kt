@@ -29,6 +29,22 @@ class HttpClientConfigTest {
     }
 
     @Test
+    fun `percent encoded credentials are decoded before the header is built`() {
+        val result = parseBasicAuthUrl("https://alice%40corp:p%40ss@example.com:8443/push")
+
+        assertEquals("https://example.com:8443/push", result.url)
+        assertEquals(Credentials.basic("alice@corp", "p@ss"), result.authorization)
+    }
+
+    @Test
+    fun `surrounding whitespace does not leave the credentials in the URL`() {
+        val result = parseBasicAuthUrl("  https://alice:secret@example.com:8443/push  ")
+
+        assertEquals("https://example.com:8443/push", result.url)
+        assertEquals(Credentials.basic("alice", "secret"), result.authorization)
+    }
+
+    @Test
     fun `valid proxy and credentials are installed`() {
         val client = OkHttpClient.Builder().applyProxy(
             ProxyConfig(

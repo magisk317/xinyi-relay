@@ -1,3 +1,5 @@
+@file:OptIn(io.kotest.common.ExperimentalKotest::class)
+
 package io.github.magisk317.relay.matrix.e2ee
 
 import io.kotest.core.spec.style.FunSpec

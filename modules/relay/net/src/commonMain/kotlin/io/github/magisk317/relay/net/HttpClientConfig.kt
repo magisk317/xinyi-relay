@@ -2,8 +2,8 @@ package io.github.magisk317.relay.net
 
 import java.net.InetSocketAddress
 import java.net.Proxy
-import java.net.URL
 import okhttp3.Credentials
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 
 data class BasicAuthUrl(
@@ -11,23 +11,20 @@ data class BasicAuthUrl(
     val authorization: String?,
 )
 
-fun parseBasicAuthUrl(url: String): BasicAuthUrl = runCatching {
-    val parsedUrl = URL(url)
-    val userInfo = parsedUrl.userInfo
-    if (userInfo.isNullOrBlank()) {
-        BasicAuthUrl(url, null)
-    } else {
-        val credentials = userInfo.split(":", limit = 2)
-        val cleanUrl = URL(parsedUrl.protocol, parsedUrl.host, parsedUrl.port, parsedUrl.file).toString()
-        BasicAuthUrl(
-            url = cleanUrl,
-            authorization = Credentials.basic(
-                credentials.getOrElse(0) { "" },
-                credentials.getOrElse(1) { "" },
-            ),
-        )
+fun parseBasicAuthUrl(url: String): BasicAuthUrl {
+    // Trim before parsing, otherwise a pasted URL with surrounding whitespace fails
+    // to parse here and is handed back with its credentials still embedded.
+    val parsedUrl = url.trim().toHttpUrlOrNull() ?: return BasicAuthUrl(url, null)
+    val username = parsedUrl.username
+    val password = parsedUrl.password
+    if (username.isEmpty() && password.isEmpty()) {
+        return BasicAuthUrl(url, null)
     }
-}.getOrElse { BasicAuthUrl(url, null) }
+    return BasicAuthUrl(
+        url = parsedUrl.newBuilder().username("").password("").build().toString(),
+        authorization = Credentials.basic(username, password),
+    )
+}
 
 data class ProxyConfig(
     val type: Proxy.Type,
