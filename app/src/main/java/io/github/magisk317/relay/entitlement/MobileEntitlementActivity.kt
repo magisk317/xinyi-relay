@@ -16,7 +16,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -40,6 +42,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.clip
+import io.github.magisk317.uikit.common.AppSnackbarHost
+import io.github.magisk317.uikit.common.AppSnackbarHostState
 import com.magisk317.mobile.entitlement.MobileEntitlementCoordinator
 import com.magisk317.mobile.entitlement.MobileEntitlementStatus
 import io.github.magisk317.relay.core.R
@@ -103,6 +108,8 @@ private fun MobileEntitlementScreen(
     var busyAction by remember { mutableStateOf<ActivationAction?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
     var activationTokenInput by remember { mutableStateOf("") }
+    var pendingBotUrl by remember { mutableStateOf<String?>(null) }
+    val snackbarHostState = remember { AppSnackbarHostState() }
 
     fun refreshStatus(
         force: Boolean = true,
@@ -146,7 +153,17 @@ private fun MobileEntitlementScreen(
     fun openTelegram(url: String) {
         runCatching {
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-        }.onFailure { message = it.message ?: it.javaClass.simpleName }
+        }.onFailure { error ->
+            // ACTION_VIEW 失败（如设备上 Telegram 未安装或链接无法解析）时，自动把跳转
+            // 链接复制到剪贴板：用户可手动发送给机器人，或粘贴到官网激活页兑换令牌。
+            copyPlainText(context, "bot_url", url)
+            message = error.message ?: error.javaClass.simpleName
+            scope.launch {
+                snackbarHostState.showSnackbar(
+                    context.getString(R.string.mobile_entitlement_jump_failed_copied),
+                )
+            }
+        }
     }
 
     fun openTelegramBot() {
@@ -157,9 +174,20 @@ private fun MobileEntitlementScreen(
                 val challenge = withContext(Dispatchers.IO) {
                     MobileEntitlementCoordinator.createTelegramChallenge(context)
                 }
+                pendingBotUrl = challenge.botUrl
                 openTelegram(challenge.botUrl)
             }.onFailure { message = it.message ?: it.javaClass.simpleName }
             busyAction = null
+        }
+    }
+
+    fun copyBotLink() {
+        val url = pendingBotUrl ?: return
+        copyPlainText(context, "bot_url", url)
+        scope.launch {
+            snackbarHostState.showSnackbar(
+                context.getString(R.string.mobile_entitlement_link_copied),
+            )
         }
     }
 
@@ -183,6 +211,7 @@ private fun MobileEntitlementScreen(
                 },
             )
         },
+        snackbarHost = { AppSnackbarHost(snackbarHostState) },
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -230,9 +259,7 @@ private fun MobileEntitlementScreen(
                             )
                             AppIconButton(
                                 onClick = {
-                                    val cm = context.getSystemService(Context.CLIPBOARD_SERVICE)
-                                        as? android.content.ClipboardManager
-                                    cm?.setPrimaryClip(android.content.ClipData.newPlainText("device_id", deviceId))
+                                    copyPlainText(context, "device_id", deviceId)
                                     android.widget.Toast.makeText(
                                         context,
                                         context.getString(R.string.mobile_entitlement_copied),
@@ -295,15 +322,33 @@ private fun MobileEntitlementScreen(
                 !isMobileEntitlementActivated(currentEvaluation.status) ||
                 currentEvaluation.renewDue
             if (showActivationActions) {
-                AppSecondaryButton(
-                    onClick = ::openTelegramBot,
-                    enabled = busyAction == null,
+                Row(
                     modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    if (busyAction == ActivationAction.TELEGRAM) {
-                        AppCircularProgressIndicator(modifier = Modifier.padding(end = 8.dp), strokeWidth = 2.dp)
+                    AppSecondaryButton(
+                        onClick = ::openTelegramBot,
+                        enabled = busyAction == null,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        if (busyAction == ActivationAction.TELEGRAM) {
+                            AppCircularProgressIndicator(modifier = Modifier.padding(end = 8.dp), strokeWidth = 2.dp)
+                        }
+                        AppText(stringResource(R.string.mobile_entitlement_activate_telegram))
                     }
-                    AppText(stringResource(R.string.mobile_entitlement_activate_telegram))
+                    AppIconButton(
+                        onClick = ::copyBotLink,
+                        enabled = busyAction == null && pendingBotUrl != null,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape),
+                    ) {
+                        AppIcon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = stringResource(R.string.mobile_entitlement_copy_link),
+                        )
+                    }
                 }
             }
             AppSecondaryButton(
@@ -340,6 +385,11 @@ internal fun mobileEntitlementStatusStringRes(status: MobileEntitlementStatus?):
     status == null -> R.string.mobile_entitlement_not_loaded
     isMobileEntitlementActivated(status) -> R.string.module_status_active
     else -> R.string.module_status_inactive
+}
+
+private fun copyPlainText(context: Context, label: String, text: String) {
+    val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+    cm?.setPrimaryClip(android.content.ClipData.newPlainText(label, text))
 }
 
 private fun formatEpoch(epochSeconds: Long): String =

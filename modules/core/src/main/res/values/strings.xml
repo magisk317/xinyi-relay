@@ -879,6 +879,9 @@
     <string name="mobile_entitlement_device_id">Activation ID: %1$s</string>
     <string name="mobile_entitlement_copy">Copy</string>
     <string name="mobile_entitlement_copied">Copied to clipboard</string>
+    <string name="mobile_entitlement_copy_link">Copy activation link</string>
+    <string name="mobile_entitlement_link_copied">Activation link copied</string>
+    <string name="mobile_entitlement_jump_failed_copied">Cannot open Telegram; the activation link has been copied. Send it to the bot manually.</string>
     <string name="mobile_entitlement_renew_due">Activation status can be updated.</string>
     <string name="mobile_entitlement_refresh">Refresh status</string>
     <string name="mobile_entitlement_activate_telegram">Open Telegram</string>

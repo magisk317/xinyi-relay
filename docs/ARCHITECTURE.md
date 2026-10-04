@@ -11,12 +11,13 @@
 - 部署策略：本地优先（Docker Compose），可扩展到公网。
 - API 合同中心：`frontend/shared/contracts/openapi.json`；它现在由 backend `internal/http` 的 assembler 生成，但 auth/system/device-config/read-model schema 与 route metadata 已大部分先从 `relay/contract` 生成到 backend，再由 assembler 合并，`frontend/shared/contracts/console.generated.ts` 再由它生成，四端均有 drift test。
 
-### 桌面端的双轨布局
+### 桌面端布局
 
-桌面端正从 Rust/Tauri 现役端迁移到 Kotlin Multiplatform 的 Compose Desktop 新轨，迁移期内两轨并存：
+桌面端是 Kotlin Multiplatform + Compose Multiplatform 的**单轨**应用（原先的 Rust/Tauri 轨已于 2026-10-04 退役删除，恢复点见 tag `tauri-retirement`）：
 
-- **现役轨**：`frontend/desktop/` 的 Tauri 应用（Tauri 2 + Rust + React + SQLite），`docs/DESKTOP_PARITY.md` 记录它的退役计划与 parity 进度。
-- **新轨**：`:desktop`（Compose Desktop 应用壳）+ `:desktop:core`（store/sync 领域逻辑）+ `:desktop:data`（Room KMP 本地库与旧库导入）。新轨是**单轨** Compose Desktop 应用，不并入 Android 的 M3/miuix 双轨门禁，`scripts/checks/dual_track_check.py` 已按 `desktop/`、`modules/desktop/` 路径前缀豁免；它也不经 `:magisk-ui-kit`（见 `docs/DESKTOP_PARITY.md`「UI 组件语言的取舍」）。
+- `:desktop`（Compose Desktop 应用壳）+ `:desktop:core`（store/sync 领域逻辑）+ `:desktop:data`（Room KMP 本地库与旧库导入）。
+- 它不并入 Android 的 M3/miuix 双轨门禁，`scripts/checks/dual_track_check.py` 已按 `desktop/`、`modules/desktop/` 路径前缀豁免；也不经 `:magisk-ui-kit`（见 `docs/DESKTOP_PARITY.md`「UI 组件语言的取舍」）。
+- 与 Web 端共用同一套 Console API（`docs/DESKTOP_PARITY.md` 记录移植来源与 parity 状态）。
 
 ## Gradle 坐标与物理路径
 

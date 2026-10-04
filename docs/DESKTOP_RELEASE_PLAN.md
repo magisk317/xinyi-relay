@@ -4,15 +4,15 @@
 
 ## 1. 两轨各自怎么发布
 
-| 轨 | 代码位置 | 打包入口 | 触发方式 | 产物 | 发到哪里 |
-|---|---|---|---|---|---|
-| 现役 Tauri 轨 | `frontend/desktop/`（Bun + Vite + Rust + Tauri 2） | `.github/workflows/desktop-release.yml` | `workflow_dispatch` + tag `v*.*.*` | 六平台：Linux x64/arm64 → AppImage/deb/rpm；Windows x64/arm64 → NSIS exe；macOS intel/arm64 → app/dmg | 与同 tag 的 APK 挂在同一个 GitHub Release；GitLab 侧另有一条 `desktop:release:gitlab` 通道 |
-| 现役 Tauri 轨（演练） | 同上 | `.github/workflows/desktop-ci.yml` | 仅 `workflow_dispatch` | 同上，但只作 artifact 上传，不发布 | 不发布 |
-| KMP 新轨 | `desktop/`、`modules/desktop/{core,data}` | `scripts/ci/gitlab_desktop_kmp_package.sh`，调 `:desktop:packageDistributionForCurrentOS` + `:desktop:packageUberJarForCurrentOS` | tag `v*.*.*` 上的 `desktop-kmp:linux:x64` / `desktop-kmp:linux:arm64`（允许失败）；也接受 `web` 手动触发 | Linux deb + 一个跨平台兜底的 uber jar | 与同 tag 的 Tauri 桌面产物挂在同一个 GitLab Release，资产名前缀 `kmp-`；GitHub 线未接 |
+桌面端为单轨（Rust/Tauri 轨已于 2026-10-04 退役删除，见 `docs/TAURI_RETIREMENT.md`）：
+
+| 代码位置 | 打包入口 | 触发方式 | 产物 | 发到哪里 |
+|---|---|---|---|---|
+| `desktop/`、`modules/desktop/{core,data}` | `scripts/ci/gitlab_desktop_kmp_package.sh`，调 `:desktop:packageDistributionForCurrentOS` + `:desktop:packageUberJarForCurrentOS` | tag `v*.*.*` 上的 `desktop-kmp:linux:x64` / `desktop-kmp:linux:arm64`；也接受 `web` 手动触发 | Linux deb + 一个跨平台兜底的 uber jar | 与同 tag 的 APK 挂在同一个 GitLab Release，资产名前缀 `kmp-`；GitHub 线未接 |
 
 两轨共用的细节：
 
-- **单一版本源**是 `gradle/libs.versions.toml` 的 `versionName`（当前 `0.2.8`）。Tauri 侧不自己维护版本，打包前由 `scripts/release/sync_desktop_version.sh` 把 `versionName` 同步进 `frontend/desktop/package.json`、`src-tauri/Cargo.toml`、`src-tauri/tauri.conf.json`；GitHub 与 GitLab 的桌面打包 job 都在构建前调用它。
+- **单一版本源**是 `gradle/libs.versions.toml` 的 `versionName`（当前 `0.2.8`）。桌面打包从它派生包版本（`-PdesktopVersion`，打包脚本自己会剥掉预发后缀），不再有第二个需要同步的文件。
 - **tag 规则**：`v{VERSION_NAME}`（`scripts/release/release_ref.sh` 只认 `v[0-9]*.[0-9]*.[0-9]*`）。Android 侧按后缀决定 Play 渠道（`v…-alpha.N` → internal、`v…-beta.N` → beta、无后缀 → production，见 `release.yml` 的 determine_track）；同一个 tag 同时触发 `release.yml` 和 `desktop-release.yml`，所以桌面产物和 APK 天然同 tag 同 release。
 - **预发版本号会被剥掉后缀**：打包步骤用正则把 `tauri.conf.json` 里的 `0.2.9-alpha.1` 还原成 `0.2.9`，避免安装包版本带预发标记。
 - **两轨都没有自动更新**：Tauri 未接 `tauri-plugin-updater`，KMP 轨也没有更新器。用户只能手动下载下一个 tag 的产物——这也意味着"回滚"天然只是"下一个 tag 用什么轨"的问题。
@@ -30,7 +30,7 @@
 
 P0-3 与 P0-5 是"能出包"的最小集合；P0-4 的清单已全部落地（托盘、RunMode + 本地服务器、本地存储接入 UI、通知、数据库导出/导入、诊断导出、打开外链、系统钥匙串、单实例、审计日志页），详见 parity §5 与 §6 的测试证据。
 
-## 3. KMP 轨打包流水线（已落地，GitLab 线，仅 Linux）
+## 3. 桌面打包流水线（已落地，GitLab 线，仅 Linux）
 
 两个锚点加两个 job，全在 `.gitlab-ci.yml`：`.xinyi_desktop_kmp_rules`（规则）、`.xinyi_desktop_kmp_base`（产物与 Gradle 环境）、`.xinyi_desktop_kmp_linux`（镜像与预备步骤）。两个 job 是 `desktop-kmp:linux:x64` 和 `desktop-kmp:linux:arm64`，产物目录分别是 `desktop-artifacts/kmp-linux-x64` 和 `desktop-artifacts/kmp-linux-arm64`。
 
@@ -39,10 +39,10 @@ P0-3 与 P0-5 是"能出包"的最小集合；P0-4 的清单已全部落地（�
 - **只接 Linux**：目前只有 Linux 两个 runner 上的打包被真实跑通过，Windows 和 macOS 的 job 一律不接——没有验证过的产线宁可没有，也不要一个看着通、跑起来才发现的。
 - **JDK 自己 stage**：桌面模块是纯 JVM，只需要 JDK，不需要 Android SDK、Node、Rust。runner 上唯一会 stage JDK 的锚点是 toolkit 的 `.magisk_android_base`，它会把 SDK、`ANDROID_HOME` 和 aapt2 的绕法一起拖进来，所以这里用 `scripts/ci/gitlab_stage_jdk27.sh` 从 Adoptium 单独取一份 JDK 27（要 Hotspot 而非 JRE：jpackage 需要 jlink）。stage 到检出目录里，多 job 共用一把锁，避免同一个 runner 上的并发 job 重复下载。
 - **每个 OS 只出一种格式**：`compose.desktop` 插件在 Linux 上把 AppImage、Deb、Rpm 都指向同一个 app image 目录且不声明相互依赖，同时声明两种 Linux 格式会在 Gradle 9 上撞 implicit-dependency 校验。所以默认 Linux→Deb、macOS→Dmg、Windows→Exe，需要别的格式时用 `-PdesktopTargetFormats=Rpm,AppImage` 覆盖。
-- **KMP 打包失败不许拖垮 Tauri 发布**：`.xinyi_desktop_kmp_rules` 的 tag 规则默认带 `allow_failure: true`（由 `XINYI_DESKTOP_KMP_ALLOW_FAILURE` 控制），新轨出包失败时 Tauri 桌面发布照常走完。两轨并存期间这条不能摘。
-- **资产名不撞车**：`scripts/release/gitlab_desktop_release.sh` 用「产物所在目录名 + 文件名」拼资产名并查重，所以 KMP 侧一律用 `kmp-` 前缀（如 `kmp-linux-x64-xinyi-relay-desktop-kmp_0.2.8_amd64.deb`），和 Tauri 的 `linux-x64-…` 不会同名。
+- **打包失败即发布失败**：桌面端现在是唯一的桌面轨，tag 规则不再带 `allow_failure`——出包失败就该让 release 红着，没有别的轨可以兜底。
+- **资产名带 `kmp-` 前缀**：`scripts/release/gitlab_desktop_release.sh` 用「产物所在目录名 + 文件名」拼资产名并查重，所以资产形如 `kmp-linux-x64-xinyi-relay-desktop-kmp_0.2.8_amd64.deb`。这个前缀是双轨时期为避撞名留下的，现在只用于保持历史资产名稳定。
 
-**未接的部分**：Windows 与 macOS 的 KMP job；GitHub 线（`.github/workflows/desktop-kmp-package.yml`）。前者要等对应 runner 上真实跑过一轮再补，后者要等 GitLab 线跑顺、且 KMP 轨要作为默认桌面端之前再补。
+**未接的部分**：Windows 与 macOS 的 job；GitHub 线（`.github/workflows/desktop-kmp-package.yml`）。前者要等对应 runner 上真实跑过一轮再补，后者同理。
 
 **当前验证边界**：GitLab 线的两个 job 用的打包脚本，已在 lzc 上以 CI 形态端到端跑通（`--no-build-cache --rerun-tasks --no-configuration-cache`，产出 deb 与 uber jar 各一个）。lzc 上 `JAVA_HOME` 本就是 JDK 27，所以 CI staged 的 JDK 与本地构建用的是同一主版本。
 

@@ -10,7 +10,7 @@ import kotlinx.serialization.Serializable
  * Local mirror of the devices table owned by the desktop client.
  *
  * The column set is intentionally byte-for-byte compatible with the legacy
- * Rust schema (frontend/desktop/src-tauri/src/sqlite_store.rs) so a legacy
+ * Rust schema (the retired Tauri shell's sqlite_store.rs) so a legacy
  * database can be imported without rewriting rows.
  */
 @Serializable

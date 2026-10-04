@@ -39,9 +39,8 @@ tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
  * Version and package identity of the KMP desktop track.
  *
  * `versionName` in the catalog is the single source of truth for the Android
- * app; the Tauri track inherits it through `sync_desktop_version.sh`. Reading
- * the same value here is what keeps the two desktop tracks from answering a
- * different version number for the same release.
+ * app, and reading it here is what keeps the desktop package from answering a
+ * different version number than the app for the same release.
  *
  * `desktopVersion` overrides it for release builds, which must strip a
  * pre-release suffix: JDK tooling rejects the Debian-style revisions a suffix

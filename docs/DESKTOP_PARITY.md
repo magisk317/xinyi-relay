@@ -1,21 +1,20 @@
 # 桌面端 Parity 清单（React webUI → KMP Compose Desktop）
 
-最后更新：2026-10-03
+最后更新：2026-10-04
 
 ## 1. 为什么有这份清单
 
-桌面端有两套实现并存：
+桌面端是 Kotlin Multiplatform + Compose Multiplatform 的**单轨**应用：
 
-| 轨 | 位置 | 技术栈 | 状态 |
-|---|---|---|---|
-| 现役轨 | `frontend/desktop/` | Tauri 2（Rust + React + SQLite） | 0.2.x，随 tag `v*.*.*` 出六平台产物 |
-| 新轨 | `desktop/`、`modules/desktop/core`、`modules/desktop/data` | Kotlin Multiplatform + Compose Multiplatform | 控制台页面移植完成，尚未打包发布 |
+| 位置 | 技术栈 | 状态 |
+|---|---|---|
+| `desktop/`、`modules/desktop/core`、`modules/desktop/data` | Kotlin Multiplatform + Compose Multiplatform | 控制台全部页面已对齐 `frontend/webui/`，随 tag `v*.*.*` 出 Linux x64/arm64 包 |
 
-新轨的目标是**逐页复刻 `frontend/webui/` 这个 React 控制台**，最终替换 Tauri 端。本清单记录：
+它逐页复刻了 `frontend/webui/` 这个 React 控制台。原先并存的 Rust/Tauri 轨已于 2026-10-04 退役删除（恢复点 tag `tauri-retirement`）；当年作为移植对照的 parity 清单保留下来，记录：
 
-1. webUI 每个页面在新轨上的落点与完成状态；
+1. webUI 每个页面在桌面端的落点与完成状态；
 2. 移植时有意保留的差异和原因；
-3. 现役 Tauri 端独有、新轨还不具备的能力（这是退役判定的依据）。
+3. 退役时逐项核对的本地能力清单（见 §5，全部已落地）。
 
 ## 2. 页面级 parity
 
@@ -82,7 +81,7 @@ webUI 共 9 个页面，新轨 9 个路由全部有对应实现（`DesktopRoute`
 
 ## 5. 新轨相对 Tauri 现役端仍缺的能力
 
-这些是 Tauri 端（`frontend/desktop/`）有、KMP 新轨还没有的能力；退役计划以逐项补齐为前提。下面逐行给出当前状态：绝大多数已补齐，仅有的例外都写明了原因。
+这些是退役时逐项核对的能力清单：左列是当年 Tauri 端有、桌面端需要接住的能力，下面逐行给出落地状态——全部已补齐，例外的两项（旧库导入）按 §2.2 判定迁移义务不存在。
 
 | 能力 | Tauri 落点 | KMP 新轨现状 |
 |---|---|---|
@@ -138,4 +137,4 @@ ls -la desktop-artifacts/kmp-linux-x64/
 | 双轨合同门禁把 `desktop/` 的裸 M3 叶子组件全部记为 shared 轨违约（274 处） | `.github/workflows/dual-track.yml` 在每次 push 上失败 | `desktop/`、`modules/desktop/` 是单轨 Compose Desktop 应用，不会并入 Android 的 M/X 两轨，按路径前缀豁免（`scripts/checks/dual_track_check.py`） |
 | CI 路径过滤把 `modules/desktop/**` 归入 app/mobile 桶 | `:desktop:core:jvmTest`、`:desktop:data:jvmTest` 从不执行 | 与 `desktop/*` 共用同一组任务，并带上 `verifyStructureBoundaries`（`scripts/ci/select_android_test_tasks.sh`） |
 
-新轨**已有 GitLab 侧的打包/发布流水线，但只覆盖 Linux**：`.gitlab-ci.yml` 里的 `desktop-kmp:linux:x64`、`desktop-kmp:linux:arm64` 调 `scripts/ci/gitlab_desktop_kmp_package.sh`，产物汇入两轨共用的 `desktop:release:gitlab`。Windows/macOS 的 job 未接，GitHub 线也未接。两轨都没有自动更新器。发布方式细节见 `docs/DESKTOP_RELEASE_PLAN.md`，退役判据见 `docs/TAURI_RETIREMENT.md`。
+桌面端**已有 GitLab 侧的打包/发布流水线，覆盖 Linux**：`.gitlab-ci.yml` 里的 `desktop-kmp:linux:x64`、`desktop-kmp:linux:arm64` 调 `scripts/ci/gitlab_desktop_kmp_package.sh`，产物汇入 `desktop:release:gitlab`。Windows/macOS 的 job 未接，GitHub 线也未接。桌面端没有自动更新器。发布方式细节见 `docs/DESKTOP_RELEASE_PLAN.md`，退役过程记录见 `docs/TAURI_RETIREMENT.md`。

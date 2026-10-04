@@ -2,7 +2,7 @@ package io.github.magisk317.relay.desktop.platform
 
 /**
  * Tray menu actions. The ids are the Tauri tray's own words
- * (`frontend/desktop/src-tauri/src/tray.rs`), so both tracks answer to the
+ * (the retired Rust shell), so the menu answers to the
  * same ids and the port stays recognisable next to its reference.
  *
  * [messageKey] is the i18n fragment under `platform.tray.`; it only departs

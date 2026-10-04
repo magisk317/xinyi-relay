@@ -3,7 +3,7 @@
 当前阶段已落地的 Backend API 面向三个客户端：
 
 - Web 管理端
-- 桌面管理端（Tauri 现役轨与 Compose Desktop 新轨，两轨共用同一套 Console API）
+- 桌面管理端（Compose Desktop 应用，与 Web 端共用同一套 Console API）
 - Android Agent
 - 本地运维与健康检查
 

@@ -77,13 +77,6 @@ variables:
   XINYI_BACKEND_ARCHES: "amd64 arm64"
   XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG: "magisk-amd64-linux"
   XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG: "magisk-arm64-linux"
-  XINYI_GITLAB_WINDOWS_AMD64_RUNNER_TAG: "saas-windows-medium-amd64"
-  XINYI_GITLAB_MACOS_ARM64_RUNNER_TAG: "saas-macos-medium-m1"
-  XINYI_GITLAB_MACOS_ENABLED: "false"
-  # Whether the KMP Linux packaging jobs may fail without failing the pipeline.
-  # The new track is the one under active development; the incumbent Tauri desktop
-  # release must not be taken down by it while the two coexist.
-  XINYI_DESKTOP_KMP_ALLOW_FAILURE: "true"
 
 .xinyi_ci_rules:
   rules:
@@ -190,42 +183,6 @@ variables:
     - docker version
     - docker buildx version
 
-.xinyi_desktop_linux:
-  extends: .xinyi_package_rules
-  image: "node:24-bookworm"
-  stage: package
-  variables:
-    RUSTUP_MAX_RETRIES: "10"
-  before_script:
-    - chmod +x scripts/ci/gitlab_desktop_package.sh
-  artifacts:
-    when: always
-    expire_in: 30 days
-    paths:
-      - desktop-artifacts/
-
-.xinyi_desktop_macos:
-  extends: .xinyi_package_rules
-  stage: package
-  variables:
-    RUSTUP_MAX_RETRIES: "10"
-  before_script:
-    - chmod +x scripts/ci/gitlab_desktop_package.sh
-  artifacts:
-    when: always
-    expire_in: 30 days
-    paths:
-      - desktop-artifacts/
-
-.xinyi_desktop_windows:
-  extends: .xinyi_package_rules
-  stage: package
-  artifacts:
-    when: always
-    expire_in: 30 days
-    paths:
-      - desktop-artifacts/
-
 # KMP desktop track. The desktop modules are pure JVM, so these jobs need a JDK
 # and nothing else: no Android SDK, no Node, no Rust. .magisk_android_base is the
 # only anchor that stages a JDK on these runners, and it drags the SDK and the
@@ -244,12 +201,8 @@ variables:
       when: never
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
       when: never
-    # The tag rule is what lets a failure in the new track miss the incumbent Tauri
-    # desktop release while the two coexist; flip XINYI_DESKTOP_KMP_ALLOW_FAILURE
-    # to "false" to make the new track blocking instead. rules:allow_failure only
-    # takes a literal, hence the toggle is expressed as two rules.
-    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+[.][0-9]+[.][0-9]+.*$/ && $XINYI_DESKTOP_KMP_ALLOW_FAILURE == "true"'
-      allow_failure: true
+    # The desktop app is the only desktop track now, so a tag release fails if
+    # its packaging fails; there is no incumbent track left to protect.
     - if: '$CI_COMMIT_TAG =~ /^v[0-9]+[.][0-9]+[.][0-9]+.*$/'
     - if: '$CI_PIPELINE_SOURCE == "web"'
       when: manual
@@ -420,48 +373,6 @@ backend:container:manifest:
       - telegram_images.env
     expire_in: 1 day
 
-desktop:linux:x64:
-  extends: .xinyi_desktop_linux
-  needs: []
-  tags:
-    - $XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG
-  script:
-    - scripts/ci/gitlab_desktop_package.sh linux linux-x64 x86_64-unknown-linux-gnu "--target x86_64-unknown-linux-gnu --bundles appimage,deb,rpm" "frontend/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle"
-
-desktop:linux:arm64:
-  extends: .xinyi_desktop_linux
-  needs: []
-  tags:
-    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
-  script:
-    - scripts/ci/gitlab_desktop_package.sh linux linux-arm64 aarch64-unknown-linux-gnu "--target aarch64-unknown-linux-gnu --bundles appimage,deb,rpm" "frontend/desktop/src-tauri/target/aarch64-unknown-linux-gnu/release/bundle"
-
-desktop:windows:x64:
-  extends: .xinyi_desktop_windows
-  needs: []
-  rules:
-    - when: never
-  tags:
-    - $XINYI_GITLAB_WINDOWS_AMD64_RUNNER_TAG
-  script:
-    - powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci/gitlab_desktop_windows.ps1 -ArtifactSuffix windows-x64 -RustTarget x86_64-pc-windows-msvc -BundleArgs "--target x86_64-pc-windows-msvc --bundles nsis" -BundleDir "frontend/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle"
-
-desktop:macos:arm64:
-  extends: .xinyi_desktop_macos
-  needs: []
-  rules:
-    - if: '$XINYI_GITLAB_MACOS_ENABLED != "true"'
-      when: never
-    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+[.][0-9]+[.][0-9]+.*$/'
-    - if: '$CI_PIPELINE_SOURCE == "web"'
-      when: manual
-      allow_failure: true
-    - when: never
-  tags:
-    - $XINYI_GITLAB_MACOS_ARM64_RUNNER_TAG
-  script:
-    - scripts/ci/gitlab_desktop_package.sh macos macos-arm64 aarch64-apple-darwin "--target aarch64-apple-darwin --bundles app,dmg" "frontend/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle"
-
 desktop-kmp:linux:x64:
   extends: .xinyi_desktop_kmp_linux
   needs: []
@@ -488,10 +399,6 @@ desktop:release:gitlab:
       allow_failure: true
     - when: never
   needs:
-    - job: desktop:linux:x64
-      artifacts: true
-    - job: desktop:linux:arm64
-      artifacts: true
     - job: desktop-kmp:linux:x64
       artifacts: true
     - job: desktop-kmp:linux:arm64
