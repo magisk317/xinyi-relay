@@ -201,9 +201,13 @@ variables:
       when: never
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
       when: never
-    # The desktop app is the only desktop track now, so a tag release fails if
-    # its packaging fails; there is no incumbent track left to protect.
+    # The desktop package is an optional extra of a release, not a gate on it:
+    # the release cadence is the Android app's, and a desktop packaging failure
+    # must never hold that back. Flip the first tag rule off (or set
+    # XINYI_DESKTOP_REQUIRED=true and invert the condition) when the desktop
+    # build becomes a required part of a release.
     - if: '$CI_COMMIT_TAG =~ /^v[0-9]+[.][0-9]+[.][0-9]+.*$/'
+      allow_failure: true
     - if: '$CI_PIPELINE_SOURCE == "web"'
       when: manual
       allow_failure: true

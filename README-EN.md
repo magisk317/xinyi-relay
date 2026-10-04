@@ -125,7 +125,7 @@ The desktop app is built with Kotlin Multiplatform + Compose Multiplatform (curr
 
 ## Desktop Release Notes
 
-- Desktop releases currently ship Linux x64 and arm64 deb packages, plus a cross-platform uber jar (assets prefixed `kmp-`).
+- Desktop releases currently ship Linux x64 and arm64 deb packages, plus an uber jar for the same architecture (a no-install form, assets prefixed `kmp-`).
 - There is no automatic updater; upgrading means downloading the new package manually.
 - Desktop credentials live in the system keychain (secret-tool on Linux), never in a plaintext config file.
 

@@ -127,7 +127,7 @@ Backend 和 Desktop 都支持日志文件输出，便于问题排查：
 
 ## Desktop Release 说明
 
-- Desktop Release 当前提供 Linux x64 与 arm64 的 deb 安装包，另附一个跨平台的 uber jar（`kmp-` 前缀资产）。
+- Desktop Release 当前提供 Linux x64 与 arm64 的 deb 安装包，另附同架构的 uber jar（免安装形态，`kmp-` 前缀资产）。
 - 桌面端没有自动更新器，升级需要手动下载新版本安装包。
 - 登录凭据保存在系统钥匙串（Linux 走 `secret-tool`），不在配置文件里落明文。
 

@@ -8,7 +8,7 @@
 
 | 代码位置 | 打包入口 | 触发方式 | 产物 | 发到哪里 |
 |---|---|---|---|---|
-| `desktop/`、`modules/desktop/{core,data}` | `scripts/ci/gitlab_desktop_kmp_package.sh`，调 `:desktop:packageDistributionForCurrentOS` + `:desktop:packageUberJarForCurrentOS` | tag `v*.*.*` 上的 `desktop-kmp:linux:x64` / `desktop-kmp:linux:arm64`；也接受 `web` 手动触发 | Linux deb + 一个跨平台兜底的 uber jar | 与同 tag 的 APK 挂在同一个 GitLab Release，资产名前缀 `kmp-`；GitHub 线未接 |
+| `desktop/`、`modules/desktop/{core,data}` | `scripts/ci/gitlab_desktop_kmp_package.sh`，调 `:desktop:packageDistributionForCurrentOS` + `:desktop:packageUberJarForCurrentOS` | tag `v*.*.*` 上的 `desktop-kmp:linux:x64` / `desktop-kmp:linux:arm64`；也接受 `web` 手动触发 | Linux deb + 同架构的 uber jar（免安装形态） | 与同 tag 的 APK 挂在同一个 GitLab Release，资产名前缀 `kmp-`；GitHub 线未接 |
 
 两轨共用的细节：
 
@@ -39,12 +39,40 @@ P0-3 与 P0-5 是"能出包"的最小集合；P0-4 的清单已全部落地（�
 - **只接 Linux**：目前只有 Linux 两个 runner 上的打包被真实跑通过，Windows 和 macOS 的 job 一律不接——没有验证过的产线宁可没有，也不要一个看着通、跑起来才发现的。
 - **JDK 自己 stage**：桌面模块是纯 JVM，只需要 JDK，不需要 Android SDK、Node、Rust。runner 上唯一会 stage JDK 的锚点是 toolkit 的 `.magisk_android_base`，它会把 SDK、`ANDROID_HOME` 和 aapt2 的绕法一起拖进来，所以这里用 `scripts/ci/gitlab_stage_jdk27.sh` 从 Adoptium 单独取一份 JDK 27（要 Hotspot 而非 JRE：jpackage 需要 jlink）。stage 到检出目录里，多 job 共用一把锁，避免同一个 runner 上的并发 job 重复下载。
 - **每个 OS 只出一种格式**：`compose.desktop` 插件在 Linux 上把 AppImage、Deb、Rpm 都指向同一个 app image 目录且不声明相互依赖，同时声明两种 Linux 格式会在 Gradle 9 上撞 implicit-dependency 校验。所以默认 Linux→Deb、macOS→Dmg、Windows→Exe，需要别的格式时用 `-PdesktopTargetFormats=Rpm,AppImage` 覆盖。
-- **打包失败即发布失败**：桌面端现在是唯一的桌面轨，tag 规则不再带 `allow_failure`——出包失败就该让 release 红着，没有别的轨可以兜底。
+- **桌面产物是可选产物，失败不阻塞 release**：打包 job 的 tag 规则带 `allow_failure: true`。发布节奏以 Android 应用为准，桌面出包失败只应留下一个红色的可选 job，而不是拖住整个 release。`desktop:release:gitlab` 本身也是 `allow_failure: true`，所以"两个 job 都没产物"时也不会挡发布。
 - **资产名带 `kmp-` 前缀**：`scripts/release/gitlab_desktop_release.sh` 用「产物所在目录名 + 文件名」拼资产名并查重，所以资产形如 `kmp-linux-x64-xinyi-relay-desktop-kmp_0.2.8_amd64.deb`。这个前缀是双轨时期为避撞名留下的，现在只用于保持历史资产名稳定。
 
 **未接的部分**：Windows 与 macOS 的 job；GitHub 线（`.github/workflows/desktop-kmp-package.yml`）。前者要等对应 runner 上真实跑过一轮再补，后者同理。
 
 **当前验证边界**：GitLab 线的两个 job 用的打包脚本，已在 lzc 上以 CI 形态端到端跑通（`--no-build-cache --rerun-tasks --no-configuration-cache`，产出 deb 与 uber jar 各一个）。lzc 上 `JAVA_HOME` 本就是 JDK 27，所以 CI staged 的 JDK 与本地构建用的是同一主版本。
+
+### 3.1 若要支持 Windows / macOS
+
+桌面端是纯 JVM，不需要 Rust/Node/Android SDK，但**必须有对应操作系统的构建机**：`compose.desktop` 的 `packageDistributionForCurrentOS` 走 jpackage，而 jpackage 只为本机产出安装包（官方原话是 "suitable for the host system"），没有交叉打包选项。文件系统层面的证据是：当前 uber jar 里只嵌了 `libskiko-linux-x64.so` 一个 Skiko 原生库，Windows 的 `skiko-windows-x64.dll` / `-arm64.dll` 与 macOS 的 `libskiko-macos-{x64,arm64}.dylib` 都在 `skiko-awt-runtime-all` 里、但没被打进这个 jar。
+
+按平台拆开需要的东西：
+
+| 目标 | 构建机 | 额外要做的事 |
+|---|---|---|
+| Linux x64 | 已有（`magisk-amd64-linux`） | — |
+| Linux arm64 | 已有（`magisk-arm64-linux`） | — |
+| Windows x64 | 需要一台 Windows runner | `scripts/ci/gitlab_stage_jdk27.ps1` 与打包驱动（PowerShell 版，见下）；产物为 exe/msi |
+| macOS arm64 | 需要一台 macOS runner | 与 Linux 同一个 bash 脚本即可（`uname` 分支已处理 `Darwin`）；产物为 dmg/pkg；未签名未公证，首次运行要手动放行 |
+| Windows arm64 | 需要 Windows on ARM 构建机 | 同 Windows x64 |
+| macOS x64 | 需要 Intel Mac 构建机 | 同 macOS arm64 |
+
+**GitLab 线现在没有这些 runner**：项目/组可见的 runner 列表里，Windows 与 macOS 的共享 runner 全部是 `paused`/`stale`，自定义的两个 Linux runner 才是实际在用的；`.gitlab-ci.yml` 里 `XINYI_GITLAB_WINDOWS_AMD64_RUNNER_TAG`、`XINYI_GITLAB_MACOS_ARM64_RUNNER_TAG` 指向的标签目前没有任何在线 runner 承接。所以"支持 Windows/macOS"的第一步不是写代码，是先有机器。
+
+**GitHub 线是另一条路，它有跑通过的历史，但近半年一直是红的**：Tauri 时代 `desktop-release.yml` 跑六平台。`gh run list` 里最近 8 次全部 failed（最后几次倒在 `pnpm install`：工作目录不存在，应该是 workflow 引用的 `working-directory: desktop` 与实际路径 `frontend/desktop` 脱节）；而更早的 `v0.1.1`–`v0.1.3` 三个 release 每个都带 12 个桌面资产（deb/rpm/AppImage、`x64`/`arm64`/`x86` 的 exe 与 msi），说明那条流水线当年是能出包的——只是**从来没出过 macOS 资产**（12 个里没有 dmg）。`v0.2.0` 之后桌面资产归零。
+
+GitHub 托管 runner 自带 Windows 与 macOS 机器（含 arm64 变体），所以它是**唯一不需要自备机器**的路子；但原 workflow 是 Tauri 工具链写的，要重写，且要等 GitLab 线跑顺之后再接。
+
+代码侧还差两处（与有没有机器无关）：
+
+1. **Windows 的凭据存储是缺的**：`SystemCredentialStore` 对 `Platform.WINDOWS` 直接 `unsupported()`（设计如此：宁可明确拒绝，也不静默把 bearer token 写进明文文件）。这会把 `saveSession` 抛成异常，而 `SessionManager.onAuthenticated` 没有捕获，所以 Windows 上**登录会失败**。要支持 Windows，得先实现 DPAPI / Windows Credential Manager 分支。
+2. **打包脚本的 Windows 版**：`scripts/ci/gitlab_stage_jdk27.ps1` 与 `scripts/ci/gitlab_desktop_kmp_windows.ps1` 已经写好并逐行核对过，但当前**不在仓库里**——它们写出来时 Windows job 没接，且没有任何 PowerShell 环境可以语法校验，所以当时没有提交。要接 Windows 线时，这两个文件需要重新加回并至少在一台 Windows 机器上真跑一遍。
+
+macOS 不需要第 1 条（`security` 分支已实现），只差机器和签名（不签名也能发，用户手动放行）。
 
 ## 4. 灰度门槛
 
