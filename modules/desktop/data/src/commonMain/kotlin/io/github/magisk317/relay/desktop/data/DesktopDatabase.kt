@@ -17,7 +17,7 @@ import io.github.magisk317.relay.desktop.data.entity.LocalDeviceTokenEntity
 import io.github.magisk317.relay.desktop.data.entity.RelayRecordEntity
 
 /**
- * Desktop local store. The schema mirrors the legacy Rust/Tauri store exactly
+ * Desktop local store. The schema mirrors the legacy Rust store exactly
  * so an existing `local-data.db` can be imported row-for-row.
  *
  * Two indexes cannot be expressed through Room annotations and are installed

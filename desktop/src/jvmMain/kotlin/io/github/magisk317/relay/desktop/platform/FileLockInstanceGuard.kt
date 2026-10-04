@@ -7,10 +7,10 @@ import java.nio.channels.FileLock
 /**
  * Cross-process single-instance guard.
  *
- * The Tauri track gets this from a plugin; on the JVM the portable answer is an
- * advisory lock on a file in the user data directory - `FileLock` is released
- * by the OS when the holder dies, so a crashed instance never wedges the next
- * launch the way a stale PID file does.
+ * On the JVM the portable answer is an advisory lock on a file in the user
+ * data directory - `FileLock` is released by the OS when the holder dies, so a
+ * crashed instance never wedges the next launch the way a stale PID file
+ * does.
  *
  * The lock file lives under a private directory (mode 700) because the lock
  * must be creatable by the first launch even on a fresh machine, and a

@@ -1,13 +1,12 @@
 package io.github.magisk317.relay.desktop.platform
 
 /**
- * Tray menu actions. The ids are the Tauri tray's own words
- * (the retired Rust shell), so the menu answers to the
- * same ids and the port stays recognisable next to its reference.
+ * Tray menu actions. The ids keep the hyphenated spelling the menu has always
+ * used (`restart-monitor`), so the action names stay stable across releases.
  *
- * [messageKey] is the i18n fragment under `platform.tray.`; it only departs
- * from [id] where the Tauri id is hyphenated (`restart-monitor`) while the
- * message tables use camelCase.
+ * [messageKey] is the i18n fragment under `platform.tray.`; it differs from
+ * [id] only where the id is hyphenated while the message tables use
+ * camelCase.
  */
 enum class TrayAction(val id: String, val messageKey: String) {
     SHOW("show", "show"),
@@ -26,9 +25,9 @@ data class TrayMenuItem(
 )
 
 /**
- * The tray menu in Tauri order: show, three page jumps, reconnect monitor, a
- * separator, then quit. [label] resolves the localized text for an action, so
- * the menu model stays free of the i18n tables.
+ * The tray menu rows in fixed order: show, three page jumps, reconnect
+ * monitor, a separator, then quit. [label] resolves the localized text for an
+ * action, so the menu model stays free of the i18n tables.
  */
 object TrayMenu {
     fun items(label: (TrayAction) -> String): List<TrayMenuItem> = listOf(

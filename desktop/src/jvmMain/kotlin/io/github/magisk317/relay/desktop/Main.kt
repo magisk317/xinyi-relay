@@ -15,8 +15,7 @@ import kotlin.system.exitProcess
 
 /**
  * Entry point. A cross-process [FileLockInstanceGuard] refuses a second copy
- * before any window opens: the Tauri track gets this from its single-instance
- * plugin, and on the JVM an advisory lock is the portable equivalent (the OS
+ * before any window opens: an advisory lock is the portable JVM answer (the OS
  * releases it when the holder dies, so a crashed instance never wedges the
  * next launch the way a stale PID file would).
  */

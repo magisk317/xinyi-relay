@@ -133,8 +133,8 @@ class DesktopLocalSyncController(
     /**
      * Sends the mirror's queued device-config commands to the backend, the
      * other half of [sync]. Config edits in the Local and Hybrid run modes
-     * land in the mirror's pending queue and only leave the machine here; the
-     * Tauri shell exposes the same direction as its "push to remote" button.
+     * land in the mirror's pending queue and only leave the machine here, so
+     * the advanced page exposes this direction as its "push to remote" button.
      *
      * Returns null while no runtime is open, and rethrows a failing round so
      * the caller can surface it; a successful round reports through

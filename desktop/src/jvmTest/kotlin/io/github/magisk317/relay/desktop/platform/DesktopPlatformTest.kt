@@ -85,7 +85,7 @@ class DesktopPlatformTest {
     }
 
     @Test
-    fun `tray menu rows keep the Tauri order`() {
+    fun `tray menu rows keep their fixed order`() {
         val items = TrayMenu.items { action -> action.id }
         assertEquals(TrayAction.entries.map { it.id }, items.map { it.action.id })
     }

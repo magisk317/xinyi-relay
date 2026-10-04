@@ -77,7 +77,7 @@ fun AnalyticsPage(
                 }
             } catch (failure: Exception) {
                 // The audit endpoint is best-effort: a failure degrades to an
-                // empty trail (the Tauri page does the same) so the rest of the
+                // empty trail rather than an error so the rest of the
                 // page still renders.
                 emptyList()
             }
@@ -369,5 +369,5 @@ private fun DeviceActivityCard(device: DeviceItem, locale: DesktopLocale) {
     }
 }
 
-/** Audit trail page size, matching the Tauri page's getDeviceConfigAuditLogs(id, 30, 0). */
+/** Audit trail page size, matching the console's getDeviceConfigAuditLogs(id, 30, 0). */
 private const val AUDIT_LOG_LIMIT = 30

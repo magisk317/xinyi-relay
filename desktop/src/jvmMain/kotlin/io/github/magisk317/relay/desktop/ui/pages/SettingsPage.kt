@@ -147,7 +147,7 @@ fun SettingsPage(
                 )
             }
         }
-        // Run mode (parity section 5): the Tauri `RunMode` surface, exposed as a
+        // Run mode: the desktop `RunMode` surface, exposed as a
         // selector. Switching re-assembles the local mirror in the shell
         // (Remote closes it, Local/Hybrid open and re-sync) and persists
         // immediately; the footer's mirror read-out follows the status on its

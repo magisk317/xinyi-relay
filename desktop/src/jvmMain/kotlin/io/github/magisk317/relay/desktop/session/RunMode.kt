@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 /**
  * Which backend the app talks to, mirroring the Rust desktop's `RunMode`
- * (`src-tauri/src/main.rs`, serde camelCase, default `Remote`):
+ * (persisted camelCase, default `Remote`):
  *
  * - [Remote] — the mode the shell has always run in: every page reads through
  *   ConsoleClient against the profile's backend and the local SQLite mirror

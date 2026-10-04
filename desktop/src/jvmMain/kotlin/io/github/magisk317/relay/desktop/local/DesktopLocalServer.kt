@@ -37,9 +37,9 @@ import kotlinx.serialization.json.put
 /**
  * JVM implementation of the embedded Android-agent server.
  *
- * The Tauri implementation deliberately binds loopback only. Android can use
- * the resulting address through `adb reverse`; a future TLS/LAN design must be
- * an explicit change rather than silently exposing bearer-token endpoints on a
+ * It binds loopback only, deliberately: Android can reach the resulting
+ * address through `adb reverse`, and a future TLS/LAN design must be an
+ * explicit change rather than silently exposing bearer-token endpoints on a
  * network interface. The server owns its executor and can therefore be stopped
  * when the local mirror is closed.
  */

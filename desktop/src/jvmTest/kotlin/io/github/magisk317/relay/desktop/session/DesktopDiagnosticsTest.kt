@@ -19,7 +19,7 @@ import java.time.Instant
  * The load-bearing assertions are the safety ones: the session file holds
  * live tokens, and the bundle is meant to be pasted into a bug report, so no
  * token-shaped string may survive [collectDiagnostics]. The rest pins the
- * Tauri-parity section shapes (connection / session / null notifications)
+ * Legacy-compatible section shapes (connection / session / null notifications)
  * and the controller's dialog + atomic-write behaviour.
  */
 class DesktopDiagnosticsTest {
@@ -40,7 +40,7 @@ class DesktopDiagnosticsTest {
     }
 
     @Test
-    fun `every section round trips and the session projection matches tauri`(@TempDir dir: Path) {
+    fun `every section round trips and the session projection stays token free`(@TempDir dir: Path) {
         val session = signedInSession(dir, accessToken = "tok-a", refreshToken = "tok-r")
         val mirror = io.github.magisk317.relay.desktop.local.LocalSyncStatus(
             devices = 2,
@@ -67,11 +67,11 @@ class DesktopDiagnosticsTest {
             decoded.session?.let {
                 "${it.profileId}/${it.username}/${it.expiresAt}/${it.refreshExpiresAt}"
             },
-            "session projection must match the tauri field set",
+            "session projection must match the legacy field set",
         )
         // The run mode travels in the KMP envelope shape (the PascalCase name
         // the enum serializes as in profiles.json), not the Rust camelCase one:
-        // the Tauri diagnostics bundle has no run mode field at all.
+        // the legacy diagnostics bundle has no run mode field at all.
         assertEquals("Remote", decoded.runMode)
         assertEquals(false, decoded.mirror?.active, "Remote mode does not use the mirror")
         assertEquals(2, decoded.mirror?.devices)

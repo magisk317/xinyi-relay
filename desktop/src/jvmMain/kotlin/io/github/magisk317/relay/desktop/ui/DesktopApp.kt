@@ -174,7 +174,7 @@ fun DesktopApp(window: java.awt.Window, windowState: WindowState, onQuit: () -> 
         mutableStateOf(LocalePreference.resolve(localeSetting, session.serverLanguageTag))
     }
 
-    // Tray menu (parity §5): the Tauri tray's rows in its order, installed
+    // Tray menu: the fixed rows in their order, installed
     // once and re-labelled on a locale switch. A machine with no system tray
     // (no notification area daemon, headless) simply gets no icon - the
     // window stays the only surface, and [DesktopTray.installed] says so.

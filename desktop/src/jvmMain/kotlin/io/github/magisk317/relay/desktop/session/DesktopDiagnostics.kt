@@ -10,12 +10,12 @@ import java.time.format.DateTimeFormatter
 /**
  * Support bundle for the diagnostics export (parity §5, `诊断信息导出`).
  *
- * Mirrors the Tauri `desktop_export_diagnostics` payload: profiles, the
+ * Mirrors the diagnostics payload support has always received: profiles, the
  * connection snapshot, a session summary WITHOUT tokens, and — KMP-specific
  * additions the Rust shell has no need for — the app/platform stamp and the
  * local mirror status. Those two extensions are what a bug report from the
  * KMP track actually needs (version, JVM, os, sync state) and are labelled as
- * such rather than smuggled into the Tauri-shaped sections.
+ * such rather than smuggled into the legacy-shaped sections.
  *
  * The session summary is a hand-picked projection of [DesktopSession]: the
  * tokens live in the same file the rest of the session does, so serializing
@@ -66,7 +66,7 @@ data class DesktopAppInfo(
     val java: String,
 )
 
-/** Tauri's `DesktopConnectionSnapshot`: state + human message + last change. */
+/** Connection read-out: state + human message + last change. */
 @Serializable
 data class ConnectionSection(
     val state: String,
@@ -75,7 +75,7 @@ data class ConnectionSection(
 )
 
 /**
- * Token-free view of the active session. The field set matches Tauri's
+ * Token-free view of the active session. The field set matches the legacy
  * diagnostics session projection exactly (identifier, username, the two
  * expiry stamps) — nothing credential-shaped.
  */
@@ -88,7 +88,7 @@ data class DiagnosticsSession(
 )
 
 /**
- * Tauri's notification preference block. Always null on the KMP track — the
+ * Notification preference block of the legacy bundle. Always null here — the
  * shell has no notification switches yet — but the section keeps the payload
  * shape aligned with the Rust export so a bundle from either track reads the
  * same.

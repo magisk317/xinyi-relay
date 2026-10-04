@@ -1,6 +1,10 @@
-# Tauri 桌面端退役方案
+# Tauri 桌面端退役记录
 
-最后更新：2026-10-03
+最后更新：2026-10-04
+
+> **状态：已执行完毕。** Tauri 轨于 2026-10-04 删除，Compose Desktop 成为唯一的桌面端。
+> 本文件从"方案"转为"执行记录"：§2 是删除前逐条核对的判据，§4 是实际删除清单，§6 的回滚说明仍然有效。
+> 恢复点：annotated tag `tauri-retirement`（指向删除提交的父提交）。
 
 ## 1. 先看清两轨的关系
 
@@ -18,14 +22,29 @@
 
 六条全部满足，才允许进入删除阶段。每条都要有可验证的证据，不能凭"差不多齐了"判断。
 
-**执行记录：2026-10-04 完成退役。** 删除前的恢复点是 tag `tauri-retirement`（指向删除提交的父提交），删除单独成一个提交。判据 2/5（连续三个 tag 产出全部平台产物、跨 stable 周期无回归）在删除时仍未满足——它们是"证明新轨足够稳"的观察性判据，用户明确指示不再等待："不要双轨，按进度清退 tauri，上线 kmp，产物什么的直接替换"。判据 6 的全量改口随删除一并完成（`git grep -il tauri` 的剩余结果只剩本文件与历史兼容注释）。
+**执行记录：2026-10-04 完成退役**（删除提交 `68d2622ee3b17c8ce736c8aefe048e84b5a44024`，恢复点 tag `tauri-retirement` 指向其父提交，删除单独成一个提交）。
+
+| 判据 | 删除时的状态 |
+|---|---|
+| 1 能力清单 | 已满足：清单各项全部落地，156 个用例无缓存通过 |
+| 2 六平台打包流水线 | **未满足**：只接了 Linux x64/arm64，且还没有 tag 走过 |
+| 3 旧库导入 | 改判为迁移义务不存在（§2.2） |
+| 4 迁移说明 | 已满足：release body 固定两段说明 |
+| 5 跨 stable 周期无回归 | **未满足**：台账是空的，还没有 tag 走过双轨流水线 |
+| 6 文档全量改口 | 已满足：随删除提交一并完成 |
+
+判据 2 与 5 是**观察性**判据——它们用"新轨已经稳定跑了多久"来回答"能不能删"。用户明确指示不等这两个观察窗口（"不要双轨，按进度清退 tauri，上线 kmp，产物什么的直接替换"）。删除依据因此从"观察期满"改为"用户决定"，这是本次退役唯一一处偏离原方案的地方，记录在此以免日后误读。
+
+删除后的验证：45 个 Gradle 任务（含 156 个用例）以 `--no-build-cache --rerun-tasks` 全过；结构检查与双轨检查通过；打包脚本端到端产出 deb + uber jar；CI 结构校验显示桌面段只剩 `desktop-kmp:linux:x64/arm64` 与共用的 `desktop:release:gitlab`，无 Windows/macOS job、无 Tauri 变量残留。
+
+`git grep -il tauri` 的剩余结果只有本文件，以及 `:desktop:data` 里解释历史 schema 兼容的注释——后者按 §4.3 明确保留。
 
 | # | 判据 | 验证方式 | 现状 |
 |---|---|---|---|
 | 1 | parity 清单 §5 的能力缺口全部补齐：托盘、RunMode + 本地服务器、本地存储接入 `:desktop` UI、通知、数据库导出/导入、诊断导出、打开外链、系统钥匙串、单实例、审计日志页（旧库导入入口已按 §2.2 从清单中划掉） | 逐项在 `:desktop` 里找到落点并有测试或人工走查记录 | **已满足**：清单各项全部落地（旧库导入入口按 §2.2 不做），156 个用例在 lzc 无缓存通过；证据见 `docs/DESKTOP_PARITY.md` §5 与 §6 |
 | 2 | KMP 轨有可用的六平台打包流水线 | 连续三个 tag 由 KMP workflow 产出全部平台产物 | 部分满足。GitLab 线只接了 Linux x64/arm64 两个 job，其余四平台既没有 job 也没有 runner 标签，GitHub 线未接；「连续三个 tag」更无从谈起——流水线刚建，还没有任何 tag 走过它。见 §2.1 |
 | 3 | 旧数据能被新轨读取，不是让用户手工搬文件 | `LegacyDatabaseImporter` 在真实旧库上跑通一次，且新轨启动时自动导入 | 改判为"迁移义务不存在"。依据见 §2.2：Tauri 桌面轨从未发布过，没有用户持有它的产物，因此不再补自动导入与 UI 入口。`LegacyDatabaseImporter` 与 `LegacyDatabaseImporterTest` 保留，作为 Room schema 与 Tauri SQLite 兼容的证据 |
-| 4 | 用户迁移路径写明：两轨都没有自动更新，换轨的人必须手动下载新轨；token 保存位置不同（keyring → prefs），需要重新登录。按 §2.2，已装 Tauri 桌面版的用户实际为空，但这两段说明仍然要写——它同时是"默认轨从哪个版本起换人"的行为记录 | release note 模板里固定两段说明 | **已满足**：`scripts/release/gitlab_desktop_release.sh` 的默认 release body 固定两段（无自动更新、凭据不随轨迁移需重新登录），`XINYI_DESKTOP_RELEASE_DESCRIPTION` 仍可整体覆盖 |
+| 4 | 用户迁移路径写明：没有自动更新，升级要手动下载；旧 Tauri 安装保存的登录凭据不被新应用读取，升级后需重新登录 | release note 模板里固定两段说明 | **已满足**：`scripts/release/gitlab_desktop_release.sh` 的默认 release body 固定两段（无自动更新、旧版凭据不继承），`XINYI_DESKTOP_RELEASE_DESCRIPTION` 仍可整体覆盖 |
 | 5 | 双轨并存至少跨越一个 stable 版周期无回归 | release 记录 + issue | 未满足，且**只能在时间上满足**：需要至少一个 stable tag 走完双轨流水线并留下无回归记录。证据台账见 §2.3 |
 | 6 | 文档、README、CI 引用全部改口 | `git grep -il tauri` 只剩 §4.2 允许保留的历史条目 | 未满足，且**被默认轨切换阻塞**：Tauri 轨现在仍是随 tag 出包并在 README 里署名的现役桌面端，删掉这些引用会与事实不符。§4.2 的改口清单要在阶段 3（切换默认）执行 |
 
@@ -69,14 +88,17 @@ Tauri 桌面轨的产物从未到达过用户：
 
 **一个诚实的说明**：判据 2 的"连续三个 tag 产出全部平台产物"与判据 5 的"一个 stable 周期无回归"共用同一批数据点，可以一起记账。
 
-## 3. 时间线（按 tag 推进，不绑具体日期）
+## 3. 时间线
 
-- **阶段 0（现在）**：KMP 轨已完成控制台移植，GitLab 线上也有了打包流水线（只覆盖 Linux x64/arm64），判据 1 的能力清单已全部落地。桌面端默认形态仍是 Tauri 轨，KMP 产物不宣传。
-- **阶段 1（建流水线）**：流水线已建于 GitLab 线，只覆盖 Linux。Windows/macOS 要等对应 runner 上真实跑过一轮才补。GitHub 线（`.github/workflows/desktop-kmp-package.yml`）尚未建，要等 GitLab 线跑顺、且 KMP 轨要作为默认桌面端之前再补。Tauri 轨完全不变。
-- **阶段 2（beta 预览）**：从某个 beta tag 起，KMP 轨产物作为预览版附在 release 上，note 里写清缺口；同时集中补 §2 判据 1 的能力。
-- **阶段 3（切换默认）**：某个 stable tag 起，README 与 release note 把 KMP 轨作为默认桌面端；Tauri 轨两个 workflow 保留，但不再随新 tag 触发。
-- **阶段 4（冻结）**：Tauri 轨只接受安全修复，覆盖一个完整 stable 版周期。
-- **阶段 5（删除）**：按 §4 清单一次性删除，单独提交，并在 CHANGELOG 记一笔。
+原方案分了五个阶段（建流水线 → beta 预览 → 切换默认 → 冻结 → 删除），实际执行把后四步并成了一次跳跃：
+
+- **已做**：KMP 轨完成控制台移植，判据 1 的能力清单全部落地，GitLab 流水线覆盖 Linux x64/arm64。
+- **未做（被跳过的观察期）**：beta 预览、切换默认的过渡 tag、跨 stable 周期的冻结期，以及判据 2/5 要求的观察窗口。
+- **已做（跳跃）**：Tauri 轨一次性删除，Compose Desktop 直接成为唯一桌面端——不再有"默认轨"与"预览轨"的区分。
+
+阶段 4 的冻结（"只接受安全修复，覆盖一个完整 stable 版周期"）没有发生，所以不存在"冻结期内的安全修复"这回事；如果删除后需要 Tauri 侧的改动，只能从 tag `tauri-retirement` 恢复后另行处理。
+
+阶段 5 要求"在 CHANGELOG 记一笔"：删除发生在 v0.2.8 之后、下一个 tag 之前，该条目随下一个版本的 CHANGELOG 一起写，见 §4.4 的说明。
 
 ## 4. 删除清单
 
@@ -116,6 +138,14 @@ Tauri 桌面轨的产物从未到达过用户：
 | `:desktop:data` 里引用 Tauri schema 的注释与测试 | `LegacyDatabaseImporter`、`DesktopDatabase`、`DeviceEntity`、`LegacyDatabaseImporterTest` 用它们说明旧库结构；这些注释解释的是数据兼容，不是技术栈宣传 |
 | `.magisk-ci-toolkit/security/janitor_security_fixes.sh` 里的 cargo audit 段 | 属于外部子模块；本仓库删掉 Tauri 代码后该段会空转，需要在 toolkit 侧单独处理，不在本仓库改 |
 
+### 4.4 CHANGELOG 条目
+
+删除提交本身不写 CHANGELOG（仓库的 CHANGELOG 按版本记，不按提交记）。下一个版本发布时，条目文案：
+
+```
+- `[desktop]` 桌面端从 Tauri 切换到 Kotlin Multiplatform + Compose Desktop；旧版 Tauri 安装包不再产出，已安装用户需手动下载新包。
+```
+
 ## 5. 数据与兼容
 
 - **本地数据库**：Tauri 端的 SQLite（`sqlite_store.rs`、`store.rs`）就是 `:desktop:data` 的 schema 来源，`LegacyDatabaseImporter` 已经能读它。原判据要求"退役前必须确认新轨首次启动会自动导入旧库"，已按 §2.2 改判：桌面轨零发布，没有用户持有旧库，自动导入与 UI 入口不再补。导入器本身保留，随时可以接回来。
@@ -127,17 +157,16 @@ Tauri 桌面轨的产物从未到达过用户：
 
 退役的每一步都可回退，真正的删除只发生在阶段 5：
 
-- **阶段 3 / 4 回退**：代码和 workflow 都还在，重新让 Tauri workflow 随 tag 触发即可，只改 release note。
-- **阶段 5 之后回退**：只能从 git 历史恢复 `frontend/desktop/` 与两个 workflow。因此建议在进入阶段 5 之前先打一个标记 tag（例如 `tauri-retirement`），删除提交的 message 里写上这个 tag，方便事后定位与恢复。
-- 删除必须单独一个提交，不与任何其他改动混在一起，保证可以整体 revert。
+- **删除之后回退**：从 tag `tauri-retirement` 恢复——`git revert 68d2622ee3b17c8ce736c8aefe048e84b5a44024` 会一次还原整个删除（应用、两条 workflow、GitLab job、脚本），或 `git checkout tauri-retirement -- frontend/desktop` 只取回应用本体。恢复后 Tauri 的打包脚本与 CI job 也在同一提交里，可以一起回来。
+- 删除是单独一个提交、不与其他改动混在一起，所以整体 revert 是干净的。
 
-## 7. 删除前检查表
+## 7. 删除前检查表（执行时逐项核对）
 
-- [ ] §2 六条判据全部满足，且每条都有证据
-- [ ] 至少一个 stable tag 由 KMP 轨产出桌面产物
-- [ ] `git grep -il tauri` 的剩余结果只是 §4.2 / §4.3 允许保留的条目
-- [ ] `grep -rn 'frontend/desktop' .github .gitlab-ci.yml scripts` 无结果
-- [ ] `bash scripts/ci/select_android_test_tasks.sh` 的 desktop 分支仍指向 KMP 任务集（`:desktop:compileKotlinJvm`、`:desktop:jvmTest`、`:desktop:core:jvmTest`、`:desktop:data:jvmTest`）
-- [ ] `./gradlew :desktop:compileKotlinJvm :desktop:jvmTest :desktop:core:jvmTest :desktop:data:jvmTest verifyStructureBoundaries` 无缓存通过
-- [ ] README / README-EN / ARCHITECTURE / AGENTS / API_OVERVIEW 已改口，CHANGELOG 增加退役条目
-- [ ] 已打 `tauri-retirement` 标记 tag
+- [x] §2 六条判据逐条核对，2/5 未满足但用户指示放行（见 §2 执行记录）
+- [ ] 未做到：删除时还没有 tag 走过新轨流水线（用户指示不等）
+- [x] `git grep -il tauri` 只剩本文件与 §4.3 允许保留的兼容注释
+- [x] `git grep -n 'frontend/desktop' .github .gitlab-ci.yml scripts` 无结果（本文件的历史清单除外）
+- [x] `select_android_test_tasks.sh` 的 desktop 分支指向 KMP 任务集，其测试套件通过（`:desktop:compileKotlinJvm`、`:desktop:jvmTest`、`:desktop:core:jvmTest`、`:desktop:data:jvmTest`）
+- [x] 无缓存通过（45 任务全执行，156 用例 0 失败）
+- [x] README / README-EN / ARCHITECTURE / API_OVERVIEW 已改口（AGENTS.md 是 gitignore 的本地文件，不入库）
+- [x] 已打 `tauri-retirement`（GPG 签名的 annotated tag）

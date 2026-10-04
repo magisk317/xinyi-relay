@@ -250,8 +250,8 @@ fun AdvancedPage(
             )
         }
 
-        // Remote sync (parity §5): the Tauri "pull from remote" / "push to
-        // remote" pair, driving the mirror's own engine. The push direction is
+        // Remote sync: the "pull from remote" / "push to remote" pair,
+        // driving the mirror's own engine. The push direction is
         // what moves config commands queued in Local/Hybrid out of the local
         // pending queue and onto the backend; without it those edits would
         // never leave the machine. Both need an authenticated session, so the
@@ -628,8 +628,8 @@ private fun RenameDeviceDialog(
 }
 
 /**
- * Outcome of the most recent manual sync round, the Tauri SyncResultCard in
- * Compose: the config verdict with its revision, the counts the round moved,
+ * Outcome of the most recent manual sync round: the config verdict with its
+ * revision, the counts the round moved,
  * and the conflict hint that says which direction resolves it.
  */
 @Composable

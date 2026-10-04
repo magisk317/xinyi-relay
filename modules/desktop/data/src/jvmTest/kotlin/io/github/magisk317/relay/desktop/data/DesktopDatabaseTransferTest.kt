@@ -18,7 +18,7 @@ import kotlinx.coroutines.runBlocking
  *
  * The invariants that matter beyond a plain round trip: the envelope is
  * validated before any row moves, a rejected import leaves the previous
- * content untouched, and the Tauri-era raw SQLite file is refused rather than
+ * content untouched, and the legacy raw SQLite file is refused rather than
  * half-read.
  */
 class DesktopDatabaseTransferTest {
@@ -150,8 +150,8 @@ class DesktopDatabaseTransferTest {
     }
 
     @Test
-    fun `a legacy tauri sqlite file is rejected as a foreign format`() {
-        // The Tauri track exported by copying local-data.db; its first bytes are
+    fun `a legacy raw sqlite file is rejected as a foreign format`() {
+        // The old desktop client exported by copying local-data.db; its first bytes are
         // the SQLite magic header, never a JSON envelope.
         val failure = assertFailsWith<SnapshotFormatException> {
             DatabaseTransfer.decode("SQLite format 3\u0000 not json at all")
