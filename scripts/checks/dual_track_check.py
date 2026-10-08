@@ -17,6 +17,10 @@ Track rules:
   *Miuix.kt                     -> X track (miuix is the intended half)
   everything else               -> shared (must go through the ui-kit)
 
+The desktop surfaces (`desktop/`, `modules/desktop/`) are exempt: they build
+a single-track Compose Desktop app that never composes into the Android M/X
+apps, so a bare M3 leaf there cannot break convergence.
+
 Usage: dual_track_check.py [--root DIR] [--quiet]
 Exit: 0 = clean, 1 = findings, 2 = usage error.
 """
@@ -44,6 +48,7 @@ LEAF_RE = {c: re.compile(r"(?<![A-Za-z0-9_.])" + c + r"\s*\(") for c in sorted(s
 
 SKIP_DIRS = {"build", ".git", ".gradle", ".idea", "magisk-ui-kit", "magisk-xposed-kit",
              "build-logic", "node_modules"}
+EXEMPT_PREFIXES = ("desktop/", "modules/desktop/")
 SUBMODULE_HINT = ("smscode/core", "smscode/rules", "smscode-core")
 
 
@@ -219,7 +224,7 @@ def main():
 
     for fp in sorted(walk(root)):
         rel = os.path.relpath(fp, root).replace(os.sep, "/")
-        if rel.startswith(SUBMODULE_HINT):
+        if rel.startswith(SUBMODULE_HINT) or rel.startswith(EXEMPT_PREFIXES):
             continue
         track = track_of(fp)
         try:

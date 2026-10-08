@@ -24,7 +24,7 @@ bash "$TOOLKIT_DIR/gradle/run_gradle_with_retry.sh" \
   :smscode-core:verification:detekt \
   :smscode-core:hook:lintDebug \
   :smscode-core:runtime:lintDebug \
-  :magisk-ui-kit:compileDebugKotlin \
+  :magisk-ui-kit:compileAndroidMain :magisk-ui-kit:compileKotlinJvm \
   :magisk-xposed-kit:testDebugUnitTest \
   :magisk-xposed-kit:logging:testDebugUnitTest \
   :magisk-xposed-kit:diagnostics:testDebugUnitTest \

@@ -9,15 +9,19 @@ import re
 from pathlib import Path
 from typing import Iterable
 
+from kmp_source import resolve_source
+
 
 ROOT = Path(__file__).resolve().parents[2]
-SENDER_TYPE_SOURCE = (
-    ROOT
-    / "modules/relay/engine/api/src/main/java/io/github/magisk317/relay/engine/sender/SenderType.kt"
+SENDER_TYPE_SOURCE = resolve_source(
+    "modules/relay/engine/api",
+    "io/github/magisk317/relay/engine/sender",
+    "SenderType.kt",
 )
-SCHEMA_SOURCE = (
-    ROOT
-    / "modules/relay/sender/api/src/main/java/io/github/magisk317/relay/sender/SenderSettingSchema.kt"
+SCHEMA_SOURCE = resolve_source(
+    "modules/relay/sender/api",
+    "io/github/magisk317/relay/sender",
+    "SenderSettingSchema.kt",
 )
 OUTPUT = ROOT / "frontend/shared/contracts/senderSchemas.json"
 KOTLIN_STRING_RE = re.compile(r'"((?:\\.|[^"\\])*)"')

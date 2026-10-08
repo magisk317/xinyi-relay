@@ -22,24 +22,53 @@ core_test_tasks=(
   :smscode-core:rule:test
 )
 kit_test_tasks=(
-  :magisk-ui-kit:testDebugUnitTest
+  :magisk-ui-kit:testAndroidHostTest
+  :magisk-ui-kit:jvmTest
   :magisk-ui-kit:billing:testDebugUnitTest
+)
+kmp_library_test_tasks=(
+  :policy:jvmTest
+  :relay:contract:jvmTest
+  :relay:engine:jvmTest
+  :relay:matrix-e2ee:jvmTest
+  :relay:net:jvmTest
+  :relay:sender:api:jvmTest
+)
+android_lib_test_tasks=(
+  :relay:sender:testGithubNoE2eeDebugUnitTest
+)
+desktop_test_tasks=(
+  :desktop:compileKotlinJvm
+  :desktop:jvmTest
+  :desktop:core:jvmTest
+  :desktop:data:jvmTest
+  verifyStructureBoundaries
 )
 full_tasks=(
   :app:testGithubNoE2eeDebugUnitTest
   :app:koverHtmlReportGithubNoE2eeDebug
-  verifyStructureBoundaries
   :app:testGithubWithE2eeDebugUnitTest
   :app:koverHtmlReportGithubWithE2eeDebug
   "${mobile_test_tasks[@]}"
   "${core_test_tasks[@]}"
   "${kit_test_tasks[@]}"
+  "${kmp_library_test_tasks[@]}"
+  "${android_lib_test_tasks[@]}"
+  "${desktop_test_tasks[@]}"
 )
 if [[ -n "${CI_COMMIT_TAG:-}" || "${GITHUB_REF_TYPE:-}" == tag || "${CI_COMMIT_BRANCH:-}" == beta || "${CI_COMMIT_BRANCH:-}" == master || "${GITHUB_REF_NAME:-}" == beta || "${GITHUB_REF_NAME:-}" == master ]]; then printf '%s\n' "${full_tasks[@]}"; exit 0; fi
 if [[ -z "$paths_file" ]]; then paths_file="$(mktemp)"; trap 'rm -f "$paths_file"' EXIT; bash "$toolkit_dir/ci/changed_paths.sh" "$paths_file"; fi
 if [[ "$(sed -n '1p' "$paths_file")" == full ]]; then printf '%s\n' "${full_tasks[@]}"; exit 0; fi
 declare -A selected=()
 select_task() { selected["$1"]=1; }
+select_app_bucket() {
+  select_task :app:testGithubNoE2eeDebugUnitTest
+  select_task :app:koverHtmlReportGithubNoE2eeDebug
+  select_task verifyStructureBoundaries
+  select_task :app:testGithubWithE2eeDebugUnitTest
+  select_task :app:koverHtmlReportGithubWithE2eeDebug
+  for task in "${mobile_test_tasks[@]}"; do select_task "$task"; done
+}
 while IFS= read -r path; do
   [[ -z "$path" ]] && continue
   case "$path" in
@@ -49,11 +78,16 @@ while IFS= read -r path; do
       for task in "${core_test_tasks[@]}"; do select_task "$task"; done ;;
     magisk-ui-kit/*)
       for task in "${kit_test_tasks[@]}"; do select_task "$task"; done ;;
+    desktop/*|modules/desktop/*)
+      for task in "${desktop_test_tasks[@]}"; do select_task "$task"; done ;;
+    modules/policy/*|modules/relay/contract/*|modules/relay/engine/*|modules/relay/matrix-e2ee/*|modules/relay/net/*|modules/relay/sender/api/*)
+      select_app_bucket
+      for task in "${kmp_library_test_tasks[@]}"; do select_task "$task"; done ;;
+    modules/relay/sender/*)
+      select_app_bucket
+      for task in "${android_lib_test_tasks[@]}"; do select_task "$task"; done ;;
     app/*|modules/*|mobile/*|features/*|magisk-xposed-kit/*)
-      select_task :app:testGithubNoE2eeDebugUnitTest; select_task :app:koverHtmlReportGithubNoE2eeDebug
-      select_task verifyStructureBoundaries; select_task :app:testGithubWithE2eeDebugUnitTest
-      select_task :app:koverHtmlReportGithubWithE2eeDebug
-      for task in "${mobile_test_tasks[@]}"; do select_task "$task"; done ;;
+      select_app_bucket ;;
     *) printf '%s\n' "${full_tasks[@]}"; exit 0 ;;
   esac
 done < <(sed -n '2,$p' "$paths_file")

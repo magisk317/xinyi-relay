@@ -235,6 +235,19 @@ for dir in "$RUNTIME_SRC/main/java/io/github/magisk317/relay/legacy" \
   fi
 done
 
+# --- magisk-ui-kit child modules must isolate an optional dependency ---
+# The root project uses KMP source sets for platform differences, so a child Gradle module is
+# only legitimate when it keeps a dependency the root (and therefore every channel) must not
+# inherit. billing qualifies via the Play Billing client.
+UI_KIT_DIR="$ROOT_DIR/magisk-ui-kit"
+if [[ -d "$UI_KIT_DIR/billing" ]]; then
+  require_pattern "$UI_KIT_DIR/billing/build.gradle.kts" 'libs\.billing\.ktx' \
+    "magisk-ui-kit/billing must keep the Play Billing dependency it exists to isolate"
+fi
+if [[ -f "$UI_KIT_DIR/settings.gradle.kts" ]]; then
+  violations+=("magisk-ui-kit must not carry a parallel root build entry")
+fi
+
 if [[ "${#violations[@]}" -ne 0 ]]; then
   printf 'Module boundary verification failed:\n' >&2
   printf ' - %s\n' "${violations[@]}" >&2

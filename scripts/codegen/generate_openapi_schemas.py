@@ -9,14 +9,21 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from kmp_source import resolve_source
+
 
 ROOT = Path(__file__).resolve().parents[2]
+CONTRACT_REMOTE = "io/github/magisk317/relay/contract/remote"
 SOURCES = [
-    ROOT / "modules/relay/contract/src/main/java/io/github/magisk317/relay/contract/remote/AgentApiContracts.kt",
-    ROOT / "modules/relay/contract/src/main/java/io/github/magisk317/relay/contract/remote/ConsoleDeviceConfigApiContracts.kt",
-    ROOT / "modules/relay/contract/src/main/java/io/github/magisk317/relay/contract/remote/ConsoleApiContracts.kt",
-    ROOT / "modules/relay/contract/src/main/java/io/github/magisk317/relay/contract/remote/ConsoleReadModelContracts.kt",
-    ROOT / "modules/relay/contract/src/main/java/io/github/magisk317/relay/contract/remote/RealtimeApiContracts.kt",
+    resolve_source("modules/relay/contract", CONTRACT_REMOTE, "AgentApiContracts.kt"),
+    resolve_source(
+        "modules/relay/contract",
+        CONTRACT_REMOTE,
+        "ConsoleDeviceConfigApiContracts.kt",
+    ),
+    resolve_source("modules/relay/contract", CONTRACT_REMOTE, "ConsoleApiContracts.kt"),
+    resolve_source("modules/relay/contract", CONTRACT_REMOTE, "ConsoleReadModelContracts.kt"),
+    resolve_source("modules/relay/contract", CONTRACT_REMOTE, "RealtimeApiContracts.kt"),
 ]
 OUTPUT = ROOT / "backend/api/internal/http/openapi_schemas.generated.json"
 

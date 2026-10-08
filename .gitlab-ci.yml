@@ -77,9 +77,6 @@ variables:
   XINYI_BACKEND_ARCHES: "amd64 arm64"
   XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG: "magisk-amd64-linux"
   XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG: "magisk-arm64-linux"
-  XINYI_GITLAB_WINDOWS_AMD64_RUNNER_TAG: "saas-windows-medium-amd64"
-  XINYI_GITLAB_MACOS_ARM64_RUNNER_TAG: "saas-macos-medium-m1"
-  XINYI_GITLAB_MACOS_ENABLED: "false"
 
 .xinyi_ci_rules:
   rules:
@@ -186,41 +183,56 @@ variables:
     - docker version
     - docker buildx version
 
-.xinyi_desktop_linux:
-  extends: .xinyi_package_rules
-  image: "node:24-bookworm"
+# KMP desktop track. The desktop modules are pure JVM, so these jobs need a JDK
+# and nothing else: no Android SDK, no Node, no Rust. .magisk_android_base is the
+# only anchor that stages a JDK on these runners, and it drags the SDK and the
+# aapt2 workarounds along with it, so these jobs take the JDK straight from the
+# image instead: no staging script, no lock file, no download.
+#
+# Linux x64 and arm64 only for now: those are the two runners whose packaging has
+# actually been exercised. Windows and macOS jobs are deliberately not wired; see
+# docs/DESKTOP_RELEASE_PLAN.md section 3.
+.xinyi_desktop_kmp_rules:
+  rules:
+    - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "web"'
+      when: never
+    - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "api"'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    # The desktop package is an optional extra of a release, not a gate on it:
+    # the release cadence is the Android app's, and a desktop packaging failure
+    # must never hold that back. Flip the first tag rule off (or set
+    # XINYI_DESKTOP_REQUIRED=true and invert the condition) when the desktop
+    # build becomes a required part of a release.
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+[.][0-9]+[.][0-9]+.*$/'
+      allow_failure: true
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: manual
+      allow_failure: true
+    - when: never
+
+.xinyi_desktop_kmp_base:
+  extends: .xinyi_desktop_kmp_rules
   stage: package
   variables:
-    RUSTUP_MAX_RETRIES: "10"
-  before_script:
-    - chmod +x scripts/ci/gitlab_desktop_package.sh
+    GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+    GRADLE_OPTS: "-Dorg.gradle.warning.mode=all -Dorg.gradle.workers.max=2"
   artifacts:
     when: always
     expire_in: 30 days
     paths:
       - desktop-artifacts/
 
-.xinyi_desktop_macos:
-  extends: .xinyi_package_rules
-  stage: package
-  variables:
-    RUSTUP_MAX_RETRIES: "10"
+.xinyi_desktop_kmp_linux:
+  extends: .xinyi_desktop_kmp_base
+  # Pure-JVM track: the JDK comes from the image (JAVA_HOME=/opt/java/openjdk,
+  # jpackage and jlink included). Keep "-resolute" so the OS base stays Ubuntu
+  # 26.04 and "_<build>" so the two runners cannot drift -- they pull
+  # if-not-present. See "CI Java Runtime" in AGENTS.md for the fallback recipe.
+  image: "eclipse-temurin:27_35-jdk-resolute"
   before_script:
-    - chmod +x scripts/ci/gitlab_desktop_package.sh
-  artifacts:
-    when: always
-    expire_in: 30 days
-    paths:
-      - desktop-artifacts/
-
-.xinyi_desktop_windows:
-  extends: .xinyi_package_rules
-  stage: package
-  artifacts:
-    when: always
-    expire_in: 30 days
-    paths:
-      - desktop-artifacts/
+    - chmod +x scripts/ci/gitlab_desktop_kmp_package.sh
 
 backend:go:
   extends: .xinyi_backend_validation_rules
@@ -368,47 +380,21 @@ backend:container:manifest:
       - telegram_images.env
     expire_in: 1 day
 
-desktop:linux:x64:
-  extends: .xinyi_desktop_linux
+desktop-kmp:linux:x64:
+  extends: .xinyi_desktop_kmp_linux
   needs: []
   tags:
     - $XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG
   script:
-    - scripts/ci/gitlab_desktop_package.sh linux linux-x64 x86_64-unknown-linux-gnu "--target x86_64-unknown-linux-gnu --bundles appimage,deb,rpm" "frontend/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle"
+    - scripts/ci/gitlab_desktop_kmp_package.sh kmp-linux-x64
 
-desktop:linux:arm64:
-  extends: .xinyi_desktop_linux
+desktop-kmp:linux:arm64:
+  extends: .xinyi_desktop_kmp_linux
   needs: []
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   script:
-    - scripts/ci/gitlab_desktop_package.sh linux linux-arm64 aarch64-unknown-linux-gnu "--target aarch64-unknown-linux-gnu --bundles appimage,deb,rpm" "frontend/desktop/src-tauri/target/aarch64-unknown-linux-gnu/release/bundle"
-
-desktop:windows:x64:
-  extends: .xinyi_desktop_windows
-  needs: []
-  rules:
-    - when: never
-  tags:
-    - $XINYI_GITLAB_WINDOWS_AMD64_RUNNER_TAG
-  script:
-    - powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci/gitlab_desktop_windows.ps1 -ArtifactSuffix windows-x64 -RustTarget x86_64-pc-windows-msvc -BundleArgs "--target x86_64-pc-windows-msvc --bundles nsis" -BundleDir "frontend/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle"
-
-desktop:macos:arm64:
-  extends: .xinyi_desktop_macos
-  needs: []
-  rules:
-    - if: '$XINYI_GITLAB_MACOS_ENABLED != "true"'
-      when: never
-    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+[.][0-9]+[.][0-9]+.*$/'
-    - if: '$CI_PIPELINE_SOURCE == "web"'
-      when: manual
-      allow_failure: true
-    - when: never
-  tags:
-    - $XINYI_GITLAB_MACOS_ARM64_RUNNER_TAG
-  script:
-    - scripts/ci/gitlab_desktop_package.sh macos macos-arm64 aarch64-apple-darwin "--target aarch64-apple-darwin --bundles app,dmg" "frontend/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle"
+    - scripts/ci/gitlab_desktop_kmp_package.sh kmp-linux-arm64
 
 desktop:release:gitlab:
   extends: .magisk_linux_base
@@ -420,9 +406,9 @@ desktop:release:gitlab:
       allow_failure: true
     - when: never
   needs:
-    - job: desktop:linux:x64
+    - job: desktop-kmp:linux:x64
       artifacts: true
-    - job: desktop:linux:arm64
+    - job: desktop-kmp:linux:arm64
       artifacts: true
   script:
     - chmod +x scripts/release/gitlab_desktop_release.sh
@@ -557,7 +543,13 @@ cancel:older:mr:pipelines:
   stage: quality
   tags:
     - $XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG
-  needs: []
+  # Publish first: wait for the Play beta publish (optional, so this
+  # stage still runs when the publish job is absent) instead of
+  # consuming the release runner in parallel.
+  needs:
+    - job: android:ci:play-beta
+      artifacts: false
+      optional: true
   script:
     - |
       set -euo pipefail
@@ -604,7 +596,13 @@ android:detekt:
   stage: quality
   tags:
     - $XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG
-  needs: []
+  # Publish first: wait for the Play beta publish (optional, so this
+  # stage still runs when the publish job is absent) instead of
+  # consuming the release runner in parallel.
+  needs:
+    - job: android:ci:play-beta
+      artifacts: false
+      optional: true
   allow_failure: true
   variables:
     MAGISK_ANDROID_DETEKT_TASKS: >-
@@ -763,6 +761,11 @@ android:ci:play-beta-bundle:
   stage: release-build
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
+  # The release build is self-contained (keystore and google-services.json
+  # come from CI variables, assets from the repository), so the publish chain
+  # must not wait for the build/package stages: Play publishing keeps
+  # priority over the quality stage.
+  needs: []
   rules:
     - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != "" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
     - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_AUTHOR =~ /Renovate317@users.noreply/ && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != "" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
@@ -801,7 +804,7 @@ android:ci:play-beta:
     - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_AUTHOR =~ /Renovate317@users.noreply/ && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
       when: on_success
     - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
-      when: manual
+      when: on_success
       allow_failure: true
     - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_AUTHOR =~ /Renovate317@users.noreply/ && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
       when: on_success
@@ -852,6 +855,9 @@ telegram:release:
     MAGISK_TELEGRAM_PROJECT_TAG: "#XinyiRelay"
     MAGISK_TELEGRAM_PROJECT_NAME: "XinyiRelay"
     MAGISK_TELEGRAM_IMAGE_LIST_COMMAND: "bash scripts/ci/gitlab_backend_container.sh list-images"
+    # Use TG_RELEASE_CHAT_ID instead of TG_CHAT_ID so that the project-level
+    # TG_CHAT_ID (which retargets CI to the new room) does NOT override this.
+    TG_RELEASE_CHAT_ID: "-1003532345372"
   needs:
     - job: android:release:github-apk
       artifacts: true
@@ -879,6 +885,8 @@ telegram:ci:
     MAGISK_TELEGRAM_PROJECT_TAG: "#XinyiRelay"
     MAGISK_TELEGRAM_PROJECT_NAME: "XinyiRelay"
     MAGISK_TELEGRAM_CI_BRANCH: "beta"
+    # CI builds are informational; no need to pin in the new CI room.
+    MAGISK_TELEGRAM_PIN: "false"
   needs:
     - job: android:build
       artifacts: true

@@ -9,9 +9,15 @@ import re
 from pathlib import Path
 from typing import Any
 
+from kmp_source import resolve_source
+
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE = ROOT / "modules/relay/contract/src/main/java/io/github/magisk317/relay/contract/remote/OpenApiRouteContracts.kt"
+SOURCE = resolve_source(
+    "modules/relay/contract",
+    "io/github/magisk317/relay/contract/remote",
+    "OpenApiRouteContracts.kt",
+)
 OUTPUT = ROOT / "backend/api/internal/http/openapi_routes.generated.json"
 
 PRIMITIVE_SCHEMAS: dict[str, dict[str, str]] = {
