@@ -86,6 +86,7 @@ compose.desktop {
             vendor = "magisk317"
             copyright = "© 2026 magisk317"
 
+            modules("jdk.httpserver")
             targetFormats(*desktopTargetFormats.toTypedArray())
         }
     }
