@@ -29,6 +29,7 @@ dependencies {
     implementation(project(":mobile:feature:common"))
     implementation(project(":magisk-ui-kit"))
     implementation(project(":smscode-core:runtime"))
+    implementation(project(":smscode-core:db"))
     implementation(libs.androidx.material.icons.core)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.koin.android)

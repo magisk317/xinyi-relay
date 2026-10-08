@@ -1,0 +1,818 @@
+@file:Suppress("LocalContextGetResourceValueCall")
+
+package io.github.magisk317.relay.ui.home.verification
+
+import io.github.magisk317.uikit.preference.SectionCard
+import io.github.magisk317.uikit.preference.SingleChoiceConfirmDialog
+import io.github.magisk317.relay.ui.common.rememberPrefBoolean
+import io.github.magisk317.relay.ui.common.StateSwitchItem
+import io.github.magisk317.uikit.preference.AppArrowItem
+import io.github.magisk317.uikit.preference.TextInputDialog
+import io.github.magisk317.uikit.common.showLatestSnackbar
+import android.Manifest
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import android.view.accessibility.AccessibilityManager
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import io.github.magisk317.uikit.common.AppSnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.relay.android.platform.notification.AndroidNotificationPlatformBridge as NotificationUtils
+import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
+import io.github.magisk317.relay.contract.settings.RecordSettingsSnapshot
+import io.github.magisk317.relay.contract.settings.VerificationSettingsSnapshot
+import io.github.magisk317.relay.contract.settings.VerificationSettingsUpdate
+import io.github.magisk317.relay.core.R
+import io.github.magisk317.uikit.theme.UiKitStyle
+import io.github.magisk317.uikit.theme.currentUiKitStyle
+import io.github.magisk317.relay.mobilefeature.verification.BuildConfig
+import io.github.magisk317.relay.feature.mode.FeatureGate
+import io.github.magisk317.relay.feature.mode.FeatureGate.Feature.*
+import io.github.magisk317.relay.feature.mode.XposedRuntimeState
+import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
+import io.github.magisk317.relay.ui.common.normalizeIntegerInput
+import io.github.magisk317.relay.ui.common.parseNonNegativeLongInput
+import io.github.magisk317.relay.android.sms.SmsCodeUtils as RelaySmsCodeUtils
+import io.github.magisk317.smscode.rule.model.SmsCodeMatchedRule
+import io.github.magisk317.smscode.rule.model.SmsCodeMatchedRuleSource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.koin.compose.koinInject
+import java.io.DataOutputStream
+import java.io.IOException
+
+@Suppress("CyclomaticComplexMethod")
+@Composable
+fun VerificationSettingsScreen(
+    onBack: () -> Unit,
+    onOpenRules: () -> Unit,
+    onOpenRecords: () -> Unit,
+) {
+    val repository: SettingsPreferencesRepository = koinInject()
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val activityOwner = LocalActivity.current as? ComponentActivity
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
+    val snackbarHostState = remember { AppSnackbarHostState() }
+    val notifySaved = {
+        scope.launch {
+            snackbarHostState.showLatestSnackbar(savedSnackbarText)
+        }
+    }
+    val accordionMode = rememberPrefBoolean(PrefConst.KEY_SETTINGS_ACCORDION_MODE, true)
+    val xposedActive by XposedRuntimeState.xposedActive.collectAsStateWithLifecycle()
+    val canCopyToClipboard = FeatureGate.isAvailable(COPY_CODE_TO_CLIPBOARD, xposedActive)
+    val canBlockSms = FeatureGate.isAvailable(BLOCK_SMS, xposedActive)
+    val xposedDisabledHint = stringResource(R.string.feature_requires_xposed)
+    var settings by remember { mutableStateOf<VerificationSettingsSnapshot?>(null) }
+    var recordSettings by remember { mutableStateOf<RecordSettingsSnapshot?>(null) }
+    var showDelayDialog by remember { mutableStateOf(false) }
+    var showIntervalDialog by remember { mutableStateOf(false) }
+    var showRetentionDialog by remember { mutableStateOf(false) }
+    var showKeywordsDialog by remember { mutableStateOf(false) }
+    var pendingNotificationPermissionEnable by remember { mutableStateOf(false) }
+    var showSmsTestDialog by remember { mutableStateOf(false) }
+    var smsTestInput by remember { mutableStateOf("") }
+    var expandRelaySection by rememberSaveable { mutableStateOf(true) }
+    var expandAutoInputSection by rememberSaveable { mutableStateOf(true) }
+    var expandNotificationSection by rememberSaveable { mutableStateOf(true) }
+    var expandExperimentalSection by rememberSaveable { mutableStateOf(true) }
+    val supportsAccessibilityAutoInput = BuildConfig.ENABLE_ACCESSIBILITY_AUTO_INPUT
+    var autoInputAccessibilityEnabled by remember {
+        mutableStateOf(
+            supportsAccessibilityAutoInput && isAutoInputAccessibilityServiceEnabled(context),
+        )
+    }
+    var autoInputAccessibilityListed by remember {
+        mutableStateOf(
+            supportsAccessibilityAutoInput && isAutoInputAccessibilityServiceListed(context),
+        )
+    }
+
+    suspend fun persistEnableNotification(enableNotification: Boolean) {
+        settings = repository.updateVerificationSettings(
+            VerificationSettingsUpdate(
+                showCodeNotification = enableNotification,
+            ),
+        )
+        notifySaved()
+    }
+
+    fun performSmsCodeTest(msgBody: String) {
+        scope.launch {
+            val result = runCatching {
+                withContext(Dispatchers.IO) {
+                    if (msgBody.isBlank()) {
+                        null
+                    } else {
+                        val keywords = repository.getVerificationSettings().relayKeywords
+                        RelaySmsCodeUtils.parseSmsCodeResultIfExists(
+                            context = context,
+                            content = msgBody,
+                            keywordsRegexOverride = keywords,
+                        )
+                    }
+                }
+            }.getOrNull()
+            val code = result?.code.orEmpty()
+            val message = if (code.isBlank()) {
+                context.getString(R.string.cannot_parse_relay_code)
+            } else {
+                val base = context.getString(R.string.current_sms_code, code)
+                val hitRule = result?.matchedRule
+                    ?.let { formatMatchedRuleLabel(context, it) }
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { context.getString(R.string.hit_rule_label, it) }
+                if (hitRule == null) {
+                    base
+                } else {
+                    context.getString(R.string.sms_code_test_result_with_rule, base, hitRule)
+                }
+            }
+            snackbarHostState.showLatestSnackbar(message)
+        }
+    }
+
+    val notificationSettingsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) {
+        scope.launch {
+            if (
+                pendingNotificationPermissionEnable &&
+                NotificationUtils.hasPostNotificationsPermission(context)
+            ) {
+                val enableNotification = pendingNotificationPermissionEnable
+                pendingNotificationPermissionEnable = false
+                persistEnableNotification(
+                    enableNotification = enableNotification,
+                )
+            } else if (pendingNotificationPermissionEnable) {
+                pendingNotificationPermissionEnable = false
+                snackbarHostState.showLatestSnackbar(
+                    context.getString(R.string.pref_code_notification_owner_permission_denied),
+                )
+            }
+        }
+    }
+
+    fun openNotificationSettings() {
+        val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+            putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+        }
+        val fallbackIntent = Intent(
+            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            Uri.fromParts("package", context.packageName, null),
+        )
+        if (activityOwner != null) {
+            runCatching {
+                notificationSettingsLauncher.launch(intent)
+            }.recoverCatching {
+                notificationSettingsLauncher.launch(fallbackIntent)
+            }.onFailure {
+                pendingNotificationPermissionEnable = false
+                scope.launch {
+                    snackbarHostState.showLatestSnackbar(
+                        context.getString(R.string.pref_code_notification_owner_permission_denied),
+                    )
+                }
+            }
+            return
+        }
+        runCatching {
+            context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }.recoverCatching {
+            context.startActivity(fallbackIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }.onFailure {
+            pendingNotificationPermissionEnable = false
+            scope.launch {
+                snackbarHostState.showLatestSnackbar(
+                    context.getString(R.string.pref_code_notification_owner_permission_denied),
+                )
+            }
+        }
+    }
+
+    val requestNotificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted && pendingNotificationPermissionEnable) {
+            scope.launch {
+                val enableNotification = pendingNotificationPermissionEnable
+                pendingNotificationPermissionEnable = false
+                persistEnableNotification(
+                    enableNotification = enableNotification,
+                )
+            }
+        } else {
+            scope.launch {
+                snackbarHostState.showLatestSnackbar(
+                    context.getString(R.string.pref_code_notification_owner_permission_settings_hint),
+                )
+            }
+            openNotificationSettings()
+        }
+    }
+
+    fun requestNotificationPermissionIfNeeded(enableNotification: Boolean): Boolean {
+        val permissionRequired = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            !NotificationUtils.hasPostNotificationsPermission(context)
+        if (!permissionRequired) {
+            return false
+        }
+        pendingNotificationPermissionEnable = enableNotification
+        requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        return true
+    }
+
+    val accessibilitySettingsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) {
+        autoInputAccessibilityEnabled =
+            supportsAccessibilityAutoInput && isAutoInputAccessibilityServiceEnabled(context)
+        autoInputAccessibilityListed =
+            supportsAccessibilityAutoInput && isAutoInputAccessibilityServiceListed(context)
+    }
+
+    suspend fun toggleAccessibilityServiceViaRoot(context: Context, enable: Boolean): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                val component = ComponentName(context, AUTO_INPUT_ACCESSIBILITY_SERVICE_CLASS_NAME).flattenToString()
+                val currentServices = Settings.Secure.getString(
+                    context.contentResolver,
+                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+                ) ?: ""
+                val newServices = if (enable) {
+                    if (currentServices.contains(component)) return@withContext true
+                    if (currentServices.isEmpty()) component else "$currentServices:$component"
+                } else {
+                    if (!currentServices.contains(component)) return@withContext true
+                    currentServices.split(":").filter { it.isNotEmpty() && it != component }.joinToString(":")
+                }
+
+                val process = Runtime.getRuntime().exec("su")
+                val os = DataOutputStream(process.outputStream)
+                os.writeBytes("settings put secure enabled_accessibility_services $newServices\n")
+                if (enable) {
+                    os.writeBytes("settings put secure accessibility_enabled 1\n")
+                }
+                os.writeBytes("exit\n")
+                os.flush()
+                process.waitFor() == 0
+            } catch (error: SecurityException) {
+                XLog.w("Toggle accessibility service via root failed: %s", error.message ?: error.javaClass.simpleName)
+                false
+            } catch (error: IOException) {
+                XLog.w("Toggle accessibility service via root failed: %s", error.message ?: error.javaClass.simpleName)
+                false
+            } catch (error: InterruptedException) {
+                Thread.currentThread().interrupt()
+                XLog.w("Toggle accessibility service via root interrupted: %s", error.message ?: error.javaClass.simpleName)
+                false
+            }
+        }
+    }
+
+    fun openAccessibilitySettings() {
+        val accessibilityIntent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+        val componentName = ComponentName(context, AUTO_INPUT_ACCESSIBILITY_SERVICE_CLASS_NAME).flattenToString()
+        accessibilityIntent.putExtra(":settings:fragment_args_key", componentName)
+        accessibilityIntent.putExtra(":settings:show_fragment_args", android.os.Bundle())
+        val appDetailsIntent = Intent(
+            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            Uri.fromParts("package", context.packageName, null),
+        )
+        val targetIntent = if (
+            supportsAccessibilityAutoInput &&
+            isAutoInputAccessibilityServiceDeclared(context) &&
+            !isAutoInputAccessibilityServiceListed(context)
+        ) {
+            scope.launch {
+                snackbarHostState.showLatestSnackbar(
+                    context.getString(R.string.pref_auto_input_accessibility_service_restricted_hint),
+                )
+            }
+            appDetailsIntent
+        } else {
+            accessibilityIntent
+        }
+        if (activityOwner != null) {
+            runCatching {
+                accessibilitySettingsLauncher.launch(targetIntent)
+            }.onFailure {
+                scope.launch {
+                    snackbarHostState.showLatestSnackbar(
+                        context.getString(R.string.pref_auto_input_accessibility_service_open_failed),
+                    )
+                }
+            }
+            return
+        }
+        runCatching {
+            context.startActivity(targetIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }.onFailure {
+            scope.launch {
+                snackbarHostState.showLatestSnackbar(
+                    context.getString(R.string.pref_auto_input_accessibility_service_open_failed),
+                )
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        settings = repository.getVerificationSettings()
+        recordSettings = repository.getRecordSettings()
+        autoInputAccessibilityEnabled =
+            supportsAccessibilityAutoInput && isAutoInputAccessibilityServiceEnabled(context)
+        autoInputAccessibilityListed =
+            supportsAccessibilityAutoInput && isAutoInputAccessibilityServiceListed(context)
+    }
+
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
+            autoInputAccessibilityEnabled =
+                supportsAccessibilityAutoInput && isAutoInputAccessibilityServiceEnabled(context)
+            autoInputAccessibilityListed =
+                supportsAccessibilityAutoInput && isAutoInputAccessibilityServiceListed(context)
+        }
+    }
+
+    val verificationSettingsBody: @Composable (PaddingValues) -> Unit = { padding ->
+    val current = settings
+    val currentRecordSettings = recordSettings
+    if (current != null && currentRecordSettings != null) {
+        val historyEntries = stringArrayResource(id = R.array.history_limit_entry_list)
+        val historyValues = stringArrayResource(id = R.array.history_limit_value_list)
+        val retentionEntries = stringArrayResource(id = R.array.notification_retention_time_entry_list)
+        val retentionValues = stringArrayResource(id = R.array.notification_retention_time_list)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(Const.SPACING_SMALL.dp),
+        ) {
+            Spacer(modifier = Modifier.height(Const.PADDING_SMALL.dp))
+            StateSwitchItem(
+                title = stringResource(id = R.string.pref_verification_features_title),
+                summary = stringResource(id = R.string.pref_verification_features_summary),
+                checked = current.verificationFeaturesEnabled,
+                modifier = Modifier.padding(horizontal = Const.PADDING_SMALL.dp),
+            ) { enabled ->
+                scope.launch {
+                    settings = repository.updateVerificationSettings(
+                        VerificationSettingsUpdate(verificationFeaturesEnabled = enabled),
+                    )
+                    notifySaved()
+                }
+            }
+            SectionCard(
+                title = stringResource(id = R.string.settings_group_relay),
+                accordionMode = accordionMode.value,
+                sectionExpanded = if (accordionMode.value) expandRelaySection else true,
+                onExpandedChange = { expandRelaySection = !expandRelaySection },
+            ) {
+                StateSwitchItem(
+                    title = stringResource(id = R.string.pref_copy_to_clipboard_title),
+                    summary = if (canCopyToClipboard) {
+                        stringResource(id = R.string.pref_copy_to_clipboard_summary)
+                    } else {
+                        stringResource(id = R.string.pref_copy_to_clipboard_summary) + "\n" + xposedDisabledHint
+                    },
+                    checked = current.copyToClipboard && canCopyToClipboard,
+                    enabled = current.verificationFeaturesEnabled && canCopyToClipboard,
+                ) { enabled ->
+                    scope.launch {
+                        settings = repository.updateVerificationSettings(VerificationSettingsUpdate(copyToClipboard = enabled))
+                        notifySaved()
+                    }
+                }
+                AppArrowItem(
+                    title = stringResource(id = R.string.pref_relay_keywords_title),
+                    summary = stringResource(id = R.string.pref_relay_keywords_summary),
+                ) { showKeywordsDialog = true }
+                AppArrowItem(
+                    title = stringResource(id = R.string.pref_relay_test_title),
+                    summary = stringResource(id = R.string.pref_relay_test_summary),
+                ) { showSmsTestDialog = true }
+                AppArrowItem(
+                    title = stringResource(id = R.string.pref_code_rules_title),
+                    summary = stringResource(id = R.string.pref_code_rules_summary),
+                ) { onOpenRules() }
+                AppArrowItem(
+                    title = stringResource(
+                        id = R.string.pref_history_limit_title_with_target,
+                        stringResource(id = R.string.record_settings_target_code),
+                    ),
+                    summary = stringResource(
+                        id = R.string.pref_history_limit_summary,
+                        historyLimitEntryLabel(
+                            currentRecordSettings.codeHistoryLimit,
+                            historyValues,
+                            historyEntries,
+                        ),
+                    ),
+                ) { onOpenRecords() }
+            }
+            SectionCard(
+                title = stringResource(id = R.string.settings_group_auto_input),
+                accordionMode = accordionMode.value,
+                sectionExpanded = if (accordionMode.value) expandAutoInputSection else true,
+                onExpandedChange = { expandAutoInputSection = !expandAutoInputSection },
+            ) {
+                if (supportsAccessibilityAutoInput) {
+                    StateSwitchItem(
+                        title = stringResource(id = R.string.pref_auto_input_accessibility_service_title),
+                        summary = stringResource(id = R.string.pref_auto_input_accessibility_service_summary),
+                        checked = autoInputAccessibilityEnabled,
+                        onTitleClick = {
+                            scope.launch {
+                                val success = toggleAccessibilityServiceViaRoot(context, !autoInputAccessibilityEnabled)
+                                if (success) {
+                                    autoInputAccessibilityEnabled = !autoInputAccessibilityEnabled
+                                } else {
+                                    openAccessibilitySettings()
+                                }
+                            }
+                        },
+                    ) { isChecked ->
+                        scope.launch {
+                            val success = toggleAccessibilityServiceViaRoot(context, isChecked)
+                            if (success) {
+                                autoInputAccessibilityEnabled = isChecked
+                            } else {
+                                openAccessibilitySettings()
+                            }
+                        }
+                    }
+                }
+                StateSwitchItem(
+                    title = stringResource(id = R.string.pref_enable_auto_input_code_title),
+                    summary = stringResource(id = R.string.pref_enable_auto_input_code_summary),
+                    checked = current.autoInputEnabled,
+                    enabled = current.verificationFeaturesEnabled,
+                ) { enabled ->
+                    scope.launch {
+                        settings = repository.updateVerificationSettings(VerificationSettingsUpdate(autoInputEnabled = enabled))
+                        notifySaved()
+                    }
+                }
+                StateSwitchItem(
+                    title = stringResource(id = R.string.pref_enable_auto_enter_code_title),
+                    summary = stringResource(id = R.string.pref_enable_auto_enter_code_summary),
+                    checked = current.autoEnterEnabled,
+                    enabled = current.verificationFeaturesEnabled && current.autoInputEnabled,
+                ) { enabled ->
+                    scope.launch {
+                        settings = repository.updateVerificationSettings(VerificationSettingsUpdate(autoEnterEnabled = enabled))
+                        notifySaved()
+                    }
+                }
+                AppArrowItem(
+                    title = stringResource(id = R.string.pref_auto_input_code_delay_title),
+                    summary = stringResource(id = R.string.pref_auto_input_code_delay_summary, current.autoInputDelay),
+                ) { showDelayDialog = true }
+                AppArrowItem(
+                    title = stringResource(id = R.string.pref_auto_input_code_interval_title),
+                    summary = stringResource(id = R.string.pref_auto_input_code_interval_summary, current.autoInputInterval),
+                ) { showIntervalDialog = true }
+            }
+            SectionCard(
+                title = stringResource(id = R.string.settings_group_notification),
+                accordionMode = accordionMode.value,
+                sectionExpanded = if (accordionMode.value) expandNotificationSection else true,
+                onExpandedChange = { expandNotificationSection = !expandNotificationSection },
+            ) {
+                StateSwitchItem(
+                    title = stringResource(id = R.string.pref_show_toast_title),
+                    summary = stringResource(id = R.string.pref_show_toast_summary),
+                    checked = current.showToast,
+                    enabled = current.verificationFeaturesEnabled,
+                ) { enabled ->
+                    scope.launch {
+                        settings = repository.updateVerificationSettings(VerificationSettingsUpdate(showToast = enabled))
+                        notifySaved()
+                    }
+                }
+                StateSwitchItem(
+                    title = stringResource(id = R.string.pref_show_code_notification_title),
+                    summary = stringResource(id = R.string.pref_show_code_notification_summary),
+                    checked = current.showCodeNotification,
+                    enabled = current.verificationFeaturesEnabled,
+                ) { enabled ->
+                    if (!enabled) {
+                        scope.launch {
+                            settings = repository.updateVerificationSettings(
+                                VerificationSettingsUpdate(showCodeNotification = false),
+                            )
+                            notifySaved()
+                        }
+                        return@StateSwitchItem
+                    }
+                    if (requestNotificationPermissionIfNeeded(true)) {
+                        return@StateSwitchItem
+                    }
+                    scope.launch {
+                        persistEnableNotification(true)
+                    }
+                }
+                StateSwitchItem(
+                    title = stringResource(id = R.string.pref_auto_cancel_notification_title),
+                    summary = stringResource(id = R.string.pref_auto_cancel_notification_summary),
+                    checked = current.autoCancelNotification,
+                    enabled = current.verificationFeaturesEnabled && current.showCodeNotification,
+                ) { enabled ->
+                    scope.launch {
+                        settings = repository.updateVerificationSettings(
+                            VerificationSettingsUpdate(autoCancelNotification = enabled),
+                        )
+                        notifySaved()
+                    }
+                }
+                AppArrowItem(
+                    title = stringResource(id = R.string.pref_notification_retention_time_title),
+                    summary = notificationRetentionEntryLabel(
+                        current.notificationRetentionTime,
+                        retentionValues,
+                        retentionEntries,
+                    ),
+                    enabled = current.verificationFeaturesEnabled && current.showCodeNotification,
+                ) { showRetentionDialog = true }
+            }
+            SectionCard(
+                title = stringResource(id = R.string.settings_group_experimental),
+                accordionMode = accordionMode.value,
+                sectionExpanded = if (accordionMode.value) expandExperimentalSection else true,
+                onExpandedChange = { expandExperimentalSection = !expandExperimentalSection },
+            ) {
+                StateSwitchItem(
+                    title = stringResource(id = R.string.pref_block_sms_title),
+                    summary = if (canBlockSms) {
+                        stringResource(id = R.string.pref_block_sms_summary)
+                    } else {
+                        stringResource(id = R.string.pref_block_sms_summary) + "\n" + xposedDisabledHint
+                    },
+                    checked = current.blockSmsEnabled && canBlockSms,
+                    enabled = current.verificationFeaturesEnabled && canBlockSms,
+                ) { enabled ->
+                    scope.launch {
+                        settings = repository.updateVerificationSettings(VerificationSettingsUpdate(blockSmsEnabled = enabled))
+                        notifySaved()
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(Const.PADDING_SMALL.dp))
+        }
+    }
+    }
+
+    when (currentUiKitStyle()) {
+        UiKitStyle.Miuix -> VerificationSettingsScreenMiuix(
+            title = stringResource(R.string.pref_verification_settings_title),
+            onBack = onBack,
+            snackbarHostState = snackbarHostState,
+            body = verificationSettingsBody,
+        )
+
+        UiKitStyle.Expressive -> VerificationSettingsScreenMaterial(
+            title = stringResource(R.string.pref_verification_settings_title),
+            onBack = onBack,
+            snackbarHostState = snackbarHostState,
+            body = verificationSettingsBody,
+        )
+    }
+
+    val current = settings
+    if (showDelayDialog && current != null) {
+        val nonNegativeNumberError = stringResource(id = R.string.pref_number_non_negative_error)
+        TextInputDialog(
+            title = stringResource(id = R.string.pref_auto_input_code_delay_title),
+            initialValue = normalizeIntegerInput(current.autoInputDelay),
+            selectAllOnOpen = true,
+            onDismiss = { showDelayDialog = false },
+            supportingText = stringResource(id = R.string.pref_number_non_negative_integer_hint),
+            validator = {
+                if (parseNonNegativeLongInput(it) != null) null else nonNegativeNumberError
+            },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            inputFilter = ::filterNonNegativeIntegerInput,
+        ) { updated ->
+            showDelayDialog = false
+            scope.launch {
+                settings = repository.updateVerificationSettings(
+                    VerificationSettingsUpdate(
+                        autoInputDelay = normalizeIntegerInput(updated),
+                    ),
+                )
+                notifySaved()
+            }
+        }
+    }
+    if (showIntervalDialog && current != null) {
+        val nonNegativeNumberError = stringResource(id = R.string.pref_number_non_negative_error)
+        TextInputDialog(
+            title = stringResource(id = R.string.pref_auto_input_code_interval_title),
+            initialValue = normalizeIntegerInput(current.autoInputInterval),
+            selectAllOnOpen = true,
+            onDismiss = { showIntervalDialog = false },
+            supportingText = stringResource(id = R.string.pref_number_non_negative_integer_hint),
+            validator = {
+                if (parseNonNegativeLongInput(it) != null) null else nonNegativeNumberError
+            },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            inputFilter = ::filterNonNegativeIntegerInput,
+        ) { updated ->
+            showIntervalDialog = false
+            scope.launch {
+                settings = repository.updateVerificationSettings(
+                    VerificationSettingsUpdate(
+                        autoInputInterval = normalizeIntegerInput(updated),
+                    ),
+                )
+                notifySaved()
+            }
+        }
+    }
+    if (showRetentionDialog && current != null) {
+        val entries = stringArrayResource(id = R.array.notification_retention_time_entry_list)
+        val values = stringArrayResource(id = R.array.notification_retention_time_list)
+        var selectedIndex by remember(current.notificationRetentionTime) {
+            mutableIntStateOf(values.indexOf(current.notificationRetentionTime).coerceAtLeast(0))
+        }
+        SingleChoiceConfirmDialog(
+            title = stringResource(id = R.string.pref_notification_retention_time_title),
+            options = entries.toList(),
+            selectedIndex = selectedIndex,
+            onSelectionChange = { selectedIndex = it },
+            onDismissRequest = { showRetentionDialog = false },
+            onConfirm = {
+                values.getOrNull(selectedIndex)?.let { value ->
+                    showRetentionDialog = false
+                    scope.launch {
+                        settings = repository.updateVerificationSettings(
+                            VerificationSettingsUpdate(notificationRetentionTime = value),
+                        )
+                        notifySaved()
+                    }
+                }
+            },
+        )
+    }
+    if (showKeywordsDialog && current != null) {
+        TextInputDialog(
+            title = stringResource(id = R.string.pref_relay_keywords_title),
+            initialValue = current.relayKeywords,
+            selectAllOnOpen = true,
+            onDismiss = { showKeywordsDialog = false },
+            supportingText = stringResource(id = R.string.pref_relay_keywords_summary),
+            singleLine = false,
+            maxLines = 8,
+            resetValue = PrefConst.SMSCODE_KEYWORDS_DEFAULT,
+        ) { updated ->
+            showKeywordsDialog = false
+            scope.launch {
+                settings = repository.updateVerificationSettings(VerificationSettingsUpdate(relayKeywords = updated))
+                notifySaved()
+            }
+        }
+    }
+    if (showSmsTestDialog) {
+        TextInputDialog(
+            title = stringResource(id = R.string.pref_relay_test_title),
+            initialValue = smsTestInput,
+            onDismiss = { showSmsTestDialog = false },
+            singleLine = false,
+            maxLines = 6,
+        ) { updated ->
+            performSmsCodeTest(updated)
+            smsTestInput = ""
+            showSmsTestDialog = false
+        }
+    }
+}
+
+private fun formatMatchedRuleLabel(context: Context, matchedRule: SmsCodeMatchedRule): String {
+    return when (matchedRule.source) {
+        SmsCodeMatchedRuleSource.BUILTIN ->
+            context.getString(R.string.builtin_rule_badge_format, matchedRule.ordinal)
+
+        SmsCodeMatchedRuleSource.OFFICIAL ->
+            context.getString(R.string.official_rule_badge_format, matchedRule.ordinal)
+
+        SmsCodeMatchedRuleSource.CUSTOM ->
+            context.getString(R.string.user_rule_badge_format, matchedRule.ordinal)
+    }
+}
+
+private fun historyLimitEntryLabel(
+    value: String,
+    values: Array<String>,
+    entries: Array<String>,
+): String {
+    val index = values.indexOf(value)
+    if (index >= 0) {
+        return entries[index]
+    }
+    return value.takeIf { it.isNotBlank() } ?: "0"
+}
+
+private fun notificationRetentionEntryLabel(
+    value: String,
+    values: Array<String>,
+    entries: Array<String>,
+): String {
+    val index = values.indexOf(value)
+    if (index >= 0) {
+        return entries[index]
+    }
+    return value.takeIf { it.isNotBlank() } ?: "0"
+}
+
+private const val AUTO_INPUT_ACCESSIBILITY_SERVICE_CLASS_NAME =
+    "io.github.magisk317.relay.service.AutoInputAccessibilityService"
+
+private fun isAutoInputAccessibilityServiceEnabled(context: android.content.Context): Boolean {
+    val expectedService = ComponentName(
+        context.packageName,
+        AUTO_INPUT_ACCESSIBILITY_SERVICE_CLASS_NAME,
+    ).flattenToString()
+    val enabledServices = Settings.Secure.getString(
+        context.contentResolver,
+        Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+    ).orEmpty()
+    if (enabledServices.isBlank()) return false
+    return enabledServices.split(':').any { candidate ->
+        candidate.equals(expectedService, ignoreCase = true)
+    }
+}
+
+private fun isAutoInputAccessibilityServiceDeclared(context: android.content.Context): Boolean {
+    val componentName = ComponentName(
+        context.packageName,
+        AUTO_INPUT_ACCESSIBILITY_SERVICE_CLASS_NAME,
+    )
+    val packageManager = context.packageManager
+    return runCatching {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            packageManager.getServiceInfo(
+                componentName,
+                PackageManager.ComponentInfoFlags.of(PackageManager.GET_META_DATA.toLong()),
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            packageManager.getServiceInfo(componentName, PackageManager.GET_META_DATA)
+        }
+    }.isSuccess
+}
+
+private fun isAutoInputAccessibilityServiceListed(context: android.content.Context): Boolean {
+    val expectedComponent = ComponentName(
+        context.packageName,
+        AUTO_INPUT_ACCESSIBILITY_SERVICE_CLASS_NAME,
+    )
+    val accessibilityManager = context.getSystemService(AccessibilityManager::class.java) ?: return false
+    return accessibilityManager.getInstalledAccessibilityServiceList().any { serviceInfo ->
+        val resolvedServiceInfo = serviceInfo.resolveInfo?.serviceInfo ?: return@any false
+        resolvedServiceInfo.packageName == expectedComponent.packageName &&
+            resolvedServiceInfo.name == expectedComponent.className
+    }
+}

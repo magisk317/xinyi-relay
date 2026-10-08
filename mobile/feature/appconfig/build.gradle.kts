@@ -22,6 +22,7 @@ dependencies {
     implementation(project(":core"))
     implementation(project(":runtime"))
     implementation(project(":smscode-core:contract"))
+    implementation(project(":smscode-core:db"))
     implementation(project(":relay:sender:api"))
     implementation(libs.androidx.material.icons.core)
     implementation(libs.androidx.material.icons.extended)

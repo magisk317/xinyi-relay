@@ -1,0 +1,528 @@
+package io.github.magisk317.relay.ui.sender.forms
+
+import io.github.magisk317.uikit.common.showLatestSnackbar
+
+import androidx.activity.compose.BackHandler
+import androidx.annotation.StringRes
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.OutputTransformation
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.engine.model.Sender
+import io.github.magisk317.relay.engine.sender.SenderActiveSchedule
+import io.github.magisk317.relay.sender.SenderSettingDraft
+import io.github.magisk317.relay.sender.SenderSettingDrafts
+import io.github.magisk317.relay.sender.fromSenderWithDefaults
+import io.github.magisk317.relay.sender.SenderSettingFieldMetadata
+import io.github.magisk317.relay.sender.SenderSettingFieldType
+import io.github.magisk317.relay.sender.SenderSettingJson
+import io.github.magisk317.relay.sender.SenderSettingSchemas
+import io.github.magisk317.uikit.foundation.LocalSnackbarHostState
+import io.github.magisk317.relay.ui.common.SegmentedOption
+import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
+import io.github.magisk317.relay.ui.sender.SenderViewModel
+import io.github.magisk317.relay.ui.sender.getSenderTypeName
+import io.github.magisk317.uikit.preference.AppDropdownMenu
+import io.github.magisk317.uikit.preference.AppSwitch
+import io.github.magisk317.uikit.surface.AppIcon
+import io.github.magisk317.uikit.surface.AppIconButton
+import io.github.magisk317.uikit.surface.AppTextField
+import io.github.magisk317.uikit.text.AppText
+import io.github.magisk317.uikit.text.AppTextRole
+import io.github.magisk317.uikit.theme.AppColorRole
+import io.github.magisk317.uikit.theme.appColor
+import io.github.magisk317.uikit.theme.UiKitStyle
+import io.github.magisk317.uikit.theme.currentUiKitStyle
+import java.util.Date
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonObject
+
+internal data class SchemaSenderFormFieldSpec(
+    val name: String,
+    @StringRes val labelRes: Int,
+    @StringRes val placeholderRes: Int? = null,
+    @StringRes val supportingTextRes: Int? = null,
+    val minLines: Int = 1,
+    val optionLabelRes: Map<String, Int> = emptyMap(),
+    val visible: (SenderSettingDraft) -> Boolean = { true },
+    val isSecret: Boolean = false,
+)
+
+internal val MessageTypeOptionLabels = mapOf(
+    "text" to R.string.sender_segment_text,
+    "markdown" to R.string.sender_segment_markdown,
+)
+
+internal val InteractiveMessageTypeOptionLabels = mapOf(
+    "interactive" to R.string.sender_segment_interactive,
+    "text" to R.string.sender_segment_text,
+)
+
+internal fun SenderSettingDraft.keepOnlyFields(names: Collection<String>): SenderSettingDraft {
+    val visibleNameSet = names.toSet()
+    return SenderSettingDraft(
+        senderType = senderType,
+        values = values.filterKeys { it in visibleNameSet },
+    )
+}
+
+private fun SenderSettingDraft.normalizedStructuredFields(): SenderSettingDraft {
+    var nextDraft = this
+    schema?.fields.orEmpty().forEach { field ->
+        when (field.type) {
+            SenderSettingFieldType.STRING_MAP -> {
+                val element = nextDraft.element(field.name)
+                if (element is JsonObject) return@forEach
+                val rawValue = nextDraft.string(field.name)
+                val mapValue = if (rawValue.isBlank()) {
+                    emptyMap()
+                } else {
+                    SenderSettingJson.decodeStringMapLenientOrNull(rawValue)
+                        ?: throw IllegalArgumentException("Invalid ${field.name} JSON, e.g. {\"Authorization\":\"Bearer xxx\"}")
+                }
+                nextDraft = nextDraft.withStringMap(field.name, mapValue)
+            }
+            SenderSettingFieldType.EMAIL_RECIPIENTS -> {
+                val element = nextDraft.element(field.name)
+                if (element is JsonObject) return@forEach
+                val rawValue = nextDraft.string(field.name)
+                val objectValue = if (rawValue.isBlank()) {
+                    JsonObject(emptyMap())
+                } else {
+                    SenderSettingJson.parseObject(rawValue)
+                        ?: throw IllegalArgumentException("Invalid ${field.name} JSON")
+                }
+                nextDraft = nextDraft.withElement(field.name, objectValue)
+            }
+            else -> Unit
+        }
+    }
+    return nextDraft
+}
+
+private const val DROPDOWN_CHEVRON_ROTATION_EXPANDED_DEGREES = 180f
+
+private val PasswordOutputTransformation = OutputTransformation {
+    replace(0, length, "•".repeat(length))
+}
+
+@Composable
+internal fun SchemaSenderConfigForm(
+    senderId: Long,
+    senderType: Int,
+    channel: String,
+    fields: List<SchemaSenderFormFieldSpec>,
+    onBack: () -> Unit,
+    viewModel: SenderViewModel,
+    normalizeDraft: (SenderSettingDraft) -> SenderSettingDraft = { it },
+    validateDraft: (SenderSettingDraft, Int) -> String? = { _, _ -> null },
+    extraContent: @Composable (SenderSettingDraft, (SenderSettingDraft) -> Unit) -> Unit = { _, _ -> },
+) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = LocalSnackbarHostState.current
+    val activeScheduleEntry = LocalSenderActiveScheduleEntry.current
+    val activeSchedule = activeScheduleEntry?.schedule ?: SenderActiveSchedule()
+
+    var name by remember { mutableStateOf("") }
+    var draft by remember(senderType) {
+        mutableStateOf(normalizeDraft(SenderSettingDrafts.emptyWithDefaults(senderType)))
+    }
+    var receiveCode by remember { mutableStateOf(true) }
+    var receiveNonCode by remember { mutableStateOf(true) }
+    var receiveAppNotify by remember { mutableStateOf(true) }
+    var receiveCallNotify by remember { mutableStateOf(false) }
+    var customTemplate by remember { mutableStateOf("") }
+    var isLoaded by remember { mutableStateOf(false) }
+    var currentSender by remember { mutableStateOf<Sender?>(null) }
+    var showExitDialog by remember { mutableStateOf(false) }
+
+    fun showMessage(message: String) {
+        coroutineScope.launch { snackbarHostState.showLatestSnackbar(message) }
+    }
+
+    LaunchedEffect(senderId, senderType) {
+        if (senderId > 0) {
+            val sender = viewModel.getSender(senderId)
+            if (sender != null) {
+                currentSender = sender
+                name = sender.name
+                receiveCode = sender.receiveCode == 1
+                receiveNonCode = sender.receiveNonCode == 1
+                receiveAppNotify = sender.receiveAppNotify == 1
+                receiveCallNotify = sender.receiveCallNotify == 1
+                customTemplate = sender.customTemplate
+                draft = normalizeDraft(SenderSettingDrafts.fromSenderWithDefaults(sender))
+            }
+        } else {
+            currentSender = null
+            name = ""
+            draft = normalizeDraft(SenderSettingDrafts.emptyWithDefaults(senderType))
+            receiveCode = true
+            receiveNonCode = true
+            receiveAppNotify = true
+            receiveCallNotify = false
+            customTemplate = ""
+        }
+        isLoaded = true
+    }
+
+    fun buildSender(status: Int): Sender {
+        validateDraft(draft, status)?.let { message ->
+            throw IllegalArgumentException(message)
+        }
+        val jsonSetting = draft.normalizedStructuredFields().toJson()
+        return currentSender?.copy(
+            name = name,
+            jsonSetting = jsonSetting,
+            status = status,
+            receiveCode = if (receiveCode) 1 else 0,
+            receiveNonCode = if (receiveNonCode) 1 else 0,
+            receiveAppNotify = if (receiveAppNotify) 1 else 0,
+            receiveCallNotify = if (receiveCallNotify) 1 else 0,
+            customTemplate = customTemplate,
+            activeSchedule = activeSchedule,
+            time = Date(),
+        ) ?: Sender(
+            id = 0,
+            type = senderType,
+            name = name,
+            jsonSetting = jsonSetting,
+            status = status,
+            receiveCode = if (receiveCode) 1 else 0,
+            receiveNonCode = if (receiveNonCode) 1 else 0,
+            receiveAppNotify = if (receiveAppNotify) 1 else 0,
+            receiveCallNotify = if (receiveCallNotify) 1 else 0,
+            customTemplate = customTemplate,
+            activeSchedule = activeSchedule,
+            time = Date(),
+        )
+    }
+
+    fun save(status: Int, onSaved: () -> Unit) {
+        coroutineScope.launch {
+            validateDraft(draft, status)?.let { message ->
+                showMessage(message)
+                return@launch
+            }
+            runCatching { viewModel.saveSenderSync(buildSender(status)) }
+                .onSuccess { onSaved() }
+                .onFailure { error ->
+                    val messageRes = if (status == 0) {
+                        R.string.sender_form_draft_save_failed
+                    } else {
+                        R.string.sender_form_save_failed
+                    }
+                    showMessage(context.getString(messageRes, error.message.orEmpty()))
+                }
+        }
+    }
+
+    BackHandler {
+        showExitDialog = true
+    }
+
+    if (showExitDialog) {
+        DraftExitDialog(
+            onSaveDraft = {
+                save(status = 0) {
+                    showMessage(context.getString(R.string.sender_form_draft_saved))
+                    showExitDialog = false
+                    onBack()
+                }
+            },
+            onDiscard = {
+                showExitDialog = false
+                onBack()
+            },
+            onCancel = { showExitDialog = false },
+        )
+    }
+
+    val schemaSenderConfigBody: @Composable (PaddingValues) -> Unit = { padding ->
+        if (isLoaded) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            AppTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = stringResource(R.string.sender_form_name_label),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            fields.forEach { spec ->
+                if (spec.visible(draft)) {
+                    SchemaSenderField(
+                        spec = spec,
+                        metadata = SenderSettingSchemas.fieldsFor(senderType).single { it.name == spec.name },
+                        draft = draft,
+                        onDraftChange = { draft = normalizeDraft(it) },
+                    )
+                }
+            }
+            extraContent(draft) { nextDraft -> draft = normalizeDraft(nextDraft) }
+            Spacer(modifier = Modifier.height(8.dp))
+            ForwardToggleSection(
+                receiveCode = receiveCode,
+                onReceiveCodeChange = { receiveCode = it },
+                receiveNonCode = receiveNonCode,
+                onReceiveNonCodeChange = { receiveNonCode = it },
+                receiveAppNotify = receiveAppNotify,
+                onReceiveAppNotifyChange = { receiveAppNotify = it },
+                receiveCallNotify = receiveCallNotify,
+                onReceiveCallNotifyChange = { receiveCallNotify = it },
+                customTemplate = customTemplate,
+                onCustomTemplateChange = { customTemplate = it },
+                activeSchedule = activeSchedule,
+                onActiveScheduleChange = { activeScheduleEntry?.onChange(it) },
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            SenderTestActionRow(
+                channel = channel,
+                viewModel = viewModel,
+                senderType = senderType,
+            ) {
+                buildSender(status = 1)
+            }
+        }
+        }
+    }
+
+    val schemaSenderFormTitle = context.getString(
+        if (senderId == 0L) R.string.sender_form_create_title else R.string.sender_form_edit_title,
+        getSenderTypeName(context, senderType),
+    )
+    when (currentUiKitStyle()) {
+        UiKitStyle.Miuix -> SchemaSenderConfigFormMiuix(
+            title = schemaSenderFormTitle,
+            onBack = { showExitDialog = true },
+            onSave = {
+                save(status = 1) {
+                    showMessage(context.getString(R.string.sender_form_save_success))
+                    onBack()
+                }
+            },
+            saveLabel = stringResource(R.string.save),
+            body = schemaSenderConfigBody,
+        )
+
+        UiKitStyle.Expressive -> SchemaSenderConfigFormMaterial(
+            title = schemaSenderFormTitle,
+            onBack = { showExitDialog = true },
+            onSave = {
+                save(status = 1) {
+                    showMessage(context.getString(R.string.sender_form_save_success))
+                    onBack()
+                }
+            },
+            saveLabel = stringResource(R.string.save),
+            body = schemaSenderConfigBody,
+        )
+    }
+}
+
+@Composable
+private fun SchemaSenderField(
+    spec: SchemaSenderFormFieldSpec,
+    metadata: SenderSettingFieldMetadata,
+    draft: SenderSettingDraft,
+    onDraftChange: (SenderSettingDraft) -> Unit,
+) {
+    val value = when (metadata.type) {
+        SenderSettingFieldType.STRING_MAP -> {
+            if (draft.element(spec.name) is JsonObject) {
+                val mapValue = draft.stringMap(spec.name)
+                if (mapValue.isEmpty()) "" else SenderSettingJson.encodeStringMap(mapValue)
+            } else {
+                draft.string(spec.name)
+            }
+        }
+        SenderSettingFieldType.EMAIL_RECIPIENTS -> {
+            (draft.element(spec.name) as? JsonObject)?.toString() ?: draft.string(spec.name)
+        }
+        else -> draft.string(spec.name)
+    }
+    if (metadata.options.isNotEmpty()) {
+        if (metadata.options.size > 3) {
+            var expanded by remember { mutableStateOf(false) }
+            val label = stringResource(spec.labelRes)
+            val optionLabels = metadata.options.map { option ->
+                spec.optionLabelRes[option.value]?.let { stringResource(it) } ?: option.value
+            }
+            val selectedIndex = metadata.options.indexOfFirst { it.value == value }.coerceAtLeast(0)
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded },
+            ) {
+                AppTextField(
+                    value = optionLabels[selectedIndex],
+                    onValueChange = {},
+                    readOnly = true,
+                    label = label,
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = {
+                        AppIcon(
+                            imageVector = Icons.Filled.ArrowDropDown,
+                            contentDescription = null,
+                            modifier = Modifier.rotate(
+                                if (expanded) DROPDOWN_CHEVRON_ROTATION_EXPANDED_DEGREES else 0f,
+                            ),
+                            tint = appColor(AppColorRole.OnSurfaceVariant),
+                        )
+                    },
+                )
+                AppDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    title = label,
+                    options = optionLabels,
+                    selectedIndex = selectedIndex,
+                    onSelectionChange = { index ->
+                        onDraftChange(draft.withString(spec.name, metadata.options[index].value))
+                        expanded = false
+                    },
+                )
+            }
+        } else {
+            SingleChoiceSegmentedSelector(
+                options = metadata.options.map { option ->
+                    SegmentedOption(
+                        value = option.value,
+                        label = spec.optionLabelRes[option.value]?.let { stringResource(it) } ?: option.value,
+                    )
+                },
+                selected = value,
+                onSelect = { onDraftChange(draft.withString(spec.name, it)) },
+            )
+        }
+        return
+    }
+
+    if (metadata.type == SenderSettingFieldType.BOOLEAN) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AppText(stringResource(spec.labelRes), role = AppTextRole.Body)
+            AppSwitch(
+                checked = draft.boolean(spec.name),
+                onCheckedChange = { onDraftChange(draft.withBoolean(spec.name, it)) },
+            )
+        }
+        return
+    }
+
+    var passwordVisible by remember { mutableStateOf(false) }
+    val textFieldState = rememberTextFieldState(initialText = value)
+    val currentDraft = rememberUpdatedState(draft)
+    val currentOnDraftChange = rememberUpdatedState(onDraftChange)
+
+    LaunchedEffect(value) {
+        if (textFieldState.text.toString() != value) {
+            textFieldState.setTextAndPlaceCursorAtEnd(value)
+        }
+    }
+    LaunchedEffect(textFieldState) {
+        snapshotFlow { textFieldState.text.toString() }
+            .distinctUntilChanged()
+            .collect { next ->
+                val nextDraft = when (metadata.type) {
+                    SenderSettingFieldType.INTEGER -> currentDraft.value.withInt(
+                        spec.name,
+                        next.toIntOrNull() ?: 0,
+                    )
+                    else -> currentDraft.value.withString(spec.name, next)
+                }
+                currentOnDraftChange.value(nextDraft)
+            }
+    }
+
+    AppTextField(
+        state = textFieldState,
+        label = stringResource(spec.labelRes),
+        placeholderText = spec.placeholderRes?.let { placeholderRes ->
+            stringResource(placeholderRes)
+        },
+        supportingText = spec.supportingTextRes?.let { supportingTextRes ->
+            {
+                AppText(
+                    text = stringResource(supportingTextRes),
+                    role = AppTextRole.BodySmall,
+                    color = appColor(AppColorRole.OnSurfaceVariant),
+                )
+            }
+        },
+        minLines = spec.minLines,
+        outputTransformation = if (spec.isSecret && !passwordVisible) {
+            PasswordOutputTransformation
+        } else {
+            null
+        },
+        trailingIcon = if (spec.isSecret) {
+            {
+                AppIconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    AppIcon(
+                        imageVector = if (passwordVisible) {
+                            Icons.Filled.VisibilityOff
+                        } else {
+                            Icons.Filled.Visibility
+                        },
+                        contentDescription = null,
+                    )
+                }
+            }
+        } else {
+            null
+        },
+        keyboardOptions = if (metadata.type == SenderSettingFieldType.INTEGER) {
+            KeyboardOptions(keyboardType = KeyboardType.Number)
+        } else {
+            KeyboardOptions.Default
+        },
+        modifier = Modifier.fillMaxWidth(),
+    )
+}

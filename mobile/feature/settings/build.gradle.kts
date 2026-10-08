@@ -42,6 +42,7 @@ dependencies {
     implementation(project(":magisk-xposed-kit:permission"))
     implementation(project(":mobile:feature:common"))
     implementation(project(":smscode-core:runtime"))
+    implementation(project(":smscode-core:db"))
     implementation(libs.androidx.material.icons.core)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.koin.android)

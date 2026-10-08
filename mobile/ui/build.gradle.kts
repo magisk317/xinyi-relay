@@ -61,6 +61,7 @@ dependencies {
     implementation(project(":relay:contract"))
     implementation(project(":magisk-ui-kit"))
     implementation(project(":smscode-core:domain"))
+    implementation(project(":smscode-core:db"))
     implementation(project(":smscode-core:runtime"))
     implementation(project(":smscode-core:rule"))
     implementation(libs.androidx.material.icons.core)
