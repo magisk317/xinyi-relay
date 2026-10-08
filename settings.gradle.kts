@@ -26,12 +26,6 @@ mavenCentral()
                 includeGroupByRegex("com\\.github\\..*")
             }
         }
-        maven("https://s01.oss.sonatype.org/content/repositories/snapshots/") {
-            name = "SonatypeSnapshots"
-            mavenContent {
-                snapshotsOnly()
-            }
-        }
         maven {
             name = "GitLabPackages"
             url = uri(
@@ -126,6 +120,9 @@ mavenCentral()
 
 include(
     ":app",
+    ":desktop",
+    ":desktop:data",
+    ":desktop:core",
     ":benchmark:macro",
     ":hook:entry",
     ":runtime",
@@ -161,6 +158,7 @@ include(
     ":smscode-core:contract",
     ":smscode-core:runtime",
     ":smscode-core:verification",
+    ":smscode-core:db",
     ":magisk-ui-kit",
     ":magisk-ui-kit:billing",
     ":magisk-xposed-kit",
@@ -177,6 +175,7 @@ project(":smscode-core:domain").projectDir = file("smscode/core/domain")
 project(":smscode-core:contract").projectDir = file("smscode/core/contract")
 project(":smscode-core:runtime").projectDir = file("smscode/core/runtime")
 project(":smscode-core:verification").projectDir = file("smscode/core/verification")
+project(":smscode-core:db").projectDir = file("smscode/core/db")
 project(":smscode-core").projectDir = file("smscode/core")
 project(":magisk-xposed-kit:logging").projectDir = file("magisk-xposed-kit/logging")
 project(":magisk-xposed-kit:diagnostics").projectDir = file("magisk-xposed-kit/diagnostics")
@@ -206,3 +205,5 @@ project(":hook").projectDir = file("modules/hook")
 project(":relay").projectDir = file("modules/relay")
 project(":xpbridge").projectDir = file("modules/xpbridge")
 project(":xpbridge:android").projectDir = file("modules/xpbridge/android")
+project(":desktop:data").projectDir = file("modules/desktop/data")
+project(":desktop:core").projectDir = file("modules/desktop/core")

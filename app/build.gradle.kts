@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.google.services)
     id("magisk.app.signing")
     id("magisk.app.packaging")
+    id("magisk.mobile.gate")
     id("magisk.android.compose")
 }
 
@@ -113,13 +114,11 @@ android {
         getByName("play") {
             buildConfigField("boolean", "ENABLE_STANDARD_MODE_SERVICE", "false")
             buildConfigField("String", "MOBILE_ENTITLEMENT_CHANNEL", "\"play\"")
-            buildConfigField("boolean", "ENABLE_MOBILE_ENTITLEMENT", "false")
         }
         listOf("githubNoE2ee", "githubWithE2ee", "fdroid").forEach { flavorName ->
             getByName(flavorName) {
                 buildConfigField("boolean", "ENABLE_STANDARD_MODE_SERVICE", "true")
                 buildConfigField("String", "MOBILE_ENTITLEMENT_CHANNEL", "\"sideload\"")
-                buildConfigField("boolean", "ENABLE_MOBILE_ENTITLEMENT", "true")
             }
         }
     }
@@ -133,22 +132,22 @@ android {
             assets.directories.add(generatedSmsCodeRulesAssetsDir.get().asFile.path)
         }
         getByName("play") {
-            java.directories.add("src/xposed/java")
-            kotlin.directories.add("src/xposed/java")
+            java.directories.add("src/xposed/kotlin")
+            kotlin.directories.add("src/xposed/kotlin")
         }
         getByName("githubNoE2ee") {
             setRoot("src/github")
-            java.directories.add("src/xposed/java")
-            kotlin.directories.add("src/xposed/java")
+            java.directories.add("src/xposed/kotlin")
+            kotlin.directories.add("src/xposed/kotlin")
         }
         getByName("githubWithE2ee") {
             setRoot("src/github")
-            java.directories.add("src/xposed/java")
-            kotlin.directories.add("src/xposed/java")
+            java.directories.add("src/xposed/kotlin")
+            kotlin.directories.add("src/xposed/kotlin")
         }
         getByName("fdroid") {
-            java.directories.add("src/xposed/java")
-            kotlin.directories.add("src/xposed/java")
+            java.directories.add("src/xposed/kotlin")
+            kotlin.directories.add("src/xposed/kotlin")
         }
     }
 
@@ -227,7 +226,7 @@ val verifyNoRuntimePipelineLeak = tasks.register("verifyNoRuntimePipelineLeak") 
     group = "verification"
     description = "Ensure the app shell does not directly depend on runtime/bootstrap/domain/platform implementation packages."
 
-    val sourceRoot = layout.projectDirectory.dir("src/main/java")
+    val sourceRoot = layout.projectDirectory.dir("src/main/kotlin")
     val projectRoot = layout.projectDirectory.asFile
     val bannedRegexes = listOf(
         Regex("""^\s*import\s+io\.github\.magisk317\.relay\.(bootstrap|data|domain|platform|prefs)\."""),

@@ -22,6 +22,9 @@ build/
 /build
 **/dist/
 
+# Desktop packaging outputs collected for the release job.
+desktop-artifacts/
+
 # -------------------------------------------------------------------------
 # Configuration & Properties
 # -------------------------------------------------------------------------
