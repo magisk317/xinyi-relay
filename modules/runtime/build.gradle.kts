@@ -53,6 +53,7 @@ dependencies {
     implementation(project(":relay:android"))
     implementation(project(":xpbridge:android:api"))
     implementation(project(":smscode-core:domain"))
+    implementation(project(":smscode-core:db"))
     implementation(project(":smscode-core:rule"))
     implementation(project(":smscode-core:runtime"))
     implementation(project(":smscode-core:contract"))
@@ -79,7 +80,7 @@ val verifyNoComposeUiLeak = tasks.register("verifyNoComposeUiLeak") {
     group = "verification"
     description = "Ensure the runtime module does not pick up Compose UI dependencies."
 
-    val sourceRoot = layout.projectDirectory.dir("src/main/java")
+    val sourceRoot = layout.projectDirectory.dir("src/main/kotlin")
     val projectRoot = layout.projectDirectory.asFile
     val bannedRegexes = listOf(
         Regex("""^\s*import\s+androidx\.compose\."""),

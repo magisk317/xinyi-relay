@@ -36,15 +36,15 @@ android {
 
     sourceSets {
         getByName("play") {
-            java.directories.add("src/xposed/java")
-            kotlin.directories.add("src/xposed/java")
+            java.directories.add("src/xposed/kotlin")
+            kotlin.directories.add("src/xposed/kotlin")
         }
         listOf("githubNoE2ee", "githubWithE2ee", "fdroid").forEach { flavor ->
             getByName(flavor) {
-                java.directories.add("src/nonPlay/java")
-                kotlin.directories.add("src/nonPlay/java")
-                java.directories.add("src/xposed/java")
-                kotlin.directories.add("src/xposed/java")
+                java.directories.add("src/nonPlay/kotlin")
+                kotlin.directories.add("src/nonPlay/kotlin")
+                java.directories.add("src/xposed/kotlin")
+                kotlin.directories.add("src/xposed/kotlin")
             }
         }
     }
@@ -74,6 +74,8 @@ dependencies {
     implementation(project(":relay:security"))
     api(project(":magisk-ui-kit"))
     implementation(project(":smscode-core:domain"))
+    implementation(project(":smscode-core:rule"))
+    implementation(project(":smscode-core:db"))
     implementation(project(":smscode-core:runtime"))
     implementation(project(":smscode-core:verification"))
     implementation(libs.androidx.core.ktx)
@@ -116,7 +118,7 @@ val verifyNoWebUiLeak = tasks.register("verifyNoWebUiLeak") {
     group = "verification"
     description = "Ensure the core module does not directly retain embedded WebUI implementation packages."
 
-    val sourceRoot = layout.projectDirectory.dir("src/main/java")
+    val sourceRoot = layout.projectDirectory.dir("src/main/kotlin")
     val projectRoot = layout.projectDirectory.asFile
     val bannedRegexes = listOf(
         Regex("""^\s*import\s+io\.github\.magisk317\.relay\.webui\."""),

@@ -1,0 +1,478 @@
+package io.github.magisk317.relay.domain.pipeline
+
+import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.relay.android.platform.icon.AppIconEncoder
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
+import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
+import io.github.magisk317.relay.android.data.db.AppDatabase
+import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
+import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
+import io.github.magisk317.relay.engine.event.RelayEvent
+import io.github.magisk317.relay.engine.service.DispatchPayloadContext
+import io.github.magisk317.relay.engine.service.MessageFormatter
+import io.github.magisk317.relay.engine.service.SenderRuntimeServiceRegistry
+import io.github.magisk317.relay.engine.service.SystemInfoProvider
+import io.github.magisk317.relay.contract.model.ForwardCommonConfig
+import io.github.magisk317.relay.engine.model.MsgInfo
+import io.github.magisk317.relay.engine.model.Sender
+import io.github.magisk317.relay.engine.pipeline.SenderSelector
+import io.github.magisk317.relay.engine.schedule.ForwardSilentPeriodEvaluator
+import android.content.Context
+import io.github.magisk317.xposed.logging.MagiskOtel
+
+data class EventPipelineResult(
+    val dispatched: Boolean,
+    val blockedReason: String? = null,
+    val dispatchError: Throwable? = null,
+)
+
+private data class RecordContext(
+    val smsMsgType: Int,
+    val recordId: Long?,
+)
+
+private data class SenderResolution(
+    val allSenders: List<Sender>,
+    val enabledSenders: List<Sender>,
+    val selectedSenders: List<Sender>,
+    val blockedReason: String? = null,
+    val forcedStatus: Int? = null,
+)
+
+class EventPipeline(
+    private val context: Context,
+    private val db: AppDatabase,
+    private val eventGatekeeper: EventGatekeeper,
+    private val routingResolver: RoutingResolver,
+    private val senderSelector: SenderSelector,
+    private val dispatchExecutor: DispatchExecutor,
+    private val dispatchResultWriter: DispatchResultWriter,
+    private val messageFormatter: MessageFormatter,
+    private val systemInfoProvider: SystemInfoProvider,
+    private val settingsRepository: SettingsPreferencesRepository,
+    private val preferenceDataSource: PreferenceDataSource,
+    private val messageSyncTrigger: ((String) -> Unit)? = null,
+) {
+    suspend fun process(
+        event: RelayEvent,
+        preferredRecordId: Long? = null,
+        traceId: String? = null,
+    ): EventPipelineResult {
+        val startedAt = System.nanoTime()
+        fun emit(result: String, statusOk: Boolean = true, reason: String? = null) {
+            val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+            val attrs = mutableMapOf(
+                "result" to result,
+                "duration_ms" to durationMs.toString(),
+                "process" to "main",
+                "msg_type" to event.messageType.name,
+            )
+            if (reason != null) attrs["reason"] = reason
+            MagiskOtel.event(name = "sms.event", attributes = attrs, statusOk = statusOk)
+        }
+        try {
+            var recordContext = resolveRecordContext(event, preferredRecordId)
+            val gateDecision = eventGatekeeper.check(event, traceId.orEmpty())
+            if (!gateDecision.allowed) {
+                ForwardFlowLog.w(traceId, "Event gate blocked type=${event.messageType} reason=${gateDecision.reason}")
+                dispatchResultWriter.persistForwardResult(
+                    recordId = recordContext.recordId,
+                    results = emptyList(),
+                    defaultMessage = gateDecision.reason,
+                    msgTypeForAnalytics = recordContext.smsMsgType,
+                )
+                emit(result = "skip", reason = "gate_blocked")
+                return EventPipelineResult(dispatched = false, blockedReason = gateDecision.reason)
+            }
+
+            val preRouteDecision = routingResolver.evaluatePreRoute(event)
+            if (preRouteDecision.blocked) {
+                ForwardFlowLog.w(
+                    traceId,
+                    "Forward filter pre-route blocked type=${event.messageType} pkg=${event.packageName} reason=${preRouteDecision.reason}",
+                )
+                dispatchResultWriter.persistForwardResult(
+                    recordId = recordContext.recordId,
+                    results = emptyList(),
+                    defaultMessage = preRouteDecision.reason ?: "forward_filter_blocked",
+                    forcedStatus = SmsMsg.FORWARD_STATUS_BLOCKED,
+                    msgTypeForAnalytics = recordContext.smsMsgType,
+                )
+                emit(result = "skip", reason = "pre_route_blocked")
+                return EventPipelineResult(dispatched = false, blockedReason = preRouteDecision.reason)
+            }
+
+            if (!preferenceDataSource.getBoolean(
+                    PrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+                    PrefConst.DEFAULT_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+                )
+            ) {
+                val reason = "设备激活状态已失效"
+                dispatchResultWriter.persistForwardResult(
+                    recordId = recordContext.recordId,
+                    results = emptyList(),
+                    defaultMessage = reason,
+                    forcedStatus = SmsMsg.FORWARD_STATUS_BLOCKED,
+                    msgTypeForAnalytics = recordContext.smsMsgType,
+                )
+                ForwardFlowLog.i(traceId, "Mobile entitlement gate blocked sender dispatch type=${event.messageType}")
+                emit(result = "skip", reason = "mobile_entitlement")
+                return EventPipelineResult(dispatched = false, blockedReason = reason)
+            }
+
+            if (!preferenceDataSource.getBoolean(PrefConst.KEY_RELAY_FEATURES_ENABLED, true)) {
+                val reason = "转发功能已关闭"
+                dispatchResultWriter.persistForwardResult(
+                    recordId = recordContext.recordId,
+                    results = emptyList(),
+                    defaultMessage = reason,
+                    msgTypeForAnalytics = recordContext.smsMsgType,
+                )
+                ForwardFlowLog.i(traceId, "Relay feature gate blocked sender dispatch type=${event.messageType}")
+                emit(result = "skip", reason = "relay_disabled")
+                return EventPipelineResult(dispatched = false, blockedReason = reason)
+            }
+
+            if (!isForwardTypeEnabled(event)) {
+                val reason = "转发开关已关闭"
+                dispatchResultWriter.persistForwardResult(
+                    recordId = recordContext.recordId,
+                    results = emptyList(),
+                    defaultMessage = reason,
+                    msgTypeForAnalytics = recordContext.smsMsgType,
+                )
+                ForwardFlowLog.i(traceId, "Forward type gate blocked sender dispatch type=${event.messageType}")
+                emit(result = "skip", reason = "type_disabled")
+                return EventPipelineResult(dispatched = false, blockedReason = reason)
+            }
+
+            return runCatching {
+                val commonConfig = settingsRepository.loadForwardCommonConfig()
+                if (ForwardSilentPeriodEvaluator.isMuted(commonConfig.silentPeriod)) {
+                    val reason = "免打扰时间段内，已跳过转发"
+                    dispatchResultWriter.persistForwardResult(
+                        recordId = recordContext.recordId,
+                        results = emptyList(),
+                        defaultMessage = reason,
+                        forcedStatus = SmsMsg.FORWARD_STATUS_BLOCKED,
+                        msgTypeForAnalytics = recordContext.smsMsgType,
+                    )
+                    ForwardFlowLog.i(traceId, "Silent period blocked sender dispatch type=${event.messageType}")
+                    emit(result = "skip", reason = "silent_period")
+                    return EventPipelineResult(dispatched = false, blockedReason = "silent_period")
+                }
+
+                val senderResolution = resolveSenders(event, traceId)
+                if (senderResolution.selectedSenders.isEmpty()) {
+                    val reason = senderResolution.blockedReason ?: "未启用任何转发通道"
+                    dispatchResultWriter.persistForwardResult(
+                        recordId = recordContext.recordId,
+                        results = emptyList(),
+                        defaultMessage = reason,
+                        forcedStatus = senderResolution.forcedStatus,
+                        msgTypeForAnalytics = recordContext.smsMsgType,
+                    )
+                    ForwardFlowLog.w(traceId, "No eligible senders: $reason")
+                    emit(result = "skip", reason = "no_senders")
+                    return EventPipelineResult(dispatched = false, blockedReason = reason)
+                }
+
+                recordContext = ensureSmsRecordForForwardResult(event, recordContext, traceId)
+                val effectiveConfig = resolveEffectiveConfig(event, commonConfig)
+                val defaultMsgInfo = buildDispatchPayload(event, effectiveConfig)
+                val msgCache = java.util.concurrent.ConcurrentHashMap<String, MsgInfo>()
+
+                val payloadProvider: suspend (Sender) -> MsgInfo = { sender ->
+                    if (sender.customTemplate.isBlank()) {
+                        defaultMsgInfo
+                    } else {
+                        try {
+                            val template = sender.customTemplate
+                            var cached = msgCache[template]
+                            if (cached == null) {
+                                cached = buildDispatchPayload(event, effectiveConfig.copy(messageTemplate = template))
+                                msgCache[template] = cached
+                            }
+                            cached
+                        } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+                            XLog.e("Failed to render custom template for sender: %s", sender.name, e)
+                            val resId = context.resources.getIdentifier("sender_custom_template_render_error", "string", context.packageName)
+                            val errorMsg = if (resId != 0) {
+                                context.getString(resId, e.message ?: e.javaClass.simpleName)
+                            } else {
+                                "通道自定义模板渲染失败: ${e.message ?: e.javaClass.simpleName}"
+                            }
+                            defaultMsgInfo.copy(content = errorMsg)
+                        }
+                    }
+                }
+
+                val dispatchResults = dispatchExecutor.dispatchToSenders(
+                    senderResolution.selectedSenders,
+                    payloadProvider,
+                    effectiveConfig.dispatchStrategy,
+                    traceId,
+                )
+                dispatchResultWriter.persistForwardResult(
+                    recordId = recordContext.recordId,
+                    results = dispatchResults,
+                    defaultMessage = "未启用任何转发通道",
+                    msgTypeForAnalytics = recordContext.smsMsgType,
+                )
+                emit(result = "ok", reason = "dispatched")
+                EventPipelineResult(dispatched = true)
+            }.getOrElse { error ->
+                XLog.e("Event pipeline failed", error)
+                dispatchResultWriter.persistForwardResult(
+                    recordId = recordContext.recordId,
+                    results = emptyList(),
+                    defaultMessage = "转发异常: ${error.message ?: error.javaClass.simpleName}",
+                    forceFailed = true,
+                    msgTypeForAnalytics = recordContext.smsMsgType,
+                )
+                emit(
+                    result = "error",
+                    statusOk = false,
+                    reason = error.javaClass.simpleName,
+                )
+                EventPipelineResult(dispatched = false, dispatchError = error)
+            }
+        } finally {
+            messageSyncTrigger?.invoke(event.messageType.name.lowercase())
+        }
+    }
+
+    private suspend fun resolveRecordContext(
+        event: RelayEvent,
+        preferredRecordId: Long?,
+    ): RecordContext {
+        val smsMsgType = resolveSmsMsgType(event.messageType)
+        val canRecord = isMessageTypeRecordEnabled(event.messageType)
+        var recordId = preferredRecordId ?: dispatchResultWriter.findRecordIdByFingerprint(
+            sender = event.sender,
+            body = event.body,
+            date = event.timestamp,
+            msgType = smsMsgType,
+        )
+        if (canRecord && recordId == null) {
+            val sessionKey = if (event.messageType == MessageType.CALL_NOTIFY) {
+                dispatchResultWriter.buildCallSessionKey(
+                    sender = event.sender,
+                    body = event.body,
+                    callType = event.callType,
+                    packageName = event.packageName,
+                )
+            } else {
+                ""
+            }
+            recordId = dispatchResultWriter.insertRecord(
+                sender = event.sender,
+                body = event.body,
+                date = event.timestamp,
+                company = event.companyOrAppName,
+                smsCode = event.smsCode,
+                packageName = event.packageName,
+                notifyChannelId = event.notifyChannelId,
+                simSlot = event.simSlot,
+                subId = event.subId,
+                contactName = event.contactName,
+                phoneArea = event.phoneArea,
+                msgType = smsMsgType,
+                isCodeSms = event.messageType == MessageType.SMS_CODE,
+                callType = event.callType,
+                sessionKey = sessionKey,
+            )
+        }
+        return RecordContext(
+            smsMsgType = smsMsgType,
+            recordId = recordId,
+        )
+    }
+
+    private suspend fun ensureSmsRecordForForwardResult(
+        event: RelayEvent,
+        recordContext: RecordContext,
+        traceId: String?,
+    ): RecordContext {
+        if (recordContext.recordId != null) return recordContext
+        if (event.messageType != MessageType.SMS_CODE && event.messageType != MessageType.SMS_PLAIN) {
+            return recordContext
+        }
+        val recordId = dispatchResultWriter.insertRecord(
+            sender = event.sender,
+            body = event.body,
+            date = event.timestamp,
+            company = event.companyOrAppName,
+            smsCode = event.smsCode,
+            packageName = event.packageName,
+            notifyChannelId = event.notifyChannelId,
+            simSlot = event.simSlot,
+            subId = event.subId,
+            contactName = event.contactName,
+            phoneArea = event.phoneArea,
+            msgType = recordContext.smsMsgType,
+            isCodeSms = event.messageType == MessageType.SMS_CODE,
+        )
+        ForwardFlowLog.i(
+            traceId,
+            "Created sms record for forward result type=${event.messageType} recordId=${recordId ?: "<none>"}",
+        )
+        return recordContext.copy(recordId = recordId)
+    }
+
+    private suspend fun resolveSenders(
+        event: RelayEvent,
+        traceId: String?,
+    ): SenderResolution {
+        val senderConfigSanitizer = SenderRuntimeServiceRegistry.requireInstalled().configSanitizer
+        val allSenders = db.senderDao().getAll()
+            .map { it.toDomain() }
+            .map(senderConfigSanitizer::sanitizeSenderLenient)
+        val enabledSenders = allSenders.filter { it.status == 1 }
+        val baseSenders = senderSelector.selectBaseSenders(enabledSenders, event)
+        val routing = routingResolver.resolve(baseSenders, event, traceId)
+        if (routing.senders.isNotEmpty()) {
+            return SenderResolution(
+                allSenders = allSenders,
+                enabledSenders = enabledSenders,
+                selectedSenders = routing.senders,
+            )
+        }
+        val filteredByRule = routing.filteredReasonParts.isNotEmpty()
+        val blockedReason = if (filteredByRule) {
+            "可用通道命中过滤规则，已拦截（${routing.filteredReasonParts.joinToString(" | ")}）"
+        } else {
+            routing.routingResult?.noEligibleReason
+                ?: senderSelector.buildNoEligibleReason(allSenders, enabledSenders, event)
+        }
+        return SenderResolution(
+            allSenders = allSenders,
+            enabledSenders = enabledSenders,
+            selectedSenders = emptyList(),
+            blockedReason = blockedReason,
+            forcedStatus = if (filteredByRule) SmsMsg.FORWARD_STATUS_BLOCKED else null,
+        )
+    }
+
+    private suspend fun buildDispatchPayload(
+        event: RelayEvent,
+        effectiveConfig: ForwardCommonConfig,
+    ): MsgInfo {
+        val template = resolveTemplate(effectiveConfig)
+        val dispatchEvent = event.copy(
+            appIcon = AppIconEncoder.resolveAppIcon(
+                context = context,
+                packageName = event.packageName,
+                msgType = event.messageType.runtimeType,
+                template = template,
+                currentAppIcon = event.appIcon,
+            ),
+        )
+        val envSnapshot = systemInfoProvider.getSnapshot(effectiveConfig.deviceName)
+        val dispatchContext = DispatchPayloadContext.from(dispatchEvent)
+        val renderedContent = messageFormatter.format(dispatchEvent, dispatchContext, effectiveConfig, envSnapshot)
+        return dispatchContext.toMsgInfo(dispatchEvent, renderedContent)
+    }
+
+    private fun resolveTemplate(config: ForwardCommonConfig): String {
+        return when {
+            config.messageTemplate.isNotBlank() -> config.messageTemplate
+            config.includeSender || config.includeTime || !config.includeDeviceName -> {
+                buildString {
+                    append("{{SMS}}")
+                    if (config.includeSender) append("\n发件人: {{FROM}}")
+                    if (config.includeTime) append("\n时间: {{RECEIVE_TIME}}")
+                    if (config.includeDeviceName) append("\n来自{{DEVICE_NAME}}设备")
+                }
+            }
+            else -> ""
+        }
+    }
+
+    private suspend fun resolveEffectiveConfig(
+        event: RelayEvent,
+        commonConfig: ForwardCommonConfig,
+    ): ForwardCommonConfig {
+        return when (event.messageType) {
+            MessageType.APP_NOTIFY -> {
+                val appConfig = db.appInfoDao().getByPackageName(event.packageName)
+                if (appConfig?.notifyTemplate?.isNotBlank() == true) {
+                    commonConfig.copy(messageTemplate = appConfig.notifyTemplate)
+                } else {
+                    val appNotifyTemplate = settingsRepository.loadAppNotifyTemplate()
+                    if (appNotifyTemplate.isNotBlank()) {
+                        commonConfig.copy(messageTemplate = appNotifyTemplate)
+                    } else {
+                        commonConfig
+                    }
+                }
+            }
+
+            MessageType.CALL_NOTIFY -> {
+                val callNotifyTemplate = settingsRepository.loadCallNotifyTemplate()
+                if (callNotifyTemplate.isNotBlank()) {
+                    commonConfig.copy(messageTemplate = callNotifyTemplate)
+                } else {
+                    commonConfig
+                }
+            }
+
+            else -> commonConfig
+        }
+    }
+
+    private suspend fun isForwardTypeEnabled(event: RelayEvent): Boolean {
+        return when (event.messageType) {
+            MessageType.SMS_CODE -> preferenceDataSource.getBoolean(
+                PrefConst.KEY_FORWARD_SMS_CODE_ENABLED,
+                defaultForwardEnabled(MessageType.SMS_CODE),
+            )
+            MessageType.SMS_PLAIN -> preferenceDataSource.getBoolean(
+                PrefConst.KEY_FORWARD_SMS_PLAIN_ENABLED,
+                defaultForwardEnabled(MessageType.SMS_PLAIN),
+            )
+            MessageType.APP_NOTIFY -> preferenceDataSource.getBoolean(
+                PrefConst.KEY_FORWARD_APP_NOTIFY_ENABLED,
+                defaultForwardEnabled(MessageType.APP_NOTIFY),
+            )
+            MessageType.CALL_NOTIFY -> {
+                val key = if (event.isCallAlertStart()) {
+                    PrefConst.KEY_FORWARD_CALL_NOTIFY_ENABLED
+                } else {
+                    PrefConst.KEY_FORWARD_CALL_NOTIFY_FINAL_ENABLED
+                }
+                preferenceDataSource.getBoolean(key, defaultForwardEnabled(MessageType.CALL_NOTIFY))
+            }
+        }
+    }
+
+    private fun defaultForwardEnabled(messageType: MessageType): Boolean {
+        return when (messageType) {
+            MessageType.SMS_CODE -> true
+            MessageType.SMS_PLAIN -> true
+            MessageType.APP_NOTIFY -> true
+            MessageType.CALL_NOTIFY -> false
+        }
+    }
+
+    private fun resolveSmsMsgType(messageType: MessageType): Int {
+        return when (messageType) {
+            MessageType.APP_NOTIFY -> SmsMsg.MSG_TYPE_APP_NOTIFY
+            MessageType.CALL_NOTIFY -> SmsMsg.MSG_TYPE_CALL_NOTIFY
+            MessageType.SMS_CODE, MessageType.SMS_PLAIN -> SmsMsg.MSG_TYPE_SMS
+        }
+    }
+
+    private suspend fun isMessageTypeRecordEnabled(messageType: MessageType): Boolean {
+        val key = when (messageType) {
+            MessageType.SMS_CODE -> PrefConst.KEY_ENABLE_CODE_RECORDS_CODE
+            MessageType.SMS_PLAIN -> PrefConst.KEY_ENABLE_CODE_RECORDS_PLAIN_SMS
+            MessageType.APP_NOTIFY -> PrefConst.KEY_ENABLE_CODE_RECORDS_APP_NOTIFY
+            MessageType.CALL_NOTIFY -> PrefConst.KEY_ENABLE_CODE_RECORDS_CALL_NOTIFY
+        }
+        return preferenceDataSource.getBoolean(key, true)
+    }
+}

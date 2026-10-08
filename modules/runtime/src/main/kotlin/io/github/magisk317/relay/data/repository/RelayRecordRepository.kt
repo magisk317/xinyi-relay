@@ -1,0 +1,465 @@
+package io.github.magisk317.relay.data.repository
+
+import android.content.Context
+import io.github.magisk317.relay.bootstrap.RuntimeDependencies
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.android.common.utils.CallSessionTracker
+import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
+import io.github.magisk317.relay.android.data.db.AppDatabase
+import io.github.magisk317.relay.android.data.db.entity.SmsBlacklistHit
+import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.mergeSmsMsgForInsert
+import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toRecordData
+import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toSmsMsgEntity
+import io.github.magisk317.smscode.rule.utils.CodeRecordSimilarityUtils
+import io.github.magisk317.relay.engine.model.ReadRecordData
+import io.github.magisk317.relay.engine.model.ReadSmsBlacklistHitData
+import io.github.magisk317.relay.engine.sender.SenderType
+import io.github.magisk317.relay.engine.service.MessageRecordRepository
+import io.github.magisk317.relay.engine.service.SenderDispatchResult
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+
+class RelayRecordRepository(
+    context: Context,
+    private val db: AppDatabase = AppDatabase.getInstance(context),
+    private val preferenceDataSource: PreferenceDataSource,
+    private val recordUploadScheduler: ((String) -> Unit)? = null,
+) : MessageRecordRepository {
+    private val appContext = context.applicationContext ?: context
+
+    override suspend fun listRecords(limit: Int): List<ReadRecordData> =
+        db.smsMsgDao().getAll().take(limit).map { it.toRecordData() }
+
+    override suspend fun listSmsBlacklistHits(limit: Int): List<ReadSmsBlacklistHitData> =
+        db.smsBlacklistHitDao().getRecent(limit)
+
+    override fun observeSmsBlacklistHits(limit: Int): Flow<List<ReadSmsBlacklistHitData>> =
+        db.smsBlacklistHitDao().observeRecent(limit)
+
+    override suspend fun removeSmsBlacklistHits(list: List<ReadSmsBlacklistHitData>) {
+        if (list.isEmpty()) return
+        db.smsBlacklistHitDao().deleteAll(list.map { it.toSmsBlacklistHit() })
+    }
+
+    override suspend fun restoreSmsBlacklistHits(list: List<ReadSmsBlacklistHitData>) {
+        if (list.isEmpty()) return
+        db.smsBlacklistHitDao().insertAll(list.map { it.toSmsBlacklistHit() })
+    }
+
+    override suspend fun clearSmsBlacklistHits() {
+        db.smsBlacklistHitDao().clearAll()
+    }
+
+    suspend fun insertSmsBlacklistHit(hit: SmsBlacklistHit): Long? {
+        if (!preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE_SMS_BLACKLIST_HIT_RECORDS, true)) {
+            return null
+        }
+        val id = db.smsBlacklistHitDao().insert(hit)
+        trimSmsBlacklistHitsIfNeeded()
+        return id
+    }
+
+    /** 观察全量记录的 Flow，Room 自动在 DB 变更时发出新列表。 */
+    override fun queryAllFlow(): Flow<List<ReadRecordData>> =
+        db.smsMsgDao().getAllFlow().map { list -> list.map { it.toRecordData() } }
+
+    /** 观察特定包名的通知日志（限额）。 */
+    override fun observeLogsForPackage(packageName: String, limit: Int): Flow<List<ReadRecordData>> =
+        db.smsMsgDao().getAllFlow().map { list ->
+            list.asSequence()
+                .filter { it.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY && it.packageName == packageName }
+                .take(limit)
+                .toList()
+                .map { it.toRecordData() }
+        }
+
+    /** 观察最近使用的通知渠道 ID。 */
+    override fun observeRecentNotifyChannelIds(packageName: String, limit: Int): Flow<List<String>> =
+        db.smsMsgDao().observeRecentNotifyChannelIds(packageName, SmsMsg.MSG_TYPE_APP_NOTIFY, limit)
+
+    /** 一性读取全量记录。 */
+    override suspend fun queryAll(): List<ReadRecordData> = db.smsMsgDao().getAll().map { it.toRecordData() }
+
+    /** 批量插入（用于 undo/restore 场景）。 */
+    override suspend fun insertList(list: List<ReadRecordData>) {
+        if (list.isEmpty()) return
+        val dao = db.smsMsgDao()
+        list.forEach { data ->
+            val smsMsg = data.toSmsMsgEntity()
+            val existing = dao.getByFingerprint(
+                sender = smsMsg.sender,
+                body = smsMsg.body,
+                date = smsMsg.date,
+                msgType = smsMsg.msgType,
+            )
+            if (existing != null) {
+                dao.update(mergeSmsMsgForInsert(existing, smsMsg))
+            } else {
+                dao.insert(smsMsg)
+            }
+        }
+        scheduleRecordUpload("insert_list")
+    }
+
+    override suspend fun insertListAndTrim(list: List<ReadRecordData>, maxCount: Int) {
+        if (list.isEmpty()) return
+        val dao = db.smsMsgDao()
+        list.forEach { data ->
+            val smsMsg = data.toSmsMsgEntity()
+            val existing = dao.getByFingerprint(
+                sender = smsMsg.sender,
+                body = smsMsg.body,
+                date = smsMsg.date,
+                msgType = smsMsg.msgType,
+            )
+            if (existing != null) {
+                dao.update(mergeSmsMsgForInsert(existing, smsMsg))
+            } else {
+                dao.insert(smsMsg)
+            }
+        }
+        if (maxCount <= 0) return
+        val allMsgList = dao.getAll()
+        if (allMsgList.size > maxCount) {
+            val outdatedMsgList = allMsgList.subList(maxCount, allMsgList.size)
+            dao.deleteInTx(outdatedMsgList)
+        }
+        scheduleRecordUpload("insert_list_trim")
+    }
+
+    /** 批量删除（同一事务内执行）。 */
+    override suspend fun removeList(list: List<ReadRecordData>) {
+        if (list.isEmpty()) return
+        db.smsMsgDao().deleteInTx(list.map { it.toSmsMsgEntity() })
+        scheduleRecordUpload("remove_list")
+    }
+
+    /** 获取记录总数的实时观察流。 */
+    override fun countFlow(): Flow<Long> = db.smsMsgDao().countFlow()
+
+    /** 清空所有记录。 */
+    override suspend fun clearAll() {
+        db.smsMsgDao().clearAll()
+        scheduleRecordUpload("clear_all")
+    }
+
+    override suspend fun deleteRecord(recordId: Long): Boolean {
+        val existing = db.smsMsgDao().getById(recordId) ?: return false
+        db.smsMsgDao().delete(existing)
+        scheduleRecordUpload("delete_record")
+        return true
+    }
+
+    override suspend fun findRecordIdByFingerprint(
+        sender: String,
+        body: String,
+        date: Long,
+        msgType: Int,
+    ): Long? {
+        return db.smsMsgDao()
+            .getByFingerprint(sender = sender, body = body, date = date, msgType = msgType)
+            ?.id
+    }
+
+    override suspend fun insertRecord(
+        sender: String,
+        body: String,
+        date: Long,
+        company: String,
+        smsCode: String?,
+        packageName: String,
+        notifyChannelId: String,
+        simSlot: Int,
+        subId: Int,
+        contactName: String,
+        phoneArea: String,
+        msgType: Int,
+        isCodeSms: Boolean,
+        callType: Int,
+        sessionKey: String,
+    ): Long? {
+        return insertRecord(
+            smsMsg = SmsMsg(
+                sender = sender,
+                body = body,
+                date = date,
+                company = company,
+                smsCode = smsCode,
+                packageName = packageName,
+                notifyChannelId = notifyChannelId,
+                simSlot = simSlot,
+                subId = subId,
+                contactName = contactName,
+                phoneArea = phoneArea,
+                msgType = msgType,
+                callType = callType,
+                sessionKey = sessionKey,
+            ),
+            isCodeSms = isCodeSms,
+        )
+    }
+
+    suspend fun insertRecord(
+        smsMsg: SmsMsg,
+        isCodeSms: Boolean,
+    ): Long? {
+        val dao = db.smsMsgDao()
+        val normalizedSmsMsg = ensureProcessedTime(smsMsg)
+        trimOldRecordsIfNeeded(dao, normalizedSmsMsg.msgType, isCodeSms)
+        if (isCodeSms) {
+            findCodeDuplicateRecordId(dao, normalizedSmsMsg)?.let { duplicateId ->
+                scheduleRecordUpload("skip_duplicate_code_record")
+                return duplicateId
+            }
+        }
+        if (normalizedSmsMsg.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY && normalizedSmsMsg.sessionKey.isNotBlank()) {
+            dao.getBySessionKey(normalizedSmsMsg.msgType, normalizedSmsMsg.sessionKey)?.let { existing ->
+                dao.update(mergeSmsMsgForInsert(existing, normalizedSmsMsg))
+                scheduleRecordUpload("update_call_session_record")
+                return existing.id
+            }
+        }
+        val existing = dao.getByFingerprint(
+            sender = normalizedSmsMsg.sender,
+            body = normalizedSmsMsg.body,
+            date = normalizedSmsMsg.date,
+            msgType = normalizedSmsMsg.msgType,
+        )
+        if (existing != null) {
+            dao.update(mergeSmsMsgForInsert(existing, normalizedSmsMsg))
+            scheduleRecordUpload("update_record")
+            return existing.id
+        }
+        return dao.insert(normalizedSmsMsg).also { scheduleRecordUpload("insert_record") }
+    }
+
+    override fun buildCallSessionKey(
+        sender: String?,
+        body: String?,
+        callType: Int,
+        packageName: String?,
+    ): String {
+        return CallSessionTracker.buildSourceKey(
+            sender = sender,
+            body = body,
+            callType = callType,
+            packageName = null,
+        )
+    }
+
+    private suspend fun findCodeDuplicateRecordId(
+        dao: io.github.magisk317.relay.android.data.db.dao.SmsMsgDao,
+        smsMsg: SmsMsg,
+    ): Long? {
+        val sender = smsMsg.sender
+        val body = smsMsg.body
+        if (sender.isNullOrBlank() || body.isNullOrBlank()) return null
+
+        val timestamp = if (smsMsg.date > 0) smsMsg.date else System.currentTimeMillis()
+        val from = (timestamp - CODE_RECORD_DEDUP_WINDOW_MS).coerceAtLeast(0L)
+        val to = timestamp + CODE_RECORD_DEDUP_WINDOW_MS
+
+        dao.getByFingerprintInRange(
+            sender = sender,
+            body = body,
+            msgType = smsMsg.msgType,
+            dateFrom = from,
+            dateTo = to,
+        )?.let { return it.id }
+
+        val code = smsMsg.smsCode
+        if (code.isNullOrBlank()) return null
+
+        if (smsMsg.simSlot >= 0) {
+            dao.getBySimSlotInRange(
+                simSlot = smsMsg.simSlot,
+                msgType = smsMsg.msgType,
+                dateFrom = from,
+                dateTo = to,
+            )?.let { return it.id }
+        }
+
+        val pkg = smsMsg.packageName
+        if (!pkg.isNullOrBlank()) {
+            dao.getByCodeAndPackageInRange(
+                smsCode = code,
+                packageName = pkg,
+                msgType = smsMsg.msgType,
+                dateFrom = from,
+                dateTo = to,
+            )?.let { return it.id }
+        }
+
+        val company = smsMsg.company
+        if (!company.isNullOrBlank()) {
+            dao.getByCodeAndCompanyInRange(
+                smsCode = code,
+                company = company,
+                msgType = smsMsg.msgType,
+                dateFrom = from,
+                dateTo = to,
+            )?.let { return it.id }
+        }
+
+        dao.getByCodeInRange(
+            smsCode = code,
+            msgType = smsMsg.msgType,
+            dateFrom = from,
+            dateTo = to,
+        ).sortedByDescending { existing ->
+            CodeRecordSimilarityUtils.scoreRecordPreference(
+                packageName = existing.packageName,
+                company = existing.company,
+                sender = existing.sender,
+            )
+        }.firstOrNull { existing ->
+            CodeRecordSimilarityUtils.shouldMergeByCodeWithinWindow(
+                firstCode = existing.smsCode,
+                firstBody = existing.body,
+                firstCompany = existing.company,
+                firstSender = existing.sender,
+                firstPackageName = existing.packageName,
+                firstDate = existing.date,
+                secondCode = smsMsg.smsCode,
+                secondBody = smsMsg.body,
+                secondCompany = smsMsg.company,
+                secondSender = smsMsg.sender,
+                secondPackageName = smsMsg.packageName,
+                secondDate = smsMsg.date,
+                windowMs = CODE_RECORD_DEDUP_WINDOW_MS,
+            )
+        }?.let { return it.id }
+
+        return null
+    }
+
+    private fun ensureProcessedTime(smsMsg: SmsMsg): SmsMsg {
+        return if (smsMsg.processedTime > 0L) {
+            smsMsg
+        } else {
+            smsMsg.copy(processedTime = System.currentTimeMillis())
+        }
+    }
+
+    override suspend fun persistForwardResult(
+        recordId: Long,
+        results: List<SenderDispatchResult>,
+        defaultMessage: String,
+        forceFailed: Boolean,
+        forcedStatus: Int?,
+    ) {
+        val msgDao = db.smsMsgDao()
+        val existing = msgDao.getById(recordId) ?: return
+        val successResults = results.filter { it.success }
+        val failedResults = results.filterNot { it.success }
+        val computedStatus = when {
+            forcedStatus != null -> forcedStatus
+            forceFailed -> SmsMsg.FORWARD_STATUS_FAILED
+            successResults.isNotEmpty() && failedResults.isNotEmpty() -> SmsMsg.FORWARD_STATUS_PARTIAL
+            successResults.isNotEmpty() -> SmsMsg.FORWARD_STATUS_SUCCESS
+            else -> SmsMsg.FORWARD_STATUS_NONE
+        }
+        val normalizedResults = results.map { result ->
+            result.copy(senderName = SenderType.displayName(result.senderType, result.senderName))
+        }
+        val target = normalizedResults.joinToString(", ") { it.senderName }.ifBlank { null }
+        val message = when {
+            forceFailed -> defaultMessage
+            normalizedResults.isNotEmpty() -> normalizedResults.joinToString("\n") { result ->
+                val channelName = result.senderName.withChannelSuffix()
+                if (result.success) "${channelName}转发成功" else "${channelName}转发失败，原因：${result.message}"
+            }
+            else -> defaultMessage
+        }.take(MAX_FORWARD_MESSAGE_LEN)
+        msgDao.update(
+            existing.copy(
+                forwardStatus = computedStatus,
+                forwardTarget = target,
+                forwardMessage = message,
+                forwardTime = System.currentTimeMillis(),
+            ),
+        )
+        scheduleRecordUpload("persist_forward_result")
+    }
+
+    private fun String.withChannelSuffix(): String {
+        return if (contains("通道")) this else "${this}通道"
+    }
+
+    private suspend fun trimOldRecordsIfNeeded(
+        dao: io.github.magisk317.relay.android.data.db.dao.SmsMsgDao,
+        msgType: Int,
+        isCodeSms: Boolean,
+    ) {
+        val limit = getHistoryLimit(msgType, isCodeSms)
+        if (limit <= 0) return
+        val matching = dao.getAll()
+            .asSequence()
+            .filter { recordMatchesType(it, msgType, isCodeSms) }
+            .sortedBy { it.date }
+            .toList()
+        if (matching.size < limit) return
+        val deleteCount = matching.size - limit + 1
+        dao.deleteInTx(matching.take(deleteCount))
+    }
+
+    private suspend fun getHistoryLimit(msgType: Int, isCodeSms: Boolean): Int {
+        val key = when (msgType) {
+            SmsMsg.MSG_TYPE_APP_NOTIFY -> PrefConst.KEY_HISTORY_LIMIT_APP_NOTIFY
+            SmsMsg.MSG_TYPE_CALL_NOTIFY -> PrefConst.KEY_HISTORY_LIMIT_CALL_NOTIFY
+            SmsMsg.MSG_TYPE_SMS -> if (isCodeSms) PrefConst.KEY_HISTORY_LIMIT_CODE else PrefConst.KEY_HISTORY_LIMIT_PLAIN_SMS
+            else -> PrefConst.KEY_HISTORY_LIMIT_CODE
+        }
+        val previousLimit = preferenceDataSource.getString(PrefConst.KEY_HISTORY_LIMIT, "0")
+        val value = preferenceDataSource.getString(key, previousLimit)
+        return value.toIntOrNull() ?: 0
+    }
+
+    private suspend fun trimSmsBlacklistHitsIfNeeded() {
+        val value = preferenceDataSource.getString(
+            PrefConst.KEY_HISTORY_LIMIT_SMS_BLACKLIST_HIT,
+            PrefConst.SMS_BLACKLIST_HIT_HISTORY_LIMIT_DEFAULT,
+        )
+        val limit = value.toIntOrNull()
+            ?: PrefConst.SMS_BLACKLIST_HIT_HISTORY_LIMIT_DEFAULT.toInt()
+        if (limit <= 0) return
+        db.smsBlacklistHitDao().trimToLimit(limit)
+    }
+
+    private fun recordMatchesType(record: SmsMsg, msgType: Int, isCodeSms: Boolean): Boolean = when (msgType) {
+        SmsMsg.MSG_TYPE_APP_NOTIFY -> record.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY
+        SmsMsg.MSG_TYPE_SMS -> {
+            val hasCode = !record.smsCode.isNullOrBlank()
+            record.msgType == SmsMsg.MSG_TYPE_SMS && if (isCodeSms) hasCode else !hasCode
+        }
+        else -> record.msgType == msgType
+    }
+
+    private fun scheduleRecordUpload(reason: String) {
+        recordUploadScheduler?.invoke(reason)
+            ?: RuntimeDependencies.get().configSyncCoordinator.scheduleRecordUpload(reason)
+    }
+
+    private companion object {
+        private const val MAX_FORWARD_MESSAGE_LEN = 2000
+        private const val CODE_RECORD_DEDUP_WINDOW_MS = CodeRecordSimilarityUtils.DEFAULT_WINDOW_MS
+    }
+}
+
+private fun ReadSmsBlacklistHitData.toSmsBlacklistHit(): SmsBlacklistHit {
+    return this as? SmsBlacklistHit ?: SmsBlacklistHit(
+        id = id,
+        eventId = eventId,
+        source = source,
+        sender = sender,
+        body = body,
+        smsDate = smsDate,
+        matchType = matchType,
+        pattern = pattern,
+        actionDelete = actionDelete,
+        actionBlock = actionBlock,
+        blockReason = blockReason,
+        createdAt = createdAt,
+    )
+}
