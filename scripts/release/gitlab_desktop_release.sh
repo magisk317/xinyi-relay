@@ -23,7 +23,27 @@ prepared_asset_dir="${XINYI_DESKTOP_RELEASE_PREPARED_ASSET_DIR:-desktop-release-
 notes_file="${MAGISK_RELEASE_NOTES_FILE:-desktop-release-notes.md}"
 package_name="${XINYI_DESKTOP_RELEASE_PACKAGE_NAME:-desktop-release}"
 release_name="${XINYI_DESKTOP_RELEASE_NAME:-$release_title}"
-release_description="${XINYI_DESKTOP_RELEASE_DESCRIPTION:-Desktop release assets for ${CI_COMMIT_TAG}.}"
+
+# The two upgrade paragraphs are fixed here on purpose: the desktop app has no
+# updater, so a release note is the only place a user can learn that upgrading
+# means a manual download, and that the credentials a previous Tauri install
+# kept are not the ones this build reads. Keeping them in the default (instead
+# of letting every release re-word them) is what makes the statement
+# reviewable. Drop the second paragraph once every pre-switch install is gone.
+default_release_description() {
+  cat <<EOF
+Desktop release assets for ${CI_COMMIT_TAG}.
+
+The desktop app has no automatic updater: upgrading means downloading the
+package for this release manually. Installing it over an older version keeps
+your local data.
+
+Desktop builds from before this release were a different application (Tauri).
+Their saved sign-in is not read by this one, so you will sign in once after
+upgrading.
+EOF
+}
+release_description="${XINYI_DESKTOP_RELEASE_DESCRIPTION:-$(default_release_description)}"
 
 if [[ ! -d "$asset_root" ]]; then
   echo "ERROR: desktop artifact root not found: $asset_root" >&2
@@ -32,7 +52,7 @@ fi
 
 mapfile -d '' source_files < <(
   find "$asset_root" -type f \
-    \( -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' -o -name '*.exe' -o -name '*.msix' -o -name '*.msi' -o -name '*.dmg' -o -name '*.zip' \) \
+    \( -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' -o -name '*.exe' -o -name '*.msix' -o -name '*.msi' -o -name '*.dmg' -o -name '*.jar' -o -name '*.zip' \) \
     -print0 | sort -z
 )
 if [[ ${#source_files[@]} -eq 0 ]]; then

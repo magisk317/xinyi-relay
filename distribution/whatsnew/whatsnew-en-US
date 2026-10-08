@@ -1,7 +1,7 @@
-- Updated to 0.2.7 (49).
-- Play builds no longer require activation; auto-fill works out of the box.
-- Subscription tier removed; unified on Play donations.
-- Shared screens converged on the dual-track ui-kit components.
-- Gradle 9.8.0 GA, Kotlin 2.5.0-Beta1, Java 27 bytecode.
-- Telemetry gains device/commit dimensions with skip-span filtering.
+- Updated to 0.2.8 (50).
+- Core business logic migrated to shared modules; contracts and APIs on KMP.
+- Inbound SMS hook chain driven by shared core engine.
+- Converged dual-track UI kit; refined copy button interactions.
+- Toolchain upgraded to Gradle 9.8.1 with shared catalog synchronization.
+- Submodules and Compose dependencies refreshed.
 - https://gitlab.com/magisk3171/xinyi-relay/-/releases

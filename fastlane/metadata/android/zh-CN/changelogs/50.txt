@@ -1,0 +1,7 @@
+- 升级至 0.2.8（50）。
+- 业务下沉共享模块，契约/策略/API 迁移 KMP。
+- 入站短信钩子链改由共享核心驱动。
+- 收敛双轨 UI 套件，优化复制按钮交互样式。
+- 工具链升级 Gradle 9.8.1 并同步共享版本目录。
+- 刷新子模块与 Compose 等依赖。
+- https://gitlab.com/magisk3171/xinyi-relay/-/releases

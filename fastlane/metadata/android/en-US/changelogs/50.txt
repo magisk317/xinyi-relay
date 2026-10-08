@@ -1,0 +1,7 @@
+- Updated to 0.2.8 (50).
+- Core business logic migrated to shared modules; contracts and APIs on KMP.
+- Inbound SMS hook chain driven by shared core engine.
+- Converged dual-track UI kit; refined copy button interactions.
+- Toolchain upgraded to Gradle 9.8.1 with shared catalog synchronization.
+- Submodules and Compose dependencies refreshed.
+- https://gitlab.com/magisk3171/xinyi-relay/-/releases
