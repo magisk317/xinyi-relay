@@ -3,6 +3,17 @@
 本日志记录了项目近期的主要变更。 
 
 ---
+## [v0.2.8] - 2026-10-08
+- 版本：`versionCode 50` / `versionName 0.2.8`。
+- `[core]` 业务下沉共享模块，契约/策略/API 迁移 KMP。
+- `[hook]` 入站短信钩子链改由共享核心驱动。
+- `[ui]` 收敛双轨 UI 套件，优化复制按钮交互样式。
+- `[build]` 升级 Gradle 9.8.1 并同步共享版本目录。
+- `[deps]` 刷新子模块与 Compose、Tauri 插件等依赖。
+
+> Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.2.7...v0.2.8
+
+---
 ## [v0.2.7] - 2026-10-01
 - 版本：`versionCode 49` / `versionName 0.2.7`。
 - `[ui]` 共享页面全面收敛至双轨 UI 套件。

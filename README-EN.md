@@ -101,7 +101,7 @@ The Backend is the self-hosted remote control plane for Xinyi Relay, with a loca
 ### Entry Docs
 - [Backend Guide](backend/README.md)
 - [Backend API Overview](backend/API_OVERVIEW.md)
-- [Desktop Guide](frontend/desktop/README.md)
+- [Desktop parity and capability inventory](docs/DESKTOP_PARITY.md)
 
 ### Log Locations
 
@@ -117,7 +117,7 @@ See each component's README for details.
 
 ## Desktop
 
-The Desktop app is a cross-platform management tool built with Tauri + Rust (available on macOS / Windows / Linux). It has been upgraded to a **fully-featured client**, supporting three distinct modes:
+The desktop app is built with Kotlin Multiplatform + Compose Multiplatform (currently shipping Linux x64 / arm64 packages). It has been upgraded to a **fully-featured client**, supporting three distinct modes:
 
 - **Local Mode**: Runs completely offline, using its built-in SQLite database to manage devices, configs, and history records for maximum privacy.
 - **Remote Mode**: Acts as a traditional thin client, connecting directly to your self-hosted Backend instance.
@@ -125,10 +125,9 @@ The Desktop app is a cross-platform management tool built with Tauri + Rust (ava
 
 ## Desktop Release Notes
 
-- Desktop releases currently ship Linux, macOS, and Windows packages.
-- macOS builds are currently distributed unsigned, so first launch may require a manual allow step in system settings.
-- Windows builds are signed with the repository-managed self-signed certificate. If Windows blocks the installer, import the public certificate [frontend/desktop/certs/windows-codesign.cer](frontend/desktop/certs/windows-codesign.cer) first and then retry the installer.
-- This Windows certificate is only intended for niche distribution of this project. It is not a public CA commercial code-signing certificate, so only import it if you trust this project's releases.
+- Desktop releases currently ship Linux x64 and arm64 deb packages, plus an uber jar for the same architecture (a no-install form, assets prefixed `kmp-`).
+- There is no automatic updater; upgrading means downloading the new package manually.
+- Desktop credentials live in the system keychain (secret-tool on Linux), never in a plaintext config file.
 
 Feedback and suggestions are welcome.
 

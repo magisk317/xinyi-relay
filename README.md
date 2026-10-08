@@ -103,7 +103,7 @@ Backend 是信驿 Relay 的自建远程控制面，默认部署模式为“本�
 - [Backend 使用说明](backend/README.md)
 - [Backend API 概览](backend/API_OVERVIEW.md)
 - [远程架构](docs/ARCHITECTURE.md)
-- [Desktop 使用说明](frontend/desktop/README.md)
+- [桌面端 Parity 与能力清单](docs/DESKTOP_PARITY.md)
 
 ### 日志位置
 
@@ -119,7 +119,7 @@ Backend 和 Desktop 都支持日志文件输出，便于问题排查：
 
 ## 桌面端 (Desktop)
 
-桌面端是基于 Tauri + Rust 构建的跨平台管理应用（支持 macOS / Windows / Linux）。它不再仅是 Backend 的外壳，而是升级为**全功能客户端**，支持以下三种运行模式：
+桌面端是基于 Kotlin Multiplatform + Compose Multiplatform 构建的跨平台管理应用（当前发布 Linux x64 / arm64 包）。它不再仅是 Backend 的外壳，而是**全功能客户端**，支持以下三种运行模式：
 
 - **Local（本地模式）**：完全离线运行，使用自带的内置 SQLite 数据库管理设备、配置与历史记录，最大程度保护隐私。
 - **Remote（远程模式）**：作为传统的控制台端，直接连接并管理你的独立 Backend 云端实例。
@@ -127,10 +127,9 @@ Backend 和 Desktop 都支持日志文件输出，便于问题排查：
 
 ## Desktop Release 说明
 
-- Desktop Release 默认提供 Linux、macOS 与 Windows 包。
-- macOS 当前为 unsigned 发布，首次运行时可能需要用户在系统设置里手动允许。
-- Windows 当前使用仓库自管的自签名证书签名；若系统拦截，可先导入公开证书 [frontend/desktop/certs/windows-codesign.cer](frontend/desktop/certs/windows-codesign.cer) 再运行安装包。
-- 该 Windows 证书仅用于当前项目的小众分发，不是公有 CA 商业签名证书；请仅在你信任本项目 Release 的前提下导入。
+- Desktop Release 当前提供 Linux x64 与 arm64 的 deb 安装包，另附同架构的 uber jar（免安装形态，`kmp-` 前缀资产）。
+- 桌面端没有自动更新器，升级需要手动下载新版本安装包。
+- 登录凭据保存在系统钥匙串（Linux 走 `secret-tool`），不在配置文件里落明文。
 
 欢迎反馈，欢迎提出意见或建议。
 
