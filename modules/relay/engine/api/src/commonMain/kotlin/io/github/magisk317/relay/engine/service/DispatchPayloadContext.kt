@@ -1,0 +1,55 @@
+package io.github.magisk317.relay.engine.service
+
+import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.relay.engine.event.RelayEvent
+import io.github.magisk317.relay.engine.model.MsgInfo
+import kotlin.time.Instant
+
+data class DispatchPayloadContext(
+    val appName: String,
+    val title: String,
+    val message: String,
+) {
+    fun toMsgInfo(
+        event: RelayEvent,
+        content: String = event.body,
+    ): MsgInfo {
+        return MsgInfo(
+            type = event.messageType.runtimeType,
+            from = event.sender,
+            content = content,
+            date = Instant.fromEpochMilliseconds(event.timestamp),
+            simInfo = event.companyOrAppName,
+            simSlot = event.simSlot,
+            subId = event.subId,
+            callType = event.callType,
+            packageName = event.packageName,
+            notifyChannelId = event.notifyChannelId,
+            appName = appName,
+            title = title,
+            message = message,
+            smsCode = event.smsCode.orEmpty(),
+            contactName = event.contactName,
+            phoneArea = event.phoneArea,
+            appIcon = event.appIcon,
+        )
+    }
+
+    companion object {
+        fun from(event: RelayEvent): DispatchPayloadContext {
+            return if (event.messageType == MessageType.APP_NOTIFY) {
+                DispatchPayloadContext(
+                    appName = event.companyOrAppName,
+                    title = event.sender,
+                    message = event.body,
+                )
+            } else {
+                DispatchPayloadContext(
+                    appName = "",
+                    title = "",
+                    message = "",
+                )
+            }
+        }
+    }
+}

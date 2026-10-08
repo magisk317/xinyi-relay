@@ -47,23 +47,23 @@ android {
 
     sourceSets {
         getByName("play") {
-            java.directories.add("src/xposed/java")
-            kotlin.directories.add("src/xposed/java")
+            java.directories.add("src/xposed/kotlin")
+            kotlin.directories.add("src/xposed/kotlin")
             manifest.srcFile("src/xposed/AndroidManifest.xml")
         }
         getByName("githubNoE2ee") {
-            java.directories.add("src/xposed/java")
-            kotlin.directories.add("src/xposed/java")
+            java.directories.add("src/xposed/kotlin")
+            kotlin.directories.add("src/xposed/kotlin")
             manifest.srcFile("src/xposed/AndroidManifest.xml")
         }
         getByName("githubWithE2ee") {
-            java.directories.add("src/xposed/java")
-            kotlin.directories.add("src/xposed/java")
+            java.directories.add("src/xposed/kotlin")
+            kotlin.directories.add("src/xposed/kotlin")
             manifest.srcFile("src/xposed/AndroidManifest.xml")
         }
         getByName("fdroid") {
-            java.directories.add("src/xposed/java")
-            kotlin.directories.add("src/xposed/java")
+            java.directories.add("src/xposed/kotlin")
+            kotlin.directories.add("src/xposed/kotlin")
             manifest.srcFile("src/xposed/AndroidManifest.xml")
         }
     }
@@ -73,11 +73,17 @@ android {
 dependencies {
     implementation(libs.mobile.entitlement.android)
     implementation(project(":magisk-xposed-kit:logging"))
-    implementation(project(":magisk-xposed-kit"))
+    // The kit is only needed by the flavor-specific Xposed runtime sources, so it is
+    // attached to each distribution flavor instead of to every compilation unit.
+    listOf("play", "githubNoE2ee", "githubWithE2ee", "fdroid").forEach { flavor ->
+        add("${flavor}Implementation", project(":magisk-xposed-kit"))
+    }
     implementation(project(":relay:contract"))
     implementation(project(":relay:engine:api"))
     implementation(project(":relay:sender"))
     implementation(project(":smscode-core:domain"))
+    implementation(project(":smscode-core:verification"))
+    implementation(project(":smscode-core:db"))
     implementation(project(":smscode-core:rule"))
     implementation(project(":smscode-core:runtime"))
     implementation(libs.androidx.core.ktx)

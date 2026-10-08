@@ -1,0 +1,405 @@
+package io.github.magisk317.relay.sender
+
+import android.text.TextUtils
+import io.github.magisk317.relay.engine.model.MsgInfo
+import io.github.magisk317.relay.net.RelayHttpClients
+import io.github.magisk317.relay.sender.SenderSettingSanitizer
+import io.github.magisk317.relay.sender.config.WebhookSetting
+import io.github.magisk317.xposed.logging.MagiskOtel
+import io.github.magisk317.xposed.logging.SecretRedactor
+import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import okhttp3.Credentials
+import okhttp3.FormBody
+import okhttp3.Headers
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+
+object WebhookUtils {
+    private const val TAG = "WebhookUtils"
+    private const val MAX_ATTEMPTS = 2
+    private const val RETRY_DELAY_MS = 400L
+    private val client = RelayHttpClients.default
+
+    private val receiveTimeTag = Regex("\\[receive_time(:(.*?))?]")
+
+    suspend fun sendMsg(setting: WebhookSetting, msgInfo: MsgInfo, traceId: String? = null) = withContext(Dispatchers.IO) {
+        val safeSetting = SenderSettingSanitizer.sanitizeWebhookSetting(setting)
+        var requestUrl: String = safeSetting.webServer
+        val from: String = msgInfo.from
+        val content: String = msgInfo.content
+        val timestamp = System.currentTimeMillis()
+        val method = safeSetting.method.ifBlank { "POST" }.uppercase(Locale.ROOT)
+        fun t(message: String): String = if (traceId.isNullOrBlank()) message else "[trace=$traceId] $message"
+
+        if (!BuildConfig.ALLOW_HTTP_WEBHOOK && requestUrl.trim().startsWith("http://", ignoreCase = true)) {
+            SLog.w(TAG, t("Webhook blocked: cleartext http is disabled in this flavor"))
+            emitWebhook(
+                result = "skip",
+                reason = "cleartext_http_blocked",
+                method = method,
+                statusOk = true,
+            )
+            throw IllegalStateException("当前构建版本仅支持 HTTPS Webhook 地址")
+        }
+
+        var sign = ""
+        if (!TextUtils.isEmpty(safeSetting.secret)) {
+            val stringToSign = "$timestamp\n" + safeSetting.secret
+            sign = SenderSigning.urlEncode(SenderSigning.hmacSha256Base64(safeSetting.secret, stringToSign))
+        }
+
+        val regex = "^(https?://)([^:]+):([^@]+)@(.+)".toRegex(RegexOption.IGNORE_CASE)
+        val matches = regex.find(requestUrl)
+        var basicAuthUser: String? = null
+        var basicAuthPassword: String? = null
+        if (matches != null) {
+            val groupValues = matches.groupValues
+            if (groupValues.size >= 5) {
+                basicAuthUser = groupValues[2]
+                basicAuthPassword = groupValues[3]
+                requestUrl = groupValues[1] + groupValues[4]
+            }
+        }
+
+        fun appendSignQuery(url: String): String {
+            if (sign.isEmpty()) return url
+            return if (url.contains("?")) {
+                "$url&timestamp=$timestamp&sign=$sign"
+            } else {
+                "$url?timestamp=$timestamp&sign=$sign"
+            }
+        }
+
+        fun applyTemplate(raw: String, urlEncode: Boolean = false, escapeForJson: Boolean = false): String {
+            fun encodeIfNeeded(value: String): String {
+                if (!urlEncode) return value
+                return SenderSigning.urlEncode(value)
+            }
+
+            fun jsonIfNeeded(value: String): String {
+                if (!escapeForJson) return value
+                return escapeJson(value)
+            }
+
+            val receiveTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                .format(Date(msgInfo.date.toEpochMilliseconds()))
+            val replaced = SenderTemplateRenderer.render(
+                raw = raw,
+                msgInfo = msgInfo,
+                timestamp = timestamp,
+                receiveTime = receiveTime,
+                valueTransform = { value -> jsonIfNeeded(encodeIfNeeded(value)) },
+            )
+                .replace("[sign]", encodeIfNeeded(sign))
+                .replace(receiveTimeTag) {
+                    val format = it.groups[2]?.value?.removePrefix(":") ?: "yyyy-MM-dd HH:mm:ss"
+                    val dateText = runCatching {
+                        SimpleDateFormat(format, Locale.getDefault())
+                            .format(Date(msgInfo.date.toEpochMilliseconds()))
+                    }
+                        .getOrElse { receiveTime }
+                    encodeIfNeeded(dateText)
+                }
+            return if (urlEncode) replaced.replace("\n", "%0A") else replaced
+        }
+
+        val headersMap = safeSetting.headers
+        val contentType = headersMap.entries
+            .firstOrNull { it.key.equals("Content-Type", ignoreCase = true) }
+            ?.value
+            ?.trim()
+            ?.lowercase()
+            .orEmpty()
+        val hasJsonContentType = contentType.contains("application/json")
+        val isTextContentType = contentType.startsWith("text/")
+        val methodNeedsBody = method == "POST" || method == "PUT" || method == "PATCH"
+
+        val headersBuilder = Headers.Builder()
+        for ((key, value) in headersMap) {
+            headersBuilder.add(key, value)
+        }
+        if (basicAuthUser != null && basicAuthPassword != null &&
+            headersMap.keys.none { it.equals("Authorization", ignoreCase = true) }
+        ) {
+            headersBuilder.add("Authorization", Credentials.basic(basicAuthUser, basicAuthPassword))
+        }
+
+        if (method == "GET") {
+            val webParams = safeSetting.webParams.trim()
+            requestUrl = if (webParams.isBlank()) {
+                val withDefaults = if (requestUrl.contains("?")) {
+                    "$requestUrl&from=${SenderSigning.urlEncode(from)}&content=${SenderSigning.urlEncode(content)}"
+                } else {
+                    "$requestUrl?from=${SenderSigning.urlEncode(from)}&content=${SenderSigning.urlEncode(content)}"
+                }
+                appendSignQuery(withDefaults)
+            } else {
+                val renderedParams = applyTemplate(webParams, urlEncode = true)
+                if (renderedParams.startsWith("/")) {
+                    requestUrl + renderedParams
+                } else {
+                    if (requestUrl.contains("?")) "$requestUrl&$renderedParams" else "$requestUrl?$renderedParams"
+                }
+            }
+
+            SLog.d(
+                TAG,
+                t(
+                    "Webhook request prepared: method=$method " +
+                    "url=${sanitizeUrlForLog(requestUrl)} " +
+                    "contentType=${if (contentType.isBlank()) "<default>" else contentType} " +
+                    "headers=${sanitizeHeadersForLog(headersMap)} body=<none>",
+                ),
+            )
+
+            val request = Request.Builder()
+                .url(requestUrl)
+                .headers(headersBuilder.build())
+                .get()
+                .build()
+
+            executeRequestWithRetry(
+                request = request,
+                traceId = traceId,
+                method = method,
+                successPrefix = "Webhook GET Success",
+                failurePrefix = "Webhook GET Failed",
+            )
+        } else {
+            if (!methodNeedsBody) {
+                throw IllegalStateException("Webhook 不支持的请求方法: $method")
+            }
+
+            val webParams = safeSetting.webParams.trim()
+            val useRawBody = webParams.isNotBlank() && (hasJsonContentType || isTextContentType || webParams.startsWith("{"))
+            val requestBuilder = Request.Builder()
+                .url(requestUrl)
+                .headers(headersBuilder.build())
+            var bodyPreviewForLog = "<empty>"
+
+            if (useRawBody) {
+                val bodyContent = applyTemplate(
+                    raw = webParams,
+                    urlEncode = false,
+                    escapeForJson = hasJsonContentType || webParams.startsWith("{"),
+                )
+                bodyPreviewForLog = bodyContent
+
+                val mediaType = when {
+                    isTextContentType -> contentType.toMediaType()
+                    hasJsonContentType || webParams.startsWith("{") -> "application/json; charset=utf-8".toMediaType()
+                    else -> "application/x-www-form-urlencoded; charset=utf-8".toMediaType()
+                }
+                val body = bodyContent.toRequestBody(mediaType)
+                requestBuilder.method(method, body)
+            } else {
+                val formText = if (webParams.isBlank()) {
+                    buildString {
+                        append("from=[from]&content=[content]&timestamp=[timestamp]")
+                        if (sign.isNotEmpty()) append("&sign=[sign]")
+                    }
+                } else {
+                    webParams
+                }
+
+                val formBuilder = FormBody.Builder()
+                val formPairsForLog = mutableListOf<String>()
+                formText.trim('&').split("&")
+                    .filter { it.isNotBlank() }
+                    .forEach { pair ->
+                        val idx = pair.indexOf("=")
+                        if (idx >= 0) {
+                            val key = pair.substring(0, idx).trim()
+                            val value = pair.substring(idx + 1).trim()
+                            val resolvedValue = applyTemplate(value)
+                            formBuilder.add(key, resolvedValue)
+                            formPairsForLog += "$key=$resolvedValue"
+                        }
+                    }
+                bodyPreviewForLog = formPairsForLog.joinToString("&").ifBlank { "<empty>" }
+                requestBuilder.method(method, formBuilder.build())
+            }
+            SLog.d(
+                TAG,
+                t(
+                    "Webhook request prepared: method=$method " +
+                    "url=${sanitizeUrlForLog(requestUrl)} " +
+                    "contentType=${if (contentType.isBlank()) "<default>" else contentType} " +
+                    "headers=${sanitizeHeadersForLog(headersMap)} " +
+                    "body=${sanitizeBodyForLog(bodyPreviewForLog)}",
+                ),
+            )
+            val request = requestBuilder
+                .build()
+
+            executeRequestWithRetry(
+                request = request,
+                traceId = traceId,
+                method = method,
+                successPrefix = "Webhook POST Success",
+                failurePrefix = "Webhook POST Failed",
+            )
+        }
+    }
+
+    private suspend fun executeRequestWithRetry(
+        request: Request,
+        traceId: String?,
+        method: String,
+        successPrefix: String,
+        failurePrefix: String,
+    ) {
+        fun t(message: String): String = if (traceId.isNullOrBlank()) message else "[trace=$traceId] $message"
+        var attempt = 1
+        var lastError: IOException? = null
+        val startedAt = System.nanoTime()
+
+        while (attempt <= MAX_ATTEMPTS) {
+            try {
+                client.newCall(request).execute().use { response ->
+                    val respBody = response.body.string()
+                    if (!response.isSuccessful) {
+                        SLog.e(
+                            TAG,
+                            t(
+                                "$failurePrefix: attempt=$attempt http=${response.code} " +
+                                    "${response.message} $respBody",
+                            ),
+                        )
+                        emitWebhook(
+                            result = "error",
+                            reason = "http_${response.code}",
+                            method = method,
+                            retryIndex = attempt,
+                            statusOk = false,
+                            startedAt = startedAt,
+                        )
+                        throw IllegalStateException("Webhook $method 失败: HTTP ${response.code}")
+                    }
+                    SLog.i(TAG, t("$successPrefix: ${response.code} attempt=$attempt"))
+                    emitWebhook(
+                        result = "ok",
+                        reason = "http_${response.code}",
+                        method = method,
+                        retryIndex = attempt,
+                        statusOk = true,
+                        startedAt = startedAt,
+                    )
+                    return
+                }
+            } catch (e: IOException) {
+                lastError = e
+                val willRetry = attempt < MAX_ATTEMPTS
+                SLog.e(
+                    TAG,
+                    t(
+                        "$failurePrefix: attempt=$attempt exception=${e.javaClass.simpleName} " +
+                            "message=${e.message ?: "<empty>"} retry=$willRetry",
+                    ),
+                    e,
+                )
+                if (!willRetry) {
+                    emitWebhook(
+                        result = "error",
+                        reason = "io_exception",
+                        method = method,
+                        retryIndex = attempt,
+                        statusOk = false,
+                        startedAt = startedAt,
+                        errorClass = e.javaClass.simpleName,
+                    )
+                    throw e
+                }
+                delay(RETRY_DELAY_MS)
+                attempt++
+            }
+        }
+
+        emitWebhook(
+            result = "error",
+            reason = "exhausted",
+            method = method,
+            retryIndex = MAX_ATTEMPTS,
+            statusOk = false,
+            startedAt = startedAt,
+            errorClass = lastError?.javaClass?.simpleName,
+        )
+        throw lastError ?: IllegalStateException("Webhook $method failed without captured IOException")
+    }
+
+    private fun emitWebhook(
+        result: String,
+        reason: String,
+        method: String,
+        retryIndex: Int = 0,
+        statusOk: Boolean = true,
+        startedAt: Long? = null,
+        errorClass: String? = null,
+    ) {
+        val durationMs = if (startedAt == null) {
+            0L
+        } else {
+            ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+        }
+        val attrs = mutableMapOf(
+            "result" to result,
+            "duration_ms" to durationMs.toString(),
+            "process" to "main",
+            "stage" to "webhook_http",
+            "reason" to reason,
+            "sender_type" to "webhook",
+            "action" to method.lowercase(),
+        )
+        if (retryIndex > 0) {
+            attrs["retry_index"] = retryIndex.toString()
+        }
+        if (!errorClass.isNullOrBlank()) {
+            attrs["error_class"] = errorClass
+        }
+        MagiskOtel.event(name = "sms.forward", attributes = attrs, statusOk = statusOk)
+    }
+
+    private fun escapeJson(input: String): String = SenderWireJson.escapeStringContent(input)
+
+    private fun sanitizeUrlForLog(url: String): String = SecretRedactor.redact(url)
+
+    private fun sanitizeBodyForLog(body: String): String = truncateForLog(SecretRedactor.redact(body), 400)
+
+    private fun sanitizeHeadersForLog(headers: Map<String, String>): String {
+        if (headers.isEmpty()) return "{}"
+        return headers.entries.joinToString(prefix = "{", postfix = "}") { (key, value) ->
+            val displayValue = if (isSensitiveHeader(key)) {
+                "***"
+            } else {
+                truncateForLog(SecretRedactor.redact(value), 120)
+            }
+            "$key=$displayValue"
+        }
+    }
+
+    private fun isSensitiveHeader(key: String): Boolean {
+        val normalized = key.trim().lowercase(Locale.ROOT)
+        return normalized == "authorization" ||
+            normalized.contains("token") ||
+            normalized.contains("secret") ||
+            normalized.contains("sign") ||
+            normalized.contains("password") ||
+            normalized == "cookie" ||
+            normalized == "set-cookie" ||
+            normalized == "proxy-authorization" ||
+            normalized == "api-key" ||
+            normalized == "x-api-key"
+    }
+
+    private fun truncateForLog(value: String, max: Int): String {
+        if (value.length <= max) return value
+        return value.take(max) + "...(len=${value.length})"
+    }
+}

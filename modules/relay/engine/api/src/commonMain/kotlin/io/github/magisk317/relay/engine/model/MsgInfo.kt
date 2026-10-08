@@ -1,0 +1,66 @@
+package io.github.magisk317.relay.engine.model
+
+import io.github.magisk317.relay.contract.model.PlatformSerializable
+import kotlin.time.Instant
+
+@Suppress("unused")
+data class MsgInfo(
+    val type: String = "sms",
+    val from: String,
+    val content: String,
+    val date: Instant,
+    val simInfo: String,
+    val simSlot: Int = -1,
+    val subId: Int = 0,
+    val callType: Int = 0,
+    val uid: Int = 0,
+    val packageName: String = "",
+    val notifyChannelId: String = "",
+    val appName: String = "",
+    val title: String = "",
+    val message: String = "",
+    val smsCode: String = "",
+    val contactName: String = "",
+    val phoneArea: String = "",
+    val appIcon: String = "",
+) : PlatformSerializable {
+    constructor(
+        type: String = "sms",
+        from: String,
+        content: String,
+        date: java.util.Date,
+        simInfo: String,
+        simSlot: Int = -1,
+        subId: Int = 0,
+        callType: Int = 0,
+        uid: Int = 0,
+        packageName: String = "",
+        notifyChannelId: String = "",
+        appName: String = "",
+        title: String = "",
+        message: String = "",
+        smsCode: String = "",
+        contactName: String = "",
+        phoneArea: String = "",
+        appIcon: String = "",
+    ) : this(
+        type = type,
+        from = from,
+        content = content,
+        date = Instant.fromEpochMilliseconds(date.time),
+        simInfo = simInfo,
+        simSlot = simSlot,
+        subId = subId,
+        callType = callType,
+        uid = uid,
+        packageName = packageName,
+        notifyChannelId = notifyChannelId,
+        appName = appName,
+        title = title,
+        message = message,
+        smsCode = smsCode,
+        contactName = contactName,
+        phoneArea = phoneArea,
+        appIcon = appIcon,
+    )
+}
