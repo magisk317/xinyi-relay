@@ -51,17 +51,7 @@ android {
             kotlin.directories.add("src/xposed/kotlin")
             manifest.srcFile("src/xposed/AndroidManifest.xml")
         }
-        getByName("githubNoE2ee") {
-            java.directories.add("src/xposed/kotlin")
-            kotlin.directories.add("src/xposed/kotlin")
-            manifest.srcFile("src/xposed/AndroidManifest.xml")
-        }
-        getByName("githubWithE2ee") {
-            java.directories.add("src/xposed/kotlin")
-            kotlin.directories.add("src/xposed/kotlin")
-            manifest.srcFile("src/xposed/AndroidManifest.xml")
-        }
-        getByName("fdroid") {
+        getByName("github") {
             java.directories.add("src/xposed/kotlin")
             kotlin.directories.add("src/xposed/kotlin")
             manifest.srcFile("src/xposed/AndroidManifest.xml")
@@ -75,7 +65,7 @@ dependencies {
     implementation(project(":magisk-xposed-kit:logging"))
     // The kit is only needed by the flavor-specific Xposed runtime sources, so it is
     // attached to each distribution flavor instead of to every compilation unit.
-    listOf("play", "githubNoE2ee", "githubWithE2ee", "fdroid").forEach { flavor ->
+    listOf("play", "github").forEach { flavor ->
         add("${flavor}Implementation", project(":magisk-xposed-kit"))
     }
     implementation(project(":relay:contract"))

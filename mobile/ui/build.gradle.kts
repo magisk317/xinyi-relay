@@ -31,10 +31,7 @@ android {
     }
 
     sourceSets {
-        getByName("githubNoE2ee") {
-            setRoot("src/github")
-        }
-        getByName("githubWithE2ee") {
+        getByName("github") {
             setRoot("src/github")
         }
     }
@@ -79,6 +76,5 @@ dependencies {
     testRuntimeOnly(libs.junit.platform.launcher)
     add("playImplementation", libs.play.app.update)
     add("playImplementation", libs.play.services.auth)
-    add("githubNoE2eeImplementation", libs.play.services.auth)
-    add("githubWithE2eeImplementation", libs.play.services.auth)
+    add("githubImplementation", libs.play.services.auth)
 }

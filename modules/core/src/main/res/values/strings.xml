@@ -1395,11 +1395,20 @@
     <string name="matrix_e2ee_feature_title">Matrix End-to-End Encryption</string>
     <string name="matrix_e2ee_status_enabled">E2EE Enabled</string>
     <string name="matrix_e2ee_status_enabled_desc">Messages to encrypted rooms are protected by end-to-end encryption.</string>
+    <string name="matrix_e2ee_mode_label">Encryption</string>
+    <string name="matrix_e2ee_mode_https">HTTPS</string>
+    <string name="matrix_e2ee_mode_e2ee">E2EE</string>
+    <string name="matrix_e2ee_https_locked">Uninstall the E2EE module before selecting HTTPS</string>
     <string name="matrix_e2ee_install_button">Install E2EE Module</string>
     <string name="matrix_e2ee_downloading">Downloading E2EE module… %d%%</string>
     <string name="matrix_e2ee_install_failed">Installation failed: %s</string>
     <string name="matrix_e2ee_unknown_error">Unknown error</string>
     <string name="matrix_e2ee_load_failed">Module loaded but failed to initialize</string>
+    <string name="matrix_e2ee_uninstall_button">Uninstall E2EE Module</string>
+    <string name="matrix_e2ee_uninstall_confirm_title">Uninstall E2EE module?</string>
+    <string name="matrix_e2ee_uninstall_confirm_message">This frees about 64 MB of storage. Messages to encrypted rooms can no longer be sent until the module is installed again; unencrypted rooms keep working.</string>
+    <string name="matrix_e2ee_uninstalling">Uninstalling E2EE module…</string>
+    <string name="matrix_e2ee_uninstall_failed">Uninstall failed: %s</string>
     <string name="matrix_e2ee_verification_title">Device verification</string>
     <string name="matrix_e2ee_verification_login_required">Use username and password login before verifying this relay device.</string>
     <string name="matrix_e2ee_verification_device">Device: %1$s / %2$s</string>
@@ -1540,5 +1549,4 @@
     <string name="pref_bottom_bar_blur_summary">Refractive blur, gravity-tracked highlights and a drag-follow indicator on the floating bar (Android 13+).</string>
     <string name="pref_bottom_bar_backdrop_title">Navigation backdrop capture</string>
     <string name="pref_bottom_bar_backdrop_summary">Capture the page behind the floating bar for a static liquid-glass effect when supported.</string>
-    <string name="more_options">More options</string>
 </resources>

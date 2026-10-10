@@ -39,13 +39,11 @@ android {
             java.directories.add("src/xposed/kotlin")
             kotlin.directories.add("src/xposed/kotlin")
         }
-        listOf("githubNoE2ee", "githubWithE2ee", "fdroid").forEach { flavor ->
-            getByName(flavor) {
-                java.directories.add("src/nonPlay/kotlin")
-                kotlin.directories.add("src/nonPlay/kotlin")
-                java.directories.add("src/xposed/kotlin")
-                kotlin.directories.add("src/xposed/kotlin")
-            }
+        getByName("github") {
+            java.directories.add("src/nonPlay/kotlin")
+            kotlin.directories.add("src/nonPlay/kotlin")
+            java.directories.add("src/xposed/kotlin")
+            kotlin.directories.add("src/xposed/kotlin")
         }
     }
 
@@ -102,13 +100,12 @@ dependencies {
     add("playImplementation", libs.kotlinx.coroutines.play.services)
     add("playImplementation", project(":magisk-ui-kit:billing"))
 
-    listOf("play", "githubNoE2ee", "githubWithE2ee", "fdroid").forEach { flavor ->
+    listOf("play", "github").forEach { flavor ->
         add("${flavor}Implementation", project(":smscode-core:hook"))
     }
 
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
-    testImplementation(libs.kotest.runner.junit5)
     testImplementation(libs.kotest.property)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.core)

@@ -293,7 +293,6 @@ fun BlacklistHitListScreen(
                         .fillMaxSize()
                         .padding(horizontal = 12.dp),
                     shape = appShape(AppShapeRole.Large),
-                    tonalElevation = 2.dp,
                     color = Color.Transparent,
                 ) {
                     LazyColumn(

@@ -16,7 +16,7 @@ android {
 
     flavorDimensions += "distribution"
     productFlavors {
-        create("githubNoE2ee") {
+        create("github") {
             dimension = "distribution"
         }
     }

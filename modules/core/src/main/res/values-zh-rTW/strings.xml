@@ -1354,11 +1354,20 @@
     <string name="matrix_e2ee_feature_title">Matrix 端對端加密</string>
     <string name="matrix_e2ee_status_enabled">已啟用 E2EE</string>
     <string name="matrix_e2ee_status_enabled_desc">傳送到加密房間的訊息會受到端對端加密保護。</string>
+    <string name="matrix_e2ee_mode_label">加密方式</string>
+    <string name="matrix_e2ee_mode_https">HTTPS</string>
+    <string name="matrix_e2ee_mode_e2ee">E2EE</string>
+    <string name="matrix_e2ee_https_locked">請先卸載 E2EE 模組，才能選擇 HTTPS</string>
     <string name="matrix_e2ee_install_button">安裝 E2EE 模組</string>
     <string name="matrix_e2ee_downloading">正在下載 E2EE 模組… %d%%</string>
     <string name="matrix_e2ee_install_failed">安裝失敗：%s</string>
     <string name="matrix_e2ee_unknown_error">未知錯誤</string>
     <string name="matrix_e2ee_load_failed">模組已載入，但初始化失敗</string>
+    <string name="matrix_e2ee_uninstall_button">卸載 E2EE 模組</string>
+    <string name="matrix_e2ee_uninstall_confirm_title">卸載 E2EE 模組？</string>
+    <string name="matrix_e2ee_uninstall_confirm_message">將釋放約 64MB 儲存空間。卸載後無法向加密房間傳送訊息，重新安裝後恢復；未加密房間不受影響。</string>
+    <string name="matrix_e2ee_uninstalling">正在卸載 E2EE 模組…</string>
+    <string name="matrix_e2ee_uninstall_failed">卸載失敗：%s</string>
     <string name="matrix_e2ee_verification_title">裝置驗證</string>
     <string name="matrix_e2ee_verification_login_required">請先使用使用者名稱與密碼登入，再驗證此 Relay 裝置。</string>
     <string name="matrix_e2ee_verification_device">裝置：%1$s / %2$s</string>
@@ -1486,5 +1495,4 @@
     <string name="pref_bottom_bar_blur_summary">懸浮導航欄的折射模糊、隨重力高光與拖曳指示器（需 Android 13+）。</string>
     <string name="pref_bottom_bar_backdrop_title">導航欄背景捕獲</string>
     <string name="pref_bottom_bar_backdrop_summary">在裝置支援時捕獲懸浮欄下方頁面，呈現靜態液態玻璃效果。</string>
-    <string name="more_options">更多選項</string>
 </resources>
