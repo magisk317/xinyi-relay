@@ -1,6 +1,3 @@
-- Updated to 0.3.0 (51).
-- Fixed database schema migration and upgrade compatibility.
-- Matrix E2EE now ships as a dynamic plugin APK with uninstall support.
-- Fixed record page overflow menu and Miuix theme rendering.
-- Upgraded dependencies and build toolchain.
+- Updated to 0.3.1 (52).
+- Development build; release notes will be updated before publishing.
 - https://gitlab.com/magisk3171/xinyi-relay/-/releases
