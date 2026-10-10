@@ -46,19 +46,18 @@ object EmailUtils {
         reason: String,
         durationMs: Long,
         statusOk: Boolean = true,
+        errorClass: String? = null,
     ) {
-        MagiskOtel.event(
-            name = "sms.forward",
-            attributes = mapOf(
-                "result" to result,
-                "duration_ms" to durationMs.toString(),
-                "process" to "app",
-                "stage" to "email_send",
-                "reason" to reason,
-                "sender_type" to "email",
-            ),
-            statusOk = statusOk,
+        val attrs = mutableMapOf(
+            "result" to result,
+            "duration_ms" to durationMs.toString(),
+            "process" to "app",
+            "stage" to "email_send",
+            "reason" to reason,
+            "sender_type" to "email",
         )
+        if (!errorClass.isNullOrBlank()) attrs["error_class"] = errorClass
+        MagiskOtel.event(name = "sms.forward", attributes = attrs, statusOk = statusOk)
     }
 
     suspend fun sendMsg(setting: EmailSetting, msgInfo: MsgInfo, traceId: String? = null) = withContext(Dispatchers.IO) {
@@ -141,9 +140,10 @@ object EmailUtils {
             SLog.e(TAG, t("Email send failed"), it)
             emitForward(
                 result = "error",
-                reason = it.javaClass.simpleName,
+                reason = "send_failed",
                 durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
                 statusOk = false,
+                errorClass = it.javaClass.simpleName,
             )
         }.getOrElse { throw it }
     }

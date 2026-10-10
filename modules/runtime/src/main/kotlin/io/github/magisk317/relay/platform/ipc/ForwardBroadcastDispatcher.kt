@@ -51,9 +51,10 @@ object ForwardBroadcastDispatcher {
                     startedAt = startedAt,
                     result = "error",
                     statusOk = false,
-                    reason = error.javaClass.simpleName,
+                    reason = "relay_failed",
                     msgType = payload.msgType,
                     source = payload.forwardSource,
+                    errorClass = error.javaClass.simpleName,
                 )
                 throw error
             },
@@ -130,10 +131,11 @@ object ForwardBroadcastDispatcher {
                     startedAt = startedAt,
                     result = "error",
                     statusOk = false,
-                    reason = error.javaClass.simpleName,
+                    reason = "relay_failed",
                     msgType = payload.msgType,
                     source = payload.forwardSource,
                     process = "hook",
+                    errorClass = error.javaClass.simpleName,
                 )
                 throw error
             },
@@ -183,6 +185,7 @@ object ForwardBroadcastDispatcher {
         msgType: String? = null,
         source: String? = null,
         process: String = "main",
+        errorClass: String? = null,
     ) {
         val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
         val attrs = mutableMapOf(
@@ -193,6 +196,7 @@ object ForwardBroadcastDispatcher {
         if (reason != null) attrs["reason"] = reason
         if (!msgType.isNullOrBlank()) attrs["msg_type"] = msgType
         if (!source.isNullOrBlank()) attrs["source"] = source
+        if (!errorClass.isNullOrBlank()) attrs["error_class"] = errorClass
         MagiskOtel.event(name = "sms.relay", attributes = attrs, statusOk = statusOk)
     }
 }

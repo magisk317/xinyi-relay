@@ -46,6 +46,35 @@ object SenderType {
         else -> "未知通道$type"
     }
 
+    /**
+     * Diagnostics key for a sender type. Must stay aligned with the string names used by
+     * each channel's own emit sites (e.g. WebhookUtils emits "webhook", BarkUtils emits
+     * "bark"), so the sender_type attribute keeps one stable vocabulary across emitters.
+     */
+    fun key(type: Int): String = when (type) {
+        DINGTALK_GROUP_ROBOT -> "dingtalk_group"
+        EMAIL -> "email"
+        BARK -> "bark"
+        WEBHOOK -> "webhook"
+        WEWORK_ROBOT -> "wework_robot"
+        WEWORK_AGENT -> "wework"
+        SERVERCHAN -> "serverchan"
+        TELEGRAM -> "telegram"
+        SMS -> "sms"
+        FEISHU -> "feishu_webhook"
+        PUSHPLUS -> "pushplus"
+        GOTIFY -> "gotify"
+        DINGTALK_INNER_ROBOT -> "dingtalk"
+        FEISHU_APP -> "feishu"
+        URL_SCHEME -> "urlscheme"
+        SOCKET -> "socket"
+        NTFY -> "ntfy"
+        YUNHU -> "yunhu"
+        PUSHDEER -> "pushdeer"
+        MATRIX -> "matrix"
+        else -> "unknown_$type"
+    }
+
     fun displayName(type: Int, configuredName: String? = null): String {
         val name = configuredName.orEmpty().trim()
         return if (name.isGeneratedFallbackFor(type)) defaultName(type) else name

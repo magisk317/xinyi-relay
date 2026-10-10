@@ -2,7 +2,9 @@ package io.github.magisk317.relay.sender
 
 import android.text.TextUtils
 import io.github.magisk317.relay.engine.model.MsgInfo
+import io.github.magisk317.relay.net.ProxyConfig
 import io.github.magisk317.relay.net.RelayHttpClients
+import io.github.magisk317.relay.net.applyProxy
 import io.github.magisk317.relay.sender.SenderSettingSanitizer
 import io.github.magisk317.relay.sender.config.WebhookSetting
 import io.github.magisk317.xposed.logging.MagiskOtel
@@ -18,6 +20,7 @@ import okhttp3.Credentials
 import okhttp3.FormBody
 import okhttp3.Headers
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
@@ -25,12 +28,26 @@ object WebhookUtils {
     private const val TAG = "WebhookUtils"
     private const val MAX_ATTEMPTS = 2
     private const val RETRY_DELAY_MS = 400L
-    private val client = RelayHttpClients.default
+    private fun WebhookSetting.toProxyConfig() = ProxyConfig(
+        type = proxyType,
+        host = proxyHost,
+        port = proxyPort,
+        authenticate = proxyAuthenticator,
+        username = proxyUsername,
+        password = proxyPassword,
+    )
+
+    private fun buildClient(setting: WebhookSetting): OkHttpClient {
+        return RelayHttpClients.newBuilder()
+            .applyProxy(setting.toProxyConfig())
+            .build()
+    }
 
     private val receiveTimeTag = Regex("\\[receive_time(:(.*?))?]")
 
     suspend fun sendMsg(setting: WebhookSetting, msgInfo: MsgInfo, traceId: String? = null) = withContext(Dispatchers.IO) {
         val safeSetting = SenderSettingSanitizer.sanitizeWebhookSetting(setting)
+        val client = buildClient(safeSetting)
         var requestUrl: String = safeSetting.webServer
         val from: String = msgInfo.from
         val content: String = msgInfo.content
@@ -67,6 +84,8 @@ object WebhookUtils {
                 requestUrl = groupValues[1] + groupValues[4]
             }
         }
+
+        val targetHost = extractTargetHost(requestUrl)
 
         fun appendSignQuery(url: String): String {
             if (sign.isEmpty()) return url
@@ -171,6 +190,8 @@ object WebhookUtils {
                 method = method,
                 successPrefix = "Webhook GET Success",
                 failurePrefix = "Webhook GET Failed",
+                targetHost = targetHost,
+                client = client,
             )
         } else {
             if (!methodNeedsBody) {
@@ -245,6 +266,8 @@ object WebhookUtils {
                 method = method,
                 successPrefix = "Webhook POST Success",
                 failurePrefix = "Webhook POST Failed",
+                targetHost = targetHost,
+                client = client,
             )
         }
     }
@@ -255,6 +278,8 @@ object WebhookUtils {
         method: String,
         successPrefix: String,
         failurePrefix: String,
+        targetHost: String,
+        client: OkHttpClient,
     ) {
         fun t(message: String): String = if (traceId.isNullOrBlank()) message else "[trace=$traceId] $message"
         var attempt = 1
@@ -279,6 +304,7 @@ object WebhookUtils {
                             method = method,
                             retryIndex = attempt,
                             statusOk = false,
+                            targetHost = targetHost,
                             startedAt = startedAt,
                         )
                         throw IllegalStateException("Webhook $method 失败: HTTP ${response.code}")
@@ -312,6 +338,7 @@ object WebhookUtils {
                         method = method,
                         retryIndex = attempt,
                         statusOk = false,
+                        targetHost = targetHost,
                         startedAt = startedAt,
                         errorClass = e.javaClass.simpleName,
                     )
@@ -328,6 +355,7 @@ object WebhookUtils {
             method = method,
             retryIndex = MAX_ATTEMPTS,
             statusOk = false,
+            targetHost = targetHost,
             startedAt = startedAt,
             errorClass = lastError?.javaClass?.simpleName,
         )
@@ -342,6 +370,7 @@ object WebhookUtils {
         statusOk: Boolean = true,
         startedAt: Long? = null,
         errorClass: String? = null,
+        targetHost: String? = null,
     ) {
         val durationMs = if (startedAt == null) {
             0L
@@ -363,7 +392,23 @@ object WebhookUtils {
         if (!errorClass.isNullOrBlank()) {
             attrs["error_class"] = errorClass
         }
+        if (!targetHost.isNullOrBlank()) {
+            attrs["target_host"] = targetHost
+        }
         MagiskOtel.event(name = "sms.forward", attributes = attrs, statusOk = statusOk)
+    }
+
+    /**
+     * Extracts a redacted host from a webhook URL for failure diagnostics. Userinfo
+     * credentials are stripped before parsing; the result still goes through
+     * SecretRedactor as defense in depth. Never throws on malformed input.
+     */
+    private fun extractTargetHost(url: String): String {
+        val withoutScheme = url.substringAfter("://", missingDelimiterValue = url)
+        val authority = withoutScheme.substringBefore("/").substringBefore("?")
+        val withoutUserInfo = authority.substringAfter("@", missingDelimiterValue = authority)
+        val host = withoutUserInfo.substringBefore(":").lowercase(Locale.ROOT)
+        return SecretRedactor.redact(host).ifBlank { "unknown" }
     }
 
     private fun escapeJson(input: String): String = SenderWireJson.escapeStringContent(input)

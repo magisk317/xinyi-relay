@@ -38,9 +38,14 @@ class DefaultSenderDispatcher(private val context: Context) : SenderDispatcher {
         val startedAt = System.nanoTime()
         val safeSender = SenderSettingSanitizer.sanitizeSenderLenient(sender)
         val senderName = SenderType.displayName(safeSender.type, safeSender.name)
-        val senderTypeKey = safeSender.type.toString()
+        val senderTypeKey = SenderType.key(safeSender.type)
 
-        fun emit(result: String, statusOk: Boolean = true, reason: String? = null) {
+        fun emit(
+            result: String,
+            statusOk: Boolean = true,
+            reason: String? = null,
+            errorClass: String? = null,
+        ) {
             val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
             val attrs = mutableMapOf(
                 "result" to result,
@@ -50,6 +55,9 @@ class DefaultSenderDispatcher(private val context: Context) : SenderDispatcher {
             )
             if (reason != null) {
                 attrs["reason"] = reason
+            }
+            if (!errorClass.isNullOrBlank()) {
+                attrs["error_class"] = errorClass
             }
             MagiskOtel.event(
                 name = "sms.forward",
@@ -71,15 +79,25 @@ class DefaultSenderDispatcher(private val context: Context) : SenderDispatcher {
             SenderRetryPolicy.withRetry(senderTypeKey) {
                 dispatchByType(safeSender, msgInfo, traceId)
             }
-            emit(result = "ok")
+            emit(result = "ok", reason = "success")
             return SenderDispatchResult(safeSender.id, safeSender.type, senderName, true, "OK")
         } catch (e: SerializationException) {
             val message = "配置解析失败: ${e.message ?: "SerializationException"}"
-            emit(result = "error", statusOk = false, reason = "SerializationException")
+            emit(
+                result = "error",
+                statusOk = false,
+                reason = "config_error",
+                errorClass = e.javaClass.simpleName,
+            )
             return SenderDispatchResult(safeSender.id, safeSender.type, senderName, false, message)
         } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
             val errorSummary = "${e.javaClass.simpleName}: ${e.message ?: "<empty>"}"
-            emit(result = "error", statusOk = false, reason = e.javaClass.simpleName)
+            emit(
+                result = "error",
+                statusOk = false,
+                reason = "io_exception",
+                errorClass = e.javaClass.simpleName,
+            )
             return SenderDispatchResult(safeSender.id, safeSender.type, senderName, false, errorSummary)
         }
     }

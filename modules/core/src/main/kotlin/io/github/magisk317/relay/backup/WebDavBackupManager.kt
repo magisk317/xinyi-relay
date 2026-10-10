@@ -20,18 +20,26 @@ import java.util.Locale
 class WebDavBackupManager(
     private val context: Context,
 ) {
-    private fun emitBackup(stage: String, statusOk: Boolean, reason: String, startedAt: Long) {
+    private fun emitBackup(
+        stage: String,
+        statusOk: Boolean,
+        reason: String,
+        startedAt: Long,
+        errorClass: String? = null,
+    ) {
         val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+        val attrs = mutableMapOf(
+            "result" to if (statusOk) "ok" else "error",
+            "duration_ms" to durationMs.toString(),
+            "process" to "app",
+            "stage" to stage,
+            "reason" to reason,
+            "source" to "webdav",
+        )
+        if (!errorClass.isNullOrBlank()) attrs["error_class"] = errorClass
         MagiskOtel.event(
             name = if (stage.startsWith("restore")) "prefs.restore" else "prefs.backup",
-            attributes = mapOf(
-                "result" to if (statusOk) "ok" else "error",
-                "duration_ms" to durationMs.toString(),
-                "process" to "app",
-                "stage" to stage,
-                "reason" to reason,
-                "source" to "webdav",
-            ),
+            attributes = attrs,
             statusOk = statusOk,
         )
     }
@@ -97,7 +105,8 @@ class WebDavBackupManager(
             emitBackup(
                 stage = "webdav_upload",
                 statusOk = result.isSuccess,
-                reason = if (result.isSuccess) "uploaded" else (result.exceptionOrNull()?.javaClass?.simpleName ?: "upload_failed"),
+                reason = if (result.isSuccess) "uploaded" else "upload_failed",
+                errorClass = result.exceptionOrNull()?.javaClass?.simpleName,
                 startedAt = startedAt,
             )
         }
@@ -152,7 +161,8 @@ class WebDavBackupManager(
             emitBackup(
                 stage = "webdav_restore",
                 statusOk = result.isSuccess,
-                reason = if (result.isSuccess) "restored" else (result.exceptionOrNull()?.javaClass?.simpleName ?: "restore_failed"),
+                reason = if (result.isSuccess) "restored" else "restore_failed",
+                errorClass = result.exceptionOrNull()?.javaClass?.simpleName,
                 startedAt = startedAt,
             )
         }
@@ -170,7 +180,8 @@ class WebDavBackupManager(
             emitBackup(
                 stage = "webdav_test",
                 statusOk = result.isSuccess,
-                reason = if (result.isSuccess) "connected" else (result.exceptionOrNull()?.javaClass?.simpleName ?: "test_failed"),
+                reason = if (result.isSuccess) "connected" else "test_failed",
+                errorClass = result.exceptionOrNull()?.javaClass?.simpleName,
                 startedAt = startedAt,
             )
         }

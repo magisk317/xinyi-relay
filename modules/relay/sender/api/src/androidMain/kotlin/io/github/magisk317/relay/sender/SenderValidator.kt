@@ -201,7 +201,7 @@ object SenderValidator {
                 "process" to "app",
                 "stage" to "sender_validate",
                 "reason" to if (result.valid) "valid" else "invalid",
-                "sender_type" to safeSender.type.toString(),
+                "sender_type" to SenderType.key(safeSender.type),
             ),
             statusOk = result.valid,
         )

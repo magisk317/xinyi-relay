@@ -24,19 +24,23 @@ import java.util.Locale
 object SocketUtils {
     private const val TAG = "SocketUtils"
 
-    private fun emitSocket(method: String, statusOk: Boolean, reason: String, startedAt: Long) {
+    private fun emitSocket(
+        method: String,
+        statusOk: Boolean,
+        reason: String,
+        startedAt: Long,
+        errorClass: String? = null,
+    ) {
         val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
-        MagiskOtel.event(
-            name = "sms.forward",
-            attributes = mapOf(
-                "result" to if (statusOk) "ok" else "error",
-                "duration_ms" to durationMs.toString(),
-                "process" to "app",
-                "stage" to "socket_${method.lowercase()}",
-                "reason" to reason,
-            ),
-            statusOk = statusOk,
+        val attrs = mutableMapOf(
+            "result" to if (statusOk) "ok" else "error",
+            "duration_ms" to durationMs.toString(),
+            "process" to "app",
+            "stage" to "socket_${method.lowercase()}",
+            "reason" to reason,
         )
+        if (!errorClass.isNullOrBlank()) attrs["error_class"] = errorClass
+        MagiskOtel.event(name = "sms.forward", attributes = attrs, statusOk = statusOk)
     }
 
     suspend fun sendMsg(setting: SocketSetting, msgInfo: MsgInfo) {
@@ -66,8 +70,9 @@ object SocketUtils {
             emitSocket(
                 method = "TCP",
                 statusOk = false,
-                reason = it.javaClass.simpleName.ifBlank { "send_failed" },
+                reason = "send_failed",
                 startedAt = startedAt,
+                errorClass = it.javaClass.simpleName.ifBlank { "unknown" },
             )
         }.getOrElse { throw it }
     }
@@ -87,8 +92,9 @@ object SocketUtils {
             emitSocket(
                 method = "UDP",
                 statusOk = false,
-                reason = it.javaClass.simpleName.ifBlank { "send_failed" },
+                reason = "send_failed",
                 startedAt = startedAt,
+                errorClass = it.javaClass.simpleName.ifBlank { "unknown" },
             )
         }.getOrElse { throw it }
     }
@@ -128,8 +134,9 @@ object SocketUtils {
             emitSocket(
                 method = "MQTT",
                 statusOk = false,
-                reason = it.javaClass.simpleName.ifBlank { "send_failed" },
+                reason = "send_failed",
                 startedAt = startedAt,
+                errorClass = it.javaClass.simpleName.ifBlank { "unknown" },
             )
         }.getOrElse { throw it }
     }

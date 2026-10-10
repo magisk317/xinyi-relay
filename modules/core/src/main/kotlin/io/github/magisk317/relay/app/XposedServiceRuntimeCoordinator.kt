@@ -84,17 +84,15 @@ object XposedServiceRuntimeCoordinator {
 
     fun logRegistrationFailure(throwable: Throwable) {
         RelayLogger.w(LogRoute.APP, "Failed to register Xposed service listener: %s", throwable.message ?: "unknown")
-        MagiskOtel.event(
-            name = "hook.service",
-            attributes = mapOf(
-                "result" to "error",
-                "duration_ms" to "0",
-                "process" to "app",
-                "stage" to "register",
-                "reason" to throwable.javaClass.simpleName,
-            ),
-            statusOk = false,
+        val attrs = mutableMapOf(
+            "result" to "error",
+            "duration_ms" to "0",
+            "process" to "app",
+            "stage" to "register",
+            "reason" to "register_failed",
+            "error_class" to throwable.javaClass.simpleName,
         )
+        MagiskOtel.event(name = "hook.service", attributes = attrs, statusOk = false)
     }
 
     private fun readVerboseLogMode(application: Application): Boolean = runBlocking(Dispatchers.IO) {

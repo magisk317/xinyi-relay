@@ -3,6 +3,7 @@ package io.github.magisk317.relay.app.sender
 import android.content.Context
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
+import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.engine.service.SenderDispatchResult
 import io.github.magisk317.relay.engine.service.SenderRuntimeServiceRegistry
 import io.github.magisk317.xposed.logging.MagiskOtel
@@ -28,7 +29,7 @@ class SenderTestService(context: Context) {
                         "process" to "app",
                         "stage" to "sender_test",
                         "reason" to "dispatch_failed",
-                        "sender_type" to sender.type.toString(),
+                        "sender_type" to SenderType.key(sender.type),
                     ),
                     statusOk = false,
                 )
@@ -41,7 +42,8 @@ class SenderTestService(context: Context) {
                     "duration_ms" to elapsedMs(startedAt).toString(),
                     "process" to "app",
                     "stage" to "sender_test",
-                    "sender_type" to sender.type.toString(),
+                    "reason" to "success",
+                    "sender_type" to SenderType.key(sender.type),
                 ),
                 statusOk = true,
             )
@@ -58,7 +60,7 @@ class SenderTestService(context: Context) {
                     "stage" to "sender_test",
                     "reason" to "exception",
                     "error_class" to error.javaClass.simpleName,
-                    "sender_type" to sender.type.toString(),
+                    "sender_type" to SenderType.key(sender.type),
                 ),
                 statusOk = false,
             )

@@ -32,24 +32,22 @@ internal object SmsSendBackend {
         waitForSentResult: Boolean,
     ) {
         val startedAt = System.nanoTime()
-        fun emit(result: String, reason: String, statusOk: Boolean = true) {
+        fun emit(result: String, reason: String, statusOk: Boolean = true, errorClass: String? = null) {
             val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
-            MagiskOtel.event(
-                name = "sms.forward",
-                attributes = mapOf(
-                    "result" to result,
-                    "duration_ms" to durationMs.toString(),
-                    "process" to "app",
-                    "stage" to "sms_send_backend",
-                    "reason" to reason,
-                    "sender_type" to "sms",
-                    "target_count" to mobiles.size.toString(),
-                    "content_length" to content.length.toString(),
-                    "wait_for_result" to waitForSentResult.toString(),
-                    "sim_slot" to setting.simSlot.toString(),
-                ),
-                statusOk = statusOk,
+            val attrs = mutableMapOf(
+                "result" to result,
+                "duration_ms" to durationMs.toString(),
+                "process" to "app",
+                "stage" to "sms_send_backend",
+                "reason" to reason,
+                "sender_type" to "sms",
+                "target_count" to mobiles.size.toString(),
+                "content_length" to content.length.toString(),
+                "wait_for_result" to waitForSentResult.toString(),
+                "sim_slot" to setting.simSlot.toString(),
             )
+            if (!errorClass.isNullOrBlank()) attrs["error_class"] = errorClass
+            MagiskOtel.event(name = "sms.forward", attributes = attrs, statusOk = statusOk)
         }
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
             emit(result = "error", reason = "missing_send_sms", statusOk = false)
@@ -85,7 +83,7 @@ internal object SmsSendBackend {
             emit(result = "error", reason = "service_unavailable", statusOk = false)
             throw error
         } catch (error: Exception) {
-            emit(result = "error", reason = error.javaClass.simpleName, statusOk = false)
+            emit(result = "error", reason = "send_failed", statusOk = false, errorClass = error.javaClass.simpleName)
             throw error
         }
     }

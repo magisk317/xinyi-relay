@@ -51,16 +51,14 @@ object SenderRuntimeInstaller {
             },
             onFailure = { error ->
                 val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
-                MagiskOtel.event(
-                    name = "sms.sender_runtime",
-                    attributes = mapOf(
-                        "result" to "error",
-                        "duration_ms" to durationMs.toString(),
-                        "process" to "main",
-                        "reason" to error.javaClass.simpleName,
-                    ),
-                    statusOk = false,
+                val attrs = mutableMapOf(
+                    "result" to "error",
+                    "duration_ms" to durationMs.toString(),
+                    "process" to "main",
+                    "reason" to "install_failed",
+                    "error_class" to error.javaClass.simpleName,
                 )
+                MagiskOtel.event(name = "sms.sender_runtime", attributes = attrs, statusOk = false)
                 throw error
             },
         )

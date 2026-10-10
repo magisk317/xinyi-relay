@@ -124,18 +124,16 @@ object ScheduledTaskExecutor {
                         )
                     }.onFailure {
                         XLog.e("ScheduledTask $taskId SMS failed", it)
-                        MagiskOtel.event(
-                            name = "sms.schedule",
-                            attributes = mapOf(
-                                "result" to "error",
-                                "duration_ms" to "0",
-                                "process" to "app",
-                                "stage" to "execute",
-                                "source" to source,
-                                "reason" to it.javaClass.simpleName,
-                            ),
-                            statusOk = false,
+                        val attrs = mutableMapOf(
+                            "result" to "error",
+                            "duration_ms" to "0",
+                            "process" to "app",
+                            "stage" to "execute",
+                            "source" to source,
+                            "reason" to "execute_failed",
+                            "error_class" to it.javaClass.simpleName,
                         )
+                        MagiskOtel.event(name = "sms.schedule", attributes = attrs, statusOk = false)
                     }
                 } else {
                     XLog.w("ScheduledTask $taskId skipped unsupported type=${task.taskType}")

@@ -45,18 +45,26 @@ class GoogleDriveBackupManager(
     private val context: Context,
     private val authManager: AuthManager,
 ) {
-    private fun emitDrive(stage: String, statusOk: Boolean, reason: String, startedAt: Long) {
+    private fun emitDrive(
+        stage: String,
+        statusOk: Boolean,
+        reason: String,
+        startedAt: Long,
+        errorClass: String? = null,
+    ) {
         val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
+        val attrs = mutableMapOf(
+            "result" to if (statusOk) "ok" else "error",
+            "duration_ms" to durationMs.toString(),
+            "process" to "app",
+            "stage" to stage,
+            "reason" to reason,
+            "source" to "gdrive",
+        )
+        if (!errorClass.isNullOrBlank()) attrs["error_class"] = errorClass
         MagiskOtel.event(
             name = if (stage.contains("restore")) "prefs.restore" else "prefs.backup",
-            attributes = mapOf(
-                "result" to if (statusOk) "ok" else "error",
-                "duration_ms" to durationMs.toString(),
-                "process" to "app",
-                "stage" to stage,
-                "reason" to reason,
-                "source" to "gdrive",
-            ),
+            attributes = attrs,
             statusOk = statusOk,
         )
     }
@@ -170,7 +178,8 @@ class GoogleDriveBackupManager(
             emitDrive(
                 stage = "gdrive_upload",
                 statusOk = result.isSuccess,
-                reason = if (result.isSuccess) "uploaded" else (result.exceptionOrNull()?.javaClass?.simpleName ?: "upload_failed"),
+                reason = if (result.isSuccess) "uploaded" else "upload_failed",
+                errorClass = result.exceptionOrNull()?.javaClass?.simpleName,
                 startedAt = startedAt,
             )
         }

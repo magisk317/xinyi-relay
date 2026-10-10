@@ -96,6 +96,7 @@ class RemoteAgentRepository(
         durationMs: Long,
         statusOk: Boolean = true,
         count: Int? = null,
+        errorClass: String? = null,
     ) {
         val attrs = mutableMapOf(
             "result" to result,
@@ -106,6 +107,9 @@ class RemoteAgentRepository(
         )
         if (count != null) {
             attrs["count"] = count.toString()
+        }
+        if (!errorClass.isNullOrBlank()) {
+            attrs["error_class"] = errorClass
         }
         MagiskOtel.event(
             name = "app.monitor",
@@ -216,7 +220,8 @@ class RemoteAgentRepository(
             emitAgent(
                 stage = "agent_bind",
                 result = "error",
-                reason = error.javaClass.simpleName,
+                reason = "bind_failed",
+                errorClass = error.javaClass.simpleName,
                 durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
                 statusOk = false,
             )
@@ -258,7 +263,8 @@ class RemoteAgentRepository(
             emitAgent(
                 stage = "agent_heartbeat",
                 result = "error",
-                reason = error.javaClass.simpleName,
+                reason = "heartbeat_failed",
+                errorClass = error.javaClass.simpleName,
                 durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
                 statusOk = false,
             )
@@ -319,7 +325,8 @@ class RemoteAgentRepository(
             emitAgent(
                 stage = "agent_pull",
                 result = "error",
-                reason = error.javaClass.simpleName,
+                reason = "pull_failed",
+                errorClass = error.javaClass.simpleName,
                 durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
                 statusOk = false,
             )
@@ -370,7 +377,8 @@ class RemoteAgentRepository(
             emitAgent(
                 stage = "agent_push",
                 result = "error",
-                reason = error.javaClass.simpleName,
+                reason = "push_failed",
+                errorClass = error.javaClass.simpleName,
                 durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
                 statusOk = false,
             )
@@ -463,7 +471,8 @@ class RemoteAgentRepository(
             emitAgent(
                 stage = "agent_upload",
                 result = "error",
-                reason = error.javaClass.simpleName,
+                reason = "upload_failed",
+                errorClass = error.javaClass.simpleName,
                 durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
                 statusOk = false,
             )

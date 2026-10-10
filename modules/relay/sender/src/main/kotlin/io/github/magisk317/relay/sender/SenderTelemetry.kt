@@ -25,7 +25,8 @@ internal object SenderTelemetry {
                 senderType = senderType,
                 stage = stage,
                 result = "error",
-                reason = error.javaClass.simpleName,
+                reason = "io_exception",
+                errorClass = error.javaClass.simpleName,
                 durationMs = elapsedMillis(startedAt),
                 statusOk = false,
             )
@@ -40,19 +41,20 @@ internal object SenderTelemetry {
         reason: String,
         durationMs: Long,
         statusOk: Boolean = true,
+        errorClass: String? = null,
     ) {
-        MagiskOtel.event(
-            name = "sms.forward",
-            attributes = mapOf(
-                "result" to result,
-                "duration_ms" to durationMs.toString(),
-                "process" to "app",
-                "stage" to stage,
-                "reason" to reason,
-                "sender_type" to senderType,
-            ),
-            statusOk = statusOk,
+        val attrs = mutableMapOf(
+            "result" to result,
+            "duration_ms" to durationMs.toString(),
+            "process" to "app",
+            "stage" to stage,
+            "reason" to reason,
+            "sender_type" to senderType,
         )
+        if (!errorClass.isNullOrBlank()) {
+            attrs["error_class"] = errorClass
+        }
+        MagiskOtel.event(name = "sms.forward", attributes = attrs, statusOk = statusOk)
     }
 
     private fun elapsedMillis(startedAt: Long): Long {

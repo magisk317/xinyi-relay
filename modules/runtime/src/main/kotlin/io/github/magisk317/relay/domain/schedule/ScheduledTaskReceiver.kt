@@ -50,8 +50,9 @@ class ScheduledTaskReceiver : BroadcastReceiver() {
                         startedAt,
                         result = "error",
                         statusOk = false,
-                        reason = e.javaClass.simpleName,
+                        reason = "execute_failed",
                         action = action,
+                        errorClass = e.javaClass.simpleName,
                     )
                 }
             } finally {
@@ -66,6 +67,7 @@ class ScheduledTaskReceiver : BroadcastReceiver() {
         statusOk: Boolean = true,
         reason: String? = null,
         action: String? = null,
+        errorClass: String? = null,
     ) {
         val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
         val attrs = mutableMapOf(
@@ -75,6 +77,7 @@ class ScheduledTaskReceiver : BroadcastReceiver() {
         )
         if (reason != null) attrs["reason"] = reason
         if (!action.isNullOrBlank()) attrs["action"] = action
+        if (!errorClass.isNullOrBlank()) attrs["error_class"] = errorClass
         MagiskOtel.event(name = "sms.schedule", attributes = attrs, statusOk = statusOk)
     }
 }

@@ -62,7 +62,7 @@ class EventPipeline(
         traceId: String? = null,
     ): EventPipelineResult {
         val startedAt = System.nanoTime()
-        fun emit(result: String, statusOk: Boolean = true, reason: String? = null) {
+        fun emit(result: String, statusOk: Boolean = true, reason: String? = null, errorClass: String? = null) {
             val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
             val attrs = mutableMapOf(
                 "result" to result,
@@ -71,6 +71,7 @@ class EventPipeline(
                 "msg_type" to event.messageType.name,
             )
             if (reason != null) attrs["reason"] = reason
+            if (!errorClass.isNullOrBlank()) attrs["error_class"] = errorClass
             MagiskOtel.event(name = "sms.event", attributes = attrs, statusOk = statusOk)
         }
         try {
@@ -236,7 +237,8 @@ class EventPipeline(
                 emit(
                     result = "error",
                     statusOk = false,
-                    reason = error.javaClass.simpleName,
+                    reason = "pipeline_failed",
+                    errorClass = error.javaClass.simpleName,
                 )
                 EventPipelineResult(dispatched = false, dispatchError = error)
             }

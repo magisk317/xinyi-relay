@@ -196,8 +196,9 @@ internal class RemoteApiClient(
         } catch (@Suppress("TooGenericExceptionCaught") error: Throwable) {
             emitRemote(
                 result = "error",
-                reason = error.javaClass.simpleName.ifBlank { "network_error" },
+                reason = "network_error",
                 label = failureLabel,
+                errorClass = error.javaClass.simpleName.ifBlank { "unknown" },
                 startedAt = startedAt,
                 statusOk = false,
             )
@@ -244,8 +245,9 @@ internal class RemoteApiClient(
         } catch (@Suppress("TooGenericExceptionCaught") error: Throwable) {
             emitRemote(
                 result = "error",
-                reason = error.javaClass.simpleName.ifBlank { "network_error" },
+                reason = "network_error",
                 label = failureLabel,
+                errorClass = error.javaClass.simpleName.ifBlank { "unknown" },
                 startedAt = startedAt,
                 statusOk = false,
             )
@@ -259,20 +261,19 @@ internal class RemoteApiClient(
         label: String,
         startedAt: Long,
         statusOk: Boolean,
+        errorClass: String? = null,
     ) {
         val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
-        MagiskOtel.event(
-            name = "app.monitor",
-            attributes = mapOf(
-                "result" to result,
-                "duration_ms" to durationMs.toString(),
-                "process" to "app",
-                "stage" to "remote_agent",
-                "reason" to reason,
-                "source" to label,
-            ),
-            statusOk = statusOk,
+        val attrs = mutableMapOf(
+            "result" to result,
+            "duration_ms" to durationMs.toString(),
+            "process" to "app",
+            "stage" to "remote_agent",
+            "reason" to reason,
+            "source" to label,
         )
+        if (!errorClass.isNullOrBlank()) attrs["error_class"] = errorClass
+        MagiskOtel.event(name = "app.monitor", attributes = attrs, statusOk = statusOk)
     }
 
     private fun errorMessage(responseText: String, failureLabel: String, responseCode: Int): String {
