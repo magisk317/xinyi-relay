@@ -41,10 +41,12 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draw.clip
 import io.github.magisk317.uikit.common.AppSnackbarHost
 import io.github.magisk317.uikit.common.AppSnackbarHostState
+import com.magisk317.mobile.entitlement.MobileEntitlementChallenge
 import com.magisk317.mobile.entitlement.MobileEntitlementCoordinator
 import com.magisk317.mobile.entitlement.MobileEntitlementStatus
 import io.github.magisk317.relay.core.R
@@ -64,6 +66,7 @@ import io.github.magisk317.uikit.surface.AppCircularProgressIndicator
 import io.github.magisk317.uikit.surface.AppOutlinedIconButton
 import io.github.magisk317.uikit.surface.AppPrimaryButton
 import io.github.magisk317.uikit.surface.AppSecondaryButton
+import io.github.magisk317.uikit.surface.AppTextButton
 import io.github.magisk317.uikit.theme.AppColorRole
 import io.github.magisk317.uikit.theme.appColor
 
@@ -110,6 +113,7 @@ private fun MobileEntitlementScreen(
     var message by remember { mutableStateOf<String?>(null) }
     var activationTokenInput by remember { mutableStateOf("") }
     var pendingBotUrl by remember { mutableStateOf<String?>(null) }
+    var qqChallenge by remember { mutableStateOf<MobileEntitlementChallenge?>(null) }
     val snackbarHostState = remember { AppSnackbarHostState() }
 
     fun refreshStatus(
@@ -151,6 +155,15 @@ private fun MobileEntitlementScreen(
         }
     }
 
+    fun copyWithToast(label: String, value: String) {
+        copyPlainText(context, label, value)
+        android.widget.Toast.makeText(
+            context,
+            context.getString(R.string.mobile_entitlement_copied),
+            android.widget.Toast.LENGTH_SHORT,
+        ).show()
+    }
+
     fun openTelegram(url: String) {
         runCatching {
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
@@ -176,8 +189,29 @@ private fun MobileEntitlementScreen(
                     MobileEntitlementCoordinator.createTelegramChallenge(context)
                 }
                 pendingBotUrl = challenge.botUrl
-                openTelegram(challenge.botUrl)
+                val url = challenge.botUrl
+                if (url.isNullOrBlank()) {
+                    message = context.getString(R.string.mobile_entitlement_qq_entry_missing)
+                } else {
+                    openTelegram(url)
+                }
             }.onFailure { message = it.message ?: it.javaClass.simpleName }
+            busyAction = null
+        }
+    }
+
+    fun startQQActivation() {
+        scope.launch {
+            busyAction = ActivationAction.QQ
+            message = null
+            runCatching {
+                qqChallenge = withContext(Dispatchers.IO) {
+                    MobileEntitlementCoordinator.createQQChallenge(context)
+                }
+            }.onFailure {
+                qqChallenge = null
+                message = it.message ?: it.javaClass.simpleName
+            }
             busyAction = null
         }
     }
@@ -318,6 +352,57 @@ private fun MobileEntitlementScreen(
                 }
             }
 
+            qqChallenge?.let { challenge ->
+                AppCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            AppText(
+                                text = stringResource(R.string.mobile_entitlement_qq_title),
+                                role = AppTextRole.Subtitle,
+                            )
+                            AppTextButton(
+                                text = stringResource(R.string.mobile_entitlement_qq_dismiss),
+                                onClick = { qqChallenge = null },
+                            )
+                        }
+                        challenge.activationCode?.let { code ->
+                            EntitlementCopyRow(
+                                label = stringResource(R.string.mobile_entitlement_qq_code_label),
+                                value = code,
+                                monospace = true,
+                                onCopy = ::copyWithToast,
+                            )
+                        }
+                        challenge.qqBotId?.let { botId ->
+                            EntitlementCopyRow(
+                                label = stringResource(R.string.mobile_entitlement_qq_bot_label),
+                                value = botId,
+                                onCopy = ::copyWithToast,
+                            )
+                        }
+                        challenge.qqGroupId?.let { groupId ->
+                            EntitlementCopyRow(
+                                label = stringResource(R.string.mobile_entitlement_qq_group_label),
+                                value = groupId,
+                                onCopy = ::copyWithToast,
+                            )
+                        }
+                        AppText(
+                            text = stringResource(R.string.mobile_entitlement_qq_instructions),
+                            role = AppTextRole.BodySmall,
+                            color = appColor(AppColorRole.OnSurfaceVariant),
+                        )
+                    }
+                }
+            }
+
             val currentEvaluation = evaluation
             val showActivationActions = currentEvaluation == null ||
                 !isMobileEntitlementActivated(currentEvaluation.status) ||
@@ -349,6 +434,16 @@ private fun MobileEntitlementScreen(
                         )
                     }
                 }
+                AppSecondaryButton(
+                    onClick = ::startQQActivation,
+                    enabled = busyAction == null,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (busyAction == ActivationAction.QQ) {
+                        AppCircularProgressIndicator(modifier = Modifier.padding(end = 8.dp), strokeWidth = 2.dp)
+                    }
+                    AppText(stringResource(R.string.mobile_entitlement_activate_qq))
+                }
             }
             AppSecondaryButton(
                 onClick = { refreshStatus(force = true) },
@@ -374,6 +469,41 @@ private enum class ActivationAction {
     REFRESH,
     TOKEN,
     TELEGRAM,
+    QQ,
+}
+
+@Composable
+private fun EntitlementCopyRow(
+    label: String,
+    value: String,
+    onCopy: (String, String) -> Unit,
+    monospace: Boolean = false,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f, fill = false)) {
+            AppText(
+                text = label,
+                role = AppTextRole.BodySmall,
+                color = appColor(AppColorRole.OnSurfaceVariant),
+            )
+            AppText(
+                text = value,
+                role = AppTextRole.Subtitle,
+                fontFamily = if (monospace) FontFamily.Monospace else null,
+            )
+        }
+        AppIconButton(onClick = { onCopy(label, value) }) {
+            AppIcon(
+                Icons.Default.ContentCopy,
+                contentDescription = stringResource(R.string.mobile_entitlement_copy),
+                modifier = Modifier.padding(start = 4.dp),
+            )
+        }
+    }
 }
 
 internal fun isMobileEntitlementActivated(status: MobileEntitlementStatus?): Boolean =
