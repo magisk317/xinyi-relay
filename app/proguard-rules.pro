@@ -25,6 +25,49 @@
 -dontwarn io.github.libxposed.api.**
 
 # ==========================
+# Matrix E2EE plugin contract start
+# The GitHub flavor loads features/matrix-e2ee-plugin as a separate APK through a
+# DexClassLoader (E2eePluginLoader). That plugin is built unminified and bundles
+# its own copies of the relay modules and of kotlin/kotlinx/androidx, so
+# parent-first delegation resolves every name against this app first. Three
+# failure modes follow:
+#   * a contract type renamed here - the plugin's bundled copy loads instead, its
+#     method descriptors no longer match this app's interfaces, and every call
+#     fails with AbstractMethodError (MatrixE2eeVerification.getState is the
+#     first one the UI hits);
+#   * a contract type shrunk away here - the plugin cannot resolve it at all,
+#     because it only compiles against the api surface (NoClassDefFoundError);
+#   * a member shrunk out of a class that survives here - the plugin calls it and
+#     dies with NoSuchMethodError whose only message is the missing signature.
+#     R8 strips every Intrinsics null check from this app's own frames, so
+#     checkNotNullParameter is gone while kotlin.jvm.internal.Intrinsics itself
+#     survives, and the plugin's very first statement - the parameter null check
+#     on PluginEntry.install - fails behind a null-message
+#     InvocationTargetException from the reflective entry point.
+# Keep the whole relay namespace and every namespace the plugin bundles
+# unobfuscated and unshrunk. -keep,allowshrinking is not enough: it preserves the
+# names of reachable classes but still lets R8 delete their members, and the
+# plugin needs those members even when this app itself never calls them.
+-keep class io.github.magisk317.** { *; }
+-keep class kotlin.** { *; }
+-keep class kotlinx.** { *; }
+# Library consumer rules keep these androidx types unobfuscated in this app while
+# the plugin bundles its own copies, so parent-first delegation resolves them
+# here; their members must stay complete for the plugin as well.
+-keep class androidx.core.app.** { *; }
+-keep class androidx.core.content.FileProvider { *; }
+-keep class androidx.core.graphics.drawable.IconCompat** { *; }
+-keep class androidx.core.widget.NestedScrollView { *; }
+-keep class androidx.datastore.** { *; }
+-keep class androidx.concurrent.** { *; }
+-keep class androidx.versionedparcelable.** { *; }
+-keep class androidx.startup.** { *; }
+-keep class androidx.profileinstaller.** { *; }
+-keep class androidx.savedstate.serialization.** { *; }
+# Matrix E2EE plugin contract end
+# ==========================
+
+# ==========================
 # jsoup proguard start
 -keeppackagenames org.jsoup.nodes
 # jsoup proguard end

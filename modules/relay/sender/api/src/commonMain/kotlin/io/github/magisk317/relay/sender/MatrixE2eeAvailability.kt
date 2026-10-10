@@ -5,8 +5,9 @@ package io.github.magisk317.relay.sender
  *
  * Implementations differ by build variant:
  * - Play: checks DFM install status via SplitInstallManager
- * - GitHub-withE2ee: detects bundled native library at startup
- * - GitHub-noE2ee / fdroid: always reports [E2eeModuleStatus.NOT_APPLICABLE]
+ * - GitHub: tracks the separately versioned plugin APK
+ *   (features/matrix-e2ee-plugin) that is downloaded and DexClassLoader-loaded
+ *   at runtime; until then the plaintext stubs stay installed
  */
 interface MatrixE2eeAvailability {
     /** Whether the E2EE module is loaded and ready for use. */
@@ -36,6 +37,28 @@ interface MatrixE2eeAvailability {
     ) {
         // Default no-op for variants that don't support dynamic installation
     }
+
+    /**
+     * Request removal of the E2EE module to reclaim its storage.
+     *
+     * GitHub: deletes the plugin APK, its extracted native libraries and the
+     * optimized dex cache and restores the plaintext stubs, so Matrix sends
+     * fall back to unencrypted delivery. Play: defers the DFM uninstall until
+     * the app is backgrounded (SplitInstallManager cannot uninstall a module
+     * the app is currently using), so [onSuccess] only guarantees the request
+     * was accepted. No-op on variants where the module is bundled or not
+     * applicable.
+     *
+     * @param onSuccess called when the module has been removed (or the
+     *   removal request was accepted on Play)
+     * @param onFailure called with error message on failure
+     */
+    fun requestUninstall(
+        onSuccess: (() -> Unit)? = null,
+        onFailure: ((String) -> Unit)? = null,
+    ) {
+        // Default no-op for variants that don't support dynamic installation
+    }
 }
 
 /**
@@ -56,6 +79,12 @@ enum class E2eeModuleStatus {
 
     /** Module is installed but native library loading failed at runtime. */
     LOAD_FAILED,
+
+    /**
+     * Uninstall requested; the module files are being removed.
+     * Play: the uninstall only completes once the app is backgrounded.
+     */
+    UNINSTALLING,
 
     /** Current build flavor does not support E2EE (e.g. fdroid). */
     NOT_APPLICABLE,

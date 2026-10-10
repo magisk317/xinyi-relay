@@ -4,7 +4,7 @@ package io.github.magisk317.relay.sender
  * Service locator that exposes the current [MatrixE2eeAvailability] instance
  * to modules that cannot directly depend on `relay/sender` internals (e.g. UI layer).
  *
- * The concrete [MatrixE2eeAvailability] implementation (GithubFeatureLoader or
+ * The concrete [MatrixE2eeAvailability] implementation (GithubPluginFeatureLoader or
  * PlayFeatureLoader) registers itself via [install] during app initialization.
  */
 object MatrixE2eeAvailabilityProvider {

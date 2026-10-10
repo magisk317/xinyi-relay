@@ -27,6 +27,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -44,18 +45,26 @@ import io.github.magisk317.relay.sender.SenderSettingJson
 import io.github.magisk317.relay.sender.SenderSettingDraft
 import io.github.magisk317.relay.sender.config.MatrixSetting
 import io.github.magisk317.relay.ui.sender.SenderViewModel
+import io.github.magisk317.uikit.common.showLatestSnackbar
+import io.github.magisk317.uikit.foundation.LocalSnackbarHostState
+import io.github.magisk317.uikit.surface.AppAlertDialog
 import io.github.magisk317.uikit.surface.AppCard
+import io.github.magisk317.uikit.surface.AppFilterChip
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppLinearProgressIndicator
 import io.github.magisk317.uikit.surface.AppPrimaryButton
 import io.github.magisk317.uikit.surface.AppSecondaryButton
+import io.github.magisk317.uikit.surface.AppTextButton
 import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
 import io.github.magisk317.uikit.theme.AppColorRole
 import io.github.magisk317.uikit.theme.appColor
 import kotlinx.coroutines.launch
 
-private val MatrixVisibleFields = listOf(
+/** Stored value of [io.github.magisk317.relay.contract.model.ProxyType.DIRECT]. */
+private const val MATRIX_PROXY_TYPE_DIRECT = "DIRECT"
+
+internal val MatrixVisibleFields = listOf(
     SchemaSenderFormFieldSpec(
         name = "homeserver",
         labelRes = R.string.sender_form_label_matrix_homeserver_required,
@@ -94,28 +103,54 @@ private val MatrixVisibleFields = listOf(
     SchemaSenderFormFieldSpec(
         name = "proxyHost",
         labelRes = R.string.sender_form_label_proxy_host,
+        visible = { !it.isMatrixProxyDirect() },
     ),
     SchemaSenderFormFieldSpec(
         name = "proxyPort",
         labelRes = R.string.sender_form_label_proxy_port,
+        visible = { !it.isMatrixProxyDirect() },
     ),
     SchemaSenderFormFieldSpec(
         name = "proxyAuthenticator",
         labelRes = R.string.sender_form_label_proxy_authenticator,
+        visible = { !it.isMatrixProxyDirect() },
     ),
     SchemaSenderFormFieldSpec(
         name = "proxyUsername",
         labelRes = R.string.sender_form_label_proxy_username,
+        visible = { !it.isMatrixProxyDirect() && it.boolean("proxyAuthenticator") },
     ),
     SchemaSenderFormFieldSpec(
         name = "proxyPassword",
         labelRes = R.string.sender_form_label_proxy_password,
+        visible = { !it.isMatrixProxyDirect() && it.boolean("proxyAuthenticator") },
     ),
 )
 
+/**
+ * Proxy settings only exist for HTTP/SOCKS; DIRECT sends straight to the homeserver.
+ * Mirrors [io.github.magisk317.relay.sender.config.ProxyTypeSerializer], which also
+ * falls back to DIRECT for blank or unknown values.
+ */
+private fun SenderSettingDraft.isMatrixProxyDirect(): Boolean {
+    val value = string("proxyType").trim().uppercase()
+    return value.isEmpty() || value == MATRIX_PROXY_TYPE_DIRECT
+}
+
 @Composable
 fun MatrixConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewModel) {
-    var e2eeInstallGeneration by remember { mutableIntStateOf(0) }
+    val availability = remember { MatrixE2eeAvailabilityProvider.get() }
+    // The E2EE management UI only appears once the user opts into e2ee, so the form
+    // starts on the default HTTPS mode. The opt-in is forced while the module is
+    // installed: the runtime encrypts every encrypted room as soon as the plugin is
+    // loaded, so HTTPS stays unavailable until the module is uninstalled. The
+    // loaders expose plain getters over non-observable state, so the flag is kept as
+    // composable state and moves with the install/uninstall transitions.
+    var e2eeInstalled by remember { mutableStateOf(availability.isAvailable) }
+    var e2eeModeSelected by remember { mutableStateOf(e2eeInstalled) }
+    val snackbarHostState = LocalSnackbarHostState.current
+    val coroutineScope = rememberCoroutineScope()
+    val httpsLockedHint = stringResource(R.string.matrix_e2ee_https_locked)
 
     SchemaSenderConfigForm(
         senderId = senderId,
@@ -126,41 +161,111 @@ fun MatrixConfigForm(senderId: Long, onBack: () -> Unit, viewModel: SenderViewMo
         viewModel = viewModel,
         normalizeDraft = ::matrixVisibleDraft,
         extraContent = { draft, _ ->
-            MatrixE2eeStatusSection(
-                availability = MatrixE2eeAvailabilityProvider.get(),
-                onInstalled = {
-                    e2eeInstallGeneration++
+            MatrixEncryptionModeSelector(
+                e2eeSelected = e2eeModeSelected,
+                httpsLocked = e2eeInstalled,
+                onSelectE2ee = { selected ->
+                    if (selected) {
+                        e2eeModeSelected = true
+                    } else if (e2eeInstalled) {
+                        coroutineScope.launch {
+                            snackbarHostState.showLatestSnackbar(httpsLockedHint)
+                        }
+                    } else {
+                        e2eeModeSelected = false
+                    }
                 },
             )
-            e2eeInstallGeneration
-            MatrixE2eeVerificationSection(
-                availability = MatrixE2eeAvailabilityProvider.get(),
-                draft = draft,
-            )
+            if (e2eeModeSelected) {
+                MatrixE2eeStatusSection(
+                    availability = availability,
+                    onInstalled = {
+                        e2eeInstalled = true
+                        e2eeModeSelected = true
+                    },
+                    onUninstalled = {
+                        e2eeInstalled = false
+                        e2eeModeSelected = false
+                    },
+                )
+                MatrixE2eeVerificationSection(
+                    availability = availability,
+                    draft = draft,
+                )
+            }
         },
     )
 }
 
 /**
+ * Encryption mode picker for the Matrix form: plain HTTPS delivery or the
+ * downloadable E2EE module. While the module is installed the HTTPS option is
+ * dimmed and reports why it cannot be chosen instead of switching the mode.
+ */
+@Composable
+private fun MatrixEncryptionModeSelector(
+    e2eeSelected: Boolean,
+    httpsLocked: Boolean,
+    onSelectE2ee: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        AppText(
+            text = stringResource(R.string.matrix_e2ee_mode_label),
+            role = AppTextRole.Body,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            AppFilterChip(
+                label = stringResource(R.string.matrix_e2ee_mode_https),
+                selected = !e2eeSelected,
+                onClick = { onSelectE2ee(false) },
+                modifier = Modifier
+                    .weight(1f)
+                    .alpha(if (httpsLocked) LOCKED_OPTION_ALPHA else 1f),
+            )
+            AppFilterChip(
+                label = stringResource(R.string.matrix_e2ee_mode_e2ee),
+                selected = e2eeSelected,
+                onClick = { onSelectE2ee(true) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+/** Matches the disabled-opacity Material uses for controls that cannot be used. */
+private const val LOCKED_OPTION_ALPHA = 0.38f
+
+/**
  * Displays the appropriate E2EE status indicator based on module availability:
- * - AVAILABLE -> green "E2EE Enabled" card
- * - NOT_APPLICABLE (GitHub noE2ee) -> info banner suggesting E2EE variant
- * - NOT_INSTALLED (Play) -> install button
+ * - AVAILABLE -> "E2EE Enabled" card with an uninstall action
+ * - NOT_APPLICABLE -> info banner suggesting E2EE variant
+ * - NOT_INSTALLED (Play DFM / GitHub plugin not downloaded yet) -> install button
  * - DOWNLOADING -> progress bar with percentage
  * - INSTALL_FAILED -> error message + retry button
  * - LOAD_FAILED -> error message
+ * - UNINSTALLING -> indeterminate progress while the module files are removed
+ *   (Play: the removal is deferred until the app is backgrounded)
  */
 @Composable
 internal fun MatrixE2eeStatusSection(
     availability: MatrixE2eeAvailability = MatrixE2eeAvailabilityProvider.get(),
     onInstalled: (() -> Unit)? = null,
+    onUninstalled: (() -> Unit)? = null,
 ) {
     var currentStatus by remember { mutableStateOf(availability.status) }
     var downloadProgress by remember { mutableIntStateOf(0) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var showUninstallDialog by remember { mutableStateOf(false) }
 
     when (currentStatus) {
-        E2eeModuleStatus.AVAILABLE -> MatrixE2eeEnabledCard()
+        E2eeModuleStatus.AVAILABLE -> MatrixE2eeEnabledCard(
+            onUninstallClick = { showUninstallDialog = true },
+        )
         E2eeModuleStatus.NOT_APPLICABLE -> MatrixE2eeInfoBanner()
         E2eeModuleStatus.NOT_INSTALLED -> MatrixE2eeInstallCard(
             onInstallClick = {
@@ -186,6 +291,22 @@ internal fun MatrixE2eeStatusSection(
         E2eeModuleStatus.DOWNLOADING -> MatrixE2eeDownloadingCard(
             progress = downloadProgress,
         )
+        E2eeModuleStatus.UNINSTALLING -> MatrixE2eeUninstallingCard(
+            errorMessage = errorMessage,
+            onRetryClick = {
+                errorMessage = null
+                triggerUninstall(
+                    availability = availability,
+                    onSuccess = {
+                        currentStatus = E2eeModuleStatus.NOT_INSTALLED
+                        onUninstalled?.invoke()
+                    },
+                    onFailure = { msg ->
+                        errorMessage = msg
+                    },
+                )
+            },
+        )
         E2eeModuleStatus.INSTALL_FAILED -> MatrixE2eeInstallFailedCard(
             errorMessage = errorMessage,
             onRetryClick = {
@@ -210,39 +331,162 @@ internal fun MatrixE2eeStatusSection(
         )
         E2eeModuleStatus.LOAD_FAILED -> MatrixE2eeLoadFailedCard()
     }
+
+    if (showUninstallDialog) {
+        MatrixE2eeUninstallDialog(
+            onConfirm = {
+                showUninstallDialog = false
+                currentStatus = E2eeModuleStatus.UNINSTALLING
+                errorMessage = null
+                triggerUninstall(
+                    availability = availability,
+                    onSuccess = {
+                        currentStatus = E2eeModuleStatus.NOT_INSTALLED
+                        onUninstalled?.invoke()
+                    },
+                    onFailure = { msg ->
+                        errorMessage = msg
+                    },
+                )
+            },
+            onDismiss = { showUninstallDialog = false },
+        )
+    }
 }
 
 @Composable
-private fun MatrixE2eeEnabledCard() {
-    val greenContainer = Color(0xFFD7F5E3)
-    val greenContent = Color(0xFF1B5E20)
+private fun MatrixE2eeEnabledCard(onUninstallClick: () -> Unit) {
+    val containerColor = appColor(AppColorRole.PrimaryContainer)
+    val contentColor = appColor(AppColorRole.OnPrimaryContainer)
     AppCard(
         modifier = Modifier.fillMaxWidth(),
-        color = greenContainer,
-        contentColor = greenContent,
+        color = containerColor,
+        contentColor = contentColor,
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            AppIcon(
-                imageVector = Icons.Filled.Lock,
-                contentDescription = null,
-                tint = greenContent,
-                modifier = Modifier.size(24.dp),
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                AppText(
-                    text = stringResource(R.string.matrix_e2ee_status_enabled),
-                    role = AppTextRole.Subtitle,
-                    color = greenContent,
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AppIcon(
+                    imageVector = Icons.Filled.Lock,
+                    contentDescription = null,
+                    tint = contentColor,
+                    modifier = Modifier.size(24.dp),
                 )
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    AppText(
+                        text = stringResource(R.string.matrix_e2ee_status_enabled),
+                        role = AppTextRole.Subtitle,
+                        color = contentColor,
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    AppText(
+                        text = stringResource(R.string.matrix_e2ee_status_enabled_desc),
+                        role = AppTextRole.BodySmall,
+                        color = contentColor,
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            AppPrimaryButton(
+                text = stringResource(R.string.matrix_e2ee_uninstall_button),
+                onClick = onUninstallClick,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+/**
+ * Confirms the uninstall: it deletes roughly 64 MB of plugin files and makes
+ * encrypted rooms unsendable until the module is installed again.
+ */
+@Composable
+private fun MatrixE2eeUninstallDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AppAlertDialog(
+        onDismissRequest = onDismiss,
+        title = { AppText(text = stringResource(R.string.matrix_e2ee_uninstall_confirm_title)) },
+        text = {
+            AppText(
+                text = stringResource(R.string.matrix_e2ee_uninstall_confirm_message),
+                role = AppTextRole.BodySmall,
+            )
+        },
+        confirmButton = {
+            AppTextButton(
+                text = stringResource(R.string.matrix_e2ee_uninstall_button),
+                onClick = onConfirm,
+                color = appColor(AppColorRole.Error),
+            )
+        },
+        dismissButton = {
+            AppTextButton(
+                text = stringResource(R.string.cancel),
+                onClick = onDismiss,
+            )
+        },
+    )
+}
+
+/**
+ * Shown while the plugin files are being deleted. The GitHub plugin uninstall
+ * finishes within the same screen visit; the Play DFM uninstall is deferred
+ * until the app is backgrounded, which the note explains.
+ */
+@Composable
+private fun MatrixE2eeUninstallingCard(errorMessage: String?, onRetryClick: () -> Unit) {
+    val failed = errorMessage != null
+    AppCard(
+        modifier = Modifier.fillMaxWidth(),
+        color = if (failed) {
+            appColor(AppColorRole.ErrorContainer)
+        } else {
+            appColor(AppColorRole.SecondaryContainer)
+        },
+        contentColor = if (failed) {
+            appColor(AppColorRole.OnErrorContainer)
+        } else {
+            appColor(AppColorRole.OnSecondaryContainer)
+        },
+    ) {
+        val contentColor = if (failed) {
+            appColor(AppColorRole.OnErrorContainer)
+        } else {
+            appColor(AppColorRole.OnSecondaryContainer)
+        }
+        Column(modifier = Modifier.padding(16.dp)) {
+            AppText(
+                text = stringResource(R.string.matrix_e2ee_feature_title),
+                role = AppTextRole.Subtitle,
+                color = contentColor,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            if (failed) {
                 AppText(
-                    text = stringResource(R.string.matrix_e2ee_status_enabled_desc),
+                    text = stringResource(
+                        R.string.matrix_e2ee_uninstall_failed,
+                        errorMessage,
+                    ),
                     role = AppTextRole.BodySmall,
-                    color = greenContent,
+                    color = contentColor,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                AppPrimaryButton(
+                    text = stringResource(R.string.matrix_e2ee_uninstall_button),
+                    onClick = onRetryClick,
+                    modifier = Modifier.fillMaxWidth(),
+                    containerColor = appColor(AppColorRole.Error),
+                    contentColor = appColor(AppColorRole.OnError),
+                )
+            } else {
+                AppLinearProgressIndicator(
+                    progress = null,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                AppText(
+                    text = stringResource(R.string.matrix_e2ee_uninstalling),
+                    role = AppTextRole.BodySmall,
+                    color = contentColor,
                 )
             }
         }
@@ -803,9 +1047,11 @@ private fun MatrixVerificationButtonContent(text: String, icon: ImageVector) {
 }
 
 /**
- * Triggers DFM install via the availability interface.
- * On Play builds, this calls PlayFeatureLoader.requestInstall().
- * On other builds, the default no-op implementation is used.
+ * Triggers E2EE module install via the availability interface.
+ * On Play builds this calls PlayFeatureLoader.requestInstall() (SplitInstall).
+ * On GitHub builds this calls GithubPluginFeatureLoader.requestInstall(), which
+ * downloads the versioned plugin APK and DexClassLoader-loads it.
+ * On builds without E2EE the default no-op implementation is used.
  */
 private fun triggerInstall(
     availability: MatrixE2eeAvailability,
@@ -815,6 +1061,25 @@ private fun triggerInstall(
 ) {
     availability.requestInstall(
         onProgress = onProgress,
+        onSuccess = onSuccess,
+        onFailure = onFailure,
+    )
+}
+
+/**
+ * Triggers E2EE module uninstall via the availability interface.
+ * On Play builds this calls PlayFeatureLoader.requestUninstall() (deferred
+ * SplitInstall uninstall). On GitHub builds this calls
+ * GithubPluginFeatureLoader.requestUninstall(), which deletes the plugin APK
+ * and its caches and restores the plaintext stubs.
+ * On builds without E2EE the default no-op implementation is used.
+ */
+private fun triggerUninstall(
+    availability: MatrixE2eeAvailability,
+    onSuccess: () -> Unit,
+    onFailure: (String) -> Unit,
+) {
+    availability.requestUninstall(
         onSuccess = onSuccess,
         onFailure = onFailure,
     )

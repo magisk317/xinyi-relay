@@ -85,6 +85,8 @@ object MatrixE2eeVerificationProvider {
 
     fun get(): MatrixE2eeVerification = instance ?: DefaultUnavailable
 
+    fun getOrNull(): MatrixE2eeVerification? = instance
+
     val isInstalled: Boolean get() = instance != null
 
     private object DefaultUnavailable : MatrixE2eeVerification {

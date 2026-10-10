@@ -95,7 +95,7 @@ object MatrixE2eeRuntime : MatrixE2eeSender {
      * Send a message to a Matrix room with intelligent routing.
      *
      * Routing logic:
-     * 1. Check E2EE availability via [GithubFeatureLoader] → if unavailable, delegate to plaintext
+     * 1. Check E2EE availability via [GithubPluginFeatureLoader] → if unavailable, delegate to plaintext
      * 2. Query [RoomCryptoState] for the target room → if not encrypted, delegate to plaintext
      * 3. Attempt E2EE send via matrix-rust-sdk Timeline (handles Olm/Megolm automatically)
      * 4. On any exception → log warning → fallback to plaintext via [MatrixUtils.sendMsg]

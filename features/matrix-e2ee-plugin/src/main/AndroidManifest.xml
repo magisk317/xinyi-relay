@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      Headless plugin APK: no launcher activity. The host app (xinyi-relay
+      GitHub flavor) downloads the ABI-specific APK from the GitLab generic
+      package registry, verifies its signature against its own, then loads it
+      through DexClassLoader and invokes PluginEntry.install(context).
+    -->
+    <application
+        android:label="Xinyi Relay E2EE Plugin"
+        android:hasCode="true" />
+
+</manifest>

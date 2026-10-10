@@ -16,6 +16,14 @@ object MatrixE2eeSenderProvider {
         instance = sender
     }
 
+    /**
+     * Drop the installed sender so [io.github.magisk317.relay.sender.MatrixE2eeUtils]
+     * falls back to plaintext delivery until a plugin installs a new one.
+     */
+    fun uninstall() {
+        instance = null
+    }
+
     fun getOrNull(): MatrixE2eeSender? = instance
 
     val isInstalled: Boolean get() = instance != null

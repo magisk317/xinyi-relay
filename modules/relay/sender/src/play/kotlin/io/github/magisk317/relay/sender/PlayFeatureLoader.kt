@@ -150,6 +150,50 @@ internal class PlayFeatureLoader(private val context: Context) : MatrixE2eeAvail
     }
 
     /**
+     * Request removal of the `matrix_e2ee` dynamic feature module.
+     *
+     * SplitInstallManager cannot uninstall a module the running app still uses,
+     * so the removal is deferred until the app is backgrounded; [onSuccess]
+     * therefore only guarantees the request was accepted. The module keeps
+     * working until the removal actually lands, which is why the status moves
+     * to [E2eeModuleStatus.UNINSTALLING] rather than NOT_INSTALLED right away.
+     */
+    override fun requestUninstall(
+        onSuccess: (() -> Unit)?,
+        onFailure: ((String) -> Unit)?,
+    ) {
+        if (currentStatus != E2eeModuleStatus.AVAILABLE) {
+            // Nothing loaded to release (NOT_INSTALLED / failed installs).
+            onSuccess?.invoke()
+            return
+        }
+
+        currentStatus = E2eeModuleStatus.UNINSTALLING
+        downloadProgress = 0
+        lastErrorMessage = null
+
+        splitInstallManager.deferredUninstall(listOf(MODULE_NAME))
+            .addOnSuccessListener {
+                MatrixE2eeSenderProvider.uninstall()
+                if (!MatrixE2eeVerificationProvider.isInstalled) {
+                    MatrixE2eeVerificationProvider.install(MatrixE2eeVerificationManager)
+                }
+                currentStatus = E2eeModuleStatus.NOT_INSTALLED
+                SLog.i(TAG, "matrix_e2ee module uninstalled")
+                onSuccess?.invoke()
+            }
+            .addOnFailureListener { exception ->
+                // The uninstall never happened, so the module is still usable:
+                // report the failure and keep the AVAILABLE status.
+                val msg = "DFM uninstall failed: ${exception.message}"
+                lastErrorMessage = msg
+                currentStatus = E2eeModuleStatus.AVAILABLE
+                SLog.e(TAG, msg)
+                onFailure?.invoke(msg)
+            }
+    }
+
+    /**
      * Check the initial installation status of the module.
      * If already installed (e.g. after process restart), mark as AVAILABLE immediately.
      */

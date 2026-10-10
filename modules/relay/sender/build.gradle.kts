@@ -24,15 +24,13 @@ android {
     }
 
     sourceSets {
-        listOf("fdroid", "githubNoE2ee", "githubWithE2ee").forEach { flavor ->
-            getByName(flavor).kotlin.directories.add("src/nonPlaySms/kotlin")
-        }
-        listOf("fdroid", "githubNoE2ee", "play").forEach { flavor ->
+        // Play keeps the dynamic-feature path; GitHub keeps the plaintext
+        // MatrixE2eeUtils/MatrixE2eeVerificationManager stubs (the real
+        // implementation arrives at runtime from the e2ee plugin APK).
+        listOf("play", "github").forEach { flavor ->
             getByName(flavor).kotlin.directories.add("src/matrixE2eeStub/kotlin")
         }
-        listOf("fdroid", "githubNoE2ee").forEach { flavor ->
-            getByName(flavor).kotlin.directories.add("src/noE2ee/kotlin")
-        }
+        getByName("github").kotlin.directories.add("src/nonPlaySms/kotlin")
     }
 }
 
@@ -50,13 +48,11 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.jakarta.mail)
     implementation(libs.paho.mqtt)
-    add("githubWithE2eeImplementation", project(":relay:matrix-e2ee"))
     // Play Feature Delivery for on-demand E2EE module installation
     add("playImplementation", libs.play.feature.delivery)
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.kotlinx.coroutines.core)
     testImplementation(libs.kotest.property)
-    testImplementation(libs.kotest.runner.junit5)
     testRuntimeOnly(libs.junit.platform.launcher)
 }

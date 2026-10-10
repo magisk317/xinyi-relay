@@ -65,7 +65,9 @@ android {
     ndkVersion = ndkVersionStr
 
     // Dynamic Feature Module for E2EE is only used by Play variants.
-    // GitHubWithE2ee bundles the native lib directly in the sender module.
+    // The GitHub flavor ships no E2EE code at all: the matrix-rust-sdk runtime
+    // arrives as a separately versioned plugin APK (features/matrix-e2ee-plugin)
+    // that GithubPluginFeatureLoader downloads and loads via DexClassLoader.
     // AGP exposes dynamicFeatures as a global application setting, not a
     // per-variant switch. Keep the DFM attached only for dedicated Play bundle
     // or Play assemble invocations so mixed GitHub+Play validation commands do
@@ -115,11 +117,9 @@ android {
             buildConfigField("boolean", "ENABLE_STANDARD_MODE_SERVICE", "false")
             buildConfigField("String", "MOBILE_ENTITLEMENT_CHANNEL", "\"play\"")
         }
-        listOf("githubNoE2ee", "githubWithE2ee", "fdroid").forEach { flavorName ->
-            getByName(flavorName) {
-                buildConfigField("boolean", "ENABLE_STANDARD_MODE_SERVICE", "true")
-                buildConfigField("String", "MOBILE_ENTITLEMENT_CHANNEL", "\"sideload\"")
-            }
+        getByName("github") {
+            buildConfigField("boolean", "ENABLE_STANDARD_MODE_SERVICE", "true")
+            buildConfigField("String", "MOBILE_ENTITLEMENT_CHANNEL", "\"sideload\"")
         }
     }
 
@@ -135,17 +135,8 @@ android {
             java.directories.add("src/xposed/kotlin")
             kotlin.directories.add("src/xposed/kotlin")
         }
-        getByName("githubNoE2ee") {
+        getByName("github") {
             setRoot("src/github")
-            java.directories.add("src/xposed/kotlin")
-            kotlin.directories.add("src/xposed/kotlin")
-        }
-        getByName("githubWithE2ee") {
-            setRoot("src/github")
-            java.directories.add("src/xposed/kotlin")
-            kotlin.directories.add("src/xposed/kotlin")
-        }
-        getByName("fdroid") {
             java.directories.add("src/xposed/kotlin")
             kotlin.directories.add("src/xposed/kotlin")
         }
@@ -168,8 +159,7 @@ tasks.named("preBuild") {
 }
 
 tasks.matching { it.name.endsWith("GoogleServices") }.configureEach {
-    val shouldDisableForFdroid = name.startsWith("processFdroid")
-    if (skipGoogleServices || shouldDisableForFdroid) {
+    if (skipGoogleServices) {
         enabled = false
     }
 }
@@ -207,12 +197,10 @@ dependencies {
     add("playImplementation", libs.androidx.credential.core)
     add("playImplementation", libs.androidx.credential.play.services.auth)
     add("playImplementation", libs.google.id)
-    add("githubNoE2eeImplementation", platform(libs.firebase.bom))
-    add("githubNoE2eeImplementation", libs.firebase.analytics)
-    add("githubWithE2eeImplementation", platform(libs.firebase.bom))
-    add("githubWithE2eeImplementation", libs.firebase.analytics)
+    add("githubImplementation", platform(libs.firebase.bom))
+    add("githubImplementation", libs.firebase.analytics)
 
-    listOf("play", "githubNoE2ee", "githubWithE2ee", "fdroid").forEach { flavor ->
+    listOf("play", "github").forEach { flavor ->
         add("${flavor}Implementation", project(":hook:entry"))
         add("${flavor}Implementation", project(":xpbridge:core"))
         add("${flavor}Implementation", libs.libxposed.service)

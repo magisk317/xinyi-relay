@@ -42,6 +42,9 @@ class MatrixE2eeStatusSectionTest {
 
         /** Card with error message (module loaded but failed to initialize) */
         LOAD_FAILED_CARD,
+
+        /** Card with indeterminate progress while the module is being removed */
+        UNINSTALLING_CARD,
     }
 
     /**
@@ -56,6 +59,7 @@ class MatrixE2eeStatusSectionTest {
             E2eeModuleStatus.DOWNLOADING -> ExpectedUiComponent.DOWNLOADING_CARD
             E2eeModuleStatus.INSTALL_FAILED -> ExpectedUiComponent.INSTALL_FAILED_CARD
             E2eeModuleStatus.LOAD_FAILED -> ExpectedUiComponent.LOAD_FAILED_CARD
+            E2eeModuleStatus.UNINSTALLING -> ExpectedUiComponent.UNINSTALLING_CARD
         }
 
     // --- Requirement 10.1: AVAILABLE → "E2EE 已启用" status indicator ---
@@ -188,6 +192,58 @@ class MatrixE2eeStatusSectionTest {
         )
     }
 
+    // --- UNINSTALLING state → progress card with no action ---
+
+    @Test
+    fun `UNINSTALLING status maps to uninstalling card`() {
+        assertEquals(
+            ExpectedUiComponent.UNINSTALLING_CARD,
+            expectedComponent(E2eeModuleStatus.UNINSTALLING),
+        )
+    }
+
+    @Test
+    fun `UNINSTALLING is not available`() {
+        val availability = FakeAvailability(E2eeModuleStatus.UNINSTALLING)
+
+        assertFalse(availability.isAvailable)
+    }
+
+    // --- Uninstall transitions ---
+
+    @Test
+    fun `successful uninstall transitions from AVAILABLE through UNINSTALLING to NOT_INSTALLED`() {
+        val availability = FakeAvailability(E2eeModuleStatus.AVAILABLE)
+
+        availability.simulateUninstallStart()
+        assertEquals(E2eeModuleStatus.UNINSTALLING, availability.status)
+
+        availability.simulateUninstallSuccess()
+        assertEquals(E2eeModuleStatus.NOT_INSTALLED, availability.status)
+        assertFalse(availability.isAvailable)
+    }
+
+    @Test
+    fun `failed uninstall keeps the module usable and records the error`() {
+        val availability = FakeAvailability(E2eeModuleStatus.AVAILABLE)
+
+        availability.simulateUninstallStart()
+        availability.simulateUninstallFailure("Deferred uninstall rejected")
+
+        assertEquals(E2eeModuleStatus.AVAILABLE, availability.status)
+        assertEquals("Deferred uninstall rejected", availability.errorMessage)
+        assertTrue(availability.isAvailable)
+    }
+
+    @Test
+    fun `uninstall request reaches the availability implementation`() {
+        val availability = FakeAvailability(E2eeModuleStatus.AVAILABLE)
+
+        availability.requestUninstall(onSuccess = {}, onFailure = {})
+
+        assertTrue(availability.uninstallRequested)
+    }
+
     // --- Exhaustive coverage ---
 
     @ParameterizedTest
@@ -269,6 +325,9 @@ class MatrixE2eeStatusSectionTest {
             currentError = error,
         )
 
+        var uninstallRequested: Boolean = false
+            private set
+
         override val isAvailable: Boolean
             get() = currentStatus == E2eeModuleStatus.AVAILABLE
 
@@ -289,6 +348,13 @@ class MatrixE2eeStatusSectionTest {
             // No-op in fake; transitions are driven by simulate* methods
         }
 
+        override fun requestUninstall(
+            onSuccess: (() -> Unit)?,
+            onFailure: ((String) -> Unit)?,
+        ) {
+            uninstallRequested = true
+        }
+
         fun simulateInstallStart() {
             currentStatus = E2eeModuleStatus.DOWNLOADING
             currentProgress = 0
@@ -307,6 +373,24 @@ class MatrixE2eeStatusSectionTest {
 
         fun simulateInstallFailure(message: String) {
             currentStatus = E2eeModuleStatus.INSTALL_FAILED
+            currentProgress = 0
+            currentError = message
+        }
+
+        fun simulateUninstallStart() {
+            currentStatus = E2eeModuleStatus.UNINSTALLING
+            currentProgress = 0
+            currentError = null
+        }
+
+        fun simulateUninstallSuccess() {
+            currentStatus = E2eeModuleStatus.NOT_INSTALLED
+            currentProgress = 0
+            currentError = null
+        }
+
+        fun simulateUninstallFailure(message: String) {
+            currentStatus = E2eeModuleStatus.AVAILABLE
             currentProgress = 0
             currentError = message
         }
