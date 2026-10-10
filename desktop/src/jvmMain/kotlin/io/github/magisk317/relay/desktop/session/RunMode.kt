@@ -19,7 +19,7 @@ import kotlinx.serialization.Serializable
  * (`PersistedDesktopState.runMode`). This slice implements the model, the
  * persistence, the mirror-assembly gate and the read router; the mode-switcher
  * UI landed in the follow-up slice, leaving only the agent-facing local HTTP
- * server as the tracked gap in `docs/DESKTOP_PARITY.md` §5.
+ * server as the tracked gap in `docs/DESKTOP.md` §3.
  */
 @Serializable
 enum class DesktopRunMode {

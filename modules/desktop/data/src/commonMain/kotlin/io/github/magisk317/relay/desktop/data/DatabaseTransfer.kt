@@ -17,7 +17,7 @@ import kotlinx.serialization.json.jsonPrimitive
 /**
  * Format marker every snapshot carries. A file without it is not ours - most
  * importantly, a Tauri-era `local-data.db` is a raw SQLite database, not a
- * snapshot, and per `docs/TAURI_RETIREMENT.md` §2.2 it is deliberately not
+ * snapshot, and per `docs/DESKTOP.md` §6 it is deliberately not
  * accepted here (the desktop track was never released, so no user holds one).
  */
 internal const val DATABASE_SNAPSHOT_FORMAT = "xinyi-relay-desktop-database"

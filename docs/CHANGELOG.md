@@ -3,6 +3,17 @@
 本日志记录了项目近期的主要变更。 
 
 ---
+## [v0.3.0] - 2026-10-10
+- 版本：`versionCode 51` / `versionName 0.3.0`。
+- `[fix]` 修复数据库升级迁移（Room v33）与历史数据结构兼容。
+- `[feat]` Matrix E2EE 支持以独立插件 APK 形式动态分发与卸载。
+- `[ui]` 修复记录页溢出菜单与 Miuix 主题阴影及背景。
+- `[build]` 升级核心依赖与构建工具链，优化 CI 流水线。
+
+> Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.2.8...v0.3.0
+
+---
+
 ## [v0.2.8] - 2026-10-08
 - 版本：`versionCode 50` / `versionName 0.2.8`。
 - `[core]` 业务下沉共享模块，契约/策略/API 迁移 KMP。

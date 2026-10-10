@@ -93,9 +93,15 @@ android {
         localeFilters.addAll(listOf("en", "zh-rCN", "zh-rTW"))
     }
 
-    val gitCommitHash = providers.exec {
-        commandLine("git", "-C", projectDir, "rev-parse", "--short", "HEAD")
-    }.standardOutput.asText.get().trim()
+    val gitCommitHash = providers.environmentVariable("CI_COMMIT_SHORT_SHA")
+        .orElse(providers.environmentVariable("GIT_COMMIT"))
+        .orElse(providers.gradleProperty("gitCommitHash"))
+        .orNull
+        ?: runCatching {
+            providers.exec {
+                commandLine("git", "-C", projectDir, "rev-parse", "--short", "HEAD")
+            }.standardOutput.asText.get().trim()
+        }.getOrElse { "unknown" }
 
     defaultConfig {
         applicationId = "io.github.magisk317.xinyi.relay"

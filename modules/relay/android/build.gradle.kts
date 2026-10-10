@@ -13,9 +13,15 @@ val mobileEntitlementSigningPublicJwk = providers.gradleProperty("mobileEntitlem
     .orElse("""{"kty":"EC","x":"4kPpwUt1wFRuF3EqGq6q57J3YmANf7wyiNH90FNkAbI","y":"U4-E1XK6LjWIXMFNEoSAoik7nD1S07BDb7qAipQd4Ts","crv":"P-256","alg":"ES256","use":"sig","kid":"mobile-entitlement-1"}""")
     .get()
 
-val gitCommitHash = providers.exec {
-    commandLine("git", "-C", projectDir, "rev-parse", "--short", "HEAD")
-}.standardOutput.asText.get().trim()
+val gitCommitHash = providers.environmentVariable("CI_COMMIT_SHORT_SHA")
+    .orElse(providers.environmentVariable("GIT_COMMIT"))
+    .orElse(providers.gradleProperty("gitCommitHash"))
+    .orNull
+    ?: runCatching {
+        providers.exec {
+            commandLine("git", "-C", projectDir, "rev-parse", "--short", "HEAD")
+        }.standardOutput.asText.get().trim()
+    }.getOrElse { "unknown" }
 
 fun buildConfigString(value: String): String =
     "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""

@@ -30,12 +30,93 @@ if [[ ! "$FASTLANE_MIN_SCREENSHOTS" =~ ^[0-9]+$ ]]; then
   exit 2
 fi
 
+# Verify desktop version aligns with VERSION_NAME (防呆门禁)
+check_desktop_version() {
+  local root_dir="$1"
+  local expected_version="$2"
+
+  local desktop_build="${root_dir}/desktop/build.gradle.kts"
+  if [[ ! -f "$desktop_build" ]]; then
+    echo "FAIL: desktop build file missing: $desktop_build" >&2
+    return 1
+  fi
+
+  if ! grep -q 'libs\.versions\.versionName\.get()' "$desktop_build" || \
+     ! grep -q 'packageVersion = desktopVersion' "$desktop_build"; then
+    echo "FAIL: desktop build script must wire packageVersion to libs.versions.versionName" >&2
+    return 1
+  fi
+
+  echo "PASS: desktop package version derived from libs.versions.versionName ($expected_version)"
+}
+
+# Verify backend version aligns with VERSION_NAME (防呆门禁)
+check_backend_version() {
+  local root_dir="$1"
+  local expected_version="$2"
+  local fail=0
+
+  # 1. OpenAPI Go contract definition
+  local go_contract="${root_dir}/backend/api/internal/http/openapi_contract.go"
+  if [[ ! -f "$go_contract" ]]; then
+    echo "FAIL: backend OpenAPI contract missing: $go_contract" >&2
+    fail=1
+  else
+    local go_ver
+    go_ver="$(sed -nE 's/.*"version":[[:space:]]*"([^"]+)".*/\1/p' "$go_contract" | head -n1)"
+    if [[ "$go_ver" != "$expected_version" ]]; then
+      echo "FAIL: backend openapi_contract.go version mismatch: got '$go_ver', expected '$expected_version'" >&2
+      fail=1
+    else
+      echo "PASS: backend openapi_contract.go version matches ($go_ver)"
+    fi
+  fi
+
+  # 2. Shared OpenAPI contract JSON
+  local json_contract="${root_dir}/frontend/shared/contracts/openapi.json"
+  if [[ ! -f "$json_contract" ]]; then
+    echo "FAIL: shared openapi.json contract missing: $json_contract" >&2
+    fail=1
+  else
+    local json_ver
+    json_ver="$(python3 -c "import json, sys; print(json.load(open(sys.argv[1]))['info']['version'])" "$json_contract" 2>/dev/null || true)"
+    if [[ "$json_ver" != "$expected_version" ]]; then
+      echo "FAIL: shared openapi.json version mismatch: got '$json_ver', expected '$expected_version'" >&2
+      fail=1
+    else
+      echo "PASS: shared openapi.json version matches ($json_ver)"
+    fi
+  fi
+
+  # 3. WebUI package.json
+  local webui_pkg="${root_dir}/frontend/webui/package.json"
+  if [[ ! -f "$webui_pkg" ]]; then
+    echo "FAIL: webui package.json missing: $webui_pkg" >&2
+    fail=1
+  else
+    local pkg_ver
+    pkg_ver="$(python3 -c "import json, sys; print(json.load(open(sys.argv[1]))['version'])" "$webui_pkg" 2>/dev/null || true)"
+    if [[ "$pkg_ver" != "$expected_version" ]]; then
+      echo "FAIL: webui package.json version mismatch: got '$pkg_ver', expected '$expected_version'" >&2
+      fail=1
+    else
+      echo "PASS: webui package.json version matches ($pkg_ver)"
+    fi
+  fi
+
+  if (( fail != 0 )); then
+    return 1
+  fi
+}
+
 # Run the base release guard
 echo "Release guard (xinyi-relay)"
 check_version_extraction "$ROOT_DIR"
 check_commit_subjects "$ROOT_DIR" "$ALLOW_NON_ASCII_COMMIT_SUBJECT"
 check_changelog_section "$ROOT_DIR" "$VERSION_NAME"
 check_tag_matches_version "$TAG_NAME" "$VERSION_NAME"
+check_desktop_version "$ROOT_DIR" "$VERSION_NAME"
+check_backend_version "$ROOT_DIR" "$VERSION_NAME"
 
 python3 - "$ROOT_DIR/app/src/main/AndroidManifest.xml" "$ROOT_DIR/app/src/play/AndroidManifest.xml" <<'PY'
 import re

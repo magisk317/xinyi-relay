@@ -202,7 +202,7 @@ variables:
 #
 # Linux x64 and arm64 only for now: those are the two runners whose packaging has
 # actually been exercised. Windows and macOS jobs are deliberately not wired; see
-# docs/DESKTOP_RELEASE_PLAN.md section 3.
+# docs/DESKTOP.md section 4.
 .xinyi_desktop_kmp_rules:
   rules:
     - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "web"'

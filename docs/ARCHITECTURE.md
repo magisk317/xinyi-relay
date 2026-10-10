@@ -16,8 +16,8 @@
 桌面端是 Kotlin Multiplatform + Compose Multiplatform 的**单轨**应用（原先的 Rust/Tauri 轨已于 2026-10-04 退役删除，恢复点见 tag `tauri-retirement`）：
 
 - `:desktop`（Compose Desktop 应用壳）+ `:desktop:core`（store/sync 领域逻辑）+ `:desktop:data`（Room KMP 本地库与旧库导入）。
-- 它不并入 Android 的 M3/miuix 双轨门禁，`scripts/checks/dual_track_check.py` 已按 `desktop/`、`modules/desktop/` 路径前缀豁免；也不经 `:magisk-ui-kit`（见 `docs/DESKTOP_PARITY.md`「UI 组件语言的取舍」）。
-- 与 Web 端共用同一套 Console API（`docs/DESKTOP_PARITY.md` 记录移植来源与 parity 状态）。
+- 它不并入 Android 的 M3/miuix 双轨门禁，`scripts/checks/dual_track_check.py` 已按 `desktop/`、`modules/desktop/` 路径前缀豁免；也不经 `:magisk-ui-kit`（见 `docs/DESKTOP.md`「UI 组件语言的取舍」）。
+- 与 Web 端共用同一套 Console API（`docs/DESKTOP.md` 记录移植来源与 parity 状态）。
 
 ## Gradle 坐标与物理路径
 
@@ -47,6 +47,7 @@
 | `:mobile:ui` / `mobile/ui` | `mobile/ui/` |
 | `:mobile:feature:*` / `mobile/feature/*` | `mobile/feature/*/` |
 | `:features:matrix_e2ee` | `features/matrix-e2ee/` |
+| `:features:matrix_e2ee_plugin` | `features/matrix-e2ee-plugin/` |
 | `:smscode-core:*` | `smscode/core/*`（Git 子模块） |
 
 查找真实路径时以 `settings.gradle.kts` 的 `project(...).projectDir` 为准，不要假设“Gradle 名 = 仓库根下同名目录”。
@@ -138,8 +139,9 @@ KMP 模块（`jvm()` + `android()`）：`MatrixE2eeSendPolicy`（E2EE 通道选�
 `src/jvmTest`，由 CI 的 `:relay:matrix-e2ee:jvmTest` 执行。
 
 - 允许：`relay/sender/api`、`relay/net`、Matrix SDK
-- 禁止：`app`、`features/matrix-e2ee`、`relay/sender` 实现
-- GitHub 仅由 `githubWithE2ee` 变体依赖；Play base 不依赖，由动态 feature 负责携带
+- 禁止：`app`、`features/matrix-e2ee`、`features/matrix-e2ee-plugin`、`relay/sender` 实现
+- 主 APK 任何 flavor 都不静态依赖本模块：Play 由动态 feature 携带，GitHub 由独立插件
+  APK（`features/matrix-e2ee-plugin`）在运行时经 DexClassLoader 加载
 
 ### `relay/android`
 

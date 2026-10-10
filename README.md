@@ -103,7 +103,7 @@ Backend 是信驿 Relay 的自建远程控制面，默认部署模式为“本�
 - [Backend 使用说明](backend/README.md)
 - [Backend API 概览](backend/API_OVERVIEW.md)
 - [远程架构](docs/ARCHITECTURE.md)
-- [桌面端 Parity 与能力清单](docs/DESKTOP_PARITY.md)
+- [桌面端架构与能力文档](docs/DESKTOP.md)
 
 ### 日志位置
 

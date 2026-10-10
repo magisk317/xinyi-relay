@@ -101,7 +101,7 @@ The Backend is the self-hosted remote control plane for Xinyi Relay, with a loca
 ### Entry Docs
 - [Backend Guide](backend/README.md)
 - [Backend API Overview](backend/API_OVERVIEW.md)
-- [Desktop parity and capability inventory](docs/DESKTOP_PARITY.md)
+- [Desktop architecture and capability inventory](docs/DESKTOP.md)
 
 ### Log Locations
 
