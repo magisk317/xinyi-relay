@@ -43,7 +43,7 @@ import io.github.magisk317.relay.android.data.db.entity.SmsBlacklistHit
     Sender::class,
     Rule::class,
     ScheduledTaskEntity::class
-], version = 32, exportSchema = false)
+], version = 33, exportSchema = true)
 @TypeConverters(ConvertersDate::class, ConvertersSenderList::class)
 abstract class AppDatabase : RoomDatabase() {
 
@@ -897,6 +897,116 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_32_33 = object : androidx.room.migration.Migration(32, 33) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                recreateSmsMsgTable(db, "32_33")
+                recreateSmsCodeRuleTable(db, "32_33")
+            }
+        }
+
+        /**
+         * Recreate [sms_msg] so its autoGenerate primary key becomes nullable
+         * (`id INTEGER PRIMARY KEY AUTOINCREMENT`, without `NOT NULL`). This matches the
+         * schema produced after the data layer was unified onto :smscode-core:db
+         * (commit 9794f7ef changed SmsMsg.id / SmsCodeRule.id from Long to Long?).
+         * Rows are preserved. SQLite cannot alter a column NOT NULL constraint in place,
+         * so we rebuild the table and copy data.
+         */
+        private fun recreateSmsMsgTable(
+            db: androidx.sqlite.db.SupportSQLiteDatabase,
+            migration: String,
+        ) {
+            execSqlSafely(
+                db = db,
+                sql = "CREATE TABLE sms_msg_new (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "sender TEXT, " +
+                    "body TEXT, " +
+                    "date INTEGER NOT NULL, " +
+                    "processed_time INTEGER NOT NULL DEFAULT 0, " +
+                    "company TEXT, " +
+                    "sms_code TEXT, " +
+                    "package_name TEXT, " +
+                    "notify_channel_id TEXT NOT NULL DEFAULT '', " +
+                    "sim_slot INTEGER NOT NULL DEFAULT -1, " +
+                    "sub_id INTEGER NOT NULL DEFAULT 0, " +
+                    "contact_name TEXT NOT NULL DEFAULT '', " +
+                    "phone_area TEXT NOT NULL DEFAULT '', " +
+                    "forward_status INTEGER NOT NULL, " +
+                    "forward_target TEXT, " +
+                    "forward_message TEXT, " +
+                    "forward_time INTEGER NOT NULL, " +
+                    "msg_type INTEGER NOT NULL DEFAULT 0, " +
+                    "call_type INTEGER NOT NULL DEFAULT 0, " +
+                    "session_key TEXT NOT NULL DEFAULT ''" +
+                    ")",
+                migration = migration,
+            )
+            execSqlSafely(
+                db = db,
+                sql = "INSERT INTO sms_msg_new (" +
+                    "id, sender, body, date, processed_time, company, sms_code, " +
+                    "package_name, notify_channel_id, sim_slot, sub_id, contact_name, " +
+                    "phone_area, forward_status, forward_target, forward_message, " +
+                    "forward_time, msg_type, call_type, session_key) " +
+                    "SELECT id, sender, body, date, processed_time, company, sms_code, " +
+                    "package_name, notify_channel_id, sim_slot, sub_id, contact_name, " +
+                    "phone_area, forward_status, forward_target, forward_message, " +
+                    "forward_time, msg_type, call_type, session_key FROM sms_msg",
+                migration = migration,
+            )
+            execSqlSafely(db = db, sql = "DROP TABLE sms_msg", migration = migration)
+            execSqlSafely(db = db, sql = "ALTER TABLE sms_msg_new RENAME TO sms_msg", migration = migration)
+            execSqlSafely(
+                db = db,
+                sql = "CREATE UNIQUE INDEX index_sms_msg_sender_body_date_msg_type " +
+                    "ON sms_msg(sender, body, date, msg_type)",
+                migration = migration,
+            )
+            execSqlSafely(
+                db = db,
+                sql = "CREATE INDEX index_sms_msg_pkg_type_channel_date " +
+                    "ON sms_msg(package_name, msg_type, notify_channel_id, date)",
+                migration = migration,
+            )
+            execSqlSafely(
+                db = db,
+                sql = "CREATE INDEX index_sms_msg_type_session_key " +
+                    "ON sms_msg(msg_type, session_key)",
+                migration = migration,
+            )
+        }
+
+        private fun recreateSmsCodeRuleTable(
+            db: androidx.sqlite.db.SupportSQLiteDatabase,
+            migration: String,
+        ) {
+            execSqlSafely(
+                db = db,
+                sql = "CREATE TABLE sms_code_rule_new (" +
+                    "company TEXT, " +
+                    "code_keyword TEXT NOT NULL, " +
+                    "code_regex TEXT NOT NULL, " +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT" +
+                    ")",
+                migration = migration,
+            )
+            execSqlSafely(
+                db = db,
+                sql = "INSERT INTO sms_code_rule_new (company, code_keyword, code_regex, id) " +
+                    "SELECT company, code_keyword, code_regex, id FROM sms_code_rule",
+                migration = migration,
+            )
+            execSqlSafely(db = db, sql = "DROP TABLE sms_code_rule", migration = migration)
+            execSqlSafely(db = db, sql = "ALTER TABLE sms_code_rule_new RENAME TO sms_code_rule", migration = migration)
+            execSqlSafely(
+                db = db,
+                sql = "CREATE UNIQUE INDEX index_sms_code_rule_company_code_keyword_code_regex " +
+                    "ON sms_code_rule(company, code_keyword, code_regex)",
+                migration = migration,
+            )
+        }
+
         private fun createSmsBlacklistHitTable(
             db: androidx.sqlite.db.SupportSQLiteDatabase,
             migration: String,
@@ -1001,6 +1111,7 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_29_30,
                     MIGRATION_30_31,
                     MIGRATION_31_32,
+                    MIGRATION_32_33,
                 )
                 .enableMultiInstanceInvalidation()
                 .build().also { instance = it }

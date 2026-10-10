@@ -18,6 +18,7 @@ import io.github.magisk317.smscode.db.entity.NotifyRouteRule
 import io.github.magisk317.smscode.db.entity.AppInfo
 import io.github.magisk317.smscode.db.entity.SmsMsg
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toEntity
+import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toSmsMsgEntity
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
 import io.github.magisk317.relay.engine.service.AppConfigRepository
 import io.github.magisk317.relay.engine.service.MessageRecordRepository
@@ -452,8 +453,8 @@ class AppConfigViewModel(
     }
 
     fun appNotifyLogsFlow(packageName: String): kotlinx.coroutines.flow.Flow<List<SmsMsg>> {
-        @Suppress("UNCHECKED_CAST")
-        return recordRepository.observeLogsForPackage(packageName, APP_NOTIFY_LOG_LIMIT) as kotlinx.coroutines.flow.Flow<List<SmsMsg>>
+        return recordRepository.observeLogsForPackage(packageName, APP_NOTIFY_LOG_LIMIT)
+            .map { list -> list.map { it.toSmsMsgEntity() } }
     }
 
     fun appNotifyBoundSenderIdsFlow(packageName: String): kotlinx.coroutines.flow.Flow<Set<Long>> {
