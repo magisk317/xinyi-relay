@@ -23,6 +23,7 @@ data class MsgInfo(
     val contactName: String = "",
     val phoneArea: String = "",
     val appIcon: String = "",
+    val systemEnv: SystemEnvironment? = null,
 ) : PlatformSerializable {
     constructor(
         type: String = "sms",
@@ -43,6 +44,7 @@ data class MsgInfo(
         contactName: String = "",
         phoneArea: String = "",
         appIcon: String = "",
+        systemEnv: SystemEnvironment? = null,
     ) : this(
         type = type,
         from = from,
@@ -62,5 +64,6 @@ data class MsgInfo(
         contactName = contactName,
         phoneArea = phoneArea,
         appIcon = appIcon,
+        systemEnv = systemEnv,
     )
 }

@@ -374,7 +374,7 @@ class EventPipeline(
         val envSnapshot = systemInfoProvider.getSnapshot(effectiveConfig.deviceName)
         val dispatchContext = DispatchPayloadContext.from(dispatchEvent)
         val renderedContent = messageFormatter.format(dispatchEvent, dispatchContext, effectiveConfig, envSnapshot)
-        return dispatchContext.toMsgInfo(dispatchEvent, renderedContent)
+        return dispatchContext.toMsgInfo(dispatchEvent, renderedContent, envSnapshot)
     }
 
     private fun resolveTemplate(config: ForwardCommonConfig): String {

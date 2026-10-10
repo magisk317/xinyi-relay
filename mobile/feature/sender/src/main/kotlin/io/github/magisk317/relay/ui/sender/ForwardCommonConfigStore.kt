@@ -158,7 +158,7 @@ IP地址列表：{{IP_LIST}}
             "UID" to "",
             "PACKAGE_NAME" to packageName,
             "APP_NAME" to appName,
-            "TITLE" to renderedMsgInfo.title.ifBlank { renderedMsgInfo.simInfo.ifBlank { renderedMsgInfo.from } },
+            "TITLE" to renderedMsgInfo.title.ifBlank { renderedMsgInfo.simInfo.trim().ifBlank { renderedMsgInfo.from } },
             "MSG" to renderedMsgInfo.message.ifBlank { renderedMsgInfo.content },
             "BATTERY_PCT" to batterySnapshot.percent,
             "BATTERY_STATUS" to batterySnapshot.status,

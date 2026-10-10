@@ -3,6 +3,7 @@ package io.github.magisk317.relay.engine.service
 import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.engine.event.RelayEvent
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
+import io.github.magisk317.relay.engine.model.CallTypeLabelFormatter
 import io.github.magisk317.relay.engine.model.SystemEnvironment
 import io.github.magisk317.smscode.runtime.contract.sim.SimSlotLabelFormatter
 import java.text.SimpleDateFormat
@@ -14,7 +15,6 @@ class MessageFormatter(
     private val simSlotRemarkResolver: suspend (Int) -> String = { "" },
 ) {
     private companion object {
-        private const val CALL_TYPE_ANSWERED_EXTERNALLY = 7
         private const val TIME_PATTERN = "yyyy.MM.dd HH:mm:ss"
         private val EMPTY_VALUE_LINE_REGEX = Regex("^[^:：\\n]+[:：]\\s*$")
         private val DEFAULT_TEMPLATE = """
@@ -59,7 +59,7 @@ class MessageFormatter(
             "CODE" to event.smsCode.orEmpty(),
             "CARD_SLOT" to resolveCardSlot(event, payloadContext),
             "CARD_SUBID" to if (event.subId > 0) event.subId.toString() else "",
-            "CALL_TYPE" to resolveCallTypeLabel(event.callType),
+            "CALL_TYPE" to CallTypeLabelFormatter.format(event.callType),
             "CONTACT_NAME" to event.contactName,
             "PHONE_AREA" to event.phoneArea,
             "PACKAGE_NAME" to event.packageName,
@@ -110,19 +110,6 @@ class MessageFormatter(
         }
         if (payloadContext.appName.isNotBlank() && event.companyOrAppName.isNotBlank()) return event.companyOrAppName
         return ""
-    }
-
-    private fun resolveCallTypeLabel(callType: Int): String {
-        return when (callType) {
-            1 -> "来电"
-            2 -> "去电"
-            3 -> "未接"
-            4 -> "语音信箱"
-            5 -> "拒接"
-            6 -> "拦截"
-            CALL_TYPE_ANSWERED_EXTERNALLY -> "异地接听"
-            else -> ""
-        }
     }
 
     private fun removeEmptyValueLines(text: String): String {

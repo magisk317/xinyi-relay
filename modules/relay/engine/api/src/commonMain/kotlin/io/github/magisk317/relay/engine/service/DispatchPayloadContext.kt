@@ -3,6 +3,7 @@ package io.github.magisk317.relay.engine.service
 import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.engine.event.RelayEvent
 import io.github.magisk317.relay.engine.model.MsgInfo
+import io.github.magisk317.relay.engine.model.SystemEnvironment
 import kotlin.time.Instant
 
 data class DispatchPayloadContext(
@@ -13,6 +14,7 @@ data class DispatchPayloadContext(
     fun toMsgInfo(
         event: RelayEvent,
         content: String = event.body,
+        systemEnv: SystemEnvironment? = null,
     ): MsgInfo {
         return MsgInfo(
             type = event.messageType.runtimeType,
@@ -32,6 +34,7 @@ data class DispatchPayloadContext(
             contactName = event.contactName,
             phoneArea = event.phoneArea,
             appIcon = event.appIcon,
+            systemEnv = systemEnv,
         )
     }
 
