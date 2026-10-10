@@ -118,14 +118,15 @@ android {
         buildConfigField("String", "MOBILE_ENTITLEMENT_SIGNING_PUBLIC_JWK", buildConfigString(mobileEntitlementSigningPublicJwk))
     }
 
+    // MOBILE_ENTITLEMENT_CHANNEL and ENABLE_MOBILE_ENTITLEMENT come from the
+    // magisk.mobile.gate plugin, so the app and the library modules the hook
+    // process runs from cannot drift apart.
     productFlavors {
         getByName("play") {
             buildConfigField("boolean", "ENABLE_STANDARD_MODE_SERVICE", "false")
-            buildConfigField("String", "MOBILE_ENTITLEMENT_CHANNEL", "\"play\"")
         }
         getByName("github") {
             buildConfigField("boolean", "ENABLE_STANDARD_MODE_SERVICE", "true")
-            buildConfigField("String", "MOBILE_ENTITLEMENT_CHANNEL", "\"sideload\"")
         }
     }
 

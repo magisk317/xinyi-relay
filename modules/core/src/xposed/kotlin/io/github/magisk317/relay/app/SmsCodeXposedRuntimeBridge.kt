@@ -51,6 +51,9 @@ object SmsCodeXposedRuntimeBridge {
                         "os.name" to "android",
                         "os.version" to Build.VERSION.RELEASE,
                         "os.api_level" to Build.VERSION.SDK_INT.toString(),
+                        // Lets the cloud side split play from sideload installs,
+                        // which share version and commit.
+                        "distribution.channel" to io.github.magisk317.relay.core.BuildConfig.MOBILE_ENTITLEMENT_CHANNEL,
                     ),
             ),
         )
