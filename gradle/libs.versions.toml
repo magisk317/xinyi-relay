@@ -78,8 +78,8 @@ jetbrains-compose = "1.13.0-alpha02"
 zxing = "3.5.4"
 google-id = "1.2.1"
 mobile-entitlement = "0.3.0"
-versionCode = "51"
-versionName = "0.3.0"
+versionCode = "52"
+versionName = "0.3.1"
 matrix-sdk-android = "26.09.28"
 
 [libraries]

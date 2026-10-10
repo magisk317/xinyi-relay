@@ -3,6 +3,13 @@
 本日志记录了项目近期的主要变更。 
 
 ---
+## [v0.3.1] - Unreleased
+- 版本：`versionCode 52` / `versionName 0.3.1`。
+- 下一轮开发占位，发布前补充具体变更。
+
+> Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.3.0...v0.3.1
+
+---
 ## [v0.3.0] - 2026-10-10
 - 版本：`versionCode 51` / `versionName 0.3.0`。
 - `[fix]` 修复数据库升级迁移（Room v33）与历史数据结构兼容。
