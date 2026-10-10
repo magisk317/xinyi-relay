@@ -3,6 +3,9 @@ plugins {
     id("relay.android.common")
     alias(libs.plugins.kotlin.serialization)
     id(libs.plugins.kotlin.parcelize.get().pluginId)
+    // Carries the distribution identity (gate flag + channel) that the
+    // exported diagnostics attributes report alongside version and commit.
+    id("magisk.mobile.gate")
 }
 
 val allowConflictBypass = findProperty("allowConflictBypass")

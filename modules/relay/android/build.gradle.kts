@@ -4,6 +4,11 @@ plugins {
     id(libs.plugins.kotlin.serialization.get().pluginId)
     id(libs.plugins.kotlin.parcelize.get().pluginId)
     id("relay.android.common")
+    // The hook process evaluates the entitlement gate from this module
+    // (PrefsReader), so it must carry the distribution flag the app decides
+    // with. Without it the play flavor's gate-off never reaches the hook
+    // boundary, which keeps enforcing a signed lease play never issues.
+    id("magisk.mobile.gate")
 }
 
 val mobileEntitlementApiOrigin = providers.gradleProperty("mobileEntitlementApiOrigin")

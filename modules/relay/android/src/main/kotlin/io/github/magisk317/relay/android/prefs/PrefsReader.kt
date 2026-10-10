@@ -259,6 +259,15 @@ object PrefsReader {
     }
 
     fun mobileAutomationAllowed(context: Context): Boolean {
+        // Play distributions ship the gate off: the app publishes an
+        // always-allowed snapshot with no token, and MobileEntitlementGate
+        // returns the token verification result for an always-allowed state --
+        // which denies with "missing_token" under an enforced policy. The hook
+        // boundary must short-circuit before the gate, the same way the app
+        // process does in AutoInputAccessibilityService.
+        if (!BuildConfig.ENABLE_MOBILE_ENTITLEMENT) {
+            return true
+        }
         val state = MobileEntitlementPublishedState(
             automationAllowed = getBooleanViaProvider(
                 context,
