@@ -28,21 +28,21 @@ bash "$TOOLKIT_DIR/gradle/run_gradle_with_retry.sh" \
   :magisk-xposed-kit:testDebugUnitTest \
   :magisk-xposed-kit:logging:testDebugUnitTest \
   :magisk-xposed-kit:diagnostics:testDebugUnitTest \
-  :xpbridge:core:compileGithubNoE2eeDebugKotlin \
-  :hook:entry:testGithubNoE2eeDebugUnitTest \
-  :runtime:testGithubNoE2eeDebugUnitTest \
-  :relay:sender:testGithubNoE2eeDebugUnitTest \
-  :core:testGithubNoE2eeDebugUnitTest \
-  :core:koverHtmlReportGithubNoE2eeDebug \
-  :core:compileGithubNoE2eeDebugKotlin \
+  :xpbridge:core:compileGithubDebugKotlin \
+  :hook:entry:testGithubDebugUnitTest \
+  :runtime:testGithubDebugUnitTest \
+  :relay:sender:testGithubDebugUnitTest \
+  :core:testGithubDebugUnitTest \
+  :core:koverHtmlReportGithubDebug \
+  :core:compileGithubDebugKotlin \
   :app:detekt
 
 bash "$TOOLKIT_DIR/gradle/run_gradle_with_retry.sh" \
   --no-configuration-cache \
   "${gradle_args[@]}" \
-  :app:testGithubNoE2eeDebugUnitTest
+  :app:testGithubDebugUnitTest
 
 bash "$TOOLKIT_DIR/gradle/run_gradle_with_retry.sh" \
   --no-configuration-cache \
   "${gradle_args[@]}" \
-  :app:lintReportGithubNoE2eeDebug
+  :app:lintReportGithubDebug

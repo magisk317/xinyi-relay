@@ -1,5 +1,61 @@
+import java.io.File
 import org.gradle.api.credentials.HttpHeaderCredentials
 import org.gradle.authentication.http.HttpHeaderAuthentication
+
+/**
+ * Detect which auth header the given GitLab token validates under.
+ *
+ * GitLab accepts the same token under two headers, but not every token type
+ * is accepted under both: classic PATs / project tokens / OAuth tokens all
+ * work with `Authorization: Bearer`, while some legacy setups only accept
+ * `Private-Token`. We probe once (HEAD on a known private artifact) and cache
+ * the winner per token, so a single settings.gradle.kts auto-adapts to
+ * whatever token the host supplies (e.g. lzc vs server) — no manual header
+ * guesswork. Any failure (offline, timeout, unexpected response) safely
+ * falls back to `Authorization: Bearer`, which is the superset accepted by
+ * every GitLab personal/group token.
+ */
+fun resolveGitlabAuthHeader(token: String): Pair<String, String> {
+    val cacheFile = File(System.getProperty("user.home"), ".gradle/gitlab_auth_header_cache")
+    val key = token.hashCode().toString()
+    runCatching {
+        if (cacheFile.exists()) {
+            cacheFile.readLines()
+                .firstOrNull { it.startsWith("$key=") }
+                ?.substringAfter("=")
+                ?.let { name ->
+                    val value = if (name == "Authorization") "Bearer $token" else token
+                    return name to value
+                }
+        }
+    }
+    val probeUrl = "https://gitlab.com/api/v4/projects/85187820/packages/maven/" +
+        "com/magisk317/mobile/entitlement-android/0.2.1/entitlement-android-0.2.1.pom"
+    val candidates = listOf("Authorization" to "Bearer $token", "Private-Token" to token)
+    var chosen: Pair<String, String>? = null
+    for ((name, value) in candidates) {
+        val ok = runCatching {
+            (java.net.URL(probeUrl).openConnection() as java.net.HttpURLConnection).let { conn ->
+                conn.requestMethod = "HEAD"
+                conn.setRequestProperty(name, value)
+                conn.connectTimeout = 4000
+                conn.readTimeout = 4000
+                val code = conn.responseCode
+                conn.disconnect()
+                code != 401
+            }
+        }.getOrElse { false }
+        if (ok) { chosen = name to value; break }
+    }
+    val result = chosen ?: ("Authorization" to "Bearer $token")
+    runCatching {
+        cacheFile.parentFile?.mkdirs()
+        val kept = runCatching { cacheFile.readLines() }.getOrElse { emptyList() }
+            .filter { !it.startsWith("$key=") } + listOf("$key=${result.first}")
+        cacheFile.writeText(kept.takeLast(20).joinToString("\n"))
+    }
+    return result
+}
 
 pluginManagement {
     includeBuild("build-logic")
@@ -52,9 +108,10 @@ mavenCentral()
                     }
                 }
                 !privateToken.isNullOrBlank() -> {
+                    val (headerName, headerValue) = resolveGitlabAuthHeader(privateToken)
                     credentials(HttpHeaderCredentials::class) {
-                        name = "Private-Token"
-                        value = privateToken
+                        name = headerName
+                        value = headerValue
                     }
                     authentication {
                         create<HttpHeaderAuthentication>("header")
@@ -103,9 +160,10 @@ mavenCentral()
                     create<HttpHeaderAuthentication>("header")
                 }
             } else if (!privateToken.isNullOrBlank()) {
+                val (headerName, headerValue) = resolveGitlabAuthHeader(privateToken)
                 credentials(HttpHeaderCredentials::class) {
-                    name = "Private-Token"
-                    value = privateToken
+                    name = headerName
+                    value = headerValue
                 }
                 authentication {
                     create<HttpHeaderAuthentication>("header")
@@ -166,6 +224,7 @@ include(
     ":magisk-xposed-kit:diagnostics",
     ":magisk-xposed-kit:permission",
     ":features:matrix_e2ee",
+    ":features:matrix_e2ee_plugin",
 )
 
 // Explicitly remap moved smscode-core physical paths
@@ -199,6 +258,7 @@ project(":runtime").projectDir = file("modules/runtime")
 project(":xpbridge:core").projectDir = file("modules/xpbridge/core")
 project(":xpbridge:android:api").projectDir = file("modules/xpbridge/android/api")
 project(":features:matrix_e2ee").projectDir = file("features/matrix-e2ee")
+project(":features:matrix_e2ee_plugin").projectDir = file("features/matrix-e2ee-plugin")
 
 // Map intermediate projects so Gradle knows their directories
 project(":hook").projectDir = file("modules/hook")
