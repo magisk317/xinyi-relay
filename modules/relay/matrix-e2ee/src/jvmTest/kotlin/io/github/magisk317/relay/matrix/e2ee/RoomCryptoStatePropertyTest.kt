@@ -2,8 +2,6 @@
 
 package io.github.magisk317.relay.matrix.e2ee
 
-import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.shouldBe
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.arbitrary
 import io.kotest.property.arbitrary.element
@@ -13,9 +11,12 @@ import io.kotest.property.arbitrary.string
 import io.kotest.property.PropTestConfig
 import io.kotest.property.checkAll
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.runBlocking
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import okhttp3.OkHttpClient
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
 
 /**
  * Property 1: 房间加密状态分类正确性
@@ -30,9 +31,9 @@ import okhttp3.OkHttpClient
  * Authentication failures are propagated. Other conditions (non-200 status, missing algorithm
  * field, different algorithm value, malformed JSON, timeout) disable encryption classification.
  */
-class RoomCryptoStatePropertyTest : FunSpec({
+class RoomCryptoStatePropertyTest {
 
-    fun newTestClient(
+    private fun newTestClient(
         connectTimeoutSeconds: Long = 5,
         readTimeoutSeconds: Long = 5,
         callTimeoutSeconds: Long = 6,
@@ -46,7 +47,7 @@ class RoomCryptoStatePropertyTest : FunSpec({
             .build()
     }
 
-    suspend fun withRoomCryptoServer(
+    private suspend fun withRoomCryptoServer(
         client: OkHttpClient = newTestClient(),
         block: suspend (MockWebServer, OkHttpClient) -> Unit,
     ) {
@@ -65,12 +66,12 @@ class RoomCryptoStatePropertyTest : FunSpec({
 
     // Generator for non-authentication HTTP status codes that are NOT 200
     // Excludes no-body statuses that can desynchronize MockWebServer's response queue.
-    val nonOkStatusCodeArb: Arb<Int> = Arb.element(
+    private val nonOkStatusCodeArb: Arb<Int> = Arb.element(
         (200..599).filter { it !in setOf(200, 204, 205, 304, 401, 403) }.toList()
     )
 
     // Generator for random JSON bodies that do NOT contain the supported algorithm
-    val invalidJsonBodyArb: Arb<String> = arbitrary { rs ->
+    private val invalidJsonBodyArb: Arb<String> = arbitrary { rs ->
         val variant = Arb.int(0..5).bind()
         when (variant) {
             0 -> {
@@ -120,7 +121,7 @@ class RoomCryptoStatePropertyTest : FunSpec({
     }
 
     // Generator for valid encrypted room response body
-    val validEncryptedBodyArb: Arb<String> = arbitrary {
+    private val validEncryptedBodyArb: Arb<String> = arbitrary {
         val extras = Arb.element(
             "",
             ""","rotation_period_ms":604800000""",
@@ -132,149 +133,161 @@ class RoomCryptoStatePropertyTest : FunSpec({
 
     // --- Property Tests ---
 
-    test("Property 1: HTTP 200 with algorithm m.megolm.v1.aes-sha2 returns encrypted true") {
-        /**
-         * **Validates: Requirements 1.2**
-         *
-         * For any valid HTTP 200 response with `algorithm == "m.megolm.v1.aes-sha2"`,
-         * the room shall be classified as encryption-enabled.
-         */
-        withRoomCryptoServer { server, client ->
-            checkAll(100, validEncryptedBodyArb) { body ->
+    /**
+     * **Validates: Requirements 1.2**
+     *
+     * For any valid HTTP 200 response with `algorithm == "m.megolm.v1.aes-sha2"`,
+     * the room shall be classified as encryption-enabled.
+     */
+    @Test
+    fun `Property 1 - HTTP 200 with algorithm m_megolm_v1_aes-sha2 returns encrypted true`() {
+        runBlocking {
+            withRoomCryptoServer { server, client ->
+                checkAll(100, validEncryptedBodyArb) { body ->
+                    RoomCryptoState.clearCache()
+                    server.enqueue(
+                        MockResponse.Builder()
+                            .code(200)
+                            .body(body)
+                            .build()
+                    )
+
+                    val result = RoomCryptoState.isRoomEncrypted(
+                        homeserver = server.url("/").toString(),
+                        accessToken = "test-token",
+                        roomId = "!room:example.com",
+                        client = client,
+                    )
+
+                    assertEquals(true, result, "unexpected classification for roomId=!room:example.com, body=$body")
+                }
+            }
+        }
+    }
+
+    /**
+     * **Validates: Requirements 1.3, 1.5**
+     *
+     * For any non-authentication HTTP error, regardless of body content,
+     * the room shall be classified as encryption-disabled.
+     */
+    @Test
+    fun `Property 1 - non-authentication HTTP error returns encrypted false`() {
+        runBlocking {
+            withRoomCryptoServer { server, client ->
+                checkAll(100, nonOkStatusCodeArb) { statusCode ->
+                    RoomCryptoState.clearCache()
+                    server.enqueue(
+                        MockResponse.Builder()
+                            .code(statusCode)
+                            .body("""{"algorithm":"m.megolm.v1.aes-sha2"}""")
+                            .build()
+                    )
+
+                    val result = RoomCryptoState.isRoomEncrypted(
+                        homeserver = server.url("/").toString(),
+                        accessToken = "test-token",
+                        roomId = "!room:example.com",
+                        client = client,
+                    )
+
+                    assertEquals(false, result, "expected encrypted=false for statusCode=$statusCode")
+                }
+            }
+        }
+    }
+
+    /**
+     * **Validates: Requirements 1.4, 1.5**
+     *
+     * For any HTTP 200 response with a body that does not contain
+     * `algorithm == "m.megolm.v1.aes-sha2"` (malformed JSON, missing field,
+     * different algorithm, non-string value, etc.), the room shall be classified
+     * as encryption-disabled.
+     */
+    @Test
+    fun `Property 1 - HTTP 200 with invalid random JSON body returns encrypted false`() {
+        runBlocking {
+            withRoomCryptoServer { server, client ->
+                checkAll(100, invalidJsonBodyArb) { body ->
+                    RoomCryptoState.clearCache()
+                    server.enqueue(
+                        MockResponse.Builder()
+                            .code(200)
+                            .body(body)
+                            .build()
+                    )
+
+                    val result = RoomCryptoState.isRoomEncrypted(
+                        homeserver = server.url("/").toString(),
+                        accessToken = "test-token",
+                        roomId = "!room:example.com",
+                        client = client,
+                    )
+
+                    assertEquals(false, result, "expected encrypted=false for body=$body")
+                }
+            }
+        }
+    }
+
+    /**
+     * **Validates: Requirements 1.2, 1.3, 1.4, 1.5**
+     *
+     * For any combination of HTTP status code and JSON body, the classification
+     * must follow the rule: encrypted=true iff (status==200 AND algorithm=="m.megolm.v1.aes-sha2").
+     *
+     * Each iteration uses a fresh MockWebServer instance to avoid response queue
+     * desynchronization that occurs when sharing a single server across many iterations.
+     */
+    @Test
+    fun `Property 1 - combined random status and body requires 200 plus supported algorithm`() {
+        runBlocking {
+            val statusCodeArb = Arb.int(200..599).filter { it !in setOf(204, 205, 304, 401, 403) }
+            val bodyArb: Arb<String> = arbitrary {
+                val useValid = Arb.element(true, false).bind()
+                if (useValid) {
+                    """{"algorithm":"m.megolm.v1.aes-sha2"}"""
+                } else {
+                    invalidJsonBodyArb.bind()
+                }
+            }
+
+            checkAll(PropTestConfig(iterations = 50), statusCodeArb, bodyArb) { statusCode, body ->
                 RoomCryptoState.clearCache()
-                server.enqueue(
-                    MockResponse.Builder()
-                        .code(200)
-                        .body(body)
-                        .build()
-                )
+                val server = MockWebServer()
+                server.start()
+                try {
+                    val roomId = "!room-${statusCode}-${body.hashCode()}:example.com"
+                    server.enqueue(
+                        MockResponse.Builder()
+                            .code(statusCode)
+                            .addHeader("Content-Length", body.toByteArray().size.toString())
+                            .body(body)
+                            .build()
+                    )
 
-                val result = RoomCryptoState.isRoomEncrypted(
-                    homeserver = server.url("/").toString(),
-                    accessToken = "test-token",
-                    roomId = "!room:example.com",
-                    client = client,
-                )
+                    val client = newTestClient(
+                        connectTimeoutSeconds = 2,
+                        readTimeoutSeconds = 2,
+                        callTimeoutSeconds = 3,
+                    )
 
-                result shouldBe true
+                    val result = RoomCryptoState.isRoomEncrypted(
+                        homeserver = server.url("/").toString(),
+                        accessToken = "test-token",
+                        roomId = roomId,
+                        client = client,
+                    )
+
+                    val expectedEncrypted = statusCode == 200 &&
+                        body.contains(""""algorithm":"m.megolm.v1.aes-sha2"""")
+
+                    assertEquals(expectedEncrypted, result, "statusCode=$statusCode, body=$body")
+                } finally {
+                    server.close()
+                }
             }
         }
     }
-
-    test("Property 1: non-authentication HTTP error returns encrypted false") {
-        /**
-         * **Validates: Requirements 1.3, 1.5**
-         *
-         * For any non-authentication HTTP error, regardless of body content,
-         * the room shall be classified as encryption-disabled.
-         */
-        withRoomCryptoServer { server, client ->
-            checkAll(100, nonOkStatusCodeArb) { statusCode ->
-                RoomCryptoState.clearCache()
-                server.enqueue(
-                    MockResponse.Builder()
-                        .code(statusCode)
-                        .body("""{"algorithm":"m.megolm.v1.aes-sha2"}""")
-                        .build()
-                )
-
-                val result = RoomCryptoState.isRoomEncrypted(
-                    homeserver = server.url("/").toString(),
-                    accessToken = "test-token",
-                    roomId = "!room:example.com",
-                    client = client,
-                )
-
-                result shouldBe false
-            }
-        }
-    }
-
-    test("Property 1: HTTP 200 with invalid random JSON body returns encrypted false") {
-        /**
-         * **Validates: Requirements 1.4, 1.5**
-         *
-         * For any HTTP 200 response with a body that does not contain
-         * `algorithm == "m.megolm.v1.aes-sha2"` (malformed JSON, missing field,
-         * different algorithm, non-string value, etc.), the room shall be classified
-         * as encryption-disabled.
-         */
-        withRoomCryptoServer { server, client ->
-            checkAll(100, invalidJsonBodyArb) { body ->
-                RoomCryptoState.clearCache()
-                server.enqueue(
-                    MockResponse.Builder()
-                        .code(200)
-                        .body(body)
-                        .build()
-                )
-
-                val result = RoomCryptoState.isRoomEncrypted(
-                    homeserver = server.url("/").toString(),
-                    accessToken = "test-token",
-                    roomId = "!room:example.com",
-                    client = client,
-                )
-
-                result shouldBe false
-            }
-        }
-    }
-
-    test("Property 1: combined random status and body requires 200 plus supported algorithm") {
-        /**
-         * **Validates: Requirements 1.2, 1.3, 1.4, 1.5**
-         *
-         * For any combination of HTTP status code and JSON body, the classification
-         * must follow the rule: encrypted=true iff (status==200 AND algorithm=="m.megolm.v1.aes-sha2").
-         *
-         * Each iteration uses a fresh MockWebServer instance to avoid response queue
-         * desynchronization that occurs when sharing a single server across many iterations.
-         */
-        val statusCodeArb = Arb.int(200..599).filter { it !in setOf(204, 205, 304, 401, 403) }
-        val bodyArb: Arb<String> = arbitrary {
-            val useValid = Arb.element(true, false).bind()
-            if (useValid) {
-                """{"algorithm":"m.megolm.v1.aes-sha2"}"""
-            } else {
-                invalidJsonBodyArb.bind()
-            }
-        }
-
-        checkAll(PropTestConfig(iterations = 50), statusCodeArb, bodyArb) { statusCode, body ->
-            RoomCryptoState.clearCache()
-            val server = MockWebServer()
-            server.start()
-            try {
-                val roomId = "!room-${statusCode}-${body.hashCode()}:example.com"
-                server.enqueue(
-                    MockResponse.Builder()
-                        .code(statusCode)
-                        .addHeader("Content-Length", body.toByteArray().size.toString())
-                        .body(body)
-                        .build()
-                )
-
-                val client = newTestClient(
-                    connectTimeoutSeconds = 2,
-                    readTimeoutSeconds = 2,
-                    callTimeoutSeconds = 3,
-                )
-
-                val result = RoomCryptoState.isRoomEncrypted(
-                    homeserver = server.url("/").toString(),
-                    accessToken = "test-token",
-                    roomId = roomId,
-                    client = client,
-                )
-
-                val expectedEncrypted = statusCode == 200 &&
-                    body.contains(""""algorithm":"m.megolm.v1.aes-sha2"""")
-
-                result shouldBe expectedEncrypted
-            } finally {
-                server.close()
-            }
-        }
-    }
-})
+}

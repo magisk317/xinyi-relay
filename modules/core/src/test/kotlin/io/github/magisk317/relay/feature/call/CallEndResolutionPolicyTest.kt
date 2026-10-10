@@ -1,213 +1,250 @@
 package io.github.magisk317.relay.feature.call
 
 import io.github.magisk317.relay.feature.call.CallEndResolutionPolicy.NumberSource
-import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.collections.shouldContainExactly
-import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 
-class CallEndResolutionPolicyTest : FunSpec({
+class CallEndResolutionPolicyTest {
 
-    test("number resolution keeps direct and recent ingress ahead of CallLog") {
-        CallEndResolutionPolicy.decide(
-            directNumber = "direct",
-            recentIngressNumber = "recent",
-            callLogNumber = "call-log",
-            completedAttemptIndex = 0,
-            retryAllowed = true,
-        ) shouldBe CallEndResolutionPolicy.Decision(
-            number = "direct",
-            source = NumberSource.Direct,
-            shouldRetry = false,
+    @Test
+    fun `number resolution keeps direct and recent ingress ahead of CallLog`() {
+        assertEquals(
+            CallEndResolutionPolicy.Decision(
+                number = "direct",
+                source = NumberSource.Direct,
+                shouldRetry = false,
+            ),
+            CallEndResolutionPolicy.decide(
+                directNumber = "direct",
+                recentIngressNumber = "recent",
+                callLogNumber = "call-log",
+                completedAttemptIndex = 0,
+                retryAllowed = true,
+            ),
         )
 
-        CallEndResolutionPolicy.decide(
-            directNumber = null,
-            recentIngressNumber = "recent",
-            callLogNumber = "call-log",
-            completedAttemptIndex = 0,
-            retryAllowed = true,
-        ).source shouldBe NumberSource.RecentIngress
+        assertEquals(
+            NumberSource.RecentIngress,
+            CallEndResolutionPolicy.decide(
+                directNumber = null,
+                recentIngressNumber = "recent",
+                callLogNumber = "call-log",
+                completedAttemptIndex = 0,
+                retryAllowed = true,
+            ).source,
+        )
     }
 
-    test("retry is allowed only while direct recent and CallLog numbers are missing") {
-        CallEndResolutionPolicy.decide(
-            directNumber = null,
-            recentIngressNumber = null,
-            callLogNumber = null,
-            completedAttemptIndex = 0,
-            retryAllowed = true,
-        ).shouldRetry shouldBe true
+    @Test
+    fun `retry is allowed only while direct recent and CallLog numbers are missing`() {
+        assertTrue(
+            CallEndResolutionPolicy.decide(
+                directNumber = null,
+                recentIngressNumber = null,
+                callLogNumber = null,
+                completedAttemptIndex = 0,
+                retryAllowed = true,
+            ).shouldRetry,
+            "Retry should be allowed when every number source is missing",
+        )
 
         listOf(
             Triple("direct", null, null),
             Triple(null, "recent", null),
             Triple(null, null, "call-log"),
         ).forEach { (direct, recent, callLog) ->
-            CallEndResolutionPolicy.decide(
-                directNumber = direct,
-                recentIngressNumber = recent,
-                callLogNumber = callLog,
-                completedAttemptIndex = 0,
-                retryAllowed = true,
-            ).shouldRetry shouldBe false
+            assertFalse(
+                CallEndResolutionPolicy.decide(
+                    directNumber = direct,
+                    recentIngressNumber = recent,
+                    callLogNumber = callLog,
+                    completedAttemptIndex = 0,
+                    retryAllowed = true,
+                ).shouldRetry,
+                "Retry should not be allowed for direct=$direct recent=$recent callLog=$callLog",
+            )
         }
     }
 
-    test("known direct or recent number skips CallLog entirely") {
-        listOf(
-            "direct" to null,
-            null to "recent",
-        ).forEach { (direct, recent) ->
+    @Test
+    fun `known direct or recent number skips CallLog entirely`() {
+        runBlocking {
+            listOf(
+                "direct" to null,
+                null to "recent",
+            ).forEach { (direct, recent) ->
+                var queryCount = 0
+                val resolution = CallEndResolver.resolve(
+                    directNumber = direct,
+                    expectedCallType = 1,
+                    retryAllowed = true,
+                    recentNumberProvider = { recent },
+                    callLogProvider = {
+                        queryCount += 1
+                        null
+                    },
+                    pause = {},
+                )
+
+                assertEquals(direct ?: recent, resolution.number)
+                assertEquals(1, resolution.attemptCount)
+                assertEquals(0, queryCount)
+            }
+        }
+    }
+
+    @Test
+    fun `resolver backs off until a delayed CallLog row appears`() {
+        runBlocking {
+            val pauses = mutableListOf<Long>()
+            val candidates = listOf<CallLogQueryHelper.RecentCall?>(
+                null,
+                null,
+                CallLogQueryHelper.RecentCall(
+                    number = "10086",
+                    callType = 2,
+                    startedAt = 10_000L,
+                ),
+            )
             var queryCount = 0
+
             val resolution = CallEndResolver.resolve(
-                directNumber = direct,
+                directNumber = null,
                 expectedCallType = 1,
                 retryAllowed = true,
-                recentNumberProvider = { recent },
+                recentNumberProvider = { null },
+                callLogProvider = { candidates[queryCount++] },
+                pause = { pauses += it },
+            )
+
+            assertEquals(
+                CallEndResolver.Resolution(
+                    number = "10086",
+                    callType = 2,
+                    source = NumberSource.CallLog,
+                    attemptCount = 3,
+                ),
+                resolution,
+            )
+            assertEquals(listOf(250L, 500L), pauses.toList())
+            assertEquals(3, queryCount)
+        }
+    }
+
+    @Test
+    fun `delayed recent ingress stops before another CallLog query`() {
+        runBlocking {
+            val pauses = mutableListOf<Long>()
+            val recentNumbers = listOf(null, "10010")
+            var recentReadCount = 0
+            var queryCount = 0
+
+            val resolution = CallEndResolver.resolve(
+                directNumber = null,
+                expectedCallType = 1,
+                retryAllowed = true,
+                recentNumberProvider = { recentNumbers[recentReadCount++] },
                 callLogProvider = {
                     queryCount += 1
                     null
                 },
-                pause = {},
+                pause = { pauses += it },
             )
 
-            resolution.number shouldBe (direct ?: recent)
-            resolution.attemptCount shouldBe 1
-            queryCount shouldBe 0
+            assertEquals("10010", resolution.number)
+            assertEquals(NumberSource.RecentIngress, resolution.source)
+            assertEquals(2, resolution.attemptCount)
+            assertEquals(listOf(250L), pauses.toList())
+            assertEquals(1, queryCount)
         }
     }
 
-    test("resolver backs off until a delayed CallLog row appears") {
-        val pauses = mutableListOf<Long>()
-        val candidates = listOf<CallLogQueryHelper.RecentCall?>(
-            null,
-            null,
-            CallLogQueryHelper.RecentCall(
-                number = "10086",
-                callType = 2,
-                startedAt = 10_000L,
-            ),
-        )
-        var queryCount = 0
-
-        val resolution = CallEndResolver.resolve(
-            directNumber = null,
-            expectedCallType = 1,
-            retryAllowed = true,
-            recentNumberProvider = { null },
-            callLogProvider = { candidates[queryCount++] },
-            pause = { pauses += it },
-        )
-
-        resolution shouldBe CallEndResolver.Resolution(
-            number = "10086",
-            callType = 2,
-            source = NumberSource.CallLog,
-            attemptCount = 3,
-        )
-        pauses.shouldContainExactly(250L, 500L)
-        queryCount shouldBe 3
-    }
-
-    test("delayed recent ingress stops before another CallLog query") {
-        val pauses = mutableListOf<Long>()
-        val recentNumbers = listOf(null, "10010")
-        var recentReadCount = 0
-        var queryCount = 0
-
-        val resolution = CallEndResolver.resolve(
-            directNumber = null,
-            expectedCallType = 1,
-            retryAllowed = true,
-            recentNumberProvider = { recentNumbers[recentReadCount++] },
-            callLogProvider = {
-                queryCount += 1
-                null
-            },
-            pause = { pauses += it },
-        )
-
-        resolution.number shouldBe "10010"
-        resolution.source shouldBe NumberSource.RecentIngress
-        resolution.attemptCount shouldBe 2
-        pauses.shouldContainExactly(250L)
-        queryCount shouldBe 1
-    }
-
-    test("missing CallLog permission disables retries") {
-        val pauses = mutableListOf<Long>()
-        var queryCount = 0
-
-        val resolution = CallEndResolver.resolve(
-            directNumber = null,
-            expectedCallType = 1,
-            retryAllowed = false,
-            recentNumberProvider = { null },
-            callLogProvider = {
-                queryCount += 1
-                null
-            },
-            pause = { pauses += it },
-        )
-
-        resolution.attemptCount shouldBe 1
-        resolution.source shouldBe NumberSource.Unavailable
-        pauses shouldBe emptyList()
-        queryCount shouldBe 0
-    }
-
-    test("retry budget is finite and uses increasing delays") {
-        val pauses = mutableListOf<Long>()
-        var queryCount = 0
-
-        val resolution = CallEndResolver.resolve(
-            directNumber = null,
-            expectedCallType = 1,
-            retryAllowed = true,
-            recentNumberProvider = { null },
-            callLogProvider = {
-                queryCount += 1
-                null
-            },
-            pause = { pauses += it },
-        )
-
-        resolution.attemptCount shouldBe CallEndResolutionPolicy.attemptDelaysMs.size
-        resolution.source shouldBe NumberSource.Unavailable
-        pauses shouldBe CallEndResolutionPolicy.attemptDelaysMs.drop(1)
-        pauses.sum() shouldBe 3_750L
-        queryCount shouldBe CallEndResolutionPolicy.attemptDelaysMs.size
-    }
-
-    test("retry wait is cancellable before a terminal resolution") {
-        coroutineScope {
-            val firstQuery = CompletableDeferred<Unit>()
+    @Test
+    fun `missing CallLog permission disables retries`() {
+        runBlocking {
+            val pauses = mutableListOf<Long>()
             var queryCount = 0
-            var completed = false
-            val job = launch {
-                CallEndResolver.resolve(
-                    directNumber = null,
-                    expectedCallType = 1,
-                    retryAllowed = true,
-                    recentNumberProvider = { null },
-                    callLogProvider = {
-                        queryCount += 1
-                        firstQuery.complete(Unit)
-                        null
-                    },
-                )
-                completed = true
-            }
 
-            firstQuery.await()
-            job.cancelAndJoin()
+            val resolution = CallEndResolver.resolve(
+                directNumber = null,
+                expectedCallType = 1,
+                retryAllowed = false,
+                recentNumberProvider = { null },
+                callLogProvider = {
+                    queryCount += 1
+                    null
+                },
+                pause = { pauses += it },
+            )
 
-            completed shouldBe false
-            queryCount shouldBe 1
+            assertEquals(1, resolution.attemptCount)
+            assertEquals(NumberSource.Unavailable, resolution.source)
+            assertEquals(emptyList<Long>(), pauses.toList())
+            assertEquals(0, queryCount)
         }
     }
-})
+
+    @Test
+    fun `retry budget is finite and uses increasing delays`() {
+        runBlocking {
+            val pauses = mutableListOf<Long>()
+            var queryCount = 0
+
+            val resolution = CallEndResolver.resolve(
+                directNumber = null,
+                expectedCallType = 1,
+                retryAllowed = true,
+                recentNumberProvider = { null },
+                callLogProvider = {
+                    queryCount += 1
+                    null
+                },
+                pause = { pauses += it },
+            )
+
+            assertEquals(CallEndResolutionPolicy.attemptDelaysMs.size, resolution.attemptCount)
+            assertEquals(NumberSource.Unavailable, resolution.source)
+            assertEquals(CallEndResolutionPolicy.attemptDelaysMs.drop(1), pauses.toList())
+            assertEquals(3_750L, pauses.sum())
+            assertEquals(CallEndResolutionPolicy.attemptDelaysMs.size, queryCount)
+        }
+    }
+
+    @Test
+    fun `retry wait is cancellable before a terminal resolution`() {
+        runBlocking {
+            coroutineScope {
+                val firstQuery = CompletableDeferred<Unit>()
+                var queryCount = 0
+                var completed = false
+                val job = launch {
+                    CallEndResolver.resolve(
+                        directNumber = null,
+                        expectedCallType = 1,
+                        retryAllowed = true,
+                        recentNumberProvider = { null },
+                        callLogProvider = {
+                            queryCount += 1
+                            firstQuery.complete(Unit)
+                            null
+                        },
+                    )
+                    completed = true
+                }
+
+                firstQuery.await()
+                job.cancelAndJoin()
+
+                assertFalse(completed, "Resolver should not complete after cancellation")
+                assertEquals(1, queryCount)
+            }
+        }
+    }
+}

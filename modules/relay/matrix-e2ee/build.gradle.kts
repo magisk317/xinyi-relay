@@ -35,7 +35,6 @@ dependencies {
     add("jvmTestImplementation", libs.okhttp.mockwebserver)
     add("jvmTestImplementation", libs.kotlinx.coroutines.core)
     add("jvmTestImplementation", libs.kotest.property)
-    add("jvmTestImplementation", libs.kotest.runner.junit5)
     add("jvmTestRuntimeOnly", libs.junit.platform.launcher)
 }
 

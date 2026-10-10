@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import java.time.LocalDateTime
+import kotlinx.datetime.LocalDateTime
 
 class ForwardSilentPeriodEvaluatorTest {
 
@@ -22,13 +22,13 @@ class ForwardSilentPeriodEvaluatorTest {
         assertTrue(
             ForwardSilentPeriodEvaluator.isMuted(
                 config,
-                LocalDateTime.of(2026, 4, 27, 10, 0),
+                LocalDateTime.parse("2026-04-27T10:00:00"),
             ),
         )
         assertFalse(
             ForwardSilentPeriodEvaluator.isMuted(
                 config,
-                LocalDateTime.of(2026, 4, 27, 18, 0),
+                LocalDateTime.parse("2026-04-27T18:00:00"),
             ),
         )
     }
@@ -45,19 +45,19 @@ class ForwardSilentPeriodEvaluatorTest {
         assertTrue(
             ForwardSilentPeriodEvaluator.isMuted(
                 config,
-                LocalDateTime.of(2026, 5, 1, 23, 0),
+                LocalDateTime.parse("2026-05-01T23:00:00"),
             ),
         )
         assertTrue(
             ForwardSilentPeriodEvaluator.isMuted(
                 config,
-                LocalDateTime.of(2026, 5, 2, 1, 0),
+                LocalDateTime.parse("2026-05-02T01:00:00"),
             ),
         )
         assertFalse(
             ForwardSilentPeriodEvaluator.isMuted(
                 config,
-                LocalDateTime.of(2026, 5, 3, 1, 0),
+                LocalDateTime.parse("2026-05-03T01:00:00"),
             ),
         )
     }

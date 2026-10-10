@@ -1,12 +1,14 @@
 package io.github.magisk317.relay.feature.call
 
-import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.shouldBe
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.list
 import io.kotest.property.arbitrary.long
 import io.kotest.property.arbitrary.map
 import io.kotest.property.checkAll
+import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 
 /**
  * Property 4: Ringing Event Deduplication
@@ -17,10 +19,10 @@ import io.kotest.property.checkAll
  * after the previous accepted event SHALL produce a dispatch payload. Events within the 8-second
  * window SHALL be silently discarded.
  */
-class CallStateMonitorDedupPropertyTest : FunSpec({
+class CallStateMonitorDedupPropertyTest {
 
     // Mirrors CallStateMonitor.RINGING_DEDUP_MS
-    val ringingDedupMs = 8_000L
+    private val ringingDedupMs = 8_000L
 
     /**
      * Simulates the dedup decision logic from CallStateMonitor.handleCallState():
@@ -30,7 +32,7 @@ class CallStateMonitorDedupPropertyTest : FunSpec({
      *
      * Returns list of booleans indicating whether each timestamp was accepted (dispatched).
      */
-    fun simulateDedup(timestamps: List<Long>): List<Boolean> {
+    private fun simulateDedup(timestamps: List<Long>): List<Boolean> {
         var lastRingingAt = 0L
         return timestamps.map { now ->
             if (now - lastRingingAt < ringingDedupMs) {
@@ -44,7 +46,7 @@ class CallStateMonitorDedupPropertyTest : FunSpec({
 
     // Generator: list of monotonically increasing positive timestamps.
     // Generate positive deltas and accumulate them to form sorted timestamps.
-    val monotoneTimestamps = Arb.list(
+    private val monotoneTimestamps = Arb.list(
         Arb.long(1L..20_000L), // deltas between 1ms and 20s
         range = 1..50,
     ).map { deltas ->
@@ -53,41 +55,51 @@ class CallStateMonitorDedupPropertyTest : FunSpec({
         deltas.runningFold(base) { acc, delta -> acc + delta }.drop(1)
     }
 
-    test("Property 4: only events >8s apart from previous accepted event produce dispatch").config(
-        invocations = 100,
-    ) {
-        checkAll(1, monotoneTimestamps) { timestamps ->
-            val results = simulateDedup(timestamps)
+    // Former kotest `.config(invocations = 100)` + `checkAll(1, ...)` folded into `checkAll(100, ...)`.
+    @Test
+    fun `Property 4 - only events over 8s apart from previous accepted event produce dispatch`() {
+        runBlocking {
+            checkAll(100, monotoneTimestamps) { timestamps ->
+                val results = simulateDedup(timestamps)
 
-            // Verify invariant: for each accepted event, it must be >8s from previous accepted
-            var lastAcceptedAt = 0L
-            timestamps.zip(results).forEach { (ts, accepted) ->
-                if (accepted) {
-                    // Accepted: gap from previous accepted must be >= ringingDedupMs
-                    (ts - lastAcceptedAt >= ringingDedupMs) shouldBe true
-                    lastAcceptedAt = ts
-                } else {
-                    // Discarded: gap from previous accepted must be < ringingDedupMs
-                    (ts - lastAcceptedAt < ringingDedupMs) shouldBe true
+                // Verify invariant: for each accepted event, it must be >8s from previous accepted
+                var lastAcceptedAt = 0L
+                timestamps.zip(results).forEach { (ts, accepted) ->
+                    if (accepted) {
+                        // Accepted: gap from previous accepted must be >= ringingDedupMs
+                        assertTrue(
+                            ts - lastAcceptedAt >= ringingDedupMs,
+                            "Accepted event at $ts has gap ${ts - lastAcceptedAt}ms from previous accepted " +
+                                "($lastAcceptedAt), expected >= ${ringingDedupMs}ms; timestamps=$timestamps",
+                        )
+                        lastAcceptedAt = ts
+                    } else {
+                        // Discarded: gap from previous accepted must be < ringingDedupMs
+                        assertTrue(
+                            ts - lastAcceptedAt < ringingDedupMs,
+                            "Discarded event at $ts has gap ${ts - lastAcceptedAt}ms from previous accepted " +
+                                "($lastAcceptedAt), expected < ${ringingDedupMs}ms; timestamps=$timestamps",
+                        )
+                    }
                 }
             }
         }
     }
 
-    test("Property 4: first event in any sequence is always accepted").config(
-        invocations = 100,
-    ) {
-        checkAll(1, monotoneTimestamps) { timestamps ->
-            val results = simulateDedup(timestamps)
-            // The first event should always be accepted because lastRingingAt starts at 0
-            // and any positive timestamp minus 0 will be >= 8000
-            results.first() shouldBe true
+    @Test
+    fun `Property 4 - first event in any sequence is always accepted`() {
+        runBlocking {
+            checkAll(100, monotoneTimestamps) { timestamps ->
+                val results = simulateDedup(timestamps)
+                // The first event should always be accepted because lastRingingAt starts at 0
+                // and any positive timestamp minus 0 will be >= 8000
+                assertTrue(results.first(), "First event should be accepted; timestamps=$timestamps")
+            }
         }
     }
 
-    test("Property 4: events within 8s window are always discarded").config(
-        invocations = 100,
-    ) {
+    @Test
+    fun `Property 4 - events within 8s window are always discarded`() {
         // Generate timestamps where all events after the first are within 8s of the first
         val clusteredTimestamps = Arb.list(
             Arb.long(1L..7_999L), // deltas within 8s window
@@ -97,11 +109,15 @@ class CallStateMonitorDedupPropertyTest : FunSpec({
             listOf(base) + deltas.map { base + it }
         }
 
-        checkAll(1, clusteredTimestamps) { timestamps ->
-            val results = simulateDedup(timestamps)
-            // First event accepted, all others within 8s should be discarded
-            results.first() shouldBe true
-            results.drop(1).forEach { it shouldBe false }
+        runBlocking {
+            checkAll(100, clusteredTimestamps) { timestamps ->
+                val results = simulateDedup(timestamps)
+                // First event accepted, all others within 8s should be discarded
+                assertTrue(results.first(), "First event should be accepted; timestamps=$timestamps")
+                results.drop(1).forEach {
+                    assertFalse(it, "Event within 8s window should be discarded; timestamps=$timestamps")
+                }
+            }
         }
     }
-})
+}

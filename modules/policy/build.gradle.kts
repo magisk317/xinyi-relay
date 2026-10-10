@@ -25,7 +25,6 @@ kotlin {
 
 dependencies {
     add("jvmTestImplementation", libs.junit.jupiter)
-    add("jvmTestImplementation", libs.kotest.runner.junit5)
     add("jvmTestImplementation", libs.kotest.property)
     add("jvmTestImplementation", libs.mockk)
     add("jvmTestRuntimeOnly", libs.junit.platform.launcher)

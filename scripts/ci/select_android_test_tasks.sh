@@ -4,15 +4,15 @@ root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 toolkit_dir="${1:-${MAGISK_CI_TOOLKIT_DIR:-$root_dir/.magisk-ci-toolkit}}"
 paths_file="${2:-}"
 mobile_test_tasks=(
-  :mobile:feature:common:testGithubNoE2eeDebugUnitTest
-  :mobile:feature:forward:testGithubNoE2eeDebugUnitTest
-  :mobile:feature:overview:testGithubNoE2eeDebugUnitTest
-  :mobile:feature:appconfig:testGithubNoE2eeDebugUnitTest
-  :mobile:feature:record:testGithubNoE2eeDebugUnitTest
-  :mobile:feature:settings:testGithubNoE2eeDebugUnitTest
-  :mobile:feature:sender:testGithubNoE2eeDebugUnitTest
-  :mobile:feature:verification:testGithubNoE2eeDebugUnitTest
-  :mobile:ui:testGithubNoE2eeDebugUnitTest
+  :mobile:feature:common:testGithubDebugUnitTest
+  :mobile:feature:forward:testGithubDebugUnitTest
+  :mobile:feature:overview:testGithubDebugUnitTest
+  :mobile:feature:appconfig:testGithubDebugUnitTest
+  :mobile:feature:record:testGithubDebugUnitTest
+  :mobile:feature:settings:testGithubDebugUnitTest
+  :mobile:feature:sender:testGithubDebugUnitTest
+  :mobile:feature:verification:testGithubDebugUnitTest
+  :mobile:ui:testGithubDebugUnitTest
 )
 core_test_tasks=(
   :smscode-core:contract:test
@@ -35,7 +35,7 @@ kmp_library_test_tasks=(
   :relay:sender:api:jvmTest
 )
 android_lib_test_tasks=(
-  :relay:sender:testGithubNoE2eeDebugUnitTest
+  :relay:sender:testGithubDebugUnitTest
 )
 desktop_test_tasks=(
   :desktop:compileKotlinJvm
@@ -45,10 +45,8 @@ desktop_test_tasks=(
   verifyStructureBoundaries
 )
 full_tasks=(
-  :app:testGithubNoE2eeDebugUnitTest
-  :app:koverHtmlReportGithubNoE2eeDebug
-  :app:testGithubWithE2eeDebugUnitTest
-  :app:koverHtmlReportGithubWithE2eeDebug
+  :app:testGithubDebugUnitTest
+  :app:koverHtmlReportGithubDebug
   "${mobile_test_tasks[@]}"
   "${core_test_tasks[@]}"
   "${kit_test_tasks[@]}"
@@ -62,11 +60,9 @@ if [[ "$(sed -n '1p' "$paths_file")" == full ]]; then printf '%s\n' "${full_task
 declare -A selected=()
 select_task() { selected["$1"]=1; }
 select_app_bucket() {
-  select_task :app:testGithubNoE2eeDebugUnitTest
-  select_task :app:koverHtmlReportGithubNoE2eeDebug
+  select_task :app:testGithubDebugUnitTest
+  select_task :app:koverHtmlReportGithubDebug
   select_task verifyStructureBoundaries
-  select_task :app:testGithubWithE2eeDebugUnitTest
-  select_task :app:koverHtmlReportGithubWithE2eeDebug
   for task in "${mobile_test_tasks[@]}"; do select_task "$task"; done
 }
 while IFS= read -r path; do

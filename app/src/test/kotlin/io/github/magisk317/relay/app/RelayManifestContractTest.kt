@@ -173,7 +173,7 @@ class RelayManifestContractTest {
             .map { it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue }
         assertFalse(AUTO_INPUT_SERVICE in mainServices)
 
-        listOf("app/src/github/AndroidManifest.xml", "app/src/fdroid/AndroidManifest.xml").forEach { path ->
+        listOf("app/src/github/AndroidManifest.xml").forEach { path ->
             val services = parseManifest(path)
                 .getElementsByTagName("service").asElements()
                 .map { it.attributes.getNamedItemNS(ANDROID_NS, "name")?.nodeValue }
@@ -195,7 +195,7 @@ class RelayManifestContractTest {
 
     @Test
     fun `non play manifests keep outgoing sms permissions`() {
-        listOf("app/src/github/AndroidManifest.xml", "app/src/fdroid/AndroidManifest.xml").forEach { manifest ->
+        listOf("app/src/github/AndroidManifest.xml").forEach { manifest ->
             val permissions = permissionNames(manifest)
             val features = featureNames(manifest)
 

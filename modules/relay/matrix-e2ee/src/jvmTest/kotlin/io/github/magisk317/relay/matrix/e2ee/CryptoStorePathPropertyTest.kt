@@ -1,11 +1,13 @@
 package io.github.magisk317.relay.matrix.e2ee
 
-import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.shouldBe
 import io.kotest.property.Arb
 import io.kotest.property.PropTestConfig
 import io.kotest.property.arbitrary.string
 import io.kotest.property.checkAll
+import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 
 /**
  * Property 3: Crypto_Store 路径派生确定性
@@ -17,37 +19,55 @@ import io.kotest.property.checkAll
  * **Validates: Requirements 2.2**
  */
 @OptIn(io.kotest.common.ExperimentalKotest::class)
-class CryptoStorePathPropertyTest : FunSpec({
+class CryptoStorePathPropertyTest {
 
-    test("Property 3: sha256Hex is deterministic - same input always produces same output") {
-        checkAll(PropTestConfig(iterations = 100), Arb.string(0..200)) { userId ->
-            val result1 = MatrixE2eeSendPolicy.sha256Hex(userId)
-            val result2 = MatrixE2eeSendPolicy.sha256Hex(userId)
-            result1 shouldBe result2
+    @Test
+    fun `Property 3 - sha256Hex is deterministic - same input always produces same output`() {
+        runBlocking {
+            checkAll(PropTestConfig(iterations = 100), Arb.string(0..200)) { userId ->
+                val result1 = MatrixE2eeSendPolicy.sha256Hex(userId)
+                val result2 = MatrixE2eeSendPolicy.sha256Hex(userId)
+                assertEquals(result2, result1, "sha256Hex must be deterministic for userId=$userId")
+            }
         }
     }
 
-    test("Property 3: derived path prefix (take 16) is deterministic for same input") {
-        checkAll(PropTestConfig(iterations = 100), Arb.string(0..200)) { userId ->
-            val path1 = MatrixE2eeSendPolicy.sha256Hex(userId).take(16)
-            val path2 = MatrixE2eeSendPolicy.sha256Hex(userId).take(16)
-            path1 shouldBe path2
+    @Test
+    fun `Property 3 - derived path prefix (take 16) is deterministic for same input`() {
+        runBlocking {
+            checkAll(PropTestConfig(iterations = 100), Arb.string(0..200)) { userId ->
+                val path1 = MatrixE2eeSendPolicy.sha256Hex(userId).take(16)
+                val path2 = MatrixE2eeSendPolicy.sha256Hex(userId).take(16)
+                assertEquals(path2, path1, "path prefix must be deterministic for userId=$userId")
+            }
         }
     }
 
-    test("Property 3: sha256Hex output is always 64 hex characters") {
-        checkAll(PropTestConfig(iterations = 100), Arb.string(0..200)) { userId ->
-            val hash = MatrixE2eeSendPolicy.sha256Hex(userId)
-            hash.length shouldBe 64
-            hash.all { it in '0'..'9' || it in 'a'..'f' } shouldBe true
+    @Test
+    fun `Property 3 - sha256Hex output is always 64 hex characters`() {
+        runBlocking {
+            checkAll(PropTestConfig(iterations = 100), Arb.string(0..200)) { userId ->
+                val hash = MatrixE2eeSendPolicy.sha256Hex(userId)
+                assertEquals(64, hash.length, "hash length for userId=$userId was: $hash")
+                assertTrue(
+                    hash.all { it in '0'..'9' || it in 'a'..'f' },
+                    "hash must be lowercase hex but was: $hash",
+                )
+            }
         }
     }
 
-    test("Property 3: derived path prefix is always exactly 16 hex characters") {
-        checkAll(PropTestConfig(iterations = 100), Arb.string(0..200)) { userId ->
-            val prefix = MatrixE2eeSendPolicy.sha256Hex(userId).take(16)
-            prefix.length shouldBe 16
-            prefix.all { it in '0'..'9' || it in 'a'..'f' } shouldBe true
+    @Test
+    fun `Property 3 - derived path prefix is always exactly 16 hex characters`() {
+        runBlocking {
+            checkAll(PropTestConfig(iterations = 100), Arb.string(0..200)) { userId ->
+                val prefix = MatrixE2eeSendPolicy.sha256Hex(userId).take(16)
+                assertEquals(16, prefix.length, "prefix length for userId=$userId was: $prefix")
+                assertTrue(
+                    prefix.all { it in '0'..'9' || it in 'a'..'f' },
+                    "prefix must be lowercase hex but was: $prefix",
+                )
+            }
         }
     }
-})
+}

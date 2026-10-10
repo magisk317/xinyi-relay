@@ -72,8 +72,9 @@ dependencies {
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.mockk)
-    testImplementation(libs.kotest.runner.junit5)
     testImplementation(libs.kotest.property)
+    testImplementation(libs.kotlinx.datetime)
+    testImplementation(libs.kotlinx.coroutines.core)
 }
 
 val verifyNoComposeUiLeak = tasks.register("verifyNoComposeUiLeak") {

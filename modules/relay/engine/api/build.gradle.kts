@@ -19,7 +19,7 @@ kotlin {
             api(project(":relay:contract"))
             api(libs.kotlinx.coroutines.core)
             api(libs.kotlinx.serialization.json)
-    implementation(libs.kotlinx.datetime)
+    api(libs.kotlinx.datetime)
         }
         androidMain.dependencies {
             api(project(":smscode-core:contract"))

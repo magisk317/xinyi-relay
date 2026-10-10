@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.sender
 
 import io.github.magisk317.relay.engine.model.MsgInfo
+import io.github.magisk317.relay.contract.model.ProxyType
 import io.github.magisk317.relay.sender.config.MatrixSetting
 import java.net.InetSocketAddress
 import java.net.Proxy
@@ -84,7 +85,7 @@ class MatrixUtilsTest {
     fun buildClient_appliesProxySetting() {
         val client = MatrixUtils.buildClient(
             MatrixSetting(
-                proxyType = Proxy.Type.SOCKS,
+                proxyType = ProxyType.SOCKS,
                 proxyHost = "127.0.0.1",
                 proxyPort = "7890",
                 proxyAuthenticator = true,

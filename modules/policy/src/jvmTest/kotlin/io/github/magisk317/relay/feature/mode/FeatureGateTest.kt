@@ -4,31 +4,42 @@ import io.github.magisk317.relay.feature.mode.FeatureGate.Feature.BLOCK_SMS
 import io.github.magisk317.relay.feature.mode.FeatureGate.Feature.KEEPALIVE_OOM_ADJ
 import io.github.magisk317.relay.feature.mode.FeatureGate.Feature.ROOT_DB_CATCHUP
 import io.github.magisk317.relay.feature.mode.FeatureGate.Feature.SMS_HOOK_INTERCEPT
-import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.shouldBe
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 
-class FeatureGateTest : FunSpec({
+class FeatureGateTest {
 
-    test("Hook-backed features need a live Xposed runtime") {
+    @Test
+    fun `Hook-backed features need a live Xposed runtime`() {
         listOf(SMS_HOOK_INTERCEPT, BLOCK_SMS, KEEPALIVE_OOM_ADJ).forEach { feature ->
-            FeatureGate.isAvailable(feature, xposedActive = true) shouldBe true
-            FeatureGate.isAvailable(feature, xposedActive = false) shouldBe false
+            assertTrue(
+                FeatureGate.isAvailable(feature, xposedActive = true),
+                "$feature should be available when Xposed is active",
+            )
+            assertFalse(
+                FeatureGate.isAvailable(feature, xposedActive = false),
+                "$feature should be unavailable when Xposed is inactive",
+            )
         }
     }
 
-    test("Root-only features need root access on top of the Xposed runtime") {
-        FeatureGate.isAvailable(ROOT_DB_CATCHUP, xposedActive = true, hasRootAccess = false) shouldBe false
-        FeatureGate.isAvailable(ROOT_DB_CATCHUP, xposedActive = true, hasRootAccess = true) shouldBe true
+    @Test
+    fun `Root-only features need root access on top of the Xposed runtime`() {
+        assertFalse(FeatureGate.isAvailable(ROOT_DB_CATCHUP, xposedActive = true, hasRootAccess = false))
+        assertTrue(FeatureGate.isAvailable(ROOT_DB_CATCHUP, xposedActive = true, hasRootAccess = true))
     }
 
-    test("An inactive Xposed runtime disables every gated feature") {
-        FeatureGate.isAvailable(SMS_HOOK_INTERCEPT, xposedActive = false, hasRootAccess = true) shouldBe false
-        FeatureGate.isAvailable(ROOT_DB_CATCHUP, xposedActive = false, hasRootAccess = true) shouldBe false
+    @Test
+    fun `An inactive Xposed runtime disables every gated feature`() {
+        assertFalse(FeatureGate.isAvailable(SMS_HOOK_INTERCEPT, xposedActive = false, hasRootAccess = true))
+        assertFalse(FeatureGate.isAvailable(ROOT_DB_CATCHUP, xposedActive = false, hasRootAccess = true))
     }
 
-    test("allAvailable requires every feature to be available") {
+    @Test
+    fun `allAvailable requires every feature to be available`() {
         val keepAlive = arrayOf(FeatureGate.Feature.KEEPALIVE_ANTI_KILL, KEEPALIVE_OOM_ADJ)
-        FeatureGate.allAvailable(xposedActive = true, *keepAlive) shouldBe true
-        FeatureGate.allAvailable(xposedActive = false, *keepAlive) shouldBe false
+        assertTrue(FeatureGate.allAvailable(xposedActive = true, *keepAlive))
+        assertFalse(FeatureGate.allAvailable(xposedActive = false, *keepAlive))
     }
-})
+}

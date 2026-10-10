@@ -6,6 +6,7 @@ import io.github.magisk317.relay.engine.sender.SenderActiveScheduleConst
 import io.github.magisk317.relay.engine.sender.SenderActiveScheduleRange
 import io.github.magisk317.relay.engine.sender.SenderActiveScheduleRule
 import io.github.magisk317.relay.engine.sender.SenderType
+import io.github.magisk317.relay.contract.model.ProxyType
 import io.github.magisk317.relay.sender.config.BarkSetting
 import io.github.magisk317.relay.sender.config.DingtalkGroupRobotSetting
 import io.github.magisk317.relay.sender.config.DingtalkInnerRobotSetting
@@ -173,7 +174,7 @@ class SenderSettingSanitizerTest {
         assertEquals("@relay:matrix.example.com", setting.username)
         assertEquals("matrix-password", setting.password)
         assertEquals("Relay", setting.titleTemplate)
-        assertEquals(java.net.Proxy.Type.SOCKS, setting.proxyType)
+        assertEquals(ProxyType.SOCKS, setting.proxyType)
         assertEquals("127.0.0.1", setting.proxyHost)
         assertEquals("7890", setting.proxyPort)
         assertEquals(true, setting.proxyAuthenticator)
@@ -228,7 +229,7 @@ class SenderSettingSanitizerTest {
         assertEquals("https://example.com/hook", setting.webServer)
         assertEquals("signing-key", setting.secret)
         assertTrue(setting.headers.isEmpty())
-        assertEquals(java.net.Proxy.Type.DIRECT, setting.proxyType)
+        assertEquals(ProxyType.DIRECT, setting.proxyType)
     }
 
     @Test
@@ -328,7 +329,7 @@ class SenderSettingSanitizerTest {
         assertEquals("ok", setting.response)
         assertEquals("a=1", setting.webParams)
         assertEquals("token", setting.headers["X-Token"])
-        assertEquals(java.net.Proxy.Type.HTTP, setting.proxyType)
+        assertEquals(ProxyType.HTTP, setting.proxyType)
         assertEquals("127.0.0.1", setting.proxyHost)
         assertEquals("8080", setting.proxyPort)
         assertTrue(setting.proxyAuthenticator)
@@ -355,7 +356,7 @@ class SenderSettingSanitizerTest {
         assertEquals("corp-id", setting.corpID)
         assertEquals("1000001", setting.agentID)
         assertEquals("corp-secret", setting.secret)
-        assertEquals(java.net.Proxy.Type.DIRECT, setting.proxyType)
+        assertEquals(ProxyType.DIRECT, setting.proxyType)
         assertEquals("", setting.proxyPort)
     }
 
@@ -476,7 +477,7 @@ class SenderSettingSanitizerTest {
         assertEquals("ww123456", weworkAgent.corpID)
         assertEquals("1000001", weworkAgent.agentID)
         assertEquals("corp-secret", weworkAgent.secret)
-        assertEquals(java.net.Proxy.Type.HTTP, weworkAgent.proxyType)
+        assertEquals(ProxyType.HTTP, weworkAgent.proxyType)
         assertEquals("https://qyapi.weixin.qq.com", weworkAgent.customizeAPI)
 
         val serverchan = SenderSettingJson.decode<ServerchanSetting>(
@@ -534,7 +535,7 @@ class SenderSettingSanitizerTest {
         assertEquals("123456:abcdefghijklmnopqrstuvwxyz", telegram.apiToken)
         assertEquals("-100123456", telegram.chatId)
         assertEquals("7", telegram.messageThreadId)
-        assertEquals(java.net.Proxy.Type.SOCKS, telegram.proxyType)
+        assertEquals(ProxyType.SOCKS, telegram.proxyType)
         assertEquals("MarkdownV2", telegram.parseMode)
 
         val sms = SenderSettingJson.decode<SmsSetting>(
@@ -606,7 +607,7 @@ class SenderSettingSanitizerTest {
         assertEquals("ding-app-key", dingtalkInner.appKey)
         assertEquals("ding-app-secret", dingtalkInner.appSecret)
         assertEquals("sampleMarkdown", dingtalkInner.msgKey)
-        assertEquals(java.net.Proxy.Type.HTTP, dingtalkInner.proxyType)
+        assertEquals(ProxyType.HTTP, dingtalkInner.proxyType)
 
         val feishuApp = SenderSettingJson.decode<FeishuAppSetting>(
             SenderSettingSanitizer.sanitizeJsonLenient(

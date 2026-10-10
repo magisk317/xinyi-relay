@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import java.time.LocalDateTime
+import kotlinx.datetime.LocalDateTime
 
 class SenderActiveScheduleEvaluatorTest {
 
@@ -24,14 +24,14 @@ class SenderActiveScheduleEvaluatorTest {
             SenderActiveScheduleEvaluator.isAllowed(
                 schedule,
                 MessageType.SMS_CODE,
-                LocalDateTime.of(2026, 4, 27, 10, 0),
+                LocalDateTime.parse("2026-04-27T10:00:00"),
             ),
         )
         assertTrue(
             SenderActiveScheduleEvaluator.isAllowed(
                 schedule,
                 MessageType.SMS_CODE,
-                LocalDateTime.of(2026, 4, 27, 19, 0),
+                LocalDateTime.parse("2026-04-27T19:00:00"),
             ),
         )
     }
@@ -51,14 +51,14 @@ class SenderActiveScheduleEvaluatorTest {
             SenderActiveScheduleEvaluator.isAllowed(
                 schedule,
                 MessageType.APP_NOTIFY,
-                LocalDateTime.of(2026, 4, 28, 9, 30),
+                LocalDateTime.parse("2026-04-28T09:30:00"),
             ),
         )
         assertFalse(
             SenderActiveScheduleEvaluator.isAllowed(
                 schedule,
                 MessageType.APP_NOTIFY,
-                LocalDateTime.of(2026, 4, 28, 19, 0),
+                LocalDateTime.parse("2026-04-28T19:00:00"),
             ),
         )
     }
@@ -75,9 +75,9 @@ class SenderActiveScheduleEvaluatorTest {
             ),
         )
 
-        assertTrue(SenderActiveScheduleEvaluator.isRuleAllowed(rule, LocalDateTime.of(2026, 4, 27, 11, 0)))
-        assertFalse(SenderActiveScheduleEvaluator.isRuleAllowed(rule, LocalDateTime.of(2026, 4, 27, 12, 30)))
-        assertTrue(SenderActiveScheduleEvaluator.isRuleAllowed(rule, LocalDateTime.of(2026, 4, 27, 14, 0)))
+        assertTrue(SenderActiveScheduleEvaluator.isRuleAllowed(rule, LocalDateTime.parse("2026-04-27T11:00:00")))
+        assertFalse(SenderActiveScheduleEvaluator.isRuleAllowed(rule, LocalDateTime.parse("2026-04-27T12:30:00")))
+        assertTrue(SenderActiveScheduleEvaluator.isRuleAllowed(rule, LocalDateTime.parse("2026-04-27T14:00:00")))
     }
 
     @Test
@@ -89,8 +89,8 @@ class SenderActiveScheduleEvaluatorTest {
             ranges = listOf(SenderActiveScheduleRange("09:00", "18:00")),
         )
 
-        assertTrue(SenderActiveScheduleEvaluator.isRuleAllowed(rule, LocalDateTime.of(2026, 4, 27, 10, 0)))
-        assertFalse(SenderActiveScheduleEvaluator.isRuleAllowed(rule, LocalDateTime.of(2026, 5, 3, 10, 0)))
+        assertTrue(SenderActiveScheduleEvaluator.isRuleAllowed(rule, LocalDateTime.parse("2026-04-27T10:00:00")))
+        assertFalse(SenderActiveScheduleEvaluator.isRuleAllowed(rule, LocalDateTime.parse("2026-05-03T10:00:00")))
     }
 
     @Test
@@ -102,9 +102,9 @@ class SenderActiveScheduleEvaluatorTest {
             ranges = listOf(SenderActiveScheduleRange("22:00", "02:00")),
         )
 
-        assertTrue(SenderActiveScheduleEvaluator.isRuleAllowed(rule, LocalDateTime.of(2026, 5, 1, 23, 0)))
-        assertTrue(SenderActiveScheduleEvaluator.isRuleAllowed(rule, LocalDateTime.of(2026, 5, 2, 1, 0)))
-        assertFalse(SenderActiveScheduleEvaluator.isRuleAllowed(rule, LocalDateTime.of(2026, 5, 3, 1, 0)))
+        assertTrue(SenderActiveScheduleEvaluator.isRuleAllowed(rule, LocalDateTime.parse("2026-05-01T23:00:00")))
+        assertTrue(SenderActiveScheduleEvaluator.isRuleAllowed(rule, LocalDateTime.parse("2026-05-02T01:00:00")))
+        assertFalse(SenderActiveScheduleEvaluator.isRuleAllowed(rule, LocalDateTime.parse("2026-05-03T01:00:00")))
     }
 
     @Test
@@ -142,14 +142,14 @@ class SenderActiveScheduleEvaluatorTest {
             SenderActiveScheduleEvaluator.isAllowed(
                 schedule,
                 MessageType.APP_NOTIFY,
-                LocalDateTime.of(2026, 4, 27, 8, 30),
+                LocalDateTime.parse("2026-04-27T08:30:00"),
             ),
         )
         assertFalse(
             SenderActiveScheduleEvaluator.isAllowed(
                 schedule,
                 MessageType.APP_NOTIFY,
-                LocalDateTime.of(2026, 4, 27, 10, 0),
+                LocalDateTime.parse("2026-04-27T10:00:00"),
             ),
         )
     }

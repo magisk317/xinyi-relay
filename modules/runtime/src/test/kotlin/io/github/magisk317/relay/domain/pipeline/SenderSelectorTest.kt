@@ -9,7 +9,7 @@ import io.github.magisk317.relay.engine.sender.SenderActiveScheduleRange
 import io.github.magisk317.relay.engine.sender.SenderActiveScheduleRule
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import java.time.LocalDateTime
+import kotlinx.datetime.LocalDateTime
 import java.util.Date
 
 class SenderSelectorTest {
@@ -49,7 +49,7 @@ class SenderSelectorTest {
     @Test
     fun selectBaseSenders_filtersByActiveScheduleAfterTargeting() {
         val selector = SenderSelector {
-            LocalDateTime.of(2026, 4, 27, 20, 0)
+            LocalDateTime.parse("2026-04-27T20:00:00")
         }
         val senders = listOf(
             sender(
@@ -97,7 +97,7 @@ class SenderSelectorTest {
     @Test
     fun buildNoEligibleReason_usesScheduleSpecificMessageWhenOnlyScheduleBlocks() {
         val selector = SenderSelector {
-            LocalDateTime.of(2026, 4, 27, 20, 0)
+            LocalDateTime.parse("2026-04-27T20:00:00")
         }
         val senders = listOf(
             sender(
