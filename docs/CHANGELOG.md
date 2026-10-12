@@ -3,6 +3,13 @@
 本日志记录了项目近期的主要变更。 
 
 ---
+## [v0.3.2] - Unreleased
+- 版本：`versionCode 53` / `versionName 0.3.2`。
+- 下一轮开发占位，发布前补充具体变更。
+
+> Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.3.1...v0.3.2
+
+---
 ## [v0.3.1] - 2026-10-12
 - 版本：`versionCode 52` / `versionName 0.3.1`。
 - `[feat]` 新增 QQ 频道激活入口，激活流程收敛为单一验证码。
