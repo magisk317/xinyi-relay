@@ -1480,11 +1480,6 @@
     <string name="status_activate_hint">請嘗試在 LSPosed 中啟用並勾選作用域</string>
     <string name="mobile_entitlement_settings_title">設備啟用狀態</string>
     <string name="mobile_entitlement_settings_summary">查看目前設備啟用與服務鑑權狀態</string>
-    <string name="mobile_entitlement_activation_token_label">一次性啟用令牌</string>
-    <string name="mobile_entitlement_activation_token_hint">請輸入 Telegram 返回的 32 位一次性啟用令牌</string>
-    <string name="mobile_entitlement_activation_token_confirm">使用令牌啟用</string>
-    <string name="mobile_entitlement_activation_token_get_hint">點擊「跳轉 Telegram」，複製機器人返回的一次性令牌後貼到這裡。</string>
-    <string name="mobile_entitlement_activation_token_invalid">請輸入有效的 32 位一次性啟用令牌</string>
     <string name="mobile_entitlement_activation_token_used">一次性啟用令牌已使用，不會保存或重複使用。</string>
     <string name="app_config_sort_mode">排序方式</string>
     <string name="pref_theme_group_navigation">導航</string>
@@ -1495,10 +1490,4 @@
     <string name="pref_bottom_bar_blur_summary">懸浮導航欄的折射模糊、隨重力高光與拖曳指示器（需 Android 13+）。</string>
     <string name="pref_bottom_bar_backdrop_title">導航欄背景捕獲</string>
     <string name="pref_bottom_bar_backdrop_summary">在裝置支援時捕獲懸浮欄下方頁面，呈現靜態液態玻璃效果。</string>
-    <string name="mobile_entitlement_qq_title">QQ 啟用</string>
-    <string name="mobile_entitlement_qq_code_label">啟用碼</string>
-    <string name="mobile_entitlement_qq_join_channel">加入 QQ 頻道</string>
-    <string name="mobile_entitlement_qq_instructions">複製啟用碼，加入 QQ 頻道後在頻道內找到機器人，傳送啟用碼或啟用連結；機器人會自動回傳一次性令牌，貼到上方輸入框即可完成啟用。</string>
-    <string name="mobile_entitlement_qq_dismiss">關閉</string>
-    <string name="mobile_entitlement_qq_entry_missing">伺服器未回傳 QQ 入口資訊，請重試。</string>
 </resources>

@@ -18,7 +18,7 @@ import io.github.magisk317.smscode.runtime.common.prefs.sharedPrefsSnapshot
 import io.github.magisk317.smscode.runtime.contract.prefs.PrefSources
 import com.magisk317.mobile.entitlement.MobileEntitlementGate
 import com.magisk317.mobile.entitlement.MobileEntitlementPublishedState
-import com.magisk317.mobile.entitlement.MobileEntitlementVerificationPolicy
+import io.github.magisk317.xposed.entitlement.MobileHookGateCheck
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.Collections
 import io.github.magisk317.xposed.logging.AnonymousInstallationId
@@ -49,14 +49,6 @@ object PrefsReader {
     @Volatile
     private var snapshotInstalled = false
     private val fallbackTraceLoggedKeys = Collections.synchronizedSet(mutableSetOf<String>())
-
-    private val mobileEntitlementPolicy
-        get() = MobileEntitlementVerificationPolicy(
-            signingPublicJwk = BuildConfig.MOBILE_ENTITLEMENT_SIGNING_PUBLIC_JWK,
-            issuer = BuildConfig.MOBILE_ENTITLEMENT_API_ORIGIN,
-            appId = "xinyi-relay",
-            enforced = true,
-        )
 
     @Volatile
     private var runtimeBridge: XpRuntimeBridge = NoopXpRuntimeBridge
@@ -258,30 +250,25 @@ object PrefsReader {
         return getBooleanViaProvider(context, PrefConst.KEY_RELAY_FEATURES_ENABLED, true)
     }
 
-    fun mobileAutomationAllowed(context: Context): Boolean {
-        // Play distributions ship the gate off: the app publishes an
-        // always-allowed snapshot with no token, and MobileEntitlementGate
-        // returns the token verification result for an always-allowed state --
-        // which denies with "missing_token" under an enforced policy. The hook
-        // boundary must short-circuit before the gate, the same way the app
-        // process does in AutoInputAccessibilityService.
-        if (!BuildConfig.ENABLE_MOBILE_ENTITLEMENT) {
-            return true
-        }
-        val state = MobileEntitlementPublishedState(
-            automationAllowed = getBooleanViaProvider(
-                context,
-                PrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
-                PrefConst.DEFAULT_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+    fun mobileAutomationAllowed(context: Context): Boolean =
+        MobileHookGateCheck.isAllowedWhenEnabled(
+            gateEnabled = BuildConfig.ENABLE_MOBILE_ENTITLEMENT,
+            state = MobileEntitlementPublishedState(
+                automationAllowed = getBooleanViaProvider(
+                    context,
+                    PrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+                    PrefConst.DEFAULT_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+                ),
+                entitlementToken = getStringViaProvider(
+                    context,
+                    PrefConst.KEY_MOBILE_ENTITLEMENT_TOKEN,
+                    "",
+                ).takeIf(String::isNotBlank),
             ),
-            entitlementToken = getStringViaProvider(
-                context,
-                PrefConst.KEY_MOBILE_ENTITLEMENT_TOKEN,
-                "",
-            ).takeIf(String::isNotBlank),
+            signingPublicJwk = BuildConfig.MOBILE_ENTITLEMENT_SIGNING_PUBLIC_JWK,
+            issuer = BuildConfig.MOBILE_ENTITLEMENT_API_ORIGIN,
+            appId = "xinyi-relay",
         )
-        return MobileEntitlementGate.isAllowed(state, mobileEntitlementPolicy)
-    }
 
     @JvmStatic
     fun autoInputCodeEnabled(context: Context): Boolean {
