@@ -15,6 +15,7 @@ data class DispatchPayloadContext(
         event: RelayEvent,
         content: String = event.body,
         systemEnv: SystemEnvironment? = null,
+        simSlotRemark: String = "",
     ): MsgInfo {
         return MsgInfo(
             type = event.messageType.runtimeType,
@@ -34,6 +35,7 @@ data class DispatchPayloadContext(
             contactName = event.contactName,
             phoneArea = event.phoneArea,
             appIcon = event.appIcon,
+            simSlotRemark = simSlotRemark,
             systemEnv = systemEnv,
         )
     }

@@ -733,20 +733,4 @@ object PrefsReader {
         return trace.source
     }
 
-    @JvmStatic
-    fun getSimSlotRemark(context: Context, simSlot: Int): String {
-        val key = when (simSlot) {
-            0 -> PrefConst.KEY_SIM_SLOT1_REMARK
-            1 -> PrefConst.KEY_SIM_SLOT2_REMARK
-            else -> return ""
-        }
-        val trace = readStringWithTrace(context, key, "")
-        XLog.w(
-            "Diag pref %s: value=[%s] source=%s default=",
-            key,
-            trace.value,
-            trace.source,
-        )
-        return trace.value.trim()
-    }
 }

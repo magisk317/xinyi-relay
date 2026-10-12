@@ -10,6 +10,12 @@ interface PreferenceDataSource {
     suspend fun getString(key: String, defaultValue: String): String
     suspend fun setString(key: String, value: String)
 
+    /**
+     * SIM 卡槽备注的唯一读取入口（slot→key 映射只此一份）：
+     * slot 0/1 返回对应备注，其他 slot 返回空串。正文与标题渲染共用。
+     */
+    suspend fun getSimSlotRemark(simSlot: Int): String
+
     suspend fun getInt(key: String, defaultValue: Int): Int
     suspend fun setInt(key: String, value: Int)
 

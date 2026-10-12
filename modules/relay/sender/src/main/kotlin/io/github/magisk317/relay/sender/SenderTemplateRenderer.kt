@@ -106,11 +106,14 @@ object SenderTemplateRenderer {
     }
 
     /**
-     * 真实卡槽：simSlot 有效时输出 SIM1/SIM2（或卡槽备注，与正文 MessageFormatter 语义一致）；
+     * 真实卡槽：simSlot 有效时与正文 MessageFormatter 走同一实现——
+     * SimSlotLabelFormatter：有备注显示备注，无备注显示 SIM1/SIM2 标签；
      * 无卡槽信息时回退 simInfo 原语义（短信签名/应用名），原样输出不加工。
      */
     private fun cardSlotValue(msgInfo: MsgInfo): String {
-        if (msgInfo.simSlot >= 0) return SimSlotLabelFormatter.format(msgInfo.simSlot)
+        if (msgInfo.simSlot >= 0) {
+            return SimSlotLabelFormatter.format(msgInfo.simSlot) { msgInfo.simSlotRemark }
+        }
         return simInfoValue(msgInfo)
     }
 

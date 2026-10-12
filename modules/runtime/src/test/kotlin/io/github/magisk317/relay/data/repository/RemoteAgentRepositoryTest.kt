@@ -686,6 +686,15 @@ private class FakeRemotePreferenceDataSource(
 
     override suspend fun getFloat(key: String, defaultValue: Float): Float = floats[key] ?: defaultValue
 
+    override suspend fun getSimSlotRemark(simSlot: Int): String {
+        val key = when (simSlot) {
+            0 -> RelayPrefConst.KEY_SIM_SLOT1_REMARK
+            1 -> RelayPrefConst.KEY_SIM_SLOT2_REMARK
+            else -> return ""
+        }
+        return strings[key] ?: ""
+    }
+
     override suspend fun setFloat(key: String, value: Float) {
         floats[key] = value
     }

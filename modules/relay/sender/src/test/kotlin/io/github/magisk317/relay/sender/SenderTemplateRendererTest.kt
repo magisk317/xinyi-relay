@@ -57,6 +57,16 @@ class SenderTemplateRendererTest {
     }
 
     @Test
+    fun renderTitle_cardSlotPrefersRemarkWhenSet() {
+        // Issue #305 场景：设置了卡槽备注时，标题与正文同一实现——优先显示备注
+        val msgInfo = message(simSlot = 0, simSlotRemark = "SIM1_中国电信_+861903231xxxx")
+
+        val title = SenderTemplateRenderer.renderTitle("短信_{{CARD_SLOT}}", msgInfo)
+
+        assertEquals("短信_SIM1_中国电信_+861903231xxxx", title)
+    }
+
+    @Test
     fun renderTitle_cardSlotFallsBackToAppNameForAppNotify() {
         // 应用通知场景 simInfo 是应用名，原样输出
         val msgInfo = message(type = "app", simInfo = "微信", simSlot = -1)
@@ -130,6 +140,7 @@ class SenderTemplateRendererTest {
         callType: Int = 0,
         contactName: String = "",
         phoneArea: String = "",
+        simSlotRemark: String = "",
         systemEnv: SystemEnvironment? = null,
     ): MsgInfo {
         return MsgInfo(
@@ -144,6 +155,7 @@ class SenderTemplateRendererTest {
             contactName = contactName,
             phoneArea = phoneArea,
             smsCode = smsCode,
+            simSlotRemark = simSlotRemark,
             systemEnv = systemEnv,
         )
     }

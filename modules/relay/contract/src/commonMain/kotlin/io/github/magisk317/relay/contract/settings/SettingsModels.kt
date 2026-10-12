@@ -229,7 +229,14 @@ data class SmsBlacklistSettingsUpdate(
 data class SimRemarkSettingsSnapshot(
     val simSlot1Remark: String,
     val simSlot2Remark: String,
-)
+) {
+    /** 卡槽备注：slot 0/1 有备注返回备注，否则空串（调用方回退到 SIM 标签）。 */
+    fun remarkFor(simSlot: Int): String = when (simSlot) {
+        0 -> simSlot1Remark
+        1 -> simSlot2Remark
+        else -> ""
+    }
+}
 
 @Serializable
 data class SimRemarkSettingsUpdate(

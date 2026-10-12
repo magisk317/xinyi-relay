@@ -2,6 +2,7 @@ package io.github.magisk317.relay.android.data.datasource
 
 import android.content.Context
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
+import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceChangeSet
 import kotlinx.coroutines.flow.Flow
@@ -41,6 +42,15 @@ class PreferenceDataSourceImpl(private val context: Context) : PreferenceDataSou
 
     override suspend fun setString(key: String, value: String) {
         AppPreferencesDataStore.setString(context, key, value)
+    }
+
+    override suspend fun getSimSlotRemark(simSlot: Int): String {
+        val key = when (simSlot) {
+            0 -> RelayPrefConst.KEY_SIM_SLOT1_REMARK
+            1 -> RelayPrefConst.KEY_SIM_SLOT2_REMARK
+            else -> return ""
+        }
+        return AppPreferencesDataStore.getString(context, key, "")
     }
 
     override suspend fun getInt(key: String, defaultValue: Int): Int {

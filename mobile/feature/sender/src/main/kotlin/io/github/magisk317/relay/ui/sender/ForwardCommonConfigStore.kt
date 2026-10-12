@@ -12,6 +12,7 @@ import android.os.BatteryManager
 import android.os.Build
 import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.android.platform.icon.AppIconEncoder
+import io.github.magisk317.relay.engine.model.CallTypeLabelFormatter
 import io.github.magisk317.smscode.runtime.contract.sim.SimSlotLabelFormatter
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.engine.model.MsgInfo
@@ -24,7 +25,6 @@ import java.util.Date
 import java.util.Locale
 
 object ForwardCommonConfigStore {
-    private const val CALL_TYPE_ANSWERED_EXTERNALLY = 7
     private const val TIME_PATTERN = "yyyy.MM.dd HH:mm:ss"
     private val EMPTY_VALUE_LINE_REGEX = Regex("^[^:：\\n]+[:：]\\s*$")
     private const val DEFAULT_TEMPLATE = """
@@ -152,7 +152,7 @@ IP地址列表：{{IP_LIST}}
             "CODE" to renderedMsgInfo.smsCode,
             "CARD_SLOT" to cardSlot,
             "CARD_SUBID" to if (renderedMsgInfo.subId > 0) renderedMsgInfo.subId.toString() else "",
-            "CALL_TYPE" to resolveCallTypeLabel(renderedMsgInfo.callType),
+            "CALL_TYPE" to CallTypeLabelFormatter.format(renderedMsgInfo.callType),
             "CONTACT_NAME" to renderedMsgInfo.contactName,
             "PHONE_AREA" to renderedMsgInfo.phoneArea,
             "UID" to "",
@@ -192,28 +192,11 @@ IP地址列表：{{IP_LIST}}
     ): String {
         if (msgInfo.simSlot >= 0) {
             return SimSlotLabelFormatter.format(msgInfo.simSlot) { slot ->
-                when (slot) {
-                    0 -> simRemarkSnapshot?.simSlot1Remark.orEmpty()
-                    1 -> simRemarkSnapshot?.simSlot2Remark.orEmpty()
-                    else -> ""
-                }
+                simRemarkSnapshot?.remarkFor(slot).orEmpty()
             }
         }
         if (messageType == MessageType.APP_NOTIFY && msgInfo.simInfo.isNotBlank()) return msgInfo.simInfo
         return ""
-    }
-
-    private fun resolveCallTypeLabel(callType: Int): String {
-        return when (callType) {
-            1 -> "来电"
-            2 -> "去电"
-            3 -> "未接"
-            4 -> "语音信箱"
-            5 -> "拒接"
-            6 -> "拦截"
-            CALL_TYPE_ANSWERED_EXTERNALLY -> "异地接听"
-            else -> ""
-        }
     }
 
     private fun removeEmptyValueLines(text: String): String {
