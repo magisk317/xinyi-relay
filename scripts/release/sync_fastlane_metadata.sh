@@ -152,3 +152,92 @@ if [[ "$MODE" == "write" ]]; then
 else
   echo "Fastlane metadata check passed for versionCode=$VERSION_CODE"
 fi
+# Fold the metadata this script just generated back into the previous commit
+# when that commit is the release commit and the only dirty paths are the ones
+# owned by this script. Pushed history is rewritten (amend + force push -- the
+# release flow force-pushes the branch anyway); unpushed history is amended in
+# place. Any other situation leaves the working tree untouched.
+fold_back_release_metadata() {
+  if [[ "$MODE" != "write" || "${FASTLANE_SYNC_FOLD_BACK:-1}" != "1" || "$STATUS" -ne 0 ]]; then
+    return 0
+  fi
+  if ! git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
+    return 0
+  fi
+
+  local head_subject
+  head_subject="$(git -C "$ROOT_DIR" log -1 --format=%s 2>/dev/null || true)"
+  if [[ ! "$head_subject" =~ ^[a-z]+\(release\): ]]; then
+    echo "FOLD-BACK: HEAD is not a release commit, skipping ($head_subject)"
+    return 0
+  fi
+
+  # Paths this script may have written, relative to the repo root.
+  local -a owned=()
+  local locale rel_changelog png rel_png
+  for locale in en-US zh-CN; do
+    rel_changelog="fastlane/metadata/android/$locale/changelogs/$VERSION_CODE.txt"
+    owned+=("$rel_changelog")
+    while IFS= read -r png; do
+      [[ -n "$png" ]] || continue
+      rel_png="${png#$ROOT_DIR/}"
+      owned+=("$rel_png")
+    done < <(find "$FASTLANE_ROOT/$locale/images/phoneScreenshots" -maxdepth 1 -type f -name '*.png' 2>/dev/null | sort)
+  done
+
+  # Every dirty path must be owned by this script; anything else (version
+  # bumps, hand edits) belongs to a different commit.
+  local -a dirty=()
+  local status_line status_path owned_path is_owned path
+  while IFS= read -r status_line; do
+    [[ -n "$status_line" ]] || continue
+    status_path="${status_line:3}"
+    if [[ "$status_path" == *" -> "* ]]; then
+      echo "FOLD-BACK: rename detected, skipping ($status_path)"
+      return 0
+    fi
+    dirty+=("$status_path")
+  done < <(git -C "$ROOT_DIR" status --porcelain)
+
+  for path in ${dirty[@]+"${dirty[@]}"}; do
+    is_owned=false
+    for owned_path in "${owned[@]}"; do
+      if [[ "$path" == "$owned_path" ]]; then
+        is_owned=true
+        break
+      fi
+    done
+    if [[ "$is_owned" != "true" ]]; then
+      echo "FOLD-BACK: unowned change present, skipping ($path)"
+      return 0
+    fi
+  done
+
+  if [[ "${#dirty[@]}" -eq 0 ]]; then
+    echo "FOLD-BACK: nothing to fold back"
+    return 0
+  fi
+
+  # Decide push behavior BEFORE amending: the amend rewrites HEAD, so the
+  # ancestry check must run against the old commit.
+  local pushed=false upstream
+  upstream="$(git -C "$ROOT_DIR" rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || true)"
+  if [[ -n "$upstream" ]] && git -C "$ROOT_DIR" merge-base --is-ancestor HEAD "$upstream" 2>/dev/null; then
+    pushed=true
+  fi
+
+  if ! git -C "$ROOT_DIR" add -- "${owned[@]}" || ! git -C "$ROOT_DIR" commit --amend --no-edit >/dev/null; then
+    echo "FOLD-BACK: amend failed, leaving the working tree as is" >&2
+    return 0
+  fi
+  echo "FOLD-BACK: amended generated metadata into: $head_subject"
+
+  if [[ "$pushed" == "true" ]]; then
+    echo "FOLD-BACK: release commit was pushed; rewriting remote history"
+    if ! git -C "$ROOT_DIR" push --force-with-lease -o ci.skip; then
+      echo "FOLD-BACK: force push failed -- resolve manually (git push --force-with-lease)" >&2
+    fi
+  fi
+}
+
+fold_back_release_metadata
